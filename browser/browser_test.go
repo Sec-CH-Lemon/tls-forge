@@ -102,8 +102,17 @@ func TestFindWhenNothingIsInstalled(t *testing.T) {
 }
 
 func TestFindOnPath(t *testing.T) {
+	// A bare name is resolved through PATH, and Windows will only resolve one
+	// that carries an extension from PATHEXT — an extensionless file is not an
+	// executable there, however its permission bits look. The candidate stays
+	// bare either way: LookPath is what appends the extension.
+	name := "acme-browser"
+	if runtime.GOOS == "windows" {
+		name += ".bat"
+	}
+
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "acme-browser"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, name), []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatalf("writing the fake: %v", err)
 	}
 	t.Setenv("PATH", dir)
@@ -113,8 +122,8 @@ func TestFindOnPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find: %v", err)
 	}
-	if filepath.Base(found.Path) != "acme-browser" {
-		t.Errorf("Path = %q", found.Path)
+	if filepath.Base(found.Path) != name {
+		t.Errorf("Path = %q, want it to end in %q", found.Path, name)
 	}
 }
 

@@ -4,11 +4,6 @@ on:
   push:
     branches: [main, development]
   pull_request:
-  # Only the browser job runs on this schedule; see the `if` on the others. It
-  # is the one check that can start failing without anyone touching the
-  # repository, because it depends on a browser that updates itself.
-  schedule:
-    - cron: '17 6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -16,7 +11,6 @@ permissions:
 
 jobs:
   go:
-    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +38,6 @@ jobs:
         run: go test ./...
 
   coverage:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -57,7 +50,6 @@ jobs:
       - run: make cover
 
   lint:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -77,7 +69,6 @@ jobs:
           version: v2.12.2
 
   node:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -92,10 +83,10 @@ jobs:
   browser:
     # Does the shipped profile still match a real browser?
     #
-    # This is the check the project exists for, and the only one that starts
+    # This is the check the project exists for, and the only one that can start
     # failing on its own: a browser update changes the handshake without
-    # changing a line of this repository. Hence the daily schedule — waiting for
-    # the next push would mean finding out at the worst moment.
+    # changing a line of this repository. Run it by hand from the Actions tab
+    # after a browser release, or wait for the next push.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

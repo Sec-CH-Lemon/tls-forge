@@ -110,13 +110,21 @@ func TestMeasureBrowserErrors(t *testing.T) {
 		t.Error("expected an error for an unknown browser")
 	}
 
-	// A launcher that starts and does nothing: the measurement must end at its
-	// deadline rather than waiting forever for a page that will never load.
-	silent := filepath.Join(t.TempDir(), "silent-browser")
-	if err := os.WriteFile(silent, []byte("#!/bin/sh\nsleep 30\n"), 0o755); err != nil {
-		t.Fatalf("writing the stand-in: %v", err)
+	// A launcher that starts and never reports a capture: the measurement must
+	// end at its deadline rather than waiting forever for a page that will never
+	// load.
+	//
+	// The test binary itself, rather than a shell script — a script with a
+	// shebang is not executable on Windows, and the failure it produced there
+	// ("executable file not found in %PATH%") was the launcher never starting,
+	// which is a different path through the code. Handed browser flags it does
+	// not know, the binary exits at once; that is fine, because what is being
+	// tested is what happens when no capture arrives.
+	silent, err := os.Executable()
+	if err != nil {
+		t.Fatalf("locating the test binary: %v", err)
 	}
-	_, err := MeasureBrowser(context.Background(), MeasureOptions{
+	_, err = MeasureBrowser(context.Background(), MeasureOptions{
 		Browser: silent, Timeout: 300 * time.Millisecond,
 	})
 	if err == nil {
