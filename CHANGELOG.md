@@ -45,6 +45,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `batch -v` prints a line for every request as it finishes: status, volume,
+  duration, attempt count when it took more than one, URL, proxy and error. On
+  standard error, stepping around the status line when one is drawing there.
+
 - The HTML report is styled with Tailwind: a lead figure for the success rate
   with a three-segment meter, a row of stat tiles, and status pills carrying a
   glyph and a word as well as a colour. Light and dark are both selected sets

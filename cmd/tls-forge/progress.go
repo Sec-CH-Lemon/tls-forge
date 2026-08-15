@@ -227,6 +227,15 @@ func (s *statusLine) Close() {
 	s.out.println(s.prog.line(now()))
 }
 
+// Log prints a line above the status line, which then redraws below it.
+func (s *statusLine) Log(text string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.clearLocked()
+	s.out.println(text)
+	s.drawLocked()
+}
+
 // Write puts a result out without the status line landing on top of it.
 //
 // The two streams can be the same terminal, and this is what keeps them from

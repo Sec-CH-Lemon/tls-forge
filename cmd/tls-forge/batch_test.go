@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 // batchServer answers every path with a body naming it, so a test can tell one
@@ -643,7 +644,7 @@ func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
 	var records []result
 	jobs := []job{{URL: server.URL + "/one"}, {URL: server.URL + "/two"}}
 	if failed := runJobs(context.Background(), jobs, clients, 2, &sink, 1, "",
-		newProgress(len(jobs)), &records); failed != 0 {
+		newProgress(len(jobs)), &records, &stderrLog{}); failed != 0 {
 		t.Fatalf("%d of the jobs failed", failed)
 	}
 
@@ -662,5 +663,178 @@ func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
 	// And the page still reaches whoever asked for the output.
 	if !strings.Contains(sink.String(), "page /one") {
 		t.Errorf("the body did not reach the output: %q", sink.String())
+	}
+}
+
+func TestVerboseLine(t *testing.T) {
+	// Fixed-width columns, so a run scrolling past stays a column of statuses
+	// rather than a paragraph.
+	for _, tc := range []struct {
+		name string
+		r    result
+		want []string
+	}{
+		{
+			"a page",
+			result{URL: "https://a/", Status: 200, Bytes: 559, Millis: 74, Attempts: 1},
+			[]string{"200", "559 B", "74ms", "https://a/"},
+		},
+		{
+			"an answer that is not the page",
+			result{URL: "https://b/", Status: 503, Millis: 797, Attempts: 1},
+			[]string{"503", "0 B", "797ms"},
+		},
+		{
+			"nothing came back, after repeats",
+			result{URL: "https://c/", Millis: 423, Attempts: 4, Error: "connection refused"},
+			// No status to print, and the attempt count earns a column.
+			[]string{"---", "x4", "connection refused"},
+		},
+		{
+			"through a proxy",
+			result{URL: "https://d/", Status: 200, Proxy: "http://p:8080", Attempts: 1},
+			[]string{"via http://p:8080"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			line := verboseLine(tc.r)
+			for _, want := range tc.want {
+				if !strings.Contains(line, want) {
+					t.Errorf("the line has no %q: %q", want, line)
+				}
+			}
+			if strings.Contains(line, "\n") {
+				t.Errorf("one request took more than one line: %q", line)
+			}
+		})
+	}
+	// An attempt count of one is not worth a number; the column stays for width.
+	if strings.Contains(verboseLine(result{URL: "https://a/", Status: 200, Attempts: 1}), "x1") {
+		t.Error("a single attempt was labelled")
+	}
+}
+
+func TestBatchVerbose(t *testing.T) {
+	server := batchServer(t)
+	code, stdout, stderr := exec(t, "batch", "-v", "--progress", "never",
+		server.URL+"/one", server.URL+"/two")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+
+	for _, want := range []string{server.URL + "/one", server.URL + "/two", "200"} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr has no %q:\n%s", want, stderr)
+		}
+	}
+	// On stderr, with everything else that is commentary, so the JSON lines
+	// stay readable by whatever is consuming them.
+	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+		var r result
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Errorf("stdout is not JSON lines: %q", line)
+		}
+	}
+}
+
+func TestBatchQuietByDefault(t *testing.T) {
+	server := batchServer(t)
+	_, _, stderr := exec(t, "batch", "--progress", "never", server.URL+"/one")
+	if strings.Contains(stderr, server.URL+"/one") {
+		t.Errorf("a request was reported without being asked for:\n%s", stderr)
+	}
+}
+
+func TestVerboseAndTheStatusLineShareTheStream(t *testing.T) {
+	// Both draw on stderr. Without the status line stepping aside they land on
+	// each other and the reader gets neither.
+	server := batchServer(t)
+	_, _, stderr := exec(t, "batch", "-v", "--progress", "always",
+		server.URL+"/one", server.URL+"/two")
+
+	// Asked of the terminal rather than of the bytes: the status line redraws
+	// in place and carries no newline, so a raw chunk holding a frame and a
+	// request's line is what correct output looks like. What matters is what
+	// ends up on screen.
+	screen := replay(stderr)
+	var reported int
+	for _, line := range screen {
+		if !strings.Contains(line, server.URL) {
+			continue
+		}
+		reported++
+		if strings.Contains(line, "running") || strings.Contains(line, "\x1b") {
+			t.Errorf("a request's line shares a row with the status line: %q", line)
+		}
+	}
+	if reported != 2 {
+		t.Errorf("%d of the 2 requests reached the screen:\n%q", reported, screen)
+	}
+	// And the status line survived to the end, under them.
+	if last := screen[len(screen)-1]; !strings.Contains(strings.Join(screen, "\n"), "2/2") {
+		t.Errorf("the status line was lost; last row %q", last)
+	}
+}
+
+// replay works out what a terminal ends up showing, given a stream that moves
+// the cursor about. \r returns to the start of the row and ESC[K erases from
+// the cursor to its end.
+func replay(stream string) []string {
+	var screen []string
+	var row []rune
+	col := 0
+	for i := 0; i < len(stream); {
+		if strings.HasPrefix(stream[i:], "\x1b[K") {
+			row = row[:col]
+			i += 3
+			continue
+		}
+		r, width := utf8.DecodeRuneInString(stream[i:])
+		i += width
+		switch r {
+		case '\r':
+			col = 0
+		case '\n':
+			screen = append(screen, string(row))
+			row, col = nil, 0
+		default:
+			if col < len(row) {
+				row[col] = r
+			} else {
+				row = append(row, r)
+			}
+			col++
+		}
+	}
+	if len(row) > 0 {
+		screen = append(screen, string(row))
+	}
+	return screen
+}
+
+func TestStderrLogWithoutAStatusLine(t *testing.T) {
+	// Several workers write here, so it takes a lock of its own when there is
+	// no status line to work around.
+	var out strings.Builder
+	log := &stderrLog{out: newPrinter(&out), on: true}
+
+	var wg sync.WaitGroup
+	for i := range 50 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			log.say(fmt.Sprintf("line %02d", i))
+		}()
+	}
+	wg.Wait()
+
+	if got := len(strings.Split(strings.TrimSpace(out.String()), "\n")); got != 50 {
+		t.Errorf("%d lines, want 50", got)
+	}
+	// Nothing is half-written into anything else.
+	for _, line := range strings.Split(strings.TrimSpace(out.String()), "\n") {
+		if len(line) != len("line 00") {
+			t.Errorf("a line came out mangled: %q", line)
+		}
 	}
 }

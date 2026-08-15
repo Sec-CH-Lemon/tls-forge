@@ -254,6 +254,7 @@ cat urls.txt | tls-forge batch                               # or standard input
 | `-o`, `--output` | write the JSON lines here instead of to the terminal |
 | `-d`, `--body-dir` | write bodies to this directory and reference them instead of inlining them |
 | `--repeat` | times to try a URL again when it does not load, 3 by default |
+| `-v`, `--verbose` | print a line for every request as it finishes |
 | `--progress` | `auto`, `always` or `never`. `auto` draws only to a terminal |
 | `-R`, `--report` | write an HTML report here. A directory gets `report-<date-time>.html` |
 | `--report-ip` | with `--report`, look up each proxy's exit address. On by default |
@@ -371,6 +372,26 @@ it is unwell.
 Interrupting the run does not wait out the pauses first.
 
 #### Watching it run
+
+`-v` prints a line for every request as it finishes:
+
+```
+$ tls-forge batch -i urls.csv -v
+  200      559 B     52ms       https://example.com/
+  ---        0 B    423ms x2    https://127.0.0.1:1/gone  connection refused
+  503        0 B    546ms       https://httpbin.org/status/503
+  200      9.9 kB   762ms       https://tls.peet.ws/api/all  via http://eu-1.proxy:8080
+```
+
+Status, volume, how long it took, how many tries it needed if more than one,
+the URL, the proxy that carried it, and what went wrong. On finishing rather
+than on starting: at any real concurrency a line per departure and a line per
+arrival interleave into something nobody reads, and what is in flight is what
+the status line below is for.
+
+It goes to standard error, like everything else that is commentary, so the JSON
+lines on standard output stay readable. When the status line is drawing there
+too, it steps aside for each of these and redraws underneath.
 
 A list of any size takes a while, so there is a status line, redrawn in place:
 

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -97,6 +98,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	bodyDir := fs.StringP("body-dir", "d", "",
 		"write bodies to this directory and reference them instead of inlining")
 	repeat := fs.Int("repeat", 3, "times to try a URL again when it does not load")
+	verbose := fs.BoolP("verbose", "v", false, "print a line for every request as it finishes")
 	showProgress := fs.String("progress", "auto",
 		"live status line on stderr: auto, always or never")
 	report := fs.StringP("report", "R", "",
@@ -161,7 +163,12 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 
 	records := make([]result, 0, len(jobs))
-	failures := runJobs(ctx, jobs, clients, *workers, sink, *repeat, *bodyDir, counts, &records)
+	// Where a run talks while it runs. Several workers write here, so it is one
+	// lock whether or not there is a status line to work around.
+	notes := &stderrLog{out: errOut, line: line, on: *verbose}
+
+	failures := runJobs(ctx, jobs, clients, *workers, sink, *repeat, *bodyDir, counts,
+		&records, notes)
 
 	// Closed here rather than deferred, so the final counts land before the
 	// summary below instead of after it.
@@ -207,6 +214,59 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		return fmt.Errorf("batch: %d of %d URLs failed", failures, len(jobs))
 	}
 	return nil
+}
+
+// stderrLog is what a run says while it runs.
+//
+// To standard error, with everything else that is commentary: standard output
+// is carrying one JSON object per URL. When a status line is drawing there too,
+// the log goes through it so the two do not land on each other; when there is
+// none, it takes a lock of its own, because several workers write here.
+type stderrLog struct {
+	mu   sync.Mutex
+	out  *printer
+	line *statusLine
+	on   bool
+}
+
+func (l *stderrLog) say(text string) {
+	if !l.on {
+		return
+	}
+	if l.line != nil {
+		l.line.Log(text)
+		return
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.out.println(text)
+}
+
+// verboseLine is one finished request.
+//
+// Printed when it finishes rather than when it starts: at any real concurrency
+// a line per departure and a line per arrival interleave into something nobody
+// reads, and what is in flight is what the status line is for. The columns are
+// fixed width so a run scrolling past stays a column of statuses rather than a
+// paragraph.
+func verboseLine(r result) string {
+	status := "---"
+	if r.Status != 0 {
+		status = strconv.Itoa(r.Status)
+	}
+	tries := "     "
+	if r.Attempts > 1 {
+		tries = fmt.Sprintf("x%-4d", r.Attempts)
+	}
+	line := fmt.Sprintf("  %-3s %10s %8s %s %s", status, humanBytes(int64(r.Bytes)),
+		preciseDuration(time.Duration(r.Millis)*time.Millisecond), tries, r.URL)
+	if r.Proxy != "" {
+		line += "  via " + r.Proxy
+	}
+	if r.Error != "" {
+		line += "  " + r.Error
+	}
+	return line
 }
 
 // repeatWait is how long to wait before trying a URL again. A variable so the
@@ -323,6 +383,7 @@ func (p *pool) close() {
 // run.
 func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 	sink io.Writer, repeat int, bodyDir string, counts *progress, records *[]result,
+	notes *stderrLog,
 ) (failures int) {
 	queue := make(chan job)
 	var writeMu sync.Mutex
@@ -337,6 +398,7 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 				counts.begin()
 				r := fetchOne(ctx, clients, j, repeat, bodyDir)
 				counts.finish(r)
+				notes.say(verboseLine(r))
 				writeMu.Lock()
 				if r.Error != "" {
 					failures++
