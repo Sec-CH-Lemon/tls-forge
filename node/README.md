@@ -1,15 +1,22 @@
 # tls-forge (Node)
 
-An HTTP client for Node whose TLS and HTTP/2 fingerprints are a real browser's.
+**A scraping HTTP client that gets past TLS fingerprinting.** It sends the
+handshake a real Chrome sends, so pages behind Cloudflare and the other
+bot-detection front doors return their content instead of a challenge.
 
 Node cannot do this on its own. Its TLS comes from OpenSSL, which offers no
 control over extension order, GREASE values or the extension set — and those are
-precisely what JA3 and JA4 hash. Chrome uses BoringSSL. So the socket moves out
-of Node into a small Go process, and Node keeps the orchestration, which is the
-part it is good at.
+precisely what JA3 and JA4 hash. Chrome uses BoringSSL, and a scraper whose
+`User-Agent` says Chrome while its handshake says Node is spotted in the first
+packet, before a byte of HTTP is read. So the socket moves out of Node into a
+small Go process, and Node keeps the orchestration, which is the part it is good
+at.
 
-See the [project README](../README.md) for what is being impersonated and how it
-is verified.
+It runs no JavaScript, so managed challenges and CAPTCHAs are a different
+problem. What it removes is the check that fires before the page is ever served.
+
+See the [project README](../README.md) for what is being impersonated and — more
+to the point — how the disguise is verified against the browser on your machine.
 
 ## Install
 

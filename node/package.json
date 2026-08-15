@@ -1,7 +1,7 @@
 {
   "name": "tls-forge",
   "version": "0.0.0-dev",
-  "description": "HTTP client for Node whose TLS and HTTP/2 fingerprints are a real browser's",
+  "description": "Scraping HTTP client for Node that gets past TLS fingerprinting \u2014 sends a real browser's JA3/JA4, HTTP/2 and header order",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -27,11 +27,18 @@
     "@sec-ch-lemon/tls-forge-win32-x64": "0.0.0-dev"
   },
   "keywords": [
+    "scraper",
+    "scraping",
+    "web-scraping",
+    "cloudflare",
+    "bot-detection",
+    "anti-bot",
     "tls",
+    "tls-fingerprint",
     "ja3",
     "ja4",
-    "fingerprint",
     "http2",
+    "fingerprint",
     "browser",
     "impersonate",
     "utls"

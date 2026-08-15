@@ -1,8 +1,13 @@
 # tls-forge
 
-An HTTP client whose TLS and HTTP/2 fingerprints are a real browser's — and a
-tool that proves it, by measuring the browser on your machine and diffing it
-against the library.
+**A scraping HTTP client that gets past TLS fingerprinting.** It sends the
+handshake a real Chrome sends — the same JA4, the same HTTP/2 settings, the same
+header order — so pages behind Cloudflare and the other bot-detection front doors
+return their content instead of a challenge.
+
+Libraries that do this generally ask you to take their word for it. This one
+proves the disguise: `tls-forge compare` opens the browser on your machine,
+measures it, measures itself, and prints the difference.
 
 ```
 $ tls-forge compare
@@ -18,21 +23,37 @@ $ tls-forge compare
 The client is indistinguishable from the browser on every field compared.
 ```
 
-## Why this exists
+## Scraping pages behind Cloudflare
 
-Go's `crypto/tls` — like Node's OpenSSL binding, like Python's `ssl` — offers no
-control over extension order, GREASE values or the extension set. Those are
-exactly what JA3 and JA4 hash. Chrome uses BoringSSL and sends something no
-stock TLS stack can produce.
+Cloudflare, DataDome, PerimeterX and Akamai all look at the TLS handshake before
+they look at anything else, because it is the cheapest signal they have: it
+arrives in the first packet, before a single byte of HTTP.
 
-So a request that says `Chrome/151` in its `User-Agent` and demonstrably is not
-Chrome in its handshake is not a slightly imperfect disguise. It is a
-contradiction between two layers of one identity, and it is trivial to detect.
+A scraper written in Go, Node or Python announces itself there. `crypto/tls`,
+Node's OpenSSL binding and Python's `ssl` offer no control over extension order,
+GREASE values or the extension set — and those are exactly what JA3 and JA4 hash.
+Chrome uses BoringSSL and sends something no stock TLS stack can produce. So a
+request whose `User-Agent` says `Chrome/151` while its handshake says Go is not
+an imperfect disguise; it is a contradiction between two layers of one identity,
+and spotting it costs the defender nothing.
+
+Send the browser's actual handshake and that check has nothing left to fire on.
+The same goes one layer up: the HTTP/2 SETTINGS, the window update and the header
+order are all fingerprinted, and a client that gets the TLS right and then sends
+its headers in alphabetical order has simply moved the tell.
+
+**Where the line is.** This removes the checks that key on *how you connect*. It
+does not run JavaScript, so a managed challenge, Turnstile or a CAPTCHA is a
+different problem — one of browser execution, not of fingerprinting. What this
+gets you is a request that no longer fails before the page is ever served, which
+on a great many sites is the entire gate.
+
+### The disguise is verified, not asserted
 
 Plenty of libraries will send a Chrome-ish handshake. What is usually missing is
-any way to check that the handshake is still Chrome's after Chrome ships an
-update — which is the moment it quietly stops being true. This library treats
-that check as the main feature:
+any way to check that it is still Chrome's after Chrome ships an update — which
+is the moment it quietly stops being true, and the moment your scraper starts
+collecting challenge pages. This library treats that check as the main feature:
 
 * **`tls-forge capture`** measures the browser installed on your machine and
   writes a profile from what it actually sent.
@@ -74,9 +95,14 @@ if err != nil {
 }
 defer client.Close()
 
-res, err := client.Get("https://example.com")
+res, err := client.Get("https://shop.example.com/product/12345")
 fmt.Println(res.Status, len(res.Body))
 ```
+
+That is the whole of it: the request goes out with Chrome's handshake, Chrome's
+HTTP/2 preamble and Chrome's headers in Chrome's order, and the body comes back
+decompressed — gzip, deflate, br and zstd, because Chrome advertises all four and
+a client that advertises them has to be able to read them.
 
 The profile supplies the browser's own headers, in the browser's own order.
 Per-request headers are layered over it: one the browser already sends keeps its
@@ -92,7 +118,7 @@ res, err := client.Do(&tlsforge.Request{
 One client is one identity: one TLS fingerprint, one cookie jar, one exit IP.
 Rotating any of them means a new client — deliberately, because a jar shared
 between two fingerprints describes a browser that changed its TLS stack
-mid-session.
+mid-session, which is not a thing that happens.
 
 ```go
 client, err := tlsforge.New(
@@ -101,6 +127,11 @@ client, err := tlsforge.New(
     tlsforge.WithTimeout(20*time.Second),
 )
 ```
+
+For scraping at any volume that is the shape to build on: a pool of clients, one
+per proxy, each keeping its own jar for as long as that identity lasts. A client
+is safe for concurrent use, so a pool of them is a pool of sessions rather than a
+pool of connections.
 
 ### Command line
 
@@ -225,19 +256,22 @@ A Node client is in [node/](node/):
 ```js
 import { Client } from 'tls-forge';
 
-const client = new Client({ profile: 'chrome' });
-const res = await client.get('https://example.com');
+const client = new Client({ profile: 'chrome', proxy: 'http://user:pass@host:8080' });
+const res = await client.get('https://shop.example.com/product/12345');
 client.close();
 ```
 
 ## Scope
 
-This is a network-layer tool. It makes a request look like it came from a
-browser. It does not run JavaScript, execute challenges or solve CAPTCHAs, and
-it is not a way around a site that has told you not to scrape it. Use it where
-you are permitted to make the requests you are making — testing your own
-anti-bot stack, measuring your own fingerprint surface, building clients for
-APIs you are entitled to use.
+A network-layer tool. It changes what a request looks like on the wire, and that
+is all it does: it runs no JavaScript, so managed challenges, Turnstile and
+CAPTCHAs are outside it. Nor does it rotate proxies, schedule crawls or parse
+HTML. It is the transport a scraper is built on, not the scraper.
+
+The usual limits still apply — robots.txt, whatever terms you agreed to, and a
+request rate that does not cost someone else their afternoon. That is the line
+every HTTP client sits on. This one simply does not announce itself in the first
+packet.
 
 ## Development
 
