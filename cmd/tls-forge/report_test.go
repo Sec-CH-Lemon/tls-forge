@@ -588,3 +588,36 @@ func TestReportFileStamp(t *testing.T) {
 		t.Errorf("%q does not sort before %q", early, stamp(when))
 	}
 }
+
+// FuzzRenderReport checks that a run's own strings cannot break the document
+// they land in.
+//
+// A URL comes from a file someone else may have written and an error message
+// from whatever the network said, and both are rendered into a page that gets
+// opened in a browser. The contract: never panic, always produce a document,
+// and never let either string out as markup.
+func FuzzRenderReport(f *testing.F) {
+	f.Add("https://example.com/", "", 200)
+	f.Add("https://x/?q=<script>alert(1)</script>", `<img src=x onerror="alert(2)">`, 0)
+	f.Add("", "", 0)
+	f.Add("\x00\xff\xfe", "\xc3\x28", 503)
+
+	f.Fuzz(func(t *testing.T, url, failure string, status int) {
+		records := []result{{URL: url, Error: failure, Status: status, Proxy: url}}
+		var html strings.Builder
+		if err := renderReport(&html, records, summarise(records, time.Second, nil), nil); err != nil {
+			t.Fatalf("renderReport: %v", err)
+		}
+		out := html.String()
+		if !strings.HasPrefix(out, "<!doctype html>") || !strings.Contains(out, "</html>") {
+			t.Fatalf("the document is not whole for %q", url)
+		}
+		// html/template escapes what it is given; this is the check that the
+		// template never puts one of these somewhere it would not.
+		for _, raw := range []string{"<script>alert(1)", `onerror="alert(2)"`} {
+			if strings.Contains(url+failure, raw) && strings.Contains(out, raw) {
+				t.Fatalf("%q was written into the document as markup", raw)
+			}
+		}
+	})
+}

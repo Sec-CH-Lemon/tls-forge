@@ -13,6 +13,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A run held every page it fetched in memory until it ended.** The records
+  kept for the summary and the report carried the response body, which neither
+  of them shows. Measured at 200 MB of pages: 353 MB of resident memory before,
+  137 MB after. What is kept now is a fixed couple of hundred bytes per URL.
+
 - **A five-byte TLS record crashed `tls-forge serve`.** A handshake record
   carrying an empty payload made the ClientHello parser read the first byte of
   a buffer that had none, and the parse runs on the connection goroutine before

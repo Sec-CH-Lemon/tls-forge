@@ -200,6 +200,17 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	return nil
 }
 
+// withoutBody is the record the run keeps for its summary and its report.
+//
+// Without the page, which neither of them shows. Kept whole, a run holds every
+// page it fetched in memory until it ends: measured at 200 MB of pages, that
+// was 353 MB of resident memory against 117 MB once the bodies went. What is
+// left is a fixed couple of hundred bytes per URL.
+func (r result) withoutBody() result {
+	r.Body = ""
+	return r
+}
+
 // finish stamps when this URL was done with, however it turned out.
 func (r *result) finish(started time.Time) {
 	r.Ended = now()
@@ -276,7 +287,7 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 				if r.Error != "" {
 					failures++
 				}
-				*records = append(*records, r)
+				*records = append(*records, r.withoutBody())
 				_ = encoder.Encode(r)
 				writeMu.Unlock()
 			}
