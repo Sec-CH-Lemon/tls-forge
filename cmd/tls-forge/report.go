@@ -107,15 +107,24 @@ type summary struct {
 	Output    string
 }
 
+// Failed means nothing came back at all; Warned that something did and it was
+// not a 2xx. On the record rather than on the row that displays it, so the
+// summary and the table cannot come to different conclusions about a 503.
+func (r result) Failed() bool { return r.Error != "" }
+
+func (r result) Warned() bool {
+	return r.Error == "" && (r.Status < 200 || r.Status > 299)
+}
+
 func summarise(records []result, elapsed time.Duration, exits map[string]egress) summary {
 	s := summary{Total: len(records), Elapsed: elapsed}
 	byProxy := map[string]*proxyStat{}
 
 	for _, r := range records {
 		switch {
-		case r.Error != "":
+		case r.Failed():
 			s.Failed++
-		case r.Status < 200 || r.Status > 299:
+		case r.Warned():
 			s.Warned++
 		default:
 			s.Succeeded++
@@ -239,24 +248,16 @@ func (r reportRow) Duration() string {
 	return preciseDuration(time.Duration(r.Millis) * time.Millisecond)
 }
 
-// Outcome, Glyph, Failed and Warned are the three states a URL can end in.
+// Outcome and Glyph are how a row shows the state Failed and Warned decide.
 //
-// Three rather than two, because a 503 is neither: something came back, and it
-// was not the page. Colour never carries this alone; the glyph and the word go
-// with it everywhere it is shown.
+// Three states rather than two, because a 503 is neither: something came back,
+// and it was not the page. Colour never carries this alone; the glyph and the
+// word go with it everywhere it is shown.
 func (r reportRow) Outcome() string {
-	if r.Error != "" {
+	if r.Failed() {
 		return "no response"
 	}
 	return fmt.Sprintf("%d", r.Status)
-}
-
-// Failed means nothing came back at all.
-func (r reportRow) Failed() bool { return r.Error != "" }
-
-// Warned means a response arrived and was not a 2xx.
-func (r reportRow) Warned() bool {
-	return r.Error == "" && (r.Status < 200 || r.Status > 299)
 }
 
 func (r reportRow) Glyph() string {
@@ -289,8 +290,50 @@ func at(t time.Time) string {
 func (r reportRow) StartedAt() string { return at(r.Started) }
 func (r reportRow) EndedAt() string   { return at(r.Ended) }
 
+// reportRowLimit bounds the table of URLs.
+//
+// A run of 100,000 measured 140 MB of HTML, which no browser opens comfortably
+// and no one reads. The JSON lines carry every row for whatever wants them all,
+// so what is dropped here is dropped from a view, not from the data.
+//
+// A variable rather than a constant so a test can lower it: reaching the limit
+// honestly would mean two thousand requests for one assertion.
+var reportRowLimit = 2_000
+
+// limitRows keeps the rows worth looking at when there are too many.
+//
+// Everything that failed or answered with something other than a page comes
+// first, because that is what a report is opened for; the rest fills what is
+// left. Never silently: the count that went is printed in the document and on
+// the terminal.
+func limitRows(records []result, limit int) (kept []result, dropped int) {
+	if len(records) <= limit {
+		return records, 0
+	}
+	var trouble, fine []result
+	for _, r := range records {
+		if r.Failed() || r.Warned() {
+			trouble = append(trouble, r)
+		} else {
+			fine = append(fine, r)
+		}
+	}
+	kept = trouble
+	if len(kept) > limit {
+		kept = kept[:limit]
+	}
+	for _, r := range fine {
+		if len(kept) >= limit {
+			break
+		}
+		kept = append(kept, r)
+	}
+	return kept, len(records) - len(kept)
+}
+
 type reportData struct {
 	Generated string
+	Dropped   int
 	Summary   summary
 	Rows      []reportRow
 	Cards     []card
@@ -399,8 +442,11 @@ func writeReport(path string, records []result, s summary, exits map[string]egre
 // what it produces can be checked without one and so the failure to write it
 // can be reached at all.
 func renderReport(w io.Writer, records []result, s summary, exits map[string]egress) error {
-	rows := make([]reportRow, 0, len(records))
-	for _, r := range records {
+	// Cut down before the display structs are built: a run of a million would
+	// otherwise materialise a million of them to show two thousand.
+	kept, dropped := limitRows(records, reportRowLimit)
+	rows := make([]reportRow, 0, len(kept))
+	for _, r := range kept {
 		rows = append(rows, reportRow{result: r, Exit: exits[r.Proxy]})
 	}
 	// By when the request went out, which is the order someone reading a run
@@ -409,6 +455,7 @@ func renderReport(w io.Writer, records []result, s summary, exits map[string]egr
 
 	data := reportData{
 		Generated: at(now()),
+		Dropped:   dropped,
 		Summary:   s,
 		Rows:      rows,
 		Cards:     cards(s),

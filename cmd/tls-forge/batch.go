@@ -174,7 +174,12 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	exits := map[string]egress{}
 	if *report != "" && *reportIP {
 		errOut.printf("asking %s which address each proxy comes out of…\n", ipService)
-		exits = lookupExits(clients, records)
+		var skipped int
+		exits, skipped = lookupExits(clients, records)
+		if skipped > 0 {
+			errOut.printf("  %d further proxies were not asked about, at %d per run\n",
+				skipped, exitLookupLimit)
+		}
 	}
 
 	elapsed := now().Sub(counts.started)
@@ -186,6 +191,10 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 			return err
 		}
 		errOut.printf("report written to %s\n", path)
+		if dropped := len(records) - reportRowLimit; dropped > 0 {
+			errOut.printf("  %d rows are in %s but not in the report\n", dropped,
+				either(*output, "the JSON lines"))
+		}
 	}
 
 	// To stderr, with everything else that is commentary rather than data.
@@ -198,6 +207,14 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		return fmt.Errorf("batch: %d of %d URLs failed", failures, len(jobs))
 	}
 	return nil
+}
+
+// either is the first of two strings that is not empty.
+func either(first, fallback string) string {
+	if first != "" {
+		return first
+	}
+	return fallback
 }
 
 // withoutBody is the record the run keeps for its summary and its report.
@@ -308,16 +325,34 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 	return failures
 }
 
+// exitLookupLimit bounds how many proxies are asked about.
+//
+// One request each, to somebody else's free service. A rotating list can name
+// thousands of proxies, and asking about every one of them would take minutes
+// and deserve the rate limit it would earn.
+//
+// A variable rather than a constant so a test can lower it, as with
+// reportRowLimit.
+var exitLookupLimit = 50
+
 // lookupExits asks the service once for each proxy that carried anything, and
 // once for the direct client if any URL went without one.
-func lookupExits(clients *pool, records []result) map[string]egress {
+//
+// Returns how many proxies were left unasked, so the caller can say so rather
+// than let the report imply that the addresses it is missing were unavailable.
+func lookupExits(clients *pool, records []result) (map[string]egress, int) {
 	seen := map[string]bool{}
 	exits := map[string]egress{}
+	skipped := 0
 	for _, r := range records {
 		if seen[r.Proxy] {
 			continue
 		}
 		seen[r.Proxy] = true
+		if len(seen) > exitLookupLimit {
+			skipped++
+			continue
+		}
 		client, err := clients.get(r.Proxy)
 		if err != nil {
 			continue
@@ -328,7 +363,7 @@ func lookupExits(clients *pool, records []result) map[string]egress {
 			exits[r.Proxy] = found
 		}
 	}
-	return exits
+	return exits, skipped
 }
 
 func fetchOne(ctx context.Context, clients *pool, j job, attempts int, bodyDir string) result {

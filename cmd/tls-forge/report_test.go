@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -620,4 +621,151 @@ func FuzzRenderReport(f *testing.F) {
 			}
 		}
 	})
+}
+
+func rowsFor(n int, failEvery int) []result {
+	start := time.Date(2026, 8, 16, 12, 0, 0, 0, time.UTC)
+	rows := make([]result, 0, n)
+	for i := range n {
+		r := result{
+			URL:     fmt.Sprintf("https://example.com/%04d", i),
+			Started: start.Add(time.Duration(i) * time.Millisecond),
+			Status:  200,
+		}
+		if failEvery > 0 && i%failEvery == 0 {
+			r.Status, r.Error = 0, "refused"
+		}
+		rows = append(rows, r)
+	}
+	return rows
+}
+
+func TestLimitRows(t *testing.T) {
+	t.Run("a table that fits is left alone", func(t *testing.T) {
+		rows := rowsFor(10, 0)
+		kept, dropped := limitRows(rows, 10)
+		if len(kept) != 10 || dropped != 0 {
+			t.Errorf("kept %d, dropped %d", len(kept), dropped)
+		}
+	})
+
+	t.Run("trouble is kept and the rest fills what is left", func(t *testing.T) {
+		// 100 rows, every tenth one a failure, room for 20.
+		kept, dropped := limitRows(rowsFor(100, 10), 20)
+		if len(kept) != 20 || dropped != 80 {
+			t.Fatalf("kept %d, dropped %d", len(kept), dropped)
+		}
+		failures := 0
+		for _, r := range kept {
+			if r.Failed() {
+				failures++
+			}
+		}
+		// All ten of them, because that is what a report is opened for.
+		if failures != 10 {
+			t.Errorf("%d of the 10 failures survived", failures)
+		}
+		// Ordering is the renderer's job, checked in TestWriteReport.
+	})
+
+	t.Run("more trouble than there is room for", func(t *testing.T) {
+		kept, dropped := limitRows(rowsFor(100, 1), 20)
+		if len(kept) != 20 || dropped != 80 {
+			t.Errorf("kept %d, dropped %d", len(kept), dropped)
+		}
+	})
+}
+
+func TestReportSaysWhatItLeftOut(t *testing.T) {
+	// Never silently: a table that quietly stops reads as a complete one.
+	records := rowsFor(reportRowLimit+5, 0)
+	var html strings.Builder
+	if err := renderReport(&html, records, summarise(records, time.Second, nil), nil); err != nil {
+		t.Fatalf("renderReport: %v", err)
+	}
+	if !strings.Contains(html.String(), "5 more rows are not shown") {
+		t.Error("the report does not say how many rows it left out")
+	}
+	if !strings.Contains(html.String(), "The URLs worth looking at") {
+		t.Error("the heading still claims to show every URL")
+	}
+}
+
+func TestLookupExitsStopsAskingAfterAWhile(t *testing.T) {
+	// One request each, to somebody else's free service. A rotating list can
+	// name thousands of proxies; asking about every one would earn the rate
+	// limit it deserves.
+	standInIPService(t, `{"ip":"203.0.113.7","country":"PL"}`, http.StatusOK)
+
+	fs := newFlagSet("batch", newPrinter(io.Discard))
+	flags := addClientFlags(fs)
+	if err := parse(fs, []string{"--insecure"}); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	clients := newPool(flags, "")
+	defer clients.close()
+
+	records := make([]result, 0, exitLookupLimit+7)
+	for i := range exitLookupLimit + 7 {
+		records = append(records, result{URL: "https://x/", Proxy: fmt.Sprintf("http://p%d:8080", i)})
+	}
+
+	exits, skipped := lookupExits(clients, records)
+	if skipped != 7 {
+		t.Errorf("skipped = %d, want 7", skipped)
+	}
+	// The ones it did ask about are unreachable proxies, so none answered; what
+	// is being checked is that it stopped asking.
+	if len(exits) != 0 {
+		t.Errorf("unreachable proxies answered: %v", exits)
+	}
+}
+
+func TestEither(t *testing.T) {
+	if got := either("results.jsonl", "the JSON lines"); got != "results.jsonl" {
+		t.Errorf("either = %q", got)
+	}
+	if got := either("", "the JSON lines"); got != "the JSON lines" {
+		t.Errorf("either = %q", got)
+	}
+}
+
+func TestBatchSaysWhatTheReportLeftOut(t *testing.T) {
+	// The caps are announced on the terminal as well as in the document. A
+	// table that quietly stops, and a set of addresses that quietly is not
+	// looked up, both read as complete.
+	original := reportRowLimit
+	t.Cleanup(func() { reportRowLimit = original })
+	reportRowLimit = 2
+
+	server := batchServer(t)
+	path := filepath.Join(t.TempDir(), "run.html")
+	urls := []string{server.URL + "/a", server.URL + "/b", server.URL + "/c", server.URL + "/d"}
+
+	args := append([]string{"batch", "--report", path, "--report-ip=false",
+		"--output", "/dev/null"}, urls...)
+	code, _, stderr := exec(t, args...)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if !strings.Contains(stderr, "2 rows are in /dev/null but not in the report") {
+		t.Errorf("stderr does not say what was left out:\n%s", stderr)
+	}
+}
+
+func TestBatchSaysWhichProxiesItDidNotAskAbout(t *testing.T) {
+	original := exitLookupLimit
+	t.Cleanup(func() { exitLookupLimit = original })
+	exitLookupLimit = 1
+
+	standInIPService(t, `{"ip":"203.0.113.7","country":"PL"}`, http.StatusOK)
+	server := batchServer(t)
+	list := writeList(t, "many.csv", fmt.Sprintf(
+		"url,proxy\n%[1]s/a,http://127.0.0.1:9001\n%[1]s/b,http://127.0.0.1:9002\n", server.URL))
+
+	path := filepath.Join(t.TempDir(), "run.html")
+	_, _, stderr := exec(t, "batch", "--input", list, "--report", path, "--timeout", "5s")
+	if !strings.Contains(stderr, "1 further proxies were not asked about") {
+		t.Errorf("stderr does not say which proxies went unasked:\n%s", stderr)
+	}
 }

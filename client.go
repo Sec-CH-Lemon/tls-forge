@@ -125,6 +125,19 @@ func New(opts ...Option) (*Client, error) {
 		tls_client.WithTimeout(int(cfg.timeout.Seconds())),
 		tls_client.WithClientProfile(clientProfile),
 		tls_client.WithCookieJar(jar),
+		// Six idle connections per host, which is Chrome's own limit for
+		// HTTP/1.1 and six times the transport's default of one.
+		//
+		// It matters twice. Above the default, a request beyond the second
+		// closes its connection when it finishes and the next one dials again,
+		// which was measured at 1726 connections for 3000 requests over eight
+		// workers. That is slow, it exhausts local ports on a long run, and a
+		// fresh handshake per request is the very signal this library exists to
+		// avoid. HTTP/2 multiplexes and never sees any of it: the same 3000
+		// requests went over two connections.
+		tls_client.WithTransportOptions(&tls_client.TransportOptions{
+			MaxIdleConnsPerHost: 6,
+		}),
 	}
 	if cfg.shuffleExtensions {
 		// Chrome randomises its extension order on every connection, so a client

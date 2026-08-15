@@ -91,7 +91,16 @@
   {{end}}
 
   <section>
-    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">Every URL</h2>
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">
+      {{if .Dropped}}The URLs worth looking at{{else}}Every URL{{end}}
+    </h2>
+    {{if .Dropped}}
+    <p class="mb-3 text-xs text-serious-ink dark:text-serious">
+      {{.Dropped}} more rows are not shown: everything that failed or answered with
+      something other than a page is here, and the rest fills what was left of a
+      table a browser can open. The JSON lines carry every row.
+    </p>
+    {{end}}
     <div class="overflow-x-auto rounded-xl border border-line dark:border-line-dark">
       <table class="w-full min-w-[72rem] border-collapse text-sm">
         <thead class="sticky top-0 bg-surface dark:bg-surface-dark">

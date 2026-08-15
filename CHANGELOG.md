@@ -13,6 +13,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **Six idle connections are kept per host instead of one.** Past the
+  transport's default, a request beyond the second closed its connection when it
+  finished and the next one dialled again: 1726 connections for 3000 requests
+  over eight workers, which is slow, exhausts local ports on a long run, and
+  makes a fresh handshake per request, the very signal this library exists to
+  avoid. Six is Chrome's own limit for HTTP/1.1. Measured after: five
+  connections for the same 3000 requests at four workers. HTTP/2 multiplexes and
+  never saw any of it.
+- The HTML report keeps at most 2,000 rows and says how many it left out.
+  A run of 100,000 wrote 140 MB of HTML that no browser opens; it is now 2.7 MB.
+  Everything that failed or answered with something other than a page is kept
+  first, and the JSON lines still carry every row.
+- Exit-address lookups stop after 50 proxies and say how many went unasked. A
+  rotating list can name thousands, and one request each to somebody else's free
+  service would take minutes and earn the rate limit.
+
 - **A run held every page it fetched in memory until it ended.** The records
   kept for the summary and the report carried the response body, which neither
   of them shows. Measured at 200 MB of pages: 353 MB of resident memory before,
