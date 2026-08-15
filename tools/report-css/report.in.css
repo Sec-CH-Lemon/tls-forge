@@ -1,0 +1,48 @@
+/* Input for the report's stylesheet.
+ *
+ * The output, report.css, is generated from this and from report.html and is
+ * committed, because the report has to stay one self-contained file: a page
+ * that fetched a stylesheet would need a network to be read, and a page that
+ * built one would need Node to be built. Users need neither; `make report-css`
+ * regenerates it, and a test fails if the template uses a class the stylesheet
+ * does not carry.
+ */
+
+@import "tailwindcss" source(none);
+@source "../../cmd/tls-forge/report.html";
+
+@theme {
+  /* Surfaces and ink. Dark is a selected set of steps for the dark surface,
+   * not an automatic inversion of the light one. */
+  --color-surface: #fcfcfb;
+  --color-surface-dark: #1a1a19;
+  --color-ink: #0b0b0b;
+  --color-ink-dark: #ffffff;
+  --color-muted: #52514e;
+  --color-muted-dark: #a8a7a0;
+  --color-line: #e2e1dc;
+  --color-line-dark: #34332f;
+
+  /* The status palette, fixed rather than themed, and never the only channel:
+   * every use below pairs it with a glyph and a word. The -ink steps are the
+   * darker ones that clear 4.5:1 as text on the light surface; the base steps
+   * are for fills and for text on the dark surface. */
+  --color-good: #0ca30c;
+  --color-good-ink: #067006;
+  --color-serious: #ec835a;
+  --color-serious-ink: #9a4a24;
+  --color-critical: #d03b3b;
+  --color-critical-ink: #b12b2b;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+/* The document carries no theme toggle, so the OS setting is the whole story. */
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+}

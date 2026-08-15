@@ -19,16 +19,18 @@ import (
 // result is one line of the output. JSON lines rather than a JSON array so the
 // output can be read as it is produced, and appended to across runs.
 type result struct {
-	URL      string `json:"url"`
-	Proxy    string `json:"proxy,omitempty"`
-	Status   int    `json:"status,omitempty"`
-	FinalURL string `json:"final_url,omitempty"`
-	Bytes    int    `json:"bytes,omitempty"`
-	Body     string `json:"body,omitempty"`
-	File     string `json:"file,omitempty"`
-	Millis   int64  `json:"ms"`
-	Attempts int    `json:"attempts,omitempty"`
-	Error    string `json:"error,omitempty"`
+	URL      string    `json:"url"`
+	Proxy    string    `json:"proxy,omitempty"`
+	Status   int       `json:"status,omitempty"`
+	FinalURL string    `json:"final_url,omitempty"`
+	Bytes    int       `json:"bytes,omitempty"`
+	Body     string    `json:"body,omitempty"`
+	File     string    `json:"file,omitempty"`
+	Started  time.Time `json:"started"`
+	Ended    time.Time `json:"ended"`
+	Millis   int64     `json:"ms"`
+	Attempts int       `json:"attempts,omitempty"`
+	Error    string    `json:"error,omitempty"`
 }
 
 // batchInput is os.Stdin, named so a test can supply a list.
@@ -97,6 +99,10 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	retry := fs.Int("retry", 1, "attempts per URL before giving up")
 	showProgress := fs.String("progress", "auto",
 		"live status line on stderr: auto, always or never")
+	report := fs.StringP("report", "R", "",
+		"write an HTML report here; a directory gets report-<date-time>.html")
+	reportIP := fs.Bool("report-ip", true,
+		"with --report, ask "+ipService+" which address each proxy comes out of")
 	setUsage(fs, out, "usage: tls-forge batch [flags] [urls...]")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -154,7 +160,8 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		sink = line
 	}
 
-	failures := runJobs(ctx, jobs, clients, *workers, sink, *retry, *bodyDir, counts)
+	records := make([]result, 0, len(jobs))
+	failures := runJobs(ctx, jobs, clients, *workers, sink, *retry, *bodyDir, counts, &records)
 
 	// Closed here rather than deferred, so the final counts land before the
 	// summary below instead of after it.
@@ -162,15 +169,41 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		line.Close()
 	}
 
-	if *output != "" {
-		out.printf("%d of %d succeeded, written to %s\n", len(jobs)-failures, len(jobs), *output)
+	// One lookup per proxy, not per URL: the address belongs to the proxy, and
+	// asking once per URL would be a request to a third party for every page.
+	exits := map[string]egress{}
+	if *report != "" && *reportIP {
+		errOut.printf("asking %s which address each proxy comes out of…\n", ipService)
+		exits = lookupExits(clients, records)
 	}
+
+	elapsed := now().Sub(counts.started)
+	totals := summarise(records, elapsed, exits)
+	totals.Output = *output
+	if *report != "" {
+		path := reportPath(*report, now())
+		if err := writeReport(path, records, totals, exits); err != nil {
+			return err
+		}
+		errOut.printf("report written to %s\n", path)
+	}
+
+	// To stderr, with everything else that is commentary rather than data.
+	errOut.println()
+	errOut.printf("%s", totals.table())
+
 	if failures > 0 {
 		// Non-zero exit: a batch that half worked is not a batch that worked,
 		// and a shell loop needs to be able to tell.
 		return fmt.Errorf("batch: %d of %d URLs failed", failures, len(jobs))
 	}
 	return nil
+}
+
+// finish stamps when this URL was done with, however it turned out.
+func (r *result) finish(started time.Time) {
+	r.Ended = now()
+	r.Millis = r.Ended.Sub(started).Milliseconds()
 }
 
 // pool hands out one client per proxy.
@@ -224,7 +257,7 @@ func (p *pool) close() {
 // reported on its line rather than returned, so one dead host does not end the
 // run.
 func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
-	sink io.Writer, retry int, bodyDir string, counts *progress,
+	sink io.Writer, retry int, bodyDir string, counts *progress, records *[]result,
 ) (failures int) {
 	queue := make(chan job)
 	var writeMu sync.Mutex
@@ -243,6 +276,7 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 				if r.Error != "" {
 					failures++
 				}
+				*records = append(*records, r)
 				_ = encoder.Encode(r)
 				writeMu.Unlock()
 			}
@@ -263,14 +297,37 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 	return failures
 }
 
+// lookupExits asks the service once for each proxy that carried anything, and
+// once for the direct client if any URL went without one.
+func lookupExits(clients *pool, records []result) map[string]egress {
+	seen := map[string]bool{}
+	exits := map[string]egress{}
+	for _, r := range records {
+		if seen[r.Proxy] {
+			continue
+		}
+		seen[r.Proxy] = true
+		client, err := clients.get(r.Proxy)
+		if err != nil {
+			continue
+		}
+		// A proxy that cannot answer for itself is a fact about that proxy, and
+		// the report says "not looked up" rather than failing the run over it.
+		if found, err := lookupExit(client); err == nil {
+			exits[r.Proxy] = found
+		}
+	}
+	return exits
+}
+
 func fetchOne(ctx context.Context, clients *pool, j job, attempts int, bodyDir string) result {
-	started := time.Now()
-	r := result{URL: j.URL, Proxy: j.Proxy}
+	started := now()
+	r := result{URL: j.URL, Proxy: j.Proxy, Started: started}
 
 	client, err := clients.get(j.Proxy)
 	if err != nil {
 		r.Error = err.Error()
-		r.Millis = time.Since(started).Milliseconds()
+		r.finish(started)
 		return r
 	}
 
@@ -285,7 +342,7 @@ func fetchOne(ctx context.Context, clients *pool, j job, attempts int, bodyDir s
 			break
 		}
 	}
-	r.Millis = time.Since(started).Milliseconds()
+	r.finish(started)
 
 	if err != nil {
 		r.Error = err.Error()

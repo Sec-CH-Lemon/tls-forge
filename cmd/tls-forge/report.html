@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tls-forge run, {{.Generated}}</title>
+<style>{{.CSS}}</style>
+
+<body class="min-h-full bg-surface text-ink antialiased dark:bg-surface-dark dark:text-ink-dark">
+<main class="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
+
+  <header class="mb-10">
+    <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+      <h1 class="text-xl font-semibold tracking-tight">tls-forge run</h1>
+      <p class="text-sm text-muted dark:text-muted-dark">{{.Generated}}</p>
+    </div>
+  </header>
+
+  <!-- The one number the report leads with, and the only figure at this size. -->
+  <section class="mb-10 rounded-2xl border border-line p-6 sm:p-8 dark:border-line-dark">
+    <p class="text-sm font-medium text-muted dark:text-muted-dark">Scraped successfully</p>
+    <p class="mt-1 flex items-baseline gap-3">
+      <span class="text-6xl font-semibold tracking-tight tabular-nums">{{.Summary.SuccessRate}}</span>
+      <span class="text-base text-muted dark:text-muted-dark">
+        {{.Summary.Succeeded}} of {{.Summary.Total}} URLs in {{.Summary.Took}}
+      </span>
+    </p>
+
+    <!-- A meter, not a chart: one proportion, read at a glance. The track is a
+         lighter step of the fill's own ramp, so state reads across the whole bar. -->
+    <div class="mt-5 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-line dark:bg-line-dark">
+      <div class="rounded-l-full bg-good" style="width:{{.Summary.SuccessWidth}}"></div>
+      <div class="bg-serious" style="width:{{.Summary.WarnWidth}}"></div>
+      <div class="grow rounded-r-full bg-critical"></div>
+    </div>
+    <p class="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted dark:text-muted-dark">
+      <span><span aria-hidden="true" class="text-good">●</span> {{.Summary.Succeeded}} scraped</span>
+      <span><span aria-hidden="true" class="text-serious">●</span> {{.Summary.Warned}} answered, not 2xx ({{.Summary.WarnRate}})</span>
+      <span><span aria-hidden="true" class="text-critical">●</span> {{.Summary.Failed}} no response ({{.Summary.FailRate}})</span>
+    </p>
+  </section>
+
+  <section class="mb-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    {{range .Cards}}
+    <div class="rounded-xl border border-line p-4 dark:border-line-dark">
+      <p class="text-xs font-medium uppercase tracking-wide text-muted dark:text-muted-dark">{{.Label}}</p>
+      <p class="mt-1.5 text-2xl font-semibold tracking-tight">{{.Value}}</p>
+      {{if .Note}}<p class="mt-0.5 text-xs text-muted dark:text-muted-dark">{{.Note}}</p>{{end}}
+    </div>
+    {{end}}
+  </section>
+
+  {{if .Summary.Proxies}}
+  <section class="mb-12">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">Proxies</h2>
+    <div class="overflow-x-auto rounded-xl border border-line dark:border-line-dark">
+      <table class="w-full min-w-[46rem] border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-line text-left dark:border-line-dark">
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Proxy</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Exit address</th>
+            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Requests</th>
+            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Came back</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">State</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Summary.Proxies}}
+          <tr class="border-b border-line/60 last:border-0 dark:border-line-dark/60">
+            <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">{{.Proxy}}</td>
+            <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
+              {{if .Exit.IP}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.IP}}
+              {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
+            </td>
+            <td class="px-4 py-2.5 text-right tabular-nums">{{.Requests}}</td>
+            <td class="px-4 py-2.5 text-right tabular-nums">{{.Succeeded}}</td>
+            <td class="px-4 py-2.5">
+              {{if .Alive}}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-good/12 px-2 py-0.5 text-xs font-medium text-good-ink dark:text-good">
+                <span aria-hidden="true">✓</span> alive</span>
+              {{else}}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-critical/12 px-2 py-0.5 text-xs font-medium text-critical-ink dark:text-critical">
+                <span aria-hidden="true">✕</span> dead</span>
+              {{end}}
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{end}}
+
+  <section>
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">Every URL</h2>
+    <div class="overflow-x-auto rounded-xl border border-line dark:border-line-dark">
+      <table class="w-full min-w-[72rem] border-collapse text-sm">
+        <thead class="sticky top-0 bg-surface dark:bg-surface-dark">
+          <tr class="border-b border-line text-left dark:border-line-dark">
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">URL</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Started</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Ended</th>
+            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Took</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Outcome</th>
+            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Data</th>
+            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Tries</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Via</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Exit address</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Rows}}
+          <tr class="border-b border-line/60 last:border-0 dark:border-line-dark/60">
+            <td class="max-w-md px-4 py-2.5 break-words font-mono text-xs">{{.URL}}</td>
+            <td class="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted dark:text-muted-dark">{{.StartedAt}}</td>
+            <td class="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted dark:text-muted-dark">{{.EndedAt}}</td>
+            <td class="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">{{.Duration}}</td>
+            <!-- Icon and label as well as colour, so the state never rests on hue. -->
+            <td class="whitespace-nowrap px-4 py-2.5" {{if .Error}}title="{{.Error}}"{{end}}>
+              <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium
+                {{if .Failed}}bg-critical/12 text-critical-ink dark:text-critical
+                {{else if .Warned}}bg-serious/15 text-serious-ink dark:text-serious
+                {{else}}bg-good/12 text-good-ink dark:text-good{{end}}">
+                <span aria-hidden="true">{{.Glyph}}</span> {{.Outcome}}</span>
+            </td>
+            <td class="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">{{.Size}}</td>
+            <td class="px-4 py-2.5 text-right tabular-nums {{if gt .Attempts 1}}text-serious-ink dark:text-serious{{end}}">{{.Attempts}}</td>
+            <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
+              {{if .Proxy}}{{.Proxy}}{{else}}<span class="font-sans text-muted dark:text-muted-dark">direct</span>{{end}}
+            </td>
+            <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
+              {{if .Exit.IP}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.IP}}
+              {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="mt-10 space-y-1 text-xs leading-relaxed text-muted dark:text-muted-dark">
+    <p>Data volumes are the decompressed body, which is more than crossed the wire.</p>
+    <p>Exit addresses were reported by {{.Service}}, one lookup per proxy, and are where
+       that proxy came out at the time of the run.</p>
+  </footer>
+
+</main>
+</body>
+</html>

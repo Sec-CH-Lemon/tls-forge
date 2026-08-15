@@ -24,6 +24,41 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- The HTML report is styled with Tailwind: a lead figure for the success rate
+  with a three-segment meter, a row of stat tiles, and status pills carrying a
+  glyph and a word as well as a colour. Light and dark are both selected sets
+  of steps rather than one flipped. The stylesheet is generated from the
+  template by `make report-css` and compiled into the binary, so the report
+  stays a single self-contained file and `go build` still needs nothing but Go;
+  a test fails if the template uses a class the committed stylesheet lacks.
+
+### Changed
+
+- `--report` given a directory names the file after the run,
+  `report-2026-08-16-01:09:45:123.html`, rather than needing one invented per
+  run. On Windows the colons are dashes, because a colon cannot appear in a
+  file name there.
+  Timestamps inside the report read `16 Aug 2026 01:10:10`.
+
+- **A run now has three outcomes, not two.** A response that is not a 2xx is
+  counted and shown apart from a page that was scraped and from a request that
+  got nothing back: a 503 is neither. The exit code is unchanged and still turns
+  on requests that got no response, so a batch expecting some 404s does not fail
+  on them.
+
+- Every `batch` run ends with a summary on standard error: how long it took,
+  how many URLs succeeded and failed with the percentage of each, the volume of
+  data, how many retries were spent, and how many proxies were used against how
+  many carried at least one page. Dead proxies are named and counted, since
+  "6 of 8 alive" does not say which two to replace.
+- `batch --report FILE` writes a self-contained HTML report: a row per proxy
+  and a row per URL with its start and end time, duration, outcome, volume,
+  attempt count, proxy, and that proxy's exit address with a country flag. The
+  address is asked of `https://ipinfo.io/json` once per proxy, announced on
+  standard error before it happens, and skipped with `--report-ip=false`. The
+  flag is computed from the country code rather than looked up.
+- The JSON lines now carry `started` and `ended` timestamps.
+
 - A live status line for `batch`: how many of the list are done, how many are in
   flight, how much body has come back, how long it has been going, roughly how
   much longer, and how many failed. Drawn on standard error, never on standard

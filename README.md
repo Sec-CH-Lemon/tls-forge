@@ -255,6 +255,8 @@ cat urls.txt | tls-forge batch                               # or standard input
 | `-d`, `--body-dir` | write bodies to this directory and reference them instead of inlining them |
 | `--retry` | attempts per URL before giving up, 1 by default |
 | `--progress` | `auto`, `always` or `never`. `auto` draws only to a terminal |
+| `-R`, `--report` | write an HTML report here. A directory gets `report-<date-time>.html` |
+| `--report-ip` | with `--report`, look up each proxy's exit address. On by default |
 | `-p`, `--profile` | which profile to wear |
 | `-x`, `--proxy` | the proxy for entries that name none of their own |
 | `-t`, `--timeout` | per-request deadline |
@@ -372,6 +374,75 @@ a second is thousands of escape sequences nobody asked for. `always` and
 
 When the run ends the final counts stay on screen as a line of their own, which
 is the answer to how long it took.
+
+#### What the run came to
+
+Every run ends with a table on standard error:
+
+```
+  Ran          500 URLs in 6m12s
+  Scraped      471  (94.2%)
+  Not 2xx      16  (3.2%)
+  No response  13  (2.6%)
+  Data         41.2 MB
+  Retries      21
+  Proxies      8 used, 6 alive, some direct
+  Written to   results.jsonl
+  dead proxy   http://eu-3.proxy:8080  (61 requests, none came back)
+```
+
+Three outcomes rather than two, because a 503 is neither a page nor a dead
+connection: something came back and it was not what was asked for. Counting it
+as a success answers "did the transport work" when the question was "did I get
+the page". The exit code still turns on the last of the three: a batch that
+expects some 404s should not fail on them.
+
+A proxy counts as alive when at least one page came back through it. Dead ones
+are listed by name and by how many requests went into them, because "6 of 8
+alive" does not say which two to replace, and a proxy that carried nothing is
+usually the reason a batch of URLs is missing.
+
+#### The detailed report
+
+`--report` writes one self-contained HTML file: the summary as cards, a row per
+proxy, and a row per URL with when it started, when it ended, how long it took,
+what came back, how much of it, how many attempts it needed, which proxy
+carried it, and the address that proxy came out of with its country flag.
+
+```bash
+tls-forge batch -i urls.csv -R run.html      # named
+tls-forge batch -i urls.csv -R reports/      # report-2026-08-16-01:09:45:123.html
+```
+
+Given a directory, the report names itself after the run. The stamp is ordered
+largest unit first, so a directory of them sorts into the order they were made,
+which the named month used inside the report would not.
+
+On Windows the colons become dashes, `report-2026-08-16-01-09-45-123.html`.
+That is not a preference: Windows forbids a colon in a file name, where it
+means an alternate data stream, and the file simply would not be created.
+
+No stylesheet, script or font from anywhere else, so it opens on a laptop with
+no network and travels as one attachment. The styling is Tailwind, generated
+from the template and compiled into the binary rather than fetched: `go build`
+still needs nothing but Go, and only editing the template needs anything more
+(see [Development](#development)).
+
+Each URL ends in one of the same three states as the summary, and each is shown
+with a glyph and a word as well as a colour, so the state never rests on hue
+alone. Light and dark are both selected, following the reader's system setting.
+
+The exit address is asked of a third party, because a process cannot see its
+own public address and through a proxy the address is the proxy's.
+`https://ipinfo.io/json` is asked **once per proxy**, not once per URL, and the
+command says so on standard error before it does. `--report-ip=false` turns the
+lookup off and the report says the address was not looked up. The country flag
+is computed from the two-letter country code rather than looked up: a flag
+emoji is those two letters as regional indicator symbols, so no geolocation
+database is involved.
+
+Volumes throughout are the decompressed body. Fewer bytes than that crossed the
+wire, and calling it traffic would overstate it.
 
 #### One client per proxy
 
@@ -711,7 +782,14 @@ make node-test   # the Node client's own tests
 make lint        # golangci-lint
 make build       # ./bin/tls-forge
 make check       # everything CI runs
+make report-css  # regenerate the HTML report's stylesheet
 ```
+
+`make report-css` is the one target that needs more than Go: it runs Tailwind
+over `cmd/tls-forge/report.html` and writes `cmd/tls-forge/report.css`, which is
+committed and compiled into the binary. Run it after editing the report
+template. Forgetting to is caught by a test rather than by a reader noticing an
+unstyled page.
 
 Every package is at 100% statement coverage and CI enforces it. That is not
 coverage for its own sake: most of the code here is about what happens when

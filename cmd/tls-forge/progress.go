@@ -118,6 +118,22 @@ func compactDuration(d time.Duration) string {
 	}
 }
 
+// preciseDuration is one page's time, where a fifth of a second is a real
+// difference and "0s" is not an answer. compactDuration is for the status line,
+// where a stable width matters more than the milliseconds.
+func preciseDuration(d time.Duration) string {
+	switch {
+	case d < 0:
+		return "0ms"
+	case d < time.Second:
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	case d < time.Minute:
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	default:
+		return compactDuration(d)
+	}
+}
+
 // statusLine draws the counts and keeps them moving.
 //
 // A ticker as well as a redraw per result, because the elapsed time has to

@@ -183,14 +183,20 @@ func TestBatchWritesToAFileAndADirectory(t *testing.T) {
 	outPath := filepath.Join(dir, "results.jsonl")
 	bodyDir := filepath.Join(dir, "bodies")
 
-	code, stdout, _ := exec(t, "batch", "--output", outPath, "--body-dir", bodyDir,
+	code, stdout, stderr := exec(t, "batch", "--output", outPath, "--body-dir", bodyDir,
 		server.URL+"/one", server.URL+"/two")
 	if code != 0 {
-		t.Fatalf("exit code = %d\n%s", code, stdout)
+		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	// The summary goes to the terminal only when the results went elsewhere.
-	if !strings.Contains(stdout, "2 of 2 succeeded") {
-		t.Errorf("stdout = %q", stdout)
+	// The summary is commentary, so it goes to stderr with the rest of it, and
+	// names where the results went.
+	for _, want := range []string{"Scraped      2", outPath} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr has no %q:\n%s", want, stderr)
+		}
+	}
+	if strings.Contains(stdout, "Scraped") {
+		t.Errorf("the summary landed on stdout: %q", stdout)
 	}
 
 	data, err := os.ReadFile(outPath)

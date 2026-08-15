@@ -3,7 +3,7 @@ BIN     ?= bin/tls-forge
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVER   ?= coverage.out
 
-.PHONY: all build test cover lint vet fmt node-test check capture compare notices docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test check capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -78,5 +78,16 @@ docker-check: docker
 notices:
 	./scripts/notices.sh > THIRD-PARTY-NOTICES.txt
 
+# The report's stylesheet, generated from cmd/tls-forge/report.html by Tailwind
+# and committed alongside it.
+#
+# Committed rather than built, because the report has to stay one self-contained
+# file: fetching a stylesheet would need a network to read it, and building one
+# would need Node to build tls-forge. Neither is true for anyone but whoever
+# edits the template, and TestReportStylesheetCoversTheTemplate fails if they
+# edit it and forget this.
+report-css:
+	cd tools/report-css && npm install --silent && npm run build
+
 clean:
-	rm -rf bin $(COVER) node/vendor
+	rm -rf bin $(COVER) node/vendor tools/report-css/node_modules
