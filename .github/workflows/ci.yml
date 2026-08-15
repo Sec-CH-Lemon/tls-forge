@@ -1,0 +1,99 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - run: go build ./...
+      - run: go vet ./...
+
+      # -race on one platform is enough to find a data race and costs a lot of
+      # wall clock on the others.
+      - name: test
+        if: matrix.os == 'ubuntu-latest'
+        run: go test -race ./...
+      - name: test
+        if: matrix.os != 'ubuntu-latest'
+        run: go test ./...
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      # A gate, not a report. Every package is at 100%.
+      - run: make cover
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # The Node tests run against a stand-in daemon, so they need no Go build
+      # and no network.
+      - run: node --test 'test/*.test.js'
+        working-directory: node
+
+  browser:
+    # Does the shipped profile still match a real browser?
+    #
+    # This is the check the project exists for, and it is the one that starts
+    # failing on its own: a browser update changes the handshake without
+    # changing a line of this repository. It runs on a schedule as well as on
+    # pushes so the answer is never more than a day old.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+
+      - name: compare against the runner's Chrome
+        # Informational: the runner's Chrome is whatever GitHub ships this week,
+        # so a difference here means "the shipped profile is not this build",
+        # which is expected and useful to see rather than a reason to fail the
+        # build.
+        continue-on-error: true
+        run: |
+          go run ./cmd/tls-forge compare \
+            -headless -browser "${{ steps.chrome.outputs.chrome-path }}"

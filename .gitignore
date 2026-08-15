@@ -1,0 +1,22 @@
+# Build output
+/bin/
+/node/vendor/
+
+# Documentation, held back until it is ready to publish. To publish it later,
+# delete this line — `git add docs/` on its own will not work while it is
+# ignored, and the README's Documentation section needs restoring with it.
+/docs/
+
+# Coverage
+coverage.out
+coverage.html
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

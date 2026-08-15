@@ -1,0 +1,40 @@
+{
+  "name": "tls-forge",
+  "version": "0.1.0",
+  "description": "HTTP client for Node whose TLS and HTTP/2 fingerprints are a real browser's",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "binary.js",
+    "scripts/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "postinstall": "node scripts/build.js --optional",
+    "test": "node --test --experimental-test-coverage 'test/*.test.js'"
+  },
+  "keywords": [
+    "tls",
+    "ja3",
+    "ja4",
+    "fingerprint",
+    "http2",
+    "browser",
+    "impersonate",
+    "utls"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sec-CH-Lemon/tls-forge.git",
+    "directory": "node"
+  }
+}

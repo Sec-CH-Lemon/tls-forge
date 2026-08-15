@@ -1,0 +1,34 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - bodyclose
+    - copyloopvar
+    - unconvert
+
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+        - name: package-comments
+          disabled: false
+
+  exclusions:
+    rules:
+      # Test helpers deliberately ignore errors from operations whose failure is
+      # the thing under test, or is irrelevant to it.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - bodyclose
