@@ -162,7 +162,7 @@ func (b *Browser) Open(ctx context.Context, url string, opts Options) (close fun
 
 	cmd := exec.CommandContext(ctx, b.Path, args...)
 	if err := cmd.Start(); err != nil {
-		os.RemoveAll(userDataDir)
+		_ = os.RemoveAll(userDataDir)
 		return nil, fmt.Errorf("browser: launching %s: %w", b.Path, err)
 	}
 
@@ -171,6 +171,8 @@ func (b *Browser) Open(ctx context.Context, url string, opts Options) (close fun
 			_ = cmd.Process.Kill()
 		}
 		_ = cmd.Wait()
-		os.RemoveAll(userDataDir)
+		// Best effort: the directory is under the system temp root, so a
+		// failure here leaves the OS to reclaim it.
+		_ = os.RemoveAll(userDataDir)
 	}, nil
 }

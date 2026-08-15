@@ -69,7 +69,7 @@ func (f clientFlags) client() (*tlsforge.Client, error) {
 	return tlsforge.New(opts...)
 }
 
-func runFetch(_ context.Context, args []string, out io.Writer) error {
+func runFetch(_ context.Context, args []string, out *printer) error {
 	fs := newFlagSet("fetch", out)
 	common := addClientFlags(fs)
 	method := fs.String("method", "GET", "HTTP method")
@@ -79,7 +79,7 @@ func runFetch(_ context.Context, args []string, out io.Writer) error {
 	var headers headerFlag
 	fs.Var(&headers, "H", "extra header, repeatable: -H \"Referer: https://…\"")
 	fs.Usage = func() {
-		fmt.Fprintln(out, "usage: tls-forge fetch [flags] <url>")
+		out.println("usage: tls-forge fetch [flags] <url>")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -94,7 +94,7 @@ func runFetch(_ context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	res, err := client.Do(&tlsforge.Request{
 		Method: *method,
@@ -107,30 +107,30 @@ func runFetch(_ context.Context, args []string, out io.Writer) error {
 	}
 
 	if *showHeaders {
-		fmt.Fprintf(out, "%d %s\n", res.Status, res.URL)
+		out.printf("%d %s\n", res.Status, res.URL)
 		names := make([]string, 0, len(res.Header))
 		for name := range res.Header {
 			names = append(names, name)
 		}
 		sort.Strings(names)
 		for _, name := range names {
-			fmt.Fprintf(out, "%s: %s\n", name, strings.Join(res.Header[name], "; "))
+			out.printf("%s: %s\n", name, strings.Join(res.Header[name], "; "))
 		}
-		fmt.Fprintln(out)
+		out.println()
 	}
 
 	if *output != "" {
 		if err := os.WriteFile(*output, res.Body, 0o644); err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "wrote %d bytes to %s\n", len(res.Body), *output)
+		out.printf("wrote %d bytes to %s\n", len(res.Body), *output)
 		return nil
 	}
 	_, err = out.Write(res.Body)
 	return err
 }
 
-func runDaemon(_ context.Context, args []string, out io.Writer) error {
+func runDaemon(_ context.Context, args []string, out *printer) error {
 	fs := newFlagSet("daemon", out)
 	common := addClientFlags(fs)
 	if err := fs.Parse(args); err != nil {
@@ -141,7 +141,7 @@ func runDaemon(_ context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// stdin is read directly rather than through the writer the command was
 	// given: the protocol is a pipe, and tests substitute it through daemonInput.

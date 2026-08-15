@@ -219,7 +219,8 @@ func (s *Session) recordSettings(f *http2.SettingsFrame) {
 	if s.http2Recorded {
 		return
 	}
-	f.ForeachSetting(func(setting http2.Setting) error {
+	// The returned error is the callback's own, and this callback cannot fail.
+	_ = f.ForeachSetting(func(setting http2.Setting) error {
 		s.http2.Settings = append(s.http2.Settings, fingerprint.Setting{
 			ID: uint16(setting.ID), Value: setting.Val,
 		})
@@ -267,7 +268,7 @@ func (s *Session) recordRequest(f *http2.MetaHeadersFrame) {
 		return
 	}
 	s.http2Recorded = true
-	if p := f.HeadersFrame.Priority; p != (http2.PriorityParam{}) {
+	if p := f.Priority; p != (http2.PriorityParam{}) {
 		s.http2.HeaderPriority = &fingerprint.Priority{
 			StreamID:  f.StreamID,
 			Exclusive: p.Exclusive,

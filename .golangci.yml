@@ -3,6 +3,17 @@ version: "2"
 run:
   timeout: 5m
 
+# Report everything, every time.
+#
+# The defaults cap a linter at 50 findings and at 3 per identical message, which
+# is a reasonable way to keep a first run readable and a terrible way to know
+# whether a run is clean. Measured here: the default output said 19 issues, the
+# uncapped one said 73 — so a fix aimed at the visible 19 would have looked
+# complete and left 54 behind.
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
 linters:
   enable:
     - errcheck

@@ -2,8 +2,13 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, development]
   pull_request:
+  # Only the browser job runs on this schedule; see the `if` on the others. It
+  # is the one check that can start failing without anyone touching the
+  # repository, because it depends on a browser that updates itself.
+  schedule:
+    - cron: '17 6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -11,16 +16,19 @@ permissions:
 
 jobs:
   go:
+    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version: '1.24'
+          # Read from go.mod rather than repeating the version here, so that the
+          # two cannot drift apart.
+          go-version-file: go.mod
           cache: true
 
       - run: go build ./...
@@ -36,36 +44,46 @@ jobs:
         run: go test ./...
 
   coverage:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
       # A gate, not a report. Every package is at 100%.
       - run: make cover
 
   lint:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Pinned, and pinned to a v2 release specifically.
+          #
+          # The action's major version decides which golangci-lint line it
+          # installs, and v1 cannot read a v2 configuration file: it fails at
+          # `config verify` before looking at a single line of Go. Pinning the
+          # tool as well keeps a new lint release from turning this job red on a
+          # change that had nothing to do with it.
+          version: v2.12.2
 
   node:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
       # The Node tests run against a stand-in daemon, so they need no Go build
       # and no network.
       - run: node --test 'test/*.test.js'
@@ -74,18 +92,18 @@ jobs:
   browser:
     # Does the shipped profile still match a real browser?
     #
-    # This is the check the project exists for, and it is the one that starts
+    # This is the check the project exists for, and the only one that starts
     # failing on its own: a browser update changes the handshake without
-    # changing a line of this repository. It runs on a schedule as well as on
-    # pushes so the answer is never more than a day old.
+    # changing a line of this repository. Hence the daily schedule — waiting for
+    # the next push would mean finding out at the worst moment.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2
         id: chrome
 
       - name: compare against the runner's Chrome

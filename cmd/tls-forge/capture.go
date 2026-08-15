@@ -15,7 +15,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
-func runCapture(ctx context.Context, args []string, out io.Writer) error {
+func runCapture(ctx context.Context, args []string, out *printer) error {
 	fs := newFlagSet("capture", out)
 	browserName := fs.String("browser", "", "browser to measure: chrome, chromium, edge, brave, or a path")
 	headless := fs.Bool("headless", false, "run the browser without a window")
@@ -27,7 +27,7 @@ func runCapture(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 
-	fmt.Fprintln(out, "opening a browser… (it will show the result; you can close it)")
+	out.println("opening a browser… (it will show the result; you can close it)")
 	measured, err := tlsforge.MeasureBrowser(ctx, tlsforge.MeasureOptions{
 		Browser:  *browserName,
 		Headless: *headless,
@@ -43,7 +43,7 @@ func runCapture(ctx context.Context, args []string, out io.Writer) error {
 	printCapture(out, measured)
 
 	if *save == "" {
-		fmt.Fprintln(out, "\nRe-run with -save <path> to write a reusable profile.")
+		out.println("\nRe-run with -save <path> to write a reusable profile.")
 		return nil
 	}
 
@@ -55,7 +55,7 @@ func runCapture(ctx context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "\nwrote profile %q to %s\n", saved, *save)
+	out.printf("\nwrote profile %q to %s\n", saved, *save)
 	return nil
 }
 
@@ -111,7 +111,7 @@ func profileNameFor(userAgent string) string {
 	return "captured"
 }
 
-func runServe(ctx context.Context, args []string, out io.Writer) error {
+func runServe(ctx context.Context, args []string, out *printer) error {
 	fs := newFlagSet("serve", out)
 	addr := fs.String("addr", "127.0.0.1:0", "listen address")
 	host := fs.String("host", "localhost", "hostname used in the URL and certificate")
@@ -124,28 +124,28 @@ func runServe(ctx context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 
-	fmt.Fprintln(out, server.URL())
-	fmt.Fprintln(out, "  /          a page that measures the browser that opens it")
-	fmt.Fprintln(out, "  /api/all   this connection's fingerprint, as JSON")
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, "The certificate is self-signed and generated for this run, so clients")
-	fmt.Fprintln(out, "must be told to accept it (curl -k, tlsforge -insecure).")
-	fmt.Fprintln(out, "Ctrl-C to stop.")
+	out.println(server.URL())
+	out.println("  /          a page that measures the browser that opens it")
+	out.println("  /api/all   this connection's fingerprint, as JSON")
+	out.println()
+	out.println("The certificate is self-signed and generated for this run, so clients")
+	out.println("must be told to accept it (curl -k, tlsforge -insecure).")
+	out.println("Ctrl-C to stop.")
 
 	<-ctx.Done()
 	return nil
 }
 
-func runProfiles(_ context.Context, args []string, out io.Writer) error {
+func runProfiles(_ context.Context, args []string, out *printer) error {
 	fs := newFlagSet("profiles", out)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(out, "Measured from a real browser and shipped with this library:")
-	fmt.Fprintln(out)
+	out.println("Measured from a real browser and shipped with this library:")
+	out.println()
 	// One lookup per name, and a name that cannot be resolved is listed with the
 	// catalogue rather than silently dropped: a profile that exists but will not
 	// load is exactly the thing a user needs to be told about.
@@ -156,21 +156,21 @@ func runProfiles(_ context.Context, args []string, out io.Writer) error {
 			catalogue = append(catalogue, name)
 			continue
 		}
-		fmt.Fprintf(out, "  %-24s %s\n", name, p.UserAgent)
+		out.printf("  %-24s %s\n", name, p.UserAgent)
 	}
 
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, "From the tls-client catalogue — a handshake, but no headers of its own:")
-	fmt.Fprintln(out)
+	out.println()
+	out.println("From the tls-client catalogue — a handshake, but no headers of its own:")
+	out.println()
 	for i, name := range catalogue {
-		fmt.Fprintf(out, "  %-24s", name)
+		out.printf("  %-24s", name)
 		if i%3 == 2 {
-			fmt.Fprintln(out)
+			out.println()
 		}
 	}
-	fmt.Fprintln(out)
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, "Measure your own with:  tls-forge capture -save my-chrome.json")
+	out.println()
+	out.println()
+	out.println("Measure your own with:  tls-forge capture -save my-chrome.json")
 	return nil
 }
 

@@ -273,7 +273,7 @@ func (s *Server) handle(raw net.Conn) {
 		s.mu.Lock()
 		delete(s.conns, raw)
 		s.mu.Unlock()
-		raw.Close()
+		_ = raw.Close()
 	}()
 
 	recorder := &recordingConn{Conn: raw}

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -11,7 +9,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 )
 
-func runCompare(ctx context.Context, args []string, out io.Writer) error {
+func runCompare(ctx context.Context, args []string, out *printer) error {
 	fs := newFlagSet("compare", out)
 	profileName := fs.String("profile", tlsforge.DefaultProfile, "profile to check")
 	browserName := fs.String("browser", "", "browser to compare against")
@@ -22,7 +20,7 @@ func runCompare(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 
-	fmt.Fprintln(out, "measuring the browser…")
+	out.println("measuring the browser…")
 	result, err := tlsforge.CompareToBrowser(ctx,
 		tlsforge.MeasureOptions{Browser: *browserName, Headless: *headless, Timeout: *timeout},
 		tlsforge.WithProfile(*profileName),
@@ -45,20 +43,20 @@ func runCompare(ctx context.Context, args []string, out io.Writer) error {
 	return nil
 }
 
-func printComparison(out io.Writer, result *tlsforge.Comparison) {
+func printComparison(out *printer, result *tlsforge.Comparison) {
 	line := strings.Repeat("─", 72)
-	fmt.Fprintln(out, line)
-	fmt.Fprintf(out, "  browser   %s\n", result.Browser.UserAgent())
-	fmt.Fprintf(out, "  profile   %s\n", result.Client.Profile)
-	fmt.Fprintln(out, line)
+	out.println(line)
+	out.printf("  browser   %s\n", result.Browser.UserAgent())
+	out.printf("  profile   %s\n", result.Client.Profile)
+	out.println(line)
 
 	row := func(label, browser, client string) {
 		if browser == client {
-			fmt.Fprintf(out, "  match   %-14s %s\n", label, browser)
+			out.printf("  match   %-14s %s\n", label, browser)
 			return
 		}
-		fmt.Fprintf(out, "  DIFFER  %-14s %s\n", label, browser)
-		fmt.Fprintf(out, "  %6s  %-14s %s\n", "", "", client)
+		out.printf("  DIFFER  %-14s %s\n", label, browser)
+		out.printf("  %6s  %-14s %s\n", "", "", client)
 	}
 	row("JA4", result.Browser.TLS.JA4, result.Client.TLS.JA4)
 	if result.Browser.HTTP2 != nil && result.Client.HTTP2 != nil {
@@ -67,32 +65,32 @@ func printComparison(out io.Writer, result *tlsforge.Comparison) {
 			strings.Join(result.Browser.HTTP2.HeaderOrder, ","),
 			strings.Join(result.Client.HTTP2.HeaderOrder, ","))
 	}
-	fmt.Fprintln(out, line)
+	out.println(line)
 
 	if result.OK() {
-		fmt.Fprintln(out, "\nThe client is indistinguishable from the browser on every field compared.")
-		fmt.Fprintln(out, "JA3 is deliberately not compared: Chrome shuffles its extension order per")
-		fmt.Fprintln(out, "connection, so its own JA3 differs from request to request.")
+		out.println("\nThe client is indistinguishable from the browser on every field compared.")
+		out.println("JA3 is deliberately not compared: Chrome shuffles its extension order per")
+		out.println("connection, so its own JA3 differs from request to request.")
 		return
 	}
 
-	fmt.Fprintln(out)
+	out.println()
 	if !result.TLS.OK() {
-		fmt.Fprintf(out, "TLS\n%s\n\n", result.TLS)
+		out.printf("TLS\n%s\n\n", result.TLS)
 	}
 	if !result.HTTP2.OK() {
-		fmt.Fprintf(out, "HTTP/2\n%s\n\n", result.HTTP2)
+		out.printf("HTTP/2\n%s\n\n", result.HTTP2)
 	}
-	fmt.Fprintln(out, "Fix by measuring this browser and using the profile it produces:")
-	fmt.Fprintln(out, "  tls-forge capture -save my-browser.json")
+	out.println("Fix by measuring this browser and using the profile it produces:")
+	out.println("  tls-forge capture -save my-browser.json")
 }
 
-func printCapture(out io.Writer, measured *capture.Capture) {
+func printCapture(out *printer, measured *capture.Capture) {
 	line := strings.Repeat("─", 72)
-	fmt.Fprintln(out, line)
+	out.println(line)
 	field := func(label, value string) {
 		if value != "" {
-			fmt.Fprintf(out, "  %-16s %s\n", label, value)
+			out.printf("  %-16s %s\n", label, value)
 		}
 	}
 	field("user-agent", measured.UserAgent())
@@ -112,5 +110,5 @@ func printCapture(out io.Writer, measured *capture.Capture) {
 		field("architecture", strings.TrimSpace(nav.Architecture+" "+nav.Bitness))
 		field("languages", strings.Join(nav.Languages, ", "))
 	}
-	fmt.Fprintln(out, line)
+	out.println(line)
 }

@@ -35,7 +35,7 @@ var errDiffers = errors.New("the client and the browser differ")
 type command struct {
 	name    string
 	summary string
-	run     func(ctx context.Context, args []string, out io.Writer) error
+	run     func(ctx context.Context, args []string, out *printer) error
 }
 
 func commands() []command {
@@ -64,8 +64,9 @@ func main() {
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	out, errOut := newPrinter(stdout), newPrinter(stderr)
 	if len(args) == 0 {
-		usage(stderr)
+		usage(errOut)
 		return 2
 	}
 
@@ -74,7 +75,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		if c.name != name {
 			continue
 		}
-		err := c.run(ctx, args[1:], stdout)
+		err := c.run(ctx, args[1:], out)
+		// A command that printed nothing because the pipe was closed did not
+		// succeed, whatever it returned.
+		if err == nil {
+			err = out.err
+		}
 		switch {
 		case err == nil:
 			return 0
@@ -83,33 +89,33 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		case errors.Is(err, flag.ErrHelp):
 			return 2
 		default:
-			fmt.Fprintln(stderr, "tlsforge:", err)
+			errOut.println("tlsforge:", err)
 			return 1
 		}
 	}
 
 	if name == "-h" || name == "--help" || name == "help" {
-		usage(stdout)
+		usage(out)
 		return 0
 	}
-	fmt.Fprintf(stderr, "tlsforge: unknown command %q\n\n", name)
-	usage(stderr)
+	errOut.printf("tlsforge: unknown command %q\n\n", name)
+	usage(errOut)
 	return 2
 }
 
-func usage(out io.Writer) {
-	fmt.Fprintln(out, "tls-forge — an HTTP client that sends a real browser's TLS fingerprint.")
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, "usage: tls-forge <command> [flags]")
-	fmt.Fprintln(out)
+func usage(out *printer) {
+	out.println("tls-forge — an HTTP client that sends a real browser's TLS fingerprint.")
+	out.println()
+	out.println("usage: tls-forge <command> [flags]")
+	out.println()
 	for _, c := range commands() {
-		fmt.Fprintf(out, "  %-10s %s\n", c.name, c.summary)
+		out.printf("  %-10s %s\n", c.name, c.summary)
 	}
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, "Run `tls-forge <command> -h` for a command's flags.")
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, "Start with `tls-forge compare`: it opens your browser, measures it, measures")
-	fmt.Fprintln(out, "this library, and prints the differences. There should not be any.")
+	out.println()
+	out.println("Run `tls-forge <command> -h` for a command's flags.")
+	out.println()
+	out.println("Start with `tls-forge compare`: it opens your browser, measures it, measures")
+	out.println("this library, and prints the differences. There should not be any.")
 }
 
 // newFlagSet returns a flag set that reports errors instead of exiting, so a
@@ -121,7 +127,39 @@ func newFlagSet(name string, out io.Writer) *flag.FlagSet {
 	return fs
 }
 
-func runVersion(_ context.Context, _ []string, out io.Writer) error {
-	fmt.Fprintln(out, "tls-forge", version)
+func runVersion(_ context.Context, _ []string, out *printer) error {
+	out.println("tls-forge", version)
 	return nil
 }
+
+// printer is the stream a command writes to. It keeps the first write error
+// rather than returning one from every call.
+//
+// The alternative was to check the result of fifty-nine print calls or to
+// discard fifty-nine errors, and both hide the case that matters: a shell
+// pipeline like `tls-forge fetch … | head -1` closes stdout early, and a
+// command that ignored that would go on writing into a dead pipe and exit 0.
+// The failure is remembered once here and reported by run.
+type printer struct {
+	w   io.Writer
+	err error
+}
+
+func newPrinter(w io.Writer) *printer { return &printer{w: w} }
+
+// Write makes a printer an io.Writer, so it can back a flag.FlagSet, a JSON
+// encoder and the daemon's output stream without any of them knowing about it.
+func (p *printer) Write(b []byte) (int, error) {
+	if p.err != nil {
+		return 0, p.err
+	}
+	n, err := p.w.Write(b)
+	if err != nil {
+		p.err = err
+	}
+	return n, err
+}
+
+func (p *printer) printf(format string, args ...any) { _, _ = fmt.Fprintf(p, format, args...) }
+
+func (p *printer) println(args ...any) { _, _ = fmt.Fprintln(p, args...) }

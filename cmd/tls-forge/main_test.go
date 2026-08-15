@@ -629,7 +629,7 @@ func TestPrintCaptureShowsResumption(t *testing.T) {
 	measured := &capture.Capture{}
 	measured.TLS.JA4 = "t13d1517h2_x_y"
 	measured.TLS.Resumed = true
-	printCapture(&out, measured)
+	printCapture(newPrinter(&out), measured)
 
 	if !strings.Contains(out.String(), "resumed") {
 		t.Errorf("the summary hides that the capture was resumed:\n%s", out.String())
@@ -651,5 +651,60 @@ func TestProfilesListsAnUnloadableNameWithTheCatalogue(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "zz_unloadable") {
 		t.Errorf("the profile was dropped from the listing:\n%s", stdout)
+	}
+}
+
+// countingWriter fails on demand and records how many times it was asked to
+// write, which is how the short-circuit below is proved rather than assumed.
+type countingWriter struct {
+	writes int
+	fail   error
+}
+
+func (w *countingWriter) Write(b []byte) (int, error) {
+	w.writes++
+	if w.fail != nil {
+		return 0, w.fail
+	}
+	return len(b), nil
+}
+
+func TestPrinterRemembersTheFirstFailure(t *testing.T) {
+	w := &countingWriter{}
+	p := newPrinter(w)
+
+	p.println("first")
+	p.printf("%s\n", "second")
+	if p.err != nil {
+		t.Fatalf("err = %v on a healthy writer", p.err)
+	}
+
+	// The pipe closes — `tls-forge fetch … | head -1` is the everyday version of
+	// this.
+	w.fail = errors.New("broken pipe")
+	p.println("third")
+	if p.err == nil {
+		t.Fatal("the failure was not remembered")
+	}
+
+	// Everything after it must short-circuit: a command that kept writing into a
+	// dead pipe would burn through its output and still exit 0.
+	before := w.writes
+	p.println("fourth")
+	p.printf("fifth\n")
+	if w.writes != before {
+		t.Errorf("wrote %d more times after the failure, want 0", w.writes-before)
+	}
+	if _, err := p.Write([]byte("sixth")); err == nil {
+		t.Error("Write returned no error after the stream had failed")
+	}
+}
+
+func TestAFailedStdoutFailsTheCommand(t *testing.T) {
+	// The exit code has to reflect it: a command whose output never arrived did
+	// not do what it was asked, whatever it returned.
+	code := run(context.Background(), []string{"version"}, &countingWriter{fail: errors.New("no space")}, io.Discard)
+	if code == 0 {
+		t.Error("exit code = 0 for a command that could not write its output")
 	}
 }

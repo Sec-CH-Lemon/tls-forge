@@ -212,7 +212,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	read, err := io.ReadAll(res.Body)
 	if err != nil {

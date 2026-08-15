@@ -59,7 +59,7 @@ func MeasureBrowser(ctx context.Context, opts MeasureOptions) (*capture.Capture,
 	if err != nil {
 		return nil, err
 	}
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 	return MeasureBrowserAt(ctx, server, opts)
 }
 
@@ -97,7 +97,7 @@ func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 	return MeasureSelfAt(ctx, server, opts...)
 }
 
@@ -110,7 +110,7 @@ func MeasureSelfAt(_ context.Context, server *echo.Server, opts ...Option) (*cap
 	if err != nil {
 		return nil, err
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	res, err := client.Get(server.URL() + "/api/all")
 	if err != nil {
@@ -180,7 +180,7 @@ func CompareToBrowser(ctx context.Context, measure MeasureOptions, opts ...Optio
 	if err != nil {
 		return nil, err
 	}
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 
 	browserCapture, err := MeasureBrowserAt(ctx, server, measure)
 	if err != nil {
