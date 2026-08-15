@@ -71,8 +71,40 @@ jobs:
           ./dist/bin/tls-forge-linux-amd64 version
           ./dist/bin/tls-forge-linux-amd64 profiles > /dev/null
 
+      # Tarballs, not bare binaries. Whoever downloads a release asset gets the
+      # licence notices in the same archive as the thing they have to accompany;
+      # a loose binary next to a loose LICENSE relies on people picking up both.
+      - name: package the release archives
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist/release
+          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do
+            goos=${target%/*}
+            goarch=${target#*/}
+            src="dist/bin/tls-forge-$goos-$goarch"
+            exe=tls-forge
+            if [ "$goos" = windows ]; then
+              src="$src.exe"
+              exe=tls-forge.exe
+            fi
+            staging=$(mktemp -d)
+            cp "$src" "$staging/$exe"
+            chmod +x "$staging/$exe"
+            cp LICENSE NOTICE THIRD-PARTY-NOTICES.txt README.md "$staging/"
+            tar -czf "dist/release/tls-forge_${VERSION}_${goos}_${goarch}.tar.gz" -C "$staging" .
+          done
+          ls -l dist/release
+
       - name: assemble the npm packages
         run: node scripts/npm-release.mjs --version "${{ steps.version.outputs.version }}" --binaries dist/bin --out dist/npm
+
+      - name: generate the homebrew formula
+        run: |
+          node scripts/homebrew-formula.mjs \
+            --version "${{ steps.version.outputs.version }}" \
+            --archives dist/release > dist/tls-forge.rb
+          cat dist/tls-forge.rb
 
       # The platform packages go first. The main package pins them by exact
       # version, so publishing it first would leave a window in which installing
@@ -87,6 +119,9 @@ jobs:
           done
           npm publish dist/npm/tls-forge --access public --provenance
 
+      # The release has to exist before the tap points at it: the formula
+      # carries the download URL and the checksum, and a tap that referenced a
+      # missing asset would break `brew install` for everyone.
       - name: github release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -94,4 +129,30 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
-            dist/bin/* LICENSE NOTICE THIRD-PARTY-NOTICES.txt
+            dist/release/* LICENSE NOTICE THIRD-PARTY-NOTICES.txt
+
+      - name: update the homebrew tap
+        env:
+          # A separate token: the workflow's own GITHUB_TOKEN cannot write to
+          # another repository. Without the secret this step says so and stops,
+          # rather than failing a release that has already published everything
+          # else.
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ -z "${TAP_TOKEN:-}" ]; then
+            echo "HOMEBREW_TAP_TOKEN is not set — skipping the tap update."
+            echo "The formula is at dist/tls-forge.rb; copy it into the tap by hand."
+            exit 0
+          fi
+          git clone --depth 1 \
+            "https://x-access-token:${TAP_TOKEN}@github.com/Sec-CH-Lemon/homebrew-tap.git" tap
+          mkdir -p tap/Formula
+          cp dist/tls-forge.rb tap/Formula/tls-forge.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/tls-forge.rb
+          git diff --cached --quiet && { echo "formula unchanged"; exit 0; }
+          git commit -m "tls-forge $VERSION"
+          git push

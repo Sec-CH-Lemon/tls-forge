@@ -18,6 +18,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   every dependency travels inside them and its licence requires the copyright
   notice to travel too; `make notices` regenerates the file from what is
   actually linked.
+- Installable with Homebrew from `Sec-CH-Lemon/homebrew-tap`, updated by the
+  release workflow. Note that current Homebrew requires
+  `brew trust --formula` for any tap outside its own repositories.
+- Release assets are `.tar.gz` archives carrying the binary together with
+  `LICENSE`, `NOTICE` and `THIRD-PARTY-NOTICES.txt`, rather than a bare binary
+  beside loose licence files.
 - Published to npm on a pushed `v*` tag. The binary reaches users as a
   platform-specific optional dependency — `@sec-ch-lemon/tls-forge-<platform>-<arch>`
   — so installing needs no Go, downloads nothing, and works under

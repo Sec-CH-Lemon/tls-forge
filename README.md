@@ -66,20 +66,36 @@ recording of a real ClientHello, and you can regenerate it in ten seconds.
 
 ## Install
 
-```bash
-go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest
-```
-
-As a library:
+Homebrew, on macOS and Linux:
 
 ```bash
-go get github.com/Sec-CH-Lemon/tls-forge
+brew tap Sec-CH-Lemon/tap
+brew trust --formula Sec-CH-Lemon/tap/tls-forge
+brew install Sec-CH-Lemon/tap/tls-forge
 ```
 
-From Node, see [node/](node/) — a thin client over the same binary.
+The `brew trust` line is not optional and not a formality: current Homebrew
+refuses to load formulae from taps outside its own repositories until you say
+so, and without it `brew install` reports that the formula does not exist. It is
+asking whether you trust this tap to run code on your machine — a fair question,
+and the answer is yours.
 
-Requires Go 1.24+. A Chromium-based browser (Chrome, Chromium, Edge, Brave) is
-needed only for `capture` and `compare`.
+Prebuilt binaries are also attached to each
+[release](https://github.com/Sec-CH-Lemon/tls-forge/releases) as `.tar.gz`, for
+macOS and Linux on arm64 and x86-64, and Windows on x86-64.
+
+From Go:
+
+```bash
+go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest   # the command
+go get github.com/Sec-CH-Lemon/tls-forge                            # the library
+```
+
+From Node, see [node/](node/) — a thin client over the same binary, with no Go
+required.
+
+Building from source needs Go 1.24+. A Chromium-based browser (Chrome, Chromium,
+Edge, Brave) is needed only for `capture` and `compare`.
 
 > The command, the repository and the npm package are `tls-forge`. The Go
 > package is `tlsforge`, without the hyphen, because Go identifiers cannot
