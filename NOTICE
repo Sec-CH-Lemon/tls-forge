@@ -1,0 +1,46 @@
+tls-forge
+Copyright 2026 Ihar Kazlouski
+
+This product includes software developed by Ihar Kazlouski.
+
+Licensed under the Apache License, Version 2.0 (the "License"); see LICENSE.
+Section 4 of that licence obliges anyone who copies, modifies or redistributes
+this work — in source or binary form, and an npm package containing a compiled
+binary is a binary form — to retain the copyright notice above and to carry this
+NOTICE file with it.
+
+
+WHAT IS NOT COVERED BY THE GRANT
+--------------------------------
+
+Two files in this tree are recordings of another program's output rather than
+the author's work, and the Apache-2.0 grant above is not a claim over them:
+
+  testdata/chrome151-clienthello.bin
+      A TLS ClientHello as Google Chrome 151 put it on the wire, captured on the
+      author's own machine and kept as a test fixture. It is a protocol message
+      — a measurement of what a program sent — not a copy of that program.
+
+  profile/data/chrome_151.json
+      The same ClientHello together with the HTTP/2 settings, header order and
+      user-agent string observed from the same browser. The user-agent string is
+      Google's; the rest is measurement.
+
+Neither file contains any part of Chrome, and nothing here is endorsed by or
+affiliated with Google. Everything else in the tree — the library, the echo
+server, the command line, the Node client, the tests and the prose — is the
+author's work and is covered by LICENSE.
+
+
+THIRD-PARTY SOFTWARE
+--------------------
+
+tls-forge compiles to a single static binary, so its dependencies travel inside
+it — including inside the binaries published in the npm packages. Their licences
+are reproduced in full in THIRD-PARTY-NOTICES.txt, which must travel with any
+distributed copy for the same reason this file must.
+
+One of them is worth naming here. github.com/bogdanfinn/fhttp ships no licence
+file of its own; its sources carry the Go Authors' copyright header and it is a
+fork of the Go standard library's net/http, so the Go licence is the one that
+applies. It is reproduced in THIRD-PARTY-NOTICES.txt rather than left as a gap.

@@ -1,19 +1,37 @@
-// Where is the tlsforge binary?
+// Where is the tls-forge binary?
 //
-// Three answers, in order, and the order is the point: an explicit override
-// beats a local build beats whatever is on PATH. A package that silently
-// preferred a system-wide binary over the one it just built would run a
-// different version from the one under test.
+// Four answers, in order, and the order is the point: an explicit override beats
+// the platform package beats a local build beats whatever is on PATH. A package
+// that silently preferred a system-wide binary over the one it shipped with
+// would run a different version from the one it was tested against.
+//
+// The binary itself arrives through an optional dependency — one small package
+// per platform, each declaring `os` and `cpu`, so npm installs exactly the one
+// that matches and skips the rest. That is the arrangement esbuild and swc use,
+// and it is here for the reason they chose it: no Go on the machine, no download
+// during install, and it survives `npm ci --ignore-scripts`, which a postinstall
+// step does not.
 
 import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 
-/** The default place `npm run build` puts the binary. */
-export const builtBinary = path.join(here, 'vendor', process.platform === 'win32' ? 'tlsforge.exe' : 'tlsforge');
+/** The npm scope the platform packages live under. */
+export const SCOPE = '@sec-ch-lemon';
+
+/** The platform package for the machine this is running on. */
+export const platformPackage = `${SCOPE}/tls-forge-${process.platform}-${process.arch}`;
+
+/** The executable's name, which is the command's name, not the package's. */
+export const exeName = process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge';
+
+/** The default place `npm run build` puts a locally built binary. */
+export const builtBinary = path.join(here, 'vendor', exeName);
 
 /**
  * Resolve the transport binary.
@@ -25,20 +43,60 @@ export function resolveBinary(explicit) {
   const candidate = explicit || process.env.TLSFORGE_BIN;
   if (candidate) {
     if (!existsSync(candidate)) {
-      throw new Error(`tlsforge: no binary at ${candidate}`);
+      throw new Error(`tls-forge: no binary at ${candidate}`);
     }
     return candidate;
   }
+
+  const shipped = fromPlatformPackage();
+  if (shipped) return shipped;
+
   if (existsSync(builtBinary)) return builtBinary;
 
-  const onPath = lookPath('tlsforge');
+  const onPath = lookPath('tls-forge');
   if (onPath) return onPath;
 
   throw new Error(
-    'tlsforge: no transport binary found.\n' +
-      '  Build it:   npm explore tls-forge -- npm run build   (needs Go 1.24+)\n' +
-      '  Or point at one:   TLSFORGE_BIN=/path/to/tlsforge',
+    `tls-forge: no binary for ${process.platform}-${process.arch}.\n` +
+      `  The platform package ${platformPackage} is not installed. If this was an\n` +
+      '  install with --no-optional, re-run without it. Otherwise this platform has\n' +
+      '  no prebuilt binary yet — build one with Go 1.24+\n' +
+      '    npm explore tls-forge -- npm run build\n' +
+      '  or point at one you already have\n' +
+      '    TLSFORGE_BIN=/path/to/tls-forge',
   );
+}
+
+/**
+ * The binary from the optional dependency for this platform, if npm installed
+ * one.
+ *
+ * Two resolution bases are tried, and the second is not defensive padding. A
+ * `file:` dependency, `npm link` and most monorepo layouts install this package
+ * as a SYMLINK, and `import.meta.url` then points into the original checkout
+ * rather than into the tree the platform package was installed in — so
+ * module-relative resolution looks in the wrong place and finds nothing. That
+ * was measured, not imagined: installing the assembled packages into a scratch
+ * project failed exactly this way before the cwd base was added.
+ */
+function fromPlatformPackage() {
+  const bases = [require, createRequire(path.join(process.cwd(), 'package.json'))];
+  for (const resolver of bases) {
+    try {
+      // The package's manifest is resolved rather than the binary itself: a
+      // binary is not a module, and resolving an extensionless file is not
+      // portable. The manifest says where the package landed, which is what is
+      // actually needed.
+      const manifest = resolver.resolve(`${platformPackage}/package.json`);
+      const binary = path.join(path.dirname(manifest), 'bin', exeName);
+      if (existsSync(binary)) return binary;
+    } catch {
+      // Not installed under this base: npm skipped it because `os`/`cpu` did
+      // not match, the install ran without optional dependencies, or this is
+      // simply the wrong tree. Try the next one.
+    }
+  }
+  return null;
 }
 
 function lookPath(name) {

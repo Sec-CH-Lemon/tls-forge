@@ -17,16 +17,20 @@ is verified.
 npm install tls-forge
 ```
 
-The install builds the Go transport if Go 1.24+ is available. If it is not, the
-package still installs and tells you what to do:
+No Go, no build step, no download during install. The binary arrives as an
+optional dependency — one package per platform, each declaring `os` and `cpu`,
+so npm installs the one that matches and skips the other four. It is the
+arrangement esbuild and swc use, and it survives `npm ci --ignore-scripts`,
+which a postinstall step does not.
+
+Prebuilt for darwin-arm64, darwin-x64, linux-arm64, linux-x64 and win32-x64. On
+anything else, or to run a build of your own:
 
 ```bash
-# build it later
-npm explore tls-forge -- npm run build
-
-# or point at a binary you already have
-export TLSFORGE_BIN=/usr/local/bin/tls-forge
+export TLSFORGE_BIN=/path/to/tls-forge
 ```
+
+which takes precedence over the shipped binary.
 
 ## Use
 

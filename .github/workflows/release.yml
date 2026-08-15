@@ -1,0 +1,97 @@
+name: release
+
+# Publishing is driven by a tag, so the version has exactly one source. Nothing
+# here reads a version out of a committed file: the tag is it, and the packages
+# are stamped from it.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the GitHub Release and attach the binaries
+  id-token: write # npm provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: read the version from the tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # Nothing gets published that has not passed the same gates as a push.
+      # A release is the worst moment to find out a test was failing.
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: make cover
+      - run: node --test 'test/*.test.js'
+        working-directory: node
+
+      # The published binaries carry every dependency inside them, and those
+      # licences require their notices to travel along. If the committed notices
+      # are stale, the release would ship the wrong ones.
+      - name: third-party notices are current
+        run: |
+          make notices
+          git diff --exit-code THIRD-PARTY-NOTICES.txt \
+            || { echo "THIRD-PARTY-NOTICES.txt is stale; run 'make notices' and commit"; exit 1; }
+
+      - name: cross-compile
+        env:
+          CGO_ENABLED: '0'
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist/bin
+          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do
+            goos=${target%/*}
+            goarch=${target#*/}
+            output="dist/bin/tls-forge-$goos-$goarch"
+            [ "$goos" = windows ] && output="$output.exe"
+            echo "building $output"
+            GOOS=$goos GOARCH=$goarch go build \
+              -trimpath -ldflags "-s -w -X main.version=v$VERSION" \
+              -o "$output" ./cmd/tls-forge
+          done
+
+      # A binary that cannot run is not worth publishing, and this runner can at
+      # least run its own.
+      - name: the linux binary works
+        run: |
+          chmod +x dist/bin/tls-forge-linux-amd64
+          ./dist/bin/tls-forge-linux-amd64 version
+          ./dist/bin/tls-forge-linux-amd64 profiles > /dev/null
+
+      - name: assemble the npm packages
+        run: node scripts/npm-release.mjs --version "${{ steps.version.outputs.version }}" --binaries dist/bin --out dist/npm
+
+      # The platform packages go first. The main package pins them by exact
+      # version, so publishing it first would leave a window in which installing
+      # it resolves nothing.
+      - name: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for pkg in dist/npm/tls-forge-*; do
+            echo "publishing $pkg"
+            npm publish "$pkg" --access public --provenance
+          done
+          npm publish dist/npm/tls-forge --access public --provenance
+
+      - name: github release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            dist/bin/* LICENSE NOTICE THIRD-PARTY-NOTICES.txt

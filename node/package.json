@@ -1,6 +1,6 @@
 {
   "name": "tls-forge",
-  "version": "0.1.0",
+  "version": "0.0.0-dev",
   "description": "HTTP client for Node whose TLS and HTTP/2 fingerprints are a real browser's",
   "type": "module",
   "main": "index.js",
@@ -10,13 +10,21 @@
   "files": [
     "index.js",
     "binary.js",
-    "scripts/",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD-PARTY-NOTICES.txt"
   ],
   "scripts": {
     "build": "node scripts/build.js",
-    "postinstall": "node scripts/build.js --optional",
     "test": "node --test --experimental-test-coverage 'test/*.test.js'"
+  },
+  "optionalDependencies": {
+    "@sec-ch-lemon/tls-forge-darwin-arm64": "0.0.0-dev",
+    "@sec-ch-lemon/tls-forge-darwin-x64": "0.0.0-dev",
+    "@sec-ch-lemon/tls-forge-linux-arm64": "0.0.0-dev",
+    "@sec-ch-lemon/tls-forge-linux-x64": "0.0.0-dev",
+    "@sec-ch-lemon/tls-forge-win32-x64": "0.0.0-dev"
   },
   "keywords": [
     "tls",
@@ -28,7 +36,8 @@
     "impersonate",
     "utls"
   ],
-  "license": "MIT",
+  "author": "Ihar Kazlouski",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=20.12"
   },

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// Build the Go transport into node/vendor/.
+// Build the Go transport into node/vendor/, for working on this repository.
 //
-// Run with --optional during install: a machine without Go should get a usable
-// package and a clear message, not a failed `npm install`. The error surfaces
-// later, from resolveBinary, with instructions attached.
+// Released packages do not run this. The binary reaches users through a
+// platform-specific optional dependency, built and published by the release
+// workflow — see scripts/npm-release.mjs. This is the path for someone who has
+// the sources checked out and wants the Node client to talk to the code they
+// are editing.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -13,30 +15,30 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, '..');
 const moduleRoot = path.resolve(packageRoot, '..');
-const optional = process.argv.includes('--optional');
 
-const output = path.join(packageRoot, 'vendor', process.platform === 'win32' ? 'tlsforge.exe' : 'tlsforge');
+// The name binary.js looks for, which is the command's name.
+const output = path.join(packageRoot, 'vendor', process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge');
 
 function fail(message) {
-  const where = optional ? console.warn : console.error;
-  where(message);
-  process.exit(optional ? 0 : 1);
+  console.error(message);
+  process.exit(1);
 }
 
-// A published tarball has no Go sources next to it, so there is nothing to
-// build and nothing to warn about.
 if (!existsSync(path.join(moduleRoot, 'go.mod'))) {
-  if (!optional) fail('tlsforge: no Go sources found; install the binary separately or set TLSFORGE_BIN.');
-  process.exit(0);
+  fail(
+    'tls-forge: no Go sources found next to this package.\n' +
+      '  This script builds from a checkout. To use a release, install the\n' +
+      '  tls-forge package from npm and let it pull the binary for your platform.',
+  );
 }
 
 try {
   execFileSync('go', ['version'], { stdio: 'ignore' });
 } catch {
   fail(
-    'tlsforge: Go is not installed, so the transport was not built.\n' +
-      '  Install Go 1.24+ and run:  npm explore tls-forge -- npm run build\n' +
-      '  Or point at a prebuilt binary:  TLSFORGE_BIN=/path/to/tlsforge',
+    'tls-forge: Go is not installed, so the transport was not built.\n' +
+      '  Install Go 1.24+ and run:  npm run build\n' +
+      '  Or point at a binary you already have:  TLSFORGE_BIN=/path/to/tls-forge',
   );
 }
 
@@ -44,6 +46,6 @@ mkdirSync(path.dirname(output), { recursive: true });
 try {
   execFileSync('go', ['build', '-o', output, './cmd/tls-forge'], { cwd: moduleRoot, stdio: 'inherit' });
 } catch (err) {
-  fail(`tlsforge: building the transport failed: ${err.message}`);
+  fail(`tls-forge: building the transport failed: ${err.message}`);
 }
-console.log(`tlsforge: built ${output}`);
+console.log(`tls-forge: built ${output}`);

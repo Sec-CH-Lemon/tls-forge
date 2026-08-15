@@ -13,6 +13,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- Licensed under Apache-2.0, with `NOTICE` and a generated
+  `THIRD-PARTY-NOTICES.txt`. The published binaries are statically linked, so
+  every dependency travels inside them and its licence requires the copyright
+  notice to travel too; `make notices` regenerates the file from what is
+  actually linked.
+- Published to npm on a pushed `v*` tag. The binary reaches users as a
+  platform-specific optional dependency — `@sec-ch-lemon/tls-forge-<platform>-<arch>`
+  — so installing needs no Go, downloads nothing, and works under
+  `npm ci --ignore-scripts`.
 - `tls-forge capture` — launch the installed browser, measure what it sends, and
   write a reusable profile from it.
 - `tls-forge compare` — measure the browser and the library against one local

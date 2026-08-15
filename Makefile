@@ -3,7 +3,7 @@ BIN     ?= bin/tls-forge
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVER   ?= coverage.out
 
-.PHONY: all build test cover lint vet fmt node-test check capture compare clean
+.PHONY: all build test cover lint vet fmt node-test check capture compare notices clean
 
 all: check
 
@@ -56,6 +56,12 @@ capture: build
 # gate a release — a browser update is exactly when it stops being true.
 compare: build
 	$(BIN) compare
+
+# The npm packages ship a compiled binary with every dependency linked into it,
+# and those licences require their notices to travel along. Regenerate whenever
+# the dependency set changes.
+notices:
+	./scripts/notices.sh > THIRD-PARTY-NOTICES.txt
 
 clean:
 	rm -rf bin $(COVER) node/vendor

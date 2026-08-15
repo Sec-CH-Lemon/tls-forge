@@ -268,4 +268,11 @@ a profile from it, and verify the result locally.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+The binary is statically linked, so every dependency travels inside it, and the
+BSD- and MIT-style licences those carry all require their copyright notices to
+accompany a binary. Those notices are in
+[THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) — regenerate it with `make
+notices` whenever the dependency set changes, and keep it alongside any copy you
+distribute.

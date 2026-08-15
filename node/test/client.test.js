@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Client, resolveBinary } from '../index.js';
+import { exeName, platformPackage } from '../binary.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fakeDaemon = path.join(here, 'fake-daemon.js');
@@ -170,4 +171,73 @@ test('resolveBinary reads TLSFORGE_BIN', () => {
 
 test('resolveBinary rejects a path that does not exist', () => {
   assert.throws(() => resolveBinary('/definitely/not/here'), /no binary at/);
+});
+
+// The binary normally arrives as an optional dependency: one package per
+// platform, each declaring `os` and `cpu`, so npm installs only the matching
+// one. These tests build that layout for real rather than stubbing the
+// resolver, because the thing worth checking is that Node's resolution finds it.
+function installPlatformPackage(t, { withBinary = true } = {}) {
+  const dir = path.join(here, '..', 'node_modules', platformPackage);
+  mkdirSync(path.join(dir, 'bin'), { recursive: true });
+  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: platformPackage, version: '0.0.0' }));
+  const binary = path.join(dir, 'bin', exeName);
+  if (withBinary) {
+    writeFileSync(binary, '#!/bin/sh\n');
+    chmodSync(binary, 0o755);
+  }
+  t.after(() => rmSync(path.join(here, '..', 'node_modules', '@sec-ch-lemon'), { recursive: true, force: true }));
+  return binary;
+}
+
+test('the binary is found in the platform package', (t) => {
+  const binary = installPlatformPackage(t);
+  assert.equal(resolveBinary(), binary);
+});
+
+test('an explicit path still wins over the platform package', (t) => {
+  installPlatformPackage(t);
+  assert.equal(resolveBinary(wrapper), wrapper);
+});
+
+test('a platform package without its binary is not used', (t) => {
+  // An interrupted install can leave the directory without the file in it.
+  // Resolving to a path that does not exist would fail later, at spawn, with a
+  // much worse message.
+  installPlatformPackage(t, { withBinary: false });
+  const previous = process.env.TLSFORGE_BIN;
+  delete process.env.TLSFORGE_BIN;
+  try {
+    let found = null;
+    try {
+      found = resolveBinary();
+    } catch {
+      /* nothing installed anywhere, which is the expected case here */
+    }
+    if (found && found.includes('@sec-ch-lemon')) {
+      assert.fail(`resolved to a missing binary: ${found}`);
+    }
+  } finally {
+    if (previous !== undefined) process.env.TLSFORGE_BIN = previous;
+  }
+});
+
+test('the not-found message names the platform package', () => {
+  const previous = process.env.TLSFORGE_BIN;
+  delete process.env.TLSFORGE_BIN;
+  try {
+    resolveBinary();
+    // A binary on PATH or a local build is a perfectly normal state for a
+    // checkout, and not what this test is about.
+  } catch (err) {
+    assert.match(err.message, /@sec-ch-lemon\/tls-forge-/);
+    assert.match(err.message, new RegExp(`${process.platform}-${process.arch}`));
+  } finally {
+    if (previous !== undefined) process.env.TLSFORGE_BIN = previous;
+  }
+});
+
+test('the platform package name follows npm platform and arch', () => {
+  assert.equal(platformPackage, `@sec-ch-lemon/tls-forge-${process.platform}-${process.arch}`);
+  assert.equal(exeName, process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge');
 });

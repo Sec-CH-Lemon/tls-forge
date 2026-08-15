@@ -1,5 +1,6 @@
 # Build output
 /bin/
+/dist/
 /node/vendor/
 
 # Documentation, held back until it is ready to publish. To publish it later,
