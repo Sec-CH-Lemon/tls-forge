@@ -87,6 +87,9 @@ type Server struct {
 	// old one.
 	conns map[net.Conn]struct{}
 
+	// panics holds what has been recovered from connection handlers.
+	panics []string
+
 	closeOnce sync.Once
 	closed    chan struct{}
 	wg        sync.WaitGroup
@@ -260,9 +263,43 @@ func (s *Server) accept() {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			s.handle(conn)
+			// One connection's panic costs that connection, not the process.
+			//
+			// This is its own goroutine, so an unrecovered panic here takes the
+			// whole program down, and everything it runs decodes bytes a peer
+			// chose before any handshake has completed. net/http recovers in
+			// exactly the same place and for exactly this reason.
+			defer func() {
+				if r := recover(); r != nil {
+					_ = conn.Close()
+					s.panicked(r)
+				}
+			}()
+			handleConn(s, conn)
 		}()
 	}
+}
+
+// handleConn is Server.handle, named so a test can make it panic. The recover
+// around it is there for a panic nobody has thought of, which is the only kind
+// there will ever be, and no test can produce one without this.
+var handleConn = (*Server).handle
+
+// panicked records a recovered panic. A test reads it; nothing else does,
+// because a server that swallowed one silently would be worse than one that
+// crashed.
+func (s *Server) panicked(r any) {
+	s.mu.Lock()
+	s.panics = append(s.panics, fmt.Sprintf("%v", r))
+	s.mu.Unlock()
+}
+
+// Panics returns what has been recovered from connection handlers, which should
+// be nothing.
+func (s *Server) Panics() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.panics...)
 }
 
 func (s *Server) handle(raw net.Conn) {

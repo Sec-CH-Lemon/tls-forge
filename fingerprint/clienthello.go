@@ -165,6 +165,13 @@ func handshakeBody(records []byte) (body []byte, consumed int, err error) {
 			return nil, 0, ErrNotClientHello
 		}
 		handshake = append(handshake, payload...)
+		if len(handshake) == 0 {
+			// A record carrying an empty payload. Legal framing, and it
+			// contributes no byte to judge, so there is nothing to do but read
+			// the next record. Indexing here instead is a panic reachable by
+			// any peer that can open a socket.
+			continue
+		}
 		// Checked as soon as one byte exists rather than after reassembly: a
 		// ServerHello reflected by a misconfigured proxy is also a handshake
 		// record, and length-prefix parsing it as a ClientHello would produce a

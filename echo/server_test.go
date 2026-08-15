@@ -647,3 +647,37 @@ func TestPriorityFramesAreRecorded(t *testing.T) {
 		t.Errorf("priority = %+v", got)
 	}
 }
+
+func TestAConnectionPanicDoesNotTakeTheServerWithIt(t *testing.T) {
+	// Everything a handler runs decodes bytes a peer chose, before any
+	// handshake has completed. That code lives on its own goroutine, so without
+	// the recover a single malformed record is a remote kill switch: this was
+	// once true of a five-byte TLS record with an empty payload.
+	original := handleConn
+	t.Cleanup(func() { handleConn = original })
+	handleConn = func(*Server, net.Conn) { panic("a parser fell over") }
+
+	server, err := Start()
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	conn, err := net.Dial("tcp", server.Addr())
+	if err != nil {
+		t.Fatalf("dialling: %v", err)
+	}
+	_ = conn.Close()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if panics := server.Panics(); len(panics) == 1 {
+			if !strings.Contains(panics[0], "a parser fell over") {
+				t.Errorf("recovered %q", panics[0])
+			}
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("the panic was never recovered, or the server died with it")
+}

@@ -351,3 +351,25 @@ func indexOf(haystack, needle string) int {
 	}
 	return -1
 }
+
+func TestParseClientHelloWithEmptyRecords(t *testing.T) {
+	// A handshake record carrying no payload. Legal framing, and it used to be
+	// a panic: the payload was appended and the first byte read without
+	// checking that there was one. Found by FuzzParseClientHello, five bytes
+	// long, and enough to kill `tls-forge serve` from any socket.
+	for _, name := range []string{"one empty record", "two empty records"} {
+		t.Run(name, func(t *testing.T) {
+			records := []byte{0x16, 0x03, 0x01, 0x00, 0x00}
+			if name == "two empty records" {
+				records = append(records, records...)
+			}
+			hello, err := ParseClientHello(records)
+			if err == nil {
+				t.Fatalf("no error, got %+v", hello)
+			}
+			if hello != nil {
+				t.Errorf("both a hello and an error")
+			}
+		})
+	}
+}

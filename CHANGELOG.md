@@ -11,6 +11,23 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A five-byte TLS record crashed `tls-forge serve`.** A handshake record
+  carrying an empty payload made the ClientHello parser read the first byte of
+  a buffer that had none, and the parse runs on the connection goroutine before
+  any handshake completes, so any peer that could open a socket could stop the
+  process. Found by a new fuzz target, not by the tests: the package was at
+  100% statement coverage with the bug in it.
+- Connection handlers now recover, so a panic costs one connection rather than
+  the server, as `net/http` does in the same place.
+
+### Added
+
+- Fuzz targets for the two parsers that read bytes their reader did not choose:
+  `FuzzParseClientHello` and `FuzzLoad`. Run them with
+  `go test -fuzz FuzzParseClientHello ./fingerprint/`.
+
 ### Changed
 
 - **Flags follow the usual convention: one dash for a short flag, two for a
