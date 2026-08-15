@@ -76,7 +76,7 @@ func (f clientFlags) clientVia(proxy string) (*tlsforge.Client, error) {
 	return tlsforge.New(opts...)
 }
 
-func runFetch(_ context.Context, args []string, out *printer) error {
+func runFetch(_ context.Context, args []string, out, _ *printer) error {
 	fs := newFlagSet("fetch", out)
 	common := addClientFlags(fs)
 	method := fs.StringP("method", "X", "GET", "HTTP method")
@@ -134,7 +134,7 @@ func runFetch(_ context.Context, args []string, out *printer) error {
 	return err
 }
 
-func runDaemon(_ context.Context, args []string, out *printer) error {
+func runDaemon(_ context.Context, args []string, out, _ *printer) error {
 	fs := newFlagSet("daemon", out)
 	common := addClientFlags(fs)
 	if err := parse(fs, args); err != nil {

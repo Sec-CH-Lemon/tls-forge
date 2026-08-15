@@ -15,7 +15,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
-func runCapture(ctx context.Context, args []string, out *printer) error {
+func runCapture(ctx context.Context, args []string, out, _ *printer) error {
 	fs := newFlagSet("capture", out)
 	browserName := fs.StringP("browser", "b", "",
 		"browser to measure: chrome, chromium, edge, brave, or a path")
@@ -112,7 +112,7 @@ func profileNameFor(userAgent string) string {
 	return "captured"
 }
 
-func runServe(ctx context.Context, args []string, out *printer) error {
+func runServe(ctx context.Context, args []string, out, _ *printer) error {
 	fs := newFlagSet("serve", out)
 	addr := fs.StringP("addr", "a", "127.0.0.1:0", "listen address")
 	host := fs.String("host", "localhost", "hostname used in the URL and certificate")
@@ -141,7 +141,7 @@ func runServe(ctx context.Context, args []string, out *printer) error {
 	return nil
 }
 
-func runProfiles(_ context.Context, args []string, out *printer) error {
+func runProfiles(_ context.Context, args []string, out, _ *printer) error {
 	fs := newFlagSet("profiles", out)
 	if err := parse(fs, args); err != nil {
 		return err

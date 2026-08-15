@@ -407,3 +407,67 @@ func TestBatchReportsAProxyItCannotUse(t *testing.T) {
 		t.Errorf("one bad proxy stopped the rest of the run: %+v", r)
 	}
 }
+
+func TestBatchWarnsAboveTheCoreCount(t *testing.T) {
+	original := numCPU
+	t.Cleanup(func() { numCPU = original })
+	numCPU = func() int { return 4 }
+
+	server := batchServer(t)
+
+	for _, tc := range []struct {
+		name    string
+		workers string
+		want    bool
+	}{
+		{"below the core count", "2", false},
+		{"exactly the core count", "4", false},
+		{"above it", "16", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			code, stdout, stderr := exec(t, "batch", "-c", tc.workers, server.URL+"/one")
+			if code != 0 {
+				t.Fatalf("exit code = %d\n%s", code, stderr)
+			}
+			warned := strings.Contains(stderr, "WARN")
+			if warned != tc.want {
+				t.Errorf("warned = %v, want %v; stderr = %q", warned, tc.want, stderr)
+			}
+			if tc.want {
+				// It has to say both numbers, or the reader cannot tell what it
+				// asked for from what the machine has.
+				for _, part := range []string{tc.workers, "4", "cores"} {
+					if !strings.Contains(stderr, part) {
+						t.Errorf("stderr does not mention %q: %q", part, stderr)
+					}
+				}
+			}
+			// Whatever it says, it must not say it on stdout: that stream is
+			// JSON lines, and a reader of them would choke.
+			if strings.Contains(stdout, "WARN") {
+				t.Errorf("the warning landed on stdout:\n%s", stdout)
+			}
+			for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+				var r result
+				if err := json.Unmarshal([]byte(line), &r); err != nil {
+					t.Errorf("stdout is not JSON lines: %q", line)
+				}
+			}
+		})
+	}
+}
+
+func TestBatchDoesNotWarnBeforeItFailsOnTheFlags(t *testing.T) {
+	// A warning about a number that was rejected anyway is noise.
+	original := numCPU
+	t.Cleanup(func() { numCPU = original })
+	numCPU = func() int { return 1 }
+
+	code, _, stderr := exec(t, "batch", "-c", "0", "https://example.com/")
+	if code != 2 {
+		t.Fatalf("exit code = %d, want 2", code)
+	}
+	if strings.Contains(stderr, "WARN") {
+		t.Errorf("warned about a rejected value: %q", stderr)
+	}
+}

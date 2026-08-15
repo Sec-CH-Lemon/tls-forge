@@ -31,7 +31,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   and one URL per line. One client is opened per distinct proxy and shared
   between workers, because the proxy is the identity and a cookie jar should
   not cross two exit IPs. Output is JSON lines, one per URL, and the command
-  exits 1 if any URL failed.
+  exits 1 if any URL failed. `--concurrency` sets how many pages are fetched at
+  once; asking for more workers than the machine has cores prints a warning on
+  standard error and carries on, since fetching waits on the network rather
+  than on a core.
 
 - Fuzz targets for the two parsers that read bytes their reader did not choose:
   `FuzzParseClientHello` and `FuzzLoad`. Run them with

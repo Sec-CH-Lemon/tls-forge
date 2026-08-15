@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -33,7 +34,33 @@ type result struct {
 // batchInput is os.Stdin, named so a test can supply a list.
 var batchInput io.Reader = os.Stdin
 
-func runBatch(ctx context.Context, args []string, out *printer) error {
+// numCPU is runtime.NumCPU, named so a test can answer for it. A machine's core
+// count is not something a test can choose, and the warning below is worth
+// checking on more than whatever the runner happens to have.
+var numCPU = runtime.NumCPU
+
+// warnAboutConcurrency says something when more workers were asked for than the
+// machine has cores.
+//
+// A warning and not a limit. Fetching waits on the network far more than on a
+// core, so more workers than cores is often the right answer and capping it
+// would make the tool slower for the thing it is for. What it usually means
+// instead is a number typed without thinking, and past a point the extra
+// workers only queue behind the same connections and the same exit IP.
+//
+// To stderr, so it cannot land in the middle of the JSON lines on stdout.
+func warnAboutConcurrency(errOut *printer, workers int) {
+	cores := numCPU()
+	if workers <= cores {
+		return
+	}
+	errOut.printf("WARN: --concurrency %d is more than the %d CPU cores on this machine.\n",
+		workers, cores)
+	errOut.println("      Fetching waits on the network rather than on a core, so this may " +
+		"be what you want.")
+}
+
+func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("batch", out)
 	common := addClientFlags(fs)
 	input := fs.StringP("input", "i", "", "file of URLs (default: standard input)")
@@ -55,6 +82,7 @@ func runBatch(ctx context.Context, args []string, out *printer) error {
 	if *retry < 1 {
 		return fmt.Errorf("%w: --retry must be at least 1", errUsage)
 	}
+	warnAboutConcurrency(errOut, *workers)
 
 	jobs, err := readJobs(*inline, *input, *format, fs.Args(), batchInput)
 	if err != nil {

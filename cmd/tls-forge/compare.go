@@ -10,7 +10,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
-func runCompare(ctx context.Context, args []string, out *printer) error {
+func runCompare(ctx context.Context, args []string, out, _ *printer) error {
 	fs := newFlagSet("compare", out)
 	profileName := fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to check")
 	browserName := fs.StringP("browser", "b", "", "browser to compare against")

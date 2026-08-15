@@ -250,7 +250,7 @@ cat urls.txt | tls-forge batch                               # or standard input
 | `-u`, `--urls` | the list as a comma-separated string, instead of a file |
 | `-i`, `--input` | the list as a file. Standard input if neither is given |
 | `-F`, `--format` | `auto`, `lines`, `json` or `csv`. `auto` reads the file's extension |
-| `-c`, `--concurrency` | how many requests to run at once, 4 by default |
+| `-c`, `--concurrency` | how many pages to fetch at once, 4 by default |
 | `-o`, `--output` | write the JSON lines here instead of to the terminal |
 | `-d`, `--body-dir` | write bodies to this directory and reference them instead of inlining them |
 | `--retry` | attempts per URL before giving up, 1 by default |
@@ -306,6 +306,29 @@ https://c.example/page
 
 `--urls` is the same list on the command line, comma separated. A URL may
 legally contain a comma, in a query string; one that does belongs in a file.
+
+#### Fetching in parallel
+
+`--concurrency` is how many pages are in flight at once. Four by default, which
+is polite; raise it for a large list.
+
+```bash
+tls-forge batch -i urls.csv -c 16
+```
+
+Above the machine's core count the command says so and carries on:
+
+```
+WARN: --concurrency 64 is more than the 14 CPU cores on this machine.
+      Fetching waits on the network rather than on a core, so this may be what you want.
+```
+
+A warning and not a limit, because for this work more workers than cores is
+often right: a fetch spends its time waiting on the network, not on a core.
+What the number usually means past that point is one typed without thinking,
+and the extra workers only queue behind the same connections and the same exit
+IP. It goes to standard error, so the JSON lines on standard output stay
+readable by whatever is consuming them.
 
 #### One client per proxy
 

@@ -36,7 +36,10 @@ var errDiffers = errors.New("the client and the browser differ")
 type command struct {
 	name    string
 	summary string
-	run     func(ctx context.Context, args []string, out *printer) error
+	// Two writers, not one. Results go to out; a warning goes to errOut,
+	// because a line of commentary on stdout would land in the middle of the
+	// JSON that batch is producing and break whatever is reading it.
+	run func(ctx context.Context, args []string, out, errOut *printer) error
 }
 
 func commands() []command {
@@ -77,7 +80,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		if c.name != name {
 			continue
 		}
-		err := c.run(ctx, args[1:], out)
+		err := c.run(ctx, args[1:], out, errOut)
 		// A command that printed nothing because the pipe was closed did not
 		// succeed, whatever it returned.
 		if err == nil {
@@ -168,7 +171,7 @@ func setUsage(fs *pflag.FlagSet, out io.Writer, line string) {
 	}
 }
 
-func runVersion(_ context.Context, _ []string, out *printer) error {
+func runVersion(_ context.Context, _ []string, out, _ *printer) error {
 	out.println("tls-forge", version)
 	return nil
 }
