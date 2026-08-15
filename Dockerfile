@@ -5,7 +5,11 @@
 # tool people reach for interactively, and a shell to look around in is worth
 # the few megabytes; the binary itself needs nothing from it.
 
-FROM golang:1.24-alpine AS build
+# Pinned to the machine doing the building, not to the machine the image is
+# for. Go cross-compiles, so an arm64 image can be produced on an amd64 runner
+# in seconds; letting the builder stage run under emulation instead would mean
+# running the entire Go toolchain through QEMU.
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS build
 
 WORKDIR /src
 
@@ -19,7 +23,11 @@ COPY . .
 # Stamped from the build argument so `tls-forge version` inside the image says
 # something true. Passed by `make docker` and by the release workflow.
 ARG VERSION=dev
-RUN CGO_ENABLED=0 go build \
+
+# Supplied by BuildKit, one pair per platform being built.
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
       -o /out/tls-forge ./cmd/tls-forge
 

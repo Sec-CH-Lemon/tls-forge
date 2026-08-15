@@ -29,7 +29,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   — so installing needs no Go, downloads nothing, and works under
   `npm ci --ignore-scripts`.
 - A Dockerfile: Alpine plus the static binary, about 30 MB, running as a
-  non-root user and carrying the licence notices. CI builds the image and runs
+  non-root user and carrying the licence notices. Published to
+  `ghcr.io/sec-ch-lemon/tls-forge` on a pushed tag, for linux/amd64 and
+  linux/arm64, cross-compiled rather than emulated. CI builds the image and runs
   the binary inside it, since nothing else in the repository would notice a
   Dockerfile that stopped working.
 - `tls-forge capture` — launch the installed browser, measure what it sends, and
