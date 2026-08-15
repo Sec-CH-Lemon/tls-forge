@@ -55,6 +55,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- `--retry` becomes `--repeat`, and the default is 3 rather than none: it now
+  counts further tries after the first, so a URL that does not load is asked for
+  four times in all. The waits between them double from 250 ms and stop at two
+  seconds; before, a repeat happened in the same microsecond as the failure it
+  was repeating.
+
 - `--report` given a directory names the file after the run,
   `report-2026-08-16-01:09:45:123.html`, rather than needing one invented per
   run. On Windows the colons are dashes, because a colon cannot appear in a

@@ -243,13 +243,94 @@ func TestBatchRetries(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	code, stdout, _ := exec(t, "batch", "--retry", "3", "--timeout", "10s", server.URL+"/flaky")
+	code, stdout, _ := exec(t, "batch", "--repeat", "2", "--timeout", "10s", server.URL+"/flaky")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stdout)
 	}
+	// One try, then the two it was told to repeat.
 	r := lines(t, stdout)[server.URL+"/flaky"]
 	if r.Attempts != 3 {
 		t.Errorf("attempts = %d, want 3", r.Attempts)
+	}
+}
+
+func TestBatchTriesOnceWhenToldNotToRepeat(t *testing.T) {
+	server := batchServer(t)
+	_, stdout, _ := exec(t, "batch", "--repeat", "0", server.URL+"/one")
+	if r := lines(t, stdout)[server.URL+"/one"]; r.Attempts != 1 {
+		t.Errorf("attempts = %d, want 1", r.Attempts)
+	}
+}
+
+func TestBatchRepeatsThreeTimesByDefault(t *testing.T) {
+	// A URL that never comes back is tried once and then three times more.
+	_, stdout, _ := exec(t, "batch", "--timeout", "3s", "https://127.0.0.1:1/gone")
+	if r := lines(t, stdout)["https://127.0.0.1:1/gone"]; r.Attempts != 4 {
+		t.Errorf("attempts = %d, want 4", r.Attempts)
+	}
+}
+
+func TestRepeatBackoff(t *testing.T) {
+	// A repeat with no pause is not another try: it is the same failure in the
+	// same microsecond, against a host whose situation has not had time to
+	// change.
+	for _, tc := range []struct {
+		attempt int
+		want    time.Duration
+	}{
+		{1, 250 * time.Millisecond},
+		{2, 500 * time.Millisecond},
+		{3, time.Second},
+		{4, 2 * time.Second},
+		// Capped: a batch has better things to do than wait out an outage.
+		{9, 2 * time.Second},
+	} {
+		if got := backoff(tc.attempt); got != tc.want {
+			t.Errorf("backoff(%d) = %v, want %v", tc.attempt, got, tc.want)
+		}
+	}
+}
+
+func TestRepeatActuallyPauses(t *testing.T) {
+	// The suite runs without the waits; this is the one test that puts them
+	// back, so "there is a pause" is measured rather than assumed.
+	original := repeatWait
+	t.Cleanup(func() { repeatWait = original })
+	repeatWait = backoff
+
+	started := time.Now()
+	_, stdout, _ := exec(t, "batch", "--repeat", "1", "--timeout", "3s",
+		"https://127.0.0.1:1/gone")
+	elapsed := time.Since(started)
+
+	if r := lines(t, stdout)["https://127.0.0.1:1/gone"]; r.Attempts != 2 {
+		t.Fatalf("attempts = %d, want 2", r.Attempts)
+	}
+	if elapsed < 250*time.Millisecond {
+		t.Errorf("the two tries took %v, so nothing waited between them", elapsed)
+	}
+}
+
+func TestRepeatDoesNotWaitOutAnInterruptedRun(t *testing.T) {
+	// Ctrl-C during a backoff should end the run, not finish the nap first.
+	original := repeatWait
+	t.Cleanup(func() { repeatWait = original })
+	repeatWait = func(int) time.Duration { return 30 * time.Second }
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	go func() {
+		done <- run(ctx, []string{"batch", "--repeat", "5", "--timeout", "3s",
+			"--progress", "never", "https://127.0.0.1:1/gone"},
+			&strings.Builder{}, &strings.Builder{})
+	}()
+
+	time.Sleep(300 * time.Millisecond)
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the run waited out its backoff after being interrupted")
 	}
 }
 
@@ -259,7 +340,7 @@ func TestBatchArgumentErrors(t *testing.T) {
 	// the 1 that means "some URLs failed".
 	for _, args := range [][]string{
 		{"batch", "--concurrency", "0", server.URL},
-		{"batch", "--retry", "0", server.URL},
+		{"batch", "--repeat", "-1", server.URL},
 		{"batch", "--nonsense"},
 	} {
 		if code, _, _ := exec(t, args...); code != 2 {

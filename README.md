@@ -253,7 +253,7 @@ cat urls.txt | tls-forge batch                               # or standard input
 | `-c`, `--concurrency` | how many pages to fetch at once, 4 by default |
 | `-o`, `--output` | write the JSON lines here instead of to the terminal |
 | `-d`, `--body-dir` | write bodies to this directory and reference them instead of inlining them |
-| `--retry` | attempts per URL before giving up, 1 by default |
+| `--repeat` | times to try a URL again when it does not load, 3 by default |
 | `--progress` | `auto`, `always` or `never`. `auto` draws only to a terminal |
 | `-R`, `--report` | write an HTML report here. A directory gets `report-<date-time>.html` |
 | `--report-ip` | with `--report`, look up each proxy's exit address. On by default |
@@ -347,6 +347,28 @@ the case where the warning is worth the most. Both cgroup layouts are read, v2
 first and then v1; where neither exists, including on every machine that is not
 Linux, the hardware count stands. Nothing here changes `GOMAXPROCS`: the number
 decides whether to print a sentence.
+
+#### When a page does not load
+
+`--repeat` is how many further tries a URL gets, three by default, so a
+transient failure costs a pause rather than a row in the report.
+
+```bash
+tls-forge batch -i urls.csv --repeat 5
+tls-forge batch -i urls.csv --repeat 0     # one try, no more
+```
+
+The waits between tries double from a quarter of a second and stop at two: 250
+ms, 500 ms, 1 s, then 2 s for anything further. A repeat with no pause is not
+another try. Measured before the pauses were added, a URL through a dead proxy
+recorded two attempts inside one millisecond, which is the same failure twice
+against a host whose situation had not had time to change.
+
+Only a request that got no answer is repeated. A 503 is an answer, and asking
+again for it four times would be four times the load on a site already saying
+it is unwell.
+
+Interrupting the run does not wait out the pauses first.
 
 #### Watching it run
 

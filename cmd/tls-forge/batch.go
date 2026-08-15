@@ -96,7 +96,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	output := fs.StringP("output", "o", "", "write the JSON lines here instead of standard output")
 	bodyDir := fs.StringP("body-dir", "d", "",
 		"write bodies to this directory and reference them instead of inlining")
-	retry := fs.Int("retry", 1, "attempts per URL before giving up")
+	repeat := fs.Int("repeat", 3, "times to try a URL again when it does not load")
 	showProgress := fs.String("progress", "auto",
 		"live status line on stderr: auto, always or never")
 	report := fs.StringP("report", "R", "",
@@ -110,8 +110,8 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	if *workers < 1 {
 		return fmt.Errorf("%w: --concurrency must be at least 1", errUsage)
 	}
-	if *retry < 1 {
-		return fmt.Errorf("%w: --retry must be at least 1", errUsage)
+	if *repeat < 0 {
+		return fmt.Errorf("%w: --repeat cannot be negative", errUsage)
 	}
 	// Checked before the list is read, so a misspelling costs a message rather
 	// than a run that turns out to have nowhere to report itself.
@@ -161,7 +161,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 
 	records := make([]result, 0, len(jobs))
-	failures := runJobs(ctx, jobs, clients, *workers, sink, *retry, *bodyDir, counts, &records)
+	failures := runJobs(ctx, jobs, clients, *workers, sink, *repeat, *bodyDir, counts, &records)
 
 	// Closed here rather than deferred, so the final counts land before the
 	// summary below instead of after it.
@@ -207,6 +207,43 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		return fmt.Errorf("batch: %d of %d URLs failed", failures, len(jobs))
 	}
 	return nil
+}
+
+// repeatWait is how long to wait before trying a URL again. A variable so the
+// tests can take the waiting out of the runs where it is not the point; what it
+// returns is checked on its own.
+var repeatWait = backoff
+
+// backoff doubles from a quarter of a second, capped at two.
+//
+// A repeat with no pause is not another try. Measured on an earlier run, a URL
+// through a dead proxy recorded two attempts inside one millisecond: the same
+// failure twice, in the same microsecond, against a host whose situation had
+// not had time to change. Capped, because a batch has better things to do than
+// sleep, and the point of a pause is to let a transient thing pass rather than
+// to wait out an outage.
+func backoff(attempt int) time.Duration {
+	const first, longest = 250 * time.Millisecond, 2 * time.Second
+	if attempt >= 4 {
+		return longest
+	}
+	return first << (attempt - 1)
+}
+
+// pause waits, and reports whether it got to finish. A run being wound up does
+// not wait out its backoffs first.
+func pause(ctx context.Context, d time.Duration) bool {
+	if d <= 0 {
+		return true
+	}
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
 }
 
 // either is the first of two strings that is not empty.
@@ -285,7 +322,7 @@ func (p *pool) close() {
 // reported on its line rather than returned, so one dead host does not end the
 // run.
 func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
-	sink io.Writer, retry int, bodyDir string, counts *progress, records *[]result,
+	sink io.Writer, repeat int, bodyDir string, counts *progress, records *[]result,
 ) (failures int) {
 	queue := make(chan job)
 	var writeMu sync.Mutex
@@ -298,7 +335,7 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 			defer wg.Done()
 			for j := range queue {
 				counts.begin()
-				r := fetchOne(ctx, clients, j, retry, bodyDir)
+				r := fetchOne(ctx, clients, j, repeat, bodyDir)
 				counts.finish(r)
 				writeMu.Lock()
 				if r.Error != "" {
@@ -366,7 +403,7 @@ func lookupExits(clients *pool, records []result) (map[string]egress, int) {
 	return exits, skipped
 }
 
-func fetchOne(ctx context.Context, clients *pool, j job, attempts int, bodyDir string) result {
+func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir string) result {
 	started := now()
 	r := result{URL: j.URL, Proxy: j.Proxy, Started: started}
 
@@ -378,7 +415,11 @@ func fetchOne(ctx context.Context, clients *pool, j job, attempts int, bodyDir s
 	}
 
 	var res *tlsforge.Response
-	for attempt := 1; attempt <= attempts; attempt++ {
+	// One try, then as many again as asked for.
+	for attempt := 1; attempt <= repeat+1; attempt++ {
+		if attempt > 1 && !pause(ctx, repeatWait(attempt-1)) {
+			break
+		}
 		r.Attempts = attempt
 		res, err = client.Get(j.URL)
 		if err == nil {
