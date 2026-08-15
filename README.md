@@ -98,6 +98,16 @@ Prebuilt binaries are also attached to each
 [release](https://github.com/Sec-CH-Lemon/tls-forge/releases) as `.tar.gz`, for
 macOS and Linux on arm64 and x86-64, and Windows on x86-64.
 
+With Docker, if you would rather not install anything:
+
+```bash
+docker build -t tls-forge .
+docker run --rm tls-forge fetch https://example.com
+```
+
+The image is Alpine plus one static binary, about 30 MB, and runs as a
+non-root user. There is more on using it below.
+
 From Go:
 
 ```bash
@@ -179,6 +189,54 @@ tls-forge fetch -i https://example.com
 tls-forge fetch -H "Referer: https://example.com/" https://example.com/page
 tls-forge capture -save my-chrome.json
 ```
+
+### In Docker
+
+Every release publishes an image for linux/amd64 and linux/arm64:
+
+```bash
+docker pull ghcr.io/sec-ch-lemon/tls-forge
+docker run --rm ghcr.io/sec-ch-lemon/tls-forge fetch https://example.com
+```
+
+Or build it yourself, which is the same Dockerfile the release uses:
+
+```bash
+docker build -t tls-forge .
+docker run --rm tls-forge fetch https://example.com
+```
+
+The examples below say `tls-forge` for brevity; substitute the full image name
+if you pulled it.
+
+Anything that reads or writes files needs the directory mounted, and the paths
+you pass have to be the ones inside the container:
+
+```bash
+docker run --rm -v "$PWD:/work" tls-forge fetch -o /work/page.html https://example.com
+```
+
+The daemon speaks over stdin and stdout, so it needs the input kept open:
+
+```bash
+echo '{"id":1,"url":"https://example.com"}' | docker run --rm -i tls-forge daemon
+```
+
+`serve` binds `127.0.0.1` by default, which inside a container means nothing
+outside can reach it. Tell it to listen on all interfaces and publish the port:
+
+```bash
+docker run --rm -p 8443:8443 tls-forge serve -addr 0.0.0.0:8443
+```
+
+On Linux a mounted directory belongs to your user, not to the one inside the
+image, so add `--user "$(id -u):$(id -g)"` when the container has to write into
+it.
+
+Two commands are missing from the image on purpose. `capture` and `compare`
+drive a real browser, and there is no browser in a 30 MB image. Run those on a
+machine that has one, commit the profile they produce, and the container will
+use it like any other.
 
 ## Measuring your own browser
 

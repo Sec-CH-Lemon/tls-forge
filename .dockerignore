@@ -1,0 +1,15 @@
+# Everything the build does not need. Keeping the context small is not only
+# about speed: a stray coverage file or a local build of the binary would land
+# in the image layer above.
+.git
+.github
+bin
+dist
+docs
+node/node_modules
+node/vendor
+coverage.out
+coverage.html
+.idea
+.vscode
+.DS_Store

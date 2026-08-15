@@ -3,7 +3,7 @@ BIN     ?= bin/tls-forge
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVER   ?= coverage.out
 
-.PHONY: all build test cover lint vet fmt node-test check capture compare notices clean
+.PHONY: all build test cover lint vet fmt node-test check capture compare notices docker docker-check clean
 
 all: check
 
@@ -56,6 +56,17 @@ capture: build
 # gate a release — a browser update is exactly when it stops being true.
 compare: build
 	$(BIN) compare
+
+IMAGE ?= tls-forge
+
+docker:
+	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE):$(VERSION) -t $(IMAGE):latest .
+
+# Build the image and prove the binary inside it runs. A Dockerfile that no
+# longer builds is easy to miss, since nothing else in the repository needs it.
+docker-check: docker
+	docker run --rm $(IMAGE):latest version
+	docker run --rm $(IMAGE):latest profiles > /dev/null
 
 # The npm packages ship a compiled binary with every dependency linked into it,
 # and those licences require their notices to travel along. Regenerate whenever

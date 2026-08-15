@@ -80,6 +80,16 @@ jobs:
       - run: node --test 'test/*.test.js'
         working-directory: node
 
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Built and run, not merely built: an image whose binary cannot start is
+      # not a working image, and nothing else in the repository would notice.
+      - run: docker build --build-arg VERSION=ci -t tls-forge:ci .
+      - run: docker run --rm tls-forge:ci version
+      - run: docker run --rm tls-forge:ci profiles
+
   browser:
     # Does the shipped profile still match a real browser?
     #

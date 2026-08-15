@@ -28,6 +28,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   platform-specific optional dependency — `@sec-ch-lemon/tls-forge-<platform>-<arch>`
   — so installing needs no Go, downloads nothing, and works under
   `npm ci --ignore-scripts`.
+- A Dockerfile: Alpine plus the static binary, about 30 MB, running as a
+  non-root user and carrying the licence notices. CI builds the image and runs
+  the binary inside it, since nothing else in the repository would notice a
+  Dockerfile that stopped working.
 - `tls-forge capture` — launch the installed browser, measure what it sends, and
   write a reusable profile from it.
 - `tls-forge compare` — measure the browser and the library against one local
