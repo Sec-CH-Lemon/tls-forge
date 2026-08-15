@@ -330,6 +330,21 @@ and the extra workers only queue behind the same connections and the same exit
 IP. It goes to standard error, so the JSON lines on standard output stay
 readable by whatever is consuming them.
 
+In a container the number counted is the one the container is allowed, read
+from the cgroup, rather than the host's:
+
+```
+$ docker run --rm --cpus=2 tls-forge batch -c 8 -i /work/urls.csv
+WARN: --concurrency 8 is more than the 2 CPUs this process is allowed.
+```
+
+`runtime.NumCPU` reports the hardware and knows nothing about cgroups, so on a
+64-core host it answers 64 however little of it the container may use, which is
+the case where the warning is worth the most. Both cgroup layouts are read, v2
+first and then v1; where neither exists, including on every machine that is not
+Linux, the hardware count stands. Nothing here changes `GOMAXPROCS`: the number
+decides whether to print a sentence.
+
 #### One client per proxy
 
 The proxy is the identity, so `batch` opens one client per distinct proxy and

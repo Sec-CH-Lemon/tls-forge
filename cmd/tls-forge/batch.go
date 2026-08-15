@@ -39,8 +39,8 @@ var batchInput io.Reader = os.Stdin
 // checking on more than whatever the runner happens to have.
 var numCPU = runtime.NumCPU
 
-// warnAboutConcurrency says something when more workers were asked for than the
-// machine has cores.
+// warnAboutConcurrency says something when more workers were asked for than
+// there are CPUs to run them on.
 //
 // A warning and not a limit. Fetching waits on the network far more than on a
 // core, so more workers than cores is often the right answer and capping it
@@ -50,12 +50,17 @@ var numCPU = runtime.NumCPU
 //
 // To stderr, so it cannot land in the middle of the JSON lines on stdout.
 func warnAboutConcurrency(errOut *printer, workers int) {
-	cores := numCPU()
-	if workers <= cores {
+	cpus, limited := cpuLimit()
+	if workers <= cpus {
 		return
 	}
-	errOut.printf("WARN: --concurrency %d is more than the %d CPU cores on this machine.\n",
-		workers, cores)
+	// Named for where the number came from. "cores on this machine" would be a
+	// puzzle to read on a 64-core host inside a container allowed two of them.
+	where := "CPU cores on this machine"
+	if limited {
+		where = "CPUs this process is allowed"
+	}
+	errOut.printf("WARN: --concurrency %d is more than the %d %s.\n", workers, cpus, where)
 	errOut.println("      Fetching waits on the network rather than on a core, so this may " +
 		"be what you want.")
 }

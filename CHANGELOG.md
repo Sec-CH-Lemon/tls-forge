@@ -32,9 +32,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   between workers, because the proxy is the identity and a cookie jar should
   not cross two exit IPs. Output is JSON lines, one per URL, and the command
   exits 1 if any URL failed. `--concurrency` sets how many pages are fetched at
-  once; asking for more workers than the machine has cores prints a warning on
-  standard error and carries on, since fetching waits on the network rather
-  than on a core.
+  once; asking for more workers than there are CPUs prints a warning on standard
+  error and carries on, since fetching waits on the network rather than on a
+  core. In a container the count comes from the cgroup rather than from
+  `runtime.NumCPU`, which reports the hardware and would answer 64 on a 64-core
+  host however little of it the container may use. Both cgroup layouts are
+  read, v2 then v1; `GOMAXPROCS` is left alone.
 
 - Fuzz targets for the two parsers that read bytes their reader did not choose:
   `FuzzParseClientHello` and `FuzzLoad`. Run them with
