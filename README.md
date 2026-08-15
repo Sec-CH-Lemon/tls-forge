@@ -118,8 +118,81 @@ go get github.com/Sec-CH-Lemon/tls-forge                            # the librar
 From Node, see [node/](node/), a thin client over the same binary that needs no
 Go.
 
-Building from source needs Go 1.24+. A Chromium-based browser (Chrome, Chromium,
-Edge, Brave) is needed only for `capture` and `compare`.
+A Chromium-based browser (Chrome, Chromium, Edge, Brave) is needed only for
+`capture` and `compare`.
+
+### Building it yourself
+
+Go 1.24 or newer, and nothing else. There is no cgo anywhere in the project, no
+code generation step, and no build tags to remember.
+
+```bash
+git clone https://github.com/Sec-CH-Lemon/tls-forge
+cd tls-forge
+make build
+./bin/tls-forge version
+```
+
+`make build` stamps the version from `git describe`, so the binary can say which
+commit it came from. Without make:
+
+```bash
+go build -o tls-forge ./cmd/tls-forge
+./tls-forge version
+```
+
+`./cmd/tls-forge` is the source directory handed to the compiler, not something
+to run: try it and the shell says `permission denied`, because it is a
+directory. What you run is whatever `-o` named, here `./tls-forge`, and
+`./bin/tls-forge` when make did the building.
+
+The repository root is the library rather than the command, and building that is
+worse than an error: `go build -o tls-forge .` exits 0 and writes a file, but the
+file is a compiled package archive instead of a program, and running it gets you
+`is not a main package`.
+
+A binary built this way reports its version as `dev`, because the version is set
+by the linker rather than read from git.
+
+To put it on your `PATH`:
+
+```bash
+go install ./cmd/tls-forge          # from a clone
+```
+
+That lands in `$(go env GOPATH)/bin`.
+
+#### The way releases are built
+
+```bash
+CGO_ENABLED=0 go build -trimpath \
+  -ldflags "-s -w -X main.version=v0.1.0" \
+  -o tls-forge ./cmd/tls-forge
+
+./tls-forge version    # tls-forge v0.1.0
+```
+
+| | |
+|---|---|
+| `CGO_ENABLED=0` | a static binary, which runs on Alpine and in `scratch` |
+| `-trimpath` | keeps your local paths out of the binary and makes the build reproducible |
+| `-s -w` | drops the symbol table and DWARF |
+| `-X main.version=` | what `tls-forge version` prints |
+
+The last two matter more than they look: the same source builds to 15 MB plain
+and 11 MB this way.
+
+#### For another platform
+
+Go cross-compiles on its own, so there is nothing to install:
+
+```bash
+CGO_ENABLED=0 GOOS=linux   GOARCH=arm64 go build -o tls-forge-linux-arm64 ./cmd/tls-forge
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o tls-forge.exe         ./cmd/tls-forge
+```
+
+This works because the project uses no cgo. A project that did would need a
+C cross-compiler for every target.
 
 > The command, the repository and the npm package are `tls-forge`. The Go
 > package is `tlsforge`, without the hyphen, because Go identifiers cannot
@@ -173,23 +246,6 @@ per proxy, each keeping its own jar for as long as that identity lasts. A client
 is safe for concurrent use, so a pool of them is a pool of sessions rather than a
 pool of connections.
 
-### Command line
-
-```
-tls-forge capture            measure the browser on this machine
-tls-forge compare            diff this library against that browser
-tls-forge fetch <url>        make a request wearing the fingerprint
-tls-forge serve              run the local echo server, point anything at it
-tls-forge daemon             JSON lines on stdin/stdout, for other languages
-tls-forge profiles           list what can be impersonated
-```
-
-```bash
-tls-forge fetch -i https://example.com
-tls-forge fetch -H "Referer: https://example.com/" https://example.com/page
-tls-forge capture -save my-chrome.json
-```
-
 ### In Docker
 
 Every release publishes an image for linux/amd64 and linux/arm64:
@@ -237,6 +293,151 @@ Two commands are missing from the image on purpose. `capture` and `compare`
 drive a real browser, and there is no browser in a 30 MB image. Run those on a
 machine that has one, commit the profile they produce, and the container will
 use it like any other.
+
+## Commands
+
+| | |
+|---|---|
+| [`fetch`](#fetch) | make one request wearing the fingerprint |
+| [`capture`](#capture) | measure the browser on this machine and save a profile |
+| [`compare`](#compare) | diff this library against that browser |
+| [`profiles`](#profiles) | list what can be impersonated |
+| [`serve`](#serve) | run the local echo server and point anything at it |
+| [`daemon`](#daemon) | JSON lines on stdin and stdout, for other languages |
+| [`version`](#version) | print the version |
+
+`tls-forge <command> -h` prints the same flags listed below. Four of them are
+shared by every command that makes requests: `-profile`, `-proxy`, `-timeout`
+and `-insecure`.
+
+### fetch
+
+One request, with the browser's handshake, HTTP/2 preamble and headers. The body
+comes back decompressed.
+
+```bash
+tls-forge fetch https://example.com
+tls-forge fetch -i https://example.com                       # status and headers first
+tls-forge fetch -o page.html https://example.com             # to a file
+tls-forge fetch -H "Referer: https://example.com/" https://example.com/page
+tls-forge fetch -method POST -data '{"a":1}' \
+  -H "content-type: application/json" https://api.example.com/v1
+```
+
+| flag | |
+|---|---|
+| `-H "Name: value"` | extra header, repeatable. The profile wins any name it already defines |
+| `-method` | HTTP method, `GET` by default |
+| `-data` | request body |
+| `-i` | print the status and response headers before the body |
+| `-o` | write the body to a file instead of stdout |
+| `-profile` | which profile to wear, `chrome` by default |
+| `-proxy` | upstream proxy, `http://`, `https://` or `socks5://`, credentials allowed |
+| `-timeout` | per-request deadline, 30s by default |
+| `-insecure` | skip certificate verification. For talking to `serve`, not for the internet |
+
+### capture
+
+Opens the browser installed on this machine, measures what it puts on the wire,
+and writes a profile from it. This is where profiles come from; nothing in this
+repository is transcribed from documentation.
+
+```bash
+tls-forge capture                                   # just show me
+tls-forge capture -save my-chrome.json              # and keep it
+tls-forge capture -browser edge -headless -save edge.json
+tls-forge capture -json > raw.json                  # everything measured
+```
+
+| flag | |
+|---|---|
+| `-browser` | `chrome`, `chromium`, `edge`, `brave`, or a path. Searches if omitted |
+| `-headless` | no window. Measured to send the identical handshake, but headed is the default because a headed browser is the thing being impersonated |
+| `-save` | write a reusable profile here |
+| `-name` | name it yourself instead of deriving one from the browser version |
+| `-json` | print the raw capture rather than a summary |
+| `-timeout` | how long to wait for the browser, 2m by default |
+
+### compare
+
+Measures the browser and this library against one local instrument and prints
+the differences. **Exits 1 when they differ**, so it can gate a release: a
+browser update is exactly when an impersonation stops being true, and it does so
+without a commit.
+
+```bash
+tls-forge compare
+tls-forge compare -headless -profile chrome_151     # in CI
+tls-forge compare -json > report.json               # both captures and the diff
+```
+
+| flag | |
+|---|---|
+| `-profile` | which profile to check, `chrome` by default |
+| `-browser` | which browser to compare against |
+| `-headless` | no window |
+| `-json` | print both captures and the diff |
+| `-timeout` | how long to wait for the browser, 2m by default |
+
+### profiles
+
+Lists what can be impersonated: the profiles measured from a real browser and
+shipped here, then the tls-client catalogue, which carries a handshake but no
+headers of its own.
+
+```bash
+tls-forge profiles
+```
+
+### serve
+
+The measuring instrument, on its own. A local HTTPS server that reports back
+what its caller sent: the ClientHello, the HTTP/2 preamble, the header order.
+Point a browser, curl, or your own code at it.
+
+```bash
+tls-forge serve
+curl -k https://localhost:PORT/api/all
+```
+
+| flag | |
+|---|---|
+| `-addr` | listen address, an ephemeral loopback port by default |
+| `-host` | hostname used in the URL and the certificate. Keeps SNI populated, which JA4 records |
+| `-session-tickets` | allow resumption. Off by default, because a resumed connection carries `pre_shared_key` and therefore a different JA4 |
+
+Its two endpoints are `/`, a page that measures the browser that opens it, and
+`/api/all`, this connection's fingerprint as JSON. The certificate is generated
+per run, so clients have to be told to accept it.
+
+### daemon
+
+One JSON object per line in, one per line out, so a program in any language can
+borrow the fingerprint without reimplementing one. The process is long lived and
+holds one client, which means one fingerprint, one cookie jar and one exit IP for
+its whole life.
+
+```bash
+echo '{"id":1,"url":"https://example.com"}' | tls-forge daemon
+```
+
+| flag | |
+|---|---|
+| `-profile` | which profile to wear |
+| `-proxy` | upstream proxy |
+| `-timeout` | per-request deadline. Give it more than the caller's, or a timeout races |
+| `-insecure` | skip certificate verification |
+
+The protocol is described under [From other languages](#from-other-languages).
+
+### version
+
+```bash
+tls-forge version
+```
+
+Prints the version the binary was stamped with at build time. A binary built
+without `-ldflags` reports `dev`.
 
 ## Measuring your own browser
 
