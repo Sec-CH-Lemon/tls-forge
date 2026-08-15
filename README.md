@@ -254,6 +254,7 @@ cat urls.txt | tls-forge batch                               # or standard input
 | `-o`, `--output` | write the JSON lines here instead of to the terminal |
 | `-d`, `--body-dir` | write bodies to this directory and reference them instead of inlining them |
 | `--retry` | attempts per URL before giving up, 1 by default |
+| `--progress` | `auto`, `always` or `never`. `auto` draws only to a terminal |
 | `-p`, `--profile` | which profile to wear |
 | `-x`, `--proxy` | the proxy for entries that name none of their own |
 | `-t`, `--timeout` | per-request deadline |
@@ -344,6 +345,33 @@ the case where the warning is worth the most. Both cgroup layouts are read, v2
 first and then v1; where neither exists, including on every machine that is not
 Linux, the hardware count stands. Nothing here changes `GOMAXPROCS`: the number
 decides whether to print a sentence.
+
+#### Watching it run
+
+A list of any size takes a while, so there is a status line, redrawn in place:
+
+```
+  87/500  8 running  41.2 MB  1m03s elapsed  ~5m58s left  3 failed
+```
+
+In order: how many of the list are done, how many are in flight right now, how
+much body has come back, how long the run has been going, roughly how much
+longer, and how many failed. The estimate appears once there is something to
+estimate from and disappears when there is nothing left to estimate.
+
+The volume is the **decompressed** body, because that is what was measured: the
+client hands back a decoded page and fewer bytes than that crossed the wire.
+
+It is drawn on **standard error**, never on standard output, which is carrying
+one JSON object per URL. Both can still be the same terminal, so the line
+erases itself before each result is written and draws again underneath, and
+neither stream ends up on top of the other. `--progress auto` draws only when
+standard error is a terminal: redirected to a file, a line rewritten five times
+a second is thousands of escape sequences nobody asked for. `always` and
+`never` say so outright.
+
+When the run ends the final counts stay on screen as a line of their own, which
+is the answer to how long it took.
 
 #### One client per proxy
 

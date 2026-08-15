@@ -24,6 +24,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- A live status line for `batch`: how many of the list are done, how many are in
+  flight, how much body has come back, how long it has been going, roughly how
+  much longer, and how many failed. Drawn on standard error, never on standard
+  output, which carries the JSON lines; when both are the same terminal the line
+  erases itself around each result so neither stream lands on the other.
+  `--progress auto|always|never`, drawing only to a terminal by default.
+
 - Licensed under Apache-2.0, with `NOTICE` and a generated
   `THIRD-PARTY-NOTICES.txt`. The published binaries are statically linked, so
   every dependency travels inside them and its licence requires the copyright

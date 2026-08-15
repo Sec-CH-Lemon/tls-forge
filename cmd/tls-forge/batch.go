@@ -39,6 +39,24 @@ var batchInput io.Reader = os.Stdin
 // checking on more than whatever the runner happens to have.
 var numCPU = runtime.NumCPU
 
+// progressWanted decides whether to draw the status line.
+//
+// `auto` means "only when someone is watching": redirected to a file or a log,
+// a line rewritten five times a second is thousands of escape sequences nobody
+// asked for.
+func progressWanted(mode string, w io.Writer) (bool, error) {
+	switch mode {
+	case "never":
+		return false, nil
+	case "always":
+		return true, nil
+	case "auto":
+		return isTerminal(w), nil
+	default:
+		return false, &badFlag{"--progress", mode, "auto, always or never"}
+	}
+}
+
 // warnAboutConcurrency says something when more workers were asked for than
 // there are CPUs to run them on.
 //
@@ -77,6 +95,8 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	bodyDir := fs.StringP("body-dir", "d", "",
 		"write bodies to this directory and reference them instead of inlining")
 	retry := fs.Int("retry", 1, "attempts per URL before giving up")
+	showProgress := fs.String("progress", "auto",
+		"live status line on stderr: auto, always or never")
 	setUsage(fs, out, "usage: tls-forge batch [flags] [urls...]")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -86,6 +106,12 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 	if *retry < 1 {
 		return fmt.Errorf("%w: --retry must be at least 1", errUsage)
+	}
+	// Checked before the list is read, so a misspelling costs a message rather
+	// than a run that turns out to have nowhere to report itself.
+	wantProgress, err := progressWanted(*showProgress, errOut)
+	if err != nil {
+		return err
 	}
 	warnAboutConcurrency(errOut, *workers)
 
@@ -118,7 +144,23 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	clients := newPool(common, *common.proxy)
 	defer clients.close()
 
-	failures := runJobs(ctx, jobs, clients, *workers, sink, *retry, *bodyDir)
+	counts := newProgress(len(jobs))
+	var line *statusLine
+	if wantProgress {
+		// The status line owns the sink from here: it erases itself before
+		// every result and draws again after, so the two streams can share a
+		// terminal without overwriting one another.
+		line = newStatusLine(errOut, sink, counts)
+		sink = line
+	}
+
+	failures := runJobs(ctx, jobs, clients, *workers, sink, *retry, *bodyDir, counts)
+
+	// Closed here rather than deferred, so the final counts land before the
+	// summary below instead of after it.
+	if line != nil {
+		line.Close()
+	}
 
 	if *output != "" {
 		out.printf("%d of %d succeeded, written to %s\n", len(jobs)-failures, len(jobs), *output)
@@ -182,7 +224,7 @@ func (p *pool) close() {
 // reported on its line rather than returned, so one dead host does not end the
 // run.
 func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
-	sink io.Writer, retry int, bodyDir string,
+	sink io.Writer, retry int, bodyDir string, counts *progress,
 ) (failures int) {
 	queue := make(chan job)
 	var writeMu sync.Mutex
@@ -194,7 +236,9 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 		go func() {
 			defer wg.Done()
 			for j := range queue {
+				counts.begin()
 				r := fetchOne(ctx, clients, j, retry, bodyDir)
+				counts.finish(r)
 				writeMu.Lock()
 				if r.Error != "" {
 					failures++

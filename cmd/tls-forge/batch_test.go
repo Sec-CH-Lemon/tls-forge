@@ -482,3 +482,58 @@ func TestBatchDoesNotWarnBeforeItFailsOnTheFlags(t *testing.T) {
 		t.Errorf("warned about a rejected value: %q", stderr)
 	}
 }
+
+func TestBatchDrawsAStatusLine(t *testing.T) {
+	// --progress always, so the assertion does not depend on what the test's
+	// stderr happens to be attached to.
+	server := batchServer(t)
+	code, stdout, stderr := exec(t, "batch", "--progress", "always",
+		server.URL+"/one", server.URL+"/two")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+
+	// Every number the line is for, and the run's own total.
+	for _, want := range []string{"2/2", "running", "B", "elapsed"} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr has no %q:\n%q", want, stderr)
+		}
+	}
+	// And none of it on the stream carrying the results.
+	if strings.Contains(stdout, "\x1b") || strings.Contains(stdout, "elapsed") {
+		t.Errorf("the status line landed on stdout:\n%q", stdout)
+	}
+	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+		var r result
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Errorf("stdout is not JSON lines: %q", line)
+		}
+	}
+}
+
+func TestBatchWithoutAStatusLine(t *testing.T) {
+	// The default is auto, and a test's stderr is not a terminal.
+	server := batchServer(t)
+	for _, args := range [][]string{
+		{"batch", server.URL + "/one"},
+		{"batch", "--progress", "never", server.URL + "/one"},
+	} {
+		_, _, stderr := exec(t, args...)
+		if strings.Contains(stderr, "elapsed") {
+			t.Errorf("%v drew a status line into something that is not a terminal: %q",
+				args, stderr)
+		}
+	}
+}
+
+func TestBatchRejectsAnUnknownProgressMode(t *testing.T) {
+	// Rejected before the list is read, so a typo does not cost a run that then
+	// has nowhere to report itself.
+	code, _, stderr := exec(t, "batch", "--progress", "sometimes", "https://example.com/")
+	if code != 1 {
+		t.Errorf("exit code = %d", code)
+	}
+	if !strings.Contains(stderr, "--progress") {
+		t.Errorf("stderr = %q", stderr)
+	}
+}
