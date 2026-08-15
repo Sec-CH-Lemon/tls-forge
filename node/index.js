@@ -56,13 +56,13 @@ export class Client {
     this.#onStderr = options.onStderr ?? (() => {});
 
     const args = ['daemon'];
-    if (options.profile) args.push('-profile', options.profile);
-    if (options.proxy) args.push('-proxy', options.proxy);
-    if (options.insecure) args.push('-insecure');
+    if (options.profile) args.push('--profile', options.profile);
+    if (options.proxy) args.push('--proxy', options.proxy);
+    if (options.insecure) args.push('--insecure');
     // The Go side gets a longer deadline than Node's on purpose. If they were
     // equal, a request timing out would race: both sides would decide it failed,
     // and the process would be killed while writing the answer.
-    args.push('-timeout', `${Math.ceil((this.#timeout + 15_000) / 1000)}s`);
+    args.push('--timeout', `${Math.ceil((this.#timeout + 15_000) / 1000)}s`);
     this.#args = args;
   }
 

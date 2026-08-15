@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/pflag"
+
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/daemon"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -21,6 +23,9 @@ import (
 type headerFlag tlsforge.Header
 
 func (h *headerFlag) String() string { return "" }
+
+// Type names the value in the usage line, where pflag prints it after the flag.
+func (h *headerFlag) Type() string { return "name: value" }
 
 func (h *headerFlag) Set(value string) error {
 	name, val, found := strings.Cut(value, ":")
@@ -42,16 +47,14 @@ type clientFlags struct {
 	insecure *bool
 }
 
-func addClientFlags(fs interface {
-	String(string, string, string) *string
-	Duration(string, time.Duration, string) *time.Duration
-	Bool(string, bool, string) *bool
-}) clientFlags {
+// The flags every command that makes requests shares, declared once so fetch
+// and daemon cannot drift apart on a name, a letter or a default.
+func addClientFlags(fs *pflag.FlagSet) clientFlags {
 	return clientFlags{
-		profile:  fs.String("profile", tlsforge.DefaultProfile, "profile to impersonate"),
-		proxy:    fs.String("proxy", "", "proxy URL, e.g. http://user:pass@host:port"),
-		timeout:  fs.Duration("timeout", tlsforge.Timeout, "request timeout"),
-		insecure: fs.Bool("insecure", false, "skip certificate verification"),
+		profile:  fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to impersonate"),
+		proxy:    fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port"),
+		timeout:  fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout"),
+		insecure: fs.BoolP("insecure", "k", false, "skip certificate verification"),
 	}
 }
 
@@ -72,22 +75,19 @@ func (f clientFlags) client() (*tlsforge.Client, error) {
 func runFetch(_ context.Context, args []string, out *printer) error {
 	fs := newFlagSet("fetch", out)
 	common := addClientFlags(fs)
-	method := fs.String("method", "GET", "HTTP method")
-	data := fs.String("data", "", "request body")
-	showHeaders := fs.Bool("i", false, "print the status and response headers first")
-	output := fs.String("o", "", "write the body to a file instead of stdout")
+	method := fs.StringP("method", "X", "GET", "HTTP method")
+	data := fs.StringP("data", "d", "", "request body")
+	showHeaders := fs.BoolP("include", "i", false, "print the status and response headers first")
+	output := fs.StringP("output", "o", "", "write the body to a file instead of stdout")
 	var headers headerFlag
-	fs.Var(&headers, "H", "extra header, repeatable: -H \"Referer: https://…\"")
-	fs.Usage = func() {
-		out.println("usage: tls-forge fetch [flags] <url>")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
+	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Referer: https://…\"")
+	setUsage(fs, out, "usage: tls-forge fetch [flags] <url>")
+	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if fs.NArg() != 1 {
 		fs.Usage()
-		return fmt.Errorf("fetch takes exactly one URL")
+		return fmt.Errorf("%w: fetch takes exactly one URL", errUsage)
 	}
 
 	client, err := common.client()
@@ -133,7 +133,7 @@ func runFetch(_ context.Context, args []string, out *printer) error {
 func runDaemon(_ context.Context, args []string, out *printer) error {
 	fs := newFlagSet("daemon", out)
 	common := addClientFlags(fs)
-	if err := fs.Parse(args); err != nil {
+	if err := parse(fs, args); err != nil {
 		return err
 	}
 

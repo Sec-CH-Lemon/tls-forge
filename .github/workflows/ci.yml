@@ -115,4 +115,4 @@ jobs:
         continue-on-error: true
         run: |
           go run ./cmd/tls-forge compare \
-            -headless -browser "${{ steps.chrome.outputs.chrome-path }}"
+            --headless --browser "${{ steps.chrome.outputs.chrome-path }}"

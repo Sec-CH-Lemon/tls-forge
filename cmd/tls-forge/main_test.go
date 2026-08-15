@@ -137,26 +137,34 @@ func TestVersion(t *testing.T) {
 }
 
 func TestBadFlagExitsTwo(t *testing.T) {
-	// flag.ErrHelp rather than a crash: a mistyped flag should print the usage
-	// and exit 2, the way every other Unix tool does.
+	// A mistyped flag should print the usage and exit 2, the way every other
+	// Unix tool does, rather than crash or carry on.
+	//
+	// Spelled with two dashes, because with one it is not a mistyped flag: a
+	// single dash introduces short flags, so `-nonsense` is `-n onsense`, and
+	// every tool that follows this convention reads it that way.
+	//
+	// 2, not 1: compare uses 1 for "the fingerprints differ", and a typo must
+	// not look like that to the job watching for it.
 	for _, args := range [][]string{
-		{"fetch", "-nonsense"},
-		{"capture", "-nonsense"},
-		{"compare", "-nonsense"},
-		{"profiles", "-nonsense"},
-		{"serve", "-nonsense"},
-		{"daemon", "-nonsense"},
+		{"fetch", "--nonsense"},
+		{"capture", "--nonsense"},
+		{"compare", "--nonsense"},
+		{"profiles", "--nonsense"},
+		{"serve", "--nonsense"},
+		{"daemon", "--nonsense"},
+		{"capture", "-Z"},
 	} {
 		code, _, _ := exec(t, args...)
-		if code == 0 {
-			t.Errorf("%v: exit code = 0, want non-zero", args)
+		if code != 2 {
+			t.Errorf("%v: exit code = %d, want 2", args, code)
 		}
 	}
 }
 
 func TestFetch(t *testing.T) {
 	server := startEcho(t)
-	code, stdout, stderr := exec(t, "fetch", "-insecure", server.URL()+"/api/all")
+	code, stdout, stderr := exec(t, "fetch", "--insecure", server.URL()+"/api/all")
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
 	}
@@ -172,7 +180,7 @@ func TestFetch(t *testing.T) {
 
 func TestFetchWithHeadersAndStatusLine(t *testing.T) {
 	server := startEcho(t)
-	code, stdout, _ := exec(t, "fetch", "-insecure", "-i",
+	code, stdout, _ := exec(t, "fetch", "--insecure", "-i",
 		"-H", "X-One: 1", "-H", "Referer: https://example.com",
 		server.URL()+"/api/all")
 	if code != 0 {
@@ -194,7 +202,7 @@ func TestFetchWithHeadersAndStatusLine(t *testing.T) {
 func TestFetchWritesToAFile(t *testing.T) {
 	server := startEcho(t)
 	path := filepath.Join(t.TempDir(), "body.json")
-	code, stdout, _ := exec(t, "fetch", "-insecure", "-o", path, server.URL()+"/api/all")
+	code, stdout, _ := exec(t, "fetch", "--insecure", "-o", path, server.URL()+"/api/all")
 	if code != 0 {
 		t.Fatalf("exit code = %d", code)
 	}
@@ -212,9 +220,9 @@ func TestFetchWritesToAFile(t *testing.T) {
 
 func TestFetchPost(t *testing.T) {
 	server := startEcho(t)
-	code, stdout, _ := exec(t, "fetch", "-insecure", "-method", "POST",
+	code, stdout, _ := exec(t, "fetch", "--insecure", "--method", "POST",
 		"-H", "content-type: application/json",
-		"-data", `{"user_agent":"from the CLI"}`, server.URL()+"/collect")
+		"--data", `{"user_agent":"from the CLI"}`, server.URL()+"/collect")
 	if code != 0 {
 		t.Fatalf("exit code = %d", code)
 	}
@@ -224,23 +232,34 @@ func TestFetchPost(t *testing.T) {
 }
 
 func TestFetchArgumentErrors(t *testing.T) {
+	// The two exit codes mean different things and a caller can act on the
+	// difference: 2 is "you typed it wrong, nothing was attempted", 1 is "it ran
+	// and failed". compare also uses 1 for "the fingerprints differ", so a typo
+	// must never come out as 1.
 	for _, args := range [][]string{
 		{"fetch"},               // no URL
 		{"fetch", "one", "two"}, // two URLs
-		{"fetch", "-H", "no-colon", "https://x/"},         // malformed header
-		{"fetch", "-profile", "netscape_4", "https://x/"}, // unknown profile
-		{"fetch", "https://127.0.0.1:1/"},                 // nothing listening
+		{"fetch", "-H", "no-colon", "https://x/"}, // malformed header
+		{"fetch", "--nonsense", "https://x/"},     // unknown flag
 	} {
-		code, _, _ := exec(t, args...)
-		if code == 0 {
-			t.Errorf("%v: exit code = 0, want non-zero", args)
+		if code, _, _ := exec(t, args...); code != 2 {
+			t.Errorf("%v: exit code = %d, want 2", args, code)
+		}
+	}
+
+	for _, args := range [][]string{
+		{"fetch", "--profile", "netscape_4", "https://x/"}, // unknown profile
+		{"fetch", "https://127.0.0.1:1/"},                  // nothing listening
+	} {
+		if code, _, _ := exec(t, args...); code != 1 {
+			t.Errorf("%v: exit code = %d, want 1", args, code)
 		}
 	}
 }
 
 func TestFetchCannotWriteTheOutputFile(t *testing.T) {
 	server := startEcho(t)
-	code, _, stderr := exec(t, "fetch", "-insecure",
+	code, _, stderr := exec(t, "fetch", "--insecure",
 		"-o", filepath.Join(t.TempDir(), "no-such-directory", "body"), server.URL()+"/api/all")
 	if code == 0 {
 		t.Errorf("exit code = 0, want non-zero; stderr = %q", stderr)
@@ -274,7 +293,7 @@ func TestDaemon(t *testing.T) {
 	daemonInput = strings.NewReader(
 		`{"id":42,"url":"` + server.URL() + `/api/all"}` + "\n")
 
-	code, stdout, stderr := exec(t, "daemon", "-insecure")
+	code, stdout, stderr := exec(t, "daemon", "--insecure")
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
 	}
@@ -296,7 +315,7 @@ func TestDaemon(t *testing.T) {
 }
 
 func TestDaemonRejectsAnUnknownProfile(t *testing.T) {
-	code, _, _ := exec(t, "daemon", "-profile", "netscape_4")
+	code, _, _ := exec(t, "daemon", "--profile", "netscape_4")
 	if code == 0 {
 		t.Error("exit code = 0, want non-zero")
 	}
@@ -352,27 +371,27 @@ func TestServeStopsWithItsContext(t *testing.T) {
 }
 
 func TestServeRejectsAnUnusableAddress(t *testing.T) {
-	code, _, _ := exec(t, "serve", "-addr", "256.256.256.256:0")
+	code, _, _ := exec(t, "serve", "--addr", "256.256.256.256:0")
 	if code == 0 {
 		t.Error("exit code = 0, want non-zero")
 	}
 }
 
 func TestCapture(t *testing.T) {
-	code, stdout, stderr := exec(t, "capture", "-browser", browserStandIn(t), "-timeout", "30s")
+	code, stdout, stderr := exec(t, "capture", "--browser", browserStandIn(t), "--timeout", "30s")
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
 	}
 	if !strings.Contains(stdout, "JA4") {
 		t.Errorf("stdout = %q", stdout)
 	}
-	if !strings.Contains(stdout, "-save") {
+	if !strings.Contains(stdout, "--save") {
 		t.Error("the summary does not say how to save a profile")
 	}
 }
 
 func TestCaptureJSON(t *testing.T) {
-	code, stdout, _ := exec(t, "capture", "-json", "-browser", browserStandIn(t), "-timeout", "30s")
+	code, stdout, _ := exec(t, "capture", "--json", "--browser", browserStandIn(t), "--timeout", "30s")
 	if code != 0 {
 		t.Fatalf("exit code = %d", code)
 	}
@@ -389,7 +408,7 @@ func TestCaptureJSON(t *testing.T) {
 
 func TestCaptureSavesAProfile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "my-chrome.json")
-	code, stdout, stderr := exec(t, "capture", "-browser", browserStandIn(t), "-timeout", "30s", "-save", path)
+	code, stdout, stderr := exec(t, "capture", "--browser", browserStandIn(t), "--timeout", "30s", "--save", path)
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
 	}
@@ -424,8 +443,8 @@ func TestCaptureSavesAProfile(t *testing.T) {
 
 func TestCaptureSavesUnderAGivenName(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "named.json")
-	code, _, _ := exec(t, "capture", "-browser", browserStandIn(t), "-timeout", "30s",
-		"-save", path, "-name", "my_browser")
+	code, _, _ := exec(t, "capture", "--browser", browserStandIn(t), "--timeout", "30s",
+		"--save", path, "--name", "my_browser")
 	if code != 0 {
 		t.Fatalf("exit code = %d", code)
 	}
@@ -440,12 +459,12 @@ func TestCaptureSavesUnderAGivenName(t *testing.T) {
 }
 
 func TestCaptureErrors(t *testing.T) {
-	if code, _, _ := exec(t, "capture", "-browser", "netscape"); code == 0 {
+	if code, _, _ := exec(t, "capture", "--browser", "netscape"); code == 0 {
 		t.Error("an unknown browser should fail")
 	}
 	// A save path that cannot be written.
-	code, _, _ := exec(t, "capture", "-browser", browserStandIn(t), "-timeout", "30s",
-		"-save", filepath.Join(t.TempDir(), "no-such-directory", "p.json"))
+	code, _, _ := exec(t, "capture", "--browser", browserStandIn(t), "--timeout", "30s",
+		"--save", filepath.Join(t.TempDir(), "no-such-directory", "p.json"))
 	if code == 0 {
 		t.Error("an unwritable save path should fail")
 	}
@@ -454,7 +473,7 @@ func TestCaptureErrors(t *testing.T) {
 func TestCompareMatches(t *testing.T) {
 	// The stand-in browser IS this library, so a comparison against it has to
 	// come out clean and exit 0.
-	code, stdout, stderr := exec(t, "compare", "-browser", browserStandIn(t), "-timeout", "30s")
+	code, stdout, stderr := exec(t, "compare", "--browser", browserStandIn(t), "--timeout", "30s")
 	if code != 0 {
 		t.Fatalf("exit code = %d\nstdout: %s\nstderr: %s", code, stdout, stderr)
 	}
@@ -470,7 +489,7 @@ func TestCompareMatches(t *testing.T) {
 	if strings.Contains(stdout, "\n- ") || strings.Contains(stdout, "\n+ ") {
 		t.Errorf("a clean comparison printed a difference:\n%s", stdout)
 	}
-	// -color auto, and the test writes to a buffer rather than a terminal.
+	// --color auto, and the test writes to a buffer rather than a terminal.
 	if strings.Contains(stdout, "\x1b[") {
 		t.Errorf("colour was written to something that is not a terminal:\n%q", stdout)
 	}
@@ -479,8 +498,8 @@ func TestCompareMatches(t *testing.T) {
 func TestCompareDiffersExitsOne(t *testing.T) {
 	// The exit code is the contract a CI job depends on: a browser update is
 	// exactly when an impersonation stops being true, and it does so quietly.
-	code, stdout, _ := exec(t, "compare", "-browser", browserStandIn(t),
-		"-timeout", "30s", "-profile", "chrome_120")
+	code, stdout, _ := exec(t, "compare", "--browser", browserStandIn(t),
+		"--timeout", "30s", "--profile", "chrome_120")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stdout)
 	}
@@ -498,31 +517,31 @@ func TestCompareDiffersExitsOne(t *testing.T) {
 }
 
 func TestCompareColours(t *testing.T) {
-	// -color always, so the assertion does not depend on what the test's stdout
+	// --color always, so the assertion does not depend on what the test's stdout
 	// happens to be attached to.
-	code, stdout, _ := exec(t, "compare", "-browser", browserStandIn(t), "-timeout", "30s",
-		"-color", "always", "-full")
+	code, stdout, _ := exec(t, "compare", "--browser", browserStandIn(t), "--timeout", "30s",
+		"--color", "always", "--full")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stdout)
 	}
 	if !strings.Contains(stdout, ansiGreen+"  ja4") {
 		t.Errorf("a matching field is not green:\n%q", stdout)
 	}
-	// -full turns off the trimming, so no value is cut short. Measured from the
+	// --full turns off the trimming, so no value is cut short. Measured from the
 	// diff itself: the banner above it ends in an ellipsis of its own.
 	if diff := stdout[strings.Index(stdout, "+++ client"):]; strings.Contains(diff, "…") {
-		t.Errorf("-full still trimmed a value:\n%s", diff)
+		t.Errorf("--full still trimmed a value:\n%s", diff)
 	}
 }
 
 func TestCompareRejectsAnUnknownColourMode(t *testing.T) {
 	// Rejected before the browser starts: a typo should not cost two minutes of
 	// waiting to report itself.
-	code, _, stderr := exec(t, "compare", "-color", "sometimes")
+	code, _, stderr := exec(t, "compare", "--color", "sometimes")
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
 	}
-	if !strings.Contains(stderr, "-color") || !strings.Contains(stderr, "sometimes") {
+	if !strings.Contains(stderr, "--color") || !strings.Contains(stderr, "sometimes") {
 		t.Errorf("stderr = %q", stderr)
 	}
 }
@@ -620,7 +639,7 @@ func TestCompareCannotReReadItsCaptures(t *testing.T) {
 }
 
 func TestCompareJSON(t *testing.T) {
-	code, stdout, _ := exec(t, "compare", "-json", "-browser", browserStandIn(t), "-timeout", "30s")
+	code, stdout, _ := exec(t, "compare", "--json", "--browser", browserStandIn(t), "--timeout", "30s")
 	if code != 0 {
 		t.Fatalf("exit code = %d", code)
 	}
@@ -635,7 +654,7 @@ func TestCompareJSON(t *testing.T) {
 }
 
 func TestCompareErrors(t *testing.T) {
-	if code, _, _ := exec(t, "compare", "-browser", "netscape"); code == 0 {
+	if code, _, _ := exec(t, "compare", "--browser", "netscape"); code == 0 {
 		t.Error("an unknown browser should fail")
 	}
 }
@@ -724,8 +743,8 @@ func TestHelpFlagOnACommandExitsTwo(t *testing.T) {
 func TestFetchThroughAProxy(t *testing.T) {
 	// Nothing is listening on the proxy port; what is being checked is that the
 	// flag reaches the client rather than being silently ignored.
-	code, _, stderr := exec(t, "fetch", "-insecure",
-		"-proxy", "http://127.0.0.1:1", "https://example.com/")
+	code, _, stderr := exec(t, "fetch", "--insecure",
+		"--proxy", "http://127.0.0.1:1", "https://example.com/")
 	if code == 0 {
 		t.Error("exit code = 0, want non-zero")
 	}
@@ -738,7 +757,7 @@ func TestCompareCannotWriteItsJSON(t *testing.T) {
 	// The banner goes out, then the disk fills.
 	out := &limitedWriter{remaining: 64}
 	code := run(context.Background(),
-		[]string{"compare", "-json", "-browser", browserStandIn(t), "-timeout", "30s"},
+		[]string{"compare", "--json", "--browser", browserStandIn(t), "--timeout", "30s"},
 		out, io.Discard)
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)

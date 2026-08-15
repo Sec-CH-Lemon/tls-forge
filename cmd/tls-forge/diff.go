@@ -50,7 +50,7 @@ func paletteFor(mode string, w io.Writer) (palette, error) {
 		}
 		return palette{match: ansiGreen, differ: ansiRed, dim: ansiDim, reset: ansiReset}, nil
 	default:
-		return palette{}, &badFlag{"-color", mode, "auto, always or never"}
+		return palette{}, &badFlag{"--color", mode, "auto, always or never"}
 	}
 }
 

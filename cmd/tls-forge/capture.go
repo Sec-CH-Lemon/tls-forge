@@ -17,13 +17,14 @@ import (
 
 func runCapture(ctx context.Context, args []string, out *printer) error {
 	fs := newFlagSet("capture", out)
-	browserName := fs.String("browser", "", "browser to measure: chrome, chromium, edge, brave, or a path")
+	browserName := fs.StringP("browser", "b", "",
+		"browser to measure: chrome, chromium, edge, brave, or a path")
 	headless := fs.Bool("headless", false, "run the browser without a window")
-	save := fs.String("save", "", "write a reusable profile to this path")
-	name := fs.String("name", "", "profile name (default: derived from the browser's version)")
-	asJSON := fs.Bool("json", false, "print the raw capture instead of a summary")
-	timeout := fs.Duration("timeout", 2*time.Minute, "how long to wait for the browser")
-	if err := fs.Parse(args); err != nil {
+	save := fs.StringP("save", "s", "", "write a reusable profile to this path")
+	name := fs.StringP("name", "n", "", "profile name (default: derived from the browser's version)")
+	asJSON := fs.BoolP("json", "j", false, "print the raw capture instead of a summary")
+	timeout := fs.DurationP("timeout", "t", 2*time.Minute, "how long to wait for the browser")
+	if err := parse(fs, args); err != nil {
 		return err
 	}
 
@@ -43,7 +44,7 @@ func runCapture(ctx context.Context, args []string, out *printer) error {
 	printCapture(out, measured)
 
 	if *save == "" {
-		out.println("\nRe-run with -save <path> to write a reusable profile.")
+		out.println("\nRe-run with --save <path> to write a reusable profile.")
 		return nil
 	}
 
@@ -113,10 +114,12 @@ func profileNameFor(userAgent string) string {
 
 func runServe(ctx context.Context, args []string, out *printer) error {
 	fs := newFlagSet("serve", out)
-	addr := fs.String("addr", "127.0.0.1:0", "listen address")
+	addr := fs.StringP("addr", "a", "127.0.0.1:0", "listen address")
 	host := fs.String("host", "localhost", "hostname used in the URL and certificate")
+	// Long-only, like the other flags that are set once in a script and never
+	// typed twice: a letter for each would be a letter nobody remembers.
 	tickets := fs.Bool("session-tickets", false, "allow TLS session resumption")
-	if err := fs.Parse(args); err != nil {
+	if err := parse(fs, args); err != nil {
 		return err
 	}
 
@@ -131,7 +134,7 @@ func runServe(ctx context.Context, args []string, out *printer) error {
 	out.println("  /api/all   this connection's fingerprint, as JSON")
 	out.println()
 	out.println("The certificate is self-signed and generated for this run, so clients")
-	out.println("must be told to accept it (curl -k, tlsforge -insecure).")
+	out.println("must be told to accept it (curl -k, tlsforge --insecure).")
 	out.println("Ctrl-C to stop.")
 
 	<-ctx.Done()
@@ -140,7 +143,7 @@ func runServe(ctx context.Context, args []string, out *printer) error {
 
 func runProfiles(_ context.Context, args []string, out *printer) error {
 	fs := newFlagSet("profiles", out)
-	if err := fs.Parse(args); err != nil {
+	if err := parse(fs, args); err != nil {
 		return err
 	}
 
@@ -170,7 +173,7 @@ func runProfiles(_ context.Context, args []string, out *printer) error {
 	}
 	out.println()
 	out.println()
-	out.println("Measure your own with:  tls-forge capture -save my-chrome.json")
+	out.println("Measure your own with:  tls-forge capture --save my-chrome.json")
 	return nil
 }
 

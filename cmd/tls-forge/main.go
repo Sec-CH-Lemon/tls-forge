@@ -12,11 +12,12 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
+
+	"github.com/spf13/pflag"
 )
 
 // version is stamped at build time:
@@ -86,7 +87,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return 0
 		case errors.Is(err, errDiffers):
 			return 1
-		case errors.Is(err, flag.ErrHelp):
+		case errors.Is(err, pflag.ErrHelp), errors.Is(err, errUsage):
 			return 2
 		default:
 			errOut.println("tlsforge:", err)
@@ -112,19 +113,58 @@ func usage(out *printer) {
 		out.printf("  %-10s %s\n", c.name, c.summary)
 	}
 	out.println()
-	out.println("Run `tls-forge <command> -h` for a command's flags.")
+	out.println("Run `tls-forge <command> --help` for a command's flags.")
 	out.println()
 	out.println("Start with `tls-forge compare`: it opens your browser, measures it, measures")
 	out.println("this library, and prints the differences. There should not be any.")
 }
 
+// errUsage marks a command that was never run because its arguments did not
+// parse.
+//
+// It exits 2 rather than 1 for a reason beyond convention: compare uses 1 to
+// mean "the fingerprints differ", so a mistyped flag exiting 1 would read, to
+// the CI job watching for exactly that, as a broken impersonation.
+var errUsage = errors.New("bad usage")
+
+// parse reads a command's flags, reporting a bad one as a usage error.
+func parse(fs *pflag.FlagSet, args []string) error {
+	err := fs.Parse(args)
+	if err == nil || errors.Is(err, pflag.ErrHelp) {
+		return err
+	}
+	return fmt.Errorf("%w: %w", errUsage, err)
+}
+
 // newFlagSet returns a flag set that reports errors instead of exiting, so a
 // bad flag is a non-zero exit from one place rather than a call to os.Exit from
 // inside a command.
-func newFlagSet(name string, out io.Writer) *flag.FlagSet {
-	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+//
+// pflag rather than the standard library, for the convention every other
+// command-line tool follows: one dash introduces a short flag, two a long one,
+// and `--flag=value` works. The standard package treats `-flag` and `--flag` as
+// the same thing and has no notion of a short form at all.
+func newFlagSet(name string, out io.Writer) *pflag.FlagSet {
+	fs := pflag.NewFlagSet(name, pflag.ContinueOnError)
 	fs.SetOutput(out)
+	fs.SortFlags = false
+	// The default line is "Usage of capture:", which names neither the program
+	// nor how to run the command.
+	setUsage(fs, out, "usage: tls-forge "+name+" [flags]")
 	return fs
+}
+
+// setUsage gives a command one usage block, so the seven of them cannot end up
+// describing themselves seven different ways.
+func setUsage(fs *pflag.FlagSet, out io.Writer, line string) {
+	fs.Usage = func() {
+		_, _ = io.WriteString(out, line+"\n")
+		if flags := fs.FlagUsages(); flags != "" {
+			_, _ = io.WriteString(out, "\nflags:\n"+flags)
+		} else {
+			_, _ = io.WriteString(out, "\nThis command takes no flags.\n")
+		}
+	}
 }
 
 func runVersion(_ context.Context, _ []string, out *printer) error {

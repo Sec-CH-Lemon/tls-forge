@@ -11,6 +11,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+### Changed
+
+- **Flags follow the usual convention: one dash for a short flag, two for a
+  long one.** `-b` and `--browser` are the same flag; `-profile` is now
+  `--profile` or `-p`. Short letters on `fetch` are curl's (`-X`, `-d`, `-H`,
+  `-i`, `-o`, `-x`, `-k`), since that is the command it replaces. Short flags
+  bundle and long ones take `--flag=value`. Parsing moved from the standard
+  library's `flag`, which treats `-x` and `--x` as one thing and has no notion
+  of a short form, to `spf13/pflag`.
+- A mistyped flag now exits **2** rather than 1. `compare` uses 1 for "the
+  fingerprints differ", so a typo exiting 1 read, to the job watching for
+  exactly that, as a broken impersonation.
+
 ### Added
 
 - Licensed under Apache-2.0, with `NOTICE` and a generated
@@ -39,7 +52,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `tls-forge compare` — measure the browser and the library against one local
   instrument and print them as a field-by-field diff, green where they agree and
   red where they do not, exiting 1 on a difference so it can gate a release.
-  `-color auto|always|never` (honouring `NO_COLOR`) and `-full`.
+  `--color auto|always|never` (honouring `NO_COLOR`) and `--full`.
 - `tls-forge fetch`, `serve`, `daemon`, `profiles`.
 - `fingerprint` — ClientHello parsing and local JA3, JA4, JA4_r and Akamai
   HTTP/2 fingerprints, plus a structural diff that names the field that differs.

@@ -6,6 +6,7 @@ require (
 	github.com/bogdanfinn/fhttp v0.6.8
 	github.com/bogdanfinn/tls-client v1.15.1
 	github.com/bogdanfinn/utls v1.7.7-barnius
+	github.com/spf13/pflag v1.0.10
 	golang.org/x/crypto v0.46.0
 	golang.org/x/net v0.48.0
 )

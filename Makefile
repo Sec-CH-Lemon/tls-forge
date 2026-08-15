@@ -47,7 +47,7 @@ check: vet lint test cover node-test
 # it came from, so it lands in profile/data/ ready to commit.
 capture: build
 	@mkdir -p profile/data
-	$(BIN) capture -save profile/data/.captured.json
+	$(BIN) capture --save profile/data/.captured.json
 	@name=$$(sed -n 's/.*"name": "\(.*\)",/\1/p' profile/data/.captured.json | head -1); \
 		mv profile/data/.captured.json profile/data/$$name.json; \
 		echo "wrote profile/data/$$name.json"

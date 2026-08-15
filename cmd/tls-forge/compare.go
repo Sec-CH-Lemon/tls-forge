@@ -12,14 +12,14 @@ import (
 
 func runCompare(ctx context.Context, args []string, out *printer) error {
 	fs := newFlagSet("compare", out)
-	profileName := fs.String("profile", tlsforge.DefaultProfile, "profile to check")
-	browserName := fs.String("browser", "", "browser to compare against")
+	profileName := fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to check")
+	browserName := fs.StringP("browser", "b", "", "browser to compare against")
 	headless := fs.Bool("headless", false, "run the browser without a window")
-	asJSON := fs.Bool("json", false, "print both captures and the diff as JSON")
-	colour := fs.String("color", "auto", "colourise the diff: auto, always or never")
-	full := fs.Bool("full", false, "print matching values in full; differing ones always are")
-	timeout := fs.Duration("timeout", 2*time.Minute, "how long to wait for the browser")
-	if err := fs.Parse(args); err != nil {
+	asJSON := fs.BoolP("json", "j", false, "print both captures and the diff as JSON")
+	colour := fs.StringP("color", "c", "auto", "colourise the diff: auto, always or never")
+	full := fs.BoolP("full", "f", false, "print matching values in full; differing ones always are")
+	timeout := fs.DurationP("timeout", "t", 2*time.Minute, "how long to wait for the browser")
+	if err := parse(fs, args); err != nil {
 		return err
 	}
 
@@ -97,7 +97,7 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 	out.printf("%s%d field(s) differ.%s Fix by measuring this browser and using the profile\n",
 		pal.differ, differing, pal.reset)
 	out.println("it produces:")
-	out.println("  tls-forge capture -save my-browser.json")
+	out.println("  tls-forge capture --save my-browser.json")
 }
 
 func printCapture(out *printer, measured *capture.Capture) {
