@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func writeList(t *testing.T, name, body string) string {
@@ -145,7 +147,7 @@ func TestReadJobsFromEachSource(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := readJobs(tc.inline, tc.path, tc.format, tc.args, strings.NewReader(tc.stdin))
+			got, err := readJobs(context.Background(), tc.inline, tc.path, tc.format, tc.args, strings.NewReader(tc.stdin))
 			if err != nil {
 				t.Fatalf("readJobs: %v", err)
 			}
@@ -161,7 +163,7 @@ func TestReadJobsPrefersTheMostExplicitSource(t *testing.T) {
 	// one present wins rather than the four being merged into a pile nobody can
 	// account for.
 	path := writeList(t, "list.txt", "https://from-file/\n")
-	got, err := readJobs("https://from-flag/", path, formatAuto,
+	got, err := readJobs(context.Background(), "https://from-flag/", path, formatAuto,
 		[]string{"https://from-args/"}, strings.NewReader("https://from-stdin/\n"))
 	if err != nil {
 		t.Fatalf("readJobs: %v", err)
@@ -170,7 +172,7 @@ func TestReadJobsPrefersTheMostExplicitSource(t *testing.T) {
 		t.Errorf("got %+v", got)
 	}
 
-	got, err = readJobs("", path, formatAuto,
+	got, err = readJobs(context.Background(), "", path, formatAuto,
 		[]string{"https://from-args/"}, strings.NewReader("https://from-stdin/\n"))
 	if err != nil {
 		t.Fatalf("readJobs: %v", err)
@@ -182,7 +184,7 @@ func TestReadJobsPrefersTheMostExplicitSource(t *testing.T) {
 
 func TestReadJobsErrors(t *testing.T) {
 	t.Run("a file that is not there", func(t *testing.T) {
-		_, err := readJobs("", filepath.Join(t.TempDir(), "absent.json"), formatAuto, nil, nil)
+		_, err := readJobs(context.Background(), "", filepath.Join(t.TempDir(), "absent.json"), formatAuto, nil, nil)
 		if err == nil {
 			t.Fatal("no error")
 		}
@@ -204,7 +206,7 @@ func TestReadJobsErrors(t *testing.T) {
 			{name: "the comma-separated flag", inline: "https://a.example/"},
 		} {
 			t.Run(source.name, func(t *testing.T) {
-				_, err := readJobs(source.inline, source.path, "yaml", source.args,
+				_, err := readJobs(context.Background(), source.inline, source.path, "yaml", source.args,
 					strings.NewReader(""))
 				if err == nil {
 					t.Fatal("no error")
@@ -317,5 +319,50 @@ func TestValidate(t *testing.T) {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error %q does not mention %q", err, want)
 		}
+	}
+}
+
+func TestReadJobsGivesUpWhenInterrupted(t *testing.T) {
+	// A read on an idle terminal blocks until there is a line or the process
+	// ends. Without the read being on a goroutine of its own, the first Ctrl-C
+	// is caught, turned into a cancelled context, and noticed by nobody:
+	// `tls-forge batch` waiting on standard input survived four of them.
+	ctx, cancel := context.WithCancel(context.Background())
+	blocked, release := io.Pipe()
+	t.Cleanup(func() { _ = release.Close() })
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := readJobs(ctx, "", "", formatLines, nil, blocked)
+		done <- err
+	}()
+
+	// Nothing has been typed, so the read is still waiting.
+	select {
+	case err := <-done:
+		t.Fatalf("the read finished on its own: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("err = %v, want a cancellation", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the read did not give up after the run was cancelled")
+	}
+}
+
+func TestReadJobsStillReadsAStreamThatAnswers(t *testing.T) {
+	// The interruptible path is still the reading path.
+	got, err := readJobs(context.Background(), "", "", formatLines, nil,
+		strings.NewReader("https://a.example/\nhttps://b.example/\n"))
+	if err != nil {
+		t.Fatalf("readJobs: %v", err)
+	}
+	if len(got) != 2 {
+		t.Errorf("got %+v", got)
 	}
 }

@@ -66,7 +66,15 @@ func isTerminal(w io.Writer) bool {
 	if p, ok := w.(*printer); ok {
 		w = p.w
 	}
-	file, ok := w.(*os.File)
+	return isCharDevice(w)
+}
+
+// isTerminalReader is the same question about the other end: is a person about
+// to be asked to type.
+func isTerminalReader(r io.Reader) bool { return isCharDevice(r) }
+
+func isCharDevice(stream any) bool {
+	file, ok := stream.(*os.File)
 	if !ok {
 		return false
 	}

@@ -245,6 +245,10 @@ tls-forge batch -i urls.txt -o results.jsonl -d bodies/      # results and pages
 cat urls.txt | tls-forge batch                               # or standard input
 ```
 
+With no list at all it reads standard input, and says so rather than going
+quiet. Ctrl-C ends it; a command stuck somewhere that cannot notice the first
+interrupt still dies on the second.
+
 | flag | |
 |---|---|
 | `-u`, `--urls` | the list as a comma-separated string, instead of a file |

@@ -864,3 +864,48 @@ func TestAFailedStdoutFailsTheCommand(t *testing.T) {
 		t.Error("exit code = 0 for a command that could not write its output")
 	}
 }
+
+func TestReleaseSignalHandsInterruptsBack(t *testing.T) {
+	// The first interrupt asks for an orderly stop; any after it should kill
+	// the process the way they would have if nothing were listening. That means
+	// giving the signal back to the runtime once the first one has arrived.
+	ctx, cancel := context.WithCancel(context.Background())
+	released := make(chan struct{})
+	releaseSignal(ctx, func() { close(released) })
+
+	select {
+	case <-released:
+		t.Fatal("the signal was handed back before one arrived")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	cancel()
+	select {
+	case <-released:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the signal was never handed back, so a second Ctrl-C would do nothing")
+	}
+}
+
+func TestIsTerminalReader(t *testing.T) {
+	if isTerminalReader(strings.NewReader("")) {
+		t.Error("a string is not a terminal")
+	}
+	regular, err := os.Create(filepath.Join(t.TempDir(), "in"))
+	if err != nil {
+		t.Fatalf("creating: %v", err)
+	}
+	t.Cleanup(func() { _ = regular.Close() })
+	if isTerminalReader(regular) {
+		t.Error("a regular file is not a terminal")
+	}
+
+	devNull, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatalf("opening %s: %v", os.DevNull, err)
+	}
+	t.Cleanup(func() { _ = devNull.Close() })
+	if !isTerminalReader(devNull) {
+		t.Error("a character device was not recognised")
+	}
+}

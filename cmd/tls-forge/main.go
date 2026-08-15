@@ -65,7 +65,26 @@ func main() {
 	// given, which is what lets every one of them be driven from a test.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+	releaseSignal(ctx, stop)
 	exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
+}
+
+// releaseSignal hands interrupts back to the runtime after the first one.
+//
+// NotifyContext catches the interrupt and cancels the context instead of
+// letting it end the process. That is right for a command that can wind itself
+// down, and wrong for one blocked on a read that never looks at a context: the
+// signal is swallowed, nothing happens, and every further Ctrl-C is swallowed
+// too. Measured before this: `tls-forge batch` waiting on standard input
+// survived four of them.
+//
+// So the first interrupt still asks for an orderly stop, and any after it kill
+// the process the way they would have if nothing had been listening.
+func releaseSignal(ctx context.Context, stop func()) {
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {

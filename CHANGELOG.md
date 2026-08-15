@@ -13,6 +13,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **Ctrl-C did nothing to `tls-forge batch` waiting on standard input.** Run
+  with no list, the command waits for URLs to be typed; the interrupt was caught
+  and turned into a cancelled context that the blocked read never looked at, so
+  it was swallowed, and so was every one after it. The read now happens on a
+  goroutine of its own and the first interrupt ends the command; any after the
+  first are handed back to the runtime, so a command stuck anywhere else still
+  dies on the second.
+- `batch` with nothing to read says it is waiting for input rather than going
+  quiet, which is what made this look like a hang in the first place.
+
 - **Six idle connections are kept per host instead of one.** Past the
   transport's default, a request beyond the second closed its connection when it
   finished and the next one dialled again: 1726 connections for 3000 requests

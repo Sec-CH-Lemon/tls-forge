@@ -838,3 +838,35 @@ func TestStderrLogWithoutAStatusLine(t *testing.T) {
 		}
 	}
 }
+
+func TestBatchSaysItIsWaitingForInput(t *testing.T) {
+	// Nothing named a list and standard input is a terminal, so the next thing
+	// that happens is a wait for someone to type. A command that goes quiet
+	// there looks like one that has hung, which is how this was reported.
+	devNull, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatalf("opening %s: %v", os.DevNull, err)
+	}
+	t.Cleanup(func() { _ = devNull.Close() })
+
+	original := batchInput
+	t.Cleanup(func() { batchInput = original })
+	batchInput = devNull
+
+	// A character device that is already at end of file, so the wait it
+	// announces is over as soon as it begins.
+	_, _, stderr := exec(t, "batch")
+	for _, want := range []string{"standard input", "Ctrl-D", "--input", "--urls"} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr has no %q:\n%s", want, stderr)
+		}
+	}
+}
+
+func TestBatchSaysNothingWhenItWasGivenAList(t *testing.T) {
+	server := batchServer(t)
+	_, _, stderr := exec(t, "batch", "--progress", "never", server.URL+"/one")
+	if strings.Contains(stderr, "Ctrl-D") {
+		t.Errorf("a run that was given URLs announced a wait for them:\n%s", stderr)
+	}
+}

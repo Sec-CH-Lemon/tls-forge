@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -65,7 +66,9 @@ func resolveFormat(format, path string) (string, error) {
 // standard input. Each is a deliberate way to say "here is the list", so the
 // first one present wins rather than the four being merged into a pile nobody
 // can account for.
-func readJobs(inline, path, format string, args []string, stdin io.Reader) ([]job, error) {
+func readJobs(ctx context.Context, inline, path, format string, args []string,
+	stdin io.Reader,
+) ([]job, error) {
 	// Resolved first, before the source is chosen. A misspelled format is a
 	// mistake whether or not the list happens to come from somewhere the format
 	// applies to, and a flag that is silently ignored under some inputs is
@@ -92,7 +95,36 @@ func readJobs(inline, path, format string, args []string, stdin io.Reader) ([]jo
 	if len(args) > 0 {
 		return jobsFromURLs(args), nil
 	}
-	return decodeJobs(stdin, resolved, "standard input")
+	return decodeStream(ctx, stdin, resolved)
+}
+
+// decodeStream reads a list from a stream that may never end.
+//
+// On a goroutine of its own, so an interrupt is answered while the read is
+// still blocked. A read on an idle terminal blocks until there is a line or the
+// process ends, and without this the first Ctrl-C is caught, turned into a
+// cancelled context, and then noticed by nobody.
+//
+// The goroutine outlives the wait when the context ends first. It is blocked on
+// a descriptor that is about to be closed by the process exiting, and nothing
+// is waiting on its answer.
+func decodeStream(ctx context.Context, r io.Reader, format string) ([]job, error) {
+	type outcome struct {
+		jobs []job
+		err  error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		jobs, err := decodeJobs(r, format, "standard input")
+		done <- outcome{jobs, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case got := <-done:
+		return got.jobs, got.err
+	}
 }
 
 func decodeJobs(r io.Reader, format, source string) ([]job, error) {

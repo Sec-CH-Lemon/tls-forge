@@ -123,7 +123,15 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 	warnAboutConcurrency(errOut, *workers)
 
-	jobs, err := readJobs(*inline, *input, *format, fs.Args(), batchInput)
+	// Nothing named a list and standard input is a terminal, so the next thing
+	// that happens is a wait for someone to type. Said out loud, because a
+	// command that goes quiet looks like one that has hung.
+	if *inline == "" && *input == "" && fs.NArg() == 0 && isTerminalReader(batchInput) {
+		errOut.println("reading URLs from standard input, one per line; end with Ctrl-D.")
+		errOut.println("Give a list instead with --input FILE or --urls a,b,c.")
+	}
+
+	jobs, err := readJobs(ctx, *inline, *input, *format, fs.Args(), batchInput)
 	if err != nil {
 		return err
 	}
