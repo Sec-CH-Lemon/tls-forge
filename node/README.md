@@ -5,7 +5,7 @@ handshake a real Chrome sends, so pages behind Cloudflare and the other
 bot-detection front doors return their content instead of a challenge.
 
 Node cannot do this on its own. Its TLS comes from OpenSSL, which offers no
-control over extension order, GREASE values or the extension set — and those are
+control over extension order, GREASE values or the extension set, and those are
 precisely what JA3 and JA4 hash. Chrome uses BoringSSL, and a scraper whose
 `User-Agent` says Chrome while its handshake says Node is spotted in the first
 packet, before a byte of HTTP is read. So the socket moves out of Node into a
@@ -15,8 +15,8 @@ at.
 It runs no JavaScript, so managed challenges and CAPTCHAs are a different
 problem. What it removes is the check that fires before the page is ever served.
 
-See the [project README](../README.md) for what is being impersonated and — more
-to the point — how the disguise is verified against the browser on your machine.
+See the [project README](../README.md) for what is being impersonated and, more
+to the point, how the disguise is verified against the browser on your machine.
 
 ## Install
 
@@ -25,7 +25,7 @@ npm install tls-forge
 ```
 
 No Go, no build step, no download during install. The binary arrives as an
-optional dependency — one package per platform, each declaring `os` and `cpu`,
+optional dependency: one package per platform, each declaring `os` and `cpu`,
 so npm installs the one that matches and skips the other four. It is the
 arrangement esbuild and swc use, and it survives `npm ci --ignore-scripts`,
 which a postinstall step does not.
@@ -84,13 +84,13 @@ await client.post('https://example.com/api', JSON.stringify({ a: 1 }), {
 
 Cookies go through the jar rather than through a `Cookie` header on purpose:
 setting the header by hand *replaces* whatever the jar holds, so cookies the
-server set earlier in the session would silently vanish from the next request —
+server set earlier in the session would silently vanish from the next request,
 which no real browser would do.
 
 ## One client is one identity
 
 A `Client` is one long-lived process: one TLS fingerprint, one cookie jar, one
-exit IP for its whole life. Reconnecting per request is itself a signal — no
+exit IP for its whole life. Reconnecting per request is itself a signal, and no
 browser does it.
 
 `close()` is final. A client that has been closed will not respawn, and a later
@@ -111,7 +111,7 @@ misbehaves, because the failures are quiet:
 
 * **A request that misses its deadline** rejects, and the process is restarted.
   The old process may still be writing an answer, so its stdout is dropped as
-  well — killing a process does not stop the bytes it already wrote from
+  well. Killing a process does not stop the bytes it already wrote from
   arriving.
 * **Every request carries an id** and every answer is checked against it. An
   answer whose id does not match the request in flight is dropped. Without that,

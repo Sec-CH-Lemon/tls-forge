@@ -7,10 +7,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"net"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -505,5 +507,57 @@ func TestDoReportsATruncatedBody(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "reading body") {
 		t.Errorf("error = %v, want it to name the body read", err)
+	}
+}
+
+func TestClientIsSafeForConcurrentUse(t *testing.T) {
+	// The README tells people to build a pool of clients and share each one
+	// across goroutines, so this is a promise the tests have to keep. Run under
+	// -race it is also the only check that the shared cookie jar and the
+	// underlying transport are not being mutated from two places at once.
+	server := startEcho(t)
+	client := newTestClient(t)
+
+	const workers = 12
+	var wg sync.WaitGroup
+	results := make(chan string, workers)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			res, err := client.Do(&Request{
+				URL:     fmt.Sprintf("%s/api/all?worker=%d", server.URL(), n),
+				Header:  NewHeader("x-worker", fmt.Sprint(n)),
+				Cookies: []Cookie{{Name: fmt.Sprintf("w%d", n), Value: "1"}},
+			})
+			if err != nil {
+				results <- "error: " + err.Error()
+				return
+			}
+			var measured capture.Capture
+			if err := json.Unmarshal(res.Body, &measured); err != nil {
+				results <- "decode: " + err.Error()
+				return
+			}
+			results <- measured.TLS.JA4
+		}(i)
+	}
+	wg.Wait()
+	close(results)
+
+	seen := map[string]int{}
+	for r := range results {
+		seen[r]++
+	}
+	if len(seen) != 1 {
+		t.Fatalf("workers disagreed about what they sent: %v", seen)
+	}
+	for ja4, count := range seen {
+		if strings.HasPrefix(ja4, "error") || strings.HasPrefix(ja4, "decode") {
+			t.Fatalf("%d workers failed: %s", count, ja4)
+		}
+		if count != workers {
+			t.Errorf("got %d results, want %d", count, workers)
+		}
 	}
 }
