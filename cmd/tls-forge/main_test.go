@@ -458,11 +458,21 @@ func TestCompareMatches(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit code = %d\nstdout: %s\nstderr: %s", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "match") {
-		t.Errorf("stdout = %q", stdout)
-	}
 	if !strings.Contains(stdout, "indistinguishable") {
 		t.Errorf("stdout = %q", stdout)
+	}
+	// The diff shows both sides, field by field, and every line agrees.
+	for _, want := range []string{"--- browser", "+++ client", "  ja4", "  http2_akamai"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("stdout has no %q line:\n%s", want, stdout)
+		}
+	}
+	if strings.Contains(stdout, "\n- ") || strings.Contains(stdout, "\n+ ") {
+		t.Errorf("a clean comparison printed a difference:\n%s", stdout)
+	}
+	// -color auto, and the test writes to a buffer rather than a terminal.
+	if strings.Contains(stdout, "\x1b[") {
+		t.Errorf("colour was written to something that is not a terminal:\n%q", stdout)
 	}
 }
 
@@ -474,11 +484,138 @@ func TestCompareDiffersExitsOne(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stdout)
 	}
-	if !strings.Contains(stdout, "DIFFER") {
+	if !strings.Contains(stdout, "field(s) differ") {
 		t.Errorf("stdout does not show the differences:\n%s", stdout)
+	}
+	// Both sides of a differing field, so the reader can see what changed
+	// without running anything else.
+	if !strings.Contains(stdout, "- header_order") || !strings.Contains(stdout, "+ header_order") {
+		t.Errorf("a differing field is not shown as a pair:\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "tls-forge capture") {
 		t.Error("the report does not say how to fix it")
+	}
+}
+
+func TestCompareColours(t *testing.T) {
+	// -color always, so the assertion does not depend on what the test's stdout
+	// happens to be attached to.
+	code, stdout, _ := exec(t, "compare", "-browser", browserStandIn(t), "-timeout", "30s",
+		"-color", "always", "-full")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stdout)
+	}
+	if !strings.Contains(stdout, ansiGreen+"  ja4") {
+		t.Errorf("a matching field is not green:\n%q", stdout)
+	}
+	// -full turns off the trimming, so no value is cut short. Measured from the
+	// diff itself: the banner above it ends in an ellipsis of its own.
+	if diff := stdout[strings.Index(stdout, "+++ client"):]; strings.Contains(diff, "…") {
+		t.Errorf("-full still trimmed a value:\n%s", diff)
+	}
+}
+
+func TestCompareRejectsAnUnknownColourMode(t *testing.T) {
+	// Rejected before the browser starts: a typo should not cost two minutes of
+	// waiting to report itself.
+	code, _, stderr := exec(t, "compare", "-color", "sometimes")
+	if code != 1 {
+		t.Errorf("exit code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr, "-color") || !strings.Contains(stderr, "sometimes") {
+		t.Errorf("stderr = %q", stderr)
+	}
+}
+
+func TestPaletteFor(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	os.Unsetenv("NO_COLOR")
+
+	if p, err := paletteFor("always", io.Discard); err != nil || p.match != ansiGreen {
+		t.Errorf("always: %+v, %v", p, err)
+	}
+	if p, err := paletteFor("never", io.Discard); err != nil || p.match != "" {
+		t.Errorf("never: %+v, %v", p, err)
+	}
+	// Not a terminal, so auto stays quiet.
+	if p, err := paletteFor("auto", io.Discard); err != nil || p.match != "" {
+		t.Errorf("auto on a buffer: %+v, %v", p, err)
+	}
+
+	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatalf("opening %s: %v", os.DevNull, err)
+	}
+	t.Cleanup(func() { _ = devNull.Close() })
+
+	// A character device is what "someone is looking at this" is detected by,
+	// and the writer is reached through the printer the commands write to.
+	if p, err := paletteFor("auto", newPrinter(devNull)); err != nil || p.match != ansiGreen {
+		t.Errorf("auto on a character device: %+v, %v", p, err)
+	}
+	// The one convention every tool that colourises agrees on.
+	t.Setenv("NO_COLOR", "1")
+	if p, err := paletteFor("auto", newPrinter(devNull)); err != nil || p.match != "" {
+		t.Errorf("NO_COLOR was ignored: %+v, %v", p, err)
+	}
+}
+
+func TestIsTerminal(t *testing.T) {
+	if isTerminal(io.Discard) {
+		t.Error("a writer that is not a file is not a terminal")
+	}
+
+	regular, err := os.Create(filepath.Join(t.TempDir(), "out"))
+	if err != nil {
+		t.Fatalf("creating: %v", err)
+	}
+	if isTerminal(regular) {
+		t.Error("a regular file is not a terminal")
+	}
+
+	// Stat on a closed descriptor fails, and a writer that cannot be asked is
+	// not one to colourise.
+	_ = regular.Close()
+	if isTerminal(regular) {
+		t.Error("a closed file is not a terminal")
+	}
+}
+
+func TestCompareWithoutHTTP2(t *testing.T) {
+	// A connection that came out as HTTP/1.1 has no HTTP/2 fingerprint on
+	// either side. The TLS half still has to print.
+	raw, err := os.ReadFile("../../testdata/chrome151-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	var buf bytes.Buffer
+	result := &tlsforge.Comparison{
+		Browser: &capture.Capture{RawClientHello: raw},
+		Client:  &capture.Capture{RawClientHello: raw},
+	}
+	printComparison(newPrinter(&buf), result, palette{}, false)
+
+	if !strings.Contains(buf.String(), "  ja4") {
+		t.Errorf("no TLS section:\n%s", buf.String())
+	}
+	if strings.Contains(buf.String(), "HTTP/2") {
+		t.Errorf("an HTTP/2 section was printed for a connection that had none:\n%s", buf.String())
+	}
+}
+
+func TestCompareCannotReReadItsCaptures(t *testing.T) {
+	// printComparison parses the two hellos again to lay them out. Compare has
+	// already parsed both, so this is unreachable in a real run, and it must not
+	// print an empty diff that reads as agreement.
+	var buf bytes.Buffer
+	out := newPrinter(&buf)
+	result := &tlsforge.Comparison{
+		Browser: &capture.Capture{RawClientHello: []byte{0xff, 0xff}},
+		Client:  &capture.Capture{RawClientHello: []byte{0xff, 0xff}},
+	}
+	printComparison(out, result, palette{}, false)
+	if !strings.Contains(buf.String(), "could not be re-read") {
+		t.Errorf("stdout = %q", buf.String())
 	}
 }
 

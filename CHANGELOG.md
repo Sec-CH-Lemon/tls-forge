@@ -37,7 +37,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `tls-forge capture` — launch the installed browser, measure what it sends, and
   write a reusable profile from it.
 - `tls-forge compare` — measure the browser and the library against one local
-  instrument and diff them, exiting 1 on a difference so it can gate a release.
+  instrument and print them as a field-by-field diff, green where they agree and
+  red where they do not, exiting 1 on a difference so it can gate a release.
+  `-color auto|always|never` (honouring `NO_COLOR`) and `-full`.
 - `tls-forge fetch`, `serve`, `daemon`, `profiles`.
 - `fingerprint` — ClientHello parsing and local JA3, JA4, JA4_r and Akamai
   HTTP/2 fingerprints, plus a structural diff that names the field that differs.

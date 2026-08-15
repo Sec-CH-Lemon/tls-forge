@@ -217,3 +217,66 @@ func replaceExtension(b *helloBuilder, typ uint16, data []byte) *helloBuilder {
 	}
 	return b
 }
+
+func TestFieldMatchesUsesTheRuleTheFieldIsComparedWith(t *testing.T) {
+	// Display asks this so that a field cannot be shown as a difference while
+	// the verdict underneath says everything matched. Each kind of field has to
+	// answer by the same rule the comparison uses.
+	for _, tc := range []struct {
+		name        string
+		left, right Field
+		want        bool
+	}{
+		{"scalar agrees", scalar("ja4", "t13d"), scalar("ja4", "t13d"), true},
+		{"scalar differs", scalar("ja4", "t13d"), scalar("ja4", "t13i"), false},
+
+		// The browser shuffles its extension order per connection, so this is
+		// the field the two answers would disagree about if order were read.
+		{
+			"set ignores order",
+			Field{Name: "extensions", Values: []string{"alpn", "key_share"}, Set: true},
+			Field{Name: "extensions", Values: []string{"key_share", "alpn"}, Set: true},
+			true,
+		},
+		{
+			"set notices a missing value",
+			Field{Name: "extensions", Values: []string{"alpn", "key_share"}, Set: true},
+			Field{Name: "extensions", Values: []string{"alpn"}, Set: true},
+			false,
+		},
+		{
+			"set notices an extra value",
+			Field{Name: "extensions", Values: []string{"alpn"}, Set: true},
+			Field{Name: "extensions", Values: []string{"alpn", "key_share"}, Set: true},
+			false,
+		},
+
+		{
+			"ordered agrees",
+			Field{Name: "alpn", Values: []string{"h2", "http/1.1"}},
+			Field{Name: "alpn", Values: []string{"h2", "http/1.1"}},
+			true,
+		},
+		{
+			"ordered reads order",
+			Field{Name: "alpn", Values: []string{"h2", "http/1.1"}},
+			Field{Name: "alpn", Values: []string{"http/1.1", "h2"}},
+			false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.left.Matches(tc.right); got != tc.want {
+				t.Errorf("Matches = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSetFieldRendersSorted(t *testing.T) {
+	// Printing a set in arrival order invites the reader to compare an order
+	// that is deliberately not being compared.
+	f := Field{Name: "extensions", Values: []string{"key_share", "alpn"}, Set: true}
+	if got := f.Render(); got != "alpn, key_share" {
+		t.Errorf("Render() = %q", got)
+	}
+}

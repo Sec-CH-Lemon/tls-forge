@@ -6,22 +6,51 @@ header order. The fingerprint check that runs before a page is ever served has
 nothing to catch.
 
 And it does not ask you to take that on trust: `tls-forge compare` opens the
-browser on your machine, measures it, measures itself, and prints the
-difference.
+browser on your machine, measures it, measures itself, and prints the two
+side by side as a diff. Green where they agree, red where they do not.
 
-```
+```diff
 $ tls-forge compare
-────────────────────────────────────────────────────────────────────────
-  browser   Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/151.0.0.0 …
-  profile   chrome_151
-────────────────────────────────────────────────────────────────────────
-  match   JA4            t13d1516h2_8daaf6152771_806a8c22fdea
-  match   HTTP/2         1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
-  match   header order   sec-ch-ua,sec-ch-ua-mobile,sec-ch-ua-platform,…
-────────────────────────────────────────────────────────────────────────
+measuring the browser…
+--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
++++ client   profile chrome_151
 
-The client is indistinguishable from the browser on every field compared.
+TLS
+  ja4                    t13d1516h2_8daaf6152771_806a8c22fdea
+  cipher_suites          TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_S…
+  extensions             alpn, application_settings_old, compress_certificate, ec_point_formats,…
+  supported_versions     TLS 1.3, TLS 1.2
+  supported_groups       X25519MLKEM768, X25519, P-256, P-384
+  signature_algorithms   mldsa44, mldsa65, mldsa87, ecdsa_secp256r1_sha256, rsa_pss_rsae_sha256,…
+  key_share_groups       X25519MLKEM768, X25519
+  alpn                   h2, http/1.1
+  application_settings   h2
+  ec_point_formats       0
+  psk_key_exchange_modes 1
+  compress_certificate   2
+
+HTTP/2
+  http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
+  http2_settings         HEADER_TABLE_SIZE=65536, ENABLE_PUSH=0, INITIAL_WINDOW_SIZE=6291456, MA…
+  http2_window_update    15663105
+  pseudo_header_order    m, a, s, p
+  header_order           sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, upgrade-insecure-reque…
+
+every field matches; the client is indistinguishable from the browser.
 ```
+
+A field the two disagree on is printed twice, `-` for the browser and `+` for
+this library, and in full rather than trimmed, because the difference can sit
+anywhere in the value:
+
+```diff
+- header_order           sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, upgrade-insecure-requests, user-agent, accept, sec-fetch-site, sec-fetch-mode, sec-fetch-user, sec-fetch-dest, accept-encoding, accept-language, priority
++ header_order           accept-encoding, user-agent
+```
+
+`-color` takes `auto`, `always` or `never`. `auto` colourises only when the
+output is a terminal, and honours `NO_COLOR`. `-full` prints the matching
+values in full as well.
 
 ## Scraping pages behind Cloudflare
 
@@ -72,8 +101,8 @@ pages. This library treats that check as the main feature:
 * **`tls-forge capture`** measures the browser installed on your machine and
   writes a profile from what it actually sent.
 * **`tls-forge compare`** measures the browser *and* this library against one
-  local instrument, prints the differences, and exits non-zero if there are any,
-  so it can gate a release.
+  local instrument, diffs them field by field, and exits non-zero if any field
+  differs, so it can gate a release.
 
 Nothing here is transcribed from documentation. The shipped profile is a
 recording of a real ClientHello, and you can regenerate it in ten seconds.

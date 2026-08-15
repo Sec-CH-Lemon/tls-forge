@@ -52,74 +52,133 @@ func (r Report) String() string {
 	return strings.Join(parts, "\n")
 }
 
-// CompareTLS diffs a candidate ClientHello against a reference one, usually a
-// real browser's.
+// Field is one property a fingerprint is compared on, with the values from one
+// side of the comparison.
 //
-// Two fields are deliberately NOT compared, and leaving them out is what makes
+// The list exists so that the fields are named once. Comparing and displaying
+// want the same set, and a second copy of it in the command line would drift:
+// a field added here would quietly stop being shown, or a field shown there
+// would quietly stop being compared.
+type Field struct {
+	Name   string
+	Values []string
+
+	// Set compares membership rather than sequence. True only where the browser
+	// itself varies the order, which is the extension list and nothing else.
+	Set bool
+
+	// Scalar is a single value rather than a list, so a mismatch has no
+	// meaningful "missing" and "extra".
+	Scalar bool
+}
+
+// Render is the value as a person reads it.
+//
+// A Set field renders sorted. Its order is not compared because the browser
+// varies it, so printing the order it happened to arrive in would invite the
+// reader to compare something that is not being compared.
+func (f Field) Render() string {
+	if f.Set {
+		return render(sorted(f.Values))
+	}
+	return render(f.Values)
+}
+
+// Matches reports whether two fields agree, by the rule that field is compared
+// with.
+//
+// Display has to ask this rather than compare the rendered strings, or a Set
+// field whose order differs would be shown as a difference while the verdict
+// below it said everything matched. The two answers have to come from one rule.
+func (f Field) Matches(other Field) bool {
+	switch {
+	case f.Scalar:
+		return f.Render() == other.Render()
+	case f.Set:
+		return len(subtract(f.Values, other.Values)) == 0 && len(subtract(other.Values, f.Values)) == 0
+	default:
+		return equalStrings(f.Values, other.Values)
+	}
+}
+
+func scalar(name, value string) Field {
+	return Field{Name: name, Values: []string{value}, Scalar: true}
+}
+
+// TLSFields is everything a ClientHello is compared on, in a fixed order.
+//
+// Two properties are deliberately absent, and leaving them out is what makes
 // the result meaningful:
 //
 //   - Extension ORDER. Chrome shuffles it on every connection, so the browser
-//     does not match itself. The extension SET is compared instead, which is
-//     what JA4 hashes and what a server can actually rely on.
+//     does not match itself. The extension SET is here instead, which is what
+//     JA4 hashes and what a server can actually rely on.
 //   - GREASE values. Random per connection by design (RFC 8701).
 //
-// Everything else — ciphers in order, groups in order, signature algorithms in
-// order, key shares, ALPN, ALPS, versions, point formats, certificate
-// compression — is stable for a given browser build and is compared exactly.
-func CompareTLS(reference, candidate *ClientHello) Report {
-	var diffs []Difference
-	add := func(d *Difference) {
-		if d != nil {
-			diffs = append(diffs, *d)
-		}
+// Everything else is stable for a given browser build and is compared exactly.
+func TLSFields(hello *ClientHello) []Field {
+	return []Field{
+		scalar("ja4", hello.JA4()),
+		{Name: "cipher_suites", Values: namesOf(withoutGREASE(hello.CipherSuites), CipherName)},
+		{Name: "extensions", Values: namesOf(withoutGREASE(hello.ExtensionTypes()), ExtensionName), Set: true},
+		{Name: "supported_versions", Values: namesOf(withoutGREASE(hello.SupportedVersions()), VersionName)},
+		{Name: "supported_groups", Values: namesOf(withoutGREASE(hello.SupportedGroups()), GroupName)},
+		{Name: "signature_algorithms", Values: namesOf(withoutGREASE(hello.SignatureAlgorithms()), SignatureName)},
+		{Name: "key_share_groups", Values: namesOf(withoutGREASE(hello.KeyShareGroups()), GroupName)},
+		{Name: "alpn", Values: hello.ALPN()},
+		{Name: "application_settings", Values: hello.ApplicationSettings()},
+		{Name: "ec_point_formats", Values: decimalStrings(hello.ECPointFormats())},
+		{Name: "psk_key_exchange_modes", Values: decimalStrings(hello.PSKKeyExchangeModes())},
+		{Name: "compress_certificate", Values: decimalStrings16(hello.CertCompressionAlgorithms())},
 	}
+}
 
-	add(diffValue("ja4", reference.JA4(), candidate.JA4()))
-	add(diffOrdered("cipher_suites", namesOf(withoutGREASE(reference.CipherSuites), CipherName),
-		namesOf(withoutGREASE(candidate.CipherSuites), CipherName)))
-	// Set, not sequence: see the note above.
-	add(diffSet("extensions", namesOf(withoutGREASE(reference.ExtensionTypes()), ExtensionName),
-		namesOf(withoutGREASE(candidate.ExtensionTypes()), ExtensionName)))
-	add(diffOrdered("supported_versions", namesOf(withoutGREASE(reference.SupportedVersions()), VersionName),
-		namesOf(withoutGREASE(candidate.SupportedVersions()), VersionName)))
-	add(diffOrdered("supported_groups", namesOf(withoutGREASE(reference.SupportedGroups()), GroupName),
-		namesOf(withoutGREASE(candidate.SupportedGroups()), GroupName)))
-	add(diffOrdered("signature_algorithms", namesOf(withoutGREASE(reference.SignatureAlgorithms()), SignatureName),
-		namesOf(withoutGREASE(candidate.SignatureAlgorithms()), SignatureName)))
-	add(diffOrdered("key_share_groups", namesOf(withoutGREASE(reference.KeyShareGroups()), GroupName),
-		namesOf(withoutGREASE(candidate.KeyShareGroups()), GroupName)))
-	add(diffOrdered("alpn", reference.ALPN(), candidate.ALPN()))
-	add(diffOrdered("application_settings", reference.ApplicationSettings(), candidate.ApplicationSettings()))
-	add(diffOrdered("ec_point_formats", decimalStrings(reference.ECPointFormats()),
-		decimalStrings(candidate.ECPointFormats())))
-	add(diffOrdered("psk_key_exchange_modes", decimalStrings(reference.PSKKeyExchangeModes()),
-		decimalStrings(candidate.PSKKeyExchangeModes())))
-	add(diffOrdered("compress_certificate", decimalStrings16(reference.CertCompressionAlgorithms()),
-		decimalStrings16(candidate.CertCompressionAlgorithms())))
+// HTTP2Fields is everything the connection preamble and first request are
+// compared on.
+//
+// Header VALUES are not here: they are the caller's to choose and vary per
+// request. What is compared is the shape a library controls and usually gets
+// wrong.
+func HTTP2Fields(h *HTTP2) []Field {
+	return []Field{
+		scalar("http2_akamai", h.Akamai()),
+		{Name: "http2_settings", Values: settingStrings(h.Settings)},
+		scalar("http2_window_update", fmt.Sprint(h.WindowUpdate)),
+		{Name: "pseudo_header_order", Values: h.PseudoHeaderOrder()},
+		{Name: "header_order", Values: h.HeaderOrder()},
+	}
+}
 
-	return Report{Differences: diffs}
+// CompareTLS diffs a candidate ClientHello against a reference one, usually a
+// real browser's. TLSFields says what is compared, and what is not.
+func CompareTLS(reference, candidate *ClientHello) Report {
+	return compareFields(TLSFields(reference), TLSFields(candidate))
 }
 
 // CompareHTTP2 diffs the connection preamble and the request headers.
-//
-// Header VALUES are not compared here: they are the caller's to choose and vary
-// per request (referer, cookie, sec-fetch-*). What is compared is the shape a
-// library controls and usually gets wrong — settings, their order, the window
-// update, the pseudo-header order and the header order.
 func CompareHTTP2(reference, candidate *HTTP2) Report {
+	return compareFields(HTTP2Fields(reference), HTTP2Fields(candidate))
+}
+
+// compareFields walks two lists produced by the same function, so they are the
+// same length and in the same order.
+func compareFields(reference, candidate []Field) Report {
 	var diffs []Difference
-	add := func(d *Difference) {
+	for i, want := range reference {
+		got := candidate[i]
+		var d *Difference
+		switch {
+		case want.Scalar:
+			d = diffValue(want.Name, want.Render(), got.Render())
+		case want.Set:
+			d = diffSet(want.Name, want.Values, got.Values)
+		default:
+			d = diffOrdered(want.Name, want.Values, got.Values)
+		}
 		if d != nil {
 			diffs = append(diffs, *d)
 		}
 	}
-
-	add(diffValue("http2_akamai", reference.Akamai(), candidate.Akamai()))
-	add(diffOrdered("http2_settings", settingStrings(reference.Settings), settingStrings(candidate.Settings)))
-	add(diffValue("http2_window_update", fmt.Sprint(reference.WindowUpdate), fmt.Sprint(candidate.WindowUpdate)))
-	add(diffOrdered("pseudo_header_order", reference.PseudoHeaderOrder(), candidate.PseudoHeaderOrder()))
-	add(diffOrdered("header_order", reference.HeaderOrder(), candidate.HeaderOrder()))
-
 	return Report{Differences: diffs}
 }
 

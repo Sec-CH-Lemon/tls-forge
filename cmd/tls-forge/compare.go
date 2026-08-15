@@ -7,6 +7,7 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
 func runCompare(ctx context.Context, args []string, out *printer) error {
@@ -15,8 +16,17 @@ func runCompare(ctx context.Context, args []string, out *printer) error {
 	browserName := fs.String("browser", "", "browser to compare against")
 	headless := fs.Bool("headless", false, "run the browser without a window")
 	asJSON := fs.Bool("json", false, "print both captures and the diff as JSON")
+	colour := fs.String("color", "auto", "colourise the diff: auto, always or never")
+	full := fs.Bool("full", false, "print matching values in full; differing ones always are")
 	timeout := fs.Duration("timeout", 2*time.Minute, "how long to wait for the browser")
 	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Checked before the browser is launched: a bad flag should not cost anyone
+	// two minutes of waiting first.
+	pal, err := paletteFor(*colour, out)
+	if err != nil {
 		return err
 	}
 
@@ -34,7 +44,7 @@ func runCompare(ctx context.Context, args []string, out *printer) error {
 			return err
 		}
 	} else {
-		printComparison(out, result)
+		printComparison(out, result, pal, *full)
 	}
 
 	if !result.OK() {
@@ -43,45 +53,50 @@ func runCompare(ctx context.Context, args []string, out *printer) error {
 	return nil
 }
 
-func printComparison(out *printer, result *tlsforge.Comparison) {
-	line := strings.Repeat("─", 72)
-	out.println(line)
-	out.printf("  browser   %s\n", result.Browser.UserAgent())
-	out.printf("  profile   %s\n", result.Client.Profile)
-	out.println(line)
+func printComparison(out *printer, result *tlsforge.Comparison, pal palette, full bool) {
+	browserHello, browserErr := result.Browser.Hello()
+	clientHello, clientErr := result.Client.Hello()
+	if browserErr != nil || clientErr != nil {
+		// Compare already parsed both of these to build the report, so reaching
+		// here means something changed underneath. Say so rather than printing
+		// an empty diff that reads as agreement.
+		out.println("the captures could not be re-read for display; use -json")
+		return
+	}
 
-	row := func(label, browser, client string) {
-		if browser == client {
-			out.printf("  match   %-14s %s\n", label, browser)
-			return
-		}
-		out.printf("  DIFFER  %-14s %s\n", label, browser)
-		out.printf("  %6s  %-14s %s\n", "", "", client)
-	}
-	row("JA4", result.Browser.TLS.JA4, result.Client.TLS.JA4)
+	out.printf("%s--- browser  %s%s\n", pal.differ, result.Browser.UserAgent(), pal.reset)
+	out.printf("%s+++ client   profile %s%s\n\n", pal.match, result.Client.Profile, pal.reset)
+
+	tlsWant, tlsGot := fingerprint.TLSFields(browserHello), fingerprint.TLSFields(clientHello)
+
+	// Absent when the connection came out as HTTP/1.1, and then there is nothing
+	// to compare rather than a difference to report.
+	var h2Want, h2Got []fingerprint.Field
 	if result.Browser.HTTP2 != nil && result.Client.HTTP2 != nil {
-		row("HTTP/2", result.Browser.HTTP2.Akamai, result.Client.HTTP2.Akamai)
-		row("header order",
-			strings.Join(result.Browser.HTTP2.HeaderOrder, ","),
-			strings.Join(result.Client.HTTP2.HeaderOrder, ","))
+		h2Want = fingerprint.HTTP2Fields(result.Browser.HTTP2.Fingerprint())
+		h2Got = fingerprint.HTTP2Fields(result.Client.HTTP2.Fingerprint())
 	}
-	out.println(line)
+
+	// One width across both sections, or the eye loses the column between them.
+	d := &diffPrinter{out: out, colour: pal, full: full, labelAt: widestLabel(tlsWant, h2Want)}
+	d.section("TLS", tlsWant, tlsGot)
+	if h2Want != nil {
+		d.section("HTTP/2", h2Want, h2Got)
+	}
 
 	if result.OK() {
-		out.println("\nThe client is indistinguishable from the browser on every field compared.")
+		out.printf("%severy field matches; the client is indistinguishable from the browser.%s\n",
+			pal.match, pal.reset)
+		out.println()
 		out.println("JA3 is deliberately not compared: Chrome shuffles its extension order per")
 		out.println("connection, so its own JA3 differs from request to request.")
 		return
 	}
 
-	out.println()
-	if !result.TLS.OK() {
-		out.printf("TLS\n%s\n\n", result.TLS)
-	}
-	if !result.HTTP2.OK() {
-		out.printf("HTTP/2\n%s\n\n", result.HTTP2)
-	}
-	out.println("Fix by measuring this browser and using the profile it produces:")
+	differing := len(result.TLS.Differences) + len(result.HTTP2.Differences)
+	out.printf("%s%d field(s) differ.%s Fix by measuring this browser and using the profile\n",
+		pal.differ, differing, pal.reset)
+	out.println("it produces:")
 	out.println("  tls-forge capture -save my-browser.json")
 }
 

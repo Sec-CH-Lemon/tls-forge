@@ -2,6 +2,9 @@
 /bin/
 /dist/
 /node/vendor/
+# `go build ./cmd/tls-forge` from the root drops the binary here, named after
+# the module, right next to the source.
+/tls-forge
 
 # Documentation, held back until it is ready to publish. To publish it later,
 # delete this line — `git add docs/` on its own will not work while it is
