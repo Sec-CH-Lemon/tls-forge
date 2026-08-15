@@ -24,40 +24,6 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
-- `tls-forge batch` fetches a list of URLs concurrently, **each through its own
-  proxy**. The list comes from a file, from `--urls` as a comma-separated
-  string, from arguments or from standard input, in three formats: JSON (an
-  array of objects or of bare strings), CSV (columns by name or by position),
-  and one URL per line. One client is opened per distinct proxy and shared
-  between workers, because the proxy is the identity and a cookie jar should
-  not cross two exit IPs. Output is JSON lines, one per URL, and the command
-  exits 1 if any URL failed. `--concurrency` sets how many pages are fetched at
-  once; asking for more workers than there are CPUs prints a warning on standard
-  error and carries on, since fetching waits on the network rather than on a
-  core. In a container the count comes from the cgroup rather than from
-  `runtime.NumCPU`, which reports the hardware and would answer 64 on a 64-core
-  host however little of it the container may use. Both cgroup layouts are
-  read, v2 then v1; `GOMAXPROCS` is left alone.
-
-- Fuzz targets for the two parsers that read bytes their reader did not choose:
-  `FuzzParseClientHello` and `FuzzLoad`. Run them with
-  `go test -fuzz FuzzParseClientHello ./fingerprint/`.
-
-### Changed
-
-- **Flags follow the usual convention: one dash for a short flag, two for a
-  long one.** `-b` and `--browser` are the same flag; `-profile` is now
-  `--profile` or `-p`. Short letters on `fetch` are curl's (`-X`, `-d`, `-H`,
-  `-i`, `-o`, `-x`, `-k`), since that is the command it replaces. Short flags
-  bundle and long ones take `--flag=value`. Parsing moved from the standard
-  library's `flag`, which treats `-x` and `--x` as one thing and has no notion
-  of a short form, to `spf13/pflag`.
-- A mistyped flag now exits **2** rather than 1. `compare` uses 1 for "the
-  fingerprints differ", so a typo exiting 1 read, to the job watching for
-  exactly that, as a broken impersonation.
-
-### Added
-
 - Licensed under Apache-2.0, with `NOTICE` and a generated
   `THIRD-PARTY-NOTICES.txt`. The published binaries are statically linked, so
   every dependency travels inside them and its licence requires the copyright
@@ -96,6 +62,56 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - A measured Chrome 151 profile (macOS, arm64), verified against
   `tls.peet.ws`: JA4 `t13d1516h2_8daaf6152771_806a8c22fdea`, HTTP/2
   `1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p`.
+
+- The Node client is at 100% line and function coverage, and `npm test` now
+  fails below it, the way `make cover` does for Go. Branches are gated at the
+  level reached rather than at 100: Node reports a branch percentage without
+  saying which branch is missing, and a number nobody can act on is not a
+  target.
+- A fuzz target for the daemon's request decoder, so all five places that read
+  input someone else wrote now have one.
+- `batch` is tested against a real recording proxy: two servers, two proxies,
+  and an assertion that each proxy carried its own server's traffic and not the
+  other's. The other proxy tests prove only that each URL *tried* its own
+  proxy, by reading the refusals.
+
+- `tls-forge batch` fetches a list of URLs concurrently, **each through its own
+  proxy**. The list comes from a file, from `--urls` as a comma-separated
+  string, from arguments or from standard input, in three formats: JSON (an
+  array of objects or of bare strings), CSV (columns by name or by position),
+  and one URL per line. One client is opened per distinct proxy and shared
+  between workers, because the proxy is the identity and a cookie jar should
+  not cross two exit IPs. Output is JSON lines, one per URL, and the command
+  exits 1 if any URL failed. `--concurrency` sets how many pages are fetched at
+  once; asking for more workers than there are CPUs prints a warning on standard
+  error and carries on, since fetching waits on the network rather than on a
+  core. In a container the count comes from the cgroup rather than from
+  `runtime.NumCPU`, which reports the hardware and would answer 64 on a 64-core
+  host however little of it the container may use. Both cgroup layouts are
+  read, v2 then v1; `GOMAXPROCS` is left alone.
+
+- Fuzz targets for the two parsers that read bytes their reader did not choose:
+  `FuzzParseClientHello` and `FuzzLoad`. Run them with
+  `go test -fuzz FuzzParseClientHello ./fingerprint/`.
+
+### Changed
+
+- **Flags follow the usual convention: one dash for a short flag, two for a
+  long one.** `-b` and `--browser` are the same flag; `-profile` is now
+  `--profile` or `-p`. Short letters on `fetch` are curl's (`-X`, `-d`, `-H`,
+  `-i`, `-o`, `-x`, `-k`), since that is the command it replaces. Short flags
+  bundle and long ones take `--flag=value`. Parsing moved from the standard
+  library's `flag`, which treats `-x` and `--x` as one thing and has no notion
+  of a short form, to `spf13/pflag`.
+- A mistyped flag now exits **2** rather than 1. `compare` uses 1 for "the
+  fingerprints differ", so a typo exiting 1 read, to the job watching for
+  exactly that, as a broken impersonation.
+
+### Removed
+
+- A `#closed` check in the Node client's `#pump` that no input could reach:
+  `request()` rejects while closed and `close()` empties the queue, so the two
+  conditions it tested for cannot hold at once.
 
 ### Notes
 

@@ -25,6 +25,17 @@ func batchServer(t *testing.T) *httptest.Server {
 	return server
 }
 
+// tlsBatchServer is the same stand-in over TLS, so a proxied request to it is a
+// CONNECT tunnel rather than an absolute-form GET.
+func tlsBatchServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintf(w, "page %s", r.URL.Path)
+	}))
+	t.Cleanup(server.Close)
+	return server
+}
+
 // lines decodes the JSON-lines output, keyed by URL so a test does not depend
 // on the order several workers happen to finish in.
 func lines(t *testing.T, stdout string) map[string]result {

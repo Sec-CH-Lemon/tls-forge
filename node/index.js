@@ -239,11 +239,12 @@ export class Client {
   }
 
   #pump() {
+    // No check for #closed here, deliberately. request() rejects while closed
+    // so nothing new is ever queued, and close() empties the queue, so the two
+    // conditions this would test for cannot hold at once. The three callers are
+    // request(), settle() and restart(); the last two run from callbacks that
+    // return early once close() has cleared the job they were waiting on.
     if (this.#inFlight || !this.#queue.length) return;
-    if (this.#closed) {
-      this.#failAll(new Error('tlsforge: client closed'));
-      return;
-    }
     if (!this.#process) {
       try {
         this.#start();

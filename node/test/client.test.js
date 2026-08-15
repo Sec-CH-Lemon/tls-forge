@@ -241,3 +241,88 @@ test('the platform package name follows npm platform and arch', () => {
   assert.equal(platformPackage, `@sec-ch-lemon/tls-forge-${process.platform}-${process.arch}`);
   assert.equal(exeName, process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge');
 });
+
+test('a write into a dead pipe fails that request and restarts', async () => {
+  // The process is still alive but has stopped reading, so the write reaches a
+  // pipe with no reader. That is the gap the write callback exists for: the
+  // liveness check passed, and the pipe died before the bytes landed.
+  const c = new Client({ binary: path.join(here, 'deaf-daemon.sh'), timeout: 5_000 });
+  await c.get('https://deaf/first');
+
+  await assert.rejects(() => c.get('https://deaf/second'), /write failed/);
+  c.close();
+});
+
+test('a transport that cannot be spawned fails the request, not the process', async () => {
+  // spawn throws synchronously for an argv it will not accept, rather than
+  // emitting 'error'. Unhandled, that throw escapes request(), which returns a
+  // promise everywhere else, so the caller's catch would miss it.
+  const c = new Client({ binary: wrapper, profile: 'chrome 151' });
+  await assert.rejects(() => c.get('https://ok/page'), /transport failed to start/);
+  c.close();
+});
+
+// Resolution with nothing installed anywhere. Every source resolveBinary knows
+// about is taken away at once: no override, no platform package under either
+// resolution base, no local build, and nothing on PATH.
+test('no binary anywhere is an error that says what to do', (t) => {
+  const previous = {
+    bin: process.env.TLSFORGE_BIN,
+    path: process.env.PATH,
+    cwd: process.cwd(),
+  };
+  const sterile = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-sterile-'));
+  // A manifest, so the cwd resolution base exists and resolves to nothing
+  // rather than throwing for want of a package.json.
+  writeFileSync(path.join(sterile, 'package.json'), '{"name":"sterile","version":"0.0.0"}');
+
+  delete process.env.TLSFORGE_BIN;
+  process.env.PATH = path.join(sterile, 'empty');
+  process.chdir(sterile);
+  t.after(() => {
+    process.chdir(previous.cwd);
+    process.env.PATH = previous.path;
+    if (previous.bin === undefined) delete process.env.TLSFORGE_BIN;
+    else process.env.TLSFORGE_BIN = previous.bin;
+    rmSync(sterile, { recursive: true, force: true });
+  });
+
+  assert.throws(() => resolveBinary(), (err) => {
+    // The message has to name the package that was missing and both ways out,
+    // or it tells someone their install is broken and leaves them there.
+    assert.match(err.message, /no binary for/);
+    assert.ok(err.message.includes(platformPackage));
+    assert.match(err.message, /TLSFORGE_BIN/);
+    assert.match(err.message, /npm run build/);
+    return true;
+  });
+});
+
+test('the binary is found on PATH when nothing else has one', (t) => {
+  const previous = {
+    bin: process.env.TLSFORGE_BIN,
+    path: process.env.PATH,
+    cwd: process.cwd(),
+  };
+  const sterile = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-path-'));
+  writeFileSync(path.join(sterile, 'package.json'), '{"name":"sterile","version":"0.0.0"}');
+
+  const onPath = path.join(sterile, exeName);
+  writeFileSync(onPath, '#!/bin/sh\n');
+  chmodSync(onPath, 0o755);
+
+  delete process.env.TLSFORGE_BIN;
+  // `which` itself has to stay findable, so the real PATH is kept behind the
+  // directory holding the stand-in.
+  process.env.PATH = sterile + path.delimiter + previous.path;
+  process.chdir(sterile);
+  t.after(() => {
+    process.chdir(previous.cwd);
+    process.env.PATH = previous.path;
+    if (previous.bin === undefined) delete process.env.TLSFORGE_BIN;
+    else process.env.TLSFORGE_BIN = previous.bin;
+    rmSync(sterile, { recursive: true, force: true });
+  });
+
+  assert.equal(resolveBinary(), onPath);
+});

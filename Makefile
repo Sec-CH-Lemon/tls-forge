@@ -35,6 +35,10 @@ fmt:
 lint:
 	golangci-lint run
 
+# A gate, like `cover`. Lines and functions are at 100%; branches are held at
+# the level reached rather than at 100, because Node reports a branch percentage
+# without saying which branch is missing, and a number nobody can act on is not
+# a target. It still catches a regression.
 node-test:
 	cd node && npm test
 
