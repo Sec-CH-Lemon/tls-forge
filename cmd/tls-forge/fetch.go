@@ -58,13 +58,17 @@ func addClientFlags(fs *pflag.FlagSet) clientFlags {
 	}
 }
 
-func (f clientFlags) client() (*tlsforge.Client, error) {
+func (f clientFlags) client() (*tlsforge.Client, error) { return f.clientVia(*f.proxy) }
+
+// clientVia builds a client through a named proxy, which batch needs because
+// there the proxy comes from the list rather than from the flag.
+func (f clientFlags) clientVia(proxy string) (*tlsforge.Client, error) {
 	opts := []tlsforge.Option{
 		tlsforge.WithProfile(*f.profile),
 		tlsforge.WithTimeout(*f.timeout),
 	}
-	if *f.proxy != "" {
-		opts = append(opts, tlsforge.WithProxy(*f.proxy))
+	if proxy != "" {
+		opts = append(opts, tlsforge.WithProxy(proxy))
 	}
 	if *f.insecure {
 		opts = append(opts, tlsforge.WithInsecureSkipVerify())

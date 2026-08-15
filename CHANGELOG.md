@@ -24,6 +24,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `tls-forge batch` fetches a list of URLs concurrently, **each through its own
+  proxy**. The list comes from a file, from `--urls` as a comma-separated
+  string, from arguments or from standard input, in three formats: JSON (an
+  array of objects or of bare strings), CSV (columns by name or by position),
+  and one URL per line. One client is opened per distinct proxy and shared
+  between workers, because the proxy is the identity and a cookie jar should
+  not cross two exit IPs. Output is JSON lines, one per URL, and the command
+  exits 1 if any URL failed.
+
 - Fuzz targets for the two parsers that read bytes their reader did not choose:
   `FuzzParseClientHello` and `FuzzLoad`. Run them with
   `go test -fuzz FuzzParseClientHello ./fingerprint/`.

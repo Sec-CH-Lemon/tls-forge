@@ -180,6 +180,7 @@ use it like any other.
 | | |
 |---|---|
 | [`fetch`](#fetch) | make one request wearing the fingerprint |
+| [`batch`](#batch) | fetch a list of URLs, each through its own proxy |
 | [`capture`](#capture) | measure the browser on this machine and save a profile |
 | [`compare`](#compare) | diff this library against that browser |
 | [`profiles`](#profiles) | list what can be impersonated |
@@ -229,6 +230,97 @@ of curl.
 | `-x`, `--proxy` | upstream proxy, `http://`, `https://` or `socks5://`, credentials allowed |
 | `-t`, `--timeout` | per-request deadline, 30s by default |
 | `-k`, `--insecure` | skip certificate verification. For talking to `serve`, not for the internet |
+
+### batch
+
+A list of URLs instead of one, fetched concurrently, **each through its own
+proxy**. One line of JSON per URL, so the output can be read as it is produced
+and piped into `jq` while the run is still going.
+
+```bash
+tls-forge batch -u "https://a.example/,https://b.example/"   # a comma-separated list
+tls-forge batch -i urls.json                                 # a file, format from the extension
+tls-forge batch -i urls.csv -c 8                             # eight at a time
+tls-forge batch -i urls.txt -o results.jsonl -d bodies/      # results and pages to disk
+cat urls.txt | tls-forge batch                               # or standard input
+```
+
+| flag | |
+|---|---|
+| `-u`, `--urls` | the list as a comma-separated string, instead of a file |
+| `-i`, `--input` | the list as a file. Standard input if neither is given |
+| `-F`, `--format` | `auto`, `lines`, `json` or `csv`. `auto` reads the file's extension |
+| `-c`, `--concurrency` | how many requests to run at once, 4 by default |
+| `-o`, `--output` | write the JSON lines here instead of to the terminal |
+| `-d`, `--body-dir` | write bodies to this directory and reference them instead of inlining them |
+| `--retry` | attempts per URL before giving up, 1 by default |
+| `-p`, `--profile` | which profile to wear |
+| `-x`, `--proxy` | the proxy for entries that name none of their own |
+| `-t`, `--timeout` | per-request deadline |
+| `-k`, `--insecure` | skip certificate verification |
+
+**Exits 1 if any URL failed**, so a shell loop can tell a batch that half
+worked from one that worked.
+
+#### The three formats
+
+`--format auto` picks by extension: `.json` is JSON, `.csv` is CSV, anything
+else is one URL per line. Only the extension is read, never the contents;
+guessing from the bytes would be right nearly always and then wrong on someone
+real. Name the format yourself when the file is called something else, and for
+standard input, which has no name at all.
+
+**JSON** is an array, of objects or of bare strings, or a mixture. A misspelled
+key is an error rather than an entry with no URL.
+
+```json
+[
+  {"url": "https://a.example/page", "proxy": "http://user:pass@eu-1.proxy:8080"},
+  {"url": "https://b.example/page", "proxy": "socks5://us-3.proxy:1080"},
+  "https://c.example/page"
+]
+```
+
+**CSV** takes its columns by name when the first row holds a cell reading
+`url`, in whatever order they appear, and positionally otherwise. Rows may be
+ragged: a list where only some URLs carry a proxy is the normal case.
+
+```csv
+url,proxy
+https://a.example/page,http://user:pass@eu-1.proxy:8080
+https://b.example/page,socks5://us-3.proxy:1080
+https://c.example/page,
+```
+
+**Lines** is one URL per line, optionally followed by a proxy after a space, so
+the plainest format is not the one that cannot express a per-URL proxy. Blank
+lines are skipped and `#` starts a comment, so a line can be commented out
+rather than deleted.
+
+```
+# the ones behind a challenge
+https://a.example/page http://user:pass@eu-1.proxy:8080
+https://b.example/page socks5://us-3.proxy:1080
+https://c.example/page
+```
+
+`--urls` is the same list on the command line, comma separated. A URL may
+legally contain a comma, in a query string; one that does belongs in a file.
+
+#### One client per proxy
+
+The proxy is the identity, so `batch` opens one client per distinct proxy and
+shares it between workers, rather than one per worker. Two pages fetched
+through one exit IP sharing a cookie jar is what a browser does. Two pages
+sharing a jar across two exit IPs is what none does.
+
+Clients are built on first use, so a list naming twenty proxies of which the
+run reaches three opens three. `--proxy` is the default for entries that name
+none, so the flag and the column compose instead of one overriding the other.
+
+The whole list is checked before a single request goes out: an entry with no
+URL, or one that is not `http` or `https`, is reported with every other problem
+in the file at once, so a typo on two lines of a hundred costs one run.
 
 ### capture
 

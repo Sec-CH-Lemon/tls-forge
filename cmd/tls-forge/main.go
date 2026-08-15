@@ -42,6 +42,7 @@ type command struct {
 func commands() []command {
 	return []command{
 		{"fetch", "make a request with a browser fingerprint", runFetch},
+		{"batch", "fetch a list of URLs, each through its own proxy", runBatch},
 		{"capture", "measure the browser installed on this machine", runCapture},
 		{"compare", "diff this library's handshake against the browser's", runCompare},
 		{"profiles", "list the profiles that can be impersonated", runProfiles},
