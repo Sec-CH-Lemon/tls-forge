@@ -110,7 +110,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return 0
 		case errors.Is(err, errDiffers):
 			return 1
-		case errors.Is(err, pflag.ErrHelp), errors.Is(err, errUsage):
+		case errors.Is(err, pflag.ErrHelp):
+			return 2
+		case errors.Is(err, errUsage):
+			errOut.println("tlsforge:", err)
 			return 2
 		default:
 			errOut.println("tlsforge:", err)
@@ -169,7 +172,11 @@ func parse(fs *pflag.FlagSet, args []string) error {
 // the same thing and has no notion of a short form at all.
 func newFlagSet(name string, out io.Writer) *pflag.FlagSet {
 	fs := pflag.NewFlagSet(name, pflag.ContinueOnError)
-	fs.SetOutput(out)
+	// pflag writes its own complaint about a bad flag to this writer. Discarded,
+	// because run prints the error it gets back, and on stderr where every other
+	// diagnostic goes; without this the same thing is said twice, once on each
+	// stream.
+	fs.SetOutput(io.Discard)
 	fs.SortFlags = false
 	// The default line is "Usage of capture:", which names neither the program
 	// nor how to run the command.
@@ -190,7 +197,13 @@ func setUsage(fs *pflag.FlagSet, out io.Writer, line string) {
 	}
 }
 
-func runVersion(_ context.Context, _ []string, out, _ *printer) error {
+func runVersion(_ context.Context, args []string, out, _ *printer) error {
+	// A flag set for a command with no flags, so that --help answers here the
+	// way it answers everywhere else rather than being read as a URL.
+	fs := newFlagSet("version", out)
+	if err := parse(fs, args); err != nil {
+		return err
+	}
 	out.println("tls-forge", version)
 	return nil
 }

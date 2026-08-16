@@ -1,0 +1,12 @@
+# Netscape HTTP Cookie File
+# The format curl writes with -c and reads with -b, and what wget, yt-dlp and
+# every "export cookies" browser extension produce. Seven tab-separated fields:
+#
+#   domain  includeSubdomains  path  secure  expires  name  value
+#
+# An expiry of 0 means a session cookie. A domain prefixed #HttpOnly_ marks the
+# cookie HttpOnly; it reads like a comment and is not one.
+
+example.com	FALSE	/	FALSE	0	consent	accepted
+#HttpOnly_example.com	FALSE	/	TRUE	1893456245	session	eu-111
+.example.com	TRUE	/	FALSE	0	region	eu

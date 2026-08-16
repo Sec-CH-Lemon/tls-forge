@@ -1,0 +1,24 @@
+[
+  {
+    "domain": ".example.com",
+    "expirationDate": 1893456245.5,
+    "hostOnly": false,
+    "httpOnly": true,
+    "name": "session",
+    "path": "/",
+    "sameSite": "lax",
+    "secure": true,
+    "session": false,
+    "value": "exported-from-a-browser"
+  },
+  {
+    "domain": ".example.com",
+    "hostOnly": false,
+    "httpOnly": false,
+    "name": "consent",
+    "path": "/",
+    "secure": false,
+    "session": true,
+    "value": "accepted"
+  }
+]

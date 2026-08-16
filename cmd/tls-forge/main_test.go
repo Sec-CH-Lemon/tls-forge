@@ -732,7 +732,11 @@ func TestMainEntryPoint(t *testing.T) {
 func TestHelpFlagOnACommandExitsTwo(t *testing.T) {
 	// -h is not an error, but it is not a successful run either: nothing was
 	// fetched. Every command has to agree about that.
-	for _, name := range []string{"fetch", "capture", "compare", "profiles", "serve", "daemon"} {
+	// Every command, so that a shorthand two flags both want is caught here
+	// rather than by a panic in front of whoever ran it. batch was missing from
+	// this list when --cookies and --concurrency both asked for -c.
+	for _, name := range []string{"fetch", "batch", "capture", "compare", "profiles",
+		"serve", "daemon", "version"} {
 		code, _, _ := exec(t, name, "-h")
 		if code != 2 {
 			t.Errorf("%s -h: exit code = %d, want 2", name, code)

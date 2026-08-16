@@ -19,6 +19,7 @@ type config struct {
 	timeout            time.Duration
 	headers            Header
 	jar                tls_client.CookieJar
+	cookies            []Cookie
 	followRedirects    bool
 	insecureSkipVerify bool
 	shuffleExtensions  bool
@@ -65,6 +66,15 @@ func WithTimeout(d time.Duration) Option {
 // WithHeaders layers default headers over the profile's, for every request.
 func WithHeaders(h Header) Option {
 	return func(c *config) { c.headers = c.headers.Merge(h) }
+}
+
+// WithCookies starts a client with a session already warmed.
+//
+// On the client rather than on a request, because a jar is an identity: two
+// warmed sessions seeded into one client describe a browser that was two people
+// at once.
+func WithCookies(cookies []Cookie) Option {
+	return func(c *config) { c.cookies = append(c.cookies, cookies...) }
 }
 
 // WithCookieJar supplies a jar, which is how a session is shared between

@@ -1,0 +1,9 @@
+# One URL per line. Blank lines and lines starting with # are skipped, so a
+# list can be annotated and a URL commented out rather than deleted.
+https://example.com/
+https://example.org/
+
+# A proxy may follow the URL after a space. Uncomment and put your own in to
+# see it used; nothing is listening on this one.
+# https://example.net/  http://user:pass@eu-1.proxy.example:8080
+https://example.net/

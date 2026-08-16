@@ -175,6 +175,12 @@ drive a real browser, and there is no browser in a 30 MB image. Run those on a
 machine that has one, commit the profile they produce, and the container will
 use it like any other.
 
+## Examples
+
+[example/](example/) holds one of every file the tool reads, with the commands
+that use them and the output they produce. It is the place to go to remember how
+a list, a proxy column or a warmed session is meant to look.
+
 ## Commands
 
 | | |
@@ -197,8 +203,117 @@ what `-k` was. Short flags bundle (`-ik` is `-i -k`) and a long one takes
 `--profile=chrome` as well as `--profile chrome`. A few flags that are set once
 in a script and never typed twice are long-only, and are shown that way below.
 
-Four flags are shared by every command that makes requests: `--profile`,
-`--proxy`, `--timeout` and `--insecure`.
+Flags shared by every command that makes requests: `--profile`, `--proxy`,
+`--timeout`, `--insecure`, and the four for [cookies](#warmed-cookies).
+
+### Warmed cookies
+
+Warming a session costs something: a browser, a challenge, sometimes a person.
+Once it is warm it is worth keeping, so it can be handed to a run, written down,
+and used again tomorrow.
+
+```bash
+tls-forge fetch -b "session=abc" https://example.com/       # by hand
+tls-forge fetch --cookies cookies.json https://example.com/ # from a file
+tls-forge fetch --cookies cookies.json --cookie-set warm-eu https://example.com/
+tls-forge fetch --save-cookies cookies.json https://example.com/login
+```
+
+| flag | |
+|---|---|
+| `-b`, `--cookie` | one cookie as `name=value`, repeatable. curl's letter |
+| `--cookies` | a file of warmed sessions to start from |
+| `--cookie-set` | which set in that file to use. One at random when not named |
+| `--save-cookies` | write the session the run ends with here. A `.txt` writes a cookies.txt |
+
+`--cookie` carries a name and a value and nothing else; anything needing a
+domain or an expiry belongs in a file. What a file gives is applied first and
+the flags on top, so a cookie named by hand overrides the one of the same name
+in a set.
+
+#### The file
+
+A file holds **sets**, not cookies, because a session is the unit that was
+warmed. Twenty sessions in one file are twenty identities to spread a run over,
+not one pile of cookies to mix.
+
+```json
+{
+  "version": 1,
+  "sets": [
+    {
+      "id": "warm-eu",
+      "note": "logged in, EU exit",
+      "warmed": "2026-08-16T09:07:55Z",
+      "cookies": [
+        {
+          "name": "session",
+          "value": "eu-111",
+          "domain": "example.com",
+          "path": "/",
+          "secure": true,
+          "http_only": true,
+          "expires": "2030-01-02T03:04:05Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Only `name` and `value` are required. `domain` decides what a cookie is sent to
+and defaults to the host being asked; a cookie with no `expires` is a session
+cookie and never goes stale on its own. One that has expired is left out of the
+run rather than sent, and the count of what was dropped is printed.
+
+#### The format everything agrees on
+
+A **Netscape cookie file**, `cookies.txt`, is read and written as well, and it
+is the one to use when a session has to travel between tools: curl writes it
+with `-c` and reads it with `-b`, and so do wget, yt-dlp and every browser
+extension that offers an export.
+
+```bash
+curl -c jar.txt https://example.com/            # curl warms it
+tls-forge fetch --cookies jar.txt …             # this reads it
+tls-forge fetch --save-cookies jar.txt …        # this warms it
+curl -b jar.txt https://example.com/            # curl reads it
+```
+
+Seven tab-separated fields, `domain includeSubdomains path secure expires name
+value`, with two conventions that are not obvious: an expiry of `0` means a
+session cookie, and a domain prefixed `#HttpOnly_` marks the cookie HttpOnly
+while looking exactly like a comment.
+
+Two JSON shapes are read besides this format's own, because a warmed session
+arrives from wherever it was warmed: a bare array of sets, and a bare array of
+cookies, which is what a browser extension exports and becomes one set.
+`httpOnly` and `expirationDate` are understood alongside this format's own
+spellings, so an export needs no rewriting.
+
+#### Picking one
+
+Name a set with `--cookie-set`, or name none and one is drawn at random. Random
+rather than the first, because a file of warmed sessions exists to be spread
+over. A file holding one set needs no seed to be repeatable.
+
+The choice is made **per client**, and a client is one identity: one
+fingerprint, one jar, one exit. In `batch` that means one set per proxy rather
+than one per URL, since seeding a second warmed session into a jar that already
+holds one describes a browser that was two people at once.
+
+#### Writing one down
+
+`--save-cookies` appends what the run ended up holding, under an id naming when
+it was warmed:
+
+```bash
+tls-forge batch -i urls.csv --save-cookies cookies.json
+```
+
+Appended rather than replaced, so a file is built up over run after run, and one
+set per proxy, each noting which exit warmed it. The file is written `0600`: a
+warmed session is a credential.
 
 ### fetch
 

@@ -1,0 +1,5 @@
+[
+  { "url": "https://example.com/", "proxy": "http://user:pass@eu-1.proxy.example:8080" },
+  { "url": "https://example.org/", "proxy": "socks5://us-3.proxy.example:1080" },
+  { "url": "https://example.net/" }
+]

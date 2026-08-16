@@ -1,0 +1,4 @@
+url,proxy
+https://example.com/,http://user:pass@eu-1.proxy.example:8080
+https://example.org/,socks5://us-3.proxy.example:1080
+https://example.net/,

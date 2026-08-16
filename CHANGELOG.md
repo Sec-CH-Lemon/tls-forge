@@ -55,6 +55,34 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- The **Netscape cookie file** (`cookies.txt`) is read and written: the format
+  curl writes with `-c` and reads with `-b`, and what wget, yt-dlp and every
+  browser cookie-export extension produce. Checked against curl in both
+  directions. `--save-cookies` writes one when the name ends `.txt`, and
+  replaces rather than appends, because a cookies.txt is a jar rather than a
+  collection of sets.
+
+- An `example/` directory: one of every file the tool reads, in every format,
+  with a README of the commands that use them. Every command in it was run
+  against those files and the output shown is what came back.
+
+- **Warmed cookies.** `--cookie name=value` hands a request one by hand;
+  `--cookies FILE` takes a warmed session from a file; `--cookie-set ID` names
+  which one, and without it one is drawn at random; `--save-cookies FILE` writes
+  down what a run ended up holding. Shared by `fetch`, `batch` and `daemon`.
+- A `cookie` package and a file format: sets rather than cookies, since a
+  session is the unit that was warmed. A bare array of sets and a browser
+  extension'''s flat export are read as well, `httpOnly` and `expirationDate`
+  included. Expired cookies are left out of a run and counted.
+
+### Fixed
+
+- A usage error printed its message on standard output, where pflag writes, and
+  not on standard error with every other diagnostic. It is now said once, on
+  stderr.
+- `tls-forge version --help` printed the version rather than the usage, because
+  that command parsed no flags at all.
+
 - `batch -v` prints a line for every request as it finishes: status, volume,
   duration, attempt count when it took more than one, URL, proxy and error. On
   standard error, stepping around the status line when one is drawing there.

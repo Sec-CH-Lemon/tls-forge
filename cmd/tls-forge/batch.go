@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -197,6 +198,14 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		}
 	}
 
+	// One set per client, which is one per proxy: a jar is an identity, and two
+	// exits' sessions in one set would describe a browser that was two people.
+	if saved, err := clients.saveSessions(common, records); err != nil {
+		errOut.println("tlsforge:", err)
+	} else if saved > 0 {
+		errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
+	}
+
 	elapsed := now().Sub(counts.started)
 	totals := summarise(records, elapsed, exits)
 	totals.Output = *output
@@ -376,6 +385,44 @@ func (p *pool) get(proxy string) (*tlsforge.Client, error) {
 	}
 	p.clients[proxy] = client
 	return client, nil
+}
+
+// saveSessions writes down what each client ended up holding, one set per
+// proxy, so a run's warming survives it.
+func (p *pool) saveSessions(flags clientFlags, records []result) (int, error) {
+	if *flags.saveCookies == "" {
+		return 0, nil
+	}
+	hostsByProxy := map[string][]string{}
+	for _, r := range records {
+		hostsByProxy[r.Proxy] = append(hostsByProxy[r.Proxy], r.URL)
+	}
+
+	proxies := make([]string, 0, len(hostsByProxy))
+	for proxy := range hostsByProxy {
+		proxies = append(proxies, proxy)
+	}
+	sort.Strings(proxies)
+
+	saved := 0
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, proxy := range proxies {
+		client, ok := p.clients[proxy]
+		if !ok {
+			continue
+		}
+		note := "direct"
+		if proxy != "" {
+			note = "via " + proxy
+		}
+		n, err := flags.saveSession(client, hostsByProxy[proxy], note)
+		if err != nil {
+			return saved, err
+		}
+		saved += n
+	}
+	return saved, nil
 }
 
 func (p *pool) close() {

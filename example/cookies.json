@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "sets": [
+    {
+      "id": "warm-eu",
+      "note": "signed in, warmed through the EU exit",
+      "warmed": "2026-08-16T09:07:55Z",
+      "cookies": [
+        {
+          "name": "session",
+          "value": "eu-111",
+          "domain": "example.com",
+          "path": "/",
+          "secure": true,
+          "http_only": true,
+          "expires": "2030-01-02T03:04:05Z"
+        },
+        {
+          "name": "consent",
+          "value": "accepted",
+          "domain": "example.com",
+          "path": "/"
+        }
+      ]
+    },
+    {
+      "id": "warm-us",
+      "note": "signed in, warmed through the US exit",
+      "warmed": "2026-08-16T09:12:03Z",
+      "cookies": [
+        {
+          "name": "session",
+          "value": "us-222",
+          "domain": "example.com",
+          "path": "/",
+          "secure": true,
+          "http_only": true
+        }
+      ]
+    }
+  ]
+}

@@ -54,6 +54,13 @@ type Client struct {
 	profile *profile.Profile
 	jar     tls_client.CookieJar
 	headers Header
+	// warm is the session this client was handed, filed into the jar against
+	// each request's own URL.
+	//
+	// Not at construction: the jar files a cookie under the URL it is given, and
+	// a URL synthesised from a domain has no port, which a jar keyed by host and
+	// port then never matches. The request knows the URL exactly.
+	warm []Cookie
 }
 
 // Request is one HTTP request.
@@ -74,11 +81,20 @@ type Request struct {
 	Cookies []Cookie
 }
 
-// Cookie is a name/value pair to seed the jar with.
+// Cookie is one cookie to seed the jar with.
+//
+// Domain, Secure and HttpOnly matter for a session warmed elsewhere: a cookie
+// the server set for a parent domain has to go back to the whole of it, and one
+// marked Secure has to keep saying so. An empty Domain means the host being
+// asked, which is what a cookie given as a bare name and value means.
 type Cookie struct {
-	Name  string
-	Value string
-	Path  string
+	Name     string
+	Value    string
+	Domain   string
+	Path     string
+	Secure   bool
+	HTTPOnly bool
+	Expires  time.Time
 }
 
 // Response is one HTTP response, with the body already read and decompressed.
@@ -169,7 +185,8 @@ func New(opts ...Option) (*Client, error) {
 	}
 	headers = headers.Merge(cfg.headers)
 
-	return &Client{inner: inner, profile: prof, jar: jar, headers: headers}, nil
+	return &Client{inner: inner, profile: prof, jar: jar, headers: headers,
+		warm: cfg.cookies}, nil
 }
 
 // Profile returns the profile this client wears.
@@ -206,6 +223,10 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	// string: two parsers agreeing is not something to verify at runtime, and a
 	// second parse is a second chance to disagree about what the request is for.
 	parsed := inner.URL
+	// The warmed session, filed against this request's URL. Repeated on every
+	// request and harmless for it: setting a cookie the jar already holds
+	// replaces it with itself.
+	c.seedCookies(parsed, warmFor(c.warm, parsed.Hostname()))
 	c.seedCookies(parsed, req.Cookies)
 
 	headers := c.headers.Merge(req.Header)
@@ -250,6 +271,50 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	return out, nil
 }
 
+// groupByHost sorts cookies by the host they belong to, because a jar is asked
+// to hold them one URL at a time. A cookie with no domain of its own has none
+// to be grouped under and waits for the first request to supply one.
+// warmFor is the part of a warmed session that belongs to a host.
+//
+// A cookie with no domain belongs to whatever is being asked, which is what a
+// cookie given as a bare name and value means. One that names a domain belongs
+// to that host and to anything under it, and to nothing else: a session warmed
+// for one site is not sent to another.
+func warmFor(cookies []Cookie, host string) []Cookie {
+	host = strings.ToLower(host)
+	out := make([]Cookie, 0, len(cookies))
+	for _, cookie := range cookies {
+		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
+		if domain == "" || domain == host || strings.HasSuffix(host, "."+domain) {
+			out = append(out, cookie)
+		}
+	}
+	return out
+}
+
+// CookiesFor returns what the jar holds for a URL, which is how a warmed
+// session is read back out and written down.
+func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("tlsforge: %w", err)
+	}
+	held := c.jar.Cookies(u)
+	out := make([]Cookie, 0, len(held))
+	for _, cookie := range held {
+		out = append(out, Cookie{
+			Name:     cookie.Name,
+			Value:    cookie.Value,
+			Domain:   u.Hostname(),
+			Path:     cookie.Path,
+			Secure:   cookie.Secure,
+			HTTPOnly: cookie.HttpOnly,
+			Expires:  cookie.Expires,
+		})
+	}
+	return out, nil
+}
+
 func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
 	if len(cookies) == 0 {
 		return
@@ -260,8 +325,18 @@ func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
 		if path == "" {
 			path = "/"
 		}
+		domain := cookie.Domain
+		if domain == "" {
+			domain = u.Hostname()
+		}
 		jarCookies = append(jarCookies, &fhttp.Cookie{
-			Name: cookie.Name, Value: cookie.Value, Path: path, Domain: u.Hostname(),
+			Name:     cookie.Name,
+			Value:    cookie.Value,
+			Path:     path,
+			Domain:   domain,
+			Secure:   cookie.Secure,
+			HttpOnly: cookie.HTTPOnly,
+			Expires:  cookie.Expires,
 		})
 	}
 	c.jar.SetCookies(u, jarCookies)
