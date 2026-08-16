@@ -151,6 +151,26 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **A weekly check that the shipped profile still matches a real Chrome, which
+  measures a new one and opens a pull request when it does not.** The one thing
+  here that breaks without anyone touching it: Chrome ships a new major every few
+  weeks and the handshake moves with it. The job installs Google Chrome on a
+  runner, runs `compare`, and on a difference calls the capture workflow — rather
+  than repeating it — to measure all three platforms, proves each profile by
+  fetching a page with it, and opens a pull request assigned to whoever
+  `PROFILE_REVIEWER` names. One branch per version; an issue instead when the
+  drift is real but nothing could be measured; silence when it all still matches.
+  It does not merge: a profile is a measurement, and a fingerprint almost nobody
+  sends ships when nobody looks.
+- `capture` is callable as a reusable workflow, so the knowledge that a runner
+  needs `--no-sandbox` and that Chrome for Testing is a different browser lives
+  in one place.
+- `compare` exits **3** when the client and the browser differ, keeping 1 for a
+  comparison that could not be made. They shared a code until something needed
+  the difference: a scheduled check that read "the browser would not start" as
+  "the profile has drifted" would file a bug report every week for a broken
+  runner.
+
 - **`capture --install` files the profile as `local`, and every run wears it.**
   One name rather than one per version: there is one browser on a machine, and
   measuring it again after an update should replace what is there. A command

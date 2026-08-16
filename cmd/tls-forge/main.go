@@ -33,6 +33,18 @@ var version = "dev"
 // it does so quietly.
 var errDiffers = errors.New("the client and the browser differ")
 
+// Exit codes. A comparison that ran and disagreed is a different thing from one
+// that could not run, and anything automating this has to tell them apart: a
+// scheduled check that treats "the browser would not start" as "the profile has
+// drifted" files an issue every week for a broken runner. They shared code 1
+// until something needed the difference.
+const (
+	exitOK      = 0
+	exitError   = 1
+	exitUsage   = 2
+	exitDiffers = 3
+)
+
 type command struct {
 	name    string
 	summary string
@@ -108,17 +120,17 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		switch {
 		case err == nil:
-			return 0
+			return exitOK
 		case errors.Is(err, errDiffers):
-			return 1
+			return exitDiffers
 		case errors.Is(err, pflag.ErrHelp):
-			return 2
+			return exitUsage
 		case errors.Is(err, errUsage):
 			errOut.println("tlsforge:", err)
-			return 2
+			return exitUsage
 		default:
 			errOut.println("tlsforge:", err)
-			return 1
+			return exitError
 		}
 	}
 

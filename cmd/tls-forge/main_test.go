@@ -501,13 +501,19 @@ func TestCompareMatches(t *testing.T) {
 	}
 }
 
-func TestCompareDiffersExitsOne(t *testing.T) {
+func TestCompareDiffersExitsThree(t *testing.T) {
 	// The exit code is the contract a CI job depends on: a browser update is
 	// exactly when an impersonation stops being true, and it does so quietly.
+	//
+	// Three rather than one, because "it ran and disagreed" and "it could not
+	// run" are different answers and something automating this has to tell them
+	// apart. A scheduled check that read a browser which would not start as a
+	// profile that had drifted would file an issue every week for a broken
+	// runner.
 	code, stdout, _ := exec(t, "compare", "--browser", browserStandIn(t),
 		"--timeout", "30s", "--profile", "chrome_120")
-	if code != 1 {
-		t.Fatalf("exit code = %d, want 1\n%s", code, stdout)
+	if code != 3 {
+		t.Fatalf("exit code = %d, want 3\n%s", code, stdout)
 	}
 	if !strings.Contains(stdout, "field(s) differ") {
 		t.Errorf("stdout does not show the differences:\n%s", stdout)
@@ -1248,6 +1254,27 @@ func TestCaptureAndComparePassBrowserFlagsThrough(t *testing.T) {
 			}
 			if !strings.Contains(string(data), "--no-sandbox") {
 				t.Errorf("the flag did not reach the browser:\n%s", data)
+			}
+		})
+	}
+}
+
+func TestCompareTellsTroubleFromDisagreement(t *testing.T) {
+	// The distinction the scheduled check is built on: only one of these means
+	// "capture a new profile".
+	for _, tc := range []struct {
+		name string
+		args []string
+		want int
+	}{
+		{"a browser that is not there", []string{"compare", "--browser", "/no/such/browser"}, 1},
+		{"a flag that is not a flag", []string{"compare", "--nonsense"}, 2},
+		{"a profile that disagrees", []string{"compare", "--browser", browserStandIn(t),
+			"--timeout", "30s", "--profile", "chrome_120"}, 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if code, _, _ := exec(t, tc.args...); code != tc.want {
+				t.Errorf("exit code = %d, want %d", code, tc.want)
 			}
 		})
 	}

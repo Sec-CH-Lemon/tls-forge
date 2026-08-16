@@ -819,6 +819,47 @@ because a runner image freezes its package metadata for weeks: `brew install
 serving 151 and the cask itself pointed at 151. A run stops if the Chrome it got
 is behind the one being served, and says so when it is ahead.
 
+#### Nobody has to remember to check
+
+A [weekly job](.github/workflows/drift.yml) installs a real Google Chrome on a
+runner and asks `compare` whether the shipped profile still matches it. When it
+does not, it **measures the browser on all three platforms and opens a pull
+request** with the profiles it produced, assigned to whoever the repository
+variable `PROFILE_REVIEWER` names. When it does match, it says nothing at all,
+because a check that reports every week is a check nobody reads.
+
+It calls the capture workflow rather than repeating it, so there is one place
+that knows a runner needs `--no-sandbox` and that Chrome for Testing is a
+different browser. Each profile is loaded and used to fetch a page before the
+pull request opens, and the JA4 it produced is in the log.
+
+**It does not merge.** A profile is a measurement, and the way a fingerprint
+almost nobody sends ends up shipping is that nobody looked — which has already
+happened here once, with Chrome for Testing. The pull request says what to check
+before merging: that the platforms you expect are all there, that the
+user-agents say Google Chrome rather than Chromium, and ideally
+`tls-forge compare --profile <the file>` against your own browser.
+
+One branch per version, so a second run finds its own and adds nothing. If the
+drift is real but the capture produces nothing, it files an issue instead —
+silence there would be indistinguishable from no drift.
+
+A pull request opened with the workflow's own token does not start the other
+workflows, by design, so it arrives without checks. A fine-grained token in
+`PROFILE_PR_TOKEN`, with contents and pull-requests write, fixes that; without
+one everything else still works.
+
+This is the only thing here that breaks on its own. Every other check answers a
+question about the code and can wait for a push; this one answers a question
+about the world — Chrome ships a new major every few weeks, the handshake moves
+with it, and the repository does not change. Without the timer the first sign is
+somebody's scraper collecting challenge pages.
+
+The version numbers are context rather than the verdict: Chrome can ship a new
+major without touching its ClientHello, and has. What decides is the
+comparison — which is why a run that cannot make one fails loudly instead of
+reporting a browser that would not start as a profile that has drifted.
+
 #### Before committing one
 
 Nothing is committed for you. A capture is a measurement of one browser build,
@@ -953,6 +994,18 @@ tls-forge compare -j > report.json                   # both captures and the dif
 | `-f`, `--full` | print the matching values in full. The differing ones always are |
 | `-j`, `--json` | print both captures and the diff |
 | `-t`, `--timeout` | how long to wait for the browser, 2m by default |
+
+Three exit codes, because "it ran and disagreed" and "it could not run" are
+different answers and a script has to tell them apart:
+
+| | |
+|---|---|
+| `0` | the client and the browser match |
+| `3` | they differ — the report above says how |
+| `1` | the comparison could not be made: no browser, it would not start, no such profile |
+
+A check that read the second as the third would file a bug report every week
+for a broken runner.
 
 Values that match are trimmed to the terminal width, because you are not reading
 them. Values that differ are printed whole, because the difference can sit

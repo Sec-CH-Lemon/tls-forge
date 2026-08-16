@@ -19,6 +19,14 @@ name: capture
 # browser instead of Chrome for Testing, and worth paying.
 on:
   workflow_dispatch:
+  # Callable, so the drift check can measure without a second copy of all this.
+  # Artifacts belong to the run rather than to the workflow, so whatever calls
+  # this can download what it produced.
+  workflow_call:
+    outputs:
+      profile:
+        description: the name the capture was filed under, e.g. chrome_152_linux
+        value: ${{ jobs.capture.outputs.profile }}
 
 permissions:
   contents: read
@@ -26,6 +34,8 @@ permissions:
 jobs:
   capture:
     timeout-minutes: 30
+    outputs:
+      profile: ${{ steps.captured.outputs.name }}
     strategy:
       fail-fast: false
       matrix:

@@ -1,0 +1,317 @@
+name: drift
+
+# Is the shipped profile still the browser people are running?
+#
+# This is the one thing in the repository that breaks on its own. Chrome ships a
+# new major every few weeks, the handshake moves with it, and nothing here
+# changes — so the profile quietly stops being an impersonation and the first
+# sign is somebody's scraper collecting challenge pages. Every other check
+# answers a question about the code; this one answers a question about the
+# world, so it has to be asked on a timer rather than on a push.
+#
+# When the answer is no it measures the browser and opens a pull request with
+# the profile it produced, so the work waiting for a person is reading a diff
+# rather than remembering to run something. When the answer is yes it says
+# nothing at all: a check that reports every week is a check nobody reads.
+#
+# It does not merge. A profile is a measurement, and a measurement that nobody
+# looked at is how a fingerprint nobody sends ends up shipping — which has
+# already happened once here, with Chrome for Testing.
+on:
+  schedule:
+    # Mondays, early. Chrome's stable rollouts start midweek, so a Monday run
+    # sees a settled picture rather than the first hour of one.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write        # push the branch the pull request is for
+  pull-requests: write
+  issues: write          # the fallback, for a drift that could not be measured
+
+jobs:
+  check:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    outputs:
+      verdict: ${{ steps.compare.outputs.verdict }}
+      shipped: ${{ steps.shipped.outputs.major }}
+      serving: ${{ steps.serving.outputs.version }}
+      serving_major: ${{ steps.serving.outputs.major }}
+    env:
+      # Chrome's sandbox does not work on a hosted runner and fails silently.
+      # Process isolation is neither TLS nor a header, so the comparison is the
+      # same comparison. See the capture workflow for the measurement.
+      FLAGS: --browser-arg=--no-sandbox
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      # Google Chrome, not Chrome for Testing, and not whatever the image was
+      # built with. Both would answer a different question — see the capture
+      # workflow, where the same two mistakes are spelled out.
+      - name: install Google Chrome
+        run: |
+          curl -sL -o /tmp/chrome.deb \
+            https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update
+          sudo apt-get install -y /tmp/chrome.deb xvfb
+          google-chrome --version
+
+      - name: what everybody else is running
+        id: serving
+        run: |
+          version=$(python3 scripts/chrome-version.py --platforms linux) || true
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "major=${version%%.*}" >> "$GITHUB_OUTPUT"
+
+      - name: what is shipped
+        id: shipped
+        run: |
+          # The directory names are the versions, so the newest is the newest
+          # major among them. Read off the tree rather than out of the binary:
+          # this is asking what the repository ships, not what a run would wear.
+          #
+          # A glob rather than `ls`, whose output depends on how the shell it
+          # runs in is configured — a developer with `ls -F` gets `chrome_151/`
+          # and a pattern anchored on the digits then matches nothing, which
+          # produced "chrome_" here before anybody looked. And `-gt` rather than
+          # sort, so that 9 is not newer than 152.
+          major=
+          for dir in profile/data/chrome_*/; do
+            name=${dir%/}; name=${name##*/}; n=${name#chrome_}
+            case $n in ""|*[!0-9]*) continue ;; esac
+            if [ -z "$major" ] || [ "$n" -gt "$major" ]; then major=$n; fi
+          done
+          if [ -z "$major" ]; then echo "no chrome_<major> in profile/data"; exit 1; fi
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+          echo "chrome_$major"
+
+      # The authoritative half. A version number moving is a hint; the
+      # handshake differing is the fact — Chrome can ship a new major without
+      # touching its ClientHello, and has.
+      #
+      # Three outcomes, and they must not be confused: 0 the profile still
+      # matches, 3 it does not, anything else the check itself broke. They
+      # shared an exit code until this workflow needed the difference.
+      - name: does the shipped profile still match a real Chrome
+        id: compare
+        run: |
+          set +e
+          xvfb-run -a go run ./cmd/tls-forge compare --color never $FLAGS \
+            --timeout 3m > compare.txt 2>&1
+          code=$?
+          set -e
+          cat compare.txt
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          case $code in
+            0) echo "verdict=matches" >> "$GITHUB_OUTPUT" ;;
+            3) echo "verdict=drifted" >> "$GITHUB_OUTPUT" ;;
+            *) echo "the comparison could not be made; failing rather than"
+               echo "reporting a browser that would not start as a drifted profile."
+               exit 1 ;;
+          esac
+
+      # The diff travels to the pull request, which is where somebody will read
+      # it, rather than being left in a log nobody opens.
+      - uses: actions/upload-artifact@v7
+        if: steps.compare.outputs.verdict == 'drifted'
+        with:
+          name: drift-diff
+          path: compare.txt
+
+      - name: summary
+        if: always()
+        env:
+          VERDICT: ${{ steps.compare.outputs.verdict }}
+          SHIPPED: ${{ steps.shipped.outputs.major }}
+          SERVING: ${{ steps.serving.outputs.version }}
+        run: |
+          {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| shipped | chrome_$SHIPPED |"
+            echo "| being served | $SERVING |"
+            echo "| verdict | ${VERDICT:-the check could not run} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Measure it. The same workflow the Actions tab runs by hand, called rather
+  # than copied: it already knows that a runner needs --no-sandbox, that Chrome
+  # for Testing is a different browser, and that the version being served is not
+  # the newest one published. A second copy of that would drift from the first.
+  capture:
+    needs: check
+    if: needs.check.outputs.verdict == 'drifted'
+    uses: ./.github/workflows/capture.yml
+    permissions:
+      contents: read
+
+  # Open the pull request, with whatever the capture produced.
+  propose:
+    needs: [check, capture]
+    if: always() && needs.check.outputs.verdict == 'drifted'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      # One branch per version, so a second run finds its own branch and adds
+      # nothing rather than opening a pull request a week.
+      - name: is there already one
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: profile/chrome-${{ needs.check.outputs.serving_major }}
+        run: |
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          if gh pr list --state open --head "$BRANCH" --json number --jq '.[].number' | grep -q .; then
+            echo "open=yes" >> "$GITHUB_OUTPUT"
+            echo "a pull request for $BRANCH is already open"
+          else
+            echo "open=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      # A capture that failed on every platform leaves nothing to propose, and
+      # an empty pull request is worse than none: it looks like work that has
+      # been done.
+      - name: collect the profiles
+        id: collected
+        if: steps.existing.outputs.open == 'no'
+        run: |
+          found=0
+          measured=
+          for file in $(find artifacts -name '*.json' -path '*chrome_*'); do
+            version=$(basename "$(dirname "$file")")
+            platform=$(basename "$file")
+            mkdir -p "profile/data/$version"
+            cp "$file" "profile/data/$version/$platform"
+            echo "  $version/$platform"
+            measured="$measured $version/$platform"
+            found=$((found + 1))
+          done
+          echo "count=$found" >> "$GITHUB_OUTPUT"
+          # What this run measured, not what the directory holds: listing the
+          # directory would name every profile ever committed and claim this run
+          # had produced them.
+          echo "platforms=${measured# }" >> "$GITHUB_OUTPUT"
+
+      - name: the profiles load and produce the browser's handshake
+        if: steps.collected.outputs.count != '0' && steps.existing.outputs.open == 'no'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Proved before it is proposed. A profile utls cannot load, or one whose
+      # JA4 is not the browser's, is a pull request that wastes somebody's
+      # afternoon — and both have happened here.
+      - name: check what was captured
+        if: steps.collected.outputs.count != '0' && steps.existing.outputs.open == 'no'
+        run: |
+          go build ./...
+          for file in profile/data/chrome_*/*.json; do
+            name=$(basename "$(dirname "$file")")_$(basename "$file" .json)
+            go run ./cmd/tls-forge fetch --profile "$file" \
+              --timeout 60s https://tls.browserleaks.com/json > seen.json
+            ja4=$(python3 -c "import json;print(json.load(open('seen.json'))['ja4'])")
+            echo "  $name  $ja4"
+          done
+
+      # PROFILE_PR_TOKEN if it is there, the workflow's own token otherwise.
+      #
+      # Not a preference: a pull request opened with GITHUB_TOKEN does not start
+      # the other workflows, by design, so that automation cannot trigger itself
+      # in a loop. The consequence here is a pull request with no checks on it,
+      # which for a change to a profile is most of what you would want to see. A
+      # fine-grained token with contents and pull-requests write on this
+      # repository fixes it; without one this still works, and the checks have to
+      # be started by pushing to the branch or closing and reopening.
+      - name: open it
+        if: steps.collected.outputs.count != '0' && steps.existing.outputs.open == 'no'
+        env:
+          GH_TOKEN: ${{ secrets.PROFILE_PR_TOKEN || github.token }}
+          BRANCH: ${{ steps.existing.outputs.branch }}
+          SHIPPED: ${{ needs.check.outputs.shipped }}
+          SERVING: ${{ needs.check.outputs.serving }}
+          SERVING_MAJOR: ${{ needs.check.outputs.serving_major }}
+          PLATFORMS: ${{ steps.collected.outputs.platforms }}
+          REVIEWER: ${{ vars.PROFILE_REVIEWER }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add profile/data
+          git commit -m "Measure Chrome $SERVING_MAJOR"
+          # Forced, because a closed pull request leaves its branch behind and
+          # the next measurement of the same Chrome should replace it rather
+          # than fail. Nothing but this job ever writes to profile/* branches.
+          git push --force --set-upstream origin "$BRANCH"
+
+          {
+            echo "The shipped profile stopped matching a real Chrome, so this is a"
+            echo "fresh measurement of it, taken on a runner."
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| was shipping | chrome_$SHIPPED |"
+            echo "| being served | $SERVING |"
+            echo "| measured | $PLATFORMS |"
+            echo
+            echo "Each profile here was loaded and used to fetch a page before this"
+            echo "was opened, and the JA4 it produced is in the run's log."
+            echo
+            echo "**Read it before merging.** A profile is a measurement, and the way"
+            echo "a fingerprint nobody sends ends up shipping is that nobody looked:"
+            echo "check that the platforms you expect are all here, that the"
+            echo "user-agents say Google Chrome rather than Chromium, and ideally run"
+            echo '`tls-forge compare --profile <the file>` against your own browser.'
+            echo
+            if [ -f artifacts/drift-diff/compare.txt ]; then
+              echo '<details><summary>what had drifted</summary>'
+              echo
+              echo '```'
+              cat artifacts/drift-diff/compare.txt
+              echo '```'
+              echo '</details>'
+            fi
+          } > body.md
+
+          # The label is a nicety and may not exist in the repository yet; a
+          # pull request that opens without it is still the pull request.
+          gh pr create --title "Measure Chrome $SERVING_MAJOR" --body-file body.md \
+            --head "$BRANCH" --label drift ||
+            gh pr create --title "Measure Chrome $SERVING_MAJOR" --body-file body.md \
+              --head "$BRANCH"
+          # Assigning is the notification. Tolerated rather than required: a
+          # repository variable that nobody set should not fail a pull request
+          # that is otherwise fine.
+          if [ -n "$REVIEWER" ]; then
+            gh pr edit "$BRANCH" --add-assignee "$REVIEWER" || echo "could not assign $REVIEWER"
+          fi
+
+      # Drift found and nothing to show for it: say so somewhere a person will
+      # see, because silence here is indistinguishable from no drift.
+      - name: say it could not be measured
+        if: needs.capture.result != 'success' || steps.collected.outputs.count == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SERVING_MAJOR: ${{ needs.check.outputs.serving_major }}
+        run: |
+          title="Chrome $SERVING_MAJOR drifted and could not be measured"
+          if gh issue list --state open --search "in:title \"$title\"" \
+               --json title --jq '.[].title' | grep -qxF "$title"; then
+            echo "already filed"; exit 0
+          fi
+          gh issue create --title "$title" --label drift --body \
+            "The weekly check found the shipped profile no longer matches a real
+          Chrome, and the capture that should have replaced it did not produce
+          anything. The run is at $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
