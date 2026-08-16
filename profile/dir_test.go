@@ -181,7 +181,13 @@ func TestDefaultDir(t *testing.T) {
 
 	// No home to speak of, which happens in a container with no HOME set. The
 	// other sources still answer, so this is nowhere rather than an error.
+	//
+	// HOME is not the only way to a config directory: on Linux, os.UserConfigDir
+	// reads XDG_CONFIG_HOME first and only falls back to $HOME/.config. GitHub's
+	// runners set it, so clearing HOME alone left this test asking for nowhere
+	// and being handed somewhere.
 	if runtime.GOOS != "windows" {
+		t.Setenv("XDG_CONFIG_HOME", "")
 		t.Setenv("HOME", "")
 		if got := DefaultDir(); got != "" {
 			t.Errorf("with no home: %q", got)

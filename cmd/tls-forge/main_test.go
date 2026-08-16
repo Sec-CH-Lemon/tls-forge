@@ -977,6 +977,10 @@ func TestCaptureWithNowhereToKeepProfiles(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("HOME is not the mechanism on Windows")
 	}
+	// XDG_CONFIG_HOME as well as HOME: on Linux it is the first thing
+	// os.UserConfigDir reads, and GitHub's runners set it, so clearing HOME
+	// alone leaves a home to install into and this test asserting nothing.
+	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("HOME", "")
 
 	code, _, stderr := exec(t, "capture", "--browser", browserStandIn(t),
