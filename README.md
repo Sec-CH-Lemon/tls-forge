@@ -1132,10 +1132,17 @@ does not. Full documentation is in [node/](node/).
 pip install tls-forge
 ```
 
+No Go, no build step, no download during install, and no dependencies — a wheel
+is already platform-tagged, so pip fetches the one for your machine with the
+binary inside it. The package installs as `tls-forge` and imports as `tlsforge`,
+because a module name cannot have a hyphen in it.
+
+A whole script:
+
 ```python
 import tlsforge
 
-with tlsforge.Client(profile="chrome", proxy="http://user:pass@host:8080") as client:
+with tlsforge.Client(profile="chrome") as client:
     res = client.get("https://tls.browserleaks.com/json")
     print(res.status, res.json()["ja4"])
 ```
@@ -1144,14 +1151,111 @@ with tlsforge.Client(profile="chrome", proxy="http://user:pass@host:8080") as cl
 200 t13d1516h2_8daaf6152771_806a8c22fdea
 ```
 
-No Go, no build step, no download during install, and no dependencies — a wheel
-is already platform-tagged, so pip fetches the one for your machine with the
-binary in it. A `Client` is a context manager and closes on the way out.
-Full documentation is in [python/](python/).
+That address answers with the fingerprint it saw, so the reply is the proof
+rather than a promise: a real Chrome on the same machine reports the same JA4.
+`Client` is a context manager, and closing it is what ends the process
+underneath, so `with` is the shape to reach for.
 
-A client serialises, because one session is one request at a time. Scrape in
-parallel with a pool of them, one per proxy, which is also what keeps the
-identities apart.
+#### What comes back
+
+```python
+res = client.get(
+    "https://example.com/page",
+    headers={"referer": "https://example.com/"},
+    cookies=["session=abc"],
+)
+
+res.status              # 200
+res.ok                  # True for a 2xx
+res.url                 # the final URL, after redirects
+res.body                # str, already decompressed
+res.json()              # the body parsed
+res.headers["content-type"]
+res.cookies             # ('session=abc',) — what the jar holds for that URL now
+```
+
+The body arrives decompressed: Chrome advertises gzip, deflate, br and zstd, and
+a client that advertises them has to be able to read them. `headers` joins a
+name that arrived more than once with `; `, because `set-cookie` routinely does
+and a caller that saw only the first would lose a session.
+
+Per-request `headers` are layered over the profile's: a name the browser already
+sends keeps the browser's position and takes your value, and one it does not
+send is appended after the rest. Do not set `cookie` by hand — pass `cookies=`
+instead, which adds to the jar rather than replacing what the server put there.
+
+#### Failures
+
+```python
+try:
+    res = client.get(url)
+except tlsforge.RequestFailed:   # it ran and failed: refused, DNS, TLS
+    ...
+except tlsforge.Timeout:         # the deadline passed; also a builtin TimeoutError
+    ...
+except tlsforge.TransportError:  # the transport would not start or died
+    ...
+```
+
+All of them, plus `BinaryNotFound`, are `tlsforge.TLSForgeError`, so one `except`
+catches the lot. A call that could never have worked — no URL — raises
+`ValueError` and never reaches the network.
+
+#### Scraping a list
+
+One client is one identity: one TLS fingerprint, one cookie jar, one exit IP.
+A client also **serialises**, because the protocol underneath is one request at
+a time, so threads sharing one client queue behind each other. That is not a
+limitation to work around: it is what one session is. Parallelism is a pool of
+clients, one per proxy, which is also what keeps the identities apart.
+
+```python
+import contextlib, itertools, tlsforge
+from concurrent.futures import ThreadPoolExecutor
+
+proxies = ["http://user:pass@eu-1.proxy:8080", "socks5://us-3.proxy:1080"]
+
+with contextlib.ExitStack() as stack:
+    clients = [stack.enter_context(tlsforge.Client(proxy=p, timeout=20)) for p in proxies]
+    turn = itertools.cycle(clients)
+
+    def fetch(url):
+        try:
+            res = next(turn).get(url)
+            return url, res.status, len(res.body)
+        except tlsforge.TLSForgeError as err:
+            return url, None, str(err)
+
+    with ThreadPoolExecutor(len(clients)) as pool:
+        for url, status, size in pool.map(fetch, urls):
+            print(f"{str(status):>4}  {size:>8}  {url}")
+```
+
+```
+ 200       559  https://example.com/
+ 200       559  https://example.org/
+ 200      1263  https://tls.browserleaks.com/json
+```
+
+A jar spread across two exit IPs describes a browser that changed its network
+mid-session, which is not a thing that happens. One client per proxy makes that
+impossible rather than merely unlikely.
+
+#### Warmed sessions and your own profile
+
+```python
+tlsforge.Client(cookie_file="cookies.json", cookie_set="warm-eu")
+tlsforge.Client(profile="chrome_151_macos")
+tlsforge.Client(binary="./bin/tls-forge", on_stderr=print)
+```
+
+The cookie file is the one [`tls-forge fetch --save-cookies`](#fetch) writes, so
+a session warmed by the command line can be picked up by a script. `profile`
+takes any name `tls-forge profiles` lists. `on_stderr` receives the transport's
+own diagnostics a line at a time, which is where a dropped answer or a warning
+shows up.
+
+Full documentation, including how the binary is found, is in [python/](python/).
 
 Under all three is the `daemon` command, one JSON object per line on stdin and
 stdout, so any other language can borrow the fingerprint the same way:

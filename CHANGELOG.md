@@ -165,6 +165,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   — so a tag is not the first time any of it runs. `make dist` does the same
   locally without publishing.
 
+- The README's Python section is a section rather than a mention: what a
+  `Response` carries, which exception means what, and the pool-of-clients shape
+  a script actually reaches for, every snippet run before it was written down.
+
 - **A Python client**, in [`python/`](python/): `pip install tls-forge`, then
   `import tlsforge`. Same daemon protocol as the Node client, and the same
   identity model — one `Client` is one process, one fingerprint, one jar, one
