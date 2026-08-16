@@ -701,13 +701,42 @@ Three names reach them:
 
 The plain name meaning this machine's platform is the right way round: anything
 else is one word longer and says so, which is what a thing that changes what a
-server sees should ask for. A version with only one platform measured needs no
-guess and gives you that one.
+server sees should ask for. A version with no capture for this machine falls
+back to the first there is: the ClientHello does not depend on the platform, so
+what differs is the user-agent, and a profile that says macOS is a coherent
+identity from anywhere.
 
-There is no Windows profile here yet, and none has been invented: the
-[capture workflow](.github/workflows/capture.yml) runs a real Chrome on macOS,
-Windows and Linux runners and offers the three for download, which is how a
-real one gets made.
+#### Measuring the current Chrome
+
+There is no Windows profile here yet, and none has been invented. The
+[capture workflow](.github/workflows/capture.yml) is how a real one gets made:
+run it by hand from the Actions tab, and it drives a real headed Chrome on
+macOS, Windows and Linux runners and offers the three as artifacts.
+
+It names nothing. The version comes from the browser it measured, so it captures
+whatever Chrome is current on the day it runs and files it under that name — a
+workflow that said `chrome_151` would file a Chrome 152 capture under 151 the
+moment Chrome updated. Pick the channel when starting it (`stable` by default,
+or `beta` to measure the next one early).
+
+Each run reports, per platform, which Chrome it was, the JA4 and HTTP/2
+fingerprint a third party saw through the profile, and **whether the profile
+already committed still matches that browser** — which is the question worth
+answering before committing anything. Two checks have to pass first: the capture
+has to be indistinguishable from the browser it came from, measured against the
+local instrument, and it has to fetch through.
+
+The artifact unzips to the layout `profile/data` already uses, so it goes in
+whole:
+
+```bash
+mkdir -p profile/data/chrome_152
+cp chrome_152/macos.json profile/data/chrome_152/macos.json
+```
+
+Nothing is committed for you. A capture is a measurement of one browser build,
+and it belongs in the repository when someone has looked at it and decided it is
+the one to ship.
 
 `tls-forge profiles` shows what there is, grouped, and every line is a name that
 can be copied into `--profile`:

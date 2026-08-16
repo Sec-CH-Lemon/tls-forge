@@ -2,17 +2,25 @@ name: capture
 
 # Measure the browser on each platform and offer the profiles for download.
 #
-# Run by hand from the Actions tab, because a capture is a measurement of a
-# particular browser build: it belongs in the repository when someone has looked
-# at it and decided it is the one to ship, not on every push.
+# Run by hand from the Actions tab. A capture is a measurement of a particular
+# browser build, so it belongs in the repository when someone has looked at it
+# and decided it is the one to ship — not on every push. Nothing here commits
+# anything; the profiles come out as artifacts to be looked at and copied in.
 #
-# The handshake is the same on all three, which was measured: Chrome carries its
-# own BoringSSL, so macOS and Linux produce an identical JA4. What a per-platform
-# profile carries that matters is the user-agent and sec-ch-ua-platform, and a
-# profile claiming Windows while saying macOS in its user-agent is worse than no
-# profile at all.
+# Nothing here names a version either. The version comes from the browser that
+# was actually measured, so this workflow captures whatever Chrome is current on
+# the day it runs and files it under that name. A workflow that hardcoded
+# chrome_151 would file a Chrome 152 capture under 151 the moment Chrome
+# updated, and a profile whose name lies about its version is worse than none:
+# the name is what `--profile` asks for and what every log shows.
 on:
   workflow_dispatch:
+    inputs:
+      channel:
+        description: which Chrome to measure
+        default: stable
+        type: choice
+        options: [stable, beta, dev, canary]
 
 permissions:
   contents: read
@@ -22,13 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-latest
-            name: chrome_151_macos
-          - os: windows-latest
-            name: chrome_151_windows
-          - os: ubuntu-latest
-            name: chrome_151_linux
+        os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -36,39 +38,160 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      # Not for the project — nothing here is Python — but because both the
+      # step that reads the capture and the one that writes the summary use it,
+      # and `python3` is not on PATH in Git Bash on the Windows runner.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
       - uses: browser-actions/setup-chrome@v2
         id: chrome
         with:
-          chrome-version: stable
+          chrome-version: ${{ inputs.channel }}
 
-      - name: capture
+      - name: which browser this is
+        id: browser
         shell: bash
         run: |
-          mkdir -p captured
-          # Headed, under a virtual display on Linux: a headless browser puts
-          # "HeadlessChrome" in its user-agent, and a profile that announces
-          # that is not the browser anyone is impersonating.
-          run() {
-            go run ./cmd/tls-forge capture \
-              --browser "${{ steps.chrome.outputs.chrome-path }}" \
-              --save captured --name "${{ matrix.name }}" --timeout 3m
-          }
-          if [ "$RUNNER_OS" = "Linux" ]; then
+          version=$("${{ steps.chrome.outputs.chrome-path }}" --version)
+          echo "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Is a capture even needed? `compare` measures this browser and the
+      # shipped profile against the same local instrument and exits non-zero
+      # when they differ. Informational, because "they differ" is the reason to
+      # be here rather than a reason to stop.
+      - name: does the shipped profile still match
+        id: shipped
+        continue-on-error: true
+        shell: bash
+        run: |
+          run() { go run ./cmd/tls-forge compare \
+            --browser "${{ steps.chrome.outputs.chrome-path }}" --timeout 3m; }
+          if [ "$RUNNER_OS" = Linux ]; then
             sudo apt-get update && sudo apt-get install -y xvfb
             xvfb-run -a bash -c "$(declare -f run); run"
           else
             run
           fi
 
-      - name: what was measured
+      - name: capture
+        shell: bash
+        run: |
+          mkdir -p captured
+          # Headed, under a virtual display on Linux: a headless browser puts
+          # "HeadlessChrome" in its user-agent, and a profile announcing that is
+          # not the browser anyone is impersonating.
+          #
+          # No --name. The name is derived from the browser's own user-agent and
+          # this machine's platform, which is what makes this workflow measure
+          # whatever Chrome is current rather than whatever was written here.
+          run() { go run ./cmd/tls-forge capture \
+            --browser "${{ steps.chrome.outputs.chrome-path }}" \
+            --save captured --timeout 3m; }
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a bash -c "$(declare -f run); run"
+          else
+            run
+          fi
+
+      # Where the capture landed, read off the disk rather than assumed. The
+      # layout is a directory per version holding one file per platform, and the
+      # version in it is the browser's, which is the whole point.
+      - name: what was captured
+        id: captured
+        shell: bash
+        run: |
+          file=$(find captured -name '*.json' | head -1)
+          if [ -z "$file" ]; then echo "nothing was written"; exit 1; fi
+          name=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['name'])" "$file")
+          {
+            echo "file=$file"
+            echo "name=$name"
+            echo "path=${file#captured/}"
+            echo "version=$(basename "$(dirname "$file")")"
+          } >> "$GITHUB_OUTPUT"
+          echo "$name at $file"
+
+      # The capture is faithful when the profile built from it is
+      # indistinguishable from the browser it came from. Same instrument, same
+      # browser, measured twice: anything that does not match is the capture
+      # having lost something, and this is the last moment to find out.
+      - name: the capture reproduces the browser
+        shell: bash
+        run: |
+          run() { go run ./cmd/tls-forge compare \
+            --browser "${{ steps.chrome.outputs.chrome-path }}" \
+            --profile "${{ steps.captured.outputs.file }}" --timeout 3m; }
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a bash -c "$(declare -f run); run"
+          else
+            run
+          fi
+
+      # A third-party opinion, so the profile is not only self-consistent.
+      - name: what a third party sees
         shell: bash
         run: |
           go run ./cmd/tls-forge fetch \
-            --profile "captured/${{ matrix.name }}.json" \
-            --timeout 60s https://tls.browserleaks.com/json | head -c 2000
-          echo
+            --profile "${{ steps.captured.outputs.file }}" \
+            --timeout 60s https://tls.browserleaks.com/json > seen.json
+          cat seen.json
 
+      # Built in Python from the environment rather than by interpolating
+      # `${{ }}` into a shell script. Two reasons, both real: the user-agent and
+      # the fingerprints come from a browser and a third-party service, and a
+      # value with a quote in it interpolated into bash is a command; and the
+      # HTTP/2 fingerprint is full of `|`, which ends a cell in a Markdown table
+      # however many backticks are around it.
+      - name: summary
+        shell: bash
+        env:
+          PROFILE: ${{ steps.captured.outputs.name }}
+          RELATIVE: ${{ steps.captured.outputs.path }}
+          VERSION: ${{ steps.captured.outputs.version }}
+          BROWSER: ${{ steps.browser.outputs.version }}
+          CHANNEL: ${{ inputs.channel }}
+          RUNNER: ${{ matrix.os }}
+          SHIPPED: ${{ steps.shipped.outcome }}
+        run: |
+          python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, os
+
+          seen = json.load(open("seen.json"))
+          def cell(value):
+              return "`" + str(value).replace("|", "\\|") + "`"
+
+          shipped = ("yes — this capture may be redundant"
+                     if os.environ["SHIPPED"] == "success"
+                     else "no — worth committing")
+          rows = [
+              ("browser", f'{os.environ["BROWSER"]} ({os.environ["CHANNEL"]})'),
+              ("runner", os.environ["RUNNER"]),
+              ("JA4", cell(seen.get("ja4", ""))),
+              ("HTTP/2", cell(seen.get("akamai_text", ""))),
+              ("user-agent", cell(seen.get("user_agent", ""))),
+              ("shipped profile still matches", shipped),
+          ]
+
+          print(f'## {os.environ["PROFILE"]}\n')
+          print("| | |\n|---|---|")
+          for name, value in rows:
+              print(f"| {name} | {value} |")
+          print("\nDownload the artifact, unzip it, and copy the directory in:\n")
+          # mkdir first: a new Chrome means a version directory that does not
+          # exist yet, and `cp` into a missing parent fails.
+          print("```")
+          print(f'mkdir -p profile/data/{os.environ["VERSION"]}')
+          print(f'cp {os.environ["RELATIVE"]} profile/data/{os.environ["RELATIVE"]}')
+          print("```")
+          PY
+
+      # The artifact keeps the directory, so what comes out of the zip is
+      # already laid out the way profile/data expects and can be copied in
+      # whole rather than filed by hand.
       - uses: actions/upload-artifact@v5
         with:
-          name: ${{ matrix.name }}
-          path: captured/${{ matrix.name }}.json
+          name: ${{ steps.captured.outputs.name }}
+          path: captured/
+          if-no-files-found: error

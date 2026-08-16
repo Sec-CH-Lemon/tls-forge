@@ -120,7 +120,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   per-platform profile is for.
 - A `capture` workflow that measures Chrome on macOS, Windows and Linux runners
   and offers each profile for download. No Windows profile has been invented in
-  the meantime.
+  the meantime. It names nothing: the version comes from the browser it measured,
+  so it captures whatever Chrome is current on the day it runs rather than
+  filing a Chrome 152 capture under 151. Each run says which Chrome it was, what
+  a third party sees through the profile, and whether the committed profile
+  still matches that browser — and refuses to offer a capture that is not
+  indistinguishable from the browser it came from.
 
 ### Fixed
 
