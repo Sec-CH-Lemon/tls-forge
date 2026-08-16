@@ -939,9 +939,10 @@ func TestCaptureInstallsIntoThisMachinesDirectory(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
-	// Named after the profile, which is also the name --profile finds it by.
-	// A directory per version holding one file per platform.
-	written := filepath.Join(dir, "chrome_151", profile.HostPlatform()+".json")
+	// Filed under `local`, not under the browser's version: there is one browser
+	// on a machine, and measuring it again after an update should replace what
+	// is there rather than leave two. Version names are for profiles that ship.
+	written := filepath.Join(dir, localName, profile.HostPlatform()+".json")
 	if _, err := os.Stat(written); err != nil {
 		t.Fatalf("nothing was kept: %v", err)
 	}
@@ -949,12 +950,12 @@ func TestCaptureInstallsIntoThisMachinesDirectory(t *testing.T) {
 		t.Errorf("stdout does not say where it went:\n%s", stdout)
 	}
 	// And says how to use it, since the whole point is that a name now works.
-	if !strings.Contains(stdout, "--profile chrome_151_"+profile.HostPlatform()) {
+	if !strings.Contains(stdout, "--profile "+localName+"_"+profile.HostPlatform()) {
 		t.Errorf("stdout does not say how to use it:\n%s", stdout)
 	}
 
 	// The name resolves, and to what was kept rather than to what shipped.
-	p, err := profile.Get("chrome_151_" + profile.HostPlatform())
+	p, err := profile.Get(localName + "_" + profile.HostPlatform())
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -964,7 +965,9 @@ func TestCaptureInstallsIntoThisMachinesDirectory(t *testing.T) {
 }
 
 func TestCaptureSaveIntoADirectory(t *testing.T) {
-	// A directory gets a file named after the profile, the way --report does.
+	// A directory gets a file named after the browser, unlike --install, which
+	// files under `local`. This is the shape the capture workflow relies on to
+	// produce chrome_152/macos.json for committing.
 	dir := t.TempDir()
 	code, stdout, _ := exec(t, "capture", "--browser", browserStandIn(t),
 		"--timeout", "30s", "--save", dir)

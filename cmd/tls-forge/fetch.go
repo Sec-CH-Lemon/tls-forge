@@ -53,6 +53,10 @@ type clientFlags struct {
 	proxy    *string
 	timeout  *time.Duration
 	insecure *bool
+
+	// chose reports whether a flag was given rather than defaulted, which is
+	// how "no profile named" is told from "--profile chrome".
+	chose func(string) bool
 }
 
 // The flags every command that makes requests shares, declared once so fetch
@@ -74,6 +78,7 @@ func addClientFlags(fs *pflag.FlagSet) clientFlags {
 		proxy:    fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port"),
 		timeout:  fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout"),
 		insecure: fs.BoolP("insecure", "k", false, "skip certificate verification"),
+		chose:    fs.Changed,
 	}
 	return flags
 }
@@ -246,6 +251,7 @@ func runFetch(_ context.Context, args []string, out, errOut *printer) error {
 		return fmt.Errorf("%w: fetch takes exactly one URL", errUsage)
 	}
 
+	common.wear(errOut)
 	client, err := common.client()
 	if err != nil {
 		return err
@@ -300,13 +306,14 @@ func runFetch(_ context.Context, args []string, out, errOut *printer) error {
 	return err
 }
 
-func runDaemon(_ context.Context, args []string, out, _ *printer) error {
+func runDaemon(_ context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("daemon", out)
 	common := addClientFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 
+	common.wear(errOut)
 	client, err := common.client()
 	if err != nil {
 		return err

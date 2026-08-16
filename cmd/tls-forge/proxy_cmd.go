@@ -41,6 +41,7 @@ func runProxy(ctx context.Context, args []string, out, errOut *printer) error {
 	// No cookie jar: the caller's `Cookie` header is forwarded as sent, and a
 	// jar underneath would add a second one from its own store, leaving the
 	// caller's session and the proxy's quietly diverging.
+	common.wear(errOut)
 	client, err := common.client(tlsforge.WithoutCookieJar())
 	if err != nil {
 		return err

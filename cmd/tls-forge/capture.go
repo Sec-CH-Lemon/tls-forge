@@ -69,9 +69,16 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		return nil
 	}
 
+	// --install means "the browser on this machine", and that is one thing
+	// rather than one per version: measuring again after Chrome updates should
+	// replace it, not leave two. --save is the other case — a profile going
+	// somewhere to be kept or shipped — and that one is named for the browser.
 	profileName := *name
 	if profileName == "" {
 		profileName = profileNameFor(measured.UserAgent())
+		if *install {
+			profileName = localName
+		}
 	}
 	saved, path, err := saveProfile(where, profileName, measured)
 	if err != nil {
@@ -168,28 +175,38 @@ var now = time.Now
 // measured from Chrome 151 reads as current forever, and the mismatch between
 // the name and the handshake is invisible in every log it appears in.
 func profileNameFor(userAgent string) string {
-	// Order matters. Every Chromium-based browser puts "Chrome/" in its
-	// user-agent, so the ones that add their own token have to be checked first
-	// or they all come out named chrome.
-	families := []struct{ token, name string }{
+	family, major := browserFrom(userAgent)
+	switch {
+	case family == "":
+		return "captured"
+	case major == "":
+		return family
+	}
+	return family + "_" + major
+}
+
+// browserFrom reads the browser and its major version out of a user-agent,
+// returning empty strings for one it does not know.
+//
+// Order matters. Every Chromium-based browser puts "Chrome/" in its user-agent,
+// so the ones that add their own token have to be checked first or they all
+// come out as chrome.
+func browserFrom(userAgent string) (family, major string) {
+	for _, known := range []struct{ token, name string }{
 		{"Edg/", "edge"},
 		{"OPR/", "opera"},
 		{"Chrome/", "chrome"},
 		{"Firefox/", "firefox"},
 		{"Version/", "safari"},
-	}
-	for _, family := range families {
-		index := strings.Index(userAgent, family.token)
+	} {
+		index := strings.Index(userAgent, known.token)
 		if index < 0 {
 			continue
 		}
-		major, _, _ := strings.Cut(userAgent[index+len(family.token):], ".")
-		if major != "" {
-			return family.name + "_" + major
-		}
-		return family.name
+		major, _, _ = strings.Cut(userAgent[index+len(known.token):], ".")
+		return known.name, major
 	}
-	return "captured"
+	return "", ""
 }
 
 func runServe(ctx context.Context, args []string, out, _ *printer) error {
@@ -227,11 +244,13 @@ func runProfiles(_ context.Context, args []string, out, _ *printer) error {
 		return err
 	}
 
-	// What --profile lands on when nobody says. Resolved rather than printed as
-	// written, because "chrome" is two hops from a file and the useful thing to
-	// know is which file.
+	// What a run lands on when nobody names a profile. Resolved rather than
+	// printed as written, because "chrome" is two hops from a file and the
+	// useful thing to know is which file. The same rule the commands use, or
+	// the listing would point at a shipped profile while every run wore the
+	// locally measured one.
 	fallback := ""
-	if p, err := profile.Get(tlsforge.DefaultProfile); err == nil {
+	if p, err := profile.Get(defaultProfileName()); err == nil {
 		fallback = p.Name
 	}
 

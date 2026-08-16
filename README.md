@@ -645,8 +645,8 @@ tls-forge capture -j > raw.json                      # everything measured
 | `-b`, `--browser` | `chrome`, `chromium`, `edge`, `brave`, or a path. Searches if omitted |
 | `--headless` | no window. Measured to send the identical handshake, but headed is the default because a headed browser is the thing being impersonated |
 | `-s`, `--save` | write a reusable profile here. A directory gets `<name>.json` |
-| `--install` | keep it in this machine's own directory, where `--profile` finds it by name |
-| `-n`, `--name` | name it yourself instead of deriving one from the browser version |
+| `--install` | keep it in this machine's own directory as `local`, which every run then wears by default |
+| `-n`, `--name` | name it yourself instead of `local` under `--install`, or the browser's version under `--save` |
 | `-j`, `--json` | print the raw capture rather than a summary |
 | `-t`, `--timeout` | how long to wait for the browser, 2m by default |
 
@@ -654,6 +654,46 @@ A browser window opens, shows what it sent, and can be closed. Nothing touches
 your real browser profile: every launch gets a throwaway user-data directory,
 which also keeps the `--ignore-certificate-errors` flag this needs from ever
 applying to a profile you browse with.
+
+#### `--install`, and what a run wears by default
+
+```bash
+tls-forge capture --install
+```
+
+```
+wrote profile "local_macos" to ~/Library/Application Support/tls-forge/profiles/local/macos.json
+use it with:  tls-forge fetch --profile local_macos <url>
+```
+
+It is filed as **`local`**, not under the browser's version, because there is
+one browser on a machine and measuring it again after an update should replace
+what is there rather than leave two. Version names are for profiles that ship.
+
+From then on every command that fetches wears it without being asked, and says
+so:
+
+```
+$ tls-forge fetch https://example.com/
+profile: local_macos — Chrome 151 (measured on this machine)
+```
+
+Without one, a shipped profile is worn and the line says that instead:
+
+```
+profile: chrome_151_macos — Chrome 151 (shipped)
+```
+
+That line goes to standard error, so it does not disturb a body on standard
+output, and it is printed every time on purpose. Which browser a request is
+pretending to be is the one thing this program does, and the one thing that is
+otherwise invisible: a run wearing a profile measured six months ago looks
+exactly like a run wearing the right one. `--profile` still overrides, and
+`tls-forge profiles` marks the same default with `<`.
+
+Preferring the local one is the point of having measured it. A shipped profile
+is a recording of somebody else's browser on an earlier day; the one on this
+machine is the browser a server would compare against if it ever saw both.
 
 #### The handshake is the same on every platform
 

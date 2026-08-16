@@ -158,6 +158,9 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		sink = file
 	}
 
+	// Once for the run, before the pool: it builds a client per proxy and would
+	// otherwise say the same line once per proxy.
+	common.wear(errOut)
 	clients := newPool(common, *common.proxy)
 	defer clients.close()
 

@@ -151,6 +151,21 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`capture --install` files the profile as `local`, and every run wears it.**
+  One name rather than one per version: there is one browser on a machine, and
+  measuring it again after an update should replace what is there. A command
+  that fetches now prefers it over a shipped profile without being asked, which
+  is the point of having measured it — a shipped profile is a recording of
+  somebody else's browser on an earlier day.
+- **Every command that fetches says which profile it is wearing**, on standard
+  error, with the browser and version it was taken from and whether it was
+  measured here or shipped: `profile: local_macos — Chrome 151 (measured on this
+  machine)`. Which browser a request is pretending to be is the one thing this
+  program does and the one thing otherwise invisible — a run wearing a profile
+  from six months ago looks exactly like a run wearing the right one. The
+  `profiles` listing marks the same default, from the same rule rather than a
+  second copy of it.
+
 - **The Python package is released by tag**, alongside npm, Homebrew, the
   GitHub Release and the image. `scripts/pypi-release.py` builds one wheel per
   platform with the binary inside, and refuses to produce one that is missing

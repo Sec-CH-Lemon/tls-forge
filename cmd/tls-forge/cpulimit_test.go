@@ -157,7 +157,10 @@ func TestWarningNamesWhereTheNumberCameFrom(t *testing.T) {
 	if !strings.Contains(stderr, "the 2 CPUs this process is allowed") {
 		t.Errorf("stderr = %q", stderr)
 	}
-	if strings.Contains(stderr, "on this machine") {
+	// The exact phrase the warning must not use, rather than half of it: other
+	// lines on stderr legitimately mention this machine, and a test that fails
+	// on those is testing the wrong thing.
+	if strings.Contains(stderr, "cores on this machine") {
 		t.Errorf("the warning claimed the machine's cores were the limit: %q", stderr)
 	}
 }
