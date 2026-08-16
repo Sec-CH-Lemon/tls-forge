@@ -13,6 +13,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A hanging job now fails instead of hanging.** Every CI job has a ceiling,
+  and `go test` is given a `-timeout` well under it, so a test that wedges is
+  killed by Go — which prints a goroutine dump naming it — rather than by the
+  runner, which prints nothing and leaves the next person guessing. The whole
+  suite takes seconds; five minutes is a wide margin, not a target.
+
 - **The library would not start on Windows at all.** `chrome_151` is a directory
   of captures, one per platform, and no Chrome has been captured on Windows yet.
   A version name resolved to this machine's platform or, failing that, to the

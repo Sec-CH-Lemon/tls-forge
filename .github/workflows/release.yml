@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   release:
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -35,7 +36,7 @@ jobs:
       # Nothing gets published that has not passed the same gates as a push.
       # A release is the worst moment to find out a test was failing.
       - run: go vet ./...
-      - run: go test -race ./...
+      - run: go test -race -timeout 5m ./...
       - run: make cover
       - run: node --test 'test/*.test.js'
         working-directory: node
@@ -199,6 +200,7 @@ jobs:
           git push
 
   image:
+    timeout-minutes: 45
     needs: release
     runs-on: ubuntu-latest
     permissions:

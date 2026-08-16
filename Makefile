@@ -12,14 +12,19 @@ all: check
 build:
 	$(GO) build -ldflags "-X main.version=$(VERSION)" -o $(BIN) ./cmd/tls-forge
 
+# -timeout well under the CI job's ceiling, so a test that hangs is killed by
+# Go — which prints a goroutine dump naming it — rather than by the runner,
+# which prints nothing and leaves you guessing. The whole suite is seconds.
+TESTFLAGS ?= -timeout 5m
+
 test:
-	$(GO) test -race ./...
+	$(GO) test -race $(TESTFLAGS) ./...
 
 # Coverage is a gate, not a report. Every package here is at 100%, because most
 # of the interesting code is error handling that using the library normally
 # never reaches.
 cover:
-	$(GO) test -covermode=set -coverprofile=$(COVER) ./...
+	$(GO) test -covermode=set -coverprofile=$(COVER) $(TESTFLAGS) ./...
 	@$(GO) tool cover -func=$(COVER) | awk '\
 		/^total:/ { total=$$3; next } \
 		{ if ($$3 != "100.0%") { print "  " $$0; failed=1 } } \

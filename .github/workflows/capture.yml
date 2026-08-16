@@ -27,6 +27,7 @@ permissions:
 
 jobs:
   capture:
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

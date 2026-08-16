@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   go:
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -30,14 +31,17 @@ jobs:
 
       # -race on one platform is enough to find a data race and costs a lot of
       # wall clock on the others.
+      # -timeout so a test that hangs is killed by Go, which prints a goroutine
+      # dump naming it, rather than by the job's ceiling, which prints nothing.
       - name: test
         if: matrix.os == 'ubuntu-latest'
-        run: go test -race ./...
+        run: go test -race -timeout 5m ./...
       - name: test
         if: matrix.os != 'ubuntu-latest'
-        run: go test ./...
+        run: go test -timeout 5m ./...
 
   coverage:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -50,6 +54,7 @@ jobs:
       - run: make cover
 
   lint:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -69,6 +74,7 @@ jobs:
           version: v2.12.2
 
   node:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -81,6 +87,7 @@ jobs:
         working-directory: node
 
   python:
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -102,6 +109,7 @@ jobs:
         working-directory: python
 
   packaging:
+    timeout-minutes: 25
     # Does a release still assemble?
     #
     # The two packaging scripts run nowhere else, so without this the first tag
@@ -156,6 +164,7 @@ jobs:
           "
 
   docker:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -166,6 +175,7 @@ jobs:
       - run: docker run --rm tls-forge:ci profiles
 
   browser:
+    timeout-minutes: 20
     # Does the shipped profile still match a real browser?
     #
     # This is the check the project exists for, and the only one that can start
