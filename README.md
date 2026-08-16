@@ -1114,7 +1114,7 @@ if err != nil {
 defer client.Close()
 
 res, err := client.Get("https://tls.browserleaks.com/json")
-fmt.Println(res.Status, len(res.Body))
+fmt.Println(res.Status, res.OK(), len(res.Body))
 ```
 
 That is the whole of it: the request goes out with Chrome's handshake, Chrome's
@@ -1122,42 +1122,154 @@ HTTP/2 preamble and Chrome's headers in Chrome's order, and the body comes back
 decompressed. Chrome advertises gzip, deflate, br and zstd, and a client that
 advertises them has to be able to read them.
 
-The profile supplies the browser's own headers, in the browser's own order.
-Per-request headers are layered over it: one the browser already sends keeps its
-position and takes your value, one it does not send is appended after the rest.
+#### What comes back
+
+```go
+res.Status          // 200
+res.OK()            // true for a 2xx
+res.URL             // the final URL, after redirects
+res.Body            // []byte, already decompressed
+res.Text()          // the same as a string
+res.Header          // map[string][]string, every value kept
+res.Cookies         // []string, what the jar holds for that URL now
+```
+
+`Header` on the way back is a map because nothing downstream is fingerprinting
+your reading of it. On the way out it is a list, which is the next section.
+
+#### Headers are ordered, so they are a list
+
+Header order is part of the fingerprint, and a Go map has no order. So the
+outgoing type is a list:
+
+```go
+h := tlsforge.NewHeader("Referer", "https://example.com/", "X-Extra", "1")
+h.Set("Accept-Language", "en-GB,en;q=0.9")   // replaces in place, or appends
+h.Get("referer")                              // case-insensitive
+h.Has("x-extra")
+h.Del("x-extra")
+h.Names()                                     // the order they will be sent in
+```
+
+Per-request headers are layered over the profile's rather than replacing them:
+a name the browser already sends keeps the browser's position and takes your
+value, and one it does not send is appended after the rest. `client.Headers()`
+returns what the profile sends, so you can see what you are layering onto.
+
+#### A request with everything on it
 
 ```go
 res, err := client.Do(&tlsforge.Request{
-    URL:    "https://example.com/page",
-    Header: tlsforge.NewHeader("Referer", "https://example.com/"),
+    Method:  "POST",
+    URL:     "https://example.com/api",
+    Header:  tlsforge.NewHeader("Content-Type", "application/json"),
+    Body:    []byte(`{"a":1}`),
+    Cookies: []tlsforge.Cookie{{Name: "session", Value: "abc"}},
 })
 ```
 
-One client is one identity: one TLS fingerprint, one cookie jar, one exit IP.
-Rotating any of them means a new client. That is deliberate: a jar shared between
-two fingerprints describes a browser that changed its TLS stack mid-session,
-which is not a thing that happens.
+`Cookies` here seeds the jar before the request rather than writing a `Cookie`
+header: the transport writes that header itself, and setting it by hand
+replaces what the server put there earlier in the session, which no browser
+does.
+
+#### Options
+
+Every option is a `tlsforge.Option` passed to `New`:
+
+| | |
+|---|---|
+| `WithProfile(name)` | any name `tls-forge profiles` lists, including `local` for the browser you measured |
+| `WithProfileValue(p)` | a `*profile.Profile` you loaded yourself |
+| `WithProxy(url)` | `http://`, `https://` or `socks5://`, with credentials if it needs them |
+| `WithTimeout(d)` | per-request deadline, 30s by default |
+| `WithHeaders(h)` | headers on every request, layered the same way |
+| `WithCookies(c)` | seed the jar at construction |
+| `WithoutCookieJar()` | no jar at all, for a proxy that forwards its caller's `Cookie` |
+| `WithCookieJar(jar)` | your own jar, to share or persist one |
+| `WithoutRedirects()` | return the 302 instead of following it |
+| `WithInsecureSkipVerify()` | skip certificate verification |
+| `WithFixedExtensionOrder()` | stop shuffling TLS extensions, which only a test wants |
+| `WithTransportOption(...)` | anything else tls-client takes |
 
 ```go
 client, err := tlsforge.New(
     tlsforge.WithProfile("chrome"),
     tlsforge.WithProxy("http://user:pass@proxy.example:8080"),
     tlsforge.WithTimeout(20*time.Second),
+    tlsforge.WithHeaders(tlsforge.NewHeader("Accept-Language", "de-DE,de;q=0.9")),
 )
 ```
 
-For scraping at any volume that is the shape to build on: a pool of clients, one
-per proxy, each keeping its own jar for as long as that identity lasts. A client
-is safe for concurrent use, so a pool of them is a pool of sessions rather than a
-pool of connections.
+`WithFixedExtensionOrder` deserves its warning: Chrome shuffles its extension
+order on every connection, so a client that always sent the same order would
+differ from Chrome in exactly the way Chrome does not differ from itself. It
+exists so a test can compare two handshakes byte for byte, and for nothing else.
 
-To wear a profile you measured yourself:
+#### The jar
 
 ```go
-data, _ := os.ReadFile("my-chrome.json")
-p, _ := profile.Load(data)
-client, _ := tlsforge.New(tlsforge.WithProfileValue(p))
+held, err := client.Cookies("https://example.com/")     // what the jar has for that URL
+all, err := client.CookiesFor("https://example.com/")   // and for its parent domains
 ```
+
+One client is one jar. Reading it out is how a warmed session gets written down
+and handed to the next run — which is what `--save-cookies` does on the command
+line, in the [format](#the-file) described above.
+
+#### One client is one identity
+
+One TLS fingerprint, one cookie jar, one exit IP. Rotating any of them means a
+new client. That is deliberate: a jar shared between two fingerprints describes
+a browser that changed its TLS stack mid-session, which is not a thing that
+happens.
+
+A client **is** safe for concurrent use — measured, twenty-four simultaneous
+requests on one client under `-race` — so a pool of clients is a pool of
+sessions rather than a pool of connections:
+
+```go
+clients := make([]*tlsforge.Client, len(proxies))
+for i, proxy := range proxies {
+    clients[i], err = tlsforge.New(tlsforge.WithProfile("chrome"), tlsforge.WithProxy(proxy))
+    if err != nil {
+        return err
+    }
+    defer clients[i].Close()
+}
+
+var wg sync.WaitGroup
+for i, url := range urls {
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        res, err := clients[i%len(clients)].Get(url)
+        …
+    }()
+}
+wg.Wait()
+```
+
+For scraping at any volume that is the shape to build on: one client per proxy,
+each keeping its own jar for as long as that identity lasts.
+
+#### Wearing a profile you measured
+
+```go
+data, err := os.ReadFile("my-chrome.json")
+p, err := profile.Load(data)
+client, err := tlsforge.New(tlsforge.WithProfileValue(p))
+```
+
+Or by name, once `tls-forge capture --install` has kept one:
+
+```go
+client, err := tlsforge.New(tlsforge.WithProfile("local"))
+```
+
+`client.Profile()` says which one is being worn, which is worth logging: a
+program wearing a profile measured six months ago looks exactly like one wearing
+the right one.
 
 ### Node.js
 
@@ -1168,17 +1280,128 @@ npm install tls-forge
 ```js
 import { Client } from 'tls-forge';
 
-const client = new Client({ profile: 'chrome', proxy: 'http://user:pass@host:8080' });
+const client = new Client({ profile: 'chrome' });
 const res = await client.get('https://tls.browserleaks.com/json');
-console.log(res.status, res.body.length);
+console.log(res.status, JSON.parse(res.body).ja4);
 client.close();
+```
+
+```
+200 t13d1516h2_8daaf6152771_806a8c22fdea
 ```
 
 No Go, no build step, no download during install. The binary arrives as an
 optional dependency, one package per platform, each declaring `os` and `cpu`, so
 npm installs the one that matches and skips the others. That is the arrangement
 esbuild uses, and it survives `npm ci --ignore-scripts`, which a postinstall step
-does not. Full documentation is in [node/](node/).
+does not.
+
+#### What comes back
+
+```js
+res.status                     // 200
+res.url                        // the final URL, after redirects
+res.body                       // string, already decompressed
+res.headers['content-type']    // multi-valued names joined with '; '
+res.cookies                    // ['session=abc'] — what the jar holds for that URL
+```
+
+`headers` joins rather than picks: `set-cookie` arrives more than once routinely,
+and a caller that only saw the first would lose a session.
+
+#### Options
+
+```js
+const client = new Client({
+  profile: 'chrome_151',
+  proxy: 'http://user:pass@host:8080',
+  timeout: 30_000,
+  insecure: false,
+  binary: './bin/tls-forge',
+  onStderr: (line) => console.error(line),
+});
+```
+
+| | |
+|---|---|
+| `profile` | any name `tls-forge profiles` lists, including `local` for the browser you measured |
+| `proxy` | `http://`, `https://` or `socks5://` |
+| `timeout` | per-request deadline in **milliseconds**, 45000 by default |
+| `insecure` | skip certificate verification |
+| `binary` | path to the transport, ahead of every other source |
+| `onStderr` | receives the transport's diagnostics, a line at a time |
+
+The transport is given a deadline fifteen seconds longer than yours, on purpose.
+If they were equal, a request timing out would race: both sides would decide it
+had failed, and the process would be killed while writing the answer.
+
+#### Per request
+
+```js
+await client.get(url, {
+  headers: { referer: 'https://example.com/' },
+  order: ['referer'],
+  cookies: ['session=abc'],
+});
+
+await client.post(url, '{"a":1}', { headers: { 'content-type': 'application/json' } });
+
+await client.request({ url, method: 'DELETE', headers: { … } });
+```
+
+`headers` are layered over the profile's: a name the browser already sends keeps
+the browser's position and takes your value, one it does not send is appended
+after the rest. `order` orders the headers **you** send, not the whole request —
+without it they go last, sorted, because a Go map iterates randomly and a header
+set that reordered itself between two identical requests would be a fingerprint
+of its own.
+
+Do not set `cookie` by hand. The transport writes it from the jar, and setting
+the header replaces what the jar holds, so cookies the server set earlier in the
+session would silently vanish.
+
+#### Failures
+
+Everything rejects; nothing throws synchronously except a missing binary, which
+throws from the constructor because no request could have worked:
+
+```js
+try {
+  await client.get(url);
+} catch (err) {
+  // 'tlsforge: dial tcp …'          the request ran and failed
+  // 'tlsforge: request timed out'   your deadline passed
+  // 'tlsforge: transport exited …'  the process died; the client stays usable
+}
+```
+
+`close()` is final. A closed client will not respawn, and a later request
+rejects rather than quietly minting a new process with a new fingerprint and an
+empty jar.
+
+#### One client is one identity
+
+One long-lived process: one TLS fingerprint, one cookie jar, one exit IP for its
+whole life. Reconnecting per request is itself a signal, and no browser does it.
+
+The protocol underneath is one request at a time, so calls on one client queue
+rather than overlap. Parallelism is a pool, one client per proxy, which is also
+what keeps the identities apart:
+
+```js
+const pool = proxies.map((proxy) => new Client({ profile: 'chrome', proxy }));
+const results = await Promise.all(
+  urls.map((url, i) => pool[i % pool.length].get(url).catch((err) => err)),
+);
+pool.forEach((client) => client.close());
+```
+
+#### Where the binary comes from
+
+In order: the `binary` option, `TLSFORGE_BIN`, the platform package npm
+installed, a local `npm run build`, then `PATH`. `resolveBinary()` is exported so
+a script can ask which one it would use. Full documentation is in
+[node/](node/).
 
 ### Python
 
