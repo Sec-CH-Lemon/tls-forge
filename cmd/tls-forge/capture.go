@@ -75,7 +75,7 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	out.printf("\nwrote profile %q to %s\n", saved, path)
 	if *install {
-		out.printf("use it with:  tls-forge fetch --profile %s <url>\n", saved)
+		out.printf("use it with:  tls-forge fetch --profile %s <url>\n", shellQuote(saved))
 	}
 	return nil
 }

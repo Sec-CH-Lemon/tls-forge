@@ -66,13 +66,14 @@ func runProxy(ctx context.Context, args []string, out, errOut *printer) error {
 	out.printf("  export HTTPS_PROXY=http://%s\n", server.Addr())
 	// browserleaks answers with the JA4 it saw, so the suggested command is not
 	// just a smoke test: its output is the proof the handshake was replaced.
-	out.printf("  curl --proxy http://%s --cacert %s https://tls.browserleaks.com/json\n\n", server.Addr(), *certFile)
+	out.printf("  curl --proxy http://%s --cacert %s https://tls.browserleaks.com/json\n\n",
+		server.Addr(), shellQuote(*certFile))
 	out.println("The proxy terminates TLS itself, which is the only way to replace the")
 	out.println("handshake: a tunnelled CONNECT would carry your own client's fingerprint")
 	out.println("straight through. So clients have to trust the authority above.")
 	out.println()
 	out.println("That authority can impersonate any site to anything that trusts it. Prefer")
-	out.printf("--cacert over installing it system-wide, and delete %s when done.\n", *keyFile)
+	out.printf("--cacert over installing it system-wide, and delete %s when done.\n", shellQuote(*keyFile))
 	out.println()
 	out.println("Ctrl-C to stop.")
 

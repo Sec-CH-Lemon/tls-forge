@@ -13,6 +13,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The command `tls-forge proxy` prints could not be copied on macOS.** The
+  authority lives under the user's config directory, which on macOS is
+  `~/Library/Application Support`, so the suggested `curl --cacert <path>`
+  arrived at curl as two arguments: it read `/Users/me/Library/Application` as
+  the certificate and tried to fetch `Support/tls-forge/ca.pem` as a URL. Paths
+  and names going into a printed command are now quoted when they need it, in
+  `proxy` and in `capture --install`, which prints a `--profile` whose name the
+  caller chose.
+
 - **Ctrl-C did nothing to `tls-forge batch` waiting on standard input.** Run
   with no list, the command waits for URLs to be typed; the interrupt was caught
   and turned into a cancelled context that the blocked read never looked at, so

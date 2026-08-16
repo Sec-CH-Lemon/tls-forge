@@ -849,8 +849,14 @@ tls-forge proxy
 proxy listening on 127.0.0.1:8080
 
   export HTTPS_PROXY=http://127.0.0.1:8080
-  curl --proxy http://127.0.0.1:8080 --cacert ~/.config/tls-forge/ca.pem https://tls.browserleaks.com/json
+  curl --proxy http://127.0.0.1:8080 --cacert '/Users/me/Library/Application Support/tls-forge/ca.pem' https://tls.browserleaks.com/json
 ```
+
+The authority goes wherever the OS keeps a user's configuration:
+`~/Library/Application Support/tls-forge` on macOS, `~/.config/tls-forge` on
+Linux, `%AppData%\tls-forge` on Windows. `--ca-cert` and `--ca-key` move it. The
+printed command is quoted where the path needs it, so it survives being copied
+whatever the directory is called.
 
 Measured against the local instrument, curl on its own and the same curl through
 the proxy:
