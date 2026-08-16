@@ -6,10 +6,10 @@ import (
 )
 
 // The golden vectors below are NOT this package's own output. Both were taken
-// from tls.peet.ws for a real Chrome 151 on macOS, and the truncated-SHA256 rule
-// was verified against that service's published `ja4_r` preimage before any of
-// this was written. A test that recorded whatever the code happened to produce
-// would pass with the specification misread.
+// from tls.browserleaks.com for a real Chrome 151 on macOS, and the
+// truncated-SHA256 rule was verified against that service's published `ja4_r`
+// preimage before any of this was written. A test that recorded whatever the
+// code happened to produce would pass with the specification misread.
 func TestJA4MatchesRealChrome(t *testing.T) {
 	hello := mustParse(t, chrome151().records())
 

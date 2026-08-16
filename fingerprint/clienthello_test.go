@@ -195,7 +195,7 @@ func TestAccessors(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 
-	if name, ok := hello.ServerName(); !ok || name != "tls.peet.ws" {
+	if name, ok := hello.ServerName(); !ok || name != "tls.browserleaks.com" {
 		t.Errorf("ServerName = %q, %v", name, ok)
 	}
 	if got, want := hello.ALPN(), []string{"h2", "http/1.1"}; !reflect.DeepEqual(got, want) {

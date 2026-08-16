@@ -155,15 +155,15 @@ func splitRecords(handshake []byte, n int) []byte {
 // from a real Chrome 151, in a shape the builder can render.
 //
 // The expected JA4 alongside it is not this package's own output: it was taken
-// independently from tls.peet.ws for the same browser, and the hashing rule was
-// checked against that service's published ja4_r preimage. A test that compared
-// this package against itself would pass with the formula wrong.
+// independently from tls.browserleaks.com for the same browser, and the hashing
+// rule was checked against that service's published ja4_r preimage. A test that
+// compared this package against itself would pass with the formula wrong.
 func chrome151() *helloBuilder {
 	return newHello().
 		withCiphers(0x0a0a, 0x1301, 0x1302, 0x1303, 0xc02b, 0xc02f, 0xc02c, 0xc030,
 			0xcca9, 0xcca8, 0xc013, 0xc014, 0x009c, 0x009d, 0x002f, 0x0035).
 		withExtension(0x1a1a, nil).
-		withExtension(ExtServerName, sni("tls.peet.ws")).
+		withExtension(ExtServerName, sni("tls.browserleaks.com")).
 		withExtension(ExtStatusRequest, []byte{1, 0, 0, 0, 0}).
 		withExtension(ExtSupportedGroups, vector16(0x8a8a, 4588, 29, 23, 24)).
 		withExtension(ExtECPointFormats, vector8(0)).

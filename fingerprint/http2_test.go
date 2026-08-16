@@ -6,8 +6,8 @@ import (
 )
 
 // chromeHTTP2 is what a real Chrome 151 sends on a fresh connection, measured
-// twice — once by tls.peet.ws and once by this library's echo server, which
-// agreed.
+// twice — once by tls.browserleaks.com and once by this library's echo server,
+// which agreed.
 func chromeHTTP2() *HTTP2 {
 	return &HTTP2{
 		Settings: []Setting{

@@ -46,7 +46,7 @@ import { Client } from 'tls-forge';
 
 const client = new Client({ profile: 'chrome' });
 
-const res = await client.get('https://example.com');
+const res = await client.get('https://tls.browserleaks.com/json');
 console.log(res.status, res.body.length);
 
 client.close();

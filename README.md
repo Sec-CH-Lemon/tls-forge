@@ -132,14 +132,14 @@ Every release publishes an image for linux/amd64 and linux/arm64:
 
 ```bash
 docker pull ghcr.io/sec-ch-lemon/tls-forge
-docker run --rm ghcr.io/sec-ch-lemon/tls-forge fetch https://example.com
+docker run --rm ghcr.io/sec-ch-lemon/tls-forge fetch https://tls.browserleaks.com/json
 ```
 
 Or build it yourself, from the same Dockerfile the release uses:
 
 ```bash
 docker build -t tls-forge .
-docker run --rm tls-forge fetch https://example.com
+docker run --rm tls-forge fetch https://tls.browserleaks.com/json
 ```
 
 The image is Alpine plus one static binary, about 30 MB, running as a non-root
@@ -150,13 +150,13 @@ Anything that reads or writes files needs the directory mounted, and the paths
 you pass have to be the ones inside the container:
 
 ```bash
-docker run --rm -v "$PWD:/work" tls-forge fetch -o /work/page.html https://example.com
+docker run --rm -v "$PWD:/work" tls-forge fetch -o /work/out.json https://tls.browserleaks.com/json
 ```
 
 The daemon speaks over stdin and stdout, so it needs the input kept open:
 
 ```bash
-echo '{"id":1,"url":"https://example.com"}' | docker run --rm -i tls-forge daemon
+echo '{"id":1,"url":"https://tls.browserleaks.com/json"}' | docker run --rm -i tls-forge daemon
 ```
 
 `serve` binds `127.0.0.1` by default, which inside a container means nothing
@@ -322,15 +322,20 @@ One request, with the browser's handshake, HTTP/2 preamble and headers. The body
 comes back decompressed.
 
 ```bash
-tls-forge fetch https://example.com
-tls-forge fetch -i https://example.com                       # status and headers first
-tls-forge fetch -o page.html https://example.com             # to a file
+tls-forge fetch https://tls.browserleaks.com/json
+tls-forge fetch -i https://tls.browserleaks.com/json          # status and headers first
+tls-forge fetch -o out.json https://tls.browserleaks.com/json # to a file
 tls-forge fetch -H "Referer: https://example.com/" https://example.com/page
 tls-forge fetch -X POST -d '{"a":1}' \
   -H "content-type: application/json" https://api.example.com/v1
-tls-forge fetch -x http://user:pass@proxy.example:8080 https://example.com
-tls-forge fetch --profile chrome_151 --timeout 45s https://example.com
+tls-forge fetch -x http://user:pass@proxy.example:8080 https://tls.browserleaks.com/json
+tls-forge fetch --profile chrome_151 --timeout 45s https://tls.browserleaks.com/json
 ```
+
+`tls.browserleaks.com/json` is used throughout this README as the example URL
+because it answers with what it saw: the JA4, the JA4_r, the HTTP/2 fingerprint
+and the user-agent of whatever asked. Fetch it and the reply is the proof the
+impersonation worked, which no other example URL can give you.
 
 The short letters are curl's, because this is the command you reach for instead
 of curl.
@@ -500,7 +505,7 @@ $ tls-forge batch -i urls.csv -v
   200      559 B     52ms       https://example.com/
   ---        0 B    423ms x2    https://127.0.0.1:1/gone  connection refused
   503        0 B    546ms       https://httpbin.org/status/503
-  200      9.9 kB   762ms       https://tls.peet.ws/api/all  via http://eu-1.proxy:8080
+  200      1.3 kB   762ms       https://tls.browserleaks.com/json  via http://eu-1.proxy:8080
 ```
 
 Status, volume, how long it took, how many tries it needed if more than one,
@@ -756,7 +761,7 @@ look.
 entirely:
 
 ```bash
-tls-forge fetch --profile ./measured/my-chrome.json https://example.com/
+tls-forge fetch --profile ./measured/my-chrome.json https://tls.browserleaks.com/json
 ```
 
 ### compare
@@ -844,7 +849,7 @@ tls-forge proxy
 proxy listening on 127.0.0.1:8080
 
   export HTTPS_PROXY=http://127.0.0.1:8080
-  curl --proxy http://127.0.0.1:8080 --cacert ~/.config/tls-forge/ca.pem https://example.com
+  curl --proxy http://127.0.0.1:8080 --cacert ~/.config/tls-forge/ca.pem https://tls.browserleaks.com/json
 ```
 
 Measured against the local instrument, curl on its own and the same curl through
@@ -856,7 +861,9 @@ the proxy:
 | through the proxy | `t13d1516h2_8daaf6152771_806a8c22fdea` | `1:65536;2:0;4:6291456;6:262144\|15663105\|0\|m,a,s,p` | Chrome's thirteen, in order |
 
 The second row is what `tls-forge fetch` produces, which is what Chrome
-produces.
+produces. Running the suggested command reproduces both rows: browserleaks
+reports back the JA4 and HTTP/2 fingerprint it saw, so the difference the proxy
+makes is in the reply rather than in this table.
 
 | flag | |
 |---|---|
@@ -919,7 +926,7 @@ holds one client, which means one fingerprint, one cookie jar and one exit IP fo
 its whole life.
 
 ```bash
-echo '{"id":1,"url":"https://example.com"}' | tls-forge daemon
+echo '{"id":1,"url":"https://tls.browserleaks.com/json"}' | tls-forge daemon
 tls-forge daemon -p chrome_151 -x http://user:pass@host:8080
 ```
 
@@ -963,7 +970,7 @@ if err != nil {
 }
 defer client.Close()
 
-res, err := client.Get("https://shop.example.com/product/12345")
+res, err := client.Get("https://tls.browserleaks.com/json")
 fmt.Println(res.Status, len(res.Body))
 ```
 
@@ -1019,7 +1026,7 @@ npm install tls-forge
 import { Client } from 'tls-forge';
 
 const client = new Client({ profile: 'chrome', proxy: 'http://user:pass@host:8080' });
-const res = await client.get('https://shop.example.com/product/12345');
+const res = await client.get('https://tls.browserleaks.com/json');
 console.log(res.status, res.body.length);
 client.close();
 ```
@@ -1059,8 +1066,9 @@ reported as a structural diff naming *this extension* or *that signature
 algorithm*, rather than as two hashes that differ for reasons nobody can see.
 
 JA3, JA4, JA4_r and the HTTP/2 fingerprint are computed locally, from the bytes.
-The implementation was checked against `tls.peet.ws` for the same browser before
-any of it was written: same JA4, same HTTP/2 hash, same header order.
+The implementation was cross-checked against `tls.browserleaks.com/json` for the
+same browser: same JA4, same JA4_r, same normalised JA3, same HTTP/2 fingerprint
+and hash.
 
 ## Things worth knowing
 

@@ -216,7 +216,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   capture; family-name resolution (`chrome` → newest measured Chrome).
 - `daemon` — the JSON-lines protocol, and a Node client in `node/`.
 - A measured Chrome 151 profile (macOS, arm64), verified against
-  `tls.peet.ws`: JA4 `t13d1516h2_8daaf6152771_806a8c22fdea`, HTTP/2
+  `tls.browserleaks.com`: JA4 `t13d1516h2_8daaf6152771_806a8c22fdea`, HTTP/2
   `1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p`.
 
 - The Node client is at 100% line and function coverage, and `npm test` now

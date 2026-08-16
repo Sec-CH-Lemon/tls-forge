@@ -18,7 +18,7 @@
 //	if err != nil { return err }
 //	defer client.Close()
 //
-//	res, err := client.Get("https://example.com")
+//	res, err := client.Get("https://tls.browserleaks.com/json")
 //
 // # Scope
 //
