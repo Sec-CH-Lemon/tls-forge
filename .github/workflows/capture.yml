@@ -13,14 +13,12 @@ name: capture
 # chrome_151 would file a Chrome 152 capture under 151 the moment Chrome
 # updated, and a profile whose name lies about its version is worse than none:
 # the name is what `--profile` asks for and what every log shows.
+#
+# No inputs. Google serves the current stable build of Chrome and nothing else,
+# so there is no version to choose — which is the price of measuring the real
+# browser instead of Chrome for Testing, and worth paying.
 on:
   workflow_dispatch:
-    inputs:
-      channel:
-        description: which Chrome to measure
-        default: stable
-        type: choice
-        options: [stable, beta, dev, canary]
 
 permissions:
   contents: read
@@ -33,6 +31,15 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # Chrome's sandbox does not work on a hosted runner and fails silently:
+      # the browser starts, never loads the page, and the capture times out
+      # having watched something that was never going to answer. Ubuntu 24.04
+      # restricts the unprivileged user namespaces the sandbox is built on, and
+      # the Windows runner denies the sandbox access to the executable, which
+      # was in the log verbatim. Process isolation is neither TLS nor a header,
+      # so the capture is the same capture.
+      FLAGS: --browser-arg=--no-sandbox
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -45,18 +52,153 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - uses: browser-actions/setup-chrome@v2
-        id: chrome
-        with:
-          chrome-version: ${{ inputs.channel }}
+      # Google Chrome, not Chrome for Testing.
+      #
+      # `browser-actions/setup-chrome` installs Chrome for Testing, which for
+      # this purpose is a different browser. Measured, same version and same
+      # machine, headless both times:
+      #
+      #   Chrome for Testing  sec-ch-ua: "Chromium";v="151", "Not=A?Brand";v="99"
+      #   Google Chrome       sec-ch-ua: "Not=A?Brand";v="99", "Google Chrome";v="151", …
+      #
+      # It says Chromium, on every request, and no flag changes that — the
+      # branding is compiled in. Its TLS can be brought into line with
+      # --disable-field-trial-config, which it needs because it also turns on
+      # the testing field-trial config; but a profile is the whole request, and
+      # half a browser is not one.
+      #
+      # The cost is that the version cannot be chosen: Google serves the current
+      # stable and nothing else. The run reports which one it got and how that
+      # compares to what is being served, which is the part that matters.
+      # Straight from Google on every platform, and never a copy that is already
+      # there.
+      #
+      # A runner image is built every few weeks and everything in it is frozen
+      # at that moment: Homebrew's cask metadata, Chocolatey's, the preinstalled
+      # browsers. `brew install --cask google-chrome` on a macOS runner
+      # installed Chrome 150 while Google was serving 151.0.7922.138 and the
+      # cask itself pointed at 151 — the runner's snapshot of the cask was the
+      # old one. Measuring a browser two releases behind is measuring the wrong
+      # browser, quietly.
+      #
+      # dl.google.com always has the current stable, which is the whole point.
+      - name: install Google Chrome (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          curl -sL -o /tmp/chrome.dmg \
+            https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg
+          hdiutil attach -nobrowse -quiet /tmp/chrome.dmg
+          sudo cp -R "/Volumes/Google Chrome/Google Chrome.app" /Applications/
+          hdiutil detach -quiet "/Volumes/Google Chrome"
 
+      - name: install Google Chrome (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -sL -o /tmp/chrome.deb \
+            https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update
+          sudo apt-get install -y /tmp/chrome.deb
+
+      - name: install Google Chrome (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $msi = "$env:TEMP\chrome.msi"
+          Invoke-WebRequest -UseBasicParsing -OutFile $msi `
+            -Uri 'https://dl.google.com/tag/s/dl/chrome/install/googlechromestandaloneenterprise64.msi'
+          Start-Process msiexec.exe -Wait -ArgumentList '/i', $msi, '/quiet', '/norestart'
+
+      - name: where Chrome is
+        id: chrome
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS)   path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ;;
+            Linux)   path="/opt/google/chrome/chrome" ;;
+            Windows) path="C:/Program Files/Google/Chrome/Application/chrome.exe" ;;
+          esac
+          [ -f "$path" ] || { echo "no Google Chrome at $path"; exit 1; }
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+          echo "$path"
+
+      # `chrome.exe --version` on Windows does not print a version and exit — it
+      # launches the browser. Measured: this step sat for seven minutes emitting
+      # Chrome's startup logs before the job was cut off. Windows keeps the
+      # version in the file itself, so read it from there and start nothing.
       - name: which browser this is
         id: browser
         shell: bash
+        env:
+          CHROME: ${{ steps.chrome.outputs.path }}
         run: |
-          version=$("${{ steps.chrome.outputs.chrome-path }}" --version)
+          if [ "$RUNNER_OS" = Windows ]; then
+            version=$(powershell -NoProfile -Command \
+              '(Get-Item $env:CHROME).VersionInfo.ProductVersion')
+            version="Google Chrome $version"
+          else
+            version=$("$CHROME" --version)
+          fi
           echo "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # What is everybody else running — on this platform.
+      #
+      # Per platform rather than once for the run, because the answer differs:
+      # measured on one day, macOS and Windows were being served 151.0.7922.138
+      # with a 0.25% slice already on 152, while Linux was on 151.0.7922.137 and
+      # had not been offered 152 at all. One number for all three would be an
+      # average of three different situations.
+      #
+      # "Stable" is not one version: Chrome promotes a major by serving it to a
+      # slice of users and widening the slice over days. Which slice this runner
+      # landed in decides whether its capture is worth committing.
+      - name: what everybody else is running
+        id: serving
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS)   platform=$([ "$(uname -m)" = arm64 ] && echo mac_arm64 || echo mac) ;;
+            Linux)   platform=linux ;;
+            Windows) platform=win64 ;;
+          esac
+          version=$(python3 scripts/chrome-version.py --platforms "$platform" 2> served.txt) || true
+          cat served.txt
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          {
+            echo 'note<<TLSFORGE_EOF'
+            cat served.txt
+            echo TLSFORGE_EOF
+          } >> "$GITHUB_OUTPUT"
+
+      # Did the runner give us the browser we asked for?
+      #
+      # Behind the majority means a stale install — a runner image freezes its
+      # package metadata for weeks, and that is how a macOS runner produced
+      # Chrome 150 while Google was serving 151. Measuring a browser two
+      # releases old is measuring the wrong browser, so it stops here.
+      #
+      # Ahead is different and allowed: it means the runner was handed an early
+      # slice of a rollout, which is worth seeing rather than refusing. The
+      # summary carries the numbers either way.
+      - name: is this the browser most people have
+        shell: bash
+        env:
+          GOT: ${{ steps.browser.outputs.version }}
+          MAJORITY: ${{ steps.serving.outputs.version }}
+        run: |
+          got=$(echo "$GOT" | tr -dc '0-9.' | cut -d. -f1)
+          want=$(echo "$MAJORITY" | cut -d. -f1)
+          if [ -z "$got" ] || [ -z "$want" ]; then
+            echo "could not compare $GOT against $MAJORITY"; exit 1
+          fi
+          if [ "$got" -lt "$want" ]; then
+            echo "installed Chrome $got is behind $want, which is what is being served."
+            echo "The runner's copy is stale; this would measure the wrong browser."
+            exit 1
+          fi
+          [ "$got" -gt "$want" ] && echo "note: Chrome $got is ahead of the $want most people run."
+          echo "Chrome $got against a served majority of $want"
 
       # Is a capture even needed? `compare` measures this browser and the
       # shipped profile against the same local instrument and exits non-zero
@@ -67,13 +209,13 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          run() { go run ./cmd/tls-forge compare \
-            --browser "${{ steps.chrome.outputs.chrome-path }}" --timeout 3m; }
+          run() { go run ./cmd/tls-forge compare --color never \
+            --browser "${{ steps.chrome.outputs.path }}" $FLAGS --timeout 3m; }
           if [ "$RUNNER_OS" = Linux ]; then
             sudo apt-get update && sudo apt-get install -y xvfb
-            xvfb-run -a bash -c "$(declare -f run); run"
+            xvfb-run -a bash -c "$(declare -f run); run" | tee shipped.txt
           else
-            run
+            run | tee shipped.txt
           fi
 
       - name: capture
@@ -88,7 +230,7 @@ jobs:
           # this machine's platform, which is what makes this workflow measure
           # whatever Chrome is current rather than whatever was written here.
           run() { go run ./cmd/tls-forge capture \
-            --browser "${{ steps.chrome.outputs.chrome-path }}" \
+            --browser "${{ steps.chrome.outputs.path }}" $FLAGS \
             --save captured --timeout 3m; }
           if [ "$RUNNER_OS" = Linux ]; then
             xvfb-run -a bash -c "$(declare -f run); run"
@@ -122,7 +264,7 @@ jobs:
         shell: bash
         run: |
           run() { go run ./cmd/tls-forge compare \
-            --browser "${{ steps.chrome.outputs.chrome-path }}" \
+            --browser "${{ steps.chrome.outputs.path }}" $FLAGS \
             --profile "${{ steps.captured.outputs.file }}" --timeout 3m; }
           if [ "$RUNNER_OS" = Linux ]; then
             xvfb-run -a bash -c "$(declare -f run); run"
@@ -152,8 +294,8 @@ jobs:
           RELATIVE: ${{ steps.captured.outputs.path }}
           VERSION: ${{ steps.captured.outputs.version }}
           BROWSER: ${{ steps.browser.outputs.version }}
-          CHANNEL: ${{ inputs.channel }}
           RUNNER: ${{ matrix.os }}
+          SERVED: ${{ steps.serving.outputs.note }}
           SHIPPED: ${{ steps.shipped.outcome }}
         run: |
           python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
@@ -167,7 +309,7 @@ jobs:
                      if os.environ["SHIPPED"] == "success"
                      else "no — worth committing")
           rows = [
-              ("browser", f'{os.environ["BROWSER"]} ({os.environ["CHANNEL"]})'),
+              ("browser", os.environ["BROWSER"]),
               ("runner", os.environ["RUNNER"]),
               ("JA4", cell(seen.get("ja4", ""))),
               ("HTTP/2", cell(seen.get("akamai_text", ""))),
@@ -179,7 +321,30 @@ jobs:
           print("| | |\n|---|---|")
           for name, value in rows:
               print(f"| {name} | {value} |")
-          print("\nDownload the artifact, unzip it, and copy the directory in:\n")
+          # Why this version and not the newest: the reasoning goes in the
+          # summary, because "we captured 151 while 152 exists" is a decision
+          # somebody will otherwise have to reconstruct.
+          # The diff, when there is one. Whether a difference is a browser that
+          # moved on or a browser running experiments is the judgement this
+          # workflow exists to support, and it cannot be made from a yes/no:
+          # "the cipher list gained one" reads very differently from "two
+          # extensions nobody has heard of".
+          if os.environ["SHIPPED"] != "success" and os.path.exists("shipped.txt"):
+              print("\n<details open><summary>what differs from the shipped profile</summary>\n")
+              print("```")
+              print(open("shipped.txt").read().rstrip())
+              print("```")
+              print("</details>\n")
+
+          # What everyone else has, next to what was measured. A runner handed
+          # a brand-new Chrome would otherwise produce a profile matching half a
+          # percent of the world, and nothing on the page would say so.
+          print("\n<details><summary>what everybody else is running</summary>\n")
+          print("```")
+          print(os.environ["SERVED"].rstrip())
+          print("```")
+          print("</details>\n")
+          print("Download the artifact, unzip it, and copy the directory in:\n")
           # mkdir first: a new Chrome means a version directory that does not
           # exist yet, and `cp` into a missing parent fails.
           print("```")

@@ -47,6 +47,19 @@ type MeasureOptions struct {
 	// Timeout bounds the whole measurement. Zero means two minutes, which is
 	// generous on purpose: it includes a cold browser start.
 	Timeout time.Duration
+
+	// BrowserArgs are extra flags for the browser, appended last so they win.
+	//
+	// For the machine rather than for the measurement. `--no-sandbox` is the one
+	// a CI runner needs: Ubuntu 24.04 restricts the unprivileged user namespaces
+	// Chrome's sandbox is built on, and a Windows runner denies the sandbox
+	// access to the executable in its tool cache. In both, Chrome starts, never
+	// loads the page, and the measurement times out having launched a browser
+	// that was never going to answer. Process isolation is not TLS, so the
+	// capture is the same capture — but nothing here checks that, and a flag
+	// that did change what goes on the wire would quietly make this a
+	// measurement of something else.
+	BrowserArgs []string
 }
 
 // MeasureBrowser launches a browser, points it at a local server and returns
@@ -78,7 +91,8 @@ func MeasureBrowserAt(ctx context.Context, server *echo.Server, opts MeasureOpti
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	closeBrowser, err := found.Open(ctx, server.URL(), browser.Options{Headless: opts.Headless})
+	closeBrowser, err := found.Open(ctx, server.URL(),
+		browser.Options{Headless: opts.Headless, Args: opts.BrowserArgs})
 	if err != nil {
 		return nil, err
 	}

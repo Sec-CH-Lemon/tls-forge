@@ -19,6 +19,7 @@ func runCompare(ctx context.Context, args []string, out, errOut *printer) error 
 	colour := fs.StringP("color", "c", "auto", "colourise the diff: auto, always or never")
 	full := fs.BoolP("full", "f", false, "print matching values in full; differing ones always are")
 	timeout := fs.DurationP("timeout", "t", 2*time.Minute, "how long to wait for the browser")
+	browserArgs := browserArgFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
@@ -32,7 +33,8 @@ func runCompare(ctx context.Context, args []string, out, errOut *printer) error 
 
 	errOut.println("measuring the browser…")
 	result, err := tlsforge.CompareToBrowser(ctx,
-		tlsforge.MeasureOptions{Browser: *browserName, Headless: *headless, Timeout: *timeout},
+		tlsforge.MeasureOptions{Browser: *browserName, Headless: *headless, Timeout: *timeout,
+			BrowserArgs: *browserArgs},
 		tlsforge.WithProfile(*profileName),
 	)
 	if err != nil {

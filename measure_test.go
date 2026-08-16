@@ -355,3 +355,41 @@ func mustReadFixture(t *testing.T) []byte {
 	}
 	return raw
 }
+
+func TestMeasureBrowserPassesExtraFlagsToTheBrowser(t *testing.T) {
+	// The reason this plumbing exists: without --no-sandbox Chrome starts on a
+	// CI runner and never loads the page, and a flag that quietly fails to
+	// arrive is a capture that times out for a reason nobody can see from the
+	// message.
+	if runtime.GOOS == "windows" {
+		t.Skip("the stand-in is a shell script")
+	}
+	dir := t.TempDir()
+	recorded := filepath.Join(dir, "args")
+	recorder := filepath.Join(dir, "recorder")
+	script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > " + recorded + "\n"
+	if err := os.WriteFile(recorder, []byte(script), 0o755); err != nil {
+		t.Fatalf("writing the recorder: %v", err)
+	}
+
+	// It records and exits without reporting anything, so the measurement ends
+	// at its deadline. What is being tested is the launch, not the capture.
+	_, err := MeasureBrowser(context.Background(), MeasureOptions{
+		Browser:     recorder,
+		Timeout:     2 * time.Second,
+		BrowserArgs: []string{"--no-sandbox", "--disable-dev-shm-usage"},
+	})
+	if err == nil {
+		t.Fatal("the recorder answers nothing, so this should have timed out")
+	}
+
+	data, readErr := os.ReadFile(recorded)
+	if readErr != nil {
+		t.Fatalf("the browser was never launched: %v", readErr)
+	}
+	for _, want := range []string{"--no-sandbox", "--disable-dev-shm-usage"} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("%s did not reach the browser:\n%s", want, data)
+		}
+	}
+}

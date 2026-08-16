@@ -1204,3 +1204,37 @@ func TestProfilesMarksAFlatProfileAsTheDefault(t *testing.T) {
 	}
 	t.Errorf("the flat profile is not marked as the default:\n%s", stdout)
 }
+
+func TestCaptureAndComparePassBrowserFlagsThrough(t *testing.T) {
+	// The CLI end of the same plumbing: a flag that stops at the flag set is a
+	// flag that does nothing, and the failure it was added to prevent — Chrome
+	// starting on a runner and never loading the page — looks identical either
+	// way.
+	if runtime.GOOS == "windows" {
+		t.Skip("the stand-in is a shell script")
+	}
+	for _, command := range []string{"capture", "compare"} {
+		t.Run(command, func(t *testing.T) {
+			dir := t.TempDir()
+			recorded := filepath.Join(dir, "args")
+			recorder := filepath.Join(dir, "recorder")
+			script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > " + recorded + "\n"
+			if err := os.WriteFile(recorder, []byte(script), 0o755); err != nil {
+				t.Fatalf("writing the recorder: %v", err)
+			}
+
+			// It records and exits, so the command ends at its deadline. What is
+			// asserted is the launch, not what came back from it.
+			exec(t, command, "--browser", recorder, "--timeout", "2s",
+				"--browser-arg", "--no-sandbox")
+
+			data, err := os.ReadFile(recorded)
+			if err != nil {
+				t.Fatalf("the browser was never launched: %v", err)
+			}
+			if !strings.Contains(string(data), "--no-sandbox") {
+				t.Errorf("the flag did not reach the browser:\n%s", data)
+			}
+		})
+	}
+}

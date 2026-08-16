@@ -714,29 +714,81 @@ run it by hand from the Actions tab, and it drives a real headed Chrome on
 macOS, Windows and Linux runners and offers the three as artifacts.
 
 It names nothing. The version comes from the browser it measured, so it captures
-whatever Chrome is current on the day it runs and files it under that name — a
-workflow that said `chrome_151` would file a Chrome 152 capture under 151 the
-moment Chrome updated. Pick the channel when starting it (`stable` by default,
-or `beta` to measure the next one early).
+whatever Chrome it ran and files it under that name — a workflow that said
+`chrome_151` would file a Chrome 152 capture under 151 the moment Chrome
+updated.
 
-Each run reports, per platform, which Chrome it was, the JA4 and HTTP/2
-fingerprint a third party saw through the profile, and **whether the profile
-already committed still matches that browser** — which is the question worth
-answering before committing anything. Two checks have to pass first: the capture
-has to be indistinguishable from the browser it came from, measured against the
-local instrument, and it has to fetch through.
+It measures **Google Chrome**, installed on the runner from Google. Not Chrome
+for Testing, which is what `browser-actions/setup-chrome` provides and what this
+used to use. Measured on one machine, same version, headless both times:
 
-The artifact unzips to the layout `profile/data` already uses, so it goes in
-whole:
+| | `sec-ch-ua` |
+|---|---|
+| Chrome for Testing | `"Chromium";v="151", "Not=A?Brand";v="99"` |
+| Google Chrome | `"Not=A?Brand";v="99", "Google Chrome";v="151", "Chromium";v="151"` |
+
+Chrome for Testing says Chromium, on every request, and no flag changes it —
+the branding is compiled in. Its TLS differs too, because it turns on the
+testing field-trial configuration and with it experiments real users do not
+have: 20 extensions against 18, the extra two being `0xCA34`, TLS trust anchor
+identifiers, and `0x12E0`. That part `--disable-field-trial-config` does fix,
+which is how the difference was pinned down, but a profile is the whole request
+and half a browser is not one.
+
+The price is that the version cannot be chosen: Google serves the current stable
+build and nothing else. That matters because **"stable" is not one version** —
+Chrome promotes a major by serving it to a slice of users and widening the slice
+over days, so several are stable at once. A runner handed the new one first
+would produce a profile matching almost nobody. So each platform reports what is
+being served to it, which is not the same everywhere:
+
+```
+  macOS                             Linux
+    151.0.7922.138   99.50%  <        151.0.7922.137  100.00%
+    151.0.7922.139    0.25%
+     152.0.7977.42    0.25%
+```
+
+On that day 152 had reached a quarter of a percent of macOS and Windows and had
+not been offered to Linux at all.
+
+[`scripts/chrome-version.py`](scripts/chrome-version.py) produces that and can
+be run on its own:
 
 ```bash
-mkdir -p profile/data/chrome_152
-cp chrome_152/macos.json profile/data/chrome_152/macos.json
+python3 scripts/chrome-version.py
 ```
+
+Chrome is fetched from dl.google.com rather than through a package manager,
+because a runner image freezes its package metadata for weeks: `brew install
+--cask google-chrome` on a macOS runner installed Chrome 150 while Google was
+serving 151 and the cask itself pointed at 151. A run stops if the Chrome it got
+is behind the one being served, and says so when it is ahead.
+
+#### Before committing one
 
 Nothing is committed for you. A capture is a measurement of one browser build,
 and it belongs in the repository when someone has looked at it and decided it is
-the one to ship.
+the one to ship. What to look at:
+
+1. **The summary says whether the shipped profile still matches**, and when it
+   does not, it shows the diff. That is the judgement call, and it cannot be
+   made from a yes/no: a cipher list that gained one entry is a browser that
+   moved on, while two extensions nobody has heard of is a browser running
+   experiments. The second is not worth committing.
+2. **Check it against your own Chrome**, which is the only comparison with a
+   browser somebody actually uses:
+
+   ```bash
+   tls-forge compare --profile ~/Downloads/chrome_152/macos.json
+   ```
+
+   `every field matches` means the capture is the browser on your desk. Anything
+   else is worth understanding before it ships.
+
+Then copy it in and commit. Older versions can be captured too — Chrome for
+Testing keeps thousands of builds — so a profile can be made for a version
+after the fact by naming it when starting the run.
 
 `tls-forge profiles` shows what there is, grouped, and every line is a name that
 can be copied into `--profile`:

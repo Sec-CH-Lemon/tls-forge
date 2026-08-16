@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/pflag"
+
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
@@ -28,6 +30,7 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	name := fs.StringP("name", "n", "", "profile name (default: derived from the browser's version)")
 	asJSON := fs.BoolP("json", "j", false, "print the raw capture instead of a summary")
 	timeout := fs.DurationP("timeout", "t", 2*time.Minute, "how long to wait for the browser")
+	browserArgs := browserArgFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
@@ -36,9 +39,10 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	// commentary in front of it is a document that will not parse.
 	errOut.println("opening a browser… (it will show the result; you can close it)")
 	measured, err := tlsforge.MeasureBrowser(ctx, tlsforge.MeasureOptions{
-		Browser:  *browserName,
-		Headless: *headless,
-		Timeout:  *timeout,
+		Browser:     *browserName,
+		Headless:    *headless,
+		Timeout:     *timeout,
+		BrowserArgs: *browserArgs,
 	})
 	if err != nil {
 		return err
@@ -78,6 +82,23 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		out.printf("use it with:  tls-forge fetch --profile %s <url>\n", shellQuote(saved))
 	}
 	return nil
+}
+
+// browserArgFlag registers --browser-arg on the two commands that drive a
+// browser.
+//
+// Long-only and repeatable, like the other flags that get written once in a
+// script and never typed: a letter for this would be a letter nobody remembers.
+//
+// It exists for the machine, not for the measurement. A CI runner needs
+// `--no-sandbox` — Ubuntu 24.04 restricts the unprivileged user namespaces
+// Chrome's sandbox is built on, and a Windows runner denies the sandbox access
+// to the executable in its own tool cache — and without it Chrome starts, never
+// loads the page, and the capture times out having watched a browser that was
+// never going to answer.
+func browserArgFlag(fs *pflag.FlagSet) *[]string {
+	return fs.StringArray("browser-arg", nil,
+		"extra flag for the browser, repeatable; for the machine, not the measurement")
 }
 
 // saveProfile turns a measurement into a profile and returns the name it was

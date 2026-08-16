@@ -13,6 +13,57 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The capture workflow measured a Chrome almost nobody runs.** `setup-chrome`
+  with `chrome-version: stable` installs Chrome for Testing's newest stable
+  build, which is not the same thing as the build being served: with 152 already
+  in the channel, 151.0.7922.138 was at 99% of the rollout and 152.0.7977.42 at
+  0.5% — because Chrome promotes a major version by serving it to a slice of
+  users and widening it over days, so several versions are stable at once. A
+  profile is worth having only in so far as it looks like everybody else, so a
+  fingerprint half a percent of Chrome sends is nearly as identifying as a
+  home-made one. The run now asks Chrome's release data what is actually being
+  served and measures the most widely served build, which also means the choice
+  moves on its own as a rollout progresses. A rollout split across builds of one
+  line settles the line first; a build Chrome for Testing does not publish falls
+  back to the newest of that line and says so. `--channel beta` looks ahead on
+  purpose, and an exact build can be named.
+
+- **A runner installed Chrome 150 while Google was serving 151.** A runner image
+  is built every few weeks and everything in it freezes at that moment,
+  Homebrew's cask metadata included: the cask itself pointed at 151.0.7922.138
+  and the runner's snapshot of it did not. Chrome is now fetched from
+  dl.google.com on all three platforms rather than through a package manager or
+  whatever the image came with, and a run stops if the version it got is behind
+  the one being served. Ahead is allowed and noted — that is an early slice of a
+  rollout, which is worth seeing rather than refusing.
+
+- **A capture from a CI runner was of the wrong browser.** `setup-chrome`
+  installs Chrome for Testing, which is not Chrome. Measured on one machine,
+  same version, headless both times: it sends `sec-ch-ua: "Chromium";v="151",
+  "Not=A?Brand";v="99"` where Chrome sends `"Not=A?Brand";v="99", "Google
+  Chrome";v="151", "Chromium";v="151"` — it announces itself as Chromium on
+  every request, and no flag changes that, because the branding is compiled in.
+  Its TLS differs too: it turns on the testing field-trial configuration and
+  with it experiments real users do not have, sending 20 extensions against
+  Chrome's 18, the extra two being `0xCA34` (TLS trust anchor identifiers) and
+  `0x12E0`, which utls does not know and which therefore would not even load.
+  `--disable-field-trial-config` fixes the TLS half and nothing else, so the
+  workflow installs Google Chrome itself instead. The cost is that the version
+  can no longer be chosen — Google serves the current stable and nothing else —
+  so the run reports what is being served next to what it measured, and drops
+  the inputs that promised a choice it cannot make.
+
+- **The capture workflow could not capture anything.** Chrome's sandbox does not
+  work on a hosted runner and fails silently: the browser starts, never loads
+  the page, and the measurement times out having watched something that was
+  never going to answer. `--browser-arg` passes flags through to the browser —
+  `--no-sandbox` is the one CI needs — and it is for the machine rather than the
+  measurement, since process isolation is not TLS.
+- **`chrome.exe --version` on Windows launches the browser** instead of printing
+  a version and exiting. The step that read it sat for seven minutes emitting
+  Chrome's startup logs before the job was cut off. Windows keeps the version in
+  the file itself, and it is read from there now.
+
 - **A hanging job now fails instead of hanging.** Every CI job has a ceiling,
   and `go test` is given a `-timeout` well under it, so a test that wedges is
   killed by Go — which prints a goroutine dump naming it — rather than by the
