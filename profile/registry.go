@@ -110,7 +110,7 @@ func lookup(fsys fs.FS, root, name string) ([]byte, bool) {
 		return data, true
 	}
 
-	// A version on its own: this machine's platform, or the only one there is.
+	// A version on its own: this machine's platform, or whichever there is.
 	if entries, err := fs.ReadDir(fsys, path.Join(root, name)); err == nil {
 		var files []string
 		for _, entry := range entries {
@@ -127,7 +127,20 @@ func lookup(fsys fs.FS, root, name string) ([]byte, bool) {
 				}
 			}
 		}
-		if len(files) == 1 {
+		// No capture for this machine's platform, so any of them will do.
+		//
+		// Falling back rather than failing, because the platform is not what a
+		// version name promises and not what the fingerprint is made of.
+		// Measured: Chrome 151 sends the same ClientHello on macOS and on Linux,
+		// down to the byte — it carries its own BoringSSL. What differs is the
+		// user-agent and sec-ch-ua-platform, and a profile saying macOS is a
+		// coherent identity from anywhere; it is what `--profile chrome_151_macos`
+		// has always meant. Refusing instead made `chrome_151` resolve to nothing
+		// on Windows, where no capture exists yet, and took the default profile
+		// down with it: the library would not start at all on a platform this
+		// project ships a binary for. Sorted, so which one it lands on does not
+		// depend on the order a filesystem happened to hand them over.
+		if len(files) > 0 {
 			if data, err := fs.ReadFile(fsys, path.Join(root, name, files[0])); err == nil {
 				return data, true
 			}

@@ -91,8 +91,17 @@ func TestAVersionWithOnePlatformNeedsNoGuess(t *testing.T) {
 }
 
 func TestAVersionWithSeveralAndNoneForThisMachine(t *testing.T) {
-	// Two to choose from and neither is this machine's: nothing is picked,
-	// because picking would be inventing. The named ones still work.
+	// Two to choose from and neither is this machine's: one is picked anyway,
+	// and always the same one.
+	//
+	// This used to refuse, on the reasoning that picking would be inventing. It
+	// would not: measured, Chrome 151 sends the same ClientHello on macOS and on
+	// Linux down to the byte, because Chrome carries its own BoringSSL. Only the
+	// user-agent differs, and a profile that says macOS is a coherent identity
+	// from anywhere — `--profile chrome_151_macos` on Linux has always been a
+	// legitimate thing to ask for. Refusing cost more than it protected: on
+	// Windows, where no capture exists yet, `chrome_151` resolved to nothing and
+	// took the default profile down with it, so the library would not start.
 	original := hostPlatform
 	t.Cleanup(func() { hostPlatform = original })
 	hostPlatform = "plan9"
@@ -101,11 +110,54 @@ func TestAVersionWithSeveralAndNoneForThisMachine(t *testing.T) {
 		"chrome_151_macos": "chrome_151/macos.json",
 		"chrome_151_linux": "chrome_151/linux.json",
 	})
-	if _, err := r.Get("chrome_151"); err == nil {
-		t.Error("a platform was guessed at")
+	p, err := r.Get("chrome_151")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
 	}
-	if _, err := r.Get("chrome_151_linux"); err != nil {
+	// Sorted, so it does not depend on the order a filesystem hands them over.
+	if p.Name != "chrome_151_linux" {
+		t.Errorf("got %q, want the first in sorted order", p.Name)
+	}
+	if _, err := r.Get("chrome_151_macos"); err != nil {
 		t.Errorf("the named one failed: %v", err)
+	}
+}
+
+func TestTheShippedCatalogueAnswersOnAPlatformItHasNoCaptureFor(t *testing.T) {
+	// The exact shape of a CI failure, kept as a test: on Windows, where this
+	// project ships a binary and a wheel but has captured no browser yet,
+	// `chrome_151` resolved to nothing — and so did `chrome`, and so did the
+	// default profile, so tlsforge.New() would not return a client at all. The
+	// error even listed chrome_151 among the names it said it did not know.
+	original := hostPlatform
+	t.Cleanup(func() { hostPlatform = original })
+	hostPlatform = "windows"
+
+	// "chrome" is what the root package's DefaultProfile resolves to; naming it
+	// here rather than importing keeps profile free of a cycle back to it.
+	for _, name := range []string{"chrome_151", "chrome"} {
+		p, err := Get(name)
+		if err != nil {
+			t.Errorf("%s: %v", name, err)
+			continue
+		}
+		if len(p.ClientHello) == 0 {
+			t.Errorf("%s resolved to %q, which has no handshake", name, p.Name)
+		}
+	}
+}
+
+func TestAVersionDirectoryWithNothingInIt(t *testing.T) {
+	// An interrupted capture, or a directory somebody made by hand. There is
+	// nothing to fall back to, so this is the one case that still refuses.
+	// A name nothing ships, or the shipped catalogue would answer for it and
+	// this would be testing the fallback to that instead.
+	r := laidOut(t, map[string]string{})
+	if err := os.MkdirAll(filepath.Join(r.Dir(), "mybrowser_9"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if _, err := r.Get("mybrowser_9"); err == nil {
+		t.Error("an empty directory resolved to something")
 	}
 }
 

@@ -13,6 +13,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The library would not start on Windows at all.** `chrome_151` is a directory
+  of captures, one per platform, and no Chrome has been captured on Windows yet.
+  A version name resolved to this machine's platform or, failing that, to the
+  only capture there was — and with two, it resolved to nothing. So `chrome_151`
+  was unknown, `chrome` was unknown, the default profile was unknown, and
+  `tlsforge.New()` returned an error that named `chrome_151` in the list of
+  profiles it said it did not know. It now falls back to the first capture in
+  sorted order, which costs nothing that matters: Chrome carries its own
+  BoringSSL, so the ClientHello is the same on every platform, down to the byte.
+  Only the user-agent differs, and a profile that says macOS is a coherent
+  identity from anywhere. `profiles` marks the one that will be used, as before.
+
 - **The command `tls-forge proxy` prints could not be copied on macOS.** The
   authority lives under the user's config directory, which on macOS is
   `~/Library/Application Support`, so the suggested `curl --cacert <path>`
