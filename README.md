@@ -190,6 +190,7 @@ a list, a proxy column or a warmed session is meant to look.
 | [`capture`](#capture) | measure the browser on this machine and save a profile |
 | [`compare`](#compare) | diff this library against that browser |
 | [`profiles`](#profiles) | list what can be impersonated |
+| [`proxy`](#proxy) | run a proxy that re-sends every request with the fingerprint |
 | [`serve`](#serve) | run the local echo server and point anything at it |
 | [`daemon`](#daemon) | JSON lines on stdin and stdout, for other languages |
 | [`version`](#version) | print the version |
@@ -828,6 +829,64 @@ tls-forge profiles
 ```
 
 Takes no flags.
+
+### proxy
+
+A proxy that puts the browser's handshake on **whatever is pointed at it**. No
+library, no rewriting a script: set one environment variable and the requests
+your existing code already makes go out with Chrome's fingerprint.
+
+```bash
+tls-forge proxy
+```
+
+```
+proxy listening on 127.0.0.1:8080
+
+  export HTTPS_PROXY=http://127.0.0.1:8080
+  curl --proxy http://127.0.0.1:8080 --cacert ~/.config/tls-forge/ca.pem https://example.com
+```
+
+Measured against the local instrument, curl on its own and the same curl through
+the proxy:
+
+| | JA4 | HTTP/2 | headers sent |
+|---|---|---|---|
+| curl | `t13d4907h2_0d8feac7bc37_7395dae3b2f3` | `3:100;4:10485760;2:0\|1048510465\|0\|m,s,a,p` | user-agent, accept |
+| through the proxy | `t13d1516h2_8daaf6152771_806a8c22fdea` | `1:65536;2:0;4:6291456;6:262144\|15663105\|0\|m,a,s,p` | Chrome's thirteen, in order |
+
+The second row is what `tls-forge fetch` produces, which is what Chrome
+produces.
+
+| flag | |
+|---|---|
+| `-a`, `--addr` | listen address, `127.0.0.1:8080` by default |
+| `--ca-cert` | the authority to sign with, generated beside the config by default |
+| `--ca-key` | its key |
+| `-q`, `--quiet` | stop reporting per-connection failures |
+| `-p`, `--profile` | which profile to wear |
+| `-x`, `--proxy` | an upstream proxy to go out through |
+| `-t`, `--timeout` | per-request deadline |
+| `-k`, `--insecure` | skip certificate verification **upstream**, which is separate from what the client asks of the proxy |
+
+#### It has to terminate TLS, and what that costs
+
+Replacing a handshake means making it, so the proxy cannot tunnel. A tunnelled
+`CONNECT` would carry your own client's fingerprint straight through to the
+site, which is the thing being avoided. So the proxy answers `CONNECT` itself,
+presents a certificate it signed, and makes its own connection outward.
+
+That means clients have to trust the authority it generates, and **that
+authority can impersonate any site to anything that trusts it**. Prefer
+`--cacert` on the one command that needs it over installing it system-wide, and
+delete the key when the job is done. It is written under the user's config
+directory rather than the working directory, so that a key with that much power
+does not get committed by whoever runs the proxy inside a repository.
+
+The proxy keeps no cookie jar of its own. It forwards the `Cookie` header its
+caller sent and nothing more, because a jar underneath would add a second one
+from its own store and leave the caller's session and the proxy's quietly
+diverging.
 
 ### serve
 

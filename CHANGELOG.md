@@ -55,6 +55,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`tls-forge proxy`**: a proxy that re-sends whatever is pointed at it with
+  the browser's handshake, so an existing script needs one environment variable
+  rather than a rewrite. Measured: curl through it produces Chrome's JA4, HTTP/2
+  fingerprint and header order instead of its own. It terminates TLS, because a
+  tunnelled CONNECT would carry the caller's fingerprint through, so clients
+  must trust the authority it generates; that authority is kept under the user's
+  config directory and its power is spelled out where it is documented.
+- `WithoutCookieJar`, which the proxy needs: it forwards its caller's Cookie
+  header and a jar underneath would add a second one from its own store.
+
 - A measured `chrome_151_linux` profile, captured from a headed Chrome
   151.0.7922.137 on Linux. Its handshake is identical to the macOS one: same
   JA4, same JA4_r, same HTTP/2 fingerprint, same header order. Chrome carries

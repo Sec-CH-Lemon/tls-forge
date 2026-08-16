@@ -132,3 +132,60 @@ func TestSeededCookiesCarryTheirExpiry(t *testing.T) {
 		t.Errorf("sent %q", res.Body)
 	}
 }
+
+func TestWithoutCookieJar(t *testing.T) {
+	// A proxy forwards whatever Cookie header its caller sent, and a jar
+	// underneath would add a second one from its own store, leaving the
+	// caller's session and the proxy's quietly diverging.
+	server := cookieEcho(t)
+	client, err := New(WithInsecureSkipVerify(), WithoutCookieJar())
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	// The server sets two cookies here.
+	res, err := client.Get(server.URL + "/set")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if len(res.Cookies) != 0 {
+		t.Errorf("a jarless client reported cookies: %v", res.Cookies)
+	}
+
+	// And nothing was kept, so the next request carries none of its own.
+	res, err = client.Get(server.URL + "/")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got := string(res.Body); got != "" {
+		t.Errorf("the second request carried %q", got)
+	}
+
+	// There is nothing to read back either, rather than a panic on a nil jar.
+	held, err := client.CookiesFor(server.URL + "/")
+	if err != nil || len(held) != 0 {
+		t.Errorf("CookiesFor = %v, %v", held, err)
+	}
+}
+
+func TestWithoutCookieJarIgnoresCookiesItIsHanded(t *testing.T) {
+	// Asking for no jar and then handing it cookies is a contradiction; the
+	// jarless half wins, because that is the one that was asked for explicitly
+	// and the one a proxy depends on.
+	server := cookieEcho(t)
+	client, err := New(WithInsecureSkipVerify(), WithoutCookieJar(),
+		WithCookies([]Cookie{{Name: "warm", Value: "1", Domain: mustHost(t, server.URL)}}))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	res, err := client.Get(server.URL + "/")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got := string(res.Body); got != "" {
+		t.Errorf("a jarless client sent %q", got)
+	}
+}

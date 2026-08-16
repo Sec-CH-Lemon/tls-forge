@@ -49,6 +49,7 @@ func commands() []command {
 		{"capture", "measure the browser installed on this machine", runCapture},
 		{"compare", "diff this library's handshake against the browser's", runCompare},
 		{"profiles", "list the profiles that can be impersonated", runProfiles},
+		{"proxy", "run a proxy that re-sends every request with the fingerprint", runProxy},
 		{"serve", "run the local fingerprint echo server", runServe},
 		{"daemon", "speak JSON lines on stdin/stdout", runDaemon},
 		{"version", "print the version", runVersion},

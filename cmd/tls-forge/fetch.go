@@ -189,11 +189,13 @@ func sessionFile(path string, set cookie.Set) []byte {
 // named, so a test can make the choice repeatable.
 var pickCookieSet = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-func (f clientFlags) client() (*tlsforge.Client, error) { return f.clientVia(*f.proxy) }
+func (f clientFlags) client(extra ...tlsforge.Option) (*tlsforge.Client, error) {
+	return f.clientVia(*f.proxy, extra...)
+}
 
 // clientVia builds a client through a named proxy, which batch needs because
 // there the proxy comes from the list rather than from the flag.
-func (f clientFlags) clientVia(proxy string) (*tlsforge.Client, error) {
+func (f clientFlags) clientVia(proxy string, extra ...tlsforge.Option) (*tlsforge.Client, error) {
 	opts := []tlsforge.Option{
 		tlsforge.WithProfile(*f.profile),
 		tlsforge.WithTimeout(*f.timeout),
@@ -211,7 +213,7 @@ func (f clientFlags) clientVia(proxy string) (*tlsforge.Client, error) {
 	if *f.insecure {
 		opts = append(opts, tlsforge.WithInsecureSkipVerify())
 	}
-	return tlsforge.New(opts...)
+	return tlsforge.New(append(opts, extra...)...)
 }
 
 // asClientCookies is the file's shape as the client's.

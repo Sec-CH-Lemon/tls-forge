@@ -19,6 +19,7 @@ type config struct {
 	timeout            time.Duration
 	headers            Header
 	jar                tls_client.CookieJar
+	noJar              bool
 	cookies            []Cookie
 	followRedirects    bool
 	insecureSkipVerify bool
@@ -75,6 +76,16 @@ func WithHeaders(h Header) Option {
 // at once.
 func WithCookies(cookies []Cookie) Option {
 	return func(c *config) { c.cookies = append(c.cookies, cookies...) }
+}
+
+// WithoutCookieJar stops the client from keeping cookies of its own.
+//
+// One case needs this and it is not an optimisation. A proxy forwards whatever
+// Cookie header its caller sent, and a jar underneath would add a second one
+// from its own store, leaving the caller's session and the proxy's quietly
+// diverging. Whoever holds the session should be the only one holding it.
+func WithoutCookieJar() Option {
+	return func(c *config) { c.noJar = true }
 }
 
 // WithCookieJar supplies a jar, which is how a session is shared between

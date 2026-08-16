@@ -132,8 +132,10 @@ func New(opts ...Option) (*Client, error) {
 		return nil, err
 	}
 
+	// A nil jar reaches the transport as nil, which then keeps no cookies at
+	// all. That is what WithoutCookieJar asks for.
 	jar := cfg.jar
-	if jar == nil {
+	if jar == nil && !cfg.noJar {
 		jar = tls_client.NewCookieJar()
 	}
 
@@ -265,8 +267,10 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	for name, values := range res.Header {
 		out.Header[strings.ToLower(name)] = values
 	}
-	for _, cookie := range c.jar.Cookies(parsed) {
-		out.Cookies = append(out.Cookies, cookie.Name+"="+cookie.Value)
+	if c.jar != nil {
+		for _, cookie := range c.jar.Cookies(parsed) {
+			out.Cookies = append(out.Cookies, cookie.Name+"="+cookie.Value)
+		}
 	}
 	return out, nil
 }
@@ -299,6 +303,9 @@ func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
+	if c.jar == nil {
+		return nil, nil
+	}
 	held := c.jar.Cookies(u)
 	out := make([]Cookie, 0, len(held))
 	for _, cookie := range held {
@@ -316,7 +323,7 @@ func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
 }
 
 func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
-	if len(cookies) == 0 {
+	if len(cookies) == 0 || c.jar == nil {
 		return
 	}
 	jarCookies := make([]*fhttp.Cookie, 0, len(cookies))
