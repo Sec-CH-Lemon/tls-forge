@@ -1,0 +1,74 @@
+name: capture
+
+# Measure the browser on each platform and offer the profiles for download.
+#
+# Run by hand from the Actions tab, because a capture is a measurement of a
+# particular browser build: it belongs in the repository when someone has looked
+# at it and decided it is the one to ship, not on every push.
+#
+# The handshake is the same on all three, which was measured: Chrome carries its
+# own BoringSSL, so macOS and Linux produce an identical JA4. What a per-platform
+# profile carries that matters is the user-agent and sec-ch-ua-platform, and a
+# profile claiming Windows while saying macOS in its user-agent is worse than no
+# profile at all.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: chrome_151_macos
+          - os: windows-latest
+            name: chrome_151_windows
+          - os: ubuntu-latest
+            name: chrome_151_linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+        with:
+          chrome-version: stable
+
+      - name: capture
+        shell: bash
+        run: |
+          mkdir -p captured
+          # Headed, under a virtual display on Linux: a headless browser puts
+          # "HeadlessChrome" in its user-agent, and a profile that announces
+          # that is not the browser anyone is impersonating.
+          run() {
+            go run ./cmd/tls-forge capture \
+              --browser "${{ steps.chrome.outputs.chrome-path }}" \
+              --save captured --name "${{ matrix.name }}" --timeout 3m
+          }
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb
+            xvfb-run -a bash -c "$(declare -f run); run"
+          else
+            run
+          fi
+
+      - name: what was measured
+        shell: bash
+        run: |
+          go run ./cmd/tls-forge fetch \
+            --profile "captured/${{ matrix.name }}.json" \
+            --timeout 60s https://tls.peet.ws/api/all | head -c 2000
+          echo
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.name }}
+          path: captured/${{ matrix.name }}.json

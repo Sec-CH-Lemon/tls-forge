@@ -113,7 +113,7 @@ func TestNames(t *testing.T) {
 	if position["my_browser"] > position["chrome_133"] {
 		t.Errorf("registered profiles should be listed before catalogue entries: %v", names[:6])
 	}
-	if position["chrome_151"] == 0 && !registry.Measured("chrome_151") {
+	if position["chrome_151"] == 0 && !registry.HasHandshake("chrome_151") {
 		t.Error("the embedded profile should be listed and measured")
 	}
 
@@ -128,13 +128,13 @@ func TestNames(t *testing.T) {
 }
 
 func TestMeasured(t *testing.T) {
-	if !Default.Measured("chrome_151") {
+	if !Default.HasHandshake("chrome_151") {
 		t.Error("the shipped Chrome profile should count as measured")
 	}
-	if Default.Measured("chrome_133") {
+	if Default.HasHandshake("chrome_133") {
 		t.Error("a catalogue entry is not a measured profile")
 	}
-	if Default.Measured("nothing_like_this") {
+	if Default.HasHandshake("nothing_like_this") {
 		t.Error("an unknown profile is not measured")
 	}
 }

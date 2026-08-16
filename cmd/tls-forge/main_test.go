@@ -779,7 +779,7 @@ func TestSaveProfileRejectsAResumedCapture(t *testing.T) {
 	measured := &capture.Capture{RawClientHello: raw}
 	measured.TLS.Resumed = true
 
-	if _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured); err == nil {
+	if _, _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured); err == nil {
 		t.Error("expected a resumed capture to be refused")
 	}
 }
@@ -912,4 +912,291 @@ func TestIsTerminalReader(t *testing.T) {
 	if !isTerminalReader(devNull) {
 		t.Error("a character device was not recognised")
 	}
+}
+
+// keepProfilesIn points this machine's profile directory at a temporary one, so
+// a test never reads or writes the real one.
+func keepProfilesIn(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "profiles")
+	t.Setenv("TLSFORGE_PROFILES", dir)
+	profile.Default.SetDir(dir)
+	t.Cleanup(func() { profile.Default.SetDir(profile.DefaultDir()) })
+	return dir
+}
+
+func TestCaptureInstallsIntoThisMachinesDirectory(t *testing.T) {
+	dir := keepProfilesIn(t)
+
+	code, stdout, stderr := exec(t, "capture", "--browser", browserStandIn(t),
+		"--timeout", "30s", "--install")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	// Named after the profile, which is also the name --profile finds it by.
+	// A directory per version holding one file per platform.
+	written := filepath.Join(dir, "chrome_151", profile.HostPlatform()+".json")
+	if _, err := os.Stat(written); err != nil {
+		t.Fatalf("nothing was kept: %v", err)
+	}
+	if !strings.Contains(stdout, written) {
+		t.Errorf("stdout does not say where it went:\n%s", stdout)
+	}
+	// And says how to use it, since the whole point is that a name now works.
+	if !strings.Contains(stdout, "--profile chrome_151_"+profile.HostPlatform()) {
+		t.Errorf("stdout does not say how to use it:\n%s", stdout)
+	}
+
+	// The name resolves, and to what was kept rather than to what shipped.
+	p, err := profile.Get("chrome_151_" + profile.HostPlatform())
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if !strings.Contains(p.Notes, "captured") {
+		t.Errorf("the shipped profile answered instead: %q", p.Notes)
+	}
+}
+
+func TestCaptureSaveIntoADirectory(t *testing.T) {
+	// A directory gets a file named after the profile, the way --report does.
+	dir := t.TempDir()
+	code, stdout, _ := exec(t, "capture", "--browser", browserStandIn(t),
+		"--timeout", "30s", "--save", dir)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stdout)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "chrome_151", profile.HostPlatform()+".json")); err != nil {
+		t.Errorf("nothing was written: %v", err)
+	}
+}
+
+func TestCaptureWithNowhereToKeepProfiles(t *testing.T) {
+	// A container with no home and no override has nowhere to install to, and
+	// should say so rather than write somewhere surprising.
+	t.Setenv("TLSFORGE_PROFILES", "")
+	if runtime.GOOS == "windows" {
+		t.Skip("HOME is not the mechanism on Windows")
+	}
+	t.Setenv("HOME", "")
+
+	code, _, stderr := exec(t, "capture", "--browser", browserStandIn(t),
+		"--timeout", "30s", "--install")
+	if code == 0 {
+		t.Fatal("exit code = 0")
+	}
+	if !strings.Contains(stderr, "TLSFORGE_PROFILES") {
+		t.Errorf("stderr does not say what to set: %q", stderr)
+	}
+}
+
+func TestCaptureSaysHowToKeepAProfile(t *testing.T) {
+	code, stdout, _ := exec(t, "capture", "--browser", browserStandIn(t), "--timeout", "30s")
+	if code != 0 {
+		t.Fatalf("exit code = %d", code)
+	}
+	if !strings.Contains(stdout, "--install") {
+		t.Errorf("a capture that kept nothing does not say how to keep one:\n%s", stdout)
+	}
+}
+
+func TestProfilesMarksTheOnesKeptHere(t *testing.T) {
+	dir := keepProfilesIn(t)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	shipped, err := profile.Get("chrome_151")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	shipped.Name = "my_browser"
+	data, err := shipped.Save()
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "my_browser.json"), data, 0o644); err != nil {
+		t.Fatalf("writing: %v", err)
+	}
+
+	code, stdout, _ := exec(t, "profiles")
+	if code != 0 {
+		t.Fatalf("exit code = %d", code)
+	}
+	if !strings.Contains(stdout, "* my_browser") {
+		t.Errorf("the profile kept here is not marked:\n%s", stdout)
+	}
+	// And the listing says where that is, or nobody can find it.
+	if !strings.Contains(stdout, dir) {
+		t.Errorf("the listing does not name the directory:\n%s", stdout)
+	}
+}
+
+func TestCaptureCannotMakeTheProfileDirectory(t *testing.T) {
+	// A file where the directory should be. Reported rather than left to fail
+	// later with a stranger message about a path.
+	blocked := filepath.Join(t.TempDir(), "profiles")
+	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
+		t.Fatalf("writing: %v", err)
+	}
+	t.Setenv("TLSFORGE_PROFILES", blocked)
+
+	code, _, stderr := exec(t, "capture", "--browser", browserStandIn(t),
+		"--timeout", "30s", "--install")
+	if code == 0 {
+		t.Fatal("exit code = 0")
+	}
+	if !strings.Contains(stderr, "capture:") {
+		t.Errorf("stderr = %q", stderr)
+	}
+}
+
+func TestCaptureCannotMakeTheVersionDirectory(t *testing.T) {
+	// A file where the version's directory should be. Reported rather than left
+	// to fail later with a stranger message about a path.
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "chrome_151"), nil, 0o644); err != nil {
+		t.Fatalf("writing: %v", err)
+	}
+	code, _, stderr := exec(t, "capture", "--browser", browserStandIn(t),
+		"--timeout", "30s", "--save", dir)
+	if code == 0 {
+		t.Fatal("exit code = 0")
+	}
+	if stderr == "" {
+		t.Error("nothing was reported")
+	}
+}
+
+func TestProfilesMarksAPlatformKeptHere(t *testing.T) {
+	// A machine that measured one platform still resolves the shipped profile
+	// for the others, and the listing has to show both with only one starred.
+	dir := keepProfilesIn(t)
+	version := filepath.Join(dir, "chrome_151")
+	if err := os.MkdirAll(version, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	shipped, err := profile.Get("chrome_151_linux")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	shipped.Name = "chrome_151_" + profile.HostPlatform()
+	data, err := shipped.Save()
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(version, profile.HostPlatform()+".json"), data, 0o644); err != nil {
+		t.Fatalf("writing: %v", err)
+	}
+
+	code, stdout, _ := exec(t, "profiles")
+	if code != 0 {
+		t.Fatalf("exit code = %d", code)
+	}
+	// Every line is a name that can be copied into --profile.
+	for _, want := range []string{"chrome_151", "chrome_151_linux", "chrome_151_macos"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("the listing has no %q:\n%s", want, stdout)
+		}
+	}
+	if !strings.Contains(stdout, "*   chrome_151_"+profile.HostPlatform()) {
+		t.Errorf("the platform kept here is not marked:\n%s", stdout)
+	}
+}
+
+func TestProfilesListsAProfileThatWillNotLoadWithTheCatalogue(t *testing.T) {
+	// A profile that exists but will not load is exactly the thing a user needs
+	// to be told about, so it is listed rather than silently dropped.
+	dir := keepProfilesIn(t)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "broken.json"), []byte("{"), 0o644); err != nil {
+		t.Fatalf("writing: %v", err)
+	}
+
+	code, stdout, _ := exec(t, "profiles")
+	if code != 0 {
+		t.Fatalf("exit code = %d", code)
+	}
+	if !strings.Contains(stdout, "broken") {
+		t.Errorf("a profile that will not load vanished from the listing:\n%s", stdout)
+	}
+}
+
+func TestProfilesIsANameListRatherThanUserAgents(t *testing.T) {
+	keepProfilesIn(t)
+	code, stdout, _ := exec(t, "profiles")
+	if code != 0 {
+		t.Fatalf("exit code = %d", code)
+	}
+
+	// Names, not the user-agents behind them: the listing answers "what is
+	// there and which one do I get", and a browser's full user-agent on every
+	// row buries both.
+	if strings.Contains(stdout, "Mozilla/5.0") {
+		t.Errorf("the listing carries user-agents:\n%s", stdout)
+	}
+
+	// The one a run lands on when nobody says, marked once rather than on every
+	// name that reaches it.
+	fallback, err := profile.Get(tlsforge.DefaultProfile)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	var marked []string
+	for _, line := range strings.Split(stdout, "\n") {
+		if strings.HasSuffix(line, "<") {
+			marked = append(marked, strings.TrimSpace(strings.TrimSuffix(line, "<")))
+		}
+	}
+	if len(marked) != 1 {
+		t.Fatalf("%d rows are marked as the default: %v", len(marked), marked)
+	}
+	if strings.TrimPrefix(marked[0], "* ") != fallback.Name {
+		t.Errorf("the default is marked on %q, want %q", marked[0], fallback.Name)
+	}
+
+	// And no row trails a space, which is what an arrow column does when it is
+	// padded onto every line.
+	for _, line := range strings.Split(stdout, "\n") {
+		if line != strings.TrimRight(line, " ") && !strings.Contains(line, "  ") {
+			t.Errorf("a row trails whitespace: %q", line)
+		}
+	}
+}
+
+func TestProfilesMarksAFlatProfileAsTheDefault(t *testing.T) {
+	// A profile with no platforms of its own carries the mark on its own line,
+	// since there is no more specific name to put it on.
+	dir := keepProfilesIn(t)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	shipped, err := profile.Get("chrome_151_linux")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	// Named so that "chrome" resolves to it: a higher version than anything
+	// shipped, laid out flat.
+	shipped.Name = "chrome_999"
+	data, err := shipped.Save()
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "chrome_999.json"), data, 0o644); err != nil {
+		t.Fatalf("writing: %v", err)
+	}
+
+	code, stdout, _ := exec(t, "profiles")
+	if code != 0 {
+		t.Fatalf("exit code = %d", code)
+	}
+	if !strings.Contains(stdout, "* chrome_999") {
+		t.Errorf("the flat profile is not marked as kept here:\n%s", stdout)
+	}
+	for _, line := range strings.Split(stdout, "\n") {
+		if strings.Contains(line, "chrome_999") && strings.HasSuffix(line, "<") {
+			return
+		}
+	}
+	t.Errorf("the flat profile is not marked as the default:\n%s", stdout)
 }

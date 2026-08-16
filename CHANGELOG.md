@@ -55,6 +55,30 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- A measured `chrome_151_linux` profile, captured from a headed Chrome
+  151.0.7922.137 on Linux. Its handshake is identical to the macOS one: same
+  JA4, same JA4_r, same HTTP/2 fingerprint, same header order. Chrome carries
+  its own BoringSSL, so the ClientHello does not depend on the platform. What
+  differs is the user-agent and `sec-ch-ua-platform`, which is what a
+  per-platform profile is for.
+- A `capture` workflow that measures Chrome on macOS, Windows and Linux runners
+  and offers each profile for download. No Windows profile has been invented in
+  the meantime.
+
+### Fixed
+
+- `capture --json` and `compare --json` printed a line of commentary on standard
+  output ahead of the document, so redirecting either to a file produced JSON
+  that would not parse. It goes to standard error now.
+
+- **A place to keep profiles measured on this machine.** `capture --install`
+  writes one into the user's config directory, and `--profile` finds it there by
+  name, ahead of the profiles that ship. That order is the point: a Chrome
+  captured here beats the one shipped, because it is the browser a server will
+  compare against. `TLSFORGE_PROFILES` moves the directory, `profiles` marks
+  the local ones and prints the path, `--save` given a directory names the file
+  after the profile, and `--profile` also takes a path to a file anywhere.
+
 - The **Netscape cookie file** (`cookies.txt`) is read and written: the format
   curl writes with `-c` and reads with `-b`, and what wget, yt-dlp and every
   browser cookie-export extension produce. Checked against curl in both
@@ -96,6 +120,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a test fails if the template uses a class the committed stylesheet lacks.
 
 ### Changed
+
+- **Profiles are laid out as a directory per version holding one file per
+  platform**, `chrome_151/macos.json` and `chrome_151/linux.json`, and
+  `capture --install` writes into the same shape. `chrome_151` now means the
+  variant for this machine's platform, `chrome_151_macos` names one outright,
+  and a flat `<name>.json` still works for one written by hand.
+- `profiles` groups the listing by version, prints every line as a name that
+  can be copied into `--profile`, stars anything kept on this machine, and
+  marks the one a run lands on when no profile is named. It lists names rather
+  than user-agents: the question it answers is what is there and which one you
+  get. What shipped and what is local are shown together, since both resolve.
 
 - `--retry` becomes `--repeat`, and the default is 3 rather than none: it now
   counts further tries after the first, so a URL that does not load is asked for

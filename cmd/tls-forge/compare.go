@@ -10,7 +10,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
-func runCompare(ctx context.Context, args []string, out, _ *printer) error {
+func runCompare(ctx context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("compare", out)
 	profileName := fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to check")
 	browserName := fs.StringP("browser", "b", "", "browser to compare against")
@@ -30,7 +30,7 @@ func runCompare(ctx context.Context, args []string, out, _ *printer) error {
 		return err
 	}
 
-	out.println("measuring the browser…")
+	errOut.println("measuring the browser…")
 	result, err := tlsforge.CompareToBrowser(ctx,
 		tlsforge.MeasureOptions{Browser: *browserName, Headless: *headless, Timeout: *timeout},
 		tlsforge.WithProfile(*profileName),

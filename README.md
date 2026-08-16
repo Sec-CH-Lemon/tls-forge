@@ -638,7 +638,8 @@ tls-forge capture -j > raw.json                      # everything measured
 |---|---|
 | `-b`, `--browser` | `chrome`, `chromium`, `edge`, `brave`, or a path. Searches if omitted |
 | `--headless` | no window. Measured to send the identical handshake, but headed is the default because a headed browser is the thing being impersonated |
-| `-s`, `--save` | write a reusable profile here |
+| `-s`, `--save` | write a reusable profile here. A directory gets `<name>.json` |
+| `--install` | keep it in this machine's own directory, where `--profile` finds it by name |
 | `-n`, `--name` | name it yourself instead of deriving one from the browser version |
 | `-j`, `--json` | print the raw capture rather than a summary |
 | `-t`, `--timeout` | how long to wait for the browser, 2m by default |
@@ -647,6 +648,115 @@ A browser window opens, shows what it sent, and can be closed. Nothing touches
 your real browser profile: every launch gets a throwaway user-data directory,
 which also keeps the `--ignore-certificate-errors` flag this needs from ever
 applying to a profile you browse with.
+
+#### The handshake is the same on every platform
+
+Measured, not assumed. Chrome 151 captured on macOS and Chrome 151.0.7922.137
+captured on Linux produce the identical handshake:
+
+| | macOS | Linux |
+|---|---|---|
+| JA4 | `t13d1516h2_8daaf6152771_806a8c22fdea` | the same |
+| JA4_r | | the same |
+| HTTP/2 | `1:65536;2:0;4:6291456;6:262144\|15663105\|0\|m,a,s,p` | the same |
+| header order | | the same |
+
+Chrome carries its own BoringSSL, so the ClientHello it builds does not depend
+on the operating system underneath. Of seventeen request headers, fourteen
+match exactly. What a per-platform profile carries that matters is the three
+that do not:
+
+```
+user-agent          Macintosh; Intel Mac OS X 10_15_7   vs   X11; Linux x86_64
+sec-ch-ua-platform  "macOS"                             vs   "Linux"
+```
+
+So capturing on another machine will not move your JA4. It will give you a
+user-agent and a platform hint that agree with each other, which a server can
+check against nothing else but is free to notice.
+
+#### One version, one directory
+
+A version measured on several platforms is one profile with several spellings,
+so it is kept as a directory:
+
+```
+profile/data/chrome_151/macos.json
+profile/data/chrome_151/linux.json
+```
+
+Three names reach them:
+
+| name | what it means |
+|---|---|
+| `chrome_151` | Chrome 151 as it looks from **this machine**: macOS here, Windows there |
+| `chrome_151_linux` | that platform, said outright, whatever this machine is |
+| `chrome` | the newest measured Chrome, then as above |
+
+The plain name meaning this machine's platform is the right way round: anything
+else is one word longer and says so, which is what a thing that changes what a
+server sees should ask for. A version with only one platform measured needs no
+guess and gives you that one.
+
+There is no Windows profile here yet, and none has been invented: the
+[capture workflow](.github/workflows/capture.yml) runs a real Chrome on macOS,
+Windows and Linux runners and offers the three for download, which is how a
+real one gets made.
+
+`tls-forge profiles` shows what there is, grouped, and every line is a name that
+can be copied into `--profile`:
+
+```
+Measured from a real browser.
+  * kept on this machine, and used ahead of anything shipped
+  < what you get when no profile is named
+
+* chrome_151
+    chrome_151_linux
+*   chrome_151_macos          <
+```
+
+Names rather than the user-agents behind them: the question a listing answers is
+what is there and which one you get. The arrow goes on the file that is actually
+used, not on every name that reaches it.
+
+Both sources are shown at once, not one instead of the other: a machine that
+measured its own macOS Chrome still resolves the shipped Linux profile, and a
+listing that showed only the local one would be saying less than is true.
+
+#### Where profiles are kept
+
+Four places are searched for a `--profile` name, in this order:
+
+1. anything registered at runtime by a program using the library,
+2. **this machine's own directory**, which is where `capture --install` puts one, laid out the same way,
+3. the profiles measured and shipped here,
+4. the tls-client catalogue.
+
+The order is the point. A profile captured from the Chrome on this machine
+beats the one that shipped, because that browser is what a server will be
+comparing the handshake against. `tls-forge profiles` marks the local ones with
+a star and prints the directory:
+
+```
+* chrome_151               Mozilla/5.0 (Macintosh; …) Chrome/151.0.0.0 Safari/537.36
+  chrome_144               Mozilla/5.0 (Macintosh; …) Chrome/144.0.0.0 Safari/537.36
+
+Kept on this machine in: ~/Library/Application Support/tls-forge/profiles
+```
+
+The directory is under the user's config directory, `%AppData%` on Windows and
+`~/.config` on Linux, rather than beside the binary: a profile is this machine's
+measurement of this machine's browser and should survive a reinstall.
+`TLSFORGE_PROFILES` moves it, which is how a container or a CI job says where to
+look.
+
+`--profile` also takes a path, for a profile that lives somewhere else
+entirely:
+
+```bash
+tls-forge fetch --profile ./measured/my-chrome.json https://example.com/
+```
 
 ### compare
 
