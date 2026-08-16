@@ -943,7 +943,8 @@ tls-forge daemon -p chrome_151 -x http://user:pass@host:8080
 | `-t`, `--timeout` | per-request deadline. Give it more than the caller's, or a timeout races |
 | `-k`, `--insecure` | skip certificate verification |
 
-The protocol is described under [Node.js](#nodejs).
+The protocol is described under [Node.js](#nodejs), and there are working
+clients for it in [node/](node/) and [python/](python/).
 
 ### version
 
@@ -956,10 +957,11 @@ without `-ldflags` reports `dev`.
 
 ## Add it to your project
 
-> The command, the repository and the npm package are `tls-forge`. The Go
-> package is `tlsforge`, without the hyphen, because Go identifiers cannot
-> contain one, so imports read `tlsforge.New(…)`. Error strings use the Go
-> package name, as Go convention expects.
+> The command, the repository, the npm package and the PyPI package are all
+> `tls-forge`. The Go package and the Python import are `tlsforge`, without the
+> hyphen, because neither a Go identifier nor a Python module name can contain
+> one — so they read `tlsforge.New(…)` and `import tlsforge`. Error strings use
+> that name too, as Go convention expects.
 
 ### Go
 
@@ -1043,8 +1045,35 @@ npm installs the one that matches and skips the others. That is the arrangement
 esbuild uses, and it survives `npm ci --ignore-scripts`, which a postinstall step
 does not. Full documentation is in [node/](node/).
 
-Under it is the `daemon` command, one JSON object per line on stdin and stdout,
-so any other language can borrow the fingerprint the same way:
+### Python
+
+```bash
+pip install tls-forge
+```
+
+```python
+import tlsforge
+
+with tlsforge.Client(profile="chrome", proxy="http://user:pass@host:8080") as client:
+    res = client.get("https://tls.browserleaks.com/json")
+    print(res.status, res.json()["ja4"])
+```
+
+```
+200 t13d1516h2_8daaf6152771_806a8c22fdea
+```
+
+No Go, no build step, no download during install, and no dependencies — a wheel
+is already platform-tagged, so pip fetches the one for your machine with the
+binary in it. A `Client` is a context manager and closes on the way out.
+Full documentation is in [python/](python/).
+
+A client serialises, because one session is one request at a time. Scrape in
+parallel with a pool of them, one per proxy, which is also what keeps the
+identities apart.
+
+Under all three is the `daemon` command, one JSON object per line on stdin and
+stdout, so any other language can borrow the fingerprint the same way:
 
 ```
 in : {"id":7,"url":"https://…","headers":{"a":"b"},"order":["a"]}

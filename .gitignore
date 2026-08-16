@@ -19,6 +19,18 @@ coverage.html
 node_modules/
 npm-debug.log*
 
+# Python
+# Any name, because a throwaway one gets made and a plain `.venv/` would not
+# match it — measured the hard way, by nearly committing one.
+.venv*/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.coverage
+# Where a platform wheel's binary is staged before the wheel is built. The
+# source tree ships no binary; the wheel does.
+/python/src/tlsforge/bin/
+
 # Editors and OS
 .DS_Store
 .idea/

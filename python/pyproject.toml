@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tls-forge"
+version = "0.0.0.dev0"
+description = "Scraping HTTP client that gets past TLS fingerprinting — sends a real browser's JA3/JA4, HTTP/2 and header order"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "Ihar Kazlouski" }]
+# No dependencies, and none wanted: the whole point is not to be at the mercy of
+# whatever TLS stack a dependency drags in.
+dependencies = []
+requires-python = ">=3.9"
+keywords = [
+    "scraper", "scraping", "web-scraping", "cloudflare", "bot-detection",
+    "anti-bot", "tls", "tls-fingerprint", "ja3", "ja4", "http2",
+    "fingerprint", "browser", "impersonate", "utls",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/Sec-CH-Lemon/tls-forge"
+Source = "https://github.com/Sec-CH-Lemon/tls-forge"
+Changelog = "https://github.com/Sec-CH-Lemon/tls-forge/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=8", "coverage>=7"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tlsforge"]
+# py.typed is kept out of git (it is empty) and hatchling skips VCS-ignored
+# files unless they are named here. It is also what makes the annotations
+# visible to a type checker: the "Typing :: Typed" classifier above is a
+# claim, this is the mechanism.
+artifacts = ["src/tlsforge/py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Every warning is an error: a ResourceWarning about an unreaped child is
+# exactly the bug this client is arranged to avoid, and a warning nobody reads
+# would let it back in.
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["tlsforge"]
+# The reader threads do their work off the main thread, and their lines are the
+# ones that matter most.
+concurrency = ["thread"]
+
+[tool.coverage.report]
+# A gate, not a report, as everywhere else in this project.
+fail_under = 100
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]

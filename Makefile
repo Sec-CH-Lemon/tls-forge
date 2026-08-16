@@ -2,8 +2,10 @@ GO      ?= go
 BIN     ?= bin/tls-forge
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVER   ?= coverage.out
+PYTHON  ?= python3
+VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test check capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test check capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -42,10 +44,19 @@ lint:
 node-test:
 	cd node && npm test
 
+# A gate too, and a stricter one than Node's: 100% of lines AND branches.
+# Python names the branch it missed, so the number is one somebody can act on.
+# The suite runs against a stand-in transport — no Go build, no network.
+python-test:
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(VENV)/bin/pip install -q -e 'python[test]'
+	cd python && ../$(VENV)/bin/python -m coverage run -m pytest -q
+	cd python && ../$(VENV)/bin/python -m coverage report
+
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
 # CI runs them as separate jobs.
-check: vet lint test cover node-test
+check: vet lint test cover node-test python-test
 
 # Measure the browser on this machine. The profile is named after the browser
 # it came from, so it lands in profile/data/ ready to commit.
@@ -90,4 +101,5 @@ report-css:
 	cd tools/report-css && npm install --silent && npm run build
 
 clean:
-	rm -rf bin $(COVER) node/vendor tools/report-css/node_modules
+	rm -rf bin $(COVER) node/vendor tools/report-css/node_modules $(VENV) \
+		python/.coverage python/src/*.egg-info python/src/tlsforge/bin

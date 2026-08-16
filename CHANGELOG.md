@@ -64,6 +64,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **A Python client**, in [`python/`](python/): `pip install tls-forge`, then
+  `import tlsforge`. Same daemon protocol as the Node client, and the same
+  identity model — one `Client` is one process, one fingerprint, one jar, one
+  exit IP — with a context manager, a frozen `Response` carrying `.ok` and
+  `.json()`, and an exception per thing worth doing about it. No dependencies,
+  and the binary ships in the wheel, so nothing is downloaded at install time.
+  A client serialises rather than pretending a session can overlap itself;
+  parallelism is a pool of clients. Measured against the real transport: the
+  JA4 it produces is Chrome's. At **100% line and branch coverage**, gated by
+  `make python-test`, with the suite running against a stand-in transport so it
+  needs no Go build and no network.
+
 - **`tls-forge proxy`**: a proxy that re-sends whatever is pointed at it with
   the browser's handshake, so an existing script needs one environment variable
   rather than a rewrite. Measured: curl through it produces Chrome's JA4, HTTP/2
