@@ -49,7 +49,7 @@ jobs:
       # Not for the project — nothing here is Python — but because both the
       # step that reads the capture and the one that writes the summary use it,
       # and `python3` is not on PATH in Git Bash on the Windows runner.
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       # Google Chrome, not Chrome for Testing.
@@ -356,7 +356,7 @@ jobs:
       # The artifact keeps the directory, so what comes out of the zip is
       # already laid out the way profile/data expects and can be copied in
       # whole rather than filed by hand.
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.captured.outputs.name }}
           path: captured/

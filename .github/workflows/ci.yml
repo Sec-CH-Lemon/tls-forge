@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e 'python[test]'
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - run: pip install build wheel
@@ -193,11 +193,22 @@ jobs:
         id: chrome
 
       - name: compare against the runner's Chrome
-        # Informational: the runner's Chrome is whatever GitHub ships this week,
-        # so a difference here means "the shipped profile is not this build",
-        # which is expected and useful to see rather than a reason to fail the
-        # build.
+        # Informational: the runner's Chrome is whatever the action installs
+        # this week, so a difference means "the shipped profile is not this
+        # build", which is useful to see rather than a reason to fail.
+        #
+        # --disable-field-trial-config because this installs Chrome for Testing,
+        # which turns on the testing field-trial configuration and with it
+        # experiments real users do not have — measured, two extra extensions
+        # and a different JA4. Without the flag this job reports three fields
+        # differing on every push, which is noise that hides the difference it
+        # exists to show. It only settles the TLS half: Chrome for Testing also
+        # announces itself as Chromium in sec-ch-ua, and `compare` looks at
+        # header order rather than values, so that part goes unnoticed here.
+        # `capture` installs real Chrome for exactly that reason.
         continue-on-error: true
         run: |
-          go run ./cmd/tls-forge compare \
-            --headless --browser "${{ steps.chrome.outputs.chrome-path }}"
+          go run ./cmd/tls-forge compare --headless \
+            --browser "${{ steps.chrome.outputs.chrome-path }}" \
+            --browser-arg=--no-sandbox \
+            --browser-arg=--disable-field-trial-config
