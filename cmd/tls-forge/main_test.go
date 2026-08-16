@@ -29,7 +29,13 @@ import (
 func exec(t *testing.T, args ...string) (code int, stdout, stderr string) {
 	t.Helper()
 	var out, errOut bytes.Buffer
-	code = run(context.Background(), args, &out, &errOut)
+	// Bounded, because `proxy` and `serve` run until their context is cancelled
+	// and a background context is never cancelled. A test that starts one by
+	// accident used to wedge the whole package for the five minutes `go test`
+	// allows, and the panic that ended it named the test but not the reason.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	code = run(ctx, args, &out, &errOut)
 	return code, out.String(), errOut.String()
 }
 

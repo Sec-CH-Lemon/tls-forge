@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -509,7 +510,9 @@ func TestCAIsReusedBetweenRuns(t *testing.T) {
 	}
 	// The key is the authority. Anyone who reads it can impersonate every site
 	// to anyone who trusts this CA.
-	if mode := info.Mode().Perm(); mode != 0o600 {
+	// Skipped on Windows, which reports 0666 whatever was asked for: the mode is
+	// a Unix idea, and the key is still written with it where it means something.
+	if mode := info.Mode().Perm(); mode != 0o600 && runtime.GOOS != "windows" {
 		t.Errorf("key file mode = %o, want 600", mode)
 	}
 }

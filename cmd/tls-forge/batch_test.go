@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -385,6 +386,9 @@ func TestBatchCannotWriteWhereItWasTold(t *testing.T) {
 }
 
 func TestBatchReportsABodyItCannotWrite(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no Unix permission bits: chmod only toggles read-only, so the write this needs to fail succeeds")
+	}
 	// The directory exists at start-up and is gone by the time a body is
 	// written. Reported on the entry's own line rather than ending the run: the
 	// page was fetched, and the next one may still be writable.

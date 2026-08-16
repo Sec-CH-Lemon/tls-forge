@@ -3,6 +3,7 @@ package profile
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -321,6 +322,9 @@ func TestMeasuredWithADirectoryThatIsNotThere(t *testing.T) {
 }
 
 func TestADirectoryThatCannotBeReadIsSkipped(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no Unix permission bits: chmod only toggles read-only, so the write this needs to fail succeeds")
+	}
 	// A version directory with the permissions taken off it. The others still
 	// list rather than the whole listing failing.
 	if os.Geteuid() == 0 {

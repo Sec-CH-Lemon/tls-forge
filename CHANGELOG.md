@@ -13,6 +13,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The Windows test job hung for five minutes and then failed.** Three separate
+  things, all of them the tests rather than the code. `--ca-cert
+  /no/such/root/ca.pem` is unwritable only where the root is: on Windows it
+  resolves against the current drive, the directory is created, the proxy
+  starts, and the command blocks on a context nothing cancels — the test now
+  blocks the path with a file, which fails everywhere, and `exec` in the tests
+  carries a deadline so no command can wedge the package again. Tests that
+  produce a failure by chmod-ing something read-only are skipped there, because
+  Windows has no Unix permission bits and the write they need to fail succeeds.
+  And `-o /dev/null` is `os.DevNull`, which is `NUL` there.
+- The test that checks where the proxy keeps its authority redirected `HOME` and
+  `XDG_CONFIG_HOME` and said in a comment that this kept it out of the real
+  config directory. On Windows `os.UserConfigDir` reads neither — it reads
+  `AppData` — so the test wrote a CA private key into the runner's actual user
+  profile and then failed to find it where it had looked. It sets all three now,
+  derives the path the way the command does instead of guessing each platform's
+  layout, and fails loudly if the redirection ever stops taking.
+
 - **The capture workflow measured a Chrome almost nobody runs.** `setup-chrome`
   with `chrome-version: stable` installs Chrome for Testing's newest stable
   build, which is not the same thing as the build being served: with 152 already

@@ -19,6 +19,11 @@ coverage.html
 node_modules/
 npm-debug.log*
 
+# A profile measured from the browser on this machine. Per-machine by
+# definition, and everything under profile/data is compiled into the binary, so
+# committing one would ship somebody's own browser to everybody.
+/profile/data/local/
+
 # Python
 # Any name, because a throwaway one gets made and a plain `.venv/` would not
 # match it — measured the hard way, by nearly committing one.

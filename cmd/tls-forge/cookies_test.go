@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -212,7 +213,10 @@ func TestFetchSavesTheSessionItEndsWith(t *testing.T) {
 	}
 	// A warmed session is a credential.
 	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0o600 {
+	// Skipped on Windows, which reports 0666 whatever was asked for: the mode is
+	// a Unix idea, and a warmed session is still written 0600 where it means
+	// something.
+	if err != nil || (info.Mode().Perm() != 0o600 && runtime.GOOS != "windows") {
 		t.Errorf("mode = %v", info.Mode().Perm())
 	}
 
@@ -283,7 +287,7 @@ func TestBatchSavesOneSessionPerProxy(t *testing.T) {
 		"url,proxy\n%[1]s/set,\n%[1]s/set,\n%[1]s/set,http://127.0.0.1:9001\n", server.URL))
 
 	code, _, stderr := exec(t, "batch", "-k", "--input", list, "--save-cookies", path,
-		"--progress", "never", "--repeat", "0", "--timeout", "5s", "-o", "/dev/null")
+		"--progress", "never", "--repeat", "0", "--timeout", "5s", "-o", os.DevNull)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (one URL went through a dead proxy)\n%s", code, stderr)
 	}
@@ -312,7 +316,7 @@ func TestBatchReportsASessionItCannotWrite(t *testing.T) {
 	server := cookieEcho(t)
 	_, _, stderr := exec(t, "batch", "-k", "--save-cookies",
 		filepath.Join(t.TempDir(), "no-such-directory", "w.json"),
-		"--progress", "never", "-o", "/dev/null", server.URL+"/set")
+		"--progress", "never", "-o", os.DevNull, server.URL+"/set")
 	if !strings.Contains(stderr, "tlsforge:") {
 		t.Errorf("stderr = %q", stderr)
 	}
@@ -359,7 +363,7 @@ func TestBatchSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
 		"url,proxy\n%[1]s/set,::not a proxy::\n%[1]s/set,\n", server.URL))
 
 	code, _, stderr := exec(t, "batch", "-k", "--input", list, "--save-cookies", path,
-		"--progress", "never", "--repeat", "0", "-o", "/dev/null")
+		"--progress", "never", "--repeat", "0", "-o", os.DevNull)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}

@@ -72,8 +72,18 @@ func TestProxyCommandErrors(t *testing.T) {
 	dir := t.TempDir()
 	cert, key := filepath.Join(dir, "ca.pem"), filepath.Join(dir, "ca.key")
 
+	// A file where a directory would have to go. `/no/such/root/…` was used
+	// here and only fails where the root is unwritable: on Windows it resolves
+	// against the current drive, the directory is created, the proxy starts,
+	// and the command blocks until the test binary is killed.
+	blocked := filepath.Join(dir, "not-a-directory")
+	if err := os.WriteFile(blocked, []byte("in the way"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	for _, args := range [][]string{
-		{"proxy", "--ca-cert", "/no/such/root/ca.pem", "--ca-key", "/no/such/root/ca.key"},
+		{"proxy", "--ca-cert", filepath.Join(blocked, "ca.pem"),
+			"--ca-key", filepath.Join(blocked, "ca.key")},
 		{"proxy", "--ca-cert", cert, "--ca-key", key, "--profile", "netscape_4"},
 		{"proxy", "--ca-cert", cert, "--ca-key", key, "--addr", "256.256.256.256:0"},
 	} {
@@ -105,9 +115,28 @@ func TestDefaultCAPaths(t *testing.T) {
 func TestProxyUsesTheConfigDirectoryByDefault(t *testing.T) {
 	// Redirected at the environment so the test does not write an authority
 	// into the real config directory.
+	//
+	// All three variables, because os.UserConfigDir reads a different one on
+	// each platform: XDG_CONFIG_HOME then HOME on Linux, HOME on macOS, and
+	// AppData on Windows. Setting only the first two left the Windows runner
+	// writing a CA private key into the real user profile, which is what this
+	// comment claims it does not do.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("AppData", home)
+
+	// Derived the way the command derives it, rather than guessing each
+	// platform's layout here, and checked to be inside the temporary directory
+	// so that a variable missed on some future platform fails loudly instead of
+	// quietly writing somewhere real.
+	config, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatalf("no config directory: %v", err)
+	}
+	if !strings.HasPrefix(config, home) {
+		t.Fatalf("config directory %s is outside %s; the redirection did not take", config, home)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	out := &syncBuffer{}
@@ -131,10 +160,8 @@ func TestProxyUsesTheConfigDirectoryByDefault(t *testing.T) {
 	cancel()
 	<-done
 
-	if _, err := os.Stat(filepath.Join(home, "tls-forge", "ca.pem")); err != nil {
-		if _, err2 := os.Stat(filepath.Join(home, "Library", "Application Support", "tls-forge", "ca.pem")); err2 != nil {
-			t.Errorf("no authority under the config directory: %v / %v", err, err2)
-		}
+	if _, err := os.Stat(filepath.Join(config, "tls-forge", "ca.pem")); err != nil {
+		t.Errorf("no authority under the config directory: %v", err)
 	}
 	if !strings.Contains(out.String(), "not a request") && !strings.Contains(out.String(), "malformed") {
 		t.Logf("proxy output:\n%s", out.String())

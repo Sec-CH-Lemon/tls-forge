@@ -743,12 +743,12 @@ func TestBatchSaysWhatTheReportLeftOut(t *testing.T) {
 	urls := []string{server.URL + "/a", server.URL + "/b", server.URL + "/c", server.URL + "/d"}
 
 	args := append([]string{"batch", "--report", path, "--report-ip=false",
-		"--output", "/dev/null"}, urls...)
+		"--output", os.DevNull}, urls...)
 	code, _, stderr := exec(t, args...)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	if !strings.Contains(stderr, "2 rows are in /dev/null but not in the report") {
+	if !strings.Contains(stderr, "2 rows are in "+os.DevNull+" but not in the report") {
 		t.Errorf("stderr does not say what was left out:\n%s", stderr)
 	}
 }

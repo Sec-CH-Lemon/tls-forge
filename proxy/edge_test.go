@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -79,6 +80,9 @@ func TestCertificateGenerationReportsEveryEntropyFailure(t *testing.T) {
 }
 
 func TestCAWriteFailures(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no Unix permission bits: chmod only toggles read-only, so the write this needs to fail succeeds")
+	}
 	if os.Geteuid() == 0 {
 		t.Skip("running as root, where the permission bits below do not apply")
 	}
