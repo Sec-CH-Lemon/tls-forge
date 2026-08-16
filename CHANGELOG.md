@@ -158,13 +158,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   is the point of having measured it — a shipped profile is a recording of
   somebody else's browser on an earlier day.
 - **Every command that fetches says which profile it is wearing**, on standard
-  error, with the browser and version it was taken from and whether it was
-  measured here or shipped: `profile: local_macos — Chrome 151 (measured on this
-  machine)`. Which browser a request is pretending to be is the one thing this
-  program does and the one thing otherwise invisible — a run wearing a profile
-  from six months ago looks exactly like a run wearing the right one. The
-  `profiles` listing marks the same default, from the same rule rather than a
-  second copy of it.
+  error, before it starts: the profile and where it came from, the browser and
+  version read out of the user-agent, the file it was read from — or `built into
+  tls-forge` — and the user-agent in full. Which browser a request is pretending
+  to be is the one thing this program does and the one thing otherwise
+  invisible: a run wearing a profile measured six months ago looks exactly like
+  a run wearing the right one. The `profiles` listing marks the same default,
+  from the same rule rather than a second copy of it.
+- `profile.Profile.Source()` says which file a profile was read from, so the
+  line above can name it. Unexported underneath, so it can never reach the JSON
+  and be mistaken for part of the profile.
 
 - **The Python package is released by tag**, alongside npm, Homebrew, the
   GitHub Release and the image. `scripts/pypi-release.py` builds one wheel per

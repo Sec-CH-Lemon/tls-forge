@@ -237,3 +237,52 @@ func TestLooksLikePath(t *testing.T) {
 		}
 	}
 }
+
+func TestSourceNamesTheFileAProfileWasReadFrom(t *testing.T) {
+	// A command that says which profile it is wearing has to be able to say
+	// which file that is: several names resolve to one file, and one name
+	// resolves to different files on different machines.
+	dir := t.TempDir()
+	kept := filepath.Join(dir, "chrome_151")
+	if err := os.MkdirAll(kept, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	shipped, err := embedded.ReadFile("data/chrome_151/macos.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := filepath.Join(kept, HostPlatform()+".json")
+	if err := os.WriteFile(at, shipped, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r := NewRegistry()
+	r.SetDir(dir)
+	p, err := r.Get("chrome_151")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if p.Source() != at {
+		t.Errorf("Source = %q, want %q", p.Source(), at)
+	}
+
+	// A profile named by path says that path.
+	byPath, err := r.Get(at)
+	if err != nil {
+		t.Fatalf("Get by path: %v", err)
+	}
+	if byPath.Source() != at {
+		t.Errorf("Source = %q, want %q", byPath.Source(), at)
+	}
+
+	// One that ships inside the binary has no file to name.
+	bare := NewRegistry()
+	bare.SetDir("")
+	inside, err := bare.Get("chrome_151")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if inside.Source() != "" {
+		t.Errorf("a shipped profile claims to come from %q", inside.Source())
+	}
+}

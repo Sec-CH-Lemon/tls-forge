@@ -105,9 +105,10 @@ func platformName(goos string) string {
 // The platform default is the host's because that is what the plain name means:
 // Chrome 151 as it looks from here. Anything else is one word longer and says
 // so, which is the right way round for a thing that changes what a server sees.
-func lookup(fsys fs.FS, root, name string) ([]byte, bool) {
-	if data, err := fs.ReadFile(fsys, path.Join(root, name+".json")); err == nil {
-		return data, true
+func lookup(fsys fs.FS, root, name string) (data []byte, at string, ok bool) {
+	at = path.Join(root, name+".json")
+	if data, err := fs.ReadFile(fsys, at); err == nil {
+		return data, at, true
 	}
 
 	// A version on its own: this machine's platform, or whichever there is.
@@ -122,8 +123,9 @@ func lookup(fsys fs.FS, root, name string) ([]byte, bool) {
 		wanted := hostPlatform + ".json"
 		for _, file := range files {
 			if file == wanted {
-				if data, err := fs.ReadFile(fsys, path.Join(root, name, file)); err == nil {
-					return data, true
+				at = path.Join(root, name, file)
+				if data, err := fs.ReadFile(fsys, at); err == nil {
+					return data, at, true
 				}
 			}
 		}
@@ -141,21 +143,22 @@ func lookup(fsys fs.FS, root, name string) ([]byte, bool) {
 		// project ships a binary for. Sorted, so which one it lands on does not
 		// depend on the order a filesystem happened to hand them over.
 		if len(files) > 0 {
-			if data, err := fs.ReadFile(fsys, path.Join(root, name, files[0])); err == nil {
-				return data, true
+			at = path.Join(root, name, files[0])
+			if data, err := fs.ReadFile(fsys, at); err == nil {
+				return data, at, true
 			}
 		}
-		return nil, false
+		return nil, "", false
 	}
 
 	// A version and a platform: the last word is the platform.
 	if cut := strings.LastIndex(name, "_"); cut > 0 {
-		file := path.Join(root, name[:cut], name[cut+1:]+".json")
-		if data, err := fs.ReadFile(fsys, file); err == nil {
-			return data, true
+		at = path.Join(root, name[:cut], name[cut+1:]+".json")
+		if data, err := fs.ReadFile(fsys, at); err == nil {
+			return data, at, true
 		}
 	}
-	return nil, false
+	return nil, "", false
 }
 
 // namesIn lists every name a tree answers to.
@@ -220,7 +223,7 @@ func (r *Registry) fromDir(name string) (*Profile, bool) {
 	if dir == "" || name != filepath.Base(name) || name == "." || name == ".." {
 		return nil, false
 	}
-	data, ok := lookup(os.DirFS(dir), ".", name)
+	data, at, ok := lookup(os.DirFS(dir), ".", name)
 	if !ok {
 		return nil, false
 	}
@@ -228,6 +231,7 @@ func (r *Registry) fromDir(name string) (*Profile, bool) {
 	if err != nil {
 		return nil, false
 	}
+	p.source = filepath.Join(dir, filepath.FromSlash(at))
 	return p, true
 }
 
@@ -274,14 +278,18 @@ func (r *Registry) Get(name string) (*Profile, error) {
 		if err != nil {
 			return nil, fmt.Errorf("profile: %w", err)
 		}
-		return Load(data)
+		p, err := Load(data)
+		if err == nil {
+			p.source = name
+		}
+		return p, err
 	}
 
 	if p, ok := r.fromDir(name); ok {
 		return p, nil
 	}
 
-	if data, ok := lookup(embedded, "data", name); ok {
+	if data, _, ok := lookup(embedded, "data", name); ok {
 		return Load(data)
 	}
 

@@ -671,21 +671,35 @@ one browser on a machine and measuring it again after an update should replace
 what is there rather than leave two. Version names are for profiles that ship.
 
 From then on every command that fetches wears it without being asked, and says
-so:
+so before it starts:
 
 ```
 $ tls-forge fetch https://example.com/
-profile: local_macos — Chrome 151 (measured on this machine)
+────────────────────────────────────────────────────────────────────────
+  profile     local_macos · measured on this machine
+  browser     Chrome 151 on macOS
+  from        ~/Library/Application Support/tls-forge/profiles/local/macos.json
+  user-agent  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+────────────────────────────────────────────────────────────────────────
 ```
 
-Without one, a shipped profile is worn and the line says that instead:
+Without one, a shipped profile is worn and it says that instead:
 
 ```
-profile: chrome_151_macos — Chrome 151 (shipped)
+  profile     chrome_151_macos · shipped with tls-forge
+  browser     Chrome 151 on macOS
+  from        built into tls-forge
 ```
 
-That line goes to standard error, so it does not disturb a body on standard
-output, and it is printed every time on purpose. Which browser a request is
+Four facts, because three of them are the ones people actually ask. **Which
+profile** is only half an answer when several names reach one file, so the
+**file** is named too — and `built into tls-forge` is an answer rather than a
+blank. The **browser and version** are read out of the user-agent so nobody has
+to parse one, and the user-agent is printed in full underneath because that is
+the string a server reads.
+
+It goes to standard error, so it does not disturb a body on standard output,
+and it is printed every time on purpose. Which browser a request is
 pretending to be is the one thing this program does, and the one thing that is
 otherwise invisible: a run wearing a profile measured six months ago looks
 exactly like a run wearing the right one. `--profile` still overrides, and

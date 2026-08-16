@@ -925,9 +925,14 @@ func TestIsTerminalReader(t *testing.T) {
 func keepProfilesIn(t *testing.T) string {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "profiles")
+	// The previous directory rather than DefaultDir(): cleanups run last-in
+	// first-out, so this one runs before t.Setenv puts the environment back and
+	// would otherwise pin the registry to a temporary directory that is about
+	// to be deleted — which every later test in the package would then read.
+	previous := profile.Default.Dir()
 	t.Setenv("TLSFORGE_PROFILES", dir)
 	profile.Default.SetDir(dir)
-	t.Cleanup(func() { profile.Default.SetDir(profile.DefaultDir()) })
+	t.Cleanup(func() { profile.Default.SetDir(previous) })
 	return dir
 }
 

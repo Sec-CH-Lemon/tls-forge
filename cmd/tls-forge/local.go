@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"slices"
+	"os"
+	"path/filepath"
 	"strings"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
@@ -24,18 +24,11 @@ const localName = "local"
 // of having measured it: a shipped profile is a recording of somebody else's
 // browser on an earlier day, and the one on this machine is the browser a
 // server would compare against.
-//
-// It says so every time, on stderr, because "which browser am I pretending to
-// be" is the one thing this program does and the one thing that is otherwise
-// invisible. A run that quietly wore a profile from six months ago would look
-// exactly like a run that wore the right one.
 func (f clientFlags) wear(errOut *printer) {
 	if !f.chose("profile") {
 		*f.profile = defaultProfileName()
 	}
-	if said := describe(*f.profile); said != "" {
-		errOut.println(said)
-	}
+	report(errOut, *f.profile)
 }
 
 // defaultProfileName is what a run wears when nobody names a profile: the
@@ -52,29 +45,100 @@ func defaultProfileName() string {
 	return tlsforge.DefaultProfile
 }
 
-// describe names the profile, the browser it was taken from and where it came
-// from, in one line.
+// report says which browser this run is pretending to be.
 //
-// Silent when the name resolves to nothing: the client is about to fail with a
-// message that says so properly, and two complaints about one mistake is one
-// too many.
-func describe(name string) string {
+// Every time, on stderr, because that is the one thing this program does and
+// the one thing otherwise invisible: a run wearing a profile measured six
+// months ago looks exactly like a run wearing the right one. The file is named
+// because "which profile" is only half an answer when several can resolve to
+// one name, and the user-agent in full because it is the part a server reads
+// and the part a person can check at a glance.
+func report(errOut *printer, name string) {
 	p, err := profile.Get(name)
 	if err != nil {
-		return ""
+		// The client is about to fail with a message that says so properly, and
+		// two complaints about one mistake is one too many.
+		return
 	}
 
-	browser := "an unrecognised browser"
-	if family, version := browserFrom(p.UserAgent); family != "" {
-		browser = strings.ToUpper(family[:1]) + family[1:]
-		if version != "" {
-			browser += " " + version
+	rule := strings.Repeat("─", 72)
+	errOut.println(rule)
+	field := func(label, value string) {
+		if value != "" {
+			errOut.printf("  %-11s %s\n", label, value)
 		}
 	}
+	field("profile", p.Name+" · "+origin(p))
+	field("browser", browserOf(p))
+	field("from", from(p))
+	field("user-agent", p.UserAgent)
+	errOut.println(rule)
+}
 
-	origin := "shipped"
-	if slices.Contains(profile.Default.KeptHere(), p.Name) {
-		origin = "measured on this machine"
+// origin says whether this was measured here or came with the binary, which is
+// the difference between wearing this machine's browser and wearing a recording
+// of somebody else's.
+//
+// Decided by where the file actually is rather than by its name, because a
+// profile handed over as a path can carry any name it likes, including one this
+// machine also keeps.
+func origin(p *profile.Profile) string {
+	switch dir := profile.Default.Dir(); {
+	case p.Source() == "":
+		return "shipped with tls-forge"
+	case dir != "" && strings.HasPrefix(p.Source(), dir+string(filepath.Separator)):
+		return "measured on this machine"
 	}
-	return fmt.Sprintf("profile: %s — %s (%s)", p.Name, browser, origin)
+	return "read from the file named"
+}
+
+// from is where the profile was read, and says so even when there is no file:
+// "inside the binary" is an answer, and a blank line is not.
+func from(p *profile.Profile) string {
+	if p.Source() == "" {
+		return "built into tls-forge"
+	}
+	return shorten(p.Source())
+}
+
+// browserOf reads the browser, its version and the platform out of a profile,
+// as a line a person can take in without parsing a user-agent.
+func browserOf(p *profile.Profile) string {
+	family, version := browserFrom(p.UserAgent)
+	if family == "" {
+		return ""
+	}
+	said := strings.ToUpper(family[:1]) + family[1:]
+	if version != "" {
+		said += " " + version
+	}
+	if _, platform := profile.Split(p.Name); platform != "" {
+		said += " on " + platformLabel(platform)
+	}
+	return said
+}
+
+// platformLabel spells a platform the way its makers do, since this line is for
+// reading rather than for matching.
+func platformLabel(platform string) string {
+	switch platform {
+	case "macos":
+		return "macOS"
+	case "windows":
+		return "Windows"
+	case "linux":
+		return "Linux"
+	}
+	return platform
+}
+
+// shorten puts the home directory back as ~, because the interesting half of
+// the path is the end of it and the beginning is the same on every line
+// somebody has ever read.
+func shorten(path string) string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" || !strings.HasPrefix(path, home+string(filepath.Separator)) {
+		return path
+	}
+	return "~" + path[len(home):]
 }

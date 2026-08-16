@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -24,7 +26,7 @@ func TestARunPrefersTheBrowserMeasuredHere(t *testing.T) {
 	// server would compare against.
 	installed(t)
 	_, _, stderr := exec(t, "fetch", "--timeout", "1s", "https://127.0.0.1:1/")
-	if !strings.Contains(stderr, "profile: "+localName+"_"+profile.HostPlatform()) {
+	if !strings.Contains(stderr, localName+"_"+profile.HostPlatform()) {
 		t.Errorf("did not wear the local profile:\n%s", stderr)
 	}
 	if !strings.Contains(stderr, "measured on this machine") {
@@ -35,10 +37,10 @@ func TestARunPrefersTheBrowserMeasuredHere(t *testing.T) {
 func TestWithoutALocalProfileAShippedOneIsWorn(t *testing.T) {
 	keepProfilesIn(t)
 	_, _, stderr := exec(t, "fetch", "--timeout", "1s", "https://127.0.0.1:1/")
-	if !strings.Contains(stderr, "(shipped)") {
+	if !strings.Contains(stderr, "shipped with tls-forge") {
 		t.Errorf("did not fall back to a shipped profile:\n%s", stderr)
 	}
-	if strings.Contains(stderr, "profile: "+localName) {
+	if strings.Contains(stderr, localName+"_") {
 		t.Errorf("wore a local profile that does not exist:\n%s", stderr)
 	}
 }
@@ -48,7 +50,7 @@ func TestANamedProfileIsTakenAtItsWord(t *testing.T) {
 	installed(t)
 	_, _, stderr := exec(t, "fetch", "--profile", "chrome_151_linux",
 		"--timeout", "1s", "https://127.0.0.1:1/")
-	if !strings.Contains(stderr, "profile: chrome_151_linux") {
+	if !strings.Contains(stderr, "chrome_151_linux") {
 		t.Errorf("did not wear what was asked for:\n%s", stderr)
 	}
 }
@@ -63,7 +65,7 @@ func TestEveryCommandThatFetchesSaysWhatItIsWearing(t *testing.T) {
 			"-u", "https://127.0.0.1:1/"},
 	} {
 		t.Run(args[0], func(t *testing.T) {
-			if _, _, stderr := exec(t, args...); !strings.Contains(stderr, "profile: ") {
+			if _, _, stderr := exec(t, args...); !strings.Contains(stderr, "profile ") {
 				t.Errorf("%s said nothing about its profile:\n%s", args[0], stderr)
 			}
 		})
@@ -91,14 +93,96 @@ func TestTheListingAgreesWithWhatARunWears(t *testing.T) {
 	}
 }
 
-func TestDescribe(t *testing.T) {
-	// Silent for a name that resolves to nothing: the client is about to fail
-	// with a message that says so properly.
-	if got := describe("no-such-profile"); got != "" {
-		t.Errorf("describe of an unknown profile = %q, want silence", got)
+func TestTheReportSaysWhatSomebodyNeedsToKnow(t *testing.T) {
+	keepProfilesIn(t)
+	said := &strings.Builder{}
+	report(newPrinter(said), "chrome_151_linux")
+
+	// Which profile, which browser, which version, which platform, where the
+	// file is, and the user-agent a server will actually read.
+	for _, want := range []string{
+		"chrome_151_linux", "shipped with tls-forge",
+		"Chrome 151 on Linux", "built into tls-forge",
+		"Chrome/151.0.0.0",
+	} {
+		if !strings.Contains(said.String(), want) {
+			t.Errorf("the report does not mention %q:\n%s", want, said)
+		}
 	}
-	if got := describe("chrome_151_linux"); !strings.Contains(got, "Chrome 151") {
-		t.Errorf("describe = %q, want the browser and version in it", got)
+}
+
+func TestTheReportNamesTheFileAProfileCameFrom(t *testing.T) {
+	// "Which profile" is half an answer when several names resolve to one file
+	// and one name can resolve to several files.
+	installed(t)
+	said := &strings.Builder{}
+	report(newPrinter(said), localName)
+
+	kept := filepath.Join(profile.Default.Dir(), localName, profile.HostPlatform()+".json")
+	if !strings.Contains(said.String(), kept) {
+		t.Errorf("the report does not name %s:\n%s", kept, said)
+	}
+	if !strings.Contains(said.String(), "measured on this machine") {
+		t.Errorf("the report does not say it was measured here:\n%s", said)
+	}
+}
+
+func TestTheReportIsSilentForAProfileThatDoesNotResolve(t *testing.T) {
+	// The client is about to fail with a message that says so properly, and two
+	// complaints about one mistake is one too many.
+	said := &strings.Builder{}
+	report(newPrinter(said), "no-such-profile")
+	if said.String() != "" {
+		t.Errorf("report = %q, want silence", said)
+	}
+}
+
+func TestAProfileGivenAsAPathSaysSo(t *testing.T) {
+	// A file handed over directly can carry any name it likes, including one
+	// this machine also keeps, so where it came from is read off the path.
+	keepProfilesIn(t)
+	elsewhere := filepath.Join(t.TempDir(), "mine.json")
+	data, err := os.ReadFile("../../profile/data/chrome_151/linux.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(elsewhere, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	said := &strings.Builder{}
+	report(newPrinter(said), elsewhere)
+	if !strings.Contains(said.String(), "read from the file named") {
+		t.Errorf("the report does not say where it came from:\n%s", said)
+	}
+	if !strings.Contains(said.String(), elsewhere) {
+		t.Errorf("the report does not name the file:\n%s", said)
+	}
+}
+
+func TestShortenPutsTheHomeDirectoryBack(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no home directory")
+	}
+	inside := filepath.Join(home, "profiles", "x.json")
+	if got := shorten(inside); got != filepath.Join("~", "profiles", "x.json") {
+		t.Errorf("shorten(%q) = %q", inside, got)
+	}
+	// Anything not under it is left alone rather than mangled.
+	outside := filepath.Join(t.TempDir(), "x.json")
+	if got := shorten(outside); got != outside {
+		t.Errorf("shorten(%q) = %q", outside, got)
+	}
+}
+
+func TestPlatformLabel(t *testing.T) {
+	for platform, want := range map[string]string{
+		"macos": "macOS", "windows": "Windows", "linux": "Linux", "plan9": "plan9",
+	} {
+		if got := platformLabel(platform); got != want {
+			t.Errorf("platformLabel(%q) = %q, want %q", platform, got, want)
+		}
 	}
 }
 
@@ -117,5 +201,18 @@ func TestBrowserFrom(t *testing.T) {
 		if family != tc.family || major != tc.major {
 			t.Errorf("browserFrom(%q) = %q, %q, want %q, %q", tc.ua, family, major, tc.family, tc.major)
 		}
+	}
+}
+
+func TestBrowserOfSaysNothingAboutABrowserItCannotRead(t *testing.T) {
+	// Better a missing line than a confident wrong one: the user-agent is
+	// printed in full underneath either way.
+	if got := browserOf(&profile.Profile{Name: "x", UserAgent: "Nobody/1.0"}); got != "" {
+		t.Errorf("browserOf = %q, want nothing", got)
+	}
+	// And the platform is only added when the name carries one.
+	got := browserOf(&profile.Profile{Name: "mine", UserAgent: "… Chrome/151.0.0.0"})
+	if got != "Chrome 151" {
+		t.Errorf("browserOf = %q, want no platform on a name without one", got)
 	}
 }

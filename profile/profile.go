@@ -42,7 +42,17 @@ type Profile struct {
 	// Notes is free text carried into the JSON so a committed profile can say
 	// where it came from — which browser build, measured when, on what OS.
 	Notes string `json:"notes,omitempty"`
+
+	// source is the file this was read from, for a command that wants to tell
+	// somebody which profile it is wearing. Unexported, so it can never reach
+	// the JSON and be mistaken for part of the profile: where a file is says
+	// nothing about the browser it records.
+	source string
 }
+
+// Source is the file this profile was read from, or empty for one that ships
+// inside the binary or came from the catalogue.
+func (p *Profile) Source() string { return p.source }
 
 // Field is one header. A slice of these rather than a map, because order is
 // fingerprinted and a map has none.
