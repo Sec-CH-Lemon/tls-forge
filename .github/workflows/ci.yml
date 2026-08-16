@@ -101,6 +101,60 @@ jobs:
       - run: python -m coverage report
         working-directory: python
 
+  packaging:
+    # Does a release still assemble?
+    #
+    # The two packaging scripts run nowhere else, so without this the first tag
+    # would be the first time they were exercised — and a release that fails
+    # halfway has already published to whichever registry came first. Everything
+    # here is the release workflow's own path, minus the publishing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: pip install build wheel
+
+      - name: cross-compile
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p dist/bin
+          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do
+            goos=${target%/*}; goarch=${target#*/}
+            output="dist/bin/tls-forge-$goos-$goarch"
+            [ "$goos" = windows ] && output="$output.exe"
+            GOOS=$goos GOARCH=$goarch go build -trimpath \
+              -ldflags "-s -w -X main.version=v0.0.0-ci" -o "$output" ./cmd/tls-forge
+          done
+
+      - run: node scripts/npm-release.mjs --version 0.0.0 --binaries dist/bin --out dist/npm
+      - run: python scripts/pypi-release.py --version 0.0.0 --binaries dist/bin --out dist/pypi
+
+      # Installed from the wheel and used, which is the only check that covers
+      # the whole chain: the binary is in there, it kept its exec bit, and the
+      # client finds it where it expects to.
+      - name: the linux wheel installs and works
+        run: |
+          python -m venv /tmp/wheelcheck
+          /tmp/wheelcheck/bin/pip install --no-index dist/pypi/*manylinux2014_x86_64*.whl
+          /tmp/wheelcheck/bin/python -c "
+          import subprocess, tlsforge
+          binary = tlsforge.resolve_binary()
+          assert 'site-packages' in binary, binary
+          out = subprocess.run([binary, 'version'], capture_output=True, text=True)
+          print(binary, out.stdout.strip())
+          assert out.returncode == 0, out.stderr
+          "
+
   docker:
     runs-on: ubuntu-latest
     steps:

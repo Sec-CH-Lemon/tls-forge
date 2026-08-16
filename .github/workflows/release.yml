@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
 
       - name: read the version from the tag
         id: version
@@ -36,6 +39,11 @@ jobs:
       - run: make cover
       - run: node --test 'test/*.test.js'
         working-directory: node
+      - run: pip install -e 'python[test]' build wheel
+      - run: python -m coverage run -m pytest -q
+        working-directory: python
+      - run: python -m coverage report
+        working-directory: python
 
       # The published binaries carry every dependency inside them, and those
       # licences require their notices to travel along. If the committed notices
@@ -99,6 +107,29 @@ jobs:
       - name: assemble the npm packages
         run: node scripts/npm-release.mjs --version "${{ steps.version.outputs.version }}" --binaries dist/bin --out dist/npm
 
+      # One wheel per platform, each with its binary inside. The script refuses
+      # to produce a wheel that is missing the binary, has it without its exec
+      # bit, or lacks the licence notices — three ways to ship something that
+      # installs and then does not work.
+      - name: assemble the python distributions
+        run: python scripts/pypi-release.py --version "${{ steps.version.outputs.version }}" --binaries dist/bin --out dist/pypi
+
+      # Installed from the wheel and run, the way `the published image runs`
+      # does for Docker. The runner is linux/amd64, so that is the wheel it can
+      # prove; the rest are proved by the checks above and by their tags.
+      - name: the linux wheel installs and works
+        run: |
+          python -m venv /tmp/wheelcheck
+          /tmp/wheelcheck/bin/pip install --no-index \
+            dist/pypi/*manylinux2014_x86_64*.whl
+          /tmp/wheelcheck/bin/python -c "
+          import tlsforge, subprocess
+          binary = tlsforge.resolve_binary()
+          print(binary)
+          print(subprocess.run([binary, 'version'], capture_output=True, text=True).stdout.strip())
+          assert tlsforge.__version__ == '${{ steps.version.outputs.version }}', tlsforge.__version__
+          "
+
       - name: generate the homebrew formula
         run: |
           node scripts/homebrew-formula.mjs \
@@ -118,6 +149,16 @@ jobs:
             npm publish "$pkg" --access public --provenance
           done
           npm publish dist/npm/tls-forge --access public --provenance
+
+      # Trusted Publishing: PyPI verifies this workflow's OIDC token against the
+      # publisher configured on the project, so there is no API token to create,
+      # store or rotate. It needs `id-token: write`, which this workflow already
+      # has for npm provenance, and it needs the publisher to exist — see
+      # RELEASING.md. Attestations come from the same identity.
+      - name: publish to pypi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/pypi
 
       # The release has to exist before the tap points at it: the formula
       # carries the download URL and the checksum, and a tap that referenced a

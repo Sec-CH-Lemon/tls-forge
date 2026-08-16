@@ -64,6 +64,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **The Python package is released by tag**, alongside npm, Homebrew, the
+  GitHub Release and the image. `scripts/pypi-release.py` builds one wheel per
+  platform with the binary inside, and refuses to produce one that is missing
+  the binary, has lost its exec bit, or lacks the licence notices — three ways
+  to ship something that installs and then does not work. Linux gets one wheel
+  carrying both a manylinux and a musllinux tag, since the binary is static;
+  checked on glibc and on Alpine. Uploads use PyPI Trusted Publishing, so there
+  is no token to store or rotate. [RELEASING.md](RELEASING.md) is what to set
+  up, once.
+- CI runs the whole packaging path on every push — cross-compile, both
+  packaging scripts, then install the built wheel and run the binary out of it
+  — so a tag is not the first time any of it runs. `make dist` does the same
+  locally without publishing.
+
 - **A Python client**, in [`python/`](python/): `pip install tls-forge`, then
   `import tlsforge`. Same daemon protocol as the Node client, and the same
   identity model — one `Client` is one process, one fingerprint, one jar, one

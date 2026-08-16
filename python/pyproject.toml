@@ -4,10 +4,19 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tls-forge"
-version = "0.0.0.dev0"
+# One source for the version: __init__.py. The release script stamps that
+# single line from the git tag, and this reads it, so the two cannot drift.
+dynamic = ["version"]
 description = "Scraping HTTP client that gets past TLS fingerprinting — sends a real browser's JA3/JA4, HTTP/2 and header order"
 readme = "README.md"
 license = "Apache-2.0"
+# Globs rather than names: the files live at the repository root and the
+# release script copies them next to this one, so in a plain checkout they
+# are simply absent and a glob matching nothing is not an error. Apache-2.0
+# section 4 requires all three to travel with a redistribution, and a wheel
+# carrying a compiled binary is one. scripts/pypi-release.py fails the build
+# if a wheel comes out without them.
+license-files = ["LICENSE*", "NOTICE*", "THIRD-PARTY-NOTICES*"]
 authors = [{ name = "Ihar Kazlouski" }]
 # No dependencies, and none wanted: the whole point is not to be at the mercy of
 # whatever TLS stack a dependency drags in.
@@ -35,13 +44,16 @@ Changelog = "https://github.com/Sec-CH-Lemon/tls-forge/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 test = ["pytest>=8", "coverage>=7"]
 
+[tool.hatch.version]
+path = "src/tlsforge/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/tlsforge"]
-# py.typed is kept out of git (it is empty) and hatchling skips VCS-ignored
-# files unless they are named here. It is also what makes the annotations
-# visible to a type checker: the "Typing :: Typed" classifier above is a
-# claim, this is the mechanism.
-artifacts = ["src/tlsforge/py.typed"]
+# Both are kept out of git — py.typed is empty and bin/ is staged at release
+# time — and hatchling skips VCS-ignored files unless they are named here.
+# py.typed is also what makes the annotations visible to a type checker: the
+# "Typing :: Typed" classifier above is a claim, this is the mechanism.
+artifacts = ["src/tlsforge/py.typed", "src/tlsforge/bin/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

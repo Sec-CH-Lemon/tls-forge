@@ -1172,6 +1172,14 @@ mid-response, an answer arriving after the caller gave up. None of that is
 reachable by using the library normally, and a branch no test can reach is
 usually a branch that should not exist.
 
+## Releasing
+
+A release is a tag. Push `v0.1.0` and the binaries, the npm packages, the Python
+wheels, the Docker image and the Homebrew formula are all built from it and
+published — the tag is the only place a version is written down.
+[RELEASING.md](RELEASING.md) has what to set up once, and `make dist` assembles
+everything a tag would publish without publishing any of it.
+
 ## Credits
 
 The TLS transport is [bogdanfinn/tls-client](https://github.com/bogdanfinn/tls-client)

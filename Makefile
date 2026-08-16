@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test check capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -58,6 +58,29 @@ python-test:
 # CI runs them as separate jobs.
 check: vet lint test cover node-test python-test
 
+# Assemble everything a release publishes, without publishing any of it.
+#
+# The same path the tag takes, so the packaging can be looked at before a
+# version number is spent: a published version cannot be taken back on npm, on
+# PyPI or in a git tag someone has already fetched. See RELEASING.md.
+RELEASE_VERSION ?= 0.0.0
+dist:
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(VENV)/bin/pip install -q build wheel
+	rm -rf dist
+	@mkdir -p dist/bin
+	@for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do \
+		goos=$${target%/*}; goarch=$${target#*/}; \
+		out="dist/bin/tls-forge-$$goos-$$goarch"; \
+		[ "$$goos" = windows ] && out="$$out.exe"; \
+		echo "building $$out"; \
+		CGO_ENABLED=0 GOOS=$$goos GOARCH=$$goarch $(GO) build -trimpath \
+			-ldflags "-s -w -X main.version=v$(RELEASE_VERSION)" -o "$$out" ./cmd/tls-forge; \
+	done
+	node scripts/npm-release.mjs --version $(RELEASE_VERSION) --binaries dist/bin --out dist/npm
+	$(VENV)/bin/python scripts/pypi-release.py --version $(RELEASE_VERSION) --binaries dist/bin --out dist/pypi
+	@echo "\nnothing published. dist/npm and dist/pypi hold what a tag would have sent."
+
 # Measure the browser on this machine. The profile is named after the browser
 # it came from, so it lands in profile/data/ ready to commit.
 capture: build
@@ -101,5 +124,5 @@ report-css:
 	cd tools/report-css && npm install --silent && npm run build
 
 clean:
-	rm -rf bin $(COVER) node/vendor tools/report-css/node_modules $(VENV) \
+	rm -rf bin dist $(COVER) node/vendor tools/report-css/node_modules $(VENV) \
 		python/.coverage python/src/*.egg-info python/src/tlsforge/bin
