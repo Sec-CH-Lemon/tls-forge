@@ -83,19 +83,33 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 				StreamID: pr.StreamID, Exclusive: pr.Exclusive, DependsOn: pr.DependsOn, Weight: pr.Weight,
 			}
 		}
-		for _, h := range c.HTTP2.Headers {
-			name := strings.ToLower(h.Name)
-			if strings.HasPrefix(name, ":") || perRequest[name] {
-				continue
-			}
-			p.Headers = append(p.Headers, Field{Name: name, Value: h.Value})
-		}
+		p.Headers = Headers(c)
 	}
 
 	if c.Navigator != nil && c.Navigator.UserAgent != "" {
 		p.UserAgent = c.Navigator.UserAgent
 	}
 	return p, nil
+}
+
+// Headers is the reusable part of a capture's header list, in wire order.
+//
+// Exported because a profile is built from more than one measurement: the
+// ordinary one, and a second against a Google origin, whose header list is kept
+// alongside rather than merged into it.
+func Headers(c *capture.Capture) []Field {
+	if c == nil || c.HTTP2 == nil {
+		return nil
+	}
+	var out []Field
+	for _, h := range c.HTTP2.Headers {
+		name := strings.ToLower(h.Name)
+		if strings.HasPrefix(name, ":") || perRequest[name] {
+			continue
+		}
+		out = append(out, Field{Name: name, Value: h.Value})
+	}
+	return out
 }
 
 // pseudoNames recovers the full pseudo-header names from the capture's

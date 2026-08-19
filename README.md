@@ -709,6 +709,61 @@ Preferring the local one is the point of having measured it. A shipped profile
 is a recording of somebody else's browser on an earlier day; the one on this
 machine is the browser a server would compare against if it ever saw both.
 
+#### The headers Chrome shows only Google
+
+Writing a profile opens the browser a second time, under Google's name. Chrome
+adds a block of headers to a Google property and to nothing else, so a capture
+taken against an ordinary host cannot see them:
+
+```
+opening it once more, as a Google origin…
+
+google      x-browser-channel  stable
+            x-browser-year  2026
+            x-browser-validation  iix1/iDR1W9e3SUCZHWKwrVpus8=
+            x-browser-copyright  Copyright 2026 Google LLC. All Rights Reserved.
+            x-client-data  CKuWywE=
+```
+
+Nothing leaves the machine to measure it. The echo server takes Google's name,
+the browser is told that name resolves to loopback, and it hands over what it
+would have sent. The two captures were compared field by field: same JA4, same
+JA4_r, same HTTP/2 fingerprint, same header list — the Google one has five more
+headers, in one block, between `accept` and `sec-fetch-site`. That block is
+kept in the profile as `google_headers`, as a whole header list rather than as
+five headers to splice in later, so what is replayed is an order that was
+observed.
+
+From then on a request to a Google host sends that list and a request anywhere
+else sends the ordinary one. Which hosts count was measured too, one host at a
+time — 2,041 candidates in a single browser run, each resolved to a local
+server — because it is a list inside Chrome rather than a rule: `google.io` and
+`google.org` get the block, `google.ai` and `google.dev`, equally Google's, get
+nothing. 261 endings matched, plus `youtube.com`, `ytimg.com` and
+`gstatic.com`, and every subdomain of them.
+
+Two things worth knowing before you rely on it:
+
+- **`x-browser-validation` is derived from the user-agent.** The same browser
+  sending `HeadlessChrome/151.0.0.0` and `Chrome/151.0.0.0` produced two
+  different tokens, and each reproduced exactly on a second run with a fresh
+  browser profile — so it replays, but only alongside the user-agent it was
+  measured with. Override the user-agent and the token is dropped rather than
+  sent: a value the receiver can recompute and find wrong is worse than one that
+  is absent.
+- **`x-client-data` is per-install.** It describes which field-trial groups that
+  copy of Chrome is in, and every fresh browser profile produced a different
+  one. A profile you captured carries yours; a profile that ships carries the
+  one it was captured with, shared by everyone using it — which is true of its
+  user-agent and its JA4 too, and is the trade a shipped profile is.
+
+Browsers that are not Google Chrome send no such block, and the capture says so
+rather than leaving the field blank:
+
+```
+google      nothing extra — this browser is not Google Chrome
+```
+
 #### The handshake is the same on every platform
 
 Measured, not assumed. Chrome 151 captured on macOS and Chrome 151.0.7922.137

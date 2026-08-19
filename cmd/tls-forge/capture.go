@@ -80,7 +80,25 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 			profileName = localName
 		}
 	}
-	saved, path, err := saveProfile(where, profileName, measured)
+	// The Google pass runs only when a profile is being written, which is the
+	// only thing that keeps its answer. A capture run to look at a fingerprint
+	// should not open a second browser to fill in a field nobody asked for.
+	errOut.println("opening it once more, as a Google origin…")
+	google, err := tlsforge.MeasureGoogleHeaders(ctx, tlsforge.MeasureOptions{
+		Browser:     *browserName,
+		Headless:    *headless,
+		Timeout:     *timeout,
+		BrowserArgs: *browserArgs,
+	})
+	if err != nil {
+		// Not fatal, and not silent. A profile without the block is a profile
+		// that works everywhere except Google, which is worth having and worth
+		// knowing about.
+		errOut.printf("could not measure the Google headers: %v\n", err)
+	}
+	printGoogleHeaders(out, measured, google)
+
+	saved, path, err := saveProfile(where, profileName, measured, google)
 	if err != nil {
 		return err
 	}
@@ -115,11 +133,12 @@ func browserArgFlag(fs *pflag.FlagSet) *[]string {
 // --profile will find it by. Naming a captured Chrome 151 anything other than
 // chrome_151 is how a machine ends up with a profile nobody can guess the name
 // of.
-func saveProfile(where, name string, measured *capture.Capture) (profileName, path string, err error) {
+func saveProfile(where, name string, measured, google *capture.Capture) (profileName, path string, err error) {
 	built, err := profile.FromCapture(name, measured)
 	if err != nil {
 		return "", "", err
 	}
+	built.Google = profile.Headers(google)
 	built.Notes = fmt.Sprintf("captured %s from %s", now().UTC().Format(time.RFC3339), built.UserAgent)
 
 	path = where
@@ -146,6 +165,36 @@ func saveProfile(where, name string, measured *capture.Capture) (profileName, pa
 		return "", "", err
 	}
 	return built.Name, path, nil
+}
+
+// printGoogleHeaders reports what the second pass found that the first did not.
+//
+// The difference rather than the whole list: the Google header list is the
+// ordinary one plus a block, and printing seventeen headers to show five is a
+// report nobody reads twice.
+func printGoogleHeaders(out *printer, measured, google *capture.Capture) {
+	extra := extraHeaders(measured, google)
+	if len(extra) == 0 {
+		out.println("\ngoogle      nothing extra — this browser is not Google Chrome")
+		return
+	}
+	out.printf("\ngoogle      %s\n", strings.Join(extra, "\n            "))
+}
+
+// extraHeaders names the headers the Google pass saw and the ordinary one did
+// not, in the order they were sent.
+func extraHeaders(measured, google *capture.Capture) []string {
+	ordinary := map[string]bool{}
+	for _, f := range profile.Headers(measured) {
+		ordinary[f.Name] = true
+	}
+	var out []string
+	for _, f := range profile.Headers(google) {
+		if !ordinary[f.Name] {
+			out = append(out, f.Name+"  "+f.Value)
+		}
+	}
+	return out
 }
 
 // mark is the star against a profile kept on this machine.

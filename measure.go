@@ -105,6 +105,39 @@ func MeasureBrowserAt(ctx context.Context, server *echo.Server, opts MeasureOpti
 	return session.Capture(capture.SourceBrowser), nil
 }
 
+// googleHost is the name the second capture pass answers to.
+//
+// www.google.com rather than google.com because it is the one a browser is
+// pointed at in practice, and the block was measured identical for both.
+const googleHost = "www.google.com"
+
+// MeasureGoogleHeaders measures what a browser sends to a Google origin.
+//
+// The same measurement as MeasureBrowser, with the echo server wearing Google's
+// name and the browser told that the name resolves to loopback. Nothing leaves
+// the machine: the browser connects to 127.0.0.1 believing it is talking to
+// Google, which is the only way to observe headers that Google alone is shown.
+//
+// It is a second browser launch rather than a second request on the first,
+// because the header list worth having is a document navigation's, and a
+// navigation is what a launch does. The handshake it produces was measured
+// identical to the ordinary one — same JA4, same JA4_r, same HTTP/2
+// fingerprint, same header list — so this pass adds a header block and changes
+// nothing else.
+func MeasureGoogleHeaders(ctx context.Context, opts MeasureOptions) (*capture.Capture, error) {
+	server, err := startEchoServer(echo.WithHost(googleHost))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = server.Close() }()
+
+	// Appended to a copy: the caller's slice is theirs, and a capture that
+	// quietly grew a resolver rule would carry it into the next measurement.
+	opts.BrowserArgs = append(append([]string(nil), opts.BrowserArgs...),
+		"--host-resolver-rules=MAP "+googleHost+" 127.0.0.1")
+	return MeasureBrowserAt(ctx, server, opts)
+}
+
 // MeasureSelf returns what THIS library sends, measured the same way.
 func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error) {
 	server, err := startEchoServer()

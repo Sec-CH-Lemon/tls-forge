@@ -76,6 +76,13 @@ func TestBrowserHelper(t *testing.T) {
 
 func browserStandIn(t *testing.T) string {
 	t.Helper()
+	return standIn(t, "")
+}
+
+// standIn writes the launcher, with an optional shell clause spliced in ahead of
+// it so a test can have the stand-in behave badly in one specific way.
+func standIn(t *testing.T, extra string) string {
+	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("the stand-in is a shell script")
 	}
@@ -83,10 +90,18 @@ func browserStandIn(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("locating the test binary: %v", err)
 	}
+	// The stand-in honours --host-resolver-rules the way a browser does: given
+	// the flag, it reaches the name it was handed at loopback. Without this it
+	// would try to resolve www.google.com for real, and the pass that measures
+	// what a browser sends to Google would be a test of the internet.
 	script := fmt.Sprintf(`#!/bin/sh
 for last; do :; done
+%s
+case "$*" in
+*--host-resolver-rules=*) last=$(printf '%%s' "$last" | sed 's|://[^:/]*|://127.0.0.1|') ;;
+esac
 TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
-`, self)
+`, extra, self)
 	path := filepath.Join(t.TempDir(), "stand-in-browser")
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatalf("writing the stand-in: %v", err)
@@ -791,7 +806,7 @@ func TestSaveProfileRejectsAResumedCapture(t *testing.T) {
 	measured := &capture.Capture{RawClientHello: raw}
 	measured.TLS.Resumed = true
 
-	if _, _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured); err == nil {
+	if _, _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured, nil); err == nil {
 		t.Error("expected a resumed capture to be refused")
 	}
 }

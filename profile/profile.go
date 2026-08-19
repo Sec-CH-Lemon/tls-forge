@@ -39,6 +39,12 @@ type Profile struct {
 	HTTP2   HTTP2   `json:"http2"`
 	Headers []Field `json:"headers,omitempty"`
 
+	// Google is the header list this browser sends to a Google origin, which is
+	// the ordinary list plus a block Chrome shows nobody else. Empty for a
+	// browser that sends no such block — every one that is not Google Chrome —
+	// and for a profile captured before this was measured.
+	Google []Field `json:"google_headers,omitempty"`
+
 	// Notes is free text carried into the JSON so a committed profile can say
 	// where it came from — which browser build, measured when, on what OS.
 	Notes string `json:"notes,omitempty"`

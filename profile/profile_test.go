@@ -340,3 +340,25 @@ func TestPseudoNamesIgnoresUnknownLetters(t *testing.T) {
 		t.Errorf("pseudoNames = %v, want %v", got, want)
 	}
 }
+
+func TestHeadersFromACapture(t *testing.T) {
+	if got := Headers(nil); got != nil {
+		t.Errorf("Headers(nil) = %v", got)
+	}
+	if got := Headers(&capture.Capture{}); got != nil {
+		t.Errorf("Headers(no HTTP/2) = %v", got)
+	}
+	got := Headers(&capture.Capture{HTTP2: &capture.HTTP2{Headers: []capture.HeaderField{
+		{Name: ":method", Value: "GET"},
+		{Name: "Accept", Value: "*/*"},
+		{Name: "cookie", Value: "a=b"},
+		{Name: "x-browser-year", Value: "2026"},
+	}}})
+	want := []Field{
+		{Name: "accept", Value: "*/*"},
+		{Name: "x-browser-year", Value: "2026"},
+	}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("Headers = %v, want %v", got, want)
+	}
+}

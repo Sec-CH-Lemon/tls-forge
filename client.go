@@ -54,6 +54,10 @@ type Client struct {
 	profile *profile.Profile
 	jar     tls_client.CookieJar
 	headers Header
+	// googleHeaders is what this profile sends to a Google origin, prepared
+	// once. Empty when the profile carries no such list, which is the signal to
+	// treat every host alike.
+	googleHeaders Header
 	// warm is the session this client was handed, filed into the jar against
 	// each request's own URL.
 	//
@@ -187,8 +191,16 @@ func New(opts ...Option) (*Client, error) {
 	}
 	headers = headers.Merge(cfg.headers)
 
+	google := Header(nil)
+	for _, f := range prof.Google {
+		google = append(google, f)
+	}
+	if len(google) > 0 {
+		google = google.Merge(cfg.headers)
+	}
+
 	return &Client{inner: inner, profile: prof, jar: jar, headers: headers,
-		warm: cfg.cookies}, nil
+		googleHeaders: google, warm: cfg.cookies}, nil
 }
 
 // Profile returns the profile this client wears.
@@ -231,7 +243,8 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	c.seedCookies(parsed, warmFor(c.warm, parsed.Hostname()))
 	c.seedCookies(parsed, req.Cookies)
 
-	headers := c.headers.Merge(req.Header)
+	headers := withoutStaleValidation(
+		c.headersFor(parsed).Merge(req.Header), c.profile.UserAgent)
 	// Assigned directly rather than through Set, which would canonicalise the
 	// names to Sec-Ch-Ua form. HPACK requires lower case, and the order key is
 	// matched lower-cased, so the map and the order list have to agree.

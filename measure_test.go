@@ -64,8 +64,16 @@ func browserStandIn(t *testing.T) string {
 	// The URL is passed through the environment rather than as an argument,
 	// because a test binary parses its own argv and would reject the browser
 	// flags it is handed.
+	// The stand-in honours --host-resolver-rules the way a browser does: given
+	// the flag, it reaches the name it was handed at loopback. Without this it
+	// would try to resolve www.google.com for real, and the pass that measures
+	// what a browser sends to Google would be a test of the internet.
 	script := fmt.Sprintf(`#!/bin/sh
 for last; do :; done
+case "$*" in
+*--host-resolver-rules=*) last=$(printf '%%s' "$last" | sed 's|://[^:/]*|://127.0.0.1|') ;;
+*www.google.com*) exit 4 ;;
+esac
 TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
 `, self)
 
@@ -216,6 +224,29 @@ func TestMeasurementsReportAServerThatCannotStart(t *testing.T) {
 	}
 	if _, err := CompareToBrowser(context.Background(), MeasureOptions{}); err == nil {
 		t.Error("CompareToBrowser did not report the failure")
+	}
+	if _, err := MeasureGoogleHeaders(context.Background(), MeasureOptions{}); err == nil {
+		t.Error("MeasureGoogleHeaders did not report the failure")
+	}
+}
+
+func TestMeasureGoogleHeaders(t *testing.T) {
+	// The stand-in reaches the name it is handed at loopback when it is given
+	// --host-resolver-rules, and refuses to resolve it otherwise — so this
+	// passing means the flag arrived, which is the whole mechanism: the browser
+	// believes it is talking to Google, and Google is a local socket.
+	measured, err := MeasureGoogleHeaders(context.Background(), MeasureOptions{
+		Browser: browserStandIn(t),
+		Timeout: 30 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("MeasureGoogleHeaders: %v", err)
+	}
+	if len(measured.RawClientHello) == 0 {
+		t.Error("no ClientHello was captured")
+	}
+	if measured.HTTP2 == nil || len(measured.HTTP2.Headers) == 0 {
+		t.Error("no headers were captured, which is the only reason this pass exists")
 	}
 }
 

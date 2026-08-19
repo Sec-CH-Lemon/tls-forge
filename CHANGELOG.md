@@ -11,6 +11,38 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+### Added
+
+- **The headers Chrome shows only Google are captured and replayed.** Chrome
+  adds `x-browser-channel`, `x-browser-year`, `x-browser-validation`,
+  `x-browser-copyright` and `x-client-data` to a request for a Google property
+  and to nothing else, so a capture taken against an ordinary host never sees
+  them and a client that scrapes Google without them announces itself in its
+  first request. Writing a profile now opens the browser a second time with the
+  echo server wearing Google's name, resolved to loopback, and keeps what comes
+  back as `google_headers` — a whole header list, so the order replayed is one
+  that was observed rather than one reconstructed. Nothing leaves the machine to
+  measure it, and the second capture was compared to the first field by field:
+  same JA4, same JA4_r, same HTTP/2 fingerprint, same header list, five more
+  headers in one block between `accept` and `sec-fetch-site`.
+
+  Which hosts receive it was measured as well, 2,041 candidates in one browser
+  run, because Chrome carries a list rather than a rule: `google.io` and
+  `google.org` receive the block while `google.ai` and `google.dev`, equally
+  Google's, receive nothing. 261 endings after `google.` matched, plus
+  `youtube.com`, `ytimg.com` and `gstatic.com` and their subdomains.
+
+  `x-browser-validation` is derived from the user-agent — the same browser
+  sending `HeadlessChrome/151.0.0.0` and `Chrome/151.0.0.0` produced two
+  different tokens, each reproducible — so it is dropped rather than sent when a
+  caller overrides the user-agent: a token the receiver can recompute and find
+  wrong is worse than one that is absent. `x-client-data` is per-install, so a
+  profile that ships carries the one it was captured with.
+
+  Profiles that ship pick the block up the next time the capture workflow runs.
+  Browsers that are not Google Chrome send no such block, and the capture says so
+  rather than leaving the field blank.
+
 ### Fixed
 
 - **The Windows test job hung for five minutes and then failed.** Three separate
