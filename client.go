@@ -191,11 +191,11 @@ func New(opts ...Option) (*Client, error) {
 	}
 	headers = headers.Merge(cfg.headers)
 
+	// Spliced once, here, rather than on every request: the profile carries the
+	// block and where it goes, and what a request needs is the finished list.
 	google := Header(nil)
-	for _, f := range prof.Google {
-		google = append(google, f)
-	}
-	if len(google) > 0 {
+	if prof.Google != nil {
+		google = append(google, prof.Google.Into(prof.Headers)...)
 		google = google.Merge(cfg.headers)
 	}
 

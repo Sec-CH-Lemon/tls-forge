@@ -20,9 +20,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   them and a client that scrapes Google without them announces itself in its
   first request. Writing a profile now opens the browser a second time with the
   echo server wearing Google's name, resolved to loopback, and keeps what comes
-  back as `google_headers` — a whole header list, so the order replayed is one
-  that was observed rather than one reconstructed. Nothing leaves the machine to
-  measure it, and the second capture was compared to the first field by field:
+  back as `google_headers`: the block, and the header it follows. Only the extra
+  headers, because the two captures are otherwise the same list — carrying the
+  whole thing would repeat thirteen headers to say five, in a file whose job is
+  to be read by somebody deciding whether to commit it. The position is stored
+  because it was measured too, and the capture proves the pair describes what it
+  saw: the block is spliced back into the ordinary list and compared to the
+  second capture field by field, and written only if they are identical.
+  Nothing leaves the machine to measure it, and the second capture was compared to the first field by field:
   same JA4, same JA4_r, same HTTP/2 fingerprint, same header list, five more
   headers in one block between `accept` and `sec-fetch-site`.
 

@@ -138,7 +138,11 @@ func saveProfile(where, name string, measured, google *capture.Capture) (profile
 	if err != nil {
 		return "", "", err
 	}
-	built.Google = profile.Headers(google)
+	block, err := profile.GoogleBlock(built.Headers, profile.Headers(google))
+	if err != nil {
+		return "", "", err
+	}
+	built.Google = block
 	built.Notes = fmt.Sprintf("captured %s from %s", now().UTC().Format(time.RFC3339), built.UserAgent)
 
 	path = where
@@ -169,32 +173,21 @@ func saveProfile(where, name string, measured, google *capture.Capture) (profile
 
 // printGoogleHeaders reports what the second pass found that the first did not.
 //
-// The difference rather than the whole list: the Google header list is the
-// ordinary one plus a block, and printing seventeen headers to show five is a
-// report nobody reads twice.
+// The block rather than the whole list: the Google header list is the ordinary
+// one plus a block, and printing eighteen headers to show five is a report
+// nobody reads twice.
 func printGoogleHeaders(out *printer, measured, google *capture.Capture) {
-	extra := extraHeaders(measured, google)
-	if len(extra) == 0 {
+	block, err := profile.GoogleBlock(profile.Headers(measured), profile.Headers(google))
+	if err != nil || block == nil {
 		out.println("\ngoogle      nothing extra — this browser is not Google Chrome")
 		return
 	}
-	out.printf("\ngoogle      %s\n", strings.Join(extra, "\n            "))
-}
-
-// extraHeaders names the headers the Google pass saw and the ordinary one did
-// not, in the order they were sent.
-func extraHeaders(measured, google *capture.Capture) []string {
-	ordinary := map[string]bool{}
-	for _, f := range profile.Headers(measured) {
-		ordinary[f.Name] = true
+	rows := make([]string, len(block.Headers))
+	for i, f := range block.Headers {
+		rows[i] = f.Name + "  " + f.Value
 	}
-	var out []string
-	for _, f := range profile.Headers(google) {
-		if !ordinary[f.Name] {
-			out = append(out, f.Name+"  "+f.Value)
-		}
-	}
-	return out
+	out.printf("\ngoogle      %s\n", strings.Join(rows, "\n            "))
+	out.printf("            (after %s)\n", block.After)
 }
 
 // mark is the star against a profile kept on this machine.

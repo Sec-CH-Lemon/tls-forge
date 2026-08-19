@@ -112,6 +112,66 @@ func Headers(c *capture.Capture) []Field {
 	return out
 }
 
+// GoogleBlock is what the second capture carried that the first did not, and
+// where it sat.
+//
+// It returns what it can prove. The block is built from the difference between
+// the two header lists and then spliced back into the first one, and it is only
+// returned if that reproduces the second list exactly. Anything else — the block
+// arriving in two pieces, the two captures disagreeing about some other header —
+// means the difference is not a block sitting at one place, and a profile saying
+// it is would replay an order nobody observed.
+//
+// No extra headers at all is not a failure: it is every browser that is not
+// Google Chrome, and it returns nothing to store.
+func GoogleBlock(ordinary, google []Field) (*Google, error) {
+	have := map[string]bool{}
+	for _, f := range ordinary {
+		have[f.Name] = true
+	}
+
+	block := &Google{}
+	for i, f := range google {
+		if have[f.Name] {
+			continue
+		}
+		if len(block.Headers) == 0 && i > 0 {
+			block.After = google[i-1].Name
+		}
+		block.Headers = append(block.Headers, f)
+	}
+	if len(block.Headers) == 0 {
+		return nil, nil
+	}
+
+	if !sameFields(block.Into(ordinary), google) {
+		return nil, fmt.Errorf(
+			"profile: the extra headers are not one block: %s", strings.Join(names(block.Headers), ", "))
+	}
+	return block, nil
+}
+
+// sameFields reports two header lists identical in order, name and value.
+func sameFields(a, b []Field) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func names(fields []Field) []string {
+	out := make([]string, len(fields))
+	for i, f := range fields {
+		out[i] = f.Name
+	}
+	return out
+}
+
 // pseudoNames recovers the full pseudo-header names from the capture's
 // single-letter rendering.
 func pseudoNames(h *capture.HTTP2) []string {

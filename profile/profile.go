@@ -39,11 +39,10 @@ type Profile struct {
 	HTTP2   HTTP2   `json:"http2"`
 	Headers []Field `json:"headers,omitempty"`
 
-	// Google is the header list this browser sends to a Google origin, which is
-	// the ordinary list plus a block Chrome shows nobody else. Empty for a
-	// browser that sends no such block — every one that is not Google Chrome —
-	// and for a profile captured before this was measured.
-	Google []Field `json:"google_headers,omitempty"`
+	// Google is the block this browser adds for a Google origin and shows
+	// nobody else. Nil for a browser that adds no such block — every one that is
+	// not Google Chrome — and for a profile captured before this was measured.
+	Google *Google `json:"google_headers,omitempty"`
 
 	// Notes is free text carried into the JSON so a committed profile can say
 	// where it came from — which browser build, measured when, on what OS.
@@ -59,6 +58,51 @@ type Profile struct {
 // Source is the file this profile was read from, or empty for one that ships
 // inside the binary or came from the catalogue.
 func (p *Profile) Source() string { return p.source }
+
+// Google is the headers a browser adds when the destination is Google's, and
+// where in its ordinary order they go.
+//
+// Only the extra headers, not the whole list they appear in. The two are the
+// same list otherwise — measured, by capturing both and comparing them field by
+// field — so carrying the whole thing would repeat thirteen headers to say five,
+// in a file whose job is to be read by somebody deciding whether to commit it.
+//
+// After is what keeps that from being a reconstruction. The block's position is
+// as measured as its contents: it arrived between `accept` and `sec-fetch-site`,
+// so `after: accept` is the observation, and splicing it back there reproduces
+// the order that was seen rather than one that seemed reasonable. An empty After
+// means the block came first.
+type Google struct {
+	After   string  `json:"after,omitempty"`
+	Headers []Field `json:"headers"`
+}
+
+// Into splices the block into a header list at the place it was measured.
+//
+// After is expected to name a header the list has — a capture only ever writes
+// one that does, because it read it off the list it is describing. A block whose
+// anchor has since been edited away goes on the end rather than nowhere: headers
+// in the wrong order are visible in a capture, headers silently not sent are
+// not.
+func (g *Google) Into(base []Field) []Field {
+	if g == nil || len(g.Headers) == 0 {
+		return base
+	}
+	out := make([]Field, 0, len(base)+len(g.Headers))
+	if g.After == "" {
+		out = append(out, g.Headers...)
+	}
+	for _, f := range base {
+		out = append(out, f)
+		if f.Name == g.After {
+			out = append(out, g.Headers...)
+		}
+	}
+	if len(out) == len(base) {
+		out = append(out, g.Headers...)
+	}
+	return out
+}
 
 // Field is one header. A slice of these rather than a map, because order is
 // fingerprinted and a map has none.

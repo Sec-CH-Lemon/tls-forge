@@ -65,12 +65,7 @@ func googleProfile(t *testing.T) *profile.Profile {
 		{Name: "x-browser-copyright", Value: "Copyright 2026 Google LLC. All Rights Reserved."},
 		{Name: "x-client-data", Value: "CKuWywE="},
 	}
-	for _, f := range p.Headers {
-		p.Google = append(p.Google, f)
-		if f.Name == "accept" {
-			p.Google = append(p.Google, block...)
-		}
-	}
+	p.Google = &profile.Google{After: "accept", Headers: block}
 	return &p
 }
 
@@ -211,20 +206,29 @@ func TestValidationIsDroppedWhenTheUserAgentIsNot(t *testing.T) {
 	}
 }
 
-func TestProfileCarriesTheGoogleList(t *testing.T) {
+func TestProfileCarriesTheGoogleBlock(t *testing.T) {
 	p := googleProfile(t)
 	data, err := p.Save()
 	if err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	if !strings.Contains(string(data), `"google_headers"`) {
-		t.Error("the Google list did not reach the JSON")
+		t.Error("the Google block did not reach the JSON")
 	}
+	// The block carries only what is not in the ordinary list. A profile that
+	// repeated the whole list would still work and would still be wrong.
+	if strings.Count(string(data), `"sec-fetch-dest"`) != 1 {
+		t.Error("the ordinary headers are in the file twice")
+	}
+
 	back, err := profile.Load(data)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(back.Google) != len(p.Google) {
-		t.Errorf("read back %d Google headers, wrote %d", len(back.Google), len(p.Google))
+	if back.Google == nil || len(back.Google.Headers) != len(p.Google.Headers) {
+		t.Errorf("read back %+v, wrote %+v", back.Google, p.Google)
+	}
+	if back.Google.After != "accept" {
+		t.Errorf("after = %q, want accept", back.Google.After)
 	}
 }

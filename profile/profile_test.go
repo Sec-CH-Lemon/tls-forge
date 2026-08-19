@@ -362,3 +362,101 @@ func TestHeadersFromACapture(t *testing.T) {
 		t.Errorf("Headers = %v, want %v", got, want)
 	}
 }
+
+func fields(pairs ...string) []Field {
+	out := make([]Field, 0, len(pairs)/2)
+	for i := 0; i+1 < len(pairs); i += 2 {
+		out = append(out, Field{Name: pairs[i], Value: pairs[i+1]})
+	}
+	return out
+}
+
+func TestGoogleBlockFindsWhatTheSecondCaptureAdded(t *testing.T) {
+	ordinary := fields("accept", "*/*", "sec-fetch-site", "none")
+	google := fields("accept", "*/*", "x-browser-year", "2026", "x-client-data", "c=", "sec-fetch-site", "none")
+
+	block, err := GoogleBlock(ordinary, google)
+	if err != nil {
+		t.Fatalf("GoogleBlock: %v", err)
+	}
+	if block.After != "accept" {
+		t.Errorf("after = %q, want accept", block.After)
+	}
+	if got := names(block.Headers); len(got) != 2 || got[0] != "x-browser-year" || got[1] != "x-client-data" {
+		t.Errorf("headers = %v", got)
+	}
+	// The whole point of storing a block rather than a list: it splices back
+	// into what was measured.
+	if !sameFields(block.Into(ordinary), google) {
+		t.Errorf("the block does not reproduce the capture:\n%v", block.Into(ordinary))
+	}
+}
+
+func TestGoogleBlockAtTheFront(t *testing.T) {
+	block, err := GoogleBlock(fields("accept", "*/*"), fields("x-first", "1", "accept", "*/*"))
+	if err != nil {
+		t.Fatalf("GoogleBlock: %v", err)
+	}
+	if block.After != "" {
+		t.Errorf("after = %q, want empty for a block that came first", block.After)
+	}
+}
+
+func TestGoogleBlockWithNothingExtra(t *testing.T) {
+	// Every browser that is not Google Chrome. Not an error, and nothing to keep.
+	block, err := GoogleBlock(fields("accept", "*/*"), fields("accept", "*/*"))
+	if block != nil || err != nil {
+		t.Errorf("block = %+v, err = %v", block, err)
+	}
+}
+
+func TestGoogleBlockRefusesWhatItCannotReproduce(t *testing.T) {
+	// Two pieces rather than one block: splicing them together would replay an
+	// order nobody saw.
+	_, err := GoogleBlock(
+		fields("accept", "*/*", "user-agent", "ua"),
+		fields("accept", "*/*", "x-one", "1", "user-agent", "ua", "x-two", "2"))
+	if err == nil {
+		t.Error("a scattered block was accepted")
+	}
+
+	// The two captures disagreeing about a header they share is the same
+	// problem wearing different clothes: the difference is not just a block.
+	if _, err := GoogleBlock(
+		fields("accept", "*/*"),
+		fields("accept", "text/html", "x-one", "1")); err == nil {
+		t.Error("captures that differ elsewhere were accepted")
+	}
+
+	// A header the ordinary capture had and the Google one did not. The block
+	// would describe a list one header longer than the one measured.
+	if _, err := GoogleBlock(
+		fields("accept", "*/*", "priority", "u=0, i"),
+		fields("accept", "*/*", "x-one", "1")); err == nil {
+		t.Error("a capture missing a header was accepted")
+	}
+}
+
+func TestGoogleBlockInto(t *testing.T) {
+	base := fields("accept", "*/*", "sec-fetch-site", "none")
+
+	var absent *Google
+	if got := absent.Into(base); !sameFields(got, base) {
+		t.Errorf("a nil block changed the list: %v", got)
+	}
+	if got := (&Google{}).Into(base); !sameFields(got, base) {
+		t.Errorf("an empty block changed the list: %v", got)
+	}
+
+	front := (&Google{Headers: fields("x-first", "1")}).Into(base)
+	if front[0].Name != "x-first" {
+		t.Errorf("a block with no anchor did not go first: %v", names(front))
+	}
+
+	// An anchor edited out of the profile by hand. Sending the headers in the
+	// wrong place is visible; not sending them is not.
+	stray := (&Google{After: "nonesuch", Headers: fields("x-last", "1")}).Into(base)
+	if stray[len(stray)-1].Name != "x-last" {
+		t.Errorf("a block with a missing anchor was dropped: %v", names(stray))
+	}
+}

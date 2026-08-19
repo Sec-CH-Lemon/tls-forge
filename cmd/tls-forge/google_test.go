@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -28,8 +30,12 @@ func TestPrintGoogleHeaders(t *testing.T) {
 			t.Errorf("the report does not mention %s:\n%s", want, got)
 		}
 	}
-	if strings.Contains(got, "accept") {
+	if strings.Contains(got, "accept  v-accept") {
 		t.Errorf("the report repeats headers the ordinary capture already had:\n%s", got)
+	}
+	// Where the block goes is part of what was measured, so the report says it.
+	if !strings.Contains(got, "(after accept)") {
+		t.Errorf("the report does not say where the block sits:\n%s", got)
 	}
 
 	// A browser that is not Google Chrome sends no block, and saying so is the
@@ -69,5 +75,32 @@ func TestCaptureSurvivesAFailedGooglePass(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "wrote profile") {
 		t.Errorf("the profile was not written:\n%s", stdout)
+	}
+}
+
+func TestSaveProfileRefusesAScatteredGoogleBlock(t *testing.T) {
+	// The Google pass is meant to add one block and change nothing else. If it
+	// comes back interleaved, the two captures disagree about more than Google,
+	// and a profile built from them would replay an order nobody measured.
+	raw, err := os.ReadFile("../../testdata/chrome151-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	measured := &capture.Capture{RawClientHello: raw,
+		HTTP2: &capture.HTTP2{Headers: []capture.HeaderField{
+			{Name: "accept", Value: "*/*"},
+			{Name: "user-agent", Value: "ua"},
+		}}}
+	google := &capture.Capture{RawClientHello: raw,
+		HTTP2: &capture.HTTP2{Headers: []capture.HeaderField{
+			{Name: "accept", Value: "*/*"},
+			{Name: "x-one", Value: "1"},
+			{Name: "user-agent", Value: "ua"},
+			{Name: "x-two", Value: "2"},
+		}}}
+
+	_, _, err = saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured, google)
+	if err == nil {
+		t.Error("a scattered block was written into a profile")
 	}
 }

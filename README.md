@@ -722,7 +722,8 @@ google      x-browser-channel  stable
             x-browser-year  2026
             x-browser-validation  iix1/iDR1W9e3SUCZHWKwrVpus8=
             x-browser-copyright  Copyright 2026 Google LLC. All Rights Reserved.
-            x-client-data  CKuWywE=
+            x-client-data  CID0ygE=
+            (after accept)
 ```
 
 Nothing leaves the machine to measure it. The echo server takes Google's name,
@@ -730,9 +731,27 @@ the browser is told that name resolves to loopback, and it hands over what it
 would have sent. The two captures were compared field by field: same JA4, same
 JA4_r, same HTTP/2 fingerprint, same header list — the Google one has five more
 headers, in one block, between `accept` and `sec-fetch-site`. That block is
-kept in the profile as `google_headers`, as a whole header list rather than as
-five headers to splice in later, so what is replayed is an order that was
-observed.
+kept in the profile as `google_headers` — the block, and where it goes:
+
+```json
+"google_headers": {
+  "after": "accept",
+  "headers": [
+    { "name": "x-browser-channel",   "value": "stable" },
+    { "name": "x-browser-year",      "value": "2026" },
+    { "name": "x-browser-validation", "value": "iix1/iDR1W9e3SUCZHWKwrVpus8=" },
+    { "name": "x-browser-copyright", "value": "Copyright 2026 Google LLC. All Rights Reserved." },
+    { "name": "x-client-data",       "value": "CID0ygE=" }
+  ]
+}
+```
+
+`after` is what keeps that from being a reconstruction: the position is as
+measured as the contents, and splicing the block back there reproduces the order
+that was seen. The capture proves it rather than assuming it — the block is
+spliced into the ordinary list and compared to the second capture, field by
+field, and it is only written if the two are identical. A difference that is not
+one block sitting at one place is refused rather than flattened into one.
 
 From then on a request to a Google host sends that list and a request anywhere
 else sends the ordinary one. Which hosts count was measured too, one host at a
