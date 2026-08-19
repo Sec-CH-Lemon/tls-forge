@@ -50,6 +50,20 @@ jobs:
       # was in the log verbatim. Process isolation is neither TLS nor a header,
       # so the capture is the same capture.
       FLAGS: --browser-arg=--no-sandbox
+      # Python on a Windows runner reads and writes text in the machine's legacy
+      # code page, not UTF-8, and every Python step here handles text that came
+      # from somewhere else: a profile written by Go, the version script's own
+      # report, this job's summary.
+      #
+      # It failed exactly where that goes wrong. The version script prints
+      # `measuring 151.0.7922.138 — 99.4% of what is served` to stderr; on
+      # Windows the em dash was encoded as cp1252 byte 0x97, which is not valid
+      # UTF-8, so the runner read the step output back as U+FFFD, and the summary
+      # step then died trying to print a character cp1252 has no room for.
+      #
+      # UTF-8 mode makes stdin, stdout, stderr and open() all UTF-8 on every
+      # platform, which is what the rest of this workflow already assumes.
+      PYTHONUTF8: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7

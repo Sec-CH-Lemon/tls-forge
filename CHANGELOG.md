@@ -45,6 +45,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The capture workflow's summary step failed on Windows.** Python on a Windows
+  runner reads and writes text in the machine's legacy code page rather than
+  UTF-8, and this workflow's Python steps all handle text that came from
+  somewhere else. The version script prints `measuring 151.0.7922.138 — 99.4% of
+  what is served` to standard error; on Windows the em dash left as cp1252 byte
+  `0x97`, which is not valid UTF-8, so the runner read that step's output back as
+  U+FFFD — and the summary step then died trying to print a character cp1252 has
+  no room for, four steps away from the cause. The workflow runs Python in UTF-8
+  mode, and the version script sets the encoding of its own report as well, so
+  that running it by hand on Windows produces a file that can be read rather than
+  one that looks fine until something parses it.
+
 - **The Windows test job hung for five minutes and then failed.** Three separate
   things, all of them the tests rather than the code. `--ca-cert
   /no/such/root/ca.pem` is unwritable only where the root is: on Windows it

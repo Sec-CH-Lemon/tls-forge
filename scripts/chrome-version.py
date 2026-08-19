@@ -49,7 +49,22 @@ KNOWN_GOOD = "https://googlechromelabs.github.io/chrome-for-testing/known-good-v
 PLATFORMS = ["mac_arm64", "win64", "linux"]
 
 
+def utf8_output() -> None:
+    """Report in UTF-8 whatever the machine's code page is.
+
+    Windows gives Python the legacy code page for stdout and stderr, so the em
+    dash below leaves as cp1252 byte 0x97 — which is not valid UTF-8, and
+    whatever reads this back gets U+FFFD instead. That is not a display problem:
+    the workflow copies this report into a step output, and a step output with an
+    undecodable byte in it takes the next step down with it.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
+
+
 def main() -> int:
+    utf8_output()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--channel", default="stable")
     parser.add_argument("--platforms", nargs="*", default=PLATFORMS)
