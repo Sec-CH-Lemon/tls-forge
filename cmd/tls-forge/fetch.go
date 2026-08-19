@@ -53,6 +53,10 @@ type clientFlags struct {
 	proxy    *string
 	timeout  *time.Duration
 	insecure *bool
+	// rules names a file of per-destination headers. Long only: it is written
+	// once in a script, like --browser-arg, and a letter for it would be a
+	// letter nobody remembers.
+	rules *string
 
 	// chose reports whether a flag was given rather than defaulted, which is
 	// how "no profile named" is told from "--profile chrome".
@@ -78,7 +82,9 @@ func addClientFlags(fs *pflag.FlagSet) clientFlags {
 		proxy:    fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port"),
 		timeout:  fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout"),
 		insecure: fs.BoolP("insecure", "k", false, "skip certificate verification"),
-		chose:    fs.Changed,
+		rules: fs.String("header-rules", "",
+			"file of headers to send to particular hosts; see the README"),
+		chose: fs.Changed,
 	}
 	return flags
 }
@@ -217,6 +223,11 @@ func (f clientFlags) clientVia(proxy string, extra ...tlsforge.Option) (*tlsforg
 	}
 	if *f.insecure {
 		opts = append(opts, tlsforge.WithInsecureSkipVerify())
+	}
+	// Only when given. Passing an empty path would say "no rules here" and turn
+	// off the environment fallback, which is the opposite of saying nothing.
+	if *f.rules != "" {
+		opts = append(opts, tlsforge.WithHeaderRulesFile(*f.rules))
 	}
 	return tlsforge.New(append(opts, extra...)...)
 }

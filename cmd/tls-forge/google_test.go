@@ -104,3 +104,31 @@ func TestSaveProfileRefusesAScatteredGoogleBlock(t *testing.T) {
 		t.Error("a scattered block was written into a profile")
 	}
 }
+
+func TestFetchTakesAHeaderRulesFile(t *testing.T) {
+	server := startEcho(t)
+	path := filepath.Join(t.TempDir(), "rules.json")
+	if err := os.WriteFile(path, []byte(`{"rules": [
+		{"host": "localhost", "after": "accept",
+		 "headers": [{"name": "x-from-a-file", "value": "1"}]}
+	]}`), 0o600); err != nil {
+		t.Fatalf("writing rules: %v", err)
+	}
+
+	code, stdout, stderr := exec(t, "fetch", "--insecure",
+		"--header-rules", path, server.URL()+"/api/all")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "x-from-a-file") {
+		t.Errorf("the rule's header was not sent:\n%s", stdout)
+	}
+
+	// A file that is not there stops the run rather than producing one that
+	// quietly sends nothing extra.
+	if code, _, _ := exec(t, "fetch", "--insecure",
+		"--header-rules", filepath.Join(t.TempDir(), "nope.json"),
+		server.URL()+"/api/all"); code == 0 {
+		t.Error("a missing rules file was ignored")
+	}
+}

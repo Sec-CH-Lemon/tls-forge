@@ -13,6 +13,27 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **Headers for one destination, from a file.** The block Chrome shows Google is
+  one instance of a general shape — a destination, some headers it is sent, and
+  where in the browser's order they go — so that shape is now a file, and a site
+  expecting a header this library has never heard of does not need this library
+  to hear of it. `--header-rules rules.json` on every command that makes
+  requests, `TLSFORGE_HEADER_RULES` for the clients that start this binary rather
+  than import it, and `WithHeaderRules` / `WithHeaderRulesFile` in Go.
+
+  A rule names a host — exactly, as `*.example.com` for it and its subdomains, or
+  as a regular expression between slashes — and adds headers, replaces them, or
+  removes them. A header the profile already sends keeps the browser's place in
+  the order and only changes value; one the browser never sends goes where
+  `after` says, or on the end. Rules apply over the profile and the Google block
+  and under anything set for the client or the request, so a file is a default
+  for a destination and an argument is a decision about one request.
+
+  A rules file that cannot be read, cannot be parsed, holds no rules, or holds a
+  pattern that will not compile stops the client being built, rather than
+  producing a run with no rules — which looks exactly like a run whose rules did
+  not match.
+
 - **The headers Chrome shows only Google are captured and replayed.** Chrome
   adds `x-browser-channel`, `x-browser-year`, `x-browser-validation`,
   `x-browser-copyright` and `x-client-data` to a request for a Google property

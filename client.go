@@ -58,6 +58,13 @@ type Client struct {
 	// once. Empty when the profile carries no such list, which is the signal to
 	// treat every host alike.
 	googleHeaders Header
+	// rules are the caller's own per-destination headers, applied on top of
+	// whatever the profile and the Google block produced.
+	rules Rules
+	// own is what the caller set for this client, kept so it can be re-applied
+	// after the rules. Rules are a default for a destination; this is a decision
+	// about this client, and it wins.
+	own Header
 	// warm is the session this client was handed, filed into the jar against
 	// each request's own URL.
 	//
@@ -199,8 +206,13 @@ func New(opts ...Option) (*Client, error) {
 		google = google.Merge(cfg.headers)
 	}
 
+	rules, err := resolveRules(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{inner: inner, profile: prof, jar: jar, headers: headers,
-		googleHeaders: google, warm: cfg.cookies}, nil
+		googleHeaders: google, rules: rules, own: cfg.headers, warm: cfg.cookies}, nil
 }
 
 // Profile returns the profile this client wears.
@@ -243,8 +255,11 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	c.seedCookies(parsed, warmFor(c.warm, parsed.Hostname()))
 	c.seedCookies(parsed, req.Cookies)
 
-	headers := withoutStaleValidation(
-		c.headersFor(parsed).Merge(req.Header), c.profile.UserAgent)
+	headers := c.headersFor(parsed)
+	if len(c.rules) > 0 {
+		headers = c.rules.apply(headers, parsed.Hostname()).Merge(c.own)
+	}
+	headers = withoutStaleValidation(headers.Merge(req.Header), c.profile.UserAgent)
 	// Assigned directly rather than through Set, which would canonicalise the
 	// names to Sec-Ch-Ua form. HPACK requires lower case, and the order key is
 	// matched lower-cased, so the map and the order list have to agree.

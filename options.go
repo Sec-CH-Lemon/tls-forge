@@ -25,6 +25,9 @@ type config struct {
 	insecureSkipVerify bool
 	shuffleExtensions  bool
 	extra              []tls_client.HttpClientOption
+	rules              Rules
+	rulesFile          string
+	rulesFileSet       bool
 }
 
 func defaults() config {
@@ -62,6 +65,25 @@ func WithProxy(proxyURL string) Option {
 // WithTimeout sets the per-request deadline.
 func WithTimeout(d time.Duration) Option {
 	return func(c *config) { c.timeout = d }
+}
+
+// WithHeaderRules adds rules deciding which destinations get which headers.
+//
+// Applied over the profile and under WithHeaders, so a rule is a default for a
+// host and an explicit header is a decision about this client.
+func WithHeaderRules(rules ...Rule) Option {
+	return func(c *config) { c.rules = append(c.rules, rules...) }
+}
+
+// WithHeaderRulesFile reads rules from a file. An unreadable or unparseable file
+// is an error from New rather than a run with no rules, because a run with no
+// rules looks exactly like a run whose rules did not match.
+//
+// Naming a file, including naming an empty one, also turns off the
+// TLSFORGE_HEADER_RULES fallback: a caller that says where its rules come from
+// has said it.
+func WithHeaderRulesFile(path string) Option {
+	return func(c *config) { c.rulesFile, c.rulesFileSet = path, true }
 }
 
 // WithHeaders layers default headers over the profile's, for every request.

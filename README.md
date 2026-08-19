@@ -1217,6 +1217,103 @@ tls-forge version
 Prints the version the binary was stamped with at build time. A binary built
 without `-ldflags` reports `dev`.
 
+## Header rules
+
+The block Chrome shows Google is one instance of a general shape: a destination,
+some headers it is sent, and where in the browser's order they go. That shape is
+a file, so a site expecting a header this library has never heard of does not
+need this library to hear of it.
+
+```json
+{
+  "rules": [
+    {
+      "host": "*.example.com",
+      "after": "accept",
+      "headers": [
+        { "name": "x-api-version", "value": "3" }
+      ]
+    },
+    {
+      "host": "/^shop[0-9]+\\.example\\.net$/",
+      "headers": [
+        { "name": "x-shop", "value": "yes" }
+      ]
+    },
+    {
+      "host": "*.google.com",
+      "remove": ["x-client-data"]
+    }
+  ]
+}
+```
+
+```bash
+tls-forge fetch --header-rules rules.json https://www.example.com/
+```
+
+The flag is on every command that makes requests — `fetch`, `batch`, `proxy`,
+`daemon` — and `TLSFORGE_HEADER_RULES` names the same file for a run that cannot
+pass a flag, which is how one reaches the Python and Node clients.
+
+| field | |
+|---|---|
+| `host` | which destinations this is for. Three forms, below |
+| `after` | the header the added ones go behind. Omitted, they go on the end |
+| `headers` | added, or replaced in place if the profile already sends them |
+| `remove` | headers this destination is not sent, including ones added here |
+
+**`host` has three forms:**
+
+| | matches |
+|---|---|
+| `example.com` | that host, exactly |
+| `*.example.com` | that host **and** every subdomain of it |
+| `/^shop[0-9]+\.example\.net$/` | a regular expression, against the lower-cased hostname |
+
+The plain form is exact on purpose: a pattern that quietly covered subdomains
+would send a site's headers to whatever it hosts for other people, and the star
+is one character. The star form covers the bare domain as well as its
+subdomains, which is how a browser's own match patterns read and what people
+mean when they write one. Matching is against the hostname alone — no scheme, no
+port, no path.
+
+**What happens to the order.** A header the profile already sends keeps the
+browser's place in the list and only changes value, because moving it would
+change the fingerprint the profile is for. A header the browser never sends has
+no observed position, so it goes where `after` says, or on the end.
+
+**What wins.** Rules are applied in the order written, over the profile and over
+the Google block, and under anything set for the client or for the request:
+
+```
+profile  →  Google block  →  rules, in file order  →  WithHeaders / -H  →  this request
+```
+
+A file is a default for a destination; an argument is a decision about one
+request, and the decision wins.
+
+**In Go**, the same thing without a file:
+
+```go
+client, err := tlsforge.New(
+    tlsforge.WithHeaderRules(tlsforge.Rule{
+        Host:    "*.example.com",
+        After:   "accept",
+        Headers: []profile.Field{{Name: "x-api-version", Value: "3"}},
+    }),
+)
+```
+
+`tlsforge.WithHeaderRulesFile(path)` reads the file instead, and rules passed in
+code are applied after rules from a file, so code overrides the file the same way
+a flag overrides a default.
+
+A rules file that cannot be read, cannot be parsed, holds no rules, or holds a
+pattern that will not compile is an error from `New` rather than a run with no
+rules — because a run with no rules looks exactly like a run whose rules did not
+match, and that is a bad afternoon.
+
 ## Add it to your project
 
 > The command, the repository, the npm package and the PyPI package are all
