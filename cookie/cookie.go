@@ -305,6 +305,9 @@ func (f *File) Pick(id string, pick *rand.Rand) (Set, error) {
 		if len(f.Sets) == 1 {
 			return f.Sets[0], nil
 		}
+		if pick == nil {
+			return Set{}, fmt.Errorf("cookie: choosing among multiple sets needs a random source")
+		}
 		return f.Sets[pick.Intn(len(f.Sets))], nil
 	}
 	for _, s := range f.Sets {

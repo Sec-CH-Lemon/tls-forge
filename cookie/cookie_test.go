@@ -183,6 +183,9 @@ func TestPick(t *testing.T) {
 	if set, _ := single.Pick("", pick); set.ID != "only" {
 		t.Errorf("a file of one: %+v", set)
 	}
+	if _, err := file.Pick("", nil); err == nil {
+		t.Error("multiple sets without a random source should be rejected")
+	}
 }
 
 func TestPickErrors(t *testing.T) {
