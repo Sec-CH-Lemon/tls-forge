@@ -61,6 +61,44 @@ func main() {
 				"id": req.ID, "status": 0, "url": "", "body": "",
 				"headers": nil, "cookies": nil,
 			})
+		// Keep these malformed protocol cases aligned with the Python and Node
+		// fixtures: this native version is what both suites run on Windows.
+		case "bad-error":
+			response := answer(req)
+			response["error"] = map[string]any{}
+			emit(response)
+		case "bad-status":
+			response := answer(req)
+			response["status"] = "200"
+			emit(response)
+		case "bad-url":
+			response := answer(req)
+			response["url"] = 7
+			emit(response)
+		case "bad-body":
+			response := answer(req)
+			response["body"] = []any{}
+			emit(response)
+		case "bad-headers":
+			response := answer(req)
+			response["headers"] = []any{}
+			emit(response)
+		case "bad-header-scalar":
+			response := answer(req)
+			response["headers"] = map[string]any{"broken": 7}
+			emit(response)
+		case "bad-header-list":
+			response := answer(req)
+			response["headers"] = map[string]any{"broken": []any{7}}
+			emit(response)
+		case "bad-cookies":
+			response := answer(req)
+			response["cookies"] = map[string]any{}
+			emit(response)
+		case "bad-cookie-item":
+			response := answer(req)
+			response["cookies"] = []any{7}
+			emit(response)
 		case "garbage":
 			raw("not json at all\n")
 		case "null-line":
