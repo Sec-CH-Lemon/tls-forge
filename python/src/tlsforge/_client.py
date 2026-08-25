@@ -113,6 +113,8 @@ class Client:
             raise ValueError("tlsforge: timeout must be a positive finite number")
         if on_stderr is not None and not callable(on_stderr):
             raise TypeError("tlsforge: on_stderr must be callable")
+        if cookie_set and not cookie_file:
+            raise ValueError("tlsforge: cookie_set requires cookie_file")
 
         self._binary = resolve_binary(binary)
         self._timeout = float(timeout)

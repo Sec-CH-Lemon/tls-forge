@@ -147,6 +147,11 @@ def test_stderr_callback_must_be_callable(wrapper):
         Client(binary=os.fspath(wrapper), on_stderr="log")
 
 
+def test_cookie_set_requires_a_cookie_file(wrapper):
+    with pytest.raises(ValueError, match="cookie_set requires cookie_file"):
+        Client(binary=os.fspath(wrapper), cookie_set="warm-eu")
+
+
 # --- failures --------------------------------------------------------------
 
 
