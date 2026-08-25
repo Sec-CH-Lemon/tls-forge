@@ -16,6 +16,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/cookie"
 	"github.com/Sec-CH-Lemon/tls-forge/daemon"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -163,8 +164,13 @@ func (f clientFlags) saveSession(client *tlsforge.Client, hosts []string, note s
 		return 0, nil
 	}
 
-	// 0600: a warmed session is a credential.
-	if err := os.WriteFile(*f.saveCookies, sessionFile(*f.saveCookies, set), 0o600); err != nil {
+	data, err := sessionFile(*f.saveCookies, set)
+	if err != nil {
+		return 0, err
+	}
+	// 0600: a warmed session is a credential. Replace atomically so a full disk
+	// or interrupted process cannot leave half a credential file behind.
+	if err := atomicfile.Write(*f.saveCookies, data, 0o600); err != nil {
 		return 0, fmt.Errorf("tlsforge: %w", err)
 	}
 	return len(set.Cookies), nil
@@ -176,18 +182,25 @@ func (f clientFlags) saveSession(client *tlsforge.Client, hosts []string, note s
 // session and is replaced, because that is what it means to everything else that
 // reads one. Anything else is this project's JSON, which holds sets, so a run is
 // added to what the file already had rather than replacing it.
-func sessionFile(path string, set cookie.Set) []byte {
+func sessionFile(path string, set cookie.Set) ([]byte, error) {
 	if strings.EqualFold(filepath.Ext(path), ".txt") {
-		return set.EncodeNetscape()
+		return set.EncodeNetscape(), nil
 	}
 	file := &cookie.File{}
-	if data, err := os.ReadFile(path); err == nil {
-		if loaded, err := cookie.Load(data); err == nil {
-			file = loaded
+	data, err := os.ReadFile(path)
+	switch {
+	case err == nil:
+		loaded, err := cookie.Load(data)
+		if err != nil {
+			return nil, fmt.Errorf("tlsforge: reading existing sessions from %s: %w", path, err)
 		}
+		file = loaded
+	case os.IsNotExist(err):
+	case err != nil:
+		return nil, fmt.Errorf("tlsforge: reading existing sessions from %s: %w", path, err)
 	}
 	file.Add(set)
-	return file.Encode()
+	return file.Encode(), nil
 }
 
 // pickCookieSet chooses which warmed session to use. Seeded from the clock and
@@ -233,7 +246,7 @@ func asClientCookies(cookies []cookie.Cookie) []tlsforge.Cookie {
 	return out
 }
 
-func runFetch(_ context.Context, args []string, out, errOut *printer) error {
+func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr error) {
 	fs := newFlagSet("fetch", out)
 	common := addClientFlags(fs)
 	method := fs.StringP("method", "X", "GET", "HTTP method")
@@ -267,16 +280,20 @@ func runFetch(_ context.Context, args []string, out, errOut *printer) error {
 		// ends with rather than the one it started from.
 		if saved, err := common.saveSession(client, []string{fs.Arg(0)}, ""); err != nil {
 			errOut.println("tlsforge:", err)
+			if runErr == nil {
+				runErr = err
+			}
 		} else if saved > 0 {
 			errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
 		}
 	}()
 
 	res, err := client.Do(&tlsforge.Request{
-		Method: *method,
-		URL:    fs.Arg(0),
-		Header: tlsforge.Header(headers),
-		Body:   []byte(*data),
+		Context: ctx,
+		Method:  *method,
+		URL:     fs.Arg(0),
+		Header:  tlsforge.Header(headers),
+		Body:    []byte(*data),
 	})
 	if err != nil {
 		return err

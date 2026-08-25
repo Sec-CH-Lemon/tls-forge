@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -177,6 +178,8 @@ func TestBatchFallsBackToTheProxyFlag(t *testing.T) {
 	}
 	if r := got[server.URL+"/unnamed"]; !strings.Contains(r.Error, "9003") {
 		t.Errorf("the flag was not used as the default: %q", r.Error)
+	} else if r.Proxy != "http://127.0.0.1:9003" {
+		t.Errorf("the result records proxy %q, want the fallback proxy", r.Proxy)
 	}
 }
 
@@ -330,7 +333,10 @@ func TestRepeatDoesNotWaitOutAnInterruptedRun(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	cancel()
 	select {
-	case <-done:
+	case code := <-done:
+		if code == 0 {
+			t.Error("an interrupted batch reported success")
+		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("the run waited out its backoff after being interrupted")
 	}
@@ -382,6 +388,21 @@ func TestBatchCannotWriteWhereItWasTold(t *testing.T) {
 	}
 	if code, _, _ := exec(t, "batch", "--body-dir", blocked, server.URL); code == 0 {
 		t.Error("an unmakeable body directory should fail")
+	}
+}
+
+func TestBatchReportsAnOutputCloseFailure(t *testing.T) {
+	original := closeBatchOutput
+	closeBatchOutput = func(file *os.File) error {
+		_ = original(file)
+		return errors.New("close failed")
+	}
+	t.Cleanup(func() { closeBatchOutput = original })
+
+	server := batchServer(t)
+	code, _, stderr := exec(t, "batch", "--output", filepath.Join(t.TempDir(), "out.jsonl"), server.URL)
+	if code == 0 || !strings.Contains(stderr, "closing output") {
+		t.Fatalf("code = %d, stderr = %q", code, stderr)
 	}
 }
 
@@ -647,8 +668,12 @@ func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
 	var sink strings.Builder
 	var records []result
 	jobs := []job{{URL: server.URL + "/one"}, {URL: server.URL + "/two"}}
-	if failed := runJobs(context.Background(), jobs, clients, 2, &sink, 1, "",
-		newProgress(len(jobs)), &records, &stderrLog{}); failed != 0 {
+	failed, err := runJobs(context.Background(), jobs, clients, 2, &sink, 1, "",
+		newProgress(len(jobs)), &records, &stderrLog{})
+	if err != nil {
+		t.Fatalf("runJobs: %v", err)
+	}
+	if failed != 0 {
 		t.Fatalf("%d of the jobs failed", failed)
 	}
 
@@ -667,6 +692,27 @@ func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
 	// And the page still reaches whoever asked for the output.
 	if !strings.Contains(sink.String(), "page /one") {
 		t.Errorf("the body did not reach the output: %q", sink.String())
+	}
+}
+
+func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
+	server := batchServer(t)
+	fs := newFlagSet("batch", newPrinter(io.Discard))
+	flags := addClientFlags(fs)
+	if err := parse(fs, nil); err != nil {
+		t.Fatal(err)
+	}
+	clients := newPool(flags, "")
+	defer clients.close()
+
+	var records []result
+	failed, err := runJobs(context.Background(), []job{{URL: server.URL}}, clients, 1,
+		failingWriter{}, 0, "", newProgress(1), &records, &stderrLog{})
+	if failed != 0 {
+		t.Fatalf("failed = %d", failed)
+	}
+	if err == nil || !strings.Contains(err.Error(), "writing result") {
+		t.Fatalf("error = %v, want output write failure", err)
 	}
 }
 

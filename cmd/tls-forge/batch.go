@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,6 +38,7 @@ type result struct {
 
 // batchInput is os.Stdin, named so a test can supply a list.
 var batchInput io.Reader = os.Stdin
+var closeBatchOutput = (*os.File).Close
 
 // numCPU is runtime.NumCPU, named so a test can answer for it. A machine's core
 // count is not something a test can choose, and the warning below is worth
@@ -149,12 +151,13 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 
 	sink := io.Writer(out)
+	var outputFile *os.File
 	if *output != "" {
 		file, err := os.Create(*output)
 		if err != nil {
 			return fmt.Errorf("batch: %w", err)
 		}
-		defer func() { _ = file.Close() }()
+		outputFile = file
 		sink = file
 	}
 
@@ -179,13 +182,21 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	// lock whether or not there is a status line to work around.
 	notes := &stderrLog{out: errOut, line: line, on: *verbose}
 
-	failures := runJobs(ctx, jobs, clients, *workers, sink, *repeat, *bodyDir, counts,
+	failures, runErr := runJobs(ctx, jobs, clients, *workers, sink, *repeat, *bodyDir, counts,
 		&records, notes)
 
 	// Closed here rather than deferred, so the final counts land before the
 	// summary below instead of after it.
 	if line != nil {
 		line.Close()
+	}
+	if outputFile != nil {
+		if err := closeBatchOutput(outputFile); err != nil {
+			runErr = errors.Join(runErr, fmt.Errorf("batch: closing output: %w", err))
+		}
+	}
+	if runErr != nil {
+		return runErr
 	}
 
 	// One lookup per proxy, not per URL: the address belongs to the proxy, and
@@ -204,7 +215,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	// One set per client, which is one per proxy: a jar is an identity, and two
 	// exits' sessions in one set would describe a browser that was two people.
 	if saved, err := clients.saveSessions(common, records); err != nil {
-		errOut.println("tlsforge:", err)
+		return err
 	} else if saved > 0 {
 		errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
 	}
@@ -368,15 +379,20 @@ func newPool(flags clientFlags, fallback string) *pool {
 	return &pool{clients: map[string]*tlsforge.Client{}, flags: flags, fallback: fallback}
 }
 
+func (p *pool) resolveProxy(proxy string) string {
+	if proxy == "" {
+		return p.fallback
+	}
+	return proxy
+}
+
 // get returns the client for a proxy, building it on first use.
 //
 // Built lazily so that a list naming twenty proxies of which the run only
 // reaches three opens three, and so that a proxy URL that will not parse fails
 // against the URL that asked for it rather than at start-up against nothing.
 func (p *pool) get(proxy string) (*tlsforge.Client, error) {
-	if proxy == "" {
-		proxy = p.fallback
-	}
+	proxy = p.resolveProxy(proxy)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if client, ok := p.clients[proxy]; ok {
@@ -442,7 +458,7 @@ func (p *pool) close() {
 func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 	sink io.Writer, repeat int, bodyDir string, counts *progress, records *[]result,
 	notes *stderrLog,
-) (failures int) {
+) (failures int, runErr error) {
 	queue := make(chan job)
 	var writeMu sync.Mutex
 	encoder := json.NewEncoder(sink)
@@ -462,7 +478,11 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 					failures++
 				}
 				*records = append(*records, r.withoutBody())
-				_ = encoder.Encode(r)
+				if runErr == nil {
+					if err := encoder.Encode(r); err != nil {
+						runErr = fmt.Errorf("batch: writing result: %w", err)
+					}
+				}
 				writeMu.Unlock()
 			}
 		}()
@@ -479,7 +499,13 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 	}
 	close(queue)
 	wg.Wait()
-	return failures
+	if runErr != nil {
+		return failures, runErr
+	}
+	if err := ctx.Err(); err != nil {
+		return failures, fmt.Errorf("batch: %w", err)
+	}
+	return failures, nil
 }
 
 // exitLookupLimit bounds how many proxies are asked about.
@@ -525,9 +551,10 @@ func lookupExits(clients *pool, records []result) (map[string]egress, int) {
 
 func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir string) result {
 	started := now()
-	r := result{URL: j.URL, Proxy: j.Proxy, Started: started}
+	proxy := clients.resolveProxy(j.Proxy)
+	r := result{URL: j.URL, Proxy: proxy, Started: started}
 
-	client, err := clients.get(j.Proxy)
+	client, err := clients.get(proxy)
 	if err != nil {
 		r.Error = err.Error()
 		r.finish(started)
@@ -541,7 +568,7 @@ func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir str
 			break
 		}
 		r.Attempts = attempt
-		res, err = client.Get(j.URL)
+		res, err = client.Do(&tlsforge.Request{Context: ctx, URL: j.URL})
 		if err == nil {
 			break
 		}

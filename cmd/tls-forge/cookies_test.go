@@ -181,6 +181,9 @@ func TestFetchSavesTheSessionItEndsWith(t *testing.T) {
 	fakeClock(t)
 	server := cookieEcho(t)
 	path := filepath.Join(t.TempDir(), "warm.json")
+	if err := os.WriteFile(path, []byte(`{"sets":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies", path, server.URL+"/set")
 	if code != 0 {
@@ -216,7 +219,10 @@ func TestFetchSavesTheSessionItEndsWith(t *testing.T) {
 	// Skipped on Windows, which reports 0666 whatever was asked for: the mode is
 	// a Unix idea, and a warmed session is still written 0600 where it means
 	// something.
-	if err != nil || (info.Mode().Perm() != 0o600 && runtime.GOOS != "windows") {
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 && runtime.GOOS != "windows" {
 		t.Errorf("mode = %v", info.Mode().Perm())
 	}
 
@@ -248,10 +254,44 @@ func TestFetchSavesNothingWhenThereIsNothingToSave(t *testing.T) {
 
 func TestFetchReportsASessionItCannotWrite(t *testing.T) {
 	server := cookieEcho(t)
-	_, _, stderr := exec(t, "fetch", "-k", "--save-cookies",
+	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies",
 		filepath.Join(t.TempDir(), "no-such-directory", "warm.json"), server.URL+"/set")
+	if code == 0 {
+		t.Error("an unsaved session reported success")
+	}
 	if !strings.Contains(stderr, "tlsforge:") {
 		t.Errorf("stderr = %q", stderr)
+	}
+}
+
+func TestFetchDoesNotOverwriteACorruptSessionFile(t *testing.T) {
+	server := cookieEcho(t)
+	path := filepath.Join(t.TempDir(), "warm.json")
+	original := []byte(`{"sets":[`)
+	if err := os.WriteFile(path, original, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies", path, server.URL+"/set")
+	if code == 0 {
+		t.Fatal("a corrupt existing session file reported success")
+	}
+	if !strings.Contains(stderr, "reading existing sessions") {
+		t.Errorf("stderr = %q", stderr)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != string(original) {
+		t.Errorf("corrupt file was overwritten with %q", data)
+	}
+}
+
+func TestSessionFileReportsAReadErrorOtherThanNotExist(t *testing.T) {
+	_, err := sessionFile(t.TempDir(), cookie.Set{ID: "new"})
+	if err == nil || !strings.Contains(err.Error(), "reading existing sessions") {
+		t.Fatalf("error = %v", err)
 	}
 }
 
@@ -314,9 +354,12 @@ func TestBatchSavesOneSessionPerProxy(t *testing.T) {
 
 func TestBatchReportsASessionItCannotWrite(t *testing.T) {
 	server := cookieEcho(t)
-	_, _, stderr := exec(t, "batch", "-k", "--save-cookies",
+	code, _, stderr := exec(t, "batch", "-k", "--save-cookies",
 		filepath.Join(t.TempDir(), "no-such-directory", "w.json"),
 		"--progress", "never", "-o", os.DevNull, server.URL+"/set")
+	if code == 0 {
+		t.Error("an unsaved batch session reported success")
+	}
 	if !strings.Contains(stderr, "tlsforge:") {
 		t.Errorf("stderr = %q", stderr)
 	}
