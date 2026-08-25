@@ -175,6 +175,17 @@ func parse(fs *pflag.FlagSet, args []string) error {
 	return fmt.Errorf("%w: %w", errUsage, err)
 }
 
+// requireNoArgs rejects positional arguments for commands whose entire input
+// is flags. Without this, a misspelled flag such as `profiles chrome` is
+// silently ignored and the command reports success for something it never did.
+func requireNoArgs(fs *pflag.FlagSet) error {
+	if fs.NArg() == 0 {
+		return nil
+	}
+	fs.Usage()
+	return fmt.Errorf("%w: %s takes no arguments", errUsage, fs.Name())
+}
+
 // newFlagSet returns a flag set that reports errors instead of exiting, so a
 // bad flag is a non-zero exit from one place rather than a call to os.Exit from
 // inside a command.
@@ -215,6 +226,9 @@ func runVersion(_ context.Context, args []string, out, _ *printer) error {
 	// way it answers everywhere else rather than being read as a URL.
 	fs := newFlagSet("version", out)
 	if err := parse(fs, args); err != nil {
+		return err
+	}
+	if err := requireNoArgs(fs); err != nil {
 		return err
 	}
 	out.println("tls-forge", version)

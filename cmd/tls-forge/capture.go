@@ -34,6 +34,9 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	if err := parse(fs, args); err != nil {
 		return err
 	}
+	if err := requireNoArgs(fs); err != nil {
+		return err
+	}
 
 	// To stderr: --json makes standard output a document, and a line of
 	// commentary in front of it is a document that will not parse.
@@ -219,6 +222,9 @@ func runServe(ctx context.Context, args []string, out, _ *printer) error {
 	if err := parse(fs, args); err != nil {
 		return err
 	}
+	if err := requireNoArgs(fs); err != nil {
+		return err
+	}
 
 	server, err := echo.Start(echo.WithAddr(*addr), echo.WithHost(*host), echo.WithSessionTickets(*tickets))
 	if err != nil {
@@ -241,6 +247,9 @@ func runServe(ctx context.Context, args []string, out, _ *printer) error {
 func runProfiles(_ context.Context, args []string, out, _ *printer) error {
 	fs := newFlagSet("profiles", out)
 	if err := parse(fs, args); err != nil {
+		return err
+	}
+	if err := requireNoArgs(fs); err != nil {
 		return err
 	}
 

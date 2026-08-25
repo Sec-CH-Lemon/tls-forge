@@ -756,6 +756,21 @@ func TestHelpFlagOnACommandExitsTwo(t *testing.T) {
 	}
 }
 
+func TestCommandsWithoutPositionalsRejectThem(t *testing.T) {
+	for _, name := range []string{"capture", "compare", "profiles", "proxy", "serve", "daemon", "version"} {
+		code, stdout, stderr := exec(t, name, "unexpected")
+		if code != exitUsage {
+			t.Errorf("%s: exit code = %d, want %d", name, code, exitUsage)
+		}
+		if !strings.Contains(stdout, "usage: tls-forge "+name) {
+			t.Errorf("%s: stdout has no usage: %q", name, stdout)
+		}
+		if !strings.Contains(stderr, "takes no arguments") {
+			t.Errorf("%s: stderr = %q", name, stderr)
+		}
+	}
+}
+
 func TestCommandsOnlyAdvertiseEffectiveCookieFlags(t *testing.T) {
 	flags := []string{"--cookie name=value", "--cookies string", "--cookie-set string", "--save-cookies string"}
 	tests := []struct {

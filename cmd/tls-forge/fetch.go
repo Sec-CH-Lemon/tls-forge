@@ -365,6 +365,9 @@ func runDaemon(_ context.Context, args []string, out, errOut *printer) error {
 	if err := parse(fs, args); err != nil {
 		return err
 	}
+	if err := requireNoArgs(fs); err != nil {
+		return err
+	}
 
 	common.wear(errOut)
 	client, err := common.client()
