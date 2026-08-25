@@ -37,6 +37,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -69,7 +70,14 @@ type Client struct {
 	// Not at construction: the jar files a cookie under the URL it is given, and
 	// a URL synthesised from a domain has no port, which a jar keyed by host and
 	// port then never matches. The request knows the URL exactly.
-	warm []Cookie
+	warm       []Cookie
+	warmMu     sync.Mutex
+	warmSeeded map[warmCookieKey]struct{}
+}
+
+type warmCookieKey struct {
+	index int
+	host  string
 }
 
 // DefaultMaxResponseBody bounds the decompressed body retained in memory.
@@ -232,7 +240,8 @@ func New(opts ...Option) (*Client, error) {
 	headers = headers.Merge(cfg.headers)
 
 	return &Client{inner: inner, profile: prof, jar: jar, headers: headers,
-		warm: cfg.cookies, maxBody: cfg.maxResponseBody}, nil
+		warm: cfg.cookies, warmSeeded: map[warmCookieKey]struct{}{},
+		maxBody: cfg.maxResponseBody}, nil
 }
 
 // Profile returns the profile this client wears.
@@ -275,10 +284,10 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	// string: two parsers agreeing is not something to verify at runtime, and a
 	// second parse is a second chance to disagree about what the request is for.
 	parsed := inner.URL
-	// The warmed session, filed against this request's URL. Repeated on every
-	// request and harmless for it: setting a cookie the jar already holds
-	// replaces it with itself.
-	c.seedCookies(parsed, warmFor(c.warm, parsed.Hostname()))
+	// The warmed session, filed against this request's URL once. Re-seeding it on
+	// every request would overwrite a value the server had refreshed in the jar
+	// with the stale value loaded at construction.
+	c.seedWarmCookies(parsed)
 	c.seedCookies(parsed, req.Cookies)
 
 	headers := c.headers.Merge(req.Header)
@@ -330,25 +339,36 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	return out, nil
 }
 
-// groupByHost sorts cookies by the host they belong to, because a jar is asked
-// to hold them one URL at a time. A cookie with no domain of its own has none
-// to be grouped under and waits for the first request to supply one.
-// warmFor is the part of a warmed session that belongs to a host.
-//
-// A cookie with no domain belongs to whatever is being asked, which is what a
-// cookie given as a bare name and value means. One that names a domain belongs
-// to that host and to anything under it, and to nothing else: a session warmed
-// for one site is not sent to another.
-func warmFor(cookies []Cookie, host string) []Cookie {
-	host = strings.ToLower(host)
-	out := make([]Cookie, 0, len(cookies))
-	for _, cookie := range cookies {
-		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
-		if domain == "" || domain == host || strings.HasSuffix(host, "."+domain) {
-			out = append(out, cookie)
-		}
+// seedWarmCookies files the part of a warmed session that belongs to this host
+// into the jar, once. A cookie with no domain belongs to whichever host is being
+// asked, so it is seeded once per distinct host; a domain cookie is seeded once
+// in total and the jar then applies its domain scope.
+func (c *Client) seedWarmCookies(u *url.URL) {
+	if len(c.warm) == 0 || c.jar == nil {
+		return
 	}
-	return out
+
+	host := strings.ToLower(u.Hostname())
+	c.warmMu.Lock()
+	defer c.warmMu.Unlock()
+
+	ready := make([]Cookie, 0, len(c.warm))
+	for i, cookie := range c.warm {
+		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
+		if domain != "" && domain != host && !strings.HasSuffix(host, "."+domain) {
+			continue
+		}
+		key := warmCookieKey{index: i}
+		if domain == "" {
+			key.host = host
+		}
+		if _, seeded := c.warmSeeded[key]; seeded {
+			continue
+		}
+		c.warmSeeded[key] = struct{}{}
+		ready = append(ready, cookie)
+	}
+	c.seedCookies(u, ready)
 }
 
 // CookiesFor returns what the jar holds for a URL, which is how a warmed

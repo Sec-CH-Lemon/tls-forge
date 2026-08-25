@@ -55,6 +55,7 @@ func TestWithCookies(t *testing.T) {
 		// bare name and value has none until a request supplies one.
 		{Name: "warm", Value: "1", Domain: host, Path: "/", Secure: true, HTTPOnly: true},
 		{Name: "homeless", Value: "2"},
+		{Name: "elsewhere", Value: "3", Domain: "example.com"},
 	}))
 	if err != nil {
 		t.Fatalf("New: %v", err)
@@ -68,6 +69,40 @@ func TestWithCookies(t *testing.T) {
 		}
 		if got := string(res.Body); got != "homeless=2 warm=1" {
 			t.Errorf("%s was sent %q", path, got)
+		}
+	}
+}
+
+func TestWarmedCookieDoesNotOverwriteAServerRefresh(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("session")
+		if err != nil {
+			t.Errorf("request has no session cookie: %v", err)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name: "session", Value: "refreshed", Path: "/", Secure: true,
+		})
+		_, _ = fmt.Fprint(w, cookie.Value)
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := New(WithInsecureSkipVerify(), WithCookies([]Cookie{{
+		Name: "session", Value: "warmed", Domain: mustHost(t, server.URL),
+		Path: "/", Secure: true,
+	}}))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	for request, want := range []string{"warmed", "refreshed"} {
+		res, err := client.Get(server.URL)
+		if err != nil {
+			t.Fatalf("request %d: %v", request+1, err)
+		}
+		if got := res.Text(); got != want {
+			t.Errorf("request %d sent %q, want %q", request+1, got, want)
 		}
 	}
 }
