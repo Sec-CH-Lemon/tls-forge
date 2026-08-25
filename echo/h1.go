@@ -2,6 +2,7 @@ package echo
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -81,15 +82,27 @@ func readHTTP1Request(r *bufio.Reader) (*http1Request, error) {
 		req.HeaderOrder = append(req.HeaderOrder, name)
 	}
 
+	contentLength := -1
 	for _, h := range req.Headers {
-		if h.Name != "content-length" {
-			continue
+		switch h.Name {
+		case "transfer-encoding":
+			// This deliberately small parser does not implement chunked bodies.
+			// Treating the chunks as the next request would desynchronise the
+			// connection, so reject the request explicitly.
+			return nil, fmt.Errorf("echo: transfer-encoding is not supported")
+		case "content-length":
+			if contentLength >= 0 {
+				return nil, fmt.Errorf("echo: duplicate content-length")
+			}
+			length, err := strconv.Atoi(h.Value)
+			if err != nil || length < 0 || length > maxResponseBody {
+				return nil, fmt.Errorf("echo: unusable content-length %q", h.Value)
+			}
+			contentLength = length
 		}
-		length, err := strconv.Atoi(h.Value)
-		if err != nil || length < 0 || length > maxResponseBody {
-			return nil, fmt.Errorf("echo: unusable content-length %q", h.Value)
-		}
-		req.body = make([]byte, length)
+	}
+	if contentLength >= 0 {
+		req.body = make([]byte, contentLength)
 		if _, err := io.ReadFull(r, req.body); err != nil {
 			return nil, err
 		}
@@ -98,14 +111,14 @@ func readHTTP1Request(r *bufio.Reader) (*http1Request, error) {
 }
 
 func readLine(r *bufio.Reader) (string, error) {
-	line, err := r.ReadString('\n')
+	line, err := r.ReadSlice('\n')
+	if errors.Is(err, bufio.ErrBufferFull) {
+		return "", fmt.Errorf("echo: line exceeds %d bytes", maxHTTP1Line)
+	}
 	if err != nil {
 		return "", err
 	}
-	if len(line) > maxHTTP1Line {
-		return "", fmt.Errorf("echo: line exceeds %d bytes", maxHTTP1Line)
-	}
-	return strings.TrimRight(line, "\r\n"), nil
+	return strings.TrimRight(string(line), "\r\n"), nil
 }
 
 // recordHTTP1 keeps the first request only, for the reason recordRequest gives.

@@ -323,6 +323,8 @@ func TestHTTP1MalformedRequests(t *testing.T) {
 		{"header", "GET / HTTP/1.1\r\nno-colon\r\n\r\n"},
 		{"content length", "POST /collect HTTP/1.1\r\ncontent-length: enormous\r\n\r\n"},
 		{"content length too large", "POST /collect HTTP/1.1\r\ncontent-length: 999999999\r\n\r\n"},
+		{"duplicate content length", "POST /collect HTTP/1.1\r\ncontent-length: 0\r\ncontent-length: 0\r\n\r\n"},
+		{"transfer encoding", "POST /collect HTTP/1.1\r\ntransfer-encoding: chunked\r\n\r\n0\r\n\r\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			conn, err := tls.Dial("tcp", server.Addr(), &tls.Config{
@@ -380,6 +382,26 @@ func TestBadHTTP2Preface(t *testing.T) {
 	// that fails afterwards has already told us who it is.
 	if len(server.Sessions()) == 0 {
 		t.Fatal("no session was registered")
+	}
+}
+
+func TestHTTP2RejectsAnOversizedDecodedHeaderList(t *testing.T) {
+	server := startServer(t)
+	c := dialH2(t, server)
+	if err := c.framer.WriteSettings(); err != nil {
+		t.Fatalf("SETTINGS: %v", err)
+	}
+	c.headers(t, 1, true,
+		[2]string{":method", "GET"}, [2]string{":authority", "localhost"},
+		[2]string{":scheme", "https"}, [2]string{":path", "/"},
+		[2]string{"x-oversized", strings.Repeat("a", maxHTTP2HeaderListSize)},
+	)
+
+	c.conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	for {
+		if _, err := c.framer.ReadFrame(); err != nil {
+			return
+		}
 	}
 }
 

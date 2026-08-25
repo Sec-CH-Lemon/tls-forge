@@ -35,6 +35,11 @@ const maxResponseBody = 65535
 // lower it, and there is no benefit here to sending bigger frames.
 const maxFrameSize = 16384
 
+// Header blocks are decoded before they can be inspected. Bound their decoded
+// size so a peer cannot turn a small compressed block into an unbounded
+// allocation by repeating a highly compressible value.
+const maxHTTP2HeaderListSize = 64 << 10
+
 type h2conn struct {
 	framer *http2.Framer
 	enc    *hpack.Encoder
@@ -47,6 +52,7 @@ func newH2Conn(rw io.ReadWriter) *h2conn {
 	// sent them and reassembles CONTINUATION frames, which is exactly the two
 	// things a hand-rolled decoder would have to get right.
 	framer.ReadMetaHeaders = hpack.NewDecoder(4096, nil)
+	framer.MaxHeaderListSize = maxHTTP2HeaderListSize
 	buf := &bytes.Buffer{}
 	return &h2conn{framer: framer, enc: hpack.NewEncoder(buf), encBuf: buf}
 }
@@ -60,6 +66,7 @@ func (s *Server) serveHTTP2(conn net.Conn, sess *Session) error {
 	if err := h.framer.WriteSettings(
 		http2.Setting{ID: http2.SettingMaxConcurrentStreams, Val: 250},
 		http2.Setting{ID: http2.SettingInitialWindowSize, Val: 1 << 20},
+		http2.Setting{ID: http2.SettingMaxHeaderListSize, Val: maxHTTP2HeaderListSize},
 	); err != nil {
 		return err
 	}
@@ -101,6 +108,9 @@ func (s *Server) serveHTTP2(conn net.Conn, sess *Session) error {
 			sess.recordPriority(f)
 
 		case *http2.MetaHeadersFrame:
+			if f.Truncated {
+				return fmt.Errorf("echo: HTTP/2 header list exceeds %d bytes", maxHTTP2HeaderListSize)
+			}
 			req := requestFromFrame(f)
 			sess.recordRequest(f)
 			if f.StreamEnded() {
