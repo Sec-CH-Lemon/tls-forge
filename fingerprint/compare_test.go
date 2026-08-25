@@ -161,6 +161,9 @@ func TestCompareHTTP2(t *testing.T) {
 		{"header order", func(h *HTTP2) {
 			h.Headers[4], h.Headers[6] = h.Headers[6], h.Headers[4]
 		}, "header_order"},
+		{"header value", func(h *HTTP2) {
+			h.Headers[4].Value = "different"
+		}, "header_values"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			candidate := chromeHTTP2()
@@ -173,6 +176,14 @@ func TestCompareHTTP2(t *testing.T) {
 				t.Errorf("report does not name %q:\n%s", tc.field, report)
 			}
 		})
+	}
+}
+
+func TestHTTP2FieldsExcludePseudoHeaderValues(t *testing.T) {
+	left, right := chromeHTTP2(), chromeHTTP2()
+	right.Headers[0].Value = "/another-path"
+	if report := CompareHTTP2(left, right); !report.OK() {
+		t.Errorf("request-specific pseudo-header value differed:\n%s", report)
 	}
 }
 

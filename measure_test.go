@@ -347,6 +347,36 @@ func TestCompareWithoutHTTP2(t *testing.T) {
 	}
 }
 
+func TestCompareReportsAProtocolMismatch(t *testing.T) {
+	raw := mustReadFixture(t)
+	browser := &capture.Capture{RawClientHello: raw, Negotiated: "h2", HTTP2: &capture.HTTP2{}}
+	client := &capture.Capture{RawClientHello: raw, Negotiated: "http/1.1", HTTP1: &capture.HTTP1{Proto: "HTTP/1.1"}}
+	result, err := Compare(browser, client)
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	if result.OK() || !strings.Contains(result.HTTP2.String(), "http_protocol") {
+		t.Fatalf("protocol mismatch was not reported: %+v", result)
+	}
+}
+
+func TestNegotiatedProtocolFallbacks(t *testing.T) {
+	tests := []struct {
+		capture *capture.Capture
+		want    string
+	}{
+		{&capture.Capture{Negotiated: "h3"}, "h3"},
+		{&capture.Capture{HTTP2: &capture.HTTP2{}}, "h2"},
+		{&capture.Capture{HTTP1: &capture.HTTP1{Proto: "HTTP/1.0"}}, "HTTP/1.0"},
+		{&capture.Capture{}, "(not recorded)"},
+	}
+	for _, test := range tests {
+		if got := negotiatedProtocol(test.capture); got != test.want {
+			t.Errorf("negotiatedProtocol(%+v) = %q, want %q", test.capture, got, test.want)
+		}
+	}
+}
+
 func mustReadFixture(t *testing.T) []byte {
 	t.Helper()
 	raw, err := os.ReadFile("testdata/chrome151-clienthello.bin")

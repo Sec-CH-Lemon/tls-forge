@@ -136,9 +136,11 @@ func TLSFields(hello *ClientHello) []Field {
 // HTTP2Fields is everything the connection preamble and first request are
 // compared on.
 //
-// Header VALUES are not here: they are the caller's to choose and vary per
-// request. What is compared is the shape a library controls and usually gets
-// wrong.
+// Header values are included. A profile is a complete browser identity, and a
+// Chrome ClientHello paired with a HeadlessChrome user-agent is exactly the kind
+// of cross-layer contradiction this comparison exists to expose. Pseudo-header
+// values are excluded because the two measurements deliberately use different
+// paths on the same local server.
 func HTTP2Fields(h *HTTP2) []Field {
 	return []Field{
 		scalar("http2_akamai", h.Akamai()),
@@ -146,7 +148,18 @@ func HTTP2Fields(h *HTTP2) []Field {
 		scalar("http2_window_update", fmt.Sprint(h.WindowUpdate)),
 		{Name: "pseudo_header_order", Values: h.PseudoHeaderOrder()},
 		{Name: "header_order", Values: h.HeaderOrder()},
+		{Name: "header_values", Values: regularHeaderStrings(h.Headers)},
 	}
+}
+
+func regularHeaderStrings(headers []HeaderField) []string {
+	out := make([]string, 0, len(headers))
+	for _, header := range headers {
+		if !strings.HasPrefix(header.Name, ":") {
+			out = append(out, header.Name+": "+header.Value)
+		}
+	}
+	return out
 }
 
 // CompareTLS diffs a candidate ClientHello against a reference one, usually a

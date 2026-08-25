@@ -224,9 +224,28 @@ func Compare(browserCapture, clientCapture *capture.Capture) (*Comparison, error
 		Client:  clientCapture,
 		TLS:     fingerprint.CompareTLS(browserHello, clientHello),
 	}
-	if browserCapture.HTTP2 != nil && clientCapture.HTTP2 != nil {
+	switch {
+	case browserCapture.HTTP2 != nil && clientCapture.HTTP2 != nil:
 		out.HTTP2 = fingerprint.CompareHTTP2(
 			browserCapture.HTTP2.Fingerprint(), clientCapture.HTTP2.Fingerprint())
+	case browserCapture.HTTP2 != nil || clientCapture.HTTP2 != nil:
+		out.HTTP2.Differences = []fingerprint.Difference{{
+			Field: "http_protocol", Reference: negotiatedProtocol(browserCapture),
+			Candidate: negotiatedProtocol(clientCapture),
+		}}
 	}
 	return out, nil
+}
+
+func negotiatedProtocol(c *capture.Capture) string {
+	if c.Negotiated != "" {
+		return c.Negotiated
+	}
+	if c.HTTP2 != nil {
+		return "h2"
+	}
+	if c.HTTP1 != nil {
+		return c.HTTP1.Proto
+	}
+	return "(not recorded)"
 }
