@@ -1,4 +1,4 @@
-# tls-forge
+# TLS Forge
 
 `tls-forge` is an HTTP client and command-line tool for making requests with a
 real browser's network fingerprint. A profile controls the TLS ClientHello,
@@ -582,6 +582,7 @@ Release and maintenance documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — user-visible changes;
 - [`RELEASING.md`](RELEASING.md) — release process;
+- [`docs/article.ru.md`](docs/article.ru.md) — Russian introduction to TLS fingerprinting and TLS Forge;
 - [`docs/profiles.md`](docs/profiles.md) — capture format and profile resolution;
 - [`docs/protocol.md`](docs/protocol.md) — JSON Lines daemon protocol;
 - [`example/`](example/) — runnable Go, Node.js, Python and CLI examples.

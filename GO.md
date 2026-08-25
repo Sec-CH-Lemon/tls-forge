@@ -1,4 +1,4 @@
-# tls-forge for Go
+# TLS Forge for Go
 
 The Go package is the native API behind the `tls-forge` CLI. It sends requests
 with a measured browser TLS ClientHello, HTTP/2 settings, pseudo-header order,

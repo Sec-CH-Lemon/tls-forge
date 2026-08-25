@@ -1,4 +1,4 @@
-# tls-forge for Python
+# TLS Forge for Python
 
 `tls-forge` is a typed Python HTTP client whose network fingerprint comes from
 a measured browser profile. It controls the TLS ClientHello, HTTP/2 settings and

@@ -1,4 +1,4 @@
-# tls-forge for Node.js
+# TLS Forge for Node.js
 
 `tls-forge` is an ESM HTTP client whose network fingerprint comes from a
 measured browser profile. It controls the TLS ClientHello, HTTP/2 settings and
