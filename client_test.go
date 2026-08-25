@@ -331,6 +331,22 @@ func TestWithProfileValue(t *testing.T) {
 	}
 }
 
+func TestClientOwnsAnIndependentProfile(t *testing.T) {
+	shipped, err := profile.Get(DefaultProfile)
+	if err != nil {
+		t.Fatalf("profile: %v", err)
+	}
+	wantedName := shipped.Name
+	client := newTestClient(t, WithProfileValue(shipped))
+
+	shipped.Name = "changed outside"
+	returned := client.Profile()
+	returned.Name = "changed through Profile"
+	if got := client.Profile().Name; got != wantedName {
+		t.Errorf("client profile = %q, want %q", got, wantedName)
+	}
+}
+
 func TestACatalogueProfileWorksWithoutHeaders(t *testing.T) {
 	// tls-client's catalogue carries a handshake but no headers of its own.
 	server := startEcho(t)

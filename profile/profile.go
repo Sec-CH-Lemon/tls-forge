@@ -54,6 +54,24 @@ type Profile struct {
 // inside the binary or came from the catalogue.
 func (p *Profile) Source() string { return p.source }
 
+// Clone returns an independent copy of the profile.
+func (p *Profile) Clone() *Profile {
+	if p == nil {
+		return nil
+	}
+	out := *p
+	out.ClientHello = append([]byte(nil), p.ClientHello...)
+	out.Headers = append([]Field(nil), p.Headers...)
+	out.HTTP2.Settings = append([]Setting(nil), p.HTTP2.Settings...)
+	out.HTTP2.PseudoHeaderOrder = append([]string(nil), p.HTTP2.PseudoHeaderOrder...)
+	out.HTTP2.Priorities = append([]Priority(nil), p.HTTP2.Priorities...)
+	if p.HTTP2.HeaderPriority != nil {
+		priority := *p.HTTP2.HeaderPriority
+		out.HTTP2.HeaderPriority = &priority
+	}
+	return &out
+}
+
 // ShufflesExtensions reports whether this browser family randomises the TLS
 // extension order on each connection. Chromium browsers do; Firefox and Safari
 // do not. The user agent is a fallback for custom captured profile names.

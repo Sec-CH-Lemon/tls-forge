@@ -169,6 +169,7 @@ func New(opts ...Option) (*Client, error) {
 			return nil, err
 		}
 	}
+	prof = prof.Clone()
 	clientProfile, err := prof.ClientProfile()
 	if err != nil {
 		return nil, err
@@ -256,7 +257,7 @@ func New(opts ...Option) (*Client, error) {
 }
 
 // Profile returns the profile this client wears.
-func (c *Client) Profile() *profile.Profile { return c.profile }
+func (c *Client) Profile() *profile.Profile { return c.profile.Clone() }
 
 // Headers returns the default headers, in order.
 func (c *Client) Headers() Header { return c.headers.Clone() }

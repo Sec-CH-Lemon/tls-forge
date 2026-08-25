@@ -127,6 +127,33 @@ func TestClientProfileFromCapturedHello(t *testing.T) {
 	}
 }
 
+func TestCloneIsIndependent(t *testing.T) {
+	original := &Profile{
+		Name: "browser", ClientHello: []byte{1}, Headers: []Field{{Name: "accept"}},
+		HTTP2: HTTP2{
+			Settings: []Setting{{ID: 1}}, PseudoHeaderOrder: []string{":method"},
+			Priorities: []Priority{{StreamID: 1}}, HeaderPriority: &Priority{StreamID: 3},
+		},
+	}
+	cloned := original.Clone()
+	cloned.ClientHello[0] = 2
+	cloned.Headers[0].Name = "changed"
+	cloned.HTTP2.Settings[0].ID = 2
+	cloned.HTTP2.PseudoHeaderOrder[0] = ":path"
+	cloned.HTTP2.Priorities[0].StreamID = 5
+	cloned.HTTP2.HeaderPriority.StreamID = 7
+
+	if original.ClientHello[0] != 1 || original.Headers[0].Name != "accept" ||
+		original.HTTP2.Settings[0].ID != 1 || original.HTTP2.PseudoHeaderOrder[0] != ":method" ||
+		original.HTTP2.Priorities[0].StreamID != 1 || original.HTTP2.HeaderPriority.StreamID != 3 {
+		t.Errorf("clone mutated the original: %+v", original)
+	}
+	var absent *Profile
+	if absent.Clone() != nil {
+		t.Error("a nil profile clone should stay nil")
+	}
+}
+
 func TestClientProfileUsesTheBaseVerbatim(t *testing.T) {
 	// A profile that only names a base IS that base. Rebuilding it from parts
 	// would be a second, drifting copy of settings this library does not own.
