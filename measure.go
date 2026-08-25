@@ -79,6 +79,9 @@ func MeasureBrowser(ctx context.Context, opts MeasureOptions) (*capture.Capture,
 // MeasureBrowserAt measures a browser against a server the caller already has,
 // which is how a comparison puts both sides on one instrument.
 func MeasureBrowserAt(ctx context.Context, server *echo.Server, opts MeasureOptions) (*capture.Capture, error) {
+	if server == nil {
+		return nil, fmt.Errorf("tlsforge: browser measurement needs an echo server")
+	}
 	found, err := browser.Find(opts.Browser)
 	if err != nil {
 		return nil, err
@@ -117,6 +120,9 @@ func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error) 
 
 // MeasureSelfAt measures this library against a server the caller already has.
 func MeasureSelfAt(ctx context.Context, server *echo.Server, opts ...Option) (*capture.Capture, error) {
+	if server == nil {
+		return nil, fmt.Errorf("tlsforge: self measurement needs an echo server")
+	}
 	// The echo server's certificate is generated per run and signs nothing but
 	// itself, so verification is turned off — for this one loopback address,
 	// inside this process, carrying nothing secret.
@@ -210,6 +216,12 @@ func CompareToBrowser(ctx context.Context, measure MeasureOptions, opts ...Optio
 // Compare diffs two measurements that were taken earlier, which is how a
 // capture saved to disk is checked against today's client.
 func Compare(browserCapture, clientCapture *capture.Capture) (*Comparison, error) {
+	if browserCapture == nil {
+		return nil, fmt.Errorf("tlsforge: browser capture is nil")
+	}
+	if clientCapture == nil {
+		return nil, fmt.Errorf("tlsforge: client capture is nil")
+	}
 	browserHello, err := browserCapture.Hello()
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: browser capture: %w", err)

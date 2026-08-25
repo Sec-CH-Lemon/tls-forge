@@ -106,6 +106,9 @@ func TestMeasureBrowser(t *testing.T) {
 }
 
 func TestMeasureBrowserErrors(t *testing.T) {
+	if _, err := MeasureBrowserAt(context.Background(), nil, MeasureOptions{}); err == nil {
+		t.Error("expected an error for a nil echo server")
+	}
 	if _, err := MeasureBrowser(context.Background(), MeasureOptions{Browser: "netscape"}); err == nil {
 		t.Error("expected an error for an unknown browser")
 	}
@@ -166,6 +169,9 @@ func TestMeasureSelf(t *testing.T) {
 }
 
 func TestMeasureSelfErrors(t *testing.T) {
+	if _, err := MeasureSelfAt(context.Background(), nil); err == nil {
+		t.Error("expected an error for a nil echo server")
+	}
 	if _, err := MeasureSelf(context.Background(), WithProfile("netscape_4")); err == nil {
 		t.Error("expected an error for an unknown profile")
 	}
@@ -298,6 +304,17 @@ func TestCompareFindsDifferences(t *testing.T) {
 	}
 	if strings.Contains(rendered, "identical") {
 		t.Errorf("a differing pair was reported as identical:\n%s", rendered)
+	}
+}
+
+func TestCompareRejectsNilCaptures(t *testing.T) {
+	if _, err := Compare(nil, &capture.Capture{}); err == nil ||
+		!strings.Contains(err.Error(), "browser capture is nil") {
+		t.Fatalf("nil browser capture error = %v", err)
+	}
+	if _, err := Compare(&capture.Capture{}, nil); err == nil ||
+		!strings.Contains(err.Error(), "client capture is nil") {
+		t.Fatalf("nil client capture error = %v", err)
 	}
 }
 
