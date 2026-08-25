@@ -29,14 +29,21 @@ package tlsforge
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"io"
+	"math"
+	"net"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	fhttp "github.com/bogdanfinn/fhttp"
+	"github.com/bogdanfinn/fhttp/cookiejar"
 	tls_client "github.com/bogdanfinn/tls-client"
+	"golang.org/x/net/publicsuffix"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
@@ -52,8 +59,10 @@ import (
 type Client struct {
 	inner   tls_client.HttpClient
 	profile *profile.Profile
-	jar     tls_client.CookieJar
+	jar     fhttp.CookieJar
 	headers Header
+	closed  atomic.Bool
+	maxBody int64
 	// warm is the session this client was handed, filed into the jar against
 	// each request's own URL.
 	//
@@ -63,8 +72,21 @@ type Client struct {
 	warm []Cookie
 }
 
+// DefaultMaxResponseBody bounds the decompressed body retained in memory.
+const DefaultMaxResponseBody int64 = 64 << 20
+
+// ErrResponseTooLarge reports that a decompressed response exceeded its
+// configured in-memory limit.
+var ErrResponseTooLarge = errors.New("tlsforge: response body exceeds the configured limit")
+
+var newDefaultCookieJar = func() (fhttp.CookieJar, error) {
+	return cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+}
+
 // Request is one HTTP request.
 type Request struct {
+	// Context cancels this request. Nil means context.Background.
+	Context context.Context
 	// Method defaults to GET.
 	Method string
 	URL    string
@@ -119,6 +141,12 @@ func New(opts ...Option) (*Client, error) {
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+	if cfg.timeout <= 0 {
+		return nil, fmt.Errorf("tlsforge: timeout must be positive")
+	}
+	if cfg.maxResponseBody <= 0 || cfg.maxResponseBody == math.MaxInt64 {
+		return nil, fmt.Errorf("tlsforge: maximum response body must be positive and bounded")
+	}
 
 	prof := cfg.profile
 	if prof == nil {
@@ -136,11 +164,23 @@ func New(opts ...Option) (*Client, error) {
 	// all. That is what WithoutCookieJar asks for.
 	jar := cfg.jar
 	if jar == nil && !cfg.noJar {
-		jar = tls_client.NewCookieJar()
+		jar, err = newDefaultCookieJar()
+		if err != nil {
+			return nil, fmt.Errorf("tlsforge: cookie jar: %w", err)
+		}
+	}
+	milliseconds := cfg.timeout.Milliseconds()
+	if milliseconds == 0 {
+		milliseconds = 1
+	}
+	// tls-client accepts an int. Bound this consistently on every architecture
+	// instead of allowing a timeout on 64-bit that wraps on a 32-bit build.
+	if milliseconds > math.MaxInt32 {
+		return nil, fmt.Errorf("tlsforge: timeout is too large")
 	}
 
 	options := []tls_client.HttpClientOption{
-		tls_client.WithTimeout(int(cfg.timeout.Seconds())),
+		tls_client.WithTimeoutMilliseconds(int(milliseconds)),
 		tls_client.WithClientProfile(clientProfile),
 		tls_client.WithCookieJar(jar),
 		// Six idle connections per host, which is Chrome's own limit for
@@ -157,7 +197,11 @@ func New(opts ...Option) (*Client, error) {
 			MaxIdleConnsPerHost: 6,
 		}),
 	}
-	if cfg.shuffleExtensions {
+	shuffleExtensions := prof.ShufflesExtensions()
+	if cfg.shuffleExtensions != nil {
+		shuffleExtensions = *cfg.shuffleExtensions
+	}
+	if shuffleExtensions {
 		// Chrome randomises its extension order on every connection, so a client
 		// that always sends the same order is distinguishable from Chrome even
 		// with Chrome's exact extension set. Measured against a real browser:
@@ -188,7 +232,7 @@ func New(opts ...Option) (*Client, error) {
 	headers = headers.Merge(cfg.headers)
 
 	return &Client{inner: inner, profile: prof, jar: jar, headers: headers,
-		warm: cfg.cookies}, nil
+		warm: cfg.cookies, maxBody: cfg.maxResponseBody}, nil
 }
 
 // Profile returns the profile this client wears.
@@ -204,6 +248,9 @@ func (c *Client) Get(url string) (*Response, error) {
 
 // Do performs a request.
 func (c *Client) Do(req *Request) (*Response, error) {
+	if c.closed.Load() {
+		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
+	}
 	if req == nil || req.URL == "" {
 		return nil, fmt.Errorf("tlsforge: request needs a URL")
 	}
@@ -219,6 +266,9 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	inner, err := fhttp.NewRequest(method, req.URL, body)
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
+	}
+	if req.Context != nil {
+		inner = inner.WithContext(req.Context)
 	}
 
 	// The URL fhttp already parsed, rather than a second parse of the same
@@ -250,9 +300,12 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	}
 	defer func() { _ = res.Body.Close() }()
 
-	read, err := io.ReadAll(res.Body)
+	read, err := io.ReadAll(io.LimitReader(res.Body, c.maxBody+1))
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: reading body: %w", err)
+	}
+	if int64(len(read)) > c.maxBody {
+		return nil, fmt.Errorf("%w (limit %d bytes)", ErrResponseTooLarge, c.maxBody)
 	}
 
 	out := &Response{
@@ -261,14 +314,16 @@ func (c *Client) Do(req *Request) (*Response, error) {
 		Body:   read,
 		Header: map[string][]string{},
 	}
+	cookieURL := parsed
 	if res.Request != nil && res.Request.URL != nil {
 		out.URL = res.Request.URL.String()
+		cookieURL = res.Request.URL
 	}
 	for name, values := range res.Header {
 		out.Header[strings.ToLower(name)] = values
 	}
 	if c.jar != nil {
-		for _, cookie := range c.jar.Cookies(parsed) {
+		for _, cookie := range c.jar.Cookies(cookieURL) {
 			out.Cookies = append(out.Cookies, cookie.Name+"="+cookie.Value)
 		}
 	}
@@ -312,7 +367,7 @@ func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
 		out = append(out, Cookie{
 			Name:     cookie.Name,
 			Value:    cookie.Value,
-			Domain:   u.Hostname(),
+			Domain:   cookie.Domain,
 			Path:     cookie.Path,
 			Secure:   cookie.Secure,
 			HTTPOnly: cookie.HttpOnly,
@@ -333,8 +388,12 @@ func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
 			path = "/"
 		}
 		domain := cookie.Domain
-		if domain == "" {
-			domain = u.Hostname()
+		// RFC 6265 does not permit a Domain attribute on an IP address. A
+		// browser-exported cookie often spells the request IP there anyway; treat
+		// the matching value as the host-only cookie it represents.
+		if net.ParseIP(strings.TrimPrefix(domain, ".")) != nil &&
+			strings.TrimPrefix(domain, ".") == u.Hostname() {
+			domain = ""
 		}
 		jarCookies = append(jarCookies, &fhttp.Cookie{
 			Name:     cookie.Name,
@@ -355,15 +414,22 @@ func (c *Client) Cookies(rawURL string) ([]Cookie, error) {
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
+	if c.jar == nil {
+		return nil, nil
+	}
 	var out []Cookie
 	for _, cookie := range c.jar.Cookies(parsed) {
-		out = append(out, Cookie{Name: cookie.Name, Value: cookie.Value, Path: cookie.Path})
+		out = append(out, Cookie{
+			Name: cookie.Name, Value: cookie.Value, Domain: cookie.Domain, Path: cookie.Path,
+			Secure: cookie.Secure, HTTPOnly: cookie.HttpOnly, Expires: cookie.Expires,
+		})
 	}
 	return out, nil
 }
 
 // Close releases the client's connections. A closed client must not be reused.
 func (c *Client) Close() error {
+	c.closed.Store(true)
 	c.inner.CloseIdleConnections()
 	return nil
 }

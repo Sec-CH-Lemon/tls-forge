@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	fhttp "github.com/bogdanfinn/fhttp"
 )
 
 // cookieEcho reports what it was sent and sets one of its own.
@@ -166,6 +168,67 @@ func TestWithoutCookieJar(t *testing.T) {
 	held, err := client.CookiesFor(server.URL + "/")
 	if err != nil || len(held) != 0 {
 		t.Errorf("CookiesFor = %v, %v", held, err)
+	}
+	held, err = client.Cookies(server.URL + "/")
+	if err != nil || len(held) != 0 {
+		t.Errorf("Cookies = %v, %v", held, err)
+	}
+}
+
+func TestDefaultJarEnforcesCookieScope(t *testing.T) {
+	client, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	source, _ := url.Parse("https://a.co.uk/private/start")
+	client.jar.SetCookies(source, []*fhttp.Cookie{
+		{Name: "auth", Value: "secret", Domain: "a.co.uk", Path: "/private", Secure: true},
+		{Name: "expired", Value: "old", Domain: "a.co.uk", Path: "/", Expires: time.Now().Add(-time.Hour)},
+	})
+
+	for _, rawURL := range []string{
+		"http://a.co.uk/private/start",  // Secure cookies never travel over HTTP.
+		"https://a.co.uk/public",        // Path is part of a cookie's scope.
+		"https://b.co.uk/private/start", // Public suffixes do not join unrelated sites.
+	} {
+		target, _ := url.Parse(rawURL)
+		if got := client.jar.Cookies(target); len(got) != 0 {
+			t.Errorf("%s received %+v", rawURL, got)
+		}
+	}
+
+	target, _ := url.Parse("https://a.co.uk/private/page")
+	got := client.jar.Cookies(target)
+	if len(got) != 1 || got[0].Name != "auth" {
+		t.Fatalf("same-site cookie = %+v", got)
+	}
+}
+
+func TestResponseCookiesBelongToTheFinalRedirectURL(t *testing.T) {
+	destination := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.SetCookie(w, &http.Cookie{Name: "final", Value: "1", Path: "/", Secure: true})
+	}))
+	t.Cleanup(destination.Close)
+	finalURL := strings.Replace(destination.URL, "127.0.0.1", "localhost", 1)
+
+	redirect := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Redirect(w, &http.Request{}, finalURL, http.StatusFound)
+	}))
+	t.Cleanup(redirect.Close)
+
+	client, err := New(WithInsecureSkipVerify())
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+	res, err := client.Get(redirect.URL)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if len(res.Cookies) != 1 || res.Cookies[0] != "final=1" {
+		t.Fatalf("response cookies = %v", res.Cookies)
 	}
 }
 

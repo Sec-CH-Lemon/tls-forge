@@ -3,6 +3,7 @@ package tlsforge
 import (
 	"time"
 
+	fhttp "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -17,13 +18,14 @@ type config struct {
 	profileName        string
 	proxy              string
 	timeout            time.Duration
+	maxResponseBody    int64
 	headers            Header
-	jar                tls_client.CookieJar
+	jar                fhttp.CookieJar
 	noJar              bool
 	cookies            []Cookie
 	followRedirects    bool
 	insecureSkipVerify bool
-	shuffleExtensions  bool
+	shuffleExtensions  *bool
 	extra              []tls_client.HttpClientOption
 }
 
@@ -31,10 +33,8 @@ func defaults() config {
 	return config{
 		profileName:     DefaultProfile,
 		timeout:         Timeout,
+		maxResponseBody: DefaultMaxResponseBody,
 		followRedirects: true,
-		// On by default because the browser being impersonated does it. See the
-		// note where the option is applied.
-		shuffleExtensions: true,
 	}
 }
 
@@ -64,6 +64,12 @@ func WithTimeout(d time.Duration) Option {
 	return func(c *config) { c.timeout = d }
 }
 
+// WithMaxResponseBody limits the decompressed response retained in memory.
+// The client returns ErrResponseTooLarge when the limit is exceeded.
+func WithMaxResponseBody(bytes int64) Option {
+	return func(c *config) { c.maxResponseBody = bytes }
+}
+
 // WithHeaders layers default headers over the profile's, for every request.
 func WithHeaders(h Header) Option {
 	return func(c *config) { c.headers = c.headers.Merge(h) }
@@ -90,7 +96,7 @@ func WithoutCookieJar() Option {
 
 // WithCookieJar supplies a jar, which is how a session is shared between
 // clients or restored from disk.
-func WithCookieJar(jar tls_client.CookieJar) Option {
+func WithCookieJar(jar fhttp.CookieJar) Option {
 	return func(c *config) { c.jar = jar }
 }
 
@@ -115,7 +121,20 @@ func WithInsecureSkipVerify() Option {
 // a client that does NOT — Firefox and Safari send a stable order, and against
 // those a shuffling client is the anomaly.
 func WithFixedExtensionOrder() Option {
-	return func(c *config) { c.shuffleExtensions = false }
+	return func(c *config) {
+		fixed := false
+		c.shuffleExtensions = &fixed
+	}
+}
+
+// WithRandomExtensionOrder explicitly enables per-connection extension
+// shuffling. Profiles select the browser's behaviour automatically; this is for
+// a custom Chromium profile whose name and user agent do not reveal its family.
+func WithRandomExtensionOrder() Option {
+	return func(c *config) {
+		random := true
+		c.shuffleExtensions = &random
+	}
 }
 
 // WithTransportOption passes an option through to the underlying tls-client,

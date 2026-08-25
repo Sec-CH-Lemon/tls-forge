@@ -1,21 +1,27 @@
 package tlsforge
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	fhttp "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
@@ -409,6 +415,110 @@ func TestCloseIsSafe(t *testing.T) {
 	if err := client.Close(); err != nil {
 		t.Errorf("Close: %v", err)
 	}
+	if _, err := client.Get("https://example.com/"); err == nil || !strings.Contains(err.Error(), "closed") {
+		t.Errorf("Get after Close = %v", err)
+	}
+}
+
+func TestNewRejectsNonPositiveTimeouts(t *testing.T) {
+	for _, timeout := range []time.Duration{0, -time.Second} {
+		if _, err := New(WithTimeout(timeout)); err == nil {
+			t.Errorf("New with timeout %v succeeded", timeout)
+		}
+	}
+}
+
+func TestNewReportsDefaultCookieJarFailure(t *testing.T) {
+	original := newDefaultCookieJar
+	newDefaultCookieJar = func() (fhttp.CookieJar, error) {
+		return nil, errors.New("jar failed")
+	}
+	t.Cleanup(func() { newDefaultCookieJar = original })
+	if _, err := New(); err == nil || !strings.Contains(err.Error(), "cookie jar") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestTimeoutConversionBounds(t *testing.T) {
+	client, err := New(WithTimeout(time.Nanosecond))
+	if err != nil {
+		t.Fatalf("one-nanosecond timeout: %v", err)
+	}
+	_ = client.Close()
+
+	tooLarge := time.Duration(math.MaxInt32+1) * time.Millisecond
+	if _, err := New(WithTimeout(tooLarge)); err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Fatalf("large timeout error = %v", err)
+	}
+}
+
+func TestSubsecondTimeoutIsNotRoundedToUnlimited(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		_, _ = w.Write([]byte("late"))
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := New(WithInsecureSkipVerify(), WithTimeout(5*time.Millisecond))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+	if _, err := client.Get(server.URL); err == nil {
+		t.Fatal("a request beyond the subsecond timeout succeeded")
+	}
+}
+
+func TestRequestContextCancelsAnInFlightRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		select {
+		case <-request.Context().Done():
+		case <-time.After(5 * time.Second):
+			_, _ = w.Write([]byte("late"))
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := New(WithTimeout(10 * time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	started := time.Now()
+	_, err = client.Do(&Request{Context: ctx, URL: server.URL})
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want context cancellation", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Errorf("cancellation took %v", elapsed)
+	}
+}
+
+func TestResponseBodyLimit(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("12345"))
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := New(WithMaxResponseBody(4))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	if _, err := client.Get(server.URL); !errors.Is(err, ErrResponseTooLarge) {
+		t.Fatalf("error = %v, want ErrResponseTooLarge", err)
+	}
+
+	exact, err := New(WithMaxResponseBody(5))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer exact.Close()
+	if _, err := exact.Get(server.URL); err != nil {
+		t.Fatalf("exactly-at-limit response: %v", err)
+	}
 }
 
 func TestDefaults(t *testing.T) {
@@ -419,11 +529,14 @@ func TestDefaults(t *testing.T) {
 	if !cfg.followRedirects {
 		t.Error("redirects should be followed by default")
 	}
-	if !cfg.shuffleExtensions {
-		t.Error("extension shuffling should be on by default, because Chrome does it")
+	if cfg.shuffleExtensions != nil {
+		t.Error("extension order should be selected from the profile by default")
 	}
 	if cfg.timeout != Timeout {
 		t.Errorf("timeout = %v", cfg.timeout)
+	}
+	if cfg.maxResponseBody != DefaultMaxResponseBody {
+		t.Errorf("maximum response body = %d", cfg.maxResponseBody)
 	}
 }
 
@@ -432,6 +545,29 @@ func TestWithTimeout(t *testing.T) {
 	WithTimeout(5 * time.Second)(&cfg)
 	if cfg.timeout != 5*time.Second {
 		t.Errorf("timeout = %v", cfg.timeout)
+	}
+}
+
+func TestWithMaxResponseBody(t *testing.T) {
+	cfg := defaults()
+	WithMaxResponseBody(123)(&cfg)
+	if cfg.maxResponseBody != 123 {
+		t.Errorf("maximum response body = %d", cfg.maxResponseBody)
+	}
+	if _, err := New(WithMaxResponseBody(0)); err == nil {
+		t.Error("New accepted a non-positive response body limit")
+	}
+}
+
+func TestExtensionOrderOverrides(t *testing.T) {
+	cfg := defaults()
+	WithFixedExtensionOrder()(&cfg)
+	if cfg.shuffleExtensions == nil || *cfg.shuffleExtensions {
+		t.Error("WithFixedExtensionOrder did not disable shuffling")
+	}
+	WithRandomExtensionOrder()(&cfg)
+	if cfg.shuffleExtensions == nil || !*cfg.shuffleExtensions {
+		t.Error("WithRandomExtensionOrder did not enable shuffling")
 	}
 }
 
