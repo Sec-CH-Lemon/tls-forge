@@ -25,9 +25,17 @@ const fakeDaemon = path.join(here, 'fake-daemon.js');
 // client's internals means these tests exercise the spawn, the pipes and the
 // readline plumbing — which is where the interesting failures live.
 const wrapperDir = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-test-'));
-const wrapper = path.join(wrapperDir, 'wrapper.sh');
-writeFileSync(wrapper, `#!/bin/sh\nexec "${process.execPath}" "${fakeDaemon}" "$@"\n`);
-chmodSync(wrapper, 0o755);
+const configuredDaemon = process.env.TLSFORGE_TEST_DAEMON;
+let wrapper;
+if (configuredDaemon) {
+  wrapper = path.resolve(configuredDaemon);
+} else if (process.platform === 'win32') {
+  throw new Error('TLSFORGE_TEST_DAEMON must name the native fake daemon on Windows');
+} else {
+  wrapper = path.join(wrapperDir, 'wrapper.sh');
+  writeFileSync(wrapper, `#!/bin/sh\nexec "${process.execPath}" "${fakeDaemon}" "$@"\n`);
+  chmodSync(wrapper, 0o755);
+}
 
 function fake(options = {}) {
   return new Client({ binary: wrapper, ...options });
@@ -326,7 +334,8 @@ test('a write into a dead pipe fails that request and restarts', async () => {
   // The process is still alive but has stopped reading, so the write reaches a
   // pipe with no reader. That is the gap the write callback exists for: the
   // liveness check passed, and the pipe died before the bytes landed.
-  const c = new Client({ binary: path.join(here, 'deaf-daemon.sh'), timeout: 5_000 });
+  const binary = configuredDaemon ? wrapper : path.join(here, 'deaf-daemon.sh');
+  const c = new Client({ binary, timeout: 5_000 });
   await c.get('https://deaf/first');
 
   await assert.rejects(() => c.get('https://deaf/second'), /write failed/);

@@ -28,6 +28,11 @@ def make_executable(path: Path, script: str) -> Path:
 @pytest.fixture(scope="session")
 def wrapper(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A binary that execs the fake daemon, passing the client's argv through."""
+    configured = os.environ.get("TLSFORGE_TEST_DAEMON")
+    if configured:
+        return Path(configured).resolve()
+    if sys.platform == "win32":
+        raise RuntimeError("TLSFORGE_TEST_DAEMON must name the native fake daemon on Windows")
     return make_executable(
         tmp_path_factory.mktemp("bin") / "wrapper.sh",
         f'#!/bin/sh\nexec "{sys.executable}" "{FAKE_DAEMON}" "$@"\n',
@@ -35,7 +40,7 @@ def wrapper(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 @pytest.fixture
-def deaf(tmp_path: Path) -> Path:
+def deaf(tmp_path: Path, wrapper: Path) -> Path:
     """A transport that answers once and then stops reading, without dying.
 
     The write path exists for the gap between "the process is alive" and "the
@@ -43,6 +48,8 @@ def deaf(tmp_path: Path) -> Path:
     stdin leaves the descriptor open, so the pipe keeps a reader. A shell closes
     fd 0 and nothing else.
     """
+    if os.environ.get("TLSFORGE_TEST_DAEMON"):
+        return wrapper
     return make_executable(
         tmp_path / "deaf.sh",
         "#!/bin/sh\n"

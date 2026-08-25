@@ -437,7 +437,15 @@ def test_the_default_timeout_is_the_documented_one():
 # --- the pieces that only misbehave when something else has ----------------
 
 
-def sleeper(tmp_path: Path) -> subprocess.Popen:
+def sleeper(tmp_path: Path, wrapper: Path) -> subprocess.Popen:
+    if os.environ.get("TLSFORGE_TEST_DAEMON"):
+        return subprocess.Popen(
+            [os.fspath(wrapper), "--sleep"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
     script = tmp_path / "sleeper.sh"
     script.write_text("#!/bin/sh\nsleep 30\n")
     script.chmod(0o755)
@@ -468,10 +476,12 @@ def close_pipes(process: subprocess.Popen) -> None:
         (2, "kill"),
     ],
 )
-def test_a_transport_is_escalated_until_it_stops(tmp_path, monkeypatch, deaf_to, ends_with):
+def test_a_transport_is_escalated_until_it_stops(
+    tmp_path, wrapper, monkeypatch, deaf_to, ends_with
+):
     from tlsforge import _client
 
-    process = sleeper(tmp_path)
+    process = sleeper(tmp_path, wrapper)
     real_wait = process.wait
     calls = {"n": 0}
     used: list[str] = []
@@ -497,12 +507,12 @@ def test_a_transport_is_escalated_until_it_stops(tmp_path, monkeypatch, deaf_to,
         close_pipes(process)
 
 
-def test_a_transport_that_already_stopped_is_not_signalled(tmp_path, monkeypatch):
+def test_a_transport_that_already_stopped_is_not_signalled(tmp_path, wrapper, monkeypatch):
     # Closing stdin is the shutdown signal, and something that took it needs no
     # further encouragement — signalling a reaped process would raise.
     from tlsforge import _client
 
-    process = sleeper(tmp_path)
+    process = sleeper(tmp_path, wrapper)
     process.terminate()
     process.wait()
     monkeypatch.setattr(process, "terminate", _refuse("terminate"))
@@ -529,7 +539,7 @@ def test_a_transport_whose_pipe_broke_is_still_stopped(deaf):
     process = subprocess.Popen([os.fspath(deaf)], stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                text=True, bufsize=1)
-    process.stdin.write('{"id":1}\n')  # answered, and then it stops reading
+    process.stdin.write('{"id":1,"url":"https://deaf/first"}\n')
     process.stdin.flush()
     process.stdout.readline()
     process.stdin.write("left in the buffer")
