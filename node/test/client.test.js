@@ -160,6 +160,29 @@ test('legacy scalar and null response headers are normalised', async () => {
   c.close();
 });
 
+test('null response fields are normalised to the public response shape', async () => {
+  const c = fake();
+  const response = await c.get('https://null-fields/x');
+  assert.equal(response.status, 0);
+  assert.equal(response.url, '');
+  assert.equal(response.body, '');
+  assert.deepEqual(response.headers, {});
+  assert.deepEqual(response.cookies, []);
+  c.close();
+});
+
+test('an unencodable request does not block the queue', async () => {
+  const c = fake();
+  const headers = {};
+  headers.circular = headers;
+  await assert.rejects(
+    () => c.get('https://ok/bad', { headers }),
+    /request cannot be encoded as JSON/,
+  );
+  assert.equal((await c.get('https://ok/after')).status, 200);
+  c.close();
+});
+
 test('unsolicited malformed and anonymous lines are ignored when idle', async () => {
   const notes = [];
   const c = fake({ onStderr: (line) => notes.push(line) });

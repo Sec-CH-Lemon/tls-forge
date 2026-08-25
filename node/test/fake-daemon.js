@@ -75,6 +75,9 @@ reader.on('line', (line) => {
     case 'null-headers':
       reply({ headers: null });
       break;
+    case 'null-fields':
+      reply({ status: null, url: null, body: null, headers: null, cookies: null });
+      break;
     case 'trailing-lines':
       reply();
       setTimeout(() => {

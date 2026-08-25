@@ -109,11 +109,24 @@ export class Client {
         new Error('tlsforge: this client was closed and will not respawn; construct a new one'),
       );
     }
+    const { cookies, ...rest } = request;
+    const id = ++this.#sequence;
+    const payload = { ...rest, setCookie: cookies, id };
+    let line;
+    try {
+      line = JSON.stringify(payload) + '\n';
+    } catch (err) {
+      // A circular object or BigInt is a caller error. Serialise before the job
+      // enters the queue so a failed JSON.stringify cannot leave #inFlight set
+      // until its timeout and hold every request behind it.
+      return Promise.reject(
+        new TypeError(`tlsforge: request cannot be encoded as JSON: ${err.message}`),
+      );
+    }
     return new Promise((resolve, reject) => {
-      const { cookies, ...rest } = request;
       this.#queue.push({
-        payload: { ...rest, setCookie: cookies, id: ++this.#sequence },
-        id: this.#sequence,
+        line,
+        id,
         resolve,
         reject,
       });
@@ -257,6 +270,10 @@ export class Client {
     if (response.error) job.reject(new Error(response.error));
     else {
       response.headers ??= {};
+      response.cookies ??= [];
+      response.status ??= 0;
+      response.url ??= '';
+      response.body ??= '';
       // Accept one release of the old scalar protocol during upgrades while
       // exposing the lossless array shape to callers consistently.
       for (const [name, values] of Object.entries(response.headers)) {
@@ -307,7 +324,7 @@ export class Client {
       this.#restart();
     }, this.#timeout);
 
-    this.#process.stdin.write(JSON.stringify(job.payload) + '\n', (err) => {
+    this.#process.stdin.write(job.line, (err) => {
       if (!err || this.#inFlight !== job) return;
       // The process can die between the liveness check above and the write
       // reaching the pipe.
