@@ -199,9 +199,12 @@ tls-forge <command> [flags]
 Run `tls-forge <command> --help` for generated command help. Durations use Go
 syntax such as `500ms`, `30s` or `2m`.
 
-When no profile is selected, CLI commands use a profile installed as `local`,
-if one exists, and otherwise the latest bundled `chrome` profile. Use
-`tls-forge profiles` to see the exact names available on the machine.
+When no profile is selected, the network commands (`fetch`, `batch`, `proxy`
+and `daemon`) use a profile installed as `local`, if one exists, and otherwise
+the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`
+family so it can detect drift instead of comparing a fresh local measurement
+with itself. Use `tls-forge profiles` to see the exact names available on the
+machine.
 
 ### `fetch`
 
