@@ -211,8 +211,8 @@ different things in two places is worse than a gap.
    and run the linux one to prove it starts.
 3. **Package** release archives, six npm tarballs, five Python wheels and an
    sdist, all with the required licence notices.
-4. **Prove the distributions** by installing the Linux npm tarballs and wheel
-   into clean environments and running their bundled binaries.
+4. **Prove the distributions** by installing the exact npm tarballs and wheels
+   on Linux, macOS and Windows and running their bundled binaries.
 5. **Freeze the artifacts** in one short-lived GitHub Actions artifact. The
    following jobs publish these exact tested bytes and run no project build
    code with publishing credentials.

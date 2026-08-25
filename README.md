@@ -579,6 +579,8 @@ Release and maintenance documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — user-visible changes;
 - [`RELEASING.md`](RELEASING.md) — release process;
+- [`docs/profiles.md`](docs/profiles.md) — capture format and profile resolution;
+- [`docs/protocol.md`](docs/protocol.md) — JSON Lines daemon protocol;
 - [`example/`](example/) — runnable Go, Node.js, Python and CLI examples.
 
 ## Licence and attribution
