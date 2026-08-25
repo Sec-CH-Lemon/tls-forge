@@ -131,6 +131,9 @@ func (f *cookieFlag) Set(pair string) error {
 func (f clientFlags) warmedCookies() ([]cookie.Cookie, string, error) {
 	var chosen []cookie.Cookie
 	var from string
+	if *f.cookieSet != "" && *f.cookieFile == "" {
+		return nil, "", fmt.Errorf("%w: --cookie-set requires --cookies", errUsage)
+	}
 
 	if *f.cookieFile != "" {
 		data, err := os.ReadFile(*f.cookieFile)

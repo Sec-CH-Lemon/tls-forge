@@ -84,6 +84,16 @@ func TestFetchRejectsACookieThatIsNotAPair(t *testing.T) {
 	}
 }
 
+func TestCookieSetRequiresACookieFile(t *testing.T) {
+	code, _, stderr := exec(t, "fetch", "--cookie-set", "warm-eu", "https://example.com/")
+	if code != exitUsage {
+		t.Errorf("exit code = %d, want %d", code, exitUsage)
+	}
+	if !strings.Contains(stderr, "--cookie-set requires --cookies") {
+		t.Errorf("stderr = %q", stderr)
+	}
+}
+
 func TestFetchTakesASetFromAFileByID(t *testing.T) {
 	server := cookieEcho(t)
 	host := hostnameOf(t, server.URL)
