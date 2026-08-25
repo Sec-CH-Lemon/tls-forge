@@ -26,6 +26,17 @@ type request struct {
 var outputMu sync.Mutex
 
 func main() {
+	// A copy named where.exe is used by the Node resolver tests. Keeping this in
+	// the same native helper avoids skipping PATH edge cases on Windows merely
+	// because a shell script cannot stand in for where.exe there.
+	switch os.Getenv("TLSFORGE_TEST_FINDER") {
+	case "missing":
+		_, _ = fmt.Fprint(os.Stdout, "C:\\definitely\\not\\here.exe\r\n")
+		return
+	case "empty":
+		return
+	}
+
 	if len(os.Args) > 1 && os.Args[1] == "--sleep" {
 		time.Sleep(30 * time.Second)
 		return

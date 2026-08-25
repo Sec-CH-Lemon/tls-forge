@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -416,19 +417,23 @@ test('the binary is found on PATH when nothing else has one', (t) => {
   assert.equal(resolveBinary(), onPath);
 });
 
-test('an unusable path lookup result is treated as not found', {
-  skip: process.platform === 'win32',
-}, (t) => {
+test('an unusable path lookup result is treated as not found', (t) => {
   const previous = {
     bin: process.env.TLSFORGE_BIN,
+    finder: process.env.TLSFORGE_TEST_FINDER,
     path: process.env.PATH,
     cwd: process.cwd(),
   };
   const sterile = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-false-path-'));
   writeFileSync(path.join(sterile, 'package.json'), '{"name":"sterile","version":"0.0.0"}');
-  const finder = path.join(sterile, 'which');
-  writeFileSync(finder, "#!/bin/sh\nprintf '/definitely/not/here\\r\\n'\n");
-  chmodSync(finder, 0o755);
+  const finder = path.join(sterile, process.platform === 'win32' ? 'where.exe' : 'which');
+  if (process.platform === 'win32') {
+    copyFileSync(wrapper, finder);
+    process.env.TLSFORGE_TEST_FINDER = 'missing';
+  } else {
+    writeFileSync(finder, "#!/bin/sh\nprintf '/definitely/not/here\\r\\n'\n");
+    chmodSync(finder, 0o755);
+  }
 
   delete process.env.TLSFORGE_BIN;
   process.env.PATH = sterile;
@@ -438,12 +443,18 @@ test('an unusable path lookup result is treated as not found', {
     process.env.PATH = previous.path;
     if (previous.bin === undefined) delete process.env.TLSFORGE_BIN;
     else process.env.TLSFORGE_BIN = previous.bin;
+    if (previous.finder === undefined) delete process.env.TLSFORGE_TEST_FINDER;
+    else process.env.TLSFORGE_TEST_FINDER = previous.finder;
     rmSync(sterile, { recursive: true, force: true });
   });
 
   assert.throws(() => resolveBinary(), /no binary for/);
 
   // A successful finder that prints no path is the other false result.
-  writeFileSync(finder, '#!/bin/sh\nexit 0\n');
+  if (process.platform === 'win32') {
+    process.env.TLSFORGE_TEST_FINDER = 'empty';
+  } else {
+    writeFileSync(finder, '#!/bin/sh\nexit 0\n');
+  }
   assert.throws(() => resolveBinary(), /no binary for/);
 });
