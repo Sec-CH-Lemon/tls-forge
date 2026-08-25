@@ -56,10 +56,9 @@ class Response:
     url: str
     """The final URL, after redirects."""
     body: str
-    headers: Mapping[str, str] = field(default_factory=dict)
-    """Multi-valued headers are joined with `; ` — `set-cookie` arrives more
-    than once routinely, and a caller that only saw the first would lose a
-    session."""
+    headers: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    """Header values in wire order. Values stay separate because folding
+    `set-cookie`, among others, changes its meaning."""
     cookies: tuple[str, ...] = ()
     """What the jar holds for this URL afterwards."""
 
@@ -110,8 +109,10 @@ class Client:
         :param on_stderr: receives the transport's stderr, a line at a time.
         :raises BinaryNotFound: when there is no binary to run.
         """
-        if timeout <= 0:
-            raise ValueError("tlsforge: timeout must be positive")
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("tlsforge: timeout must be a positive finite number")
+        if on_stderr is not None and not callable(on_stderr):
+            raise TypeError("tlsforge: on_stderr must be callable")
 
         self._binary = resolve_binary(binary)
         self._timeout = float(timeout)
@@ -262,7 +263,8 @@ class Client:
                 # Not an error: this is an abandoned answer arriving, the normal
                 # aftermath of a timeout, and dropping it is the whole reason
                 # every response carries an id.
-                self._on_stderr(
+                _report_stderr(
+                    self._on_stderr,
                     f"dropping answer for request {response.get('id', '(none)')}, "
                     f"waiting on {payload['id']}"
                 )
@@ -338,6 +340,14 @@ def _ignore(_line: str) -> None:
     """The default stderr sink: the transport's commentary is not everyone's."""
 
 
+def _report_stderr(callback: Callable[[str], None], line: str) -> None:
+    """Keep a diagnostic callback from taking down a reader or request."""
+    try:
+        callback(line)
+    except Exception:
+        pass
+
+
 def _build_args(
     *,
     profile: str | None,
@@ -382,7 +392,7 @@ def _pump(
                 if sink is not None:
                     sink.put(line)
                 else:
-                    callback(line.rstrip("\r\n"))  # type: ignore[misc]
+                    _report_stderr(callback, line.rstrip("\r\n"))  # type: ignore[arg-type]
         if sink is not None:
             sink.put(sentinel)
 
@@ -452,12 +462,19 @@ def _to_response(payload: dict[str, Any]) -> Response:
     error = payload.get("error")
     if error:
         raise RequestFailed(str(error))
+    raw_headers = payload.get("headers") or {}
+    headers = {
+        str(name): tuple(str(value) for value in values)
+        if isinstance(values, list)
+        else (str(values),)
+        for name, values in raw_headers.items()
+    }
     return Response(
         status=payload.get("status") or 0,
         url=payload.get("url") or "",
         body=payload.get("body") or "",
-        # null rather than absent is what the transport sends on a failure, and
-        # `or` covers both without asking which.
-        headers=payload.get("headers") or {},
+        # Accept one release of the old scalar protocol during upgrades while
+        # exposing the lossless tuple shape consistently.
+        headers=headers,
         cookies=tuple(payload.get("cookies") or ()),
     )

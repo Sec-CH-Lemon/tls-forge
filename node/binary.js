@@ -28,7 +28,11 @@ export const SCOPE = '@sec-ch-lemon';
 export const platformPackage = `${SCOPE}/tls-forge-${process.platform}-${process.arch}`;
 
 /** The executable's name, which is the command's name, not the package's. */
-export const exeName = process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge';
+export const exeName = {
+  darwin: 'tls-forge',
+  linux: 'tls-forge',
+  win32: 'tls-forge.exe',
+}[process.platform];
 
 /** The default place `npm run build` puts a locally built binary. */
 export const builtBinary = path.join(here, 'vendor', exeName);
@@ -60,7 +64,7 @@ export function resolveBinary(explicit) {
     `tls-forge: no binary for ${process.platform}-${process.arch}.\n` +
       `  The platform package ${platformPackage} is not installed. If this was an\n` +
       '  install with --no-optional, re-run without it. Otherwise this platform has\n' +
-      '  no prebuilt binary yet — build one with Go 1.24+\n' +
+      '  no prebuilt binary yet — build one with Go 1.25.13+\n' +
       '    npm explore tls-forge -- npm run build\n' +
       '  or point at one you already have\n' +
       '    TLSFORGE_BIN=/path/to/tls-forge',
@@ -103,8 +107,11 @@ function lookPath(name) {
   // `which` is not on every Windows image and `where` is not on every Unix one,
   // so a failure here means "not found", not "broken install".
   try {
-    const finder = process.platform === 'win32' ? 'where' : 'which';
-    const found = execFileSync(finder, [name], { encoding: 'utf8' }).split(/\r?\n/)[0].trim();
+    const finder = { darwin: 'which', linux: 'which', win32: 'where' }[process.platform];
+    const found = execFileSync(finder, [name], { encoding: 'utf8' })
+      .split('\n')[0]
+      .replace('\r', '')
+      .trim();
     return found && existsSync(found) ? found : null;
   } catch {
     return null;

@@ -73,13 +73,13 @@ type Response struct {
 	// Never omitempty: a caller has to be able to tell "id 0" from "no id at
 	// all", and read the latter as "this binary is older than the code driving
 	// it" rather than letting every request time out unexplained.
-	ID      uint64            `json:"id"`
-	Status  int               `json:"status"`
-	URL     string            `json:"url"`
-	Body    string            `json:"body"`
-	Headers map[string]string `json:"headers"`
-	Cookies []string          `json:"cookies"`
-	Error   string            `json:"error,omitempty"`
+	ID      uint64              `json:"id"`
+	Status  int                 `json:"status"`
+	URL     string              `json:"url"`
+	Body    string              `json:"body"`
+	Headers map[string][]string `json:"headers"`
+	Cookies []string            `json:"cookies"`
+	Error   string              `json:"error,omitempty"`
 }
 
 // Client is the part of *tlsforge.Client the daemon needs, named so tests can
@@ -144,9 +144,9 @@ func handle(line string, client Client) Response {
 		return Response{ID: req.ID, Error: err.Error()}
 	}
 
-	headers := make(map[string]string, len(res.Header))
+	headers := make(map[string][]string, len(res.Header))
 	for name, values := range res.Header {
-		headers[name] = strings.Join(values, "; ")
+		headers[name] = append([]string(nil), values...)
 	}
 	return Response{
 		ID:      req.ID,

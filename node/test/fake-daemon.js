@@ -28,8 +28,13 @@ reader.on('line', (line) => {
         id: request.id,
         status: 200,
         url: request.url,
-        body: JSON.stringify({ headers: request.headers ?? {}, order: request.order ?? [], cookies: request.setCookie ?? [] }),
-        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          argv: process.argv.slice(2),
+          headers: request.headers ?? {},
+          order: request.order ?? [],
+          cookies: request.setCookie ?? [],
+        }),
+        headers: { 'content-type': ['application/json'], 'set-cookie': ['a=1', 'b=2'] },
         cookies: [],
         ...extra,
       }) + '\n',
@@ -63,6 +68,19 @@ reader.on('line', (line) => {
     case 'stderr':
       process.stderr.write('a note on stderr\n');
       reply();
+      break;
+    case 'legacy-headers':
+      reply({ headers: { 'content-type': 'application/json' } });
+      break;
+    case 'null-headers':
+      reply({ headers: null });
+      break;
+    case 'trailing-lines':
+      reply();
+      setTimeout(() => {
+        process.stdout.write('not json at all\n');
+        process.stdout.write(JSON.stringify({ status: 200, body: 'orphan' }) + '\n');
+      }, 10);
       break;
     default:
       reply({ status: 404 });

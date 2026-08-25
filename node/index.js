@@ -14,7 +14,7 @@ import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import { resolveBinary } from './binary.js';
 
-/** @typedef {{status:number,url:string,body:string,headers:Record<string,string>,cookies:string[]}} Response */
+/** @typedef {{status:number,url:string,body:string,headers:Record<string,string[]>,cookies:string[]}} Response */
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 
@@ -51,8 +51,15 @@ export class Client {
    * @param {(line:string)=>void} [options.onStderr] receives the process's stderr
    */
   constructor(options = {}) {
+    const timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
+    if (!Number.isFinite(timeout) || timeout <= 0) {
+      throw new RangeError('tlsforge: timeout must be a positive finite number');
+    }
+    if (options.onStderr !== undefined && typeof options.onStderr !== 'function') {
+      throw new TypeError('tlsforge: onStderr must be a function');
+    }
     this.#binary = resolveBinary(options.binary);
-    this.#timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
+    this.#timeout = timeout;
     this.#onStderr = options.onStderr ?? (() => {});
 
     const args = ['daemon'];
@@ -130,17 +137,22 @@ export class Client {
     // request's page resolves another request's promise.
     this.#closeReader();
 
-    this.#process = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'] });
-    this.#reader = readline.createInterface({ input: this.#process.stdout });
+    const process = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    this.#process = process;
+    this.#reader = readline.createInterface({ input: process.stdout });
     this.#reader.on('line', (line) => this.#onLine(line));
-    this.#process.stderr.on('data', (chunk) => this.#onStderr(String(chunk).trimEnd()));
+    process.stderr.on('data', (chunk) => this.#reportStderr(String(chunk).trimEnd()));
 
     // A process that could not be spawned reports through 'error', not 'exit',
     // and an 'error' with no listener is an uncaught exception that takes the
     // whole program down rather than the one request. The reachable causes are
     // ordinary: a binary without its exec bit, a Linux binary in a macOS
     // checkout, a directory mounted noexec.
-    this.#process.on('error', (err) => {
+    process.on('error', (err) => {
+      // Node documents that exit may still follow error. Detach it before a
+      // caller can start a replacement process, or the old exit could clear
+      // the new process reference.
+      process.removeAllListeners('exit');
       this.#process = null;
       this.#closeReader();
       this.#failAll(new Error(`tlsforge: transport failed to start (${this.#binary}): ${err.message}`));
@@ -150,10 +162,11 @@ export class Client {
     // stream with no 'error' listener is another uncaught exception. The
     // rejection is NOT done here — the write callback in #pump knows which
     // request was being written, and this handler does not.
-    this.#process.stdin.on('error', (err) => this.#onStderr(`stdin: ${err.message}`));
+    process.stdin.on('error', this.#reportStderr.bind(this));
 
-    this.#process.on('exit', (code) => {
+    process.on('exit', (code) => {
       this.#process = null;
+      this.#closeReader();
       this.#failAll(new Error(`tlsforge: transport exited (code ${code})`));
     });
   }
@@ -170,11 +183,19 @@ export class Client {
 
   #kill() {
     if (!this.#process) return;
-    this.#process.removeAllListeners('exit');
-    this.#process.removeAllListeners('error');
-    this.#process.kill();
+    const process = this.#process;
     this.#process = null;
+    process.removeAllListeners('exit');
+    process.removeAllListeners('error');
+    process.stderr.removeAllListeners('data');
     this.#closeReader();
+    // Descendants can inherit the pipe handles and outlive the daemon. Destroy
+    // our ends explicitly so those descendants cannot keep Node alive until
+    // they happen to exit.
+    process.stdin.destroy();
+    process.stdout.destroy();
+    process.stderr.destroy();
+    process.kill();
   }
 
   #restart() {
@@ -224,7 +245,7 @@ export class Client {
     if (!job || response.id !== job.id) {
       // Not an error: this is the abandoned answer arriving, the normal
       // aftermath of a timeout.
-      this.#onStderr(
+      this.#reportStderr(
         `dropping answer for request ${response.id ?? '(none)'}, ` +
           (job ? `waiting on ${job.id}` : 'nothing is outstanding'),
       );
@@ -234,8 +255,24 @@ export class Client {
     this.#inFlight = null;
     clearTimeout(job.timer);
     if (response.error) job.reject(new Error(response.error));
-    else job.resolve(response);
+    else {
+      response.headers ??= {};
+      // Accept one release of the old scalar protocol during upgrades while
+      // exposing the lossless array shape to callers consistently.
+      for (const [name, values] of Object.entries(response.headers)) {
+        if (!Array.isArray(values)) response.headers[name] = [String(values)];
+      }
+      job.resolve(response);
+    }
     this.#pump();
+  }
+
+  #reportStderr(line) {
+    try {
+      this.#onStderr(String(line));
+    } catch {
+      // Diagnostics supplied by the caller must not crash transport handling.
+    }
   }
 
   #pump() {
@@ -260,7 +297,6 @@ export class Client {
     const job = this.#queue.shift();
     this.#inFlight = job;
     job.timer = setTimeout(() => {
-      if (this.#inFlight !== job) return;
       this.#inFlight = null;
       job.reject(new Error('tlsforge: request timed out'));
       // The process is still working on this request — its own deadline is

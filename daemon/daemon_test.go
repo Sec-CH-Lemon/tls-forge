@@ -79,11 +79,10 @@ func TestServeAnswersARequest(t *testing.T) {
 	if got.URL != "https://example.com/after-redirect" {
 		t.Errorf("url = %q, want the post-redirect one", got.URL)
 	}
-	// Multi-valued headers are joined rather than dropped: Set-Cookie routinely
-	// arrives more than once and a caller that only saw the first would lose a
-	// session.
-	if got.Headers["set-cookie"] != "a=1; b=2" {
-		t.Errorf("set-cookie = %q", got.Headers["set-cookie"])
+	// Values stay separate: commas and semicolons are data in several headers,
+	// and Set-Cookie specifically must never be folded into one field value.
+	if want := []string{"a=1", "b=2"}; !reflect.DeepEqual(got.Headers["set-cookie"], want) {
+		t.Errorf("set-cookie = %q, want %q", got.Headers["set-cookie"], want)
 	}
 }
 

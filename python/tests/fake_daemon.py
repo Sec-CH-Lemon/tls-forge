@@ -40,7 +40,10 @@ def answer(request: dict, **extra: object) -> dict:
                 "body": request.get("body"),
             }
         ),
-        "headers": {"content-type": "application/json"},
+        "headers": {
+            "content-type": ["application/json"],
+            "set-cookie": ["a=1", "b=2"],
+        },
         "cookies": [],
         **extra,
     }
@@ -90,6 +93,8 @@ def main() -> None:
             sys.stderr.flush()
             time.sleep(0.05)
             emit(answer(request))
+        elif behaviour == "legacy-headers":
+            emit(answer(request, headers={"content-type": "application/json"}))
         else:
             emit(answer(request, status=404))
 

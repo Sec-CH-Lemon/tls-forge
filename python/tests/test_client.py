@@ -21,7 +21,8 @@ def test_get_returns_the_transport_response(client):
     res = client().get("https://ok/page")
     assert res.status == 200
     assert res.url == "https://ok/page"
-    assert res.headers["content-type"] == "application/json"
+    assert res.headers["content-type"] == ("application/json",)
+    assert res.headers["set-cookie"] == ("a=1", "b=2")
     assert res.ok
 
 
@@ -133,12 +134,17 @@ def test_a_path_option_may_be_a_string_as_well_as_a_path(client, tmp_path):
     assert argv[argv.index("--cookies") + 1] == str(tmp_path / "c.json")
 
 
-@pytest.mark.parametrize("bad", [0, -1, -0.5])
+@pytest.mark.parametrize("bad", [0, -1, -0.5, float("nan"), float("inf")])
 def test_a_timeout_that_is_not_positive_is_refused(wrapper, bad):
     # Zero would make every request time out before it was written, which reads
     # as "the network is broken" rather than "the argument is wrong".
-    with pytest.raises(ValueError, match="timeout must be positive"):
+    with pytest.raises(ValueError, match="timeout must be a positive finite number"):
         Client(binary=os.fspath(wrapper), timeout=bad)
+
+
+def test_stderr_callback_must_be_callable(wrapper):
+    with pytest.raises(TypeError, match="must be callable"):
+        Client(binary=os.fspath(wrapper), on_stderr="log")
 
 
 # --- failures --------------------------------------------------------------
@@ -245,10 +251,24 @@ def test_stderr_is_forwarded_to_the_callback(client):
     assert any("a note on stderr" in note for note in notes)
 
 
+def test_an_exception_in_the_stderr_callback_does_not_break_the_client(client):
+    def fail(_line: str) -> None:
+        raise RuntimeError("callback failed")
+
+    one = client(on_stderr=fail)
+    assert one.get("https://stderr/x").status == 200
+    assert one.get("https://ok/after").status == 200
+
+
 def test_stderr_is_discarded_when_nobody_asked_for_it(client):
     # The default sink has to be reached, or a transport that says anything at
     # all would raise from a thread nobody is watching.
     assert client().get("https://stderr/x").status == 200
+
+
+def test_legacy_scalar_headers_are_normalised(client):
+    res = client().get("https://legacy-headers/x")
+    assert res.headers == {"content-type": ("application/json",)}
 
 
 def test_a_binary_that_cannot_be_executed_fails_the_request_not_the_process(tmp_path):

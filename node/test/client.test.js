@@ -1,12 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Client, resolveBinary } from '../index.js';
-import { exeName, platformPackage } from '../binary.js';
+import { builtBinary, exeName, platformPackage } from '../binary.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fakeDaemon = path.join(here, 'fake-daemon.js');
@@ -18,7 +26,7 @@ const fakeDaemon = path.join(here, 'fake-daemon.js');
 // readline plumbing — which is where the interesting failures live.
 const wrapperDir = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-test-'));
 const wrapper = path.join(wrapperDir, 'wrapper.sh');
-writeFileSync(wrapper, `#!/bin/sh\nexec "${process.execPath}" "${fakeDaemon}"\n`);
+writeFileSync(wrapper, `#!/bin/sh\nexec "${process.execPath}" "${fakeDaemon}" "$@"\n`);
 chmodSync(wrapper, 0o755);
 
 function fake(options = {}) {
@@ -30,7 +38,8 @@ test('get returns the transport response', async () => {
   const res = await c.get('https://ok/page');
   assert.equal(res.status, 200);
   assert.equal(res.url, 'https://ok/page');
-  assert.equal(res.headers['content-type'], 'application/json');
+  assert.deepEqual(res.headers['content-type'], ['application/json']);
+  assert.deepEqual(res.headers['set-cookie'], ['a=1', 'b=2']);
   c.close();
 });
 
@@ -52,6 +61,15 @@ test('post sends a body', async () => {
   const c = fake();
   const res = await c.post('https://ok/submit', 'hello=world');
   assert.equal(res.status, 200);
+  c.close();
+});
+
+test('client options become daemon arguments', async () => {
+  const c = fake({ profile: 'firefox', proxy: 'http://proxy:8080', insecure: true, timeout: 20_001 });
+  const argv = JSON.parse((await c.get('https://ok/x')).body).argv;
+  assert.deepEqual(argv, [
+    'daemon', '--profile', 'firefox', '--proxy', 'http://proxy:8080', '--insecure', '--timeout', '36s',
+  ]);
   c.close();
 });
 
@@ -111,6 +129,38 @@ test('stderr is forwarded to the callback', async () => {
   c.close();
 });
 
+test('stderr is harmless without a callback', async () => {
+  const c = fake();
+  assert.equal((await c.get('https://stderr/x')).status, 200);
+  c.close();
+});
+
+test('an exception in the stderr callback does not break the client', async () => {
+  const c = fake({ onStderr: () => { throw new Error('callback failed'); } });
+  assert.equal((await c.get('https://stderr/x')).status, 200);
+  assert.equal((await c.get('https://ok/after')).status, 200);
+  c.close();
+});
+
+test('legacy scalar and null response headers are normalised', async () => {
+  const c = fake();
+  const legacy = await c.get('https://legacy-headers/x');
+  assert.deepEqual(legacy.headers, { 'content-type': ['application/json'] });
+  const empty = await c.get('https://null-headers/x');
+  assert.deepEqual(empty.headers, {});
+  c.close();
+});
+
+test('unsolicited malformed and anonymous lines are ignored when idle', async () => {
+  const notes = [];
+  const c = fake({ onStderr: (line) => notes.push(line) });
+  await c.get('https://trailing-lines/x');
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.ok(notes.some((line) => line.includes('(none)')));
+  assert.equal((await c.get('https://ok/after')).status, 200);
+  c.close();
+});
+
 test('requests queue and are answered in order', async () => {
   const c = fake();
   const results = await Promise.all([
@@ -145,12 +195,32 @@ test('a missing binary is reported when the client is built', () => {
   assert.throws(() => new Client({ binary: '/nope/tlsforge' }), /no binary at/);
 });
 
+for (const timeout of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+  test(`timeout ${timeout} is rejected`, () => {
+    assert.throws(() => new Client({ binary: wrapper, timeout }), /positive finite/);
+  });
+}
+
+test('onStderr must be a function', () => {
+  assert.throws(() => new Client({ binary: wrapper, onStderr: 'log' }), /must be a function/);
+});
+
 test('a binary that cannot be executed fails the request, not the process', async () => {
   const notExecutable = path.join(wrapperDir, 'not-executable');
   writeFileSync(notExecutable, 'not a program');
   chmodSync(notExecutable, 0o644);
   const c = new Client({ binary: notExecutable });
   await assert.rejects(() => c.get('https://ok/x'), /failed to start|exited/);
+  c.close();
+});
+
+test('a binary removed after construction fails through the spawn error event', async () => {
+  const disappearing = path.join(wrapperDir, 'disappearing');
+  writeFileSync(disappearing, '#!/bin/sh\n');
+  chmodSync(disappearing, 0o755);
+  const c = new Client({ binary: disappearing });
+  unlinkSync(disappearing);
+  await assert.rejects(() => c.get('https://ok/x'), /failed to start/);
   c.close();
 });
 
@@ -171,6 +241,16 @@ test('resolveBinary reads TLSFORGE_BIN', () => {
 
 test('resolveBinary rejects a path that does not exist', () => {
   assert.throws(() => resolveBinary('/definitely/not/here'), /no binary at/);
+});
+
+test('resolveBinary uses a local build before PATH', (t) => {
+  if (!existsSync(builtBinary)) {
+    mkdirSync(path.dirname(builtBinary), { recursive: true });
+    writeFileSync(builtBinary, '#!/bin/sh\n');
+    chmodSync(builtBinary, 0o755);
+    t.after(() => rmSync(path.dirname(builtBinary), { recursive: true, force: true }));
+  }
+  assert.equal(resolveBinary(), builtBinary);
 });
 
 // The binary normally arrives as an optional dependency: one package per
@@ -325,4 +405,36 @@ test('the binary is found on PATH when nothing else has one', (t) => {
   });
 
   assert.equal(resolveBinary(), onPath);
+});
+
+test('an unusable path lookup result is treated as not found', {
+  skip: process.platform === 'win32',
+}, (t) => {
+  const previous = {
+    bin: process.env.TLSFORGE_BIN,
+    path: process.env.PATH,
+    cwd: process.cwd(),
+  };
+  const sterile = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-false-path-'));
+  writeFileSync(path.join(sterile, 'package.json'), '{"name":"sterile","version":"0.0.0"}');
+  const finder = path.join(sterile, 'which');
+  writeFileSync(finder, "#!/bin/sh\nprintf '/definitely/not/here\\r\\n'\n");
+  chmodSync(finder, 0o755);
+
+  delete process.env.TLSFORGE_BIN;
+  process.env.PATH = sterile;
+  process.chdir(sterile);
+  t.after(() => {
+    process.chdir(previous.cwd);
+    process.env.PATH = previous.path;
+    if (previous.bin === undefined) delete process.env.TLSFORGE_BIN;
+    else process.env.TLSFORGE_BIN = previous.bin;
+    rmSync(sterile, { recursive: true, force: true });
+  });
+
+  assert.throws(() => resolveBinary(), /no binary for/);
+
+  // A successful finder that prints no path is the other false result.
+  writeFileSync(finder, '#!/bin/sh\nexit 0\n');
+  assert.throws(() => resolveBinary(), /no binary for/);
 });
