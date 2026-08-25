@@ -231,34 +231,39 @@ jobs:
           done
           npm pack dist/npm/tls-forge --pack-destination dist/npm-packages --ignore-scripts
 
-      - name: the linux npm packages install and work
-        run: |
-          main=$(realpath dist/npm-packages/tls-forge-0.0.0.tgz)
-          platform=$(realpath dist/npm-packages/sec-ch-lemon-tls-forge-linux-x64-0.0.0.tgz)
-          check=$(mktemp -d)
-          cd "$check"
-          npm init -y > /dev/null
-          npm install --ignore-scripts --no-package-lock --no-audit --no-fund \
-            "$main" "$platform"
-          node --input-type=module -e \
-            "import { Client } from 'tls-forge'; const client = new Client(); client.close();"
-          ./node_modules/@sec-ch-lemon/tls-forge-linux-x64/bin/tls-forge version
+      # Hand the exact packed bytes to native runners. Tarballs and wheels keep
+      # executable modes internally even though the artifact transport does not
+      # preserve modes on loose files.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-distributions
+          if-no-files-found: error
+          retention-days: 2
+          path: |
+            dist/npm-packages/*.tgz
+            dist/pypi/*
 
-      # Installed from the wheel and used, which is the only check that covers
-      # the whole chain: the binary is in there, it kept its exec bit, and the
-      # client finds it where it expects to.
-      - name: the linux wheel installs and works
-        run: |
-          python -m venv /tmp/wheelcheck
-          /tmp/wheelcheck/bin/pip install --no-index dist/pypi/*manylinux2014_x86_64*.whl
-          /tmp/wheelcheck/bin/python -c "
-          import subprocess, tlsforge
-          binary = tlsforge.resolve_binary()
-          assert 'site-packages' in binary, binary
-          out = subprocess.run([binary, 'version'], capture_output=True, text=True)
-          print(binary, out.stdout.strip())
-          assert out.returncode == 0, out.stderr
-          "
+  package-smoke:
+    timeout-minutes: 15
+    needs: packaging
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v8
+        with:
+          name: sdk-distributions
+          path: dist
+      - run: node scripts/check-release-packages.mjs --version 0.0.0 --dist dist --python python
 
   docker:
     timeout-minutes: 30
