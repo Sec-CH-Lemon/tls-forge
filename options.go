@@ -99,13 +99,19 @@ func WithCookies(cookies []Cookie) Option {
 // from its own store, leaving the caller's session and the proxy's quietly
 // diverging. Whoever holds the session should be the only one holding it.
 func WithoutCookieJar() Option {
-	return func(c *config) { c.noJar = true }
+	return func(c *config) {
+		c.jar = nil
+		c.noJar = true
+	}
 }
 
 // WithCookieJar supplies a jar, which is how a session is shared between
 // clients or restored from disk.
 func WithCookieJar(jar fhttp.CookieJar) Option {
-	return func(c *config) { c.jar = jar }
+	return func(c *config) {
+		c.jar = jar
+		c.noJar = false
+	}
 }
 
 // WithoutRedirects returns the 3xx instead of following it.

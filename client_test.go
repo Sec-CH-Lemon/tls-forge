@@ -439,6 +439,20 @@ func TestSuppliedCookieJarIsShared(t *testing.T) {
 	}
 }
 
+func TestLastCookieJarOptionWins(t *testing.T) {
+	jar := tls_client.NewCookieJar()
+
+	without := newTestClient(t, WithCookieJar(jar), WithoutCookieJar())
+	if without.jar != nil {
+		t.Fatal("WithoutCookieJar did not override the earlier custom jar")
+	}
+
+	with := newTestClient(t, WithoutCookieJar(), WithCookieJar(jar))
+	if with.jar != jar {
+		t.Fatal("WithCookieJar did not override the earlier jarless option")
+	}
+}
+
 func TestTransportOptionEscapeHatch(t *testing.T) {
 	server := startEcho(t)
 	client := newTestClient(t, WithTransportOption(tls_client.WithForceHttp1()))
