@@ -32,7 +32,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -o /out/tls-forge ./cmd/tls-forge
 
 
-FROM alpine:3.21
+FROM alpine:3.24
 
 # Certificate authorities. Without them the binary reaches every site and
 # refuses every one of them, which looks like a network fault rather than a
