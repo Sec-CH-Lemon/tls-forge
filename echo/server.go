@@ -216,6 +216,7 @@ func (s *Server) Await(ctx context.Context) (*Session, error) {
 	ch := make(chan *Session, 1)
 	s.waiters = append(s.waiters, ch)
 	s.mu.Unlock()
+	defer s.removeWaiter(ch)
 
 	select {
 	case sess := <-ch:
@@ -224,6 +225,17 @@ func (s *Server) Await(ctx context.Context) (*Session, error) {
 		return nil, ctx.Err()
 	case <-s.closed:
 		return nil, errors.New("echo: server closed while waiting for a capture")
+	}
+}
+
+func (s *Server) removeWaiter(ch chan *Session) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, waiter := range s.waiters {
+		if waiter == ch {
+			s.waiters = append(s.waiters[:i], s.waiters[i+1:]...)
+			return
+		}
 	}
 }
 

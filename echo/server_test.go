@@ -487,6 +487,12 @@ func TestAwaitRespectsItsContext(t *testing.T) {
 	if _, err := server.Await(ctx); !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("error = %v, want a deadline", err)
 	}
+	server.mu.Lock()
+	waiters := len(server.waiters)
+	server.mu.Unlock()
+	if waiters != 0 {
+		t.Errorf("waiters = %d after timeout, want 0", waiters)
+	}
 }
 
 func TestAwaitEndsWhenTheServerCloses(t *testing.T) {
