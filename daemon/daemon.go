@@ -31,6 +31,7 @@ package daemon
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -102,6 +103,16 @@ const (
 // comes back as a response with an Error field, attached to that request's id —
 // a daemon that exited on a bad URL would take the session's cookie jar with it.
 func Serve(in io.Reader, out io.Writer, client Client) error {
+	if in == nil {
+		return errors.New("daemon: nil input")
+	}
+	if out == nil {
+		return errors.New("daemon: nil output")
+	}
+	if client == nil {
+		return errors.New("daemon: nil client")
+	}
+
 	scanner := bufio.NewScanner(in)
 	scanner.Buffer(make([]byte, initialLineBuffer), maxLineBuffer)
 	encoder := json.NewEncoder(out)

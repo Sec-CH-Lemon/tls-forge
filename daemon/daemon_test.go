@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -260,6 +261,27 @@ func TestServeReportsAnUnreadableLine(t *testing.T) {
 	err := Serve(strings.NewReader(huge), &out, &fakeClient{})
 	if err == nil {
 		t.Fatal("expected an error for an oversized line")
+	}
+}
+
+func TestServeRejectsMissingDependencies(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		in     io.Reader
+		out    io.Writer
+		client Client
+		want   string
+	}{
+		{name: "input", out: io.Discard, client: &fakeClient{}, want: "nil input"},
+		{name: "output", in: strings.NewReader(""), client: &fakeClient{}, want: "nil output"},
+		{name: "client", in: strings.NewReader(""), out: io.Discard, want: "nil client"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := Serve(test.in, test.out, test.client)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want %q", err, test.want)
+			}
+		})
 	}
 }
 
