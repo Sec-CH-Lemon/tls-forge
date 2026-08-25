@@ -133,12 +133,21 @@ func handle(line string, client Client) Response {
 		return Response{ID: req.ID, Error: "bad request: no url"}
 	}
 
+	requestHeaders, err := orderedHeaders(req, client)
+	if err != nil {
+		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
+	}
+	cookies, err := parseCookies(req.SetCookie)
+	if err != nil {
+		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
+	}
+
 	res, err := client.Do(&tlsforge.Request{
 		Method:  req.Method,
 		URL:     req.URL,
-		Header:  orderedHeaders(req, client),
+		Header:  requestHeaders,
 		Body:    []byte(req.Body),
-		Cookies: parseCookies(req.SetCookie),
+		Cookies: cookies,
 	})
 	if err != nil {
 		return Response{ID: req.ID, Error: err.Error()}
@@ -164,14 +173,18 @@ func handle(line string, client Client) Response {
 // in a stable, sorted position — stable because a Go map iterates randomly, and
 // a header set that reordered itself between two otherwise identical requests
 // would be a fingerprint of its own.
-func orderedHeaders(req Request, client Client) tlsforge.Header {
+func orderedHeaders(req Request, client Client) (tlsforge.Header, error) {
 	if len(req.Headers) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	lower := make(map[string]string, len(req.Headers))
 	for name, value := range req.Headers {
-		lower[strings.ToLower(name)] = value
+		lowerName := strings.ToLower(name)
+		if _, exists := lower[lowerName]; exists {
+			return nil, fmt.Errorf("header %q is repeated with different casing", lowerName)
+		}
+		lower[lowerName] = value
 	}
 
 	out := make(tlsforge.Header, 0, len(lower))
@@ -197,17 +210,18 @@ func orderedHeaders(req Request, client Client) tlsforge.Header {
 	for _, name := range sortedKeys(lower) {
 		out.Set(name, lower[name])
 	}
-	return out
+	return out, nil
 }
 
-func parseCookies(raw []string) []tlsforge.Cookie {
+func parseCookies(raw []string) ([]tlsforge.Cookie, error) {
 	var out []tlsforge.Cookie
 	for _, entry := range raw {
 		name, value, found := strings.Cut(entry, "=")
-		if !found {
-			continue
+		name, value = strings.TrimSpace(name), strings.TrimSpace(value)
+		if !found || name == "" {
+			return nil, fmt.Errorf("cookie: expected name=value, got %q", entry)
 		}
 		out = append(out, tlsforge.Cookie{Name: name, Value: value})
 	}
-	return out
+	return out, nil
 }

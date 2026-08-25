@@ -133,7 +133,7 @@ func TestBlankLinesAreIgnored(t *testing.T) {
 func TestRequestFieldsReachTheClient(t *testing.T) {
 	client := &fakeClient{}
 	serve(t, client, `{"id":1,"method":"POST","url":"https://example.com","body":"a=1",`+
-		`"headers":{"Referer":"https://x"},"order":["referer"],"setCookie":["s=1","malformed"]}`)
+		`"headers":{"Referer":"https://x"},"order":["referer"],"setCookie":["s=1"]}`)
 
 	if client.got.Method != "POST" {
 		t.Errorf("method = %q", client.got.Method)
@@ -144,9 +144,41 @@ func TestRequestFieldsReachTheClient(t *testing.T) {
 	if got, want := client.got.Header.Get("referer"), "https://x"; got != want {
 		t.Errorf("referer = %q, want %q", got, want)
 	}
-	// A cookie without an "=" is skipped rather than stored under an empty name.
 	if want := []tlsforge.Cookie{{Name: "s", Value: "1"}}; !reflect.DeepEqual(client.got.Cookies, want) {
 		t.Errorf("cookies = %+v, want %+v", client.got.Cookies, want)
+	}
+}
+
+func TestMalformedCookiesFailOnlyTheirRequest(t *testing.T) {
+	client := &fakeClient{}
+	responses := serve(t, client,
+		`{"id":1,"url":"https://example.com","setCookie":["malformed"]}`,
+		`{"id":2,"url":"https://example.com","setCookie":["=empty-name"]}`,
+		`{"id":3,"url":"https://example.com","setCookie":["valid=1"]}`,
+	)
+	if len(responses) != 3 {
+		t.Fatalf("responses = %+v", responses)
+	}
+	for i := range 2 {
+		if responses[i].Error == "" || responses[i].ID != uint64(i+1) {
+			t.Errorf("response %d = %+v", i, responses[i])
+		}
+	}
+	if responses[2].Error != "" || responses[2].Status != 200 {
+		t.Errorf("valid request after errors = %+v", responses[2])
+	}
+}
+
+func TestHeadersWithDuplicateCasingAreRejectedDeterministically(t *testing.T) {
+	client := &fakeClient{}
+	responses := serve(t, client,
+		`{"id":7,"url":"https://example.com","headers":{"User-Agent":"one","user-agent":"two"}}`)
+	if len(responses) != 1 || responses[0].ID != 7 ||
+		!strings.Contains(responses[0].Error, "repeated with different casing") {
+		t.Fatalf("responses = %+v", responses)
+	}
+	if client.got != nil {
+		t.Errorf("ambiguous headers reached the client: %+v", client.got.Header)
 	}
 }
 
@@ -239,7 +271,10 @@ func TestSortedKeys(t *testing.T) {
 }
 
 func TestParseCookies(t *testing.T) {
-	got := parseCookies([]string{"a=1", "no-equals", "b=2=3"})
+	got, err := parseCookies([]string{"a=1", "b=2=3"})
+	if err != nil {
+		t.Fatalf("parseCookies: %v", err)
+	}
 	want := []tlsforge.Cookie{{Name: "a", Value: "1"}, {Name: "b", Value: "2=3"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("parseCookies = %+v, want %+v", got, want)
