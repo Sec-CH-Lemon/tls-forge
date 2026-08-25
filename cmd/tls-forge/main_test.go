@@ -1026,9 +1026,9 @@ func TestCaptureInstallsIntoThisMachinesDirectory(t *testing.T) {
 }
 
 func TestCaptureSaveIntoADirectory(t *testing.T) {
-	// A directory gets a file named after the browser, unlike --install, which
-	// files under `local`. This is the shape the capture workflow relies on to
-	// produce chrome_152/macos.json for committing.
+	// A directory gets a version/platform layout, unlike --install, which files
+	// under `local`. This is the shape the capture workflow relies on to produce
+	// chrome_152/macos.json for committing.
 	dir := t.TempDir()
 	code, stdout, _ := exec(t, "capture", "--browser", browserStandIn(t),
 		"--timeout", "30s", "--save", dir)

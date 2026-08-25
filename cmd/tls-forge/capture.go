@@ -24,7 +24,7 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		"browser to measure: chrome, chromium, edge, brave, or a path")
 	headless := fs.Bool("headless", false, "run the browser without a window")
 	save := fs.StringP("save", "s", "",
-		"write a reusable profile here; a directory gets <name>.json")
+		"write a reusable profile here; a directory gets <name>/<platform>.json")
 	install := fs.Bool("install", false,
 		"keep the profile in this machine's own directory, where --profile finds it by name")
 	name := fs.StringP("name", "n", "", "profile name (default: derived from the browser's version)")
