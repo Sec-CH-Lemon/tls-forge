@@ -217,6 +217,7 @@ func TestHTTP2RecordsAPriorityCarriedOnHeaders(t *testing.T) {
 	got := session.http2.HeaderPriority
 	if got == nil {
 		t.Fatal("the HEADERS priority was not recorded")
+		return
 	}
 	if !got.Exclusive || got.Weight != 255 || got.DependsOn != 0 {
 		t.Errorf("header priority = %+v", got)

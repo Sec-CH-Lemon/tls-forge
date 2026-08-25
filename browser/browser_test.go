@@ -2,6 +2,7 @@ package browser
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -159,9 +160,10 @@ func TestOpenLaunchesAndCleansUp(t *testing.T) {
 	// The fake records the arguments it was given, then waits to be killed —
 	// which is what a browser does.
 	output := filepath.Join(t.TempDir(), "args")
-	path := fakeBrowser(t, "recorder", `printf '%s\n' "$@" > `+output+`
+	path := fakeBrowser(t, "recorder", fmt.Sprintf(`printf '%%s\n' "$@" > %q
+mv %q %q
 sleep 30
-`)
+`, output+".tmp", output+".tmp", output))
 
 	found, err := Find(path)
 	if err != nil {
