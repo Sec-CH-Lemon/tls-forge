@@ -162,6 +162,20 @@ def test_a_request_with_no_url_is_refused_without_spawning_anything(client):
     assert one._process is None
 
 
+def test_an_unencodable_request_does_not_discard_the_session(client):
+    one = client()
+    one.get("https://ok/before")
+    process = one._process
+    circular: dict[str, object] = {}
+    circular["self"] = circular
+
+    with pytest.raises(ValueError, match="request cannot be encoded as JSON"):
+        one.get("https://ok/bad", headers=circular)  # type: ignore[arg-type]
+
+    assert one._process is process
+    assert one.get("https://ok/after").status == 200
+
+
 def test_a_garbage_line_fails_the_request_rather_than_hanging(client):
     with pytest.raises(TransportError, match="bad response"):
         client().get("https://garbage/x")

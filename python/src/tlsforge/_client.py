@@ -213,7 +213,8 @@ class Client:
                 payload["body"] = body
             if cookies:
                 payload["setCookie"] = list(cookies)
-            return _to_response(self._exchange(payload))
+            line = _encode_request(payload)
+            return _to_response(self._exchange(payload["id"], line))
 
     def close(self) -> None:
         """Stop the transport. Idempotent, and final.
@@ -233,11 +234,11 @@ class Client:
 
     # --- the transport -----------------------------------------------------
 
-    def _exchange(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _exchange(self, request_id: int, line: str) -> dict[str, Any]:
         """Send one request and wait for the answer with that id."""
         deadline = time.monotonic() + self._timeout
         self._ensure_started()
-        self._write(payload)
+        self._write(line)
 
         while True:
             try:
@@ -259,14 +260,14 @@ class Client:
                 raise TransportError(f"tlsforge: transport exited (code {stopped.returncode})")
 
             response = _decode(line)
-            if response.get("id") != payload["id"]:
+            if response.get("id") != request_id:
                 # Not an error: this is an abandoned answer arriving, the normal
                 # aftermath of a timeout, and dropping it is the whole reason
                 # every response carries an id.
                 _report_stderr(
                     self._on_stderr,
                     f"dropping answer for request {response.get('id', '(none)')}, "
-                    f"waiting on {payload['id']}"
+                    f"waiting on {request_id}"
                 )
                 continue
             return response
@@ -306,13 +307,12 @@ class Client:
         _pump(process.stdout, self._lines, _EOF)
         _pump(process.stderr, None, None, self._on_stderr)
 
-    def _write(self, payload: dict[str, Any]) -> None:
-        line = json.dumps(payload, separators=(",", ":")) + "\n"
+    def _write(self, line: str) -> None:
         assert self._process is not None and self._process.stdin is not None
         try:
             self._process.stdin.write(line)
             self._process.stdin.flush()
-        except (OSError, ValueError) as err:
+        except OSError as err:
             # The process can die between starting it and the bytes landing, and
             # a pipe whose reader is gone raises rather than returning short.
             self._stop()
@@ -456,6 +456,16 @@ def _decode(line: str) -> dict[str, Any]:
         # `null`, `7` and `[]` are all valid JSON and none can carry an id.
         raise TransportError(f"tlsforge: bad response: expected an object, got {line[:40]!r}")
     return response
+
+
+def _encode_request(payload: dict[str, Any]) -> str:
+    """Encode before a request reaches the process or the in-flight state."""
+    try:
+        return json.dumps(payload, separators=(",", ":")) + "\n"
+    except (TypeError, ValueError) as err:
+        # Circular values and objects JSON does not support are caller errors.
+        # They must not stop the daemon and discard the warmed session.
+        raise ValueError(f"tlsforge: request cannot be encoded as JSON: {err}") from err
 
 
 def _to_response(payload: dict[str, Any]) -> Response:
