@@ -12,7 +12,7 @@ import (
 
 func runProxy(ctx context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("proxy", out)
-	common := addClientFlags(fs)
+	common := addProxyClientFlags(fs)
 	addr := fs.StringP("addr", "a", "127.0.0.1:8080", "listen address")
 	certFile := fs.String("ca-cert", "",
 		"certificate authority to sign with (default: alongside the config)")

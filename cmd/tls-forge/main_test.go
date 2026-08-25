@@ -748,11 +748,46 @@ func TestHelpFlagOnACommandExitsTwo(t *testing.T) {
 	// rather than by a panic in front of whoever ran it. batch was missing from
 	// this list when --cookies and --concurrency both asked for -c.
 	for _, name := range []string{"fetch", "batch", "capture", "compare", "profiles",
-		"serve", "daemon", "version"} {
+		"proxy", "serve", "daemon", "version"} {
 		code, _, _ := exec(t, name, "-h")
 		if code != 2 {
 			t.Errorf("%s -h: exit code = %d, want 2", name, code)
 		}
+	}
+}
+
+func TestCommandsOnlyAdvertiseEffectiveCookieFlags(t *testing.T) {
+	flags := []string{"--cookie name=value", "--cookies string", "--cookie-set string", "--save-cookies string"}
+	tests := []struct {
+		command string
+		want    []bool
+	}{
+		{"fetch", []bool{true, true, true, true}},
+		{"batch", []bool{true, true, true, true}},
+		// Daemon can start from a warmed jar, but cannot save one because the
+		// stream protocol does not retain the list of hosts it visited.
+		{"daemon", []bool{true, true, true, false}},
+		// Proxy forwards its caller's Cookie header and deliberately has no jar.
+		{"proxy", []bool{false, false, false, false}},
+	}
+
+	for _, tc := range tests {
+		code, stdout, stderr := exec(t, tc.command, "--help")
+		if code != 2 {
+			t.Fatalf("%s --help: exit code = %d, stderr = %q", tc.command, code, stderr)
+		}
+		for i, flag := range flags {
+			if got := strings.Contains(stdout, flag); got != tc.want[i] {
+				t.Errorf("%s help contains %q = %v, want %v", tc.command, flag, got, tc.want[i])
+			}
+		}
+	}
+
+	if code, _, _ := exec(t, "proxy", "--cookie", "session=abc"); code != 2 {
+		t.Errorf("proxy accepted an ineffective cookie flag: exit code = %d, want 2", code)
+	}
+	if code, _, _ := exec(t, "daemon", "--save-cookies", "session.json"); code != 2 {
+		t.Errorf("daemon accepted an unsupported save flag: exit code = %d, want 2", code)
 	}
 }
 

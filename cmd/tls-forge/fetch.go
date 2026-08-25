@@ -60,28 +60,51 @@ type clientFlags struct {
 	chose func(string) bool
 }
 
-// The flags every command that makes requests shares, declared once so fetch
-// and daemon cannot drift apart on a name, a letter or a default.
-func addClientFlags(fs *pflag.FlagSet) clientFlags {
-	jar := &cookieFlag{}
-	// -b is curl's letter for handing a request a cookie.
-	fs.VarP(jar, "cookie", "b", "cookie as name=value, repeatable")
+// addScopedClientFlags keeps unsupported flags out of --help. Accepting
+// --save-cookies on a command that never saves a session is worse than rejecting
+// it as a usage error; the same is true of cookie input on the jar-less proxy.
+func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) clientFlags {
 	flags := clientFlags{
-		cookies: jar,
+		cookies:     &cookieFlag{},
+		cookieFile:  new(string),
+		cookieSet:   new(string),
+		saveCookies: new(string),
+		chose:       fs.Changed,
+	}
+	if cookieInput {
+		// -b is curl's letter for handing a request a cookie.
+		fs.VarP(flags.cookies, "cookie", "b", "cookie as name=value, repeatable")
 		// Long only: -c is concurrency in batch, and a letter that means two
 		// things depending on the command is worse than no letter.
-		cookieFile: fs.String("cookies", "", "file of warmed cookies to start from"),
-		cookieSet: fs.String("cookie-set", "",
-			"which set in that file to use; one at random when not named"),
-		saveCookies: fs.String("save-cookies", "",
-			"write the session this run ends with here; .txt writes a cookies.txt"),
-		profile:  fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to impersonate"),
-		proxy:    fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port"),
-		timeout:  fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout"),
-		insecure: fs.BoolP("insecure", "k", false, "skip certificate verification"),
-		chose:    fs.Changed,
+		flags.cookieFile = fs.String("cookies", "", "file of warmed cookies to start from")
+		flags.cookieSet = fs.String("cookie-set", "",
+			"which set in that file to use; one at random when not named")
 	}
+	if cookieOutput {
+		flags.saveCookies = fs.String("save-cookies", "",
+			"write the session this run ends with here; .txt writes a cookies.txt")
+	}
+	flags.profile = fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to impersonate")
+	flags.proxy = fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port")
+	flags.timeout = fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout")
+	flags.insecure = fs.BoolP("insecure", "k", false, "skip certificate verification")
 	return flags
+}
+
+// The full request flags used by fetch and batch.
+func addClientFlags(fs *pflag.FlagSet) clientFlags {
+	return addScopedClientFlags(fs, true, true)
+}
+
+// Daemon can start from a warmed session, but does not retain visited hosts to
+// save when stdin closes.
+func addDaemonFlags(fs *pflag.FlagSet) clientFlags {
+	return addScopedClientFlags(fs, true, false)
+}
+
+// Proxy forwards its caller's Cookie header and deliberately has no jar.
+func addProxyClientFlags(fs *pflag.FlagSet) clientFlags {
+	return addScopedClientFlags(fs, false, false)
 }
 
 // cookieFlag collects --cookie, which is name=value and nothing more: anything
@@ -325,7 +348,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 
 func runDaemon(_ context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("daemon", out)
-	common := addClientFlags(fs)
+	common := addDaemonFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
