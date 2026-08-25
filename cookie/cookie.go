@@ -13,6 +13,7 @@ package cookie
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"sort"
 	"strings"
@@ -54,7 +55,7 @@ func (c Cookie) MarshalJSON() ([]byte, error) {
 // Expired reports whether this cookie is past its date. A cookie with no date
 // is a session cookie and never expires on its own.
 func (c Cookie) Expired(at time.Time) bool {
-	return !c.Expires.IsZero() && c.Expires.Before(at)
+	return !c.Expires.IsZero() && !c.Expires.After(at)
 }
 
 // browserCookie is the same thing spelled the way a browser extension exports
@@ -163,19 +164,30 @@ func Load(data []byte) (*File, error) {
 
 	if strings.HasPrefix(trimmed, "{") {
 		var file File
-		decoder := json.NewDecoder(strings.NewReader(trimmed))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&file); err != nil {
+		if err := decodeStrict(trimmed, &file); err != nil {
 			return nil, fmt.Errorf("cookie: %w", err)
 		}
-		return named(&file), nil
+		return validate(named(&file))
 	}
 
-	// An array: of sets if the first entry has cookies in it, of cookies if it
-	// does not.
-	var sets []Set
-	if err := json.Unmarshal([]byte(trimmed), &sets); err == nil && hasCookies(sets) {
-		return named(&File{Version: currentVersion, Sets: sets}), nil
+	// An array: of sets when an entry has a `cookies` member, otherwise of
+	// cookies. Inspecting the member rather than its length keeps an empty set a
+	// set, and keeps an empty array an empty file instead of inventing one set.
+	var entries []map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(trimmed), &entries); err == nil {
+		for _, entry := range entries {
+			if _, isSet := entry["cookies"]; !isSet {
+				continue
+			}
+			var sets []Set
+			if err := decodeStrict(trimmed, &sets); err != nil {
+				return nil, fmt.Errorf("cookie: %w", err)
+			}
+			return validate(named(&File{Version: currentVersion, Sets: sets}))
+		}
+		if len(entries) == 0 {
+			return &File{Version: currentVersion}, nil
+		}
 	}
 
 	var flat []browserCookie
@@ -189,16 +201,39 @@ func Load(data []byte) (*File, error) {
 		}
 		one.Cookies = append(one.Cookies, b.cookie())
 	}
-	return &File{Version: currentVersion, Sets: []Set{one}}, nil
+	return validate(&File{Version: currentVersion, Sets: []Set{one}})
 }
 
-func hasCookies(sets []Set) bool {
-	for _, s := range sets {
-		if len(s.Cookies) > 0 {
-			return true
+func decodeStrict(data string, value any) error {
+	decoder := json.NewDecoder(strings.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(value); err != nil {
+		return err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("more than one JSON value")
+		}
+		return err
+	}
+	return nil
+}
+
+func validate(file *File) (*File, error) {
+	ids := map[string]bool{}
+	for _, set := range file.Sets {
+		if ids[set.ID] {
+			return nil, fmt.Errorf("cookie: more than one set has id %q", set.ID)
+		}
+		ids[set.ID] = true
+		for _, cookie := range set.Cookies {
+			if cookie.Name == "" {
+				return nil, fmt.Errorf("cookie: set %q has a cookie with no name", set.ID)
+			}
 		}
 	}
-	return false
+	return file, nil
 }
 
 // named gives every set an id, so a set can always be asked for by one.

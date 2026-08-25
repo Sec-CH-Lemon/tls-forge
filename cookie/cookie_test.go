@@ -50,6 +50,26 @@ func TestLoadABareArrayOfSets(t *testing.T) {
 	}
 }
 
+func TestLoadABareArrayWithAnEmptySet(t *testing.T) {
+	file, err := Load([]byte(`[{"id":"empty","cookies":[]}]`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(file.Sets) != 1 || file.Sets[0].ID != "empty" || len(file.Sets[0].Cookies) != 0 {
+		t.Fatalf("sets: %+v", file.Sets)
+	}
+}
+
+func TestLoadAnEmptyArrayAsAnEmptyFile(t *testing.T) {
+	file, err := Load([]byte(`[]`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(file.Sets) != 0 {
+		t.Fatalf("sets: %+v", file.Sets)
+	}
+}
+
 func TestLoadABrowserExport(t *testing.T) {
 	// What an extension writes: a flat array, camelCase flag, expiry as seconds
 	// since the epoch with a fraction. A warmed session usually arrives this
@@ -85,6 +105,12 @@ func TestLoadRejectsWhatItCannotRead(t *testing.T) {
 		{"not JSON", "<html>"},
 		{"an object with a key this format does not know", `{"sets":[],"colour":"red"}`},
 		{"a cookie with no name", `[{"value":"x"}]`},
+		{"a cookie with no name in the file shape", `{"sets":[{"id":"a","cookies":[{"value":"x"}]}]}`},
+		{"a cookie with no name in a set array", `[{"id":"a","cookies":[{"value":"x"}]}]`},
+		{"a set array with an unknown field", `[{"id":"a","cookies":[],"colour":"red"}]`},
+		{"duplicate set ids", `{"sets":[{"id":"a","cookies":[]},{"id":"a","cookies":[]}]}`},
+		{"more than one JSON value", `{"sets":[]} {"sets":[]}`},
+		{"garbage after a JSON object", `{"sets":[]} trailing`},
 		// An array that is neither a list of sets nor a list of cookies.
 		{"an array of numbers", `[1, 2, 3]`},
 	} {
@@ -181,6 +207,7 @@ func TestLive(t *testing.T) {
 	set := Set{Cookies: []Cookie{
 		{Name: "session"}, // no date: a session cookie
 		{Name: "fresh", Expires: now.Add(time.Hour)},
+		{Name: "due", Expires: now},
 		{Name: "stale", Expires: now.Add(-time.Hour)},
 	}}
 	live := set.Live(now)
@@ -188,12 +215,12 @@ func TestLive(t *testing.T) {
 		t.Fatalf("kept %+v", live.Cookies)
 	}
 	for _, c := range live.Cookies {
-		if c.Name == "stale" {
+		if c.Name == "stale" || c.Name == "due" {
 			t.Error("an expired cookie was kept")
 		}
 	}
 	// The original is untouched, so a caller can still see what expired.
-	if len(set.Cookies) != 3 {
+	if len(set.Cookies) != 4 {
 		t.Error("Live changed the set it was given")
 	}
 }
