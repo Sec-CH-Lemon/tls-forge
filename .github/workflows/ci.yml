@@ -87,16 +87,53 @@ jobs:
 
   node:
     timeout-minutes: 15
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Node 20.12 is the documented minimum. Its test runner predates the
+          # built-in coverage thresholds, so compatibility is checked there and
+          # the 100% gate runs on Node 24 across every supported OS.
+          - os: ubuntu-latest
+            node-version: '20.12'
+            coverage: false
+          - os: ubuntu-latest
+            node-version: '24'
+            coverage: true
+          - os: macos-latest
+            node-version: '24'
+            coverage: true
+          - os: windows-latest
+            node-version: '24'
+            coverage: true
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
-      # The Node tests run against a stand-in daemon, so they need no Go build
-      # and no network.
+          node-version: ${{ matrix.node-version }}
+      # Windows cannot execute the shell-script transport used by the tests, so
+      # build the equivalent native fixture there. It is under testdata and can
+      # never enter a release binary or Go's normal package list.
+      - uses: actions/setup-go@v7
+        if: runner.os == 'Windows'
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: build the Windows test transport
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $daemon = Join-Path $env:RUNNER_TEMP 'tls-forge-test-daemon.exe'
+          go build -o $daemon ./testdata/fake-daemon
+          "TLSFORGE_TEST_DAEMON=$daemon" >> $env:GITHUB_ENV
+
       # npm test includes the 100% line/function/branch coverage gate.
       - run: npm test
+        if: matrix.coverage
+        working-directory: node
+      - run: node --test 'test/*.test.js'
+        if: ${{ !matrix.coverage }}
         working-directory: node
 
   python:
@@ -104,18 +141,41 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The oldest supported and the newest: this client drives subprocesses,
-        # pipes and threads, which is where behaviour differs between versions.
-        python-version: ['3.9', '3.13']
-    runs-on: ubuntu-latest
+        include:
+          # Oldest and newest on Linux establish interpreter compatibility;
+          # the newest also exercises process, pipe and path behaviour on every
+          # supported OS. Python 3.9 is unavailable on current arm64 macOS
+          # runners, so duplicating the full cartesian product would not work.
+          - os: ubuntu-latest
+            python-version: '3.9'
+          - os: ubuntu-latest
+            python-version: '3.13'
+          - os: macos-latest
+            python-version: '3.13'
+          - os: windows-latest
+            python-version: '3.13'
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-go@v7
+        if: runner.os == 'Windows'
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: build the Windows test transport
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $daemon = Join-Path $env:RUNNER_TEMP 'tls-forge-test-daemon.exe'
+          go build -o $daemon ./testdata/fake-daemon
+          "TLSFORGE_TEST_DAEMON=$daemon" >> $env:GITHUB_ENV
       - run: pip install -e 'python[test]'
       # A gate, like `make cover` for Go: 100% of lines and branches. Runs
-      # against a stand-in transport, so no Go build and no network.
+      # against a stand-in transport and needs no network. Windows builds the
+      # native form of that fixture above; Unix uses the existing shell wrapper.
       - run: python -m coverage run -m pytest -q
         working-directory: python
       - run: python -m coverage report
