@@ -8,13 +8,15 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: write # create the GitHub Release and attach the binaries
-  id-token: write # npm provenance
+  contents: read
 
 jobs:
-  release:
+  build:
     timeout-minutes: 45
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      npm_tag: ${{ steps.version.outputs.npm_tag }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -24,7 +26,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
@@ -162,7 +163,9 @@ jobs:
           import tlsforge, subprocess
           binary = tlsforge.resolve_binary()
           print(binary)
-          print(subprocess.run([binary, 'version'], capture_output=True, text=True).stdout.strip())
+          completed = subprocess.run([binary, 'version'], capture_output=True, text=True)
+          print(completed.stdout.strip())
+          assert completed.returncode == 0, completed.stderr
           assert tlsforge.__version__ == '${{ steps.version.outputs.version }}', tlsforge.__version__
           "
 
@@ -173,35 +176,103 @@ jobs:
             --archives dist/release > dist/tls-forge.rb
           cat dist/tls-forge.rb
 
+      # Publish jobs receive only these already-tested files. In particular,
+      # npm packages cross the job boundary as tarballs: upload-artifact does
+      # not preserve executable modes on loose files, while a tarball does.
+      - name: save the release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-artifacts
+          if-no-files-found: error
+          retention-days: 2
+          path: |
+            dist/npm-packages/*.tgz
+            dist/pypi/*
+            dist/release/*
+            dist/tls-forge.rb
+            LICENSE
+            NOTICE
+            THIRD-PARTY-NOTICES.txt
+
+  publish-npm:
+    timeout-minutes: 15
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://www.npmjs.com/package/tls-forge
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-artifacts
+
       # The platform packages go first. The main package pins them by exact
       # version, so publishing it first would leave a window in which installing
-      # it resolves nothing.
-      - name: publish
+      # it resolves nothing. NPM_TOKEN bootstraps packages that do not exist yet;
+      # after Trusted Publishing is configured npm prefers OIDC automatically
+      # and the secret can be deleted.
+      - name: publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ needs.build.outputs.npm_tag }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
-          for pkg in dist/npm/tls-forge-*; do
+          for pkg in dist/npm-packages/sec-ch-lemon-tls-forge-*.tgz; do
             echo "publishing $pkg"
             npm publish "$pkg" --access public --provenance \
-              --tag "${{ steps.version.outputs.npm_tag }}"
+              --tag "$NPM_TAG"
           done
-          npm publish dist/npm/tls-forge --access public --provenance \
-            --tag "${{ steps.version.outputs.npm_tag }}"
+          npm publish "dist/npm-packages/tls-forge-${VERSION}.tgz" \
+            --access public --provenance --tag "$NPM_TAG"
 
-      # Trusted Publishing: PyPI verifies this workflow's OIDC token against the
-      # publisher configured on the project, so there is no API token to create,
-      # store or rotate. It needs `id-token: write`, which this workflow already
-      # has for npm provenance, and it needs the publisher to exist — see
-      # RELEASING.md. Attestations come from the same identity.
+  publish-pypi:
+    timeout-minutes: 15
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/tls-forge/
+    permissions:
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-artifacts
+
+      # PyPI verifies this job's short-lived OIDC token against the publisher
+      # configured on the project. No API token is created or stored, and the
+      # action publishes attestations for the uploaded files automatically.
       - name: publish to pypi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/pypi
 
+  github-release:
+    timeout-minutes: 15
+    needs: [build, publish-npm, publish-pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-artifacts
+
       # The release has to exist before the tap points at it: the formula
       # carries the download URL and the checksum, and a tap that referenced a
       # missing asset would break `brew install` for everyone.
-      - name: github release
+      - name: create the github release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -210,6 +281,17 @@ jobs:
             --generate-notes \
             dist/release/* LICENSE NOTICE THIRD-PARTY-NOTICES.txt
 
+  homebrew:
+    timeout-minutes: 15
+    needs: [build, github-release]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-artifacts
+
       - name: update the homebrew tap
         env:
           # A separate token: the workflow's own GITHUB_TOKEN cannot write to
@@ -217,7 +299,7 @@ jobs:
           # rather than failing a release that has already published everything
           # else.
           TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
           if [ -z "${TAP_TOKEN:-}" ]; then
             echo "HOMEBREW_TAP_TOKEN is not set — skipping the tap update."
@@ -238,7 +320,7 @@ jobs:
 
   image:
     timeout-minutes: 45
-    needs: release
+    needs: github-release
     runs-on: ubuntu-latest
     permissions:
       contents: read
