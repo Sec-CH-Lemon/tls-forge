@@ -150,7 +150,7 @@ func TestBadFlagExitsTwo(t *testing.T) {
 	// single dash introduces short flags, so `-nonsense` is `-n onsense`, and
 	// every tool that follows this convention reads it that way.
 	//
-	// 2, not 1: compare uses 1 for "the fingerprints differ", and a typo must
+	// 2, not 1: compare uses 3 for "the fingerprints differ", and a typo must
 	// not look like that to the job watching for it.
 	for _, args := range [][]string{
 		{"fetch", "--nonsense"},

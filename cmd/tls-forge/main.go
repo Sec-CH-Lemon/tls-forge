@@ -161,9 +161,9 @@ func usage(out *printer) {
 // errUsage marks a command that was never run because its arguments did not
 // parse.
 //
-// It exits 2 rather than 1 for a reason beyond convention: compare uses 1 to
-// mean "the fingerprints differ", so a mistyped flag exiting 1 would read, to
-// the CI job watching for exactly that, as a broken impersonation.
+// It exits 2 rather than 1 for a reason beyond convention: compare uses 3 to
+// mean "the fingerprints differ", so a mistyped flag cannot be mistaken for a
+// broken impersonation by the CI job watching for exactly that.
 var errUsage = errors.New("bad usage")
 
 // parse reads a command's flags, reporting a bad one as a usage error.

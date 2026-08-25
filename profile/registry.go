@@ -18,7 +18,7 @@ import (
 )
 
 // Profiles measured against a real browser and committed. Each one was produced
-// by `tls-forge capture -save` and can be reproduced by running it again.
+// by `tls-forge capture --save` and can be reproduced by running it again.
 //
 //go:embed all:data
 var embedded embed.FS

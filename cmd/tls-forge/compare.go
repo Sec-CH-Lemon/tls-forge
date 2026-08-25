@@ -65,7 +65,7 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 		// Compare already parsed both of these to build the report, so reaching
 		// here means something changed underneath. Say so rather than printing
 		// an empty diff that reads as agreement.
-		out.println("the captures could not be re-read for display; use -json")
+		out.println("the captures could not be re-read for display; use --json")
 		return
 	}
 
