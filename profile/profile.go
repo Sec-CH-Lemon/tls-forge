@@ -54,6 +54,19 @@ type Profile struct {
 // inside the binary or came from the catalogue.
 func (p *Profile) Source() string { return p.source }
 
+// ShufflesExtensions reports whether this browser family randomises the TLS
+// extension order on each connection. Chromium browsers do; Firefox and Safari
+// do not. The user agent is a fallback for custom captured profile names.
+func (p *Profile) ShufflesExtensions() bool {
+	identity := strings.ToLower(p.Name + " " + p.Base + " " + p.UserAgent)
+	for _, marker := range []string{"chrome", "chromium", "brave", "opera", " opr/"} {
+		if strings.Contains(identity, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 // Field is one header. A slice of these rather than a map, because order is
 // fingerprinted and a map has none.
 type Field struct {

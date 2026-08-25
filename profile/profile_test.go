@@ -222,6 +222,25 @@ func TestLoadErrors(t *testing.T) {
 	}
 }
 
+func TestShufflesExtensionsByBrowserFamily(t *testing.T) {
+	for _, tc := range []struct {
+		profile Profile
+		want    bool
+	}{
+		{profile: Profile{Name: "chrome_151"}, want: true},
+		{profile: Profile{Name: "brave_146"}, want: true},
+		{profile: Profile{Name: "opera_91"}, want: true},
+		{profile: Profile{Name: "custom", Base: "chrome_133"}, want: true},
+		{profile: Profile{Name: "custom", UserAgent: "Mozilla/5.0 Chrome/151.0"}, want: true},
+		{profile: Profile{Name: "firefox_148"}, want: false},
+		{profile: Profile{Name: "safari_18_5"}, want: false},
+	} {
+		if got := tc.profile.ShufflesExtensions(); got != tc.want {
+			t.Errorf("%q ShufflesExtensions = %v, want %v", tc.profile.Name, got, tc.want)
+		}
+	}
+}
+
 func TestEncodeJSONReportsFailures(t *testing.T) {
 	// Not reachable through Profile, whose fields are all encodable — but the
 	// error is returned rather than swallowed so that adding a field json cannot
