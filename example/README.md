@@ -1,14 +1,17 @@
 # Examples
 
-Every file `tls-forge` reads, one of each, with the commands that use them. The
-files here are real: every command below was run against them, and the output is
-what came back.
+This directory contains runnable consumer projects for all three libraries and
+every input-file format understood by the CLI. The examples make real requests;
+the commands and sample output below were checked against the committed files.
 
 The URLs are `example.com`, `example.org` and `example.net`, so the runnable
 examples work from anywhere without an account or a proxy.
 
-| file | what it is |
+| path | what it is |
 |---|---|
+| [`go/`](go/) | standalone Go module using the Go library |
+| [`node/`](node/) | standalone npm project using the Node.js package |
+| [`python/`](python/) | standalone Python project using the Python package |
 | [`urls.txt`](urls.txt) | a list, one URL per line |
 | [`urls.csv`](urls.csv) | a list as CSV |
 | [`urls.json`](urls.json) | a list as JSON |
@@ -18,12 +21,77 @@ examples work from anywhere without an account or a proxy.
 | [`cookies.txt`](cookies.txt) | the Netscape cookie file, which curl and wget read |
 | [`cookies-browser-export.json`](cookies-browser-export.json) | what a browser extension writes as JSON |
 
-Run these from the repository root, after `make build`.
+## Library examples
+
+Each example accepts an optional URL as its first argument and otherwise calls
+`https://tls.browserleaks.com/json`, where the returned JA3, JA4 and HTTP/2
+fingerprint can be inspected directly.
+
+### Go
+
+The example is a separate module with a `replace` directive pointing to this
+checkout, so it exercises the package as a consumer without downloading a
+published version. It uses the Go transport directly and needs no CLI binary.
+
+```bash
+cd example/go
+go run .
+go run . https://example.com/       # optional URL override
+```
+
+### Node.js
+
+The local npm dependency contains the JavaScript SDK but, unlike a published
+package, no platform binary. Build the repository binary once, install the local
+package without its release-only optional dependencies, and run the script:
+
+```bash
+cd example/node
+go build -o ../../bin/tls-forge ../../cmd/tls-forge
+npm install --omit=optional
+npm start
+npm start -- https://example.com/   # optional URL override
+```
+
+On Windows, name the output `../../bin/tls-forge.exe`. The script also honours
+`TLSFORGE_BIN`, so an already installed or custom transport can be selected
+without building into `bin/`.
+
+### Python
+
+The editable install likewise contains the Python SDK but not the binary that a
+release wheel embeds:
+
+```bash
+cd example/python
+go build -o ../../bin/tls-forge ../../cmd/tls-forge
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python main.py
+.venv/bin/python main.py https://example.com/   # optional URL override
+```
+
+On Windows, build `../../bin/tls-forge.exe` and replace `.venv/bin/python` with
+`.venv\Scripts\python.exe`. This script honours `TLSFORGE_BIN` as well.
+
+## CLI examples
+
+The commands below run from this directory. Build the CLI first:
+
+```bash
+cd example
+make -C .. build
+../bin/tls-forge version
+```
+
+On Windows without Make, use
+`go build -o ..\bin\tls-forge.exe ..\cmd\tls-forge` and invoke
+`..\bin\tls-forge.exe` in place of `../bin/tls-forge`.
 
 ## Scrape a list
 
 ```bash
-tls-forge batch -i example/urls.csv
+../bin/tls-forge batch -i urls.csv
 ```
 
 One JSON object per URL on standard output, and a summary on standard error:
@@ -42,16 +110,16 @@ else is one URL per line. Name it yourself with `-F` when the file is called
 something else.
 
 ```bash
-tls-forge batch -i example/urls.txt        # lines
-tls-forge batch -i example/urls.json       # JSON
-tls-forge batch -u "https://example.com/,https://example.org/"
-cat example/urls.txt | tls-forge batch     # or standard input
+../bin/tls-forge batch -i urls.txt        # lines
+../bin/tls-forge batch -i urls.json       # JSON
+../bin/tls-forge batch -u "https://example.com/,https://example.org/"
+cat urls.txt | ../bin/tls-forge batch     # or standard input
 ```
 
 ## Keep the results
 
 ```bash
-tls-forge batch -i example/urls.csv -o results.jsonl -R reports/
+../bin/tls-forge batch -i urls.csv -o results.jsonl -R reports/
 ```
 
 `-o` sends the JSON lines to a file, `-R` writes an HTML report. Given a
@@ -83,7 +151,7 @@ leaves a path in their place, which is what to do when the pages are large.
 ## Watch it happen
 
 ```bash
-tls-forge batch -i example/urls.csv -v
+../bin/tls-forge batch -i urls.csv -v
 ```
 
 ```
@@ -128,11 +196,11 @@ column compose rather than override.
 [`cookies.json`](cookies.json) holds two sessions. Name one:
 
 ```bash
-tls-forge fetch --cookies example/cookies.json --cookie-set warm-eu https://example.com/
+../bin/tls-forge fetch --cookies cookies.json --cookie-set warm-eu https://example.com/
 ```
 
 ```
-warmed from example/cookies.json, set warm-eu, 2 cookies
+warmed from cookies.json, set warm-eu, 2 cookies
 ```
 
 Name none and one is drawn at random, which is what a file of warmed sessions is
@@ -140,13 +208,13 @@ for. Eight runs of the command below chose `warm-eu` three times and `warm-us`
 five:
 
 ```bash
-tls-forge fetch --cookies example/cookies.json https://example.com/
+../bin/tls-forge fetch --cookies cookies.json https://example.com/
 ```
 
 A cookie by hand, without a file, for the times one value is all that is needed:
 
 ```bash
-tls-forge fetch -b "session=abc" -b "consent=accepted" https://example.com/
+../bin/tls-forge fetch -b "session=abc" -b "consent=accepted" https://example.com/
 ```
 
 [`cookies-browser-export.json`](cookies-browser-export.json) is the flat array an
@@ -154,11 +222,11 @@ extension writes, `httpOnly` and `expirationDate` and all. It is read as one set
 and gets the id `1` because the export gave it none:
 
 ```bash
-tls-forge fetch --cookies example/cookies-browser-export.json https://example.com/
+../bin/tls-forge fetch --cookies cookies-browser-export.json https://example.com/
 ```
 
 ```
-warmed from example/cookies-browser-export.json, set 1, 2 cookies
+warmed from cookies-browser-export.json, set 1, 2 cookies
 ```
 
 The cookies in both files name `example.com`, so they are sent there and nowhere
@@ -174,11 +242,11 @@ browser extension offers it. If a session has to travel between tools, this is
 the shape to travel in.
 
 ```bash
-tls-forge fetch --cookies example/cookies.txt https://example.com/
+../bin/tls-forge fetch --cookies cookies.txt https://example.com/
 ```
 
 ```
-warmed from example/cookies.txt, set 1, 3 cookies
+warmed from cookies.txt, set 1, 3 cookies
 ```
 
 Seven tab-separated fields per line:
@@ -196,17 +264,17 @@ It works in both directions, and was checked against curl itself:
 
 ```bash
 curl -c jar.txt https://example.com/            # curl warms it
-tls-forge fetch --cookies jar.txt …       # this reads it
+../bin/tls-forge fetch --cookies jar.txt …       # this reads it
 
-tls-forge fetch --save-cookies jar.txt …  # this warms it
+../bin/tls-forge fetch --save-cookies jar.txt …  # this warms it
 curl -b jar.txt https://example.com/            # curl reads it
 ```
 
 ### Writing a session down
 
 ```bash
-tls-forge fetch --save-cookies session.json https://example.com/
-tls-forge batch -i example/urls.csv --save-cookies session.json
+../bin/tls-forge fetch --save-cookies session.json https://example.com/
+../bin/tls-forge batch -i urls.csv --save-cookies session.json
 ```
 
 The file's name says which format. A `.txt` is written as a cookies.txt and
@@ -220,9 +288,9 @@ Written `0600` either way: a warmed session is a credential.
 ## Everything at once
 
 ```bash
-tls-forge batch \
-  -i example/urls.csv \
-  --cookies example/cookies.json --cookie-set warm-eu \
+../bin/tls-forge batch \
+  -i urls.csv \
+  --cookies cookies.json --cookie-set warm-eu \
   --save-cookies session.json \
   -c 8 --repeat 3 -v \
   -o results.jsonl -R reports/

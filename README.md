@@ -301,7 +301,8 @@ https://example.org/,
 The command creates one client and cookie jar per distinct proxy. A batch exits
 non-zero when one or more URLs fail.
 
-More complete sample inputs and outputs are in [`example/`](example/).
+Runnable CLI and SDK examples, with complete sample inputs and outputs, are in
+[`example/`](example/).
 
 ### `capture`
 
@@ -522,6 +523,7 @@ func main() {
 ```
 
 See the complete [Go library documentation](GO.md).
+The runnable consumer project is in [`example/go/`](example/go/).
 
 ### Node.js
 
@@ -542,6 +544,7 @@ try {
 ```
 
 See the complete [Node.js SDK documentation](node/README.md).
+The runnable consumer project is in [`example/node/`](example/node/).
 
 ### Python
 
@@ -558,6 +561,7 @@ with tlsforge.Client(profile="chrome") as client:
 ```
 
 See the complete [Python SDK documentation](python/README.md).
+The runnable consumer project is in [`example/python/`](example/python/).
 
 ## Development
 
@@ -575,7 +579,7 @@ Release and maintenance documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — user-visible changes;
 - [`RELEASING.md`](RELEASING.md) — release process;
-- [`example/`](example/) — complete CLI input examples.
+- [`example/`](example/) — runnable Go, Node.js, Python and CLI examples.
 
 ## Licence and attribution
 
