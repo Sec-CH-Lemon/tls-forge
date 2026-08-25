@@ -324,7 +324,7 @@ Usage: `tls-forge capture [flags]`
 | Flag | Meaning |
 |---|---|
 | `-b`, `--browser <name-or-path>` | `chrome`, `chromium`, `edge`, `brave`, or an executable path; auto-detected when omitted |
-| `--headless` | Run the browser without a window |
+| `--headless` | Run without a window; TLS/HTTP structure remains useful for drift checks, but Chrome may expose `HeadlessChrome` and therefore differ in header values from a headed profile |
 | `-s`, `--save <path>` | Save a profile; an existing directory gets `<name>/<platform>.json` |
 | `--install` | Save into the user profile directory so `--profile local` can find it |
 | `-n`, `--name <name>` | Override the profile name; otherwise derive it from the browser version |

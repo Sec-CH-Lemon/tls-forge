@@ -54,10 +54,13 @@ otherwise they would all come out named `chrome`.
 
 ### Headless
 
-`--headless` was measured to send an identical handshake: same JA4, same HTTP/2
-fingerprint, same header order. It is still not the default, because the browser
-being impersonated is a headed one and "identical when last measured" is a fact
-about the past. Use it in CI, verify it occasionally.
+`--headless` was measured to send the same TLS and HTTP structure: same JA4,
+same HTTP/2 fingerprint and same header order. Chrome still identifies the mode
+in its user-agent as `HeadlessChrome`, so a strict comparison against a headed
+profile reports a `header_values` difference. It is not the default because the
+browser being impersonated is a headed one. Use headless runs as an automated
+structural drift signal, or capture a dedicated headless profile when a strict
+headless match is the intended identity.
 
 ## Using one
 
@@ -128,12 +131,17 @@ success.
 
 ## Keeping profiles current
 
-A browser update is when an impersonation silently stops being true. Wire the
-check into CI:
+A browser update is when an impersonation silently stops being true. For a
+strict check, compare against a headed browser:
 
 ```bash
-tls-forge compare --headless --profile chrome
+tls-forge compare --profile chrome
 ```
+
+An unattended `tls-forge compare --headless --profile chrome` still checks the
+TLS and HTTP/2 structure, but may exit 3 solely because `HeadlessChrome` differs
+from the headed profile's user-agent. Keep that check informational unless the
+selected profile was itself captured headless.
 
 It exits 3 when the fingerprints no longer match (`1` means the comparison
 could not be completed). When they differ:

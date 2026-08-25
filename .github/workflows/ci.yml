@@ -329,10 +329,10 @@ jobs:
         # experiments real users do not have — measured, two extra extensions
         # and a different JA4. Without the flag this job reports three fields
         # differing on every push, which is noise that hides the difference it
-        # exists to show. It only settles the TLS half: Chrome for Testing also
-        # announces itself as Chromium in sec-ch-ua, and `compare` looks at
-        # header order rather than values, so that part goes unnoticed here.
-        # `capture` installs real Chrome for exactly that reason.
+        # exists to show. This remains informational: Chrome for Testing and
+        # headless mode identify themselves in header values, and `compare`
+        # correctly treats those as part of the cross-layer fingerprint.
+        # `capture` with a headed release browser produces the strict profile.
         continue-on-error: true
         run: |
           go run ./cmd/tls-forge compare --headless \
