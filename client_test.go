@@ -278,6 +278,31 @@ func TestNewRejectsAnUnknownProfile(t *testing.T) {
 	}
 }
 
+func TestNewRejectsNilOptions(t *testing.T) {
+	if _, err := New(nil); err == nil || !strings.Contains(err.Error(), "nil client option") {
+		t.Fatalf("New(nil) error = %v", err)
+	}
+	if _, err := New(WithProfileValue(nil)); err == nil ||
+		!strings.Contains(err.Error(), "profile value cannot be nil") {
+		t.Fatalf("WithProfileValue(nil) error = %v", err)
+	}
+	if _, err := New(WithTransportOption(nil)); err == nil ||
+		!strings.Contains(err.Error(), "nil transport option") {
+		t.Fatalf("WithTransportOption(nil) error = %v", err)
+	}
+}
+
+func TestTheLastProfileOptionWins(t *testing.T) {
+	shipped, err := profile.Get(DefaultProfile)
+	if err != nil {
+		t.Fatalf("profile: %v", err)
+	}
+	client := newTestClient(t, WithProfileValue(shipped), WithProfile("chrome_133"))
+	if got := client.Profile().Name; got != "chrome_133" {
+		t.Errorf("profile = %q, want chrome_133", got)
+	}
+}
+
 func TestNewRejectsAnUnusableProfile(t *testing.T) {
 	broken := &profile.Profile{Name: "broken", ClientHello: []byte{1, 2, 3}}
 	if _, err := New(WithProfileValue(broken)); err == nil {

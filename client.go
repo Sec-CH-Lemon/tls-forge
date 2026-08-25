@@ -147,6 +147,9 @@ func (r *Response) OK() bool { return r.Status >= 200 && r.Status < 300 }
 func New(opts ...Option) (*Client, error) {
 	cfg := defaults()
 	for _, opt := range opts {
+		if opt == nil {
+			return nil, fmt.Errorf("tlsforge: nil client option")
+		}
 		opt(&cfg)
 	}
 	if cfg.timeout <= 0 {
@@ -157,7 +160,10 @@ func New(opts ...Option) (*Client, error) {
 	}
 
 	prof := cfg.profile
-	if prof == nil {
+	if cfg.profileValueSet && prof == nil {
+		return nil, fmt.Errorf("tlsforge: profile value cannot be nil")
+	}
+	if !cfg.profileValueSet {
 		var err error
 		if prof, err = profile.Get(cfg.profileName); err != nil {
 			return nil, err
@@ -225,6 +231,11 @@ func New(opts ...Option) (*Client, error) {
 	}
 	if cfg.insecureSkipVerify {
 		options = append(options, tls_client.WithInsecureSkipVerify())
+	}
+	for _, opt := range cfg.extra {
+		if opt == nil {
+			return nil, fmt.Errorf("tlsforge: nil transport option")
+		}
 	}
 	options = append(options, cfg.extra...)
 

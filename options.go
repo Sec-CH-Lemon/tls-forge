@@ -15,6 +15,7 @@ const DefaultProfile = "chrome"
 
 type config struct {
 	profile            *profile.Profile
+	profileValueSet    bool
 	profileName        string
 	proxy              string
 	timeout            time.Duration
@@ -44,13 +45,20 @@ type Option func(*config)
 // WithProfile selects a profile by name — a measured one such as "chrome", or
 // any entry from the tls-client catalogue. See profile.Names.
 func WithProfile(name string) Option {
-	return func(c *config) { c.profileName = name }
+	return func(c *config) {
+		c.profile = nil
+		c.profileValueSet = false
+		c.profileName = name
+	}
 }
 
 // WithProfileValue uses a profile directly, which is how a freshly captured one
 // is used without registering it.
 func WithProfileValue(p *profile.Profile) Option {
-	return func(c *config) { c.profile = p }
+	return func(c *config) {
+		c.profile = p
+		c.profileValueSet = true
+	}
 }
 
 // WithProxy routes requests through a proxy: http://, https://, socks5:// or
