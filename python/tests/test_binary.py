@@ -51,6 +51,11 @@ def test_a_path_that_does_not_exist_is_an_error_rather_than_a_fallback(sterile):
         resolve_binary("/definitely/not/here")
 
 
+def test_a_directory_is_not_a_binary(tmp_path):
+    with pytest.raises(BinaryNotFound, match="no binary at"):
+        resolve_binary(tmp_path)
+
+
 def test_an_environment_variable_pointing_nowhere_is_the_same_error(sterile, monkeypatch):
     monkeypatch.setenv(ENV_VAR, "/definitely/not/here")
     with pytest.raises(BinaryNotFound, match="no binary at"):

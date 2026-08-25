@@ -51,12 +51,12 @@ def resolve_binary(explicit: str | os.PathLike[str] | None = None) -> str:
         # Named explicitly and missing is an error rather than a reason to look
         # elsewhere: falling through would run a different binary than the one
         # asked for, which is the one bug this order exists to prevent.
-        if not Path(candidate).exists():
+        if not Path(candidate).is_file():
             raise BinaryNotFound(f"tls-forge: no binary at {candidate}")
         return str(candidate)
 
     shipped = bundled_binary()
-    if shipped.exists():
+    if shipped.is_file():
         return str(shipped)
 
     built = _repository_build()
@@ -81,7 +81,7 @@ def _repository_build() -> Path | None:
     for parent in Path(__file__).resolve().parents:
         if (parent / "Makefile").exists() and (parent / "go.mod").exists():
             built = parent / "bin" / exe_name()
-            return built if built.exists() else None
+            return built if built.is_file() else None
     return None
 
 

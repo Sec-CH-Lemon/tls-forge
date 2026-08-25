@@ -275,6 +275,10 @@ test('resolveBinary rejects a path that does not exist', () => {
   assert.throws(() => resolveBinary('/definitely/not/here'), /no binary at/);
 });
 
+test('resolveBinary rejects a directory', () => {
+  assert.throws(() => resolveBinary(wrapperDir), /no binary at/);
+});
+
 test('resolveBinary uses a local build before PATH', (t) => {
   if (!existsSync(builtBinary)) {
     mkdirSync(path.dirname(builtBinary), { recursive: true });

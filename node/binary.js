@@ -12,7 +12,7 @@
 // during install, and it survives `npm ci --ignore-scripts`, which a postinstall
 // step does not.
 
-import { existsSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
@@ -46,7 +46,7 @@ export const builtBinary = path.join(here, 'vendor', exeName);
 export function resolveBinary(explicit) {
   const candidate = explicit || process.env.TLSFORGE_BIN;
   if (candidate) {
-    if (!existsSync(candidate)) {
+    if (!isFile(candidate)) {
       throw new Error(`tls-forge: no binary at ${candidate}`);
     }
     return candidate;
@@ -55,7 +55,7 @@ export function resolveBinary(explicit) {
   const shipped = fromPlatformPackage();
   if (shipped) return shipped;
 
-  if (existsSync(builtBinary)) return builtBinary;
+  if (isFile(builtBinary)) return builtBinary;
 
   const onPath = lookPath('tls-forge');
   if (onPath) return onPath;
@@ -93,7 +93,7 @@ function fromPlatformPackage() {
       // actually needed.
       const manifest = resolver.resolve(`${platformPackage}/package.json`);
       const binary = path.join(path.dirname(manifest), 'bin', exeName);
-      if (existsSync(binary)) return binary;
+      if (isFile(binary)) return binary;
     } catch {
       // Not installed under this base: npm skipped it because `os`/`cpu` did
       // not match, the install ran without optional dependencies, or this is
@@ -112,8 +112,16 @@ function lookPath(name) {
       .split('\n')[0]
       .replace('\r', '')
       .trim();
-    return found && existsSync(found) ? found : null;
+    return found && isFile(found) ? found : null;
   } catch {
     return null;
+  }
+}
+
+function isFile(candidate) {
+  try {
+    return statSync(candidate).isFile();
+  } catch {
+    return false;
   }
 }
