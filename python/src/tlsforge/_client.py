@@ -470,21 +470,56 @@ def _encode_request(payload: dict[str, Any]) -> str:
 
 def _to_response(payload: dict[str, Any]) -> Response:
     error = payload.get("error")
+    if error is not None and not isinstance(error, str):
+        raise TransportError('tlsforge: bad response: field "error" must be a string')
     if error:
-        raise RequestFailed(str(error))
-    raw_headers = payload.get("headers") or {}
-    headers = {
-        str(name): tuple(str(value) for value in values)
-        if isinstance(values, list)
-        else (str(values),)
-        for name, values in raw_headers.items()
-    }
-    return Response(
-        status=payload.get("status") or 0,
-        url=payload.get("url") or "",
-        body=payload.get("body") or "",
+        raise RequestFailed(error)
+
+    status = payload.get("status")
+    url = payload.get("url")
+    body = payload.get("body")
+    raw_headers = payload.get("headers")
+    raw_cookies = payload.get("cookies")
+
+    status = 0 if status is None else status
+    url = "" if url is None else url
+    body = "" if body is None else body
+    raw_headers = {} if raw_headers is None else raw_headers
+    raw_cookies = [] if raw_cookies is None else raw_cookies
+
+    if type(status) is not int:
+        raise TransportError('tlsforge: bad response: field "status" must be an integer')
+    if not isinstance(url, str):
+        raise TransportError('tlsforge: bad response: field "url" must be a string')
+    if not isinstance(body, str):
+        raise TransportError('tlsforge: bad response: field "body" must be a string')
+    if not isinstance(raw_headers, dict):
+        raise TransportError('tlsforge: bad response: field "headers" must be an object')
+    if not isinstance(raw_cookies, list) or not all(
+        isinstance(cookie, str) for cookie in raw_cookies
+    ):
+        raise TransportError(
+            'tlsforge: bad response: field "cookies" must be an array of strings'
+        )
+
+    headers: dict[str, tuple[str, ...]] = {}
+    for name, values in raw_headers.items():
         # Accept one release of the old scalar protocol during upgrades while
         # exposing the lossless tuple shape consistently.
+        if isinstance(values, str):
+            headers[str(name)] = (values,)
+        elif isinstance(values, list) and all(isinstance(value, str) for value in values):
+            headers[str(name)] = tuple(values)
+        else:
+            raise TransportError(
+                f'tlsforge: bad response: header "{name}" must be a string '
+                "or an array of strings"
+            )
+
+    return Response(
+        status=status,
+        url=url,
+        body=body,
         headers=headers,
-        cookies=tuple(payload.get("cookies") or ()),
+        cookies=tuple(raw_cookies),
     )

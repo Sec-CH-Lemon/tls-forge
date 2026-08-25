@@ -187,6 +187,27 @@ def test_a_line_that_is_json_but_not_an_object_is_also_rejected(client):
         client().get("https://null-line/x")
 
 
+@pytest.mark.parametrize(
+    "behaviour",
+    [
+        "bad-error",
+        "bad-status",
+        "bad-url",
+        "bad-body",
+        "bad-headers",
+        "bad-header-scalar",
+        "bad-header-list",
+        "bad-cookies",
+        "bad-cookie-item",
+    ],
+)
+def test_a_malformed_response_is_rejected_without_breaking_the_client(client, behaviour):
+    one = client()
+    with pytest.raises(TransportError, match="bad response"):
+        one.get(f"https://{behaviour}/x")
+    assert one.get("https://ok/after").status == 200
+
+
 def test_the_client_survives_a_garbage_line(client):
     # The process is kept: one bad line does not prove the stream is broken, and
     # killing it would throw away the session. The id is what makes that safe.

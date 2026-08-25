@@ -68,6 +68,24 @@ def main() -> None:
             # whole, the fields are null.
             emit({"id": request["id"], "status": 0, "url": "", "body": "",
                   "headers": None, "cookies": None})
+        elif behaviour == "bad-error":
+            emit(answer(request, error={}))
+        elif behaviour == "bad-status":
+            emit(answer(request, status="200"))
+        elif behaviour == "bad-url":
+            emit(answer(request, url=7))
+        elif behaviour == "bad-body":
+            emit(answer(request, body=[]))
+        elif behaviour == "bad-headers":
+            emit(answer(request, headers=[]))
+        elif behaviour == "bad-header-scalar":
+            emit(answer(request, headers={"broken": 7}))
+        elif behaviour == "bad-header-list":
+            emit(answer(request, headers={"broken": [7]}))
+        elif behaviour == "bad-cookies":
+            emit(answer(request, cookies={}))
+        elif behaviour == "bad-cookie-item":
+            emit(answer(request, cookies=[7]))
         elif behaviour == "garbage":
             sys.stdout.write("not json at all\n")
             sys.stdout.flush()
