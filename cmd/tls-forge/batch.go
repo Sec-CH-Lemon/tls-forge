@@ -459,6 +459,9 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 	sink io.Writer, repeat int, bodyDir string, counts *progress, records *[]result,
 	notes *stderrLog,
 ) (failures int, runErr error) {
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	queue := make(chan job)
 	var writeMu sync.Mutex
 	encoder := json.NewEncoder(sink)
@@ -470,7 +473,7 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 			defer wg.Done()
 			for j := range queue {
 				counts.begin()
-				r := fetchOne(ctx, clients, j, repeat, bodyDir)
+				r := fetchOne(runCtx, clients, j, repeat, bodyDir)
 				counts.finish(r)
 				notes.say(verboseLine(r))
 				writeMu.Lock()
@@ -481,6 +484,7 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 				if runErr == nil {
 					if err := encoder.Encode(r); err != nil {
 						runErr = fmt.Errorf("batch: writing result: %w", err)
+						cancel()
 					}
 				}
 				writeMu.Unlock()
@@ -490,8 +494,9 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 
 	for _, j := range jobs {
 		select {
-		case <-ctx.Done():
-			// Interrupted. Stop handing out work; what is in flight finishes.
+		case <-runCtx.Done():
+			// Stop handing out work. Requests already in flight receive the same
+			// cancellation through fetchOne.
 		case queue <- j:
 			continue
 		}

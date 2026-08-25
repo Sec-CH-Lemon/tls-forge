@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -696,7 +697,12 @@ func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
 }
 
 func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
-	server := batchServer(t)
+	var requests atomic.Int64
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		_, _ = w.Write([]byte("page"))
+	}))
+	t.Cleanup(server.Close)
 	fs := newFlagSet("batch", newPrinter(io.Discard))
 	flags := addClientFlags(fs)
 	if err := parse(fs, nil); err != nil {
@@ -705,14 +711,18 @@ func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
 	clients := newPool(flags, "")
 	defer clients.close()
 
-	var records []result
-	failed, err := runJobs(context.Background(), []job{{URL: server.URL}}, clients, 1,
-		failingWriter{}, 0, "", newProgress(1), &records, &stderrLog{})
-	if failed != 0 {
-		t.Fatalf("failed = %d", failed)
+	jobs := make([]job, 100)
+	for i := range jobs {
+		jobs[i] = job{URL: fmt.Sprintf("%s/%d", server.URL, i)}
 	}
+	var records []result
+	_, err := runJobs(context.Background(), jobs, clients, 1,
+		failingWriter{}, 0, "", newProgress(len(jobs)), &records, &stderrLog{})
 	if err == nil || !strings.Contains(err.Error(), "writing result") {
 		t.Fatalf("error = %v, want output write failure", err)
+	}
+	if got := requests.Load(); got >= int64(len(jobs)) {
+		t.Fatalf("fetched all %d jobs after output failed", got)
 	}
 }
 
