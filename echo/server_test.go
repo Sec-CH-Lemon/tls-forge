@@ -228,6 +228,9 @@ func TestCollectRejectsUnreadableJSON(t *testing.T) {
 		t.Fatalf("POST: %v", err)
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", res.StatusCode, http.StatusBadRequest)
+	}
 	body, _ := io.ReadAll(res.Body)
 	if !bytes.Contains(body, []byte("error")) {
 		t.Errorf("body = %s, want an error", body)

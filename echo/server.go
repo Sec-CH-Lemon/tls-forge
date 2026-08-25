@@ -422,7 +422,8 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 	case "/collect":
 		var nav capture.Navigator
 		if err := json.Unmarshal(req.body, &nav); err != nil {
-			return jsonResponse(map[string]string{"error": err.Error()})
+			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
+			return "400", contentType, body
 		}
 		// The report describes the BROWSER, not the connection that carried it,
 		// so it is filed against the navigation. Falling back to the reporting

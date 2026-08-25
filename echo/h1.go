@@ -136,6 +136,8 @@ func statusText(status string) string {
 	switch status {
 	case "200":
 		return "OK"
+	case "400":
+		return "Bad Request"
 	case "404":
 		return "Not Found"
 	default:

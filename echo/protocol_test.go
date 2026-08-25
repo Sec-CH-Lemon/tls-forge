@@ -375,7 +375,9 @@ func TestRecordHTTP1KeepsTheFirstRequest(t *testing.T) {
 }
 
 func TestStatusText(t *testing.T) {
-	for status, want := range map[string]string{"200": "OK", "404": "Not Found", "500": "Error"} {
+	for status, want := range map[string]string{
+		"200": "OK", "400": "Bad Request", "404": "Not Found", "500": "Error",
+	} {
 		if got := statusText(status); got != want {
 			t.Errorf("statusText(%s) = %q, want %q", status, got, want)
 		}
