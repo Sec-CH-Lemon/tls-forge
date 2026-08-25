@@ -116,7 +116,7 @@ func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error) 
 }
 
 // MeasureSelfAt measures this library against a server the caller already has.
-func MeasureSelfAt(_ context.Context, server *echo.Server, opts ...Option) (*capture.Capture, error) {
+func MeasureSelfAt(ctx context.Context, server *echo.Server, opts ...Option) (*capture.Capture, error) {
 	// The echo server's certificate is generated per run and signs nothing but
 	// itself, so verification is turned off — for this one loopback address,
 	// inside this process, carrying nothing secret.
@@ -126,7 +126,7 @@ func MeasureSelfAt(_ context.Context, server *echo.Server, opts ...Option) (*cap
 	}
 	defer func() { _ = client.Close() }()
 
-	res, err := client.Get(server.URL() + "/api/all")
+	res, err := client.Do(&Request{Context: ctx, URL: server.URL() + "/api/all"})
 	if err != nil {
 		return nil, err
 	}

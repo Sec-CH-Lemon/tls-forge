@@ -180,6 +180,20 @@ func TestMeasureSelfErrors(t *testing.T) {
 	}
 }
 
+func TestMeasureSelfHonoursContext(t *testing.T) {
+	server, err := echo.Start()
+	if err != nil {
+		t.Fatalf("echo.Start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := MeasureSelfAt(ctx, server); !errors.Is(err, context.Canceled) {
+		t.Fatalf("MeasureSelfAt error = %v, want context.Canceled", err)
+	}
+}
+
 func TestReadMeasurement(t *testing.T) {
 	if _, err := readMeasurement(&Response{Status: 404, Body: []byte("not found\n")}, "x"); err == nil {
 		t.Error("expected an error for a non-200 answer")
