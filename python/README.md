@@ -1,200 +1,308 @@
-# tls-forge (Python)
+# tls-forge for Python
 
-**A scraping HTTP client whose TLS fingerprint is a real browser's.** The
-handshake on the wire is Chrome's: the same JA4, the same HTTP/2 settings, the
-same headers in the same order. The fingerprint check that runs before a page is
-ever served has nothing to catch.
+`tls-forge` is a typed Python HTTP client whose network fingerprint comes from
+a measured browser profile. It controls the TLS ClientHello, HTTP/2 settings and
+header order that Python's OpenSSL-based clients cannot reproduce by changing a
+`User-Agent`.
 
-Python cannot do this on its own. Its TLS comes from OpenSSL, which exposes no
-control over extension order, GREASE values or the extension set — and those are
-precisely what JA3 and JA4 hash. Chrome uses BoringSSL. So the socket moves out
-of Python into a small Go process, and Python keeps the orchestration.
+The Python package handles application orchestration and communicates with one
+long-lived `tls-forge daemon` process. The project overview, CLI and explanation
+of TLS fingerprinting are in the
+[main README](https://github.com/Sec-CH-Lemon/tls-forge#readme).
 
-The project, what it is for and how the impersonation is verified are in the
-[main README](../README.md).
+It does not execute page JavaScript and does not solve CAPTCHAs or managed
+challenges. It addresses rejection caused specifically by TLS and HTTP
+fingerprint mismatch.
 
-## Install
+## Requirements and installation
+
+- Python 3.9 or newer;
+- a supported platform wheel or Go 1.25.13+ for a custom transport.
 
 ```bash
 pip install tls-forge
 ```
 
-The binary comes with the wheel. Nothing is downloaded during install, no Go is
-needed on the machine, and there are no dependencies — the point of this package
-is not to be at the mercy of whatever TLS stack a dependency drags in.
-
-Import it as `tlsforge`:
+Import the package as `tlsforge`, without the hyphen:
 
 ```python
 import tlsforge
 ```
 
-## Use
+Platform wheels include the transport binary. Installation does not run a
+compiler, download an executable through a postinstall hook, or install runtime
+Python dependencies.
+
+To use a custom build:
+
+```bash
+export TLSFORGE_BIN=/absolute/path/to/tls-forge
+```
+
+## Basic use
 
 ```python
 import tlsforge
 
 with tlsforge.Client(profile="chrome") as client:
-    res = client.get("https://tls.browserleaks.com/json")
-    print(res.status, res.json()["ja4"])
+    response = client.get("https://tls.browserleaks.com/json")
+    print(response.status)
+    print(response.json())
 ```
 
-```
-200 t13d1516h2_8daaf6152771_806a8c22fdea
-```
+The transport is resolved during construction and started lazily on the first
+request. Prefer the context-manager form so the child process is always closed.
 
-That address answers with the fingerprint it saw, so the reply is the proof the
-impersonation worked. A real Chrome on the same machine reports the same JA4.
-
-`res` is a frozen `Response`:
-
-| | |
-|---|---|
-| `status` | the HTTP status |
-| `url` | the final URL, after redirects |
-| `body` | the body, decompressed |
-| `headers` | each name maps to a tuple of field values |
-| `cookies` | what the jar holds for this URL afterwards |
-| `ok` | `True` for a 2xx |
-| `json()` | the body parsed as JSON |
-
-Separate values are preserved: `set-cookie` routinely arrives more than once
-and must not be folded into one ambiguous field.
-
-### Options
+## Constructor options
 
 ```python
 client = tlsforge.Client(
     profile="chrome_151",
-    proxy="http://user:pass@host:8080",
-    timeout=30,
+    proxy="http://user:pass@proxy.example:8080",
+    timeout=45,
+    binary="/absolute/path/to/tls-forge",
+    insecure=False,
     cookie_file="cookies.json",
     cookie_set="warm-eu",
+    on_stderr=lambda line: print(line),
 )
 ```
 
-| | |
-|---|---|
-| `profile` | which browser to impersonate; `tls-forge profiles` lists them |
-| `proxy` | an `http://` or `socks5://` URL |
-| `timeout` | per-request deadline in **seconds**, default 45 |
-| `binary` | path to the tls-forge binary, ahead of every other source |
-| `insecure` | skip certificate verification |
-| `cookie_file` | a file of warmed cookies to start from |
-| `cookie_set` | which set in that file; one at random when not named |
-| `on_stderr` | receives the transport's diagnostics, a line at a time |
+| Option | Type and default | Meaning |
+|---|---|---|
+| `profile` | `str | None`, CLI default | Profile name or JSON profile path passed to `tls-forge daemon --profile`. |
+| `proxy` | `str | None`, direct | HTTP, HTTPS or SOCKS proxy URL, optionally with credentials. |
+| `timeout` | `float`, `45.0` | Per-request deadline in seconds. It must be positive and finite. The Go transport receives an additional 15-second grace period so both timeout layers do not race. |
+| `binary` | `str | os.PathLike | None`, auto | Explicit path to the transport executable. A missing explicit path raises `BinaryNotFound` and does not fall through. |
+| `insecure` | `bool`, `False` | Skip upstream certificate verification. Use only for controlled endpoints. |
+| `cookie_file` | path or `None` | Load a warmed session from project JSON, browser-export JSON or Netscape cookies.txt. |
+| `cookie_set` | `str | None` | Select a named set from a multi-session file; when omitted, the daemon chooses one at random. |
+| `on_stderr` | callable or `None` | Receive transport diagnostics one line at a time. Callback exceptions are ignored so diagnostics cannot break the reader thread. |
 
-### Per request
+`tlsforge.DEFAULT_TIMEOUT` contains the default Python-side timeout.
+
+`Client()` without `profile` uses the daemon's default profile: a locally
+installed `local` profile when available and otherwise the latest bundled
+`chrome` profile.
+
+## Request methods
+
+### `get(url, *, headers=None, order=None, cookies=None)`
 
 ```python
-res = client.get(
+response = client.get(
     "https://example.com/page",
-    headers={"referer": "https://example.com/"},
-    order=["referer"],
+    headers={
+        "referer": "https://example.com/",
+        "accept-language": "en-GB,en;q=0.9",
+    },
+    order=["referer", "accept-language"],
     cookies=["session=abc"],
 )
-
-res = client.post("https://example.com/api", '{"a": 1}',
-                  headers={"content-type": "application/json"})
-
-res = client.request("https://example.com/x", method="DELETE")
 ```
 
-`headers` are layered over the profile's: a name the browser already sends keeps
-the browser's position and takes your value; one it does not send is appended
-after the rest. `order` orders the headers **you** send, not the whole request —
-without it they go last, sorted. To dictate the whole sequence, name every
-header in `order` and supply every one in `headers`.
-
-Do not set `cookie` by hand. The transport writes it from the jar, and setting
-the header replaces what the jar holds, so cookies the server set earlier in the
-session would silently vanish from the next request — which no real browser
-would do. Use `cookies=` instead, which adds to the jar.
-
-## One client is one identity
-
-A `Client` is one long-lived process: one TLS fingerprint, one cookie jar, one
-exit IP for its whole life. Reconnecting per request is itself a signal, and no
-browser does it.
-
-`close()` is final. A closed client will not respawn, and a later request raises
-rather than quietly minting a new process with a new fingerprint and an empty
-jar. Rotating identity means constructing another client.
-
-A client also **serialises**: the protocol underneath is one request at a time,
-so calls from several threads queue rather than overlap. That is not a
-limitation to work around — it is what one session is. Scrape in parallel with a
-pool of clients, one per proxy, which is also how the identities stay separate:
+### `post(url, body="", *, headers=None, order=None, cookies=None)`
 
 ```python
-from concurrent.futures import ThreadPoolExecutor
-import contextlib, itertools, tlsforge
-
-with contextlib.ExitStack() as stack:
-    clients = [stack.enter_context(tlsforge.Client(proxy=p)) for p in proxies]
-    turn = itertools.cycle(clients)
-    with ThreadPoolExecutor(len(clients)) as pool:
-        pages = list(pool.map(lambda u: next(turn).get(u), urls))
+response = client.post(
+    "https://example.com/api",
+    '{"hello":"world"}',
+    headers={"content-type": "application/json"},
+    order=["content-type"],
+)
 ```
 
-A jar spread across two exit IPs describes a browser that changed its network
-mid-session, which is not a thing that happens. One client per proxy is what
-keeps that from happening by construction.
+### `request(url, *, method="GET", headers=None, order=None, body=None, cookies=None)`
 
-## What can go wrong
+```python
+response = client.request(
+    "https://example.com/resource",
+    method="DELETE",
+    headers={"authorization": "Bearer token"},
+    order=["authorization"],
+    cookies=["session=abc"],
+)
+```
+
+| Request argument | Type and default | Meaning |
+|---|---|---|
+| `url` | `str`, required | Absolute HTTP or HTTPS URL. |
+| `method` | `str`, `"GET"` | HTTP method. `get()` and `post()` set it automatically. |
+| `headers` | `Mapping[str, str] | None` | Headers layered over the profile. Existing profile names retain their browser position. |
+| `order` | `Sequence[str] | None` | Order for caller-supplied headers. Unnamed caller headers follow in sorted order. To control the complete sequence, include every header in both `headers` and `order`. |
+| `body` | `str | None` | Request body transported in the JSON Lines request. `None` omits the field. |
+| `cookies` | `Iterable[str] | None` | `name=value` pairs added to the daemon's jar before the request. |
+
+Do not manually set the `cookie` header unless replacing the jar's complete
+output is intentional. `cookies` preserves values received earlier in the
+session.
+
+## Response
+
+Requests return an immutable `tlsforge.Response`:
+
+```python
+Response(
+    status=200,
+    url="https://example.com/final",
+    body="<html>...</html>",
+    headers={
+        "content-type": ("text/html; charset=utf-8",),
+        "set-cookie": ("a=1", "b=2"),
+    },
+    cookies=("a=1", "b=2"),
+)
+```
+
+| Field or method | Meaning |
+|---|---|
+| `status` | HTTP status code. Non-2xx responses are still returned normally. |
+| `url` | Final URL after redirects. |
+| `body` | Decompressed response body as `str`. |
+| `headers` | Header names mapped to tuples of field values. Repeated `set-cookie` fields remain separate. |
+| `cookies` | Tuple of `name=value` pairs held for the final URL. |
+| `ok` | `True` for status codes from 200 through 299. |
+| `json(**kwargs)` | Parse `body` with `json.loads` and return its result. |
+
+The SDK accepts the old daemon protocol where a header value was a scalar
+string, but always normalises the public result to `tuple[str, ...]`.
+
+`Response.json()` raises the standard `json.JSONDecodeError` when the body is
+not JSON.
+
+## Exceptions
+
+All package-specific errors inherit from `tlsforge.TLSForgeError`.
 
 ```python
 try:
-    res = client.get(url)
-except tlsforge.RequestFailed:   # the request ran and failed: refused, DNS, TLS
+    response = client.get(url)
+except tlsforge.BinaryNotFound:
+    # Fix the installation or binary path.
     ...
-except tlsforge.Timeout:         # the deadline passed; also a builtin TimeoutError
+except tlsforge.Timeout:
+    # Retry or increase the deadline.
     ...
-except tlsforge.TransportError:  # the transport would not start, died, or spoke nonsense
+except tlsforge.RequestFailed:
+    # DNS, connection, proxy or TLS request failure.
+    ...
+except tlsforge.TransportError:
+    # Process startup, exit, pipe or protocol failure.
     ...
 ```
 
-All four, plus `BinaryNotFound`, are `tlsforge.TLSForgeError`, so one `except`
-catches the lot. The split is by what to do about it: fix the install, retry, or
-fix the call.
+| Exception | Meaning |
+|---|---|
+| `TLSForgeError` | Base class for package errors. |
+| `BinaryNotFound` | No usable transport binary was found, or an explicit path was missing. |
+| `RequestFailed` | The daemon ran, but the HTTP request failed. |
+| `Timeout` | The Python deadline passed. Also inherits from built-in `TimeoutError`. |
+| `TransportError` | The daemon could not start, exited, could not be written to, or returned invalid protocol data. |
 
-The interesting code in this package is what happens when the transport
-misbehaves, because those failures are quiet:
+Invalid caller values such as an empty URL, non-positive timeout or non-callable
+`on_stderr` raise standard `ValueError` or `TypeError`.
 
-* **A request that misses its deadline** raises, and the process is stopped. The
-  transport's own deadline is longer than the client's on purpose — if they were
-  equal, both sides would decide the request had failed at once and the process
-  would be killed while writing the answer.
-* **Every request carries an id** and every answer is checked against it. An
-  answer whose id does not match is dropped. Without that, a late answer from a
-  process that was killed can be handed to whoever asked next: one page filed
-  under another page's request, well-formed and wrong.
-* **A line that is not a JSON object** fails the request in flight. The process
-  is kept — one bad line does not prove the stream is broken, and the id is what
-  makes keeping it safe.
-* **A forgotten client does not leave its transport running.** A `Popen` that is
-  merely garbage collected is not killed; this one is.
+The client remains usable after a request timeout or transport failure. The next
+request starts a fresh daemon while monotonically increasing request ids prevent
+a late response from being attached to the wrong call.
 
-Pass `on_stderr` to see the transport's own diagnostics, including dropped
-answers.
+## Identity, threads and close
 
-## Where the binary comes from
+One `Client` is one browser identity:
 
-In order: the `binary=` argument, `TLSFORGE_BIN`, the binary inside this package,
-a `make build` output in a checkout this package is sitting inside, then `PATH`.
-An explicit path that does not exist is an error rather than a reason to look
-elsewhere — falling through would run a different binary than the one asked for.
+- one transport process;
+- one TLS and HTTP profile;
+- one cookie jar;
+- one proxy and exit IP.
 
-## Requirements
+The client is thread-safe but serialises requests with a lock. Calls from
+multiple threads queue instead of overlapping. Use a pool of clients for
+parallel scraping, normally one per proxy:
 
-Python 3.9+. Nothing else: no dependencies, and the transport ships with the
-wheel.
+```python
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
+from itertools import cycle
 
-## Development
+import tlsforge
+
+with ExitStack() as stack:
+    clients = [
+        stack.enter_context(tlsforge.Client(proxy=proxy))
+        for proxy in proxies
+    ]
+    turns = cycle(clients)
+    with ThreadPoolExecutor(max_workers=len(clients)) as pool:
+        pages = list(pool.map(lambda url: next(turns).get(url), urls))
+```
+
+`close()` is idempotent and final. It waits for the current request, stops and
+reaps the daemon, and prevents later requests from silently creating a new
+identity. A finalizer also cleans up a forgotten client, but deterministic
+`with` or `close()` usage is preferred.
+
+## Warmed cookie sessions
+
+`cookie_file` accepts the same formats as the CLI:
+
+- a project JSON file containing multiple named sets;
+- a bare JSON array of sets;
+- a flat browser-extension cookie export;
+- Netscape cookies.txt.
+
+```python
+with tlsforge.Client(
+    cookie_file="cookies.json",
+    cookie_set="warm-eu",
+) as client:
+    response = client.get("https://example.com/")
+```
+
+Expired cookies are removed by the daemon before a set is seeded. Cookie
+domain, path, secure, HttpOnly and expiry attributes are retained by the Go
+cookie jar.
+
+The Python SDK currently loads but does not write session files. Use the CLI
+`fetch --save-cookies` or `batch --save-cookies` when the final jar must be
+persisted.
+
+## Binary resolution
+
+The exported `tlsforge.resolve_binary(explicit=None)` function and `Client` use
+this order:
+
+1. constructor `binary` option;
+2. `TLSFORGE_BIN` environment variable;
+3. binary bundled in the platform wheel;
+4. `bin/tls-forge` from a surrounding source checkout;
+5. `tls-forge` on `PATH`.
+
+```python
+import tlsforge
+
+print(tlsforge.resolve_binary())
+print(tlsforge.bundled_binary())
+print(tlsforge.exe_name())
+```
+
+An explicit path that does not exist raises `BinaryNotFound` rather than
+silently selecting a different version.
+
+## Development and typing
+
+The package includes `py.typed`, so its annotations are available to static
+type checkers.
+
+From the repository root:
 
 ```bash
 make python-test
 ```
 
-Runs the suite against a stand-in transport — no Go build, no network — and
-fails below **100% line and branch coverage**, the way the Go and Node suites do.
+The suite uses a stand-in daemon and requires 100% statement and branch
+coverage. It does not need a Go build or network access.
+
+The project is licensed under Apache-2.0; see
+[`LICENSE`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/LICENSE),
+[`NOTICE`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/NOTICE) and
+[`THIRD-PARTY-NOTICES.txt`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/THIRD-PARTY-NOTICES.txt).

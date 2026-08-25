@@ -1,130 +1,259 @@
-# tls-forge (Node)
+# tls-forge for Node.js
 
-**A scraping HTTP client that gets past TLS fingerprinting.** It sends the
-handshake a real Chrome sends, so pages behind Cloudflare and the other
-bot-detection front doors return their content instead of a challenge.
+`tls-forge` is an ESM HTTP client whose network fingerprint comes from a
+measured browser profile. It controls the TLS ClientHello, HTTP/2 settings and
+header order that Node's OpenSSL-based TLS stack cannot reproduce by changing a
+`User-Agent`.
 
-Node cannot do this on its own. Its TLS comes from OpenSSL, which offers no
-control over extension order, GREASE values or the extension set, and those are
-precisely what JA3 and JA4 hash. Chrome uses BoringSSL, and a scraper whose
-`User-Agent` says Chrome while its handshake says Node is spotted in the first
-packet, before a byte of HTTP is read. So the socket moves out of Node into a
-small Go process, and Node keeps the orchestration, which is the part it is good
-at.
+The Node package handles application orchestration and communicates with one
+long-lived `tls-forge daemon` process. The project overview, CLI and explanation
+of TLS fingerprinting are in the
+[main README](https://github.com/Sec-CH-Lemon/tls-forge#readme).
 
-It runs no JavaScript, so managed challenges and CAPTCHAs are a different
-problem. What it removes is the check that fires before the page is ever served.
+It does not execute page JavaScript and does not solve CAPTCHAs or managed
+challenges. It addresses rejection caused specifically by TLS and HTTP
+fingerprint mismatch.
 
-See the [project README](../README.md) for what is being impersonated and, more
-to the point, how the disguise is verified against the browser on your machine.
+## Requirements and installation
 
-## Install
+- Node.js 20.12 or newer;
+- a supported prebuilt transport or Go 1.25.13+ for a local build.
 
 ```bash
 npm install tls-forge
 ```
 
-No Go, no build step, no download during install. The binary arrives as an
-optional dependency: one package per platform, each declaring `os` and `cpu`,
-so npm installs the one that matches and skips the other four. It is the
-arrangement esbuild and swc use, and it survives `npm ci --ignore-scripts`,
-which a postinstall step does not.
+The package ships platform-specific binaries through optional npm dependencies.
+No postinstall script or network download is used. Prebuilt transports are
+published for:
 
-Prebuilt for darwin-arm64, darwin-x64, linux-arm64, linux-x64 and win32-x64. On
-anything else, or to run a build of your own:
+- macOS arm64 and x86-64;
+- Linux arm64 and x86-64;
+- Windows x86-64.
+
+Do not install with `--no-optional` unless a transport is supplied separately.
+For a custom build:
 
 ```bash
-export TLSFORGE_BIN=/path/to/tls-forge
+export TLSFORGE_BIN=/absolute/path/to/tls-forge
 ```
 
-which takes precedence over the shipped binary.
-
-## Use
+## Basic use
 
 ```js
 import { Client } from 'tls-forge';
 
 const client = new Client({ profile: 'chrome' });
 
-const res = await client.get('https://tls.browserleaks.com/json');
-console.log(res.status, res.body.length);
-
-client.close();
+try {
+  const response = await client.get('https://tls.browserleaks.com/json');
+  console.log(response.status);
+  console.log(JSON.parse(response.body));
+} finally {
+  client.close();
+}
 ```
 
-`res` is `{ status, url, body, headers, cookies }`. `url` is the final URL after
-redirects; each header maps to an array of values, so repeated `set-cookie`
-fields stay separate.
+Constructing a client resolves the transport path but starts the process lazily
+on the first request.
 
-### Options
+## Constructor options
 
 ```js
-new Client({
-  profile: 'chrome',                  // profile to impersonate
-  proxy: 'http://user:pass@host:8080',
-  timeout: 45_000,                    // per-request deadline, ms
-  binary: '/path/to/tls-forge',        // overrides TLSFORGE_BIN
-  insecure: false,                    // skip certificate verification
-  onStderr: (line) => log.debug(line),
+const client = new Client({
+  profile: 'chrome_151',
+  proxy: 'http://user:pass@proxy.example:8080',
+  timeout: 45_000,
+  binary: '/absolute/path/to/tls-forge',
+  insecure: false,
+  onStderr: (line) => console.debug(line),
 });
 ```
 
-### Per-request
+| Option | Type and default | Meaning |
+|---|---|---|
+| `profile` | `string`, CLI default | Profile name or JSON profile path passed to `tls-forge daemon --profile`. |
+| `proxy` | `string`, direct | HTTP, HTTPS or SOCKS proxy URL, optionally with credentials. |
+| `timeout` | `number`, `45000` | Per-request deadline in milliseconds. It must be positive and finite. The Go transport receives an additional 15-second grace period so both timeout layers do not race. |
+| `binary` | `string`, auto | Explicit path to the `tls-forge` executable. A missing explicit path is an error and does not fall through to another version. |
+| `insecure` | `boolean`, `false` | Skip upstream certificate verification. Use only for controlled endpoints. |
+| `onStderr` | `(line: string) => void`, no-op | Receive transport diagnostics. Exceptions thrown by the callback are ignored so diagnostics cannot crash request handling. |
+
+`new Client()` uses the daemon's default profile, which is a locally installed
+`local` profile when available and otherwise the latest bundled `chrome`
+profile.
+
+## Request methods
+
+### `get(url, options?)`
 
 ```js
-await client.get('https://example.com/page', {
-  headers: { referer: 'https://example.com/' },
-  order: ['referer'],            // header order; defaults to the profile's
-  cookies: ['session=abc'],      // added to the jar, not to a Cookie header
-});
-
-await client.post('https://example.com/api', JSON.stringify({ a: 1 }), {
-  headers: { 'content-type': 'application/json' },
+const response = await client.get('https://example.com/page', {
+  headers: {
+    referer: 'https://example.com/',
+    'accept-language': 'en-GB,en;q=0.9',
+  },
+  order: ['referer', 'accept-language'],
+  cookies: ['session=abc'],
 });
 ```
 
-Cookies go through the jar rather than through a `Cookie` header on purpose:
-setting the header by hand *replaces* whatever the jar holds, so cookies the
-server set earlier in the session would silently vanish from the next request,
-which no real browser would do.
-
-## One client is one identity
-
-A `Client` is one long-lived process: one TLS fingerprint, one cookie jar, one
-exit IP for its whole life. Reconnecting per request is itself a signal, and no
-browser does it.
-
-`close()` is final. A client that has been closed will not respawn, and a later
-request rejects rather than quietly minting a new process with a new fingerprint
-and an empty jar. Rotating identity means constructing another client.
-
-For concurrency, run a pool of clients. Each one is a separate session, which is
-usually exactly the granularity you want.
+### `post(url, body, options?)`
 
 ```js
-const pool = urls.map(() => new Client({ profile: 'chrome', proxy: nextProxy() }));
+const response = await client.post(
+  'https://example.com/api',
+  JSON.stringify({ hello: 'world' }),
+  {
+    headers: { 'content-type': 'application/json' },
+    order: ['content-type'],
+  },
+);
 ```
 
-## Failure modes worth knowing
+### `request(request)`
 
-The interesting code in this package is about what happens when the transport
-misbehaves, because the failures are quiet:
+```js
+const response = await client.request({
+  url: 'https://example.com/resource',
+  method: 'DELETE',
+  headers: { authorization: 'Bearer token' },
+  order: ['authorization'],
+  body: '',
+  cookies: ['session=abc'],
+});
+```
 
-* **A request that misses its deadline** rejects, and the process is restarted.
-  The old process may still be writing an answer, so its stdout is dropped as
-  well. Killing a process does not stop the bytes it already wrote from
-  arriving.
-* **Every request carries an id** and every answer is checked against it. An
-  answer whose id does not match the request in flight is dropped. Without that,
-  a late answer from a process you killed can be handed to whoever asked next:
-  one page filed under another page's request, well-formed and wrong.
-* **A line that is not a JSON object** fails the request in flight. A stream
-  that has started producing garbage is desynchronised, and waiting for it to
-  right itself is how a client goes quiet forever.
+| Request option | Type and default | Meaning |
+|---|---|---|
+| `url` | `string`, required | Absolute HTTP or HTTPS URL. |
+| `method` | `string`, `GET` in `request()` | HTTP method. `get()` and `post()` set it automatically. |
+| `headers` | `Record<string, string>`, `{}` | Headers layered over the profile. Existing profile names retain their browser position. |
+| `order` | `string[]`, profile order | Order for headers supplied by the caller. Unnamed caller headers follow in sorted order. To control the complete sequence, provide every header in both `headers` and `order`. |
+| `body` | `string`, empty | Request body passed through the JSON Lines transport. |
+| `cookies` | `string[]`, `[]` | `name=value` pairs added to the cookie jar before the request. |
 
-Pass `onStderr` to see the transport's own diagnostics, including dropped
-answers.
+Do not manually set the `cookie` header unless replacing the jar's entire
+output is intentional. `cookies` adds values to the jar and preserves cookies
+received earlier in the session.
 
-## Requirements
+## Response
 
-Node 20.12+. Go 1.25.13+ to build the transport, or a prebuilt binary.
+Every successful request resolves to:
+
+```js
+{
+  status: 200,
+  url: 'https://example.com/final',
+  body: '<html>...</html>',
+  headers: {
+    'content-type': ['text/html; charset=utf-8'],
+    'set-cookie': ['a=1', 'b=2'],
+  },
+  cookies: ['a=1', 'b=2'],
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `status` | HTTP status code. Non-2xx responses still resolve normally. |
+| `url` | Final URL after redirects. |
+| `body` | Decompressed response body as a string. |
+| `headers` | Lower-cased names mapped to arrays of field values. Repeated `set-cookie` fields remain separate. |
+| `cookies` | `name=value` pairs the daemon's jar holds for the final URL. |
+
+The SDK also accepts the old daemon protocol where a header value was a scalar
+string, but always normalises the public result to `string[]`.
+
+## Identity, queueing and close
+
+One `Client` is one browser identity:
+
+- one transport process;
+- one TLS and HTTP profile;
+- one cookie jar;
+- one proxy and exit IP.
+
+Requests on one client are processed sequentially. Concurrent calls are queued
+in call order. Use a pool of clients for parallel scraping, normally one client
+per proxy:
+
+```js
+const clients = proxies.map((proxy) => new Client({ proxy }));
+try {
+  const pages = await Promise.all(
+    urls.map((url, index) => clients[index % clients.length].get(url)),
+  );
+} finally {
+  for (const client of clients) client.close();
+}
+```
+
+`close()` is final. It terminates the process, closes all pipe handles and
+rejects queued or in-flight requests. Later calls reject instead of silently
+creating a new identity.
+
+## Failures and recovery
+
+The SDK rejects promises with `Error` instances. The message identifies the
+failure category:
+
+- `tlsforge: request timed out` — the Node deadline passed;
+- `tlsforge: transport failed to start ...` — executable or spawn failure;
+- `tlsforge: transport exited ...` — the daemon died;
+- `tlsforge: write failed ...` — the daemon pipe closed during a write;
+- `tlsforge: bad response ...` — malformed or unexpected transport output;
+- a request error returned by the Go transport — DNS, proxy, TLS or connection
+  failure.
+
+A timeout or broken write restarts the transport before the next request. Each
+request and response carries a monotonically increasing id, so a late answer
+cannot resolve a newer request.
+
+`onStderr` receives diagnostics such as dropped late responses. It is not a
+replacement for handling rejected request promises.
+
+## Binary resolution
+
+The exported `resolveBinary(explicit?)` function and `Client` use this order:
+
+1. constructor `binary` option;
+2. `TLSFORGE_BIN` environment variable;
+3. platform-specific optional npm package;
+4. `node/vendor/tls-forge` from `npm run build`;
+5. `tls-forge` on `PATH`.
+
+```js
+import { resolveBinary } from 'tls-forge';
+
+console.log(resolveBinary());
+```
+
+An explicit path that does not exist is rejected instead of silently choosing a
+different binary.
+
+## Development
+
+From the repository root:
+
+```bash
+make node-test
+```
+
+Or inside `node/`:
+
+```bash
+npm test
+```
+
+The suite uses a stand-in daemon and requires 100% line, function and branch
+coverage. To build a local transport into `node/vendor/`:
+
+```bash
+npm run build
+```
+
+The project is licensed under Apache-2.0; see
+[`LICENSE`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/LICENSE),
+[`NOTICE`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/NOTICE) and
+[`THIRD-PARTY-NOTICES.txt`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/THIRD-PARTY-NOTICES.txt).
