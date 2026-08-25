@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -99,10 +100,14 @@ func TestCAWriteFailures(t *testing.T) {
 		filepath.Join(readOnly, "sub", "ca.key")); err == nil {
 		t.Error("expected an error when the directory cannot be created")
 	}
-	// The certificate cannot be written.
-	if _, err := LoadOrCreateCA(filepath.Join(readOnly, "ca.pem"),
-		filepath.Join(readOnly, "ca.key")); err == nil {
+	// The key can be written but the certificate cannot. The key is removed so
+	// a later start sees two absent files rather than a broken pair.
+	keyFile := filepath.Join(t.TempDir(), "ca.key")
+	if _, err := LoadOrCreateCA(filepath.Join(readOnly, "ca.pem"), keyFile); err == nil {
 		t.Error("expected an error when the certificate cannot be written")
+	}
+	if _, err := os.Stat(keyFile); !os.IsNotExist(err) {
+		t.Error("a key was left behind after the certificate write failed")
 	}
 	// The certificate can be written but the key cannot, which must not leave a
 	// usable-looking authority behind.
@@ -183,6 +188,15 @@ func TestTheCallerHangsUpWhileTheAnswerIsWritten(t *testing.T) {
 	}
 	if failures == 0 {
 		t.Fatal("no budget interrupted the answer")
+	}
+}
+
+func TestOversizedRequestReportsAResponseWriteFailure(t *testing.T) {
+	server, _ := newTestServer(t, stubClient{status: 200})
+	server.opts.MaxRequestBody = 4
+	req := httptest.NewRequest(http.MethodPost, "http://example.com/", strings.NewReader("12345"))
+	if err := server.forward(failingWriter{}, req, "http"); err == nil {
+		t.Error("expected the failed 413 response write to be reported")
 	}
 }
 

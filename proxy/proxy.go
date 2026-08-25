@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"sort"
@@ -45,11 +46,21 @@ type Options struct {
 	// Client performs the outbound requests. Required.
 	Client Client
 
+	// MaxRequestBody bounds the body buffered before it is re-issued. Zero uses
+	// DefaultMaxRequestBody.
+	MaxRequestBody int64
+
 	// OnError receives per-connection failures. A proxy that printed them to
 	// stdout would corrupt nothing, but a caller that wants them quiet should
 	// not have to redirect a stream.
 	OnError func(error)
 }
+
+// DefaultMaxRequestBody is large enough for ordinary browser traffic while
+// preventing an exposed proxy from buffering an unbounded upload in memory.
+const DefaultMaxRequestBody int64 = 16 << 20
+
+var errRequestTooLarge = errors.New("proxy: request body is too large")
 
 // Server is a running proxy.
 type Server struct {
@@ -70,6 +81,12 @@ func Start(opts Options) (*Server, error) {
 	}
 	if opts.Client == nil {
 		return nil, errors.New("proxy: no client")
+	}
+	if opts.MaxRequestBody < 0 || opts.MaxRequestBody == math.MaxInt64 {
+		return nil, errors.New("proxy: maximum request body must be non-negative and bounded")
+	}
+	if opts.MaxRequestBody == 0 {
+		opts.MaxRequestBody = DefaultMaxRequestBody
 	}
 	if opts.Addr == "" {
 		opts.Addr = "127.0.0.1:0"
@@ -147,7 +164,7 @@ func (s *Server) handle(conn net.Conn) {
 			return
 		}
 		if err := s.forward(conn, req, "http"); err != nil {
-			if !isClosed(err) {
+			if !isClosed(err) && !errors.Is(err, errRequestTooLarge) {
 				s.opts.OnError(err)
 			}
 			return
@@ -194,7 +211,7 @@ func (s *Server) serveConnect(conn net.Conn, req *http.Request) {
 		}
 		req.Host = firstNonEmpty(req.Host, host)
 		if err := s.forward(tlsConn, req, "https"); err != nil {
-			if !isClosed(err) {
+			if !isClosed(err) && !errors.Is(err, errRequestTooLarge) {
 				s.opts.OnError(err)
 			}
 			return
@@ -206,9 +223,23 @@ func (s *Server) serveConnect(conn net.Conn, req *http.Request) {
 // answer back.
 func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 	defer func() { _ = req.Body.Close() }()
-	body, err := io.ReadAll(req.Body)
+	limit := s.opts.MaxRequestBody
+	if limit == 0 {
+		limit = DefaultMaxRequestBody
+	}
+	body, err := io.ReadAll(io.LimitReader(req.Body, limit+1))
 	if err != nil {
 		return fmt.Errorf("proxy: reading the request body: %w", err)
+	}
+	if int64(len(body)) > limit {
+		if err := writeResponse(w, http.StatusRequestEntityTooLarge,
+			map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
+			[]byte(fmt.Sprintf("request body exceeds %d bytes\n", limit))); err != nil {
+			return err
+		}
+		// Close after the complete 413. The unread remainder belongs to this
+		// request and must not be parsed as the next keep-alive request.
+		return errRequestTooLarge
 	}
 
 	target := *req.URL

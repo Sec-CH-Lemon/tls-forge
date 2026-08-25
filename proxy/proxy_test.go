@@ -1,11 +1,16 @@
 package proxy
 
 import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -288,6 +293,39 @@ func TestARequestBodyIsForwarded(t *testing.T) {
 	}
 }
 
+func TestRequestBodyLimit(t *testing.T) {
+	called := false
+	destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer destination.Close()
+
+	client, err := tlsforge.New(tlsforge.WithoutCookieJar())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	ca := newCAForTest(t)
+	server, err := Start(Options{CA: ca, Client: client, MaxRequestBody: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+
+	res, err := throughProxy(t, server, ca).Post(destination.URL, "text/plain", strings.NewReader("12345"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want 413", res.StatusCode)
+	}
+	if called {
+		t.Error("an oversized body reached the destination")
+	}
+}
+
 // failingClient stands in for a destination that cannot be reached.
 type failingClient struct{ err error }
 
@@ -350,6 +388,11 @@ func TestStartRejectsAnIncompleteConfiguration(t *testing.T) {
 		CA: newCAForTest(t), Client: failingClient{}, Addr: "256.256.256.256:0",
 	}); err == nil {
 		t.Error("expected an error for an unusable address")
+	}
+	if _, err := Start(Options{
+		CA: newCAForTest(t), Client: failingClient{}, MaxRequestBody: -1,
+	}); err == nil {
+		t.Error("expected an error for a negative request body limit")
 	}
 }
 
@@ -496,6 +539,9 @@ func TestCAIsReusedBetweenRuns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first: %v", err)
 	}
+	if err := os.Chmod(keyFile, 0o644); err != nil {
+		t.Fatal(err)
+	}
 	second, err := LoadOrCreateCA(certFile, keyFile)
 	if err != nil {
 		t.Fatalf("second: %v", err)
@@ -514,6 +560,123 @@ func TestCAIsReusedBetweenRuns(t *testing.T) {
 	// a Unix idea, and the key is still written with it where it means something.
 	if mode := info.Mode().Perm(); mode != 0o600 && runtime.GOOS != "windows" {
 		t.Errorf("key file mode = %o, want 600", mode)
+	}
+}
+
+func TestAnIncompleteAuthorityIsNotSilentlyReplaced(t *testing.T) {
+	for _, missing := range []string{"certificate", "key"} {
+		t.Run(missing, func(t *testing.T) {
+			dir := t.TempDir()
+			certFile, keyFile := filepath.Join(dir, "ca.pem"), filepath.Join(dir, "ca.key")
+			certPEM, keyPEM, err := newCAMaterial()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if missing == "certificate" {
+				if err := os.WriteFile(keyFile, keyPEM, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			} else if err := os.WriteFile(certFile, certPEM, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := LoadOrCreateCA(certFile, keyFile); err == nil || !strings.Contains(err.Error(), "incomplete authority") {
+				t.Fatalf("error = %v", err)
+			}
+		})
+	}
+}
+
+func TestCertPEMReturnsACopy(t *testing.T) {
+	ca := newCAForTest(t)
+	first := ca.CertPEM()
+	first[0] ^= 0xff
+	if string(first) == string(ca.CertPEM()) {
+		t.Error("CertPEM exposed the CA's mutable backing bytes")
+	}
+}
+
+func certificatePEM(t *testing.T, public crypto.PublicKey, signer crypto.Signer,
+	parent *x509.Certificate, mutate func(*x509.Certificate),
+) []byte {
+	t.Helper()
+	template := &x509.Certificate{
+		SerialNumber:          big.NewInt(42),
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	if mutate != nil {
+		mutate(template)
+	}
+	if parent == nil {
+		parent = template
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, parent, public, signer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+}
+
+func TestParseCARejectsInvalidAuthorities(t *testing.T) {
+	good := newCAForTest(t)
+	other := newCAForTest(t)
+	goodKey, err := encodeECKey(good.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherKey, err := encodeECKey(other.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nonECDSA := certificatePEM(t, &rsaKey.PublicKey, rsaKey, nil, nil)
+	notCA := certificatePEM(t, &good.key.PublicKey, good.key, nil, func(cert *x509.Certificate) {
+		cert.IsCA = false
+	})
+	expired := certificatePEM(t, &good.key.PublicKey, good.key, nil, func(cert *x509.Certificate) {
+		cert.NotBefore = time.Now().Add(-2 * time.Hour)
+		cert.NotAfter = time.Now().Add(-time.Hour)
+	})
+	notSelfSigned := certificatePEM(t, &good.key.PublicKey, other.key, other.cert, nil)
+
+	tests := []struct {
+		name, contains string
+		cert, key      []byte
+	}{
+		{"missing key PEM", "not PEM", good.pem, []byte("not PEM")},
+		{"non-ECDSA certificate", "does not contain an ECDSA", nonECDSA, goodKey},
+		{"mismatched pair", "do not match", good.pem, otherKey},
+		{"not a CA", "not permitted", notCA, goodKey},
+		{"expired", "not currently valid", expired, goodKey},
+		{"not self-signed", "not self-signed", notSelfSigned, goodKey},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := parseCA(test.cert, test.key); err == nil || !strings.Contains(err.Error(), test.contains) {
+				t.Fatalf("error = %v, want %q", err, test.contains)
+			}
+		})
+	}
+}
+
+func TestLoadingCAReportsAKeyPermissionFailure(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := filepath.Join(dir, "ca.pem"), filepath.Join(dir, "ca.key")
+	if _, err := LoadOrCreateCA(certFile, keyFile); err != nil {
+		t.Fatal(err)
+	}
+	original := chmod
+	chmod = func(string, os.FileMode) error { return errors.New("chmod failed") }
+	t.Cleanup(func() { chmod = original })
+	if _, err := LoadOrCreateCA(certFile, keyFile); err == nil || !strings.Contains(err.Error(), "securing") {
+		t.Fatalf("error = %v", err)
 	}
 }
 

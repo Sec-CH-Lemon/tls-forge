@@ -18,6 +18,8 @@ func runProxy(ctx context.Context, args []string, out, errOut *printer) error {
 		"certificate authority to sign with (default: alongside the config)")
 	keyFile := fs.String("ca-key", "", "the authority's key")
 	quiet := fs.BoolP("quiet", "q", false, "do not report per-connection failures")
+	maxRequestBody := fs.Int64("max-request-body", proxy.DefaultMaxRequestBody,
+		"largest request body to buffer, in bytes")
 	if err := parse(fs, args); err != nil {
 		return err
 	}
@@ -56,7 +58,7 @@ func runProxy(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 
 	server, err := proxy.Start(proxy.Options{
-		Addr: *addr, CA: ca, Client: client, OnError: onError,
+		Addr: *addr, CA: ca, Client: client, OnError: onError, MaxRequestBody: *maxRequestBody,
 	})
 	if err != nil {
 		return err

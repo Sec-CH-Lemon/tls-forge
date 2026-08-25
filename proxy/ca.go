@@ -16,6 +16,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
 )
 
 // The certificate authority the proxy signs with.
@@ -45,24 +47,37 @@ type CA struct {
 // authority that failed to generate is the difference between a proxy that
 // starts and one that does not.
 var randReader io.Reader = rand.Reader
+var chmod = os.Chmod
 
 // How long a generated authority lasts. Long enough not to be a chore, short
 // enough that a key left behind on a laptop stops working.
 const caLifetime = 365 * 24 * time.Hour
 
 // LoadOrCreateCA reads the authority from certFile and keyFile, generating a new
-// one if either is missing.
+// one only when both are missing. An incomplete pair is an error: silently
+// replacing the surviving half would invalidate a certificate somebody may
+// already trust.
 func LoadOrCreateCA(certFile, keyFile string) (*CA, error) {
 	certPEM, certErr := os.ReadFile(certFile)
 	keyPEM, keyErr := os.ReadFile(keyFile)
 	if certErr == nil && keyErr == nil {
-		return parseCA(certPEM, keyPEM)
+		ca, err := parseCA(certPEM, keyPEM)
+		if err != nil {
+			return nil, err
+		}
+		if err := chmod(keyFile, 0o600); err != nil {
+			return nil, fmt.Errorf("proxy: securing %s: %w", keyFile, err)
+		}
+		return ca, nil
 	}
 	if certErr != nil && !os.IsNotExist(certErr) {
 		return nil, fmt.Errorf("proxy: reading %s: %w", certFile, certErr)
 	}
 	if keyErr != nil && !os.IsNotExist(keyErr) {
 		return nil, fmt.Errorf("proxy: reading %s: %w", keyFile, keyErr)
+	}
+	if os.IsNotExist(certErr) != os.IsNotExist(keyErr) {
+		return nil, fmt.Errorf("proxy: incomplete authority: certificate and key must either both exist or both be absent")
 	}
 
 	certPEM, keyPEM, err := newCAMaterial()
@@ -76,13 +91,14 @@ func LoadOrCreateCA(certFile, keyFile string) (*CA, error) {
 			}
 		}
 	}
-	if err := os.WriteFile(certFile, certPEM, 0o644); err != nil {
-		return nil, fmt.Errorf("proxy: writing %s: %w", certFile, err)
-	}
 	// The key is the whole authority. Anyone who reads it can impersonate every
 	// site to anyone who trusts this CA.
-	if err := os.WriteFile(keyFile, keyPEM, 0o600); err != nil {
+	if err := atomicfile.Write(keyFile, keyPEM, 0o600); err != nil {
 		return nil, fmt.Errorf("proxy: writing %s: %w", keyFile, err)
+	}
+	if err := atomicfile.Write(certFile, certPEM, 0o644); err != nil {
+		_ = os.Remove(keyFile)
+		return nil, fmt.Errorf("proxy: writing %s: %w", certFile, err)
 	}
 	// Parsed back from the PEM rather than kept from the generator, so that
 	// there is exactly one path that turns bytes into a CA. The alternative
@@ -150,11 +166,28 @@ func parseCA(certPEM, keyPEM []byte) (*CA, error) {
 	if err != nil {
 		return nil, fmt.Errorf("proxy: parsing the authority key: %w", err)
 	}
-	return &CA{cert: cert, key: key, pem: certPEM, leaves: map[string]*tls.Certificate{}}, nil
+	public, ok := cert.PublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("proxy: the authority certificate does not contain an ECDSA key")
+	}
+	if !public.Equal(&key.PublicKey) {
+		return nil, fmt.Errorf("proxy: the authority certificate and key do not match")
+	}
+	if !cert.IsCA || !cert.BasicConstraintsValid || cert.KeyUsage&x509.KeyUsageCertSign == 0 {
+		return nil, fmt.Errorf("proxy: the authority certificate is not permitted to sign certificates")
+	}
+	current := time.Now()
+	if current.Before(cert.NotBefore) || !current.Before(cert.NotAfter) {
+		return nil, fmt.Errorf("proxy: the authority certificate is not currently valid")
+	}
+	if err := cert.CheckSignatureFrom(cert); err != nil {
+		return nil, fmt.Errorf("proxy: the authority certificate is not self-signed: %w", err)
+	}
+	return &CA{cert: cert, key: key, pem: append([]byte(nil), certPEM...), leaves: map[string]*tls.Certificate{}}, nil
 }
 
 // CertPEM is the authority certificate, which is what a client has to trust.
-func (c *CA) CertPEM() []byte { return c.pem }
+func (c *CA) CertPEM() []byte { return append([]byte(nil), c.pem...) }
 
 // leafFor returns a certificate for a host, minting one the first time.
 //
