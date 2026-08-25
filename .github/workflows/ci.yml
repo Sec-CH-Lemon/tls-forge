@@ -132,7 +132,7 @@ jobs:
       - run: npm test
         if: matrix.coverage
         working-directory: node
-      - run: node --test 'test/*.test.js'
+      - run: node --test test/*.test.js
         if: ${{ !matrix.coverage }}
         working-directory: node
 
