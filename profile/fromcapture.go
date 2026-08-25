@@ -39,6 +39,9 @@ var perRequest = map[string]bool{
 // asserted: nothing in the resulting profile was written by hand, so nothing in
 // it can be a plausible guess about what a browser sends.
 func FromCapture(name string, c *capture.Capture) (*Profile, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, fmt.Errorf("profile: name is required")
+	}
 	if c == nil {
 		return nil, fmt.Errorf("profile: nil capture")
 	}
@@ -55,7 +58,7 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 	p := &Profile{
 		Name:        name,
 		UserAgent:   c.UserAgent(),
-		ClientHello: c.RawClientHello,
+		ClientHello: append([]byte(nil), c.RawClientHello...),
 	}
 
 	if c.TLS.Resumed {

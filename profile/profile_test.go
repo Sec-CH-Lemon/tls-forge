@@ -303,6 +303,10 @@ func TestFromCapture(t *testing.T) {
 	if built.UserAgent != "Mozilla/5.0 Chrome/151" {
 		t.Errorf("user agent = %q", built.UserAgent)
 	}
+	measured.RawClientHello[0] ^= 0xff
+	if built.ClientHello[0] == measured.RawClientHello[0] {
+		t.Error("profile aliases the capture's ClientHello bytes")
+	}
 }
 
 func TestFromCaptureWithoutHTTP2(t *testing.T) {
@@ -316,6 +320,9 @@ func TestFromCaptureWithoutHTTP2(t *testing.T) {
 }
 
 func TestFromCaptureErrors(t *testing.T) {
+	if _, err := FromCapture("", &capture.Capture{}); err == nil {
+		t.Error("an empty profile name should be rejected")
+	}
 	for _, tc := range []struct {
 		name string
 		in   *capture.Capture
