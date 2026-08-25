@@ -80,8 +80,12 @@ func Find(name string) (*Browser, error) { return defaultFinder.find(name) }
 
 func (f finder) find(name string) (*Browser, error) {
 	if strings.ContainsAny(name, `/\`) {
-		if _, err := os.Stat(name); err != nil {
+		info, err := os.Stat(name)
+		if err != nil {
 			return nil, fmt.Errorf("browser: %s: %w", name, err)
+		}
+		if info.IsDir() {
+			return nil, fmt.Errorf("browser: %s is a directory, not an executable", name)
 		}
 		return &Browser{Name: "custom", Path: name}, nil
 	}

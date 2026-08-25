@@ -46,6 +46,12 @@ func TestFindAnExplicitPathThatIsNotThere(t *testing.T) {
 	}
 }
 
+func TestFindRejectsAnExplicitDirectory(t *testing.T) {
+	if _, err := Find(t.TempDir()); err == nil {
+		t.Error("expected a directory to be rejected")
+	}
+}
+
 func TestFindAnUnknownName(t *testing.T) {
 	_, err := Find("netscape")
 	if err == nil {
