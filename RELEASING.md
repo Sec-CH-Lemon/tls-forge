@@ -166,6 +166,9 @@ A pre-release tag stays off every stable channel: npm publishes it under
 `next` without moving `latest`, PyPI reads `0.0.1rc1` as a pre-release that a
 plain `pip install tls-forge` will not select, GitHub marks the release as a
 pre-release, Docker leaves `latest` where it is, and Homebrew is not updated.
+Use `alpha`, `beta`, `rc` or `dev`, optionally followed by a number (with or
+without a dot); arbitrary SemVer suffixes are rejected because npm and PyPI do
+not always classify them as the same kind of release.
 
 Then check what came out:
 

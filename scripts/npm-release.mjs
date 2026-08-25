@@ -36,10 +36,10 @@ const TARGETS = [
 // and of everything statically linked into it.
 const LEGAL = ['LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.txt'];
 
-// Keep the tag acceptable to both npm's SemVer parser and Python's PEP 440
-// normalizer. Build metadata is deliberately excluded: PyPI normalizes it
-// differently, so the two registries would no longer expose the same version.
-const RELEASE_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/;
+// Keep npm and PyPI on the same release channel. Generic SemVer pre-release
+// identifiers are not safe here: Python interprets `1.2.3-1` as the stable
+// post-release `1.2.3.post1`. Build metadata is excluded for the same reason.
+const RELEASE_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:a|alpha|b|beta|c|rc|pre|preview|dev)(?:\.?(?:0|[1-9]\d*))?)?$/;
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);

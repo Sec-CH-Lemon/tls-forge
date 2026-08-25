@@ -35,7 +35,9 @@ jobs:
         shell: bash
         run: |
           version=${GITHUB_REF_NAME#v}
-          release_version='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?$'
+          # Restrict pre-releases to spellings that npm and PyPI classify the
+          # same way. In particular, SemVer's "-1" becomes a PyPI post-release.
+          release_version='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(a|alpha|b|beta|c|rc|pre|preview|dev)([.]?(0|[1-9][0-9]*))?)?$'
           if [[ ! "$version" =~ $release_version ]]; then
             echo "tag $GITHUB_REF_NAME is not a registry-compatible SemVer release tag" >&2
             exit 1

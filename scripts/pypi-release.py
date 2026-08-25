@@ -54,13 +54,12 @@ TARGETS = [
 # of everything statically linked into it.
 LEGAL = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.txt"]
 
-# The same subset accepted by scripts/npm-release.mjs. Build metadata is
-# excluded because PyPI normalizes it differently from npm, and release tags
-# must map to the same version in both registries.
+# The same subset accepted by scripts/npm-release.mjs. Generic SemVer
+# pre-release identifiers are unsafe here: Python interprets ``1.2.3-1`` as the
+# stable post-release ``1.2.3.post1``. Build metadata is excluded as well.
 SEMVER = re.compile(
     r"^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
-    r"(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)"
-    r"(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$"
+    r"(?:-(?:a|alpha|b|beta|c|rc|pre|preview|dev)(?:\.?(?:0|[1-9]\d*))?)?$"
 )
 VERSION_LINE = re.compile(r'^__version__ = ".*"$', re.MULTILINE)
 
