@@ -194,9 +194,36 @@ jobs:
             NOTICE
             THIRD-PARTY-NOTICES.txt
 
-  publish-npm:
+  package-smoke:
     timeout-minutes: 15
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-artifacts
+      # Install and execute the exact tarballs and wheels that are about to be
+      # published on every supported OS. A tag does not trigger ci.yml's
+      # branch-filtered jobs, so the release must carry this gate itself.
+      - run: node scripts/check-release-packages.mjs --version "${{ needs.build.outputs.version }}" --dist dist --python python
+
+  publish-npm:
+    timeout-minutes: 15
+    needs: [build, package-smoke]
     runs-on: ubuntu-latest
     environment:
       name: release
@@ -236,7 +263,7 @@ jobs:
 
   publish-pypi:
     timeout-minutes: 15
-    needs: build
+    needs: [build, package-smoke]
     runs-on: ubuntu-latest
     environment:
       name: release
