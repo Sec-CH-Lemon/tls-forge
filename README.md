@@ -31,7 +31,7 @@ A Chromium-based browser (Chrome, Chromium, Edge, Brave) is needed only by
 
 ### From source
 
-Go 1.24 or newer, and nothing else. There is no cgo anywhere in the project, no
+Go 1.25.13 or newer, and nothing else. There is no cgo anywhere in the project, no
 code generation step, and no build tags to remember.
 
 ```bash
@@ -1236,6 +1236,7 @@ Every option is a `tlsforge.Option` passed to `New`:
 | `WithProfileValue(p)` | a `*profile.Profile` you loaded yourself |
 | `WithProxy(url)` | `http://`, `https://` or `socks5://`, with credentials if it needs them |
 | `WithTimeout(d)` | per-request deadline, 30s by default |
+| `WithMaxResponseBody(n)` | decompressed body limit, 64 MiB by default |
 | `WithHeaders(h)` | headers on every request, layered the same way |
 | `WithCookies(c)` | seed the jar at construction |
 | `WithoutCookieJar()` | no jar at all, for a proxy that forwards its caller's `Cookie` |
@@ -1355,12 +1356,12 @@ does not.
 res.status                     // 200
 res.url                        // the final URL, after redirects
 res.body                       // string, already decompressed
-res.headers['content-type']    // multi-valued names joined with '; '
+res.headers['content-type']    // ['application/json']
 res.cookies                    // ['session=abc'] — what the jar holds for that URL
 ```
 
-`headers` joins rather than picks: `set-cookie` arrives more than once routinely,
-and a caller that only saw the first would lose a session.
+Each header maps to an array of values. In particular, separate `set-cookie`
+fields are never folded into an ambiguous string.
 
 #### Options
 
@@ -1500,14 +1501,13 @@ res.ok                  # True for a 2xx
 res.url                 # the final URL, after redirects
 res.body                # str, already decompressed
 res.json()              # the body parsed
-res.headers["content-type"]
+res.headers["content-type"]  # ('application/json',)
 res.cookies             # ('session=abc',) — what the jar holds for that URL now
 ```
 
 The body arrives decompressed: Chrome advertises gzip, deflate, br and zstd, and
-a client that advertises them has to be able to read them. `headers` joins a
-name that arrived more than once with `; `, because `set-cookie` routinely does
-and a caller that saw only the first would lose a session.
+a client that advertises them has to be able to read them. Each header maps to
+a tuple of values, so separate `set-cookie` fields remain separate.
 
 Per-request `headers` are layered over the profile's: a name the browser already
 sends keeps the browser's position and takes your value, and one it does not

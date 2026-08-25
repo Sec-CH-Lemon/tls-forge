@@ -53,13 +53,13 @@ impersonation worked. A real Chrome on the same machine reports the same JA4.
 | `status` | the HTTP status |
 | `url` | the final URL, after redirects |
 | `body` | the body, decompressed |
-| `headers` | multi-valued names joined with `; ` |
+| `headers` | each name maps to a tuple of field values |
 | `cookies` | what the jar holds for this URL afterwards |
 | `ok` | `True` for a 2xx |
 | `json()` | the body parsed as JSON |
 
-`headers` joins rather than picks: `set-cookie` arrives more than once
-routinely, and a caller that only saw the first would lose a session.
+Separate values are preserved: `set-cookie` routinely arrives more than once
+and must not be folded into one ambiguous field.
 
 ### Options
 

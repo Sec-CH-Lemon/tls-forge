@@ -53,7 +53,8 @@ client.close();
 ```
 
 `res` is `{ status, url, body, headers, cookies }`. `url` is the final URL after
-redirects; `headers` joins multi-valued headers with `; `.
+redirects; each header maps to an array of values, so repeated `set-cookie`
+fields stay separate.
 
 ### Options
 
@@ -126,4 +127,4 @@ answers.
 
 ## Requirements
 
-Node 20.12+. Go 1.24+ to build the transport, or a prebuilt binary.
+Node 20.12+. Go 1.25.13+ to build the transport, or a prebuilt binary.
