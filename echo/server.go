@@ -138,7 +138,18 @@ func WithSessionTickets(enabled bool) Option { return func(o *options) { o.ticke
 func Start(opts ...Option) (*Server, error) {
 	cfg := options{addr: "127.0.0.1:0", host: "localhost", hosts: []string{"localhost", "127.0.0.1", "::1"}}
 	for _, opt := range opts {
+		if opt == nil {
+			return nil, fmt.Errorf("echo: nil option")
+		}
 		opt(&cfg)
+	}
+	if strings.TrimSpace(cfg.host) == "" {
+		return nil, fmt.Errorf("echo: host must not be empty")
+	}
+	for _, host := range cfg.hosts {
+		if strings.TrimSpace(host) == "" {
+			return nil, fmt.Errorf("echo: certificate host must not be empty")
+		}
 	}
 
 	cert, err := selfSignedCert(cfg.hosts)
@@ -176,7 +187,7 @@ func (s *Server) Addr() string { return s.listener.Addr().String() }
 // URL is the base URL clients should use.
 func (s *Server) URL() string {
 	_, port, _ := net.SplitHostPort(s.Addr())
-	return fmt.Sprintf("https://%s:%s", s.host, port)
+	return "https://" + net.JoinHostPort(s.host, port)
 }
 
 // Certificate exposes the generated certificate so a client can pin it instead

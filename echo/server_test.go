@@ -462,6 +462,26 @@ func TestURLAndAddrAndCertificate(t *testing.T) {
 	}
 }
 
+func TestURLBracketsAnIPv6Host(t *testing.T) {
+	server := startServer(t, WithHost("::1"))
+	if !strings.HasPrefix(server.URL(), "https://[::1]:") {
+		t.Errorf("URL = %q", server.URL())
+	}
+}
+
+func TestStartRejectsInvalidOptions(t *testing.T) {
+	if _, err := Start(nil); err == nil {
+		t.Error("expected a nil option to be rejected")
+	}
+	if _, err := Start(WithHost("")); err == nil {
+		t.Error("expected an empty host to be rejected")
+	}
+	invalidCertificateHost := func(o *options) { o.hosts = append(o.hosts, "") }
+	if _, err := Start(invalidCertificateHost); err == nil {
+		t.Error("expected an empty certificate host to be rejected")
+	}
+}
+
 func TestStartRejectsAnUnusableAddress(t *testing.T) {
 	if _, err := Start(WithAddr("256.256.256.256:0")); err == nil {
 		t.Error("expected an error for an unusable address")
