@@ -15,6 +15,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -143,7 +144,7 @@ func saveProfile(where, name string, measured *capture.Capture) (profileName, pa
 
 	data, err := built.Save()
 	if err == nil {
-		err = os.WriteFile(path, data, 0o644)
+		err = atomicfile.Write(path, data, 0o644)
 	}
 	if err != nil {
 		return "", "", err
