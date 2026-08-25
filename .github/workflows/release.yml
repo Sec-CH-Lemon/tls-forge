@@ -31,7 +31,19 @@ jobs:
 
       - name: read the version from the tag
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          release_version='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?$'
+          if [[ ! "$version" =~ $release_version ]]; then
+            echo "tag $GITHUB_REF_NAME is not a registry-compatible SemVer release tag" >&2
+            exit 1
+          fi
+
+          npm_tag=latest
+          [[ "$version" == *-* ]] && npm_tag=next
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "npm_tag=$npm_tag" >> "$GITHUB_OUTPUT"
 
       # Nothing gets published that has not passed the same gates as a push.
       # A release is the worst moment to find out a test was failing.
@@ -147,9 +159,11 @@ jobs:
         run: |
           for pkg in dist/npm/tls-forge-*; do
             echo "publishing $pkg"
-            npm publish "$pkg" --access public --provenance
+            npm publish "$pkg" --access public --provenance \
+              --tag "${{ steps.version.outputs.npm_tag }}"
           done
-          npm publish dist/npm/tls-forge --access public --provenance
+          npm publish dist/npm/tls-forge --access public --provenance \
+            --tag "${{ steps.version.outputs.npm_tag }}"
 
       # Trusted Publishing: PyPI verifies this workflow's OIDC token against the
       # publisher configured on the project, so there is no API token to create,

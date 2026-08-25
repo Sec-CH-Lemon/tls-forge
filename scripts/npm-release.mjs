@@ -36,6 +36,11 @@ const TARGETS = [
 // and of everything statically linked into it.
 const LEGAL = ['LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.txt'];
 
+// Keep the tag acceptable to both npm's SemVer parser and Python's PEP 440
+// normalizer. Build metadata is deliberately excluded: PyPI normalizes it
+// differently, so the two registries would no longer expose the same version.
+const RELEASE_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/;
+
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
   if (i >= 0 && process.argv[i + 1]) return process.argv[i + 1];
@@ -47,8 +52,8 @@ const version = arg('version');
 const binaries = path.resolve(arg('binaries', 'dist/bin'));
 const out = path.resolve(arg('out', 'dist/npm'));
 
-if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(version)) {
-  throw new Error(`--version ${version} is not a semver version`);
+if (!RELEASE_VERSION.test(version)) {
+  throw new Error(`--version ${version} is not a registry-compatible SemVer version`);
 }
 
 rmSync(out, { recursive: true, force: true });

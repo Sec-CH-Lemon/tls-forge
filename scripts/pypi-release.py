@@ -54,7 +54,14 @@ TARGETS = [
 # of everything statically linked into it.
 LEGAL = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.txt"]
 
-SEMVER = re.compile(r"^\d+\.\d+\.\d+([-.][\w.]+)?$")
+# The same subset accepted by scripts/npm-release.mjs. Build metadata is
+# excluded because PyPI normalizes it differently from npm, and release tags
+# must map to the same version in both registries.
+SEMVER = re.compile(
+    r"^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
+    r"(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$"
+)
 VERSION_LINE = re.compile(r'^__version__ = ".*"$', re.MULTILINE)
 
 
@@ -65,8 +72,8 @@ def main() -> int:
     parser.add_argument("--out", default="dist/pypi")
     args = parser.parse_args()
 
-    if not SEMVER.match(args.version):
-        parser.error(f"--version {args.version} is not a version this can publish")
+    if not SEMVER.fullmatch(args.version):
+        parser.error(f"--version {args.version} is not a registry-compatible SemVer version")
 
     binaries = Path(args.binaries).resolve()
     out = Path(args.out).resolve()
