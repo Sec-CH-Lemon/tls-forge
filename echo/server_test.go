@@ -678,6 +678,41 @@ func TestSessionCaptureBeforeAnythingHappened(t *testing.T) {
 	}
 }
 
+func TestSessionSnapshotsDoNotExposeInternalState(t *testing.T) {
+	session := &Session{
+		navigator: &capture.Navigator{
+			UserAgent: "original", Languages: []string{"en"}, Brands: []capture.Brand{{Brand: "Chrome"}},
+			FullVersionList: []capture.Brand{{Brand: "Chrome", Version: "151"}},
+			FormFactors:     []string{"Desktop"}, Extra: json.RawMessage(`{"source":"browser"}`),
+		},
+		http1: &capture.HTTP1{
+			Method: "GET", HeaderOrder: []string{"accept"},
+			Headers: []capture.HeaderField{{Name: "accept", Value: "*/*"}},
+		},
+	}
+
+	measured := session.Capture(capture.SourceBrowser)
+	measured.Navigator.UserAgent = "changed"
+	measured.Navigator.Languages[0] = "fr"
+	measured.Navigator.Brands[0].Brand = "Other"
+	measured.Navigator.FullVersionList[0].Version = "0"
+	measured.Navigator.FormFactors[0] = "Mobile"
+	measured.Navigator.Extra[0] = '['
+	measured.HTTP1.HeaderOrder[0] = "changed"
+	measured.HTTP1.Headers[0].Value = "changed"
+
+	navigator := session.Navigator()
+	if navigator.UserAgent != "original" || navigator.Languages[0] != "en" ||
+		navigator.Brands[0].Brand != "Chrome" || navigator.FullVersionList[0].Version != "151" ||
+		navigator.FormFactors[0] != "Desktop" || navigator.Extra[0] != '{' {
+		t.Errorf("navigator was mutated through a snapshot: %+v", navigator)
+	}
+	again := session.Capture(capture.SourceBrowser)
+	if again.HTTP1.HeaderOrder[0] != "accept" || again.HTTP1.Headers[0].Value != "*/*" {
+		t.Errorf("HTTP/1 data was mutated through a snapshot: %+v", again.HTTP1)
+	}
+}
+
 func TestRecordersIgnoreEverythingAfterTheFirstRequest(t *testing.T) {
 	// The preamble frames belong to the connection, the request to the
 	// navigation. Once the request is recorded, later frames on the same

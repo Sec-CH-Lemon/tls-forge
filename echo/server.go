@@ -49,15 +49,20 @@ func (s *Session) Remote() string { return s.remote }
 func (s *Session) Capture(source string) *capture.Capture {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := &capture.Capture{Source: source, Negotiated: s.negotiated, Navigator: s.navigator}
+	out := &capture.Capture{Source: source, Negotiated: s.negotiated, Navigator: cloneNavigator(s.navigator)}
 	if s.hello != nil {
-		out.RawClientHello = s.hello.Raw
+		out.RawClientHello = append([]byte(nil), s.hello.Raw...)
 		out.TLS = capture.FromClientHello(s.hello)
 	}
 	if s.http2Recorded {
 		out.HTTP2 = capture.FromHTTP2(&s.http2)
 	}
-	out.HTTP1 = s.http1
+	if s.http1 != nil {
+		http1 := *s.http1
+		http1.HeaderOrder = append([]string(nil), s.http1.HeaderOrder...)
+		http1.Headers = append([]capture.HeaderField(nil), s.http1.Headers...)
+		out.HTTP1 = &http1
+	}
 	return out
 }
 
@@ -65,7 +70,20 @@ func (s *Session) Capture(source string) *capture.Capture {
 func (s *Session) Navigator() *capture.Navigator {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.navigator
+	return cloneNavigator(s.navigator)
+}
+
+func cloneNavigator(n *capture.Navigator) *capture.Navigator {
+	if n == nil {
+		return nil
+	}
+	out := *n
+	out.Languages = append([]string(nil), n.Languages...)
+	out.Brands = append([]capture.Brand(nil), n.Brands...)
+	out.FullVersionList = append([]capture.Brand(nil), n.FullVersionList...)
+	out.FormFactors = append([]string(nil), n.FormFactors...)
+	out.Extra = append([]byte(nil), n.Extra...)
+	return &out
 }
 
 // Server is the listener. The zero value is not usable; call Start.
