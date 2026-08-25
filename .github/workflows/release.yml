@@ -275,15 +275,23 @@ jobs:
       - name: create the github release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
+          prerelease=()
+          [[ "$VERSION" == *-* ]] && prerelease+=(--prerelease)
           gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
+            "${prerelease[@]}" \
             dist/release/* LICENSE NOTICE THIRD-PARTY-NOTICES.txt
 
   homebrew:
     timeout-minutes: 15
     needs: [build, github-release]
+    # A stable formula is a stable channel: release candidates must not replace
+    # what `brew install tls-forge` installs by default.
+    if: needs.build.outputs.npm_tag == 'latest'
     runs-on: ubuntu-latest
     permissions:
       actions: read
