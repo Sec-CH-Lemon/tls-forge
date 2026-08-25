@@ -37,7 +37,7 @@ try {
 } catch {
   fail(
     'tls-forge: Go is not installed, so the transport was not built.\n' +
-      '  Install Go 1.24+ and run:  npm run build\n' +
+      '  Install Go 1.25.13+ and run:  npm run build\n' +
       '  Or point at a binary you already have:  TLSFORGE_BIN=/path/to/tls-forge',
   );
 }

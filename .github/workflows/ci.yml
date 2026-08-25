@@ -53,6 +53,18 @@ jobs:
       # A gate, not a report. Every package is at 100%.
       - run: make cover
 
+  security:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+      - run: govulncheck ./...
+
   lint:
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -83,7 +95,8 @@ jobs:
           node-version: '24'
       # The Node tests run against a stand-in daemon, so they need no Go build
       # and no network.
-      - run: node --test 'test/*.test.js'
+      # npm test includes the 100% line/function/branch coverage gate.
+      - run: npm test
         working-directory: node
 
   python:

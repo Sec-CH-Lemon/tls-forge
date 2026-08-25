@@ -34,7 +34,7 @@ PROJECT = ROOT / "python"
 # Wheel platform tags, against Go's build targets.
 #
 # macOS is tagged 12_0 rather than the customary 10_9 because that is the truth:
-# Go 1.24 targets macOS 12 and later, and a wheel tagged 10_9 would install
+# The Go toolchain targets macOS 12 and later, and a wheel tagged 10_9 would install
 # happily on a machine its binary cannot run on.
 #
 # Linux gets both a manylinux and a musllinux tag on one wheel. The binary is
