@@ -143,6 +143,7 @@ jobs:
           CHROME: ${{ steps.chrome.outputs.path }}
         run: |
           if [ "$RUNNER_OS" = Windows ]; then
+            # shellcheck disable=SC2016 # PowerShell, not Bash, expands $env:CHROME.
             version=$(powershell -NoProfile -Command \
               '(Get-Item $env:CHROME).VersionInfo.ProductVersion')
             version="Google Chrome $version"
@@ -220,7 +221,7 @@ jobs:
         shell: bash
         run: |
           run() { go run ./cmd/tls-forge compare --color never \
-            --browser "${{ steps.chrome.outputs.path }}" $FLAGS --timeout 3m; }
+            --browser "${{ steps.chrome.outputs.path }}" "$FLAGS" --timeout 3m; }
           if [ "$RUNNER_OS" = Linux ]; then
             sudo apt-get update && sudo apt-get install -y xvfb
             xvfb-run -a bash -c "$(declare -f run); run" | tee shipped.txt
@@ -240,7 +241,7 @@ jobs:
           # this machine's platform, which is what makes this workflow measure
           # whatever Chrome is current rather than whatever was written here.
           run() { go run ./cmd/tls-forge capture \
-            --browser "${{ steps.chrome.outputs.path }}" $FLAGS \
+            --browser "${{ steps.chrome.outputs.path }}" "$FLAGS" \
             --save captured --timeout 3m; }
           if [ "$RUNNER_OS" = Linux ]; then
             xvfb-run -a bash -c "$(declare -f run); run"
@@ -274,7 +275,7 @@ jobs:
         shell: bash
         run: |
           run() { go run ./cmd/tls-forge compare \
-            --browser "${{ steps.chrome.outputs.path }}" $FLAGS \
+            --browser "${{ steps.chrome.outputs.path }}" "$FLAGS" \
             --profile "${{ steps.captured.outputs.file }}" --timeout 3m; }
           if [ "$RUNNER_OS" = Linux ]; then
             xvfb-run -a bash -c "$(declare -f run); run"

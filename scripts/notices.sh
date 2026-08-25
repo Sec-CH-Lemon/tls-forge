@@ -37,7 +37,16 @@ go list -deps -f '{{if .Module}}{{.Module.Path}}{{"\t"}}{{.Module.Version}}{{"\t
       "$path" "$version" \
       "--------------------------------------------------------------------------------"
 
-    licence=$(ls "$dir" 2>/dev/null | grep -iE '^(license|licence|copying)' | head -1 || true)
+    licence=
+    for candidate in "$dir"/*; do
+      base=${candidate##*/}
+      case $base in
+        [Ll][Ii][Cc][Ee][Nn][Ss][Ee]*|[Ll][Ii][Cc][Ee][Nn][Cc][Ee]*|[Cc][Oo][Pp][Yy][Ii][Nn][Gg]*)
+          licence=$base
+          break
+          ;;
+      esac
+    done
     if [ -n "$licence" ]; then
       cat "$dir/$licence"
     else

@@ -104,7 +104,7 @@ jobs:
         id: compare
         run: |
           set +e
-          xvfb-run -a go run ./cmd/tls-forge compare --color never $FLAGS \
+          xvfb-run -a go run ./cmd/tls-forge compare --color never "$FLAGS" \
             --timeout 3m > compare.txt 2>&1
           code=$?
           set -e
@@ -189,7 +189,7 @@ jobs:
         run: |
           found=0
           measured=
-          for file in $(find artifacts -name '*.json' -path '*chrome_*'); do
+          while IFS= read -r -d '' file; do
             version=$(basename "$(dirname "$file")")
             platform=$(basename "$file")
             mkdir -p "profile/data/$version"
@@ -197,7 +197,7 @@ jobs:
             echo "  $version/$platform"
             measured="$measured $version/$platform"
             found=$((found + 1))
-          done
+          done < <(find artifacts -name '*.json' -path '*chrome_*' -print0)
           echo "count=$found" >> "$GITHUB_OUTPUT"
           # What this run measured, not what the directory holds: listing the
           # directory would name every profile ever committed and claim this run
@@ -273,6 +273,7 @@ jobs:
             echo "a fingerprint nobody sends ends up shipping is that nobody looked:"
             echo "check that the platforms you expect are all here, that the"
             echo "user-agents say Google Chrome rather than Chromium, and ideally run"
+            # shellcheck disable=SC2016 # The backticks are Markdown, not shell expansion.
             echo '`tls-forge compare --profile <the file>` against your own browser.'
             echo
             if [ -f artifacts/drift-diff/compare.txt ]; then
