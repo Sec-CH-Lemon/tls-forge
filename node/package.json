@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "node scripts/build.js",
-    "test": "node --test --experimental-test-coverage --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 'test/*.test.js'"
+    "test": "node --test --experimental-test-coverage --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 test/client.test.js"
   },
   "optionalDependencies": {
     "@sec-ch-lemon/tls-forge-darwin-arm64": "0.0.0-dev",
