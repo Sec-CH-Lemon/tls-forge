@@ -82,6 +82,15 @@ func TestRegisterTakesPrecedence(t *testing.T) {
 	if got.UserAgent != "mine" {
 		t.Errorf("user agent = %q, want the registered profile's", got.UserAgent)
 	}
+	mine.UserAgent = "changed after registration"
+	got.UserAgent = "changed after lookup"
+	again, err := registry.Get("chrome_151")
+	if err != nil {
+		t.Fatalf("second Get: %v", err)
+	}
+	if again.UserAgent != "mine" {
+		t.Errorf("registered profile was externally mutated: %q", again.UserAgent)
+	}
 }
 
 func TestRegisterRejectsUnnamedProfiles(t *testing.T) {

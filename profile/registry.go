@@ -254,7 +254,7 @@ func (r *Registry) Register(p *Profile) error {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.added[p.Name] = p
+	r.added[p.Name] = p.Clone()
 	return nil
 }
 
@@ -268,7 +268,7 @@ func (r *Registry) Get(name string) (*Profile, error) {
 	p, ok := r.added[name]
 	r.mu.RUnlock()
 	if ok {
-		return p, nil
+		return p.Clone(), nil
 	}
 
 	// A path rather than a name: the file said, taken as given. Someone with a
