@@ -31,6 +31,11 @@ import (
 // than as a hang if a response ever grows past it.
 const maxResponseBody = 65535
 
+// Capture reports are small JSON objects. Bound incoming bodies as well as
+// outgoing ones so a peer cannot keep appending DATA frames until the process
+// runs out of memory.
+const maxRequestBody = 65535
+
 // The default SETTINGS_MAX_FRAME_SIZE. Clients may raise it; none of them
 // lower it, and there is no benefit here to sending bigger frames.
 const maxFrameSize = 16384
@@ -126,7 +131,9 @@ func (s *Server) serveHTTP2(conn net.Conn, sess *Session) error {
 			if !ok {
 				continue
 			}
-			req.body = append(req.body, f.Data()...)
+			if err := appendRequestBody(req, f.Data()); err != nil {
+				return err
+			}
 			if f.StreamEnded() {
 				delete(pending, f.StreamID)
 				if err := s.respond(h, sess, req); err != nil {
@@ -145,6 +152,14 @@ func (s *Server) serveHTTP2(conn net.Conn, sess *Session) error {
 			return nil
 		}
 	}
+}
+
+func appendRequestBody(req *request, data []byte) error {
+	if len(data) > maxRequestBody-len(req.body) {
+		return fmt.Errorf("echo: request body exceeds %d bytes", maxRequestBody)
+	}
+	req.body = append(req.body, data...)
+	return nil
 }
 
 // request is the little that a response needs to know.

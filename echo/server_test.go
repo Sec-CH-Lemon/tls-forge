@@ -523,6 +523,19 @@ func TestWriteResponseRefusesABodyLargerThanTheWindow(t *testing.T) {
 	}
 }
 
+func TestAppendRequestBodyEnforcesTheLimit(t *testing.T) {
+	req := &request{}
+	if err := appendRequestBody(req, make([]byte, maxRequestBody)); err != nil {
+		t.Fatalf("body at the limit: %v", err)
+	}
+	if err := appendRequestBody(req, []byte{1}); err == nil {
+		t.Fatal("expected an oversized request body to be rejected")
+	}
+	if len(req.body) != maxRequestBody {
+		t.Errorf("body length = %d after rejection, want %d", len(req.body), maxRequestBody)
+	}
+}
+
 func TestWriteResponseChunksLargeBodies(t *testing.T) {
 	out := &bytes.Buffer{}
 	h := newH2Conn(out)
