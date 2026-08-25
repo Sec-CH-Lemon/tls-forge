@@ -193,14 +193,17 @@ func TestMeasuredMergesWhatIsShippedWithWhatIsKept(t *testing.T) {
 	// less than is true.
 	r := laidOut(t, map[string]string{"chrome_151_windows": "chrome_151/windows.json"})
 
+	groups := r.Measured()
 	var found *Group
-	for i, group := range r.Measured() {
-		if group.Name == "chrome_151" {
-			found = &r.Measured()[i]
+	for i := range groups {
+		if groups[i].Name == "chrome_151" {
+			found = &groups[i]
+			break
 		}
 	}
 	if found == nil {
 		t.Fatal("chrome_151 is not listed")
+		return
 	}
 	if !found.Local {
 		t.Error("the group is not marked as kept here")
