@@ -160,6 +160,30 @@ jobs:
       - run: node scripts/npm-release.mjs --version 0.0.0 --binaries dist/bin --out dist/npm
       - run: python scripts/pypi-release.py --version 0.0.0 --binaries dist/bin --out dist/pypi
 
+      # Pack before testing: npm publishes tarballs, and only a packed install
+      # proves that files, executable modes and optional dependency metadata all
+      # survive the format users actually download.
+      - name: pack the npm packages
+        run: |
+          mkdir -p dist/npm-packages
+          for pkg in dist/npm/tls-forge-*; do
+            npm pack "$pkg" --pack-destination dist/npm-packages --ignore-scripts
+          done
+          npm pack dist/npm/tls-forge --pack-destination dist/npm-packages --ignore-scripts
+
+      - name: the linux npm packages install and work
+        run: |
+          main=$(realpath dist/npm-packages/tls-forge-0.0.0.tgz)
+          platform=$(realpath dist/npm-packages/sec-ch-lemon-tls-forge-linux-x64-0.0.0.tgz)
+          check=$(mktemp -d)
+          cd "$check"
+          npm init -y > /dev/null
+          npm install --ignore-scripts --no-package-lock --no-audit --no-fund \
+            "$main" "$platform"
+          node --input-type=module -e \
+            "import { Client } from 'tls-forge'; const client = new Client(); client.close();"
+          ./node_modules/@sec-ch-lemon/tls-forge-linux-x64/bin/tls-forge version
+
       # Installed from the wheel and used, which is the only check that covers
       # the whole chain: the binary is in there, it kept its exec bit, and the
       # client finds it where it expects to.

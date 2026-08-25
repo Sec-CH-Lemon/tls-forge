@@ -50,7 +50,7 @@ jobs:
       - run: go vet ./...
       - run: go test -race -timeout 5m ./...
       - run: make cover
-      - run: node --test 'test/*.test.js'
+      - run: npm test
         working-directory: node
       - run: pip install -e 'python[test]' build wheel
       - run: python -m coverage run -m pytest -q
@@ -119,6 +119,29 @@ jobs:
 
       - name: assemble the npm packages
         run: node scripts/npm-release.mjs --version "${{ steps.version.outputs.version }}" --binaries dist/bin --out dist/npm
+
+      - name: pack the npm packages
+        run: |
+          mkdir -p dist/npm-packages
+          for pkg in dist/npm/tls-forge-*; do
+            npm pack "$pkg" --pack-destination dist/npm-packages --ignore-scripts
+          done
+          npm pack dist/npm/tls-forge --pack-destination dist/npm-packages --ignore-scripts
+
+      - name: the linux npm packages install and work
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          main=$(realpath "dist/npm-packages/tls-forge-${VERSION}.tgz")
+          platform=$(realpath "dist/npm-packages/sec-ch-lemon-tls-forge-linux-x64-${VERSION}.tgz")
+          check=$(mktemp -d)
+          cd "$check"
+          npm init -y > /dev/null
+          npm install --ignore-scripts --no-package-lock --no-audit --no-fund \
+            "$main" "$platform"
+          node --input-type=module -e \
+            "import { Client } from 'tls-forge'; const client = new Client(); client.close();"
+          ./node_modules/@sec-ch-lemon/tls-forge-linux-x64/bin/tls-forge version
 
       # One wheel per platform, each with its binary inside. The script refuses
       # to produce a wheel that is missing the binary, has it without its exec
