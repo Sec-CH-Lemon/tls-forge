@@ -78,6 +78,33 @@ reader.on('line', (line) => {
     case 'null-fields':
       reply({ status: null, url: null, body: null, headers: null, cookies: null });
       break;
+    case 'bad-error':
+      reply({ error: {} });
+      break;
+    case 'bad-status':
+      reply({ status: '200' });
+      break;
+    case 'bad-url':
+      reply({ url: 7 });
+      break;
+    case 'bad-body':
+      reply({ body: [] });
+      break;
+    case 'bad-headers':
+      reply({ headers: [] });
+      break;
+    case 'bad-header-scalar':
+      reply({ headers: { broken: 7 } });
+      break;
+    case 'bad-header-list':
+      reply({ headers: { broken: [7] } });
+      break;
+    case 'bad-cookies':
+      reply({ cookies: {} });
+      break;
+    case 'bad-cookie-item':
+      reply({ cookies: [7] });
+      break;
     case 'trailing-lines':
       reply();
       setTimeout(() => {

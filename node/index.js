@@ -18,6 +18,42 @@ import { resolveBinary } from './binary.js';
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 
+function normaliseResponse(response) {
+  if (response.error != null && typeof response.error !== 'string') {
+    throw new TypeError('field "error" must be a string');
+  }
+
+  const status = response.status ?? 0;
+  const url = response.url ?? '';
+  const body = response.body ?? '';
+  const rawHeaders = response.headers ?? {};
+  const cookies = response.cookies ?? [];
+
+  if (!Number.isInteger(status)) throw new TypeError('field "status" must be an integer');
+  if (typeof url !== 'string') throw new TypeError('field "url" must be a string');
+  if (typeof body !== 'string') throw new TypeError('field "body" must be a string');
+  if (rawHeaders === null || typeof rawHeaders !== 'object' || Array.isArray(rawHeaders)) {
+    throw new TypeError('field "headers" must be an object');
+  }
+  if (!Array.isArray(cookies) || cookies.some((cookie) => typeof cookie !== 'string')) {
+    throw new TypeError('field "cookies" must be an array of strings');
+  }
+
+  const headers = {};
+  for (const [name, values] of Object.entries(rawHeaders)) {
+    // Accept one release of the old scalar protocol during upgrades while
+    // exposing the lossless array shape to callers consistently.
+    if (typeof values === 'string') headers[name] = [values];
+    else if (Array.isArray(values) && values.every((value) => typeof value === 'string')) {
+      headers[name] = [...values];
+    } else {
+      throw new TypeError(`header "${name}" must be a string or an array of strings`);
+    }
+  }
+
+  return { ...response, status, url, body, headers, cookies: [...cookies] };
+}
+
 export class Client {
   #binary;
   #args;
@@ -265,22 +301,20 @@ export class Client {
       return;
     }
 
+    try {
+      response = normaliseResponse(response);
+    } catch (err) {
+      this.#inFlight = null;
+      clearTimeout(job.timer);
+      job.reject(new Error(`tlsforge: bad response: ${err.message}`));
+      this.#pump();
+      return;
+    }
+
     this.#inFlight = null;
     clearTimeout(job.timer);
     if (response.error) job.reject(new Error(response.error));
-    else {
-      response.headers ??= {};
-      response.cookies ??= [];
-      response.status ??= 0;
-      response.url ??= '';
-      response.body ??= '';
-      // Accept one release of the old scalar protocol during upgrades while
-      // exposing the lossless array shape to callers consistently.
-      for (const [name, values] of Object.entries(response.headers)) {
-        if (!Array.isArray(values)) response.headers[name] = [String(values)];
-      }
-      job.resolve(response);
-    }
+    else job.resolve(response);
     this.#pump();
   }
 

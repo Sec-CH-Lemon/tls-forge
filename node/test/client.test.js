@@ -106,6 +106,25 @@ test('a line that is valid JSON but not an object is also rejected', async () =>
   c.close();
 });
 
+for (const behaviour of [
+  'bad-error',
+  'bad-status',
+  'bad-url',
+  'bad-body',
+  'bad-headers',
+  'bad-header-scalar',
+  'bad-header-list',
+  'bad-cookies',
+  'bad-cookie-item',
+]) {
+  test(`a ${behaviour} response is rejected without breaking the client`, async () => {
+    const c = fake();
+    await assert.rejects(() => c.get(`https://${behaviour}/x`), /bad response/);
+    assert.equal((await c.get('https://ok/after')).status, 200);
+    c.close();
+  });
+}
+
 test('an answer for a different id is ignored, not mistaken for this one', async () => {
   const notes = [];
   const c = fake({ onStderr: (line) => notes.push(line) });
