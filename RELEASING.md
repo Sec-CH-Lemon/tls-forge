@@ -28,26 +28,72 @@ release is the worst moment to find out a test was failing.
 
 ## What to set up first, once
 
-Five things, and only three of them need anything from you.
+There are five pieces of external state. The workflow cannot create or inspect
+them for you, so check these before pushing the first tag.
 
-### 1. npm — a token
+### 1. GitHub — the release environment and permissions
+
+Create an environment named **`release`** under Settings → Environments. The npm
+and PyPI publishing jobs both use it, and both trusted-publisher configurations
+below must name it exactly. Required reviewers are optional; adding one turns a
+tag into an approval-gated release without changing the workflow.
+
+The workflow declares least-privilege permissions per job: the build is
+read-only, npm and PyPI get OIDC, the GitHub Release gets `contents: write`, and
+the image gets `packages: write`. The repository's default workflow permission
+may remain read-only, but an organisation policy must not forbid those explicit
+write grants. Protect tags matching `v*` if not every repository writer should
+be able to publish a release.
+
+### 2. npm — bootstrap once, then use trusted publishing
 
 The packages publish under the `@sec-ch-lemon` scope, so that scope has to
-exist and your account has to own it.
+exist and your account has to own it. npm has no pending-publisher mechanism:
+a package must exist before a trusted publisher can be attached. The first
+release therefore needs a short-lived bootstrap token.
 
 1. Create the organisation `sec-ch-lemon` at
    [npmjs.com/org/create](https://www.npmjs.com/org/create). The free plan is
    enough for public packages.
-2. Make an **Automation** token (Access Tokens → Generate New Token →
-   Classic → Automation). Automation rather than Publish: it bypasses 2FA,
-   which a workflow cannot answer.
+2. Create a **granular access token** under Access Tokens → Generate New Token:
+   - enable **Bypass two-factor authentication**;
+   - grant **Packages and scopes → Read and write → All packages**, because the
+     six package names do not exist yet and cannot be selected individually;
+   - use the shortest expiration that comfortably covers the first release.
 3. Put it in the repository as `NPM_TOKEN` (Settings → Secrets and variables →
    Actions → New repository secret).
 
-`tls-forge` is free on npm as of this writing, and so are the five scoped
-packages, which are yours by virtue of owning the scope.
+The current npm instructions for these settings are in
+[Creating and viewing access tokens](https://docs.npmjs.com/creating-and-viewing-access-tokens/).
 
-### 2. PyPI — a trusted publisher, and no token
+After the first successful release, open Settings → Trusted publishing on each
+of these six npm packages:
+
+- `tls-forge`
+- `@sec-ch-lemon/tls-forge-darwin-arm64`
+- `@sec-ch-lemon/tls-forge-darwin-x64`
+- `@sec-ch-lemon/tls-forge-linux-arm64`
+- `@sec-ch-lemon/tls-forge-linux-x64`
+- `@sec-ch-lemon/tls-forge-win32-x64`
+
+Use the same values for every package:
+
+| field | value |
+|---|---|
+| Organization or user | `Sec-CH-Lemon` |
+| Repository | `tls-forge` |
+| Workflow filename | `release.yml` |
+| Environment name | `release` |
+| Allowed action | `npm publish` |
+
+Then delete the `NPM_TOKEN` repository secret and revoke the token. npm CLI
+prefers the short-lived OIDC credential when a trusted publisher exists and
+falls back to `NPM_TOKEN` only for the bootstrap release. Provenance is
+generated in either path.
+See npm's [Trusted publishing guide](https://docs.npmjs.com/trusted-publishers/)
+for the package-side configuration.
+
+### 3. PyPI — a pending trusted publisher, and no token
 
 PyPI can verify that an upload came from this workflow, in this repository, by
 checking the OIDC token GitHub signs for it. Nothing to store, nothing to
@@ -66,15 +112,18 @@ brings the project into being on its first upload:
    | Owner | `Sec-CH-Lemon` |
    | Repository name | `tls-forge` |
    | Workflow name | `release.yml` |
-   | Environment name | *leave empty* |
+   | Environment name | `release` |
 
 3. Save. That is all — there is no `PYPI_TOKEN` to create.
+
+This is PyPI's documented
+[pending publisher flow](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
 
 `tls-forge` is free on PyPI as of this writing. The name is claimed by the
 first successful upload, so if you want to hold it earlier, do the dry run
 below.
 
-### 3. Homebrew — a repository and a cross-repo token
+### 4. Homebrew — a repository and a cross-repo token
 
 The workflow writes the formula into a separate tap repository, which its own
 `GITHUB_TOKEN` cannot reach.
@@ -93,7 +142,7 @@ Skipping this is safe: without the secret, the release says so, leaves the
 formula at `dist/tls-forge.rb`, and carries on. Everything else still
 publishes.
 
-### 4. GHCR — nothing to create, one thing to click afterwards
+### 5. GHCR — nothing to create, one thing to click afterwards
 
 The image pushes with the workflow's own token, so there is no secret. But a
 package created this way is **private by default**, and `docker pull` will ask
@@ -102,34 +151,26 @@ strangers to log in.
 After the first release: repository → Packages → `tls-forge` → Package settings
 → Change visibility → **Public**. Once only; later releases keep it.
 
-### 5. The repository itself
-
-Nothing to change. `release.yml` already asks for the permissions it needs
-(`contents: write` for the release, `id-token: write` for npm provenance and
-PyPI, `packages: write` for the image). Confirm that Settings → Actions →
-General → Workflow permissions is not set to "read repository contents", which
-would override them.
-
 ## Do a dry run first
 
-Publishing is not transactional. The registries are written one after another,
-and a failure at PyPI leaves npm already published with a version that cannot
-be taken back. So make the first tag one that does not matter:
+Publishing across registries is not transactional. npm and PyPI publish in
+independent jobs, so one can succeed while the other fails. Make the first tag
+one that does not matter:
 
 ```bash
 git tag -a v0.0.1-rc1 -m "release plumbing"
 git push origin v0.0.1-rc1
 ```
 
-A pre-release tag is handled as one throughout: npm gets it as a normal
-version, PyPI reads `0.0.1rc1` as a pre-release that `pip install tls-forge`
-will not pick up, and the Docker `latest` tag stays where it is rather than
-moving to a release candidate.
+A pre-release tag stays off every stable channel: npm publishes it under
+`next` without moving `latest`, PyPI reads `0.0.1rc1` as a pre-release that a
+plain `pip install tls-forge` will not select, GitHub marks the release as a
+pre-release, Docker leaves `latest` where it is, and Homebrew is not updated.
 
 Then check what came out:
 
 ```bash
-npm view tls-forge versions
+npm view tls-forge dist-tags versions
 pip index versions tls-forge
 docker pull ghcr.io/sec-ch-lemon/tls-forge:0.0.1-rc1
 ```
@@ -148,8 +189,11 @@ numbers freely on release candidates and treat every published number as spent.
 
 ## If a release fails halfway
 
-The workflow stops where it failed and everything before it stands. Nothing
-retries by itself, and re-pushing the same tag will not re-run it.
+The workflow stops where it failed and every registry write that already
+succeeded remains. If no publish job started, retrying the failed workflow is
+safe. Once any package was accepted by npm or PyPI, do not retry the same
+release: registries reject duplicate versions and npm may already contain only
+some of the six packages.
 
 The way back is a new patch version. Fix the cause, tag `v0.1.1`, and let the
 whole thing run again — a registry that already has `0.1.0` simply gains
@@ -165,27 +209,29 @@ different things in two places is worse than a gap.
    100% lines and branches, notices current.
 2. **Cross-compile** five binaries with `CGO_ENABLED=0`, stamped with the tag,
    and run the linux one to prove it starts.
-3. **Package** tarballs with the licence notices inside them, npm packages, and
-   Python wheels.
-4. **Prove the wheel** by installing it into a fresh virtualenv and running the
-   binary out of it — the whole chain, including the exec bit, which is lost
-   silently and only shows up at someone else's first request.
-5. **Publish** npm (platform packages first, since the main one pins them by
-   exact version), then PyPI.
-6. **GitHub Release** with the tarballs and the notices attached.
-7. **Homebrew tap**, last, because the formula carries the release's download
-   URL and checksum and would point at nothing if it went first.
-8. **The image**, in a second job: built for both platforms, pushed to GHCR,
-   then pulled back and run on each — pushing an image that cannot start is
-   worse than not pushing one, because it looks like a release.
+3. **Package** release archives, six npm tarballs, five Python wheels and an
+   sdist, all with the required licence notices.
+4. **Prove the distributions** by installing the Linux npm tarballs and wheel
+   into clean environments and running their bundled binaries.
+5. **Freeze the artifacts** in one short-lived GitHub Actions artifact. The
+   following jobs publish these exact tested bytes and run no project build
+   code with publishing credentials.
+6. **Publish npm and PyPI** in separate least-privilege jobs. npm publishes all
+   platform tarballs before the main package; PyPI uploads all wheels and the
+   sdist together through Trusted Publishing.
+7. **Create the GitHub Release** only after both registries succeeded.
+8. **Update Homebrew** only for a stable release, after the GitHub assets exist.
+9. **Build the image** for linux/amd64 and arm64, push it to GHCR, then pull it
+   back and run it on both platforms.
 
-None of this is exercised only at release time. CI runs the same cross-compile
-and both packaging scripts on every push, and installs the built wheel, so the
-first tag is not the first time any of it has run.
+None of the packaging is exercised only at release time. CI runs the same
+cross-compile and both packaging scripts on every push, packs and installs the
+npm distributions, and installs the built wheel. Authentication itself cannot
+be dry-run in CI, which is why the first tag should be a release candidate.
 
 ## Adding a platform
 
-Three lists, and they have to agree:
+Four lists, and they have to agree:
 
 | file | what to add |
 |---|---|
