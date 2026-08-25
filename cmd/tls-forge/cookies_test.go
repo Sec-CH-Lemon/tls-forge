@@ -131,6 +131,48 @@ func TestFetchTakesASetAtRandom(t *testing.T) {
 	}
 }
 
+func TestFetchReportsTheSameRandomSetItUses(t *testing.T) {
+	original := pickCookieSet
+	t.Cleanup(func() { pickCookieSet = original })
+
+	// Find a seed whose first two draws differ. Before the selection was shared
+	// between the client and its diagnostic, fetch drew twice and therefore said
+	// it used the other set for exactly such a seed.
+	var seed int64
+	for {
+		probe := rand.New(rand.NewSource(seed))
+		if probe.Intn(2) != probe.Intn(2) {
+			break
+		}
+		seed++
+	}
+	pickCookieSet = rand.New(rand.NewSource(seed))
+
+	server := cookieEcho(t)
+	host := hostnameOf(t, server.URL)
+	path := writeCookieFile(t, `{"sets":[
+	  {"id":"a","cookies":[{"name":"s","value":"a","domain":"`+host+`","path":"/"}]},
+	  {"id":"b","cookies":[{"name":"s","value":"b","domain":"`+host+`","path":"/"}]}
+	]}`)
+
+	code, stdout, stderr := exec(t, "fetch", "-k", "--cookies", path, server.URL+"/")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	reported := ""
+	for _, id := range []string{"a", "b"} {
+		if strings.Contains(stderr, "set "+id) {
+			reported = id
+		}
+	}
+	if reported == "" {
+		t.Fatalf("stderr does not name a set: %q", stderr)
+	}
+	if !strings.Contains(stdout, "s="+reported) {
+		t.Errorf("reported set %s but sent %q", reported, stdout)
+	}
+}
+
 func TestFetchCookieFileErrors(t *testing.T) {
 	for _, tc := range []struct{ name, path, set, want string }{
 		{"a file that is not there", filepath.Join(t.TempDir(), "gone.json"), "", "gone.json"},
@@ -151,6 +193,18 @@ func TestFetchCookieFileErrors(t *testing.T) {
 				t.Errorf("stderr = %q", stderr)
 			}
 		})
+	}
+}
+
+func TestClientFlagsReportCookieFileErrors(t *testing.T) {
+	fs := newFlagSet("daemon", newPrinter(io.Discard))
+	flags := addDaemonFlags(fs)
+	missing := filepath.Join(t.TempDir(), "missing.json")
+	if err := parse(fs, []string{"--cookies", missing}); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if _, err := flags.client(); err == nil || !strings.Contains(err.Error(), "missing.json") {
+		t.Fatalf("client error = %v, want missing file", err)
 	}
 }
 

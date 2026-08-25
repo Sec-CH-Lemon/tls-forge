@@ -237,13 +237,22 @@ func (f clientFlags) client(extra ...tlsforge.Option) (*tlsforge.Client, error) 
 // clientVia builds a client through a named proxy, which batch needs because
 // there the proxy comes from the list rather than from the flag.
 func (f clientFlags) clientVia(proxy string, extra ...tlsforge.Option) (*tlsforge.Client, error) {
-	opts := []tlsforge.Option{
-		tlsforge.WithProfile(*f.profile),
-		tlsforge.WithTimeout(*f.timeout),
-	}
 	warmed, _, err := f.warmedCookies()
 	if err != nil {
 		return nil, err
+	}
+	return f.clientViaWarmed(proxy, warmed, extra...)
+}
+
+// clientViaWarmed builds a client from a session already selected. Fetch uses
+// this so the set named in its diagnostic is the same set the client received;
+// selecting from a multi-set file twice could draw two different sessions.
+func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
+	extra ...tlsforge.Option,
+) (*tlsforge.Client, error) {
+	opts := []tlsforge.Option{
+		tlsforge.WithProfile(*f.profile),
+		tlsforge.WithTimeout(*f.timeout),
 	}
 	if len(warmed) > 0 {
 		opts = append(opts, tlsforge.WithCookies(asClientCookies(warmed)))
@@ -288,13 +297,17 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 
 	common.wear(errOut)
-	client, err := common.client()
+	warmed, from, err := common.warmedCookies()
+	if err != nil {
+		return err
+	}
+	client, err := common.clientViaWarmed(*common.proxy, warmed)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = client.Close() }()
 
-	if _, from, err := common.warmedCookies(); err == nil && from != "" {
+	if from != "" {
 		errOut.printf("warmed from %s\n", from)
 	}
 
