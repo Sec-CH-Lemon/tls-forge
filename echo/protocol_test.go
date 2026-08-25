@@ -239,6 +239,38 @@ func TestHTTP2GoAwayEndsTheConnection(t *testing.T) {
 	}
 }
 
+func TestHTTP2RejectsAnOversizedRequestBody(t *testing.T) {
+	server := startServer(t)
+	c := dialH2(t, server)
+	if err := c.framer.WriteSettings(); err != nil {
+		t.Fatalf("SETTINGS: %v", err)
+	}
+	c.headers(t, 1, false,
+		[2]string{":method", "POST"}, [2]string{":authority", "localhost"},
+		[2]string{":scheme", "https"}, [2]string{":path", "/collect"})
+
+	// Four default-sized frames total 65536 bytes, one over the server's
+	// request limit. Exercise the limit through the frame loop, not only through
+	// appendRequestBody in isolation, so a dropped error cannot reopen the leak.
+	chunk := make([]byte, maxFrameSize)
+	frames := maxRequestBody/maxFrameSize + 1
+	for i := range frames {
+		if err := c.framer.WriteData(1, false, chunk); err != nil {
+			if i != frames-1 {
+				t.Fatalf("DATA frame %d: %v", i, err)
+			}
+			return // the server rejected the final frame and closed immediately
+		}
+	}
+
+	c.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	for {
+		if _, err := c.framer.ReadFrame(); err != nil {
+			return // the oversized request ended the connection, as required
+		}
+	}
+}
+
 func TestHTTP2RecordsOnlyTheFirstRequest(t *testing.T) {
 	// The page navigation is the request worth measuring. The capture page then
 	// fetches over the SAME connection, and a fetch sends a different accept,
