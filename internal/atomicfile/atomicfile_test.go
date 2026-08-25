@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -27,8 +28,16 @@ func TestWriteReplacesFileAndPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
-		t.Fatalf("mode = %o, want 600", info.Mode().Perm())
+	mode := info.Mode().Perm()
+	if runtime.GOOS == "windows" {
+		// Windows has no Unix permission bits. Go's Chmod implementation uses
+		// only 0200 to clear or set the Windows read-only attribute; Stat then
+		// commonly reports a writable regular file as 0666.
+		if mode&0o200 == 0 {
+			t.Fatalf("mode = %o, want a writable file", mode)
+		}
+	} else if mode != 0o600 {
+		t.Fatalf("mode = %o, want 600", mode)
 	}
 }
 
