@@ -11,7 +11,79 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+### Added
+
+- **The daemon protocol carries bodies that are not text.** A JSON string cannot
+  hold arbitrary bytes: an encoder replaces every byte that is not valid UTF-8
+  with U+FFFD, silently, and the response still said `200` with no error — so a
+  Python or Node caller asking for an image got back something no decoder would
+  open. Both `Request` and `Response` gained a `bodyEncoding` field; a body that
+  is not valid UTF-8 travels as `base64` and says so. The field is **absent**
+  for text rather than spelled `utf8`, so every ordinary response is on the wire
+  it has always been on. `Response.content` (Python) and `response.content`
+  (Node) are the bytes exactly as they arrived; `body` remains the text view.
+  Requests accept `bytes`/`bytearray` and `Buffer`/`Uint8Array` respectively.
+- **A committed fixture of the wire format**, in `testdata/protocol/`, asserted
+  against by the Go, Python and Node suites alike. The protocol is implemented
+  three times and the two binding suites run against their own fakes, so
+  renaming a response field passed every gate and shipped a release in which
+  Python callers silently received no cookies at all. One rename now breaks all
+  three suites.
+- `--report <directory>` creates the directory. The spelling README and
+  `example/README.md` both show fetched the whole list and then failed at the
+  last step, losing the report and exiting non-zero on a run that had worked.
+
+### Security
+
+- **The proxy no longer forwards `Proxy-Authorization` to the destination.** It
+  is addressed to the proxy, not through it; forwarding it handed the user's
+  proxy password to whatever site they browsed to. `Proxy-Authenticate` is
+  dropped with it.
+- **Proxy passwords are no longer written into `batch` output.** The proxy URL
+  reached the HTML report, the JSON lines and the terminal summary verbatim —
+  all three of which are made to be kept and passed on, and the report is
+  written to be mailed to someone. The username survives, because it is what
+  tells two proxies apart; the password does not. Error text is scrubbed too:
+  `url.Parse` quotes back the whole string it could not parse, so a mistyped
+  proxy wrote its own password into the field that had just been cleaned.
+
 ### Fixed
+
+- **A second browser measured by one echo server was handed the first
+  browser's fingerprint.** The server pinned the first connection that fetched
+  the capture page and filed every later report against it, so the second
+  browser to open `tls-forge serve` saw the first browser's ClientHello, JA4 and
+  header order beside its own user agent — while the first browser's session had
+  its navigator data overwritten with the second's. A report now claims its own
+  page load. `tls-forge capture` was never affected: it builds a server per run.
+- **`Close()` hung forever on a connection accepted while closing**, in both the
+  proxy and the echo server. A connection accepted between `wg.Add` and the
+  handler registering itself was counted in the WaitGroup but missing from the
+  snapshot `Close` closes, so `Close` waited for a peer nobody would ever
+  disconnect. `Ctrl-C` on `tls-forge proxy` with a browser holding keep-alive
+  connections did not return.
+
+### Changed
+
+- `npm test` runs every `test/*.test.js` rather than one named file, so a new
+  test file cannot be added and silently never run.
+
+### Documentation
+
+- `docs/protocol.md` said the whole header sequence could be dictated by naming
+  every header in `order`. It cannot: the merge keeps the profile's position for
+  every name the profile already has. Documented as the deliberate behaviour it
+  is, since the profile's order is the fingerprint being impersonated.
+- `docs/profiles.md` told maintainers to refresh the shipped profile with
+  `tls-forge capture --headless`, contradicting the same page's warning two
+  sections earlier. Following it would have made every library user impersonate
+  `HeadlessChrome` by default.
+- `NOTICE` named `profile/data/chrome_151.json` in its licence carve-out, a file
+  that does not exist — the three real files are under `profile/data/chrome_151/`.
+- `GO.md` never documented `Client.Profile()`.
+- The Russian article described JA4's ALPN field as "the first offered ALPN". It
+  is the first and last **characters** of it, which `h2` hides and `http/1.1`
+  — rendered `h1` — does not.
 
 - **The Windows test job hung for five minutes and then failed.** Three separate
   things, all of them the tests rather than the code. `--ca-cert
