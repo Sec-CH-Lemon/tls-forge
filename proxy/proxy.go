@@ -67,8 +67,9 @@ type Server struct {
 	listener net.Listener
 	opts     Options
 
-	mu    sync.Mutex
-	conns map[net.Conn]struct{}
+	mu     sync.Mutex
+	conns  map[net.Conn]struct{}
+	closed bool
 
 	closeOnce sync.Once
 	wg        sync.WaitGroup
@@ -114,6 +115,9 @@ func (s *Server) Close() error {
 	s.closeOnce.Do(func() {
 		err = s.listener.Close()
 		s.mu.Lock()
+		// Set before the snapshot and under the same lock, so a handler that
+		// has not reached track yet cannot slip in behind it.
+		s.closed = true
 		conns := make([]net.Conn, 0, len(s.conns))
 		for conn := range s.conns {
 			conns = append(conns, conn)
@@ -145,7 +149,10 @@ func (s *Server) accept() {
 }
 
 func (s *Server) handle(conn net.Conn) {
-	s.track(conn)
+	if !s.track(conn) {
+		_ = conn.Close()
+		return
+	}
 	defer s.forget(conn)
 
 	reader := bufio.NewReader(conn)
@@ -330,10 +337,23 @@ func writeResponse(w io.Writer, status int, header map[string][]string, body []b
 	return err
 }
 
-func (s *Server) track(conn net.Conn) {
+// track registers a connection, and reports whether the server is still open.
+//
+// The boolean is what closes the race between Accept and Close. A connection
+// accepted just before Close runs is already counted in the WaitGroup but is
+// not yet in s.conns, so Close's snapshot cannot close it — and Close would
+// then wait for a handler parked in ReadRequest on a socket nobody will ever
+// close. Under the same mutex Close takes its snapshot with, this either
+// registers the connection in time to be closed or learns that it was too
+// late, and the handler gives up instead of blocking Close forever.
+func (s *Server) track(conn net.Conn) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.closed {
+		return false
+	}
 	s.conns[conn] = struct{}{}
+	return true
 }
 
 func (s *Server) forget(conn net.Conn) {

@@ -343,10 +343,34 @@ func (s *Server) Panics() []string {
 	return append([]string(nil), s.panics...)
 }
 
-func (s *Server) handle(raw net.Conn) {
+// track registers a connection, and reports whether the server is still open.
+//
+// The boolean closes the race between Accept and Close. A connection accepted
+// just before Close runs is already counted in the WaitGroup but is not yet in
+// s.conns, so Close's snapshot cannot close it, and Close would then wait for a
+// handler blocked reading a socket nobody will ever close.
+//
+// Reading s.closed under s.mu is what orders the two: Close closes that channel
+// before it takes the snapshot, and both happen under this mutex, so a handler
+// arriving late is guaranteed to see the channel closed rather than register
+// itself behind the snapshot.
+func (s *Server) track(conn net.Conn) bool {
 	s.mu.Lock()
-	s.conns[raw] = struct{}{}
-	s.mu.Unlock()
+	defer s.mu.Unlock()
+	select {
+	case <-s.closed:
+		return false
+	default:
+	}
+	s.conns[conn] = struct{}{}
+	return true
+}
+
+func (s *Server) handle(raw net.Conn) {
+	if !s.track(raw) {
+		_ = raw.Close()
+		return
+	}
 	defer func() {
 		s.mu.Lock()
 		delete(s.conns, raw)
