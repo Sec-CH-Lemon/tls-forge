@@ -435,6 +435,15 @@ func stamp(t time.Time) string {
 // anywhere else, so it can be opened from a laptop with no network and mailed
 // to someone as one attachment.
 func writeReport(path string, records []result, s summary, exits map[string]egress) error {
+	// The directory is made rather than required. `--report reports/` is what
+	// README and example/README both show, and before this it fetched the whole
+	// list and then failed at the last step because nothing had created the
+	// directory — losing the report and exiting non-zero on a run that worked.
+	if dir := filepath.Dir(path); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("batch: %w", err)
+		}
+	}
 	file, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("batch: %w", err)

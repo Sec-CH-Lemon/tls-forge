@@ -228,9 +228,29 @@ func TestWriteReportEscapesWhatItIsGiven(t *testing.T) {
 }
 
 func TestWriteReportToAPathThatWillNotOpen(t *testing.T) {
-	err := writeReport(filepath.Join(t.TempDir(), "no-such-directory", "r.html"), nil, summary{}, nil)
+	// A parent that is a regular file, so the directory cannot be made and the
+	// file cannot be created. A merely absent directory is no longer a failure:
+	// writeReport makes it, which is what `--report reports/` needs.
+	blocked := filepath.Join(t.TempDir(), "a-file")
+	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	err := writeReport(filepath.Join(blocked, "r.html"), nil, summary{}, nil)
 	if err == nil {
 		t.Error("no error")
+	}
+}
+
+// TestWriteReportMakesTheDirectory covers the documented `--report reports/`
+// spelling, which fetched the whole list and then failed at the last step
+// because nothing created the directory.
+func TestWriteReportMakesTheDirectory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "reports", "r.html")
+	if err := writeReport(path, nil, summary{}, nil); err != nil {
+		t.Fatalf("writeReport: %v", err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("report was not written: %v", err)
 	}
 }
 
@@ -348,10 +368,33 @@ func TestBatchReportWithoutTheAddressLookup(t *testing.T) {
 
 func TestBatchReportToAPathThatWillNotOpen(t *testing.T) {
 	server := batchServer(t)
+	blocked := filepath.Join(t.TempDir(), "a-file")
+	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
 	code, _, _ := exec(t, "batch", "--report",
-		filepath.Join(t.TempDir(), "nope", "r.html"), "--report-ip=false", server.URL+"/one")
+		filepath.Join(blocked, "r.html"), "--report-ip=false", server.URL+"/one")
 	if code == 0 {
 		t.Error("an unwritable report path should fail")
+	}
+}
+
+// TestBatchReportToADirectoryThatDoesNotExist is the README's own spelling, end
+// to end: the run must succeed and leave a report behind.
+func TestBatchReportToADirectoryThatDoesNotExist(t *testing.T) {
+	server := batchServer(t)
+	dir := filepath.Join(t.TempDir(), "reports")
+	code, _, _ := exec(t, "batch", "--report", dir+string(os.PathSeparator),
+		"--report-ip=false", server.URL+"/one")
+	if code != 0 {
+		t.Errorf("exit code %d, want 0", code)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("the report directory was not made: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("%d files in the report directory, want 1", len(entries))
 	}
 }
 
@@ -767,5 +810,15 @@ func TestBatchSaysWhichProxiesItDidNotAskAbout(t *testing.T) {
 	_, _, stderr := exec(t, "batch", "--input", list, "--report", path, "--timeout", "5s")
 	if !strings.Contains(stderr, "1 further proxies were not asked about") {
 		t.Errorf("stderr does not say which proxies went unasked:\n%s", stderr)
+	}
+}
+
+// TestWriteReportToAPathThatIsADirectory reaches the create failure that
+// survives the directory being made: the parent exists, so MkdirAll succeeds,
+// and the target itself is not a file that can be opened for writing.
+func TestWriteReportToAPathThatIsADirectory(t *testing.T) {
+	err := writeReport(t.TempDir(), nil, summary{}, nil)
+	if err == nil {
+		t.Error("no error")
 	}
 }
