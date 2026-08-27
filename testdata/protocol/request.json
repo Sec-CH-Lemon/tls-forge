@@ -1,0 +1,16 @@
+{
+  "id": 7,
+  "method": "POST",
+  "url": "https://example.com/",
+  "headers": {
+    "accept": "*/*"
+  },
+  "order": [
+    "accept"
+  ],
+  "body": "AP7/gA==",
+  "bodyEncoding": "base64",
+  "setCookie": [
+    "a=1"
+  ]
+}

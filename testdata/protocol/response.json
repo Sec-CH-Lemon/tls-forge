@@ -1,0 +1,19 @@
+{
+  "id": 7,
+  "status": 200,
+  "url": "https://example.com/after-redirect",
+  "body": "\u003chtml\u003ehello\u003c/html\u003e",
+  "headers": {
+    "content-type": [
+      "text/html; charset=utf-8"
+    ],
+    "set-cookie": [
+      "a=1",
+      "b=2"
+    ]
+  },
+  "cookies": [
+    "a=1",
+    "b=2"
+  ]
+}
