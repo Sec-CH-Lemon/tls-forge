@@ -1,6 +1,8 @@
 package daemon
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -326,3 +328,124 @@ func TestProfileFieldsAreUsable(t *testing.T) {
 		t.Errorf("Names = %s", got)
 	}
 }
+
+// TestABinaryBodySurvivesTheProtocol is the reason bodyEncoding exists.
+//
+// A JSON string cannot hold arbitrary bytes: encoding/json replaces every byte
+// that is not valid UTF-8 with U+FFFD, silently, and the response still says
+// status 200 with no error. A caller asking for an image got back something no
+// decoder would open, with nothing anywhere reporting a problem.
+func TestABinaryBodySurvivesTheProtocol(t *testing.T) {
+	// PNG magic followed by bytes that are not valid UTF-8.
+	want := []byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0xd8, 0xff}
+
+	var out strings.Builder
+	err := Serve(
+		strings.NewReader(`{"id":1,"url":"https://example.com/logo.png"}`+"\n"),
+		&out,
+		&fakeClient{response: &tlsforge.Response{Status: 200, Body: want}},
+	)
+	if err != nil {
+		t.Fatalf("Serve: %v", err)
+	}
+
+	var got Response
+	if err := json.Unmarshal([]byte(out.String()), &got); err != nil {
+		t.Fatalf("decoding the response: %v (%s)", err, out.String())
+	}
+	if got.Error != "" {
+		t.Fatalf("unexpected error: %s", got.Error)
+	}
+	if got.BodyEncoding != BodyBase64 {
+		t.Fatalf("bodyEncoding = %q, want %q", got.BodyEncoding, BodyBase64)
+	}
+	decoded, err := base64.StdEncoding.DecodeString(got.Body)
+	if err != nil {
+		t.Fatalf("the body is not base64: %v", err)
+	}
+	if !bytes.Equal(decoded, want) {
+		t.Errorf("body round-tripped as % x, want % x", decoded, want)
+	}
+}
+
+// TestATextBodyCarriesNoEncoding keeps the common case on the wire it has
+// always had, so a reader that predates bodyEncoding is unaffected by it.
+func TestATextBodyCarriesNoEncoding(t *testing.T) {
+	var out strings.Builder
+	err := Serve(
+		strings.NewReader(`{"id":1,"url":"https://example.com/"}`+"\n"),
+		&out,
+		&fakeClient{response: &tlsforge.Response{Status: 200, Body: []byte("héllo — ok")}},
+	)
+	if err != nil {
+		t.Fatalf("Serve: %v", err)
+	}
+	var got Response
+	if err := json.Unmarshal([]byte(out.String()), &got); err != nil {
+		t.Fatalf("decoding: %v", err)
+	}
+	if got.BodyEncoding != "" {
+		t.Errorf("bodyEncoding = %q, want it absent for text", got.BodyEncoding)
+	}
+	if got.Body != "héllo — ok" {
+		t.Errorf("body = %q", got.Body)
+	}
+}
+
+// TestABinaryRequestBodyIsSentIntact covers the other direction.
+func TestABinaryRequestBodyIsSentIntact(t *testing.T) {
+	want := []byte{0x00, 0xff, 0xfe, 0x80}
+	seen := &recordingClient{}
+
+	line, err := json.Marshal(Request{
+		ID:           1,
+		Method:       "POST",
+		URL:          "https://example.com/upload",
+		Body:         base64.StdEncoding.EncodeToString(want),
+		BodyEncoding: BodyBase64,
+	})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	var out strings.Builder
+	if err := Serve(strings.NewReader(string(line)+"\n"), &out, seen); err != nil {
+		t.Fatalf("Serve: %v", err)
+	}
+	if !bytes.Equal(seen.body, want) {
+		t.Errorf("the client was handed % x, want % x", seen.body, want)
+	}
+}
+
+func TestABadBodyEncodingIsRejected(t *testing.T) {
+	for _, line := range []string{
+		`{"id":1,"url":"https://x/","body":"!!not base64!!","bodyEncoding":"base64"}`,
+		`{"id":1,"url":"https://x/","body":"x","bodyEncoding":"rot13"}`,
+	} {
+		var out strings.Builder
+		if err := Serve(strings.NewReader(line+"\n"), &out, &fakeClient{
+			response: &tlsforge.Response{Status: 200},
+		}); err != nil {
+			t.Fatalf("Serve: %v", err)
+		}
+		var got Response
+		if err := json.Unmarshal([]byte(out.String()), &got); err != nil {
+			t.Fatalf("decoding: %v", err)
+		}
+		if got.Error == "" {
+			t.Errorf("%s was accepted", line)
+		}
+	}
+}
+
+// recordingClient keeps the body it was handed, which is the thing under test.
+type recordingClient struct {
+	body []byte
+}
+
+func (c *recordingClient) Do(req *tlsforge.Request) (*tlsforge.Response, error) {
+	c.body = append([]byte(nil), req.Body...)
+	return &tlsforge.Response{Status: 200}, nil
+}
+
+func (c *recordingClient) Headers() tlsforge.Header { return nil }

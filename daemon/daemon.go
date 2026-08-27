@@ -30,12 +30,14 @@ package daemon
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
 )
@@ -65,6 +67,14 @@ type Request struct {
 
 	Body string `json:"body,omitempty"`
 
+	// BodyEncoding says how to read Body. Absent or "utf8" means Body is the
+	// bytes themselves; "base64" means it is standard base64.
+	//
+	// A JSON string cannot hold arbitrary bytes: encoding/json replaces every
+	// byte that is not valid UTF-8 with U+FFFD, silently and without an error.
+	// So a body that is not text has to travel as base64 or not at all.
+	BodyEncoding string `json:"bodyEncoding,omitempty"`
+
 	// SetCookie seeds the jar with "name=value" pairs before the request.
 	SetCookie []string `json:"setCookie,omitempty"`
 }
@@ -74,13 +84,52 @@ type Response struct {
 	// Never omitempty: a caller has to be able to tell "id 0" from "no id at
 	// all", and read the latter as "this binary is older than the code driving
 	// it" rather than letting every request time out unexplained.
-	ID      uint64              `json:"id"`
-	Status  int                 `json:"status"`
-	URL     string              `json:"url"`
-	Body    string              `json:"body"`
-	Headers map[string][]string `json:"headers"`
-	Cookies []string            `json:"cookies"`
-	Error   string              `json:"error,omitempty"`
+	ID     uint64 `json:"id"`
+	Status int    `json:"status"`
+	URL    string `json:"url"`
+	Body   string `json:"body"`
+
+	// BodyEncoding is absent when Body is the response text, and "base64" when
+	// the response was not valid UTF-8 and could not be carried as a JSON
+	// string. Absent rather than "utf8" for the common case, so a reader that
+	// predates this field is unaffected by it for every text response.
+	BodyEncoding string              `json:"bodyEncoding,omitempty"`
+	Headers      map[string][]string `json:"headers"`
+	Cookies      []string            `json:"cookies"`
+	Error        string              `json:"error,omitempty"`
+}
+
+// How a body is spelled on the wire.
+const (
+	BodyUTF8   = "utf8"
+	BodyBase64 = "base64"
+)
+
+// decodeBody reads a request body according to its declared encoding.
+func decodeBody(body, encoding string) ([]byte, error) {
+	switch encoding {
+	case "", BodyUTF8:
+		return []byte(body), nil
+	case BodyBase64:
+		raw, err := base64.StdEncoding.DecodeString(body)
+		if err != nil {
+			return nil, fmt.Errorf("body is not valid base64: %w", err)
+		}
+		return raw, nil
+	default:
+		return nil, fmt.Errorf("unknown bodyEncoding %q", encoding)
+	}
+}
+
+// encodeBody renders a response body, saying how when it is not text.
+//
+// Checked rather than always base64: a base64 body would be unreadable by eye
+// and a third larger, and almost every response this carries is a page.
+func encodeBody(body []byte) (text, encoding string) {
+	if utf8.Valid(body) {
+		return string(body), ""
+	}
+	return base64.StdEncoding.EncodeToString(body), BodyBase64
 }
 
 // Client is the part of *tlsforge.Client the daemon needs, named so tests can
@@ -153,11 +202,16 @@ func handle(line string, client Client) Response {
 		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
 	}
 
+	body, err := decodeBody(req.Body, req.BodyEncoding)
+	if err != nil {
+		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
+	}
+
 	res, err := client.Do(&tlsforge.Request{
 		Method:  req.Method,
 		URL:     req.URL,
 		Header:  requestHeaders,
-		Body:    []byte(req.Body),
+		Body:    body,
 		Cookies: cookies,
 	})
 	if err != nil {
@@ -168,13 +222,15 @@ func handle(line string, client Client) Response {
 	for name, values := range res.Header {
 		headers[name] = append([]string(nil), values...)
 	}
+	responseBody, encoding := encodeBody(res.Body)
 	return Response{
-		ID:      req.ID,
-		Status:  res.Status,
-		URL:     res.URL,
-		Body:    string(res.Body),
-		Headers: headers,
-		Cookies: res.Cookies,
+		ID:           req.ID,
+		Status:       res.Status,
+		URL:          res.URL,
+		Body:         responseBody,
+		BodyEncoding: encoding,
+		Headers:      headers,
+		Cookies:      res.Cookies,
 	}
 }
 

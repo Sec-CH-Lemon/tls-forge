@@ -11,6 +11,7 @@ against a healthy server.
 
 from __future__ import annotations
 
+import base64
 import json
 import sys
 import threading
@@ -76,6 +77,33 @@ def main() -> None:
             emit(answer(request, url=7))
         elif behaviour == "bad-body":
             emit(answer(request, body=[]))
+        elif behaviour == "binary":
+            # The bytes a JSON string cannot hold: PNG magic and a stray 0xff.
+            raw = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0xFF])
+            emit(
+                answer(
+                    request,
+                    body=base64.b64encode(raw).decode("ascii"),
+                    bodyEncoding="base64",
+                )
+            )
+        elif behaviour == "echo-body":
+            # Hands back what it was sent, so the request direction can be checked.
+            emit(
+                answer(
+                    request,
+                    body=request.get("body", ""),
+                    bodyEncoding=request.get("bodyEncoding", ""),
+                )
+            )
+        elif behaviour == "utf8-encoding":
+            emit(answer(request, body="plain text", bodyEncoding="utf8"))
+        elif behaviour == "bad-body-encoding":
+            emit(answer(request, body="x", bodyEncoding="rot13"))
+        elif behaviour == "bad-body-encoding-type":
+            emit(answer(request, body="x", bodyEncoding=7))
+        elif behaviour == "bad-base64":
+            emit(answer(request, body="!!not base64!!", bodyEncoding="base64"))
         elif behaviour == "bad-headers":
             emit(answer(request, headers=[]))
         elif behaviour == "bad-header-scalar":

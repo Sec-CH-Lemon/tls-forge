@@ -14,7 +14,7 @@ import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import { resolveBinary } from './binary.js';
 
-/** @typedef {{status:number,url:string,body:string,headers:Record<string,string[]>,cookies:string[]}} Response */
+/** @typedef {{status:number,url:string,body:string,content:Buffer,headers:Record<string,string[]>,cookies:string[]}} Response */
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 
@@ -25,13 +25,34 @@ function normaliseResponse(response) {
 
   const status = response.status ?? 0;
   const url = response.url ?? '';
-  const body = response.body ?? '';
+  let body = response.body ?? '';
+  const bodyEncoding = response.bodyEncoding ?? '';
   const rawHeaders = response.headers ?? {};
   const cookies = response.cookies ?? [];
 
   if (!Number.isInteger(status)) throw new TypeError('field "status" must be an integer');
   if (typeof url !== 'string') throw new TypeError('field "url" must be a string');
   if (typeof body !== 'string') throw new TypeError('field "body" must be a string');
+  if (typeof bodyEncoding !== 'string') {
+    throw new TypeError('field "bodyEncoding" must be a string');
+  }
+
+  // A JSON string cannot hold arbitrary bytes, so a body that is not valid
+  // UTF-8 arrives as base64 and is decoded here. `content` is always the bytes
+  // exactly as they came back; `body` is the text view, lossy by definition for
+  // a body that is not text.
+  let content;
+  if (bodyEncoding === '' || bodyEncoding === 'utf8') {
+    content = Buffer.from(body, 'utf8');
+  } else if (bodyEncoding === 'base64') {
+    content = Buffer.from(body, 'base64');
+    if (content.toString('base64').replace(/=+$/, '') !== body.replace(/=+$/, '')) {
+      throw new TypeError('field "body" is not valid base64');
+    }
+    body = content.toString('utf8');
+  } else {
+    throw new TypeError(`unknown bodyEncoding "${bodyEncoding}"`);
+  }
   if (rawHeaders === null || typeof rawHeaders !== 'object' || Array.isArray(rawHeaders)) {
     throw new TypeError('field "headers" must be an object');
   }
@@ -51,7 +72,7 @@ function normaliseResponse(response) {
     }
   }
 
-  return { ...response, status, url, body, headers, cookies: [...cookies] };
+  return { ...response, status, url, body, content, headers, cookies: [...cookies] };
 }
 
 export class Client {
@@ -123,9 +144,10 @@ export class Client {
   }
 
   /**
-   * POST a body.
+   * POST a body. A Buffer or Uint8Array is sent as base64, so a body that is
+   * not text arrives intact.
    * @param {string} url
-   * @param {string} body
+   * @param {string|Buffer|Uint8Array} body
    * @param {object} [options]
    * @returns {Promise<Response>}
    */
@@ -135,7 +157,7 @@ export class Client {
 
   /**
    * Make a request.
-   * @param {{url:string,method?:string,headers?:Record<string,string>,order?:string[],body?:string,cookies?:string[]}} request
+   * @param {{url:string,method?:string,headers?:Record<string,string>,order?:string[],body?:string|Buffer|Uint8Array,cookies?:string[]}} request
    * @returns {Promise<Response>}
    */
   request(request) {
@@ -148,6 +170,22 @@ export class Client {
     const { cookies, ...rest } = request;
     const id = ++this.#sequence;
     const payload = { ...rest, setCookie: cookies, id };
+    // Bytes travel as base64: JSON.stringify would otherwise turn a Buffer into
+    // an object of numbered keys, and the transport replaces every byte that is
+    // not valid UTF-8 with U+FFFD rather than reporting a problem.
+    if (payload.body != null && typeof payload.body !== 'string') {
+      if (!ArrayBuffer.isView(payload.body)) {
+        return Promise.reject(
+          new TypeError('tlsforge: request body must be a string, Buffer or Uint8Array'),
+        );
+      }
+      payload.body = Buffer.from(
+        payload.body.buffer,
+        payload.body.byteOffset,
+        payload.body.byteLength,
+      ).toString('base64');
+      payload.bodyEncoding = 'base64';
+    }
     let line;
     try {
       line = JSON.stringify(payload) + '\n';

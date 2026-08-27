@@ -504,3 +504,99 @@ test('an unusable path lookup result is treated as not found', (t) => {
   }
   assert.throws(() => resolveBinary(), /no binary for/);
 });
+
+test('a binary body arrives as bytes, not as replacement characters', async () => {
+  const client = fake();
+  try {
+    const response = await client.get('https://binary/logo.png');
+    const want = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff]);
+    assert.deepEqual(response.content, want);
+  } finally {
+    await client.close();
+  }
+});
+
+test('a text body is a Buffer of the same text', async () => {
+  const client = fake();
+  try {
+    const response = await client.get('https://ok/');
+    assert.equal(response.content.toString('utf8'), response.body);
+  } finally {
+    await client.close();
+  }
+});
+
+test('an explicit utf8 encoding is accepted', async () => {
+  const client = fake();
+  try {
+    const response = await client.get('https://utf8-encoding/');
+    assert.equal(response.body, 'plain text');
+    assert.equal(response.content.toString('utf8'), 'plain text');
+  } finally {
+    await client.close();
+  }
+});
+
+test('a Buffer request body is sent as base64 and arrives intact', async () => {
+  const client = fake();
+  try {
+    const sent = Buffer.from([0x00, 0xff, 0xfe, 0x80]);
+    const response = await client.post('https://echo-body/', sent);
+    assert.deepEqual(response.content, sent);
+  } finally {
+    await client.close();
+  }
+});
+
+test('a Uint8Array request body is sent as base64 too', async () => {
+  const client = fake();
+  try {
+    const sent = new Uint8Array([0x01, 0xff, 0x00]);
+    const response = await client.post('https://echo-body/', sent);
+    assert.deepEqual(response.content, Buffer.from(sent));
+  } finally {
+    await client.close();
+  }
+});
+
+test('a request body that is neither text nor bytes is refused', async () => {
+  const client = fake();
+  try {
+    await assert.rejects(
+      client.post('https://ok/', { not: 'a body' }),
+      /must be a string, Buffer or Uint8Array/,
+    );
+  } finally {
+    await client.close();
+  }
+});
+
+test('an unknown bodyEncoding is refused', async () => {
+  const client = fake();
+  try {
+    await assert.rejects(client.get('https://bad-body-encoding/'), /unknown bodyEncoding/);
+  } finally {
+    await client.close();
+  }
+});
+
+test('a bodyEncoding that is not a string is refused', async () => {
+  const client = fake();
+  try {
+    await assert.rejects(
+      client.get('https://bad-body-encoding-type/'),
+      /"bodyEncoding" must be a string/,
+    );
+  } finally {
+    await client.close();
+  }
+});
+
+test('a body that claims to be base64 and is not is refused', async () => {
+  const client = fake();
+  try {
+    await assert.rejects(client.get('https://bad-base64/'), /not valid base64/);
+  } finally {
+    await client.close();
+  }
+});

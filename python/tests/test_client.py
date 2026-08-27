@@ -607,3 +607,55 @@ def test_the_default_stderr_sink_swallows_a_line():
     from tlsforge import _client
 
     assert _client._ignore("anything") is None
+
+
+# --- bodies that are not text ----------------------------------------------
+
+
+def test_a_binary_body_arrives_as_bytes(client):
+    """A JSON string cannot hold arbitrary bytes.
+
+    Before bodyEncoding the transport replaced every byte that is not valid
+    UTF-8 with U+FFFD and still reported status 200, so a caller asking for an
+    image got back something no decoder would open and nothing said why.
+    """
+    res = client().get("https://binary/logo.png")
+    assert res.content == bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0xFF])
+
+
+def test_a_text_body_has_matching_bytes(client):
+    res = client().get("https://ok/page")
+    assert res.content == res.body.encode("utf-8")
+
+
+def test_an_explicit_utf8_encoding_is_accepted(client):
+    res = client().get("https://utf8-encoding/")
+    assert res.body == "plain text"
+    assert res.content == b"plain text"
+
+
+def test_a_bytes_request_body_arrives_intact(client):
+    sent = bytes([0x00, 0xFF, 0xFE, 0x80])
+    res = client().post("https://echo-body/", sent)
+    assert res.content == sent
+
+
+def test_a_bytearray_request_body_arrives_intact(client):
+    sent = bytearray([0x01, 0xFF, 0x00])
+    res = client().post("https://echo-body/", sent)
+    assert res.content == bytes(sent)
+
+
+def test_an_unknown_body_encoding_is_refused(client):
+    with pytest.raises(TransportError, match="unknown bodyEncoding"):
+        client().get("https://bad-body-encoding/")
+
+
+def test_a_body_encoding_that_is_not_a_string_is_refused(client):
+    with pytest.raises(TransportError, match='"bodyEncoding" must be a string'):
+        client().get("https://bad-body-encoding-type/")
+
+
+def test_a_body_that_claims_base64_and_is_not_is_refused(client):
+    with pytest.raises(TransportError, match="not valid base64"):
+        client().get("https://bad-base64/")

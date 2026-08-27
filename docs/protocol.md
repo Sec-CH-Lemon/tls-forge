@@ -34,6 +34,7 @@ tls-forge daemon --profile chrome --proxy http://user:pass@host:8080
 | `headers` | layered over the profile's; see below |
 | `order` | the order of the headers you send; when omitted, the profile's own order is used |
 | `body` | request body |
+| `bodyEncoding` | how to read `body`: absent or `utf8` for text, `base64` for bytes |
 | `setCookie` | `name=value` pairs added to the jar before the request |
 
 JSON objects have no order, which is why `order` exists — but it orders the
@@ -80,12 +81,41 @@ values are never folded together because doing that changes the meaning of
 headers such as `set-cookie`. `cookies` is what the jar holds for that URL
 afterwards.
 
+### Bodies that are not text
+
+A JSON string cannot hold arbitrary bytes: an encoder replaces every byte that
+is not valid UTF-8 with U+FFFD, silently, and the response still says `200` with
+no error. So a body that is not valid UTF-8 travels as base64 and says so:
+
+```json
+{"id": 7, "status": 200, "url": "https://example.com/logo.png",
+ "body": "iVBORw0KGgo=", "bodyEncoding": "base64",
+ "headers": {"content-type": ["image/png"]}, "cookies": []}
+```
+
+`bodyEncoding` is **absent** for a text body rather than spelled `utf8`, so the
+overwhelming majority of responses are on the wire they have always been on. A
+client must treat an absent value and `utf8` alike, decode `base64` when it sees
+it, and reject anything else rather than guess.
+
+The same field works in the other direction: a request carrying bytes sets
+`bodyEncoding` to `base64` and base64-encodes `body`.
+
+Response *header* values are still carried as JSON strings, so a header whose
+bytes are not valid UTF-8 — rare, but a latin-1 `content-disposition` filename
+will do it — is still coerced. Headers are not base64-encoded because doing so
+would make every ordinary response unreadable to buy back a case that barely
+occurs.
+
 Failures come back on the same shape, with `error` set and the id intact:
 
 ```json
 {"id": 7, "status": 0, "url": "", "body": "", "headers": null, "cookies": null,
  "error": "tlsforge: dial tcp: connection refused"}
 ```
+
+A request whose `bodyEncoding` is unknown, or whose `body` does not decode as
+the base64 it claims to be, comes back the same way with `error` set.
 
 The daemon does not exit on a bad request. A daemon that died on a malformed URL
 would take the session's cookie jar with it.

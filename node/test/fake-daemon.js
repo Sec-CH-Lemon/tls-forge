@@ -9,6 +9,11 @@
 // reproducible against a healthy server.
 
 import readline from 'node:readline';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const reader = readline.createInterface({ input: process.stdin });
 
@@ -89,6 +94,38 @@ reader.on('line', (line) => {
       break;
     case 'bad-body':
       reply({ body: [] });
+      break;
+    case 'fixture': {
+      // The committed wire format, replayed verbatim except for the id, which
+      // the client matches on. See testdata/protocol/README.md.
+      const fixture = JSON.parse(
+        readFileSync(path.join(here, '..', '..', 'testdata', 'protocol', 'response.json'), 'utf8'),
+      );
+      process.stdout.write(JSON.stringify({ ...fixture, id: request.id }) + '\n');
+      break;
+    }
+    case 'binary':
+      // The bytes a JSON string cannot hold: PNG magic and a stray 0xff.
+      reply({
+        body: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff]).toString('base64'),
+        bodyEncoding: 'base64',
+      });
+      break;
+    case 'echo-body':
+      // Hands back what it was sent, so the request direction can be checked.
+      reply({ body: request.body ?? '', bodyEncoding: request.bodyEncoding ?? '' });
+      break;
+    case 'utf8-encoding':
+      reply({ body: 'plain text', bodyEncoding: 'utf8' });
+      break;
+    case 'bad-body-encoding':
+      reply({ body: 'x', bodyEncoding: 'rot13' });
+      break;
+    case 'bad-body-encoding-type':
+      reply({ body: 'x', bodyEncoding: 7 });
+      break;
+    case 'bad-base64':
+      reply({ body: '!!not base64!!', bodyEncoding: 'base64' });
       break;
     case 'bad-headers':
       reply({ headers: [] });

@@ -130,7 +130,7 @@ const response = await client.request({
 | `method` | `string`, `GET` in `request()` | HTTP method. `get()` and `post()` set it automatically. |
 | `headers` | `Record<string, string>`, `{}` | Headers layered over the profile. Existing profile names retain their browser position. |
 | `order` | `string[]`, profile order | Order for headers supplied by the caller. Unnamed caller headers follow in sorted order. To control the complete sequence, provide every header in both `headers` and `order`. |
-| `body` | `string`, empty | Request body passed through the JSON Lines transport. |
+| `body` | `string \| Buffer \| Uint8Array`, empty | Request body. A `Buffer` or `Uint8Array` is sent as base64 so it arrives intact. |
 | `cookies` | `string[]`, `[]` | `name=value` pairs added to the cookie jar before the request. |
 
 Do not manually set the `cookie` header unless replacing the jar's entire
@@ -158,7 +158,8 @@ Every successful request resolves to:
 |---|---|
 | `status` | HTTP status code. Non-2xx responses still resolve normally. |
 | `url` | Final URL after redirects. |
-| `body` | Decompressed response body as a string. |
+| `body` | Decompressed response body as a string. Bytes that are not valid UTF-8 appear as U+FFFD. |
+| `content` | The same body as a `Buffer`, exactly as it arrived. Use this for images, archives, or anything that is not text. |
 | `headers` | Lower-cased names mapped to arrays of field values. Repeated `set-cookie` fields remain separate. |
 | `cookies` | `name=value` pairs the daemon's jar holds for the final URL. |
 

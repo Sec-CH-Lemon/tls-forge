@@ -76,7 +76,7 @@ client = tlsforge.Client(
 | `binary` | `str | os.PathLike | None`, auto | Explicit path to the transport executable. A missing explicit path raises `BinaryNotFound` and does not fall through. |
 | `insecure` | `bool`, `False` | Skip upstream certificate verification. Use only for controlled endpoints. |
 | `cookie_file` | path or `None` | Load a warmed session from project JSON, browser-export JSON or Netscape cookies.txt. |
-| `cookie_set` | `str | None` | Select a named set from a multi-session file; when omitted, the daemon chooses one at random. |
+| `cookie_set` | `str | None` | Select a named set from a multi-session file; when omitted, the daemon chooses one at random. Requires `cookie_file`; without it, `Client(...)` raises `ValueError`. |
 | `on_stderr` | callable or `None` | Receive transport diagnostics one line at a time. Callback exceptions are ignored so diagnostics cannot break the reader thread. |
 
 `tlsforge.DEFAULT_TIMEOUT` contains the default Python-side timeout.
@@ -130,7 +130,7 @@ response = client.request(
 | `method` | `str`, `"GET"` | HTTP method. `get()` and `post()` set it automatically. |
 | `headers` | `Mapping[str, str] | None` | Headers layered over the profile. Existing profile names retain their browser position. |
 | `order` | `Sequence[str] | None` | Order for caller-supplied headers. Unnamed caller headers follow in sorted order. To control the complete sequence, include every header in both `headers` and `order`. |
-| `body` | `str | None` | Request body transported in the JSON Lines request. `None` omits the field. |
+| `body` | `str | bytes | None` | Request body. `bytes` is sent as base64 so it arrives intact; `None` omits the field. |
 | `cookies` | `Iterable[str] | None` | `name=value` pairs added to the daemon's jar before the request. |
 
 Do not manually set the `cookie` header unless replacing the jar's complete
@@ -158,7 +158,8 @@ Response(
 |---|---|
 | `status` | HTTP status code. Non-2xx responses are still returned normally. |
 | `url` | Final URL after redirects. |
-| `body` | Decompressed response body as `str`. |
+| `body` | Decompressed response body as `str`. Bytes that are not valid UTF-8 appear as U+FFFD. |
+| `content` | The same body as `bytes`, exactly as it arrived. Use this for images, archives, or anything that is not text. |
 | `headers` | Header names mapped to tuples of field values. Repeated `set-cookie` fields remain separate. |
 | `cookies` | Tuple of `name=value` pairs held for the final URL. |
 | `ok` | `True` for status codes from 200 through 299. |

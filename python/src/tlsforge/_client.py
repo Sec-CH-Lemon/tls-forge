@@ -13,6 +13,8 @@ per request is itself a signal — no browser does it.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import math
 import os
@@ -56,6 +58,11 @@ class Response:
     url: str
     """The final URL, after redirects."""
     body: str
+    """The response as text. Bytes that are not valid UTF-8 appear as U+FFFD;
+    use `content` when the response is not text."""
+    content: bytes = b""
+    """The response as bytes, exactly as they arrived. This is the one to use
+    for images, archives, or any body that is not text."""
     headers: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     """Header values in wire order. Values stay separate because folding
     `set-cookie`, among others, changes its meaning."""
@@ -163,7 +170,7 @@ class Client:
     def post(
         self,
         url: str,
-        body: str = "",
+        body: str | bytes = "",
         *,
         headers: Mapping[str, str] | None = None,
         order: Sequence[str] | None = None,
@@ -181,7 +188,7 @@ class Client:
         method: str = "GET",
         headers: Mapping[str, str] | None = None,
         order: Sequence[str] | None = None,
-        body: str | None = None,
+        body: str | bytes | None = None,
         cookies: Iterable[str] | None = None,
     ) -> Response:
         """Make a request.
@@ -212,7 +219,14 @@ class Client:
             if order:
                 payload["order"] = list(order)
             if body is not None:
-                payload["body"] = body
+                # Bytes travel as base64: a JSON string cannot hold arbitrary
+                # bytes, and the transport would replace every one that is not
+                # valid UTF-8 with U+FFFD rather than report a problem.
+                if isinstance(body, (bytes, bytearray)):
+                    payload["body"] = base64.b64encode(bytes(body)).decode("ascii")
+                    payload["bodyEncoding"] = "base64"
+                else:
+                    payload["body"] = body
             if cookies:
                 payload["setCookie"] = list(cookies)
             line = _encode_request(payload)
@@ -480,6 +494,7 @@ def _to_response(payload: dict[str, Any]) -> Response:
     status = payload.get("status")
     url = payload.get("url")
     body = payload.get("body")
+    body_encoding = payload.get("bodyEncoding")
     raw_headers = payload.get("headers")
     raw_cookies = payload.get("cookies")
 
@@ -495,6 +510,29 @@ def _to_response(payload: dict[str, Any]) -> Response:
         raise TransportError('tlsforge: bad response: field "url" must be a string')
     if not isinstance(body, str):
         raise TransportError('tlsforge: bad response: field "body" must be a string')
+    if body_encoding is not None and not isinstance(body_encoding, str):
+        raise TransportError(
+            'tlsforge: bad response: field "bodyEncoding" must be a string'
+        )
+
+    # An absent encoding means the body is the text itself, which is every text
+    # response and so the overwhelming majority of them.
+    if body_encoding in (None, "", "utf8"):
+        content = body.encode("utf-8", "surrogatepass")
+    elif body_encoding == "base64":
+        try:
+            content = base64.b64decode(body, validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise TransportError(
+                f"tlsforge: bad response: body is not valid base64: {exc}"
+            ) from exc
+        # The text view stays useful for a body that is mostly text, and lossy
+        # by definition for one that is not — which is what `content` is for.
+        body = content.decode("utf-8", "replace")
+    else:
+        raise TransportError(
+            f'tlsforge: bad response: unknown bodyEncoding "{body_encoding}"'
+        )
     if not isinstance(raw_headers, dict):
         raise TransportError('tlsforge: bad response: field "headers" must be an object')
     if not isinstance(raw_cookies, list) or not all(
@@ -522,6 +560,7 @@ def _to_response(payload: dict[str, Any]) -> Response:
         status=status,
         url=url,
         body=body,
+        content=content,
         headers=headers,
         cookies=tuple(raw_cookies),
     )
