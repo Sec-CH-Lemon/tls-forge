@@ -39,6 +39,12 @@ type Session struct {
 	http1         *capture.HTTP1
 	navigator     *capture.Navigator
 	remote        string
+
+	// navigation and reported are guarded by the Server's mutex, not this
+	// session's. They describe how the server files this session among the
+	// others, which is not a question a session can answer about itself.
+	navigation bool
+	reported   bool
 }
 
 // Remote is the client's address, which is the only way to tell two otherwise
@@ -92,10 +98,18 @@ type Server struct {
 	tlsConfig *tls.Config
 	host      string
 
-	mu         sync.Mutex
-	sessions   []*Session
-	waiters    []chan *Session
-	navigation *Session
+	mu       sync.Mutex
+	sessions []*Session
+	waiters  []chan *Session
+	// Every connection that fetched the capture page, oldest first, and the
+	// last capture to be completed.
+	//
+	// A list rather than the single pinned session this used to hold: with one,
+	// the second browser to open the page was handed the FIRST browser's
+	// ClientHello and header order labelled with its own user agent. Which is
+	// wrong in a way that looks entirely plausible.
+	navigations []*Session
+	completed   *Session
 	// Open connections, so Close can end them.
 	//
 	// Without this, Close waits forever on any client holding a keep-alive
@@ -237,8 +251,8 @@ func (s *Server) Sessions() []*Session {
 // connection spoke last.
 func (s *Server) Await(ctx context.Context) (*Session, error) {
 	s.mu.Lock()
-	if s.navigation != nil && s.navigation.Navigator() != nil {
-		sess := s.navigation
+	if s.completed != nil {
+		sess := s.completed
 		s.mu.Unlock()
 		return sess, nil
 	}
@@ -414,36 +428,59 @@ func (s *Server) register(sess *Session) {
 	s.sessions = append(s.sessions, sess)
 }
 
-// setNavigation records the connection that fetched the capture page. Only the
-// first is kept: a reload is a new navigation on a connection that now resumes
-// the old one, which is not the cold handshake this is here to measure.
+// setNavigation records a connection that fetched the capture page.
+//
+// Once per connection: a reload is a new navigation on a connection that now
+// resumes the old one, which is not the cold handshake this is here to measure.
+// But every connection that loads the page is recorded, because a second
+// browser is a second navigation and deserves its own.
 func (s *Server) setNavigation(sess *Session) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.navigation == nil {
-		s.navigation = sess
+	if sess.navigation {
+		return
 	}
+	sess.navigation = true
+	s.navigations = append(s.navigations, sess)
 }
 
-// captureSession is the session a report belongs to: the navigation if there
-// was one, otherwise the connection that reported.
+// captureSession is the session a report belongs to.
 //
-// The fallback is adopted AS the navigation rather than merely used, so that a
-// caller who posts to /collect without loading the page still produces a
-// capture Await can return. Without that, the report would attach to a session
-// nothing is looking at and Await would block until its deadline.
+// The report describes the browser rather than the connection that carried it —
+// a POST's header order is an XHR's, not a page load's — so it is filed against
+// a navigation. Which navigation is the whole question:
+//
+//   - The reporting connection's own, when the browser reused it. Over HTTP/2
+//     this is the ordinary case, and it is exactly right.
+//   - Otherwise the newest navigation nobody has reported for yet. Newest and
+//     UNCLAIMED, because a second browser must claim its own page load and not
+//     the first browser's, which is what pinning a single session did.
+//   - Otherwise the reporting session, adopted as a navigation, so that a
+//     caller who posts here without loading the page still produces a capture
+//     Await can return rather than blocking until its deadline.
 func (s *Server) captureSession(fallback *Session) *Session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.navigation == nil {
-		s.navigation = fallback
+	if fallback.navigation {
+		fallback.reported = true
+		return fallback
 	}
-	return s.navigation
+	for i := len(s.navigations) - 1; i >= 0; i-- {
+		if !s.navigations[i].reported {
+			s.navigations[i].reported = true
+			return s.navigations[i]
+		}
+	}
+	fallback.navigation = true
+	fallback.reported = true
+	s.navigations = append(s.navigations, fallback)
+	return fallback
 }
 
 // complete hands a finished capture to whoever is waiting for one.
 func (s *Server) complete(sess *Session) {
 	s.mu.Lock()
+	s.completed = sess
 	waiters := s.waiters
 	s.waiters = nil
 	s.mu.Unlock()
