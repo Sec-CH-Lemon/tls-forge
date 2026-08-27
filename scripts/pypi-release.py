@@ -106,7 +106,17 @@ def stage_project(staging: Path, version: str) -> None:
     shutil.copytree(
         PROJECT,
         staging,
-        ignore=shutil.ignore_patterns("__pycache__", "*.egg-info", ".pytest_cache", "dist"),
+        # .coverage is a SQLite database holding the build machine's absolute
+        # paths. It was shipping inside every sdist: junk in the artifact, and a
+        # small amount of the build host described to anyone who unpacks it.
+        ignore=shutil.ignore_patterns(
+            "__pycache__",
+            "*.egg-info",
+            ".pytest_cache",
+            "dist",
+            ".coverage",
+            ".coverage.*",
+        ),
     )
 
     init = staging / "src" / "tlsforge" / "__init__.py"

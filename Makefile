@@ -77,7 +77,8 @@ dist:
 		[ "$$goos" = windows ] && out="$$out.exe"; \
 		echo "building $$out"; \
 		CGO_ENABLED=0 GOOS=$$goos GOARCH=$$goarch $(GO) build -trimpath \
-			-ldflags "-s -w -X main.version=v$(RELEASE_VERSION)" -o "$$out" ./cmd/tls-forge; \
+			-ldflags "-s -w -X main.version=v$(RELEASE_VERSION)" -o "$$out" ./cmd/tls-forge \
+			|| exit 1; \
 	done
 	node scripts/npm-release.mjs --version $(RELEASE_VERSION) --binaries dist/bin --out dist/npm
 	$(VENV)/bin/python scripts/pypi-release.py --version $(RELEASE_VERSION) --binaries dist/bin --out dist/pypi
