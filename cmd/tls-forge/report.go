@@ -140,7 +140,8 @@ func summarise(records []result, elapsed time.Duration, exits map[string]egress)
 		}
 		stat, seen := byProxy[r.Proxy]
 		if !seen {
-			stat = &proxyStat{Proxy: r.Proxy, Exit: exits[r.Proxy]}
+			// Filed under the URL as given, shown without its password.
+			stat = &proxyStat{Proxy: redactProxy(r.Proxy), Exit: exits[r.Proxy]}
 			byProxy[r.Proxy] = stat
 		}
 		stat.Requests++
@@ -240,7 +241,11 @@ func (s summary) table() string {
 // reportRow is one URL as the HTML report shows it.
 type reportRow struct {
 	result
-	Exit egress
+	// Proxy shadows the embedded result's field so the template renders the
+	// URL without its password. The embedded one stays as given, because it is
+	// what the exit-address lookup is keyed by.
+	Proxy string
+	Exit  egress
 }
 
 // Duration is how long this URL took, including any retries.
@@ -447,7 +452,7 @@ func renderReport(w io.Writer, records []result, s summary, exits map[string]egr
 	kept, dropped := limitRows(records, reportRowLimit)
 	rows := make([]reportRow, 0, len(kept))
 	for _, r := range kept {
-		rows = append(rows, reportRow{result: r, Exit: exits[r.Proxy]})
+		rows = append(rows, reportRow{result: r, Proxy: redactProxy(r.Proxy), Exit: exits[r.Proxy]})
 	}
 	// By when the request went out, which is the order someone reading a run
 	// expects, rather than the order answers happened to come back in.

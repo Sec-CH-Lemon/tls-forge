@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +36,77 @@ type result struct {
 	Millis   int64     `json:"ms"`
 	Attempts int       `json:"attempts,omitempty"`
 	Error    string    `json:"error,omitempty"`
+}
+
+// MarshalJSON writes the record with the proxy password removed.
+//
+// On the type rather than at the one place that encodes it, so that a second
+// thing which learns to write these lines cannot forget: the output is a file
+// people keep, diff and send on.
+func (r result) MarshalJSON() ([]byte, error) {
+	// An alias, because a named type with no methods does not inherit this one
+	// and so cannot recurse into it.
+	type plain result
+	out := plain(r)
+	out.Proxy = redactProxy(out.Proxy)
+	return json.Marshal(out)
+}
+
+// redactProxy strips the password from a proxy URL for display.
+//
+// result.Proxy keeps the URL as given, because it is the key the client pool
+// and the exit-address lookup are filed under. Everything a person can read —
+// the JSON lines, the terminal summary, the HTML report, the note written into
+// a saved cookie file — goes through here first, because all four are made to
+// be kept and passed on, and a proxy password is not the kind of thing to hand
+// over with them.
+//
+// The username stays: it is what tells two proxies apart in a report, and a
+// report that calls every proxy the same thing is not worth writing.
+func redactProxy(proxy string) string {
+	if proxy == "" || !strings.Contains(proxy, "@") {
+		return proxy
+	}
+	u, err := url.Parse(proxy)
+	if err != nil {
+		// Unparseable but carrying an "@" — drop everything before the last one
+		// rather than guess at its shape and print a password by accident.
+		return "[redacted]@" + proxy[strings.LastIndex(proxy, "@")+1:]
+	}
+	if u.User == nil {
+		// Parsed, and the "@" belongs to the path or the query rather than to
+		// any credentials. Rewriting it would corrupt a URL that holds nothing
+		// worth hiding.
+		return proxy
+	}
+	if _, hasPassword := u.User.Password(); !hasPassword {
+		return proxy
+	}
+	u.User = url.User(u.User.Username())
+	return u.String()
+}
+
+// setError records a failure with the proxy password taken out of its text.
+//
+// Needed on top of redactProxy because the proxy URL turns up inside error
+// messages as well as in the proxy field: url.Parse quotes back the whole
+// string it could not parse, so a mistyped proxy writes its own password into
+// the output that was just cleaned of it.
+func (r *result) setError(err error) {
+	text := err.Error()
+	safe := redactProxy(r.Proxy)
+	if safe != r.Proxy {
+		text = strings.ReplaceAll(text, r.Proxy, safe)
+		// The message may quote a normalised form rather than the string as
+		// given, so the credentials are replaced in that shape too.
+		if u, parseErr := url.Parse(r.Proxy); parseErr == nil && u.User != nil {
+			if _, ok := u.User.Password(); ok {
+				text = strings.ReplaceAll(text, u.User.String()+"@",
+					url.User(u.User.Username()).String()+"@")
+			}
+		}
+	}
+	r.Error = text
 }
 
 // batchInput is os.Stdin, named so a test can supply a list.
@@ -292,7 +365,7 @@ func verboseLine(r result) string {
 	line := fmt.Sprintf("  %-3s %10s %8s %s %s", status, humanBytes(int64(r.Bytes)),
 		preciseDuration(time.Duration(r.Millis)*time.Millisecond), tries, r.URL)
 	if r.Proxy != "" {
-		line += "  via " + r.Proxy
+		line += "  via " + redactProxy(r.Proxy)
 	}
 	if r.Error != "" {
 		line += "  " + r.Error
@@ -433,7 +506,7 @@ func (p *pool) saveSessions(flags clientFlags, records []result) (int, error) {
 		}
 		note := "direct"
 		if proxy != "" {
-			note = "via " + proxy
+			note = "via " + redactProxy(proxy)
 		}
 		n, err := flags.saveSession(client, hostsByProxy[proxy], note)
 		if err != nil {
@@ -561,7 +634,7 @@ func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir str
 
 	client, err := clients.get(proxy)
 	if err != nil {
-		r.Error = err.Error()
+		r.setError(err)
 		r.finish(started)
 		return r
 	}
@@ -584,7 +657,7 @@ func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir str
 	r.finish(started)
 
 	if err != nil {
-		r.Error = err.Error()
+		r.setError(err)
 		return r
 	}
 	r.Status = res.Status
@@ -600,7 +673,7 @@ func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir str
 	sum := sha256.Sum256([]byte(j.URL))
 	path := filepath.Join(bodyDir, hex.EncodeToString(sum[:8])+".html")
 	if err := os.WriteFile(path, res.Body, 0o644); err != nil {
-		r.Error = err.Error()
+		r.setError(err)
 		return r
 	}
 	r.File = path
