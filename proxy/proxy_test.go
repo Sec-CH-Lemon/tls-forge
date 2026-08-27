@@ -763,3 +763,27 @@ func TestLeafCertificates(t *testing.T) {
 		t.Errorf("IP addresses = %v", ipLeaf.IPAddresses)
 	}
 }
+
+// TestProxyAuthorizationIsNotForwarded pins a credential boundary.
+//
+// Proxy-Authorization is addressed to this proxy, not through it. Forwarding it
+// hands the user's proxy password to whatever site they browsed to — which,
+// unlike the proxy, they may not have chosen to trust with it.
+func TestProxyAuthorizationIsNotForwarded(t *testing.T) {
+	incoming := http.Header{
+		"Proxy-Authorization": {"Basic YWxpY2U6aHVudGVyMg=="},
+		"Proxy-Authenticate":  {"Basic realm=\"proxy\""},
+		"Cookie":              {"session=abc"},
+	}
+	out := mergeHeaders(tlsforge.NewHeader("accept", "*/*"), incoming)
+
+	for _, name := range []string{"proxy-authorization", "proxy-authenticate"} {
+		if out.Has(name) {
+			t.Errorf("%s was forwarded to the destination", name)
+		}
+	}
+	// A header the proxy has no business dropping still gets through.
+	if got := out.Get("cookie"); got != "session=abc" {
+		t.Errorf("cookie = %q, want the incoming value", got)
+	}
+}

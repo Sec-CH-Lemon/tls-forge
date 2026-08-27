@@ -289,6 +289,10 @@ func mergeHeaders(profile tlsforge.Header, incoming http.Header) tlsforge.Header
 			// Hop-by-hop, or recomputed by the transport. Forwarding them
 			// describes the connection to the proxy, not the one to the site.
 			continue
+		case "proxy-authorization", "proxy-authenticate":
+			// Addressed to this proxy, not through it. Forwarding them hands
+			// the user's proxy password to whatever site they browsed to.
+			continue
 		}
 		if out.Has(lower) {
 			continue
