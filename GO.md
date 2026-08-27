@@ -276,6 +276,14 @@ for _, name := range profile.Names() {
 }
 ```
 
+`client.Profile()` returns the profile the client is actually impersonating,
+which is the one to ask when the name was resolved for you — `"chrome"` picks
+the newest measured Chrome, and this is how to find out which that was:
+
+```go
+fmt.Println(client.Profile().Name)
+```
+
 Load a captured profile directly:
 
 ```go

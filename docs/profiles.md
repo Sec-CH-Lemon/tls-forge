@@ -147,8 +147,15 @@ It exits 3 when the fingerprints no longer match (`1` means the comparison
 could not be completed). When they differ:
 
 ```bash
-tls-forge capture --headless --save profile/data
+tls-forge capture --save profile/data
 ```
+
+Headed, not `--headless`. A headless capture records `HeadlessChrome` as its
+user-agent, and committing one here would make every library user impersonate
+headless Chrome by default — which is a browser almost nobody browses with, and
+so a signal rather than a disguise. The committed profiles are headed for
+exactly this reason; capture a dedicated headless profile only when a headless
+identity is the one you want.
 
 Commit the new file. Nothing else needs changing: the family name resolves to
 the newest measured profile, and the old one stays available for pinning.

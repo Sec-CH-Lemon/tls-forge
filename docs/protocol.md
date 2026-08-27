@@ -59,9 +59,18 @@ sec-ch-ua, sec-ch-ua-mobile, …, accept-language, priority, referer, x-extra
 ```
 
 — the browser's order, with your headers after it — not a request beginning with
-`referer`. To dictate the whole sequence, name every header in `order` and supply
-every one of them in `headers`. The `cookie` header is written by the transport
-from the jar and appears in neither.
+`referer`.
+
+There is no way to dictate the whole sequence. Naming every header in `order`
+does not do it: the merge keeps the profile's position for every name the
+profile already has, and only the names it does not have follow in the order you
+gave. That is deliberate — the profile's order is the fingerprint being
+impersonated, and a request that could reorder it at will would mostly be used
+to break it by accident. A caller who genuinely needs a different order needs a
+different profile.
+
+The `cookie` header is written by the transport from the jar and appears in
+neither.
 
 ## Response
 

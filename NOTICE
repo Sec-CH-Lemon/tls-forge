@@ -21,13 +21,15 @@ the author's work, and the Apache-2.0 grant above is not a claim over them:
       author's own machine and kept as a test fixture. It is a protocol message
       — a measurement of what a program sent — not a copy of that program.
 
-  profile/data/chrome_151.json
+  profile/data/chrome_151/linux.json
+  profile/data/chrome_151/macos.json
+  profile/data/chrome_151/windows.json
       The same ClientHello together with the HTTP/2 settings, header order and
-      user-agent string observed from the same browser. The user-agent string is
-      Google's; the rest is measurement.
+      user-agent string observed from the same browser, one file per platform.
+      The user-agent strings are Google's; the rest is measurement.
 
-Neither file contains any part of Chrome, and nothing here is endorsed by or
-affiliated with Google. Everything else in the tree — the library, the echo
+None of these files contains any part of Chrome, and nothing here is endorsed by
+or affiliated with Google. Everything else in the tree — the library, the echo
 server, the command line, the Node client, the tests and the prose — is the
 author's work and is covered by LICENSE.
 
