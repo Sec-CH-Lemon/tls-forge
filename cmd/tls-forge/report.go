@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -394,11 +393,11 @@ var reportTemplate = template.Must(template.New("report").Parse(reportMarkup))
 // directory of them sorts into the order they were made, which the named month
 // used elsewhere in the report would not.
 //
-// Seconds, not finer: two runs that start within one second of each other still
-// collide, and a batch takes at least as long as its slowest request, so that
-// is reachable from a test and not from a scrape.
+// Both separators are accepted as a directory hint. Go accepts forward slashes
+// on Windows too, and that is the spelling the cross-platform README uses.
 func reportPath(given string, when time.Time) string {
-	if !strings.HasSuffix(given, string(os.PathSeparator)) {
+	directoryHint := strings.HasSuffix(given, "/") || strings.HasSuffix(given, `\`)
+	if !directoryHint {
 		if info, err := os.Stat(given); err != nil || !info.IsDir() {
 			return given
 		}
@@ -406,28 +405,18 @@ func reportPath(given string, when time.Time) string {
 	return filepath.Join(given, "report-"+stamp(when)+".html")
 }
 
-// goos is runtime.GOOS, named so a test can be the other platform. Whether a
-// colon may appear in a file name is not something a test can arrange by
-// writing one.
-var goos = runtime.GOOS
-
 // stamp is the time in a report's file name.
 //
 // Ordered largest unit first, so a directory of reports sorts into the order
 // they were made, which the named month used inside the report would not.
 // Milliseconds, because a batch can be started twice inside one second.
-//
-// Colons where a clock has them, except on Windows, which forbids one in a file
-// name outright: there it means an alternate data stream, and os.Create fails
-// on it. One spelling for every platform would be tidier than two; a name that
-// cannot be created on one of them would not be.
+// Hyphens, rather than clock colons, keep the same spelling portable to Windows
+// where a colon denotes an alternate data stream and cannot name a normal file.
 func stamp(t time.Time) string {
-	clock := t.Format("2006-01-02-15:04:05") + fmt.Sprintf(":%03d", t.Nanosecond()/int(time.Millisecond))
-	if goos == "windows" {
-		return strings.ReplaceAll(clock, ":", "-")
-	}
-	return clock
+	return t.Format("2006-01-02-150405") + fmt.Sprintf("-%03d", t.Nanosecond()/int(time.Millisecond))
 }
+
+var chmodReport = (*os.File).Chmod
 
 // writeReport renders the run as one self-contained HTML file.
 //
@@ -444,9 +433,13 @@ func writeReport(path string, records []result, s summary, exits map[string]egre
 			return fmt.Errorf("batch: %w", err)
 		}
 	}
-	file, err := os.Create(path)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("batch: %w", err)
+	}
+	if err := chmodReport(file, 0o600); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("batch: securing report: %w", err)
 	}
 	defer func() { _ = file.Close() }()
 	return renderReport(file, records, s, exits)

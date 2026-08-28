@@ -246,11 +246,33 @@ func TestWriteReportToAPathThatWillNotOpen(t *testing.T) {
 // because nothing created the directory.
 func TestWriteReportMakesTheDirectory(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "reports", "r.html")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	// Rewriting a pre-existing report must tighten permissions too; OpenFile's
+	// mode alone only applies when a file is first created.
+	if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
 	if err := writeReport(path, nil, summary{}, nil); err != nil {
 		t.Fatalf("writeReport: %v", err)
 	}
-	if _, err := os.Stat(path); err != nil {
+	info, err := os.Stat(path)
+	if err != nil {
 		t.Errorf("report was not written: %v", err)
+	} else if got := info.Mode().Perm(); got != 0o600 {
+		t.Errorf("report permissions = %#o, want 0600", got)
+	}
+}
+
+func TestWriteReportReportsAChmodFailure(t *testing.T) {
+	original := chmodReport
+	t.Cleanup(func() { chmodReport = original })
+	chmodReport = func(_ *os.File, _ os.FileMode) error { return fmt.Errorf("permission denied") }
+
+	err := writeReport(filepath.Join(t.TempDir(), "report.html"), nil, summary{}, nil)
+	if err == nil || !strings.Contains(err.Error(), "securing report") {
+		t.Fatalf("writeReport error = %v", err)
 	}
 }
 
@@ -565,6 +587,16 @@ func TestReportPath(t *testing.T) {
 	if got := reportPath(notYet, when); got != filepath.Join(dir, "runs", stamped) {
 		t.Errorf("a trailing separator: %q", got)
 	}
+	// README uses '/', while a Windows shell naturally supplies '\\'. Accept
+	// both even before the directory exists, on every platform.
+	otherSeparator := `\`
+	if os.PathSeparator == '\\' {
+		otherSeparator = "/"
+	}
+	other := filepath.Join(dir, "other") + otherSeparator
+	if got := reportPath(other, when); got == other || filepath.Base(got) != stamped {
+		t.Errorf("the other platform's separator was not a directory hint: %q", got)
+	}
 
 	// A named file is used as given, whether or not it is there already.
 	named := filepath.Join(dir, "run.html")
@@ -607,25 +639,15 @@ func TestBatchNamesTheReportAfterTheRun(t *testing.T) {
 func TestReportFileStamp(t *testing.T) {
 	when := time.Date(2026, 8, 16, 1, 9, 45, 123_000_000, time.UTC)
 
-	original := goos
-	t.Cleanup(func() { goos = original })
-
-	goos = "darwin"
-	if got := stamp(when); got != "2026-08-16-01:09:45:123" {
+	if got := stamp(when); got != "2026-08-16-010945-123" {
 		t.Errorf("stamp = %q", got)
-	}
-	// Windows forbids a colon in a file name: there it means an alternate data
-	// stream, and os.Create fails on one.
-	goos = "windows"
-	if got := stamp(when); got != "2026-08-16-01-09-45-123" {
-		t.Errorf("stamp on windows = %q", got)
 	}
 
 	// Zero-padded throughout, and ordered largest unit first, so a directory of
-	// them sorts into the order they were made.
-	goos = "linux"
+	// them sorts into the order they were made. It contains no colons, so the
+	// exact same name is valid on Windows too.
 	early := stamp(time.Date(2026, 1, 2, 3, 4, 5, 6_000_000, time.UTC))
-	if early != "2026-01-02-03:04:05:006" {
+	if early != "2026-01-02-030405-006" {
 		t.Errorf("stamp = %q", early)
 	}
 	if early >= stamp(when) {

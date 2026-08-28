@@ -126,7 +126,7 @@ cat urls.txt | ../bin/tls-forge batch     # or standard input
 directory, the report names itself after the run:
 
 ```
-report written to reports/report-2026-08-16-09:18:54:584.html
+report written to reports/report-2026-08-16-091854-584.html
 ```
 
 One line of `results.jsonl`, with the body cut short here:

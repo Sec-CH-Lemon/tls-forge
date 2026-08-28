@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
@@ -24,18 +26,21 @@ import (
 // result is one line of the output. JSON lines rather than a JSON array so the
 // output can be read as it is produced, and appended to across runs.
 type result struct {
-	URL      string    `json:"url"`
-	Proxy    string    `json:"proxy,omitempty"`
-	Status   int       `json:"status,omitempty"`
-	FinalURL string    `json:"final_url,omitempty"`
-	Bytes    int       `json:"bytes,omitempty"`
-	Body     string    `json:"body,omitempty"`
-	File     string    `json:"file,omitempty"`
-	Started  time.Time `json:"started"`
-	Ended    time.Time `json:"ended"`
-	Millis   int64     `json:"ms"`
-	Attempts int       `json:"attempts,omitempty"`
-	Error    string    `json:"error,omitempty"`
+	URL      string `json:"url"`
+	Proxy    string `json:"proxy,omitempty"`
+	Status   int    `json:"status,omitempty"`
+	FinalURL string `json:"final_url,omitempty"`
+	Bytes    int    `json:"bytes,omitempty"`
+	Body     string `json:"body,omitempty"`
+	// BodyEncoding is "base64" when Body was not valid UTF-8. It is omitted
+	// for text so existing JSONL consumers keep seeing the old shape normally.
+	BodyEncoding string    `json:"body_encoding,omitempty"`
+	File         string    `json:"file,omitempty"`
+	Started      time.Time `json:"started"`
+	Ended        time.Time `json:"ended"`
+	Millis       int64     `json:"ms"`
+	Attempts     int       `json:"attempts,omitempty"`
+	Error        string    `json:"error,omitempty"`
 }
 
 // MarshalJSON writes the record with the proxy password removed.
@@ -67,7 +72,14 @@ func redactProxy(proxy string) string {
 	if proxy == "" || !strings.Contains(proxy, "@") {
 		return proxy
 	}
-	u, err := url.Parse(proxy)
+	parsed := proxy
+	schemeLess := !strings.Contains(proxy, "://")
+	if schemeLess {
+		// url.Parse reads "alice:secret@host" as an opaque URL whose scheme is
+		// alice, so User is nil and the password used to pass through unchanged.
+		parsed = "proxy://" + proxy
+	}
+	u, err := url.Parse(parsed)
 	if err != nil {
 		// Unparseable but carrying an "@" — drop everything before the last one
 		// rather than guess at its shape and print a password by accident.
@@ -83,7 +95,11 @@ func redactProxy(proxy string) string {
 		return proxy
 	}
 	u.User = url.User(u.User.Username())
-	return u.String()
+	safe := u.String()
+	if schemeLess {
+		safe = strings.TrimPrefix(safe, "proxy://")
+	}
+	return safe
 }
 
 // setError records a failure with the proxy password taken out of its text.
@@ -665,7 +681,12 @@ func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir str
 	r.Bytes = len(res.Body)
 
 	if bodyDir == "" {
-		r.Body = string(res.Body)
+		if utf8.Valid(res.Body) {
+			r.Body = string(res.Body)
+		} else {
+			r.Body = base64.StdEncoding.EncodeToString(res.Body)
+			r.BodyEncoding = "base64"
+		}
 		return r
 	}
 	// Named from the URL rather than from a counter, so a re-run overwrites the

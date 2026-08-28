@@ -20,6 +20,8 @@ func TestRedactProxy(t *testing.T) {
 		{"empty password", "http://alice:@proxy.example:8080", "http://alice@proxy.example:8080"},
 		{"socks5", "socks5://bob:hunter2@127.0.0.1:1080", "socks5://bob@127.0.0.1:1080"},
 		{"encoded password", "http://alice:p%40ss@proxy.example:8080", "http://alice@proxy.example:8080"},
+		{"scheme-less password", "alice:s3cr3t@proxy.example:8080", "alice@proxy.example:8080"},
+		{"scheme-less username", "alice@proxy.example:8080", "alice@proxy.example:8080"},
 		// Carries an "@" but will not parse. Everything before the last one goes,
 		// rather than guessing at the shape and printing a password by accident.
 		{"unparseable", "://alice:s3cr3t@bad", "[redacted]@bad"},

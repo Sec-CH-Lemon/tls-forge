@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -79,6 +80,30 @@ func TestBatchFetchesEveryURL(t *testing.T) {
 		if r.Body != "page "+path {
 			t.Errorf("%s: body = %q", path, r.Body)
 		}
+	}
+}
+
+func TestBatchJSONLPreservesABinaryBody(t *testing.T) {
+	want := []byte{0x89, 'P', 'N', 'G', 0xff, 0xd8, 0xff}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(want)
+	}))
+	defer server.Close()
+
+	code, stdout, stderr := exec(t, "batch", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	got := lines(t, stdout)[server.URL]
+	if got.BodyEncoding != "base64" {
+		t.Fatalf("body_encoding = %q, want base64", got.BodyEncoding)
+	}
+	decoded, err := base64.StdEncoding.DecodeString(got.Body)
+	if err != nil {
+		t.Fatalf("body is not base64: %v", err)
+	}
+	if string(decoded) != string(want) || got.Bytes != len(want) {
+		t.Errorf("decoded body = % x (%d bytes reported), want % x", decoded, got.Bytes, want)
 	}
 }
 
@@ -486,7 +511,9 @@ func TestBatchStopsHandingOutWorkWhenInterrupted(t *testing.T) {
 	// What is in flight finishes; what has not started does not begin. Without
 	// it, Ctrl-C on a list of ten thousand keeps fetching.
 	released := make(chan struct{})
+	started := make(chan struct{}, 50)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		started <- struct{}{}
 		<-released
 		_, _ = w.Write([]byte("page"))
 	}))
@@ -498,19 +525,29 @@ func TestBatchStopsHandingOutWorkWhenInterrupted(t *testing.T) {
 		urls = append(urls, fmt.Sprintf("%s/%d", server.URL, i))
 	}
 
+	var stdout strings.Builder
 	done := make(chan int, 1)
 	go func() {
 		args := append([]string{"batch", "--concurrency", "2", "--timeout", "2s"}, urls...)
-		done <- run(ctx, args, &strings.Builder{}, &strings.Builder{})
+		done <- run(ctx, args, &stdout, &strings.Builder{})
 	}()
 
-	time.Sleep(200 * time.Millisecond)
+	for range 2 {
+		select {
+		case <-started:
+		case <-time.After(5 * time.Second):
+			t.Fatal("two workers did not start requests")
+		}
+	}
 	cancel()
 
 	select {
 	case <-done:
 	case <-time.After(30 * time.Second):
 		t.Fatal("the run did not stop after the context was cancelled")
+	}
+	if got := len(lines(t, stdout.String())); got != 2 {
+		t.Fatalf("got %d results after interrupt, want only the two in flight\n%s", got, stdout.String())
 	}
 }
 
