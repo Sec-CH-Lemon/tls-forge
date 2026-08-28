@@ -724,6 +724,21 @@ func TestStartReportsASecondListenerFailure(t *testing.T) {
 	}
 }
 
+type malformedListenerAddr struct{}
+
+func (malformedListenerAddr) Network() string { return "tcp" }
+func (malformedListenerAddr) String() string  { return "missing-port" }
+
+type malformedAddrListener struct{ net.Listener }
+
+func (malformedAddrListener) Addr() net.Addr { return malformedListenerAddr{} }
+
+func TestListenCaptureReportsAMalformedMainAddress(t *testing.T) {
+	if _, err := listenCapture(malformedAddrListener{}); err == nil {
+		t.Error("a listener address without a port was accepted")
+	}
+}
+
 func TestCloseIsIdempotentInEffect(t *testing.T) {
 	server, err := Start()
 	if err != nil {
