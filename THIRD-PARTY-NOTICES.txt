@@ -11,7 +11,7 @@ changes; `go list` below is the source of truth, not this paragraph.
 
 
 --------------------------------------------------------------------------------
-github.com/andybalholm/brotli v1.2.0
+github.com/andybalholm/brotli v1.2.3
 --------------------------------------------------------------------------------
 
 Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
@@ -240,7 +240,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/klauspost/compress v1.18.7
+github.com/klauspost/compress v1.19.2
 --------------------------------------------------------------------------------
 
 Copyright (c) 2012 The Go Authors. All rights reserved.
@@ -620,7 +620,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-golang.org/x/crypto v0.53.0
+golang.org/x/crypto v0.55.0
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -652,7 +652,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-golang.org/x/net v0.56.0
+golang.org/x/net v0.58.0
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -684,7 +684,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-golang.org/x/sys v0.46.0
+golang.org/x/sys v0.47.0
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -716,7 +716,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-golang.org/x/text v0.39.0
+golang.org/x/text v0.41.0
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
