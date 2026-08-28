@@ -70,11 +70,22 @@ func loadNetscape(body string) (*File, error) {
 		if fields[5] == "" {
 			return nil, fmt.Errorf("cookie: line %d has no name", line)
 		}
+		includeField := strings.TrimSpace(fields[1])
+		if !strings.EqualFold(includeField, "TRUE") && !strings.EqualFold(includeField, "FALSE") {
+			return nil, fmt.Errorf("cookie: line %d: %q is not TRUE or FALSE", line, fields[1])
+		}
+		domain := fields[0]
+		if strings.EqualFold(includeField, "TRUE") && !strings.HasPrefix(domain, ".") {
+			// Go's cookie jar expresses include-subdomains with a leading dot.
+			// Ignoring the explicit Netscape column silently narrowed the cookie
+			// to one host when exporters wrote example.com + TRUE.
+			domain = "." + domain
+		}
 
 		c := Cookie{
 			Name:     fields[5],
 			Value:    fields[6],
-			Domain:   fields[0],
+			Domain:   domain,
 			Path:     fields[2],
 			Secure:   strings.EqualFold(strings.TrimSpace(fields[3]), "TRUE"),
 			HTTPOnly: httpOnly,

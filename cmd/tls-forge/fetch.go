@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -169,17 +170,27 @@ func (f clientFlags) saveSession(client *tlsforge.Client, hosts []string, note s
 		return 0, nil
 	}
 	set := cookie.Set{ID: now().Format("2006-01-02-15-04-05"), Warmed: now(), Note: note}
-	seen := map[string]bool{}
-	for _, host := range hosts {
-		if seen[host] {
+	// The same cookie can be returned for every one of thousands of paths on a
+	// host. Keep one copy of each cookie identity per host: including the host
+	// preserves two independent host-only cookies with the same name, while
+	// domain and path preserve the distinctions RFC 6265 gives them.
+	type cookieKey struct{ host, name, domain, path string }
+	seenCookie := map[cookieKey]bool{}
+	for _, rawURL := range hosts {
+		parsed, err := url.Parse(rawURL)
+		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 			continue
 		}
-		seen[host] = true
-		held, err := client.CookiesFor(host)
-		if err != nil {
-			continue
-		}
+		host := strings.ToLower(parsed.Hostname())
+		// CookiesFor can only fail while parsing the same URL already parsed
+		// above, so its error path is unreachable here.
+		held, _ := client.CookiesFor(rawURL)
 		for _, c := range held {
+			key := cookieKey{host: host, name: c.Name, domain: c.Domain, path: c.Path}
+			if seenCookie[key] {
+				continue
+			}
+			seenCookie[key] = true
 			set.Cookies = append(set.Cookies, cookie.Cookie{
 				Name: c.Name, Value: c.Value, Domain: c.Domain, Path: c.Path,
 				Secure: c.Secure, HTTPOnly: c.HTTPOnly, Expires: c.Expires,

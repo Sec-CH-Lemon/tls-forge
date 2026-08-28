@@ -69,10 +69,21 @@ func TestLoadNetscapeDetails(t *testing.T) {
 	}
 }
 
+func TestLoadNetscapeHonoursIncludeSubdomainsWithoutALeadingDot(t *testing.T) {
+	file, err := Load([]byte("example.com\tTRUE\t/\tFALSE\t0\tsession\tabc\n"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got := file.Sets[0].Cookies[0].Domain; got != ".example.com" {
+		t.Errorf("domain = %q, want .example.com", got)
+	}
+}
+
 func TestLoadNetscapeRejectsWhatItCannotRead(t *testing.T) {
 	for _, tc := range []struct{ name, body string }{
 		{"too few fields", "example.com\tTRUE\t/\tFALSE\t0\tname\n"},
 		{"an expiry that is not a number", "example.com\tTRUE\t/\tFALSE\tsoon\tname\tvalue\n"},
+		{"an invalid include-subdomains flag", "example.com\tMAYBE\t/\tFALSE\t0\tname\tvalue\n"},
 		{"a cookie with no name", "example.com\tTRUE\t/\tFALSE\t0\t\tvalue\n"},
 		{"comments and nothing else", "# Netscape HTTP Cookie File\n# nothing here\n"},
 	} {

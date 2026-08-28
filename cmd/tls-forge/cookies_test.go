@@ -460,6 +460,35 @@ func TestSaveSessionSkipsAURLItCannotRead(t *testing.T) {
 	}
 }
 
+func TestSaveSessionDeduplicatesCookiesAcrossPathsOnOneOrigin(t *testing.T) {
+	fakeClock(t)
+	server := cookieEcho(t)
+	fs := newFlagSet("batch", newPrinter(io.Discard))
+	flags := addClientFlags(fs)
+	path := filepath.Join(t.TempDir(), "warm.json")
+	if err := parse(fs, []string{"--insecure", "--save-cookies", path}); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	client, err := flags.client()
+	if err != nil {
+		t.Fatalf("client: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+	if _, err := client.Get(server.URL + "/set"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	saved, err := flags.saveSession(client, []string{
+		server.URL + "/one", server.URL + "/two", server.URL + "/three",
+	}, "")
+	if err != nil {
+		t.Fatalf("saveSession: %v", err)
+	}
+	if saved != 2 {
+		t.Errorf("saved %d cookies, want each of the origin's two cookies once", saved)
+	}
+}
+
 func TestBatchSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
 	// A typo in the proxy column means no client was ever made for it, so there
 	// is no jar to write down and the rest of the run is still saved.
