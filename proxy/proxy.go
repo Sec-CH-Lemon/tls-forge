@@ -308,7 +308,9 @@ func mergeHeaders(profile tlsforge.Header, incoming http.Header) tlsforge.Header
 	}
 	sort.Strings(extras)
 	for _, name := range extras {
-		out.Set(name, incoming.Get(name))
+		for _, value := range incoming.Values(name) {
+			out.Add(name, value)
+		}
 	}
 	return out
 }

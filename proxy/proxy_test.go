@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -785,5 +786,19 @@ func TestProxyAuthorizationIsNotForwarded(t *testing.T) {
 	// A header the proxy has no business dropping still gets through.
 	if got := out.Get("cookie"); got != "session=abc" {
 		t.Errorf("cookie = %q, want the incoming value", got)
+	}
+}
+
+func TestMergeHeadersPreservesRepeatedValues(t *testing.T) {
+	incoming := http.Header{
+		"Cookie":          {"a=1", "b=2"},
+		"X-Forwarded-For": {"192.0.2.1", "198.51.100.2"},
+	}
+	out := mergeHeaders(tlsforge.NewHeader("accept", "*/*"), incoming)
+	if got, want := out.Values("cookie"), []string{"a=1", "b=2"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("cookie = %v, want %v", got, want)
+	}
+	if got, want := out.Values("x-forwarded-for"), []string{"192.0.2.1", "198.51.100.2"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("x-forwarded-for = %v, want %v", got, want)
 	}
 }

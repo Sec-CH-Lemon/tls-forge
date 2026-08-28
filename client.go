@@ -35,6 +35,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"net/textproto"
 	"net/url"
 	"strings"
 	"sync"
@@ -303,14 +304,23 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	c.seedCookies(parsed, req.Cookies)
 
 	headers := c.headers.Merge(req.Header)
-	// Assigned directly rather than through Set, which would canonicalise the
-	// names to Sec-Ch-Ua form. HPACK requires lower case, and the order key is
-	// matched lower-cased, so the map and the order list have to agree.
+	// HTTP/1.1 keeps the spelling in this map on the wire; HTTP/2 lower-cases it
+	// during HPACK encoding. Canonical spelling therefore fixes forced HTTP/1.1
+	// without changing an HTTP/2 fingerprint.
 	inner.Header = fhttp.Header{}
+	order := []string{"host"}
+	seen := map[string]bool{"host": true}
+	inner.Header["Host"] = []string{parsed.Host}
 	for _, f := range headers {
-		inner.Header[f.Name] = []string{f.Value}
+		name := strings.ToLower(f.Name)
+		wireName := textproto.CanonicalMIMEHeaderKey(name)
+		inner.Header[wireName] = append(inner.Header[wireName], f.Value)
+		if !seen[name] {
+			order = append(order, name)
+			seen[name] = true
+		}
 	}
-	inner.Header[fhttp.HeaderOrderKey] = headers.Names()
+	inner.Header[fhttp.HeaderOrderKey] = order
 	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
 		inner.Header[fhttp.PHeaderOrderKey] = order
 	}

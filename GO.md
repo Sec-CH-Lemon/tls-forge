@@ -191,8 +191,10 @@ headers.Del("X-Trace")
 |---|---|
 | `NewHeader(name, value, ...)` | Build a header list from alternating pairs. A final unmatched item is ignored. Names are lower-cased. |
 | `Get(name)` | Return the first value, case-insensitively. |
+| `Values(name)` | Return every value for a name in wire order. |
 | `Has(name)` | Report whether the name exists, including with an empty value. |
 | `Set(name, value)` | Replace a value in place or append a new field. |
+| `Add(name, value)` | Append another value without replacing an existing field. |
 | `Del(name)` | Remove all fields with this name. |
 | `Names()` | Return names in wire order. |
 | `Clone()` | Return an independent copy. |

@@ -35,6 +35,17 @@ func (h Header) Get(name string) string {
 	return ""
 }
 
+// Values returns every value for a name, in wire order.
+func (h Header) Values(name string) []string {
+	var out []string
+	for _, f := range h {
+		if strings.EqualFold(f.Name, name) {
+			out = append(out, f.Value)
+		}
+	}
+	return out
+}
+
 // Has reports whether a name is present, including with an empty value.
 func (h Header) Has(name string) bool {
 	for _, f := range h {
@@ -60,6 +71,13 @@ func (h *Header) Set(name, value string) {
 		}
 	}
 	*h = append(*h, profile.Field{Name: name, Value: value})
+}
+
+// Add appends another value for a header. Unlike Set it deliberately keeps an
+// existing value; repeated Cookie, Via and X-Forwarded-For fields are distinct
+// fields on the wire and must not be collapsed by the proxy.
+func (h *Header) Add(name, value string) {
+	*h = append(*h, profile.Field{Name: strings.ToLower(name), Value: value})
 }
 
 // Del removes a header.
@@ -94,9 +112,35 @@ func (h Header) Clone() Header {
 // `referer` gets the browser's order with referer in the browser's slot, not a
 // browser-shaped list with one header bolted onto the end.
 func (h Header) Merge(overrides Header) Header {
-	out := h.Clone()
+	if len(overrides) == 0 {
+		return h.Clone()
+	}
+	values := make(map[string][]profile.Field)
 	for _, f := range overrides {
-		out.Set(f.Name, f.Value)
+		name := strings.ToLower(f.Name)
+		values[name] = append(values[name], profile.Field{Name: name, Value: f.Value})
+	}
+
+	out := make(Header, 0, len(h)+len(overrides))
+	used := make(map[string]bool)
+	for _, f := range h {
+		name := strings.ToLower(f.Name)
+		if replacement, ok := values[name]; ok {
+			if !used[name] {
+				out = append(out, replacement...)
+				used[name] = true
+			}
+			continue
+		}
+		out = append(out, f)
+	}
+	for _, f := range overrides {
+		name := strings.ToLower(f.Name)
+		if used[name] || h.Has(name) {
+			continue
+		}
+		out = append(out, values[name]...)
+		used[name] = true
 	}
 	return out
 }

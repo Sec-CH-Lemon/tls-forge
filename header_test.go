@@ -60,6 +60,14 @@ func TestSetAppendsWhatIsNotThere(t *testing.T) {
 	}
 }
 
+func TestAddKeepsEveryValue(t *testing.T) {
+	h := NewHeader("cookie", "a=1")
+	h.Add("Cookie", "b=2")
+	if got, want := h.Values("cookie"), []string{"a=1", "b=2"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Values = %v, want %v", got, want)
+	}
+}
+
 func TestDel(t *testing.T) {
 	h := NewHeader("a", "1", "b", "2", "c", "3")
 	h.Del("B")
@@ -109,5 +117,21 @@ func TestMergeWithNothing(t *testing.T) {
 	base := NewHeader("a", "1")
 	if got := base.Merge(nil); !reflect.DeepEqual(got, base) {
 		t.Errorf("Merge(nil) = %v, want %v", got, base)
+	}
+}
+
+func TestMergePreservesRepeatedOverrideValues(t *testing.T) {
+	base := NewHeader("accept", "text/html", "x-after", "last")
+	overrides := NewHeader("cookie", "a=1", "cookie", "b=2", "accept", "application/json")
+	merged := base.Merge(overrides)
+
+	if got, want := merged.Values("cookie"), []string{"a=1", "b=2"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("cookie values = %v, want %v", got, want)
+	}
+	if got, want := merged.Names(), []string{"accept", "x-after", "cookie", "cookie"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("names = %v, want %v", got, want)
+	}
+	if got := merged.Get("accept"); got != "application/json" {
+		t.Errorf("accept = %q", got)
 	}
 }

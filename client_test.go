@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"bufio"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -10,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"net"
@@ -459,6 +461,89 @@ func TestTransportOptionEscapeHatch(t *testing.T) {
 	measured := measure(t, client, server)
 	if measured.Negotiated != "http/1.1" {
 		t.Errorf("ALPN = %q, want the forced http/1.1", measured.Negotiated)
+	}
+}
+
+func recordingHTTP1Server(t *testing.T) (string, <-chan []string) {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("key: %v", err)
+	}
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1), NotBefore: time.Now().Add(-time.Hour),
+		NotAfter: time.Now().Add(time.Hour), IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("certificate: %v", err)
+	}
+	listener, err := tls.Listen("tcp", "127.0.0.1:0", &tls.Config{
+		Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}},
+		NextProtos:   []string{"http/1.1"},
+	})
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	lines := make(chan []string, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+		scanner := bufio.NewScanner(conn)
+		var request []string
+		for scanner.Scan() {
+			line := strings.TrimSuffix(scanner.Text(), "\r")
+			if line == "" {
+				break
+			}
+			request = append(request, line)
+		}
+		lines <- request
+		_, _ = io.WriteString(conn, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+	}()
+	return "https://" + listener.Addr().String() + "/", lines
+}
+
+func TestForcedHTTP1UsesBrowserLikeCasingAndHeaderOrder(t *testing.T) {
+	url, recorded := recordingHTTP1Server(t)
+	client := newTestClient(t, WithTransportOption(tls_client.WithForceHttp1()))
+	res, err := client.Do(&Request{URL: url, Header: NewHeader(
+		"x-repeat", "one", "x-repeat", "two",
+	)})
+	if err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if string(res.Body) != "ok" {
+		t.Fatalf("body = %q", res.Body)
+	}
+
+	lines := <-recorded
+	if len(lines) < 2 || !strings.HasPrefix(lines[1], "Host: ") {
+		t.Fatalf("Host was not the first header: %v", lines)
+	}
+	var userAgent bool
+	var repeats []string
+	for _, line := range lines[1:] {
+		if strings.HasPrefix(line, "User-Agent: ") {
+			userAgent = true
+		}
+		if strings.HasPrefix(line, "user-agent: ") {
+			t.Errorf("User-Agent was sent in lower case: %q", line)
+		}
+		if strings.HasPrefix(line, "X-Repeat: ") {
+			repeats = append(repeats, line)
+		}
+	}
+	if !userAgent {
+		t.Errorf("no canonically cased User-Agent in %v", lines)
+	}
+	if got, want := repeats, []string{"X-Repeat: one", "X-Repeat: two"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("repeated headers = %v, want %v", got, want)
 	}
 }
 
