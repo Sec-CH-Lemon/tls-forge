@@ -40,7 +40,14 @@ type CA struct {
 
 	mu     sync.Mutex
 	leaves map[string]*tls.Certificate
+	// FIFO is sufficient here: the cache avoids repeated signing during an
+	// active browsing session, while the hard bound prevents a client choosing
+	// unbounded hostnames from turning the proxy into permanent certificate
+	// storage.
+	leafOrder []string
 }
+
+const maxCachedLeafCertificates = 1024
 
 // The crypto hooks are named so tests can make each operation fail without
 // depending on how many bytes a particular Go release reads from its entropy
@@ -232,6 +239,12 @@ func (c *CA) leafFor(host string) (*tls.Certificate, error) {
 		return nil, err
 	}
 	cert := &tls.Certificate{Certificate: [][]byte{der, c.cert.Raw}, PrivateKey: key}
+	if len(c.leaves) >= maxCachedLeafCertificates {
+		oldest := c.leafOrder[0]
+		c.leafOrder = c.leafOrder[1:]
+		delete(c.leaves, oldest)
+	}
 	c.leaves[host] = cert
+	c.leafOrder = append(c.leafOrder, host)
 	return cert, nil
 }

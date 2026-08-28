@@ -109,7 +109,8 @@ allow only intended clients. Do not expose it directly to the internet.
 Resource limits reduce the effect of a bad peer but are not an authentication
 boundary. Idle connections expire after 30 seconds, echo HTTP/1.1 requests are
 limited to 100 headers with at most 8 KiB per line, proxy request bodies are
-bounded.
+bounded, and each proxy authority caches at most 1024 generated leaf
+certificates.
 
 ## Safe research guidelines
 

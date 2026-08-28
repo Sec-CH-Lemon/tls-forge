@@ -57,6 +57,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   is addressed to the proxy, not through it; forwarding it handed the user's
   proxy password to whatever site they browsed to. `Proxy-Authenticate` is
   dropped with it.
+- The intercepting proxy retains at most 1024 generated leaf certificates per
+  authority, evicting the oldest hostname instead of growing for the lifetime
+  of the process.
 - **Proxy passwords are no longer written into `batch` output.** The proxy URL
   reached the HTML report, the JSON lines and the terminal summary verbatim —
   all three of which are made to be kept and passed on, and the report is

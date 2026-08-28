@@ -442,7 +442,8 @@ and remove that trust when the proxy is no longer needed. The proxy does not
 authenticate incoming clients: a non-loopback `--addr` must be protected by a
 firewall or authenticated tunnel. The certificate and key must either both
 exist and match or both be absent. Incoming connections expire after 30 seconds
-without any read or write progress.
+without any read or write progress, and the generated leaf-certificate cache is
+limited to 1024 hostnames.
 
 ### `serve`
 

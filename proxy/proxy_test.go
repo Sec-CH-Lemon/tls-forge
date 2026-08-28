@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -762,6 +763,35 @@ func TestLeafCertificates(t *testing.T) {
 	}
 	if len(ipLeaf.IPAddresses) != 1 {
 		t.Errorf("IP addresses = %v", ipLeaf.IPAddresses)
+	}
+}
+
+func TestLeafCertificateCacheIsBounded(t *testing.T) {
+	ca := newCAForTest(t)
+	first, err := ca.leafFor("host-0.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= maxCachedLeafCertificates; i++ {
+		if _, err := ca.leafFor(fmt.Sprintf("host-%d.example", i)); err != nil {
+			t.Fatalf("leaf %d: %v", i, err)
+		}
+	}
+	if got := len(ca.leaves); got != maxCachedLeafCertificates {
+		t.Fatalf("cache size = %d, want %d", got, maxCachedLeafCertificates)
+	}
+	if _, ok := ca.leaves["host-0.example"]; ok {
+		t.Error("the oldest certificate was not evicted")
+	}
+	reminted, err := ca.leafFor("host-0.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reminted == first {
+		t.Error("an evicted certificate was returned from the cache")
+	}
+	if got := len(ca.leafOrder); got != maxCachedLeafCertificates {
+		t.Errorf("eviction order size = %d, want %d", got, maxCachedLeafCertificates)
 	}
 }
 
