@@ -21,8 +21,14 @@ import (
 // --http1.1 -k https://localhost:PORT/api/all` is a genuinely useful way to look
 // at your own handshake.
 
-// A request line or header longer than this is not a client, it is a probe.
-const maxHTTP1Line = 8192
+const (
+	// A request line or header longer than this is not a client, it is a probe.
+	maxHTTP1Line = 8192
+	// Browsers send a few dozen headers at most. A count limit complements the
+	// per-line limit: without it, a peer could stream short unique headers until
+	// the idle deadline while every one remained live in three capture slices.
+	maxHTTP1Headers = 100
+)
 
 func (s *Server) serveHTTP1(conn net.Conn, sess *Session) error {
 	reader := bufio.NewReaderSize(conn, maxHTTP1Line)
@@ -139,6 +145,9 @@ func readHTTP1Request(r *bufio.Reader) (*http1Request, error) {
 		}
 		if line == "" {
 			break
+		}
+		if len(req.Headers) >= maxHTTP1Headers {
+			return nil, fmt.Errorf("echo: request exceeds %d headers", maxHTTP1Headers)
 		}
 		name, value, found := strings.Cut(line, ":")
 		if !found {

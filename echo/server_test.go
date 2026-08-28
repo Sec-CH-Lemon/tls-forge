@@ -583,6 +583,14 @@ func TestHTTP1RejectsAnOverlongLine(t *testing.T) {
 	io.ReadAll(conn)
 }
 
+func TestHTTP1RejectsTooManyHeaders(t *testing.T) {
+	request := "GET / HTTP/1.1\r\n" + strings.Repeat("X-Test: value\r\n", maxHTTP1Headers+1) + "\r\n"
+	_, err := readHTTP1Request(bufio.NewReader(strings.NewReader(request)))
+	if err == nil || !strings.Contains(err.Error(), "exceeds 100 headers") {
+		t.Fatalf("error = %v, want the header-count limit", err)
+	}
+}
+
 func TestBadHTTP2Preface(t *testing.T) {
 	server := startServer(t)
 	conn, err := tls.Dial("tcp", server.Addr(), &tls.Config{

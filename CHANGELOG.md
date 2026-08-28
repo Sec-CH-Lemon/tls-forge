@@ -105,6 +105,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - Silent peers cannot retain an echo or proxy connection forever. Read and
   write deadlines roll forward while traffic makes progress and expire after
   30 seconds of inactivity.
+- The echo server rejects HTTP/1.1 requests with more than 100 headers, so a
+  peer cannot retain unbounded capture slices by continuously sending short
+  header lines.
 - Builds, examples and fallback instructions now use the supported Go 1.26
   toolchain consistently.
 - Node no longer keeps the event loop alive while its daemon is idle, preserves
