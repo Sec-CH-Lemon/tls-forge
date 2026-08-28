@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test check dist capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test wrapper-smoke check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -55,10 +55,19 @@ python-test:
 	cd python && ../$(VENV)/bin/python -m coverage run -m pytest -q
 	cd python && ../$(VENV)/bin/python -m coverage report
 
+# Cross-language contract test against the real Go daemon. Unit suites use a
+# deliberately hostile fake to cover every recovery branch; this one makes
+# sure all three implementations still agree on the bytes actually emitted.
+wrapper-smoke: build
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(VENV)/bin/pip install -q -e 'python[test]'
+	cd node && TLSFORGE_REAL_BIN=$(abspath $(BIN)) node --test test/real-daemon.test.js
+	cd python && TLSFORGE_REAL_BIN=$(abspath $(BIN)) ../$(VENV)/bin/python -m pytest -q tests/test_real_daemon.py
+
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
 # CI runs them as separate jobs.
-check: vet lint test cover node-test python-test
+check: vet lint test cover node-test python-test wrapper-smoke
 
 # Assemble everything a release publishes, without publishing any of it.
 #
