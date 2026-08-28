@@ -126,7 +126,9 @@ func MeasureSelfAt(ctx context.Context, server *echo.Server, opts ...Option) (*c
 	// The echo server's certificate is generated per run and signs nothing but
 	// itself, so verification is turned off — for this one loopback address,
 	// inside this process, carrying nothing secret.
-	client, err := New(append(opts, WithInsecureSkipVerify())...)
+	measurementOpts := append([]Option(nil), opts...)
+	measurementOpts = append(measurementOpts, WithInsecureSkipVerify())
+	client, err := New(measurementOpts...)
 	if err != nil {
 		return nil, err
 	}

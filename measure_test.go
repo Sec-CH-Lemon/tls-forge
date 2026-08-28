@@ -186,6 +186,30 @@ func TestMeasureSelfErrors(t *testing.T) {
 	}
 }
 
+func TestMeasureSelfAtDoesNotMutateTheCallersOptionSlice(t *testing.T) {
+	server, err := echo.Start()
+	if err != nil {
+		t.Fatalf("echo.Start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	backing := make([]Option, 1, 2)
+	backing[0] = WithProfile(DefaultProfile)
+	sentinel := WithMaxResponseBody(1)
+	backing = append(backing, sentinel)
+	opts := backing[:1]
+	if _, err := MeasureSelfAt(context.Background(), server, opts...); err != nil {
+		t.Fatalf("MeasureSelfAt: %v", err)
+	}
+	// append(opts, ...) used to overwrite backing[1] with the measurement's
+	// insecure option, mutating storage owned by the caller.
+	cfg := defaults()
+	backing[1](&cfg)
+	if cfg.maxResponseBody != 1 {
+		t.Errorf("the caller's spare option was overwritten; max body = %d", cfg.maxResponseBody)
+	}
+}
+
 func TestMeasureSelfHonoursContext(t *testing.T) {
 	server, err := echo.Start()
 	if err != nil {
