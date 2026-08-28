@@ -37,6 +37,7 @@ import (
 	"net"
 	"net/textproto"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -341,7 +342,11 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	}
 	if c.profile.HTTP1 != nil {
 		http1 := measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
-		layouts := &protocolLayouts{http1: http1, managed: managedHeaderNames(inner.Header, http1)}
+		layouts := &protocolLayouts{
+			http1:   http1,
+			http2:   cloneHeaderLayout(inner.Header),
+			managed: managedHeaderNames(inner.Header, http1),
+		}
 		inner = withProtocolLayouts(inner, layouts)
 	}
 
@@ -451,6 +456,7 @@ func measuredHTTP1Layout(headers Header, measured *profile.HTTP1, host string) f
 
 type protocolLayouts struct {
 	http1   fhttp.Header
+	http2   fhttp.Header
 	managed map[string]bool
 }
 
@@ -482,9 +488,130 @@ func prepareRedirectLayout(req *fhttp.Request, _ []*fhttp.Request) error {
 	if layouts == nil {
 		return nil
 	}
-	prepared := withProtocolLayouts(req, layouts)
+	// fhttp has already copied only the headers that are safe for this redirect.
+	// Replaying the first hop's complete HTTP/1 block here would undo that
+	// decision: on a cross-origin redirect it reintroduced Authorization, Cookie
+	// and the old Host after fhttp had deliberately removed them.
+	host := req.URL.Host
+	if req.Host != "" {
+		// fhttp sets Request.Host only when an explicitly overridden host is being
+		// preserved across a relative redirect. An absolute redirect never reaches
+		// this branch, so a source origin cannot lend its Host to another one.
+		host = req.Host
+	}
+	http1 := redirectHTTP1Layout(layouts.http1, layouts.http2, req.Header, host)
+	redirect := &protocolLayouts{
+		http1:   http1,
+		http2:   cloneHeaderLayout(req.Header),
+		managed: managedHeaderNames(req.Header, http1),
+	}
+	prepared := withProtocolLayouts(req, redirect)
 	*req = *prepared
 	return nil
+}
+
+// redirectHTTP1Layout keeps the measured spelling and HTTP/1-only fields from
+// the first layout while applying the redirect policy reflected in current.
+// original is the HTTP/2-shaped block before the first request was sent; it is
+// the baseline fhttp copies on every hop.
+func redirectHTTP1Layout(http1, original, current fhttp.Header, host string) fhttp.Header {
+	out := cloneHeaderLayout(http1)
+	before := headerValues(original)
+	now := headerValues(current)
+
+	beforeNames := make([]string, 0, len(before))
+	for name := range before {
+		beforeNames = append(beforeNames, name)
+	}
+	slices.Sort(beforeNames)
+	for _, name := range beforeNames {
+		if name == "host" {
+			continue
+		}
+		values := before[name]
+		redirected, kept := now[name]
+		if !kept {
+			deleteHeader(out, name)
+			continue
+		}
+		// An unchanged shared field keeps its HTTP/1-specific captured value.
+		// A changed field (Referer and adjusted explicit cookies are the usual
+		// examples) must use the value computed for this hop.
+		if !slices.Equal(redirected, values) {
+			setHeader(out, name, redirected)
+		}
+	}
+	nowNames := make([]string, 0, len(now))
+	for name := range now {
+		nowNames = append(nowNames, name)
+	}
+	slices.Sort(nowNames)
+	for _, name := range nowNames {
+		if name == "host" || headerLayoutKey(name) {
+			continue
+		}
+		if _, existed := before[name]; !existed {
+			setHeader(out, name, now[name])
+		}
+	}
+	setHeader(out, "host", []string{host})
+	return out
+}
+
+func cloneHeaderLayout(header fhttp.Header) fhttp.Header {
+	out := make(fhttp.Header, len(header))
+	for name, values := range header {
+		out[name] = append([]string(nil), values...)
+	}
+	return out
+}
+
+func headerValues(header fhttp.Header) map[string][]string {
+	out := make(map[string][]string, len(header))
+	for name, values := range header {
+		lower := strings.ToLower(name)
+		if headerLayoutKey(lower) {
+			continue
+		}
+		out[lower] = append(out[lower], values...)
+	}
+	return out
+}
+
+func headerLayoutKey(name string) bool {
+	return strings.EqualFold(name, fhttp.HeaderOrderKey) ||
+		strings.EqualFold(name, fhttp.PHeaderOrderKey)
+}
+
+func deleteHeader(header fhttp.Header, lower string) {
+	for name := range header {
+		if strings.EqualFold(name, lower) {
+			delete(header, name)
+		}
+	}
+	order := header[fhttp.HeaderOrderKey]
+	kept := order[:0]
+	for _, name := range order {
+		if !strings.EqualFold(name, lower) {
+			kept = append(kept, name)
+		}
+	}
+	header[fhttp.HeaderOrderKey] = kept
+}
+
+func setHeader(header fhttp.Header, lower string, values []string) {
+	wireName := ""
+	for name := range header {
+		if strings.EqualFold(name, lower) && !headerLayoutKey(name) {
+			wireName = name
+			break
+		}
+	}
+	if wireName == "" {
+		wireName = textproto.CanonicalMIMEHeaderKey(lower)
+		header[fhttp.HeaderOrderKey] = append(header[fhttp.HeaderOrderKey], lower)
+	}
+	header[wireName] = append([]string(nil), values...)
 }
 
 func connectionUsesHTTP1(target *url.URL, conn net.Conn) bool {

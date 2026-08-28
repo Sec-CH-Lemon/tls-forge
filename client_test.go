@@ -657,12 +657,83 @@ func TestProtocolLayoutEdgeCases(t *testing.T) {
 		t.Errorf("caller-only header = %q", got)
 	}
 
+	redirected := redirectHTTP1Layout(
+		fhttp.Header{
+			"Host":               {"source.test"},
+			"sec-ch-ua":          {"h1"},
+			"Connection":         {"keep-alive"},
+			"Authorization":      {"secret"},
+			fhttp.HeaderOrderKey: {"host", "sec-ch-ua", "connection", "authorization"},
+		},
+		fhttp.Header{
+			"Host":                {"source.test"},
+			"Sec-Ch-Ua":           {"h2"},
+			"Authorization":       {"secret"},
+			"X-Changed":           {"old"},
+			"Priority":            {"u=0"},
+			fhttp.HeaderOrderKey:  {"host", "sec-ch-ua", "authorization", "x-changed", "priority"},
+			fhttp.PHeaderOrderKey: {":method", ":authority", ":scheme", ":path"},
+		},
+		fhttp.Header{
+			"Host":                {"source.test"},
+			"Sec-Ch-Ua":           {"h2"},
+			"X-Changed":           {"new"},
+			"Priority":            {"u=0"},
+			"Referer":             {"https://source.test/"},
+			fhttp.HeaderOrderKey:  {"host", "sec-ch-ua", "x-changed", "priority"},
+			fhttp.PHeaderOrderKey: {":method", ":authority", ":scheme", ":path"},
+		},
+		"target.test",
+	)
+	if got := redirected["Host"]; !reflect.DeepEqual(got, []string{"target.test"}) {
+		t.Errorf("redirect Host = %v", got)
+	}
+	if _, ok := redirected["Authorization"]; ok {
+		t.Error("redirect restored stripped Authorization")
+	}
+	if got := redirected["sec-ch-ua"]; !reflect.DeepEqual(got, []string{"h1"}) {
+		t.Errorf("unchanged shared header lost its HTTP/1 value: %v", got)
+	}
+	if got := redirected["Connection"]; !reflect.DeepEqual(got, []string{"keep-alive"}) {
+		t.Errorf("HTTP/1-only header was lost: %v", got)
+	}
+	if got := redirected["X-Changed"]; !reflect.DeepEqual(got, []string{"new"}) {
+		t.Errorf("changed redirect header = %v", got)
+	}
+	if got := redirected["Referer"]; !reflect.DeepEqual(got, []string{"https://source.test/"}) {
+		t.Errorf("redirect-only header = %v", got)
+	}
+	if _, ok := redirected["Priority"]; ok {
+		t.Error("an unchanged HTTP/2-only header leaked into HTTP/1")
+	}
+	wantOrder := []string{"host", "sec-ch-ua", "connection", "x-changed", "referer"}
+	if got := redirected[fhttp.HeaderOrderKey]; !reflect.DeepEqual(got, wantOrder) {
+		t.Errorf("redirect order = %v, want %v", got, wantOrder)
+	}
+
 	req, err := fhttp.NewRequest("GET", "https://example.test/", nil)
 	if err != nil {
 		t.Fatalf("NewRequest: %v", err)
 	}
 	if err := prepareRedirectLayout(req, nil); err != nil {
 		t.Fatalf("prepareRedirectLayout without layouts: %v", err)
+	}
+	customHost := &protocolLayouts{
+		http1: fhttp.Header{
+			"Host":               {"old.test"},
+			fhttp.HeaderOrderKey: {"host"},
+		},
+		http2:   fhttp.Header{},
+		managed: map[string]bool{"host": true},
+	}
+	req.Host = "virtual.test"
+	req = withProtocolLayouts(req, customHost)
+	if err := prepareRedirectLayout(req, nil); err != nil {
+		t.Fatalf("prepareRedirectLayout with custom host: %v", err)
+	}
+	prepared, _ := req.Context().Value(protocolLayoutsKey{}).(*protocolLayouts)
+	if got := prepared.http1["Host"]; !reflect.DeepEqual(got, []string{"virtual.test"}) {
+		t.Errorf("relative redirect custom Host = %v", got)
 	}
 }
 
@@ -677,12 +748,31 @@ func TestRedirectChoosesTheLayoutOfTheNextConnection(t *testing.T) {
 	t.Cleanup(redirect.Close)
 
 	client := newTestClient(t, WithProfileValue(profileWithMeasuredHTTP1(t)))
-	if _, err := client.Get(redirect.URL); err != nil {
+	// A different hostname makes this a different origin even before the ports
+	// are considered. fhttp strips explicit credentials on that boundary.
+	source := strings.Replace(redirect.URL, "127.0.0.1", "localhost", 1)
+	if _, err := client.Do(&Request{URL: source, Header: NewHeader(
+		"Authorization", "Bearer review-secret",
+		"Cookie", "manual=secret",
+	)}); err != nil {
 		t.Fatalf("redirect: %v", err)
 	}
 	lines := <-recorded
 	if len(lines) < 3 || !strings.HasPrefix(lines[2], "sec-ch-ua: ") {
 		t.Errorf("redirected HTTP/1.1 request used the wrong layout: %v", lines)
+	}
+	parsedTarget, err := neturl.Parse(target)
+	if err != nil {
+		t.Fatalf("parse target: %v", err)
+	}
+	if got, want := lines[1], "Host: "+parsedTarget.Host; got != want {
+		t.Errorf("redirect Host = %q, want %q", got, want)
+	}
+	for _, line := range lines[1:] {
+		lower := strings.ToLower(line)
+		if strings.HasPrefix(lower, "authorization:") || strings.HasPrefix(lower, "cookie:") {
+			t.Errorf("cross-origin redirect leaked a credential: %q", line)
+		}
 	}
 }
 
