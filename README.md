@@ -317,7 +317,9 @@ Runnable CLI and SDK examples, with complete sample inputs and outputs, are in
 ### `capture`
 
 Open an installed Chromium-based browser, record its TLS and HTTP behaviour and
-optionally save a reusable profile.
+optionally save a reusable profile. HTTP/1.1 and HTTP/2 are measured as two
+independent cold top-level navigations, each using a fresh temporary browser
+profile, so the transition between protocols cannot alter `Sec-Fetch-*`.
 
 ```bash
 tls-forge capture

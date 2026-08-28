@@ -3,9 +3,39 @@ package profile
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 )
+
+func TestShippedMeasuredHTTP1UsesAColdNavigation(t *testing.T) {
+	p, err := Default.Get("chrome_151_macos")
+	if err != nil {
+		t.Fatalf("loading measured profile: %v", err)
+	}
+	if p.HTTP1 == nil {
+		t.Fatal("macOS profile has no measured HTTP/1.1 layout")
+	}
+	values := fieldValues(p.Headers)
+	for name, overridden := range fieldValues(p.HTTP1.Headers) {
+		values[name] = overridden
+	}
+	for name, want := range map[string][]string{
+		"sec-fetch-site": {"none"},
+		"sec-fetch-mode": {"navigate"},
+		"sec-fetch-user": {"?1"},
+		"sec-fetch-dest": {"document"},
+	} {
+		if !reflect.DeepEqual(values[name], want) {
+			t.Errorf("%s = %v, want %v", name, values[name], want)
+		}
+	}
+	order := strings.ToLower(strings.Join(p.HTTP1.HeaderOrder, ","))
+	if !strings.Contains(order, "sec-fetch-user") {
+		t.Errorf("HTTP/1.1 order omits Sec-Fetch-User: %v", p.HTTP1.HeaderOrder)
+	}
+}
 
 // laidOut writes a tree in the shape the shipped profiles use: a directory per
 // version, one file per platform, with the odd flat file for the ones written

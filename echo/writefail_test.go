@@ -284,6 +284,7 @@ func TestCaptureHTTP1ReportsEveryWriteFailure(t *testing.T) {
 	server := startServer(t)
 	for _, request := range []string{
 		"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n",
+		"GET /?http1=cold HTTP/1.1\r\nHost: localhost\r\n\r\n",
 		"GET /api/all HTTP/1.1\r\nHost: localhost\r\n\r\n",
 		"GET /api/all?cache=1 HTTP/1.1\r\nHost: localhost\r\n\r\n",
 	} {

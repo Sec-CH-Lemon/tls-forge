@@ -36,39 +36,36 @@ func TestBrowserHelper(t *testing.T) {
 	}
 	defer client.Close()
 
-	page, err := client.Get(url)
+	mode := os.Getenv("TLSFORGE_BROWSER_MODE")
+	site := "none"
+	if mode == "redirect-context" {
+		site = "same-site"
+	}
+	headers := NewHeader(
+		"sec-fetch-site", site,
+		"sec-fetch-mode", "navigate",
+		"sec-fetch-dest", "document",
+	)
+	if mode != "redirect-context" {
+		headers.Set("sec-fetch-user", "?1")
+	}
+	page, err := client.Do(&Request{URL: url, Header: headers})
 	if err != nil {
 		os.Exit(1)
 	}
-	const navigationMarker = "const http1Navigation = '"
-	start := strings.Index(page.Text(), navigationMarker)
-	if start < 0 {
-		os.Exit(1)
+	if strings.Contains(url, "http1=cold") {
+		os.Exit(0)
 	}
-	start += len(navigationMarker)
-	end := strings.IndexByte(page.Text()[start:], '\'')
-	if end < 0 {
-		os.Exit(1)
-	}
-	redirect, err := client.Get(page.Text()[start : start+end])
-	if err != nil {
-		os.Exit(1)
-	}
-	locations := redirect.Header["location"]
-	if redirect.Status != 302 || len(locations) != 1 {
-		os.Exit(1)
-	}
-	page, err = client.Get(locations[0])
-	if err != nil {
-		os.Exit(1)
+	if mode == "http1-only" {
+		os.Exit(0)
 	}
 	const marker = "fetch('"
-	start = strings.Index(page.Text(), marker)
+	start := strings.Index(page.Text(), marker)
 	if start < 0 {
 		os.Exit(1)
 	}
 	start += len(marker)
-	end = strings.IndexByte(page.Text()[start:], '\'')
+	end := strings.IndexByte(page.Text()[start:], '\'')
 	if end < 0 {
 		os.Exit(1)
 	}
@@ -91,6 +88,10 @@ func TestBrowserHelper(t *testing.T) {
 // browserStandIn writes a launcher that behaves the way browser.Open expects:
 // it takes flags it ignores and a URL as its last argument.
 func browserStandIn(t *testing.T) string {
+	return browserStandInMode(t, "")
+}
+
+func browserStandInMode(t *testing.T, mode string) string {
 	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("the stand-in is a shell script")
@@ -105,8 +106,8 @@ func browserStandIn(t *testing.T) string {
 	// flags it is handed.
 	script := fmt.Sprintf(`#!/bin/sh
 for last; do :; done
-TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
-`, self)
+TLSFORGE_BROWSER_MODE=%q TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
+`, mode, self)
 
 	path := filepath.Join(t.TempDir(), "stand-in-browser")
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
@@ -136,6 +137,16 @@ func TestMeasureBrowser(t *testing.T) {
 	// The navigation's headers, not the report's.
 	if measured.HTTP2 == nil {
 		t.Fatal("no HTTP/2 data")
+	}
+	if measured.HTTP1 == nil {
+		t.Fatal("no HTTP/1.1 data")
+	}
+	values := map[string]string{}
+	for _, header := range measured.HTTP1.Headers {
+		values[strings.ToLower(header.Name)] = header.Value
+	}
+	if values["sec-fetch-site"] != "none" || values["sec-fetch-user"] != "?1" {
+		t.Errorf("HTTP/1.1 is not a cold navigation: %+v", measured.HTTP1.Headers)
 	}
 	for _, name := range measured.HTTP2.HeaderOrder {
 		if name == "content-type" {
@@ -174,6 +185,35 @@ func TestMeasureBrowserErrors(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "no capture") {
 		t.Errorf("error = %v, want it to say no capture arrived", err)
+	}
+
+	_, err = MeasureBrowser(context.Background(), MeasureOptions{
+		Browser: browserStandInMode(t, "redirect-context"), Timeout: 2 * time.Second,
+	})
+	if err == nil || !strings.Contains(err.Error(), "not a cold top-level navigation") {
+		t.Errorf("redirect-context error = %v", err)
+	}
+
+	_, err = MeasureBrowser(context.Background(), MeasureOptions{
+		Browser: browserStandInMode(t, "http1-only"), Timeout: 2 * time.Second,
+	})
+	if err == nil || !strings.Contains(err.Error(), "HTTP/2 browser measurement") ||
+		!strings.Contains(err.Error(), "no capture") {
+		t.Errorf("second-navigation error = %v", err)
+	}
+}
+
+func TestColdHTTP1ValidationRejectsTheOldRedirectContext(t *testing.T) {
+	if err := validateColdHTTP1(nil); err == nil || !strings.Contains(err.Error(), "sec-fetch-site") {
+		t.Fatalf("nil capture error = %v", err)
+	}
+	redirected := &capture.HTTP1{Headers: []capture.HeaderField{
+		{Name: "Sec-Fetch-Site", Value: "same-site"},
+		{Name: "Sec-Fetch-Mode", Value: "navigate"},
+		{Name: "Sec-Fetch-Dest", Value: "document"},
+	}}
+	if err := validateColdHTTP1(redirected); err == nil || !strings.Contains(err.Error(), "same-site") {
+		t.Fatalf("redirected capture error = %v", err)
 	}
 }
 

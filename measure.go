@@ -94,8 +94,32 @@ func MeasureBrowserAt(ctx context.Context, server *echo.Server, opts MeasureOpti
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	closeBrowser, err := found.Open(ctx, server.URL(),
-		browser.Options{Headless: opts.Headless, Args: opts.BrowserArgs})
+	browserOptions := browser.Options{Headless: opts.Headless, Args: opts.BrowserArgs}
+	// Each protocol gets its own fresh browser profile and direct top-level
+	// navigation. The old single-process flow reached the HTTP/1.1 listener with
+	// location.replace() from the HTTP/2 page. Chrome correctly labelled that
+	// request same-site and omitted Sec-Fetch-User, so replaying the result made
+	// the measuring instrument visible on every forced-H1 request.
+	http1, err := measureBrowserNavigation(ctx, found, server,
+		server.CaptureURL()+"/?http1=cold", browserOptions)
+	if err != nil {
+		return nil, fmt.Errorf("tlsforge: HTTP/1.1 browser measurement: %w", err)
+	}
+	if err := validateColdHTTP1(http1.HTTP1); err != nil {
+		return nil, err
+	}
+	measured, err := measureBrowserNavigation(ctx, found, server,
+		server.URL()+"/?http1=done", browserOptions)
+	if err != nil {
+		return nil, fmt.Errorf("tlsforge: HTTP/2 browser measurement: %w", err)
+	}
+	measured.HTTP1 = http1.HTTP1
+	return measured, nil
+}
+
+func measureBrowserNavigation(ctx context.Context, found *browser.Browser, server *echo.Server,
+	url string, opts browser.Options) (*capture.Capture, error) {
+	closeBrowser, err := found.Open(ctx, url, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +130,27 @@ func MeasureBrowserAt(ctx context.Context, server *echo.Server, opts MeasureOpti
 		return nil, fmt.Errorf("tlsforge: no capture from %s: %w", found.Path, err)
 	}
 	return session.Capture(capture.SourceBrowser), nil
+}
+
+func validateColdHTTP1(measured *capture.HTTP1) error {
+	values := make(map[string]string)
+	if measured != nil {
+		for _, header := range measured.Headers {
+			values[strings.ToLower(header.Name)] = header.Value
+		}
+	}
+	for _, field := range []struct{ name, want string }{
+		{"sec-fetch-site", "none"},
+		{"sec-fetch-mode", "navigate"},
+		{"sec-fetch-user", "?1"},
+		{"sec-fetch-dest", "document"},
+	} {
+		if got := values[field.name]; got != field.want {
+			return fmt.Errorf("tlsforge: HTTP/1.1 capture is not a cold top-level navigation: %s = %q, want %q",
+				field.name, got, field.want)
+		}
+	}
+	return nil
 }
 
 // MeasureSelf returns what THIS library sends, measured the same way.

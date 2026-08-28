@@ -86,6 +86,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - Repeated proxy headers and repeated Go `Header` values remain separate on the
   wire. Legacy HTTP/1.1 profiles use canonical casing; newly captured profiles
   preserve the browser's measured spelling, with one `Host` first.
+- HTTP/1.1 browser capture uses its own cold top-level navigation instead of a
+  scripted redirect from the HTTP/2 page. `Sec-Fetch-Site` therefore remains
+  `none`, `Sec-Fetch-User` remains present, and `compare` rejects a capture made
+  in the old redirect context.
 - Custom profiles without the four required HTTP/2 pseudo headers are rejected,
   instead of constructing requests missing `:method`, `:path`, `:scheme` or
   `:authority`.

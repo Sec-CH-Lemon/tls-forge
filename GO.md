@@ -326,8 +326,10 @@ remain valid and use the legacy canonical HTTP/1.1 spelling.
 
 ## Measuring and comparing
 
-`MeasureBrowser` launches a real browser with a temporary profile and records
-what it sends to a local echo server.
+`MeasureBrowser` launches a real browser with temporary profiles and records
+what it sends to a local echo server. HTTP/1.1 and HTTP/2 use independent cold
+top-level navigations, so capture machinery does not become part of the
+`Sec-Fetch-*` fingerprint.
 
 ```go
 capture, err := tlsforge.MeasureBrowser(ctx, tlsforge.MeasureOptions{

@@ -61,39 +61,25 @@ func TestBrowserHelper(t *testing.T) {
 		os.Exit(1)
 	}
 	defer client.Close()
-	page, err := client.Get(url)
+	page, err := client.Do(&tlsforge.Request{URL: url, Header: tlsforge.NewHeader(
+		"sec-fetch-site", "none",
+		"sec-fetch-mode", "navigate",
+		"sec-fetch-user", "?1",
+		"sec-fetch-dest", "document",
+	)})
 	if err != nil {
 		os.Exit(1)
 	}
-	const navigationMarker = "const http1Navigation = '"
-	start := strings.Index(page.Text(), navigationMarker)
-	if start < 0 {
-		os.Exit(1)
-	}
-	start += len(navigationMarker)
-	end := strings.IndexByte(page.Text()[start:], '\'')
-	if end < 0 {
-		os.Exit(1)
-	}
-	redirect, err := client.Get(page.Text()[start : start+end])
-	if err != nil {
-		os.Exit(1)
-	}
-	locations := redirect.Header["location"]
-	if redirect.Status != 302 || len(locations) != 1 {
-		os.Exit(1)
-	}
-	page, err = client.Get(locations[0])
-	if err != nil {
-		os.Exit(1)
+	if strings.Contains(url, "http1=cold") {
+		os.Exit(0)
 	}
 	const marker = "fetch('"
-	start = strings.Index(page.Text(), marker)
+	start := strings.Index(page.Text(), marker)
 	if start < 0 {
 		os.Exit(1)
 	}
 	start += len(marker)
-	end = strings.IndexByte(page.Text()[start:], '\'')
+	end := strings.IndexByte(page.Text()[start:], '\'')
 	if end < 0 {
 		os.Exit(1)
 	}

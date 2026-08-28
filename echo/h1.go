@@ -70,6 +70,19 @@ func (s *Server) serveCaptureHTTP1(conn net.Conn, sess *Session) error {
 	if err != nil {
 		return err
 	}
+	// A browser launched directly at this endpoint makes a genuinely cold
+	// top-level HTTP/1.1 navigation. Complete it independently so the caller can
+	// combine it with a second, equally cold HTTP/2 launch. Navigating here from
+	// the HTTP/2 page would change Sec-Fetch-Site to same-site and remove
+	// Sec-Fetch-User, turning the measuring instrument into part of the profile.
+	if parsed.Query().Get("http1") == "cold" {
+		body := []byte("HTTP/1.1 capture complete\n")
+		if err := writeCaptureHTTP1Response(conn, "200", "text/plain; charset=utf-8", "", body); err != nil {
+			return err
+		}
+		s.complete(sess)
+		return nil
+	}
 	token := parsed.Query().Get("navigation")
 	if err := s.attachHTTP1(token, &req.HTTP1); err != nil {
 		_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
