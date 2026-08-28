@@ -74,6 +74,13 @@ reader.on('line', (line) => {
       process.stderr.write('a note on stderr\n');
       reply();
       break;
+    case 'stderr-chunks':
+      process.stderr.write('one logical');
+      setTimeout(() => {
+        process.stderr.write(' line\nsecond line\n');
+        reply();
+      }, 5);
+      break;
     case 'legacy-headers':
       reply({ headers: { 'content-type': 'application/json' } });
       break;

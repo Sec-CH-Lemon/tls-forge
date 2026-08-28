@@ -83,6 +83,7 @@ export class Client {
 
   #process = null;
   #reader = null;
+  #stderrReader = null;
   #queue = [];
   #inFlight = null;
 
@@ -105,7 +106,9 @@ export class Client {
    * @param {number}  [options.timeout]  per-request deadline in ms
    * @param {string}  [options.binary]   path to the tlsforge binary
    * @param {boolean} [options.insecure] skip certificate verification
-   * @param {(line:string)=>void} [options.onStderr] receives the process's stderr
+   * @param {string}  [options.cookieFile] warmed cookie file (`--cookies`)
+   * @param {string}  [options.cookieSet] set in that file; random when omitted
+   * @param {(line:string)=>void} [options.onStderr] receives stderr one line at a time
    */
   constructor(options = {}) {
     const timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
@@ -115,6 +118,9 @@ export class Client {
     if (options.onStderr !== undefined && typeof options.onStderr !== 'function') {
       throw new TypeError('tlsforge: onStderr must be a function');
     }
+    if (options.cookieSet && !options.cookieFile) {
+      throw new Error('tlsforge: cookieSet requires cookieFile');
+    }
     this.#binary = resolveBinary(options.binary);
     this.#timeout = timeout;
     this.#onStderr = options.onStderr ?? (() => {});
@@ -123,6 +129,8 @@ export class Client {
     if (options.profile) args.push('--profile', options.profile);
     if (options.proxy) args.push('--proxy', options.proxy);
     if (options.insecure) args.push('--insecure');
+    if (options.cookieFile) args.push('--cookies', options.cookieFile);
+    if (options.cookieSet) args.push('--cookie-set', options.cookieSet);
     // The Go side gets a longer deadline than Node's on purpose. If they were
     // equal, a request timing out would race: both sides would decide it failed,
     // and the process would be killed while writing the answer.
@@ -222,13 +230,22 @@ export class Client {
     // and overwriting it without closing is how a reader outlives its process —
     // which then keeps delivering that process's buffered lines, and one
     // request's page resolves another request's promise.
-    this.#closeReader();
+    this.#closeReaders();
 
     const process = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'] });
     this.#process = process;
     this.#reader = readline.createInterface({ input: process.stdout });
     this.#reader.on('line', (line) => this.#onLine(line));
-    process.stderr.on('data', (chunk) => this.#reportStderr(String(chunk).trimEnd()));
+    this.#stderrReader = readline.createInterface({ input: process.stderr });
+    this.#stderrReader.on('line', (line) => this.#reportStderr(line));
+
+    // The request timer is the reference that keeps Node alive while work is
+    // outstanding. The idle daemon and its pipes must not force every script to
+    // call close() merely to let the event loop finish.
+    process.unref();
+    process.stdin.unref();
+    process.stdout.unref();
+    process.stderr.unref();
 
     // A process that could not be spawned reports through 'error', not 'exit',
     // and an 'error' with no listener is an uncaught exception that takes the
@@ -241,7 +258,7 @@ export class Client {
       // the new process reference.
       process.removeAllListeners('exit');
       this.#process = null;
-      this.#closeReader();
+      this.#closeReaders();
       this.#failAll(new Error(`tlsforge: transport failed to start (${this.#binary}): ${err.message}`));
     });
 
@@ -253,19 +270,27 @@ export class Client {
 
     process.on('exit', (code) => {
       this.#process = null;
-      this.#closeReader();
-      this.#failAll(new Error(`tlsforge: transport exited (code ${code})`));
+      this.#closeReaders();
+      // Only the request written to the dead transport is indeterminate. Jobs
+      // still in the queue were never written and can safely use a replacement,
+      // matching the Python wrapper's behaviour.
+      this.#failInFlight(new Error(`tlsforge: transport exited (code ${code})`));
+      this.#pump();
     });
   }
 
-  #closeReader() {
-    if (!this.#reader) return;
+  #closeReaders() {
     // close() alone is documented to stop 'line'. The listener is removed
     // explicitly as well, because this guard exists precisely because a reader
     // was once believed detached when it was not.
-    this.#reader.removeAllListeners('line');
-    this.#reader.close();
+    for (const name of ['#reader', '#stderrReader']) {
+      const reader = name === '#reader' ? this.#reader : this.#stderrReader;
+      if (!reader) continue;
+      reader.removeAllListeners('line');
+      reader.close();
+    }
     this.#reader = null;
+    this.#stderrReader = null;
   }
 
   #kill() {
@@ -274,8 +299,7 @@ export class Client {
     this.#process = null;
     process.removeAllListeners('exit');
     process.removeAllListeners('error');
-    process.stderr.removeAllListeners('data');
-    this.#closeReader();
+    this.#closeReaders();
     // Descendants can inherit the pipe handles and outlive the daemon. Destroy
     // our ends explicitly so those descendants cannot keep Node alive until
     // they happen to exit.
@@ -291,16 +315,18 @@ export class Client {
   }
 
   #failAll(error) {
+    this.#failInFlight(error);
+    while (this.#queue.length) this.#queue.shift().reject(error);
+  }
+
+  #failInFlight(error) {
     const job = this.#inFlight;
     this.#inFlight = null;
-    if (job) {
-      // The deadline timer has to go with the job: an armed timer is a live
-      // handle, and a live handle keeps Node's event loop open, so a program
-      // that has finished its work sits idle until the deadline expires.
-      clearTimeout(job.timer);
-      job.reject(error);
-    }
-    while (this.#queue.length) this.#queue.shift().reject(error);
+    if (!job) return;
+    // The deadline timer has to go with the job: an armed timer is a live
+    // handle, and a live handle keeps Node's event loop open.
+    clearTimeout(job.timer);
+    job.reject(error);
   }
 
   #onLine(line) {

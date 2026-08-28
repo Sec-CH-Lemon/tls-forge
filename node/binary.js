@@ -35,7 +35,10 @@ export const exeName = {
 }[process.platform];
 
 /** The default place `npm run build` puts a locally built binary. */
-export const builtBinary = path.join(here, 'vendor', exeName);
+// String(undefined) is intentional: on an unsupported platform this becomes a
+// harmless non-existent candidate rather than making path.join throw during
+// module import, so an explicit path or TLSFORGE_BIN can still work.
+export const builtBinary = path.join(here, 'vendor', String(exeName));
 
 /**
  * Resolve the transport binary.
@@ -65,7 +68,7 @@ export function resolveBinary(explicit) {
       `  The platform package ${platformPackage} is not installed. If this was an\n` +
       '  install with --no-optional, re-run without it. Otherwise this platform has\n' +
       '  no prebuilt binary yet — build one with Go 1.25.13+\n' +
-      '    npm explore tls-forge -- npm run build\n' +
+      '    go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest\n' +
       '  or point at one you already have\n' +
       '    TLSFORGE_BIN=/path/to/tls-forge',
   );
@@ -92,7 +95,7 @@ function fromPlatformPackage() {
       // portable. The manifest says where the package landed, which is what is
       // actually needed.
       const manifest = resolver.resolve(`${platformPackage}/package.json`);
-      const binary = path.join(path.dirname(manifest), 'bin', exeName);
+      const binary = path.join(path.dirname(manifest), 'bin', String(exeName));
       if (isFile(binary)) return binary;
     } catch {
       // Not installed under this base: npm skipped it because `os`/`cpu` did

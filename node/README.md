@@ -66,6 +66,8 @@ const client = new Client({
   timeout: 45_000,
   binary: '/absolute/path/to/tls-forge',
   insecure: false,
+  cookieFile: '/absolute/path/to/cookies.json',
+  cookieSet: 'warm-eu',
   onStderr: (line) => console.debug(line),
 });
 ```
@@ -77,6 +79,8 @@ const client = new Client({
 | `timeout` | `number`, `45000` | Per-request deadline in milliseconds. It must be positive and finite. The Go transport receives an additional 15-second grace period so both timeout layers do not race. |
 | `binary` | `string`, auto | Explicit path to the `tls-forge` executable. A missing explicit path is an error and does not fall through to another version. |
 | `insecure` | `boolean`, `false` | Skip upstream certificate verification. Use only for controlled endpoints. |
+| `cookieFile` | `string`, none | Warm the daemon jar from `--cookies`. |
+| `cookieSet` | `string`, random | Select a set in `cookieFile`; requires `cookieFile`. |
 | `onStderr` | `(line: string) => void`, no-op | Receive transport diagnostics. Exceptions thrown by the callback are ignored so diagnostics cannot crash request handling. |
 
 `new Client()` uses the daemon's default profile, which is a locally installed
@@ -129,7 +133,7 @@ const response = await client.request({
 | `url` | `string`, required | Absolute HTTP or HTTPS URL. |
 | `method` | `string`, `GET` in `request()` | HTTP method. `get()` and `post()` set it automatically. |
 | `headers` | `Record<string, string>`, `{}` | Headers layered over the profile. Existing profile names retain their browser position. |
-| `order` | `string[]`, profile order | Order for headers supplied by the caller. Unnamed caller headers follow in sorted order. To control the complete sequence, provide every header in both `headers` and `order`. |
+| `order` | `string[]`, profile order | Order for caller-only headers. Profile headers keep their measured browser positions; unnamed caller headers follow in sorted order. |
 | `body` | `string \| Buffer \| Uint8Array`, empty | Request body. A `Buffer` or `Uint8Array` is sent as base64 so it arrives intact. |
 | `cookies` | `string[]`, `[]` | `name=value` pairs added to the cookie jar before the request. |
 
@@ -192,7 +196,9 @@ try {
 
 `close()` is final. It terminates the process, closes all pipe handles and
 rejects queued or in-flight requests. Later calls reject instead of silently
-creating a new identity.
+creating a new identity. An idle daemon is unreferenced, so forgetting
+`close()` no longer keeps Node alive; call it anyway when the identity should
+be released immediately rather than at process exit.
 
 ## Failures and recovery
 
@@ -207,9 +213,10 @@ failure category:
 - a request error returned by the Go transport — DNS, proxy, TLS or connection
   failure.
 
-A timeout or broken write restarts the transport before the next request. Each
-request and response carries a monotonically increasing id, so a late answer
-cannot resolve a newer request.
+A timeout or broken write restarts the transport before the next request. If
+the daemon exits, only the request already written to it fails; queued requests
+continue on the replacement. Each request and response carries a monotonically
+increasing id, so a late answer cannot resolve a newer request.
 
 `onStderr` receives diagnostics such as dropped late responses. It is not a
 replacement for handling rejected request promises.

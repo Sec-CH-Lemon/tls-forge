@@ -13,6 +13,7 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 import { Client, resolveBinary } from '../index.js';
 import { builtBinary, exeName, platformPackage } from '../binary.js';
@@ -82,6 +83,20 @@ test('client options become daemon arguments', async () => {
   c.close();
 });
 
+test('cookie file options become daemon arguments', async () => {
+  const c = fake({ cookieFile: '/tmp/warm.json', cookieSet: 'eu' });
+  const argv = JSON.parse((await c.get('https://ok/x')).body).argv;
+  assert.ok(argv.includes('--cookies'));
+  assert.ok(argv.includes('/tmp/warm.json'));
+  assert.ok(argv.includes('--cookie-set'));
+  assert.ok(argv.includes('eu'));
+  c.close();
+});
+
+test('cookieSet requires cookieFile', () => {
+  assert.throws(() => fake({ cookieSet: 'eu' }), /cookieSet requires cookieFile/);
+});
+
 test('an error field becomes a rejection', async () => {
   const c = fake();
   await assert.rejects(() => c.get('https://error/x'), /upstream refused/);
@@ -149,11 +164,28 @@ test('a transport that exits rejects the request in flight', async () => {
   c.close();
 });
 
+test('a queued request survives a transport exit before it was written', async () => {
+  const c = fake();
+  const first = c.get('https://exit/x');
+  const second = c.get('https://ok/after');
+  await assert.rejects(() => first, /exited|closed/);
+  assert.equal((await second).status, 200);
+  c.close();
+});
+
 test('stderr is forwarded to the callback', async () => {
   const notes = [];
   const c = fake({ onStderr: (line) => notes.push(line) });
   await c.get('https://stderr/x');
   assert.ok(notes.some((line) => line.includes('a note on stderr')));
+  c.close();
+});
+
+test('stderr chunks are reassembled into logical lines', async () => {
+  const notes = [];
+  const c = fake({ onStderr: (line) => notes.push(line) });
+  await c.get('https://stderr-chunks/x');
+  assert.deepEqual(notes, ['one logical line', 'second line']);
   c.close();
 });
 
@@ -240,6 +272,31 @@ test('a closed client refuses to respawn', async () => {
   await c.get('https://ok/x');
   c.close();
   await assert.rejects(() => c.get('https://ok/y'), /closed/);
+});
+
+test('an idle client does not keep a Node program alive without close()', async () => {
+  const moduleURL = new URL('../index.js', import.meta.url).href;
+  const script = `
+    import { Client } from ${JSON.stringify(moduleURL)};
+    const client = new Client({ binary: ${JSON.stringify(wrapper)}, timeout: 2000 });
+    await client.get('https://ok/x');
+  `;
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ['--input-type=module', '--eval', script], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stderr = '';
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error('child stayed alive without close()'));
+    }, 3_000);
+    child.on('exit', (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve();
+      else reject(new Error(`child exited ${code}: ${stderr}`));
+    });
+  });
 });
 
 test('a missing binary is reported when the client is built', () => {
@@ -429,7 +486,7 @@ test('no binary anywhere is an error that says what to do', (t) => {
     assert.match(err.message, /no binary for/);
     assert.ok(err.message.includes(platformPackage));
     assert.match(err.message, /TLSFORGE_BIN/);
-    assert.match(err.message, /npm run build/);
+    assert.match(err.message, /go install/);
     return true;
   });
 });
