@@ -33,16 +33,39 @@ func browserFor(t *testing.T, server *Server, maxVersion uint16) *http.Client {
 // JS data back. It returns the capture the server answered /collect with.
 func visit(t *testing.T, client *http.Client, base, userAgent string) map[string]any {
 	t.Helper()
+	collect := loadCapturePage(t, client, base)
 
+	report := `{"user_agent":"` + userAgent + `","languages":["en-US"],"platform":"Test"}`
+	return postReport(t, client, base+collect, report)
+}
+
+func loadCapturePage(t *testing.T, client *http.Client, base string) string {
+	t.Helper()
 	res, err := client.Get(base + "/")
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
-	_, _ = io.Copy(io.Discard, res.Body)
+	page, err := io.ReadAll(res.Body)
 	_ = res.Body.Close()
+	if err != nil {
+		t.Fatalf("reading /: %v", err)
+	}
+	const marker = "fetch('"
+	start := strings.Index(string(page), marker)
+	if start < 0 {
+		t.Fatalf("capture page has no fetch endpoint: %s", page)
+	}
+	start += len(marker)
+	end := strings.IndexByte(string(page[start:]), '\'')
+	if end < 0 {
+		t.Fatalf("capture page has an unterminated fetch endpoint: %s", page)
+	}
+	return string(page[start : start+end])
+}
 
-	report := `{"user_agent":"` + userAgent + `","languages":["en-US"],"platform":"Test"}`
-	res, err = client.Post(base+"/collect", "application/json", strings.NewReader(report))
+func postReport(t *testing.T, client *http.Client, endpoint, report string) map[string]any {
+	t.Helper()
+	res, err := client.Post(endpoint, "application/json", strings.NewReader(report))
 	if err != nil {
 		t.Fatalf("POST /collect: %v", err)
 	}
@@ -113,6 +136,38 @@ func TestASecondBrowserGetsItsOwnFingerprint(t *testing.T) {
 		if got, _ := nav["user_agent"].(string); got != want {
 			t.Errorf("%s capture reports user_agent %q, want %q", name, got, want)
 		}
+	}
+}
+
+// TestOverlappingBrowsersAreMatchedByThePageToken covers the ordering the old
+// "newest unreported navigation" heuristic could not distinguish: browser A
+// loads, browser B loads, then A reports. A used to receive B's fingerprint.
+func TestOverlappingBrowsersAreMatchedByThePageToken(t *testing.T) {
+	server, err := Start()
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+	base := "https://" + server.Addr()
+
+	browserA := browserFor(t, server, tls.VersionTLS13)
+	browserB := browserFor(t, server, tls.VersionTLS12)
+	collectA := loadCapturePage(t, browserA, base)
+	collectB := loadCapturePage(t, browserB, base)
+	if collectA == collectB {
+		t.Fatalf("both pages received the same collection endpoint %q", collectA)
+	}
+
+	gotA := postReport(t, browserFor(t, server, tls.VersionTLS12), base+collectA,
+		`{"user_agent":"browser-A"}`)
+	gotB := postReport(t, browserFor(t, server, tls.VersionTLS13), base+collectB,
+		`{"user_agent":"browser-B"}`)
+
+	if ja4 := ja4Of(t, gotA); !strings.HasPrefix(ja4, "t13") {
+		t.Errorf("browser A received another navigation's JA4: %s", ja4)
+	}
+	if ja4 := ja4Of(t, gotB); !strings.HasPrefix(ja4, "t12") {
+		t.Errorf("browser B received another navigation's JA4: %s", ja4)
 	}
 }
 

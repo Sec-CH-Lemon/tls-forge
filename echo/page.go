@@ -1,5 +1,7 @@
 package echo
 
+const navigationPlaceholder = "__TLS_FORGE_NAVIGATION__"
+
 // capturePage is served at "/". It has one job beyond being readable: report
 // what the HTTP layer cannot.
 //
@@ -77,7 +79,7 @@ const capturePage = `<!doctype html>
 
   let capture;
   try {
-    const res = await fetch('/collect', {
+    const res = await fetch('/collect?navigation=__TLS_FORGE_NAVIGATION__', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),

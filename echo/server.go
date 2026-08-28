@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -43,8 +45,9 @@ type Session struct {
 	// navigation and reported are guarded by the Server's mutex, not this
 	// session's. They describe how the server files this session among the
 	// others, which is not a question a session can answer about itself.
-	navigation bool
-	reported   bool
+	navigation      bool
+	reported        bool
+	navigationToken string
 }
 
 // Remote is the client's address, which is the only way to tell two otherwise
@@ -100,16 +103,22 @@ type Server struct {
 
 	mu       sync.Mutex
 	sessions []*Session
-	waiters  []chan *Session
-	// Every connection that fetched the capture page, oldest first, and the
-	// last capture to be completed.
+	// Every connection that fetched the capture page, oldest first, together
+	// with the token embedded in the page served to it.
 	//
 	// A list rather than the single pinned session this used to hold: with one,
 	// the second browser to open the page was handed the FIRST browser's
 	// ClientHello and header order labelled with its own user agent. Which is
 	// wrong in a way that looks entirely plausible.
-	navigations []*Session
-	completed   *Session
+	navigations    []*Session
+	navigationByID map[string]*Session
+	nextNavigation uint64
+
+	// Completed captures are consumed once, oldest first. Keeping a queue makes
+	// a capture that finishes just before Await safe without making every later
+	// MeasureBrowserAt call return the previous browser forever.
+	completed []*Session
+	ready     chan struct{}
 	// Open connections, so Close can end them.
 	//
 	// Without this, Close waits forever on any client holding a keep-alive
@@ -194,10 +203,12 @@ func Start(opts ...Option) (*Server, error) {
 	}
 
 	s := &Server{
-		listener: listener,
-		host:     cfg.host,
-		closed:   make(chan struct{}),
-		conns:    map[net.Conn]struct{}{},
+		listener:       listener,
+		host:           cfg.host,
+		closed:         make(chan struct{}),
+		ready:          make(chan struct{}),
+		conns:          map[net.Conn]struct{}{},
+		navigationByID: map[string]*Session{},
 		tlsConfig: &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			// Both protocols are offered because which one the client picks is
@@ -250,34 +261,24 @@ func (s *Server) Sessions() []*Session {
 // navigation is tracked explicitly rather than inferred from whichever
 // connection spoke last.
 func (s *Server) Await(ctx context.Context) (*Session, error) {
-	s.mu.Lock()
-	if s.completed != nil {
-		sess := s.completed
+	for {
+		s.mu.Lock()
+		if len(s.completed) > 0 {
+			sess := s.completed[0]
+			s.completed = s.completed[1:]
+			s.mu.Unlock()
+			return sess, nil
+		}
+		ready := s.ready
 		s.mu.Unlock()
-		return sess, nil
-	}
-	ch := make(chan *Session, 1)
-	s.waiters = append(s.waiters, ch)
-	s.mu.Unlock()
-	defer s.removeWaiter(ch)
 
-	select {
-	case sess := <-ch:
-		return sess, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-s.closed:
-		return nil, errors.New("echo: server closed while waiting for a capture")
-	}
-}
-
-func (s *Server) removeWaiter(ch chan *Session) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for i, waiter := range s.waiters {
-		if waiter == ch {
-			s.waiters = append(s.waiters[:i], s.waiters[i+1:]...)
-			return
+		select {
+		case <-ready:
+			// A completion was queued. Compete with any other waiter for it.
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-s.closed:
+			return nil, errors.New("echo: server closed while waiting for a capture")
 		}
 	}
 }
@@ -434,14 +435,19 @@ func (s *Server) register(sess *Session) {
 // resumes the old one, which is not the cold handshake this is here to measure.
 // But every connection that loads the page is recorded, because a second
 // browser is a second navigation and deserves its own.
-func (s *Server) setNavigation(sess *Session) {
+func (s *Server) setNavigation(sess *Session) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if sess.navigation {
-		return
+		return sess.navigationToken
 	}
+	s.nextNavigation++
+	token := strconv.FormatUint(s.nextNavigation, 36)
 	sess.navigation = true
+	sess.navigationToken = token
 	s.navigations = append(s.navigations, sess)
+	s.navigationByID[token] = sess
+	return token
 }
 
 // captureSession is the session a report belongs to.
@@ -450,43 +456,44 @@ func (s *Server) setNavigation(sess *Session) {
 // a POST's header order is an XHR's, not a page load's — so it is filed against
 // a navigation. Which navigation is the whole question:
 //
-//   - The reporting connection's own, when the browser reused it. Over HTTP/2
-//     this is the ordinary case, and it is exactly right.
-//   - Otherwise the newest navigation nobody has reported for yet. Newest and
-//     UNCLAIMED, because a second browser must claim its own page load and not
-//     the first browser's, which is what pinning a single session did.
+//   - The navigation token embedded in the page is authoritative. It survives
+//     Chrome moving fetch() to another connection and cannot be confused with
+//     a concurrently open browser.
+//   - Without a token, the reporting connection's own navigation is used.
 //   - Otherwise the reporting session, adopted as a navigation, so that a
 //     caller who posts here without loading the page still produces a capture
 //     Await can return rather than blocking until its deadline.
-func (s *Server) captureSession(fallback *Session) *Session {
+func (s *Server) captureSession(token string, fallback *Session) (*Session, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if token != "" {
+		target, ok := s.navigationByID[token]
+		if !ok {
+			return nil, fmt.Errorf("echo: unknown navigation %q", token)
+		}
+		target.reported = true
+		return target, nil
+	}
 	if fallback.navigation {
 		fallback.reported = true
-		return fallback
+		return fallback, nil
 	}
-	for i := len(s.navigations) - 1; i >= 0; i-- {
-		if !s.navigations[i].reported {
-			s.navigations[i].reported = true
-			return s.navigations[i]
-		}
-	}
+	s.nextNavigation++
+	fallback.navigationToken = strconv.FormatUint(s.nextNavigation, 36)
 	fallback.navigation = true
 	fallback.reported = true
 	s.navigations = append(s.navigations, fallback)
-	return fallback
+	s.navigationByID[fallback.navigationToken] = fallback
+	return fallback, nil
 }
 
 // complete hands a finished capture to whoever is waiting for one.
 func (s *Server) complete(sess *Session) {
 	s.mu.Lock()
-	s.completed = sess
-	waiters := s.waiters
-	s.waiters = nil
+	s.completed = append(s.completed, sess)
+	close(s.ready)
+	s.ready = make(chan struct{})
 	s.mu.Unlock()
-	for _, ch := range waiters {
-		ch <- sess
-	}
 }
 
 // respond routes a request. The endpoint set is intentionally four items long.
@@ -497,14 +504,19 @@ func (s *Server) respond(h *h2conn, sess *Session, req *request) error {
 
 func (s *Server) route(sess *Session, req *request) (status, contentType string, body []byte) {
 	path := req.path
+	navigationToken := ""
 	if i := strings.IndexByte(path, '?'); i >= 0 {
+		if query, err := url.ParseQuery(path[i+1:]); err == nil {
+			navigationToken = query.Get("navigation")
+		}
 		path = path[:i]
 	}
 
 	switch path {
 	case "/":
-		s.setNavigation(sess)
-		return "200", "text/html; charset=utf-8", []byte(capturePage)
+		token := s.setNavigation(sess)
+		page := strings.Replace(capturePage, navigationPlaceholder, token, 1)
+		return "200", "text/html; charset=utf-8", []byte(page)
 
 	case "/api/all":
 		return jsonResponse(sess.Capture(capture.SourceBrowser))
@@ -518,7 +530,11 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		// The report describes the BROWSER, not the connection that carried it,
 		// so it is filed against the navigation. Falling back to the reporting
 		// session covers a caller that posted here without loading the page.
-		target := s.captureSession(sess)
+		target, err := s.captureSession(navigationToken, sess)
+		if err != nil {
+			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
+			return "400", contentType, body
+		}
 		target.mu.Lock()
 		target.navigator = &nav
 		target.mu.Unlock()

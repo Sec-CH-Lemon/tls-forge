@@ -179,7 +179,29 @@ func TestCapturePageAndCollect(t *testing.T) {
 	}
 }
 
-func TestAwaitReturnsImmediatelyWhenTheCaptureIsAlreadyDone(t *testing.T) {
+func TestHTTP2ReplenishesTheConnectionWindowAcrossRequestBodies(t *testing.T) {
+	server := startServer(t)
+	client := http2Client()
+	client.Timeout = 2 * time.Second
+	body := `{"padding":"` + strings.Repeat("x", 40<<10) + `"}`
+
+	for i := range 2 {
+		res, err := client.Post(server.URL()+"/collect", "application/json", strings.NewReader(body))
+		if err != nil {
+			t.Fatalf("POST %d: %v", i+1, err)
+		}
+		_, readErr := io.Copy(io.Discard, res.Body)
+		_ = res.Body.Close()
+		if readErr != nil {
+			t.Fatalf("reading POST %d: %v", i+1, readErr)
+		}
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("POST %d status = %d", i+1, res.StatusCode)
+		}
+	}
+}
+
+func TestAwaitConsumesACompletedCaptureOnlyOnce(t *testing.T) {
 	server := startServer(t)
 	client := http2Client()
 	get(t, client, server.URL()+"/")
@@ -194,9 +216,12 @@ func TestAwaitReturnsImmediatelyWhenTheCaptureIsAlreadyDone(t *testing.T) {
 	if _, err := server.Await(ctx); err != nil {
 		t.Fatalf("first Await: %v", err)
 	}
-	// A second Await must not block: the capture has already happened.
-	if _, err := server.Await(ctx); err != nil {
-		t.Fatalf("second Await: %v", err)
+	// A second measurement must wait for a second capture rather than silently
+	// returning the previous browser forever.
+	secondCtx, secondCancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer secondCancel()
+	if _, err := server.Await(secondCtx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("second Await = %v, want deadline", err)
 	}
 }
 
@@ -234,6 +259,19 @@ func TestCollectRejectsUnreadableJSON(t *testing.T) {
 	body, _ := io.ReadAll(res.Body)
 	if !bytes.Contains(body, []byte("error")) {
 		t.Errorf("body = %s, want an error", body)
+	}
+}
+
+func TestCollectRejectsAnUnknownNavigation(t *testing.T) {
+	server := startServer(t)
+	res, err := http2Client().Post(server.URL()+"/collect?navigation=missing", "application/json",
+		strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", res.StatusCode, http.StatusBadRequest)
 	}
 }
 
@@ -509,12 +547,6 @@ func TestAwaitRespectsItsContext(t *testing.T) {
 	defer cancel()
 	if _, err := server.Await(ctx); !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("error = %v, want a deadline", err)
-	}
-	server.mu.Lock()
-	waiters := len(server.waiters)
-	server.mu.Unlock()
-	if waiters != 0 {
-		t.Errorf("waiters = %d after timeout, want 0", waiters)
 	}
 }
 

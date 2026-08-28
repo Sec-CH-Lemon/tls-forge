@@ -127,6 +127,14 @@ func (s *Server) serveHTTP2(conn net.Conn, sess *Session) error {
 			pending[f.StreamID] = req
 
 		case *http2.DataFrame:
+			if len(f.Data()) > 0 {
+				// Reading DATA consumes the connection window even when this
+				// particular stream is unknown. Replenish it as bytes are consumed
+				// so a second request body on the same connection cannot stall.
+				if err := h.framer.WriteWindowUpdate(0, uint32(len(f.Data()))); err != nil {
+					return err
+				}
+			}
 			req, ok := pending[f.StreamID]
 			if !ok {
 				continue
