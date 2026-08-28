@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -114,19 +115,18 @@ func TestGetTakesAPath(t *testing.T) {
 	}
 }
 
-func TestADirectoryProfileIsIgnoredWhenItWillNotLoad(t *testing.T) {
-	// A broken file in the directory falls through to the other sources rather
-	// than taking a name hostage.
+func TestABrokenDirectoryProfileIsReported(t *testing.T) {
+	// A local profile deliberately overrides a shipped one. If it is broken,
+	// silently wearing the shipped identity under the requested name is worse
+	// than reporting the file the user needs to fix.
 	r, dir := keptHere(t)
-	if err := os.WriteFile(filepath.Join(dir, "chrome_151.json"), []byte("{"), 0o644); err != nil {
+	path := filepath.Join(dir, "chrome_151.json")
+	if err := os.WriteFile(path, []byte("{"), 0o644); err != nil {
 		t.Fatalf("writing: %v", err)
 	}
-	p, err := r.Get("chrome_151")
-	if err != nil {
-		t.Fatalf("Get: %v", err)
-	}
-	if len(p.ClientHello) == 0 {
-		t.Error("the shipped profile was not used")
+	_, err := r.Get("chrome_151")
+	if err == nil || !strings.Contains(err.Error(), path) || strings.Contains(err.Error(), "unknown profile") {
+		t.Fatalf("Get error = %v, want the invalid local file named directly", err)
 	}
 }
 

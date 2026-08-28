@@ -215,24 +215,27 @@ func Split(name string) (version, platform string) {
 	return name, ""
 }
 
-// fromDir reads a profile out of this machine's directory.
-func (r *Registry) fromDir(name string) (*Profile, bool) {
+// fromDir reads a profile out of this machine's directory. A file that exists
+// but does not load is different from a name that is absent: silently falling
+// through would wear another profile while claiming the requested local name.
+func (r *Registry) fromDir(name string) (*Profile, bool, error) {
 	dir := r.Dir()
 	// A name is a file name here, so one carrying a separator would reach
 	// outside the directory it is supposed to name.
 	if dir == "" || name != filepath.Base(name) || name == "." || name == ".." {
-		return nil, false
+		return nil, false, nil
 	}
 	data, at, ok := lookup(os.DirFS(dir), ".", name)
 	if !ok {
-		return nil, false
+		return nil, false, nil
 	}
+	source := filepath.Join(dir, filepath.FromSlash(at))
 	p, err := Load(data)
 	if err != nil {
-		return nil, false
+		return nil, true, fmt.Errorf("profile: loading %s: %w", source, err)
 	}
-	p.source = filepath.Join(dir, filepath.FromSlash(at))
-	return p, true
+	p.source = source
+	return p, true, nil
 }
 
 // dirNames lists what is in this machine's directory.
@@ -285,8 +288,8 @@ func (r *Registry) Get(name string) (*Profile, error) {
 		return p, err
 	}
 
-	if p, ok := r.fromDir(name); ok {
-		return p, nil
+	if p, ok, err := r.fromDir(name); ok {
+		return p, err
 	}
 
 	if data, _, ok := lookup(embedded, "data", name); ok {
