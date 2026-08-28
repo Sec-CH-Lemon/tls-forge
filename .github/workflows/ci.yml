@@ -83,7 +83,7 @@ jobs:
           # `config verify` before looking at a single line of Go. Pinning the
           # tool as well keeps a new lint release from turning this job red on a
           # change that had nothing to do with it.
-          version: v2.12.2
+          version: v2.13.2
 
   node:
     timeout-minutes: 15

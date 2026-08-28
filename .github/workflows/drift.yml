@@ -67,7 +67,11 @@ jobs:
       - name: what everybody else is running
         id: serving
         run: |
-          version=$(python3 scripts/chrome-version.py --platforms linux) || true
+          version=$(python3 scripts/chrome-version.py --platforms linux)
+          if [ -z "$version" ]; then
+            echo "Chrome version lookup returned an empty version" >&2
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "major=${version%%.*}" >> "$GITHUB_OUTPUT"
 

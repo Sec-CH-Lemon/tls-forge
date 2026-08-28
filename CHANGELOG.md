@@ -87,8 +87,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   line, accepts `cookieFile`/`cookieSet`, and can import on an unsupported
   platform when `TLSFORGE_BIN` supplies the executable.
 - Release tags now run lint, vulnerability and cross-platform Go gates. Actions
-  with publishing or drift credentials are pinned to commit SHAs, and a failed
-  Chrome-version lookup can no longer create `profile/chrome-`.
+  use their stable major tags (for example `@v7` and `@v8`), and a failed or
+  empty Chrome-version lookup can no longer create `profile/chrome-`.
 
 ### Changed
 

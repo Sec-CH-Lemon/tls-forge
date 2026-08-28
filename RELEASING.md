@@ -26,7 +26,8 @@ the race suite, 100% Go coverage, `govulncheck`, golangci-lint, Go tests on
 Linux/macOS/Windows, the Node and Python suites, and a real-daemon wrapper smoke
 test — and checks that `THIRD-PARTY-NOTICES.txt` is current. A release is the
 worst moment to find out a test was failing. Third-party Actions in the release
-and drift paths are pinned to immutable commit SHAs.
+and drift paths use stable major tags such as `@v7` and `@v8`, so patch and
+security fixes arrive without silently crossing a breaking major version.
 
 ## What to set up first, once
 
