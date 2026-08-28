@@ -116,7 +116,7 @@ func TestReadJobsFromEachSource(t *testing.T) {
 		},
 		{
 			name:   "one URL per line",
-			path:   writeList(t, "list.txt", "# a comment\n\nhttps://a.example/ http://p1:8080\nhttps://b.example/\n"),
+			path:   writeList(t, "list.txt", "# a comment\n\nhttps://a.example/\t  http://p1:8080\nhttps://b.example/\n"),
 			format: formatAuto,
 			want:   both,
 		},

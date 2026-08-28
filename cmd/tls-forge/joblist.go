@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"unicode"
 )
 
 // Reading a list of URLs.
@@ -176,7 +177,10 @@ func decodeLineJobs(r io.Reader, source string) ([]job, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		url, proxy, _ := strings.Cut(line, " ")
+		url, proxy := line, ""
+		if split := strings.IndexFunc(line, unicode.IsSpace); split >= 0 {
+			url, proxy = line[:split], line[split:]
+		}
 		jobs = append(jobs, job{URL: strings.TrimSpace(url), Proxy: strings.TrimSpace(proxy)})
 	}
 	if err := scanner.Err(); err != nil {
