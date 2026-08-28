@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -204,8 +205,8 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	if *workers < 1 {
 		return fmt.Errorf("%w: --concurrency must be at least 1", errUsage)
 	}
-	if *repeat < 0 {
-		return fmt.Errorf("%w: --repeat cannot be negative", errUsage)
+	if *repeat < 0 || *repeat == math.MaxInt {
+		return fmt.Errorf("%w: --repeat must be non-negative and bounded", errUsage)
 	}
 	// Checked before the list is read, so a misspelling costs a message rather
 	// than a run that turns out to have nowhere to report itself.
@@ -656,17 +657,18 @@ func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir str
 	}
 
 	var res *tlsforge.Response
-	// One try, then as many again as asked for.
-	for attempt := 1; attempt <= repeat+1; attempt++ {
-		if attempt > 1 && !pause(ctx, repeatWait(attempt-1)) {
-			break
-		}
+	// One try, then as many again as asked for. The stopping comparison avoids
+	// forming repeat+1, which overflows for the largest accepted int.
+	for attempt := 1; ; attempt++ {
 		r.Attempts = attempt
 		res, err = client.Do(&tlsforge.Request{Context: ctx, URL: j.URL})
 		if err == nil {
 			break
 		}
-		if ctx.Err() != nil {
+		if ctx.Err() != nil || attempt > repeat {
+			break
+		}
+		if !pause(ctx, repeatWait(attempt)) {
 			break
 		}
 	}

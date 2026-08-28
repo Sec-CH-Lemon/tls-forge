@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -375,6 +376,7 @@ func TestBatchArgumentErrors(t *testing.T) {
 	for _, args := range [][]string{
 		{"batch", "--concurrency", "0", server.URL},
 		{"batch", "--repeat", "-1", server.URL},
+		{"batch", "--repeat", fmt.Sprint(math.MaxInt), server.URL},
 		{"batch", "--nonsense"},
 	} {
 		if code, _, _ := exec(t, args...); code != 2 {
