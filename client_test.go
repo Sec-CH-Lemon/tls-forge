@@ -26,6 +26,7 @@ import (
 
 	fhttp "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
+	utls "github.com/bogdanfinn/utls"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
@@ -545,6 +546,143 @@ func TestForcedHTTP1UsesBrowserLikeCasingAndHeaderOrder(t *testing.T) {
 	}
 	if got, want := repeats, []string{"X-Repeat: one", "X-Repeat: two"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("repeated headers = %v, want %v", got, want)
+	}
+}
+
+func profileWithMeasuredHTTP1(t *testing.T) *profile.Profile {
+	t.Helper()
+	p, err := profile.Get(DefaultProfile)
+	if err != nil {
+		t.Fatalf("profile: %v", err)
+	}
+	p.HTTP1 = &profile.HTTP1{
+		HeaderOrder: []string{"Host", "sec-ch-ua", "User-Agent", "Connection"},
+		Headers:     []profile.Field{{Name: "Connection", Value: "keep-alive"}},
+	}
+	return p
+}
+
+func TestMeasuredHTTP1UsesCapturedCasingAndProtocolOnlyHeaders(t *testing.T) {
+	url, recorded := recordingHTTP1Server(t)
+	client := newTestClient(t,
+		WithProfileValue(profileWithMeasuredHTTP1(t)),
+		WithTransportOption(tls_client.WithForceHttp1()),
+	)
+	if _, err := client.Get(url); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	lines := <-recorded
+	if len(lines) < 5 {
+		t.Fatalf("request is incomplete: %v", lines)
+	}
+	if !strings.HasPrefix(lines[1], "Host: ") ||
+		!strings.HasPrefix(lines[2], "sec-ch-ua: ") ||
+		!strings.HasPrefix(lines[3], "User-Agent: ") ||
+		lines[4] != "Connection: keep-alive" {
+		t.Errorf("measured HTTP/1.1 layout was not used: %v", lines)
+	}
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Sec-Ch-Ua: ") {
+			t.Errorf("client hints were canonicalised instead of measured: %q", line)
+		}
+		if strings.HasPrefix(strings.ToLower(line), "priority: ") {
+			t.Errorf("HTTP/2-only Priority leaked into HTTP/1.1: %q", line)
+		}
+	}
+}
+
+func TestMeasuredHTTP1DoesNotChangeHTTP2(t *testing.T) {
+	server := startEcho(t)
+	p := profileWithMeasuredHTTP1(t)
+	client := newTestClient(t, WithProfileValue(p))
+	measured := measure(t, client, server)
+	if got, want := measured.HTTP2.HeaderOrder, p.HeaderOrder(); !reflect.DeepEqual(got, want) {
+		t.Errorf("HTTP/2 order = %v, want %v", got, want)
+	}
+	if got, want := measured.HTTP2.Akamai,
+		"1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p"; got != want {
+		t.Errorf("HTTP/2 Akamai = %q, want %q", got, want)
+	}
+	for _, header := range measured.HTTP2.Headers {
+		if header.Name == "connection" {
+			t.Error("HTTP/1.1-only Connection leaked into HTTP/2")
+		}
+	}
+}
+
+type protocolConn struct {
+	net.Conn
+	protocol string
+}
+
+func (c protocolConn) ConnectionState() utls.ConnectionState {
+	return utls.ConnectionState{NegotiatedProtocol: c.protocol}
+}
+
+func TestProtocolLayoutEdgeCases(t *testing.T) {
+	plain, _ := neturl.Parse("http://example.test/")
+	secure, _ := neturl.Parse("https://example.test/")
+	if !connectionUsesHTTP1(plain, nil) {
+		t.Error("plain HTTP must use the HTTP/1 layout")
+	}
+	if connectionUsesHTTP1(secure, nil) {
+		t.Error("an unknown TLS connection must preserve the HTTP/2 layout")
+	}
+	for _, tc := range []struct {
+		protocol string
+		want     bool
+	}{
+		{"", true},
+		{"http/1.1", true},
+		{"h2", false},
+	} {
+		if got := connectionUsesHTTP1(secure, protocolConn{protocol: tc.protocol}); got != tc.want {
+			t.Errorf("connectionUsesHTTP1(%q) = %v, want %v", tc.protocol, got, tc.want)
+		}
+	}
+
+	layout := measuredHTTP1Layout(Header{
+		{Name: "host", Value: "first.test"},
+		{Name: "Host", Value: "last.test"},
+		{Name: "x-extra", Value: "one"},
+	}, &profile.HTTP1{HeaderOrder: []string{"Host", "Missing"}}, "derived.test")
+	if got := layout.Get("Host"); got != "last.test" {
+		t.Errorf("Host = %q, want the final caller override", got)
+	}
+	if _, ok := layout["Missing"]; ok {
+		t.Error("a measured header with no request value was invented")
+	}
+	if got := layout.Get("X-Extra"); got != "one" {
+		t.Errorf("caller-only header = %q", got)
+	}
+
+	req, err := fhttp.NewRequest("GET", "https://example.test/", nil)
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	if err := prepareRedirectLayout(req, nil); err != nil {
+		t.Fatalf("prepareRedirectLayout without layouts: %v", err)
+	}
+}
+
+func TestRedirectChoosesTheLayoutOfTheNextConnection(t *testing.T) {
+	target, recorded := recordingHTTP1Server(t)
+	redirect := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", target)
+		w.WriteHeader(http.StatusFound)
+	}))
+	redirect.EnableHTTP2 = true
+	redirect.StartTLS()
+	t.Cleanup(redirect.Close)
+
+	client := newTestClient(t, WithProfileValue(profileWithMeasuredHTTP1(t)))
+	if _, err := client.Get(redirect.URL); err != nil {
+		t.Fatalf("redirect: %v", err)
+	}
+	lines := <-recorded
+	if len(lines) < 3 || !strings.HasPrefix(lines[2], "sec-ch-ua: ") {
+		t.Errorf("redirected HTTP/1.1 request used the wrong layout: %v", lines)
 	}
 }
 

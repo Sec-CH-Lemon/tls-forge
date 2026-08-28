@@ -44,7 +44,9 @@ import (
 
 	fhttp "github.com/bogdanfinn/fhttp"
 	"github.com/bogdanfinn/fhttp/cookiejar"
+	fhttptrace "github.com/bogdanfinn/fhttp/httptrace"
 	tls_client "github.com/bogdanfinn/tls-client"
+	utls "github.com/bogdanfinn/utls"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -63,8 +65,12 @@ type Client struct {
 	profile *profile.Profile
 	jar     fhttp.CookieJar
 	headers Header
-	closed  atomic.Bool
-	maxBody int64
+	// http1Headers begins with the shared profile headers, then applies values
+	// measured only on HTTP/1.1. It stays separate so Connection can never leak
+	// into HPACK merely because the same client also talks to an h1 origin.
+	http1Headers Header
+	closed       atomic.Bool
+	maxBody      int64
 	// warm is the session this client was handed, filed into the jar against
 	// each request's own URL.
 	//
@@ -234,6 +240,11 @@ func New(opts ...Option) (*Client, error) {
 	if cfg.insecureSkipVerify {
 		options = append(options, tls_client.WithInsecureSkipVerify())
 	}
+	if prof.HTTP1 != nil && cfg.followRedirects {
+		// Redirects are new requests. Their Context carries both layouts, but the
+		// GotConn hook must close over the new request rather than the first hop.
+		options = append(options, tls_client.WithCustomRedirectFunc(prepareRedirectLayout))
+	}
 	for _, opt := range cfg.extra {
 		if opt == nil {
 			return nil, fmt.Errorf("tlsforge: nil transport option")
@@ -251,10 +262,30 @@ func New(opts ...Option) (*Client, error) {
 		headers = append(headers, f)
 	}
 	headers = headers.Merge(cfg.headers)
+	http1Headers := profileHTTP1Headers(prof)
+	http1Headers = http1Headers.Merge(cfg.headers)
 
-	return &Client{inner: inner, profile: prof, jar: jar, headers: headers,
+	return &Client{inner: inner, profile: prof, jar: jar, headers: headers, http1Headers: http1Headers,
 		warm: cfg.cookies, warmSeeded: map[warmCookieKey]struct{}{},
 		maxBody: cfg.maxResponseBody}, nil
+}
+
+func profileHTTP1Headers(prof *profile.Profile) Header {
+	shared := append(Header(nil), prof.Headers...)
+	if prof.HTTP1 == nil {
+		return shared
+	}
+	resolved := shared.Merge(Header(prof.HTTP1.Headers))
+	var out Header
+	for _, wireName := range prof.HTTP1.HeaderOrder {
+		if strings.EqualFold(wireName, "host") {
+			continue
+		}
+		for _, value := range resolved.Values(wireName) {
+			out = append(out, profile.Field{Name: strings.ToLower(wireName), Value: value})
+		}
+	}
+	return out
 }
 
 // Profile returns the profile this client wears.
@@ -304,38 +335,14 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	c.seedCookies(parsed, req.Cookies)
 
 	headers := c.headers.Merge(req.Header)
-	// HTTP/1.1 keeps the spelling in this map on the wire; HTTP/2 lower-cases it
-	// during HPACK encoding. Canonical spelling therefore fixes forced HTTP/1.1
-	// without changing an HTTP/2 fingerprint.
-	inner.Header = fhttp.Header{}
-	order := []string{"host"}
-	seen := map[string]bool{"host": true}
-	inner.Header["Host"] = []string{parsed.Host}
-	for _, f := range headers {
-		name := strings.ToLower(f.Name)
-		wireName := textproto.CanonicalMIMEHeaderKey(name)
-		if name == "host" {
-			// A caller's Host replaces the one taken from the URL rather than
-			// following it. Appending produced two Host lines, which RFC 7230
-			// requires a server to answer with 400 — and which is a request
-			// smuggling primitive whenever a proxy and an origin in front of
-			// the same request pick different ones.
-			//
-			// Host is the one name this can happen to: every other repeated
-			// value arrives through Merge, which already decided that repeats
-			// are wanted, while this one is seeded from the URL before the loop.
-			inner.Header[wireName] = []string{f.Value}
-			continue
-		}
-		inner.Header[wireName] = append(inner.Header[wireName], f.Value)
-		if !seen[name] {
-			order = append(order, name)
-			seen[name] = true
-		}
-	}
-	inner.Header[fhttp.HeaderOrderKey] = order
+	inner.Header = legacyHeaderLayout(headers, parsed.Host)
 	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
 		inner.Header[fhttp.PHeaderOrderKey] = order
+	}
+	if c.profile.HTTP1 != nil {
+		http1 := measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
+		layouts := &protocolLayouts{http1: http1, managed: managedHeaderNames(inner.Header, http1)}
+		inner = withProtocolLayouts(inner, layouts)
 	}
 
 	res, err := c.inner.Do(inner)
@@ -372,6 +379,139 @@ func (c *Client) Do(req *Request) (*Response, error) {
 		}
 	}
 	return out, nil
+}
+
+// legacyHeaderLayout is the compatibility path for profiles captured before
+// HTTP/1.1 was measured. Its canonical spelling is intentionally the old
+// behaviour: adding a schema field must not make an existing profile fail a
+// request it used to send.
+func legacyHeaderLayout(headers Header, host string) fhttp.Header {
+	out := fhttp.Header{}
+	order := []string{"host"}
+	seen := map[string]bool{"host": true}
+	out["Host"] = []string{host}
+	for _, field := range headers {
+		name := strings.ToLower(field.Name)
+		wireName := textproto.CanonicalMIMEHeaderKey(name)
+		if name == "host" {
+			out[wireName] = []string{field.Value}
+			continue
+		}
+		out[wireName] = append(out[wireName], field.Value)
+		if !seen[name] {
+			order = append(order, name)
+			seen[name] = true
+		}
+	}
+	out[fhttp.HeaderOrderKey] = order
+	return out
+}
+
+func measuredHTTP1Layout(headers Header, measured *profile.HTTP1, host string) fhttp.Header {
+	values := make(map[string][]string)
+	for _, field := range headers {
+		name := strings.ToLower(field.Name)
+		values[name] = append(values[name], field.Value)
+	}
+	if hosts := values["host"]; len(hosts) > 0 {
+		host = hosts[len(hosts)-1]
+	}
+
+	out := fhttp.Header{}
+	order := make([]string, 0, len(measured.HeaderOrder)+len(headers))
+	seen := make(map[string]bool)
+	for _, wireName := range measured.HeaderOrder {
+		name := strings.ToLower(wireName)
+		var fieldValues []string
+		if name == "host" {
+			fieldValues = []string{host}
+		} else {
+			fieldValues = values[name]
+		}
+		if len(fieldValues) == 0 {
+			continue
+		}
+		out[wireName] = append([]string(nil), fieldValues...)
+		order = append(order, name)
+		seen[name] = true
+	}
+	for _, field := range headers {
+		name := strings.ToLower(field.Name)
+		if seen[name] || name == "host" {
+			continue
+		}
+		wireName := textproto.CanonicalMIMEHeaderKey(name)
+		out[wireName] = append([]string(nil), values[name]...)
+		order = append(order, name)
+		seen[name] = true
+	}
+	out[fhttp.HeaderOrderKey] = order
+	return out
+}
+
+type protocolLayouts struct {
+	http1   fhttp.Header
+	managed map[string]bool
+}
+
+type protocolLayoutsKey struct{}
+
+func managedHeaderNames(layouts ...fhttp.Header) map[string]bool {
+	out := make(map[string]bool)
+	for _, layout := range layouts {
+		for name := range layout {
+			out[strings.ToLower(name)] = true
+		}
+	}
+	return out
+}
+
+func withProtocolLayouts(req *fhttp.Request, layouts *protocolLayouts) *fhttp.Request {
+	ctx := context.WithValue(req.Context(), protocolLayoutsKey{}, layouts)
+	target := req
+	trace := &fhttptrace.ClientTrace{GotConn: func(info fhttptrace.GotConnInfo) {
+		if connectionUsesHTTP1(target.URL, info.Conn) {
+			applyHeaderLayout(target.Header, layouts.http1, layouts.managed)
+		}
+	}}
+	return req.WithContext(fhttptrace.WithClientTrace(ctx, trace))
+}
+
+func prepareRedirectLayout(req *fhttp.Request, _ []*fhttp.Request) error {
+	layouts, _ := req.Context().Value(protocolLayoutsKey{}).(*protocolLayouts)
+	if layouts == nil {
+		return nil
+	}
+	prepared := withProtocolLayouts(req, layouts)
+	*req = *prepared
+	return nil
+}
+
+func connectionUsesHTTP1(target *url.URL, conn net.Conn) bool {
+	if target.Scheme == "http" {
+		return true
+	}
+	type connectionStater interface {
+		ConnectionState() utls.ConnectionState
+	}
+	state, ok := conn.(connectionStater)
+	if !ok {
+		// An unknown TLS wrapper must not perturb HTTP/2, the core fingerprint.
+		return false
+	}
+	negotiated := state.ConnectionState().NegotiatedProtocol
+	return negotiated == "" || negotiated == "http/1.1"
+}
+
+func applyHeaderLayout(target, layout fhttp.Header, managed map[string]bool) {
+	for name := range target {
+		if managed[strings.ToLower(name)] {
+			delete(target, name)
+		}
+	}
+	for name, values := range layout {
+		target[name] = append([]string(nil), values...)
+	}
 }
 
 // seedWarmCookies files the part of a warmed session that belongs to this host
