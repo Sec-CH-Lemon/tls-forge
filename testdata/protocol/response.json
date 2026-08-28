@@ -2,7 +2,8 @@
   "id": 7,
   "status": 200,
   "url": "https://example.com/after-redirect",
-  "body": "\u003chtml\u003ehello\u003c/html\u003e",
+  "body": "AP7/gA==",
+  "bodyEncoding": "base64",
   "headers": {
     "content-type": [
       "text/html; charset=utf-8"

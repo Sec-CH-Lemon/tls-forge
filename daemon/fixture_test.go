@@ -18,8 +18,8 @@ func fixtureResponse() Response {
 		ID:           7,
 		Status:       200,
 		URL:          "https://example.com/after-redirect",
-		Body:         "<html>hello</html>",
-		BodyEncoding: "",
+		Body:         "AP7/gA==",
+		BodyEncoding: BodyBase64,
 		Headers: map[string][]string{
 			"content-type": {"text/html; charset=utf-8"},
 			"set-cookie":   {"a=1", "b=2"},

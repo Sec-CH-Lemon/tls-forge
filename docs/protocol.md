@@ -110,11 +110,11 @@ it, and reject anything else rather than guess.
 The same field works in the other direction: a request carrying bytes sets
 `bodyEncoding` to `base64` and base64-encodes `body`.
 
-Response *header* values are still carried as JSON strings, so a header whose
-bytes are not valid UTF-8 — rare, but a latin-1 `content-disposition` filename
-will do it — is still coerced. Headers are not base64-encoded because doing so
-would make every ordinary response unreadable to buy back a case that barely
-occurs.
+Response *header* values are still carried as JSON strings. If an upstream
+header contains bytes that are not valid UTF-8 — rare, but a latin-1
+`content-disposition` filename can do it — the daemon returns an explicit
+`error` instead of letting the JSON encoder replace bytes silently. Headers are
+not base64-encoded because that would change their public type in every client.
 
 Failures come back on the same shape, with `error` set and the id intact:
 

@@ -48,8 +48,7 @@ test('the committed wire format parses', async () => {
     const response = await client.get('https://fixture/');
     assert.equal(response.status, 200);
     assert.equal(response.url, 'https://example.com/after-redirect');
-    assert.equal(response.body, '<html>hello</html>');
-    assert.equal(response.content.toString('utf8'), '<html>hello</html>');
+    assert.deepEqual(response.content, Buffer.from([0x00, 0xfe, 0xff, 0x80]));
     assert.deepEqual(response.headers['content-type'], ['text/html; charset=utf-8']);
     assert.deepEqual(response.headers['set-cookie'], ['a=1', 'b=2']);
     // The field whose rename went unnoticed.
@@ -62,6 +61,7 @@ test('the committed wire format parses', async () => {
 test('every response field is one this client reads', () => {
   assert.deepEqual(Object.keys(load('response.json')).sort(), [
     'body',
+    'bodyEncoding',
     'cookies',
     'headers',
     'id',

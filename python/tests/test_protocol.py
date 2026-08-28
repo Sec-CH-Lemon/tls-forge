@@ -46,8 +46,7 @@ def test_the_response_fixture_parses(response_fixture: dict) -> None:
     res = _to_response(response_fixture)
     assert res.status == 200
     assert res.url == "https://example.com/after-redirect"
-    assert res.body == "<html>hello</html>"
-    assert res.content == b"<html>hello</html>"
+    assert res.content == bytes([0x00, 0xFE, 0xFF, 0x80])
     assert res.headers["content-type"] == ("text/html; charset=utf-8",)
     assert res.headers["set-cookie"] == ("a=1", "b=2")
     # The field whose rename went unnoticed.
@@ -61,6 +60,7 @@ def test_every_response_field_is_one_this_client_reads(response_fixture: dict) -
         "status",
         "url",
         "body",
+        "bodyEncoding",
         "headers",
         "cookies",
     }

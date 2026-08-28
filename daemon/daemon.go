@@ -132,6 +132,24 @@ func encodeBody(body []byte) (text, encoding string) {
 	return base64.StdEncoding.EncodeToString(body), BodyBase64
 }
 
+// validateResponseHeaders prevents encoding/json from silently replacing
+// invalid bytes with U+FFFD. Header values cannot use bodyEncoding without
+// changing their public type in every wrapper, so fail explicitly instead of
+// returning a successful but corrupted response.
+func validateResponseHeaders(headers map[string][]string) error {
+	for name, values := range headers {
+		if !utf8.ValidString(name) {
+			return fmt.Errorf("response header name is not valid UTF-8")
+		}
+		for _, value := range values {
+			if !utf8.ValidString(value) {
+				return fmt.Errorf("response header %q is not valid UTF-8", name)
+			}
+		}
+	}
+	return nil
+}
+
 // Client is the part of *tlsforge.Client the daemon needs, named so tests can
 // substitute one without opening a socket.
 type Client interface {
@@ -215,6 +233,9 @@ func handle(line string, client Client) Response {
 		Cookies: cookies,
 	})
 	if err != nil {
+		return Response{ID: req.ID, Error: err.Error()}
+	}
+	if err := validateResponseHeaders(res.Header); err != nil {
 		return Response{ID: req.ID, Error: err.Error()}
 	}
 

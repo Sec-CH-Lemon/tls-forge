@@ -392,6 +392,32 @@ func TestATextBodyCarriesNoEncoding(t *testing.T) {
 	}
 }
 
+func TestAnInvalidUTF8ResponseHeaderFailsExplicitly(t *testing.T) {
+	responses := serve(t, &fakeClient{response: &tlsforge.Response{
+		Status: 200,
+		Header: map[string][]string{"content-disposition": {"name=\xff.txt"}},
+	}}, `{"id":9,"url":"https://example.com/"}`)
+	if len(responses) != 1 || responses[0].ID != 9 {
+		t.Fatalf("responses = %+v", responses)
+	}
+	if !strings.Contains(responses[0].Error, "not valid UTF-8") {
+		t.Fatalf("response silently accepted an invalid header: %+v", responses[0])
+	}
+}
+
+func TestAnInvalidUTF8ResponseHeaderNameFailsExplicitly(t *testing.T) {
+	responses := serve(t, &fakeClient{response: &tlsforge.Response{
+		Status: 200,
+		Header: map[string][]string{"x-\xff": {"value"}},
+	}}, `{"id":10,"url":"https://example.com/"}`)
+	if len(responses) != 1 || responses[0].ID != 10 {
+		t.Fatalf("responses = %+v", responses)
+	}
+	if !strings.Contains(responses[0].Error, "name is not valid UTF-8") {
+		t.Fatalf("response silently accepted an invalid header name: %+v", responses[0])
+	}
+}
+
 // TestABinaryRequestBodyIsSentIntact covers the other direction.
 func TestABinaryRequestBodyIsSentIntact(t *testing.T) {
 	want := []byte{0x00, 0xff, 0xfe, 0x80}
