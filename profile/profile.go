@@ -173,6 +173,9 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 	if _, err := p.Spec(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
+	if err := p.validatePseudoHeaderOrder(); err != nil {
+		return profiles.ClientProfile{}, err
+	}
 
 	id := tls.ClientHelloID{
 		Client:      p.Name,
@@ -211,6 +214,23 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 		priorities, headerPriority, streamID,
 		false, nil, nil, 0, nil, false,
 	), nil
+}
+
+func (p *Profile) validatePseudoHeaderOrder() error {
+	want := map[string]bool{
+		":method": true, ":authority": true, ":scheme": true, ":path": true,
+	}
+	if len(p.HTTP2.PseudoHeaderOrder) != len(want) {
+		return fmt.Errorf("profile %q: pseudo_header_order must contain :method, :authority, :scheme and :path exactly once", p.Name)
+	}
+	seen := make(map[string]bool, len(want))
+	for _, name := range p.HTTP2.PseudoHeaderOrder {
+		if !want[name] || seen[name] {
+			return fmt.Errorf("profile %q: invalid pseudo_header_order %v", p.Name, p.HTTP2.PseudoHeaderOrder)
+		}
+		seen[name] = true
+	}
+	return nil
 }
 
 func (p *Profile) isBareBase() bool {
@@ -253,6 +273,11 @@ func Load(data []byte) (*Profile, error) {
 	}
 	if p.Name == "" {
 		return nil, fmt.Errorf("profile: name is required")
+	}
+	if !p.isBareBase() {
+		if err := p.validatePseudoHeaderOrder(); err != nil {
+			return nil, err
+		}
 	}
 	return &p, nil
 }

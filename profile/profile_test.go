@@ -180,13 +180,25 @@ func TestClientProfileErrors(t *testing.T) {
 	if _, err := broken.ClientProfile(); err == nil {
 		t.Error("an unknown base should be reported from the assembly path too")
 	}
+	for _, order := range [][]string{
+		nil,
+		{":method", ":authority", ":scheme"},
+		{":method", ":authority", ":scheme", ":scheme"},
+		{":method", ":authority", ":scheme", ":unknown"},
+	} {
+		p := &Profile{Name: "x", ClientHello: chromeHelloBytes(t), HTTP2: HTTP2{PseudoHeaderOrder: order}}
+		if _, err := p.ClientProfile(); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
+			t.Errorf("ClientProfile accepted pseudo header order %v: %v", order, err)
+		}
+	}
 }
 
 func TestStreamIDIsHonouredWhenSet(t *testing.T) {
 	p := &Profile{
 		Name:        "test",
 		ClientHello: chromeHelloBytes(t),
-		HTTP2:       HTTP2{Settings: []Setting{{ID: 1, Value: 1}}, StreamID: 7},
+		HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 1}}, StreamID: 7,
+			PseudoHeaderOrder: []string{":method", ":authority", ":scheme", ":path"}},
 	}
 	built, err := p.ClientProfile()
 	if err != nil {
@@ -218,9 +230,10 @@ func TestLoadAndSave(t *testing.T) {
 		Name:        "chrome_151",
 		UserAgent:   "Mozilla/5.0",
 		ClientHello: chromeHelloBytes(t),
-		HTTP2:       HTTP2{Settings: []Setting{{ID: 1, Value: 65536}}},
-		Headers:     []Field{{Name: "accept", Value: "*/*"}},
-		Notes:       "captured 2026-08-15",
+		HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}},
+			PseudoHeaderOrder: []string{":method", ":authority", ":scheme", ":path"}},
+		Headers: []Field{{Name: "accept", Value: "*/*"}},
+		Notes:   "captured 2026-08-15",
 	}
 
 	saved, err := original.Save()
@@ -246,6 +259,9 @@ func TestLoadErrors(t *testing.T) {
 	}
 	if _, err := Load([]byte(`{"user_agent":"x"}`)); err == nil {
 		t.Error("a profile without a name should be reported")
+	}
+	if _, err := Load([]byte(`{"name":"x","base":"chrome_133","http2":{"settings":[{"id":1}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
+		t.Errorf("a profile without pseudo headers was accepted: %v", err)
 	}
 }
 
@@ -337,12 +353,9 @@ func TestFromCapture(t *testing.T) {
 }
 
 func TestFromCaptureWithoutHTTP2(t *testing.T) {
-	built, err := FromCapture("plain", &capture.Capture{RawClientHello: chromeHelloBytes(t)})
-	if err != nil {
-		t.Fatalf("FromCapture: %v", err)
-	}
-	if len(built.Headers) != 0 {
-		t.Errorf("headers = %v, want none", built.Headers)
+	_, err := FromCapture("plain", &capture.Capture{RawClientHello: chromeHelloBytes(t)})
+	if err == nil || !strings.Contains(err.Error(), "no HTTP/2") {
+		t.Fatalf("FromCapture error = %v, want missing HTTP/2 data", err)
 	}
 }
 

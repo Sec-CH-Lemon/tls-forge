@@ -66,6 +66,9 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 			"its pre_shared_key makes it a different fingerprint from the same browser's " +
 			"first contact. Capture again against a server that does not issue tickets")
 	}
+	if c.HTTP2 == nil {
+		return nil, fmt.Errorf("profile: capture has no HTTP/2 data; a reusable browser profile needs pseudo headers")
+	}
 
 	if c.HTTP2 != nil {
 		p.HTTP2 = HTTP2{
