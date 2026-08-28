@@ -1,6 +1,7 @@
 package echo
 
 const navigationPlaceholder = "__TLS_FORGE_NAVIGATION__"
+const http1NavigationPlaceholder = "__TLS_FORGE_HTTP1_NAVIGATION__"
 
 // capturePage is served at "/". It has one job beyond being readable: report
 // what the HTTP layer cannot.
@@ -18,6 +19,7 @@ const navigationPlaceholder = "__TLS_FORGE_NAVIGATION__"
 const capturePage = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>tls-forge capture</title>
 <style>
   :root { color-scheme: light dark; --fg:#111; --bg:#fff; --muted:#666; --line:#e3e3e3; --ok:#0a7d32; }
@@ -46,6 +48,11 @@ const capturePage = `<!doctype html>
 <script>
 (async () => {
   const status = document.getElementById('status');
+  const http1Navigation = '__TLS_FORGE_HTTP1_NAVIGATION__';
+  if (http1Navigation) {
+    window.location.replace(http1Navigation);
+    return;
+  }
   const data = navigator.userAgentData;
   // Every field is optional: userAgentData is Chromium-only, and
   // getHighEntropyValues rejects rather than degrades when a hint is refused.

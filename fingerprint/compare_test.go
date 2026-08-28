@@ -179,6 +179,41 @@ func TestCompareHTTP2(t *testing.T) {
 	}
 }
 
+func TestCompareHTTP1(t *testing.T) {
+	reference := &HTTP1{Headers: []HeaderField{
+		{Name: "Host", Value: "browser.example"},
+		{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
+		{Name: "Connection", Value: "keep-alive"},
+	}}
+	identical := &HTTP1{Headers: []HeaderField{
+		{Name: "Host", Value: "client.example"},
+		{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
+		{Name: "Connection", Value: "keep-alive"},
+	}}
+	if report := CompareHTTP1(reference, identical); !report.OK() {
+		t.Errorf("destination-specific Host value differed:\n%s", report)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		mutate func(*HTTP1)
+		field  string
+	}{
+		{"order", func(h *HTTP1) { h.Headers[1], h.Headers[2] = h.Headers[2], h.Headers[1] }, "http1_header_order"},
+		{"casing", func(h *HTTP1) { h.Headers[1].Name = "Sec-Ch-Ua" }, "http1_header_order"},
+		{"value", func(h *HTTP1) { h.Headers[2].Value = "close" }, "http1_header_values"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			candidate := &HTTP1{Headers: append([]HeaderField(nil), identical.Headers...)}
+			tc.mutate(candidate)
+			report := CompareHTTP1(reference, candidate)
+			if report.OK() || !strings.Contains(report.String(), tc.field) {
+				t.Errorf("difference in %s was not reported:\n%s", tc.field, report)
+			}
+		})
+	}
+}
+
 func TestHTTP2FieldsExcludePseudoHeaderValues(t *testing.T) {
 	left, right := chromeHTTP2(), chromeHTTP2()
 	right.Headers[0].Value = "/another-path"

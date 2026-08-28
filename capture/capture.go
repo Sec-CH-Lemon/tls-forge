@@ -42,15 +42,16 @@ type Capture struct {
 	Navigator *Navigator `json:"navigator,omitempty"`
 }
 
-// HTTP1 is what an HTTP/1.1 client sent. No browser takes this path against
-// this server — they all negotiate h2 — but a client that DOES is worth
-// describing rather than hanging up on, and header order is as fingerprintable
-// over HTTP/1.1 as it is over HTTP/2.
+// HTTP1 is what an HTTP/1.1 client sent.
 type HTTP1 struct {
-	Method      string        `json:"method"`
-	Path        string        `json:"path"`
-	Proto       string        `json:"proto"`
+	Method string `json:"method"`
+	Path   string `json:"path"`
+	Proto  string `json:"proto"`
+	// HeaderOrder stays lower-case so an HTTP/1.1 set can still be compared
+	// directly with HTTP/2, where HPACK requires lower-case names. HeaderNames
+	// is the same sequence as it appeared on the HTTP/1.1 wire.
 	HeaderOrder []string      `json:"header_order"`
+	HeaderNames []string      `json:"header_names,omitempty"`
 	Headers     []HeaderField `json:"headers"`
 }
 
@@ -248,6 +249,22 @@ func (h *HTTP2) Fingerprint() *fingerprint.HTTP2 {
 	}
 	for i, f := range h.Headers {
 		out.Headers[i] = fingerprint.HeaderField{Name: f.Name, Value: f.Value}
+	}
+	return out
+}
+
+// Fingerprint converts the rendered HTTP/1.1 view into its comparable form.
+func (h *HTTP1) Fingerprint() *fingerprint.HTTP1 {
+	if h == nil {
+		return nil
+	}
+	out := &fingerprint.HTTP1{Headers: make([]fingerprint.HeaderField, len(h.Headers))}
+	for i, field := range h.Headers {
+		name := field.Name
+		if i < len(h.HeaderNames) && h.HeaderNames[i] != "" {
+			name = h.HeaderNames[i]
+		}
+		out.Headers[i] = fingerprint.HeaderField{Name: name, Value: field.Value}
 	}
 	return out
 }

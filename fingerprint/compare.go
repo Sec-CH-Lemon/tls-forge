@@ -173,6 +173,11 @@ func CompareHTTP2(reference, candidate *HTTP2) Report {
 	return compareFields(HTTP2Fields(reference), HTTP2Fields(candidate))
 }
 
+// CompareHTTP1 diffs HTTP/1.1 request header order, casing and values.
+func CompareHTTP1(reference, candidate *HTTP1) Report {
+	return compareFields(HTTP1Fields(reference), HTTP1Fields(candidate))
+}
+
 // compareFields walks two lists produced by the same function, so they are the
 // same length and in the same order.
 func compareFields(reference, candidate []Field) Report {

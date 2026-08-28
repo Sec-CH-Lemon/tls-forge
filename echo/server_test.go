@@ -1,6 +1,7 @@
 package echo
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -9,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -275,6 +277,50 @@ func TestCollectRejectsAnUnknownNavigation(t *testing.T) {
 	}
 }
 
+func TestNavigationRejectsAnUnknownHTTP1Capture(t *testing.T) {
+	server := startServer(t)
+	status, body := get(t, http2Client(), server.URL()+"/?navigation=missing")
+	if status != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", status, http.StatusBadRequest)
+	}
+	if !bytes.Contains(body, []byte("unknown HTTP/1.1 navigation")) {
+		t.Errorf("body = %s, want the rejected token explained", body)
+	}
+	status, body = get(t, http1Client(), server.CaptureURL()+"/?navigation=missing")
+	if status != http.StatusBadRequest {
+		t.Fatalf("HTTP/1.1 status = %d, want %d", status, http.StatusBadRequest)
+	}
+	if !bytes.Contains(body, []byte("unknown HTTP/1.1 navigation")) {
+		t.Errorf("HTTP/1.1 body = %s, want the rejected token explained", body)
+	}
+}
+
+func TestCloneHTTP1AcceptsNil(t *testing.T) {
+	if got := cloneHTTP1(nil); got != nil {
+		t.Errorf("cloneHTTP1(nil) = %+v", got)
+	}
+}
+
+func TestKnownNavigationTokenKeepsTheOriginalSession(t *testing.T) {
+	server := startServer(t)
+	original := &Session{}
+	token, err := server.setNavigation(original, "")
+	if err != nil {
+		t.Fatalf("initial navigation: %v", err)
+	}
+	returning := &Session{}
+	got, err := server.setNavigation(returning, token)
+	if err != nil {
+		t.Fatalf("return navigation: %v", err)
+	}
+	if got != token {
+		t.Errorf("token = %q, want %q", got, token)
+	}
+	if returning.navigation {
+		t.Error("the reporting connection replaced the original navigation")
+	}
+}
+
 func TestUnknownPathIs404(t *testing.T) {
 	server := startServer(t)
 	status, _ := get(t, http2Client(), server.URL()+"/favicon.ico")
@@ -324,6 +370,139 @@ func TestHTTP1(t *testing.T) {
 		if name != strings.ToLower(name) {
 			t.Errorf("header name %q was not lower-cased", name)
 		}
+	}
+	if len(measured.HTTP1.HeaderNames) != len(measured.HTTP1.HeaderOrder) {
+		t.Fatalf("wire names = %v, normalised order = %v",
+			measured.HTTP1.HeaderNames, measured.HTTP1.HeaderOrder)
+	}
+	if measured.HTTP1.HeaderNames[0] != "Host" {
+		t.Errorf("first wire header = %q, want Host", measured.HTTP1.HeaderNames[0])
+	}
+}
+
+func TestCaptureURLJoinsHTTP1WithoutChangingTheFirstHTTP2Request(t *testing.T) {
+	server := startServer(t)
+	transport := &http.Transport{
+		TLSClientConfig:   insecure(),
+		ForceAttemptHTTP2: true,
+	}
+	t.Cleanup(transport.CloseIdleConnections)
+	client := &http.Client{Transport: transport}
+
+	res, err := client.Get(server.URL())
+	if err != nil {
+		t.Fatalf("capture navigation: %v", err)
+	}
+	page, err := io.ReadAll(res.Body)
+	_ = res.Body.Close()
+	if err != nil {
+		t.Fatalf("reading page: %v", err)
+	}
+	if res.ProtoMajor != 2 {
+		t.Errorf("main capture page used %s, want HTTP/2", res.Proto)
+	}
+	initialOrder := []string(nil)
+	server.mu.Lock()
+	var initial *Session
+	if len(server.navigations) == 1 {
+		initial = server.navigations[0]
+	}
+	server.mu.Unlock()
+	if initial != nil {
+		if captured := initial.Capture(capture.SourceBrowser); captured.HTTP2 != nil {
+			initialOrder = append(initialOrder, captured.HTTP2.HeaderOrder...)
+		}
+	}
+
+	const navigationMarker = "const http1Navigation = '"
+	start := strings.Index(string(page), navigationMarker)
+	if start < 0 {
+		t.Fatalf("capture page has no HTTP/1.1 navigation: %s", page)
+	}
+	start += len(navigationMarker)
+	end := strings.IndexByte(string(page[start:]), '\'')
+	if end < 0 {
+		t.Fatal("capture page has an unterminated HTTP/1.1 navigation")
+	}
+	finish, err := client.Get(string(page[start : start+end]))
+	if err != nil {
+		t.Fatalf("HTTP/1.1 navigation: %v", err)
+	}
+	page, err = io.ReadAll(finish.Body)
+	_ = finish.Body.Close()
+	if err != nil {
+		t.Fatalf("reading finish page: %v", err)
+	}
+
+	const marker = "fetch('"
+	start = strings.Index(string(page), marker)
+	if start < 0 {
+		t.Fatalf("capture page has no collection endpoint: %s", page)
+	}
+	start += len(marker)
+	end = strings.IndexByte(string(page[start:]), '\'')
+	if end < 0 {
+		t.Fatal("capture page has an unterminated collection endpoint")
+	}
+	collect := string(page[start : start+end])
+	response, err := client.Post(server.URL()+collect, "application/json",
+		strings.NewReader(`{"user_agent":"two protocols"}`))
+	if err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+	_ = response.Body.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	session, err := server.Await(ctx)
+	if err != nil {
+		t.Fatalf("Await: %v", err)
+	}
+	measured := session.Capture(capture.SourceBrowser)
+	if measured.HTTP1 == nil || measured.HTTP2 == nil {
+		t.Fatalf("capture did not join both protocols: %+v", measured)
+	}
+	if measured.HTTP1.HeaderNames[0] != "Host" {
+		t.Errorf("HTTP/1.1 wire names = %v", measured.HTTP1.HeaderNames)
+	}
+	if got := measured.HTTP2.HeaderOrder; !reflect.DeepEqual(got, initialOrder) {
+		t.Errorf("HTTP/2 first request changed after the H1 navigation: %v -> %v", initialOrder, got)
+	}
+}
+
+func TestCaptureURLAPIReportsWireCasing(t *testing.T) {
+	server := startServer(t)
+	addr := strings.TrimPrefix(server.CaptureURL(), "https://")
+	conn, err := tls.Dial("tcp", addr, &tls.Config{
+		InsecureSkipVerify: true, NextProtos: []string{"h2", "http/1.1"},
+	})
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+	if got := conn.ConnectionState().NegotiatedProtocol; got != "http/1.1" {
+		t.Fatalf("negotiated %q, want HTTP/1.1", got)
+	}
+	if _, err := io.WriteString(conn,
+		"GET /api/all HTTP/1.1\r\nHost: localhost\r\nsec-ch-ua: measured\r\nConnection: keep-alive\r\n\r\n"); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	res, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	if err != nil {
+		t.Fatalf("response: %v", err)
+	}
+	body, err := io.ReadAll(res.Body)
+	_ = res.Body.Close()
+	if err != nil {
+		t.Fatalf("body: %v", err)
+	}
+	var measured capture.Capture
+	if err := json.Unmarshal(body, &measured); err != nil {
+		t.Fatalf("capture: %v (%s)", err, body)
+	}
+	if got, want := measured.HTTP1.HeaderNames,
+		[]string{"Host", "sec-ch-ua", "Connection"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("wire names = %v, want %v", got, want)
 	}
 }
 
@@ -492,6 +671,10 @@ func TestURLAndAddrAndCertificate(t *testing.T) {
 	if !strings.HasPrefix(server.URL(), "https://localhost:") {
 		t.Errorf("URL = %q", server.URL())
 	}
+	if !strings.HasPrefix(server.CaptureURL(), "https://localhost:") ||
+		server.CaptureURL() == server.URL() {
+		t.Errorf("CaptureURL = %q, URL = %q", server.CaptureURL(), server.URL())
+	}
 	if _, _, err := net.SplitHostPort(server.Addr()); err != nil {
 		t.Errorf("Addr = %q: %v", server.Addr(), err)
 	}
@@ -504,6 +687,9 @@ func TestURLBracketsAnIPv6Host(t *testing.T) {
 	server := startServer(t, WithHost("::1"))
 	if !strings.HasPrefix(server.URL(), "https://[::1]:") {
 		t.Errorf("URL = %q", server.URL())
+	}
+	if !strings.HasPrefix(server.CaptureURL(), "https://[::1]:") {
+		t.Errorf("CaptureURL = %q", server.CaptureURL())
 	}
 }
 
@@ -523,6 +709,17 @@ func TestStartRejectsInvalidOptions(t *testing.T) {
 func TestStartRejectsAnUnusableAddress(t *testing.T) {
 	if _, err := Start(WithAddr("256.256.256.256:0")); err == nil {
 		t.Error("expected an error for an unusable address")
+	}
+}
+
+func TestStartReportsASecondListenerFailure(t *testing.T) {
+	original := listenCapture
+	t.Cleanup(func() { listenCapture = original })
+	listenCapture = func(net.Listener) (net.Listener, error) {
+		return nil, errors.New("no second port")
+	}
+	if _, err := Start(); err == nil || !strings.Contains(err.Error(), "HTTP/1.1 capture") {
+		t.Errorf("Start error = %v", err)
 	}
 }
 
@@ -718,7 +915,7 @@ func TestSessionSnapshotsDoNotExposeInternalState(t *testing.T) {
 			FormFactors:     []string{"Desktop"}, Extra: json.RawMessage(`{"source":"browser"}`),
 		},
 		http1: &capture.HTTP1{
-			Method: "GET", HeaderOrder: []string{"accept"},
+			Method: "GET", HeaderOrder: []string{"accept"}, HeaderNames: []string{"Accept"},
 			Headers: []capture.HeaderField{{Name: "accept", Value: "*/*"}},
 		},
 	}
@@ -731,6 +928,7 @@ func TestSessionSnapshotsDoNotExposeInternalState(t *testing.T) {
 	measured.Navigator.FormFactors[0] = "Mobile"
 	measured.Navigator.Extra[0] = '['
 	measured.HTTP1.HeaderOrder[0] = "changed"
+	measured.HTTP1.HeaderNames[0] = "changed"
 	measured.HTTP1.Headers[0].Value = "changed"
 
 	navigator := session.Navigator()
@@ -740,7 +938,8 @@ func TestSessionSnapshotsDoNotExposeInternalState(t *testing.T) {
 		t.Errorf("navigator was mutated through a snapshot: %+v", navigator)
 	}
 	again := session.Capture(capture.SourceBrowser)
-	if again.HTTP1.HeaderOrder[0] != "accept" || again.HTTP1.Headers[0].Value != "*/*" {
+	if again.HTTP1.HeaderOrder[0] != "accept" || again.HTTP1.HeaderNames[0] != "Accept" ||
+		again.HTTP1.Headers[0].Value != "*/*" {
 		t.Errorf("HTTP/1 data was mutated through a snapshot: %+v", again.HTTP1)
 	}
 }

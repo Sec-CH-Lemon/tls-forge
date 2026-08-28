@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -29,18 +30,56 @@ func TestBrowserHelper(t *testing.T) {
 		t.Skip("not running as the browser stand-in")
 	}
 
-	client, err := New(WithInsecureSkipVerify())
+	client, err := New(WithInsecureSkipVerify(), WithoutRedirects())
 	if err != nil {
 		os.Exit(1)
 	}
 	defer client.Close()
 
-	if _, err := client.Get(url + "/"); err != nil {
+	page, err := client.Get(url)
+	if err != nil {
 		os.Exit(1)
 	}
+	const navigationMarker = "const http1Navigation = '"
+	start := strings.Index(page.Text(), navigationMarker)
+	if start < 0 {
+		os.Exit(1)
+	}
+	start += len(navigationMarker)
+	end := strings.IndexByte(page.Text()[start:], '\'')
+	if end < 0 {
+		os.Exit(1)
+	}
+	redirect, err := client.Get(page.Text()[start : start+end])
+	if err != nil {
+		os.Exit(1)
+	}
+	locations := redirect.Header["location"]
+	if redirect.Status != 302 || len(locations) != 1 {
+		os.Exit(1)
+	}
+	page, err = client.Get(locations[0])
+	if err != nil {
+		os.Exit(1)
+	}
+	const marker = "fetch('"
+	start = strings.Index(page.Text(), marker)
+	if start < 0 {
+		os.Exit(1)
+	}
+	start += len(marker)
+	end = strings.IndexByte(page.Text()[start:], '\'')
+	if end < 0 {
+		os.Exit(1)
+	}
+	final, err := neturl.Parse(page.URL)
+	if err != nil {
+		os.Exit(1)
+	}
+	collect := final.Scheme + "://" + final.Host + page.Text()[start:start+end]
 	if _, err := client.Do(&Request{
 		Method: "POST",
-		URL:    url + "/collect",
+		URL:    collect,
 		Body:   []byte(`{"user_agent":"stand-in browser","platform":"testOS"}`),
 		Header: NewHeader("content-type", "application/json"),
 	}); err != nil {
@@ -166,6 +205,9 @@ func TestMeasureSelf(t *testing.T) {
 	if measured.TLS.JA4 == "" {
 		t.Error("no JA4 was measured")
 	}
+	if measured.HTTP1 == nil || measured.HTTP2 == nil {
+		t.Errorf("measurement does not contain both HTTP protocols: %+v", measured)
+	}
 }
 
 func TestMeasureSelfErrors(t *testing.T) {
@@ -183,6 +225,60 @@ func TestMeasureSelfErrors(t *testing.T) {
 	server.Close()
 	if _, err := MeasureSelfAt(context.Background(), server); err == nil {
 		t.Error("expected an error against a closed server")
+	}
+}
+
+func TestMeasureSelfReportsEachProtocolStage(t *testing.T) {
+	server := startEcho(t)
+	validHTTP1 := &Response{Status: 200, Body: []byte(`{"http1":{"proto":"HTTP/1.1"}}`)}
+	boom := errors.New("second request failed")
+	tests := []struct {
+		name string
+		do   func(call int) (*Response, error)
+		want string
+	}{
+		{
+			name: "HTTP/1 response",
+			do: func(int) (*Response, error) {
+				return &Response{Status: 500, Body: []byte("capture failed")}, nil
+			},
+			want: "echo server returned 500",
+		},
+		{
+			name: "HTTP/2 request",
+			do: func(call int) (*Response, error) {
+				if call == 1 {
+					return validHTTP1, nil
+				}
+				return nil, boom
+			},
+			want: boom.Error(),
+		},
+		{
+			name: "HTTP/2 response",
+			do: func(call int) (*Response, error) {
+				if call == 1 {
+					return validHTTP1, nil
+				}
+				return &Response{Status: 200, Body: []byte("not json")}, nil
+			},
+			want: "reading measurement",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			original := doMeasurementRequest
+			t.Cleanup(func() { doMeasurementRequest = original })
+			calls := 0
+			doMeasurementRequest = func(*Client, *Request) (*Response, error) {
+				calls++
+				return tc.do(calls)
+			}
+			_, err := MeasureSelfAt(context.Background(), server)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("MeasureSelfAt error = %v, want %q", err, tc.want)
+			}
+		})
 	}
 }
 
@@ -374,6 +470,38 @@ func TestCompareReportsHTTP2Differences(t *testing.T) {
 	}
 	if !strings.Contains(result.String(), "HTTP/2") {
 		t.Errorf("report does not show the HTTP/2 differences:\n%s", result)
+	}
+}
+
+func TestCompareReportsHTTP1Differences(t *testing.T) {
+	raw := mustReadFixture(t)
+	browser := &capture.Capture{RawClientHello: raw, HTTP1: &capture.HTTP1{
+		HeaderNames: []string{"Host", "sec-ch-ua"},
+		Headers: []capture.HeaderField{
+			{Name: "host", Value: "browser.example"}, {Name: "sec-ch-ua", Value: "browser"},
+		},
+	}}
+	client := &capture.Capture{RawClientHello: raw, HTTP1: &capture.HTTP1{
+		HeaderNames: []string{"Host", "Sec-Ch-Ua"},
+		Headers: []capture.HeaderField{
+			{Name: "host", Value: "client.example"}, {Name: "sec-ch-ua", Value: "browser"},
+		},
+	}}
+	result, err := Compare(browser, client)
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	if result.HTTP1.OK() || !strings.Contains(result.String(), "HTTP/1.1") {
+		t.Errorf("HTTP/1.1 casing drift was not reported:\n%s", result)
+	}
+
+	client.HTTP1 = nil
+	result, err = Compare(browser, client)
+	if err != nil {
+		t.Fatalf("Compare missing HTTP/1: %v", err)
+	}
+	if result.HTTP1.OK() || !strings.Contains(result.HTTP1.String(), "http1_capture") {
+		t.Errorf("missing HTTP/1 capture was not reported: %s", result.HTTP1)
 	}
 }
 

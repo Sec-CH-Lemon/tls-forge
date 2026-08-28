@@ -110,6 +110,31 @@ func TestFromHTTP2AndFingerprintOnNil(t *testing.T) {
 	}
 }
 
+func TestHTTP1FingerprintKeepsWireCasing(t *testing.T) {
+	rendered := &HTTP1{
+		HeaderOrder: []string{"host", "sec-ch-ua"},
+		HeaderNames: []string{"Host", "sec-ch-ua"},
+		Headers: []HeaderField{
+			{Name: "host", Value: "example.com"},
+			{Name: "sec-ch-ua", Value: `"Chromium"`},
+		},
+	}
+	got := rendered.Fingerprint()
+	if got.Headers[0].Name != "Host" || got.Headers[1].Name != "sec-ch-ua" {
+		t.Errorf("wire casing was lost: %+v", got.Headers)
+	}
+
+	// Captures written before header_names existed remain comparable.
+	legacy := (&HTTP1{Headers: []HeaderField{{Name: "accept", Value: "*/*"}}}).Fingerprint()
+	if legacy.Headers[0].Name != "accept" {
+		t.Errorf("legacy capture name = %q", legacy.Headers[0].Name)
+	}
+	var absent *HTTP1
+	if absent.Fingerprint() != nil {
+		t.Error("a nil HTTP/1 capture produced a fingerprint")
+	}
+}
+
 func TestHelloReparsesTheAuthoritativeBytes(t *testing.T) {
 	raw, err := os.ReadFile("../testdata/chrome151-clienthello.bin")
 	if err != nil {

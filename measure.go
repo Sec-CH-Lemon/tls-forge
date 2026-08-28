@@ -118,6 +118,10 @@ func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error) 
 	return MeasureSelfAt(ctx, server, opts...)
 }
 
+var doMeasurementRequest = func(client *Client, req *Request) (*Response, error) {
+	return client.Do(req)
+}
+
 // MeasureSelfAt measures this library against a server the caller already has.
 func MeasureSelfAt(ctx context.Context, server *echo.Server, opts ...Option) (*capture.Capture, error) {
 	if server == nil {
@@ -134,11 +138,25 @@ func MeasureSelfAt(ctx context.Context, server *echo.Server, opts ...Option) (*c
 	}
 	defer func() { _ = client.Close() }()
 
-	res, err := client.Do(&Request{Context: ctx, URL: server.URL() + "/api/all"})
+	http1Response, err := doMeasurementRequest(client, &Request{Context: ctx, URL: server.CaptureURL() + "/api/all"})
 	if err != nil {
 		return nil, err
 	}
-	return readMeasurement(res, client.Profile().Name)
+	http1, err := readMeasurement(http1Response, client.Profile().Name)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := doMeasurementRequest(client, &Request{Context: ctx, URL: server.URL() + "/api/all"})
+	if err != nil {
+		return nil, err
+	}
+	measured, err := readMeasurement(res, client.Profile().Name)
+	if err != nil {
+		return nil, err
+	}
+	measured.HTTP1 = http1.HTTP1
+	return measured, nil
 }
 
 // readMeasurement turns the echo server's answer into a capture.
@@ -166,12 +184,13 @@ type Comparison struct {
 	Browser *capture.Capture `json:"browser"`
 	Client  *capture.Capture `json:"client"`
 	TLS     fingerprint.Report
+	HTTP1   fingerprint.Report
 	HTTP2   fingerprint.Report
 }
 
 // OK reports a client indistinguishable from the browser on every field
 // compared.
-func (c *Comparison) OK() bool { return c.TLS.OK() && c.HTTP2.OK() }
+func (c *Comparison) OK() bool { return c.TLS.OK() && c.HTTP1.OK() && c.HTTP2.OK() }
 
 func (c *Comparison) String() string {
 	var b strings.Builder
@@ -184,6 +203,9 @@ func (c *Comparison) String() string {
 	b.WriteString("\n")
 	if !c.TLS.OK() {
 		fmt.Fprintf(&b, "TLS\n%s\n", c.TLS)
+	}
+	if !c.HTTP1.OK() {
+		fmt.Fprintf(&b, "HTTP/1.1\n%s\n", c.HTTP1)
 	}
 	if !c.HTTP2.OK() {
 		fmt.Fprintf(&b, "HTTP/2\n%s\n", c.HTTP2)
@@ -248,7 +270,24 @@ func Compare(browserCapture, clientCapture *capture.Capture) (*Comparison, error
 			Candidate: negotiatedProtocol(clientCapture),
 		}}
 	}
+	switch {
+	case browserCapture.HTTP1 != nil && clientCapture.HTTP1 != nil:
+		out.HTTP1 = fingerprint.CompareHTTP1(
+			browserCapture.HTTP1.Fingerprint(), clientCapture.HTTP1.Fingerprint())
+	case browserCapture.HTTP1 != nil || clientCapture.HTTP1 != nil:
+		out.HTTP1.Differences = []fingerprint.Difference{{
+			Field: "http1_capture", Reference: recordedHTTP1(browserCapture),
+			Candidate: recordedHTTP1(clientCapture),
+		}}
+	}
 	return out, nil
+}
+
+func recordedHTTP1(c *capture.Capture) string {
+	if c.HTTP1 == nil {
+		return "(not recorded)"
+	}
+	return c.HTTP1.Proto
 }
 
 func negotiatedProtocol(c *capture.Capture) string {

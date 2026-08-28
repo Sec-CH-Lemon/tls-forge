@@ -267,6 +267,59 @@ func TestHTTP1ReportsAMalformedRequest(t *testing.T) {
 	}
 }
 
+func TestCaptureHTTP1ReportsAMalformedRequest(t *testing.T) {
+	server := startServer(t)
+	for _, request := range []string{
+		"GET / HTTP/1.1\r\nheader-without-a-colon\r\n\r\n",
+		"GET % HTTP/1.1\r\nHost: localhost\r\n\r\n",
+	} {
+		conn := &scriptedConn{reader: strings.NewReader(request), writeBudget: 1 << 20}
+		if err := server.serveCaptureHTTP1(conn, &Session{}); err == nil {
+			t.Errorf("serveCaptureHTTP1 accepted %q", request)
+		}
+	}
+}
+
+func TestCaptureHTTP1ReportsEveryWriteFailure(t *testing.T) {
+	server := startServer(t)
+	for _, request := range []string{
+		"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n",
+		"GET /api/all HTTP/1.1\r\nHost: localhost\r\n\r\n",
+		"GET /api/all?cache=1 HTTP/1.1\r\nHost: localhost\r\n\r\n",
+	} {
+		failed := 0
+		succeeded := 0
+		for budget := 0; budget < 2048; budget++ {
+			conn := &scriptedConn{reader: strings.NewReader(request), writeBudget: budget}
+			if err := server.serveCaptureHTTP1(conn, &Session{}); err != nil {
+				failed++
+			} else {
+				succeeded++
+			}
+		}
+		if failed == 0 || succeeded == 0 {
+			t.Errorf("request %q exercised failed=%d succeeded=%d writes", request, failed, succeeded)
+		}
+	}
+
+	for _, location := range []string{"", "https://localhost/?navigation=1"} {
+		failed := 0
+		succeeded := 0
+		for budget := 0; budget < 1024; budget++ {
+			conn := &scriptedConn{reader: strings.NewReader(""), writeBudget: budget}
+			err := writeCaptureHTTP1Response(conn, "200", "text/plain", location, []byte("body"))
+			if err != nil {
+				failed++
+			} else {
+				succeeded++
+			}
+		}
+		if failed == 0 || succeeded == 0 {
+			t.Errorf("location %q exercised failed=%d succeeded=%d writes", location, failed, succeeded)
+		}
+	}
+}
+
 func TestHTTP1EndsCleanlyAtEndOfInput(t *testing.T) {
 	server := startServer(t)
 	conn := &scriptedConn{reader: strings.NewReader(""), writeBudget: 1 << 20}

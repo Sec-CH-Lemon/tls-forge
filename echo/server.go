@@ -69,6 +69,7 @@ func (s *Session) Capture(source string) *capture.Capture {
 	if s.http1 != nil {
 		http1 := *s.http1
 		http1.HeaderOrder = append([]string(nil), s.http1.HeaderOrder...)
+		http1.HeaderNames = append([]string(nil), s.http1.HeaderNames...)
 		http1.Headers = append([]capture.HeaderField(nil), s.http1.Headers...)
 		out.HTTP1 = &http1
 	}
@@ -97,9 +98,11 @@ func cloneNavigator(n *capture.Navigator) *capture.Navigator {
 
 // Server is the listener. The zero value is not usable; call Start.
 type Server struct {
-	listener  net.Listener
-	tlsConfig *tls.Config
-	host      string
+	listener         net.Listener
+	captureListener  net.Listener
+	tlsConfig        *tls.Config
+	captureTLSConfig *tls.Config
+	host             string
 
 	mu       sync.Mutex
 	sessions []*Session
@@ -175,6 +178,17 @@ func WithHost(host string) Option {
 // Turn it on to study resumption itself.
 func WithSessionTickets(enabled bool) Option { return func(o *options) { o.tickets = enabled } }
 
+// listenCapture binds the protocol-restricted listener beside the main one.
+// Named because the second bind can fail after the first succeeded, a branch a
+// test cannot otherwise reach without depending on the machine's network.
+var listenCapture = func(main net.Listener) (net.Listener, error) {
+	host, _, err := net.SplitHostPort(main.Addr().String())
+	if err != nil {
+		return nil, err
+	}
+	return net.Listen("tcp", net.JoinHostPort(host, "0"))
+}
+
 // Start binds the listener and begins accepting. The caller must Close it.
 func Start(opts ...Option) (*Server, error) {
 	cfg := options{addr: "127.0.0.1:0", host: "localhost", hosts: []string{"localhost", "127.0.0.1", "::1"}}
@@ -201,26 +215,37 @@ func Start(opts ...Option) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("echo: listen: %w", err)
 	}
+	captureListener, err := listenCapture(listener)
+	if err != nil {
+		_ = listener.Close()
+		return nil, fmt.Errorf("echo: listen for HTTP/1.1 capture: %w", err)
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		// The main listener still offers both. Which protocol an arbitrary client
+		// chooses is itself information; only CaptureURL constrains the choice.
+		NextProtos:             []string{"h2", "http/1.1"},
+		MinVersion:             tls.VersionTLS12,
+		SessionTicketsDisabled: !cfg.tickets,
+	}
+	captureTLSConfig := tlsConfig.Clone()
+	captureTLSConfig.NextProtos = []string{"http/1.1"}
 
 	s := &Server{
-		listener:       listener,
-		host:           cfg.host,
-		closed:         make(chan struct{}),
-		ready:          make(chan struct{}),
-		conns:          map[net.Conn]struct{}{},
-		navigationByID: map[string]*Session{},
-		tlsConfig: &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			// Both protocols are offered because which one the client picks is
-			// itself information. A browser always takes h2; a library that only
-			// speaks HTTP/1.1 is announcing that.
-			NextProtos:             []string{"h2", "http/1.1"},
-			MinVersion:             tls.VersionTLS12,
-			SessionTicketsDisabled: !cfg.tickets,
-		},
+		listener:         listener,
+		captureListener:  captureListener,
+		tlsConfig:        tlsConfig,
+		captureTLSConfig: captureTLSConfig,
+		host:             cfg.host,
+		closed:           make(chan struct{}),
+		ready:            make(chan struct{}),
+		conns:            map[net.Conn]struct{}{},
+		navigationByID:   map[string]*Session{},
 	}
-	s.wg.Add(1)
-	go s.accept()
+	s.wg.Add(2)
+	go s.accept(false)
+	go s.accept(true)
 	return s, nil
 }
 
@@ -230,6 +255,13 @@ func (s *Server) Addr() string { return s.listener.Addr().String() }
 // URL is the base URL clients should use.
 func (s *Server) URL() string {
 	_, port, _ := net.SplitHostPort(s.Addr())
+	return "https://" + net.JoinHostPort(s.host, port)
+}
+
+// CaptureURL is the protocol-restricted endpoint the capture page navigates
+// through after the main listener has recorded HTTP/2.
+func (s *Server) CaptureURL() string {
+	_, port, _ := net.SplitHostPort(s.captureListener.Addr().String())
 	return "https://" + net.JoinHostPort(s.host, port)
 }
 
@@ -289,6 +321,7 @@ func (s *Server) Close() error {
 	s.closeOnce.Do(func() {
 		close(s.closed)
 		err = s.listener.Close()
+		_ = s.captureListener.Close()
 
 		// Open connections have to be closed explicitly. A handler blocked
 		// reading from a kept-alive connection is not woken by closing the
@@ -309,10 +342,14 @@ func (s *Server) Close() error {
 	return err
 }
 
-func (s *Server) accept() {
+func (s *Server) accept(captureOnly bool) {
 	defer s.wg.Done()
 	for {
-		conn, err := s.listener.Accept()
+		listener := s.listener
+		if captureOnly {
+			listener = s.captureListener
+		}
+		conn, err := listener.Accept()
 		if err != nil {
 			return
 		}
@@ -331,7 +368,11 @@ func (s *Server) accept() {
 					s.panicked(r)
 				}
 			}()
-			handleConn(s, conn)
+			if captureOnly {
+				s.handleCapture(conn)
+			} else {
+				handleConn(s, conn)
+			}
 		}()
 	}
 }
@@ -382,6 +423,14 @@ func (s *Server) track(conn net.Conn) bool {
 }
 
 func (s *Server) handle(raw net.Conn) {
+	s.handleTLS(raw, s.tlsConfig, true)
+}
+
+func (s *Server) handleCapture(raw net.Conn) {
+	s.handleTLS(raw, s.captureTLSConfig, false)
+}
+
+func (s *Server) handleTLS(raw net.Conn, config *tls.Config, register bool) {
 	if !s.track(raw) {
 		_ = raw.Close()
 		return
@@ -394,7 +443,7 @@ func (s *Server) handle(raw net.Conn) {
 	}()
 
 	recorder := &recordingConn{Conn: raw}
-	conn := tls.Server(recorder, s.tlsConfig)
+	conn := tls.Server(recorder, config)
 	sess := &Session{remote: raw.RemoteAddr().String()}
 
 	// The hello is attached whether or not the handshake succeeds. A client that
@@ -406,7 +455,9 @@ func (s *Server) handle(raw net.Conn) {
 		sess.mu.Unlock()
 	}()
 
-	s.register(sess)
+	if register {
+		s.register(sess)
+	}
 	if err := conn.Handshake(); err != nil {
 		return
 	}
@@ -415,6 +466,10 @@ func (s *Server) handle(raw net.Conn) {
 	sess.negotiated = conn.ConnectionState().NegotiatedProtocol
 	negotiated := sess.negotiated
 	sess.mu.Unlock()
+	if !register {
+		_ = s.serveCaptureHTTP1(conn, sess)
+		return
+	}
 
 	if negotiated == "h2" {
 		_ = s.serveHTTP2(conn, sess)
@@ -433,21 +488,53 @@ func (s *Server) register(sess *Session) {
 //
 // Once per connection: a reload is a new navigation on a connection that now
 // resumes the old one, which is not the cold handshake this is here to measure.
-// But every connection that loads the page is recorded, because a second
-// browser is a second navigation and deserves its own.
-func (s *Server) setNavigation(sess *Session) string {
+// A known token is the return from the HTTP/1.1 measuring hop; it keeps the
+// report attached to the original HTTP/2 navigation even if Chrome uses a new
+// connection for the return page.
+func (s *Server) setNavigation(sess *Session, token string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if sess.navigation {
-		return sess.navigationToken
+		return sess.navigationToken, nil
 	}
-	s.nextNavigation++
-	token := strconv.FormatUint(s.nextNavigation, 36)
+	if token != "" {
+		if _, ok := s.navigationByID[token]; !ok {
+			return "", fmt.Errorf("echo: unknown HTTP/1.1 navigation %q", token)
+		}
+		return token, nil
+	} else {
+		s.nextNavigation++
+		token = strconv.FormatUint(s.nextNavigation, 36)
+	}
 	sess.navigation = true
 	sess.navigationToken = token
 	s.navigations = append(s.navigations, sess)
 	s.navigationByID[token] = sess
-	return token
+	return token, nil
+}
+
+func (s *Server) attachHTTP1(token string, http1 *capture.HTTP1) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	target, ok := s.navigationByID[token]
+	if !ok {
+		return fmt.Errorf("echo: unknown HTTP/1.1 navigation %q", token)
+	}
+	target.mu.Lock()
+	target.http1 = cloneHTTP1(http1)
+	target.mu.Unlock()
+	return nil
+}
+
+func cloneHTTP1(in *capture.HTTP1) *capture.HTTP1 {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	out.HeaderOrder = append([]string(nil), in.HeaderOrder...)
+	out.HeaderNames = append([]string(nil), in.HeaderNames...)
+	out.Headers = append([]capture.HeaderField(nil), in.Headers...)
+	return &out
 }
 
 // captureSession is the session a report belongs to.
@@ -505,17 +592,28 @@ func (s *Server) respond(h *h2conn, sess *Session, req *request) error {
 func (s *Server) route(sess *Session, req *request) (status, contentType string, body []byte) {
 	path := req.path
 	navigationToken := ""
+	http1Done := false
 	if i := strings.IndexByte(path, '?'); i >= 0 {
 		if query, err := url.ParseQuery(path[i+1:]); err == nil {
 			navigationToken = query.Get("navigation")
+			http1Done = query.Get("http1") == "done"
 		}
 		path = path[:i]
 	}
 
 	switch path {
 	case "/":
-		token := s.setNavigation(sess)
-		page := strings.Replace(capturePage, navigationPlaceholder, token, 1)
+		token, err := s.setNavigation(sess, navigationToken)
+		if err != nil {
+			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
+			return "400", contentType, body
+		}
+		http1Navigation := ""
+		if !http1Done {
+			http1Navigation = s.CaptureURL() + "/?navigation=" + url.QueryEscape(token)
+		}
+		page := strings.ReplaceAll(capturePage, navigationPlaceholder, token)
+		page = strings.Replace(page, http1NavigationPlaceholder, http1Navigation, 1)
 		return "200", "text/html; charset=utf-8", []byte(page)
 
 	case "/api/all":

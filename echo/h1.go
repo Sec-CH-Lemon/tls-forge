@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -47,6 +48,61 @@ func (s *Server) serveHTTP1(conn net.Conn, sess *Session) error {
 	}
 }
 
+// serveCaptureHTTP1 measures the second top-level navigation, after the main
+// listener has already recorded HTTP/2. /api/all is the library-side
+// instrument: it returns the HTTP/1.1 request directly without joining it.
+func (s *Server) serveCaptureHTTP1(conn net.Conn, sess *Session) error {
+	req, err := readHTTP1Request(bufio.NewReaderSize(conn, maxHTTP1Line))
+	if err != nil {
+		return err
+	}
+	sess.recordHTTP1(req)
+	path := req.Path
+	if i := strings.IndexByte(path, '?'); i >= 0 {
+		path = path[:i]
+	}
+	if path == "/api/all" {
+		status, contentType, body := jsonResponse(sess.Capture(capture.SourceTLSFetch))
+		return writeCaptureHTTP1Response(conn, status, contentType, "", body)
+	}
+
+	parsed, err := url.ParseRequestURI(req.Path)
+	if err != nil {
+		return err
+	}
+	token := parsed.Query().Get("navigation")
+	if err := s.attachHTTP1(token, &req.HTTP1); err != nil {
+		_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
+		return writeCaptureHTTP1Response(conn, "400", contentType, "", body)
+	}
+	location := s.URL() + "/?navigation=" + url.QueryEscape(token) + "&http1=done"
+	return writeCaptureHTTP1Response(conn, "302", "text/plain; charset=utf-8", location, nil)
+}
+
+func writeCaptureHTTP1Response(conn net.Conn, status, contentType, location string, body []byte) error {
+	if _, err := fmt.Fprintf(conn,
+		"HTTP/1.1 %s %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nCache-Control: no-store\r\nConnection: close\r\n",
+		status, statusText(status), contentType, len(body)); err != nil {
+		return err
+	}
+	if location != "" {
+		if _, err := fmt.Fprintf(conn, "Location: %s\r\n", location); err != nil {
+			return err
+		}
+		// The protocol hop is part of the measuring instrument, not a page the
+		// browser visited. Letting it become Referer on the h2 navigation would
+		// change the HTTP/2 fingerprint we are trying to keep untouched.
+		if _, err := io.WriteString(conn, "Referrer-Policy: no-referrer\r\n"); err != nil {
+			return err
+		}
+	}
+	if _, err := io.WriteString(conn, "\r\n"); err != nil {
+		return err
+	}
+	_, err := conn.Write(body)
+	return err
+}
+
 type http1Request struct {
 	capture.HTTP1
 	body []byte
@@ -75,11 +131,14 @@ func readHTTP1Request(r *bufio.Reader) (*http1Request, error) {
 		if !found {
 			return nil, fmt.Errorf("echo: malformed header %q", line)
 		}
-		// Lower-cased so the order and names compare directly against the HTTP/2
-		// side, where HPACK requires lower case.
-		name = strings.ToLower(strings.TrimSpace(name))
+		wireName := strings.TrimSpace(name)
+		// Keep both views. HPACK's lower-case form makes cross-protocol comparison
+		// useful; the wire form is the HTTP/1.1 fingerprint and cannot be rebuilt
+		// from it.
+		name = strings.ToLower(wireName)
 		req.Headers = append(req.Headers, capture.HeaderField{Name: name, Value: strings.TrimSpace(value)})
 		req.HeaderOrder = append(req.HeaderOrder, name)
+		req.HeaderNames = append(req.HeaderNames, wireName)
 	}
 
 	contentLength := -1
@@ -136,6 +195,8 @@ func statusText(status string) string {
 	switch status {
 	case "200":
 		return "OK"
+	case "302":
+		return "Found"
 	case "400":
 		return "Bad Request"
 	case "404":
