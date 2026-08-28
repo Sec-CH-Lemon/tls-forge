@@ -66,6 +66,7 @@ jobs:
       - run: python -m coverage report
         working-directory: python
       - run: make wrapper-smoke
+      - run: node scripts/check-examples.mjs
 
       # The published binaries carry every dependency inside them, and those
       # licences require their notices to travel along. If the committed notices
