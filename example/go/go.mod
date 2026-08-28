@@ -1,6 +1,6 @@
 module github.com/Sec-CH-Lemon/tls-forge/example/go
 
-go 1.25.13
+go 1.26.7
 
 require github.com/Sec-CH-Lemon/tls-forge v0.0.0
 

@@ -42,12 +42,17 @@ type CA struct {
 	leaves map[string]*tls.Certificate
 }
 
-// randReader is the entropy source, named so a test can make it fail. There is
-// no other way to reach the error paths of the crypto calls below, and an
-// authority that failed to generate is the difference between a proxy that
-// starts and one that does not.
-var randReader io.Reader = rand.Reader
-var chmod = os.Chmod
+// The crypto hooks are named so tests can make each operation fail without
+// depending on how many bytes a particular Go release reads from its entropy
+// source. An authority that failed to generate is the difference between a
+// proxy that starts and one that does not.
+var (
+	randReader        io.Reader = rand.Reader
+	generateKey                 = ecdsa.GenerateKey
+	randomInt                   = rand.Int
+	createCertificate           = x509.CreateCertificate
+	chmod                       = os.Chmod
+)
 
 // How long a generated authority lasts. Long enough not to be a chore, short
 // enough that a key left behind on a laptop stops working.
@@ -109,11 +114,11 @@ func LoadOrCreateCA(certFile, keyFile string) (*CA, error) {
 
 // newCAMaterial generates an authority and returns it as PEM.
 func newCAMaterial() (certPEM, keyPEM []byte, err error) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), randReader)
+	key, err := generateKey(elliptic.P256(), randReader)
 	if err != nil {
 		return nil, nil, fmt.Errorf("proxy: generating a key: %w", err)
 	}
-	serial, err := rand.Int(randReader, new(big.Int).Lsh(big.NewInt(1), 128))
+	serial, err := randomInt(randReader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
 		return nil, nil, fmt.Errorf("proxy: serial: %w", err)
 	}
@@ -128,7 +133,7 @@ func newCAMaterial() (certPEM, keyPEM []byte, err error) {
 		IsCA:                  true,
 		MaxPathLenZero:        true,
 	}
-	der, err := x509.CreateCertificate(randReader, template, template, &key.PublicKey, key)
+	der, err := createCertificate(randReader, template, template, &key.PublicKey, key)
 	if err != nil {
 		return nil, nil, fmt.Errorf("proxy: creating the authority: %w", err)
 	}
@@ -200,11 +205,11 @@ func (c *CA) leafFor(host string) (*tls.Certificate, error) {
 		return cert, nil
 	}
 
-	key, err := ecdsa.GenerateKey(elliptic.P256(), randReader)
+	key, err := generateKey(elliptic.P256(), randReader)
 	if err != nil {
 		return nil, err
 	}
-	serial, err := rand.Int(randReader, new(big.Int).Lsh(big.NewInt(1), 128))
+	serial, err := randomInt(randReader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +227,7 @@ func (c *CA) leafFor(host string) (*tls.Certificate, error) {
 		template.DNSNames = []string{host}
 	}
 
-	der, err := x509.CreateCertificate(randReader, template, c.cert, &key.PublicKey, c.key)
+	der, err := createCertificate(randReader, template, c.cert, &key.PublicKey, c.key)
 	if err != nil {
 		return nil, err
 	}

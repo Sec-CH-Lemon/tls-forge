@@ -17,7 +17,7 @@ fingerprint mismatch.
 ## Requirements and installation
 
 - Node.js 20.12 or newer;
-- a supported prebuilt transport or Go 1.25.13+ for a local build.
+- a supported prebuilt transport or Go 1.26.7+ for a local build.
 
 ```bash
 npm install tls-forge

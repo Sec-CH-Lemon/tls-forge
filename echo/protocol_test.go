@@ -2,10 +2,13 @@ package echo
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"io"
+	"math/big"
 	"net"
 	"strings"
 	"testing"
@@ -37,33 +40,45 @@ func (r *budgetedReader) Read(p []byte) (int, error) {
 }
 
 func TestSelfSignedCertReportsEveryEntropyFailure(t *testing.T) {
-	// Certificate generation reads entropy three times — the key, the serial
-	// number and the signature — and a failure at any of them has to be reported
-	// rather than producing a certificate that is subtly not random.
-	//
-	// The budget is swept rather than tuned to exact call counts, which would
-	// break the moment the standard library changed how much it reads.
-	original := randReader
-	t.Cleanup(func() { randReader = original })
-
-	seen := map[string]bool{}
-	for budget := 0; budget <= 4096; budget += 8 {
-		randReader = &budgetedReader{remaining: budget}
-		_, err := selfSignedCert([]string{"localhost"})
-		if err == nil {
-			continue
-		}
-		for _, stage := range []string{"generate key", "serial", "create certificate"} {
-			if strings.Contains(err.Error(), stage) {
-				seen[stage] = true
-			}
-		}
+	originalGenerateKey := generateKey
+	originalRandomInt := randomInt
+	originalCreateCertificate := createCertificate
+	reset := func() {
+		generateKey = originalGenerateKey
+		randomInt = originalRandomInt
+		createCertificate = originalCreateCertificate
 	}
+	t.Cleanup(reset)
 
-	for _, stage := range []string{"generate key", "serial", "create certificate"} {
-		if !seen[stage] {
-			t.Errorf("no budget produced a %q failure; that branch is untested", stage)
-		}
+	testErr := errors.New("crypto failure")
+	tests := []struct {
+		name string
+		want string
+		fail func()
+	}{
+		{"key", "generate key", func() {
+			generateKey = func(elliptic.Curve, io.Reader) (*ecdsa.PrivateKey, error) {
+				return nil, testErr
+			}
+		}},
+		{"serial", "serial", func() {
+			randomInt = func(io.Reader, *big.Int) (*big.Int, error) { return nil, testErr }
+		}},
+		{"certificate", "create certificate", func() {
+			createCertificate = func(io.Reader, *x509.Certificate, *x509.Certificate, any, any) ([]byte, error) {
+				return nil, testErr
+			}
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reset()
+			test.fail()
+			_, err := selfSignedCert([]string{"localhost"})
+			if !errors.Is(err, testErr) || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want wrapped %q failure", err, test.want)
+			}
+		})
 	}
 }
 

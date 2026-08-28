@@ -90,7 +90,7 @@ def _nothing_anywhere() -> str:
         f"tls-forge: no binary for {sys.platform}.\n"
         "  None shipped with this package, none built in a checkout, none on PATH.\n"
         "  If you installed with --no-binary, install the wheel instead. Otherwise\n"
-        "  this platform has no prebuilt binary yet — build one with Go 1.25.13+\n"
+        "  this platform has no prebuilt binary yet — build one with Go 1.26.7+\n"
         "    go build -o tls-forge ./cmd/tls-forge\n"
         "  and point at it\n"
         f"    {ENV_VAR}=/path/to/tls-forge"

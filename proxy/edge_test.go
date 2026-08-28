@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -42,41 +43,55 @@ func (r *budgetedReader) Read(p []byte) (int, error) {
 }
 
 func TestCertificateGenerationReportsEveryEntropyFailure(t *testing.T) {
-	// Generating an authority reads entropy three times: the key, the serial and
-	// the signature. A failure at any of them has to be reported rather than
-	// producing something that only looks random. The budget is swept rather
-	// than tuned, so a change in how much the standard library reads does not
-	// silently stop exercising a branch.
-	original := randReader
-	t.Cleanup(func() { randReader = original })
+	originalGenerateKey := generateKey
+	originalRandomInt := randomInt
+	originalCreateCertificate := createCertificate
+	reset := func() {
+		generateKey = originalGenerateKey
+		randomInt = originalRandomInt
+		createCertificate = originalCreateCertificate
+	}
+	t.Cleanup(reset)
 
-	seenCA := map[string]bool{}
-	leafFailures := 0
-	good := newCAForTest(t)
-
-	for budget := 0; budget <= 4096; budget += 8 {
-		randReader = &budgetedReader{remaining: budget}
-		if _, _, err := newCAMaterial(); err != nil {
-			for _, stage := range []string{"generating a key", "serial", "creating the authority"} {
-				if strings.Contains(err.Error(), stage) {
-					seenCA[stage] = true
-				}
+	testErr := errors.New("crypto failure")
+	tests := []struct {
+		name string
+		want string
+		fail func()
+	}{
+		{"key", "generating a key", func() {
+			generateKey = func(elliptic.Curve, io.Reader) (*ecdsa.PrivateKey, error) {
+				return nil, testErr
 			}
-		}
-		// The same three reads happen again for every leaf certificate.
-		fresh := &CA{cert: good.cert, key: good.key, pem: good.pem, leaves: map[string]*tls.Certificate{}}
-		if _, err := fresh.leafFor("example.com"); err != nil {
-			leafFailures++
-		}
+		}},
+		{"serial", "serial", func() {
+			randomInt = func(io.Reader, *big.Int) (*big.Int, error) { return nil, testErr }
+		}},
+		{"certificate", "creating the authority", func() {
+			createCertificate = func(io.Reader, *x509.Certificate, *x509.Certificate, any, any) ([]byte, error) {
+				return nil, testErr
+			}
+		}},
 	}
 
-	for _, stage := range []string{"generating a key", "serial", "creating the authority"} {
-		if !seenCA[stage] {
-			t.Errorf("no budget produced a %q failure; that branch is untested", stage)
-		}
-	}
-	if leafFailures == 0 {
-		t.Error("no budget made leaf generation fail")
+	good := newCAForTest(t)
+	for _, test := range tests {
+		t.Run("authority/"+test.name, func(t *testing.T) {
+			reset()
+			test.fail()
+			_, _, err := newCAMaterial()
+			if !errors.Is(err, testErr) || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want wrapped %q failure", err, test.want)
+			}
+		})
+		t.Run("leaf/"+test.name, func(t *testing.T) {
+			reset()
+			test.fail()
+			fresh := &CA{cert: good.cert, key: good.key, pem: good.pem, leaves: map[string]*tls.Certificate{}}
+			if _, err := fresh.leafFor("example.com"); !errors.Is(err, testErr) {
+				t.Fatalf("error = %v, want crypto failure", err)
+			}
+		})
 	}
 }
 

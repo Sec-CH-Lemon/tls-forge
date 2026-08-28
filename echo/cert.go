@@ -25,18 +25,22 @@ import (
 // errors ignored, and the library's own client sets InsecureSkipVerify for this
 // host only. That is safe here in a way it never is in general: the server is on
 // loopback, it is this process, and nothing secret crosses it.
-// randReader is the entropy source, named so tests can substitute a failing one.
-// There is no other way to reach the error paths of the crypto calls below, and
-// leaving them untested means leaving untested the branch that decides whether a
-// server starts at all.
-var randReader io.Reader = rand.Reader
+// The crypto hooks are named so tests can make each operation fail without
+// depending on how many bytes a particular Go release reads from its entropy
+// source. Those failures decide whether the server starts at all.
+var (
+	randReader        io.Reader = rand.Reader
+	generateKey                 = ecdsa.GenerateKey
+	randomInt                   = rand.Int
+	createCertificate           = x509.CreateCertificate
+)
 
 func selfSignedCert(hosts []string) (tls.Certificate, error) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), randReader)
+	key, err := generateKey(elliptic.P256(), randReader)
 	if err != nil {
 		return tls.Certificate{}, fmt.Errorf("echo: generate key: %w", err)
 	}
-	serial, err := rand.Int(randReader, new(big.Int).Lsh(big.NewInt(1), 128))
+	serial, err := randomInt(randReader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
 		return tls.Certificate{}, fmt.Errorf("echo: serial: %w", err)
 	}
@@ -59,7 +63,7 @@ func selfSignedCert(hosts []string) (tls.Certificate, error) {
 		template.DNSNames = append(template.DNSNames, h)
 	}
 
-	der, err := x509.CreateCertificate(randReader, &template, &template, &key.PublicKey, key)
+	der, err := createCertificate(randReader, &template, &template, &key.PublicKey, key)
 	if err != nil {
 		return tls.Certificate{}, fmt.Errorf("echo: create certificate: %w", err)
 	}
