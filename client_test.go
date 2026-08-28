@@ -17,6 +17,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -835,5 +836,61 @@ func TestClientIsSafeForConcurrentUse(t *testing.T) {
 		if count != workers {
 			t.Errorf("got %d results, want %d", count, workers)
 		}
+	}
+}
+
+// TestACallerSuppliedHostReplacesTheOneFromTheURL pins a boundary the header
+// block's Host seeding opened.
+//
+// Host is written before the merged headers are walked, so a caller who sets
+// one appended a second value rather than replacing it — and a request with two
+// Host lines is one RFC 7230 requires a server to answer with 400, as well as a
+// request smuggling primitive when a proxy and an origin choose different ones.
+func TestACallerSuppliedHostReplacesTheOneFromTheURL(t *testing.T) {
+	url, recorded := recordingHTTP1Server(t)
+	client := newTestClient(t, WithTransportOption(tls_client.WithForceHttp1()))
+	if _, err := client.Do(&Request{
+		URL:    url,
+		Header: NewHeader("host", "chosen.example"),
+	}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+
+	var hosts []string
+	for _, line := range (<-recorded)[1:] {
+		if strings.HasPrefix(strings.ToLower(line), "host:") {
+			hosts = append(hosts, line)
+		}
+	}
+	if got, want := hosts, []string{"Host: chosen.example"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Host lines = %v, want %v", got, want)
+	}
+}
+
+// TestHostComesFromTheURLWhenTheCallerSetsNone is the other half: the seeded
+// Host still leads the block.
+func TestHostComesFromTheURLWhenTheCallerSetsNone(t *testing.T) {
+	target, recorded := recordingHTTP1Server(t)
+	client := newTestClient(t, WithTransportOption(tls_client.WithForceHttp1()))
+	if _, err := client.Get(target); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	lines := <-recorded
+	parsed, err := neturl.Parse(target)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if got, want := lines[1], "Host: "+parsed.Host; got != want {
+		t.Errorf("first header = %q, want %q", got, want)
+	}
+	var hosts int
+	for _, line := range lines[1:] {
+		if strings.HasPrefix(strings.ToLower(line), "host:") {
+			hosts++
+		}
+	}
+	if hosts != 1 {
+		t.Errorf("%d Host headers, want 1", hosts)
 	}
 }

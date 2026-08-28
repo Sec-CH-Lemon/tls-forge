@@ -314,6 +314,19 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	for _, f := range headers {
 		name := strings.ToLower(f.Name)
 		wireName := textproto.CanonicalMIMEHeaderKey(name)
+		if name == "host" {
+			// A caller's Host replaces the one taken from the URL rather than
+			// following it. Appending produced two Host lines, which RFC 7230
+			// requires a server to answer with 400 — and which is a request
+			// smuggling primitive whenever a proxy and an origin in front of
+			// the same request pick different ones.
+			//
+			// Host is the one name this can happen to: every other repeated
+			// value arrives through Merge, which already decided that repeats
+			// are wanted, while this one is seeded from the URL before the loop.
+			inner.Header[wireName] = []string{f.Value}
+			continue
+		}
 		inner.Header[wireName] = append(inner.Header[wireName], f.Value)
 		if !seen[name] {
 			order = append(order, name)
