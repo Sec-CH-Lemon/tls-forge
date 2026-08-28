@@ -8,6 +8,12 @@ stored as JSON so it can be committed and reviewed.
   "name": "chrome_151",
   "user_agent": "Mozilla/5.0 (Macintosh; …) Chrome/151.0.0.0 Safari/537.36",
   "client_hello": "FgMBBvgBAAb0AwPdnWafT…",
+  "http1": {
+    "header_order": ["Host", "Connection", "sec-ch-ua", "User-Agent", "Accept"],
+    "headers": [
+      {"name": "Connection", "value": "keep-alive"}
+    ]
+  },
   "http2": {
     "settings": [
       {"id": 1, "value": 65536},
@@ -29,7 +35,17 @@ stored as JSON so it can be committed and reviewed.
 ```
 
 `client_hello` is a real ClientHello, base64'd, recorded off the wire. It is the
-authoritative field; everything else was read from the same connection.
+authoritative TLS field; the HTTP fields are measurements from the same browser
+navigation. `http1.header_order` deliberately retains the exact spelling seen
+on the wire: `sec-ch-ua` and `User-Agent` are different, measurable choices.
+`http1.headers` contains only values that differ from the shared `headers`
+block, such as HTTP/1.1-only `Connection`. `Host` remains first in the order but
+its value is always derived from the request URL.
+
+The `http1` object is optional for backward compatibility. A profile without it
+uses the historical canonical HTTP/1.1 header spelling; its TLS and HTTP/2
+fingerprints are unchanged. New captures include it whenever an HTTP/1.1
+navigation was observed.
 
 ## Capturing one
 
@@ -37,8 +53,12 @@ authoritative field; everything else was read from the same connection.
 tls-forge capture --save my-chrome.json
 ```
 
-A browser opens with a throwaway profile directory, loads a page from a local
-HTTPS server, reports what JavaScript can see, and shows the result. The command
+A browser opens with a throwaway profile directory and first loads the capture
+page directly over HTTP/2. The page then makes a top-level navigation through a
+local HTTP/1.1-only TLS listener and returns to report what JavaScript can see.
+The requests are joined by a one-use navigation token, so the profile records
+both protocol fingerprints without deriving one from the other, while the
+original HTTP/2 navigation remains the request being measured. The command
 prints a summary and writes the profile.
 
 ```bash
@@ -139,9 +159,9 @@ tls-forge compare --profile chrome
 ```
 
 An unattended `tls-forge compare --headless --profile chrome` still checks the
-TLS and HTTP/2 structure, but may exit 3 solely because `HeadlessChrome` differs
-from the headed profile's user-agent. Keep that check informational unless the
-selected profile was itself captured headless.
+TLS, HTTP/1.1 and HTTP/2 structure, but may exit 3 solely because
+`HeadlessChrome` differs from the headed profile's user-agent. Keep that check
+informational unless the selected profile was itself captured headless.
 
 It exits 3 when the fingerprints no longer match (`1` means the comparison
 could not be completed). When they differ:

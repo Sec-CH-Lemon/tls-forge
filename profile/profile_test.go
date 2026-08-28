@@ -130,6 +130,8 @@ func TestClientProfileFromCapturedHello(t *testing.T) {
 func TestCloneIsIndependent(t *testing.T) {
 	original := &Profile{
 		Name: "browser", ClientHello: []byte{1}, Headers: []Field{{Name: "accept"}},
+		HTTP1: &HTTP1{HeaderOrder: []string{"Host", "accept"},
+			Headers: []Field{{Name: "accept", Value: "text/plain"}}},
 		HTTP2: HTTP2{
 			Settings: []Setting{{ID: 1}}, PseudoHeaderOrder: []string{":method"},
 			Priorities: []Priority{{StreamID: 1}}, HeaderPriority: &Priority{StreamID: 3},
@@ -138,12 +140,15 @@ func TestCloneIsIndependent(t *testing.T) {
 	cloned := original.Clone()
 	cloned.ClientHello[0] = 2
 	cloned.Headers[0].Name = "changed"
+	cloned.HTTP1.HeaderOrder[0] = "changed"
+	cloned.HTTP1.Headers[0].Value = "changed"
 	cloned.HTTP2.Settings[0].ID = 2
 	cloned.HTTP2.PseudoHeaderOrder[0] = ":path"
 	cloned.HTTP2.Priorities[0].StreamID = 5
 	cloned.HTTP2.HeaderPriority.StreamID = 7
 
 	if original.ClientHello[0] != 1 || original.Headers[0].Name != "accept" ||
+		original.HTTP1.HeaderOrder[0] != "Host" || original.HTTP1.Headers[0].Value != "text/plain" ||
 		original.HTTP2.Settings[0].ID != 1 || original.HTTP2.PseudoHeaderOrder[0] != ":method" ||
 		original.HTTP2.Priorities[0].StreamID != 1 || original.HTTP2.HeaderPriority.StreamID != 3 {
 		t.Errorf("clone mutated the original: %+v", original)
@@ -172,6 +177,10 @@ func TestClientProfileErrors(t *testing.T) {
 	}
 	if _, err := (&Profile{Name: "x"}).ClientProfile(); err == nil {
 		t.Error("a profile that cannot handshake should be reported")
+	}
+	if _, err := (&Profile{Name: "x", Base: "chrome_133",
+		HTTP1: &HTTP1{HeaderOrder: []string{"accept"}}}).ClientProfile(); err == nil {
+		t.Error("ClientProfile accepted an invalid HTTP/1 section")
 	}
 	// A profile that names an unknown base AND carries HTTP/2 settings is not a
 	// bare base, so it takes the assembly path — which must still fail rather
@@ -233,7 +242,9 @@ func TestLoadAndSave(t *testing.T) {
 		HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}},
 			PseudoHeaderOrder: []string{":method", ":authority", ":scheme", ":path"}},
 		Headers: []Field{{Name: "accept", Value: "*/*"}},
-		Notes:   "captured 2026-08-15",
+		HTTP1: &HTTP1{HeaderOrder: []string{"Host", "accept", "Connection"},
+			Headers: []Field{{Name: "Connection", Value: "keep-alive"}}},
+		Notes: "captured 2026-08-15",
 	}
 
 	saved, err := original.Save()
@@ -262,6 +273,23 @@ func TestLoadErrors(t *testing.T) {
 	}
 	if _, err := Load([]byte(`{"name":"x","base":"chrome_133","http2":{"settings":[{"id":1}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
 		t.Errorf("a profile without pseudo headers was accepted: %v", err)
+	}
+	for _, section := range []string{
+		`{"header_order":[]}`,
+		`{"header_order":["Host","host"]}`,
+		`{"header_order":["accept","Host"]}`,
+		`{"header_order":["Host",":path"]}`,
+		`{"header_order":["Host"],"headers":[{"name":"Host","value":"x"}]}`,
+		`{"header_order":["Host"],"headers":[{"name":"Connection","value":"close"}]}`,
+	} {
+		_, err := Load([]byte(`{"name":"x","base":"chrome_133","http1":` + section + `}`))
+		if err == nil || !strings.Contains(err.Error(), "http1") {
+			t.Errorf("invalid HTTP/1 section %s was accepted: %v", section, err)
+		}
+	}
+	legacy, err := Load([]byte(`{"name":"old","base":"chrome_133"}`))
+	if err != nil || legacy.HTTP1 != nil {
+		t.Errorf("legacy profile no longer loads: %+v, %v", legacy, err)
 	}
 }
 
@@ -312,6 +340,20 @@ func TestFromCapture(t *testing.T) {
 				{Name: "accept-encoding", Value: "gzip, deflate, br, zstd"},
 			},
 		},
+		HTTP1: &capture.HTTP1{
+			Method:      "GET",
+			Path:        "/",
+			Proto:       "HTTP/1.1",
+			HeaderOrder: []string{"host", "sec-ch-ua", "user-agent", "connection", "cookie"},
+			HeaderNames: []string{"Host", "sec-ch-ua", "User-Agent", "Connection", "Cookie"},
+			Headers: []capture.HeaderField{
+				{Name: "host", Value: "localhost"},
+				{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
+				{Name: "user-agent", Value: "Mozilla/5.0 Chrome/151"},
+				{Name: "connection", Value: "keep-alive"},
+				{Name: "cookie", Value: "session=secret"},
+			},
+		},
 		Navigator: &capture.Navigator{UserAgent: "Mozilla/5.0 Chrome/151"},
 	}
 
@@ -333,6 +375,17 @@ func TestFromCapture(t *testing.T) {
 	if got, want := built.HTTP2.PseudoHeaderOrder,
 		[]string{":method", ":authority", ":scheme", ":path"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("pseudo header order = %v, want %v", got, want)
+	}
+	if built.HTTP1 == nil {
+		t.Fatal("HTTP/1 capture was not stored")
+	}
+	if got, want := built.HTTP1.HeaderOrder,
+		[]string{"Host", "sec-ch-ua", "User-Agent", "Connection"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("HTTP/1 order = %v, want %v", got, want)
+	}
+	if got, want := built.HTTP1.Headers,
+		[]Field{{Name: "Connection", Value: "keep-alive"}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("HTTP/1-specific headers = %v, want %v", got, want)
 	}
 	if built.HTTP2.ConnectionFlow != 15663105 {
 		t.Errorf("connection flow = %d", built.HTTP2.ConnectionFlow)
@@ -356,6 +409,47 @@ func TestFromCaptureWithoutHTTP2(t *testing.T) {
 	_, err := FromCapture("plain", &capture.Capture{RawClientHello: chromeHelloBytes(t)})
 	if err == nil || !strings.Contains(err.Error(), "no HTTP/2") {
 		t.Fatalf("FromCapture error = %v, want missing HTTP/2 data", err)
+	}
+}
+
+func TestHTTP1ProfileConversionEdgeCases(t *testing.T) {
+	if got := http1FromCapture(nil, nil); got != nil {
+		t.Errorf("nil capture = %+v", got)
+	}
+	if got := http1FromCapture(&capture.HTTP1{}, nil); got != nil {
+		t.Errorf("empty capture = %+v", got)
+	}
+	if got := http1FromCapture(&capture.HTTP1{Headers: []capture.HeaderField{
+		{Name: "cookie", Value: "private=1"},
+	}}, nil); got != nil {
+		t.Errorf("per-request-only capture = %+v", got)
+	}
+
+	// Old captures have no HeaderNames. Their lower-case parsed names remain a
+	// valid, conservative fallback, and repeated values retain their wire order.
+	got := http1FromCapture(&capture.HTTP1{Headers: []capture.HeaderField{
+		{Name: "host", Value: "example.test"},
+		{Name: "x-repeat", Value: "one"},
+		{Name: "x-repeat", Value: "two"},
+		{Name: "user-agent", Value: "h1-agent"},
+	}}, []Field{
+		{Name: "x-repeat", Value: "one"},
+		{Name: "user-agent", Value: "h2-agent"},
+	})
+	if got == nil {
+		t.Fatal("legacy HTTP/1 capture was discarded")
+		return
+	}
+	if want := []string{"host", "x-repeat", "user-agent"}; !reflect.DeepEqual(got.HeaderOrder, want) {
+		t.Errorf("order = %v, want %v", got.HeaderOrder, want)
+	}
+	wantFields := []Field{
+		{Name: "x-repeat", Value: "one"},
+		{Name: "x-repeat", Value: "two"},
+		{Name: "user-agent", Value: "h1-agent"},
+	}
+	if !reflect.DeepEqual(got.Headers, wantFields) {
+		t.Errorf("overrides = %+v, want %+v", got.Headers, wantFields)
 	}
 }
 

@@ -21,6 +21,7 @@ import (
 	"github.com/bogdanfinn/fhttp/http2"
 	"github.com/bogdanfinn/tls-client/profiles"
 	tls "github.com/bogdanfinn/utls"
+	"golang.org/x/net/http/httpguts"
 )
 
 // Profile is a complete browser identity.
@@ -36,6 +37,7 @@ type Profile struct {
 	// ClientHello is present. It is also what a hand-written profile builds on.
 	Base string `json:"base,omitempty"`
 
+	HTTP1   *HTTP1  `json:"http1,omitempty"`
 	HTTP2   HTTP2   `json:"http2"`
 	Headers []Field `json:"headers,omitempty"`
 
@@ -69,6 +71,12 @@ func (p *Profile) Clone() *Profile {
 		priority := *p.HTTP2.HeaderPriority
 		out.HTTP2.HeaderPriority = &priority
 	}
+	if p.HTTP1 != nil {
+		http1 := *p.HTTP1
+		http1.HeaderOrder = append([]string(nil), p.HTTP1.HeaderOrder...)
+		http1.Headers = append([]Field(nil), p.HTTP1.Headers...)
+		out.HTTP1 = &http1
+	}
 	return &out
 }
 
@@ -90,6 +98,14 @@ func (p *Profile) ShufflesExtensions() bool {
 type Field struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+// HTTP1 is the part of a request fingerprint HTTP/2 cannot describe.
+// HeaderOrder preserves wire spelling as well as order. Headers contains
+// protocol-only values, or values that differ from the shared Headers block.
+type HTTP1 struct {
+	HeaderOrder []string `json:"header_order"`
+	Headers     []Field  `json:"headers,omitempty"`
 }
 
 // HTTP2 is the connection preamble a client sends before its first request.
@@ -157,6 +173,9 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 
 // ClientProfile converts to the form the transport consumes.
 func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
+	if err := p.validateHTTP1(); err != nil {
+		return profiles.ClientProfile{}, err
+	}
 	// A profile that only names a base IS that base. Rebuilding it from parts
 	// would be a second, drifting copy of settings this library does not own.
 	if p.isBareBase() {
@@ -176,7 +195,6 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 	if err := p.validatePseudoHeaderOrder(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
-
 	id := tls.ClientHelloID{
 		Client:      p.Name,
 		Version:     "0",
@@ -233,6 +251,33 @@ func (p *Profile) validatePseudoHeaderOrder() error {
 	return nil
 }
 
+func (p *Profile) validateHTTP1() error {
+	if p.HTTP1 == nil {
+		return nil
+	}
+	if len(p.HTTP1.HeaderOrder) == 0 {
+		return fmt.Errorf("profile %q: http1.header_order must not be empty", p.Name)
+	}
+	seen := make(map[string]bool, len(p.HTTP1.HeaderOrder))
+	for _, wireName := range p.HTTP1.HeaderOrder {
+		name := strings.ToLower(strings.TrimSpace(wireName))
+		if !httpguts.ValidHeaderFieldName(wireName) || seen[name] {
+			return fmt.Errorf("profile %q: invalid http1.header_order %v", p.Name, p.HTTP1.HeaderOrder)
+		}
+		seen[name] = true
+	}
+	if !strings.EqualFold(p.HTTP1.HeaderOrder[0], "host") {
+		return fmt.Errorf("profile %q: http1.header_order must put Host first", p.Name)
+	}
+	for _, field := range p.HTTP1.Headers {
+		name := strings.ToLower(strings.TrimSpace(field.Name))
+		if !httpguts.ValidHeaderFieldName(field.Name) || name == "host" || !seen[name] {
+			return fmt.Errorf("profile %q: invalid http1 header %q", p.Name, field.Name)
+		}
+	}
+	return nil
+}
+
 func (p *Profile) isBareBase() bool {
 	return p.Base != "" && len(p.ClientHello) == 0 && len(p.HTTP2.Settings) == 0
 }
@@ -278,6 +323,9 @@ func Load(data []byte) (*Profile, error) {
 		if err := p.validatePseudoHeaderOrder(); err != nil {
 			return nil, err
 		}
+	}
+	if err := p.validateHTTP1(); err != nil {
+		return nil, err
 	}
 	return &p, nil
 }

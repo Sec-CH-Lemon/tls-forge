@@ -97,11 +97,80 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 			p.Headers = append(p.Headers, Field{Name: name, Value: h.Value})
 		}
 	}
+	if c.HTTP1 != nil {
+		p.HTTP1 = http1FromCapture(c.HTTP1, p.Headers)
+	}
 
 	if c.Navigator != nil && c.Navigator.UserAgent != "" {
 		p.UserAgent = c.Navigator.UserAgent
 	}
 	return p, nil
+}
+
+func http1FromCapture(measured *capture.HTTP1, shared []Field) *HTTP1 {
+	if measured == nil || len(measured.Headers) == 0 {
+		return nil
+	}
+	sharedValues := fieldValues(shared)
+	type group struct {
+		fields []Field
+	}
+	groups := make(map[string]*group)
+	var order []string
+	for i, header := range measured.Headers {
+		name := strings.ToLower(header.Name)
+		if perRequest[name] && name != "host" {
+			continue
+		}
+		wireName := header.Name
+		if i < len(measured.HeaderNames) && measured.HeaderNames[i] != "" {
+			wireName = measured.HeaderNames[i]
+		}
+		g := groups[name]
+		if g == nil {
+			g = &group{}
+			groups[name] = g
+			order = append(order, wireName)
+		}
+		if name != "host" {
+			g.fields = append(g.fields, Field{Name: wireName, Value: header.Value})
+		}
+	}
+	if len(order) == 0 {
+		return nil
+	}
+
+	http1 := &HTTP1{HeaderOrder: order}
+	for _, wireName := range order {
+		name := strings.ToLower(wireName)
+		g := groups[name]
+		if sameFieldValues(g.fields, sharedValues[name]) {
+			continue
+		}
+		http1.Headers = append(http1.Headers, g.fields...)
+	}
+	return http1
+}
+
+func fieldValues(fields []Field) map[string][]string {
+	out := make(map[string][]string)
+	for _, field := range fields {
+		name := strings.ToLower(field.Name)
+		out[name] = append(out[name], field.Value)
+	}
+	return out
+}
+
+func sameFieldValues(fields []Field, values []string) bool {
+	if len(fields) != len(values) {
+		return false
+	}
+	for i, field := range fields {
+		if field.Value != values[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // pseudoNames recovers the full pseudo-header names from the capture's
