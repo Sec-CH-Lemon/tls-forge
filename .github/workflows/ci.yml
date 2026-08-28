@@ -132,7 +132,10 @@ jobs:
       - run: npm test
         if: matrix.coverage
         working-directory: node
-      - run: node --test test/client.test.js
+      # Unquoted so the shell expands it: this leg is Node 20.12, whose test
+      # runner predates glob support, and it runs only on Linux. Every test
+      # file, not one named file, so a new one cannot arrive and never run.
+      - run: node --test test/*.test.js
         if: ${{ !matrix.coverage }}
         working-directory: node
 
@@ -205,6 +208,33 @@ jobs:
       # example talks to a local HTTP server; Node and Python use the native
       # JSON-lines fixture, so this gate is deterministic and needs no internet.
       - run: node scripts/check-examples.mjs
+
+  wrapper-smoke:
+    timeout-minutes: 20
+    # Do the Go daemon and its two wrappers still agree on the bytes?
+    #
+    # The Node and Python suites run against hand-written fakes and never touch
+    # the real binary, which is how a renamed response field once passed every
+    # gate and shipped. testdata/protocol pins the field names; this pins what
+    # the binary actually emits, end to end through each wrapper.
+    #
+    # One OS is enough: the contract is a byte format, not a platform. The
+    # per-platform behaviour of the wrappers is covered by the node and python
+    # jobs above.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: make wrapper-smoke
 
   packaging:
     timeout-minutes: 25
