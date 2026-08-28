@@ -254,6 +254,48 @@ func TestBatchWritesToAFileAndADirectory(t *testing.T) {
 	}
 }
 
+func TestBatchKeepsRepeatedURLBodiesSeparate(t *testing.T) {
+	var replies atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprintf(w, "response-%d", replies.Add(1))
+	}))
+	t.Cleanup(server.Close)
+
+	bodyDir := filepath.Join(t.TempDir(), "bodies")
+	code, stdout, stderr := exec(t, "batch", "--progress", "never", "--concurrency", "2",
+		"--body-dir", bodyDir, server.URL, server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\nstderr: %s", code, stderr)
+	}
+
+	var results []result
+	decoder := json.NewDecoder(strings.NewReader(stdout))
+	for decoder.More() {
+		var r result
+		if err := decoder.Decode(&r); err != nil {
+			t.Fatalf("decode result: %v", err)
+		}
+		results = append(results, r)
+	}
+	if len(results) != 2 {
+		t.Fatalf("got %d results: %s", len(results), stdout)
+	}
+	if results[0].File == results[1].File {
+		t.Fatalf("repeated URL results share %q", results[0].File)
+	}
+	bodies := map[string]bool{}
+	for _, r := range results {
+		body, err := os.ReadFile(r.File)
+		if err != nil {
+			t.Fatalf("read %s: %v", r.File, err)
+		}
+		bodies[string(body)] = true
+	}
+	if !bodies["response-1"] || !bodies["response-2"] {
+		t.Errorf("body files = %v", bodies)
+	}
+}
+
 func TestBatchRetries(t *testing.T) {
 	var mu sync.Mutex
 	var attempts int

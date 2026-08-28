@@ -23,8 +23,9 @@ import (
 // because that is the shape a scrape usually has: this page through the
 // residential exit it was found on, that page through a datacentre one.
 type job struct {
-	URL   string `json:"url"`
-	Proxy string `json:"proxy,omitempty"`
+	URL        string `json:"url"`
+	Proxy      string `json:"proxy,omitempty"`
+	occurrence int
 }
 
 // Formats a list can arrive in. `auto` reads the file's extension and falls

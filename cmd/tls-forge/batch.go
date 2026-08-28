@@ -582,7 +582,10 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 		}()
 	}
 
+	occurrences := make(map[string]int)
 	for _, j := range jobs {
+		occurrences[j.URL]++
+		j.occurrence = occurrences[j.URL]
 		select {
 		case <-runCtx.Done():
 			// Stop handing out work. Requests already in flight receive the same
@@ -691,10 +694,15 @@ func fetchOne(ctx context.Context, clients *pool, j job, repeat int, bodyDir str
 		}
 		return r
 	}
-	// Named from the URL rather than from a counter, so a re-run overwrites the
-	// same file instead of producing a second copy under a new number.
+	// Named from the URL so a re-run overwrites the same file. A repeated URL in
+	// one input gets a stable occurrence suffix: concurrent workers must not
+	// truncate each other's body or make two records point at one response.
 	sum := sha256.Sum256([]byte(j.URL))
-	path := filepath.Join(bodyDir, hex.EncodeToString(sum[:8])+".html")
+	name := hex.EncodeToString(sum[:8])
+	if j.occurrence > 1 {
+		name += "-" + strconv.Itoa(j.occurrence)
+	}
+	path := filepath.Join(bodyDir, name+".html")
 	if err := os.WriteFile(path, res.Body, 0o644); err != nil {
 		r.setError(err)
 		return r
