@@ -158,6 +158,29 @@ func TestJA4EmptySectionsHashToZero(t *testing.T) {
 	}
 }
 
+func TestJA4WithoutSignatureAlgorithmsMatchesFoxIOVector(t *testing.T) {
+	// FoxIO's published no-signature example hashes this sorted extension list
+	// directly to 6d807ffa2a79. In particular, it does not hash a trailing
+	// underscore. Keep the original unsorted order here so sorting is part of
+	// what the independent vector verifies.
+	types := []uint16{
+		0x001b, 0x0000, 0x0033, 0x0010, 0x4469, 0x0017, 0x002d, 0x000d,
+		0x0005, 0x0023, 0x0012, 0x002b, 0xff01, 0x000b, 0x000a, 0x0015,
+	}
+	builder := newHello()
+	for _, typ := range types {
+		builder.withExtension(typ, nil)
+	}
+	hello := mustParse(t, builder.records())
+	parts := strings.Split(hello.JA4(), "_")
+	if got, want := parts[2], "6d807ffa2a79"; got != want {
+		t.Errorf("JA4 extension hash = %q, want FoxIO vector %q", got, want)
+	}
+	if raw := hello.JA4Raw(); strings.HasSuffix(raw, "_") {
+		t.Errorf("JA4Raw has an absent-signature delimiter: %q", raw)
+	}
+}
+
 func TestJA4ExcludesSNIAndALPNFromTheHashedList(t *testing.T) {
 	// They are counted in the prefix but must not be in the hashed list: SNI is
 	// per-destination, so hashing it would give every host its own fingerprint.

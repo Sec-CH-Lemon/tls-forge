@@ -38,24 +38,23 @@ func (c *ClientHello) JA4() string {
 // JA4Raws differ at a cipher or an extension you can name.
 func (c *ClientHello) JA4Raw() string {
 	a, _, _ := c.ja4Parts()
-	return strings.Join([]string{a, c.ja4Ciphers(), c.ja4Extensions(), c.ja4SignatureAlgorithms()}, "_")
+	return strings.Join([]string{a, c.ja4Ciphers(), c.ja4ExtensionInput()}, "_")
 }
 
 func (c *ClientHello) ja4Parts() (a, b, d string) {
 	ciphers := c.ja4Ciphers()
-	exts := c.ja4Extensions()
-	sigs := c.ja4SignatureAlgorithms()
+	exts := c.ja4ExtensionInput()
 
 	b = emptySection
 	if ciphers != "" {
 		b = truncatedSHA256(ciphers)
 	}
-	// The extension section hashes the extensions AND the signature algorithms
-	// together, joined by an underscore — even when there are no signature
-	// algorithms, in which case the underscore is still written.
+	// The extension section hashes the extensions and, when present, the
+	// signature algorithms joined by an underscore. FoxIO specifies no trailing
+	// underscore when the signature list is absent.
 	d = emptySection
 	if exts != "" {
-		d = truncatedSHA256(exts + "_" + sigs)
+		d = truncatedSHA256(exts)
 	}
 	return c.ja4Prefix(), b, d
 }
@@ -165,6 +164,14 @@ func (c *ClientHello) ja4Extensions() string {
 // sort, because it is a preference order and clients differ in it.
 func (c *ClientHello) ja4SignatureAlgorithms() string {
 	return joinHex(withoutGREASE(c.SignatureAlgorithms()))
+}
+
+func (c *ClientHello) ja4ExtensionInput() string {
+	exts := c.ja4Extensions()
+	if sigs := c.ja4SignatureAlgorithms(); sigs != "" {
+		return exts + "_" + sigs
+	}
+	return exts
 }
 
 func joinHexSorted(values []uint16) string {
