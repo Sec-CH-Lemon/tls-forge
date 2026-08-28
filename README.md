@@ -278,6 +278,9 @@ Usage: `tls-forge batch [flags] [urls...]`
 | `--report-ip[=false]` | Ask `https://ipinfo.io/json` once per proxy for report metadata; default `true` |
 
 Input precedence is `--urls`, then `--input`, then positional URLs, then stdin.
+When an inline response body is not valid UTF-8, `body` is base64 and the row
+contains `"body_encoding":"base64"`; `bytes` always remains the original byte
+count. `--body-dir` writes the original bytes directly instead.
 With `--format auto`, `.json` selects JSON, `.csv` selects CSV and every other
 name uses one URL per line.
 
@@ -399,8 +402,13 @@ bytes through unchanged.
 tls-forge proxy
 export HTTPS_PROXY=http://127.0.0.1:8080
 curl --proxy http://127.0.0.1:8080 \
-  --cacert "$HOME/.config/tls-forge/ca.pem" https://example.com/
+  --cacert "/path/printed/by/tls-forge" https://example.com/
 ```
+
+The command prints the exact certificate path. Its default follows the OS user
+config directory: usually `~/.config/tls-forge/ca.pem` on Linux,
+`~/Library/Application Support/tls-forge/ca.pem` on macOS, and
+`%AppData%\tls-forge\ca.pem` on Windows.
 
 Usage: `tls-forge proxy [flags]`
 
@@ -573,6 +581,7 @@ make test         # Go race tests
 make cover        # 100% Go statement coverage gate
 make node-test    # 100% Node line/function/branch coverage gate
 make python-test  # 100% Python statement/branch coverage gate
+make wrapper-smoke # Node and Python against the real Go daemon
 make vet
 make lint
 make check        # all of the above

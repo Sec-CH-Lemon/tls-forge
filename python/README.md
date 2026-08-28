@@ -129,7 +129,7 @@ response = client.request(
 | `url` | `str`, required | Absolute HTTP or HTTPS URL. |
 | `method` | `str`, `"GET"` | HTTP method. `get()` and `post()` set it automatically. |
 | `headers` | `Mapping[str, str] | None` | Headers layered over the profile. Existing profile names retain their browser position. |
-| `order` | `Sequence[str] | None` | Order for caller-supplied headers. Unnamed caller headers follow in sorted order. To control the complete sequence, include every header in both `headers` and `order`. |
+| `order` | `Sequence[str] | None` | Order for caller-only headers. Profile headers keep their measured browser positions; unnamed caller headers follow in sorted order. |
 | `body` | `str | bytes | None` | Request body. `bytes` is sent as base64 so it arrives intact; `None` omits the field. |
 | `cookies` | `Iterable[str] | None` | `name=value` pairs added to the daemon's jar before the request. |
 

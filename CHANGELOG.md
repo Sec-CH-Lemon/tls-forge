@@ -28,10 +28,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   three times and the two binding suites run against their own fakes, so
   renaming a response field passed every gate and shipped a release in which
   Python callers silently received no cookies at all. One rename now breaks all
-  three suites.
-- `--report <directory>` creates the directory. The spelling README and
-  `example/README.md` both show fetched the whole list and then failed at the
-  last step, losing the report and exiting non-zero on a run that had worked.
+  three suites. A separate smoke gate now drives the real Go daemon from both
+  wrappers and checks binary bodies and repeated response headers end to end.
+- **Binary bodies in `batch` JSON Lines are lossless too.** Invalid UTF-8 is
+  base64 with `body_encoding: "base64"`; `bytes` remains the original length.
+- `--report <directory>` creates the directory. The command shown in README and
+  `example/README.md` used to fetch the whole list and then fail at the last
+  step, losing the report and exiting non-zero on a run that had worked.
+  Generated names use one colon-free format on every OS, so they are valid on
+  Windows as well.
 
 ### Security
 
@@ -46,6 +51,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   tells two proxies apart; the password does not. Error text is scrubbed too:
   `url.Parse` quotes back the whole string it could not parse, so a mistyped
   proxy wrote its own password into the field that had just been cleaned.
+  Scheme-less `user:pass@host` proxies are covered too, and HTML reports are
+  created with mode `0600` even when replacing an older permissive file.
 
 ### Fixed
 
@@ -54,14 +61,34 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the capture page and filed every later report against it, so the second
   browser to open `tls-forge serve` saw the first browser's ClientHello, JA4 and
   header order beside its own user agent — while the first browser's session had
-  its navigator data overwritten with the second's. A report now claims its own
-  page load. `tls-forge capture` was never affected: it builds a server per run.
+  its navigator data overwritten with the second's. Each served page now gets a
+  navigation token used by its report, so overlapping browsers cannot be paired
+  by timing. Completed captures are consumed once, so a later measurement does
+  not return the previous browser forever.
 - **`Close()` hung forever on a connection accepted while closing**, in both the
   proxy and the echo server. A connection accepted between `wg.Add` and the
   handler registering itself was counted in the WaitGroup but missing from the
   snapshot `Close` closes, so `Close` waited for a peer nobody would ever
   disconnect. `Ctrl-C` on `tls-forge proxy` with a browser holding keep-alive
   connections did not return.
+- HTTP/2 request flow control in the echo server is replenished as DATA is
+  consumed, so a second body on one connection cannot stall at 65,535 bytes.
+- Repeated proxy headers and repeated Go `Header` values remain separate on the
+  wire. Forced HTTP/1.1 uses canonical header casing and places `Host` first.
+- Custom profiles without the four required HTTP/2 pseudo headers are rejected,
+  instead of constructing requests missing `:method`, `:path`, `:scheme` or
+  `:authority`.
+- `MeasureSelfAt` no longer writes into spare capacity owned by the caller's
+  option slice. Session export deduplicates cookies across URLs on one host.
+- Netscape cookie files that spell include-subdomains as `example.com TRUE` are
+  normalised to `.example.com` instead of silently becoming host-only.
+- Node no longer keeps the event loop alive while its daemon is idle, preserves
+  unwritten queued requests across a transport exit, reports stderr by logical
+  line, accepts `cookieFile`/`cookieSet`, and can import on an unsupported
+  platform when `TLSFORGE_BIN` supplies the executable.
+- Release tags now run lint, vulnerability and cross-platform Go gates. Actions
+  with publishing or drift credentials are pinned to commit SHAs, and a failed
+  Chrome-version lookup can no longer create `profile/chrome-`.
 
 ### Changed
 
@@ -347,7 +374,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   down what a run ended up holding. Shared by `fetch`, `batch` and `daemon`.
 - A `cookie` package and a file format: sets rather than cookies, since a
   session is the unit that was warmed. A bare array of sets and a browser
-  extension'''s flat export are read as well, `httpOnly` and `expirationDate`
+  extension's flat export are read as well, `httpOnly` and `expirationDate`
   included. Expired cookies are left out of a run and counted.
 
 ### Fixed
@@ -446,7 +473,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   write a reusable profile from it.
 - `tls-forge compare` — measure the browser and the library against one local
   instrument and print them as a field-by-field diff, green where they agree and
-  red where they do not, exiting 1 on a difference so it can gate a release.
+  red where they do not, exiting 3 on a difference so it can gate a release.
   `--color auto|always|never` (honouring `NO_COLOR`) and `--full`.
 - `tls-forge fetch`, `serve`, `daemon`, `profiles`.
 - `fingerprint` — ClientHello parsing and local JA3, JA4, JA4_r and Akamai
@@ -500,7 +527,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   bundle and long ones take `--flag=value`. Parsing moved from the standard
   library's `flag`, which treats `-x` and `--x` as one thing and has no notion
   of a short form, to `spf13/pflag`.
-- A mistyped flag now exits **2** rather than 1. `compare` uses 1 for "the
+- A mistyped flag now exits **2** rather than 1. `compare` uses 3 for "the
   fingerprints differ", so a typo exiting 1 read, to the job watching for
   exactly that, as a broken impersonation.
 

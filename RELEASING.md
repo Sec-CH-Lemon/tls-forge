@@ -22,9 +22,11 @@ What that one tag produces:
 | Homebrew formula | `Sec-CH-Lemon/homebrew-tap` |
 
 Before any of it publishes, the tag runs the same gates a push does — `go vet`,
-the race suite, 100% Go coverage, the Node suite, the Python suite at 100% of
-lines and branches — and checks that `THIRD-PARTY-NOTICES.txt` is current. A
-release is the worst moment to find out a test was failing.
+the race suite, 100% Go coverage, `govulncheck`, golangci-lint, Go tests on
+Linux/macOS/Windows, the Node and Python suites, and a real-daemon wrapper smoke
+test — and checks that `THIRD-PARTY-NOTICES.txt` is current. A release is the
+worst moment to find out a test was failing. Third-party Actions in the release
+and drift paths are pinned to immutable commit SHAs.
 
 ## What to set up first, once
 
@@ -208,8 +210,9 @@ different things in two places is worse than a gap.
 
 `release.yml`, in order:
 
-1. **Gates.** Go vet, race tests, 100% Go coverage, Node suite, Python suite at
-   100% lines and branches, notices current.
+1. **Gates.** Go vet, race tests, 100% Go coverage, vulnerability and lint
+   checks, Go on all supported OSes, Node/Python unit suites and their smoke
+   tests against the real daemon, notices current.
 2. **Cross-compile** five binaries with `CGO_ENABLED=0`, stamped with the tag,
    and run the linux one to prove it starts.
 3. **Package** release archives, six npm tarballs, five Python wheels and an
