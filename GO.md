@@ -1,8 +1,8 @@
 # TLS Forge for Go
 
 The Go package is the native API behind the `tls-forge` CLI. It sends requests
-with a measured browser TLS ClientHello, HTTP/2 settings, pseudo-header order,
-regular header order and browser headers.
+with a measured browser TLS ClientHello, HTTP/1.1 wire casing and header order,
+HTTP/2 settings, pseudo-header order, regular header order and browser headers.
 
 This document covers the public client API and the optional measurement, proxy,
 echo, profile, capture, cookie, daemon and fingerprint packages.
@@ -315,6 +315,13 @@ client, err := tlsforge.New(tlsforge.WithProfile(measured.Name))
 `TLSFORGE_PROFILES` environment variable overrides it. A custom
 `profile.Registry` can use `SetDir` without modifying the package default.
 
+`profile.Profile.HTTP1` is optional. When present, its `HeaderOrder` preserves
+the exact wire spelling measured from the browser and its `Headers` carries
+HTTP/1.1-specific value overrides. The client chooses this layout only after
+the connection negotiates HTTP/1.1; HTTP/2 continues to use the profile's
+existing lower-case header block. Profiles created before this field existed
+remain valid and use the legacy canonical HTTP/1.1 spelling.
+
 ## Measuring and comparing
 
 `MeasureBrowser` launches a real browser with a temporary profile and records
@@ -363,8 +370,10 @@ if !comparison.OK() {
 }
 ```
 
-The comparison covers complete TLS fields, protocol mismatch, HTTP/2 settings,
-pseudo-header order, normal header order and normal header values.
+The comparison covers complete TLS fields, protocol mismatch, exact HTTP/1.1
+header casing/order/values, HTTP/2 settings, pseudo-header order, normal header
+order and normal header values. `fingerprint.CompareHTTP1` and
+`fingerprint.CompareHTTP2` expose the two HTTP comparisons independently.
 
 ## Programmatic proxy
 
@@ -443,7 +452,7 @@ Useful methods include `URL()`, `Addr()`, `Certificate()`, `Sessions()` and
 | `capture` | Serializable representation of observed TLS, HTTP/1, HTTP/2 and browser navigator data. |
 | `cookie` | Load, select, merge and encode warmed cookie sessions. |
 | `daemon` | JSON Lines request/response transport used by non-Go SDKs. `Serve` accepts any compatible client. |
-| `fingerprint` | Parse ClientHello records, calculate JA3/JA4 and compare TLS or HTTP/2 structures. |
+| `fingerprint` | Parse ClientHello records, calculate JA3/JA4 and compare TLS, HTTP/1.1 or HTTP/2 structures. |
 | `profile` | Load, create, register and resolve browser profiles. |
 | `proxy` | Programmatic intercepting proxy and certificate authority. |
 | `echo` | Local TLS/HTTP measurement server. |

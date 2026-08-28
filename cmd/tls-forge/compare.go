@@ -73,6 +73,11 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 	out.printf("%s+++ client   profile %s%s\n\n", pal.match, result.Client.Profile, pal.reset)
 
 	tlsWant, tlsGot := fingerprint.TLSFields(browserHello), fingerprint.TLSFields(clientHello)
+	var h1Want, h1Got []fingerprint.Field
+	if result.Browser.HTTP1 != nil && result.Client.HTTP1 != nil {
+		h1Want = fingerprint.HTTP1Fields(result.Browser.HTTP1.Fingerprint())
+		h1Got = fingerprint.HTTP1Fields(result.Client.HTTP1.Fingerprint())
+	}
 
 	// Absent when the connection came out as HTTP/1.1, and then there is nothing
 	// to compare rather than a difference to report.
@@ -83,8 +88,11 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 	}
 
 	// One width across both sections, or the eye loses the column between them.
-	d := &diffPrinter{out: out, colour: pal, full: full, labelAt: widestLabel(tlsWant, h2Want)}
+	d := &diffPrinter{out: out, colour: pal, full: full, labelAt: widestLabel(tlsWant, h1Want, h2Want)}
 	d.section("TLS", tlsWant, tlsGot)
+	if h1Want != nil {
+		d.section("HTTP/1.1", h1Want, h1Got)
+	}
 	if h2Want != nil {
 		d.section("HTTP/2", h2Want, h2Got)
 	}
@@ -98,7 +106,7 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 		return
 	}
 
-	differing := len(result.TLS.Differences) + len(result.HTTP2.Differences)
+	differing := len(result.TLS.Differences) + len(result.HTTP1.Differences) + len(result.HTTP2.Differences)
 	out.printf("%s%d field(s) differ.%s Fix by measuring this browser and using the profile\n",
 		pal.differ, differing, pal.reset)
 	out.println("it produces:")
@@ -124,6 +132,9 @@ func printCapture(out *printer, measured *capture.Capture) {
 	if measured.HTTP2 != nil {
 		field("HTTP/2", measured.HTTP2.Akamai)
 		field("header order", strings.Join(measured.HTTP2.HeaderOrder, ", "))
+	}
+	if measured.HTTP1 != nil {
+		field("HTTP/1.1 order", strings.Join(measured.HTTP1.HeaderNames, ", "))
 	}
 	if nav := measured.Navigator; nav != nil {
 		field("platform", strings.TrimSpace(nav.Platform+" "+nav.PlatformVersion))

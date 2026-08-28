@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -55,17 +56,55 @@ func TestBrowserHelper(t *testing.T) {
 	if url == "" {
 		t.Skip("not running as the browser stand-in")
 	}
-	client, err := tlsforge.New(tlsforge.WithInsecureSkipVerify())
+	client, err := tlsforge.New(tlsforge.WithInsecureSkipVerify(), tlsforge.WithoutRedirects())
 	if err != nil {
 		os.Exit(1)
 	}
 	defer client.Close()
-	if _, err := client.Get(url + "/"); err != nil {
+	page, err := client.Get(url)
+	if err != nil {
 		os.Exit(1)
 	}
+	const navigationMarker = "const http1Navigation = '"
+	start := strings.Index(page.Text(), navigationMarker)
+	if start < 0 {
+		os.Exit(1)
+	}
+	start += len(navigationMarker)
+	end := strings.IndexByte(page.Text()[start:], '\'')
+	if end < 0 {
+		os.Exit(1)
+	}
+	redirect, err := client.Get(page.Text()[start : start+end])
+	if err != nil {
+		os.Exit(1)
+	}
+	locations := redirect.Header["location"]
+	if redirect.Status != 302 || len(locations) != 1 {
+		os.Exit(1)
+	}
+	page, err = client.Get(locations[0])
+	if err != nil {
+		os.Exit(1)
+	}
+	const marker = "fetch('"
+	start = strings.Index(page.Text(), marker)
+	if start < 0 {
+		os.Exit(1)
+	}
+	start += len(marker)
+	end = strings.IndexByte(page.Text()[start:], '\'')
+	if end < 0 {
+		os.Exit(1)
+	}
+	final, err := neturl.Parse(page.URL)
+	if err != nil {
+		os.Exit(1)
+	}
+	collect := final.Scheme + "://" + final.Host + page.Text()[start:start+end]
 	if _, err := client.Do(&tlsforge.Request{
 		Method: "POST",
-		URL:    url + "/collect",
+		URL:    collect,
 		Body:   []byte(`{"user_agent":"Mozilla/5.0 Chrome/151.0.0.0 Safari/537.36"}`),
 		Header: tlsforge.NewHeader("content-type", "application/json"),
 	}); err != nil {
@@ -631,6 +670,29 @@ func TestCompareWithoutHTTP2(t *testing.T) {
 	}
 	if strings.Contains(buf.String(), "HTTP/2") {
 		t.Errorf("an HTTP/2 section was printed for a connection that had none:\n%s", buf.String())
+	}
+}
+
+func TestComparePrintsHTTP1(t *testing.T) {
+	raw, err := os.ReadFile("../../testdata/chrome151-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	http1 := &capture.HTTP1{
+		HeaderNames: []string{"Host", "sec-ch-ua"},
+		Headers: []capture.HeaderField{
+			{Name: "host", Value: "localhost"}, {Name: "sec-ch-ua", Value: "browser"},
+		},
+	}
+	var buf bytes.Buffer
+	result := &tlsforge.Comparison{
+		Browser: &capture.Capture{RawClientHello: raw, HTTP1: http1},
+		Client:  &capture.Capture{RawClientHello: raw, HTTP1: http1},
+	}
+	printComparison(newPrinter(&buf), result, palette{}, true)
+	if !strings.Contains(buf.String(), "HTTP/1.1") ||
+		!strings.Contains(buf.String(), "http1_header_order") {
+		t.Errorf("HTTP/1.1 section was not printed:\n%s", buf.String())
 	}
 }
 

@@ -2,8 +2,9 @@
 
 `tls-forge` is an HTTP client and command-line tool for making requests with a
 real browser's network fingerprint. A profile controls the TLS ClientHello,
-JA3/JA4-relevant fields, HTTP/2 settings, pseudo-header order, regular header
-order and browser headers as one coherent identity.
+JA3/JA4-relevant fields, measured HTTP/1.1 header casing and order, HTTP/2
+settings, pseudo-header order, regular header order and browser headers as one
+coherent identity.
 
 Use it when an ordinary Go, Node.js or Python HTTP client is rejected because
 its network stack does not match the browser named by its `User-Agent`.
@@ -32,8 +33,9 @@ including:
 - session-resumption and application-settings behaviour.
 
 Servers can retain the complete structure or reduce it to identifiers such as
-JA3 and JA4. The negotiated HTTP protocol adds more signals: HTTP/2 SETTINGS,
-window updates, pseudo-header order, normal header order and values.
+JA3 and JA4. The negotiated HTTP protocol adds more signals: exact HTTP/1.1
+header casing and order, or HTTP/2 SETTINGS, window updates, pseudo-header
+order, normal header order and values.
 
 Changing only `User-Agent` is therefore insufficient. Node.js and Python
 normally use OpenSSL, Go uses `crypto/tls`, while Chrome uses BoringSSL. Their
@@ -344,6 +346,11 @@ update.
 
 Measure an installed browser and the selected client profile against the same
 local server, then print a field-by-field diff.
+
+The browser is measured over both HTTP/1.1 and HTTP/2. HTTP/1.1 names are
+compared with their exact wire casing; HTTP/2 remains lower-case as required by
+the protocol. Profiles that predate the optional HTTP/1.1 section continue to
+work with the historical fallback.
 
 ```bash
 tls-forge compare
