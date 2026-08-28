@@ -47,6 +47,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Security
 
+- The `serve` and `proxy` commands warn when their resolved listener is exposed
+  beyond loopback without authentication. The security and API documentation
+  now state the trust boundary for non-loopback binds.
 - **Cross-origin HTTP/1.1 redirects no longer restore credentials or the source
   `Host`.** The measured layout is rebuilt from the headers the redirect policy
   allowed for the destination instead of replaying the first request's block.

@@ -92,6 +92,25 @@ If an apparent fingerprinting bug also causes memory corruption, credential
 exposure, an authentication or trust-boundary failure, or another concrete
 security impact, report the security impact privately.
 
+## Network exposure model
+
+The echo server and intercepting proxy are local development tools, not
+internet-facing services. Their defaults bind to loopback. Neither protocol
+authenticates incoming clients, and the proxy can make outbound requests and
+mint certificates for any hostname on behalf of every client that can reach
+it. The `serve` and `proxy` commands print a warning when their resolved listen
+address is not loopback.
+
+Using `echo.WithAddr`, `proxy.Options.Addr`, or `--addr` with `0.0.0.0`, `::`, a
+LAN address, or a public address is an explicit expansion of the trust
+boundary. Put such a listener behind an authenticated tunnel or firewall and
+allow only intended clients. Do not expose it directly to the internet.
+
+Resource limits reduce the effect of a bad peer but are not an authentication
+boundary. Idle connections expire after 30 seconds, echo HTTP/1.1 requests are
+limited to 100 headers with at most 8 KiB per line, proxy request bodies are
+bounded.
+
 ## Safe research guidelines
 
 Research must be performed against systems you own or are explicitly authorised

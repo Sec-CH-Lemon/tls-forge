@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 
@@ -32,6 +33,23 @@ var version = "dev"
 // browser update is exactly the moment an impersonation stops being true, and
 // it does so quietly.
 var errDiffers = errors.New("the client and the browser differ")
+
+func warnPublicListener(component, addr string, out *printer) {
+	if listenerIsLoopback(addr) {
+		return
+	}
+	out.printf("WARNING: %s is listening beyond loopback at %s without authentication.\n", component, addr)
+	out.println("Restrict it with a firewall or bind it to 127.0.0.1/::1.")
+	out.println()
+}
+
+func listenerIsLoopback(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return false
+	}
+	return net.ParseIP(host).IsLoopback()
+}
 
 // Exit codes. A comparison that ran and disagreed is a different thing from one
 // that could not run, and anything automating this has to tell them apart: a

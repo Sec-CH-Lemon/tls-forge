@@ -68,6 +68,7 @@ func runProxy(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 	defer func() { _ = server.Close() }()
 
+	warnPublicListener("proxy", server.Addr(), errOut)
 	out.printf("proxy listening on %s\n\n", server.Addr())
 	out.printf("  export HTTPS_PROXY=http://%s\n", server.Addr())
 	// browserleaks answers with the JA4 it saw, so the suggested command is not

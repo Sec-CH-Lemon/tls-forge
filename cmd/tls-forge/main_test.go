@@ -408,6 +408,33 @@ func TestServeRejectsAnUnusableAddress(t *testing.T) {
 	}
 }
 
+func TestPublicListenerWarning(t *testing.T) {
+	for _, tc := range []struct {
+		addr     string
+		loopback bool
+	}{
+		{"127.0.0.1:8080", true},
+		{"[::1]:8080", true},
+		{"0.0.0.0:8080", false},
+		{"[::]:8080", false},
+		{"missing-port", false},
+	} {
+		if got := listenerIsLoopback(tc.addr); got != tc.loopback {
+			t.Errorf("listenerIsLoopback(%q) = %v, want %v", tc.addr, got, tc.loopback)
+		}
+	}
+	var buf bytes.Buffer
+	out := newPrinter(&buf)
+	warnPublicListener("serve", "127.0.0.1:8080", out)
+	if buf.Len() != 0 {
+		t.Errorf("loopback warning = %q", buf.String())
+	}
+	warnPublicListener("serve", "0.0.0.0:8080", out)
+	if got := buf.String(); !strings.Contains(got, "WARNING") || !strings.Contains(got, "without authentication") {
+		t.Errorf("public warning = %q", got)
+	}
+}
+
 func TestCapture(t *testing.T) {
 	code, stdout, stderr := exec(t, "capture", "--browser", browserStandIn(t), "--timeout", "30s")
 	if code != 0 {

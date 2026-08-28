@@ -418,8 +418,10 @@ defer server.Close()
 
 `LoadOrCreateCA` creates material only when both files are absent. Existing
 certificate and key files must match, be currently valid and form a usable
-self-signed CA. Treat the private key as a sensitive credential. Incoming
-connections close after 30 seconds without read or write progress.
+self-signed CA. Treat the private key as a sensitive credential. The proxy has
+no incoming-client authentication; protect any non-loopback `Addr` with a
+firewall or authenticated tunnel. Incoming connections close after 30 seconds
+without read or write progress.
 
 ## Local echo server
 
@@ -449,7 +451,9 @@ fmt.Println(server.URL())
 Useful methods include `URL()`, `Addr()`, `Certificate()`, `Sessions()` and
 `Await(ctx)`. A `Session` can be rendered as a `capture.Capture`. Silent
 connections close after 30 seconds; the deadline rolls forward while traffic
-makes progress.
+makes progress. The echo protocol has no authentication. A non-loopback
+`WithAddr` is an explicit trust-boundary expansion and must be protected by a
+firewall or authenticated tunnel.
 
 ## Other packages
 

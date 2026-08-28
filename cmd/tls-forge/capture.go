@@ -213,7 +213,7 @@ func browserFrom(userAgent string) (family, major string) {
 	return "", ""
 }
 
-func runServe(ctx context.Context, args []string, out, _ *printer) error {
+func runServe(ctx context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("serve", out)
 	addr := fs.StringP("addr", "a", "127.0.0.1:0", "listen address")
 	host := fs.String("host", "localhost", "hostname used in the URL and certificate")
@@ -233,6 +233,7 @@ func runServe(ctx context.Context, args []string, out, _ *printer) error {
 	}
 	defer func() { _ = server.Close() }()
 
+	warnPublicListener("serve", server.Addr(), errOut)
 	out.println(server.URL())
 	out.println("  /          a page that measures the browser that opens it")
 	out.println("  /api/all   this connection's fingerprint, as JSON")

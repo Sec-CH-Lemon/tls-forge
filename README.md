@@ -438,9 +438,11 @@ Usage: `tls-forge proxy [flags]`
 The proxy deliberately has no cookie jar; it forwards the caller's `Cookie`
 header. The generated CA can impersonate any site to a client that trusts it.
 Prefer trusting it only for the specific process, keep the private key secret,
-and remove that trust when the proxy is no longer needed. The certificate and
-key must either both exist and match or both be absent. Incoming connections
-expire after 30 seconds without any read or write progress.
+and remove that trust when the proxy is no longer needed. The proxy does not
+authenticate incoming clients: a non-loopback `--addr` must be protected by a
+firewall or authenticated tunnel. The certificate and key must either both
+exist and match or both be absent. Incoming connections expire after 30 seconds
+without any read or write progress.
 
 ### `serve`
 
@@ -463,8 +465,10 @@ Usage: `tls-forge serve [flags]`
 | `--session-tickets` | Enable TLS session resumption; disabled by default because resumption changes the fingerprint |
 
 The certificate is generated for each run, so test clients must trust it or
-explicitly disable verification for this local endpoint. A connection that
-makes no read or write progress for 30 seconds is closed.
+explicitly disable verification for this local endpoint. The server does not
+authenticate incoming clients; the CLI warns when `--addr` exposes it beyond
+loopback. A connection that makes no read or write progress for 30 seconds is
+closed.
 
 ### `daemon`
 
