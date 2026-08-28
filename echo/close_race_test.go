@@ -6,6 +6,35 @@ import (
 	"time"
 )
 
+type closeSpyConn struct {
+	net.Conn
+	closed bool
+}
+
+func (c *closeSpyConn) Close() error {
+	c.closed = true
+	return nil
+}
+
+// The end-to-end race below proves Close returns, but scheduling decides which
+// side of track it exercises. Pin the late-handler side directly as well, so
+// the safety branch and its coverage do not depend on winning a race 40 times.
+func TestAHandlerArrivingAfterCloseRefusesAndClosesTheConnection(t *testing.T) {
+	closed := make(chan struct{})
+	close(closed)
+	server := &Server{closed: closed, conns: make(map[net.Conn]struct{})}
+	conn := &closeSpyConn{}
+
+	server.handleTLS(conn, nil, false)
+
+	if !conn.closed {
+		t.Error("a connection refused after Close was not closed")
+	}
+	if len(server.conns) != 0 {
+		t.Error("a connection refused after Close was registered")
+	}
+}
+
 // TestCloseDoesNotWaitForAConnectionAcceptedWhileClosing pins the window
 // between Accept and the handler registering itself.
 //
