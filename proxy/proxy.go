@@ -21,12 +21,17 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn"
 )
+
+const connectionIdleTimeout = 30 * time.Second
 
 // Client is the part of *tlsforge.Client the proxy needs, named so tests can
 // answer without opening a socket.
@@ -153,7 +158,9 @@ func (s *Server) handle(conn net.Conn) {
 		_ = conn.Close()
 		return
 	}
-	defer s.forget(conn)
+	raw := conn
+	defer s.forget(raw)
+	conn = deadlineconn.Wrap(conn, connectionIdleTimeout)
 
 	reader := bufio.NewReader(conn)
 	for {
@@ -380,7 +387,7 @@ func isClosed(err error) bool {
 	if err == nil {
 		return false
 	}
-	if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
+	if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) || errors.Is(err, os.ErrDeadlineExceeded) {
 		return true
 	}
 	msg := err.Error()

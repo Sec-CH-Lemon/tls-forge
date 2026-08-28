@@ -22,13 +22,18 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn"
 )
+
+const connectionIdleTimeout = 30 * time.Second
 
 // Session is everything one connection revealed about its client.
 type Session struct {
@@ -442,7 +447,7 @@ func (s *Server) handleTLS(raw net.Conn, config *tls.Config, register bool) {
 		_ = raw.Close()
 	}()
 
-	recorder := &recordingConn{Conn: raw}
+	recorder := &recordingConn{Conn: deadlineconn.Wrap(raw, connectionIdleTimeout)}
 	conn := tls.Server(recorder, config)
 	sess := &Session{remote: raw.RemoteAddr().String()}
 
@@ -661,7 +666,7 @@ func isClosed(err error) bool {
 	if err == nil {
 		return false
 	}
-	if errors.Is(err, net.ErrClosed) {
+	if errors.Is(err, net.ErrClosed) || errors.Is(err, os.ErrDeadlineExceeded) {
 		return true
 	}
 	msg := err.Error()

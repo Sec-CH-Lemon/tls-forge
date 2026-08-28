@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -851,8 +852,10 @@ func TestIsClosed(t *testing.T) {
 	if isClosed(nil) {
 		t.Error("nil is not a closed connection")
 	}
-	if !isClosed(net.ErrClosed) {
-		t.Error("net.ErrClosed should read as closed")
+	for _, err := range []error{net.ErrClosed, os.ErrDeadlineExceeded} {
+		if !isClosed(err) {
+			t.Errorf("%v should read as closed", err)
+		}
 	}
 	for _, message := range []string{
 		"read: connection reset by peer", "write: broken pipe", "use of closed network connection",

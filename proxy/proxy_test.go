@@ -508,7 +508,7 @@ func TestIsClosed(t *testing.T) {
 	if isClosed(nil) {
 		t.Error("nil is not a closed connection")
 	}
-	for _, err := range []error{net.ErrClosed, io.EOF,
+	for _, err := range []error{net.ErrClosed, io.EOF, os.ErrDeadlineExceeded,
 		errors.New("read: connection reset by peer"),
 		errors.New("write: broken pipe"),
 		errors.New("use of closed network connection")} {
