@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -61,6 +62,25 @@ func main() {
 				"id": req.ID, "status": 0, "url": "", "body": "",
 				"headers": nil, "cookies": nil,
 			})
+		case "fixture", "fixture-text":
+			name := "response.json"
+			if parsed.Hostname() == "fixture-text" {
+				name = "response-text.json"
+			}
+			data, err := os.ReadFile(filepath.Join(
+				os.Getenv("TLSFORGE_PROTOCOL_FIXTURES"), name,
+			))
+			if err != nil {
+				emit(map[string]any{"id": req.ID, "error": err.Error()})
+				continue
+			}
+			var response map[string]any
+			if err := json.Unmarshal(data, &response); err != nil {
+				emit(map[string]any{"id": req.ID, "error": err.Error()})
+				continue
+			}
+			response["id"] = req.ID
+			emit(response)
 		// Keep these malformed protocol cases aligned with the Python and Node
 		// fixtures: this native version is what both suites run on Windows.
 		case "bad-error":

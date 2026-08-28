@@ -28,6 +28,21 @@ func fixtureResponse() Response {
 	}
 }
 
+// Text is a separate fixture because absence is part of the protocol: old
+// readers must keep seeing the same response shape for ordinary UTF-8 bodies.
+func fixtureTextResponse() Response {
+	return Response{
+		ID:     8,
+		Status: 200,
+		URL:    "https://example.com/text",
+		Body:   "plain text — unchanged",
+		Headers: map[string][]string{
+			"content-type": {"text/plain; charset=utf-8"},
+		},
+		Cookies: []string{},
+	}
+}
+
 func fixtureRequest() Request {
 	return Request{
 		ID:           7,
@@ -57,6 +72,7 @@ func TestProtocolFixture(t *testing.T) {
 		value any
 	}{
 		{"response.json", fixtureResponse()},
+		{"response-text.json", fixtureTextResponse()},
 		{"request.json", fixtureRequest()},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -93,19 +109,28 @@ func TestProtocolFixture(t *testing.T) {
 // TestProtocolFixtureRoundTrips checks the fixtures are what the Go decoder
 // reads back, so they cannot drift into being merely a file this test writes.
 func TestProtocolFixtureRoundTrips(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "testdata", "protocol", "response.json"))
-	if err != nil {
-		t.Fatalf("reading: %v", err)
-	}
-	var got Response
-	if err := json.Unmarshal(data, &got); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if got.ID != 7 || got.Status != 200 || len(got.Cookies) != 2 {
-		t.Errorf("decoded response does not match the fixture: %+v", got)
+	for _, tc := range []struct {
+		name         string
+		id           uint64
+		bodyEncoding string
+	}{
+		{"response.json", 7, BodyBase64},
+		{"response-text.json", 8, ""},
+	} {
+		data, err := os.ReadFile(filepath.Join("..", "testdata", "protocol", tc.name))
+		if err != nil {
+			t.Fatalf("reading %s: %v", tc.name, err)
+		}
+		var got Response
+		if err := json.Unmarshal(data, &got); err != nil {
+			t.Fatalf("Unmarshal %s: %v", tc.name, err)
+		}
+		if got.ID != tc.id || got.Status != 200 || got.BodyEncoding != tc.bodyEncoding {
+			t.Errorf("decoded %s does not match the fixture: %+v", tc.name, got)
+		}
 	}
 
-	data, err = os.ReadFile(filepath.Join("..", "testdata", "protocol", "request.json"))
+	data, err := os.ReadFile(filepath.Join("..", "testdata", "protocol", "request.json"))
 	if err != nil {
 		t.Fatalf("reading: %v", err)
 	}

@@ -25,6 +25,7 @@ const fixtures = path.join(here, '..', '..', 'testdata', 'protocol');
 const fakeDaemon = path.join(here, 'fake-daemon.js');
 
 const load = (name) => JSON.parse(readFileSync(path.join(fixtures, name), 'utf8'));
+process.env.TLSFORGE_PROTOCOL_FIXTURES = fixtures;
 
 // The fake is injected as the binary, the same way client.test.js does it, so
 // the fixture travels the real spawn/pipe/readline path rather than being
@@ -68,6 +69,20 @@ test('every response field is one this client reads', () => {
     'status',
     'url',
   ]);
+});
+
+test('a text response keeps the legacy shape without bodyEncoding', async () => {
+  const fixture = load('response-text.json');
+  assert.equal(Object.hasOwn(fixture, 'bodyEncoding'), false);
+
+  const client = new Client({ binary: wrapper });
+  try {
+    const response = await client.get('https://fixture-text/');
+    assert.equal(response.body, 'plain text — unchanged');
+    assert.deepEqual(response.content, Buffer.from('plain text — unchanged'));
+  } finally {
+    await client.close();
+  }
 });
 
 test('the request fixture is the shape this client sends', () => {

@@ -102,11 +102,13 @@ reader.on('line', (line) => {
     case 'bad-body':
       reply({ body: [] });
       break;
-    case 'fixture': {
+    case 'fixture':
+    case 'fixture-text': {
       // The committed wire format, replayed verbatim except for the id, which
       // the client matches on. See testdata/protocol/README.md.
+      const name = behaviour === 'fixture' ? 'response.json' : 'response-text.json';
       const fixture = JSON.parse(
-        readFileSync(path.join(here, '..', '..', 'testdata', 'protocol', 'response.json'), 'utf8'),
+        readFileSync(path.join(here, '..', '..', 'testdata', 'protocol', name), 'utf8'),
       );
       process.stdout.write(JSON.stringify({ ...fixture, id: request.id }) + '\n');
       break;

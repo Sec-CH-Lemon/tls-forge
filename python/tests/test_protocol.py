@@ -38,6 +38,13 @@ def response_fixture() -> dict:
 
 
 @pytest.fixture
+def text_response_fixture() -> dict:
+    return json.loads(
+        (FIXTURES / "response-text.json").read_text(encoding="utf-8")
+    )
+
+
+@pytest.fixture
 def request_fixture() -> dict:
     return json.loads((FIXTURES / "request.json").read_text(encoding="utf-8"))
 
@@ -64,6 +71,15 @@ def test_every_response_field_is_one_this_client_reads(response_fixture: dict) -
         "headers",
         "cookies",
     }
+
+
+def test_a_text_response_keeps_the_legacy_shape_without_body_encoding(
+    text_response_fixture: dict,
+) -> None:
+    assert "bodyEncoding" not in text_response_fixture
+    res = _to_response(text_response_fixture)
+    assert res.body == "plain text — unchanged"
+    assert res.content == "plain text — unchanged".encode()
 
 
 def test_the_request_fixture_is_the_shape_this_client_sends(
