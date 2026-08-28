@@ -1,8 +1,10 @@
 # TLS Forge for Go
 
-The Go package is the native API behind the `tls-forge` CLI. It sends requests
-with a measured browser TLS ClientHello, HTTP/1.1 wire casing and header order,
-HTTP/2 settings, pseudo-header order, regular header order and browser headers.
+The Go package is the native API behind the `tls-forge` CLI. With a current
+measured profile it sends requests with a captured browser TLS ClientHello,
+HTTP/1.1 wire casing and header order, HTTP/2 settings, pseudo-header order,
+regular header order and browser headers. Older profiles remain compatible and
+use the documented HTTP/1.1 fallback.
 
 This document covers the public client API and the optional measurement, proxy,
 echo, profile, capture, cookie, daemon and fingerprint packages.
@@ -414,7 +416,8 @@ defer server.Close()
 
 `LoadOrCreateCA` creates material only when both files are absent. Existing
 certificate and key files must match, be currently valid and form a usable
-self-signed CA. Treat the private key as a sensitive credential.
+self-signed CA. Treat the private key as a sensitive credential. Incoming
+connections close after 30 seconds without read or write progress.
 
 ## Local echo server
 
@@ -442,7 +445,9 @@ fmt.Println(server.URL())
 | `WithSessionTickets(enabled)` | Enable or disable TLS session resumption; disabled by default. |
 
 Useful methods include `URL()`, `Addr()`, `Certificate()`, `Sessions()` and
-`Await(ctx)`. A `Session` can be rendered as a `capture.Capture`.
+`Await(ctx)`. A `Session` can be rendered as a `capture.Capture`. Silent
+connections close after 30 seconds; the deadline rolls forward while traffic
+makes progress.
 
 ## Other packages
 

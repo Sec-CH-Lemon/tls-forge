@@ -11,8 +11,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-28
+
 ### Added
 
+- **HTTP/1.1 fingerprints are measured rather than inferred.** Browser capture
+  records exact wire casing, order and protocol-only values such as
+  `Connection`; profiles store them separately from the lower-case HTTP/2
+  block; the client selects the layout after protocol negotiation; and
+  `compare` reports HTTP/1.1 differences alongside TLS and HTTP/2.
 - **The daemon protocol carries bodies that are not text.** A JSON string cannot
   hold arbitrary bytes: an encoder replaces every byte that is not valid UTF-8
   with U+FFFD, silently, and the response still said `200` with no error — so a
@@ -40,6 +47,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Security
 
+- **Cross-origin HTTP/1.1 redirects no longer restore credentials or the source
+  `Host`.** The measured layout is rebuilt from the headers the redirect policy
+  allowed for the destination instead of replaying the first request's block.
 - **The proxy no longer forwards `Proxy-Authorization` to the destination.** It
   is addressed to the proxy, not through it; forwarding it handed the user's
   proxy password to whatever site they browsed to. `Proxy-Authenticate` is
@@ -74,7 +84,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - HTTP/2 request flow control in the echo server is replenished as DATA is
   consumed, so a second body on one connection cannot stall at 65,535 bytes.
 - Repeated proxy headers and repeated Go `Header` values remain separate on the
-  wire. Forced HTTP/1.1 uses canonical header casing and places `Host` first.
+  wire. Legacy HTTP/1.1 profiles use canonical casing; newly captured profiles
+  preserve the browser's measured spelling, with one `Host` first.
 - Custom profiles without the four required HTTP/2 pseudo headers are rejected,
   instead of constructing requests missing `:method`, `:path`, `:scheme` or
   `:authority`.
@@ -82,6 +93,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   option slice. Session export deduplicates cookies across URLs on one host.
 - Netscape cookie files that spell include-subdomains as `example.com TRUE` are
   normalised to `.example.com` instead of silently becoming host-only.
+- Invalid profiles in the local profile directory report the file and parsing
+  error instead of falling through to another profile under the same name.
+- Line-oriented batch input accepts any whitespace, including tabs, between a
+  URL and its optional proxy. Repeated URLs keep distinct `--body-dir` files,
+  and an overflowing `--repeat` value is rejected instead of panicking.
+- Silent peers cannot retain an echo or proxy connection forever. Read and
+  write deadlines roll forward while traffic makes progress and expire after
+  30 seconds of inactivity.
 - Node no longer keeps the event loop alive while its daemon is idle, preserves
   unwritten queued requests across a transport exit, reports stderr by logical
   line, accepts `cookieFile`/`cookieSet`, and can import on an unsupported

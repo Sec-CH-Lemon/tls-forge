@@ -1,10 +1,11 @@
 # TLS Forge
 
 `tls-forge` is an HTTP client and command-line tool for making requests with a
-real browser's network fingerprint. A profile controls the TLS ClientHello,
-JA3/JA4-relevant fields, measured HTTP/1.1 header casing and order, HTTP/2
+real browser's network fingerprint. A measured profile controls the TLS
+ClientHello, JA3/JA4-relevant fields, HTTP/1.1 header casing and order, HTTP/2
 settings, pseudo-header order, regular header order and browser headers as one
-coherent identity.
+coherent identity. Profiles created before HTTP/1.1 capture was introduced
+remain compatible and use the documented canonical-casing fallback.
 
 Use it when an ordinary Go, Node.js or Python HTTP client is rejected because
 its network stack does not match the browser named by its `User-Agent`.
@@ -282,7 +283,8 @@ Usage: `tls-forge batch [flags] [urls...]`
 Input precedence is `--urls`, then `--input`, then positional URLs, then stdin.
 When an inline response body is not valid UTF-8, `body` is base64 and the row
 contains `"body_encoding":"base64"`; `bytes` always remains the original byte
-count. `--body-dir` writes the original bytes directly instead.
+count. `--body-dir` writes the original bytes directly instead. Repeated URLs
+in one input get separate, stable body filenames.
 With `--format auto`, `.json` selects JSON, `.csv` selects CSV and every other
 name uses one URL per line.
 
@@ -435,7 +437,8 @@ The proxy deliberately has no cookie jar; it forwards the caller's `Cookie`
 header. The generated CA can impersonate any site to a client that trusts it.
 Prefer trusting it only for the specific process, keep the private key secret,
 and remove that trust when the proxy is no longer needed. The certificate and
-key must either both exist and match or both be absent.
+key must either both exist and match or both be absent. Incoming connections
+expire after 30 seconds without any read or write progress.
 
 ### `serve`
 
@@ -458,7 +461,8 @@ Usage: `tls-forge serve [flags]`
 | `--session-tickets` | Enable TLS session resumption; disabled by default because resumption changes the fingerprint |
 
 The certificate is generated for each run, so test clients must trust it or
-explicitly disable verification for this local endpoint.
+explicitly disable verification for this local endpoint. A connection that
+makes no read or write progress for 30 seconds is closed.
 
 ### `daemon`
 

@@ -139,7 +139,9 @@ session.
 
 ## Response
 
-Requests return an immutable `tlsforge.Response`:
+Requests return a frozen `tlsforge.Response` record. Its attributes cannot be
+reassigned; treat the `headers` mapping as response data rather than mutating
+it:
 
 ```python
 Response(

@@ -101,6 +101,10 @@ client, err := tlsforge.New(tlsforge.WithProfile(p.Name))
 A registered profile wins over a shipped one with the same name — someone who
 captures their own Chrome should get theirs.
 
+A file in the local profile directory also deliberately wins by name. If that
+file is invalid, resolution reports its path and parse error rather than
+silently wearing a shipped or catalogue identity under the requested name.
+
 ## Name resolution
 
 `WithProfile` resolves in this order:
