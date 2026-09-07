@@ -32,6 +32,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - The Windows npm binary package is named `tls-forge-windows-x64`; its manifest
   still uses npm's required `win32` OS selector. This avoids a false positive in
   npm's package-name spam detector without changing platform selection.
+- GitHub Release creation names its repository explicitly, so the artifact-only
+  job no longer tries to discover it through an absent local `.git` directory.
 
 ## [0.1.0] - 2026-08-28
 

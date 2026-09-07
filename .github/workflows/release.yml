@@ -364,11 +364,16 @@ jobs:
       - name: create the github release
         env:
           GH_TOKEN: ${{ github.token }}
+          # This job downloads release artifacts without checking out the
+          # repository. Pass this to gh explicitly below so it never falls back
+          # to running git in the artifact-only workspace.
+          GH_REPO: ${{ github.repository }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           prerelease=()
           [[ "$VERSION" == *-* ]] && prerelease+=(--prerelease)
           gh release create "$GITHUB_REF_NAME" \
+            --repo "$GH_REPO" \
             --verify-tag \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
