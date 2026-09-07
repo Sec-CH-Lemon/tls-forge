@@ -25,10 +25,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   matching Chrome's process-stable hash-set order instead of replaying one
   capture forever; malformed and unknown extensions are still rejected.
 - npm publishing is safe to resume after a partial registry upload: an existing
-  tarball is skipped only when its SHA-512 integrity matches exactly. A first
-  prerelease that receives npm's implicit `latest` tag is reported explicitly;
-  npm requires that tag to remain present, and the first stable publish will
-  replace it.
+  tarball is skipped only when its SHA-512 integrity matches exactly. npm's
+  required `latest` tag is left in place during prereleases and the first stable
+  publish will replace it.
 - The Windows npm binary package is named `tls-forge-windows-x64`; its manifest
   still uses npm's required `win32` OS selector. This avoids a false positive in
   npm's package-name spam detector without changing platform selection.

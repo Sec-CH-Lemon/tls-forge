@@ -302,16 +302,6 @@ jobs:
                 --tag "$NPM_TAG"
             fi
 
-            # npm gives a newly created package a `latest` tag even when its
-            # first publish explicitly uses `next`, and the registry requires
-            # every package to keep a `latest` tag. Report that temporary state;
-            # the first stable publish will move `latest` to the stable version.
-            if [ "$NPM_TAG" != latest ]; then
-              latest=$(npm view "$package_name" dist-tags.latest 2>/dev/null || true)
-              if [[ "$latest" == *-* ]]; then
-                echo "::warning::${package_name} has prerelease ${latest} under latest because npm requires that tag; the first stable publish will replace it"
-              fi
-            fi
           }
 
           for pkg in dist/npm-packages/tls-forge-*.tgz; do
