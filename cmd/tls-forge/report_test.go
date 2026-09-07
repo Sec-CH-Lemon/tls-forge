@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -260,7 +261,14 @@ func TestWriteReportMakesTheDirectory(t *testing.T) {
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Errorf("report was not written: %v", err)
-	} else if got := info.Mode().Perm(); got != 0o600 {
+	} else if got := info.Mode().Perm(); runtime.GOOS == "windows" {
+		// Windows has no Unix permission bits. Go's Chmod uses only 0200 to
+		// control the read-only attribute, and Stat reports writable files as
+		// 0666. The exact 0600 assertion is meaningful only on Unix.
+		if got&0o200 == 0 {
+			t.Errorf("report permissions = %#o, want a writable file", got)
+		}
+	} else if got != 0o600 {
 		t.Errorf("report permissions = %#o, want 0600", got)
 	}
 }
