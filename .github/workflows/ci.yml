@@ -131,9 +131,11 @@ jobs:
           go build -o $daemon ./testdata/fake-daemon
           "TLSFORGE_TEST_DAEMON=$daemon" >> $env:GITHUB_ENV
 
-      - name: check release smoke script syntax
+      - name: test release scripts
         if: matrix.os == 'ubuntu-latest' && matrix.coverage
-        run: node --check scripts/check-published-sdk.mjs
+        run: |
+          node --check scripts/check-published-sdk.mjs
+          make release-test
 
       # npm test includes the 100% line/function/branch coverage gate.
       - run: npm test

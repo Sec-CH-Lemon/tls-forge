@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test wrapper-smoke check dist capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -64,10 +64,15 @@ wrapper-smoke: build
 	cd node && TLSFORGE_REAL_BIN=$(abspath $(BIN)) node --test test/real-daemon.test.js
 	cd python && TLSFORGE_REAL_BIN=$(abspath $(BIN)) ../$(VENV)/bin/python -m pytest -q tests/test_real_daemon.py
 
+# Release helpers are outside the language SDKs, so keep their regression tests
+# in the repository-level gate rather than hiding them in one wrapper suite.
+release-test:
+	node --test scripts/homebrew-formula.test.mjs
+
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
 # CI runs them as separate jobs.
-check: vet lint test cover node-test python-test wrapper-smoke
+check: vet lint test cover node-test python-test wrapper-smoke release-test
 
 # Assemble everything a release publishes, without publishing any of it.
 #

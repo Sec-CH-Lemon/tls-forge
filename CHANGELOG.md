@@ -31,6 +31,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - Stable releases fail visibly when the Homebrew tap credential is absent,
   instead of silently succeeding without publishing a formula. The published
   E2E check now diagnoses a missing tap formula directly.
+- Generated Homebrew formulae let Homebrew infer the stable version from their
+  release URLs instead of repeating it in a redundant `version` stanza rejected
+  by `brew audit`.
 - Captured Chrome 152 profiles reproduce the new `trust_anchors` ClientHello
   extension. The measured IDs are validated and reordered once per process,
   matching Chrome's process-stable hash-set order instead of replaying one

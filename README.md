@@ -600,6 +600,7 @@ make cover        # 100% Go statement coverage gate
 make node-test    # 100% Node line/function/branch coverage gate
 make python-test  # 100% Python statement/branch coverage gate
 make wrapper-smoke # Node and Python against the real Go daemon
+make release-test # release packaging helper regressions
 make vet
 make lint
 make check        # all of the above
