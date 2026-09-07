@@ -2,8 +2,9 @@ name: ci
 
 on:
   push:
-    branches: [main, development]
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -84,6 +85,8 @@ jobs:
           # tool as well keeps a new lint release from turning this job red on a
           # change that had nothing to do with it.
           version: v2.13.2
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - run: actionlint
 
   node:
     timeout-minutes: 15
@@ -127,6 +130,10 @@ jobs:
           $daemon = Join-Path $env:RUNNER_TEMP 'tls-forge-test-daemon.exe'
           go build -o $daemon ./testdata/fake-daemon
           "TLSFORGE_TEST_DAEMON=$daemon" >> $env:GITHUB_ENV
+
+      - name: check release smoke script syntax
+        if: matrix.os == 'ubuntu-latest' && matrix.coverage
+        run: node --check scripts/check-published-sdk.mjs
 
       # npm test includes the 100% line/function/branch coverage gate.
       - run: npm test

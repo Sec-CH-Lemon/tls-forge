@@ -1,0 +1,131 @@
+name: published e2e
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published version to verify, for example 0.1.0
+        required: true
+        type: string
+      check_brew:
+        description: Verify that Homebrew installs this version
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: validate the requested version
+        id: version
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          version=${REQUESTED_VERSION#v}
+          release_version='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(a|alpha|b|beta|c|rc|pre|preview|dev)([.]?(0|[1-9][0-9]*))?)?$'
+          if [[ ! "$version" =~ $release_version ]]; then
+            echo "version $REQUESTED_VERSION is not a supported release version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  sdks:
+    name: SDKs (${{ matrix.os }})
+    timeout-minutes: 30
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: install and run the Go module and CLI
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: node scripts/check-published-sdk.mjs --sdk go --version "$VERSION"
+
+      - name: install and run the npm package
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: node scripts/check-published-sdk.mjs --sdk node --version "$VERSION"
+
+      - name: install and run the PyPI package
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: node scripts/check-published-sdk.mjs --sdk python --version "$VERSION"
+
+  docker:
+    name: Docker (linux/amd64 and linux/arm64)
+    timeout-minutes: 15
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-qemu-action@v4
+      - name: pull and run the published image
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          image="ghcr.io/sec-ch-lemon/tls-forge:$VERSION"
+          for platform in linux/amd64 linux/arm64; do
+            echo "checking $image on $platform"
+            reported=$(docker run --rm --platform "$platform" --pull always "$image" version)
+            echo "$reported"
+            if [[ "$reported" != *"v$VERSION"* ]]; then
+              echo "$image reported the wrong version on $platform" >&2
+              exit 1
+            fi
+            docker run --rm --platform "$platform" "$image" profiles > /dev/null
+          done
+
+  homebrew:
+    name: Homebrew (macOS)
+    timeout-minutes: 20
+    needs: validate
+    if: inputs.check_brew
+    runs-on: macos-latest
+    steps:
+      - name: install and test the published formula
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          brew tap Sec-CH-Lemon/tap
+          brew trust --formula Sec-CH-Lemon/tap/tls-forge
+          brew install tls-forge
+          installed=$(brew list --versions tls-forge | awk '{print $2}')
+          if [ "$installed" != "$VERSION" ]; then
+            echo "Homebrew installed $installed, want $VERSION" >&2
+            exit 1
+          fi
+          reported=$(tls-forge version)
+          echo "$reported"
+          if [[ "$reported" != *"v$VERSION"* ]]; then
+            echo "Homebrew binary reported the wrong version" >&2
+            exit 1
+          fi
+          brew test Sec-CH-Lemon/tap/tls-forge

@@ -11,6 +11,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+### Added
+
+- A registry-facing end-to-end workflow installs an exact released version of
+  the Go, npm and PyPI distributions on Linux, macOS and Windows, makes requests
+  through every SDK, runs the published amd64 and arm64 container images, and
+  installs and tests the current stable Homebrew formula. It is a separate,
+  manually dispatched check for any chosen version.
+
 ### Changed
 
 - Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and

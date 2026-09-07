@@ -78,7 +78,7 @@ On macOS or Linux:
 ```bash
 brew tap Sec-CH-Lemon/tap
 brew trust --formula Sec-CH-Lemon/tap/tls-forge
-brew install Sec-CH-Lemon/tap/tls-forge
+brew install tls-forge
 ```
 
 Homebrew requires explicit trust for third-party taps. Review the tap before
@@ -604,6 +604,23 @@ make vet
 make lint
 make check        # all of the above
 ```
+
+Published releases have a second, registry-facing gate. The
+[`published e2e`](.github/workflows/published-e2e.yml) workflow installs an
+exact version of the Go, npm and PyPI distributions on Linux, macOS and Windows,
+makes a real request through each SDK, runs both architectures of the GHCR
+image, and checks the current stable Homebrew formula on macOS. It runs only
+when a maintainer starts it from the Actions page or from the command line:
+
+```bash
+gh workflow run published-e2e.yml \
+  --ref main \
+  -f version=0.1.0 \
+  -f check_brew=true
+```
+
+Homebrew exposes one current stable formula, so disable `check_brew` when
+verifying a prerelease or an older version after the tap has moved forward.
 
 Release and maintenance documentation:
 
