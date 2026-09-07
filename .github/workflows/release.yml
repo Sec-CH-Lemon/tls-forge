@@ -387,16 +387,15 @@ jobs:
       - name: update the homebrew tap
         env:
           # A separate token: the workflow's own GITHUB_TOKEN cannot write to
-          # another repository. Without the secret this step says so and stops,
-          # rather than failing a release that has already published everything
-          # else.
+          # another repository. A stable release is incomplete without the
+          # formula, so a missing secret must fail visibly instead of producing
+          # a green release that `brew install` cannot install.
           TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           if [ -z "${TAP_TOKEN:-}" ]; then
-            echo "HOMEBREW_TAP_TOKEN is not set — skipping the tap update."
-            echo "The formula is at dist/tls-forge.rb; copy it into the tap by hand."
-            exit 0
+            echo "::error::HOMEBREW_TAP_TOKEN is not set; cannot publish Formula/tls-forge.rb"
+            exit 1
           fi
           git clone --depth 1 \
             "https://x-access-token:${TAP_TOKEN}@github.com/Sec-CH-Lemon/homebrew-tap.git" tap

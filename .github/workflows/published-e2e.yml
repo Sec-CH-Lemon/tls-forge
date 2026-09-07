@@ -116,6 +116,10 @@ jobs:
         run: |
           brew tap Sec-CH-Lemon/tap
           brew trust --formula Sec-CH-Lemon/tap/tls-forge
+          if ! brew info Sec-CH-Lemon/tap/tls-forge > /dev/null; then
+            echo "::error::Sec-CH-Lemon/homebrew-tap does not publish Formula/tls-forge.rb"
+            exit 1
+          fi
           brew install tls-forge
           installed=$(brew list --versions tls-forge | awk '{print $2}')
           if [ "$installed" != "$VERSION" ]; then
