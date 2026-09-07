@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   unlinkSync,
   writeFileSync,
@@ -517,7 +518,10 @@ test('the binary is found on PATH when nothing else has one', (t) => {
     rmSync(sterile, { recursive: true, force: true });
   });
 
-  assert.equal(resolveBinary(), onPath);
+  // where.exe expands an 8.3 segment such as RUNNER~1 to its long spelling.
+  // Both spellings name the same file, so compare filesystem identities rather
+  // than requiring the lookup tool to preserve the input string.
+  assert.equal(realpathSync(resolveBinary()), realpathSync(onPath));
 });
 
 test('an unusable path lookup result is treated as not found', (t) => {
