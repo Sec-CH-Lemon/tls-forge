@@ -56,7 +56,15 @@ func TestBrowserHelper(t *testing.T) {
 	if url == "" {
 		t.Skip("not running as the browser stand-in")
 	}
-	client, err := tlsforge.New(tlsforge.WithInsecureSkipVerify(), tlsforge.WithoutRedirects())
+	browserProfile, err := profile.Get("chrome")
+	if err != nil {
+		os.Exit(1)
+	}
+	client, err := tlsforge.New(
+		tlsforge.WithProfile(browserProfile.Name),
+		tlsforge.WithInsecureSkipVerify(),
+		tlsforge.WithoutRedirects(),
+	)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -83,6 +91,10 @@ func TestBrowserHelper(t *testing.T) {
 	if end < 0 {
 		os.Exit(1)
 	}
+	navigator, err := json.Marshal(map[string]string{"user_agent": browserProfile.UserAgent})
+	if err != nil {
+		os.Exit(1)
+	}
 	final, err := neturl.Parse(page.URL)
 	if err != nil {
 		os.Exit(1)
@@ -91,7 +103,7 @@ func TestBrowserHelper(t *testing.T) {
 	if _, err := client.Do(&tlsforge.Request{
 		Method: "POST",
 		URL:    collect,
-		Body:   []byte(`{"user_agent":"Mozilla/5.0 Chrome/151.0.0.0 Safari/537.36"}`),
+		Body:   navigator,
 		Header: tlsforge.NewHeader("content-type", "application/json"),
 	}); err != nil {
 		os.Exit(1)
@@ -117,6 +129,16 @@ TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
 		t.Fatalf("writing the stand-in: %v", err)
 	}
 	return path
+}
+
+func browserStandInVersion(t *testing.T) string {
+	t.Helper()
+	p, err := profile.Get("chrome")
+	if err != nil {
+		t.Fatalf("resolving the stand-in profile: %v", err)
+	}
+	version, _ := profile.Split(p.Name)
+	return version
 }
 
 func TestUsage(t *testing.T) {
@@ -482,9 +504,11 @@ func TestCaptureSavesAProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("loading the profile: %v", err)
 	}
-	// The stand-in reports a Chrome 151 user-agent, so the name must follow it.
-	if saved.Name != "chrome_151" {
-		t.Errorf("name = %q, want chrome_151", saved.Name)
+	// The stand-in uses the current default Chrome, so the saved name must
+	// follow that profile rather than an old version baked into the test.
+	wantName := browserStandInVersion(t)
+	if saved.Name != wantName {
+		t.Errorf("name = %q, want %s", saved.Name, wantName)
 	}
 	if len(saved.ClientHello) == 0 {
 		t.Error("the profile carries no ClientHello")
@@ -1110,7 +1134,7 @@ func TestCaptureSaveIntoADirectory(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stdout)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "chrome_151", profile.HostPlatform()+".json")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, browserStandInVersion(t), profile.HostPlatform()+".json")); err != nil {
 		t.Errorf("nothing was written: %v", err)
 	}
 }
@@ -1202,7 +1226,7 @@ func TestCaptureCannotMakeTheVersionDirectory(t *testing.T) {
 	// A file where the version's directory should be. Reported rather than left
 	// to fail later with a stranger message about a path.
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "chrome_151"), nil, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, browserStandInVersion(t)), nil, 0o644); err != nil {
 		t.Fatalf("writing: %v", err)
 	}
 	code, _, stderr := exec(t, "capture", "--browser", browserStandIn(t),
