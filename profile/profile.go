@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/bogdanfinn/fhttp/http2"
 	"github.com/bogdanfinn/tls-client/profiles"
 	tls "github.com/bogdanfinn/utls"
@@ -147,16 +148,33 @@ var ErrNoHandshake = fmt.Errorf("profile: neither client_hello nor base is set")
 // reused — which is both a bug and a fingerprint, since no browser reuses one.
 func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 	if len(p.ClientHello) > 0 {
-		// AllowBluntMimicry is deliberately OFF. With it, an extension utls does
-		// not understand is replayed as a fixed blob — which for Chrome means the
-		// ECH GREASE payload, a per-connection random value, would become a
-		// constant. That is worse than not impersonating at all: every request
-		// this library made would carry the same unique marker. Better to fail
-		// loudly and add real support for the extension.
-		fingerprinter := &tls.Fingerprinter{}
+		// Let the fingerprinter expose unknown extensions, then admit only the
+		// exact forms which are safe to reproduce as fixed bytes. Blindly allowing
+		// them would freeze values such as an unrecognised GREASE payload into a
+		// stable per-client marker.
+		fingerprinter := &tls.Fingerprinter{AllowBluntMimicry: true}
 		spec, err := fingerprinter.RawClientHello(p.ClientHello)
 		if err != nil {
 			return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: %w", p.Name, err)
+		}
+		for _, extension := range spec.Extensions {
+			generic, ok := extension.(*tls.GenericExtension)
+			if !ok {
+				continue
+			}
+			// Chrome 152 began sending trust_anchors with an empty uint16
+			// vector when no DNS hint selected an anchor. Those two zero bytes
+			// are the semantic empty value, not per-connection randomness.
+			if generic.Id == fingerprint.ExtTrustAnchors && len(generic.Data) == 2 &&
+				generic.Data[0] == 0 && generic.Data[1] == 0 {
+				continue
+			}
+			if generic.Id == fingerprint.ExtTrustAnchors {
+				return tls.ClientHelloSpec{}, fmt.Errorf(
+					"profile %q: captured trust_anchors list is not empty", p.Name)
+			}
+			return tls.ClientHelloSpec{}, fmt.Errorf(
+				"profile %q: unsupported extension %d", p.Name, generic.Id)
 		}
 		return *spec, nil
 	}

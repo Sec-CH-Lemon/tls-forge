@@ -39,6 +39,7 @@ var extensionNames = map[uint16]string{
 	17513: "application_settings",
 	17613: "application_settings_old",
 	30031: "channel_id",
+	51764: "trust_anchors",
 	65037: "encrypted_client_hello",
 	65281: "renegotiation_info",
 }

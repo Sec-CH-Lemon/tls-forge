@@ -37,6 +37,7 @@ const (
 	ExtKeyShare               uint16 = 51
 	ExtApplicationSettings    uint16 = 17513
 	ExtApplicationSettingsOld uint16 = 17613
+	ExtTrustAnchors           uint16 = 51764
 	ExtEncryptedClientHello   uint16 = 65037
 	ExtRenegotiationInfo      uint16 = 65281
 )

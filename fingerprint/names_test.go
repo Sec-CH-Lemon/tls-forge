@@ -13,6 +13,7 @@ func TestNames(t *testing.T) {
 	}{
 		{"extension", ExtensionName(ExtServerName), "server_name"},
 		{"application settings", ExtensionName(17613), "application_settings_old"},
+		{"trust anchors", ExtensionName(ExtTrustAnchors), "trust_anchors"},
 		{"group", GroupName(4588), "X25519MLKEM768"},
 		{"signature", SignatureName(0x0904), "mldsa44"},
 		{"cipher", CipherName(0x1301), "TLS_AES_128_GCM_SHA256"},

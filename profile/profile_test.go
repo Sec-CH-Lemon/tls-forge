@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"encoding/binary"
 	"os"
 	"reflect"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	tls "github.com/bogdanfinn/utls"
 )
 
 func chromeHelloBytes(t *testing.T) []byte {
@@ -17,6 +19,56 @@ func chromeHelloBytes(t *testing.T) []byte {
 		t.Fatalf("fixture: %v", err)
 	}
 	return raw
+}
+
+func withRawExtension(t *testing.T, raw []byte, id uint16, data []byte) []byte {
+	t.Helper()
+	out := append([]byte(nil), raw...)
+	if len(out) < 44 || out[0] != 0x16 || out[5] != 0x01 {
+		t.Fatal("fixture is not a complete ClientHello record")
+	}
+
+	// Skip the fixed ClientHello prefix, then its three length-prefixed vectors
+	// to reach the extension block's uint16 length.
+	pos := 9 + 2 + 32
+	vector8 := func() {
+		if pos >= len(out) {
+			t.Fatal("truncated ClientHello vector")
+		}
+		pos += 1 + int(out[pos])
+	}
+	vector16 := func() {
+		if pos+2 > len(out) {
+			t.Fatal("truncated ClientHello vector")
+		}
+		n := int(binary.BigEndian.Uint16(out[pos : pos+2]))
+		pos += 2 + n
+	}
+	vector8()  // legacy_session_id
+	vector16() // cipher_suites
+	vector8()  // legacy_compression_methods
+	if pos+2 > len(out) {
+		t.Fatal("ClientHello has no extension block")
+	}
+	extensionsLenAt := pos
+	extensionsLen := int(binary.BigEndian.Uint16(out[pos : pos+2]))
+	pos += 2
+	if pos+extensionsLen != len(out) {
+		t.Fatal("fixture has trailing or truncated ClientHello bytes")
+	}
+
+	addition := make([]byte, 4+len(data))
+	binary.BigEndian.PutUint16(addition[0:2], id)
+	binary.BigEndian.PutUint16(addition[2:4], uint16(len(data)))
+	copy(addition[4:], data)
+	out = append(out, addition...)
+	binary.BigEndian.PutUint16(out[extensionsLenAt:extensionsLenAt+2], uint16(extensionsLen+len(addition)))
+	binary.BigEndian.PutUint16(out[3:5], uint16(len(out)-5))
+	handshakeLen := len(out) - 9
+	out[6] = byte(handshakeLen >> 16)
+	out[7] = byte(handshakeLen >> 8)
+	out[8] = byte(handshakeLen)
+	return out
 }
 
 func TestSpecFromCapturedClientHello(t *testing.T) {
@@ -71,6 +123,36 @@ func TestSpecRejectsBluntMimicry(t *testing.T) {
 	}
 	if !sawECH {
 		t.Error("the captured ECH extension did not survive into the spec")
+	}
+
+	unknown := withRawExtension(t, chromeHelloBytes(t), 0x1234, []byte{1, 2, 3})
+	if _, err := (&Profile{Name: "unknown", ClientHello: unknown}).Spec(); err == nil ||
+		!strings.Contains(err.Error(), "unsupported extension 4660") {
+		t.Errorf("unknown extension error = %v", err)
+	}
+}
+
+func TestSpecAllowsOnlyEmptyTrustAnchors(t *testing.T) {
+	raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, []byte{0, 0})
+	spec, err := (&Profile{Name: "chrome_152", ClientHello: raw}).Spec()
+	if err != nil {
+		t.Fatalf("Spec: %v", err)
+	}
+	var trustAnchors *tls.GenericExtension
+	for _, extension := range spec.Extensions {
+		if generic, ok := extension.(*tls.GenericExtension); ok &&
+			generic.Id == fingerprint.ExtTrustAnchors {
+			trustAnchors = generic
+		}
+	}
+	if trustAnchors == nil || !reflect.DeepEqual(trustAnchors.Data, []byte{0, 0}) {
+		t.Errorf("trust_anchors = %#v, want an empty vector", trustAnchors)
+	}
+
+	nonEmpty := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, []byte{0, 1, 0})
+	if _, err := (&Profile{Name: "contextual", ClientHello: nonEmpty}).Spec(); err == nil ||
+		!strings.Contains(err.Error(), "trust_anchors list is not empty") {
+		t.Errorf("non-empty trust_anchors error = %v", err)
 	}
 }
 

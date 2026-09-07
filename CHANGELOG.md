@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+### Fixed
+
+- Captured Chrome 152 profiles can reproduce the new empty `trust_anchors`
+  ClientHello extension. Unknown extensions and non-empty, context-dependent
+  trust-anchor lists are still rejected instead of replayed as fixed bytes.
+
 ## [0.1.0] - 2026-08-28
 
 ### Added
