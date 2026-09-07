@@ -42,6 +42,11 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     env:
+      # Hosted Windows runners otherwise encode redirected Python output with
+      # the active ANSI code page. GitHub output and summary files are UTF-8,
+      # so even punctuation such as an em dash is corrupted on the way from
+      # served.txt into a step output and can make the summary fail to print.
+      PYTHONUTF8: '1'
       # Chrome's sandbox does not work on a hosted runner and fails silently:
       # the browser starts, never loads the page, and the capture times out
       # having watched something that was never going to answer. Ubuntu 24.04
