@@ -24,6 +24,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   extension. The measured IDs are validated and reordered once per process,
   matching Chrome's process-stable hash-set order instead of replaying one
   capture forever; malformed and unknown extensions are still rejected.
+- npm publishing is safe to resume after a partial registry upload: an existing
+  tarball is skipped only when its SHA-512 integrity matches exactly. The first
+  prerelease of a newly created platform package also has npm's implicit
+  `latest` tag removed, so an unversioned install cannot select an RC.
 
 ## [0.1.0] - 2026-08-28
 

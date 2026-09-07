@@ -279,17 +279,50 @@ jobs:
           NPM_TAG: ${{ needs.build.outputs.npm_tag }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
+          publish_package() {
+            package_file=$1
+            package_name=$(basename "$package_file" "-${VERSION}.tgz")
+            local_integrity=$(node -e '
+              const { createHash } = require("node:crypto");
+              const { readFileSync } = require("node:fs");
+              process.stdout.write("sha512-" + createHash("sha512")
+                .update(readFileSync(process.argv[1])).digest("base64"));
+            ' "$package_file")
+            remote_integrity=$(npm view "${package_name}@${VERSION}" dist.integrity 2>/dev/null || true)
+
+            if [ -n "$remote_integrity" ]; then
+              if [ "$remote_integrity" != "$local_integrity" ]; then
+                echo "${package_name}@${VERSION} exists with different contents" >&2
+                return 1
+              fi
+              echo "${package_name}@${VERSION} is already published with the same integrity"
+            else
+              echo "publishing $package_file"
+              npm publish "$package_file" --access public --provenance \
+                --tag "$NPM_TAG"
+            fi
+
+            # npm gives a newly created package a `latest` tag even when its
+            # first publish explicitly uses `next`. Never let a bootstrap RC
+            # become what an unversioned install selects. An existing stable
+            # latest has no hyphen and remains untouched.
+            if [ "$NPM_TAG" != latest ]; then
+              latest=$(npm view "$package_name" dist-tags.latest 2>/dev/null || true)
+              if [[ "$latest" == *-* ]]; then
+                echo "removing prerelease latest tag from $package_name"
+                npm dist-tag rm "$package_name" latest
+              fi
+            fi
+          }
+
           for pkg in dist/npm-packages/tls-forge-*.tgz; do
             # The main package matches the same glob now that the platform
             # packages are unscoped. It must remain last: its exact optional
             # dependencies need to exist by the time somebody installs it.
             [ "$pkg" = "dist/npm-packages/tls-forge-${VERSION}.tgz" ] && continue
-            echo "publishing $pkg"
-            npm publish "$pkg" --access public --provenance \
-              --tag "$NPM_TAG"
+            publish_package "$pkg"
           done
-          npm publish "dist/npm-packages/tls-forge-${VERSION}.tgz" \
-            --access public --provenance --tag "$NPM_TAG"
+          publish_package "dist/npm-packages/tls-forge-${VERSION}.tgz"
 
   publish-pypi:
     timeout-minutes: 15
