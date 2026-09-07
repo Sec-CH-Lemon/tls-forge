@@ -107,8 +107,12 @@ jobs:
       - name: does the shipped profile still match a real Chrome
         id: compare
         run: |
+          # `go run` turns any non-zero program status into its own exit code 1
+          # after printing "exit status N". Execute the built command directly
+          # so status 3 remains distinguishable from an operational failure.
+          go build -o "$RUNNER_TEMP/tls-forge" ./cmd/tls-forge
           set +e
-          xvfb-run -a go run ./cmd/tls-forge compare --color never "$FLAGS" \
+          xvfb-run -a "$RUNNER_TEMP/tls-forge" compare --color never "$FLAGS" \
             --timeout 3m > compare.txt 2>&1
           code=$?
           set -e
