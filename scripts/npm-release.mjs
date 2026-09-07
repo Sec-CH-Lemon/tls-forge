@@ -26,7 +26,10 @@ const TARGETS = [
   { platform: 'darwin', arch: 'x64', goos: 'darwin', goarch: 'amd64' },
   { platform: 'linux', arch: 'arm64', goos: 'linux', goarch: 'arm64' },
   { platform: 'linux', arch: 'x64', goos: 'linux', goarch: 'amd64' },
-  { platform: 'win32', arch: 'x64', goos: 'windows', goarch: 'amd64' },
+  // Keep win32 in the manifest because that is npm's Windows `os` value. The
+  // package name uses windows because the registry rejected the otherwise
+  // valid tls-forge-win32-x64 name as spam.
+  { platform: 'win32', packagePlatform: 'windows', arch: 'x64', goos: 'windows', goarch: 'amd64' },
 ];
 
 // Apache-2.0 section 4 requires these to travel with any redistribution, and a
@@ -70,14 +73,14 @@ function copyLegal(dir) {
 const published = [];
 
 for (const target of TARGETS) {
-  const name = `tls-forge-${target.platform}-${target.arch}`;
+  const name = `tls-forge-${target.packagePlatform ?? target.platform}-${target.arch}`;
   const exe = target.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge';
   const source = path.join(binaries, `tls-forge-${target.goos}-${target.goarch}${target.platform === 'win32' ? '.exe' : ''}`);
   if (!existsSync(source)) {
     throw new Error(`no binary at ${source}`);
   }
 
-  const dir = path.join(out, `tls-forge-${target.platform}-${target.arch}`);
+  const dir = path.join(out, name);
   mkdirSync(path.join(dir, 'bin'), { recursive: true });
   cpSync(source, path.join(dir, 'bin', exe));
   // cpSync preserves the mode, but a binary that arrives from an artifact
@@ -131,7 +134,7 @@ copyLegal(mainDir);
 const manifest = JSON.parse(readFileSync(path.join(root, 'node', 'package.json'), 'utf8'));
 manifest.version = version;
 manifest.optionalDependencies = Object.fromEntries(
-  TARGETS.map((t) => [`tls-forge-${t.platform}-${t.arch}`, version]),
+  TARGETS.map((t) => [`tls-forge-${t.packagePlatform ?? t.platform}-${t.arch}`, version]),
 );
 // Scripts and dev-only fields have no meaning in the published tarball.
 delete manifest.scripts;

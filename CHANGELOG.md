@@ -29,6 +29,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   prerelease that receives npm's implicit `latest` tag is reported explicitly;
   npm requires that tag to remain present, and the first stable publish will
   replace it.
+- The Windows npm binary package is named `tls-forge-windows-x64`; its manifest
+  still uses npm's required `win32` OS selector. This avoids a false positive in
+  npm's package-name spam detector without changing platform selection.
 
 ## [0.1.0] - 2026-08-28
 

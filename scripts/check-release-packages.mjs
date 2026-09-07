@@ -13,7 +13,7 @@ const TARGETS = {
   'darwin-x64': { npm: 'darwin-x64', wheel: 'macosx_12_0_x86_64.whl' },
   'linux-arm64': { npm: 'linux-arm64', wheel: 'manylinux2014_aarch64.musllinux_1_1_aarch64.whl' },
   'linux-x64': { npm: 'linux-x64', wheel: 'manylinux2014_x86_64.musllinux_1_1_x86_64.whl' },
-  'win32-x64': { npm: 'win32-x64', wheel: 'win_amd64.whl' },
+  'win32-x64': { npm: 'windows-x64', wheel: 'win_amd64.whl' },
 };
 
 function arg(name, fallback) {

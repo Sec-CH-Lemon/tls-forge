@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
 import { Client, resolveBinary } from '../index.js';
-import { builtBinary, exeName, platformPackage } from '../binary.js';
+import { builtBinary, exeName, platformPackage, platformPackageName } from '../binary.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fakeDaemon = path.join(here, 'fake-daemon.js');
@@ -431,7 +431,10 @@ test('the not-found message names the platform package', () => {
 });
 
 test('the platform package name follows npm platform and arch', () => {
-  assert.equal(platformPackage, `tls-forge-${process.platform}-${process.arch}`);
+  const packagePlatform = process.platform === 'win32' ? 'windows' : process.platform;
+  assert.equal(platformPackage, `tls-forge-${packagePlatform}-${process.arch}`);
+  assert.equal(platformPackageName('linux', 'arm64'), 'tls-forge-linux-arm64');
+  assert.equal(platformPackageName('win32', 'x64'), 'tls-forge-windows-x64');
   assert.equal(exeName, process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge');
 });
 

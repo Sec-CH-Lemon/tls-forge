@@ -22,7 +22,15 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
 /** The platform package for the machine this is running on. */
-export const platformPackage = `tls-forge-${process.platform}-${process.arch}`;
+// npm calls the Windows `os` value win32, but that spelling triggered the
+// registry's package-name spam detector. Only the package name uses windows;
+// its manifest still declares `os: ["win32"]`, so npm selects it correctly.
+export function platformPackageName(platform, arch) {
+  const packagePlatform = platform === 'win32' ? 'windows' : platform;
+  return `tls-forge-${packagePlatform}-${arch}`;
+}
+
+export const platformPackage = platformPackageName(process.platform, process.arch);
 
 /** The executable's name, which is the command's name, not the package's. */
 export const exeName = {
