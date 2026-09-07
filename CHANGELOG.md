@@ -27,8 +27,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - npm publishing is safe to resume after a partial registry upload: an existing
   tarball is skipped only when its SHA-512 integrity matches exactly. A first
   prerelease that receives npm's implicit `latest` tag is reported explicitly;
-  removing it remains an interactive package-management operation protected by
-  npm authentication rather than a permission granted to Trusted Publishing.
+  npm requires that tag to remain present, and the first stable publish will
+  replace it.
 
 ## [0.1.0] - 2026-08-28
 
