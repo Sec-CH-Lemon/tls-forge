@@ -6,8 +6,8 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  realpathSync,
   rmSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -519,9 +519,11 @@ test('the binary is found on PATH when nothing else has one', (t) => {
   });
 
   // where.exe expands an 8.3 segment such as RUNNER~1 to its long spelling.
-  // Both spellings name the same file, so compare filesystem identities rather
-  // than requiring the lookup tool to preserve the input string.
-  assert.equal(realpathSync(resolveBinary()), realpathSync(onPath));
+  // Node's realpathSync does not consistently expand that alias in an input
+  // path, so compare the filesystem's volume and file identifiers instead.
+  const actual = statSync(resolveBinary(), { bigint: true });
+  const expected = statSync(onPath, { bigint: true });
+  assert.deepEqual([actual.dev, actual.ino], [expected.dev, expected.ino]);
 });
 
 test('an unusable path lookup result is treated as not found', (t) => {
