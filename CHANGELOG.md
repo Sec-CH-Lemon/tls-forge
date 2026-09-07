@@ -20,9 +20,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
-- Captured Chrome 152 profiles can reproduce the new empty `trust_anchors`
-  ClientHello extension. Unknown extensions and non-empty, context-dependent
-  trust-anchor lists are still rejected instead of replayed as fixed bytes.
+- Captured Chrome 152 profiles reproduce the new `trust_anchors` ClientHello
+  extension. The measured IDs are validated and reordered once per process,
+  matching Chrome's process-stable hash-set order instead of replaying one
+  capture forever; malformed and unknown extensions are still rejected.
 
 ## [0.1.0] - 2026-08-28
 

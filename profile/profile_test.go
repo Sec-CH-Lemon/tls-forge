@@ -1,9 +1,11 @@
 package profile
 
 import (
+	"bytes"
 	"encoding/binary"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -132,8 +134,9 @@ func TestSpecRejectsBluntMimicry(t *testing.T) {
 	}
 }
 
-func TestSpecAllowsOnlyEmptyTrustAnchors(t *testing.T) {
-	raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, []byte{0, 0})
+func TestSpecAllowsMeasuredTrustAnchors(t *testing.T) {
+	captured := []byte{0, 4, 1, 0xaa, 1, 0xbb}
+	raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, captured)
 	spec, err := (&Profile{Name: "chrome_152", ClientHello: raw}).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
@@ -145,14 +148,21 @@ func TestSpecAllowsOnlyEmptyTrustAnchors(t *testing.T) {
 			trustAnchors = generic
 		}
 	}
-	if trustAnchors == nil || !reflect.DeepEqual(trustAnchors.Data, []byte{0, 0}) {
-		t.Errorf("trust_anchors = %#v, want an empty vector", trustAnchors)
+	if trustAnchors == nil {
+		t.Fatal("trust_anchors did not survive into the spec")
 	}
-
-	nonEmpty := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, []byte{0, 1, 0})
-	if _, err := (&Profile{Name: "contextual", ClientHello: nonEmpty}).Spec(); err == nil ||
-		!strings.Contains(err.Error(), "trust_anchors list is not empty") {
-		t.Errorf("non-empty trust_anchors error = %v", err)
+	want, err := splitTrustAnchors(captured)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := splitTrustAnchors(trustAnchors.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Slice(want, func(i, j int) bool { return bytes.Compare(want[i], want[j]) < 0 })
+	sort.Slice(got, func(i, j int) bool { return bytes.Compare(got[i], got[j]) < 0 })
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("trust_anchors = %x, want the captured IDs %x", got, want)
 	}
 }
 

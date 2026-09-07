@@ -162,16 +162,14 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 			if !ok {
 				continue
 			}
-			// Chrome 152 began sending trust_anchors with an empty uint16
-			// vector when no DNS hint selected an anchor. Those two zero bytes
-			// are the semantic empty value, not per-connection randomness.
-			if generic.Id == fingerprint.ExtTrustAnchors && len(generic.Data) == 2 &&
-				generic.Data[0] == 0 && generic.Data[1] == 0 {
-				continue
-			}
 			if generic.Id == fingerprint.ExtTrustAnchors {
-				return tls.ClientHelloSpec{}, fmt.Errorf(
-					"profile %q: captured trust_anchors list is not empty", p.Name)
+				payload, err := processTrustAnchors.payload(generic.Data)
+				if err != nil {
+					return tls.ClientHelloSpec{}, fmt.Errorf(
+						"profile %q: malformed trust_anchors: %w", p.Name, err)
+				}
+				generic.Data = payload
+				continue
 			}
 			return tls.ClientHelloSpec{}, fmt.Errorf(
 				"profile %q: unsupported extension %d", p.Name, generic.Id)
