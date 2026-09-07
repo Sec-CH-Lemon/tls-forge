@@ -1,0 +1,3 @@
+# These fixtures pin exact protocol bytes. Keep their generated LF endings on
+# Windows so checkout conversion cannot look like a wire-format change.
+/testdata/protocol/*.json text eol=lf
