@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+### Changed
+
+- Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and
+  uTLS 1.7.8, including upstream fixes for HTTP/2 flow control, ALPN transport
+  reuse and per-connection signature GREASE. Runtime cryptography and
+  compression dependencies are current as well.
+
 ### Fixed
 
 - Captured Chrome 152 profiles can reproduce the new empty `trust_anchors`
