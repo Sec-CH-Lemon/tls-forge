@@ -510,7 +510,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `LICENSE`, `NOTICE` and `THIRD-PARTY-NOTICES.txt`, rather than a bare binary
   beside loose licence files.
 - Published to npm on a pushed `v*` tag. The binary reaches users as a
-  platform-specific optional dependency — `@sec-ch-lemon/tls-forge-<platform>-<arch>`
+  platform-specific optional dependency — `tls-forge-<platform>-<arch>`
   — so installing needs no Go, downloads nothing, and works under
   `npm ci --ignore-scripts`.
 - A Dockerfile: Alpine plus the static binary, about 30 MB, running as a

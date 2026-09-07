@@ -18,8 +18,6 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const SCOPE = '@sec-ch-lemon';
-
 // npm's platform/arch names are process.platform and process.arch, which are
 // not Go's. The mapping lives here, once, so nothing downstream has to know
 // about both spellings.
@@ -72,7 +70,7 @@ function copyLegal(dir) {
 const published = [];
 
 for (const target of TARGETS) {
-  const name = `${SCOPE}/tls-forge-${target.platform}-${target.arch}`;
+  const name = `tls-forge-${target.platform}-${target.arch}`;
   const exe = target.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge';
   const source = path.join(binaries, `tls-forge-${target.goos}-${target.goarch}${target.platform === 'win32' ? '.exe' : ''}`);
   if (!existsSync(source)) {
@@ -133,7 +131,7 @@ copyLegal(mainDir);
 const manifest = JSON.parse(readFileSync(path.join(root, 'node', 'package.json'), 'utf8'));
 manifest.version = version;
 manifest.optionalDependencies = Object.fromEntries(
-  TARGETS.map((t) => [`${SCOPE}/tls-forge-${t.platform}-${t.arch}`, version]),
+  TARGETS.map((t) => [`tls-forge-${t.platform}-${t.arch}`, version]),
 );
 // Scripts and dev-only fields have no meaning in the published tarball.
 delete manifest.scripts;

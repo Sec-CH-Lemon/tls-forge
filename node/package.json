@@ -20,11 +20,11 @@
     "test": "node --test --experimental-test-coverage --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"test/*.test.js\""
   },
   "optionalDependencies": {
-    "@sec-ch-lemon/tls-forge-darwin-arm64": "0.0.0-dev",
-    "@sec-ch-lemon/tls-forge-darwin-x64": "0.0.0-dev",
-    "@sec-ch-lemon/tls-forge-linux-arm64": "0.0.0-dev",
-    "@sec-ch-lemon/tls-forge-linux-x64": "0.0.0-dev",
-    "@sec-ch-lemon/tls-forge-win32-x64": "0.0.0-dev"
+    "tls-forge-darwin-arm64": "0.0.0-dev",
+    "tls-forge-darwin-x64": "0.0.0-dev",
+    "tls-forge-linux-arm64": "0.0.0-dev",
+    "tls-forge-linux-x64": "0.0.0-dev",
+    "tls-forge-win32-x64": "0.0.0-dev"
   },
   "keywords": [
     "scraper",

@@ -143,7 +143,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           main=$(realpath "dist/npm-packages/tls-forge-${VERSION}.tgz")
-          platform=$(realpath "dist/npm-packages/sec-ch-lemon-tls-forge-linux-x64-${VERSION}.tgz")
+          platform=$(realpath "dist/npm-packages/tls-forge-linux-x64-${VERSION}.tgz")
           check=$(mktemp -d)
           cd "$check"
           npm init -y > /dev/null
@@ -151,7 +151,7 @@ jobs:
             "$main" "$platform"
           node --input-type=module -e \
             "import { Client } from 'tls-forge'; const client = new Client(); client.close();"
-          ./node_modules/@sec-ch-lemon/tls-forge-linux-x64/bin/tls-forge version
+          ./node_modules/tls-forge-linux-x64/bin/tls-forge version
 
       # One wheel per platform, each with its binary inside. The script refuses
       # to produce a wheel that is missing the binary, has it without its exec
@@ -279,7 +279,11 @@ jobs:
           NPM_TAG: ${{ needs.build.outputs.npm_tag }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
-          for pkg in dist/npm-packages/sec-ch-lemon-tls-forge-*.tgz; do
+          for pkg in dist/npm-packages/tls-forge-*.tgz; do
+            # The main package matches the same glob now that the platform
+            # packages are unscoped. It must remain last: its exact optional
+            # dependencies need to exist by the time somebody installs it.
+            [ "$pkg" = "dist/npm-packages/tls-forge-${VERSION}.tgz" ] && continue
             echo "publishing $pkg"
             npm publish "$pkg" --access public --provenance \
               --tag "$NPM_TAG"

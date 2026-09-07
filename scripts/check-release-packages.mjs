@@ -46,7 +46,7 @@ if (!target) throw new Error(`no packaged distribution for ${targetName}`);
 
 const mainTarball = requireFile(path.join(dist, 'npm-packages', `tls-forge-${version}.tgz`));
 const platformTarball = requireFile(
-  path.join(dist, 'npm-packages', `sec-ch-lemon-tls-forge-${target.npm}-${version}.tgz`),
+  path.join(dist, 'npm-packages', `tls-forge-${target.npm}-${version}.tgz`),
 );
 const wheels = readdirSync(path.join(dist, 'pypi'))
   .filter((name) => name.startsWith('tls_forge-') && name.endsWith(target.wheel));
@@ -91,7 +91,6 @@ try {
   const npmBinary = path.join(
     nodeProject,
     'node_modules',
-    '@sec-ch-lemon',
     `tls-forge-${target.npm}`,
     'bin',
     process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge',

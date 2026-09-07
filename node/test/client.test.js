@@ -379,7 +379,7 @@ function installPlatformPackage(t, { withBinary = true } = {}) {
     writeFileSync(binary, '#!/bin/sh\n');
     chmodSync(binary, 0o755);
   }
-  t.after(() => rmSync(path.join(here, '..', 'node_modules', '@sec-ch-lemon'), { recursive: true, force: true }));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   return binary;
 }
 
@@ -407,7 +407,7 @@ test('a platform package without its binary is not used', (t) => {
     } catch {
       /* nothing installed anywhere, which is the expected case here */
     }
-    if (found && found.includes('@sec-ch-lemon')) {
+    if (found && found.includes(platformPackage)) {
       assert.fail(`resolved to a missing binary: ${found}`);
     }
   } finally {
@@ -423,7 +423,7 @@ test('the not-found message names the platform package', () => {
     // A binary on PATH or a local build is a perfectly normal state for a
     // checkout, and not what this test is about.
   } catch (err) {
-    assert.match(err.message, /@sec-ch-lemon\/tls-forge-/);
+    assert.match(err.message, /tls-forge-/);
     assert.match(err.message, new RegExp(`${process.platform}-${process.arch}`));
   } finally {
     if (previous !== undefined) process.env.TLSFORGE_BIN = previous;
@@ -431,7 +431,7 @@ test('the not-found message names the platform package', () => {
 });
 
 test('the platform package name follows npm platform and arch', () => {
-  assert.equal(platformPackage, `@sec-ch-lemon/tls-forge-${process.platform}-${process.arch}`);
+  assert.equal(platformPackage, `tls-forge-${process.platform}-${process.arch}`);
   assert.equal(exeName, process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge');
 });
 

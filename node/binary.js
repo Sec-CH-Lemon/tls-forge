@@ -21,11 +21,8 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
-/** The npm scope the platform packages live under. */
-export const SCOPE = '@sec-ch-lemon';
-
 /** The platform package for the machine this is running on. */
-export const platformPackage = `${SCOPE}/tls-forge-${process.platform}-${process.arch}`;
+export const platformPackage = `tls-forge-${process.platform}-${process.arch}`;
 
 /** The executable's name, which is the command's name, not the package's. */
 export const exeName = {
