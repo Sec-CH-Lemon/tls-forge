@@ -303,14 +303,15 @@ jobs:
             fi
 
             # npm gives a newly created package a `latest` tag even when its
-            # first publish explicitly uses `next`. Never let a bootstrap RC
-            # become what an unversioned install selects. An existing stable
-            # latest has no hyphen and remains untouched.
+            # first publish explicitly uses `next`. Trusted Publishing grants
+            # `npm publish`, not package-management operations such as deleting
+            # a dist-tag, so CI cannot clean it up. Make the required interactive
+            # 2FA operation conspicuous without turning a successful publish
+            # into a failed release.
             if [ "$NPM_TAG" != latest ]; then
               latest=$(npm view "$package_name" dist-tags.latest 2>/dev/null || true)
               if [[ "$latest" == *-* ]]; then
-                echo "removing prerelease latest tag from $package_name"
-                npm dist-tag rm "$package_name" latest
+                echo "::warning::${package_name} has prerelease ${latest} under latest; run: npm dist-tag rm ${package_name} latest"
               fi
             fi
           }
