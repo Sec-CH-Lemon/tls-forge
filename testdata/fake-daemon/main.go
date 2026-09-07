@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -15,13 +16,14 @@ import (
 )
 
 type request struct {
-	ID        int               `json:"id"`
-	Method    string            `json:"method"`
-	URL       string            `json:"url"`
-	Headers   map[string]string `json:"headers"`
-	Order     []string          `json:"order"`
-	SetCookie []string          `json:"setCookie"`
-	Body      *string           `json:"body"`
+	ID           int               `json:"id"`
+	Method       string            `json:"method"`
+	URL          string            `json:"url"`
+	Headers      map[string]string `json:"headers"`
+	Order        []string          `json:"order"`
+	SetCookie    []string          `json:"setCookie"`
+	Body         *string           `json:"body"`
+	BodyEncoding string            `json:"bodyEncoding"`
 }
 
 var outputMu sync.Mutex
@@ -99,6 +101,42 @@ func main() {
 			response := answer(req)
 			response["body"] = []any{}
 			emit(response)
+		case "binary":
+			// PNG magic followed by a byte that cannot be represented as UTF-8.
+			raw := []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff}
+			response := answer(req)
+			response["body"] = base64.StdEncoding.EncodeToString(raw)
+			response["bodyEncoding"] = "base64"
+			emit(response)
+		case "echo-body":
+			response := answer(req)
+			body := ""
+			if req.Body != nil {
+				body = *req.Body
+			}
+			response["body"] = body
+			response["bodyEncoding"] = req.BodyEncoding
+			emit(response)
+		case "utf8-encoding":
+			response := answer(req)
+			response["body"] = "plain text"
+			response["bodyEncoding"] = "utf8"
+			emit(response)
+		case "bad-body-encoding":
+			response := answer(req)
+			response["body"] = "x"
+			response["bodyEncoding"] = "rot13"
+			emit(response)
+		case "bad-body-encoding-type":
+			response := answer(req)
+			response["body"] = "x"
+			response["bodyEncoding"] = 7
+			emit(response)
+		case "bad-base64":
+			response := answer(req)
+			response["body"] = "!!not base64!!"
+			response["bodyEncoding"] = "base64"
+			emit(response)
 		case "bad-headers":
 			response := answer(req)
 			response["headers"] = []any{}
@@ -138,6 +176,11 @@ func main() {
 		case "stderr":
 			_, _ = fmt.Fprintln(os.Stderr, "a note on stderr")
 			time.Sleep(50 * time.Millisecond)
+			emit(answer(req))
+		case "stderr-chunks":
+			_, _ = fmt.Fprint(os.Stderr, "one logical")
+			time.Sleep(5 * time.Millisecond)
+			_, _ = fmt.Fprint(os.Stderr, " line\nsecond line\n")
 			emit(answer(req))
 		case "legacy-headers":
 			response := answer(req)
