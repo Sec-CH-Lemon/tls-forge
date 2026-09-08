@@ -53,12 +53,12 @@ navigation was observed.
 tls-forge capture --save my-chrome.json
 ```
 
-A browser opens with a throwaway profile directory and first loads the capture
-page directly over HTTP/2. The page then makes a top-level navigation through a
-local HTTP/1.1-only TLS listener and returns to report what JavaScript can see.
-The requests are joined by a one-use navigation token, so the profile records
-both protocol fingerprints without deriving one from the other, while the
-original HTTP/2 navigation remains the request being measured. The command
+The command launches two independent browser processes, each with a fresh
+throwaway profile directory. One makes a direct top-level navigation to the
+local HTTP/1.1-only TLS listener; the other independently navigates to the
+HTTP/2 listener. Starting both measurements cold prevents one navigation from
+changing the other's `Sec-Fetch-*` context and records each protocol directly
+instead of deriving one from the other. The command combines the observations,
 prints a summary and writes the profile.
 
 ```bash
@@ -141,8 +141,9 @@ pragma          an ordinary visit sends neither
 ```
 
 `sec-fetch-*` is deliberately kept: it describes the *kind* of request — a
-document navigation — which is what a profile is for. Override it for
-subresource fetches.
+document navigation — which is what a profile is for. For a subresource fetch,
+override the values that differ and use a custom profile without fields the
+browser would omit, such as `sec-fetch-user`.
 
 ## Refusing a resumed capture
 
