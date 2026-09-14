@@ -1,0 +1,117 @@
+{
+  "name": "chrome_153_macos",
+  "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+  "client_hello": "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",
+  "http1": {
+    "header_order": [
+      "Host",
+      "Connection",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform",
+      "Upgrade-Insecure-Requests",
+      "User-Agent",
+      "Accept",
+      "Sec-Fetch-Site",
+      "Sec-Fetch-Mode",
+      "Sec-Fetch-User",
+      "Sec-Fetch-Dest",
+      "Accept-Encoding",
+      "Accept-Language"
+    ],
+    "headers": [
+      {
+        "name": "Connection",
+        "value": "keep-alive"
+      }
+    ]
+  },
+  "http2": {
+    "settings": [
+      {
+        "id": 1,
+        "value": 65536
+      },
+      {
+        "id": 2,
+        "value": 0
+      },
+      {
+        "id": 4,
+        "value": 6291456
+      },
+      {
+        "id": 6,
+        "value": 262144
+      }
+    ],
+    "connection_flow": 15663105,
+    "pseudo_header_order": [
+      ":method",
+      ":authority",
+      ":scheme",
+      ":path"
+    ],
+    "header_priority": {
+      "stream_id": 1,
+      "exclusive": true,
+      "depends_on": 0,
+      "weight": 255
+    }
+  },
+  "headers": [
+    {
+      "name": "sec-ch-ua",
+      "value": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\""
+    },
+    {
+      "name": "sec-ch-ua-mobile",
+      "value": "?0"
+    },
+    {
+      "name": "sec-ch-ua-platform",
+      "value": "\"macOS\""
+    },
+    {
+      "name": "upgrade-insecure-requests",
+      "value": "1"
+    },
+    {
+      "name": "user-agent",
+      "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+    },
+    {
+      "name": "accept",
+      "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    },
+    {
+      "name": "sec-fetch-site",
+      "value": "none"
+    },
+    {
+      "name": "sec-fetch-mode",
+      "value": "navigate"
+    },
+    {
+      "name": "sec-fetch-user",
+      "value": "?1"
+    },
+    {
+      "name": "sec-fetch-dest",
+      "value": "document"
+    },
+    {
+      "name": "accept-encoding",
+      "value": "gzip, deflate, br, zstd"
+    },
+    {
+      "name": "accept-language",
+      "value": "en-US,en;q=0.9"
+    },
+    {
+      "name": "priority",
+      "value": "u=0, i"
+    }
+  ],
+  "notes": "captured 2026-09-14T12:57:42Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+}
