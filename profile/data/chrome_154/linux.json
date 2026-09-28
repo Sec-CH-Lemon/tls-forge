@@ -1,0 +1,117 @@
+{
+  "name": "chrome_154_linux",
+  "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "client_hello": "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",
+  "http1": {
+    "header_order": [
+      "Host",
+      "Connection",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform",
+      "Upgrade-Insecure-Requests",
+      "User-Agent",
+      "Accept",
+      "Sec-Fetch-Site",
+      "Sec-Fetch-Mode",
+      "Sec-Fetch-User",
+      "Sec-Fetch-Dest",
+      "Accept-Encoding",
+      "Accept-Language"
+    ],
+    "headers": [
+      {
+        "name": "Connection",
+        "value": "keep-alive"
+      }
+    ]
+  },
+  "http2": {
+    "settings": [
+      {
+        "id": 1,
+        "value": 65536
+      },
+      {
+        "id": 2,
+        "value": 0
+      },
+      {
+        "id": 4,
+        "value": 6291456
+      },
+      {
+        "id": 6,
+        "value": 262144
+      }
+    ],
+    "connection_flow": 15663105,
+    "pseudo_header_order": [
+      ":method",
+      ":authority",
+      ":scheme",
+      ":path"
+    ],
+    "header_priority": {
+      "stream_id": 1,
+      "exclusive": true,
+      "depends_on": 0,
+      "weight": 255
+    }
+  },
+  "headers": [
+    {
+      "name": "sec-ch-ua",
+      "value": "\"Chromium\";v=\"154\", \"Google Chrome\";v=\"154\", \"Not A(Brand\";v=\"99\""
+    },
+    {
+      "name": "sec-ch-ua-mobile",
+      "value": "?0"
+    },
+    {
+      "name": "sec-ch-ua-platform",
+      "value": "\"Linux\""
+    },
+    {
+      "name": "upgrade-insecure-requests",
+      "value": "1"
+    },
+    {
+      "name": "user-agent",
+      "value": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36"
+    },
+    {
+      "name": "accept",
+      "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    },
+    {
+      "name": "sec-fetch-site",
+      "value": "none"
+    },
+    {
+      "name": "sec-fetch-mode",
+      "value": "navigate"
+    },
+    {
+      "name": "sec-fetch-user",
+      "value": "?1"
+    },
+    {
+      "name": "sec-fetch-dest",
+      "value": "document"
+    },
+    {
+      "name": "accept-encoding",
+      "value": "gzip, deflate, br, zstd"
+    },
+    {
+      "name": "accept-language",
+      "value": "en-US,en;q=0.9"
+    },
+    {
+      "name": "priority",
+      "value": "u=0, i"
+    }
+  ],
+  "notes": "captured 2026-09-28T14:05:18Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36"
+}
