@@ -36,8 +36,17 @@ func startServer(t *testing.T, opts ...Option) *Server {
 // off — for this one loopback address, inside this process.
 func insecure() *tls.Config { return &tls.Config{InsecureSkipVerify: true} }
 
+// The standard transport, restricted to HTTP/2. h2 is the only protocol it
+// offers in ALPN, so a test that asks for HTTP/2 fails if the server stops
+// speaking it rather than passing over HTTP/1.1.
+func http2Transport(config *tls.Config) *http.Transport {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP2(true)
+	return &http.Transport{TLSClientConfig: config, Protocols: protocols}
+}
+
 func http2Client() *http.Client {
-	return &http.Client{Transport: &http2.Transport{TLSClientConfig: insecure()}}
+	return &http.Client{Transport: http2Transport(insecure())}
 }
 
 func http1Client() *http.Client {
@@ -105,15 +114,14 @@ func TestSessionResumptionIsOffByDefault(t *testing.T) {
 	// that silently alternated between the two would produce a profile that
 	// matched the browser about half the time.
 	server := startServer(t)
-	client := &http.Client{Transport: &http2.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			ClientSessionCache: tls.NewLRUClientSessionCache(8),
-		},
-	}}
+	transport := http2Transport(&tls.Config{
+		InsecureSkipVerify: true,
+		ClientSessionCache: tls.NewLRUClientSessionCache(8),
+	})
+	client := &http.Client{Transport: transport}
 
 	for i := 0; i < 3; i++ {
-		client.Transport.(*http2.Transport).CloseIdleConnections()
+		transport.CloseIdleConnections()
 		if status, _ := get(t, client, server.URL()+"/api/all"); status != 200 {
 			t.Fatalf("status = %d", status)
 		}
