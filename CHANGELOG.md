@@ -19,6 +19,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   installs and tests the current stable Homebrew formula. It is a separate,
   manually dispatched check for any chosen version.
 
+### Security
+
+- Builds use Go 1.26.9 and `golang.org/x/net` 0.60.0, which fix nine advisories
+  that `govulncheck` reports as reachable from this code: HTTP/2 HPACK, flow
+  control and trailer handling, HTTP/1.1 `CONNECT` and MIME header parsing,
+  malformed ECH extensions in `crypto/tls`, and escaping contexts in
+  `html/template`, which renders the `batch` report. Go 1.26.9 is now the
+  minimum toolchain.
+
 ### Changed
 
 - Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and
