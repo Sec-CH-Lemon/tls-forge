@@ -488,6 +488,53 @@ server: cloudflare
 
 Cookie values and credentials are written as `***`, as they are in a trace.
 
+The same report can be had as JSON, for a program rather than a person. A name
+ending in `.json` is enough, and `--report-format html,json` writes both from
+the one run:
+
+```bash
+../bin/tls-forge fetch --repeat 20 --retry 2 -R run.json https://example.com/
+../bin/tls-forge fetch --repeat 20 --retry 2 -R reports/ --report-format html,json https://example.com/
+```
+
+Everything the page shows is in it under a name, so a question about a run is
+one line of `jq`. How it went:
+
+```bash
+jq '.summary' run.json
+```
+
+```json
+{
+  "requests": 20,
+  "scraped": 18,
+  "not_2xx": 2,
+  "no_response": 0,
+  "success_rate": 90,
+  "bytes": 10386,
+  "retries": 4,
+  "elapsed_ms": 4021,
+  "avg_ms": 199
+}
+```
+
+Which runs had to be asked for again, and what each try got:
+
+```bash
+jq -c '.requests[] | select(.attempts > 1) | {run, ms, tries: [.tries[].status]}' run.json
+```
+
+```json
+{"run":7,"ms":345,"tries":[503,200]}
+{"run":14,"ms":1012,"tries":[503,503,200]}
+```
+
+And the longest any try waited for its first byte, in milliseconds:
+
+```bash
+jq '[.requests[].tries[].steps[] | select(.name == "wait") | .ms] | max' run.json
+```
+
 ## See what a run did
 
 ```bash

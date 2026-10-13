@@ -248,7 +248,8 @@ Usage: `tls-forge fetch [flags] <url>`
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
-| `-R`, `--report <path>` | Write a self-contained HTML report with a row for every request; see [Reporting a run](#reporting-a-run) |
+| `-R`, `--report <path>` | Write a report with every request in it, as a page or as JSON; see [Reporting a run](#reporting-a-run) |
+| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `auto`, which goes by the extension of `--report` |
 
 On a terminal, `fetch` says how the run went rather than printing the page: a
 bar for how far it has got, a line for how long that has taken, and a row for
@@ -420,19 +421,25 @@ scheme are kept. URLs are recorded in full, including their query strings.
 
 ```bash
 tls-forge fetch --repeat 20 --retry 2 --report reports/ https://example.com/
-tls-forge batch --input urls.csv --report reports/
+tls-forge fetch --repeat 20 --retry 2 --report run.json https://example.com/
+tls-forge batch --input urls.csv --report reports/ --report-format html,json
 ```
 
-`--report` writes the run as one HTML page with nothing to load from anywhere
-else, so it can be opened offline and sent on as one file. At the top is the
-share of requests that came back as the page, with how many answered with
-something else and how many got no answer, and under it the data, the retries,
-the time the run took and the average time of one request. Then there is a row
-for every request: when it started, how long it took, how it ended, how much
-came back and how many tries it took. Rows are in the order the requests were
-sent, and when a URL was asked for more than once each row says which run it
-was. The proxy and the address a request came out of are said once above the
-rows when every request went the same way, and on each row when they did not.
+`--report` writes the run down when it is over: as a page for whoever opens
+it, as a JSON document for a program, or as both from the same run.
+`--report-format` says which, as `html`, `json` or `html,json`. Left at `auto`,
+a path that ends in `.json` gets the document and any other gets the page.
+
+The page is one HTML file with nothing to load from anywhere else, so it can be
+opened offline and sent on as one file. At the top is the share of requests
+that came back as the page, with how many answered with something else and how
+many got no answer, and under it the data, the retries, the time the run took
+and the average time of one request. Then there is a row for every request:
+when it started, how long it took, how it ended, how much came back and how
+many tries it took. Rows are in the order the requests were sent, and when a
+URL was asked for more than once each row says which run it was. The proxy and
+the address a request came out of are said once above the rows when every
+request went the same way, and on each row when they did not.
 
 Every row opens, and shows what that request took:
 
@@ -463,18 +470,87 @@ passwords, cookie values, `Authorization` credentials and the values of
 headers whose names contain `token`, `secret`, `password` or `key` are written
 as `***`. The start of a body that was not the page is kept as it came.
 
-Given a directory, or a path ending in a separator, the report is named after
-the moment it was written, as `report-2026-08-16-091854-584.html`; any other
-path is the file itself, replaced on every run. It is created with mode `0600`.
-The name is the last thing a run prints. A report that cannot be written fails
-the run with exit code 1, after the pages have gone where they were going.
+The JSON document holds what the page shows, under names of its own:
+
+```json
+{
+  "command": "fetch",
+  "version": "0.3.0",
+  "generated": "2026-08-16T09:18:54.584+02:00",
+  "summary": {
+    "requests": 20, "scraped": 18, "not_2xx": 2, "no_response": 0,
+    "success_rate": 90, "bytes": 10386, "retries": 4,
+    "elapsed_ms": 4021, "avg_ms": 199
+  },
+  "requests": [
+    {
+      "url": "https://example.com/",
+      "status": 200,
+      "final_url": "https://example.com/",
+      "bytes": 577,
+      "started": "2026-08-16T09:18:50.563+02:00",
+      "ended": "2026-08-16T09:18:50.908+02:00",
+      "ms": 345,
+      "run": 1,
+      "attempts": 2,
+      "exit": {"ip": "203.0.113.7", "country": "PL"},
+      "tries": [
+        {
+          "started": "2026-08-16T09:18:50.563+02:00",
+          "ms": 84.2,
+          "status": 503,
+          "bytes": 19,
+          "connection": {
+            "reused": false, "remote": "104.20.23.154:443",
+            "tls": "TLS 1.3", "cipher": "TLS_AES_128_GCM_SHA256", "alpn": "h2"
+          },
+          "steps": [
+            {"name": "dns", "from_ms": 0.3, "ms": 1.9, "note": "example.com → 104.20.23.154"},
+            {"name": "connect", "from_ms": 2.2, "ms": 6.4, "note": "104.20.23.154:443"},
+            {"name": "tls", "from_ms": 8.6, "ms": 12, "note": "TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2"},
+            {"name": "send", "from_ms": 20.6, "ms": 0.065, "request_headers": [":method: GET", ":authority: example.com"]},
+            {"name": "wait", "from_ms": 20.7, "ms": 63.3},
+            {"name": "receive", "from_ms": 84, "ms": 0.164}
+          ],
+          "response_headers": ["retry-after: 1", "server: cloudflare"],
+          "body_start": "<html>…",
+          "wait_ms": 250
+        }
+      ]
+    }
+  ]
+}
+```
+
+A request is the line `batch` writes for it, without the body and under the
+same names, with `exit` and `tries` added. Times are milliseconds, and those
+of a try and of its steps keep a fraction, because most steps are over in less
+than one. `success_rate` is a percentage. A step the try ended in carries
+`"unfinished": true`, a redirect is a step named `redirect`, and `proxies`
+lists each proxy that was used with its `requests`, `came_back`, `alive` and
+`exit`. A field with nothing to say is left out. The same things are masked as
+on the page.
+
+The document holds every request, where the page stops at 2,000 rows. `tries`
+are there for the requests whose tries were kept: the first 2,000 that failed
+or answered with something other than the page, and the first 2,000 others.
+
+Given a directory, or a path ending in a separator, a report is named after
+the moment it was written, as `report-2026-08-16-091854-584.html` or `.json`.
+One format given any other path is written to that path, whatever it is
+called, and replaced on every run. Two cannot both be, so the path then names
+them both: `--report run`, or `--report run.html`, with `html,json` writes
+`run.html` and `run.json`. A report is created with mode `0600`, and its name
+is the last thing a run prints. One that cannot be written fails the run with
+exit code 1, after the pages have gone where they were going; of two, the one
+that could be written still is.
 
 `fetch` writes the report however the run ended, a request that got no answer
 included, and uses the exit address it has already asked for. `batch` asks for
 the address of each proxy once, after the list is done; `--report-ip=false`
-turns that off. A report holds at most 2,000 rows: the requests that failed or
-answered with something other than the page come first, and the page says how
-many rows it left out.
+turns that off. The page holds at most 2,000 rows: the requests that failed or
+answered with something other than the page come first, and it says how many
+rows it left out.
 
 ### `batch`
 
@@ -525,7 +601,8 @@ Usage: `tls-forge batch [flags] [urls...]`
 | `-v`, `--verbose` | Print one status line when each request finishes |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
-| `-R`, `--report <path>` | Write a self-contained HTML report; a directory gets a timestamped filename |
+| `-R`, `--report <path>` | Write a report of the run, as a page or as JSON; a directory gets a timestamped filename |
+| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `auto`, which goes by the extension of `--report` |
 | `--report-ip[=false]` | Ask the address services listed under [`fetch`](#fetch), once per proxy, for report metadata; default `true` |
 
 Input precedence is `--urls`, then `--input`, then positional URLs, then stdin.

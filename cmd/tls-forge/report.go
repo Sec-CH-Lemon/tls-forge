@@ -2,14 +2,18 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/spf13/pflag"
 )
 
 // What a run turned out to be.
@@ -499,6 +503,97 @@ var reportCSS string
 
 var reportTemplate = template.Must(template.New("report").Parse(reportMarkup))
 
+// reportFlags are where a run is written down when it is over, and as what.
+// Fetch and batch share them, so a report is asked for the same way of both.
+type reportFlags struct {
+	path   *string
+	format *string
+	// chose reports whether a flag was given rather than defaulted.
+	chose func(string) bool
+}
+
+// formatHTML is the page a report is written as for whoever opens it. The other
+// format is formatJSON, the same word a list of URLs is read by: the same run
+// as a document, for whatever program comes next.
+const formatHTML = "html"
+
+// reportWriters is how each of the two is written.
+var reportWriters = map[string]func(io.Writer, string, []result, summary, map[string]egress) error{
+	formatHTML: renderReport,
+	formatJSON: renderReportJSON,
+}
+
+func addReportFlags(fs *pflag.FlagSet) reportFlags {
+	return reportFlags{
+		path: fs.StringP("report", "R", "",
+			"write a report here, as a page or as JSON; a directory gets report-<date-time>"),
+		format: fs.String("report-format", formatAuto,
+			"what to write the report as: html, json or html,json; auto goes by the name given to --report"),
+		chose: fs.Changed,
+	}
+}
+
+// formats settles what the report is to be written as, and returns none when
+// no report was asked for.
+//
+// Before anything is fetched, so a misspelling costs a message rather than a
+// run that turns out to have nowhere to report itself.
+func (f reportFlags) formats() ([]string, error) {
+	if *f.path == "" {
+		if f.chose("report-format") {
+			return nil, fmt.Errorf("%w: --report-format requires --report", errUsage)
+		}
+		return nil, nil
+	}
+	if *f.format == formatAuto {
+		// By what the file is called, as a list of URLs is read by what its file
+		// is called. Anything that is not named as JSON is the page.
+		if strings.EqualFold(filepath.Ext(*f.path), "."+formatJSON) {
+			return []string{formatJSON}, nil
+		}
+		return []string{formatHTML}, nil
+	}
+	var chosen []string
+	for _, word := range strings.Split(*f.format, ",") {
+		word = strings.ToLower(strings.TrimSpace(word))
+		if _, known := reportWriters[word]; !known {
+			return nil, &badFlag{"--report-format", *f.format, "auto, html, json or html,json"}
+		}
+		if !slices.Contains(chosen, word) {
+			chosen = append(chosen, word)
+		}
+	}
+	return chosen, nil
+}
+
+// reportFile is one file a report is written to, and what it is written as.
+type reportFile struct {
+	format, path string
+}
+
+// reportFiles turns what --report was given into the files to write, one for
+// each format.
+//
+// One format is written to the path as it was given, whatever that is called:
+// naming the format says what goes in the file, and the name stays the
+// caller's. Two cannot both go there, so the path then names them both: an
+// extension that is one of the formats comes off, and each gets its own.
+func reportFiles(given string, formats []string, when time.Time) []reportFile {
+	files := make([]reportFile, 0, len(formats))
+	for _, format := range formats {
+		path := reportPath(given, format, when)
+		if path == given && len(formats) > 1 {
+			base := given
+			if _, known := reportWriters[strings.ToLower(strings.TrimPrefix(filepath.Ext(given), "."))]; known {
+				base = strings.TrimSuffix(given, filepath.Ext(given))
+			}
+			path = base + "." + format
+		}
+		files = append(files, reportFile{format: format, path: path})
+	}
+	return files
+}
+
 // reportPath turns what --report was given into the file to write.
 //
 // A directory, or a path ending in a separator, gets a name of its own. Naming
@@ -509,14 +604,14 @@ var reportTemplate = template.Must(template.New("report").Parse(reportMarkup))
 //
 // Both separators are accepted as a directory hint. Go accepts forward slashes
 // on Windows too, and that is the spelling the cross-platform README uses.
-func reportPath(given string, when time.Time) string {
+func reportPath(given, format string, when time.Time) string {
 	directoryHint := strings.HasSuffix(given, "/") || strings.HasSuffix(given, `\`)
 	if !directoryHint {
 		if info, err := os.Stat(given); err != nil || !info.IsDir() {
 			return given
 		}
 	}
-	return filepath.Join(given, "report-"+stamp(when)+".html")
+	return filepath.Join(given, "report-"+stamp(when)+"."+format)
 }
 
 // stamp is the time in a report's file name.
@@ -532,15 +627,34 @@ func stamp(t time.Time) string {
 
 var chmodReport = (*os.File).Chmod
 
-// writeReport renders the run as one self-contained HTML file.
+// writeReports writes the run down as every file asked for.
 //
-// Self-contained on purpose: no stylesheet, no script and no font from
-// anywhere else, so it can be opened from a laptop with no network and mailed
-// to someone as one attachment.
+// All of them are tried, and the ones that were written come back whatever
+// became of the others: a page that is there is worth naming beside the reason
+// its companion is not.
+func writeReports(files []reportFile, command string, records []result, s summary,
+	exits map[string]egress,
+) (written []reportFile, err error) {
+	for _, file := range files {
+		if failed := writeReport(file, command, records, s, exits); failed != nil {
+			err = errors.Join(err, failed)
+			continue
+		}
+		written = append(written, file)
+	}
+	return written, err
+}
+
+// writeReport writes the run to one file, as that file's format.
+//
+// The page is self-contained on purpose: no stylesheet, no script and no font
+// from anywhere else, so it can be opened from a laptop with no network and
+// mailed to someone as one attachment.
 //
 // The command is the one that made the run. It is named in the document, and in
 // front of whatever goes wrong writing it.
-func writeReport(path, command string, records []result, s summary, exits map[string]egress) error {
+func writeReport(to reportFile, command string, records []result, s summary, exits map[string]egress) error {
+	path := to.path
 	// The directory is made rather than required. `--report reports/` is what
 	// README and example/README both show, and before this it fetched the whole
 	// list and then failed at the last step because nothing had created the
@@ -559,7 +673,7 @@ func writeReport(path, command string, records []result, s summary, exits map[st
 		return fmt.Errorf("%s: securing report: %w", command, err)
 	}
 	defer func() { _ = file.Close() }()
-	return renderReport(file, command, records, s, exits)
+	return reportWriters[to.format](file, command, records, s, exits)
 }
 
 // renderReport is the document itself, separate from the file it lands in, so

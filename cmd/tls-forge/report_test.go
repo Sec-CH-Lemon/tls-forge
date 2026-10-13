@@ -220,7 +220,7 @@ func TestWriteReport(t *testing.T) {
 	s := summarise(records, 2*time.Second, exits)
 
 	path := filepath.Join(t.TempDir(), "report.html")
-	if err := writeReport(path, "batch", records, s, exits); err != nil {
+	if err := writeReport(reportFile{formatHTML, path}, "batch", records, s, exits); err != nil {
 		t.Fatalf("writeReport: %v", err)
 	}
 	data, err := os.ReadFile(path)
@@ -271,7 +271,7 @@ func TestWriteReportEscapesWhatItIsGiven(t *testing.T) {
 		Status: 200,
 	}}
 	path := filepath.Join(t.TempDir(), "report.html")
-	if err := writeReport(path, "batch", records, summarise(records, time.Second, nil), nil); err != nil {
+	if err := writeReport(reportFile{formatHTML, path}, "batch", records, summarise(records, time.Second, nil), nil); err != nil {
 		t.Fatalf("writeReport: %v", err)
 	}
 	data, _ := os.ReadFile(path)
@@ -291,7 +291,7 @@ func TestWriteReportToAPathThatWillNotOpen(t *testing.T) {
 	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	err := writeReport(filepath.Join(blocked, "r.html"), "batch", nil, summary{}, nil)
+	err := writeReport(reportFile{formatHTML, filepath.Join(blocked, "r.html")}, "batch", nil, summary{}, nil)
 	if err == nil {
 		t.Error("no error")
 	}
@@ -310,7 +310,7 @@ func TestWriteReportMakesTheDirectory(t *testing.T) {
 	if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	if err := writeReport(path, "batch", nil, summary{}, nil); err != nil {
+	if err := writeReport(reportFile{formatHTML, path}, "batch", nil, summary{}, nil); err != nil {
 		t.Fatalf("writeReport: %v", err)
 	}
 	info, err := os.Stat(path)
@@ -333,7 +333,7 @@ func TestWriteReportReportsAChmodFailure(t *testing.T) {
 	t.Cleanup(func() { chmodReport = original })
 	chmodReport = func(_ *os.File, _ os.FileMode) error { return fmt.Errorf("permission denied") }
 
-	err := writeReport(filepath.Join(t.TempDir(), "report.html"), "batch", nil, summary{}, nil)
+	err := writeReport(reportFile{formatHTML, filepath.Join(t.TempDir(), "report.html")}, "batch", nil, summary{}, nil)
 	if err == nil || !strings.Contains(err.Error(), "securing report") {
 		t.Fatalf("writeReport error = %v", err)
 	}
@@ -678,12 +678,12 @@ func TestReportPath(t *testing.T) {
 
 	// A directory gets a name of its own, so a run does not need one invented
 	// for it and a second run does not land on the first.
-	if got := reportPath(dir, when); got != filepath.Join(dir, stamped) {
+	if got := reportPath(dir, formatHTML, when); got != filepath.Join(dir, stamped) {
 		t.Errorf("a directory: %q", got)
 	}
 	// Trailing separator, for a directory that is about to be made.
 	notYet := filepath.Join(dir, "runs") + string(os.PathSeparator)
-	if got := reportPath(notYet, when); got != filepath.Join(dir, "runs", stamped) {
+	if got := reportPath(notYet, formatHTML, when); got != filepath.Join(dir, "runs", stamped) {
 		t.Errorf("a trailing separator: %q", got)
 	}
 	// README uses '/', while a Windows shell naturally supplies '\\'. Accept
@@ -693,27 +693,27 @@ func TestReportPath(t *testing.T) {
 		otherSeparator = "/"
 	}
 	other := filepath.Join(dir, "other") + otherSeparator
-	if got := reportPath(other, when); got == other || filepath.Base(got) != stamped {
+	if got := reportPath(other, formatHTML, when); got == other || filepath.Base(got) != stamped {
 		t.Errorf("the other platform's separator was not a directory hint: %q", got)
 	}
 
 	// A named file is used as given, whether or not it is there already.
 	named := filepath.Join(dir, "run.html")
-	if got := reportPath(named, when); got != named {
+	if got := reportPath(named, formatHTML, when); got != named {
 		t.Errorf("a named file: %q", got)
 	}
 	if err := os.WriteFile(named, nil, 0o644); err != nil {
 		t.Fatalf("writing: %v", err)
 	}
-	if got := reportPath(named, when); got != named {
+	if got := reportPath(named, formatHTML, when); got != named {
 		t.Errorf("a named file that exists: %q", got)
 	}
 
 	// Ordered largest unit first, so a directory of them sorts into the order
 	// they were made.
-	earlier := reportPath(dir, when.Add(-time.Hour))
-	if earlier >= reportPath(dir, when) {
-		t.Errorf("%q does not sort before %q", earlier, reportPath(dir, when))
+	earlier := reportPath(dir, formatHTML, when.Add(-time.Hour))
+	if earlier >= reportPath(dir, formatHTML, when) {
+		t.Errorf("%q does not sort before %q", earlier, reportPath(dir, formatHTML, when))
 	}
 }
 
@@ -982,7 +982,7 @@ func TestBatchSaysWhichProxiesItDidNotAskAbout(t *testing.T) {
 // survives the directory being made: the parent exists, so MkdirAll succeeds,
 // and the target itself is not a file that can be opened for writing.
 func TestWriteReportToAPathThatIsADirectory(t *testing.T) {
-	err := writeReport(t.TempDir(), "batch", nil, summary{}, nil)
+	err := writeReport(reportFile{formatHTML, t.TempDir()}, "batch", nil, summary{}, nil)
 	if err == nil {
 		t.Error("no error")
 	}

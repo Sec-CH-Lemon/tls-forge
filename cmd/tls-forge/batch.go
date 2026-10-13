@@ -204,8 +204,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	again := addRunFlags(fs, 3)
 	watch := addWatchFlags(fs,
 		"print the JSON lines on stdout even when that is a terminal")
-	report := fs.StringP("report", "R", "",
-		"write an HTML report here; a directory gets report-<date-time>.html")
+	reporting := addReportFlags(fs)
 	reportIP := fs.Bool("report-ip", true,
 		"with --report, ask "+askedOf()+" which address each proxy comes out of")
 	setUsage(fs, out, "usage: tls-forge batch [flags] [urls...]")
@@ -221,6 +220,10 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// Checked before the list is read, so a misspelling costs a message rather
 	// than a run that turns out to have nowhere to report itself.
 	wantProgress, paint, err := watch.settle(errOut)
+	if err != nil {
+		return err
+	}
+	formats, err := reporting.formats()
 	if err != nil {
 		return err
 	}
@@ -319,7 +322,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		clients: clients, workers: *workers, sink: sink,
 		retry: *again.retry, repeat: *again.repeat, bodyDir: *bodyDir,
 		counts: counts, notes: notes, trace: trace,
-		detailed: *report != "",
+		detailed: len(formats) > 0,
 	}, &records)
 
 	// Closed here rather than deferred, so the final counts land before the
@@ -339,7 +342,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// One lookup per proxy, not per URL: the address belongs to the proxy, and
 	// asking once per URL would be a request to a third party for every page.
 	exits := map[string]egress{}
-	if *report != "" && *reportIP {
+	if len(formats) > 0 && *reportIP {
 		errOut.printf("asking %s which address each proxy comes out of…\n", askedOf())
 		var skipped int
 		exits, skipped = lookupExits(clients, records, trace.main())
@@ -368,15 +371,19 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
 		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,
 	})
-	if *report != "" {
-		path := reportPath(*report, now())
-		if err := writeReport(path, "batch", records, totals, exits); err != nil {
-			return err
+	if len(formats) > 0 {
+		written, err := writeReports(reportFiles(*reporting.path, formats, now()),
+			"batch", records, totals, exits)
+		for _, file := range written {
+			errOut.printf("report written to %s\n", file.path)
+			// Only the page stops at what a browser can open.
+			if dropped := len(records) - reportRowLimit; dropped > 0 && file.format == formatHTML {
+				errOut.printf("  %d rows are in %s but not in the report\n", dropped,
+					either(*output, "the JSON lines"))
+			}
 		}
-		errOut.printf("report written to %s\n", path)
-		if dropped := len(records) - reportRowLimit; dropped > 0 {
-			errOut.printf("  %d rows are in %s but not in the report\n", dropped,
-				either(*output, "the JSON lines"))
+		if err != nil {
+			return err
 		}
 	}
 

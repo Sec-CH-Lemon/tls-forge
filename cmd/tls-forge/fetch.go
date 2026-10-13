@@ -307,8 +307,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	again := addRunFlags(fs, 0)
 	watch := addWatchFlags(fs,
 		"print the body on stdout even when that is a terminal, or when --output has it")
-	report := fs.StringP("report", "R", "",
-		"write an HTML report here; a directory gets report-<date-time>.html")
+	reporting := addReportFlags(fs)
 	setUsage(fs, out, "usage: tls-forge fetch [flags] <url>")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -321,6 +320,10 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		return err
 	}
 	wantProgress, paint, err := watch.settle(errOut)
+	if err != nil {
+		return err
+	}
+	formats, err := reporting.formats()
 	if err != nil {
 		return err
 	}
@@ -418,7 +421,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
 	// A try that is made again is said only to somebody who asked to hear about
 	// every request. Otherwise it is one more thing the count is not about.
-	policy := retrier{retries: *again.retry, note: notes.say, keep: *report != ""}
+	policy := retrier{retries: *again.retry, note: notes.say, keep: len(formats) > 0}
 
 	// Through the one client, so a second run finds the connection the first
 	// one opened and the cookies it was given: the request made again, the way
@@ -461,7 +464,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			}
 		}
 		notes.say(runLine(run, runs, r))
-		if *report != "" {
+		if len(formats) > 0 {
 			// Only for a report. A request made a million times is otherwise
 			// counted and let go.
 			records = append(records, room.trim(r))
@@ -487,20 +490,26 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	// Whatever the run came to, and most of all when it came to nothing: a
 	// request that failed is the one somebody opens a report about.
-	var reported string
+	var reported []string
 	var reportErr error
-	if *report != "" {
+	if len(formats) > 0 {
 		exits := map[string]egress{}
 		if lookupErr == nil {
 			exits[*common.proxy] = found
 		}
 		totals := summarise(records, now().Sub(counts.started), exits)
 		totals.Passes = runs
-		reported = reportPath(*report, now())
-		if reportErr = writeReport(reported, "fetch", records, totals, exits); reportErr != nil {
-			reported = ""
-		} else if left := len(records) - reportRowLimit; left > 0 {
-			reported += fmt.Sprintf("  (without %d of the requests)", left)
+		var written []reportFile
+		written, reportErr = writeReports(reportFiles(*reporting.path, formats, now()),
+			"fetch", records, totals, exits)
+		for _, file := range written {
+			name := file.path
+			// Only the page stops at what a browser can open. The document has
+			// every request.
+			if left := len(records) - reportRowLimit; left > 0 && file.format == formatHTML {
+				name += fmt.Sprintf("  (without %d of the requests)", left)
+			}
+			reported = append(reported, name)
 		}
 	}
 
@@ -511,8 +520,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		if len(kept) > 0 {
 			figures = append(figures, [2]string{"Saved to", span(kept)})
 		}
-		if reported != "" {
-			figures = append(figures, [2]string{"Report", reported})
+		for _, name := range reported {
+			figures = append(figures, [2]string{"Report", name})
 		}
 		errOut.println()
 		errOut.printf("%s", aligned(figures))
@@ -520,8 +529,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		if len(kept) > 0 {
 			errOut.printf("  saved to %s\n", span(kept))
 		}
-		if reported != "" {
-			errOut.printf("  report written to %s\n", reported)
+		for _, name := range reported {
+			errOut.printf("  report written to %s\n", name)
 		}
 	}
 
