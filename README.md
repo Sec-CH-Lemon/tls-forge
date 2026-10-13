@@ -11,7 +11,7 @@ Use it when an ordinary Go, Node.js or Python HTTP client is rejected because
 its network stack does not match the browser named by its `User-Agent`.
 `tls-forge` can be used as:
 
-- a standalone CLI for one request or a batch;
+- a standalone CLI for one request or a list of them;
 - an intercepting proxy for an existing program;
 - a Go library;
 - a Node.js or Python SDK backed by the same Go transport;
@@ -54,7 +54,7 @@ local echo server and reports every difference it finds.
 ## Install
 
 A Chromium-based browser is required only for `capture` and `compare`. Fetching,
-batch processing, proxying and the language SDKs do not require a browser.
+proxying and the language SDKs do not require a browser.
 
 ### Release binary
 
@@ -108,7 +108,7 @@ Mount a directory when a command reads or writes files:
 
 ```bash
 docker run --rm -v "$PWD:/work" ghcr.io/sec-ch-lemon/tls-forge \
-  batch --input /work/urls.csv --output /work/results.jsonl
+  fetch --input /work/urls.csv --output /work/results.jsonl
 ```
 
 `capture` and `compare` are intentionally not supported by the small release
@@ -189,8 +189,7 @@ tls-forge <command> [flags]
 
 | Command | Purpose |
 |---|---|
-| [`fetch`](#fetch) | Make one request with a browser fingerprint |
-| [`batch`](#batch) | Fetch many URLs concurrently, optionally with one proxy per URL |
+| [`fetch`](#fetch) | Make requests with a browser fingerprint: one URL, or a list of them, each optionally through its own proxy |
 | [`capture`](#capture) | Measure an installed browser and optionally save a reusable profile |
 | [`compare`](#compare) | Compare a profile with an installed browser |
 | [`profiles`](#profiles) | List available profiles |
@@ -202,8 +201,8 @@ tls-forge <command> [flags]
 Run `tls-forge <command> --help` for generated command help. Durations use Go
 syntax such as `500ms`, `30s` or `2m`.
 
-When no profile is selected, the network commands (`fetch`, `batch`, `proxy`
-and `daemon`) use a profile installed as `local`, if one exists, and otherwise
+When no profile is selected, the network commands (`fetch`, `proxy` and
+`daemon`) use a profile installed as `local`, if one exists, and otherwise
 the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`
 family so it can detect drift instead of comparing a fresh local measurement
 with itself. Use `tls-forge profiles` to see the exact names available on the
@@ -211,8 +210,8 @@ machine.
 
 ### `fetch`
 
-Make a request and report how it went. The decompressed body goes to standard
-output when that is a pipe or a file, and to a terminal only with `--body`.
+Make requests and report how they went. One URL is answered with its page, and
+several URLs, or a list of them, with one JSON object for each request.
 
 ```bash
 tls-forge fetch https://example.com/
@@ -221,35 +220,56 @@ tls-forge fetch https://example.com/ > page.html
 tls-forge fetch -i -H "Accept-Language: en-US" https://example.com/
 tls-forge fetch -X POST -H "Content-Type: application/json" \
   -d '{"hello":"world"}' https://example.com/api
+tls-forge fetch https://example.com/ https://example.org/
+tls-forge fetch --input example/urls.csv --concurrency 8 --output results.jsonl
 ```
 
-Usage: `tls-forge fetch [flags] <url>`
+Usage: `tls-forge fetch [flags] [url...]`
 
 | Flag or argument | Meaning |
 |---|---|
-| `<url>` | Required HTTP or HTTPS URL |
+| `[url...]` | One HTTP or HTTPS URL, or several |
+| `--input <file>` | Read the URLs from a file; a list piped to standard input is read when no URL is named |
+| `-u`, `--urls <a,b,c>` | Comma-separated URLs; highest input precedence |
+| `-F`, `--format <format>` | How the list is read: `auto`, `lines`, `json` or `csv`; default `auto` |
+| `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given |
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
 | `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
 | `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random |
-| `--save-cookies <file>` | Atomically save the final session; `.txt` selects Netscape format |
+| `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate |
-| `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials |
+| `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
 | `-t`, `--timeout <duration>` | Request timeout; default `30s` |
 | `-k`, `--insecure` | Skip upstream certificate verification |
-| `-X`, `--method <method>` | HTTP method; default `GET` |
-| `-d`, `--data <text>` | Request body |
-| `-i`, `--include` | Print the status and response headers on standard output |
-| `-o`, `--output <file>` | Write the body to a file; with `--repeat`, one numbered file per run |
-| `-H`, `--header "Name: value"` | Add or override an ordered request header; repeatable |
+| `-X`, `--method <method>` | HTTP method, for every URL; default `GET` |
+| `-d`, `--data <text>` | Request body, for every URL |
+| `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
+| `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
+| `-o`, `--output <file>` | Write the page, or the JSON lines, to a file; a page asked for with `--repeat` gets one numbered file per run |
+| `--json` | Write a JSON line for each request even when one URL is named |
+| `--body-dir <dir>` | Write every page to a file in this directory, and JSON lines that name the files |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
-| `--repeat <n>` | Make the request `n` times; default `1` |
-| `--trace <file>` | Write every step of the run as Trace Event JSON |
-| `--body` | Print the body on standard output even when that is a terminal, or when `--output` has it |
-| `-v`, `--verbose` | Print a line when each request finishes, and one for each retry |
+| `--repeat <n>` | Make every request `n` times; default `1` |
+| `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
+| `--body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` has it |
+| `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report <path>` | Write a report with every request in it, as a page or as JSON; see [Reporting a run](#reporting-a-run) |
 | `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `auto`, which goes by the extension of `--report` |
+| `--report-ip[=false]` | With `--report`, when the entries of a list go through different proxies, ask the address services once per proxy where each comes out; default `true` |
+
+What comes out is decided by how the command was asked, not by how many URLs
+it ended up with:
+
+- one URL named on the command line is answered with its page, the way `curl`
+  answers;
+- several URLs, `--urls`, `--input` or a list on standard input are answered
+  with JSON Lines, one object for each request, and so is anything given
+  `--json` or `--body-dir`.
+
+A list that happens to hold one URL therefore still comes out as a line, and a
+script reading the output does not have to know how long the list was.
 
 On a terminal, `fetch` says how the run went rather than printing the page: a
 bar for how far it has got, a line for how long that has taken, and a row for
@@ -301,12 +321,16 @@ The body is the output, so it still goes wherever standard output was pointed:
 It is only a terminal that does not get it unless `--body` asks, because a page
 is thousands of lines nobody reads as they go past. With `--output` the body
 goes to the file alone, and `--body` prints it as well. `-i` prints the status
-and headers whether or not the body is printed.
+and headers whether or not the body is printed. JSON lines follow the same
+rule, each of them holding a whole page: a pipe, a redirect and `--output`
+receive them, a terminal only with `--body`, and a run that printed none says
+so at the end. The count and everything else that is commentary go to standard
+error, so the lines stay machine-readable.
 
-Before the request, `fetch` asks a public service which address it comes out
-of, through the same proxy and with the same profile. No cookie is sent with the
-question. The answer is the last line of the block on standard error that names
-the profile in use:
+Before the first request, `fetch` asks a public service which address it comes
+out of, through the same proxy and with the same profile. No cookie is sent
+with the question. The answer is the last line of the block on standard error
+that names the profile in use:
 
 ```text
   exit-ip     203.0.113.7 · PL
@@ -321,31 +345,97 @@ first. Amazon and ipify report the address without a country.
 This is at least one additional request to a third party on every run. The
 lookup waits at most five seconds in all, and when nobody answers the line says
 so instead of failing the fetch. A proxy that assigns an address per connection
-can send the request itself from a different one.
+can send the request itself from a different one. A list whose entries name
+different proxies has no one address to report: nobody is asked before it
+starts, and afterwards only for a [report](#reporting-a-run), once per proxy.
 
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
 are compatible with tools such as curl and wget.
+
+#### A list of URLs
+
+```bash
+tls-forge fetch https://example.com/ https://example.org/
+tls-forge fetch --input example/urls.csv --concurrency 8
+tls-forge fetch --input urls.json --output results.jsonl --report reports/
+cat urls.txt | tls-forge fetch --body-dir pages/ > results.jsonl
+```
+
+A list comes from `--urls`, then `--input`, then the URLs on the command line,
+then standard input when it is piped and nothing else named one. The whole list
+is checked before anything is fetched, and every entry that is not an HTTP or
+HTTPS URL is reported at once. With `--format auto`, `.json` selects JSON,
+`.csv` selects CSV and every other name uses one URL per line:
+
+```text
+# lines: URL followed by an optional proxy
+https://example.com/ http://user:pass@proxy.example:8080
+```
+
+```json
+[
+  "https://example.com/",
+  {"url": "https://example.org/", "proxy": "socks5://proxy.example:1080"}
+]
+```
+
+```csv
+url,proxy
+https://example.com/,http://user:pass@proxy.example:8080
+https://example.org/,
+```
+
+An entry can name its own proxy, and `--proxy` is the proxy of every entry
+that names none. There is one client, and one cookie jar, for each distinct
+proxy: a proxy is an identity, and two exits do not share a session. The
+method, the header fields and the body given with `-X`, `-H` and `-d` are the
+request, and every URL in the list is asked for with them.
+
+Four requests run at once unless `--concurrency` says otherwise. Each line of
+the output is one request:
+
+```json
+{"url":"https://example.com/","status":200,"final_url":"https://example.com/","bytes":559,"body":"<!doctype html>…","started":"2026-08-16T09:18:54.499687+02:00","ended":"2026-08-16T09:18:54.556431+02:00","ms":56,"attempts":1}
+```
+
+A request that got no response has `error` in place of `status`, and one that
+went through a proxy names it, without its password, as `proxy`. When a body
+is not valid UTF-8, `body` is base64 and the line contains
+`"body_encoding":"base64"`; `bytes` always remains the original byte count.
+`--body-dir` writes the original bytes to a file instead and puts its path in
+`file`; a URL that appears twice in one list gets a separate, stable file name
+for each. `-i` adds the response headers to every line as `headers`.
+
+`fetch` exits non-zero when one or more requests got no response. An answer
+that is not a 2xx is an answer: it is counted and written with its status, and
+does not change the exit code.
 
 #### Retrying and repeating
 
 ```bash
 tls-forge fetch --retry 3 https://example.com/
 tls-forge fetch --repeat 3 -o page.html https://example.com/
+tls-forge fetch --retry 3 --repeat 2 --input urls.csv
 ```
 
 `--retry` asks again when the answer is not a 2xx, or when no answer comes at
 all. The waits between tries are 250 ms, 500 ms, 1 s and then 2 s. When the
 tries run out, the last answer is the one that is counted, printed or saved,
 whatever its status, and the exit code still depends only on whether a response
-arrived.
+arrived. Nothing is asked for again unless `--retry` says so, for a list as
+for one URL, and a JSON line's `attempts` counts the tries.
 
 `--repeat` makes the same request several times through one client, so a later
-run reuses the connection and the cookies of the runs before it. With
-`-o page.html`, each run writes its own file: `page-1.html`, `page-2.html` and
-so on. Without `-o`, the bodies follow one another on standard output. The count
-covers all of the runs, and `-v` adds a line for each as it finishes, and for
-each try that is made again:
+run reuses the connection and the cookies of the runs before it. One URL is
+asked for one run at a time, the way a page is reloaded, unless
+`--concurrency` says how many at once. With `-o page.html`, each run writes
+its own file: `page-1.html`, `page-2.html` and so on. Without `-o`, the bodies
+follow one another on standard output. A list is gone through from top to
+bottom once per pass: every line carries the pass it belongs to as `run`, and
+each pass writes its own file to `--body-dir`. The count covers all of the
+runs, and `-v` adds a line for each as it finishes, and for each try that is
+made again:
 
 ```text
   1/3  200      577 B     29ms       page-1.html
@@ -366,22 +456,32 @@ each try that is made again:
 `fetch` exits non-zero if any run got no response. The two flags combine:
 `--retry` applies to every run.
 
+A run of several requests through proxies adds them to what it ends with: how
+many were used, how many of them carried anything, and each one nothing came
+back through, by name.
+
+```text
+  Proxies       8 used, 6 alive, some direct
+  dead proxy    http://user@198.51.100.4:8080  (12 requests, none came back)
+  dead proxy    socks5://198.51.100.9:1080  (11 requests, none came back)
+```
+
 #### Tracing a run
 
 ```bash
 tls-forge fetch --trace run.json https://example.com/
-tls-forge batch --input urls.csv --trace run.json
+tls-forge fetch --input urls.csv --trace run.json
 ```
 
 `--trace` records what a run did, step by step, in the Trace Event JSON format.
 Open the file at [ui.perfetto.dev](https://ui.perfetto.dev/) or in
-`chrome://tracing` to see it as a timeline: one row for the command, in `batch`
-one more row per worker, a bar for every try at a URL, and inside it a bar for
-each thing the try waited on.
+`chrome://tracing` to see it as a timeline: one row for the command, one more
+row per worker when several requests run at once, a bar for every try at a
+URL, and inside it a bar for each thing the try waited on.
 
 | In the trace | Meaning |
 |---|---|
-| `fetch` or `batch` | The whole run, with its settings; it ends with the error, if there was one |
+| `fetch` | The whole run, with its settings; it ends with the error, if there was one |
 | `profile`, `exit-ip`, `cookies loaded`, `cookies saved`, `summary` | What the run was wearing, where it came out, and the session and totals it handled |
 | `GET <url>` | One try, with its run and attempt number. It ends with the status, size, final URL and response headers, or with the error |
 | `dns`, `connect` | The name lookup and the TCP dial, with every address tried and why any of them failed |
@@ -422,7 +522,7 @@ scheme are kept. URLs are recorded in full, including their query strings.
 ```bash
 tls-forge fetch --repeat 20 --retry 2 --report reports/ https://example.com/
 tls-forge fetch --repeat 20 --retry 2 --report run.json https://example.com/
-tls-forge batch --input urls.csv --report reports/ --report-format html,json
+tls-forge fetch --input urls.csv --report reports/ --report-format html,json
 ```
 
 `--report` writes the run down when it is over: as a page for whoever opens
@@ -522,8 +622,8 @@ The JSON document holds what the page shows, under names of its own:
 }
 ```
 
-A request is the line `batch` writes for it, without the body and under the
-same names, with `exit` and `tries` added. Times are milliseconds, and those
+A request is the JSON line a list is answered with, without the body and under
+the same names, with `exit` and `tries` added. Times are milliseconds, and those
 of a try and of its steps keep a fraction, because most steps are over in less
 than one. `success_rate` is a percentage. A step the try ended in carries
 `"unfinished": true`, a redirect is a step named `redirect`, and `proxies`
@@ -545,102 +645,13 @@ is the last thing a run prints. One that cannot be written fails the run with
 exit code 1, after the pages have gone where they were going; of two, the one
 that could be written still is.
 
-`fetch` writes the report however the run ended, a request that got no answer
-included, and uses the exit address it has already asked for. `batch` asks for
-the address of each proxy once, after the list is done; `--report-ip=false`
-turns that off. The page holds at most 2,000 rows: the requests that failed or
-answered with something other than the page come first, and it says how many
-rows it left out.
-
-### `batch`
-
-Fetch a list concurrently and emit one JSON object per URL. Results go to
-stdout or `--output`; progress and summaries go to stderr, so the JSON Lines
-stream remains machine-readable.
-
-Each of those lines holds a whole page, so a terminal does not get them unless
-`--body` asks: there the run is followed through the same count `fetch` draws,
-with its row per status code, and through the summary at the end, which says
-when the lines were not printed. A pipe, a redirect and `--output` receive the
-lines as they always did.
-
-The summary gives how many URLs were asked for and how long the run took, how
-many of them came back as the page, as something else or not at all, how much
-data that was, the retries spent and, as `Avg time`, the average time of one
-URL with its retries included.
-
-```bash
-tls-forge batch https://example.com/ https://example.org/
-tls-forge batch --input example/urls.csv --concurrency 8
-tls-forge batch --input urls.json --output results.jsonl --report reports/
-```
-
-Usage: `tls-forge batch [flags] [urls...]`
-
-| Flag or argument | Meaning |
-|---|---|
-| `[urls...]` | URLs passed directly when neither `--urls` nor `--input` is used |
-| `-b`, `--cookie name=value` | Seed one cookie; repeatable |
-| `--cookies <file>` | Load warmed cookies |
-| `--cookie-set <id>` | Select one set from the cookie file |
-| `--save-cookies <file>` | Save one resulting session per distinct proxy |
-| `-p`, `--profile <name-or-path>` | Profile to impersonate |
-| `-x`, `--proxy <url>` | Default proxy for entries that do not specify one |
-| `-t`, `--timeout <duration>` | Per-request timeout; default `30s` |
-| `-k`, `--insecure` | Skip upstream certificate verification |
-| `-i`, `--input <file>` | Read URLs from a file; stdin is used when no source is given |
-| `-u`, `--urls <a,b,c>` | Comma-separated URLs; highest input precedence |
-| `-F`, `--format <format>` | `auto`, `lines`, `json` or `csv`; default `auto` |
-| `-c`, `--concurrency <n>` | Concurrent requests; default `4` |
-| `-o`, `--output <file>` | Write JSON Lines results here instead of stdout |
-| `-d`, `--body-dir <dir>` | Store response bodies separately and reference their paths |
-| `--retry <n>` | Ask again up to `n` more times when a URL's answer is not a 2xx, or does not come; default `3` |
-| `--repeat <n>` | Go through the whole list `n` times; default `1` |
-| `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
-| `--body` | Print the JSON lines on standard output even when that is a terminal |
-| `-v`, `--verbose` | Print one status line when each request finishes |
-| `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
-| `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
-| `-R`, `--report <path>` | Write a report of the run, as a page or as JSON; a directory gets a timestamped filename |
-| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `auto`, which goes by the extension of `--report` |
-| `--report-ip[=false]` | Ask the address services listed under [`fetch`](#fetch), once per proxy, for report metadata; default `true` |
-
-Input precedence is `--urls`, then `--input`, then positional URLs, then stdin.
-When an inline response body is not valid UTF-8, `body` is base64 and the row
-contains `"body_encoding":"base64"`; `bytes` always remains the original byte
-count. `--body-dir` writes the original bytes directly instead. Repeated URLs
-in one input get separate, stable body filenames.
-With `--format auto`, `.json` selects JSON, `.csv` selects CSV and every other
-name uses one URL per line.
-
-`--retry` waits 250 ms, 500 ms, 1 s and then 2 s between tries, and a row's
-`attempts` counts them. A URL that still answers with something other than a
-2xx is reported with that status, as before. With `--repeat`, the list is gone
-through from top to bottom once per pass, every row carries the pass it belongs
-to as `run`, and each pass writes its own body file.
-
-Supported list shapes:
-
-```text
-# lines: URL followed by an optional proxy
-https://example.com/ http://user:pass@proxy.example:8080
-```
-
-```json
-[
-  "https://example.com/",
-  {"url": "https://example.org/", "proxy": "socks5://proxy.example:1080"}
-]
-```
-
-```csv
-url,proxy
-https://example.com/,http://user:pass@proxy.example:8080
-https://example.org/,
-```
-
-The command creates one client and cookie jar per distinct proxy. A batch exits
-non-zero when one or more URLs fail.
+The report is written however the run ended, a request that got no answer
+included. A run that went one way uses the exit address it asked for before
+its first request. A list with a proxy for each URL asks for the address of
+each proxy once, after the list is done, and `--report-ip=false` turns that
+off. The page holds at most 2,000 rows: the requests that failed or answered
+with something other than the page come first, and it says how many rows it
+left out.
 
 Runnable CLI and SDK examples, with complete sample inputs and outputs, are in
 [`example/`](example/).

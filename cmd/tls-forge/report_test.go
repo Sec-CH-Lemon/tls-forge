@@ -142,30 +142,33 @@ func TestSummarise(t *testing.T) {
 	}
 }
 
-func TestSummaryTable(t *testing.T) {
+func TestSummaryProxyRows(t *testing.T) {
 	s := summarise([]result{
 		{URL: "https://a/", Status: 200, Bytes: 1_000, Attempts: 1, Millis: 240},
 		{URL: "https://b/", Attempts: 2, Millis: 2_760, Proxy: "http://dead", Error: "refused"},
+		{URL: "https://c/", Status: 200, Attempts: 1, Proxy: "http://user:secret@alive"},
 	}, 3*time.Minute, nil)
-	s.Output = "results.jsonl"
 
-	table := s.table()
-	for _, want := range []string{
-		"2 URLs in 3m00s",
-		"Scraped      1  (50.0%)",
-		"Not 2xx      0  (0.0%)",
-		"No response  1  (50.0%)",
-		"1.0 kB",
-		"Retries      1",
-		"Avg time     1.5s",
-		"1 used, 0 alive, some direct",
-		// Named, not just counted: "0 alive" does not say which one to replace.
-		"dead proxy   http://dead  (1 requests, none came back)",
-		"results.jsonl",
-	} {
-		if !strings.Contains(table, want) {
-			t.Errorf("the table has no %q:\n%s", want, table)
-		}
+	want := [][2]string{
+		{"Proxies", "2 used, 1 alive, some direct"},
+		// Named, not just counted: "1 alive" does not say which one to replace.
+		{"dead proxy", "http://dead  (1 requests, none came back)"},
+	}
+	if got := s.proxyRows(); !slices.Equal(got, want) {
+		t.Errorf("proxy rows = %q, want %q", got, want)
+	}
+	if s.Average() != time.Second {
+		t.Errorf("Average = %s, want the three seconds between three requests", s.Average())
+	}
+
+	// A run that used no proxy has nothing to say about any, and one whose
+	// every request went through one does not mention going direct.
+	if got := summarise([]result{{Status: 200}}, time.Second, nil).proxyRows(); got != nil {
+		t.Errorf("a run without proxies has %q", got)
+	}
+	through := summarise([]result{{Status: 200, Proxy: "http://p1"}}, time.Second, nil)
+	if got := through.proxyRows(); !slices.Equal(got, [][2]string{{"Proxies", "1 used, 1 alive"}}) {
+		t.Errorf("a run through one proxy has %q", got)
 	}
 }
 
@@ -173,8 +176,8 @@ func TestSummaryOfNothing(t *testing.T) {
 	// A percentage of nothing is 0%, not a division by zero, and so is the time
 	// that none of its requests took.
 	s := summarise(nil, time.Second, nil)
-	if got := s.table(); !strings.Contains(got, "0  (0.0%)") || !strings.Contains(got, "Avg time     0ms") {
-		t.Errorf("table: %s", got)
+	if s.SuccessRate() != "0.0%" || s.Average() != 0 {
+		t.Errorf("a run of nothing: %s scraped, %s each", s.SuccessRate(), s.Average())
 	}
 }
 
@@ -220,7 +223,7 @@ func TestWriteReport(t *testing.T) {
 	s := summarise(records, 2*time.Second, exits)
 
 	path := filepath.Join(t.TempDir(), "report.html")
-	if err := writeReport(reportFile{formatHTML, path}, "batch", records, s, exits); err != nil {
+	if err := writeReport(reportFile{formatHTML, path}, "fetch", records, s, exits); err != nil {
 		t.Fatalf("writeReport: %v", err)
 	}
 	data, err := os.ReadFile(path)
@@ -271,7 +274,7 @@ func TestWriteReportEscapesWhatItIsGiven(t *testing.T) {
 		Status: 200,
 	}}
 	path := filepath.Join(t.TempDir(), "report.html")
-	if err := writeReport(reportFile{formatHTML, path}, "batch", records, summarise(records, time.Second, nil), nil); err != nil {
+	if err := writeReport(reportFile{formatHTML, path}, "fetch", records, summarise(records, time.Second, nil), nil); err != nil {
 		t.Fatalf("writeReport: %v", err)
 	}
 	data, _ := os.ReadFile(path)
@@ -291,7 +294,7 @@ func TestWriteReportToAPathThatWillNotOpen(t *testing.T) {
 	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	err := writeReport(reportFile{formatHTML, filepath.Join(blocked, "r.html")}, "batch", nil, summary{}, nil)
+	err := writeReport(reportFile{formatHTML, filepath.Join(blocked, "r.html")}, "fetch", nil, summary{}, nil)
 	if err == nil {
 		t.Error("no error")
 	}
@@ -310,7 +313,7 @@ func TestWriteReportMakesTheDirectory(t *testing.T) {
 	if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	if err := writeReport(reportFile{formatHTML, path}, "batch", nil, summary{}, nil); err != nil {
+	if err := writeReport(reportFile{formatHTML, path}, "fetch", nil, summary{}, nil); err != nil {
 		t.Fatalf("writeReport: %v", err)
 	}
 	info, err := os.Stat(path)
@@ -333,7 +336,7 @@ func TestWriteReportReportsAChmodFailure(t *testing.T) {
 	t.Cleanup(func() { chmodReport = original })
 	chmodReport = func(_ *os.File, _ os.FileMode) error { return fmt.Errorf("permission denied") }
 
-	err := writeReport(reportFile{formatHTML, filepath.Join(t.TempDir(), "report.html")}, "batch", nil, summary{}, nil)
+	err := writeReport(reportFile{formatHTML, filepath.Join(t.TempDir(), "report.html")}, "fetch", nil, summary{}, nil)
 	if err == nil || !strings.Contains(err.Error(), "securing report") {
 		t.Fatalf("writeReport error = %v", err)
 	}
@@ -408,26 +411,28 @@ func TestLookupExitErrors(t *testing.T) {
 	})
 }
 
-func TestBatchWritesAReport(t *testing.T) {
+func TestListWritesAReport(t *testing.T) {
 	standInIPService(t, `{"ip":"203.0.113.7","country":"PL"}`, http.StatusOK)
-	server := batchServer(t)
+	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "batch", "--report", path, "--insecure",
+	code, _, stderr := exec(t, "fetch", "--report", path, "--insecure",
 		server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 
-	// The table lands on stderr, with everything else that is commentary.
-	for _, want := range []string{"Ran", "2 URLs", "Scraped", "100.0%", "Retries"} {
-		if !strings.Contains(stderr, want) {
-			t.Errorf("stderr has no %q:\n%s", want, stderr)
-		}
+	// What the run came to lands on stderr, with everything else that is
+	// commentary, and ends by naming the report.
+	want := "\n  Requests      2\n  Retries       0\n  Success rate  100.0%\n  Avg time      0ms\n" +
+		"  Report        " + path + "\n"
+	if !strings.HasSuffix(stderr, want) {
+		t.Errorf("stderr does not end with what the run came to (%q):\n%s", want, stderr)
 	}
-	// And the third party is named rather than contacted quietly.
-	if !strings.Contains(stderr, ipServices[0].name()) {
-		t.Errorf("the lookup was not announced:\n%s", stderr)
+	// Both went the same way, so where that came out was asked once, before the
+	// first of them, and is said where the run says what it is wearing.
+	if !strings.Contains(stderr, "  exit-ip     203.0.113.7 · PL\n") {
+		t.Errorf("stderr does not say where the run came out:\n%s", stderr)
 	}
 
 	data, err := os.ReadFile(path)
@@ -441,7 +446,7 @@ func TestBatchWritesAReport(t *testing.T) {
 	}
 }
 
-func TestBatchKeepsItsSessionFromTheAddressService(t *testing.T) {
+func TestListKeepsItsSessionFromTheAddressService(t *testing.T) {
 	// A cookie that names no domain is filed against every host a client talks
 	// to. That is how it reaches the pages it is for, and how the question
 	// about the address, asked through the same client, used to hand the
@@ -450,7 +455,7 @@ func TestBatchKeepsItsSessionFromTheAddressService(t *testing.T) {
 	server := cookieEcho(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, stdout, stderr := exec(t, "batch", "--insecure", "--progress", "never",
+	code, stdout, stderr := exec(t, "fetch", "--insecure", "--progress", "never",
 		"-b", "session=s3cr3t", "--report", path, server.URL+"/")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -471,14 +476,14 @@ func TestBatchKeepsItsSessionFromTheAddressService(t *testing.T) {
 	}
 }
 
-func TestBatchReportWithoutTheAddressLookup(t *testing.T) {
+func TestListReportWithoutTheAddressLookup(t *testing.T) {
 	// --report-ip=false, so nothing is asked of anyone. The stand-in would
 	// count it if something were.
 	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
 
-	server := batchServer(t)
+	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
-	code, _, stderr := exec(t, "batch", "--report", path, "--report-ip=false", server.URL+"/one")
+	code, _, stderr := exec(t, "fetch", "--report", path, "--report-ip=false", server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -494,25 +499,25 @@ func TestBatchReportWithoutTheAddressLookup(t *testing.T) {
 	}
 }
 
-func TestBatchReportToAPathThatWillNotOpen(t *testing.T) {
-	server := batchServer(t)
+func TestListReportToAPathThatWillNotOpen(t *testing.T) {
+	server := pathServer(t)
 	blocked := filepath.Join(t.TempDir(), "a-file")
 	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	code, _, _ := exec(t, "batch", "--report",
+	code, _, _ := exec(t, "fetch", "--report",
 		filepath.Join(blocked, "r.html"), "--report-ip=false", server.URL+"/one")
 	if code == 0 {
 		t.Error("an unwritable report path should fail")
 	}
 }
 
-// TestBatchReportToADirectoryThatDoesNotExist is the README's own spelling, end
+// TestListReportToADirectoryThatDoesNotExist is the README's own spelling, end
 // to end: the run must succeed and leave a report behind.
-func TestBatchReportToADirectoryThatDoesNotExist(t *testing.T) {
-	server := batchServer(t)
+func TestListReportToADirectoryThatDoesNotExist(t *testing.T) {
+	server := pathServer(t)
 	dir := filepath.Join(t.TempDir(), "reports")
-	code, _, _ := exec(t, "batch", "--report", dir+string(os.PathSeparator),
+	code, _, _ := exec(t, "fetch", "--report", dir+string(os.PathSeparator),
 		"--report-ip=false", server.URL+"/one")
 	if code != 0 {
 		t.Errorf("exit code %d, want 0", code)
@@ -526,14 +531,14 @@ func TestBatchReportToADirectoryThatDoesNotExist(t *testing.T) {
 	}
 }
 
-func TestBatchSummaryNamesADeadProxy(t *testing.T) {
+func TestListSummaryNamesADeadProxy(t *testing.T) {
 	// The question the summary exists for: which of my proxies is the reason
 	// those pages are missing.
-	server := batchServer(t)
+	server := pathServer(t)
 	path := writeList(t, "dead.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/one,http://127.0.0.1:9001\n%[1]s/two,\n", server.URL))
 
-	code, _, stderr := exec(t, "batch", "--input", path, "--timeout", "5s")
+	code, _, stderr := exec(t, "fetch", "--input", path, "--timeout", "5s")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -546,22 +551,24 @@ func TestBatchSummaryNamesADeadProxy(t *testing.T) {
 
 func TestRenderReportReportsAWriteFailure(t *testing.T) {
 	// A full disk part way through the document.
-	if err := renderReport(failingWriter{}, "batch", nil, summary{}, nil); err == nil {
+	if err := renderReport(failingWriter{}, "fetch", nil, summary{}, nil); err == nil {
 		t.Error("no error")
 	}
 }
 
-func TestBatchReportWithAProxyThatCannotBeBuilt(t *testing.T) {
+func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
 	// The proxy column had a typo, so the URL failed and there is no client to
 	// ask where it would have come out. The report is still written, and says
 	// the address was not looked up rather than failing the run.
 	standInIPService(t, `{"ip":"203.0.113.7","country":"PL"}`, http.StatusOK)
-	server := batchServer(t)
+	server := pathServer(t)
+	// Two of the three went without a proxy, which is one way out to ask about
+	// and not two.
 	list := writeList(t, "typo.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/bad,::not a proxy::\n%[1]s/good,\n", server.URL))
+		"url,proxy\n%[1]s/bad,::not a proxy::\n%[1]s/good,\n%[1]s/also-good,\n", server.URL))
 
 	path := filepath.Join(t.TempDir(), "run.html")
-	code, _, stderr := exec(t, "batch", "--input", list, "--report", path, "--insecure")
+	code, _, stderr := exec(t, "fetch", "--input", list, "--report", path, "--insecure")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -717,11 +724,11 @@ func TestReportPath(t *testing.T) {
 	}
 }
 
-func TestBatchNamesTheReportAfterTheRun(t *testing.T) {
-	server := batchServer(t)
+func TestListNamesTheReportAfterTheRun(t *testing.T) {
+	server := pathServer(t)
 	dir := t.TempDir()
 
-	code, _, stderr := exec(t, "batch", "--report", dir, "--report-ip=false", server.URL+"/one")
+	code, _, stderr := exec(t, "fetch", "--report", dir, "--report-ip=false", server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -770,7 +777,7 @@ func FuzzRenderReport(f *testing.F) {
 	f.Fuzz(func(t *testing.T, url, failure string, status int) {
 		records := []result{{URL: url, Error: failure, Status: status, Proxy: url}}
 		var html strings.Builder
-		if err := renderReport(&html, "batch", records, summarise(records, time.Second, nil), nil); err != nil {
+		if err := renderReport(&html, "fetch", records, summarise(records, time.Second, nil), nil); err != nil {
 			t.Fatalf("renderReport: %v", err)
 		}
 		out := html.String()
@@ -844,7 +851,7 @@ func TestReportSaysWhatItLeftOut(t *testing.T) {
 	// Never silently: a table that quietly stops reads as a complete one.
 	records := rowsFor(reportRowLimit+5, 0)
 	var html strings.Builder
-	if err := renderReport(&html, "batch", records, summarise(records, time.Second, nil), nil); err != nil {
+	if err := renderReport(&html, "fetch", records, summarise(records, time.Second, nil), nil); err != nil {
 		t.Fatalf("renderReport: %v", err)
 	}
 	if !strings.Contains(html.String(), "5 more rows are not shown") {
@@ -853,8 +860,8 @@ func TestReportSaysWhatItLeftOut(t *testing.T) {
 	if !strings.Contains(html.String(), "The URLs worth looking at") {
 		t.Error("the heading still claims to show every URL")
 	}
-	// And where the rest of them are, for the command that keeps them somewhere.
-	if !strings.Contains(html.String(), "The JSON lines carry every row.") {
+	// And where the rest of them are to be had.
+	if !strings.Contains(html.String(), "The same report written as JSON has every request.") {
 		t.Error("the report does not say where the rows it left out can be found")
 	}
 }
@@ -905,7 +912,7 @@ func TestLookupExitsStopsAskingAfterAWhile(t *testing.T) {
 	// limit it deserves.
 	standInIPService(t, `{"ip":"203.0.113.7","country":"PL"}`, http.StatusOK)
 
-	fs := newFlagSet("batch", newPrinter(io.Discard))
+	fs := newFlagSet("fetch", newPrinter(io.Discard))
 	flags := addClientFlags(fs)
 	if err := parse(fs, []string{"--insecure"}); err != nil {
 		t.Fatalf("parse: %v", err)
@@ -929,16 +936,7 @@ func TestLookupExitsStopsAskingAfterAWhile(t *testing.T) {
 	}
 }
 
-func TestEither(t *testing.T) {
-	if got := either("results.jsonl", "the JSON lines"); got != "results.jsonl" {
-		t.Errorf("either = %q", got)
-	}
-	if got := either("", "the JSON lines"); got != "the JSON lines" {
-		t.Errorf("either = %q", got)
-	}
-}
-
-func TestBatchSaysWhatTheReportLeftOut(t *testing.T) {
+func TestListSaysWhatTheReportLeftOut(t *testing.T) {
 	// The caps are announced on the terminal as well as in the document. A
 	// table that quietly stops, and a set of addresses that quietly is not
 	// looked up, both read as complete.
@@ -946,33 +944,33 @@ func TestBatchSaysWhatTheReportLeftOut(t *testing.T) {
 	t.Cleanup(func() { reportRowLimit = original })
 	reportRowLimit = 2
 
-	server := batchServer(t)
+	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 	urls := []string{server.URL + "/a", server.URL + "/b", server.URL + "/c", server.URL + "/d"}
 
-	args := append([]string{"batch", "--report", path, "--report-ip=false",
+	args := append([]string{"fetch", "--report", path, "--report-ip=false",
 		"--output", os.DevNull}, urls...)
 	code, _, stderr := exec(t, args...)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	if !strings.Contains(stderr, "2 rows are in "+os.DevNull+" but not in the report") {
-		t.Errorf("stderr does not say what was left out:\n%s", stderr)
+	if want := "  Report        " + path + "  (without 2 of the requests)\n"; !strings.HasSuffix(stderr, want) {
+		t.Errorf("stderr does not say what was left out (%q):\n%s", want, stderr)
 	}
 }
 
-func TestBatchSaysWhichProxiesItDidNotAskAbout(t *testing.T) {
+func TestListSaysWhichProxiesItDidNotAskAbout(t *testing.T) {
 	original := exitLookupLimit
 	t.Cleanup(func() { exitLookupLimit = original })
 	exitLookupLimit = 1
 
 	standInIPService(t, `{"ip":"203.0.113.7","country":"PL"}`, http.StatusOK)
-	server := batchServer(t)
+	server := pathServer(t)
 	list := writeList(t, "many.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/a,http://127.0.0.1:9001\n%[1]s/b,http://127.0.0.1:9002\n", server.URL))
 
 	path := filepath.Join(t.TempDir(), "run.html")
-	_, _, stderr := exec(t, "batch", "--input", list, "--report", path, "--timeout", "5s")
+	_, _, stderr := exec(t, "fetch", "--input", list, "--report", path, "--timeout", "5s")
 	if !strings.Contains(stderr, "1 further proxies were not asked about") {
 		t.Errorf("stderr does not say which proxies went unasked:\n%s", stderr)
 	}
@@ -982,7 +980,7 @@ func TestBatchSaysWhichProxiesItDidNotAskAbout(t *testing.T) {
 // survives the directory being made: the parent exists, so MkdirAll succeeds,
 // and the target itself is not a file that can be opened for writing.
 func TestWriteReportToAPathThatIsADirectory(t *testing.T) {
-	err := writeReport(reportFile{formatHTML, t.TempDir()}, "batch", nil, summary{}, nil)
+	err := writeReport(reportFile{formatHTML, t.TempDir()}, "fetch", nil, summary{}, nil)
 	if err == nil {
 		t.Error("no error")
 	}
@@ -1140,10 +1138,10 @@ func TestFetchReportSaysWhatItLeftOut(t *testing.T) {
 	if !strings.Contains(html, "1 more rows are not shown") || !strings.Contains(html, "The requests worth looking at") {
 		t.Error("the report does not say that it left a row out")
 	}
-	// A fetch writes its pages and nothing about them, so there is nowhere else
-	// to send somebody for the rest.
-	if strings.Contains(html, "JSON lines") {
-		t.Error("the report of a fetch points at JSON lines that a fetch does not write")
+	// The pages of a request made again are not a record of it, so what the
+	// page points at for the rest is the report that has every request.
+	if strings.Contains(html, "JSON lines") || !strings.Contains(html, "written as JSON has every request") {
+		t.Error("the report does not say where every request can be had")
 	}
 }
 
@@ -1162,17 +1160,17 @@ func TestFetchReportWithoutAnAddress(t *testing.T) {
 	}
 }
 
-func TestBatchReportNumbersTheRunsOfARepeat(t *testing.T) {
-	server := batchServer(t)
+func TestListReportNumbersTheRunsOfARepeat(t *testing.T) {
+	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "batch", "--repeat", "2", "--report", path, "--report-ip=false",
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--report", path, "--report-ip=false",
 		server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	html := reportOf(t, path)
-	for _, want := range []string{">tls-forge batch</h1>", "2 of 2 requests in ", "Every request", ">Run</span>"} {
+	for _, want := range []string{">tls-forge fetch</h1>", "2 of 2 requests in ", "Every request", ">Run</span>"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the report has no %q", want)
 		}

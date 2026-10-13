@@ -583,7 +583,7 @@ func TestFetchVerboseSaysEveryRunAndWhereItWent(t *testing.T) {
 	first, second := filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-2.html")
 	for _, want := range []string{
 		"try 1 of 2: HTTP 503",
-		// The columns batch prints for a URL, with the file where it has the URL.
+		// The columns a list prints for a URL, with the file where it has the URL.
 		"  1/2  200",
 		" x2    " + first,
 		"  2/2  200",
@@ -627,30 +627,30 @@ func TestFetchRejectsWordsItDoesNotKnow(t *testing.T) {
 	}
 }
 
-func TestBatchOnAScreenKeepsItsLinesToItself(t *testing.T) {
+func TestListOnAScreenKeepsItsLinesToItself(t *testing.T) {
 	asIfOnScreen(t)
-	server := batchServer(t)
+	server := pathServer(t)
 
 	// Each line holds a whole page. On a screen the run is watched through its
-	// count and its summary, which are still there.
-	code, stdout, stderr := exec(t, "batch", server.URL+"/one", server.URL+"/two")
+	// count and what it came to, which are still there.
+	code, stdout, stderr := exec(t, "fetch", server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	if stdout != "" {
 		t.Errorf("the JSON lines were printed on a screen without being asked for: %q", stdout)
 	}
-	if !strings.Contains(stderr, "Scraped      2") {
-		t.Errorf("the summary went with them:\n%s", stderr)
+	if !strings.Contains(stderr, "\n  Success rate  100.0%\n") {
+		t.Errorf("what the run came to went with them:\n%s", stderr)
 	}
-	// And the summary says that they went nowhere, and the two ways to have them.
-	const unprinted = "  JSON lines   not printed on a terminal; -o FILE keeps them, --body shows them\n"
-	if !strings.Contains(stderr, unprinted) {
-		t.Errorf("the summary does not say the lines were not printed:\n%s", stderr)
+	// And it says that they went nowhere, and the two ways to have them.
+	const unprinted = "  JSON lines    not printed on a terminal; -o FILE keeps them, --body shows them\n"
+	if !strings.HasSuffix(stderr, unprinted) {
+		t.Errorf("the run does not end by saying the lines were not printed:\n%s", stderr)
 	}
 
 	// Asked for, they are printed as they always were.
-	_, stdout, stderr = exec(t, "batch", "--body", server.URL+"/one", server.URL+"/two")
+	_, stdout, stderr = exec(t, "fetch", "--body", server.URL+"/one", server.URL+"/two")
 	if got := lines(t, stdout); len(got) != 2 || got[server.URL+"/one"].Body != "page /one" {
 		t.Errorf("--body printed %q", stdout)
 	}
@@ -658,18 +658,25 @@ func TestBatchOnAScreenKeepsItsLinesToItself(t *testing.T) {
 		t.Errorf("lines that were printed were reported as not printed:\n%s", stderr)
 	}
 
-	// And a file gets them whatever standard output is.
+	// And a file gets them whatever standard output is. One request says where
+	// they went under its own line.
 	path := filepath.Join(t.TempDir(), "results.jsonl")
-	if _, stdout, stderr = exec(t, "batch", "--output", path, server.URL+"/one"); stdout != "" ||
-		strings.Contains(stderr, "JSON lines") {
+	if _, stdout, stderr = exec(t, "fetch", "--json", "--output", path, server.URL+"/one"); stdout != "" ||
+		strings.Contains(stderr, "JSON lines") || !strings.HasSuffix(stderr, "\n  written to "+path+"\n") {
 		t.Errorf("with --output: stdout = %q, stderr = %q", stdout, after(stderr))
 	}
 	if kept, err := os.ReadFile(path); err != nil || len(lines(t, string(kept))) != 1 {
 		t.Errorf("the file holds %q (%v)", kept, err)
 	}
+
+	// One request whose line went nowhere says so the same way.
+	_, _, stderr = exec(t, "fetch", "--json", server.URL+"/one")
+	if !strings.HasSuffix(stderr, "\n  JSON lines not printed on a terminal; -o FILE keeps them, --body shows them\n") {
+		t.Errorf("one request does not say its line was not printed:\n%s", stderr)
+	}
 }
 
-func TestBatchCountsStatusesUnderItsProgress(t *testing.T) {
+func TestListCountsStatusesUnderItsProgress(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/missing" {
 			w.WriteHeader(http.StatusNotFound)
@@ -678,12 +685,12 @@ func TestBatchCountsStatusesUnderItsProgress(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	code, stdout, stderr := exec(t, "batch", "--progress", "always", "--color", "always",
+	code, stdout, stderr := exec(t, "fetch", "--progress", "always", "--color", "always",
 		"--retry", "0", "--concurrency", "1", server.URL+"/one", server.URL+"/missing")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	// The same rows fetch draws, under the line batch always had.
+	// The same rows one URL draws, under the bar a list has.
 	for _, want := range []string{
 		ansiGreen + "  ✓ 200 OK          1   50%" + ansiReset,
 		ansiRed + "  ✗ 404 Not Found   1   50%" + ansiReset,

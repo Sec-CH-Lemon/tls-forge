@@ -18,23 +18,22 @@ import (
 // How hard a run tries, and where it writes down what trying looked like.
 //
 // Two different things. Asking again because the answer was wrong is a retry;
-// asking again because once was never the plan is a repeat. Batch used to call
-// the first by the second's name. Fetch and batch now share both, and the words
-// mean the same in each.
+// asking again because once was never the plan is a repeat.
 
-// runFlags are the flags fetch and batch share beyond the client's own.
+// runFlags are how a run is made beyond what its client is: how hard it tries,
+// how many times it is made, and whether it is traced.
 type runFlags struct {
 	retry  *int
 	repeat *int
 	trace  *string
 }
 
-// addRunFlags registers them. The number of retries a command makes when
-// nobody says is the command's to choose: none for the one request fetch was
-// asked for, a few for a list batch is left alone with.
-func addRunFlags(fs *pflag.FlagSet, retries int) runFlags {
+// addRunFlags registers them. Nothing is asked for again unless somebody says
+// how many times: what was asked for is one request for each URL, and a list
+// is asked for the way one URL is.
+func addRunFlags(fs *pflag.FlagSet) runFlags {
 	return runFlags{
-		retry: fs.Int("retry", retries,
+		retry: fs.Int("retry", 0,
 			"times to ask again when the answer is not a 2xx, or does not come"),
 		repeat: fs.Int("repeat", 1, "times to make each request"),
 		trace: fs.String("trace", "",
@@ -60,7 +59,8 @@ func (f runFlags) check() error {
 type retrier struct {
 	retries int
 	// note is told about a try that is about to be made again. Nil keeps quiet,
-	// which is what batch wants: it has a line per URL already.
+	// which is what several requests at once want: the tries of two URLs said
+	// in turn have nothing to tell them apart.
 	note func(text string)
 	// keep asks for every try to be written down as it is made, with what it
 	// waited on, for a report to show.

@@ -359,11 +359,11 @@ func TestSessionFileReportsAReadErrorOtherThanNotExist(t *testing.T) {
 	}
 }
 
-func TestBatchWarmsEveryRequest(t *testing.T) {
-	// The flags are shared, so batch gets them too, and one warmed session is
+func TestListWarmsEveryRequest(t *testing.T) {
+	// A list is given the session too, and one warmed session is
 	// one client's, which is the identity it was warmed for.
 	server := cookieEcho(t)
-	_, stdout, stderr := exec(t, "batch", "-k", "-b", "session=abc", "--progress", "never",
+	_, stdout, stderr := exec(t, "fetch", "-k", "-b", "session=abc", "--progress", "never",
 		server.URL+"/a", server.URL+"/b")
 	if !strings.Contains(stdout, "session=abc") {
 		t.Errorf("stdout = %q\n%s", stdout, stderr)
@@ -380,7 +380,7 @@ func TestBatchWarmsEveryRequest(t *testing.T) {
 	}
 }
 
-func TestBatchSavesOneSessionPerProxy(t *testing.T) {
+func TestListSavesOneSessionPerProxy(t *testing.T) {
 	// A jar is an identity, so two exits' sessions never share a set. The same
 	// URL twice is one host, asked once.
 	fakeClock(t)
@@ -390,7 +390,7 @@ func TestBatchSavesOneSessionPerProxy(t *testing.T) {
 	list := writeList(t, "mixed.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/set,\n%[1]s/set,\n%[1]s/set,http://127.0.0.1:9001\n", server.URL))
 
-	code, _, stderr := exec(t, "batch", "-k", "--input", list, "--save-cookies", path,
+	code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", path,
 		"--progress", "never", "--retry", "0", "--timeout", "5s", "-o", os.DevNull)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (one URL went through a dead proxy)\n%s", code, stderr)
@@ -416,13 +416,13 @@ func TestBatchSavesOneSessionPerProxy(t *testing.T) {
 	}
 }
 
-func TestBatchReportsASessionItCannotWrite(t *testing.T) {
+func TestListReportsASessionItCannotWrite(t *testing.T) {
 	server := cookieEcho(t)
-	code, _, stderr := exec(t, "batch", "-k", "--save-cookies",
+	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies",
 		filepath.Join(t.TempDir(), "no-such-directory", "w.json"),
 		"--progress", "never", "-o", os.DevNull, server.URL+"/set")
 	if code == 0 {
-		t.Error("an unsaved batch session reported success")
+		t.Error("a run whose session could not be saved reported success")
 	}
 	if !strings.Contains(stderr, "tlsforge:") {
 		t.Errorf("stderr = %q", stderr)
@@ -434,7 +434,7 @@ func TestSaveSessionSkipsAURLItCannotRead(t *testing.T) {
 	// is still written down.
 	fakeClock(t)
 	server := cookieEcho(t)
-	fs := newFlagSet("batch", newPrinter(io.Discard))
+	fs := newFlagSet("fetch", newPrinter(io.Discard))
 	flags := addClientFlags(fs)
 	path := filepath.Join(t.TempDir(), "warm.json")
 	if err := parse(fs, []string{"--insecure", "--save-cookies", path}); err != nil {
@@ -463,7 +463,7 @@ func TestSaveSessionSkipsAURLItCannotRead(t *testing.T) {
 func TestSaveSessionDeduplicatesCookiesAcrossPathsOnOneOrigin(t *testing.T) {
 	fakeClock(t)
 	server := cookieEcho(t)
-	fs := newFlagSet("batch", newPrinter(io.Discard))
+	fs := newFlagSet("fetch", newPrinter(io.Discard))
 	flags := addClientFlags(fs)
 	path := filepath.Join(t.TempDir(), "warm.json")
 	if err := parse(fs, []string{"--insecure", "--save-cookies", path}); err != nil {
@@ -489,7 +489,7 @@ func TestSaveSessionDeduplicatesCookiesAcrossPathsOnOneOrigin(t *testing.T) {
 	}
 }
 
-func TestBatchSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
+func TestListSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
 	// A typo in the proxy column means no client was ever made for it, so there
 	// is no jar to write down and the rest of the run is still saved.
 	fakeClock(t)
@@ -498,7 +498,7 @@ func TestBatchSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
 	list := writeList(t, "typo.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/set,::not a proxy::\n%[1]s/set,\n", server.URL))
 
-	code, _, stderr := exec(t, "batch", "-k", "--input", list, "--save-cookies", path,
+	code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", path,
 		"--progress", "never", "--retry", "0", "-o", os.DevNull)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)

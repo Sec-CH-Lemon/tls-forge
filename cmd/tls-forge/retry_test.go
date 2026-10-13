@@ -178,10 +178,10 @@ func TestRunFlagErrorsAreUsageErrors(t *testing.T) {
 	}
 }
 
-func TestBatchAsksAgainWhenTheAnswerIsNotThePage(t *testing.T) {
+func TestListAsksAgainWhenTheAnswerIsNotThePage(t *testing.T) {
 	server, asked := replying(t, 503, 200)
 
-	code, stdout, stderr := exec(t, "batch", server.URL+"/flaky")
+	code, stdout, stderr := exec(t, "fetch", "--json", "--retry", "3", server.URL+"/flaky")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -192,16 +192,16 @@ func TestBatchAsksAgainWhenTheAnswerIsNotThePage(t *testing.T) {
 	if got := asked.Load(); got != 2 {
 		t.Errorf("the server was asked %d times, want 2", got)
 	}
-	// One try beyond the first, counted where retries always were.
-	if !strings.Contains(stderr, "Retries      1") {
-		t.Errorf("the summary does not count the retry:\n%s", stderr)
+	// One try beyond the first, counted where one request says what it took.
+	if !strings.HasSuffix(stderr, " · 1 retry\n") {
+		t.Errorf("the last line does not count the retry:\n%s", stderr)
 	}
 }
 
-func TestBatchKeepsTheAnswerItGotWhenToldNotToRetry(t *testing.T) {
+func TestListKeepsTheAnswerItGotWhenToldNotToRetry(t *testing.T) {
 	server, asked := replying(t, 503, 200)
 
-	code, stdout, _ := exec(t, "batch", "--retry", "0", server.URL+"/flaky")
+	code, stdout, _ := exec(t, "fetch", "--json", "--retry", "0", server.URL+"/flaky")
 	// Not a failure of the run: something came back, as it did before retries
 	// looked at the status.
 	if code != 0 {
@@ -301,7 +301,7 @@ func TestFetchRepeatGoesOnPastARunThatGotNoAnswer(t *testing.T) {
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1: one run got nothing", code)
 	}
-	if !strings.Contains(stderr, "fetch: 1 of 3 runs got no response") {
+	if !strings.Contains(stderr, "fetch: 1 of 3 requests got no response") {
 		t.Errorf("the failed run was not counted:\n%s", stderr)
 	}
 	// Counted with the others, under what it came back as: nothing.
@@ -410,11 +410,11 @@ func TestNumbered(t *testing.T) {
 	}
 }
 
-func TestBatchRepeatGoesThroughTheListAgain(t *testing.T) {
-	server := batchServer(t)
+func TestListRepeatGoesThroughTheListAgain(t *testing.T) {
+	server := pathServer(t)
 	bodyDir := filepath.Join(t.TempDir(), "bodies")
 
-	code, stdout, stderr := exec(t, "batch", "--repeat", "3", "--concurrency", "2",
+	code, stdout, stderr := exec(t, "fetch", "--repeat", "3", "--concurrency", "2",
 		"--body-dir", bodyDir, server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -443,35 +443,36 @@ func TestBatchRepeatGoesThroughTheListAgain(t *testing.T) {
 	if len(seen) != 6 || len(files) != 6 {
 		t.Errorf("%d results in %d files, want 6 in 6", len(seen), len(files))
 	}
-	if want := "Ran          6 requests (3 passes over 2 URLs) in"; !strings.Contains(stderr, want) {
-		t.Errorf("the summary does not say what was run (%q):\n%s", want, stderr)
+	// Six requests, and what turns that number back into a list of two.
+	if want := "\n  Requests      6  (3 passes over 2 URLs)\n"; !strings.Contains(stderr, want) {
+		t.Errorf("the figures do not say what was run (%q):\n%s", want, stderr)
 	}
 }
 
-func TestBatchWithoutRepeatKeepsItsOldShape(t *testing.T) {
+func TestListWithoutRepeatKeepsItsOldShape(t *testing.T) {
 	// A list gone through once says nothing about passes: its lines are what
 	// they have always been, for whatever is already reading them.
-	server := batchServer(t)
-	code, stdout, stderr := exec(t, "batch", server.URL+"/one")
+	server := pathServer(t)
+	code, stdout, stderr := exec(t, "fetch", server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	if strings.Contains(stdout, `"run"`) {
 		t.Errorf("a single pass was numbered: %s", stdout)
 	}
-	if want := "Ran          1 URLs in"; !strings.Contains(stderr, want) {
-		t.Errorf("the summary changed its wording (%q):\n%s", want, stderr)
+	if want := "\n  Requests      2\n"; !strings.Contains(stderr, want) || strings.Contains(stderr, "passes") {
+		t.Errorf("the figures say something about passes (%q):\n%s", want, stderr)
 	}
 }
 
-func TestBatchRepeatCountsRequestsWhenItFails(t *testing.T) {
-	code, _, stderr := exec(t, "batch", "--repeat", "2", "--retry", "0", "--timeout", "3s",
+func TestListRepeatCountsRequestsWhenItFails(t *testing.T) {
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "0", "--timeout", "3s",
 		"https://127.0.0.1:1/gone")
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
 	}
-	// Two requests failed and there is one URL, so URLs is the wrong word.
-	if !strings.Contains(stderr, "batch: 2 of 2 requests failed") {
+	// Two requests failed and there is one URL, so requests is the word.
+	if !strings.Contains(stderr, "fetch: 2 of 2 requests got no response") {
 		t.Errorf("stderr = %q", stderr)
 	}
 }

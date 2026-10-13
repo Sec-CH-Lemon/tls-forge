@@ -24,8 +24,7 @@ import (
 // result is written and drawn again after. Without that the two would overwrite
 // each other and the reader would get neither.
 
-// watchFlags are how a run shows itself while it goes. Fetch and batch share
-// them, so the same word turns the same thing on in each.
+// watchFlags are how a run shows itself while it goes.
 type watchFlags struct {
 	body     *bool
 	verbose  *bool
@@ -33,11 +32,11 @@ type watchFlags struct {
 	color    *string
 }
 
-// addWatchFlags registers them. What --body prints is the command's to say: a
-// page for fetch, a line of JSON for batch.
-func addWatchFlags(fs *pflag.FlagSet, body string) watchFlags {
+// addWatchFlags registers them.
+func addWatchFlags(fs *pflag.FlagSet) watchFlags {
 	return watchFlags{
-		body:    fs.Bool("body", false, body),
+		body: fs.Bool("body", false,
+			"print the output on stdout even when that is a terminal, or when --output has the page"),
 		verbose: fs.BoolP("verbose", "v", false, "print a line for every request as it finishes"),
 		progress: fs.String("progress", "auto",
 			"live status on stderr: auto, always or never"),

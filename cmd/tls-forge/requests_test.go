@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,9 +22,9 @@ import (
 	"unicode/utf8"
 )
 
-// batchServer answers every path with a body naming it, so a test can tell one
+// pathServer answers every path with a body naming it, so a test can tell one
 // result from another.
-func batchServer(t *testing.T) *httptest.Server {
+func pathServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "page %s", r.URL.Path)
@@ -32,9 +33,9 @@ func batchServer(t *testing.T) *httptest.Server {
 	return server
 }
 
-// tlsBatchServer is the same stand-in over TLS, so a proxied request to it is a
+// tlsPathServer is the same stand-in over TLS, so a proxied request to it is a
 // CONNECT tunnel rather than an absolute-form GET.
-func tlsBatchServer(t *testing.T) *httptest.Server {
+func tlsPathServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "page %s", r.URL.Path)
@@ -61,9 +62,9 @@ func lines(t *testing.T, stdout string) map[string]result {
 	return got
 }
 
-func TestBatchFetchesEveryURL(t *testing.T) {
-	server := batchServer(t)
-	code, stdout, stderr := exec(t, "batch",
+func TestListFetchesEveryURL(t *testing.T) {
+	server := pathServer(t)
+	code, stdout, stderr := exec(t, "fetch",
 		server.URL+"/one", server.URL+"/two", server.URL+"/three")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
@@ -84,14 +85,14 @@ func TestBatchFetchesEveryURL(t *testing.T) {
 	}
 }
 
-func TestBatchJSONLPreservesABinaryBody(t *testing.T) {
+func TestListJSONLPreservesABinaryBody(t *testing.T) {
 	want := []byte{0x89, 'P', 'N', 'G', 0xff, 0xd8, 0xff}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(want)
 	}))
 	defer server.Close()
 
-	code, stdout, stderr := exec(t, "batch", server.URL)
+	code, stdout, stderr := exec(t, "fetch", "--json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
@@ -108,8 +109,8 @@ func TestBatchJSONLPreservesABinaryBody(t *testing.T) {
 	}
 }
 
-func TestBatchReadsEveryFormat(t *testing.T) {
-	server := batchServer(t)
+func TestListReadsEveryFormat(t *testing.T) {
+	server := pathServer(t)
 	for _, tc := range []struct{ name, file, body string }{
 		{"json", "list.json", `[{"url":"%[1]s/one"},"%[1]s/two"]`},
 		{"csv", "list.csv", "url,proxy\n%[1]s/one,\n%[1]s/two,\n"},
@@ -117,7 +118,7 @@ func TestBatchReadsEveryFormat(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := writeList(t, tc.file, fmt.Sprintf(tc.body, server.URL))
-			code, stdout, stderr := exec(t, "batch", "--input", path)
+			code, stdout, stderr := exec(t, "fetch", "--input", path)
 			if code != 0 {
 				t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 			}
@@ -129,9 +130,9 @@ func TestBatchReadsEveryFormat(t *testing.T) {
 	}
 }
 
-func TestBatchTakesACommaSeparatedList(t *testing.T) {
-	server := batchServer(t)
-	code, stdout, _ := exec(t, "batch", "--urls", server.URL+"/one,"+server.URL+"/two")
+func TestListTakesACommaSeparatedList(t *testing.T) {
+	server := pathServer(t)
+	code, stdout, _ := exec(t, "fetch", "--urls", server.URL+"/one,"+server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stdout)
 	}
@@ -140,13 +141,13 @@ func TestBatchTakesACommaSeparatedList(t *testing.T) {
 	}
 }
 
-func TestBatchReadsStandardInput(t *testing.T) {
-	server := batchServer(t)
-	original := batchInput
-	t.Cleanup(func() { batchInput = original })
-	batchInput = strings.NewReader(server.URL + "/one\n")
+func TestListReadsStandardInput(t *testing.T) {
+	server := pathServer(t)
+	original := listInput
+	t.Cleanup(func() { listInput = original })
+	listInput = strings.NewReader(server.URL + "/one\n")
 
-	code, stdout, _ := exec(t, "batch")
+	code, stdout, _ := exec(t, "fetch")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stdout)
 	}
@@ -155,17 +156,17 @@ func TestBatchReadsStandardInput(t *testing.T) {
 	}
 }
 
-func TestBatchUsesEachURLsOwnProxy(t *testing.T) {
+func TestListUsesEachURLsOwnProxy(t *testing.T) {
 	// The point of the feature. Two URLs are given proxies that nothing is
 	// listening on, and a third none at all: the first two have to fail against
 	// their own port, and the third has to succeed. A run that shared one client
 	// could not produce that.
-	server := batchServer(t)
+	server := pathServer(t)
 	path := writeList(t, "mixed.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/one,http://127.0.0.1:9001\n%[1]s/two,http://127.0.0.1:9002\n%[1]s/three,\n",
 		server.URL))
 
-	code, stdout, _ := exec(t, "batch", "--input", path, "--timeout", "5s")
+	code, stdout, _ := exec(t, "fetch", "--input", path, "--timeout", "5s")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stdout)
 	}
@@ -189,14 +190,14 @@ func TestBatchUsesEachURLsOwnProxy(t *testing.T) {
 	}
 }
 
-func TestBatchFallsBackToTheProxyFlag(t *testing.T) {
+func TestListFallsBackToTheProxyFlag(t *testing.T) {
 	// --proxy is the default for entries that name none, so the two ways of
 	// saying it compose instead of one overriding the other.
-	server := batchServer(t)
+	server := pathServer(t)
 	path := writeList(t, "one.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/named,http://127.0.0.1:9001\n%[1]s/unnamed,\n", server.URL))
 
-	_, stdout, _ := exec(t, "batch", "--input", path,
+	_, stdout, _ := exec(t, "fetch", "--input", path,
 		"--proxy", "http://127.0.0.1:9003", "--timeout", "5s")
 
 	got := lines(t, stdout)
@@ -210,26 +211,26 @@ func TestBatchFallsBackToTheProxyFlag(t *testing.T) {
 	}
 }
 
-func TestBatchWritesToAFileAndADirectory(t *testing.T) {
-	server := batchServer(t)
+func TestListWritesToAFileAndADirectory(t *testing.T) {
+	server := pathServer(t)
 	dir := t.TempDir()
 	outPath := filepath.Join(dir, "results.jsonl")
 	bodyDir := filepath.Join(dir, "bodies")
 
-	code, stdout, stderr := exec(t, "batch", "--output", outPath, "--body-dir", bodyDir,
+	code, stdout, stderr := exec(t, "fetch", "--output", outPath, "--body-dir", bodyDir,
 		server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	// The summary is commentary, so it goes to stderr with the rest of it, and
-	// names where the results went.
-	for _, want := range []string{"Scraped      2", outPath} {
-		if !strings.Contains(stderr, want) {
-			t.Errorf("stderr has no %q:\n%s", want, stderr)
-		}
+	// What the run came to is commentary, so it goes to stderr with the rest of
+	// it, and names where the results and the pages went.
+	want := "\n  Requests      2\n  Retries       0\n  Success rate  100.0%\n  Avg time      0ms\n" +
+		"  Saved to      " + bodyDir + "\n  Written to    " + outPath + "\n"
+	if !strings.HasSuffix(stderr, want) {
+		t.Errorf("stderr does not end with what the run came to (%q):\n%s", want, stderr)
 	}
-	if strings.Contains(stdout, "Scraped") {
-		t.Errorf("the summary landed on stdout: %q", stdout)
+	if stdout != "" {
+		t.Errorf("something landed on stdout beside the file: %q", stdout)
 	}
 
 	data, err := os.ReadFile(outPath)
@@ -254,7 +255,7 @@ func TestBatchWritesToAFileAndADirectory(t *testing.T) {
 	}
 }
 
-func TestBatchKeepsRepeatedURLBodiesSeparate(t *testing.T) {
+func TestListKeepsRepeatedURLBodiesSeparate(t *testing.T) {
 	var replies atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprintf(w, "response-%d", replies.Add(1))
@@ -262,7 +263,7 @@ func TestBatchKeepsRepeatedURLBodiesSeparate(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	bodyDir := filepath.Join(t.TempDir(), "bodies")
-	code, stdout, stderr := exec(t, "batch", "--progress", "never", "--concurrency", "2",
+	code, stdout, stderr := exec(t, "fetch", "--progress", "never", "--concurrency", "2",
 		"--body-dir", bodyDir, server.URL, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\nstderr: %s", code, stderr)
@@ -296,7 +297,7 @@ func TestBatchKeepsRepeatedURLBodiesSeparate(t *testing.T) {
 	}
 }
 
-func TestBatchRetries(t *testing.T) {
+func TestListRetries(t *testing.T) {
 	var mu sync.Mutex
 	var attempts int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -317,7 +318,7 @@ func TestBatchRetries(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	code, stdout, _ := exec(t, "batch", "--retry", "2", "--timeout", "10s", server.URL+"/flaky")
+	code, stdout, _ := exec(t, "fetch", "--json", "--retry", "2", "--timeout", "10s", server.URL+"/flaky")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stdout)
 	}
@@ -328,19 +329,20 @@ func TestBatchRetries(t *testing.T) {
 	}
 }
 
-func TestBatchTriesOnceWhenToldNotToRetry(t *testing.T) {
-	server := batchServer(t)
-	_, stdout, _ := exec(t, "batch", "--retry", "0", server.URL+"/one")
+func TestListTriesOnceWhenToldNotToRetry(t *testing.T) {
+	server := pathServer(t)
+	_, stdout, _ := exec(t, "fetch", "--json", "--retry", "0", server.URL+"/one")
 	if r := lines(t, stdout)[server.URL+"/one"]; r.Attempts != 1 {
 		t.Errorf("attempts = %d, want 1", r.Attempts)
 	}
 }
 
-func TestBatchRetriesThreeTimesByDefault(t *testing.T) {
-	// A URL that never comes back is tried once and then three times more.
-	_, stdout, _ := exec(t, "batch", "--timeout", "3s", "https://127.0.0.1:1/gone")
-	if r := lines(t, stdout)["https://127.0.0.1:1/gone"]; r.Attempts != 4 {
-		t.Errorf("attempts = %d, want 4", r.Attempts)
+func TestListTriesOnceUnlessToldOtherwise(t *testing.T) {
+	// A list is asked for the way one URL is: once each. Trying again is for
+	// whoever says how many times.
+	_, stdout, _ := exec(t, "fetch", "--json", "--timeout", "3s", "https://127.0.0.1:1/gone")
+	if r := lines(t, stdout)["https://127.0.0.1:1/gone"]; r.Attempts != 1 {
+		t.Errorf("attempts = %d, want 1", r.Attempts)
 	}
 }
 
@@ -356,7 +358,7 @@ func TestRetryBackoff(t *testing.T) {
 		{2, 500 * time.Millisecond},
 		{3, time.Second},
 		{4, 2 * time.Second},
-		// Capped: a batch has better things to do than wait out an outage.
+		// Capped: a run has better things to do than wait out an outage.
 		{9, 2 * time.Second},
 	} {
 		if got := backoff(tc.attempt); got != tc.want {
@@ -373,7 +375,7 @@ func TestRetryActuallyPauses(t *testing.T) {
 	retryWait = backoff
 
 	started := time.Now()
-	_, stdout, _ := exec(t, "batch", "--retry", "1", "--timeout", "3s",
+	_, stdout, _ := exec(t, "fetch", "--json", "--retry", "1", "--timeout", "3s",
 		"https://127.0.0.1:1/gone")
 	elapsed := time.Since(started)
 
@@ -394,7 +396,7 @@ func TestRetryDoesNotWaitOutAnInterruptedRun(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan int, 1)
 	go func() {
-		done <- run(ctx, []string{"batch", "--retry", "5", "--timeout", "3s",
+		done <- run(ctx, []string{"fetch", "--retry", "5", "--timeout", "3s",
 			"--progress", "never", "https://127.0.0.1:1/gone"},
 			&strings.Builder{}, &strings.Builder{})
 	}()
@@ -404,40 +406,40 @@ func TestRetryDoesNotWaitOutAnInterruptedRun(t *testing.T) {
 	select {
 	case code := <-done:
 		if code == 0 {
-			t.Error("an interrupted batch reported success")
+			t.Error("an interrupted run reported success")
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("the run waited out its backoff after being interrupted")
 	}
 }
 
-func TestBatchArgumentErrors(t *testing.T) {
-	server := batchServer(t)
+func TestListArgumentErrors(t *testing.T) {
+	server := pathServer(t)
 	// A count that cannot be honoured is a usage error, so it exits 2 and not
 	// the 1 that means "some URLs failed".
 	for _, args := range [][]string{
-		{"batch", "--concurrency", "0", server.URL},
-		{"batch", "--retry", "-1", server.URL},
-		{"batch", "--retry", fmt.Sprint(math.MaxInt), server.URL},
-		{"batch", "--repeat", "0", server.URL},
+		{"fetch", "--concurrency", "0", server.URL},
+		{"fetch", "--retry", "-1", server.URL},
+		{"fetch", "--retry", fmt.Sprint(math.MaxInt), server.URL},
+		{"fetch", "--repeat", "0", server.URL},
 		// More passes than there are requests to count them in.
-		{"batch", "--repeat", fmt.Sprint(math.MaxInt), server.URL, server.URL},
-		{"batch", "--nonsense"},
+		{"fetch", "--repeat", fmt.Sprint(math.MaxInt), server.URL, server.URL},
+		{"fetch", "--nonsense"},
 	} {
 		if code, _, _ := exec(t, args...); code != 2 {
 			t.Errorf("%v: exit code = %d, want 2", args, code)
 		}
 	}
 
-	original := batchInput
-	t.Cleanup(func() { batchInput = original })
-	batchInput = strings.NewReader("")
+	original := listInput
+	t.Cleanup(func() { listInput = original })
+	listInput = strings.NewReader("")
 
 	for _, args := range [][]string{
-		{"batch"},              // an empty list
-		{"batch", "not-a-url"}, // rejected before anything is fetched
-		{"batch", "--input", "no-such-file.json"}, // an unreadable list
-		{"batch", "--format", "yaml", server.URL}, // a format that does not exist
+		{"fetch"},              // an empty list
+		{"fetch", "not-a-url"}, // rejected before anything is fetched
+		{"fetch", "--input", "no-such-file.json"}, // an unreadable list
+		{"fetch", "--format", "yaml", server.URL}, // a format that does not exist
 	} {
 		if code, _, _ := exec(t, args...); code != 1 && code != 2 {
 			t.Errorf("%v: exit code = %d", args, code)
@@ -445,11 +447,11 @@ func TestBatchArgumentErrors(t *testing.T) {
 	}
 }
 
-func TestBatchCannotWriteWhereItWasTold(t *testing.T) {
-	server := batchServer(t)
+func TestListCannotWriteWhereItWasTold(t *testing.T) {
+	server := pathServer(t)
 	missing := filepath.Join(t.TempDir(), "no-such-directory")
 
-	if code, _, _ := exec(t, "batch", "--output",
+	if code, _, _ := exec(t, "fetch", "--json", "--output",
 		filepath.Join(missing, "out.jsonl"), server.URL); code == 0 {
 		t.Error("an unwritable output file should fail")
 	}
@@ -459,34 +461,34 @@ func TestBatchCannotWriteWhereItWasTold(t *testing.T) {
 	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
 		t.Fatalf("writing: %v", err)
 	}
-	if code, _, _ := exec(t, "batch", "--body-dir", blocked, server.URL); code == 0 {
+	if code, _, _ := exec(t, "fetch", "--body-dir", blocked, server.URL); code == 0 {
 		t.Error("an unmakeable body directory should fail")
 	}
 }
 
-func TestBatchReportsAnOutputCloseFailure(t *testing.T) {
-	original := closeBatchOutput
-	closeBatchOutput = func(file *os.File) error {
+func TestListReportsAnOutputCloseFailure(t *testing.T) {
+	original := closeOutput
+	closeOutput = func(file *os.File) error {
 		_ = original(file)
 		return errors.New("close failed")
 	}
-	t.Cleanup(func() { closeBatchOutput = original })
+	t.Cleanup(func() { closeOutput = original })
 
-	server := batchServer(t)
-	code, _, stderr := exec(t, "batch", "--output", filepath.Join(t.TempDir(), "out.jsonl"), server.URL)
+	server := pathServer(t)
+	code, _, stderr := exec(t, "fetch", "--json", "--output", filepath.Join(t.TempDir(), "out.jsonl"), server.URL)
 	if code == 0 || !strings.Contains(stderr, "closing output") {
 		t.Fatalf("code = %d, stderr = %q", code, stderr)
 	}
 }
 
-func TestBatchReportsABodyItCannotWrite(t *testing.T) {
+func TestListReportsABodyItCannotWrite(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows has no Unix permission bits: chmod only toggles read-only, so the write this needs to fail succeeds")
 	}
 	// The directory exists at start-up and is gone by the time a body is
 	// written. Reported on the entry's own line rather than ending the run: the
 	// page was fetched, and the next one may still be writable.
-	server := batchServer(t)
+	server := pathServer(t)
 	dir := filepath.Join(t.TempDir(), "bodies")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
@@ -496,7 +498,7 @@ func TestBatchReportsABodyItCannotWrite(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o700) })
 
-	code, stdout, _ := exec(t, "batch", "--body-dir", dir, server.URL+"/one")
+	code, stdout, _ := exec(t, "fetch", "--body-dir", dir, server.URL+"/one")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stdout)
 	}
@@ -508,7 +510,7 @@ func TestBatchReportsABodyItCannotWrite(t *testing.T) {
 func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 	// One per proxy, not one per worker: the proxy is the identity, and two
 	// pages through one exit IP should share a jar.
-	fs := newFlagSet("batch", newPrinter(os.Stdout))
+	fs := newFlagSet("fetch", newPrinter(os.Stdout))
 	flags := addClientFlags(fs)
 	if err := parse(fs, nil); err != nil {
 		t.Fatalf("parse: %v", err)
@@ -554,7 +556,7 @@ func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 	}
 }
 
-func TestBatchStopsHandingOutWorkWhenInterrupted(t *testing.T) {
+func TestListStopsHandingOutWorkWhenInterrupted(t *testing.T) {
 	// What is in flight finishes; what has not started does not begin. Without
 	// it, Ctrl-C on a list of ten thousand keeps fetching.
 	released := make(chan struct{})
@@ -575,7 +577,7 @@ func TestBatchStopsHandingOutWorkWhenInterrupted(t *testing.T) {
 	var stdout strings.Builder
 	done := make(chan int, 1)
 	go func() {
-		args := append([]string{"batch", "--concurrency", "2", "--timeout", "2s"}, urls...)
+		args := append([]string{"fetch", "--concurrency", "2", "--timeout", "2s"}, urls...)
 		done <- run(ctx, args, &stdout, &strings.Builder{})
 	}()
 
@@ -598,14 +600,14 @@ func TestBatchStopsHandingOutWorkWhenInterrupted(t *testing.T) {
 	}
 }
 
-func TestBatchReportsAProxyItCannotUse(t *testing.T) {
+func TestListReportsAProxyItCannotUse(t *testing.T) {
 	// A typo in the proxy column. It is the entry's failure, not the run's:
 	// the other URLs still go out, and the line says which one was wrong.
-	server := batchServer(t)
+	server := pathServer(t)
 	path := writeList(t, "typo.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/bad,::not a proxy::\n%[1]s/good,\n", server.URL))
 
-	code, stdout, _ := exec(t, "batch", "--input", path)
+	code, stdout, _ := exec(t, "fetch", "--input", path)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stdout)
 	}
@@ -618,12 +620,12 @@ func TestBatchReportsAProxyItCannotUse(t *testing.T) {
 	}
 }
 
-func TestBatchWarnsAboveTheCoreCount(t *testing.T) {
+func TestListWarnsAboveTheCoreCount(t *testing.T) {
 	original := numCPU
 	t.Cleanup(func() { numCPU = original })
 	numCPU = func() int { return 4 }
 
-	server := batchServer(t)
+	server := pathServer(t)
 
 	for _, tc := range []struct {
 		name    string
@@ -635,7 +637,7 @@ func TestBatchWarnsAboveTheCoreCount(t *testing.T) {
 		{"above it", "16", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			code, stdout, stderr := exec(t, "batch", "-c", tc.workers, server.URL+"/one")
+			code, stdout, stderr := exec(t, "fetch", "--json", "-c", tc.workers, server.URL+"/one")
 			if code != 0 {
 				t.Fatalf("exit code = %d\n%s", code, stderr)
 			}
@@ -667,13 +669,13 @@ func TestBatchWarnsAboveTheCoreCount(t *testing.T) {
 	}
 }
 
-func TestBatchDoesNotWarnBeforeItFailsOnTheFlags(t *testing.T) {
+func TestListDoesNotWarnBeforeItFailsOnTheFlags(t *testing.T) {
 	// A warning about a number that was rejected anyway is noise.
 	original := numCPU
 	t.Cleanup(func() { numCPU = original })
 	numCPU = func() int { return 1 }
 
-	code, _, stderr := exec(t, "batch", "-c", "0", "https://example.com/")
+	code, _, stderr := exec(t, "fetch", "-c", "0", "https://example.com/")
 	if code != 2 {
 		t.Fatalf("exit code = %d, want 2", code)
 	}
@@ -682,11 +684,11 @@ func TestBatchDoesNotWarnBeforeItFailsOnTheFlags(t *testing.T) {
 	}
 }
 
-func TestBatchDrawsAStatusLine(t *testing.T) {
+func TestListDrawsAStatusLine(t *testing.T) {
 	// --progress always, so the assertion does not depend on what the test's
 	// stderr happens to be attached to.
-	server := batchServer(t)
-	code, stdout, stderr := exec(t, "batch", "--progress", "always",
+	server := pathServer(t)
+	code, stdout, stderr := exec(t, "fetch", "--progress", "always",
 		server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -711,12 +713,12 @@ func TestBatchDrawsAStatusLine(t *testing.T) {
 	}
 }
 
-func TestBatchWithoutAStatusLine(t *testing.T) {
+func TestListWithoutAStatusLine(t *testing.T) {
 	// The default is auto, and a test's stderr is not a terminal.
-	server := batchServer(t)
+	server := pathServer(t)
 	for _, args := range [][]string{
-		{"batch", server.URL + "/one"},
-		{"batch", "--progress", "never", server.URL + "/one"},
+		{"fetch", server.URL + "/one"},
+		{"fetch", "--progress", "never", server.URL + "/one"},
 	} {
 		_, _, stderr := exec(t, args...)
 		if strings.Contains(stderr, "elapsed") {
@@ -726,10 +728,10 @@ func TestBatchWithoutAStatusLine(t *testing.T) {
 	}
 }
 
-func TestBatchRejectsAnUnknownProgressMode(t *testing.T) {
+func TestListRejectsAnUnknownProgressMode(t *testing.T) {
 	// Rejected before the list is read, so a typo does not cost a run that then
 	// has nowhere to report itself.
-	code, _, stderr := exec(t, "batch", "--progress", "sometimes", "https://example.com/")
+	code, _, stderr := exec(t, "fetch", "--progress", "sometimes", "https://example.com/")
 	if code != 1 {
 		t.Errorf("exit code = %d", code)
 	}
@@ -738,12 +740,12 @@ func TestBatchRejectsAnUnknownProgressMode(t *testing.T) {
 	}
 }
 
-func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
+func TestListKeepsNoBodiesInMemory(t *testing.T) {
 	// The summary and the report show counts, not pages, so a run holds only
 	// what they need. Kept whole, 200 MB of pages measured 353 MB of resident
 	// memory against 117 MB once the bodies went.
-	server := batchServer(t)
-	fs := newFlagSet("batch", newPrinter(io.Discard))
+	server := pathServer(t)
+	fs := newFlagSet("fetch", newPrinter(io.Discard))
 	flags := addClientFlags(fs)
 	if err := parse(fs, nil); err != nil {
 		t.Fatalf("parse: %v", err)
@@ -754,9 +756,10 @@ func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
 	var sink strings.Builder
 	var records []result
 	jobs := []job{{URL: server.URL + "/one"}, {URL: server.URL + "/two"}}
-	failed, err := runJobs(context.Background(), jobs, batch{
-		clients: clients, workers: 2, sink: &sink, retry: 1, repeat: 1,
-		counts: newProgress(len(jobs)), notes: &stderrLog{},
+	failed, err := runJobs(context.Background(), jobs, runner{
+		clients: clients, workers: 2, retry: 1, repeat: 1,
+		out:    &linesOutput{encoder: json.NewEncoder(&sink), say: (&stderrLog{}).say},
+		counts: newProgress(len(jobs)),
 	}, &records)
 	if err != nil {
 		t.Fatalf("runJobs: %v", err)
@@ -790,7 +793,7 @@ func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
 		_, _ = w.Write([]byte("page"))
 	}))
 	t.Cleanup(server.Close)
-	fs := newFlagSet("batch", newPrinter(io.Discard))
+	fs := newFlagSet("fetch", newPrinter(io.Discard))
 	flags := addClientFlags(fs)
 	if err := parse(fs, nil); err != nil {
 		t.Fatal(err)
@@ -803,9 +806,10 @@ func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
 		jobs[i] = job{URL: fmt.Sprintf("%s/%d", server.URL, i)}
 	}
 	var records []result
-	_, err := runJobs(context.Background(), jobs, batch{
-		clients: clients, workers: 1, sink: failingWriter{}, repeat: 1,
-		counts: newProgress(len(jobs)), notes: &stderrLog{},
+	_, err := runJobs(context.Background(), jobs, runner{
+		clients: clients, workers: 1, repeat: 1,
+		out:    &linesOutput{encoder: json.NewEncoder(failingWriter{}), say: (&stderrLog{}).say},
+		counts: newProgress(len(jobs)),
 	}, &records)
 	if err == nil || !strings.Contains(err.Error(), "writing result") {
 		t.Fatalf("error = %v, want output write failure", err)
@@ -863,9 +867,9 @@ func TestVerboseLine(t *testing.T) {
 	}
 }
 
-func TestBatchVerbose(t *testing.T) {
-	server := batchServer(t)
-	code, stdout, stderr := exec(t, "batch", "-v", "--progress", "never",
+func TestListVerbose(t *testing.T) {
+	server := pathServer(t)
+	code, stdout, stderr := exec(t, "fetch", "-v", "--progress", "never",
 		server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -886,9 +890,9 @@ func TestBatchVerbose(t *testing.T) {
 	}
 }
 
-func TestBatchQuietByDefault(t *testing.T) {
-	server := batchServer(t)
-	_, _, stderr := exec(t, "batch", "--progress", "never", server.URL+"/one")
+func TestListQuietByDefault(t *testing.T) {
+	server := pathServer(t)
+	_, _, stderr := exec(t, "fetch", "--progress", "never", server.URL+"/one")
 	if strings.Contains(stderr, server.URL+"/one") {
 		t.Errorf("a request was reported without being asked for:\n%s", stderr)
 	}
@@ -897,8 +901,8 @@ func TestBatchQuietByDefault(t *testing.T) {
 func TestVerboseAndTheStatusLineShareTheStream(t *testing.T) {
 	// Both draw on stderr. Without the status line stepping aside they land on
 	// each other and the reader gets neither.
-	server := batchServer(t)
-	_, _, stderr := exec(t, "batch", "-v", "--progress", "always",
+	server := pathServer(t)
+	_, _, stderr := exec(t, "fetch", "-v", "--progress", "always",
 		server.URL+"/one", server.URL+"/two")
 
 	// Asked of the terminal rather than of the bytes: the status line redraws
@@ -1010,34 +1014,277 @@ func TestStderrLogWithoutAStatusLine(t *testing.T) {
 	}
 }
 
-func TestBatchSaysItIsWaitingForInput(t *testing.T) {
-	// Nothing named a list and standard input is a terminal, so the next thing
-	// that happens is a wait for someone to type. A command that goes quiet
-	// there looks like one that has hung, which is how this was reported.
+func TestFetchSaysWhatItNeedsWhenNothingNamesAURL(t *testing.T) {
+	// Nothing named a URL and standard input is a terminal, so there is no list
+	// coming either. Waiting to be typed at looks like having hung, which is how
+	// that was once reported, so it is said at once and nothing is waited for.
 	devNull, err := os.Open(os.DevNull)
 	if err != nil {
 		t.Fatalf("opening %s: %v", os.DevNull, err)
 	}
 	t.Cleanup(func() { _ = devNull.Close() })
 
-	original := batchInput
-	t.Cleanup(func() { batchInput = original })
-	batchInput = devNull
+	original := listInput
+	t.Cleanup(func() { listInput = original })
+	// A character device, which is what a terminal is to this question.
+	listInput = devNull
 
-	// A character device that is already at end of file, so the wait it
-	// announces is over as soon as it begins.
-	_, _, stderr := exec(t, "batch")
-	for _, want := range []string{"standard input", "Ctrl-D", "--input", "--urls"} {
+	code, stdout, stderr := exec(t, "fetch")
+	if code != exitUsage {
+		t.Errorf("exit code = %d, want %d", code, exitUsage)
+	}
+	for _, want := range []string{"needs a URL", "--input", "--urls", "standard input"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr has no %q:\n%s", want, stderr)
 		}
 	}
+	if !strings.Contains(stdout, "usage: tls-forge fetch") {
+		t.Errorf("the usage was not printed: %q", stdout)
+	}
 }
 
-func TestBatchSaysNothingWhenItWasGivenAList(t *testing.T) {
-	server := batchServer(t)
-	_, _, stderr := exec(t, "batch", "--progress", "never", server.URL+"/one")
-	if strings.Contains(stderr, "Ctrl-D") {
-		t.Errorf("a run that was given URLs announced a wait for them:\n%s", stderr)
+func TestListPipedInIsReadWithoutBeingAskedFor(t *testing.T) {
+	// A list on standard input is a list, and its lines come out as a list's do
+	// however many of them there are.
+	server := pathServer(t)
+	original := listInput
+	t.Cleanup(func() { listInput = original })
+	listInput = strings.NewReader(server.URL + "/one\n")
+
+	code, stdout, stderr := exec(t, "fetch")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if r := lines(t, stdout)[server.URL+"/one"]; r.Status != 200 || r.Body != "page /one" {
+		t.Errorf("stdout is not the line for the one URL in the list: %q", stdout)
+	}
+}
+
+// One command for one URL and for a list of them.
+
+func TestFetchAnswersInTheShapeItWasAskedIn(t *testing.T) {
+	// The page when the command names the one URL it is after. A line of JSON
+	// for each request when it names several, or a list, or asks for lines: by
+	// how it was asked rather than by how many URLs turned up, so that a list
+	// which happens to hold one is not answered in another shape.
+	server := pathServer(t)
+	one := server.URL + "/one"
+	list := writeList(t, "one.txt", one+"\n")
+	bodies := filepath.Join(t.TempDir(), "bodies")
+
+	for _, tc := range []struct {
+		name    string
+		args    []string
+		asLines bool
+	}{
+		{"one URL", []string{one}, false},
+		{"one URL, asked for as a line", []string{"--json", one}, true},
+		{"one URL, with its page kept in a directory", []string{"--body-dir", bodies, one}, true},
+		{"a list of one, in a file", []string{"--input", list}, true},
+		{"a list of one, on the command line", []string{"--urls", one}, true},
+		{"two URLs", []string{one, server.URL + "/two"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			code, stdout, stderr := exec(t, append([]string{"fetch"}, tc.args...)...)
+			if code != 0 {
+				t.Fatalf("exit code = %d\n%s", code, stderr)
+			}
+			if !tc.asLines {
+				if stdout != "page /one" {
+					t.Errorf("stdout = %q, want the page and nothing else", stdout)
+				}
+				return
+			}
+			r, found := lines(t, stdout)[one]
+			if !found || r.Status != 200 || r.Bytes != len("page /one") {
+				t.Errorf("stdout is not a line for the URL: %q", stdout)
+			}
+		})
+	}
+
+	// Kept in a directory, the page is in a file the line names and not in the
+	// line as well.
+	_, stdout, _ := exec(t, "fetch", "--body-dir", bodies, one)
+	r := lines(t, stdout)[one]
+	if page, err := os.ReadFile(r.File); err != nil || string(page) != "page /one" || r.Body != "" {
+		t.Errorf("the line names %q, which holds %q (%v), and carries %q itself", r.File, page, err, r.Body)
+	}
+}
+
+func TestListLinesCarryTheHeadersWhenAsked(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Served-By", "the stand-in")
+		_, _ = fmt.Fprintf(w, "page %s", r.URL.Path)
+	}))
+	t.Cleanup(server.Close)
+	urls := []string{server.URL + "/one", server.URL + "/two"}
+
+	// What -i prints in front of a page, a line has room for inside it.
+	_, stdout, _ := exec(t, append([]string{"fetch", "-i"}, urls...)...)
+	got := lines(t, stdout)
+	for _, url := range urls {
+		// Under the name the client hands it over by, which is lower case.
+		if served := got[url].Header["x-served-by"]; len(served) != 1 || served[0] != "the stand-in" {
+			t.Errorf("%s: headers = %v", url, got[url].Header)
+		}
+	}
+	// And not otherwise: a line is what it has always been.
+	if _, stdout, _ = exec(t, append([]string{"fetch"}, urls...)...); strings.Contains(stdout, `"headers"`) {
+		t.Errorf("the lines carry headers nobody asked for: %s", stdout)
+	}
+}
+
+func TestListIsAskedForTheWayOneURLIs(t *testing.T) {
+	// The method, the header fields and the body are the request, and a list is
+	// that request made of every URL in it.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sent, _ := io.ReadAll(r.Body)
+		_, _ = fmt.Fprintf(w, "%s %s %s %s", r.Method, r.URL.Path, r.Header.Get("X-Asked-By"), sent)
+	}))
+	t.Cleanup(server.Close)
+
+	code, stdout, stderr := exec(t, "fetch", "-X", "POST", "-H", "X-Asked-By: a test", "-d", "payload",
+		server.URL+"/one", server.URL+"/two")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	got := lines(t, stdout)
+	for _, path := range []string{"/one", "/two"} {
+		if want := "POST " + path + " a test payload"; got[server.URL+path].Body != want {
+			t.Errorf("%s was asked for with %q, want %q", path, got[server.URL+path].Body, want)
+		}
+	}
+}
+
+func TestFetchRepeatsOneAtATimeUnlessToldHowMany(t *testing.T) {
+	server, _ := replying(t, 200)
+	dir := t.TempDir()
+	rowsOf := func(path string) (rows map[int]string, onCommandRow int, concurrency any) {
+		events := traceFile(t, path)
+		checkShape(t, events)
+		rows = map[int]string{}
+		for _, lane := range named(events, phaseMetadata, "thread_name") {
+			rows[lane.TID] = fmt.Sprint(lane.Args["name"])
+		}
+		for _, event := range events {
+			if event.Phase == phaseBegin && event.Cat == "request" && event.TID == mainLane {
+				onCommandRow++
+			}
+		}
+		return rows, onCommandRow, one(t, events, phaseBegin, "fetch").Args["concurrency"]
+	}
+
+	// One URL is asked for the way a page is reloaded: again, when the last
+	// answer is in. Its requests are drawn on the command's own row.
+	alone := filepath.Join(dir, "alone.json")
+	if code, _, stderr := exec(t, "fetch", "--repeat", "4", "--trace", alone, server.URL); code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	rows, onCommandRow, concurrency := rowsOf(alone)
+	if len(rows) != 1 || rows[mainLane] != "fetch" || onCommandRow != 4 || concurrency != 1.0 {
+		t.Errorf("one at a time: rows %v, %d requests on the command's row, concurrency %v", rows, onCommandRow, concurrency)
+	}
+
+	// Told how many at once, it is that many workers, each with a row, and every
+	// run still writes the page under its own number.
+	together, page := filepath.Join(dir, "together.json"), filepath.Join(dir, "page.html")
+	code, _, stderr := exec(t, "fetch", "--repeat", "4", "-c", "2", "--trace", together, "-o", page, server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	rows, onCommandRow, concurrency = rowsOf(together)
+	if want := map[int]string{1: "fetch", 2: "worker 1", 3: "worker 2"}; fmt.Sprint(rows) != fmt.Sprint(want) ||
+		onCommandRow != 0 || concurrency != 2.0 {
+		t.Errorf("two at a time: rows %v, %d requests on the command's row, concurrency %v", rows, onCommandRow, concurrency)
+	}
+	for run := 1; run <= 4; run++ {
+		if _, err := os.Stat(filepath.Join(dir, fmt.Sprintf("page-%d.html", run))); err != nil {
+			t.Errorf("run %d wrote no page: %v", run, err)
+		}
+	}
+	// Named from the first to the last, whichever order they finished in.
+	want := fmt.Sprintf("\n  Saved to      %s … %s\n", filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-4.html"))
+	if !strings.HasSuffix(stderr, want) {
+		t.Errorf("stderr does not end by naming the pages in order (%q):\n%s", want, stderr)
+	}
+}
+
+func TestListThroughAProxyThatCannotBeUsedFailsBeforeItStarts(t *testing.T) {
+	// One way for every URL is one client, made before anything is fetched: a
+	// proxy that cannot be used is the command's failure, said once, rather
+	// than the same failure on every line.
+	server, asked := replying(t, 200)
+
+	code, stdout, stderr := exec(t, "fetch", "--proxy", "::not a proxy::", server.URL+"/one", server.URL+"/two")
+	if code != 1 || stdout != "" {
+		t.Errorf("exit code = %d and stdout = %q, want 1 and nothing\n%s", code, stdout, stderr)
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("%d requests were made through a proxy that cannot be used", got)
+	}
+	// What the run was wearing is still closed off, with no address under it.
+	if strings.Count(stderr, identityRule) != 2 || strings.Contains(stderr, "exit-ip") {
+		t.Errorf("the report of what the run was wearing was left open, or names an address:\n%s", stderr)
+	}
+}
+
+func TestSameWay(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		jobs     []job
+		fallback string
+		proxy    string
+		same     bool
+	}{
+		{"one URL, direct", []job{{URL: "a"}}, "", "", true},
+		{"every URL through the flag's proxy", []job{{URL: "a"}, {URL: "b"}}, "http://p", "http://p", true},
+		// Naming the proxy the flag names is going the same way as not naming one.
+		{"a URL that names the flag's proxy", []job{{URL: "a", Proxy: "http://p"}, {URL: "b"}}, "http://p", "http://p", true},
+		{"two proxies", []job{{URL: "a", Proxy: "http://p1"}, {URL: "b", Proxy: "http://p2"}}, "", "", false},
+		{"a proxy and none", []job{{URL: "a"}, {URL: "b", Proxy: "http://p1"}}, "", "", false},
+	} {
+		if proxy, same := sameWay(tc.jobs, tc.fallback); proxy != tc.proxy || same != tc.same {
+			t.Errorf("%s: %q, %v, want %q, %v", tc.name, proxy, same, tc.proxy, tc.same)
+		}
+	}
+}
+
+func TestEndingSaysWhereEverythingWent(t *testing.T) {
+	everything := ending{
+		saved: "bodies/", written: "out.jsonl", unprinted: true, reports: []string{"run.html", "run.json"},
+	}
+	// As rows of the figures a run of several requests ends with.
+	wantRows := [][2]string{
+		{"Saved to", "bodies/"},
+		{"Written to", "out.jsonl"},
+		{"JSON lines", "not printed on a terminal; -o FILE keeps them, --body shows them"},
+		{"Report", "run.html"},
+		{"Report", "run.json"},
+	}
+	if got := everything.rows(); !slices.Equal(got, wantRows) {
+		t.Errorf("rows = %q", got)
+	}
+	// And as one request says them, under the line it has said the rest on.
+	wantLines := []string{
+		"saved to bodies/",
+		"written to out.jsonl",
+		"JSON lines not printed on a terminal; -o FILE keeps them, --body shows them",
+		"report written to run.html",
+		"report written to run.json",
+	}
+	if got := everything.lines(); !slices.Equal(got, wantLines) {
+		t.Errorf("lines = %q", got)
+	}
+	// A run that left nothing anywhere has nothing to add.
+	if nothing := (ending{}); nothing.rows() != nil || nothing.lines() != nil {
+		t.Errorf("a run that left nothing says %q and %q", nothing.rows(), nothing.lines())
+	}
+}
+
+func TestPageOutputNamesItsFilesInTheOrderOfTheRuns(t *testing.T) {
+	// Several at once finish in whatever order they finish in.
+	pages := &pageOutput{kept: map[int]string{3: "page-3.html", 1: "page-1.html", 2: "page-2.html"}}
+	if got := pages.saved(); !slices.Equal(got, []string{"page-1.html", "page-2.html", "page-3.html"}) {
+		t.Errorf("saved = %q", got)
 	}
 }

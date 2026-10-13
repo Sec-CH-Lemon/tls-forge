@@ -522,7 +522,7 @@ func TestReportShowsEveryTry(t *testing.T) {
 	// every row says its own.
 	bare := []result{{URL: "https://a/", Status: 200}, {URL: "https://b/", Status: 200, Proxy: "http://p1"}}
 	out.Reset()
-	if err := renderReport(&out, "batch", bare, summarise(bare, time.Second, nil), nil); err != nil {
+	if err := renderReport(&out, "fetch", bare, summarise(bare, time.Second, nil), nil); err != nil {
 		t.Fatalf("renderReport: %v", err)
 	}
 	html = out.String()
@@ -588,12 +588,12 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	}
 }
 
-func TestBatchReportShowsEveryTryAndTheLinesDoNot(t *testing.T) {
+func TestListReportShowsEveryTryAndTheLinesDoNot(t *testing.T) {
 	server, _ := replying(t, 503, 200)
 	dir := t.TempDir()
 	path, lines := filepath.Join(dir, "run.html"), filepath.Join(dir, "out.jsonl")
 
-	code, _, stderr := exec(t, "batch", "--retry", "1", "--report", path, "--report-ip=false",
+	code, _, stderr := exec(t, "fetch", "--retry", "1", "--report", path, "--report-ip=false",
 		"-o", lines, server.URL+"/flaky")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

@@ -3,7 +3,7 @@
 //
 //	tls-forge capture            measure the browser on this machine
 //	tls-forge compare            diff this library against that browser
-//	tls-forge fetch <url>        make a request wearing the fingerprint
+//	tls-forge fetch <url>...     make requests wearing the fingerprint
 //	tls-forge serve              run the local echo server, point anything at it
 //	tls-forge daemon             JSON lines on stdin/stdout, for other languages
 //	tls-forge profiles           list what can be impersonated
@@ -68,14 +68,14 @@ type command struct {
 	summary string
 	// Two writers, not one. Results go to out; a warning goes to errOut,
 	// because a line of commentary on stdout would land in the middle of the
-	// JSON that batch is producing and break whatever is reading it.
+	// page or the JSON lines that fetch is producing and break whatever is
+	// reading them.
 	run func(ctx context.Context, args []string, out, errOut *printer) error
 }
 
 func commands() []command {
 	return []command{
-		{"fetch", "make a request with a browser fingerprint", runFetch},
-		{"batch", "fetch a list of URLs, each through its own proxy", runBatch},
+		{"fetch", "make requests with a browser fingerprint: one URL, or a list", runFetch},
 		{"capture", "measure the browser installed on this machine", runCapture},
 		{"compare", "diff this library's handshake against the browser's", runCompare},
 		{"profiles", "list the profiles that can be impersonated", runProfiles},
@@ -84,6 +84,19 @@ func commands() []command {
 		{"daemon", "speak JSON lines on stdin/stdout", runDaemon},
 		{"version", "print the version", runVersion},
 	}
+}
+
+// movedCommands are the names that used to be commands, each with where what
+// it did has gone.
+//
+// Said rather than left as "unknown command": a script that has called batch
+// for a year fails the day it is upgraded, and what it needs to read then is
+// what to type instead.
+var movedCommands = map[string]string{
+	"batch": "batch is now fetch, which takes several URLs, --input FILE or --urls a,b,c.\n" +
+		"  The list flag -i is now --input, and the body directory -d is now --body-dir.\n" +
+		"  Add --retry 3 for the tries batch made by default, and --json for JSON lines\n" +
+		"  when one URL is named on the command line.",
 }
 
 // exit is os.Exit, named so the entry point can be driven from a test. Without
@@ -106,7 +119,7 @@ func main() {
 // letting it end the process. That is right for a command that can wind itself
 // down, and wrong for one blocked on a read that never looks at a context: the
 // signal is swallowed, nothing happens, and every further Ctrl-C is swallowed
-// too. Measured before this: `tls-forge batch` waiting on standard input
+// too. Measured before this: a command waiting for a list on standard input
 // survived four of them.
 //
 // So the first interrupt still asks for an orderly stop, and any after it kill
@@ -155,6 +168,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if name == "-h" || name == "--help" || name == "help" {
 		usage(out)
 		return 0
+	}
+	if moved, ok := movedCommands[name]; ok {
+		errOut.printf("tlsforge: %s\n", moved)
+		return exitUsage
 	}
 	errOut.printf("tlsforge: unknown command %q\n\n", name)
 	usage(errOut)

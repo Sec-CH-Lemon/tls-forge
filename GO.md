@@ -224,8 +224,7 @@ returned, when a dial that lost a race finishes late. A redirected request calls
 the hooks again for each hop. Header values are passed as sent, credentials
 included, so redact them before logging.
 
-The `tls-forge fetch --trace` and `tls-forge batch --trace` flags are built on
-these hooks.
+The `tls-forge fetch --trace` flag is built on these hooks.
 
 ## Ordered headers
 

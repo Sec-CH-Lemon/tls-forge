@@ -291,7 +291,7 @@ func TestTraceIsKeptPrivate(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows has no Unix permission bits to check")
 	}
-	server := batchServer(t)
+	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "trace.json")
 	if code, _, stderr := exec(t, "fetch", "--trace", path, server.URL); code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -309,7 +309,7 @@ func TestTraceIsKeptPrivate(t *testing.T) {
 func TestTraceReplacesTheOneBefore(t *testing.T) {
 	// An array has one closing bracket. A second run appended to the first
 	// would leave a file no viewer opens.
-	server := batchServer(t)
+	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "trace.json")
 	for range 2 {
 		if code, _, stderr := exec(t, "fetch", "--trace", path, server.URL+"/again"); code != 0 {
@@ -368,7 +368,7 @@ func TestTraceLeavesOutWhatASessionIsWorth(t *testing.T) {
 }
 
 func TestTraceThroughAProxyHidesItsPasswordAndNamesTheTunnel(t *testing.T) {
-	target, proxy := tlsBatchServer(t), startProxy(t)
+	target, proxy := tlsPathServer(t), startProxy(t)
 	path := filepath.Join(t.TempDir(), "trace.json")
 	via := "http://user:s3cr3t@" + proxy.addr
 
@@ -608,15 +608,15 @@ func TestFetchTracesWhereEachRunWasWritten(t *testing.T) {
 	}
 }
 
-func TestBatchTraceHasARowForEveryWorker(t *testing.T) {
-	server := batchServer(t)
+func TestListTraceHasARowForEveryWorker(t *testing.T) {
+	server := pathServer(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "trace.json")
 	list := writeList(t, "list.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/one,\n%[1]s/two,\n%[1]s/three,\n%[1]s/four,\n%[1]s/five,::not a proxy::\n",
 		server.URL))
 
-	code, _, stderr := exec(t, "batch", "--input", list, "--concurrency", "2", "--retry", "0",
+	code, _, stderr := exec(t, "fetch", "--input", list, "--concurrency", "2", "--retry", "0",
 		"--body-dir", filepath.Join(dir, "bodies"), "--trace", path, "-o", os.DevNull)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (one URL names a proxy that cannot be used)\n%s", code, stderr)
@@ -629,7 +629,7 @@ func TestBatchTraceHasARowForEveryWorker(t *testing.T) {
 	for _, lane := range named(events, phaseMetadata, "thread_name") {
 		rows[lane.TID] = fmt.Sprint(lane.Args["name"])
 	}
-	if want := map[int]string{1: "batch", 2: "worker 1", 3: "worker 2"}; fmt.Sprint(rows) != fmt.Sprint(want) {
+	if want := map[int]string{1: "fetch", 2: "worker 1", 3: "worker 2"}; fmt.Sprint(rows) != fmt.Sprint(want) {
 		t.Errorf("rows = %v, want %v", rows, want)
 	}
 	for _, order := range named(events, phaseMetadata, "thread_sort_index") {
@@ -638,10 +638,10 @@ func TestBatchTraceHasARowForEveryWorker(t *testing.T) {
 		}
 	}
 
-	began := one(t, events, phaseBegin, "batch")
-	if began.Args["urls"] != 5.0 || began.Args["concurrency"] != 2.0 || began.Args["retry"] != 0.0 ||
-		began.Args["repeat"] != 1.0 || began.TID != mainLane {
-		t.Errorf("the batch was begun as %+v", began)
+	began := one(t, events, phaseBegin, "fetch")
+	if began.Args["urls"] != 5.0 || began.Args["url"] != nil || began.Args["concurrency"] != 2.0 ||
+		began.Args["retry"] != 0.0 || began.Args["repeat"] != 1.0 || began.TID != mainLane {
+		t.Errorf("the run was begun as %+v", began)
 	}
 
 	// Requests are drawn on the workers' rows and never on the command's.
@@ -674,12 +674,12 @@ func TestBatchTraceHasARowForEveryWorker(t *testing.T) {
 			t.Errorf("summary %s = %v, want %v", key, sum.Args[key], want)
 		}
 	}
-	if last := events[len(events)-1]; last.Args["error"] != "batch: 1 of 5 URLs failed" {
-		t.Errorf("the batch ended as %v", last.Args)
+	if last := events[len(events)-1]; last.Args["error"] != "fetch: 1 of 5 requests got no response" {
+		t.Errorf("the run ended as %v", last.Args)
 	}
 }
 
-func TestBatchTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
+func TestListTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Add("Set-Cookie", "fresh=1; Path=/")
 		_, _ = w.Write([]byte("page"))
@@ -688,7 +688,7 @@ func TestBatchTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 	dir := t.TempDir()
 	path, saved := filepath.Join(dir, "trace.json"), filepath.Join(dir, "saved.json")
 
-	code, _, stderr := exec(t, "batch", "--trace", path, "--save-cookies", saved,
+	code, _, stderr := exec(t, "fetch", "--trace", path, "--save-cookies", saved,
 		"--report", filepath.Join(dir, "report.html"), "-o", os.DevNull, server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -696,7 +696,7 @@ func TestBatchTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 	events := traceFile(t, path)
 	checkShape(t, events)
 
-	// Asked after the run, on the command's own row, and with no proxy to name.
+	// Asked before the run, on the command's own row, and with no proxy to name.
 	exit := one(t, events, phaseComplete, "exit-ip")
 	if exit.TID != mainLane || exit.Args["ip"] != "203.0.113.7" || exit.Args["proxy"] != nil {
 		t.Errorf("the address lookup was traced as %+v", exit)
@@ -709,11 +709,9 @@ func TestBatchTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 func TestTraceThatCannotBeOpenedStopsTheRunBeforeItStarts(t *testing.T) {
 	server, asked := replying(t, 200)
 	missing := filepath.Join(t.TempDir(), "no-such-directory", "trace.json")
-	for _, command := range []string{"fetch", "batch"} {
-		code, _, stderr := exec(t, command, "--trace", missing, server.URL)
-		if code != 1 || !strings.Contains(stderr, command+": ") || !strings.Contains(stderr, "no-such-directory") {
-			t.Errorf("%s: exit code = %d, stderr = %q", command, code, stderr)
-		}
+	code, _, stderr := exec(t, "fetch", "--trace", missing, server.URL)
+	if code != 1 || !strings.Contains(stderr, "fetch: ") || !strings.Contains(stderr, "no-such-directory") {
+		t.Errorf("exit code = %d, stderr = %q", code, stderr)
 	}
 	// A trace was asked for. Running without one would be doing something else.
 	if got := asked.Load(); got != 0 {
@@ -770,12 +768,13 @@ func TestATraceThatCannotBeWrittenFailsTheRunWithoutStoppingIt(t *testing.T) {
 		}
 	})
 
-	t.Run("batch", func(t *testing.T) {
+	t.Run("a list", func(t *testing.T) {
 		file := &brokenFile{closeErr: errors.New("close failed")}
 		traceInto(t, file)
 
-		code, _, stderr := exec(t, "batch", "--trace", "anywhere", "-o", os.DevNull, server.URL)
-		if code != 1 || !strings.Contains(stderr, "batch: writing the trace: close failed") {
+		code, _, stderr := exec(t, "fetch", "--trace", "anywhere", "-o", os.DevNull,
+			server.URL+"/one", server.URL+"/two")
+		if code != 1 || !strings.Contains(stderr, "fetch: writing the trace: close failed") {
 			t.Errorf("exit code = %d, stderr = %q", code, stderr)
 		}
 		// Everything was written, and it is a whole trace: only the close failed.
@@ -935,6 +934,21 @@ func TestTraceReportsAWriteThatFailed(t *testing.T) {
 	}
 	if tunnel := one(t, events, phaseComplete, "proxy+tls"); tunnel.Args["unfinished"] != true {
 		t.Errorf("the tunnel the try gave up in was traced as %v", tunnel.Args)
+	}
+}
+
+func TestTraceCallsARequestWithNoMethodAGet(t *testing.T) {
+	// Which is what the client makes of one, so it is what the trace calls it.
+	file := &brokenFile{}
+	traceInto(t, file)
+	trace, err := openTrace("anywhere", "fetch", "", traceArgs{})
+	if err != nil {
+		t.Fatalf("openTrace: %v", err)
+	}
+	trace.main().attempt("", "https://example.test/", 1, 1, "", nil).end(nil, errors.New("not sent"))
+
+	if began := one(t, finished(t, file, trace), phaseBegin, "GET https://example.test/"); began.Cat != "request" {
+		t.Errorf("the request was traced as %+v", began)
 	}
 }
 

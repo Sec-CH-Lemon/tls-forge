@@ -18,41 +18,51 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   through every SDK, runs the published amd64 and arm64 container images, and
   installs and tests the current stable Homebrew formula. It is a separate,
   manually dispatched check for any chosen version.
-- `tls-forge fetch --retry N` asks again, up to `N` more times, when the answer
-  is not a 2xx or when no answer comes. The waits between tries double from
-  250 ms and stop at two seconds, and `-v` reports every try that is made again
-  with its reason. The default is none, the last answer is the one that counts
-  whatever its status, and the exit code still depends only on whether a
-  response arrived.
-- `--repeat N`, for `fetch` and `batch`, makes every request `N` times.
-  `fetch -o page.html --repeat 3` writes `page-1.html`, `page-2.html` and
-  `page-3.html` and exits non-zero if any run got no response; without `-o` the
-  bodies follow one another on standard output. `batch` goes through the whole
-  list once per pass, adds the pass to each JSON line as `run`, and gives each
-  pass its own `--body-dir` file. Lines of a single pass are unchanged.
-- `fetch` and `batch` count the answers by status code while they run: a bar
-  for how far the run has got, cut by how the answers went, a line for how long
-  it has taken and has left, and a row for each status, by number and by name,
-  with how many answers had it and their share. A last row, `no response`,
-  counts requests that got none. Green and `✓` mark a 2xx, yellow and `→` a
-  3xx, red and `✗` everything else, each with a shade of its own in the bar. A
-  run of one request is reported on one line. The count is redrawn in place and
-  coloured when standard error is a terminal, and `fetch` prints it once,
-  plainly, anywhere else. `--color auto|always|never` and `NO_COLOR` control
-  the colour, and `fetch` gains `--progress` and `-v, --verbose`, with the
-  meanings they have in `batch`.
-- A run ends with what it came to. Under the count, `fetch --repeat` prints how
-  many requests were made, how many further tries `--retry` spent on them, the
-  share that ended with a 2xx and the average time of one request, measured from
-  when it is sent to its last answer; a run that was interrupted says how far it
-  got. A single request that was tried again ends its line with how many times.
-  The `batch` summary gains the same average as `Avg time`, and so do the
-  figures at the top of the report.
-- `fetch --report PATH` writes the self-contained HTML report that `batch`
-  writes, with a row for every request. It is written however the run ended, a
-  request that got no answer included, uses the exit address `fetch` has
-  already asked for, and its name is the last thing the run prints. A report
-  that cannot be written fails the run with exit code 1.
+- **`fetch` takes a list.** Several URLs on the command line, `--urls a,b,c`,
+  `--input FILE` in lines, JSON or CSV, or a list piped to standard input are
+  fetched `--concurrency` at a time, four by default, and answered with JSON
+  Lines, one object per request. An entry can name its own proxy, with one
+  client and cookie jar for each. `--body-dir` keeps the pages in files, and
+  `--save-cookies` writes one set per proxy. This is everything `batch` did;
+  see Removed for what to change in a command that called it. What a list
+  could not do before: `-X`, `-H` and `-d` are applied to every URL, `-i` adds
+  the response headers to each line as `headers`, and `--json` answers one URL
+  with a line instead of its page.
+- `--retry N` asks again, up to `N` more times, when the answer is not a 2xx or
+  when no answer comes. The waits between tries double from 250 ms and stop at
+  two seconds, and `-v` reports every try that is made again with its reason
+  while requests are made one at a time. The default is none, the last answer
+  is the one that counts whatever its status, and the exit code still depends
+  only on whether a response arrived.
+- `--repeat N` makes every request `N` times. `fetch -o page.html --repeat 3`
+  writes `page-1.html`, `page-2.html` and `page-3.html` and exits non-zero if
+  any run got no response; without `-o` the bodies follow one another on
+  standard output. One URL is asked for one run at a time unless
+  `--concurrency` says how many at once. A list is gone through once per pass:
+  each JSON line carries its pass as `run`, and each pass has its own
+  `--body-dir` file. Lines of a single pass are unchanged.
+- `fetch` counts the answers by status code while it runs: a bar for how far
+  the run has got, cut by how the answers went, a line for how long it has
+  taken and has left, and a row for each status, by number and by name, with
+  how many answers had it and their share. A last row, `no response`, counts
+  requests that got none. Green and `✓` mark a 2xx, yellow and `→` a 3xx, red
+  and `✗` everything else, each with a shade of its own in the bar. A run of
+  one request is reported on one line. The count is redrawn in place and
+  coloured when standard error is a terminal, and printed once, plainly,
+  anywhere else. `--progress`, `--color auto|always|never` and `NO_COLOR`
+  control it, and `-v` adds a line for every request.
+- A run ends with what it came to. Under the count, a run of several requests
+  prints how many were made, how many further tries `--retry` spent on them,
+  the share that ended with a 2xx and the average time of one request,
+  measured from when it is sent to its last answer; then the proxies it used,
+  with each one nothing came back through, and where the pages, the JSON lines
+  and the report went. A run that was interrupted says how far it got. A
+  single request that was tried again ends its line with how many times.
+- `--report PATH` writes the run as a self-contained HTML page with a row for
+  every request, for one URL as for a list. It is written however the run
+  ended, a request that got no answer included, and its name is the last thing
+  the run prints. A report that cannot be written fails the run with exit code
+  1. The figures at its top include the average time of one request.
 - Every row of the report opens to show what the request took: where it ended
   up after a redirect, the file it was saved to, its error in full, and every
   try that was made at it. A try gives how it ended, the connection it went
@@ -67,92 +77,106 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   header fields and, when it was not a 2xx, the first 512 bytes of its body.
   Cookie values, credentials and proxy passwords are written as `***`, as in a
   trace.
-- `--report-format`, for `fetch` and `batch`, writes the report as `html`, as
-  `json`, or as both from the same run with `html,json`. The default, `auto`,
-  goes by the extension of `--report`, so `--report run.json` is enough. The
-  JSON document holds what the page shows under names of its own: the summary,
-  each proxy, and every request as the line `batch` writes for it with its exit
-  address and its tries added, down to the steps and header fields of each. It
-  holds every request, where the page stops at 2,000 rows. A directory given
-  to `--report` gets one file for each format, named after the same moment,
-  and a file path given two formats names them both, as `run.html` and
-  `run.json`.
-- `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
-  Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
-  opens: the settings, the profile, the exit-address lookup, and for each try
-  the name lookup, the dial, the TLS handshake, the request as written, the
-  wait, the response, redirects and the reason for a retry. `batch` draws a row
-  per worker. The file is one event per line, written as the run goes so that
-  an interrupted run still leaves a readable trace, created with mode `0600`
-  and replaced on every run. Proxy passwords, cookie values and
+- `--report-format` writes the report as `html`, as `json`, or as both from
+  the same run with `html,json`. The default, `auto`, goes by the extension of
+  `--report`, so `--report run.json` is enough. The JSON document holds what
+  the page shows under names of its own: the summary, each proxy, and every
+  request as the JSON line a list is answered with, with its exit address and
+  its tries added, down to the steps and header fields of each. It holds every
+  request, where the page stops at 2,000 rows. A directory given to `--report`
+  gets one file for each format, named after the same moment, and a file path
+  given two formats names them both, as `run.html` and `run.json`.
+- `--trace FILE` records every step of a run in the Trace Event JSON format
+  that [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the settings, the
+  profile, the exit-address lookup, and for each try the name lookup, the
+  dial, the TLS handshake, the request as written, the wait, the response,
+  redirects and the reason for a retry. Several requests at once are drawn on
+  a row per worker. The file is one event per line, written as the run goes so
+  that an interrupted run still leaves a readable trace, created with mode
+  `0600` and replaced on every run. Proxy passwords, cookie values and
   `Authorization` credentials are written as `***`.
 - `Request.Trace` in the Go package: optional hooks for the name lookup, each
   dial, the connection and what its handshake negotiated, the header fields in
   wire order, the first response byte and every redirect followed.
 
+### Removed
+
+- **`batch` is gone, and `fetch` does what it did.** `tls-forge batch` now
+  prints what to type instead and exits with code 2. A command that called it
+  becomes `tls-forge fetch` with the same arguments, apart from these:
+
+  | In `batch` | In `fetch` |
+  |---|---|
+  | `-i FILE` | `--input FILE`; `-i` is `--include` |
+  | `-d DIR` | `--body-dir DIR`; `-d` is `--data` |
+  | three further tries by default, set with `--repeat N` | none by default, set with `--retry N`; add `--retry 3` to keep them |
+  | `--repeat 0` to turn retries off | nothing: that is the default, and `--repeat` now means how many times each request is made |
+  | one URL as the only argument | add `--json`; without it the answer is the page |
+  | waits for URLs to be typed when none is given | a usage error; a list piped to standard input is still read |
+
+  Other things a `batch` user will see change: a try is made again for an
+  answer that is not a 2xx as well as for no answer, once `--retry` asks for
+  any. What the run ends with is the count by status and the figures under it
+  rather than the `Ran`, `Scraped`, `Not 2xx`, `No response` and `Data` table.
+  The count is printed once at the end even when standard error is not a
+  terminal. A list whose entries all go the same way asks where it comes out
+  before its first request, as `fetch` does for one URL, and no longer needs
+  `--report` for that. A proxy named with `--proxy` that cannot be used fails
+  the command before anything is fetched, instead of failing every line.
+
 ### Security
 
-- **`batch --report` no longer sends session cookies to the address service.**
-  A cookie given without a domain, such as `--cookie name=value`, is filed
-  against every host a client talks to, so the exit-address lookup at
-  `https://ipinfo.io/json` arrived with it attached. The lookup is now made by
-  a separate client with the same profile and proxy and no cookie jar. Runs
-  without `--report`, with `--report-ip=false`, or whose cookies all name a
-  domain were not affected. Every release up to 0.2.2 is.
+- **A report no longer sends session cookies to the address service.** A
+  cookie given without a domain, such as `--cookie name=value`, is filed
+  against every host a client talks to, so the exit-address lookup that
+  `batch --report` made at `https://ipinfo.io/json` arrived with it attached.
+  The lookup is now made by a separate client with the same profile and proxy
+  and no cookie jar. Runs without `--report`, with `--report-ip=false`, or
+  whose cookies all name a domain were not affected. Every release up to 0.2.2
+  is.
 - The address the service answers with must parse as an IP address before it
   is shown; anything else is reported as not looked up.
 - Builds use Go 1.26.9 and `golang.org/x/net` 0.60.0, which fix nine advisories
   that `govulncheck` reports as reachable from this code: HTTP/2 HPACK, flow
   control and trailer handling, HTTP/1.1 `CONNECT` and MIME header parsing,
   malformed ECH extensions in `crypto/tls`, and escaping contexts in
-  `html/template`, which renders the `batch` report. Go 1.26.9 is now the
-  minimum toolchain.
+  `html/template`, which renders the report. Go 1.26.9 is now the minimum
+  toolchain.
 
 ### Changed
 
 - **A terminal no longer gets the page.** `fetch` printed the body on standard
-  output wherever that led, and `batch` its JSON lines, each holding a whole
+  output wherever that led, and a list its JSON lines, each holding a whole
   page. On a terminal both now show the count of answers instead, and print
-  the body or the lines there only with `--body`; the `batch` summary says when
-  the lines were not printed. A pipe, a redirect and `batch --output` receive
-  exactly what they did before, so `tls-forge fetch URL > page.html` and
-  `tls-forge batch … | jq` are unchanged.
+  the body or the lines there only with `--body`; a run that printed no lines
+  says so at the end. A pipe, a redirect and `--output` receive exactly what
+  they did before, so `tls-forge fetch URL > page.html` is unchanged.
 - `fetch --output FILE` no longer prints `wrote N bytes to FILE` on standard
   output. Where the body was saved is the last line on standard error,
   `saved to FILE`, or the `Saved to` row of a repeated run's figures, and `-v`
   names the file of every run.
-- The `batch` report is titled `tls-forge batch` rather than `tls-forge run`.
-  When the list is gone through more than once it counts requests rather than
-  URLs, and every row says which pass it was.
+- The report is titled `tls-forge fetch` rather than `tls-forge run`. When a
+  request is made more than once it counts requests rather than URLs, and
+  every row says which run it was.
 - The rows of the report give `Started` without the year and no longer have an
   `Ended` column: an opened row gives both moments to the millisecond. The
   proxy and the exit address are said once above the rows when every request
   went the same way, and stay on each row when they did not.
-- **`batch --repeat` is now `--retry`, and `--repeat` means something else.**
-  The flag that asks again for a URL that did not load is `--retry`, still
-  three by default. `--repeat N` now goes through the whole list `N` times, so
-  a command that passed `--repeat 5` to get five further tries makes five times
-  the requests instead and has to be changed to `--retry 5`. `--repeat 0`,
-  which used to turn retries off, is rejected as a usage error.
-- `batch` asks again for an answer that is not a 2xx, and not only for a
-  request that got no answer. A list that expects some 404s spends up to three
-  further requests on each of them unless it passes `--retry 0`. Rows that
-  still end with a non-2xx status are reported as they were, and the exit code
-  still turns only on requests that got no response.
-- `tls-forge fetch` reports the address its request comes out of, as the last
-  line of the profile block on standard error. The address is asked of a public
-  service before the request, with the same profile and proxy and without the
-  session's cookies, so **every fetch now makes at least one additional request
-  to a third party**. A failure is reported on that line without failing the
-  fetch. `proxy` and `daemon` ask nobody, and `batch` still asks only for
-  `--report`.
-- The exit address is asked of four services instead of one, for `fetch` and
-  for the `batch` report alike: `www.cloudflare.com/cdn-cgi/trace`, then
+- `fetch` reports the address its requests come out of, as the last line of
+  the profile block on standard error. The address is asked of a public
+  service before the first request, with the same profile and proxy and
+  without the session's cookies, so **every run that goes one way now makes at
+  least one additional request to a third party**. A failure is reported on
+  that line without failing the fetch. A list whose entries name different
+  proxies asks nobody before it starts, and afterwards only for `--report`,
+  once per proxy. `proxy` and `daemon` ask nobody.
+- The exit address is asked of four services instead of one, for that line and
+  for a report alike: `www.cloudflare.com/cdn-cgi/trace`, then
   `checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next is asked as
   soon as the one before it fails or has said nothing for its share of the
   wait, and the first to answer is believed. A lookup waits at most five
-  seconds in all; in `batch` it used to wait the full request timeout for each
-  proxy. Amazon and ipify report the address without a country.
+  seconds in all; for a report it used to wait the full request timeout for
+  each proxy. Amazon and ipify report the address without a country.
 - Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and
   uTLS 1.7.8, including upstream fixes for HTTP/2 flow control, ALPN transport
   reuse and per-connection signature GREASE. Runtime cryptography and

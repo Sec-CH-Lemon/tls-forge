@@ -171,13 +171,13 @@ func TestReportAsJSON(t *testing.T) {
 	}
 	exits := map[string]egress{proxy: {IP: "203.0.113.7", Country: "pl"}}
 	var out strings.Builder
-	if err := renderReportJSON(&out, "batch", records, summarise(records, 3*time.Second, exits), exits); err != nil {
+	if err := renderReportJSON(&out, "fetch", records, summarise(records, 3*time.Second, exits), exits); err != nil {
 		t.Fatalf("renderReportJSON: %v", err)
 	}
 	raw := out.String()
 	doc := decoded(t, []byte(raw))
 
-	if doc.Command != "batch" || doc.Version != version || !doc.Generated.Equal(clock.now()) {
+	if doc.Command != "fetch" || doc.Version != version || !doc.Generated.Equal(clock.now()) {
 		t.Errorf("the document is headed %q %q %s", doc.Command, doc.Version, doc.Generated)
 	}
 	wantSummary := documentSummary{
@@ -209,7 +209,7 @@ func TestReportAsJSON(t *testing.T) {
 		t.Fatalf("requests = %v", urls)
 	}
 	failed, page := doc.Requests[0], doc.Requests[1]
-	// A request is the line batch writes for it, under the names it has there.
+	// A request is the line of JSON written for it, under the names it has there.
 	if failed.Error != "no route to host" || failed.Millis != 300 || failed.Exit != nil || failed.Tries != nil {
 		t.Errorf("the request that failed is written as %+v", failed)
 	}
@@ -270,7 +270,7 @@ func TestReportAsJSONOfNothing(t *testing.T) {
 	// A run of nothing made no requests, which is a list of none and a rate of
 	// none, not a null and a division by zero.
 	var out strings.Builder
-	if err := renderReportJSON(&out, "batch", nil, summarise(nil, time.Second, nil), nil); err != nil {
+	if err := renderReportJSON(&out, "fetch", nil, summarise(nil, time.Second, nil), nil); err != nil {
 		t.Fatalf("renderReportJSON: %v", err)
 	}
 	if raw := out.String(); !strings.Contains(raw, `"requests": []`) || !strings.Contains(raw, `"success_rate": 0`) ||
@@ -390,9 +390,9 @@ func TestFetchReportFormatsAreCheckedBeforeTheRun(t *testing.T) {
 	if code != 2 || !strings.Contains(stderr, "--report-format requires --report") {
 		t.Errorf("a format with no report: exit code = %d, stderr = %q", code, stderr)
 	}
-	code, _, _ = exec(t, "batch", "--report", path, "--report-format", "pdf", server.URL)
+	code, _, _ = exec(t, "fetch", "--report", path, "--report-format", "pdf", server.URL)
 	if code != 1 {
-		t.Errorf("batch with an unknown format: exit code = %d", code)
+		t.Errorf("a list with an unknown format: exit code = %d", code)
 	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("%d requests were made by commands that were refused", got)
@@ -420,37 +420,37 @@ func TestOneReportIsWrittenWhenTheOtherCannotBe(t *testing.T) {
 		t.Error("the page that could be written is not the report of the run")
 	}
 
-	// Batch does the same, and fails the same way.
-	code, _, stderr = exec(t, "batch", "--report", base, "--report-format", "html,json", "--report-ip=false",
-		server.URL+"/one")
-	if code != 1 || !strings.Contains(stderr, "report written to "+base+".html\n") || !strings.Contains(stderr, "tlsforge: batch: ") {
-		t.Errorf("batch: exit code = %d\n%s", code, stderr)
+	// A list does the same, and names the page among what the run came to.
+	code, _, stderr = exec(t, "fetch", "--report", base, "--report-format", "html,json", "--report-ip=false",
+		server.URL+"/one", server.URL+"/two")
+	if code != 1 || !strings.Contains(stderr, "  Report        "+base+".html\n") || !strings.Contains(stderr, "tlsforge: fetch: ") {
+		t.Errorf("a list: exit code = %d\n%s", code, stderr)
 	}
 }
 
-func TestBatchWritesBothReports(t *testing.T) {
+func TestListWritesBothReports(t *testing.T) {
 	original := reportRowLimit
 	t.Cleanup(func() { reportRowLimit = original })
 	reportRowLimit = 2
 
-	server := batchServer(t)
+	server := pathServer(t)
 	dir := t.TempDir()
 	base := filepath.Join(dir, "run")
 
-	code, _, stderr := exec(t, "batch", "--report", base, "--report-format", "json,html", "--report-ip=false",
+	code, _, stderr := exec(t, "fetch", "--report", base, "--report-format", "json,html", "--report-ip=false",
 		"--output", os.DevNull, server.URL+"/a", server.URL+"/b", server.URL+"/c")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	// The page stops at what a browser can open and says so, once, under its
+	// The page stops at what a browser can open and says so, once, beside its
 	// own name. The document has every request.
-	want := "report written to " + base + ".json\nreport written to " + base + ".html\n" +
-		"  1 rows are in " + os.DevNull + " but not in the report\n"
-	if !strings.Contains(stderr, want) || strings.Count(stderr, "but not in the report") != 1 {
+	want := "  Written to    " + os.DevNull + "\n  Report        " + base + ".json\n" +
+		"  Report        " + base + ".html  (without 1 of the requests)\n"
+	if !strings.HasSuffix(stderr, want) || strings.Count(stderr, "of the requests") != 1 {
 		t.Errorf("stderr does not name the two, or says more than once what the page left out (%q):\n%s", want, stderr)
 	}
 	doc := decoded(t, []byte(reportOf(t, base+".json")))
-	if doc.Command != "batch" || len(doc.Requests) != 3 || doc.Summary.Requests != 3 {
+	if doc.Command != "fetch" || len(doc.Requests) != 3 || doc.Summary.Requests != 3 {
 		t.Errorf("the document has %d requests of %+v", len(doc.Requests), doc.Summary)
 	}
 	if html := reportOf(t, base+".html"); !strings.Contains(html, "1 more rows are not shown") {

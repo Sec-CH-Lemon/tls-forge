@@ -61,7 +61,7 @@ func TestEveryCommandThatFetchesSaysWhatItIsWearing(t *testing.T) {
 	keepProfilesIn(t)
 	for _, args := range [][]string{
 		{"fetch", "--timeout", "1s", "https://127.0.0.1:1/"},
-		{"batch", "--timeout", "1s", "--progress", "never", "--retry", "0",
+		{"fetch", "--timeout", "1s", "--progress", "never", "--retry", "0",
 			"-u", "https://127.0.0.1:1/"},
 	} {
 		t.Run(args[0], func(t *testing.T) {

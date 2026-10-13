@@ -17,9 +17,9 @@ import (
 // of two runs. Everything the page shows is here under a name, and every
 // request is here, where the page stops at what a browser can open.
 //
-// The names are the ones already in use. A request is a line of batch's output
-// with its tries added, and a connection is described in the words a trace
-// describes it in, so that what reads one of them reads this.
+// The names are the ones already in use. A request is the line of JSON a list
+// is answered with, with its tries added, and a connection is described in the
+// words a trace describes it in, so that what reads one of them reads this.
 
 // reportDocument is the whole of it.
 type reportDocument struct {
@@ -70,8 +70,8 @@ type documentExit struct {
 // and would leave out everything added beside it.
 type resultFields result
 
-// documentRequest is one request: the line batch writes for it, where it came
-// out, and every try that was made at it.
+// documentRequest is one request: the line of JSON that is written for it,
+// where it came out, and every try that was made at it.
 type documentRequest struct {
 	resultFields
 	Exit *documentExit `json:"exit,omitempty"`

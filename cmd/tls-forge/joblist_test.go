@@ -326,7 +326,7 @@ func TestReadJobsGivesUpWhenInterrupted(t *testing.T) {
 	// A read on an idle terminal blocks until there is a line or the process
 	// ends. Without the read being on a goroutine of its own, the first Ctrl-C
 	// is caught, turned into a cancelled context, and noticed by nobody:
-	// `tls-forge batch` waiting on standard input survived four of them.
+	// A command waiting for a list on standard input survived four of them.
 	ctx, cancel := context.WithCancel(context.Background())
 	blocked, release := io.Pipe()
 	t.Cleanup(func() { _ = release.Close() })

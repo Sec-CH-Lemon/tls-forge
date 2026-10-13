@@ -91,7 +91,7 @@ func readJobs(ctx context.Context, inline, path, format string, args []string,
 	if path != "" {
 		file, err := os.Open(path)
 		if err != nil {
-			return nil, fmt.Errorf("batch: %w", err)
+			return nil, fmt.Errorf("fetch: %w", err)
 		}
 		defer func() { _ = file.Close() }()
 		return decodeJobs(file, resolved, path)
@@ -187,7 +187,7 @@ func decodeLineJobs(r io.Reader, source string) ([]job, error) {
 		jobs = append(jobs, job{URL: strings.TrimSpace(url), Proxy: strings.TrimSpace(proxy)})
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("batch: %s: %w", source, err)
+		return nil, fmt.Errorf("fetch: %s: %w", source, err)
 	}
 	return jobs, nil
 }
@@ -207,12 +207,12 @@ type jsonJob struct {
 func decodeJSONJobs(r io.Reader, source string) ([]job, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("batch: %s: %w", source, err)
+		return nil, fmt.Errorf("fetch: %s: %w", source, err)
 	}
 
 	var raw []json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, fmt.Errorf("batch: %s: expected a JSON array: %w", source, err)
+		return nil, fmt.Errorf("fetch: %s: expected a JSON array: %w", source, err)
 	}
 
 	jobs := make([]job, 0, len(raw))
@@ -226,7 +226,7 @@ func decodeJSONJobs(r io.Reader, source string) ([]job, error) {
 		decoder := json.NewDecoder(strings.NewReader(string(item)))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&entry); err != nil {
-			return nil, fmt.Errorf("batch: %s: entry %d: %w", source, i+1, err)
+			return nil, fmt.Errorf("fetch: %s: entry %d: %w", source, i+1, err)
 		}
 		jobs = append(jobs, job{
 			URL:   strings.TrimSpace(entry.URL),
@@ -254,7 +254,7 @@ func decodeCSVJobs(r io.Reader, source string) ([]job, error) {
 
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("batch: %s: %w", source, err)
+		return nil, fmt.Errorf("fetch: %s: %w", source, err)
 	}
 	if len(records) == 0 {
 		return nil, nil
@@ -307,7 +307,7 @@ func field(record []string, at int) string {
 // hundred should learn that from one run.
 func validate(jobs []job) error {
 	if len(jobs) == 0 {
-		return fmt.Errorf("batch: no URLs given")
+		return fmt.Errorf("fetch: no URLs given")
 	}
 	var problems []string
 	for i, j := range jobs {
@@ -321,7 +321,7 @@ func validate(jobs []job) error {
 		}
 	}
 	if len(problems) > 0 {
-		return fmt.Errorf("batch: %s", strings.Join(problems, "; "))
+		return fmt.Errorf("fetch: %s", strings.Join(problems, "; "))
 	}
 	return nil
 }

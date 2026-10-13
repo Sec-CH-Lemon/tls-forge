@@ -151,8 +151,8 @@ func TestWarningNamesWhereTheNumberCameFrom(t *testing.T) {
 	fakeCores(t, 64)
 	fakeCgroup(t, map[string]string{"cpu.max": "200000 100000\n"})
 
-	server := batchServer(t)
-	_, _, stderr := exec(t, "batch", "-c", "8", server.URL+"/one")
+	server := pathServer(t)
+	_, _, stderr := exec(t, "fetch", "-c", "8", server.URL+"/one")
 
 	if !strings.Contains(stderr, "the 2 CPUs this process is allowed") {
 		t.Errorf("stderr = %q", stderr)

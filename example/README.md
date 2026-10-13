@@ -91,20 +91,23 @@ On Windows without Make, use
 ## Scrape a list
 
 ```bash
-../bin/tls-forge batch -i urls.csv
+../bin/tls-forge fetch --input urls.csv
 ```
 
-One JSON object per URL on standard output when that is a pipe or a file, and a
-summary on standard error:
+`fetch` is given one URL or many. One is answered with its page. A list is
+answered with one JSON object per URL on standard output, when that is a pipe
+or a file, and with what the run came to on standard error:
 
 ```
-  Ran          3 URLs in 84ms
-  Scraped      3  (100.0%)
-  Not 2xx      0  (0.0%)
-  No response  0  (0.0%)
-  Data         1.7 kB
-  Retries      0
-  Avg time     71ms
+  ████████████████████████████████████████  3/3  100%
+  0s elapsed · 1.7 kB
+
+  ✓ 200 OK   3  100%
+
+  Requests      3
+  Retries       0
+  Success rate  100.0%
+  Avg time      71ms
 ```
 
 `Avg time` is what one URL took from when it was asked for to its last answer.
@@ -116,23 +119,34 @@ else is one URL per line. Name it yourself with `-F` when the file is called
 something else.
 
 ```bash
-../bin/tls-forge batch -i urls.txt        # lines
-../bin/tls-forge batch -i urls.json       # JSON
-../bin/tls-forge batch -u "https://example.com/,https://example.org/"
-cat urls.txt | ../bin/tls-forge batch     # or standard input
+../bin/tls-forge fetch --input urls.txt        # lines
+../bin/tls-forge fetch --input urls.json       # JSON
+../bin/tls-forge fetch -u "https://example.com/,https://example.org/"
+../bin/tls-forge fetch https://example.com/ https://example.org/
+cat urls.txt | ../bin/tls-forge fetch          # or standard input
+```
+
+It is how the command was asked that decides the shape, not how many URLs
+turned up, so a list of one is still answered with a line. `--json` asks for
+the line when the one URL is named on the command line:
+
+```bash
+../bin/tls-forge fetch --json https://example.com/ | jq '{status, bytes, ms}'
 ```
 
 ## Keep the results
 
 ```bash
-../bin/tls-forge batch -i urls.csv -o results.jsonl -R reports/
+../bin/tls-forge fetch --input urls.csv -o results.jsonl -R reports/
 ```
 
 `-o` sends the JSON lines to a file, `-R` writes an HTML report. Given a
-directory, the report names itself after the run:
+directory, the report names itself after the run, and both are named at the
+end:
 
 ```
-report written to reports/report-2026-08-16-091854-584.html
+  Written to    results.jsonl
+  Report        reports/report-2026-08-16-091854-584.html
 ```
 
 One line of `results.jsonl`, with the body cut short here:
@@ -151,13 +165,14 @@ One line of `results.jsonl`, with the body cut short here:
 }
 ```
 
-Bodies inline into that file. `-d bodies/` writes them out as files instead and
-leaves a path in their place, which is what to do when the pages are large.
+Bodies inline into that file. `--body-dir bodies/` writes them out as files
+instead and leaves a path in their place, which is what to do when the pages
+are large. `-i` adds the response headers to every line, as `headers`.
 
 ## Watch it happen
 
 ```bash
-../bin/tls-forge batch -i urls.csv -v
+../bin/tls-forge fetch --input urls.csv -v
 ```
 
 ```
@@ -199,7 +214,14 @@ the proxy is the identity: two pages through one exit sharing a cookie jar is
 what a browser does, and a jar spread across two exits is what none does.
 
 `--proxy` sets the one to use for entries that name none, so the flag and the
-column compose rather than override.
+column compose rather than override. What a run through proxies comes to says
+which of them carried nothing:
+
+```
+  Proxies       2 used, 0 alive, some direct
+  dead proxy    http://user@eu-1.proxy.example:8080  (1 requests, none came back)
+  dead proxy    socks5://us-3.proxy.example:1080  (1 requests, none came back)
+```
 
 ## Warmed cookies
 
@@ -284,14 +306,14 @@ curl -b jar.txt https://example.com/            # curl reads it
 
 ```bash
 ../bin/tls-forge fetch --save-cookies session.json https://example.com/
-../bin/tls-forge batch -i urls.csv --save-cookies session.json
+../bin/tls-forge fetch --input urls.csv --save-cookies session.json
 ```
 
 The file's name says which format. A `.txt` is written as a cookies.txt and
 **replaced**, because that is what a jar written down means to everything else
 that reads one. Anything else is this project's JSON, which holds sets, so a run
-is **added** to what the file already had and one file builds up over time. In
-`batch` that is one set per proxy, each noting which exit warmed it.
+is **added** to what the file already had and one file builds up over time. A
+run is one set per proxy, each noting which exit warmed it.
 
 Written `0600` either way: a warmed session is a credential.
 
@@ -318,9 +340,9 @@ it goes wherever standard output is pointed, and to the screen when asked:
 ../bin/tls-forge fetch --body https://example.com/           # and so does the screen
 ```
 
-`batch` does the same with its JSON lines: a terminal gets the count and the
-summary, a pipe or `-o` gets the lines, and `--body` prints them on the screen
-as well.
+A list does the same with its JSON lines: a terminal gets the count and what
+the run came to, a pipe or `-o` gets the lines, and `--body` prints them on the
+screen as well.
 
 Several requests are counted rather than listed. A bar shows how far the run
 has got and, by its three shades, how the answers are going; under it there is
@@ -369,9 +391,7 @@ reported is how the request ended, so a page that arrived on the third try is a
   try 2 of 4: HTTP 503, trying again in 500ms
 ```
 
-`fetch` makes no further tries unless told to. `batch` makes three, as it
-always has for a URL that did not load, and now for one that answered with
-something other than the page as well; `--retry 0` turns that off.
+`fetch` makes no further tries unless told to, for a list as for one URL.
 
 ```bash
 ../bin/tls-forge fetch --repeat 3 -o page.html https://example.com/
@@ -403,11 +423,13 @@ With `-v` there is a line for each run as well:
 ```
 
 The first run paid for a lookup, a dial and a handshake; the two after it found
-the connection open. In `batch`, `--repeat` goes through the whole list that
-many times, and every line of the output says which pass it was:
+the connection open. One URL is asked for one run at a time, the way a page is
+reloaded; `-c 10` makes ten of them at once instead. For a list, `--repeat`
+goes through the whole of it that many times, and every line of the output
+says which pass it was:
 
 ```bash
-../bin/tls-forge batch -u https://example.com/ --repeat 2 -d bodies/ \
+../bin/tls-forge fetch -u https://example.com/ --repeat 2 --body-dir bodies/ \
   | jq -c '{url, status, file, run, attempts}'
 ```
 
@@ -422,9 +444,9 @@ many times, and every line of the output says which pass it was:
 ../bin/tls-forge fetch --repeat 3 -R reports/ https://example.com/
 ```
 
-`-R` writes the run as an HTML page, the one `batch` writes for a list. The
-count says how the run went; the page has a row for every request, with when
-it was made, how long it took, how it ended and where it came out. Its name is
+`-R` writes the run as an HTML page, for one URL made several times as for a
+list. The count says how the run went; the page has a row for every request,
+with when it was made, how long it took, how it ended and where it came out. Its name is
 the last thing the run says:
 
 ```
@@ -544,7 +566,8 @@ jq '[.requests[].tries[].steps[] | select(.name == "wait") | .ms] | max' run.jso
 `--trace` writes down every step, in the Trace Event JSON format. Drop the file
 onto [ui.perfetto.dev](https://ui.perfetto.dev/) and the run is a timeline: a
 bar per request, and inside it a bar for the lookup, the dial, the handshake,
-the request, the wait and the answer. A batch gets a row per worker.
+the request, the wait and the answer. Several requests at once get a row per
+worker.
 
 It is one event to a line, so it also answers without a viewer. Where the time
 of each run went, in microseconds:
@@ -591,19 +614,19 @@ a bug report as it is.
 ## Everything at once
 
 ```bash
-../bin/tls-forge batch \
-  -i urls.csv \
+../bin/tls-forge fetch \
+  --input urls.csv \
   --cookies cookies.json --cookie-set warm-eu \
   --save-cookies session.json \
   -c 8 --retry 3 -v \
   --trace run.json \
-  -o results.jsonl -R reports/
+  -o results.jsonl -R reports/ --report-format html,json
 ```
 
 A list, a warmed session to start from, the session written back when it is
 done, eight pages at a time, three further tries for anything that does not
 come back as a page, a line per request, a trace of every step, the results as
-JSON lines and a report to look at.
+JSON lines, and a report to look at with the same report as JSON beside it.
 
 ## Where to read more
 

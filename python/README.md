@@ -266,8 +266,7 @@ domain, path, secure, HttpOnly and expiry attributes are retained by the Go
 cookie jar.
 
 The Python SDK currently loads but does not write session files. Use the CLI
-`fetch --save-cookies` or `batch --save-cookies` when the final jar must be
-persisted.
+`fetch --save-cookies` when the final jar must be persisted.
 
 ## Binary resolution
 

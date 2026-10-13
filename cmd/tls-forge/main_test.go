@@ -296,8 +296,7 @@ func TestFetchArgumentErrors(t *testing.T) {
 	// and failed". compare also uses 1 for "the fingerprints differ", so a typo
 	// must never come out as 1.
 	for _, args := range [][]string{
-		{"fetch"},               // no URL
-		{"fetch", "one", "two"}, // two URLs
+		{"fetch"}, // no URL, and nobody piping a list in
 		{"fetch", "-H", "no-colon", "https://x/"}, // malformed header
 		{"fetch", "--nonsense", "https://x/"},     // unknown flag
 	} {
@@ -455,18 +454,49 @@ func TestFetchEndsItsReportWhenItStopsEarly(t *testing.T) {
 	}
 }
 
-func TestOnlyFetchAsksWhereItComesOut(t *testing.T) {
-	// Batch has its own, once per proxy and only for a report somebody asked
-	// for. Sharing the report of what a run is wearing must not share this.
+func TestARunThatGoesSeveralWaysAsksNobodyWhereItComesOut(t *testing.T) {
+	// One way out is one address, asked for once and said before the first
+	// request. A list with a proxy for each URL has as many as it has proxies,
+	// which is a question for a report somebody asked for and for nothing else.
 	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
-	server := batchServer(t)
+	server := pathServer(t)
+	list := writeList(t, "two-ways.csv", fmt.Sprintf(
+		"url,proxy\n%[1]s/one,http://127.0.0.1:9001\n%[1]s/two,\n", server.URL))
 
-	code, _, stderr := exec(t, "batch", "--progress", "never", server.URL+"/one")
-	if code != 0 {
-		t.Fatalf("exit code = %d\n%s", code, stderr)
+	code, _, stderr := exec(t, "fetch", "--input", list, "--timeout", "5s", "-o", os.DevNull)
+	if code != 1 {
+		t.Fatalf("exit code = %d, want 1: one of the two went through a dead proxy\n%s", code, stderr)
 	}
 	if strings.Contains(stderr, "exit-ip") || asked.Load() != 0 {
-		t.Errorf("batch asked for an address (%d times):\n%s", asked.Load(), stderr)
+		t.Errorf("an address was asked for (%d times):\n%s", asked.Load(), stderr)
+	}
+	// The rule is still closed, with nothing under it to wait for.
+	if got := strings.Count(stderr, identityRule); got != 2 {
+		t.Errorf("the report has %d rules, want one above and one below:\n%s", got, stderr)
+	}
+}
+
+func TestBatchSaysWhereItWent(t *testing.T) {
+	// A script that has called batch for a year fails the day it is upgraded.
+	// What it finds has to be what to type instead, and nothing may be fetched
+	// by a command that no longer means what its caller thinks.
+	server, asked := replying(t, 200)
+
+	code, stdout, stderr := exec(t, "batch", "-i", "urls.csv", server.URL)
+	if code != exitUsage || stdout != "" {
+		t.Errorf("exit code = %d and stdout = %q, want %d and nothing", code, stdout, exitUsage)
+	}
+	for _, want := range []string{"batch is now fetch", "--input", "--body-dir", "--retry 3", "--json"} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr has no %q:\n%s", want, stderr)
+		}
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("%d requests were made by a command that is gone", got)
+	}
+	// And it is not offered among the commands there are.
+	if _, _, listed := exec(t, "nonsense"); strings.Contains(listed, "batch") {
+		t.Errorf("the list of commands still has batch:\n%s", listed)
 	}
 }
 
@@ -1027,9 +1057,9 @@ func TestHelpFlagOnACommandExitsTwo(t *testing.T) {
 	// -h is not an error, but it is not a successful run either: nothing was
 	// fetched. Every command has to agree about that.
 	// Every command, so that a shorthand two flags both want is caught here
-	// rather than by a panic in front of whoever ran it. batch was missing from
-	// this list when --cookies and --concurrency both asked for -c.
-	for _, name := range []string{"fetch", "batch", "capture", "compare", "profiles",
+	// rather than by a panic in front of whoever ran it, as it would have been
+	// when --cookies and --concurrency both asked for -c.
+	for _, name := range []string{"fetch", "capture", "compare", "profiles",
 		"proxy", "serve", "daemon", "version"} {
 		code, _, _ := exec(t, name, "-h")
 		if code != 2 {
@@ -1060,7 +1090,6 @@ func TestCommandsOnlyAdvertiseEffectiveCookieFlags(t *testing.T) {
 		want    []bool
 	}{
 		{"fetch", []bool{true, true, true, true}},
-		{"batch", []bool{true, true, true, true}},
 		// Daemon can start from a warmed jar, but cannot save one because the
 		// stream protocol does not retain the list of hosts it visited.
 		{"daemon", []bool{true, true, true, false}},

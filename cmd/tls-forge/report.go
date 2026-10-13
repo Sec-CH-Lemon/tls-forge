@@ -54,10 +54,6 @@ type summary struct {
 	Spent   time.Duration
 	Proxies []proxyStat
 	Direct  bool
-	Output  string
-	// Unprinted says the JSON lines went nowhere: standard output was a
-	// terminal, and nobody asked for them there or named a file.
-	Unprinted bool
 	// Passes is how many times the list was gone through. Each pass is counted
 	// in Total, so this is what turns that number back into a list.
 	Passes int
@@ -176,44 +172,18 @@ func percent(part, total int) string {
 	return fmt.Sprintf("%.1f%%", float64(part)*100/float64(total))
 }
 
-// ran is the first line of the table: how much was asked for and how long it
-// took.
-func (s summary) ran() string {
-	if s.Passes > 1 {
-		return fmt.Sprintf("%d requests (%d passes over %d URLs) in %s",
-			s.Total, s.Passes, s.Total/s.Passes, preciseDuration(s.Elapsed))
+// proxyRows are the proxies a run went through, as rows of the figures it ends
+// with: how many, how many of them carried anything, and each one that did not.
+// None when the run used no proxy.
+func (s summary) proxyRows() [][2]string {
+	if len(s.Proxies) == 0 {
+		return nil
 	}
-	return fmt.Sprintf("%d URLs in %s", s.Total, preciseDuration(s.Elapsed))
-}
-
-// table is the run as a block of aligned lines.
-func (s summary) table() string {
-	rows := [][2]string{
-		{"Ran", s.ran()},
-		{"Scraped", fmt.Sprintf("%d  (%s)", s.Succeeded, percent(s.Succeeded, s.Total))},
-		{"Not 2xx", fmt.Sprintf("%d  (%s)", s.Warned, percent(s.Warned, s.Total))},
-		{"No response", fmt.Sprintf("%d  (%s)", s.Failed, percent(s.Failed, s.Total))},
-		{"Data", humanBytes(s.Bytes)},
-		{"Retries", fmt.Sprintf("%d", s.Retries)},
-		{"Avg time", preciseDuration(s.Average())},
+	used := fmt.Sprintf("%d used, %d alive", len(s.Proxies), s.AliveProxies())
+	if s.Direct {
+		used += ", some direct"
 	}
-	if len(s.Proxies) > 0 {
-		used := fmt.Sprintf("%d used, %d alive", len(s.Proxies), s.AliveProxies())
-		if s.Direct {
-			used += ", some direct"
-		}
-		rows = append(rows, [2]string{"Proxies", used})
-	}
-	if s.Output != "" {
-		rows = append(rows, [2]string{"Written to", s.Output})
-	}
-	if s.Unprinted {
-		// Said, because a run that fetched a list and kept none of it looks, from
-		// the outside, exactly like one that kept it somewhere.
-		rows = append(rows, [2]string{"JSON lines",
-			"not printed on a terminal; -o FILE keeps them, --body shows them"})
-	}
-
+	rows := [][2]string{{"Proxies", used}}
 	// Named, not just counted: "6 of 8 alive" does not say which two to replace.
 	for _, p := range s.Proxies {
 		if p.Alive() {
@@ -222,7 +192,7 @@ func (s summary) table() string {
 		rows = append(rows, [2]string{"dead proxy",
 			fmt.Sprintf("%s  (%d requests, none came back)", p.Proxy, p.Requests)})
 	}
-	return aligned(rows)
+	return rows
 }
 
 // reportRow is one URL as the HTML report shows it.
@@ -374,7 +344,7 @@ func limitRows(records []result, limit int) (kept []result, dropped int) {
 }
 
 type reportData struct {
-	// Command is which of them made the run: fetch or batch.
+	// Command is the one that made the run.
 	Command   string
 	Generated string
 	Dropped   int
@@ -449,16 +419,6 @@ func (d reportData) Width() template.CSS {
 // was asked for more than once.
 func (d reportData) Numbered() bool { return d.Summary.Passes > 1 }
 
-// Elsewhere is where the rows the report left out can still be found, when
-// there is such a place. Batch writes every row as a JSON line, and fetch
-// writes its pages and nothing about them.
-func (d reportData) Elsewhere() string {
-	if d.Command == "batch" {
-		return "The JSON lines carry every row."
-	}
-	return ""
-}
-
 // card is one figure in the row above the tables.
 type card struct {
 	Label string
@@ -504,7 +464,6 @@ var reportCSS string
 var reportTemplate = template.Must(template.New("report").Parse(reportMarkup))
 
 // reportFlags are where a run is written down when it is over, and as what.
-// Fetch and batch share them, so a report is asked for the same way of both.
 type reportFlags struct {
 	path   *string
 	format *string
@@ -618,7 +577,7 @@ func reportPath(given, format string, when time.Time) string {
 //
 // Ordered largest unit first, so a directory of reports sorts into the order
 // they were made, which the named month used inside the report would not.
-// Milliseconds, because a batch can be started twice inside one second.
+// Milliseconds, because a run can be started twice inside one second.
 // Hyphens, rather than clock colons, keep the same spelling portable to Windows
 // where a colon denotes an alternate data stream and cannot name a normal file.
 func stamp(t time.Time) string {

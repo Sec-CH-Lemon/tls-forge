@@ -2,37 +2,37 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/url"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
-// result is one line of the output. JSON lines rather than a JSON array so the
-// output can be read as it is produced, and appended to across runs.
+// Making a list of requests: the record of each, the clients they go through,
+// and the workers that make them.
+
+// result is one request, and one line of the output when that is JSON lines.
+// Lines rather than a JSON array so the output can be read as it is produced,
+// and appended to across runs.
 type result struct {
 	URL      string `json:"url"`
 	Proxy    string `json:"proxy,omitempty"`
 	Status   int    `json:"status,omitempty"`
 	FinalURL string `json:"final_url,omitempty"`
-	Bytes    int    `json:"bytes,omitempty"`
-	Body     string `json:"body,omitempty"`
+	// Header is the response's header fields, written when they were asked for
+	// with --include.
+	Header map[string][]string `json:"headers,omitempty"`
+	Bytes  int                 `json:"bytes,omitempty"`
+	Body   string              `json:"body,omitempty"`
 	// BodyEncoding is "base64" when Body was not valid UTF-8. It is omitted
 	// for text so existing JSONL consumers keep seeing the old shape normally.
 	BodyEncoding string    `json:"body_encoding,omitempty"`
@@ -40,8 +40,8 @@ type result struct {
 	Started      time.Time `json:"started"`
 	Ended        time.Time `json:"ended"`
 	Millis       int64     `json:"ms"`
-	// Run is which pass over the list this was, under --repeat. Omitted when
-	// the list is gone through once, as it always used to be.
+	// Run is which time this request was made, under --repeat. Omitted when
+	// every request is made once, as it always used to be.
 	Run      int    `json:"run,omitempty"`
 	Attempts int    `json:"attempts,omitempty"`
 	Error    string `json:"error,omitempty"`
@@ -137,9 +137,9 @@ func redactError(err error, proxy string) string {
 	return text
 }
 
-// batchInput is os.Stdin, named so a test can supply a list.
-var batchInput io.Reader = os.Stdin
-var closeBatchOutput = (*os.File).Close
+// listInput is os.Stdin, named so a test can supply a list.
+var listInput io.Reader = os.Stdin
+var closeOutput = (*os.File).Close
 
 // numCPU is runtime.NumCPU, named so a test can answer for it. A machine's core
 // count is not something a test can choose, and the warning below is worth
@@ -190,219 +190,10 @@ func warnAboutConcurrency(errOut *printer, workers int) {
 		"be what you want.")
 }
 
-func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr error) {
-	fs := newFlagSet("batch", out)
-	common := addClientFlags(fs)
-	input := fs.StringP("input", "i", "", "file of URLs (default: standard input)")
-	inline := fs.StringP("urls", "u", "", "URLs as a comma-separated list, instead of a file")
-	format := fs.StringP("format", "F", formatAuto,
-		"how to read the list: auto, lines, json or csv")
-	workers := fs.IntP("concurrency", "c", 4, "how many requests to run at once")
-	output := fs.StringP("output", "o", "", "write the JSON lines here instead of standard output")
-	bodyDir := fs.StringP("body-dir", "d", "",
-		"write bodies to this directory and reference them instead of inlining")
-	again := addRunFlags(fs, 3)
-	watch := addWatchFlags(fs,
-		"print the JSON lines on stdout even when that is a terminal")
-	reporting := addReportFlags(fs)
-	reportIP := fs.Bool("report-ip", true,
-		"with --report, ask "+askedOf()+" which address each proxy comes out of")
-	setUsage(fs, out, "usage: tls-forge batch [flags] [urls...]")
-	if err := parse(fs, args); err != nil {
-		return err
-	}
-	if *workers < 1 {
-		return fmt.Errorf("%w: --concurrency must be at least 1", errUsage)
-	}
-	if err := again.check(); err != nil {
-		return err
-	}
-	// Checked before the list is read, so a misspelling costs a message rather
-	// than a run that turns out to have nowhere to report itself.
-	wantProgress, paint, err := watch.settle(errOut)
-	if err != nil {
-		return err
-	}
-	formats, err := reporting.formats()
-	if err != nil {
-		return err
-	}
-	warnAboutConcurrency(errOut, *workers)
-
-	// Nothing named a list and standard input is a terminal, so the next thing
-	// that happens is a wait for someone to type. Said out loud, because a
-	// command that goes quiet looks like one that has hung.
-	if *inline == "" && *input == "" && fs.NArg() == 0 && isTerminalReader(batchInput) {
-		errOut.println("reading URLs from standard input, one per line; end with Ctrl-D.")
-		errOut.println("Give a list instead with --input FILE or --urls a,b,c.")
-	}
-
-	jobs, err := readJobs(ctx, *inline, *input, *format, fs.Args(), batchInput)
-	if err != nil {
-		return err
-	}
-	// The whole list is checked before anything is fetched, so a typo costs a
-	// message rather than half a scrape.
-	if err := validate(jobs); err != nil {
-		return err
-	}
-	// Every pass over the list is counted before the first one is made, and a
-	// count that does not fit in an int is a mistake rather than a long run.
-	if *again.repeat > math.MaxInt/len(jobs) {
-		return fmt.Errorf("%w: --repeat %d is too many passes over %d URLs",
-			errUsage, *again.repeat, len(jobs))
-	}
-	requests := len(jobs) * *again.repeat
-
-	about := traceArgs{
-		"urls": len(jobs), "concurrency": *workers, "timeout": common.timeout.String(),
-		"retry": *again.retry, "repeat": *again.repeat,
-	}
-	if *common.proxy != "" {
-		about["proxy"] = redactProxy(*common.proxy)
-	}
-	trace, err := openTrace(*again.trace, "batch", *common.proxy, about)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := trace.close(runErr); err != nil {
-			runErr = errors.Join(runErr, err)
-		}
-	}()
-
-	if *bodyDir != "" {
-		if err := os.MkdirAll(*bodyDir, 0o755); err != nil {
-			return fmt.Errorf("batch: %w", err)
-		}
-	}
-
-	// A file when one was named. Otherwise standard output, unless that is a
-	// screen and nobody asked for the lines there: each one holds a whole page,
-	// and a run being watched is watched for whether it is working.
-	sink := io.Writer(out)
-	var outputFile *os.File
-	unprinted := false
-	switch {
-	case *output != "":
-		file, err := os.Create(*output)
-		if err != nil {
-			return fmt.Errorf("batch: %w", err)
-		}
-		outputFile = file
-		sink = file
-	case !watch.wanted(out, false):
-		sink = io.Discard
-		unprinted = true
-	}
-
-	// Once for the run, before the pool: it builds a client per proxy and would
-	// otherwise say the same line once per proxy.
-	common.wear(errOut)
-	trace.main().wearing(*common.profile)
-	clients := newPool(common, *common.proxy)
-	defer clients.close()
-
-	counts := newProgress(requests)
-	var line *statusLine
-	if wantProgress {
-		// The status line owns the sink from here: it erases itself before
-		// every result and draws again after, so the two streams can share a
-		// terminal without overwriting one another.
-		line = newStatusLine(errOut, sink, counts, paint)
-		sink = line
-	}
-
-	records := make([]result, 0, len(jobs))
-	// Where a run talks while it runs. Several workers write here, so it is one
-	// lock whether or not there is a status line to work around.
-	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
-
-	failures, fetchErr := runJobs(ctx, jobs, batch{
-		clients: clients, workers: *workers, sink: sink,
-		retry: *again.retry, repeat: *again.repeat, bodyDir: *bodyDir,
-		counts: counts, notes: notes, trace: trace,
-		detailed: len(formats) > 0,
-	}, &records)
-
-	// Closed here rather than deferred, so the final counts land before the
-	// summary below instead of after it.
-	if line != nil {
-		line.Close()
-	}
-	if outputFile != nil {
-		if err := closeBatchOutput(outputFile); err != nil {
-			fetchErr = errors.Join(fetchErr, fmt.Errorf("batch: closing output: %w", err))
-		}
-	}
-	if fetchErr != nil {
-		return fetchErr
-	}
-
-	// One lookup per proxy, not per URL: the address belongs to the proxy, and
-	// asking once per URL would be a request to a third party for every page.
-	exits := map[string]egress{}
-	if len(formats) > 0 && *reportIP {
-		errOut.printf("asking %s which address each proxy comes out of…\n", askedOf())
-		var skipped int
-		exits, skipped = lookupExits(clients, records, trace.main())
-		if skipped > 0 {
-			errOut.printf("  %d further proxies were not asked about, at %d per run\n",
-				skipped, exitLookupLimit)
-		}
-	}
-
-	// One set per client, which is one per proxy: a jar is an identity, and two
-	// exits' sessions in one set would describe a browser that was two people.
-	if saved, err := clients.saveSessions(common, records); err != nil {
-		return err
-	} else if saved > 0 {
-		errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
-		trace.main().instant("cookies saved", "cookies",
-			traceArgs{"file": *common.saveCookies, "cookies": saved})
-	}
-
-	elapsed := now().Sub(counts.started)
-	totals := summarise(records, elapsed, exits)
-	totals.Output = *output
-	totals.Unprinted = unprinted
-	totals.Passes = *again.repeat
-	trace.main().instant("summary", "run", traceArgs{
-		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
-		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,
-	})
-	if len(formats) > 0 {
-		written, err := writeReports(reportFiles(*reporting.path, formats, now()),
-			"batch", records, totals, exits)
-		for _, file := range written {
-			errOut.printf("report written to %s\n", file.path)
-			// Only the page stops at what a browser can open.
-			if dropped := len(records) - reportRowLimit; dropped > 0 && file.format == formatHTML {
-				errOut.printf("  %d rows are in %s but not in the report\n", dropped,
-					either(*output, "the JSON lines"))
-			}
-		}
-		if err != nil {
-			return err
-		}
-	}
-
-	// To stderr, with everything else that is commentary rather than data.
-	errOut.println()
-	errOut.printf("%s", totals.table())
-
-	if failures > 0 {
-		// Non-zero exit: a batch that half worked is not a batch that worked,
-		// and a shell loop needs to be able to tell.
-		return fmt.Errorf("batch: %d of %d %s failed", failures, requests, totals.Things())
-	}
-	return nil
-}
-
 // stderrLog is what a run says while it runs.
 //
 // To standard error, with everything else that is commentary: standard output
-// is carrying one JSON object per URL. When a status line is drawing there too,
+// is carrying the page, or one JSON object per URL. When a status line is drawing there too,
 // the log goes through it so the two do not land on each other; when there is
 // none, it takes a lock of its own, because several workers write here.
 type stderrLog struct {
@@ -452,22 +243,15 @@ func verboseLine(r result) string {
 	return line
 }
 
-// either is the first of two strings that is not empty.
-func either(first, fallback string) string {
-	if first != "" {
-		return first
-	}
-	return fallback
-}
-
 // withoutBody is the record the run keeps for its summary and its report.
 //
-// Without the page, which neither of them shows. Kept whole, a run holds every
-// page it fetched in memory until it ends: measured at 200 MB of pages, that
-// was 353 MB of resident memory against 117 MB once the bodies went. What is
-// left is a fixed couple of hundred bytes per URL.
+// Without the page and the header fields it came with, which neither of them
+// shows. Kept whole, a run holds every page it fetched in memory until it
+// ends: measured at 200 MB of pages, that was 353 MB of resident memory against
+// 117 MB once the bodies went. What is left is a fixed couple of hundred bytes
+// per URL.
 func (r result) withoutBody() result {
-	r.Body = ""
+	r.Body, r.Header = "", nil
 	return r
 }
 
@@ -521,6 +305,19 @@ func (p *pool) get(proxy string) (*tlsforge.Client, error) {
 	return client, nil
 }
 
+// hold puts a client that is already made in the pool, under the proxy it was
+// made for.
+//
+// For a run that goes one way. Its client is made before anything is fetched,
+// so that a proxy or a session that cannot be used is the command's failure
+// rather than every request's, and so that the session the run says it was
+// warmed from is the one its client was given.
+func (p *pool) hold(proxy string, client *tlsforge.Client) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.clients[p.resolveProxy(proxy)] = client
+}
+
 // saveSessions writes down what each client ended up holding, one set per
 // proxy, so a run's warming survives it.
 func (p *pool) saveSessions(flags clientFlags, records []result) (int, error) {
@@ -567,29 +364,36 @@ func (p *pool) close() {
 	}
 }
 
-// batch is what a list is fetched with: everything runJobs needs that is not
+// runner is what requests are made with: everything runJobs needs that is not
 // the list itself.
-type batch struct {
+type runner struct {
 	clients *pool
 	workers int
-	sink    io.Writer
+	// request is what each URL is asked for with: the method, the header fields
+	// and the body, which are the same for every one of them.
+	request tlsforge.Request
 	// retry is how many more times a URL is asked for when it does not come
 	// back as a page, and repeat how many times the whole list is gone through.
-	retry   int
-	repeat  int
-	bodyDir string
-	counts  *progress
-	notes   *stderrLog
-	trace   *tracer
+	retry  int
+	repeat int
+	// out is what becomes of what each request brings back.
+	out    output
+	counts *progress
+	// note is told about a try that is about to be made again. Nil keeps quiet,
+	// which is what a run of several requests at once wants: the tries of two
+	// URLs would be said in turn with nothing to tell them apart.
+	note  func(text string)
+	trace *tracer
 	// detailed says a report will be written, so every try is kept as it is
 	// made, with what it waited on.
 	detailed bool
 }
 
-// runJobs fetches the list and returns how many entries failed. A failure is
-// reported on its line rather than returned, so one dead host does not end the
-// run.
-func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
+// runJobs makes the requests and returns how many got no response. A failure
+// is reported on its own record rather than returned, so one dead host does not
+// end the run. What is returned is a run that could not go on: interrupted, or
+// with nowhere left to put what it fetched.
+func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 ) (failures int, runErr error) {
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -599,32 +403,35 @@ func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
 	// How many of the records may go on holding their tries, counted under the
 	// same lock the records are added under.
 	var room tryBudget
-	encoder := json.NewEncoder(b.sink)
 	var wg sync.WaitGroup
 
 	for worker := 1; worker <= b.workers; worker++ {
 		// A row of the trace per worker: one worker makes one request at a time,
-		// so what is drawn on its row never overlaps.
-		lane := b.trace.lane(mainLane+worker, "worker "+strconv.Itoa(worker))
+		// so what is drawn on its row never overlaps. One worker alone is the
+		// command, and draws on the command's own row.
+		lane := b.trace.main()
+		if b.workers > 1 {
+			lane = b.trace.lane(mainLane+worker, "worker "+strconv.Itoa(worker))
+		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for j := range queue {
 				b.counts.begin()
-				r := b.fetchOne(runCtx, j, lane)
+				r, res := b.fetchOne(runCtx, j, lane)
 				b.counts.finish(r)
-				b.notes.say(verboseLine(r))
 				writeMu.Lock()
 				if r.Error != "" {
 					failures++
 				}
-				*records = append(*records, room.trim(r.withoutBody()))
+				// Nothing more is handed on once handing on has failed: the next
+				// result has nowhere to go either.
 				if runErr == nil {
-					if err := encoder.Encode(r); err != nil {
-						runErr = fmt.Errorf("batch: writing result: %w", err)
+					if runErr = b.out.write(&r, res, lane); runErr != nil {
 						cancel()
 					}
 				}
+				*records = append(*records, room.trim(r.withoutBody()))
 				writeMu.Unlock()
 			}
 		}()
@@ -637,7 +444,7 @@ func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
 		return failures, runErr
 	}
 	if err := ctx.Err(); err != nil {
-		return failures, fmt.Errorf("batch: %w", err)
+		return failures, fmt.Errorf("fetch: %w", err)
 	}
 	return failures, nil
 }
@@ -648,7 +455,7 @@ func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
 // times in a row: a repeat is the run made again, and several workers handed
 // the same URL at once would be asking a different question, about what a
 // server does under a burst.
-func (b batch) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
+func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
 	occurrences := make(map[string]int)
 	for pass := 1; pass <= b.repeat; pass++ {
 		for _, j := range jobs {
@@ -708,13 +515,15 @@ func lookupExits(clients *pool, records []result, lane *traceLane) (map[string]e
 	return exits, skipped
 }
 
-func (b batch) fetchOne(ctx context.Context, j job, lane *traceLane) result {
+// fetchOne makes one request, however many tries that takes, and returns the
+// record of it with what came back, which is nil when nothing did.
+func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *tlsforge.Response) {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
 	r := result{URL: j.URL, Proxy: proxy, Started: started}
 	if b.repeat > 1 {
-		// Only when there is more than one, so a list gone through once keeps
-		// the shape its lines have always had.
+		// Only when there is more than one, so a request made once keeps the
+		// shape its line has always had.
 		r.Run = j.run
 	}
 
@@ -723,47 +532,25 @@ func (b batch) fetchOne(ctx context.Context, j job, lane *traceLane) result {
 		r.setError(err)
 		r.finish(started)
 		lane.instant("error", "request", traceArgs{"url": safeURL(j.URL), "error": r.Error})
-		return r
+		return r, nil
 	}
 
-	res, attempts, tries, err := retrier{retries: b.retry, keep: b.detailed}.do(ctx, client,
-		tlsforge.Request{URL: j.URL}, lane, j.run, proxy)
+	request := b.request
+	request.URL = j.URL
+	res, attempts, tries, err := retrier{retries: b.retry, note: b.note, keep: b.detailed}.do(
+		ctx, client, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
 
 	if err != nil {
 		r.setError(err)
-		return r
+		return r, nil
 	}
 	r.Status = res.Status
 	r.FinalURL = res.URL
 	r.Bytes = len(res.Body)
-
-	if b.bodyDir == "" {
-		if utf8.Valid(res.Body) {
-			r.Body = string(res.Body)
-		} else {
-			r.Body = base64.StdEncoding.EncodeToString(res.Body)
-			r.BodyEncoding = "base64"
-		}
-		return r
+	if keeps, ok := b.out.(filler); ok {
+		keeps.fill(&r, res, j, lane)
 	}
-	// Named from the URL so a re-run overwrites the same file. A repeated URL in
-	// one input gets a stable occurrence suffix: concurrent workers must not
-	// truncate each other's body or make two records point at one response. A
-	// second pass over the list counts as a second occurrence, which is how each
-	// run of a repeat keeps its own page.
-	sum := sha256.Sum256([]byte(j.URL))
-	name := hex.EncodeToString(sum[:8])
-	if j.occurrence > 1 {
-		name += "-" + strconv.Itoa(j.occurrence)
-	}
-	path := filepath.Join(b.bodyDir, name+".html")
-	if err := os.WriteFile(path, res.Body, 0o644); err != nil {
-		r.setError(err)
-		return r
-	}
-	lane.instant("saved", "file", traceArgs{"file": path, "bytes": len(res.Body)})
-	r.File = path
-	return r
+	return r, res
 }

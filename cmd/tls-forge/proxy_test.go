@@ -12,7 +12,7 @@ import (
 
 // A proxy that records what it was asked to reach.
 //
-// The rest of the batch tests prove per-URL proxying by pointing entries at
+// The rest of the list tests prove per-URL proxying by pointing entries at
 // ports nothing is listening on and reading the refusals: that shows each URL
 // tried its own proxy, and stops there. This one carries the traffic, so what
 // it shows is that the request went through, and through which.
@@ -102,18 +102,18 @@ func (p *recordingProxy) seen() []string {
 	return append([]string(nil), p.targets...)
 }
 
-func TestBatchRoutesEachURLThroughItsOwnProxy(t *testing.T) {
+func TestListRoutesEachURLThroughItsOwnProxy(t *testing.T) {
 	// Two servers and two proxies, so the evidence is which proxy carried
 	// which host rather than which port refused a connection. Nothing here
 	// would pass if the run shared one client, or if the proxy column were
 	// read and then ignored.
-	first, second := tlsBatchServer(t), tlsBatchServer(t)
+	first, second := tlsPathServer(t), tlsPathServer(t)
 	proxyA, proxyB := startProxy(t), startProxy(t)
 
 	path := writeList(t, "routed.csv", fmt.Sprintf("url,proxy\n%s/a,http://%s\n%s/b,http://%s\n",
 		first.URL, proxyA.addr, second.URL, proxyB.addr))
 
-	code, stdout, stderr := exec(t, "batch", "--input", path, "--insecure", "--timeout", "20s")
+	code, stdout, stderr := exec(t, "fetch", "--input", path, "--insecure", "--timeout", "20s")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
