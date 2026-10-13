@@ -43,11 +43,14 @@ func TestATryIsWrittenDownWithoutATrace(t *testing.T) {
 	}
 	hooks.GotConn(conn)
 	clock.advance(100 * time.Microsecond)
-	hooks.WroteRequest(tlsforge.NewHeader("host", "example.test"), nil)
+	hooks.WroteRequest(tlsforge.NewHeader("host", "example.test", "cookie", "session=abc123"), nil)
 	clock.advance(80 * time.Millisecond)
 	hooks.FirstByte()
 	clock.advance(3 * time.Millisecond)
-	shot.end(&tlsforge.Response{Status: 200, Body: []byte("page")}, nil)
+	shot.end(&tlsforge.Response{
+		Status: 200, Body: []byte("page"),
+		Header: map[string][]string{"Set-Cookie": {"id=42; Path=/"}, "Server": {"test"}},
+	}, nil)
 
 	// A dial that lost its race, reporting in after the try is over.
 	hooks.DNSStart("late.test")
@@ -57,7 +60,9 @@ func TestATryIsWrittenDownWithoutATrace(t *testing.T) {
 		{Name: "dns", Took: 2 * ms, Note: "example.test → 192.0.2.1, 2001:db8::1"},
 		{Name: "connect", From: 2 * ms, Took: 5 * ms, Note: "192.0.2.1:443"},
 		{Name: "tls", From: 7 * ms, Took: 10 * ms, Note: "TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2"},
-		{Name: "send", From: 17 * ms, Took: 100 * time.Microsecond},
+		// The request as it went out: every field in the order it was written, and
+		// none of what a session is worth.
+		{Name: "send", From: 17 * ms, Took: 100 * time.Microsecond, Written: "host: example.test\ncookie: session=***"},
 		{Name: "wait", From: 17100 * time.Microsecond, Took: 80 * ms},
 		{Name: "receive", From: 97100 * time.Microsecond, Took: 3 * ms},
 	}
@@ -69,6 +74,31 @@ func TestATryIsWrittenDownWithoutATrace(t *testing.T) {
 	}
 	if !log.Connected || log.Conn != conn {
 		t.Errorf("the connection was kept as %+v", log.Conn)
+	}
+	// What came back with the page, by name. The page itself is the output, and
+	// is not kept a second time here.
+	if log.Answer != "Server: test\nSet-Cookie: id=***; Path=/" || log.Body != "" {
+		t.Errorf("the answer was kept as %q, with a body of %q", log.Answer, log.Body)
+	}
+}
+
+func TestATryKeepsWhatAWrongAnswerSaid(t *testing.T) {
+	// An answer that is not the page usually says why at the start of its body,
+	// and when the request is made again that is the only place it is left.
+	fakeClock(t)
+	var log try
+	var lane *traceLane
+	shot := lane.attempt("GET", "https://example.test/", 1, 1, "", &log)
+	shot.end(&tlsforge.Response{
+		Status: 403, Body: []byte("<title>Just a moment...</title>"),
+		Header: map[string][]string{"Cf-Mitigated": {"challenge"}},
+	}, nil)
+
+	if log.Status != 403 || log.Answer != "Cf-Mitigated: challenge" || log.Body != "<title>Just a moment...</title>" {
+		t.Errorf("the try ended as %+v", log)
+	}
+	if got := (tryRow{try: log}).Fields(); got != "1 header field" {
+		t.Errorf("Fields = %q", got)
 	}
 }
 
@@ -425,8 +455,10 @@ func TestReportShowsEveryTry(t *testing.T) {
 			{
 				Began: started, Took: 100 * ms, Status: 503, Bytes: 19, Wait: 250 * ms,
 				Connected: true, Conn: tlsforge.ConnInfo{RemoteAddr: "192.0.2.1:443", TLSVersion: "TLS 1.3", CipherSuite: "AES", ALPN: "h2"},
+				Answer: "Retry-After: 1\nServer: test", Body: "<h1>slow down</h1>",
 				Steps: []step{
 					{Name: "dns", Took: 10 * ms, Note: "example.test → 192.0.2.1"},
+					{Name: "send", From: 10 * ms, Written: ":method: GET\n:path: /\ncookie: session=***"},
 					{Name: "wait", From: 10 * ms, Took: 90 * ms},
 				},
 			},
@@ -457,6 +489,14 @@ func TestReportShowsEveryTry(t *testing.T) {
 		`class="h-full bg-step-wait" style="width:22.5000%" title="wait 90ms"`,
 		"example.test → 192.0.2.1",
 		"Then 250ms of waiting before the next try.",
+		// The request as it went out, behind something that opens.
+		"3 header fields, as they were written",
+		":method: GET\n:path: /\ncookie: session=***",
+		// What a wrong answer came with and how it began, open already.
+		`<details class="group/part mt-2" open>`,
+		"The answer came with 2 header fields, and its body began like this",
+		"Retry-After: 1\nServer: test",
+		"&lt;h1&gt;slow down&lt;/h1&gt;",
 		// The second, which began after the first and the wait.
 		`style="width:87.5000%"`,
 		"the try ended here",
@@ -470,6 +510,9 @@ func TestReportShowsEveryTry(t *testing.T) {
 	// reason a try failed is text and never markup.
 	if strings.Count(html, "into the request") != 1 || strings.Contains(html, "<b>connection reset") {
 		t.Error("the report says when the first try began, or wrote an error as markup")
+	}
+	if strings.Contains(html, "<h1>slow down") {
+		t.Error("what a server answered with was written into the document as markup")
 	}
 	if strings.Contains(html, "ZgotmplZ") {
 		t.Error("the template refused something this file wrote into it")
@@ -533,6 +576,11 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 		"Try 1 of 1",
 		filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-2.html"),
 		"bg-step-wait",
+		// What went out, and what the try that was refused got back for it: the
+		// body the stand-in answers every request with.
+		"as they were written",
+		"Host: " + address,
+		"its body began like this", "answer-1",
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the report has no %q", want)

@@ -446,12 +446,22 @@ Every row opens, and shows what that request took:
 - each thing the try waited on and for how long: the name lookup with the
   addresses it found, the dial, the handshake, sending the request, waiting for
   the first byte and receiving the answer. A redirect is listed where it
-  happened, and the step a failed try stopped in is marked as that.
+  happened, and the step a failed try stopped in is marked as that;
+- the request as it went out: every header field in the order it was written,
+  the HTTP/2 pseudo-headers included, which is the part of a request a server
+  can tell a browser by;
+- what the answer came with: its header fields and, when it was not the page,
+  the first 512 bytes of its body, which is usually where a server says why.
 
 Each try is also drawn as a bar on the length of the whole request, so the
 tries of one request line up as a picture of it, with the waits between them
 as the gaps. These are the steps a [trace](#tracing-a-run) records, measured by
 the same clock, so the report and the trace of one run agree.
+
+A report leaves out what a trace does, so that it can be passed on: proxy
+passwords, cookie values, `Authorization` credentials and the values of
+headers whose names contain `token`, `secret`, `password` or `key` are written
+as `***`. The start of a body that was not the page is kept as it came.
 
 Given a directory, or a path ending in a separator, the report is named after
 the moment it was written, as `report-2026-08-16-091854-584.html`; any other

@@ -142,12 +142,12 @@
           {{end}}
         </div>
         {{range .Rows}}
-        <details class="group border-b border-line/60 last:border-0 dark:border-line-dark/60">
+        <details class="group/row border-b border-line/60 last:border-0 dark:border-line-dark/60">
           <!-- Spans all the way down, because a summary holds a phrase and not
                a block: the grid is what lays them out. -->
           <summary class="cursor-pointer">
             <span class="grid items-center gap-x-3 px-4 py-2.5" style="grid-template-columns:{{$.Columns}}">
-              <span aria-hidden="true" class="text-muted transition-transform group-open:rotate-90 dark:text-muted-dark">›</span>
+              <span aria-hidden="true" class="text-muted transition-transform group-open/row:rotate-90 dark:text-muted-dark">›</span>
               {{if $.Numbered}}<span class="text-right tabular-nums text-muted dark:text-muted-dark">{{.Run}}</span>{{end}}
               <span class="min-w-0 break-all font-mono text-xs">{{.URL}}</span>
               <span class="whitespace-nowrap tabular-nums text-muted dark:text-muted-dark">{{.StartedAt}}</span>
@@ -195,15 +195,40 @@
                 <tbody>
                   {{range .Listed}}
                   <tr>
-                    <td class="py-0.5 pr-4 whitespace-nowrap">
+                    <td class="py-0.5 pr-4 align-top whitespace-nowrap">
                       <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm {{.Class}}"></span>{{.Name}}</span>
                     </td>
-                    <td class="py-0.5 pr-4 text-right whitespace-nowrap tabular-nums">{{if not .Moment}}{{.Length}}{{end}}</td>
-                    <td class="py-0.5 break-words text-muted dark:text-muted-dark">{{.Note}}{{if .Cut}}{{if .Note}} · {{end}}the try ended here{{end}}</td>
+                    <td class="py-0.5 pr-4 text-right align-top whitespace-nowrap tabular-nums">{{if not .Moment}}{{.Length}}{{end}}</td>
+                    <td class="py-0.5 align-top break-words text-muted dark:text-muted-dark">
+                      {{.Note}}{{if .Cut}}{{if .Note}} · {{end}}the try ended here{{end}}
+                      {{if .Written}}
+                      <!-- In the order the fields went out, which is part of what
+                           a server reads a browser by. -->
+                      <details class="group/part">
+                        <summary class="cursor-pointer">
+                          <span aria-hidden="true" class="inline-block transition-transform group-open/part:rotate-90">›</span>
+                          {{.Fields}}, as they were written
+                        </summary>
+                        <pre class="mt-1 mb-2 whitespace-pre-wrap break-all font-mono text-ink dark:text-ink-dark">{{.Written}}</pre>
+                      </details>
+                      {{end}}
+                    </td>
                   </tr>
                   {{end}}
                 </tbody>
               </table>
+              {{end}}
+              {{if .Answer}}
+              <!-- Open already when the answer was not the page: what came back
+                   is then the reason the row was opened. -->
+              <details class="group/part mt-2"{{if .Warned}} open{{end}}>
+                <summary class="cursor-pointer text-muted dark:text-muted-dark">
+                  <span aria-hidden="true" class="inline-block transition-transform group-open/part:rotate-90">›</span>
+                  The answer came with {{.Fields}}{{if .Body}}, and its body began like this{{end}}
+                </summary>
+                <pre class="mt-1 whitespace-pre-wrap break-all font-mono">{{.Answer}}</pre>
+                {{if .Body}}<pre class="mt-2 border-t border-line pt-2 whitespace-pre-wrap break-all font-mono dark:border-line-dark">{{.Body}}</pre>{{end}}
+              </details>
               {{end}}
               {{if .Waited}}<p class="mt-2 text-muted dark:text-muted-dark">Then {{.Waited}} of waiting before the next try.</p>{{end}}
             </div>

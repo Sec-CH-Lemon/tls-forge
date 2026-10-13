@@ -26,6 +26,11 @@ type try struct {
 	Status int
 	Bytes  int
 	Error  string
+	// Answer is the header fields that came back, one to a line, and Body how
+	// the body began when the answer was not the page: that is usually where a
+	// server says why.
+	Answer string
+	Body   string
 	// Steps are the things it waited on, in the order it waited on them.
 	Steps []step
 	// Conn is the connection the request went out on, and Connected whether
@@ -44,6 +49,9 @@ type step struct {
 	Took time.Duration
 	// Note is what there is to say about it beyond how long it took.
 	Note string
+	// Written is the request as it went out, when this step is the sending of
+	// it: the header fields, one to a line, in the order they were written.
+	Written string
 	// Cut says the try ended while this was going on, which makes it where the
 	// try stopped.
 	Cut bool
@@ -57,8 +65,12 @@ const redirectStep = "redirect"
 // keep writes down a step that has ended.
 func (t *try) keep(name string, from, took time.Duration, about traceArgs) {
 	cut, _ := about["unfinished"].(bool)
+	// Only the sending of a request has any, and they are already what a trace
+	// is given: without the values a session is worth.
+	written, _ := about["headers"].([]string)
 	t.Steps = append(t.Steps, step{
-		Name: name, From: from, Took: took, Note: noteOn(name, about), Cut: cut,
+		Name: name, From: from, Took: took, Note: noteOn(name, about),
+		Written: strings.Join(written, "\n"), Cut: cut,
 	})
 }
 
@@ -77,6 +89,10 @@ func (t *try) ended(took time.Duration, res *tlsforge.Response, err error, proxy
 		return
 	}
 	t.Status, t.Bytes = res.Status, len(res.Body)
+	t.Answer = strings.Join(safeResponseHeaders(res.Header), "\n")
+	if !res.OK() {
+		t.Body = preview(res.Body)
+	}
 }
 
 // noteOn is what a step has to say for itself, out of what the trace is told
@@ -209,6 +225,15 @@ type stepRow struct {
 // Length is how long the step took.
 func (s stepRow) Length() string { return fineDuration(s.Took) }
 
+// Fields is how many header fields the request was written with.
+func (s stepRow) Fields() string { return fields(s.Written) }
+
+// fields counts header fields written one to a line, for the label of
+// something that opens to show them.
+func fields(lines string) string {
+	return counted(strings.Count(lines, "\n")+1, "header field", "header fields")
+}
+
 // Moment says the step is something that happened rather than something that
 // was waited on, and so has no length to give.
 func (s stepRow) Moment() bool { return s.Name == redirectStep }
@@ -293,6 +318,9 @@ func (t tryRow) Connection() string {
 	}
 	return strings.Join(parts, " · ")
 }
+
+// Fields is how many header fields the answer came with.
+func (t tryRow) Fields() string { return fields(t.Answer) }
 
 // Waited is how long was let pass before the next try, or empty for the last.
 func (t tryRow) Waited() string {

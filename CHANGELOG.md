@@ -61,6 +61,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   and the answer. Each try is drawn as a bar on the length of the whole
   request. A report holds the tries of the rows it can show, so a long run
   does not keep them for every request.
+- A try in the report opens further, to the request as it was written, every
+  header field in the order it went out, and to what the answer came with: its
+  header fields and, when it was not a 2xx, the first 512 bytes of its body.
+  Cookie values, credentials and proxy passwords are written as `***`, as in a
+  trace.
 - `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
   Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
   opens: the settings, the profile, the exit-address lookup, and for each try

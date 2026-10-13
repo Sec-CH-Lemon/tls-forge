@@ -463,6 +463,31 @@ Above each list the try is drawn as a bar on the length of the whole request,
 so the two tries and the wait between them are one picture. The second try
 looked nothing up and dialled nothing: the connection was still open.
 
+Two more things open inside a try. `send` holds the request as it was written,
+field by field in the order they went out:
+
+```
+:method: GET
+:authority: example.com
+:scheme: https
+:path: /
+sec-ch-ua: "Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"
+…
+```
+
+And under the steps is what the answer came with: its header fields, and for
+an answer that was not the page the start of its body, already open, because
+that is where a server usually says why:
+
+```
+cf-mitigated: challenge
+server: cloudflare
+
+<!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title>…
+```
+
+Cookie values and credentials are written as `***`, as they are in a trace.
+
 ## See what a run did
 
 ```bash
