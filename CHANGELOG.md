@@ -20,17 +20,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   manually dispatched check for any chosen version.
 - `tls-forge fetch --retry N` asks again, up to `N` more times, when the answer
   is not a 2xx or when no answer comes. The waits between tries double from
-  250 ms and stop at two seconds, and every try that is made again is reported
-  on standard error with its reason. The default is none, the last answer is
-  printed whatever its status, and the exit code still depends only on whether
-  a response arrived.
+  250 ms and stop at two seconds, and `-v` reports every try that is made again
+  with its reason. The default is none, the last answer is the one that counts
+  whatever its status, and the exit code still depends only on whether a
+  response arrived.
 - `--repeat N`, for `fetch` and `batch`, makes every request `N` times.
   `fetch -o page.html --repeat 3` writes `page-1.html`, `page-2.html` and
-  `page-3.html`, prints a line per run on standard error, and exits non-zero if
-  any run got no response; without `-o` the bodies follow one another on
-  standard output. `batch` goes through the whole list once per pass, adds the
-  pass to each JSON line as `run`, and gives each pass its own `--body-dir`
-  file. Lines of a single pass are unchanged.
+  `page-3.html` and exits non-zero if any run got no response; without `-o` the
+  bodies follow one another on standard output. `batch` goes through the whole
+  list once per pass, adds the pass to each JSON line as `run`, and gives each
+  pass its own `--body-dir` file. Lines of a single pass are unchanged.
+- `fetch` and `batch` count the answers by status code while they run: under
+  the line that says how many requests are done, a row for each status with how
+  many answers had it, and a last row, `no response`, for requests that got
+  none. Rows are green for a 2xx, yellow for a 3xx and red for everything else.
+  The count is redrawn in place and coloured when standard error is a terminal,
+  and `fetch` prints it once, plainly, anywhere else. `--color auto|always|never`
+  and `NO_COLOR` control the colour, and `fetch` gains `--progress` and
+  `-v, --verbose`, with the meanings they have in `batch`.
 - `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
   Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
   opens: the settings, the profile, the exit-address lookup, and for each try
@@ -64,6 +71,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- `fetch --output FILE` no longer prints `wrote N bytes to FILE` on standard
+  output. Where the body was saved is the last line of the count on standard
+  error, `saved to FILE`, and `-v` names the file of every run.
 - **`batch --repeat` is now `--retry`, and `--repeat` means something else.**
   The flag that asks again for a URL that did not load is `--retry`, still
   three by default. `--repeat N` now goes through the whole list `N` times, so

@@ -241,6 +241,27 @@ Usage: `tls-forge fetch [flags] <url>`
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 | `--repeat <n>` | Make the request `n` times; default `1` |
 | `--trace <file>` | Write every step of the run as Trace Event JSON |
+| `-v`, `--verbose` | Print a line when each request finishes, and one for each retry |
+| `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
+| `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
+
+On standard error, `fetch` counts how the run is going: how many requests are
+done, and under that how many answers came back with each status code.
+
+```text
+30/30  555 B  4s elapsed
+  200         21
+  304          2
+  403          4
+  503          3
+```
+
+Rows are green for a 2xx, yellow for a 3xx and red for everything else. A
+request that got no answer at all is counted in a last, red row, `no response`.
+The count is redrawn in place while the run goes and stays on screen when it
+ends. It is redrawn and coloured only when standard error is a terminal, and
+`NO_COLOR` turns the colour off; anywhere else it is printed once, plainly, at
+the end.
 
 Before the request, `fetch` asks a public service which address it comes out
 of, through the same proxy and with the same profile. No cookie is sent with the
@@ -274,21 +295,25 @@ tls-forge fetch --repeat 3 -o page.html https://example.com/
 ```
 
 `--retry` asks again when the answer is not a 2xx, or when no answer comes at
-all. The waits between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
-that is made again is reported on standard error with its reason. When the
-tries run out, the last answer is printed whatever its status, and the exit
-code still depends only on whether a response arrived.
+all. The waits between tries are 250 ms, 500 ms, 1 s and then 2 s. When the
+tries run out, the last answer is the one that is counted, printed or saved,
+whatever its status, and the exit code still depends only on whether a response
+arrived.
 
 `--repeat` makes the same request several times through one client, so a later
 run reuses the connection and the cookies of the runs before it. With
 `-o page.html`, each run writes its own file: `page-1.html`, `page-2.html` and
-so on. Without `-o`, the bodies follow one another on standard output. Each run
-gets a line on standard error:
+so on. Without `-o`, the bodies follow one another on standard output. The count
+covers all of the runs, and `-v` adds a line for each as it finishes, and for
+each try that is made again:
 
 ```text
-  1/3  200      577 B     57ms
-  2/3  200      577 B     14ms
-  3/3  200      577 B     15ms
+  1/3  200      577 B    101ms       page-1.html
+  2/3  200      577 B     37ms       page-2.html
+  3/3  200      577 B     41ms       page-3.html
+3/3  1.7 kB  0s elapsed
+  200         3
+  saved to    page-1.html … page-3.html
 ```
 
 `fetch` exits non-zero if any run got no response. The two flags combine:
@@ -380,7 +405,8 @@ Usage: `tls-forge batch [flags] [urls...]`
 | `--repeat <n>` | Go through the whole list `n` times; default `1` |
 | `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
 | `-v`, `--verbose` | Print one status line when each request finishes |
-| `--progress <mode>` | Live stderr status: `auto`, `always` or `never`; default `auto` |
+| `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
+| `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report <path>` | Write a self-contained HTML report; a directory gets a timestamped filename |
 | `--report-ip[=false]` | Ask the address services listed under [`fetch`](#fetch), once per proxy, for report metadata; default `true` |
 

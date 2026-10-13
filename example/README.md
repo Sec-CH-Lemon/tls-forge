@@ -160,10 +160,12 @@ leaves a path in their place, which is what to do when the pages are large.
   200      559 B     84ms       https://example.net/
 ```
 
-Under that, a status line redraws while the run goes:
+Under that, a count redraws while the run goes, with a row for each status the
+answers have had:
 
 ```
 3/3  0 running  1.7 kB  1s elapsed
+  200         3
 ```
 
 Both go to standard error, so the JSON lines on standard output stay readable by
@@ -285,14 +287,34 @@ is **added** to what the file already had and one file builds up over time. In
 
 Written `0600` either way: a warmed session is a credential.
 
+## How a run went
+
+```bash
+../bin/tls-forge fetch https://example.com/ > page.html
+```
+
+While the page goes to standard output, standard error gets a count: how many
+requests are done, and under it how many answers came back with each status
+code.
+
+```
+1/1  577 B  0s elapsed
+  200         1
+```
+
+Green for a 2xx, yellow for a 3xx, red for anything else, and a last red row,
+`no response`, for a request that got no answer. `batch` draws the same rows
+under its own progress line.
+
 ## Ask again, and ask several times
 
 ```bash
 ../bin/tls-forge fetch --retry 3 https://example.com/
 ```
 
-`--retry` asks again when the answer is not a 2xx, or when none comes, and says
-so each time it does:
+`--retry` asks again when the answer is not a 2xx, or when none comes. What is
+counted is how the request ended, so a page that arrived on the third try is a
+200. `-v` says each try that was made again, and why:
 
 ```
   try 1 of 4: HTTP 503, trying again in 250ms
@@ -308,15 +330,21 @@ something other than the page as well; `--retry 0` turns that off.
 ```
 
 `--repeat` is the other thing: the same request, made several times on purpose.
-Each run keeps its own page, numbered in front of the extension:
+Each run keeps its own page, numbered in front of the extension, and the count
+is of all of them:
 
 ```
-  1/3  200      577 B     57ms
-wrote 577 bytes to page-1.html
-  2/3  200      577 B     14ms
-wrote 577 bytes to page-2.html
-  3/3  200      577 B     15ms
-wrote 577 bytes to page-3.html
+3/3  1.7 kB  0s elapsed
+  200         3
+  saved to    page-1.html … page-3.html
+```
+
+With `-v` there is a line for each run as well:
+
+```
+  1/3  200      577 B    101ms       page-1.html
+  2/3  200      577 B     37ms       page-2.html
+  3/3  200      577 B     41ms       page-3.html
 ```
 
 The first run paid for a lookup, a dial and a handshake; the two after it found

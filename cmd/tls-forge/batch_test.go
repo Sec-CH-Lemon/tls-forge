@@ -925,37 +925,59 @@ func TestVerboseAndTheStatusLineShareTheStream(t *testing.T) {
 }
 
 // replay works out what a terminal ends up showing, given a stream that moves
-// the cursor about. \r returns to the start of the row and ESC[K erases from
-// the cursor to its end.
+// the cursor about. \r returns to the start of the row, ESC[A goes up a row,
+// ESC[K erases from the cursor to the end of the row, and a colour changes
+// nothing about where anything is.
 func replay(stream string) []string {
-	var screen []string
-	var row []rune
-	col := 0
+	rows := [][]rune{nil}
+	row, col := 0, 0
 	for i := 0; i < len(stream); {
-		if strings.HasPrefix(stream[i:], "\x1b[K") {
-			row = row[:col]
-			i += 3
+		rest := stream[i:]
+		if strings.HasPrefix(rest, eraseToEnd) {
+			rows[row] = rows[row][:min(col, len(rows[row]))]
+			i += len(eraseToEnd)
 			continue
 		}
-		r, width := utf8.DecodeRuneInString(stream[i:])
+		if strings.HasPrefix(rest, cursorUp) {
+			row = max(row-1, 0)
+			i += len(cursorUp)
+			continue
+		}
+		if end := strings.IndexByte(rest, 'm'); strings.HasPrefix(rest, "\x1b[") && end >= 0 {
+			i += end + 1
+			continue
+		}
+
+		r, width := utf8.DecodeRuneInString(rest)
 		i += width
 		switch r {
 		case '\r':
 			col = 0
 		case '\n':
-			screen = append(screen, string(row))
-			row, col = nil, 0
+			row, col = row+1, 0
+			if row == len(rows) {
+				rows = append(rows, nil)
+			}
 		default:
-			if col < len(row) {
-				row[col] = r
+			for len(rows[row]) < col {
+				rows[row] = append(rows[row], ' ')
+			}
+			if col < len(rows[row]) {
+				rows[row][col] = r
 			} else {
-				row = append(row, r)
+				rows[row] = append(rows[row], r)
 			}
 			col++
 		}
 	}
-	if len(row) > 0 {
-		screen = append(screen, string(row))
+
+	screen := make([]string, 0, len(rows))
+	for _, runes := range rows {
+		screen = append(screen, string(runes))
+	}
+	// The row the cursor was left on, when nothing was ever written to it.
+	if last := len(screen) - 1; screen[last] == "" {
+		screen = screen[:last]
 	}
 	return screen
 }

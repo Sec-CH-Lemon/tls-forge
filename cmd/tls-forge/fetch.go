@@ -305,6 +305,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	var headers headerFlag
 	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Referer: https://…\"")
 	again := addRunFlags(fs, 0)
+	watch := addWatchFlags(fs)
 	setUsage(fs, out, "usage: tls-forge fetch [flags] <url>")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -314,6 +315,10 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		return fmt.Errorf("%w: fetch takes exactly one URL", errUsage)
 	}
 	if err := again.check(); err != nil {
+		return err
+	}
+	wantProgress, paint, err := watch.settle(errOut)
+	if err != nil {
 		return err
 	}
 
@@ -391,40 +396,87 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		Header: tlsforge.Header(headers),
 		Body:   []byte(*data),
 	}
-	// A try that is made again is said, because otherwise the only sign of it is
-	// a fetch that took longer than its timeout.
-	policy := retrier{retries: *again.retry, note: func(text string) { errOut.println(text) }}
+
+	runs := *again.repeat
+	counts := newProgress(runs)
+	// One request at a time, so how many are running is never news.
+	counts.solo = true
+
+	show := showing{out: out, headers: *showHeaders, body: *output == ""}
+	// Redrawn as the run goes when somebody is watching, unless pages are being
+	// printed on the same screen: then they are what is being watched, and a
+	// status redrawn between them would land on the end of each.
+	pagesOnScreen := show.body && onScreen(out)
+	var line *statusLine
+	if wantProgress && !pagesOnScreen {
+		line = newStatusLine(errOut, out, counts, paint)
+		show.out = line
+	}
+	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
+	// A try that is made again is said only to somebody who asked to hear about
+	// every request. Otherwise it is one more thing the count is not about.
+	policy := retrier{retries: *again.retry, note: notes.say}
 
 	// Through the one client, so a second run finds the connection the first
 	// one opened and the cookies it was given: the request made again, the way
 	// reloading a page makes it again.
-	runs, unanswered := *again.repeat, 0
-	for run := 1; run <= runs; run++ {
+	var kept []string
+	var stopped error
+	unanswered := 0
+	for run := 1; run <= runs && stopped == nil; run++ {
+		counts.begin()
 		started := now()
 		res, attempts, err := policy.do(ctx, client, request, lane, run, *common.proxy)
-		if runs > 1 {
-			errOut.println(runLine(run, runs, res, err, attempts, now().Sub(started), *common.proxy))
-		}
-		if err != nil {
-			// One run is the whole of what was asked for, and its failure is the
-			// command's. One of several is a line in what the others are saying.
-			if runs == 1 {
-				return err
-			}
-			unanswered++
-			if ctx.Err() != nil {
-				break
-			}
-			continue
-		}
+		r := runResult(res, err, attempts, now().Sub(started), *common.proxy)
+		counts.finish(r)
 
 		path := *output
 		if path != "" && runs > 1 {
 			path = numbered(path, run)
 		}
-		if err := deliver(out, lane, res, *showHeaders, path); err != nil {
-			return err
+		switch {
+		case err != nil && runs == 1:
+			// One run is the whole of what was asked for, and its failure is the
+			// command's. One of several is a row in the count.
+			stopped = err
+		case err != nil:
+			unanswered++
+			if ctx.Err() != nil {
+				stopped = fmt.Errorf("fetch: %w", ctx.Err())
+			}
+		case path != "":
+			if stopped = os.WriteFile(path, res.Body, 0o644); stopped == nil {
+				r.File = path
+				kept = append(kept, path)
+				lane.instant("saved", "file", traceArgs{"file": path, "bytes": len(res.Body)})
+			}
 		}
+		notes.say(runLine(run, runs, r))
+		if stopped == nil && err == nil {
+			stopped = show.response(res)
+		}
+	}
+
+	// The count, left where it ended: redrawn for the last time when it was being
+	// redrawn, and said once when it was not.
+	if line != nil {
+		line.Close()
+	} else {
+		if show.midLine && onScreen(out) {
+			// A page rarely ends with a newline, and the count would start on
+			// the end of its last line.
+			errOut.println()
+		}
+		for _, row := range counts.frame(now(), paint) {
+			errOut.println(row)
+		}
+	}
+	if len(kept) > 0 {
+		errOut.printf("  %-11s %s\n", "saved to", span(kept))
+	}
+
+	if stopped != nil {
+		return stopped
 	}
 	if unanswered > 0 {
 		// Non-zero, as batch is for the same reason: a request made ten times
@@ -434,51 +486,80 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	return nil
 }
 
-// deliver puts one response where it was asked for: the status and headers
-// first when they were wanted, then the body to the file named or to standard
-// output.
-func deliver(out *printer, lane *traceLane, res *tlsforge.Response, showHeaders bool, path string) error {
-	if showHeaders {
-		out.printf("%d %s\n", res.Status, res.URL)
+// showing is what of a response fetch prints on standard output.
+type showing struct {
+	out     io.Writer
+	headers bool
+	body    bool
+	// midLine is set when the last thing printed did not end its line.
+	midLine bool
+}
+
+// response prints what was asked for of one response: the status and headers,
+// the body, both or neither.
+func (s *showing) response(res *tlsforge.Response) error {
+	if s.headers {
+		var head strings.Builder
+		fmt.Fprintf(&head, "%d %s\n", res.Status, res.URL)
 		names := make([]string, 0, len(res.Header))
 		for name := range res.Header {
 			names = append(names, name)
 		}
 		sort.Strings(names)
 		for _, name := range names {
-			out.printf("%s: %s\n", name, strings.Join(res.Header[name], "; "))
+			fmt.Fprintf(&head, "%s: %s\n", name, strings.Join(res.Header[name], "; "))
 		}
-		out.println()
-	}
-
-	if path != "" {
-		if err := os.WriteFile(path, res.Body, 0o644); err != nil {
+		head.WriteString("\n")
+		// In one write, so that a status being redrawn steps aside once for the
+		// whole block rather than between its lines.
+		if _, err := io.WriteString(s.out, head.String()); err != nil {
 			return err
 		}
-		lane.instant("saved", "file", traceArgs{"file": path, "bytes": len(res.Body)})
-		out.printf("wrote %d bytes to %s\n", len(res.Body), path)
+		s.midLine = false
+	}
+	if !s.body || len(res.Body) == 0 {
 		return nil
 	}
-	_, err := out.Write(res.Body)
+	s.midLine = res.Body[len(res.Body)-1] != '\n'
+	_, err := s.out.Write(res.Body)
 	return err
 }
 
-// runLine is one run of several, as fetch says it on standard error.
-//
-// The columns batch prints for a URL, so that ten runs of one page and ten
-// pages read the same way. Said only when there are several: one run has
-// nothing to be told apart from.
-func runLine(run, runs int, res *tlsforge.Response, err error, attempts int,
-	took time.Duration, proxy string,
-) string {
+// runResult is one run as the count and the lines about it see it: the record
+// batch keeps for a URL, so that both commands count the same things the same
+// way.
+func runResult(res *tlsforge.Response, err error, attempts int, took time.Duration,
+	proxy string,
+) result {
 	r := result{Attempts: attempts, Millis: took.Milliseconds()}
 	if err != nil {
 		r.Error = redactError(err, proxy)
-	} else {
-		r.Status, r.Bytes = res.Status, len(res.Body)
+		return r
 	}
+	r.Status, r.Bytes = res.Status, len(res.Body)
+	return r
+}
+
+// runLine is one run, as fetch says it to somebody who asked to hear about
+// every request.
+//
+// The columns batch prints for a URL, so that ten runs of one page and ten
+// pages read the same way, with the file the run was written to where batch
+// has the URL.
+func runLine(run, runs int, r result) string {
+	r.URL = r.File
 	width := len(strconv.Itoa(runs))
 	return strings.TrimRight(fmt.Sprintf("  %*d/%d%s", width, run, runs, verboseLine(r)), " ")
+}
+
+// span names the files a run wrote: the one, or the first and the last of
+// several, which with numbered names is enough to say all of them. Runs that
+// all went to one place, as into /dev/null, went to one place.
+func span(files []string) string {
+	if first, last := files[0], files[len(files)-1]; first == last {
+		return first
+	}
+	return files[0] + " … " + files[len(files)-1]
 }
 
 // describeExit is the address as fetch's report says it, or why there is none.

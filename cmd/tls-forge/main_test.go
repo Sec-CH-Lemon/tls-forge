@@ -256,12 +256,17 @@ func TestFetchWithHeadersAndStatusLine(t *testing.T) {
 func TestFetchWritesToAFile(t *testing.T) {
 	server := startEcho(t)
 	path := filepath.Join(t.TempDir(), "body.json")
-	code, stdout, _ := exec(t, "fetch", "--insecure", "-o", path, server.URL()+"/api/all")
+	code, stdout, stderr := exec(t, "fetch", "--insecure", "-o", path, server.URL()+"/api/all")
 	if code != 0 {
 		t.Fatalf("exit code = %d", code)
 	}
-	if !strings.Contains(stdout, "wrote") {
-		t.Errorf("stdout = %q", stdout)
+	// The file is where the body was asked to go, so it goes nowhere else, and
+	// where it went is said with the rest of what the run reports.
+	if stdout != "" {
+		t.Errorf("the body went to stdout as well as to the file: %q", stdout)
+	}
+	if !strings.Contains(stderr, "  saved to    "+path) {
+		t.Errorf("stderr does not say where the body was saved:\n%s", stderr)
 	}
 	written, err := os.ReadFile(path)
 	if err != nil {
@@ -347,9 +352,14 @@ func TestFetchSaysWhichAddressItComesOutOf(t *testing.T) {
 	if len(lines) < 3 {
 		t.Fatalf("no report on stderr:\n%s", stderr)
 	}
+	// The count of what came back is printed under the report, so the rule that
+	// closes the report is looked for rather than taken to be the last line.
 	last := len(lines) - 1
-	if lines[last] != identityRule {
-		t.Errorf("the report does not end with its rule:\n%s", stderr)
+	for last > 0 && lines[last] != identityRule {
+		last--
+	}
+	if last < 2 {
+		t.Fatalf("the report does not end with its rule:\n%s", stderr)
 	}
 	// The address and the country, in capitals whatever the service wrote, and
 	// nothing after them.

@@ -22,16 +22,41 @@ import (
 type palette struct {
 	match  string
 	differ string
-	dim    string
-	reset  string
+	// warn is for what is neither: an answer that came and was not the page
+	// asked for, because the page is somewhere else.
+	warn  string
+	dim   string
+	reset string
 }
 
 const (
-	ansiGreen = "\x1b[32m"
-	ansiRed   = "\x1b[31m"
-	ansiDim   = "\x1b[2m"
-	ansiReset = "\x1b[0m"
+	ansiGreen  = "\x1b[32m"
+	ansiRed    = "\x1b[31m"
+	ansiYellow = "\x1b[33m"
+	ansiDim    = "\x1b[2m"
+	ansiReset  = "\x1b[0m"
 )
+
+// inColour is the palette when colour is on.
+var inColour = palette{
+	match: ansiGreen, differ: ansiRed, warn: ansiYellow, dim: ansiDim, reset: ansiReset,
+}
+
+// forStatus is the colour a status code is shown in: green for an answer that
+// was the page, yellow for a redirect, which is neither the page nor a
+// refusal, and red for everything else.
+//
+// Colour is never the only thing saying it. The code is on the line as well,
+// for a terminal that draws no colour and for whoever cannot tell these apart.
+func (p palette) forStatus(code int) string {
+	switch {
+	case code >= 200 && code <= 299:
+		return p.match
+	case code >= 300 && code <= 399:
+		return p.warn
+	}
+	return p.differ
+}
 
 // paletteFor decides whether to emit colour.
 //
@@ -43,12 +68,12 @@ func paletteFor(mode string, w io.Writer) (palette, error) {
 	case "never":
 		return palette{}, nil
 	case "always":
-		return palette{match: ansiGreen, differ: ansiRed, dim: ansiDim, reset: ansiReset}, nil
+		return inColour, nil
 	case "auto":
 		if _, set := os.LookupEnv("NO_COLOR"); set || !isTerminal(w) {
 			return palette{}, nil
 		}
-		return palette{match: ansiGreen, differ: ansiRed, dim: ansiDim, reset: ansiReset}, nil
+		return inColour, nil
 	default:
 		return palette{}, &badFlag{"--color", mode, "auto, always or never"}
 	}

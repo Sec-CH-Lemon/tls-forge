@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -183,11 +184,11 @@ func TestStatusLineErasesItselfAroundAResult(t *testing.T) {
 	clock := fakeClock(t)
 	status, results := &captured{}, &captured{}
 	p := newProgress(2)
-	line := newStatusLine(newPrinter(status), results, p)
+	line := newStatusLine(newPrinter(status), results, p, palette{})
 
 	for _, body := range []string{"{\"url\":\"a\"}\n", "{\"url\":\"b\"}\n"} {
 		p.begin()
-		p.finish(result{Bytes: 100})
+		p.finish(result{Status: 200, Bytes: 100})
 		if _, err := line.Write([]byte(body)); err != nil {
 			t.Fatalf("Write: %v", err)
 		}
@@ -214,9 +215,14 @@ func TestStatusLineErasesItselfAroundAResult(t *testing.T) {
 		t.Errorf("%d erases, want one before the second result and one at the end: %q",
 			erases, drawn)
 	}
-	// Close leaves the final counts as a line of their own.
-	if !strings.HasSuffix(drawn, "2/2  0 running  200 B  1s elapsed\n") {
+	// Close leaves the final counts as lines of their own, and they are all
+	// that is left on screen: every frame before them was drawn over or erased.
+	final := []string{"2/2  0 running  200 B  1s elapsed", "  200         2"}
+	if !strings.HasSuffix(drawn, strings.Join(final, "\n")+"\n") {
 		t.Errorf("the run did not end with its own counts: %q", drawn)
+	}
+	if got := replay(drawn); !slices.Equal(got, final) {
+		t.Errorf("the screen ends as %q, want %q", got, final)
 	}
 }
 
@@ -224,7 +230,7 @@ func TestStatusLineReportsASinkThatFails(t *testing.T) {
 	// A full disk under --output. The error has to reach the caller rather than
 	// be swallowed by the thing drawing over it.
 	fakeClock(t)
-	line := newStatusLine(newPrinter(&captured{}), failingWriter{}, newProgress(1))
+	line := newStatusLine(newPrinter(&captured{}), failingWriter{}, newProgress(1), palette{})
 	defer line.Close()
 
 	if _, err := line.Write([]byte("{}\n")); err == nil {
@@ -243,7 +249,7 @@ func TestStatusLineTicksOnItsOwn(t *testing.T) {
 	status := &captured{}
 	p := newProgress(1)
 	p.begin()
-	line := newStatusLine(newPrinter(status), &captured{}, p)
+	line := newStatusLine(newPrinter(status), &captured{}, p, palette{})
 
 	clock.advance(90 * time.Second)
 	deadline := time.Now().Add(5 * time.Second)

@@ -199,9 +199,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	bodyDir := fs.StringP("body-dir", "d", "",
 		"write bodies to this directory and reference them instead of inlining")
 	again := addRunFlags(fs, 3)
-	verbose := fs.BoolP("verbose", "v", false, "print a line for every request as it finishes")
-	showProgress := fs.String("progress", "auto",
-		"live status line on stderr: auto, always or never")
+	watch := addWatchFlags(fs)
 	report := fs.StringP("report", "R", "",
 		"write an HTML report here; a directory gets report-<date-time>.html")
 	reportIP := fs.Bool("report-ip", true,
@@ -218,7 +216,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	// Checked before the list is read, so a misspelling costs a message rather
 	// than a run that turns out to have nowhere to report itself.
-	wantProgress, err := progressWanted(*showProgress, errOut)
+	wantProgress, paint, err := watch.settle(errOut)
 	if err != nil {
 		return err
 	}
@@ -296,14 +294,14 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		// The status line owns the sink from here: it erases itself before
 		// every result and draws again after, so the two streams can share a
 		// terminal without overwriting one another.
-		line = newStatusLine(errOut, sink, counts)
+		line = newStatusLine(errOut, sink, counts, paint)
 		sink = line
 	}
 
 	records := make([]result, 0, len(jobs))
 	// Where a run talks while it runs. Several workers write here, so it is one
 	// lock whether or not there is a status line to work around.
-	notes := &stderrLog{out: errOut, line: line, on: *verbose}
+	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
 
 	failures, fetchErr := runJobs(ctx, jobs, batch{
 		clients: clients, workers: *workers, sink: sink,

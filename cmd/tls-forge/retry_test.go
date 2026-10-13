@@ -46,7 +46,7 @@ func replying(t *testing.T, statuses ...int) (*httptest.Server, *atomic.Int32) {
 func TestFetchAsksAgainWhenTheAnswerIsNotThePage(t *testing.T) {
 	server, asked := replying(t, 503, 503, 200)
 
-	code, stdout, stderr := exec(t, "fetch", "--retry", "3", server.URL)
+	code, stdout, stderr := exec(t, "fetch", "--retry", "3", "-v", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -65,6 +65,24 @@ func TestFetchAsksAgainWhenTheAnswerIsNotThePage(t *testing.T) {
 	}
 	if strings.Contains(stderr, "try 3 of 4") {
 		t.Errorf("the try that worked was announced as one to be repeated:\n%s", stderr)
+	}
+	// What is counted is how the request ended, which was with the page.
+	if !strings.Contains(stderr, "  200         1") || strings.Contains(stderr, "  503") {
+		t.Errorf("the count is of something other than the last answer:\n%s", stderr)
+	}
+}
+
+func TestFetchKeepsItsRetriesToItselfUnlessAsked(t *testing.T) {
+	// A run being watched is watched for how it is going. Which try it took is
+	// for somebody who asked to hear about every request.
+	server, asked := replying(t, 503, 200)
+
+	code, _, stderr := exec(t, "fetch", "--retry", "1", server.URL)
+	if code != 0 || asked.Load() != 2 {
+		t.Fatalf("exit code = %d after %d requests\n%s", code, asked.Load(), stderr)
+	}
+	if strings.Contains(stderr, "try 1 of 2") {
+		t.Errorf("a retry was announced without being asked for:\n%s", stderr)
 	}
 }
 
@@ -103,7 +121,7 @@ func TestFetchHandsBackTheLastAnswerWhenTheTriesRunOut(t *testing.T) {
 func TestFetchAsksAgainWhenNothingComesBack(t *testing.T) {
 	server, asked := replying(t, 0, 200)
 
-	code, stdout, stderr := exec(t, "fetch", "--retry", "1", "--timeout", "10s", server.URL)
+	code, stdout, stderr := exec(t, "fetch", "--retry", "1", "-v", "--timeout", "10s", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -120,12 +138,16 @@ func TestFetchAsksAgainWhenNothingComesBack(t *testing.T) {
 }
 
 func TestFetchFailsWhenNoTryGetsAnAnswer(t *testing.T) {
-	code, _, stderr := exec(t, "fetch", "--retry", "1", "--timeout", "3s", "https://127.0.0.1:1/")
+	code, _, stderr := exec(t, "fetch", "--retry", "1", "-v", "--timeout", "3s", "https://127.0.0.1:1/")
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
 	}
 	if !strings.Contains(stderr, "try 1 of 2") {
 		t.Errorf("the retry was not made:\n%s", stderr)
+	}
+	// One request, and nothing came back from it.
+	if !strings.Contains(stderr, "1/1") || !strings.Contains(stderr, "  no response 1") {
+		t.Errorf("the count does not say that nothing came back:\n%s", stderr)
 	}
 }
 
@@ -203,12 +225,23 @@ func TestFetchRepeatWritesANumberedFilePerRun(t *testing.T) {
 		if want := fmt.Sprintf("answer-%d", run); string(body) != want {
 			t.Errorf("%s holds %q, want %q", name, body, want)
 		}
-		if !strings.Contains(stdout, "to "+name) {
-			t.Errorf("stdout does not say where run %d went:\n%s", run, stdout)
-		}
-		if want := fmt.Sprintf("  %d/3  200", run); !strings.Contains(stderr, want) {
-			t.Errorf("stderr has no line for run %d (%q):\n%s", run, want, stderr)
-		}
+	}
+	// The files are where the pages went, so nothing went to stdout, and where
+	// they went is said once: the first and the last name all of them.
+	if stdout != "" {
+		t.Errorf("stdout = %q, want nothing", stdout)
+	}
+	want := fmt.Sprintf("  saved to    %s … %s",
+		filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-3.html"))
+	if !strings.Contains(stderr, want) {
+		t.Errorf("stderr does not say where the runs went (%q):\n%s", want, stderr)
+	}
+	// Three runs counted, and not a line each.
+	if !strings.Contains(stderr, "3/3") || !strings.Contains(stderr, "  200         3") {
+		t.Errorf("stderr does not count the runs:\n%s", stderr)
+	}
+	if strings.Contains(stderr, "1/3") {
+		t.Errorf("a run was reported on its own without being asked for:\n%s", stderr)
 	}
 	// Every run is numbered, so the name given is not also a file.
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
@@ -227,9 +260,8 @@ func TestFetchWithoutRepeatKeepsTheNameItWasGiven(t *testing.T) {
 	if body, err := os.ReadFile(path); err != nil || string(body) != "answer-1" {
 		t.Errorf("%s holds %q (%v)", path, body, err)
 	}
-	// One run has nothing to be told apart from, so it gets no line either.
-	if strings.Contains(stderr, "1/1") {
-		t.Errorf("a single run was counted out:\n%s", stderr)
+	if !strings.Contains(stderr, "  saved to    "+path+"\n") {
+		t.Errorf("stderr does not name the file as it was given:\n%s", stderr)
 	}
 }
 
@@ -261,8 +293,11 @@ func TestFetchRepeatGoesOnPastARunThatGotNoAnswer(t *testing.T) {
 	if !strings.Contains(stderr, "fetch: 1 of 3 runs got no response") {
 		t.Errorf("the failed run was not counted:\n%s", stderr)
 	}
-	if !strings.Contains(stderr, "  2/3  ---") {
-		t.Errorf("the failed run has no line of its own:\n%s", stderr)
+	// Counted with the others, under what it came back as: nothing.
+	for _, want := range []string{"3/3", "  200         2", "  no response 1"} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr has no %q:\n%s", want, stderr)
+		}
 	}
 	for run, wanted := range map[int]bool{1: true, 2: false, 3: true} {
 		_, err := os.Stat(filepath.Join(dir, fmt.Sprintf("page-%d.html", run)))
@@ -330,6 +365,10 @@ func TestFetchRepeatIntoADeviceDoesNotNumberIt(t *testing.T) {
 	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", os.DevNull, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	// Both runs went to the one place, which is said as one place.
+	if !strings.HasSuffix(stderr, "  saved to    "+os.DevNull+"\n") {
+		t.Errorf("stderr does not end by naming the device once:\n%s", stderr)
 	}
 	if got := asked.Load(); got != 2 {
 		t.Errorf("the server was asked %d times, want 2", got)
