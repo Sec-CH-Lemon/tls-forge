@@ -46,7 +46,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   share that ended with a 2xx and the average time of one request, measured from
   when it is sent to its last answer; a run that was interrupted says how far it
   got. A single request that was tried again ends its line with how many times.
-  The `batch` summary gains the same average as `Avg time`.
+  The `batch` summary gains the same average as `Avg time`, and so do the
+  figures at the top of the report.
 - `fetch --report PATH` writes the self-contained HTML report that `batch`
   writes, with a row for every request. It is written however the run ended, a
   request that got no answer included, uses the exit address `fetch` has

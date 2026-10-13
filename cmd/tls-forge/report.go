@@ -469,6 +469,9 @@ func cards(s summary) []card {
 		{Label: "Data", Value: humanBytes(s.Bytes), Note: "decompressed"},
 		{Label: "Retries", Value: fmt.Sprintf("%d", s.Retries)},
 		{Label: "Elapsed", Value: preciseDuration(s.Elapsed)},
+		// Not the one above divided by the count: several requests are out at
+		// once, and what one of them took is its own time.
+		{Label: "Avg time", Value: preciseDuration(s.Average()), Note: "per request"},
 	}
 	if len(s.Proxies) > 0 {
 		note := "all carried a page"

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -855,6 +856,35 @@ func TestReportSaysWhatItLeftOut(t *testing.T) {
 	// And where the rest of them are, for the command that keeps them somewhere.
 	if !strings.Contains(html.String(), "The JSON lines carry every row.") {
 		t.Error("the report does not say where the rows it left out can be found")
+	}
+}
+
+func TestReportCards(t *testing.T) {
+	// The figures the run ends with on a terminal, where a report has them.
+	s := summarise([]result{
+		{Status: 200, Bytes: 1_000, Attempts: 2, Millis: 300},
+		{Status: 200, Bytes: 1_000, Attempts: 1, Millis: 100, Proxy: "http://p1"},
+	}, 2*time.Second, nil)
+	s.Passes = 2
+	want := []card{
+		{Label: "Requests", Value: "2"},
+		{Label: "Data", Value: "2.0 kB", Note: "decompressed"},
+		{Label: "Retries", Value: "1"},
+		{Label: "Elapsed", Value: "2.0s"},
+		// What one request took, which two seconds between two of them is not.
+		{Label: "Avg time", Value: "200ms", Note: "per request"},
+		{Label: "Proxies alive", Value: "1/1", Note: "all carried a page"},
+	}
+	if got := cards(s); !slices.Equal(got, want) {
+		t.Errorf("cards = %+v\nwant    %+v", got, want)
+	}
+
+	// A list gone through once is so many URLs, and a proxy nothing came back
+	// through is said to have carried nothing.
+	dead := summarise([]result{{Proxy: "http://p1", Error: "refused"}}, time.Second, nil)
+	got := cards(dead)
+	if got[0].Label != "URLs" || got[len(got)-1] != (card{Label: "Proxies alive", Value: "0/1", Note: "1 carried nothing"}) {
+		t.Errorf("cards of a run through a dead proxy = %+v", got)
 	}
 }
 

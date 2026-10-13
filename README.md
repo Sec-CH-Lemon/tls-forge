@@ -426,13 +426,13 @@ tls-forge batch --input urls.csv --report reports/
 `--report` writes the run as one HTML page with nothing to load from anywhere
 else, so it can be opened offline and sent on as one file. At the top is the
 share of requests that came back as the page, with how many answered with
-something else and how many got no answer, and under it the data, the retries
-and the time the run took. Then there is a row for every request: when it
-started, how long it took, how it ended, how much came back and how many tries
-it took. Rows are in the order the requests were sent, and when a URL was asked
-for more than once each row says which run it was. The proxy and the address a
-request came out of are said once above the rows when every request went the
-same way, and on each row when they did not.
+something else and how many got no answer, and under it the data, the retries,
+the time the run took and the average time of one request. Then there is a row
+for every request: when it started, how long it took, how it ended, how much
+came back and how many tries it took. Rows are in the order the requests were
+sent, and when a URL was asked for more than once each row says which run it
+was. The proxy and the address a request came out of are said once above the
+rows when every request went the same way, and on each row when they did not.
 
 Every row opens, and shows what that request took:
 
