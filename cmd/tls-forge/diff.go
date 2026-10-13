@@ -42,20 +42,11 @@ var inColour = palette{
 	match: ansiGreen, differ: ansiRed, warn: ansiYellow, dim: ansiDim, reset: ansiReset,
 }
 
-// forStatus is the colour a status code is shown in: green for an answer that
-// was the page, yellow for a redirect, which is neither the page nor a
-// refusal, and red for everything else.
-//
-// Colour is never the only thing saying it. The code is on the line as well,
-// for a terminal that draws no colour and for whoever cannot tell these apart.
-func (p palette) forStatus(code int) string {
-	switch {
-	case code >= 200 && code <= 299:
-		return p.match
-	case code >= 300 && code <= 399:
-		return p.warn
-	}
-	return p.differ
+// of is the colour a verdict is shown in: green for an answer that was the
+// page, yellow for a redirect, which is neither the page nor a refusal, and red
+// for everything else.
+func (p palette) of(how verdict) string {
+	return [...]string{answered: p.match, redirected: p.warn, refused: p.differ}[how]
 }
 
 // paletteFor decides whether to emit colour.

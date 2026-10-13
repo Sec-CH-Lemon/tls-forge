@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -78,13 +79,54 @@ func (f watchFlags) wanted(out io.Writer, kept bool) bool {
 // noResponse is the status a request is counted under when it got none.
 const noResponse = 0
 
+// verdict is how an answer went, which is what the count is drawn by.
+type verdict int
+
+// In the order they are drawn: what came back as the page, what was sent
+// somewhere else, and what did not work.
+const (
+	answered verdict = iota
+	redirected
+	refused
+)
+
+// verdictOf sorts a status code into the three. A request that got no answer
+// has no code, and is refused with everything else that is not a 2xx or a 3xx.
+func verdictOf(code int) verdict {
+	switch {
+	case code >= 200 && code <= 299:
+		return answered
+	case code >= 300 && code <= 399:
+		return redirected
+	}
+	return refused
+}
+
+// What each verdict is drawn with: a mark in front of its rows, and a cell in
+// the bar.
+//
+// A different shape for each as well as a different colour. Colour is not
+// drawn everywhere, and is not told apart by everybody, so it is never the only
+// thing saying which is which.
+var (
+	verdictMark = [...]string{answered: "✓", redirected: "→", refused: "✗"}
+	verdictCell = [...]string{answered: "█", redirected: "▓", refused: "▒"}
+)
+
+// The bar: how many cells wide, and what the part of the run still to come is
+// drawn with. Forty leaves room on the same line for how far the run has got,
+// inside the width the report above it is ruled to.
+const (
+	barWidth    = 40
+	pendingCell = "░"
+)
+
 // progress is the count behind the status. Every worker touches it, so every
 // field goes through the mutex.
 type progress struct {
 	mu       sync.Mutex
 	total    int
 	done     int
-	failed   int
 	inFlight int
 	bytes    int64
 	started  time.Time
@@ -115,55 +157,27 @@ func (p *progress) finish(r result) {
 	p.done++
 	p.bytes += int64(r.Bytes)
 	if r.Failed() {
-		p.failed++
 		p.statuses[noResponse]++
 		return
 	}
 	p.statuses[r.Status]++
 }
 
-// line is the first line of the status: how far the run has got.
-//
-// A pure function of the counts and the clock, so what it says can be checked
-// without a terminal, a ticker or a network.
-func (p *progress) line(at time.Time) string {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.lineLocked(at)
+// tally is one row of the count: a status, by number and by name, and how many
+// answers had it.
+type tally struct {
+	how   verdict
+	label string
+	count int
 }
 
-func (p *progress) lineLocked(at time.Time) string {
-	elapsed := at.Sub(p.started)
-	parts := []string{fmt.Sprintf("%d/%d", p.done, p.total)}
-	if !p.solo {
-		parts = append(parts, fmt.Sprintf("%d running", p.inFlight))
-	}
-	parts = append(parts, humanBytes(p.bytes), compactDuration(elapsed)+" elapsed")
-
-	// An estimate needs something to estimate from, and the first few answers
-	// are a poor sample of the rest. Nothing is printed rather than a number
-	// that will be wrong by a factor of ten a second later.
-	if p.done > 0 && p.done < p.total {
-		perItem := elapsed / time.Duration(p.done)
-		parts = append(parts, "~"+compactDuration(perItem*time.Duration(p.total-p.done))+" left")
-	}
-	if p.failed > 0 {
-		parts = append(parts, fmt.Sprintf("%d failed", p.failed))
-	}
-	return strings.Join(parts, "  ")
-}
-
-// frame is the whole status: the line that says how far the run has got, and
-// under it a line for every status the answers have had, with how many.
+// tallies are the rows of the count.
 //
 // By status rather than as two totals, because "seven failed" does not say
 // whether the site is refusing the run or is simply down, and 403 against 503
 // does. Lowest code first, so the rows stay where they are as others arrive,
 // and the requests that got no answer last: they have no code to sort by.
-func (p *progress) frame(at time.Time, paint palette) []string {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
+func (p *progress) tallies() []tally {
 	codes := make([]int, 0, len(p.statuses))
 	for code := range p.statuses {
 		if code != noResponse {
@@ -172,19 +186,123 @@ func (p *progress) frame(at time.Time, paint palette) []string {
 	}
 	sort.Ints(codes)
 
-	// As wide as the largest count there can be, so a row does not shift when
-	// its number gains a digit.
-	width := len(strconv.Itoa(p.total))
-	lines := []string{p.lineLocked(at)}
+	rows := make([]tally, 0, len(p.statuses))
 	for _, code := range codes {
-		lines = append(lines, fmt.Sprintf("%s  %-11d %*d%s",
-			paint.forStatus(code), code, width, p.statuses[code], paint.reset))
+		// The name beside the number, for whoever does not keep the table of
+		// them in their head. A code nobody has named goes without.
+		label := strconv.Itoa(code)
+		if name := http.StatusText(code); name != "" {
+			label += " " + name
+		}
+		rows = append(rows, tally{verdictOf(code), label, p.statuses[code]})
 	}
 	if lost := p.statuses[noResponse]; lost > 0 {
-		lines = append(lines, fmt.Sprintf("%s  %-11s %*d%s",
-			paint.differ, "no response", width, lost, paint.reset))
+		rows = append(rows, tally{refused, "no response", lost})
+	}
+	return rows
+}
+
+// frame is the whole status, as the lines it is drawn in: a bar for how far the
+// run has got and how it is going, a line for how long it has taken, and a row
+// for every status the answers have had.
+//
+// A pure function of the counts and the clock, so what it says can be checked
+// without a terminal, a ticker or a network.
+func (p *progress) frame(at time.Time, paint palette) []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	rows := p.tallies()
+	if p.total == 1 {
+		return []string{p.single(at, rows, paint)}
+	}
+
+	lines := []string{
+		fmt.Sprintf("  %s  %d/%d  %d%%", p.bar(rows, paint), p.done, p.total,
+			p.done*100/max(p.total, 1)),
+		"  " + p.pace(at),
+	}
+	if len(rows) == 0 {
+		return lines
+	}
+
+	// The names as wide as the longest of them, and the counts as wide as the
+	// largest there can be, so a row does not shift when its number gains a
+	// digit.
+	widest := 0
+	for _, row := range rows {
+		widest = max(widest, len(row.label))
+	}
+	digits := len(strconv.Itoa(p.total))
+	lines = append(lines, "")
+	for _, row := range rows {
+		// A share of what has come back so far, to the nearest whole percent.
+		share := (row.count*100 + p.done/2) / p.done
+		lines = append(lines, fmt.Sprintf("%s  %s %-*s   %*d  %3d%%%s", paint.of(row.how),
+			verdictMark[row.how], widest, row.label, digits, row.count, share, paint.reset))
 	}
 	return lines
+}
+
+// bar is the run as one strip: what came back as the page, what was redirected
+// and what failed, each as wide as its share of the run, and then what is
+// still to come.
+func (p *progress) bar(rows []tally, paint palette) string {
+	var by [len(verdictCell)]int
+	for _, row := range rows {
+		by[row.how] += row.count
+	}
+
+	// Cut at running totals rather than by adding widths up, so that rounding
+	// never makes the strip longer or shorter than it is.
+	var strip strings.Builder
+	drawn, counted := 0, 0
+	for how, count := range by {
+		counted += count
+		if end := counted * barWidth / max(p.total, 1); end > drawn {
+			strip.WriteString(paint.of(verdict(how)) +
+				strings.Repeat(verdictCell[how], end-drawn) + paint.reset)
+			drawn = end
+		}
+	}
+	if drawn < barWidth {
+		strip.WriteString(paint.dim + strings.Repeat(pendingCell, barWidth-drawn) + paint.reset)
+	}
+	return strip.String()
+}
+
+// pace is the line under the bar: how long the run has taken, how long it has
+// left, how many requests are out, and how much has come back.
+func (p *progress) pace(at time.Time) string {
+	elapsed := at.Sub(p.started)
+	parts := []string{compactDuration(elapsed) + " elapsed"}
+
+	// An estimate needs something to estimate from, and the first few answers
+	// are a poor sample of the rest. Nothing is printed rather than a number
+	// that will be wrong by a factor of ten a second later.
+	if p.done > 0 && p.done < p.total {
+		perItem := elapsed / time.Duration(p.done)
+		parts = append(parts, "~"+compactDuration(perItem*time.Duration(p.total-p.done))+" left")
+	}
+	if !p.solo && p.inFlight > 0 {
+		parts = append(parts, fmt.Sprintf("%d running", p.inFlight))
+	}
+	return strings.Join(append(parts, humanBytes(p.bytes)), " · ")
+}
+
+// single is the status of a run that is one request, on one line.
+//
+// A bar that is either empty or full says nothing a word does not, and a count
+// of one out of one says less. What is worth saying about one request is how it
+// ended, how much came back and how long that took.
+func (p *progress) single(at time.Time, rows []tally, paint palette) string {
+	took := at.Sub(p.started)
+	if len(rows) == 0 {
+		return "  waiting for the response · " + compactDuration(took)
+	}
+	row := rows[0]
+	return fmt.Sprintf("%s  %s %s · %s · %s%s", paint.of(row.how), verdictMark[row.how],
+		row.label, humanBytes(p.bytes), preciseDuration(took), paint.reset)
 }
 
 // humanBytes is the body volume, decompressed.

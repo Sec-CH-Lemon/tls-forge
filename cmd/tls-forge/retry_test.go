@@ -66,9 +66,9 @@ func TestFetchAsksAgainWhenTheAnswerIsNotThePage(t *testing.T) {
 	if strings.Contains(stderr, "try 3 of 4") {
 		t.Errorf("the try that worked was announced as one to be repeated:\n%s", stderr)
 	}
-	// What is counted is how the request ended, which was with the page.
-	if !strings.Contains(stderr, "  200         1") || strings.Contains(stderr, "  503") {
-		t.Errorf("the count is of something other than the last answer:\n%s", stderr)
+	// What is reported is how the request ended, which was with the page.
+	if !strings.Contains(stderr, "\n  ✓ 200 OK · 8 B · ") || strings.Contains(stderr, "✗") {
+		t.Errorf("what is reported is something other than the last answer:\n%s", stderr)
 	}
 }
 
@@ -146,8 +146,8 @@ func TestFetchFailsWhenNoTryGetsAnAnswer(t *testing.T) {
 		t.Errorf("the retry was not made:\n%s", stderr)
 	}
 	// One request, and nothing came back from it.
-	if !strings.Contains(stderr, "1/1") || !strings.Contains(stderr, "  no response 1") {
-		t.Errorf("the count does not say that nothing came back:\n%s", stderr)
+	if !strings.Contains(stderr, "\n  ✗ no response · 0 B · ") {
+		t.Errorf("stderr does not say that nothing came back:\n%s", stderr)
 	}
 }
 
@@ -231,13 +231,13 @@ func TestFetchRepeatWritesANumberedFilePerRun(t *testing.T) {
 	if stdout != "" {
 		t.Errorf("stdout = %q, want nothing", stdout)
 	}
-	want := fmt.Sprintf("  saved to    %s … %s",
+	want := fmt.Sprintf("\n\n  saved to %s … %s\n",
 		filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-3.html"))
-	if !strings.Contains(stderr, want) {
-		t.Errorf("stderr does not say where the runs went (%q):\n%s", want, stderr)
+	if !strings.HasSuffix(stderr, want) {
+		t.Errorf("stderr does not end by saying where the runs went (%q):\n%s", want, stderr)
 	}
 	// Three runs counted, and not a line each.
-	if !strings.Contains(stderr, "3/3") || !strings.Contains(stderr, "  200         3") {
+	if !strings.Contains(stderr, "  3/3  100%\n") || !strings.Contains(stderr, "\n  ✓ 200 OK   3  100%\n") {
 		t.Errorf("stderr does not count the runs:\n%s", stderr)
 	}
 	if strings.Contains(stderr, "1/3") {
@@ -260,8 +260,10 @@ func TestFetchWithoutRepeatKeepsTheNameItWasGiven(t *testing.T) {
 	if body, err := os.ReadFile(path); err != nil || string(body) != "answer-1" {
 		t.Errorf("%s holds %q (%v)", path, body, err)
 	}
-	if !strings.Contains(stderr, "  saved to    "+path+"\n") {
-		t.Errorf("stderr does not name the file as it was given:\n%s", stderr)
+	// Straight under the line about the one request: there are no rows for it
+	// to be mistaken for one of.
+	if !strings.HasSuffix(stderr, "s\n  saved to "+path+"\n") {
+		t.Errorf("stderr does not end by naming the file as it was given:\n%s", stderr)
 	}
 }
 
@@ -294,7 +296,7 @@ func TestFetchRepeatGoesOnPastARunThatGotNoAnswer(t *testing.T) {
 		t.Errorf("the failed run was not counted:\n%s", stderr)
 	}
 	// Counted with the others, under what it came back as: nothing.
-	for _, want := range []string{"3/3", "  200         2", "  no response 1"} {
+	for _, want := range []string{"  3/3  100%\n", "\n  ✓ 200 OK        2   67%\n", "\n  ✗ no response   1   33%\n"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr has no %q:\n%s", want, stderr)
 		}
@@ -367,7 +369,7 @@ func TestFetchRepeatIntoADeviceDoesNotNumberIt(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	// Both runs went to the one place, which is said as one place.
-	if !strings.HasSuffix(stderr, "  saved to    "+os.DevNull+"\n") {
+	if !strings.HasSuffix(stderr, "\n\n  saved to "+os.DevNull+"\n") {
 		t.Errorf("stderr does not end by naming the device once:\n%s", stderr)
 	}
 	if got := asked.Load(); got != 2 {

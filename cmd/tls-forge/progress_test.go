@@ -37,12 +37,15 @@ func fakeClock(t *testing.T) *atClock {
 	return clock
 }
 
-func TestProgressLine(t *testing.T) {
+func TestProgressPace(t *testing.T) {
 	clock := fakeClock(t)
 	p := newProgress(100)
+	// The line under the bar.
+	pace := func() string { return p.frame(clock.now(), palette{})[1] }
 
-	// Nothing done yet: no estimate, because there is nothing to estimate from.
-	if got := p.line(clock.now()); got != "0/100  0 running  0 B  0s elapsed" {
+	// Nothing done yet: no estimate, because there is nothing to estimate from,
+	// and nothing out to count.
+	if got := pace(); got != "  0s elapsed · 0 B" {
 		t.Errorf("at the start: %q", got)
 	}
 
@@ -50,42 +53,34 @@ func TestProgressLine(t *testing.T) {
 		p.begin()
 	}
 	clock.advance(30 * time.Second)
-	if got := p.line(clock.now()); got != "0/100  4 running  0 B  30s elapsed" {
+	if got := pace(); got != "  30s elapsed · 4 running · 0 B" {
 		t.Errorf("with four in flight: %q", got)
 	}
 
 	// Ten done in a minute is six seconds each, so ninety left is nine minutes.
 	for range 4 {
-		p.finish(result{Bytes: 250_000})
+		p.finish(result{Status: 200, Bytes: 250_000})
 	}
 	for range 6 {
 		p.begin()
-		p.finish(result{Bytes: 250_000})
+		p.finish(result{Status: 200, Bytes: 250_000})
 	}
 	clock.advance(30 * time.Second)
-	if got := p.line(clock.now()); got != "10/100  0 running  2.5 MB  1m00s elapsed  ~9m00s left" {
+	if got := pace(); got != "  1m00s elapsed · ~9m00s left · 2.5 MB" {
 		t.Errorf("part way: %q", got)
-	}
-
-	// A failure is counted and named, and still counts as done.
-	p.begin()
-	p.finish(result{Error: "no route to host"})
-	if got := p.line(clock.now()); !strings.Contains(got, "11/100") ||
-		!strings.Contains(got, "1 failed") {
-		t.Errorf("after a failure: %q", got)
 	}
 }
 
-func TestProgressLineAtTheEnd(t *testing.T) {
+func TestProgressPaceAtTheEnd(t *testing.T) {
 	// No estimate once there is nothing left to estimate.
 	clock := fakeClock(t)
 	p := newProgress(2)
 	for range 2 {
 		p.begin()
-		p.finish(result{Bytes: 10})
+		p.finish(result{Status: 200, Bytes: 10})
 	}
 	clock.advance(5 * time.Second)
-	if got := p.line(clock.now()); strings.Contains(got, "left") {
+	if got := p.frame(clock.now(), palette{})[1]; got != "  5s elapsed · 20 B" {
 		t.Errorf("a finished run still guessed at a remainder: %q", got)
 	}
 }
@@ -217,7 +212,12 @@ func TestStatusLineErasesItselfAroundAResult(t *testing.T) {
 	}
 	// Close leaves the final counts as lines of their own, and they are all
 	// that is left on screen: every frame before them was drawn over or erased.
-	final := []string{"2/2  0 running  200 B  1s elapsed", "  200         2"}
+	final := []string{
+		"  ████████████████████████████████████████  2/2  100%",
+		"  1s elapsed · 200 B",
+		"",
+		"  ✓ 200 OK   2  100%",
+	}
 	if !strings.HasSuffix(drawn, strings.Join(final, "\n")+"\n") {
 		t.Errorf("the run did not end with its own counts: %q", drawn)
 	}
@@ -254,7 +254,7 @@ func TestStatusLineTicksOnItsOwn(t *testing.T) {
 	clock.advance(90 * time.Second)
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		if strings.Contains(status.String(), "1m30s elapsed") {
+		if strings.Contains(status.String(), "waiting for the response · 1m30s") {
 			line.Close()
 			return
 		}

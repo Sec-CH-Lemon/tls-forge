@@ -161,12 +161,14 @@ leaves a path in their place, which is what to do when the pages are large.
   200      559 B     84ms       https://example.net/
 ```
 
-Under that, a count redraws while the run goes, with a row for each status the
-answers have had:
+Under that, a count redraws while the run goes: a bar, how long it has been and
+how many requests are out, and a row for each status the answers have had:
 
 ```
-3/3  0 running  1.7 kB  1s elapsed
-  200         3
+  ████████████████████████████████████████  3/3  100%
+  0s elapsed · 1.7 kB
+
+  ✓ 200 OK   3  100%
 ```
 
 Both go to standard error, so the JSON lines on standard output stay readable by
@@ -294,17 +296,16 @@ Written `0600` either way: a warmed session is a credential.
 ../bin/tls-forge fetch https://example.com/
 ```
 
-On a terminal that prints a count rather than the page: how many requests are
-done, and under it how many answers came back with each status code.
+On a terminal that prints how the request went rather than the page: how it
+ended, how much came back and how long it took.
 
 ```
-1/1  577 B  0s elapsed
-  200         1
+  ✓ 200 OK · 577 B · 54ms
 ```
 
-Green for a 2xx, yellow for a 3xx, red for anything else, and a last red row,
-`no response`, for a request that got no answer. The page itself is the output,
-so it goes wherever standard output is pointed, and to the screen when asked:
+Green and `✓` for a 2xx, yellow and `→` for a 3xx, red and `✗` for anything
+else, a request that got no answer included. The page itself is the output, so
+it goes wherever standard output is pointed, and to the screen when asked:
 
 ```bash
 ../bin/tls-forge fetch https://example.com/ > page.html      # a file gets it
@@ -316,6 +317,22 @@ so it goes wherever standard output is pointed, and to the screen when asked:
 summary, a pipe or `-o` gets the lines, and `--body` prints them on the screen
 as well.
 
+Several requests are counted rather than listed. A bar shows how far the run
+has got and, by its three shades, how the answers are going; under it there is
+a row for every status that came back, with how many answers had it and what
+share of them that is. Forty requests to a server that is not having a good
+day:
+
+```
+  █████████████████████████████▓▓▓▒▒▒▒▒▒▒▒  40/40  100%
+  5s elapsed · 731 B
+
+  ✓ 200 OK                    29   73%
+  → 304 Not Modified           3    8%
+  ✗ 403 Forbidden              5   13%
+  ✗ 503 Service Unavailable    3    8%
+```
+
 ## Ask again, and ask several times
 
 ```bash
@@ -323,7 +340,7 @@ as well.
 ```
 
 `--retry` asks again when the answer is not a 2xx, or when none comes. What is
-counted is how the request ended, so a page that arrived on the third try is a
+reported is how the request ended, so a page that arrived on the third try is a
 200. `-v` says each try that was made again, and why:
 
 ```
@@ -344,17 +361,20 @@ Each run keeps its own page, numbered in front of the extension, and the count
 is of all of them:
 
 ```
-3/3  1.7 kB  0s elapsed
-  200         3
-  saved to    page-1.html … page-3.html
+  ████████████████████████████████████████  3/3  100%
+  0s elapsed · 1.7 kB
+
+  ✓ 200 OK   3  100%
+
+  saved to page-1.html … page-3.html
 ```
 
 With `-v` there is a line for each run as well:
 
 ```
-  1/3  200      577 B    101ms       page-1.html
-  2/3  200      577 B     37ms       page-2.html
-  3/3  200      577 B     41ms       page-3.html
+  1/3  200      577 B     29ms       page-1.html
+  2/3  200      577 B     11ms       page-2.html
+  3/3  200      577 B     10ms       page-3.html
 ```
 
 The first run paid for a lookup, a dial and a handshake; the two after it found

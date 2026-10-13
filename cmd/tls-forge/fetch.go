@@ -473,7 +473,11 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 	}
 	if len(kept) > 0 {
-		errOut.printf("  %-11s %s\n", "saved to", span(kept))
+		if runs > 1 {
+			// Apart from the rows above it, which it is not one of.
+			errOut.println()
+		}
+		errOut.printf("  saved to %s\n", span(kept))
 	}
 
 	if stopped != nil {

@@ -265,7 +265,7 @@ func TestFetchWritesToAFile(t *testing.T) {
 	if stdout != "" {
 		t.Errorf("the body went to stdout as well as to the file: %q", stdout)
 	}
-	if !strings.Contains(stderr, "  saved to    "+path) {
+	if !strings.HasSuffix(stderr, "  saved to "+path+"\n") {
 		t.Errorf("stderr does not say where the body was saved:\n%s", stderr)
 	}
 	written, err := os.ReadFile(path)

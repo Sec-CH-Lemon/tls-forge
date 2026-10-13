@@ -30,14 +30,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   bodies follow one another on standard output. `batch` goes through the whole
   list once per pass, adds the pass to each JSON line as `run`, and gives each
   pass its own `--body-dir` file. Lines of a single pass are unchanged.
-- `fetch` and `batch` count the answers by status code while they run: under
-  the line that says how many requests are done, a row for each status with how
-  many answers had it, and a last row, `no response`, for requests that got
-  none. Rows are green for a 2xx, yellow for a 3xx and red for everything else.
-  The count is redrawn in place and coloured when standard error is a terminal,
-  and `fetch` prints it once, plainly, anywhere else. `--color auto|always|never`
-  and `NO_COLOR` control the colour, and `fetch` gains `--progress` and
-  `-v, --verbose`, with the meanings they have in `batch`.
+- `fetch` and `batch` count the answers by status code while they run: a bar
+  for how far the run has got, cut by how the answers went, a line for how long
+  it has taken and has left, and a row for each status, by number and by name,
+  with how many answers had it and their share. A last row, `no response`,
+  counts requests that got none. Green and `✓` mark a 2xx, yellow and `→` a
+  3xx, red and `✗` everything else, each with a shade of its own in the bar. A
+  run of one request is reported on one line. The count is redrawn in place and
+  coloured when standard error is a terminal, and `fetch` prints it once,
+  plainly, anywhere else. `--color auto|always|never` and `NO_COLOR` control
+  the colour, and `fetch` gains `--progress` and `-v, --verbose`, with the
+  meanings they have in `batch`.
 - `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
   Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
   opens: the settings, the profile, the exit-address lookup, and for each try

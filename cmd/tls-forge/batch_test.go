@@ -692,8 +692,9 @@ func TestBatchDrawsAStatusLine(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 
-	// Every number the line is for, and the run's own total.
-	for _, want := range []string{"2/2", "running", "B", "elapsed"} {
+	// The bar, full, with the run's own total, and under it how long it took
+	// and how much came back.
+	for _, want := range []string{"████████████████████████████████████████  2/2  100%", " elapsed · ", " B"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr has no %q:\n%q", want, stderr)
 		}
@@ -911,8 +912,8 @@ func TestVerboseAndTheStatusLineShareTheStream(t *testing.T) {
 			continue
 		}
 		reported++
-		if strings.Contains(line, "running") || strings.Contains(line, "\x1b") {
-			t.Errorf("a request's line shares a row with the status line: %q", line)
+		if strings.ContainsAny(line, "█▓▒░") || strings.Contains(line, "elapsed") || strings.Contains(line, "\x1b") {
+			t.Errorf("a request's line shares a row with the status: %q", line)
 		}
 	}
 	if reported != 2 {

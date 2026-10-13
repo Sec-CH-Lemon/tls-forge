@@ -249,24 +249,36 @@ Usage: `tls-forge fetch [flags] <url>`
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 
-On a terminal, `fetch` says how the run went rather than printing the page: how
-many requests are done, and under that how many answers came back with each
-status code.
+On a terminal, `fetch` says how the run went rather than printing the page: a
+bar for how far it has got, a line for how long that has taken, and a row for
+each status code the answers came back with.
 
 ```text
-30/30  555 B  4s elapsed
-  200         21
-  304          2
-  403          4
-  503          3
+  █████████████████████████████▓▓▓▒▒▒▒▒▒▒▒  40/40  100%
+  5s elapsed · 731 B
+
+  ✓ 200 OK                    29   73%
+  → 304 Not Modified           3    8%
+  ✗ 403 Forbidden              5   13%
+  ✗ 503 Service Unavailable    3    8%
 ```
 
-Rows are green for a 2xx, yellow for a 3xx and red for everything else. A
-request that got no answer at all is counted in a last, red row, `no response`.
+The bar is cut by how the answers went, and the rows are marked the same way:
+green and `✓` for a 2xx, yellow and `→` for a 3xx, red and `✗` for everything
+else, each with a shade of its own in the bar so that the three can be told
+apart without colour. A request that got no answer at all is counted in a last
+row, `no response`. Each row gives how many answers had that status and their
+share of those that have come back. While a run is going the second line also
+says roughly how long is left.
+
 The count is redrawn in place while the run goes and stays on screen when it
 ends. It is redrawn and coloured only when standard error is a terminal, and
 `NO_COLOR` turns the colour off; anywhere else it is printed once, plainly, at
-the end.
+the end. A run of one request is reported on one line instead:
+
+```text
+  ✓ 200 OK · 577 B · 54ms
+```
 
 The body is the output, so it still goes wherever standard output was pointed:
 `tls-forge fetch URL > page.html` and `tls-forge fetch URL | jq .` need no flag.
@@ -320,12 +332,15 @@ covers all of the runs, and `-v` adds a line for each as it finishes, and for
 each try that is made again:
 
 ```text
-  1/3  200      577 B    101ms       page-1.html
-  2/3  200      577 B     37ms       page-2.html
-  3/3  200      577 B     41ms       page-3.html
-3/3  1.7 kB  0s elapsed
-  200         3
-  saved to    page-1.html … page-3.html
+  1/3  200      577 B     29ms       page-1.html
+  2/3  200      577 B     11ms       page-2.html
+  3/3  200      577 B     10ms       page-3.html
+  ████████████████████████████████████████  3/3  100%
+  0s elapsed · 1.7 kB
+
+  ✓ 200 OK   3  100%
+
+  saved to page-1.html … page-3.html
 ```
 
 `fetch` exits non-zero if any run got no response. The two flags combine:
