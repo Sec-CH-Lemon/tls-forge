@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -168,6 +169,104 @@ func TestProgressOfOneRequest(t *testing.T) {
 	clock.advance(57 * time.Millisecond)
 	if got := lost.frame(clock.now(), palette{}); !slices.Equal(got, []string{"  ✗ no response · 0 B · 57ms"}) {
 		t.Errorf("when nothing came back: %q", got)
+	}
+
+	// Asked more than once, which the time alone would only hint at. Inside the
+	// colour, as the rest of the line is.
+	for _, tc := range []struct {
+		attempts int
+		want     string
+	}{
+		{2, "  ✓ 200 OK · 8 B · 900ms · 1 retry"},
+		{4, "  ✓ 200 OK · 8 B · 900ms · 3 retries"},
+	} {
+		again := newProgress(1)
+		again.begin()
+		again.finish(result{Status: 200, Bytes: 8, Attempts: tc.attempts})
+		clock.advance(900 * time.Millisecond)
+		if got := again.frame(clock.now(), inColour); !slices.Equal(got, []string{ansiGreen + tc.want + ansiReset}) {
+			t.Errorf("after %d tries: %q", tc.attempts, got)
+		}
+	}
+}
+
+func TestProgressSummary(t *testing.T) {
+	// What a run comes to once it is over: the requests it made, the tries
+	// beyond the first that those took, the share that came back as the page and
+	// how long one of them took.
+	p := newProgress(5)
+	for _, r := range []result{
+		{Status: 200, Attempts: 1, Millis: 100},
+		{Status: 204, Attempts: 3, Millis: 900},
+		// Answered, and not with the page, however many tries were spent on it.
+		{Status: 503, Attempts: 2, Millis: 400},
+		{Status: 301, Attempts: 1, Millis: 100},
+		{Error: "connection refused", Attempts: 2, Millis: 1000},
+	} {
+		p.begin()
+		p.finish(r)
+	}
+	want := [][2]string{
+		{"Requests", "5"},
+		// 0 + 2 + 1 + 0 + 1.
+		{"Retries", "4"},
+		{"Success rate", "40.0%"},
+		// Two and a half seconds between five, the tries and the request that got
+		// nothing included.
+		{"Avg time", "500ms"},
+	}
+	if got := p.summary(); !slices.Equal(got, want) {
+		t.Errorf("summary = %q, want %q", got, want)
+	}
+
+	// Stopped part of the way: the figures are about what was made, and the
+	// first of them says how much that was.
+	stopped := newProgress(10)
+	for range 3 {
+		stopped.begin()
+		stopped.finish(result{Status: 200, Attempts: 1, Millis: 50})
+	}
+	want = [][2]string{
+		{"Requests", "3 of 10"}, {"Retries", "0"}, {"Success rate", "100.0%"}, {"Avg time", "50ms"},
+	}
+	if got := stopped.summary(); !slices.Equal(got, want) {
+		t.Errorf("a run that was stopped: %q, want %q", got, want)
+	}
+
+	// A request that was never sent took no tries, which is not one fewer than
+	// none, and a run that made nothing has no rate and no average to divide.
+	unsent := newProgress(2)
+	unsent.begin()
+	unsent.finish(result{Error: "no such proxy"})
+	if got := unsent.summary()[1]; got != [2]string{"Retries", "0"} {
+		t.Errorf("a request that was never sent: %q", got)
+	}
+	want = [][2]string{
+		{"Requests", "0 of 2"}, {"Retries", "0"}, {"Success rate", "0.0%"}, {"Avg time", "0ms"},
+	}
+	if got := newProgress(2).summary(); !slices.Equal(got, want) {
+		t.Errorf("a run of nothing: %q, want %q", got, want)
+	}
+}
+
+func TestCounted(t *testing.T) {
+	for n, want := range map[int]string{0: "0 retries", 1: "1 retry", 2: "2 retries"} {
+		if got := counted(n, "retry", "retries"); got != want {
+			t.Errorf("counted(%d) = %q, want %q", n, got, want)
+		}
+	}
+}
+
+func TestAligned(t *testing.T) {
+	// One column of figures, two spaces clear of the longest label whichever
+	// that is.
+	got := aligned([][2]string{{"Requests", "3"}, {"Success rate", "66.7%"}, {"Avg time", "200ms"}})
+	want := "  Requests      3\n  Success rate  66.7%\n  Avg time      200ms\n"
+	if got != want {
+		t.Errorf("aligned:\n%s\nwant\n%s", got, want)
+	}
+	if got := aligned(nil); got != "" {
+		t.Errorf("no rows came to %q", got)
 	}
 }
 
@@ -378,7 +477,9 @@ func TestFetchColoursTheCountByOutcome(t *testing.T) {
 
 func TestFetchRedrawsTheCountWhileItRuns(t *testing.T) {
 	// --progress always, so the assertion does not depend on what the test's
-	// stderr happens to be attached to.
+	// stderr happens to be attached to, and a clock that stands still, so the
+	// times on the screen do not depend on the machine.
+	fakeClock(t)
 	server, _ := replying(t, 200, 404, 200)
 
 	code, stdout, stderr := exec(t, "fetch", "--repeat", "3", "--progress", "always", server.URL)
@@ -394,7 +495,7 @@ func TestFetchRedrawsTheCountWhileItRuns(t *testing.T) {
 		t.Errorf("the count was not redrawn in place: %q", after(stderr))
 	}
 	// What is left on screen at the end is the last frame and nothing of the
-	// ones before it.
+	// ones before it, with what the run came to under it.
 	screen := replay(after(stderr))
 	want := []string{
 		"",
@@ -403,9 +504,70 @@ func TestFetchRedrawsTheCountWhileItRuns(t *testing.T) {
 		"",
 		"  ✓ 200 OK          2   67%",
 		"  ✗ 404 Not Found   1   33%",
+		"",
+		"  Requests      3",
+		"  Retries       0",
+		"  Success rate  66.7%",
+		"  Avg time      0ms",
 	}
 	if !slices.Equal(screen, want) {
 		t.Errorf("the screen ends as\n%s\nwant\n%s", strings.Join(screen, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestFetchSumsUpARepeatedRun(t *testing.T) {
+	// The server moves the clock, so every answer takes exactly as long as the
+	// test says and the average is a figure that can be asserted.
+	clock := fakeClock(t)
+	statuses := []int{503, 200, 200, 404, 404}
+	var asked atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		clock.advance(120 * time.Millisecond)
+		w.WriteHeader(statuses[min(int(asked.Add(1)), len(statuses))-1])
+	}))
+	t.Cleanup(server.Close)
+
+	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--retry", "1", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if got := asked.Load(); got != 5 {
+		t.Fatalf("the server was asked %d times, want 5", got)
+	}
+	// Three requests: the first got the page on its second try, the second at
+	// once, and the third was refused twice. Two tries beyond the first, two
+	// pages out of three, and 240 + 120 + 240 ms between the three of them.
+	want := strings.Join([]string{
+		"",
+		"  ██████████████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒  3/3  100%",
+		"  1s elapsed · 0 B",
+		"",
+		"  ✓ 200 OK          2   67%",
+		"  ✗ 404 Not Found   1   33%",
+		"",
+		"  Requests      3",
+		"  Retries       2",
+		"  Success rate  66.7%",
+		"  Avg time      200ms",
+		"",
+	}, "\n")
+	if got := after(stderr); got != want {
+		t.Errorf("the run ends as\n%s\nwant\n%s", got, want)
+	}
+}
+
+func TestFetchOfOnePageHasNothingToSumUp(t *testing.T) {
+	// One request has said all of it on its one line.
+	server, _ := replying(t, 200)
+
+	code, _, stderr := exec(t, "fetch", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	for _, unwanted := range []string{"Requests", "Retries", "Success rate", "Avg time"} {
+		if strings.Contains(stderr, unwanted) {
+			t.Errorf("one request was summed up (%q):\n%s", unwanted, stderr)
+		}
 	}
 }
 

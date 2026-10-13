@@ -472,11 +472,17 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			errOut.println(row)
 		}
 	}
-	if len(kept) > 0 {
-		if runs > 1 {
-			// Apart from the rows above it, which it is not one of.
-			errOut.println()
+	// Under the count, what is read off a run when it is over. One request has
+	// said all of it on its one line, and only has a file to name.
+	switch {
+	case runs > 1:
+		figures := counts.summary()
+		if len(kept) > 0 {
+			figures = append(figures, [2]string{"Saved to", span(kept)})
 		}
+		errOut.println()
+		errOut.printf("%s", aligned(figures))
+	case len(kept) > 0:
 		errOut.printf("  saved to %s\n", span(kept))
 	}
 

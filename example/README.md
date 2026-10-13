@@ -104,7 +104,12 @@ summary on standard error:
   No response  0  (0.0%)
   Data         1.7 kB
   Retries      0
+  Avg time     71ms
 ```
+
+`Avg time` is what one URL took from when it was asked for to its last answer.
+It is not the run divided by the URLs: several are out at once, so three pages
+of 71 ms each fit in a run of 84.
 
 The format is read from the extension: `.json` is JSON, `.csv` is CSV, anything
 else is one URL per line. Name it yourself with `-F` when the file is called
@@ -331,7 +336,17 @@ day:
   → 304 Not Modified           3    8%
   ✗ 403 Forbidden              5   13%
   ✗ 503 Service Unavailable    3    8%
+
+  Requests      40
+  Retries       0
+  Success rate  72.5%
+  Avg time      126ms
 ```
+
+The four figures under the rows are what the run came to: the requests it made,
+the further tries `--retry` spent on them, the share that ended with a 2xx, and
+how long one request took on average, its retries and the waits between them
+included.
 
 ## Ask again, and ask several times
 
@@ -341,7 +356,13 @@ day:
 
 `--retry` asks again when the answer is not a 2xx, or when none comes. What is
 reported is how the request ended, so a page that arrived on the third try is a
-200. `-v` says each try that was made again, and why:
+200, and how many further tries it took to get there:
+
+```
+  ✓ 200 OK · 577 B · 1.1s · 2 retries
+```
+
+`-v` says each try that was made again, and why:
 
 ```
   try 1 of 4: HTTP 503, trying again in 250ms
@@ -366,7 +387,11 @@ is of all of them:
 
   ✓ 200 OK   3  100%
 
-  saved to page-1.html … page-3.html
+  Requests      3
+  Retries       0
+  Success rate  100.0%
+  Avg time      16ms
+  Saved to      page-1.html … page-3.html
 ```
 
 With `-v` there is a line for each run as well:

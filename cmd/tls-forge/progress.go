@@ -130,6 +130,10 @@ type progress struct {
 	inFlight int
 	bytes    int64
 	started  time.Time
+	// retries is how many tries were made beyond the first of each request, and
+	// spent how long the requests took between them, those tries included.
+	retries int
+	spent   time.Duration
 	// statuses is how many answers came back with each status code, and under
 	// noResponse how many requests got no answer at all.
 	statuses map[int]int
@@ -156,6 +160,9 @@ func (p *progress) finish(r result) {
 	p.inFlight--
 	p.done++
 	p.bytes += int64(r.Bytes)
+	// One attempt is the request; the rest are the retries.
+	p.retries += max(r.Attempts-1, 0)
+	p.spent += time.Duration(r.Millis) * time.Millisecond
 	if r.Failed() {
 		p.statuses[noResponse]++
 		return
@@ -301,8 +308,70 @@ func (p *progress) single(at time.Time, rows []tally, paint palette) string {
 		return "  waiting for the response · " + compactDuration(took)
 	}
 	row := rows[0]
-	return fmt.Sprintf("%s  %s %s · %s · %s%s", paint.of(row.how), verdictMark[row.how],
-		row.label, humanBytes(p.bytes), preciseDuration(took), paint.reset)
+	line := fmt.Sprintf("  %s %s · %s · %s", verdictMark[row.how], row.label,
+		humanBytes(p.bytes), preciseDuration(took))
+	if p.retries > 0 {
+		// The time on the line is for all of the tries, and nothing else on it
+		// says there was more than one.
+		line += " · " + counted(p.retries, "retry", "retries")
+	}
+	return paint.of(row.how) + line + paint.reset
+}
+
+// summary is a finished run in four figures: how many requests it made, how
+// many more tries those took, how many came back as the page, and how long one
+// took.
+//
+// Under the count rather than in it, and only at the end. The count is what a
+// run looks like while it goes, redrawn five times a second; these are what is
+// read off it afterwards, and an average of three requests out of a hundred is
+// not a figure yet.
+func (p *progress) summary() [][2]string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	made := strconv.Itoa(p.done)
+	if p.done < p.total {
+		// A run that was stopped says how far it got, so that the figures under
+		// it are not read as being about all of it.
+		made += " of " + strconv.Itoa(p.total)
+	}
+	pages := 0
+	for code, count := range p.statuses {
+		if verdictOf(code) == answered {
+			pages += count
+		}
+	}
+	return [][2]string{
+		{"Requests", made},
+		{"Retries", strconv.Itoa(p.retries)},
+		{"Success rate", percent(pages, p.done)},
+		// From when a request went out to its last answer, so a request that was
+		// tried again counts the tries and the waits between them.
+		{"Avg time", preciseDuration(p.spent / time.Duration(max(p.done, 1)))},
+	}
+}
+
+// counted is a number of things, in the singular when there is one.
+func counted(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	return strconv.Itoa(n) + " " + many
+}
+
+// aligned is labelled figures as lines, with the figures in a column two
+// spaces clear of the longest label.
+func aligned(rows [][2]string) string {
+	widest := 0
+	for _, row := range rows {
+		widest = max(widest, len(row[0]))
+	}
+	var lines strings.Builder
+	for _, row := range rows {
+		fmt.Fprintf(&lines, "  %-*s  %s\n", widest, row[0], row[1])
+	}
+	return lines.String()
 }
 
 // humanBytes is the body volume, decompressed.

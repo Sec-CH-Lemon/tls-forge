@@ -45,9 +45,12 @@ type summary struct {
 	Bytes     int64
 	Retries   int
 	Elapsed   time.Duration
-	Proxies   []proxyStat
-	Direct    bool
-	Output    string
+	// Spent is how long the requests took between them, which is not Elapsed:
+	// several are out at once.
+	Spent   time.Duration
+	Proxies []proxyStat
+	Direct  bool
+	Output  string
 	// Unprinted says the JSON lines went nowhere: standard output was a
 	// terminal, and nobody asked for them there or named a file.
 	Unprinted bool
@@ -92,6 +95,7 @@ func summarise(records []result, elapsed time.Duration, exits map[string]egress)
 		if r.Attempts > 1 {
 			s.Retries += r.Attempts - 1
 		}
+		s.Spent += time.Duration(r.Millis) * time.Millisecond
 		if r.Proxy == "" {
 			s.Direct = true
 			continue
@@ -140,6 +144,11 @@ func width(part, total int) string {
 // Took is the run's length.
 func (s summary) Took() string { return preciseDuration(s.Elapsed) }
 
+// Average is how long one request took, from when it went out to its last
+// answer: a URL that was tried again counts the tries and the waits between
+// them.
+func (s summary) Average() time.Duration { return s.Spent / time.Duration(max(s.Total, 1)) }
+
 // AliveProxies is how many of the proxies used carried at least one page.
 func (s summary) AliveProxies() int {
 	alive := 0
@@ -179,6 +188,7 @@ func (s summary) table() string {
 		{"No response", fmt.Sprintf("%d  (%s)", s.Failed, percent(s.Failed, s.Total))},
 		{"Data", humanBytes(s.Bytes)},
 		{"Retries", fmt.Sprintf("%d", s.Retries)},
+		{"Avg time", preciseDuration(s.Average())},
 	}
 	if len(s.Proxies) > 0 {
 		used := fmt.Sprintf("%d used, %d alive", len(s.Proxies), s.AliveProxies())
@@ -197,19 +207,15 @@ func (s summary) table() string {
 			"not printed on a terminal; -o FILE keeps them, --body shows them"})
 	}
 
-	var b strings.Builder
-	for _, row := range rows {
-		fmt.Fprintf(&b, "  %-12s %s\n", row[0], row[1])
-	}
-
 	// Named, not just counted: "6 of 8 alive" does not say which two to replace.
 	for _, p := range s.Proxies {
 		if p.Alive() {
 			continue
 		}
-		fmt.Fprintf(&b, "  %-12s %s  (%d requests, none came back)\n", "dead proxy", p.Proxy, p.Requests)
+		rows = append(rows, [2]string{"dead proxy",
+			fmt.Sprintf("%s  (%d requests, none came back)", p.Proxy, p.Requests)})
 	}
-	return b.String()
+	return aligned(rows)
 }
 
 // reportRow is one URL as the HTML report shows it.

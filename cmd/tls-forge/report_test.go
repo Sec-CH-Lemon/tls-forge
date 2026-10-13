@@ -100,12 +100,12 @@ func TestFlagFromCountryCode(t *testing.T) {
 
 func TestSummarise(t *testing.T) {
 	records := []result{
-		{URL: "https://a/", Status: 200, Bytes: 1_000, Attempts: 1},
-		{URL: "https://b/", Status: 200, Bytes: 2_000, Attempts: 3, Proxy: "http://good"},
-		{URL: "https://c/", Attempts: 2, Proxy: "http://dead", Error: "refused"},
-		{URL: "https://d/", Attempts: 2, Proxy: "http://dead", Error: "refused"},
+		{URL: "https://a/", Status: 200, Bytes: 1_000, Attempts: 1, Millis: 100},
+		{URL: "https://b/", Status: 200, Bytes: 2_000, Attempts: 3, Millis: 1_400, Proxy: "http://good"},
+		{URL: "https://c/", Attempts: 2, Millis: 300, Proxy: "http://dead", Error: "refused"},
+		{URL: "https://d/", Attempts: 2, Millis: 300, Proxy: "http://dead", Error: "refused"},
 		// A response that is not the page: neither scraped nor a dead connection.
-		{URL: "https://e/", Status: 503, Bytes: 500, Attempts: 1, Proxy: "http://good"},
+		{URL: "https://e/", Status: 503, Bytes: 500, Attempts: 1, Millis: 400, Proxy: "http://good"},
 	}
 	s := summarise(records, 90*time.Second, map[string]egress{
 		"http://good": {IP: "203.0.113.7", Country: "PL"},
@@ -120,6 +120,11 @@ func TestSummarise(t *testing.T) {
 	// One attempt is the request; the rest are retries. 0 + 2 + 1 + 1 + 0.
 	if s.Retries != 4 {
 		t.Errorf("Retries = %d, want 4", s.Retries)
+	}
+	// Two and a half seconds of requests in a run of ninety: what one request
+	// took is its own time, tries included, and not a share of the run's.
+	if s.Spent != 2500*time.Millisecond || s.Average() != 500*time.Millisecond {
+		t.Errorf("Spent = %s and Average = %s, want 2.5s and 500ms", s.Spent, s.Average())
 	}
 	if !s.Direct {
 		t.Error("a URL went without a proxy and the summary did not notice")
@@ -138,8 +143,8 @@ func TestSummarise(t *testing.T) {
 
 func TestSummaryTable(t *testing.T) {
 	s := summarise([]result{
-		{URL: "https://a/", Status: 200, Bytes: 1_000, Attempts: 1},
-		{URL: "https://b/", Attempts: 2, Proxy: "http://dead", Error: "refused"},
+		{URL: "https://a/", Status: 200, Bytes: 1_000, Attempts: 1, Millis: 240},
+		{URL: "https://b/", Attempts: 2, Millis: 2_760, Proxy: "http://dead", Error: "refused"},
 	}, 3*time.Minute, nil)
 	s.Output = "results.jsonl"
 
@@ -151,6 +156,7 @@ func TestSummaryTable(t *testing.T) {
 		"No response  1  (50.0%)",
 		"1.0 kB",
 		"Retries      1",
+		"Avg time     1.5s",
 		"1 used, 0 alive, some direct",
 		// Named, not just counted: "0 alive" does not say which one to replace.
 		"dead proxy   http://dead  (1 requests, none came back)",
@@ -163,9 +169,10 @@ func TestSummaryTable(t *testing.T) {
 }
 
 func TestSummaryOfNothing(t *testing.T) {
-	// A percentage of nothing is 0%, not a division by zero.
+	// A percentage of nothing is 0%, not a division by zero, and so is the time
+	// that none of its requests took.
 	s := summarise(nil, time.Second, nil)
-	if got := s.table(); !strings.Contains(got, "0  (0.0%)") {
+	if got := s.table(); !strings.Contains(got, "0  (0.0%)") || !strings.Contains(got, "Avg time     0ms") {
 		t.Errorf("table: %s", got)
 	}
 }

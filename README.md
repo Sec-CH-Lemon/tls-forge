@@ -261,6 +261,11 @@ each status code the answers came back with.
   → 304 Not Modified           3    8%
   ✗ 403 Forbidden              5   13%
   ✗ 503 Service Unavailable    3    8%
+
+  Requests      40
+  Retries       0
+  Success rate  72.5%
+  Avg time      126ms
 ```
 
 The bar is cut by how the answers went, and the rows are marked the same way:
@@ -271,13 +276,22 @@ row, `no response`. Each row gives how many answers had that status and their
 share of those that have come back. While a run is going the second line also
 says roughly how long is left.
 
+When the run is over, four figures follow the rows: how many requests were
+made, how many further tries `--retry` spent on them, the share of the requests
+that ended with a 2xx, and the average time of one request. That time is
+measured from when a request is sent to its last answer, so a request that was
+tried again counts every try and the waits between them. A run that was stopped
+early says how far it got, as `12 of 40`.
+
 The count is redrawn in place while the run goes and stays on screen when it
 ends. It is redrawn and coloured only when standard error is a terminal, and
 `NO_COLOR` turns the colour off; anywhere else it is printed once, plainly, at
-the end. A run of one request is reported on one line instead:
+the end. A run of one request is reported on one line instead, which ends with
+how many times it was tried again when it was:
 
 ```text
   ✓ 200 OK · 577 B · 54ms
+  ✓ 200 OK · 577 B · 1.1s · 2 retries
 ```
 
 The body is the output, so it still goes wherever standard output was pointed:
@@ -340,7 +354,11 @@ each try that is made again:
 
   ✓ 200 OK   3  100%
 
-  saved to page-1.html … page-3.html
+  Requests      3
+  Retries       0
+  Success rate  100.0%
+  Avg time      16ms
+  Saved to      page-1.html … page-3.html
 ```
 
 `fetch` exits non-zero if any run got no response. The two flags combine:
@@ -408,6 +426,11 @@ Each of those lines holds a whole page, so a terminal does not get them unless
 with its row per status code, and through the summary at the end, which says
 when the lines were not printed. A pipe, a redirect and `--output` receive the
 lines as they always did.
+
+The summary gives how many URLs were asked for and how long the run took, how
+many of them came back as the page, as something else or not at all, how much
+data that was, the retries spent and, as `Avg time`, the average time of one
+URL with its retries included.
 
 ```bash
 tls-forge batch https://example.com/ https://example.org/

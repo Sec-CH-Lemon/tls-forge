@@ -41,6 +41,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   plainly, anywhere else. `--color auto|always|never` and `NO_COLOR` control
   the colour, and `fetch` gains `--progress` and `-v, --verbose`, with the
   meanings they have in `batch`.
+- A run ends with what it came to. Under the count, `fetch --repeat` prints how
+  many requests were made, how many further tries `--retry` spent on them, the
+  share that ended with a 2xx and the average time of one request, measured from
+  when it is sent to its last answer; a run that was interrupted says how far it
+  got. A single request that was tried again ends its line with how many times.
+  The `batch` summary gains the same average as `Avg time`.
 - `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
   Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
   opens: the settings, the profile, the exit-address lookup, and for each try
@@ -82,8 +88,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   exactly what they did before, so `tls-forge fetch URL > page.html` and
   `tls-forge batch … | jq` are unchanged.
 - `fetch --output FILE` no longer prints `wrote N bytes to FILE` on standard
-  output. Where the body was saved is the last line of the count on standard
-  error, `saved to FILE`, and `-v` names the file of every run.
+  output. Where the body was saved is the last line on standard error,
+  `saved to FILE`, or the `Saved to` row of a repeated run's figures, and `-v`
+  names the file of every run.
 - **`batch --repeat` is now `--retry`, and `--repeat` means something else.**
   The flag that asks again for a URL that did not load is `--retry`, still
   three by default. `--repeat N` now goes through the whole list `N` times, so

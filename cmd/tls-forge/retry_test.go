@@ -66,9 +66,13 @@ func TestFetchAsksAgainWhenTheAnswerIsNotThePage(t *testing.T) {
 	if strings.Contains(stderr, "try 3 of 4") {
 		t.Errorf("the try that worked was announced as one to be repeated:\n%s", stderr)
 	}
-	// What is reported is how the request ended, which was with the page.
+	// What is reported is how the request ended, which was with the page, and
+	// what that took.
 	if !strings.Contains(stderr, "\n  ✓ 200 OK · 8 B · ") || strings.Contains(stderr, "✗") {
 		t.Errorf("what is reported is something other than the last answer:\n%s", stderr)
+	}
+	if !strings.HasSuffix(stderr, " · 2 retries\n") {
+		t.Errorf("the last line does not say the request was made again twice:\n%s", stderr)
 	}
 }
 
@@ -83,6 +87,10 @@ func TestFetchKeepsItsRetriesToItselfUnlessAsked(t *testing.T) {
 	}
 	if strings.Contains(stderr, "try 1 of 2") {
 		t.Errorf("a retry was announced without being asked for:\n%s", stderr)
+	}
+	// That there was one is a figure, and that is said at the end to everybody.
+	if !strings.HasSuffix(stderr, " · 1 retry\n") {
+		t.Errorf("the last line does not count the retry:\n%s", stderr)
 	}
 }
 
@@ -227,11 +235,12 @@ func TestFetchRepeatWritesANumberedFilePerRun(t *testing.T) {
 		}
 	}
 	// The files are where the pages went, so nothing went to stdout, and where
-	// they went is said once: the first and the last name all of them.
+	// they went is said once, as the last of what the run came to: the first and
+	// the last name all of them.
 	if stdout != "" {
 		t.Errorf("stdout = %q, want nothing", stdout)
 	}
-	want := fmt.Sprintf("\n\n  saved to %s … %s\n",
+	want := fmt.Sprintf("\n  Saved to      %s … %s\n",
 		filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-3.html"))
 	if !strings.HasSuffix(stderr, want) {
 		t.Errorf("stderr does not end by saying where the runs went (%q):\n%s", want, stderr)
@@ -369,7 +378,7 @@ func TestFetchRepeatIntoADeviceDoesNotNumberIt(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	// Both runs went to the one place, which is said as one place.
-	if !strings.HasSuffix(stderr, "\n\n  saved to "+os.DevNull+"\n") {
+	if !strings.HasSuffix(stderr, "\n  Saved to      "+os.DevNull+"\n") {
 		t.Errorf("stderr does not end by naming the device once:\n%s", stderr)
 	}
 	if got := asked.Load(); got != 2 {
