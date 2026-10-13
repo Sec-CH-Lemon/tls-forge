@@ -14,7 +14,7 @@ import (
 //
 // A failed URL is retried three times by default, and the pauses between those
 // tries are seconds that most of these tests spend on something they are not
-// about. TestRepeatBackoff checks the schedule itself, and the one test that
+// about. TestRetryBackoff checks the schedule itself, and the one test that
 // cares that a pause happens at all puts it back.
 //
 // It also points the profile directory at one of its own. Every command now
@@ -28,7 +28,7 @@ import (
 // internet once per test, from wherever the tests happen to run. Over plain
 // HTTP, so a fetch that does not pass --insecure is answered as well.
 func TestMain(m *testing.M) {
-	repeatWait = func(int) time.Duration { return 0 }
+	retryWait = func(int) time.Duration { return 0 }
 
 	dir, err := os.MkdirTemp("", "tls-forge-profiles-")
 	if err != nil {

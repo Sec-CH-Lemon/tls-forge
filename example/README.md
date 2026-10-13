@@ -285,6 +285,24 @@ is **added** to what the file already had and one file builds up over time. In
 
 Written `0600` either way: a warmed session is a credential.
 
+## Ask again
+
+```bash
+../bin/tls-forge fetch --retry 3 https://example.com/
+```
+
+`--retry` asks again when the answer is not a 2xx, or when none comes, and says
+so each time it does:
+
+```
+  try 1 of 4: HTTP 503, trying again in 250ms
+  try 2 of 4: HTTP 503, trying again in 500ms
+```
+
+`fetch` makes no further tries unless told to. `batch` makes three, as it
+always has for a URL that did not load, and now for one that answered with
+something other than the page as well; `--retry 0` turns that off.
+
 ## Everything at once
 
 ```bash
@@ -292,13 +310,14 @@ Written `0600` either way: a warmed session is a credential.
   -i urls.csv \
   --cookies cookies.json --cookie-set warm-eu \
   --save-cookies session.json \
-  -c 8 --repeat 3 -v \
+  -c 8 --retry 3 -v \
   -o results.jsonl -R reports/
 ```
 
 A list, a warmed session to start from, the session written back when it is
 done, eight pages at a time, three further tries for anything that does not
-load, a line per request, the results as JSON lines and a report to look at.
+come back as a page, a line per request, the results as JSON lines and a
+report to look at.
 
 ## Where to read more
 

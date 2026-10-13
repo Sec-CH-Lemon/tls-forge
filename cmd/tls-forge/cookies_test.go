@@ -391,7 +391,7 @@ func TestBatchSavesOneSessionPerProxy(t *testing.T) {
 		"url,proxy\n%[1]s/set,\n%[1]s/set,\n%[1]s/set,http://127.0.0.1:9001\n", server.URL))
 
 	code, _, stderr := exec(t, "batch", "-k", "--input", list, "--save-cookies", path,
-		"--progress", "never", "--repeat", "0", "--timeout", "5s", "-o", os.DevNull)
+		"--progress", "never", "--retry", "0", "--timeout", "5s", "-o", os.DevNull)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (one URL went through a dead proxy)\n%s", code, stderr)
 	}
@@ -499,7 +499,7 @@ func TestBatchSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
 		"url,proxy\n%[1]s/set,::not a proxy::\n%[1]s/set,\n", server.URL))
 
 	code, _, stderr := exec(t, "batch", "-k", "--input", list, "--save-cookies", path,
-		"--progress", "never", "--repeat", "0", "-o", os.DevNull)
+		"--progress", "never", "--retry", "0", "-o", os.DevNull)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}

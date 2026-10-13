@@ -301,6 +301,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	output := fs.StringP("output", "o", "", "write the body to a file instead of stdout")
 	var headers headerFlag
 	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Referer: https://…\"")
+	again := addRunFlags(fs, 0)
 	setUsage(fs, out, "usage: tls-forge fetch [flags] <url>")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -308,6 +309,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if fs.NArg() != 1 {
 		fs.Usage()
 		return fmt.Errorf("%w: fetch takes exactly one URL", errUsage)
+	}
+	if err := again.check(); err != nil {
+		return err
 	}
 
 	// Left open, because the address the request comes out of is the report's
@@ -352,13 +356,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 	}()
 
-	res, err := client.Do(&tlsforge.Request{
-		Context: ctx,
-		Method:  *method,
-		URL:     fs.Arg(0),
-		Header:  tlsforge.Header(headers),
-		Body:    []byte(*data),
-	})
+	// A try that is made again is said, because otherwise the only sign of it is
+	// a fetch that took longer than its timeout.
+	policy := retrier{retries: *again.retry, note: func(text string) { errOut.println(text) }}
+	res, _, err := policy.do(ctx, client, tlsforge.Request{
+		Method: *method,
+		URL:    fs.Arg(0),
+		Header: tlsforge.Header(headers),
+		Body:   []byte(*data),
+	}, *common.proxy)
 	if err != nil {
 		return err
 	}

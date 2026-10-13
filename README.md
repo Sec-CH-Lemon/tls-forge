@@ -238,6 +238,7 @@ Usage: `tls-forge fetch [flags] <url>`
 | `-i`, `--include` | Print status and response headers before the body |
 | `-o`, `--output <file>` | Write the body to a file instead of stdout |
 | `-H`, `--header "Name: value"` | Add or override an ordered request header; repeatable |
+| `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 
 Before the request, `fetch` asks a public service which address it comes out
 of, through the same proxy and with the same profile. No cookie is sent with the
@@ -262,6 +263,18 @@ can send the request itself from a different one.
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
 are compatible with tools such as curl and wget.
+
+#### Retrying
+
+```bash
+tls-forge fetch --retry 3 https://example.com/
+```
+
+`--retry` asks again when the answer is not a 2xx, or when no answer comes at
+all. The waits between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
+that is made again is reported on standard error with its reason. When the
+tries run out, the last answer is printed whatever its status, and the exit
+code still depends only on whether a response arrived.
 
 ### `batch`
 
@@ -294,7 +307,7 @@ Usage: `tls-forge batch [flags] [urls...]`
 | `-c`, `--concurrency <n>` | Concurrent requests; default `4` |
 | `-o`, `--output <file>` | Write JSON Lines results here instead of stdout |
 | `-d`, `--body-dir <dir>` | Store response bodies separately and reference their paths |
-| `--repeat <n>` | Number of retries after a URL does not load; default `3` |
+| `--retry <n>` | Ask again up to `n` more times when a URL's answer is not a 2xx, or does not come; default `3` |
 | `-v`, `--verbose` | Print one status line when each request finishes |
 | `--progress <mode>` | Live stderr status: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report <path>` | Write a self-contained HTML report; a directory gets a timestamped filename |
@@ -307,6 +320,10 @@ count. `--body-dir` writes the original bytes directly instead. Repeated URLs
 in one input get separate, stable body filenames.
 With `--format auto`, `.json` selects JSON, `.csv` selects CSV and every other
 name uses one URL per line.
+
+`--retry` waits 250 ms, 500 ms, 1 s and then 2 s between tries, and a row's
+`attempts` counts them. A URL that still answers with something other than a
+2xx is reported with that status, as before.
 
 Supported list shapes:
 

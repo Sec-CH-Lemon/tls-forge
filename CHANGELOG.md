@@ -18,6 +18,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   through every SDK, runs the published amd64 and arm64 container images, and
   installs and tests the current stable Homebrew formula. It is a separate,
   manually dispatched check for any chosen version.
+- `tls-forge fetch --retry N` asks again, up to `N` more times, when the answer
+  is not a 2xx or when no answer comes. The waits between tries double from
+  250 ms and stop at two seconds, and every try that is made again is reported
+  on standard error with its reason. The default is none, the last answer is
+  printed whatever its status, and the exit code still depends only on whether
+  a response arrived.
 - `Request.Trace` in the Go package: optional hooks for the name lookup, each
   dial, the connection and what its handshake negotiated, the header fields in
   wire order, the first response byte and every redirect followed.
@@ -42,6 +48,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **`batch --repeat` is now `--retry`.** The flag that asks again for a URL
+  that did not load keeps its default of three and takes the name the same
+  thing has in `fetch`. `--repeat` is no longer accepted.
+- `batch` asks again for an answer that is not a 2xx, and not only for a
+  request that got no answer. A list that expects some 404s spends up to three
+  further requests on each of them unless it passes `--retry 0`. Rows that
+  still end with a non-2xx status are reported as they were, and the exit code
+  still turns only on requests that got no response.
 - `tls-forge fetch` reports the address its request comes out of, as the last
   line of the profile block on standard error. The address is asked of a public
   service before the request, with the same profile and proxy and without the

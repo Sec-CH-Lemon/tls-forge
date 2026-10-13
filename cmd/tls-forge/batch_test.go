@@ -306,7 +306,7 @@ func TestBatchRetries(t *testing.T) {
 		mu.Unlock()
 		if n < 3 {
 			// Hang up without answering, which is a transport error rather than
-			// a status a retry would not help with.
+			// an answer of any kind.
 			hijacked, _, err := w.(http.Hijacker).Hijack()
 			if err == nil {
 				_ = hijacked.Close()
@@ -317,26 +317,26 @@ func TestBatchRetries(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	code, stdout, _ := exec(t, "batch", "--repeat", "2", "--timeout", "10s", server.URL+"/flaky")
+	code, stdout, _ := exec(t, "batch", "--retry", "2", "--timeout", "10s", server.URL+"/flaky")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stdout)
 	}
-	// One try, then the two it was told to repeat.
+	// One try, then the two it was allowed on top.
 	r := lines(t, stdout)[server.URL+"/flaky"]
 	if r.Attempts != 3 {
 		t.Errorf("attempts = %d, want 3", r.Attempts)
 	}
 }
 
-func TestBatchTriesOnceWhenToldNotToRepeat(t *testing.T) {
+func TestBatchTriesOnceWhenToldNotToRetry(t *testing.T) {
 	server := batchServer(t)
-	_, stdout, _ := exec(t, "batch", "--repeat", "0", server.URL+"/one")
+	_, stdout, _ := exec(t, "batch", "--retry", "0", server.URL+"/one")
 	if r := lines(t, stdout)[server.URL+"/one"]; r.Attempts != 1 {
 		t.Errorf("attempts = %d, want 1", r.Attempts)
 	}
 }
 
-func TestBatchRepeatsThreeTimesByDefault(t *testing.T) {
+func TestBatchRetriesThreeTimesByDefault(t *testing.T) {
 	// A URL that never comes back is tried once and then three times more.
 	_, stdout, _ := exec(t, "batch", "--timeout", "3s", "https://127.0.0.1:1/gone")
 	if r := lines(t, stdout)["https://127.0.0.1:1/gone"]; r.Attempts != 4 {
@@ -344,8 +344,8 @@ func TestBatchRepeatsThreeTimesByDefault(t *testing.T) {
 	}
 }
 
-func TestRepeatBackoff(t *testing.T) {
-	// A repeat with no pause is not another try: it is the same failure in the
+func TestRetryBackoff(t *testing.T) {
+	// A retry with no pause is not another try: it is the same failure in the
 	// same microsecond, against a host whose situation has not had time to
 	// change.
 	for _, tc := range []struct {
@@ -365,15 +365,15 @@ func TestRepeatBackoff(t *testing.T) {
 	}
 }
 
-func TestRepeatActuallyPauses(t *testing.T) {
+func TestRetryActuallyPauses(t *testing.T) {
 	// The suite runs without the waits; this is the one test that puts them
 	// back, so "there is a pause" is measured rather than assumed.
-	original := repeatWait
-	t.Cleanup(func() { repeatWait = original })
-	repeatWait = backoff
+	original := retryWait
+	t.Cleanup(func() { retryWait = original })
+	retryWait = backoff
 
 	started := time.Now()
-	_, stdout, _ := exec(t, "batch", "--repeat", "1", "--timeout", "3s",
+	_, stdout, _ := exec(t, "batch", "--retry", "1", "--timeout", "3s",
 		"https://127.0.0.1:1/gone")
 	elapsed := time.Since(started)
 
@@ -385,16 +385,16 @@ func TestRepeatActuallyPauses(t *testing.T) {
 	}
 }
 
-func TestRepeatDoesNotWaitOutAnInterruptedRun(t *testing.T) {
+func TestRetryDoesNotWaitOutAnInterruptedRun(t *testing.T) {
 	// Ctrl-C during a backoff should end the run, not finish the nap first.
-	original := repeatWait
-	t.Cleanup(func() { repeatWait = original })
-	repeatWait = func(int) time.Duration { return 30 * time.Second }
+	original := retryWait
+	t.Cleanup(func() { retryWait = original })
+	retryWait = func(int) time.Duration { return 30 * time.Second }
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan int, 1)
 	go func() {
-		done <- run(ctx, []string{"batch", "--repeat", "5", "--timeout", "3s",
+		done <- run(ctx, []string{"batch", "--retry", "5", "--timeout", "3s",
 			"--progress", "never", "https://127.0.0.1:1/gone"},
 			&strings.Builder{}, &strings.Builder{})
 	}()
@@ -417,8 +417,8 @@ func TestBatchArgumentErrors(t *testing.T) {
 	// the 1 that means "some URLs failed".
 	for _, args := range [][]string{
 		{"batch", "--concurrency", "0", server.URL},
-		{"batch", "--repeat", "-1", server.URL},
-		{"batch", "--repeat", fmt.Sprint(math.MaxInt), server.URL},
+		{"batch", "--retry", "-1", server.URL},
+		{"batch", "--retry", fmt.Sprint(math.MaxInt), server.URL},
 		{"batch", "--nonsense"},
 	} {
 		if code, _, _ := exec(t, args...); code != 2 {
@@ -826,7 +826,7 @@ func TestVerboseLine(t *testing.T) {
 			[]string{"503", "0 B", "797ms"},
 		},
 		{
-			"nothing came back, after repeats",
+			"nothing came back, after retries",
 			result{URL: "https://c/", Millis: 423, Attempts: 4, Error: "connection refused"},
 			// No status to print, and the attempt count earns a column.
 			[]string{"---", "x4", "connection refused"},
