@@ -416,6 +416,29 @@ many times, and every line of the output says which pass it was:
 {"url":"https://example.com/","status":200,"file":"bodies/0f115db062b7c0dd-2.html","run":2,"attempts":1}
 ```
 
+## A report of every request
+
+```bash
+../bin/tls-forge fetch --repeat 3 -R reports/ https://example.com/
+```
+
+`-R` writes the run as an HTML page, the one `batch` writes for a list. The
+count says how the run went; the page has a row for every request, with when
+it was made, how long it took, how it ended and where it came out. Its name is
+the last thing the run says:
+
+```
+  Requests      3
+  Retries       0
+  Success rate  100.0%
+  Avg time      16ms
+  Report        reports/report-2026-08-16-091854-584.html
+```
+
+It is one file with nothing to fetch from anywhere else, so it opens offline
+and can be sent on as it is. A request that got no answer is reported like any
+other, which is usually the one the page is opened for.
+
 ## See what a run did
 
 ```bash

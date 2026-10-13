@@ -366,7 +366,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	})
 	if *report != "" {
 		path := reportPath(*report, now())
-		if err := writeReport(path, records, totals, exits); err != nil {
+		if err := writeReport(path, "batch", records, totals, exits); err != nil {
 			return err
 		}
 		errOut.printf("report written to %s\n", path)
@@ -383,7 +383,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if failures > 0 {
 		// Non-zero exit: a batch that half worked is not a batch that worked,
 		// and a shell loop needs to be able to tell.
-		return fmt.Errorf("batch: %d of %d %s failed", failures, requests, totals.things())
+		return fmt.Errorf("batch: %d of %d %s failed", failures, requests, totals.Things())
 	}
 	return nil
 }

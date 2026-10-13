@@ -59,13 +59,16 @@ type summary struct {
 	Passes int
 }
 
-// things is what Total counts: URLs when the list was gone through once, and
-// requests when it was not, because then a URL is no longer one line.
-func (s summary) things() string {
+// Things is what Total counts: URLs when the list was gone through once, and
+// requests when it was not, because then a URL is no longer one line. Thing is
+// one of them.
+func (s summary) Things() string { return s.Thing() + "s" }
+
+func (s summary) Thing() string {
 	if s.Passes > 1 {
-		return "requests"
+		return "request"
 	}
-	return "URLs"
+	return "URL"
 }
 
 // Failed means nothing came back at all; Warned that something did and it was
@@ -317,6 +320,8 @@ func limitRows(records []result, limit int) (kept []result, dropped int) {
 }
 
 type reportData struct {
+	// Command is which of them made the run: fetch or batch.
+	Command   string
 	Generated string
 	Dropped   int
 	Summary   summary
@@ -324,6 +329,20 @@ type reportData struct {
 	Cards     []card
 	Service   string
 	CSS       template.CSS
+}
+
+// Numbered says the rows are told apart by which run they were, because a URL
+// was asked for more than once.
+func (d reportData) Numbered() bool { return d.Summary.Passes > 1 }
+
+// Elsewhere is where the rows the report left out can still be found, when
+// there is such a place. Batch writes every row as a JSON line, and fetch
+// writes its pages and nothing about them.
+func (d reportData) Elsewhere() string {
+	if d.Command == "batch" {
+		return "The JSON lines carry every row."
+	}
+	return ""
 }
 
 // card is one figure in the row above the tables.
@@ -334,8 +353,9 @@ type card struct {
 }
 
 func cards(s summary) []card {
+	things := s.Things()
 	list := []card{
-		{Label: "URLs", Value: fmt.Sprintf("%d", s.Total)},
+		{Label: strings.ToUpper(things[:1]) + things[1:], Value: fmt.Sprintf("%d", s.Total)},
 		{Label: "Data", Value: humanBytes(s.Bytes), Note: "decompressed"},
 		{Label: "Retries", Value: fmt.Sprintf("%d", s.Retries)},
 		{Label: "Elapsed", Value: preciseDuration(s.Elapsed)},
@@ -404,32 +424,35 @@ var chmodReport = (*os.File).Chmod
 // Self-contained on purpose: no stylesheet, no script and no font from
 // anywhere else, so it can be opened from a laptop with no network and mailed
 // to someone as one attachment.
-func writeReport(path string, records []result, s summary, exits map[string]egress) error {
+//
+// The command is the one that made the run. It is named in the document, and in
+// front of whatever goes wrong writing it.
+func writeReport(path, command string, records []result, s summary, exits map[string]egress) error {
 	// The directory is made rather than required. `--report reports/` is what
 	// README and example/README both show, and before this it fetched the whole
 	// list and then failed at the last step because nothing had created the
 	// directory — losing the report and exiting non-zero on a run that worked.
 	if dir := filepath.Dir(path); dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("batch: %w", err)
+			return fmt.Errorf("%s: %w", command, err)
 		}
 	}
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		return fmt.Errorf("batch: %w", err)
+		return fmt.Errorf("%s: %w", command, err)
 	}
 	if err := chmodReport(file, 0o600); err != nil {
 		_ = file.Close()
-		return fmt.Errorf("batch: securing report: %w", err)
+		return fmt.Errorf("%s: securing report: %w", command, err)
 	}
 	defer func() { _ = file.Close() }()
-	return renderReport(file, records, s, exits)
+	return renderReport(file, command, records, s, exits)
 }
 
 // renderReport is the document itself, separate from the file it lands in, so
 // what it produces can be checked without one and so the failure to write it
 // can be reached at all.
-func renderReport(w io.Writer, records []result, s summary, exits map[string]egress) error {
+func renderReport(w io.Writer, command string, records []result, s summary, exits map[string]egress) error {
 	// Cut down before the display structs are built: a run of a million would
 	// otherwise materialise a million of them to show two thousand.
 	kept, dropped := limitRows(records, reportRowLimit)
@@ -442,6 +465,7 @@ func renderReport(w io.Writer, records []result, s summary, exits map[string]egr
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Started.Before(rows[j].Started) })
 
 	data := reportData{
+		Command:   command,
 		Generated: at(now()),
 		Dropped:   dropped,
 		Summary:   s,
@@ -452,7 +476,7 @@ func renderReport(w io.Writer, records []result, s summary, exits map[string]egr
 		CSS: template.CSS(reportCSS),
 	}
 	if err := reportTemplate.Execute(w, data); err != nil {
-		return fmt.Errorf("batch: writing the report: %w", err)
+		return fmt.Errorf("%s: writing the report: %w", command, err)
 	}
 	return nil
 }

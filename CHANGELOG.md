@@ -47,6 +47,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   when it is sent to its last answer; a run that was interrupted says how far it
   got. A single request that was tried again ends its line with how many times.
   The `batch` summary gains the same average as `Avg time`.
+- `fetch --report PATH` writes the self-contained HTML report that `batch`
+  writes, with a row for every request. It is written however the run ended, a
+  request that got no answer included, uses the exit address `fetch` has
+  already asked for, and its name is the last thing the run prints. A report
+  that cannot be written fails the run with exit code 1.
 - `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
   Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
   opens: the settings, the profile, the exit-address lookup, and for each try
@@ -91,6 +96,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   output. Where the body was saved is the last line on standard error,
   `saved to FILE`, or the `Saved to` row of a repeated run's figures, and `-v`
   names the file of every run.
+- The `batch` report is titled `tls-forge batch` rather than `tls-forge run`.
+  When the list is gone through more than once it counts requests rather than
+  URLs, and every row says which pass it was.
 - **`batch --repeat` is now `--retry`, and `--repeat` means something else.**
   The flag that asks again for a URL that did not load is `--retry`, still
   three by default. `--repeat N` now goes through the whole list `N` times, so

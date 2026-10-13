@@ -307,6 +307,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	again := addRunFlags(fs, 0)
 	watch := addWatchFlags(fs,
 		"print the body on stdout even when that is a terminal, or when --output has it")
+	report := fs.StringP("report", "R", "",
+		"write an HTML report here; a directory gets report-<date-time>.html")
 	setUsage(fs, out, "usage: tls-forge fetch [flags] <url>")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -422,13 +424,17 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// one opened and the cookies it was given: the request made again, the way
 	// reloading a page makes it again.
 	var kept []string
+	var records []result
 	var stopped error
 	unanswered := 0
 	for run := 1; run <= runs && stopped == nil; run++ {
 		counts.begin()
 		started := now()
 		res, attempts, err := policy.do(ctx, client, request, lane, run, *common.proxy)
-		r := runResult(res, err, attempts, now().Sub(started), *common.proxy)
+		r := runResult(request.URL, *common.proxy, started, res, attempts, err)
+		if runs > 1 {
+			r.Run = run
+		}
 		counts.finish(r)
 
 		path := *output
@@ -453,6 +459,11 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			}
 		}
 		notes.say(runLine(run, runs, r))
+		if *report != "" {
+			// Only for a report. A request made a million times is otherwise
+			// counted and let go.
+			records = append(records, r)
+		}
 		if stopped == nil && err == nil {
 			stopped = show.response(res)
 		}
@@ -472,29 +483,56 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			errOut.println(row)
 		}
 	}
+	// Whatever the run came to, and most of all when it came to nothing: a
+	// request that failed is the one somebody opens a report about.
+	var reported string
+	var reportErr error
+	if *report != "" {
+		exits := map[string]egress{}
+		if lookupErr == nil {
+			exits[*common.proxy] = found
+		}
+		totals := summarise(records, now().Sub(counts.started), exits)
+		totals.Passes = runs
+		reported = reportPath(*report, now())
+		if reportErr = writeReport(reported, "fetch", records, totals, exits); reportErr != nil {
+			reported = ""
+		} else if left := len(records) - reportRowLimit; left > 0 {
+			reported += fmt.Sprintf("  (without %d of the requests)", left)
+		}
+	}
+
 	// Under the count, what is read off a run when it is over. One request has
-	// said all of it on its one line, and only has a file to name.
-	switch {
-	case runs > 1:
+	// said all of it on its one line, and only has files to name.
+	if runs > 1 {
 		figures := counts.summary()
 		if len(kept) > 0 {
 			figures = append(figures, [2]string{"Saved to", span(kept)})
 		}
+		if reported != "" {
+			figures = append(figures, [2]string{"Report", reported})
+		}
 		errOut.println()
 		errOut.printf("%s", aligned(figures))
-	case len(kept) > 0:
-		errOut.printf("  saved to %s\n", span(kept))
+	} else {
+		if len(kept) > 0 {
+			errOut.printf("  saved to %s\n", span(kept))
+		}
+		if reported != "" {
+			errOut.printf("  report written to %s\n", reported)
+		}
 	}
 
-	if stopped != nil {
-		return stopped
-	}
-	if unanswered > 0 {
+	if stopped == nil && unanswered > 0 {
 		// Non-zero, as batch is for the same reason: a request made ten times
 		// that came back nine is not one that worked.
-		return fmt.Errorf("fetch: %d of %d runs got no response", unanswered, runs)
+		stopped = fmt.Errorf("fetch: %d of %d runs got no response", unanswered, runs)
 	}
-	return nil
+	if reportErr != nil {
+		// Both, so that the reason the fetch failed is not lost behind the report.
+		return errors.Join(stopped, reportErr)
+	}
+	return stopped
 }
 
 // showing is what of a response fetch prints on standard output.
@@ -536,18 +574,19 @@ func (s *showing) response(res *tlsforge.Response) error {
 	return err
 }
 
-// runResult is one run as the count and the lines about it see it: the record
-// batch keeps for a URL, so that both commands count the same things the same
-// way.
-func runResult(res *tlsforge.Response, err error, attempts int, took time.Duration,
-	proxy string,
+// runResult is one run as the count, the lines about it and the report see it:
+// the record batch keeps for a URL, so that both commands count the same things
+// the same way.
+func runResult(url, proxy string, started time.Time, res *tlsforge.Response, attempts int,
+	err error,
 ) result {
-	r := result{Attempts: attempts, Millis: took.Milliseconds()}
+	r := result{URL: url, Proxy: proxy, Started: started, Attempts: attempts}
+	r.finish(started)
 	if err != nil {
-		r.Error = redactError(err, proxy)
+		r.setError(err)
 		return r
 	}
-	r.Status, r.Bytes = res.Status, len(res.Body)
+	r.Status, r.FinalURL, r.Bytes = res.Status, res.URL, len(res.Body)
 	return r
 }
 
@@ -558,7 +597,9 @@ func runResult(res *tlsforge.Response, err error, attempts int, took time.Durati
 // pages read the same way, with the file the run was written to where batch
 // has the URL.
 func runLine(run, runs int, r result) string {
-	r.URL = r.File
+	// Every run goes the same way, so which proxy that was is not said again on
+	// each of them.
+	r.URL, r.Proxy = r.File, ""
 	width := len(strconv.Itoa(runs))
 	return strings.TrimRight(fmt.Sprintf("  %*d/%d%s", width, run, runs, verboseLine(r)), " ")
 }

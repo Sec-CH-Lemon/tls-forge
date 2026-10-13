@@ -104,7 +104,7 @@ func TestReportHasNoProxyPassword(t *testing.T) {
 	totals := summarise(records, 0, nil)
 
 	var out strings.Builder
-	if err := renderReport(&out, records, totals, nil); err != nil {
+	if err := renderReport(&out, "batch", records, totals, nil); err != nil {
 		t.Fatalf("renderReport: %v", err)
 	}
 	if strings.Contains(out.String(), "s3cr3t") {

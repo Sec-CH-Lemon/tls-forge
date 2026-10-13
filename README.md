@@ -248,6 +248,7 @@ Usage: `tls-forge fetch [flags] <url>`
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
+| `-R`, `--report <path>` | Write a self-contained HTML report with a row for every request; see [Reporting a run](#reporting-a-run) |
 
 On a terminal, `fetch` says how the run went rather than printing the page: a
 bar for how far it has got, a line for how long that has taken, and a row for
@@ -414,6 +415,36 @@ worth. Proxy passwords, cookie values, `Authorization` credentials and the
 values of headers whose names contain `token`, `secret`, `password` or `key`
 are written as `***`; cookie names, cookie attributes and the authorization
 scheme are kept. URLs are recorded in full, including their query strings.
+
+#### Reporting a run
+
+```bash
+tls-forge fetch --repeat 20 --retry 2 --report reports/ https://example.com/
+tls-forge batch --input urls.csv --report reports/
+```
+
+`--report` writes the run as one HTML page with nothing to load from anywhere
+else, so it can be opened offline and sent on as one file. At the top is the
+share of requests that came back as the page, with how many answered with
+something else and how many got no answer, and under it the data, the retries
+and the time the run took. Then there is a row for every request: when it
+started and ended, how long it took, how it ended, how much came back, how many
+tries it took, the proxy it went through and the address it came out of. Rows
+are in the order the requests were sent, and when a URL was asked for more than
+once each row says which run it was.
+
+Given a directory, or a path ending in a separator, the report is named after
+the moment it was written, as `report-2026-08-16-091854-584.html`; any other
+path is the file itself, replaced on every run. It is created with mode `0600`.
+The name is the last thing a run prints. A report that cannot be written fails
+the run with exit code 1, after the pages have gone where they were going.
+
+`fetch` writes the report however the run ended, a request that got no answer
+included, and uses the exit address it has already asked for. `batch` asks for
+the address of each proxy once, after the list is done; `--report-ip=false`
+turns that off. A report holds at most 2,000 rows: the requests that failed or
+answered with something other than the page come first, and the page says how
+many rows it left out.
 
 ### `batch`
 

@@ -599,6 +599,17 @@ func TestFetchVerboseSaysEveryRunAndWhereItWent(t *testing.T) {
 	}
 }
 
+func TestRunLineDoesNotRepeatTheProxy(t *testing.T) {
+	// Every run of a fetch goes the same way, so the line for a run says what
+	// differs between them and stops at the file.
+	got := runLine(2, 10, result{
+		Status: 200, Bytes: 577, Millis: 29, Proxy: "http://user:secret@proxy.test:8080", File: "page-2.html",
+	})
+	if want := "   2/10  200      577 B     29ms       page-2.html"; got != want {
+		t.Errorf("runLine = %q, want %q", got, want)
+	}
+}
+
 func TestFetchRejectsWordsItDoesNotKnow(t *testing.T) {
 	// Before anything is fetched: a typo should not cost a request to find out.
 	server, asked := replying(t, 200)
