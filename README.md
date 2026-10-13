@@ -101,7 +101,7 @@ Release images are published for `linux/amd64` and `linux/arm64`:
 ```bash
 docker pull ghcr.io/sec-ch-lemon/tls-forge
 docker run --rm ghcr.io/sec-ch-lemon/tls-forge \
-  fetch https://tls.browserleaks.com/json
+  fetch --body https://tls.browserleaks.com/json
 ```
 
 Mount a directory when a command reads or writes files:
@@ -211,10 +211,13 @@ machine.
 
 ### `fetch`
 
-Make one request and write its decompressed body to standard output.
+Make a request and report how it went. The decompressed body goes to standard
+output when that is a pipe or a file, and to a terminal only with `--body`.
 
 ```bash
 tls-forge fetch https://example.com/
+tls-forge fetch --body https://tls.browserleaks.com/json
+tls-forge fetch https://example.com/ > page.html
 tls-forge fetch -i -H "Accept-Language: en-US" https://example.com/
 tls-forge fetch -X POST -H "Content-Type: application/json" \
   -d '{"hello":"world"}' https://example.com/api
@@ -235,18 +238,20 @@ Usage: `tls-forge fetch [flags] <url>`
 | `-k`, `--insecure` | Skip upstream certificate verification |
 | `-X`, `--method <method>` | HTTP method; default `GET` |
 | `-d`, `--data <text>` | Request body |
-| `-i`, `--include` | Print status and response headers before the body |
-| `-o`, `--output <file>` | Write the body to a file instead of stdout; with `--repeat`, one numbered file per run |
+| `-i`, `--include` | Print the status and response headers on standard output |
+| `-o`, `--output <file>` | Write the body to a file; with `--repeat`, one numbered file per run |
 | `-H`, `--header "Name: value"` | Add or override an ordered request header; repeatable |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 | `--repeat <n>` | Make the request `n` times; default `1` |
 | `--trace <file>` | Write every step of the run as Trace Event JSON |
+| `--body` | Print the body on standard output even when that is a terminal, or when `--output` has it |
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 
-On standard error, `fetch` counts how the run is going: how many requests are
-done, and under that how many answers came back with each status code.
+On a terminal, `fetch` says how the run went rather than printing the page: how
+many requests are done, and under that how many answers came back with each
+status code.
 
 ```text
 30/30  555 B  4s elapsed
@@ -262,6 +267,13 @@ The count is redrawn in place while the run goes and stays on screen when it
 ends. It is redrawn and coloured only when standard error is a terminal, and
 `NO_COLOR` turns the colour off; anywhere else it is printed once, plainly, at
 the end.
+
+The body is the output, so it still goes wherever standard output was pointed:
+`tls-forge fetch URL > page.html` and `tls-forge fetch URL | jq .` need no flag.
+It is only a terminal that does not get it unless `--body` asks, because a page
+is thousands of lines nobody reads as they go past. With `--output` the body
+goes to the file alone, and `--body` prints it as well. `-i` prints the status
+and headers whether or not the body is printed.
 
 Before the request, `fetch` asks a public service which address it comes out
 of, through the same proxy and with the same profile. No cookie is sent with the
@@ -376,6 +388,12 @@ Fetch a list concurrently and emit one JSON object per URL. Results go to
 stdout or `--output`; progress and summaries go to stderr, so the JSON Lines
 stream remains machine-readable.
 
+Each of those lines holds a whole page, so a terminal does not get them unless
+`--body` asks: there the run is followed through the same count `fetch` draws,
+with its row per status code, and through the summary at the end, which says
+when the lines were not printed. A pipe, a redirect and `--output` receive the
+lines as they always did.
+
 ```bash
 tls-forge batch https://example.com/ https://example.org/
 tls-forge batch --input example/urls.csv --concurrency 8
@@ -404,6 +422,7 @@ Usage: `tls-forge batch [flags] [urls...]`
 | `--retry <n>` | Ask again up to `n` more times when a URL's answer is not a 2xx, or does not come; default `3` |
 | `--repeat <n>` | Go through the whole list `n` times; default `1` |
 | `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
+| `--body` | Print the JSON lines on standard output even when that is a terminal |
 | `-v`, `--verbose` | Print one status line when each request finishes |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |

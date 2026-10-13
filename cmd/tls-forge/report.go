@@ -48,6 +48,9 @@ type summary struct {
 	Proxies   []proxyStat
 	Direct    bool
 	Output    string
+	// Unprinted says the JSON lines went nowhere: standard output was a
+	// terminal, and nobody asked for them there or named a file.
+	Unprinted bool
 	// Passes is how many times the list was gone through. Each pass is counted
 	// in Total, so this is what turns that number back into a list.
 	Passes int
@@ -186,6 +189,12 @@ func (s summary) table() string {
 	}
 	if s.Output != "" {
 		rows = append(rows, [2]string{"Written to", s.Output})
+	}
+	if s.Unprinted {
+		// Said, because a run that fetched a list and kept none of it looks, from
+		// the outside, exactly like one that kept it somewhere.
+		rows = append(rows, [2]string{"JSON lines",
+			"not printed on a terminal; -o FILE keeps them, --body shows them"})
 	}
 
 	var b strings.Builder

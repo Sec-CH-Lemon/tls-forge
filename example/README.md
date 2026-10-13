@@ -94,7 +94,8 @@ On Windows without Make, use
 ../bin/tls-forge batch -i urls.csv
 ```
 
-One JSON object per URL on standard output, and a summary on standard error:
+One JSON object per URL on standard output when that is a pipe or a file, and a
+summary on standard error:
 
 ```
   Ran          3 URLs in 84ms
@@ -290,12 +291,11 @@ Written `0600` either way: a warmed session is a credential.
 ## How a run went
 
 ```bash
-../bin/tls-forge fetch https://example.com/ > page.html
+../bin/tls-forge fetch https://example.com/
 ```
 
-While the page goes to standard output, standard error gets a count: how many
-requests are done, and under it how many answers came back with each status
-code.
+On a terminal that prints a count rather than the page: how many requests are
+done, and under it how many answers came back with each status code.
 
 ```
 1/1  577 B  0s elapsed
@@ -303,8 +303,18 @@ code.
 ```
 
 Green for a 2xx, yellow for a 3xx, red for anything else, and a last red row,
-`no response`, for a request that got no answer. `batch` draws the same rows
-under its own progress line.
+`no response`, for a request that got no answer. The page itself is the output,
+so it goes wherever standard output is pointed, and to the screen when asked:
+
+```bash
+../bin/tls-forge fetch https://example.com/ > page.html      # a file gets it
+../bin/tls-forge fetch https://example.com/ | head -3        # so does a pipe
+../bin/tls-forge fetch --body https://example.com/           # and so does the screen
+```
+
+`batch` does the same with its JSON lines: a terminal gets the count and the
+summary, a pipe or `-o` gets the lines, and `--body` prints them on the screen
+as well.
 
 ## Ask again, and ask several times
 

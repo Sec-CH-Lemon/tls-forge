@@ -26,14 +26,17 @@ import (
 // watchFlags are how a run shows itself while it goes. Fetch and batch share
 // them, so the same word turns the same thing on in each.
 type watchFlags struct {
+	body     *bool
 	verbose  *bool
 	progress *string
 	color    *string
 }
 
-// addWatchFlags registers them.
-func addWatchFlags(fs *pflag.FlagSet) watchFlags {
+// addWatchFlags registers them. What --body prints is the command's to say: a
+// page for fetch, a line of JSON for batch.
+func addWatchFlags(fs *pflag.FlagSet, body string) watchFlags {
 	return watchFlags{
+		body:    fs.Bool("body", false, body),
 		verbose: fs.BoolP("verbose", "v", false, "print a line for every request as it finishes"),
 		progress: fs.String("progress", "auto",
 			"live status on stderr: auto, always or never"),
@@ -60,6 +63,17 @@ func (f watchFlags) settle(errOut *printer) (live bool, paint palette, err error
 // onScreen reports whether a stream is one a person is reading as it is
 // written. A variable so a test can say that one is.
 var onScreen = isTerminal
+
+// wanted reports whether what a run fetched belongs on standard output.
+//
+// When it leads somewhere other than a screen, yes: a pipe or a redirect was
+// pointed at this command to receive exactly that. Unless the run was given a
+// file to keep it in, which is then where it goes instead. On a screen only
+// when asked: a page is thousands of lines nobody reads as they go past, and
+// what a person watching a run wants to know is whether it is working.
+func (f watchFlags) wanted(out io.Writer, kept bool) bool {
+	return *f.body || (!kept && !onScreen(out))
+}
 
 // noResponse is the status a request is counted under when it got none.
 const noResponse = 0

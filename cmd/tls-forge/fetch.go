@@ -299,13 +299,14 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	common := addClientFlags(fs)
 	method := fs.StringP("method", "X", "GET", "HTTP method")
 	data := fs.StringP("data", "d", "", "request body")
-	showHeaders := fs.BoolP("include", "i", false, "print the status and response headers first")
+	showHeaders := fs.BoolP("include", "i", false, "print the status and response headers")
 	output := fs.StringP("output", "o", "",
-		"write the body to a file instead of stdout; with --repeat, one numbered file per run")
+		"write the body to a file; with --repeat, one numbered file per run")
 	var headers headerFlag
 	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Referer: https://…\"")
 	again := addRunFlags(fs, 0)
-	watch := addWatchFlags(fs)
+	watch := addWatchFlags(fs,
+		"print the body on stdout even when that is a terminal, or when --output has it")
 	setUsage(fs, out, "usage: tls-forge fetch [flags] <url>")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -402,7 +403,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// One request at a time, so how many are running is never news.
 	counts.solo = true
 
-	show := showing{out: out, headers: *showHeaders, body: *output == ""}
+	show := showing{out: out, headers: *showHeaders, body: watch.wanted(out, *output != "")}
 	// Redrawn as the run goes when somebody is watching, unless pages are being
 	// printed on the same screen: then they are what is being watched, and a
 	// status redrawn between them would land on the end of each.

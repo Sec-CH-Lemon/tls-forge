@@ -71,6 +71,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **A terminal no longer gets the page.** `fetch` printed the body on standard
+  output wherever that led, and `batch` its JSON lines, each holding a whole
+  page. On a terminal both now show the count of answers instead, and print
+  the body or the lines there only with `--body`; the `batch` summary says when
+  the lines were not printed. A pipe, a redirect and `batch --output` receive
+  exactly what they did before, so `tls-forge fetch URL > page.html` and
+  `tls-forge batch … | jq` are unchanged.
 - `fetch --output FILE` no longer prints `wrote N bytes to FILE` on standard
   output. Where the body was saved is the last line of the count on standard
   error, `saved to FILE`, and `-v` names the file of every run.

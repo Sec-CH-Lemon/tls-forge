@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -165,7 +166,25 @@ func TestStatusIsRedrawnOverItselfAsItGrows(t *testing.T) {
 	}
 }
 
-func TestFetchOnAScreenPrintsThePageAndThenTheCount(t *testing.T) {
+func TestFetchOnAScreenShowsTheCountAndNotThePage(t *testing.T) {
+	asIfOnScreen(t)
+	server, asked := replying(t, 200)
+
+	code, stdout, stderr := exec(t, "fetch", server.URL)
+	if code != 0 || asked.Load() != 1 {
+		t.Fatalf("exit code = %d after %d requests\n%s", code, asked.Load(), stderr)
+	}
+	// A page is thousands of lines nobody reads as they go past.
+	if stdout != "" {
+		t.Errorf("the page was printed on a screen without being asked for: %q", stdout)
+	}
+	// What a person watching wants to know: how far, and how it went.
+	if got, want := after(stderr), "\n1/1  8 B  0s elapsed\n  200         1\n"; got != want {
+		t.Errorf("under the report stderr says %q, want %q", got, want)
+	}
+}
+
+func TestFetchPrintsThePageOnAScreenWhenAsked(t *testing.T) {
 	asIfOnScreen(t)
 	for _, tc := range []struct {
 		name, page, under string
@@ -185,7 +204,7 @@ func TestFetchOnAScreenPrintsThePageAndThenTheCount(t *testing.T) {
 			// --progress always as well: with pages going past on the same
 			// screen there is nothing to redraw a count between, so it is said
 			// once, when they have stopped.
-			code, stdout, stderr := exec(t, "fetch", "--progress", "always", server.URL)
+			code, stdout, stderr := exec(t, "fetch", "--body", "--progress", "always", server.URL)
 			if code != 0 {
 				t.Fatalf("exit code = %d\n%s", code, stderr)
 			}
@@ -196,6 +215,48 @@ func TestFetchOnAScreenPrintsThePageAndThenTheCount(t *testing.T) {
 				t.Errorf("under the report stderr says %q, want %q", got, tc.under)
 			}
 		})
+	}
+}
+
+func TestFetchKeepsThePageOutOfAPipeWhenItHasAFile(t *testing.T) {
+	// Standard output here is a buffer, which is to say a pipe. A page with a
+	// file to go to goes there; asked for on standard output too, it gets both.
+	server, _ := replying(t, 200)
+	path := filepath.Join(t.TempDir(), "page.html")
+
+	if _, stdout, _ := exec(t, "fetch", "-o", path, server.URL); stdout != "" {
+		t.Errorf("the page went down the pipe as well as into the file: %q", stdout)
+	}
+	code, stdout, stderr := exec(t, "fetch", "-o", path, "--body", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if stdout != "answer-2" {
+		t.Errorf("stdout = %q, want the page that was asked for there", stdout)
+	}
+	if kept, err := os.ReadFile(path); err != nil || string(kept) != "answer-2" {
+		t.Errorf("the file holds %q (%v)", kept, err)
+	}
+}
+
+func TestFetchPrintsTheHeadersAloneWhenThatIsAllThatWasAskedFor(t *testing.T) {
+	asIfOnScreen(t)
+	server, _ := replying(t, 200)
+
+	code, stdout, stderr := exec(t, "fetch", "-i", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if !strings.HasPrefix(stdout, "200 "+server.URL+"\ncontent-type: text/plain") ||
+		!strings.HasSuffix(stdout, "\n\n") {
+		t.Errorf("stdout is not the status and the headers, ended with a blank line: %q", stdout)
+	}
+	if strings.Contains(stdout, "answer-1") {
+		t.Errorf("the page was printed with the headers without being asked for: %q", stdout)
+	}
+	// The headers end their own last line, so the count starts on a fresh one.
+	if got := after(stderr); !strings.HasPrefix(got, "\n1/1  ") {
+		t.Errorf("under the report stderr says %q", got)
 	}
 }
 
@@ -317,6 +378,48 @@ func TestFetchRejectsWordsItDoesNotKnow(t *testing.T) {
 	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("%d requests were made by commands that were refused", got)
+	}
+}
+
+func TestBatchOnAScreenKeepsItsLinesToItself(t *testing.T) {
+	asIfOnScreen(t)
+	server := batchServer(t)
+
+	// Each line holds a whole page. On a screen the run is watched through its
+	// count and its summary, which are still there.
+	code, stdout, stderr := exec(t, "batch", server.URL+"/one", server.URL+"/two")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if stdout != "" {
+		t.Errorf("the JSON lines were printed on a screen without being asked for: %q", stdout)
+	}
+	if !strings.Contains(stderr, "Scraped      2") {
+		t.Errorf("the summary went with them:\n%s", stderr)
+	}
+	// And the summary says that they went nowhere, and the two ways to have them.
+	const unprinted = "  JSON lines   not printed on a terminal; -o FILE keeps them, --body shows them\n"
+	if !strings.Contains(stderr, unprinted) {
+		t.Errorf("the summary does not say the lines were not printed:\n%s", stderr)
+	}
+
+	// Asked for, they are printed as they always were.
+	_, stdout, stderr = exec(t, "batch", "--body", server.URL+"/one", server.URL+"/two")
+	if got := lines(t, stdout); len(got) != 2 || got[server.URL+"/one"].Body != "page /one" {
+		t.Errorf("--body printed %q", stdout)
+	}
+	if strings.Contains(stderr, "JSON lines") {
+		t.Errorf("lines that were printed were reported as not printed:\n%s", stderr)
+	}
+
+	// And a file gets them whatever standard output is.
+	path := filepath.Join(t.TempDir(), "results.jsonl")
+	if _, stdout, stderr = exec(t, "batch", "--output", path, server.URL+"/one"); stdout != "" ||
+		strings.Contains(stderr, "JSON lines") {
+		t.Errorf("with --output: stdout = %q, stderr = %q", stdout, after(stderr))
+	}
+	if kept, err := os.ReadFile(path); err != nil || len(lines(t, string(kept))) != 1 {
+		t.Errorf("the file holds %q (%v)", kept, err)
 	}
 }
 

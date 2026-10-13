@@ -199,7 +199,8 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	bodyDir := fs.StringP("body-dir", "d", "",
 		"write bodies to this directory and reference them instead of inlining")
 	again := addRunFlags(fs, 3)
-	watch := addWatchFlags(fs)
+	watch := addWatchFlags(fs,
+		"print the JSON lines on stdout even when that is a terminal")
 	report := fs.StringP("report", "R", "",
 		"write an HTML report here; a directory gets report-<date-time>.html")
 	reportIP := fs.Bool("report-ip", true,
@@ -270,15 +271,23 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 	}
 
+	// A file when one was named. Otherwise standard output, unless that is a
+	// screen and nobody asked for the lines there: each one holds a whole page,
+	// and a run being watched is watched for whether it is working.
 	sink := io.Writer(out)
 	var outputFile *os.File
-	if *output != "" {
+	unprinted := false
+	switch {
+	case *output != "":
 		file, err := os.Create(*output)
 		if err != nil {
 			return fmt.Errorf("batch: %w", err)
 		}
 		outputFile = file
 		sink = file
+	case !watch.wanted(out, false):
+		sink = io.Discard
+		unprinted = true
 	}
 
 	// Once for the run, before the pool: it builds a client per proxy and would
@@ -349,6 +358,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	elapsed := now().Sub(counts.started)
 	totals := summarise(records, elapsed, exits)
 	totals.Output = *output
+	totals.Unprinted = unprinted
 	totals.Passes = *again.repeat
 	trace.main().instant("summary", "run", traceArgs{
 		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
