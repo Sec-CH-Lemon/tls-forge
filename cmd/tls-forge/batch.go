@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -39,8 +40,11 @@ type result struct {
 	Started      time.Time `json:"started"`
 	Ended        time.Time `json:"ended"`
 	Millis       int64     `json:"ms"`
-	Attempts     int       `json:"attempts,omitempty"`
-	Error        string    `json:"error,omitempty"`
+	// Run is which pass over the list this was, under --repeat. Omitted when
+	// the list is gone through once, as it always used to be.
+	Run      int    `json:"run,omitempty"`
+	Attempts int    `json:"attempts,omitempty"`
+	Error    string `json:"error,omitempty"`
 }
 
 // MarshalJSON writes the record with the proxy password removed.
@@ -237,6 +241,13 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	if err := validate(jobs); err != nil {
 		return err
 	}
+	// Every pass over the list is counted before the first one is made, and a
+	// count that does not fit in an int is a mistake rather than a long run.
+	if *again.repeat > math.MaxInt/len(jobs) {
+		return fmt.Errorf("%w: --repeat %d is too many passes over %d URLs",
+			errUsage, *again.repeat, len(jobs))
+	}
+	requests := len(jobs) * *again.repeat
 
 	if *bodyDir != "" {
 		if err := os.MkdirAll(*bodyDir, 0o755); err != nil {
@@ -261,7 +272,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	clients := newPool(common, *common.proxy)
 	defer clients.close()
 
-	counts := newProgress(len(jobs))
+	counts := newProgress(requests)
 	var line *statusLine
 	if wantProgress {
 		// The status line owns the sink from here: it erases itself before
@@ -276,8 +287,11 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	// lock whether or not there is a status line to work around.
 	notes := &stderrLog{out: errOut, line: line, on: *verbose}
 
-	failures, runErr := runJobs(ctx, jobs, clients, *workers, sink, *again.retry, *bodyDir, counts,
-		&records, notes)
+	failures, runErr := runJobs(ctx, jobs, batch{
+		clients: clients, workers: *workers, sink: sink,
+		retry: *again.retry, repeat: *again.repeat, bodyDir: *bodyDir,
+		counts: counts, notes: notes,
+	}, &records)
 
 	// Closed here rather than deferred, so the final counts land before the
 	// summary below instead of after it.
@@ -317,6 +331,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	elapsed := now().Sub(counts.started)
 	totals := summarise(records, elapsed, exits)
 	totals.Output = *output
+	totals.Passes = *again.repeat
 	if *report != "" {
 		path := reportPath(*report, now())
 		if err := writeReport(path, records, totals, exits); err != nil {
@@ -336,7 +351,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	if failures > 0 {
 		// Non-zero exit: a batch that half worked is not a batch that worked,
 		// and a shell loop needs to be able to tell.
-		return fmt.Errorf("batch: %d of %d URLs failed", failures, len(jobs))
+		return fmt.Errorf("batch: %d of %d %s failed", failures, requests, totals.things())
 	}
 	return nil
 }
@@ -509,30 +524,43 @@ func (p *pool) close() {
 	}
 }
 
+// batch is what a list is fetched with: everything runJobs needs that is not
+// the list itself.
+type batch struct {
+	clients *pool
+	workers int
+	sink    io.Writer
+	// retry is how many more times a URL is asked for when it does not come
+	// back as a page, and repeat how many times the whole list is gone through.
+	retry   int
+	repeat  int
+	bodyDir string
+	counts  *progress
+	notes   *stderrLog
+}
+
 // runJobs fetches the list and returns how many entries failed. A failure is
 // reported on its line rather than returned, so one dead host does not end the
 // run.
-func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
-	sink io.Writer, retry int, bodyDir string, counts *progress, records *[]result,
-	notes *stderrLog,
+func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
 ) (failures int, runErr error) {
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	queue := make(chan job)
 	var writeMu sync.Mutex
-	encoder := json.NewEncoder(sink)
+	encoder := json.NewEncoder(b.sink)
 	var wg sync.WaitGroup
 
-	for range workers {
+	for range b.workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for j := range queue {
-				counts.begin()
-				r := fetchOne(runCtx, clients, j, retry, bodyDir)
-				counts.finish(r)
-				notes.say(verboseLine(r))
+				b.counts.begin()
+				r := b.fetchOne(runCtx, j)
+				b.counts.finish(r)
+				b.notes.say(verboseLine(r))
 				writeMu.Lock()
 				if r.Error != "" {
 					failures++
@@ -549,19 +577,7 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 		}()
 	}
 
-	occurrences := make(map[string]int)
-	for _, j := range jobs {
-		occurrences[j.URL]++
-		j.occurrence = occurrences[j.URL]
-		select {
-		case <-runCtx.Done():
-			// Stop handing out work. Requests already in flight receive the same
-			// cancellation through fetchOne.
-		case queue <- j:
-			continue
-		}
-		break
-	}
+	b.dispatch(runCtx, jobs, queue)
 	close(queue)
 	wg.Wait()
 	if runErr != nil {
@@ -571,6 +587,30 @@ func runJobs(ctx context.Context, jobs []job, clients *pool, workers int,
 		return failures, fmt.Errorf("batch: %w", err)
 	}
 	return failures, nil
+}
+
+// dispatch hands the list to the workers, once for every pass asked for.
+//
+// The whole list and then the whole list again, rather than each URL several
+// times in a row: a repeat is the run made again, and several workers handed
+// the same URL at once would be asking a different question, about what a
+// server does under a burst.
+func (b batch) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
+	occurrences := make(map[string]int)
+	for pass := 1; pass <= b.repeat; pass++ {
+		for _, j := range jobs {
+			occurrences[j.URL]++
+			j.occurrence = occurrences[j.URL]
+			j.run = pass
+			select {
+			case <-ctx.Done():
+				// Stop handing out work. Requests already in flight receive the same
+				// cancellation through fetchOne.
+				return
+			case queue <- j:
+			}
+		}
+	}
 }
 
 // exitLookupLimit bounds how many proxies are asked about.
@@ -612,19 +652,24 @@ func lookupExits(clients *pool, records []result) (map[string]egress, int) {
 	return exits, skipped
 }
 
-func fetchOne(ctx context.Context, clients *pool, j job, retry int, bodyDir string) result {
+func (b batch) fetchOne(ctx context.Context, j job) result {
 	started := now()
-	proxy := clients.resolveProxy(j.Proxy)
+	proxy := b.clients.resolveProxy(j.Proxy)
 	r := result{URL: j.URL, Proxy: proxy, Started: started}
+	if b.repeat > 1 {
+		// Only when there is more than one, so a list gone through once keeps
+		// the shape its lines have always had.
+		r.Run = j.run
+	}
 
-	client, err := clients.get(proxy)
+	client, err := b.clients.get(proxy)
 	if err != nil {
 		r.setError(err)
 		r.finish(started)
 		return r
 	}
 
-	res, attempts, err := retrier{retries: retry}.do(ctx, client, tlsforge.Request{URL: j.URL}, proxy)
+	res, attempts, err := retrier{retries: b.retry}.do(ctx, client, tlsforge.Request{URL: j.URL}, proxy)
 	r.Attempts = attempts
 	r.finish(started)
 
@@ -636,7 +681,7 @@ func fetchOne(ctx context.Context, clients *pool, j job, retry int, bodyDir stri
 	r.FinalURL = res.URL
 	r.Bytes = len(res.Body)
 
-	if bodyDir == "" {
+	if b.bodyDir == "" {
 		if utf8.Valid(res.Body) {
 			r.Body = string(res.Body)
 		} else {
@@ -647,13 +692,15 @@ func fetchOne(ctx context.Context, clients *pool, j job, retry int, bodyDir stri
 	}
 	// Named from the URL so a re-run overwrites the same file. A repeated URL in
 	// one input gets a stable occurrence suffix: concurrent workers must not
-	// truncate each other's body or make two records point at one response.
+	// truncate each other's body or make two records point at one response. A
+	// second pass over the list counts as a second occurrence, which is how each
+	// run of a repeat keeps its own page.
 	sum := sha256.Sum256([]byte(j.URL))
 	name := hex.EncodeToString(sum[:8])
 	if j.occurrence > 1 {
 		name += "-" + strconv.Itoa(j.occurrence)
 	}
-	path := filepath.Join(bodyDir, name+".html")
+	path := filepath.Join(b.bodyDir, name+".html")
 	if err := os.WriteFile(path, res.Body, 0o644); err != nil {
 		r.setError(err)
 		return r

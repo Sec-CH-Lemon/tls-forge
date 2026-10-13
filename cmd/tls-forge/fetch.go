@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -298,7 +299,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	method := fs.StringP("method", "X", "GET", "HTTP method")
 	data := fs.StringP("data", "d", "", "request body")
 	showHeaders := fs.BoolP("include", "i", false, "print the status and response headers first")
-	output := fs.StringP("output", "o", "", "write the body to a file instead of stdout")
+	output := fs.StringP("output", "o", "",
+		"write the body to a file instead of stdout; with --repeat, one numbered file per run")
 	var headers headerFlag
 	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Referer: https://…\"")
 	again := addRunFlags(fs, 0)
@@ -356,20 +358,60 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 	}()
 
-	// A try that is made again is said, because otherwise the only sign of it is
-	// a fetch that took longer than its timeout.
-	policy := retrier{retries: *again.retry, note: func(text string) { errOut.println(text) }}
-	res, _, err := policy.do(ctx, client, tlsforge.Request{
+	request := tlsforge.Request{
 		Method: *method,
 		URL:    fs.Arg(0),
 		Header: tlsforge.Header(headers),
 		Body:   []byte(*data),
-	}, *common.proxy)
-	if err != nil {
-		return err
 	}
+	// A try that is made again is said, because otherwise the only sign of it is
+	// a fetch that took longer than its timeout.
+	policy := retrier{retries: *again.retry, note: func(text string) { errOut.println(text) }}
 
-	if *showHeaders {
+	// Through the one client, so a second run finds the connection the first
+	// one opened and the cookies it was given: the request made again, the way
+	// reloading a page makes it again.
+	runs, unanswered := *again.repeat, 0
+	for run := 1; run <= runs; run++ {
+		started := now()
+		res, attempts, err := policy.do(ctx, client, request, *common.proxy)
+		if runs > 1 {
+			errOut.println(runLine(run, runs, res, err, attempts, now().Sub(started), *common.proxy))
+		}
+		if err != nil {
+			// One run is the whole of what was asked for, and its failure is the
+			// command's. One of several is a line in what the others are saying.
+			if runs == 1 {
+				return err
+			}
+			unanswered++
+			if ctx.Err() != nil {
+				break
+			}
+			continue
+		}
+
+		path := *output
+		if path != "" && runs > 1 {
+			path = numbered(path, run)
+		}
+		if err := deliver(out, res, *showHeaders, path); err != nil {
+			return err
+		}
+	}
+	if unanswered > 0 {
+		// Non-zero, as batch is for the same reason: a request made ten times
+		// that came back nine is not one that worked.
+		return fmt.Errorf("fetch: %d of %d runs got no response", unanswered, runs)
+	}
+	return nil
+}
+
+// deliver puts one response where it was asked for: the status and headers
+// first when they were wanted, then the body to the file named or to standard
+// output.
+func deliver(out *printer, res *tlsforge.Response, showHeaders bool, path string) error {
+	if showHeaders {
 		out.printf("%d %s\n", res.Status, res.URL)
 		names := make([]string, 0, len(res.Header))
 		for name := range res.Header {
@@ -382,15 +424,33 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		out.println()
 	}
 
-	if *output != "" {
-		if err := os.WriteFile(*output, res.Body, 0o644); err != nil {
+	if path != "" {
+		if err := os.WriteFile(path, res.Body, 0o644); err != nil {
 			return err
 		}
-		out.printf("wrote %d bytes to %s\n", len(res.Body), *output)
+		out.printf("wrote %d bytes to %s\n", len(res.Body), path)
 		return nil
 	}
-	_, err = out.Write(res.Body)
+	_, err := out.Write(res.Body)
 	return err
+}
+
+// runLine is one run of several, as fetch says it on standard error.
+//
+// The columns batch prints for a URL, so that ten runs of one page and ten
+// pages read the same way. Said only when there are several: one run has
+// nothing to be told apart from.
+func runLine(run, runs int, res *tlsforge.Response, err error, attempts int,
+	took time.Duration, proxy string,
+) string {
+	r := result{Attempts: attempts, Millis: took.Milliseconds()}
+	if err != nil {
+		r.Error = redactError(err, proxy)
+	} else {
+		r.Status, r.Bytes = res.Status, len(res.Body)
+	}
+	width := len(strconv.Itoa(runs))
+	return strings.TrimRight(fmt.Sprintf("  %*d/%d%s", width, run, runs, verboseLine(r)), " ")
 }
 
 // describeExit is the address as fetch's report says it, or why there is none.

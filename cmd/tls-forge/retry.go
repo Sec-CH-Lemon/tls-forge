@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -14,13 +17,15 @@ import (
 
 // How hard a run tries.
 //
-// Asking again because the answer was wrong is a retry, and that is the word
-// for it in fetch and in batch alike. Batch used to call it a repeat, which is
-// the word for asking again when once was never the plan.
+// Two different things. Asking again because the answer was wrong is a retry;
+// asking again because once was never the plan is a repeat. Batch used to call
+// the first by the second's name. Fetch and batch now share both, and the words
+// mean the same in each.
 
 // runFlags are the flags fetch and batch share beyond the client's own.
 type runFlags struct {
-	retry *int
+	retry  *int
+	repeat *int
 }
 
 // addRunFlags registers them. The number of retries a command makes when
@@ -30,6 +35,7 @@ func addRunFlags(fs *pflag.FlagSet, retries int) runFlags {
 	return runFlags{
 		retry: fs.Int("retry", retries,
 			"times to ask again when the answer is not a 2xx, or does not come"),
+		repeat: fs.Int("repeat", 1, "times to make each request"),
 	}
 }
 
@@ -40,6 +46,9 @@ func (f runFlags) check() error {
 	// counts tries stops when the count passes this, and nothing passes that.
 	if *f.retry < 0 || *f.retry == math.MaxInt {
 		return fmt.Errorf("%w: --retry must be non-negative and bounded", errUsage)
+	}
+	if *f.repeat < 1 {
+		return fmt.Errorf("%w: --repeat must be at least 1", errUsage)
 	}
 	return nil
 }
@@ -128,4 +137,22 @@ func pause(ctx context.Context, d time.Duration) bool {
 	case <-timer.C:
 		return true
 	}
+}
+
+// numbered is the file one run of several writes its page to: the name given,
+// with the run's number in front of the extension.
+//
+// In front of it rather than after, so that `page-2.html` still opens as what
+// it is. Every run is numbered, the first included: a directory holding
+// `page.html` beside `page-2.html` reads as a page and a stray copy.
+//
+// A name that is already something other than a file is left alone. Writing
+// to /dev/null is how a body is thrown away, and /dev/null-1 is neither that
+// nor anywhere a file can be made.
+func numbered(path string, run int) string {
+	if info, err := os.Stat(path); err == nil && !info.Mode().IsRegular() {
+		return path
+	}
+	ext := filepath.Ext(path)
+	return strings.TrimSuffix(path, ext) + "-" + strconv.Itoa(run) + ext
 }

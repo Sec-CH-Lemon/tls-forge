@@ -24,6 +24,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   on standard error with its reason. The default is none, the last answer is
   printed whatever its status, and the exit code still depends only on whether
   a response arrived.
+- `--repeat N`, for `fetch` and `batch`, makes every request `N` times.
+  `fetch -o page.html --repeat 3` writes `page-1.html`, `page-2.html` and
+  `page-3.html`, prints a line per run on standard error, and exits non-zero if
+  any run got no response; without `-o` the bodies follow one another on
+  standard output. `batch` goes through the whole list once per pass, adds the
+  pass to each JSON line as `run`, and gives each pass its own `--body-dir`
+  file. Lines of a single pass are unchanged.
 - `Request.Trace` in the Go package: optional hooks for the name lookup, each
   dial, the connection and what its handshake negotiated, the header fields in
   wire order, the first response byte and every redirect followed.
@@ -48,9 +55,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
-- **`batch --repeat` is now `--retry`.** The flag that asks again for a URL
-  that did not load keeps its default of three and takes the name the same
-  thing has in `fetch`. `--repeat` is no longer accepted.
+- **`batch --repeat` is now `--retry`, and `--repeat` means something else.**
+  The flag that asks again for a URL that did not load is `--retry`, still
+  three by default. `--repeat N` now goes through the whole list `N` times, so
+  a command that passed `--repeat 5` to get five further tries makes five times
+  the requests instead and has to be changed to `--retry 5`. `--repeat 0`,
+  which used to turn retries off, is rejected as a usage error.
 - `batch` asks again for an answer that is not a 2xx, and not only for a
   request that got no answer. A list that expects some 404s spends up to three
   further requests on each of them unless it passes `--retry 0`. Rows that

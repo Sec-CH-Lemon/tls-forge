@@ -285,7 +285,7 @@ is **added** to what the file already had and one file builds up over time. In
 
 Written `0600` either way: a warmed session is a credential.
 
-## Ask again
+## Ask again, and ask several times
 
 ```bash
 ../bin/tls-forge fetch --retry 3 https://example.com/
@@ -302,6 +302,36 @@ so each time it does:
 `fetch` makes no further tries unless told to. `batch` makes three, as it
 always has for a URL that did not load, and now for one that answered with
 something other than the page as well; `--retry 0` turns that off.
+
+```bash
+../bin/tls-forge fetch --repeat 3 -o page.html https://example.com/
+```
+
+`--repeat` is the other thing: the same request, made several times on purpose.
+Each run keeps its own page, numbered in front of the extension:
+
+```
+  1/3  200      577 B     57ms
+wrote 577 bytes to page-1.html
+  2/3  200      577 B     14ms
+wrote 577 bytes to page-2.html
+  3/3  200      577 B     15ms
+wrote 577 bytes to page-3.html
+```
+
+The first run paid for a lookup, a dial and a handshake; the two after it found
+the connection open. In `batch`, `--repeat` goes through the whole list that
+many times, and every line of the output says which pass it was:
+
+```bash
+../bin/tls-forge batch -u https://example.com/ --repeat 2 -d bodies/ \
+  | jq -c '{url, status, file, run, attempts}'
+```
+
+```json
+{"url":"https://example.com/","status":200,"file":"bodies/0f115db062b7c0dd.html","run":1,"attempts":1}
+{"url":"https://example.com/","status":200,"file":"bodies/0f115db062b7c0dd-2.html","run":2,"attempts":1}
+```
 
 ## Everything at once
 

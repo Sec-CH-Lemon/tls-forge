@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // replying answers each request with the next status given, and with the last
@@ -131,6 +136,8 @@ func TestRunFlagErrorsAreUsageErrors(t *testing.T) {
 	for _, args := range [][]string{
 		{"fetch", "--retry", "-1", server.URL},
 		{"fetch", "--retry", fmt.Sprint(math.MaxInt), server.URL},
+		{"fetch", "--repeat", "0", server.URL},
+		{"fetch", "--repeat", "-3", server.URL},
 	} {
 		if code, _, _ := exec(t, args...); code != 2 {
 			t.Errorf("%v: exit code = %d, want 2", args, code)
@@ -175,5 +182,246 @@ func TestBatchKeepsTheAnswerItGotWhenToldNotToRetry(t *testing.T) {
 	}
 	if got := asked.Load(); got != 1 {
 		t.Errorf("the server was asked %d times, want once", got)
+	}
+}
+
+func TestFetchRepeatWritesANumberedFilePerRun(t *testing.T) {
+	server, _ := replying(t, 200)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "page.html")
+
+	code, stdout, stderr := exec(t, "fetch", "--repeat", "3", "-o", path, server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	for run := 1; run <= 3; run++ {
+		name := filepath.Join(dir, fmt.Sprintf("page-%d.html", run))
+		body, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatalf("run %d wrote no file: %v", run, err)
+		}
+		if want := fmt.Sprintf("answer-%d", run); string(body) != want {
+			t.Errorf("%s holds %q, want %q", name, body, want)
+		}
+		if !strings.Contains(stdout, "to "+name) {
+			t.Errorf("stdout does not say where run %d went:\n%s", run, stdout)
+		}
+		if want := fmt.Sprintf("  %d/3  200", run); !strings.Contains(stderr, want) {
+			t.Errorf("stderr has no line for run %d (%q):\n%s", run, want, stderr)
+		}
+	}
+	// Every run is numbered, so the name given is not also a file.
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Errorf("%s exists as well as its numbered runs", path)
+	}
+}
+
+func TestFetchWithoutRepeatKeepsTheNameItWasGiven(t *testing.T) {
+	server, _ := replying(t, 200)
+	path := filepath.Join(t.TempDir(), "page.html")
+
+	code, _, stderr := exec(t, "fetch", "-o", path, server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if body, err := os.ReadFile(path); err != nil || string(body) != "answer-1" {
+		t.Errorf("%s holds %q (%v)", path, body, err)
+	}
+	// One run has nothing to be told apart from, so it gets no line either.
+	if strings.Contains(stderr, "1/1") {
+		t.Errorf("a single run was counted out:\n%s", stderr)
+	}
+}
+
+func TestFetchRepeatWritesEveryBodyToStandardOutput(t *testing.T) {
+	server, asked := replying(t, 200)
+
+	code, stdout, stderr := exec(t, "fetch", "--repeat", "2", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if stdout != "answer-1answer-2" {
+		t.Errorf("stdout = %q, want both bodies in order", stdout)
+	}
+	if got := asked.Load(); got != 2 {
+		t.Errorf("the server was asked %d times, want 2", got)
+	}
+}
+
+func TestFetchRepeatGoesOnPastARunThatGotNoAnswer(t *testing.T) {
+	// Nine runs out of ten is a finding, not a reason to stop at the second.
+	server, _ := replying(t, 200, 0, 200)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "page.html")
+
+	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--timeout", "10s", "-o", path, server.URL)
+	if code != 1 {
+		t.Errorf("exit code = %d, want 1: one run got nothing", code)
+	}
+	if !strings.Contains(stderr, "fetch: 1 of 3 runs got no response") {
+		t.Errorf("the failed run was not counted:\n%s", stderr)
+	}
+	if !strings.Contains(stderr, "  2/3  ---") {
+		t.Errorf("the failed run has no line of its own:\n%s", stderr)
+	}
+	for run, wanted := range map[int]bool{1: true, 2: false, 3: true} {
+		_, err := os.Stat(filepath.Join(dir, fmt.Sprintf("page-%d.html", run)))
+		if exists := err == nil; exists != wanted {
+			t.Errorf("run %d: file exists = %v, want %v", run, exists, wanted)
+		}
+	}
+}
+
+func TestFetchRepeatStopsWhenInterrupted(t *testing.T) {
+	// The first run answers; the second never does. Interrupted there, the run
+	// ends rather than making the three that were left.
+	var asked atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if asked.Add(1) == 1 {
+			_, _ = w.Write([]byte("page"))
+			return
+		}
+		<-r.Context().Done()
+	}))
+	t.Cleanup(server.Close)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	go func() {
+		done <- run(ctx, []string{"fetch", "--repeat", "5", server.URL}, &strings.Builder{}, &strings.Builder{})
+	}()
+
+	for deadline := time.Now().Add(10 * time.Second); asked.Load() < 2; {
+		if time.Now().After(deadline) {
+			t.Fatal("the second run was never made")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	cancel()
+	select {
+	case code := <-done:
+		if code == 0 {
+			t.Error("an interrupted fetch reported success")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the run went on after being interrupted")
+	}
+	if got := asked.Load(); got != 2 {
+		t.Errorf("the server was asked %d times, want the run to stop at 2", got)
+	}
+}
+
+func TestFetchRepeatStopsWhenItCannotWrite(t *testing.T) {
+	server, asked := replying(t, 200)
+	path := filepath.Join(t.TempDir(), "no-such-directory", "page.html")
+
+	if code, _, _ := exec(t, "fetch", "--repeat", "3", "-o", path, server.URL); code != 1 {
+		t.Errorf("exit code = %d, want 1", code)
+	}
+	// Nowhere to put the first page is nowhere to put the next two.
+	if got := asked.Load(); got != 1 {
+		t.Errorf("the server was asked %d times after the first write failed", got)
+	}
+}
+
+func TestFetchRepeatIntoADeviceDoesNotNumberIt(t *testing.T) {
+	server, asked := replying(t, 200)
+
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", os.DevNull, server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if got := asked.Load(); got != 2 {
+		t.Errorf("the server was asked %d times, want 2", got)
+	}
+}
+
+func TestNumbered(t *testing.T) {
+	for _, tc := range []struct {
+		path string
+		run  int
+		want string
+	}{
+		{"page.html", 2, "page-2.html"},
+		{"page", 1, "page-1"},
+		// Only the last extension is one: this is a gzip of something.
+		{"archive.tar.gz", 3, "archive.tar-3.gz"},
+		// A dot in a directory's name is not the file's extension.
+		{filepath.Join("runs.v2", "page"), 4, filepath.Join("runs.v2", "page-4")},
+		{filepath.Join("out", "page.html"), 10, filepath.Join("out", "page-10.html")},
+	} {
+		if got := numbered(tc.path, tc.run); got != tc.want {
+			t.Errorf("numbered(%q, %d) = %q, want %q", tc.path, tc.run, got, tc.want)
+		}
+	}
+	// Something that is already there and is not a file is used as it is.
+	if got := numbered(os.DevNull, 2); got != os.DevNull {
+		t.Errorf("numbered(%q) = %q, want it left alone", os.DevNull, got)
+	}
+}
+
+func TestBatchRepeatGoesThroughTheListAgain(t *testing.T) {
+	server := batchServer(t)
+	bodyDir := filepath.Join(t.TempDir(), "bodies")
+
+	code, stdout, stderr := exec(t, "batch", "--repeat", "3", "--concurrency", "2",
+		"--body-dir", bodyDir, server.URL+"/one", server.URL+"/two")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+
+	// A line per pass per URL, each saying which pass it was and each with a
+	// page of its own.
+	seen := map[string]bool{}
+	files := map[string]bool{}
+	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+		var r result
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Fatalf("decoding %q: %v", line, err)
+		}
+		seen[fmt.Sprintf("%s#%d", strings.TrimPrefix(r.URL, server.URL), r.Run)] = true
+		if _, err := os.Stat(r.File); err != nil {
+			t.Errorf("%s run %d: no body file: %v", r.URL, r.Run, err)
+		}
+		files[r.File] = true
+	}
+	for _, want := range []string{"/one#1", "/one#2", "/one#3", "/two#1", "/two#2", "/two#3"} {
+		if !seen[want] {
+			t.Errorf("no result for %s among %v", want, seen)
+		}
+	}
+	if len(seen) != 6 || len(files) != 6 {
+		t.Errorf("%d results in %d files, want 6 in 6", len(seen), len(files))
+	}
+	if want := "Ran          6 requests (3 passes over 2 URLs) in"; !strings.Contains(stderr, want) {
+		t.Errorf("the summary does not say what was run (%q):\n%s", want, stderr)
+	}
+}
+
+func TestBatchWithoutRepeatKeepsItsOldShape(t *testing.T) {
+	// A list gone through once says nothing about passes: its lines are what
+	// they have always been, for whatever is already reading them.
+	server := batchServer(t)
+	code, stdout, stderr := exec(t, "batch", server.URL+"/one")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if strings.Contains(stdout, `"run"`) {
+		t.Errorf("a single pass was numbered: %s", stdout)
+	}
+	if want := "Ran          1 URLs in"; !strings.Contains(stderr, want) {
+		t.Errorf("the summary changed its wording (%q):\n%s", want, stderr)
+	}
+}
+
+func TestBatchRepeatCountsRequestsWhenItFails(t *testing.T) {
+	code, _, stderr := exec(t, "batch", "--repeat", "2", "--retry", "0", "--timeout", "3s",
+		"https://127.0.0.1:1/gone")
+	if code != 1 {
+		t.Errorf("exit code = %d, want 1", code)
+	}
+	// Two requests failed and there is one URL, so URLs is the wrong word.
+	if !strings.Contains(stderr, "batch: 2 of 2 requests failed") {
+		t.Errorf("stderr = %q", stderr)
 	}
 }

@@ -48,6 +48,18 @@ type summary struct {
 	Proxies   []proxyStat
 	Direct    bool
 	Output    string
+	// Passes is how many times the list was gone through. Each pass is counted
+	// in Total, so this is what turns that number back into a list.
+	Passes int
+}
+
+// things is what Total counts: URLs when the list was gone through once, and
+// requests when it was not, because then a URL is no longer one line.
+func (s summary) things() string {
+	if s.Passes > 1 {
+		return "requests"
+	}
+	return "URLs"
 }
 
 // Failed means nothing came back at all; Warned that something did and it was
@@ -145,10 +157,20 @@ func percent(part, total int) string {
 	return fmt.Sprintf("%.1f%%", float64(part)*100/float64(total))
 }
 
+// ran is the first line of the table: how much was asked for and how long it
+// took.
+func (s summary) ran() string {
+	if s.Passes > 1 {
+		return fmt.Sprintf("%d requests (%d passes over %d URLs) in %s",
+			s.Total, s.Passes, s.Total/s.Passes, preciseDuration(s.Elapsed))
+	}
+	return fmt.Sprintf("%d URLs in %s", s.Total, preciseDuration(s.Elapsed))
+}
+
 // table is the run as a block of aligned lines.
 func (s summary) table() string {
 	rows := [][2]string{
-		{"Ran", fmt.Sprintf("%d URLs in %s", s.Total, preciseDuration(s.Elapsed))},
+		{"Ran", s.ran()},
 		{"Scraped", fmt.Sprintf("%d  (%s)", s.Succeeded, percent(s.Succeeded, s.Total))},
 		{"Not 2xx", fmt.Sprintf("%d  (%s)", s.Warned, percent(s.Warned, s.Total))},
 		{"No response", fmt.Sprintf("%d  (%s)", s.Failed, percent(s.Failed, s.Total))},

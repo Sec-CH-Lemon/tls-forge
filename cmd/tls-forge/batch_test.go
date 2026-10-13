@@ -419,6 +419,9 @@ func TestBatchArgumentErrors(t *testing.T) {
 		{"batch", "--concurrency", "0", server.URL},
 		{"batch", "--retry", "-1", server.URL},
 		{"batch", "--retry", fmt.Sprint(math.MaxInt), server.URL},
+		{"batch", "--repeat", "0", server.URL},
+		// More passes than there are requests to count them in.
+		{"batch", "--repeat", fmt.Sprint(math.MaxInt), server.URL, server.URL},
 		{"batch", "--nonsense"},
 	} {
 		if code, _, _ := exec(t, args...); code != 2 {
@@ -750,8 +753,10 @@ func TestBatchKeepsNoBodiesInMemory(t *testing.T) {
 	var sink strings.Builder
 	var records []result
 	jobs := []job{{URL: server.URL + "/one"}, {URL: server.URL + "/two"}}
-	failed, err := runJobs(context.Background(), jobs, clients, 2, &sink, 1, "",
-		newProgress(len(jobs)), &records, &stderrLog{})
+	failed, err := runJobs(context.Background(), jobs, batch{
+		clients: clients, workers: 2, sink: &sink, retry: 1, repeat: 1,
+		counts: newProgress(len(jobs)), notes: &stderrLog{},
+	}, &records)
 	if err != nil {
 		t.Fatalf("runJobs: %v", err)
 	}
@@ -797,8 +802,10 @@ func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
 		jobs[i] = job{URL: fmt.Sprintf("%s/%d", server.URL, i)}
 	}
 	var records []result
-	_, err := runJobs(context.Background(), jobs, clients, 1,
-		failingWriter{}, 0, "", newProgress(len(jobs)), &records, &stderrLog{})
+	_, err := runJobs(context.Background(), jobs, batch{
+		clients: clients, workers: 1, sink: failingWriter{}, repeat: 1,
+		counts: newProgress(len(jobs)), notes: &stderrLog{},
+	}, &records)
 	if err == nil || !strings.Contains(err.Error(), "writing result") {
 		t.Fatalf("error = %v, want output write failure", err)
 	}

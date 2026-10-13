@@ -26,6 +26,8 @@ type job struct {
 	URL        string `json:"url"`
 	Proxy      string `json:"proxy,omitempty"`
 	occurrence int
+	// run is which pass over the list this is, from one.
+	run int
 }
 
 // Formats a list can arrive in. `auto` reads the file's extension and falls
