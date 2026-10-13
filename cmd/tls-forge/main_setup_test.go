@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -20,6 +22,11 @@ import (
 // this the suite would answer differently on a machine that has run
 // `capture --install` — measured, when a leftover profile there turned a
 // warning assertion in another file red.
+//
+// And it answers for the address services. Every fetch asks where it comes out,
+// so without a stand-in the suite would put that question to services on the
+// internet once per test, from wherever the tests happen to run. Over plain
+// HTTP, so a fetch that does not pass --insecure is answered as well.
 func TestMain(m *testing.M) {
 	repeatWait = func(int) time.Duration { return 0 }
 
@@ -30,7 +37,13 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("TLSFORGE_PROFILES", dir)
 	profile.Default.SetDir(dir)
 
+	service := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"ip":"203.0.113.7","country":"PL"}`))
+	}))
+	ipServices = []addressService{{URL: service.URL, read: readJSON}}
+
 	code := m.Run()
+	service.Close()
 	_ = os.RemoveAll(dir)
 	os.Exit(code)
 }

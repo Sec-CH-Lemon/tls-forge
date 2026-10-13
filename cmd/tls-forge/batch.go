@@ -104,26 +104,31 @@ func redactProxy(proxy string) string {
 }
 
 // setError records a failure with the proxy password taken out of its text.
+func (r *result) setError(err error) {
+	r.Error = redactError(err, r.Proxy)
+}
+
+// redactError is what an error says, with the proxy password taken out of it.
 //
 // Needed on top of redactProxy because the proxy URL turns up inside error
 // messages as well as in the proxy field: url.Parse quotes back the whole
 // string it could not parse, so a mistyped proxy writes its own password into
 // the output that was just cleaned of it.
-func (r *result) setError(err error) {
+func redactError(err error, proxy string) string {
 	text := err.Error()
-	safe := redactProxy(r.Proxy)
-	if safe != r.Proxy {
-		text = strings.ReplaceAll(text, r.Proxy, safe)
+	safe := redactProxy(proxy)
+	if safe != proxy {
+		text = strings.ReplaceAll(text, proxy, safe)
 		// The message may quote a normalised form rather than the string as
 		// given, so the credentials are replaced in that shape too.
-		if u, parseErr := url.Parse(r.Proxy); parseErr == nil && u.User != nil {
+		if u, parseErr := url.Parse(proxy); parseErr == nil && u.User != nil {
 			if _, ok := u.User.Password(); ok {
 				text = strings.ReplaceAll(text, u.User.String()+"@",
 					url.User(u.User.Username()).String()+"@")
 			}
 		}
 	}
-	r.Error = text
+	return text
 }
 
 // batchInput is os.Stdin, named so a test can supply a list.
@@ -197,7 +202,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	report := fs.StringP("report", "R", "",
 		"write an HTML report here; a directory gets report-<date-time>.html")
 	reportIP := fs.Bool("report-ip", true,
-		"with --report, ask "+ipService+" which address each proxy comes out of")
+		"with --report, ask "+askedOf()+" which address each proxy comes out of")
 	setUsage(fs, out, "usage: tls-forge batch [flags] [urls...]")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -293,7 +298,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	// asking once per URL would be a request to a third party for every page.
 	exits := map[string]egress{}
 	if *report != "" && *reportIP {
-		errOut.printf("asking %s which address each proxy comes out of…\n", ipService)
+		errOut.printf("asking %s which address each proxy comes out of…\n", askedOf())
 		var skipped int
 		exits, skipped = lookupExits(clients, records)
 		if skipped > 0 {
@@ -634,13 +639,11 @@ func lookupExits(clients *pool, records []result) (map[string]egress, int) {
 			skipped++
 			continue
 		}
-		client, err := clients.get(r.Proxy)
-		if err != nil {
-			continue
-		}
 		// A proxy that cannot answer for itself is a fact about that proxy, and
 		// the report says "not looked up" rather than failing the run over it.
-		if found, err := lookupExit(client); err == nil {
+		// Asked with the run's flags rather than through its clients: those hold
+		// the session, and an address service is not who the session is for.
+		if found, err := lookupExit(context.Background(), clients.flags, r.Proxy); err == nil {
 			exits[r.Proxy] = found
 		}
 	}

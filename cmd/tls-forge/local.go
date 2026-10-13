@@ -25,10 +25,20 @@ const localName = "local"
 // browser on an earlier day, and the one on this machine is the browser a
 // server would compare against.
 func (f clientFlags) wear(errOut *printer) {
+	f.wearOpen(errOut).close()
+}
+
+// wearOpen is wear with the report left open, for a command that has a line of
+// its own to end it with.
+//
+// Left open rather than printed late. What fetch adds needs a client to ask,
+// and a run that fails before it has one should still have said what it was
+// wearing.
+func (f clientFlags) wearOpen(errOut *printer) *identityReport {
 	if !f.chose("profile") {
 		*f.profile = defaultProfileName()
 	}
-	report(errOut, *f.profile)
+	return openReport(errOut, *f.profile)
 }
 
 // defaultProfileName is what a run wears when nobody names a profile: the
@@ -45,7 +55,18 @@ func defaultProfileName() string {
 	return tlsforge.DefaultProfile
 }
 
-// report says which browser this run is pretending to be.
+// identityRule is drawn above and below the report of what a run is wearing.
+var identityRule = strings.Repeat("─", 72)
+
+// identityReport is what a run says it is wearing, while there is still room
+// for one more line.
+type identityReport struct {
+	errOut *printer
+	open   bool
+}
+
+// openReport says which browser this run is pretending to be, and leaves the
+// closing rule to whoever asked.
 //
 // Every time, on stderr, because that is the one thing this program does and
 // the one thing otherwise invisible: a run wearing a profile measured six
@@ -53,26 +74,42 @@ func defaultProfileName() string {
 // because "which profile" is only half an answer when several can resolve to
 // one name, and the user-agent in full because it is the part a server reads
 // and the part a person can check at a glance.
-func report(errOut *printer, name string) {
+func openReport(errOut *printer, name string) *identityReport {
+	said := &identityReport{errOut: errOut}
 	p, err := profile.Get(name)
 	if err != nil {
 		// The client is about to fail with a message that says so properly, and
-		// two complaints about one mistake is one too many.
-		return
+		// two complaints about one mistake is one too many. Never opened, so
+		// nothing added to it later is printed either.
+		return said
 	}
 
-	rule := strings.Repeat("─", 72)
-	errOut.println(rule)
-	field := func(label, value string) {
-		if value != "" {
-			errOut.printf("  %-11s %s\n", label, value)
-		}
+	said.open = true
+	errOut.println(identityRule)
+	said.field("profile", p.Name+" · "+origin(p))
+	said.field("browser", browserOf(p))
+	said.field("from", from(p))
+	said.field("user-agent", p.UserAgent)
+	return said
+}
+
+// field is one line of the report. A value nobody has is a line nobody needs.
+func (r *identityReport) field(label, value string) {
+	if r.open && value != "" {
+		r.errOut.printf("  %-11s %s\n", label, value)
 	}
-	field("profile", p.Name+" · "+origin(p))
-	field("browser", browserOf(p))
-	field("from", from(p))
-	field("user-agent", p.UserAgent)
-	errOut.println(rule)
+}
+
+// close ends the report, once, however many times it is asked.
+//
+// Fetch asks twice: when it has said everything, and again on its way out, so
+// that a run which stops before then ends its report as well.
+func (r *identityReport) close() {
+	if !r.open {
+		return
+	}
+	r.open = false
+	r.errOut.println(identityRule)
 }
 
 // origin says whether this was measured here or came with the binary, which is

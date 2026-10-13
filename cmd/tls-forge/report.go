@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -11,67 +10,12 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 // What a run turned out to be.
 //
 // Two shapes of the same facts: a table on the terminal for the question "did
 // that go well", and an HTML file for "what happened to this URL".
-
-// ipService is asked what address a request comes from. Named so a test can
-// answer for it, and so it is one line to change.
-//
-// A third party, necessarily: a process cannot see its own public address, and
-// through a proxy the address is the proxy's. It is asked once per proxy rather
-// than once per URL, because that is the granularity the answer has.
-var ipService = "https://ipinfo.io/json"
-
-// egress is where a client's requests come out.
-type egress struct {
-	IP      string `json:"ip"`
-	Country string `json:"country"`
-}
-
-// Flag is the country as its flag, or empty when there is no country.
-//
-// Computed rather than looked up: a flag emoji is the two letters of the ISO
-// 3166-1 alpha-2 code written as regional indicator symbols, so this needs no
-// table and no geolocation database.
-func (e egress) Flag() string {
-	code := strings.ToUpper(strings.TrimSpace(e.Country))
-	if len(code) != 2 {
-		return ""
-	}
-	var flag []rune
-	for _, letter := range code {
-		if letter < 'A' || letter > 'Z' {
-			return ""
-		}
-		flag = append(flag, 0x1F1E6+(letter-'A'))
-	}
-	return string(flag)
-}
-
-// lookupExit asks the service what address this client comes out of.
-func lookupExit(client *tlsforge.Client) (egress, error) {
-	res, err := client.Get(ipService)
-	if err != nil {
-		return egress{}, err
-	}
-	if !res.OK() {
-		return egress{}, fmt.Errorf("%s: HTTP %d", ipService, res.Status)
-	}
-	var found egress
-	if err := json.Unmarshal(res.Body, &found); err != nil {
-		return egress{}, fmt.Errorf("%s: %w", ipService, err)
-	}
-	if found.IP == "" {
-		return egress{}, fmt.Errorf("%s: no address in the answer", ipService)
-	}
-	return found, nil
-}
 
 // proxyStat is one proxy's showing.
 //
@@ -466,7 +410,7 @@ func renderReport(w io.Writer, records []result, s summary, exits map[string]egr
 		Summary:   s,
 		Rows:      rows,
 		Cards:     cards(s),
-		Service:   ipService,
+		Service:   askedOf(),
 		// Trusted because it is this repository's own file, compiled in.
 		CSS: template.CSS(reportCSS),
 	}

@@ -96,7 +96,7 @@ func TestTheListingAgreesWithWhatARunWears(t *testing.T) {
 func TestTheReportSaysWhatSomebodyNeedsToKnow(t *testing.T) {
 	keepProfilesIn(t)
 	said := &strings.Builder{}
-	report(newPrinter(said), "chrome_151_linux")
+	openReport(newPrinter(said), "chrome_151_linux").close()
 
 	// Which profile, which browser, which version, which platform, where the
 	// file is, and the user-agent a server will actually read.
@@ -116,7 +116,7 @@ func TestTheReportNamesTheFileAProfileCameFrom(t *testing.T) {
 	// and one name can resolve to several files.
 	installed(t)
 	said := &strings.Builder{}
-	report(newPrinter(said), localName)
+	openReport(newPrinter(said), localName).close()
 
 	kept := filepath.Join(profile.Default.Dir(), localName, profile.HostPlatform()+".json")
 	if !strings.Contains(said.String(), kept) {
@@ -131,9 +131,41 @@ func TestTheReportIsSilentForAProfileThatDoesNotResolve(t *testing.T) {
 	// The client is about to fail with a message that says so properly, and two
 	// complaints about one mistake is one too many.
 	said := &strings.Builder{}
-	report(newPrinter(said), "no-such-profile")
+	identity := openReport(newPrinter(said), "no-such-profile")
+	// Nor does anything added afterwards turn up as a line with no report
+	// around it.
+	identity.field("exit-ip", "203.0.113.7")
+	identity.close()
 	if said.String() != "" {
 		t.Errorf("report = %q, want silence", said)
+	}
+}
+
+func TestTheReportStaysOpenForOneMoreLine(t *testing.T) {
+	keepProfilesIn(t)
+	said := &strings.Builder{}
+	identity := openReport(newPrinter(said), "chrome_151_linux")
+	if strings.Count(said.String(), identityRule) != 1 {
+		t.Fatalf("the report was closed before anyone asked:\n%s", said)
+	}
+
+	identity.field("exit-ip", "203.0.113.7")
+	identity.close()
+	// Asked twice, as fetch does on its way out, and ended once. Nothing joins
+	// it afterwards either.
+	identity.close()
+	identity.field("late", "too late")
+
+	lines := reportLines(said.String())
+	last := len(lines) - 1
+	if lines[last] != identityRule || lines[last-1] != "  exit-ip     203.0.113.7" {
+		t.Errorf("the report does not end with the added line and one rule:\n%s", said)
+	}
+	if got := strings.Count(said.String(), identityRule); got != 2 {
+		t.Errorf("the report has %d rules, want one above and one below:\n%s", got, said)
+	}
+	if strings.Contains(said.String(), "too late") {
+		t.Errorf("a line was added to a report that had ended:\n%s", said)
 	}
 }
 
@@ -151,7 +183,7 @@ func TestAProfileGivenAsAPathSaysSo(t *testing.T) {
 	}
 
 	said := &strings.Builder{}
-	report(newPrinter(said), elsewhere)
+	openReport(newPrinter(said), elsewhere).close()
 	if !strings.Contains(said.String(), "read from the file named") {
 		t.Errorf("the report does not say where it came from:\n%s", said)
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,25 +12,71 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
-
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 // standInIPService answers the way the real one does, so no test reaches a
 // service on the internet to find out what its own address is.
-func standInIPService(t *testing.T, body string, status int) {
+//
+// It returns how many times it was asked, for the tests whose point is that
+// nobody was, or that somebody was exactly once.
+func standInIPService(t *testing.T, body string, status int) *atomic.Int32 {
 	t.Helper()
+	asked := &atomic.Int32{}
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		asked.Add(1)
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(body))
 	}))
 	t.Cleanup(server.Close)
 
-	original := ipService
-	t.Cleanup(func() { ipService = original })
-	ipService = server.URL
+	askOnly(t, addressService{URL: server.URL, read: readJSON})
+	return asked
+}
+
+// askOnly makes these the address services for one test, in this order.
+func askOnly(t *testing.T, services ...addressService) {
+	t.Helper()
+	original := ipServices
+	t.Cleanup(func() { ipServices = original })
+	ipServices = services
+}
+
+// insecureFlags are a run's flags, set to talk to a stand-in's self-signed
+// certificate.
+func insecureFlags(t *testing.T) clientFlags {
+	t.Helper()
+	fs := newFlagSet("fetch", newPrinter(io.Discard))
+	flags := addClientFlags(fs)
+	if err := parse(fs, []string{"--insecure"}); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	return flags
+}
+
+// cookiesSeenByIPService stands in for the address service and keeps the Cookie
+// header each question arrived with, so a test can check that none did.
+func cookiesSeenByIPService(t *testing.T) func() []string {
+	t.Helper()
+	var mu sync.Mutex
+	var seen []string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen = append(seen, r.Header.Get("Cookie"))
+		mu.Unlock()
+		_, _ = w.Write([]byte(`{"ip":"203.0.113.7","country":"PL"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	askOnly(t, addressService{URL: server.URL, read: readJSON})
+	return func() []string {
+		mu.Lock()
+		defer mu.Unlock()
+		return append([]string(nil), seen...)
+	}
 }
 
 func TestFlagFromCountryCode(t *testing.T) {
@@ -287,13 +334,7 @@ func TestWriteReportReportsAChmodFailure(t *testing.T) {
 func TestLookupExit(t *testing.T) {
 	standInIPService(t, `{"ip":"203.0.113.7","country":"PL","city":"Warsaw"}`, http.StatusOK)
 
-	client, err := tlsforgeClient(t)
-	if err != nil {
-		t.Fatalf("client: %v", err)
-	}
-	defer func() { _ = client.Close() }()
-
-	found, err := lookupExit(client)
+	found, err := lookupExit(context.Background(), insecureFlags(t), "")
 	if err != nil {
 		t.Fatalf("lookupExit: %v", err)
 	}
@@ -310,33 +351,50 @@ func TestLookupExitErrors(t *testing.T) {
 		{"a status that is not 2xx", `{"ip":"1.2.3.4"}`, http.StatusTooManyRequests},
 		{"an answer that is not JSON", "<html>blocked</html>", http.StatusOK},
 		{"JSON without an address", `{"country":"PL"}`, http.StatusOK},
+		// Somebody else's text, which fetch prints on a terminal: it is an
+		// address or it is nothing.
+		{"an address that is not one", `{"ip":"203.0.113.7\u001b[2J"}`, http.StatusOK},
+		{"an address with a zone", `{"ip":"fe80::1%\u001b[2J"}`, http.StatusOK},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			standInIPService(t, tc.body, tc.status)
-			client, err := tlsforgeClient(t)
-			if err != nil {
-				t.Fatalf("client: %v", err)
-			}
-			defer func() { _ = client.Close() }()
-
-			if _, err := lookupExit(client); err == nil {
+			if _, err := lookupExit(context.Background(), insecureFlags(t), ""); err == nil {
 				t.Error("no error")
 			}
 		})
 	}
 
 	t.Run("a service that cannot be reached", func(t *testing.T) {
-		original := ipService
-		t.Cleanup(func() { ipService = original })
-		ipService = "https://127.0.0.1:1/"
-
-		client, err := tlsforgeClient(t)
-		if err != nil {
-			t.Fatalf("client: %v", err)
+		askOnly(t, addressService{URL: "https://127.0.0.1:1/", read: readJSON})
+		if _, err := lookupExit(context.Background(), insecureFlags(t), ""); err == nil {
+			t.Error("no error")
 		}
-		defer func() { _ = client.Close() }()
+	})
 
-		if _, err := lookupExit(client); err == nil {
+	t.Run("a run that was interrupted", func(t *testing.T) {
+		// The service would answer; nobody is waiting for it any more.
+		standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		if _, err := lookupExit(ctx, insecureFlags(t), ""); err == nil {
+			t.Error("no error")
+		}
+	})
+
+	t.Run("a proxy that is not one", func(t *testing.T) {
+		// There is no client to ask with, so nobody is asked.
+		asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
+		if _, err := lookupExit(context.Background(), insecureFlags(t), "://not a proxy"); err == nil {
+			t.Error("no error")
+		}
+		if got := asked.Load(); got != 0 {
+			t.Errorf("the service was asked %d times", got)
+		}
+	})
+
+	t.Run("nobody to ask", func(t *testing.T) {
+		askOnly(t)
+		if _, err := lookupExit(context.Background(), insecureFlags(t), ""); err == nil {
 			t.Error("no error")
 		}
 	})
@@ -360,7 +418,7 @@ func TestBatchWritesAReport(t *testing.T) {
 		}
 	}
 	// And the third party is named rather than contacted quietly.
-	if !strings.Contains(stderr, ipService) {
+	if !strings.Contains(stderr, ipServices[0].name()) {
 		t.Errorf("the lookup was not announced:\n%s", stderr)
 	}
 
@@ -375,11 +433,40 @@ func TestBatchWritesAReport(t *testing.T) {
 	}
 }
 
+func TestBatchKeepsItsSessionFromTheAddressService(t *testing.T) {
+	// A cookie that names no domain is filed against every host a client talks
+	// to. That is how it reaches the pages it is for, and how the question
+	// about the address, asked through the same client, used to hand the
+	// session to the address service as well.
+	seen := cookiesSeenByIPService(t)
+	server := cookieEcho(t)
+	path := filepath.Join(t.TempDir(), "run.html")
+
+	code, stdout, stderr := exec(t, "batch", "--insecure", "--progress", "never",
+		"-b", "session=s3cr3t", "--report", path, server.URL+"/")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if !strings.Contains(stdout, "session=s3cr3t") {
+		t.Errorf("the page was not sent its cookie: %s", stdout)
+	}
+	if got := seen(); len(got) != 1 || got[0] != "" {
+		t.Errorf("the address service was asked with Cookie headers %q, want one question and no cookie", got)
+	}
+	// Asked without the session, and answered all the same.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading the report: %v", err)
+	}
+	if !strings.Contains(string(data), "203.0.113.7") {
+		t.Error("the report has no exit address")
+	}
+}
+
 func TestBatchReportWithoutTheAddressLookup(t *testing.T) {
-	// --report-ip=false, so nothing is asked of anyone.
-	original := ipService
-	t.Cleanup(func() { ipService = original })
-	ipService = "https://127.0.0.1:1/" // would fail loudly if it were reached
+	// --report-ip=false, so nothing is asked of anyone. The stand-in would
+	// count it if something were.
+	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
 
 	server := batchServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
@@ -389,6 +476,9 @@ func TestBatchReportWithoutTheAddressLookup(t *testing.T) {
 	}
 	if strings.Contains(stderr, "asking") {
 		t.Errorf("a lookup was announced anyway:\n%s", stderr)
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("the service was asked %d times anyway", got)
 	}
 	data, _ := os.ReadFile(path)
 	if !strings.Contains(string(data), "not looked up") {
@@ -444,13 +534,6 @@ func TestBatchSummaryNamesADeadProxy(t *testing.T) {
 			t.Errorf("stderr has no %q:\n%s", want, stderr)
 		}
 	}
-}
-
-// tlsforgeClient is a plain client that will talk to a stand-in server's
-// self-signed certificate.
-func tlsforgeClient(t *testing.T) (*tlsforge.Client, error) {
-	t.Helper()
-	return tlsforge.New(tlsforge.WithInsecureSkipVerify())
 }
 
 func TestRenderReportReportsAWriteFailure(t *testing.T) {

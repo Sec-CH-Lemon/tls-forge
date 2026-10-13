@@ -21,6 +21,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Security
 
+- **`batch --report` no longer sends session cookies to the address service.**
+  A cookie given without a domain, such as `--cookie name=value`, is filed
+  against every host a client talks to, so the exit-address lookup at
+  `https://ipinfo.io/json` arrived with it attached. The lookup is now made by
+  a separate client with the same profile and proxy and no cookie jar. Runs
+  without `--report`, with `--report-ip=false`, or whose cookies all name a
+  domain were not affected. Every release up to 0.2.2 is.
+- The address the service answers with must parse as an IP address before it
+  is shown; anything else is reported as not looked up.
 - Builds use Go 1.26.9 and `golang.org/x/net` 0.60.0, which fix nine advisories
   that `govulncheck` reports as reachable from this code: HTTP/2 HPACK, flow
   control and trailer handling, HTTP/1.1 `CONNECT` and MIME header parsing,
@@ -30,6 +39,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- `tls-forge fetch` reports the address its request comes out of, as the last
+  line of the profile block on standard error. The address is asked of a public
+  service before the request, with the same profile and proxy and without the
+  session's cookies, so **every fetch now makes at least one additional request
+  to a third party**. A failure is reported on that line without failing the
+  fetch. `proxy` and `daemon` ask nobody, and `batch` still asks only for
+  `--report`.
+- The exit address is asked of four services instead of one, for `fetch` and
+  for the `batch` report alike: `www.cloudflare.com/cdn-cgi/trace`, then
+  `checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next is asked as
+  soon as the one before it fails or has said nothing for its share of the
+  wait, and the first to answer is believed. A lookup waits at most five
+  seconds in all; in `batch` it used to wait the full request timeout for each
+  proxy. Amazon and ipify report the address without a country.
 - Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and
   uTLS 1.7.8, including upstream fixes for HTTP/2 flow control, ALPN transport
   reuse and per-connection signature GREASE. Runtime cryptography and

@@ -239,6 +239,26 @@ Usage: `tls-forge fetch [flags] <url>`
 | `-o`, `--output <file>` | Write the body to a file instead of stdout |
 | `-H`, `--header "Name: value"` | Add or override an ordered request header; repeatable |
 
+Before the request, `fetch` asks a public service which address it comes out
+of, through the same proxy and with the same profile. No cookie is sent with the
+question. The answer is the last line of the block on standard error that names
+the profile in use:
+
+```text
+  exit-ip     203.0.113.7 · PL
+```
+
+Four services are asked, in this order: `www.cloudflare.com/cdn-cgi/trace`,
+`checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next one is asked
+as soon as the one before it fails, or has said nothing for its share of the
+wait, and the first to answer is believed; normally that is one request to the
+first. Amazon and ipify report the address without a country.
+
+This is at least one additional request to a third party on every run. The
+lookup waits at most five seconds in all, and when nobody answers the line says
+so instead of failing the fetch. A proxy that assigns an address per connection
+can send the request itself from a different one.
+
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
 are compatible with tools such as curl and wget.
@@ -278,7 +298,7 @@ Usage: `tls-forge batch [flags] [urls...]`
 | `-v`, `--verbose` | Print one status line when each request finishes |
 | `--progress <mode>` | Live stderr status: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report <path>` | Write a self-contained HTML report; a directory gets a timestamped filename |
-| `--report-ip[=false]` | Ask `https://ipinfo.io/json` once per proxy for report metadata; default `true` |
+| `--report-ip[=false]` | Ask the address services listed under [`fetch`](#fetch), once per proxy, for report metadata; default `true` |
 
 Input precedence is `--urls`, then `--input`, then positional URLs, then stdin.
 When an inline response body is not valid UTF-8, `body` is base64 and the row

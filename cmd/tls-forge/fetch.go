@@ -310,7 +310,13 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		return fmt.Errorf("%w: fetch takes exactly one URL", errUsage)
 	}
 
-	common.wear(errOut)
+	// Left open, because the address the request comes out of is the report's
+	// last line, and nobody is asked for it until the cookies and the proxy have
+	// made a client: a run that cannot be made has no address to report. Closed
+	// on every way out, so a run that stops before then still ends it.
+	identity := common.wearOpen(errOut)
+	defer identity.close()
+
 	warmed, from, err := common.warmedCookies()
 	if err != nil {
 		return err
@@ -320,6 +326,14 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		return err
 	}
 	defer func() { _ = client.Close() }()
+
+	// Before the request, with the profile and through the proxy the request is
+	// about to use, so the answer is for that identity. Not with its cookies:
+	// the session is for the site being fetched, not for whoever is asked about
+	// the address.
+	found, lookupErr := lookupExit(ctx, common, *common.proxy)
+	identity.field("exit-ip", describeExit(found, lookupErr, *common.proxy))
+	identity.close()
 
 	if from != "" {
 		errOut.printf("warmed from %s\n", from)
@@ -371,6 +385,22 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	_, err = out.Write(res.Body)
 	return err
+}
+
+// describeExit is the address as fetch's report says it, or why there is none.
+//
+// A lookup that failed is said and is not an error: the address is commentary
+// on the fetch, and the fetch is what was asked for. The country is its letters
+// rather than the flag the HTML report draws, because not every terminal can
+// draw one.
+func describeExit(found egress, err error, proxy string) string {
+	if err != nil {
+		return "not looked up · " + redactError(err, proxy)
+	}
+	if country := found.countryCode(); country != "" {
+		return found.IP + " · " + country
+	}
+	return found.IP
 }
 
 func runDaemon(_ context.Context, args []string, out, errOut *printer) error {

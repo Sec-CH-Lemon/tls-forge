@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	neturl "net/url"
 	"os"
 	"path/filepath"
@@ -316,6 +317,178 @@ func TestFetchCannotWriteTheOutputFile(t *testing.T) {
 		"-o", filepath.Join(t.TempDir(), "no-such-directory", "body"), server.URL()+"/api/all")
 	if code == 0 {
 		t.Errorf("exit code = 0, want non-zero; stderr = %q", stderr)
+	}
+}
+
+// reportLines is what a command said on stderr, one line at a time.
+func reportLines(stderr string) []string {
+	return strings.Split(strings.TrimRight(stderr, "\n"), "\n")
+}
+
+func TestFetchSaysWhichAddressItComesOutOf(t *testing.T) {
+	asked := standInIPService(t, `{"ip":"203.0.113.7","country":"pl","city":"Warsaw"}`, http.StatusOK)
+	server := startEcho(t)
+
+	code, stdout, stderr := exec(t, "fetch", "--insecure", server.URL()+"/api/all")
+	if code != 0 {
+		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"tls"`) {
+		t.Errorf("the page itself did not arrive: %q", stdout)
+	}
+	// Once: the address belongs to the client, not to anything it did.
+	if got := asked.Load(); got != 1 {
+		t.Errorf("the service was asked %d times, want once", got)
+	}
+
+	// The last line of the report, where somebody reading what the run is
+	// wearing ends up: under the user-agent and above the closing rule.
+	lines := reportLines(stderr)
+	if len(lines) < 3 {
+		t.Fatalf("no report on stderr:\n%s", stderr)
+	}
+	last := len(lines) - 1
+	if lines[last] != identityRule {
+		t.Errorf("the report does not end with its rule:\n%s", stderr)
+	}
+	// The address and the country, in capitals whatever the service wrote, and
+	// nothing after them.
+	if want := "  exit-ip     203.0.113.7 · PL"; lines[last-1] != want {
+		t.Errorf("last line of the report = %q, want %q", lines[last-1], want)
+	}
+	if !strings.HasPrefix(lines[last-2], "  user-agent ") {
+		t.Errorf("the address is not directly under the user-agent:\n%s", stderr)
+	}
+}
+
+func TestFetchGoesAheadWhenNobodyCanSayWhereItComesOut(t *testing.T) {
+	// The address is commentary on the fetch. A service that is rate limiting
+	// today is a line in the report, not a reason to come back without the page.
+	standInIPService(t, `{"error":"rate limited"}`, http.StatusTooManyRequests)
+	server := startEcho(t)
+
+	code, stdout, stderr := exec(t, "fetch", "--insecure", server.URL()+"/api/all")
+	if code != 0 {
+		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"tls"`) {
+		t.Errorf("the page did not arrive: %q", stdout)
+	}
+	if want := "  exit-ip     not looked up · " + ipServices[0].URL + ": HTTP 429"; !strings.Contains(stderr, want) {
+		t.Errorf("stderr does not say %q:\n%s", want, stderr)
+	}
+}
+
+func TestFetchDoesNotWaitForAnAddressThatIsNotComing(t *testing.T) {
+	// A service that accepts the question and never answers it. Left to the
+	// request timeout this would hold every fetch up for half a minute, and here
+	// would run into the limit exec puts on a command.
+	service, _ := silent(t)
+	askOnly(t, service)
+	waitAtMost(t, 50*time.Millisecond)
+
+	server := startEcho(t)
+	code, stdout, stderr := exec(t, "fetch", "--insecure", server.URL()+"/api/all")
+	if code != 0 {
+		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"tls"`) {
+		t.Errorf("the page did not arrive: %q", stdout)
+	}
+	if !strings.Contains(stderr, "  exit-ip     not looked up · ") {
+		t.Errorf("stderr does not say the address was not looked up:\n%s", stderr)
+	}
+}
+
+func TestFetchKeepsItsSessionFromTheAddressService(t *testing.T) {
+	// The cookie is for the page. A client files one that names no domain
+	// against every host it talks to, so the question about the address is put
+	// by a client of its own that holds no session at all.
+	seen := cookiesSeenByIPService(t)
+	server := cookieEcho(t)
+
+	code, stdout, stderr := exec(t, "fetch", "-k", "-b", "session=s3cr3t", server.URL+"/")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if !strings.Contains(stdout, "session=s3cr3t") {
+		t.Errorf("the page was not sent its cookie: %q", stdout)
+	}
+	if got := seen(); len(got) != 1 || got[0] != "" {
+		t.Errorf("the address service was asked with Cookie headers %q, want one question and no cookie", got)
+	}
+	// Asked without the session, and answered all the same.
+	if !strings.Contains(stderr, "  exit-ip     203.0.113.7 · PL") {
+		t.Errorf("the report has no address:\n%s", stderr)
+	}
+}
+
+func TestFetchEndsItsReportWhenItStopsEarly(t *testing.T) {
+	// The cookie file is missing, so there is never a client to ask with. The
+	// report is still closed, and nobody is asked on behalf of a run that made
+	// no request.
+	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
+
+	code, _, stderr := exec(t, "fetch", "--cookies", filepath.Join(t.TempDir(), "missing.json"),
+		"https://127.0.0.1:1/")
+	if code != 1 {
+		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
+	}
+	if got := strings.Count(stderr, identityRule); got != 2 {
+		t.Errorf("the report has %d rules, want one above and one below:\n%s", got, stderr)
+	}
+	if strings.Contains(stderr, "exit-ip") {
+		t.Errorf("an address was reported for a run with no client:\n%s", stderr)
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("the service was asked %d times", got)
+	}
+}
+
+func TestOnlyFetchAsksWhereItComesOut(t *testing.T) {
+	// Batch has its own, once per proxy and only for a report somebody asked
+	// for. Sharing the report of what a run is wearing must not share this.
+	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
+	server := batchServer(t)
+
+	code, _, stderr := exec(t, "batch", "--progress", "never", server.URL+"/one")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if strings.Contains(stderr, "exit-ip") || asked.Load() != 0 {
+		t.Errorf("batch asked for an address (%d times):\n%s", asked.Load(), stderr)
+	}
+}
+
+func TestDescribeExit(t *testing.T) {
+	const proxy = "http://alice:s3cr3t@proxy.example:8080"
+	for _, tc := range []struct {
+		name  string
+		found egress
+		err   error
+		want  string
+	}{
+		{"an address and its country", egress{IP: "203.0.113.7", Country: "pl"}, nil,
+			"203.0.113.7 · PL"},
+		// From a service that says the address and nothing else.
+		{"an address alone", egress{IP: "2001:db8::7"}, nil,
+			"2001:db8::7"},
+		// Somebody else's text, and not the two letters asked for, so it is not
+		// repeated on a terminal.
+		{"a country that is not a code", egress{IP: "203.0.113.7", Country: "Poland"}, nil,
+			"203.0.113.7"},
+		{"a failure", egress{}, errors.New("connection refused"),
+			"not looked up · connection refused"},
+		// The proxy can be quoted back in the failure, and this line is read by
+		// whoever is shown the terminal.
+		{"a failure that quotes the proxy", egress{}, errors.New("dial " + proxy + ": refused"),
+			"not looked up · dial http://alice@proxy.example:8080: refused"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := describeExit(tc.found, tc.err, proxy); got != tc.want {
+				t.Errorf("describeExit = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 
