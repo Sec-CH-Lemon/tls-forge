@@ -275,8 +275,58 @@ func at(t time.Time) string {
 	return t.Format("02 Jan 2006 15:04:05")
 }
 
-func (r reportRow) StartedAt() string { return at(r.Started) }
-func (r reportRow) EndedAt() string   { return at(r.Ended) }
+// StartedAt is when the request went out, as its row says it: without the
+// year, which the top of the report gives and every row would repeat. Opened,
+// the row gives the moment in full.
+func (r reportRow) StartedAt() string {
+	if r.Started.IsZero() {
+		return ""
+	}
+	return r.Started.Format("02 Jan 15:04:05")
+}
+
+// atPrecisely is a moment to the millisecond, for the one place a report gives
+// it: beside a request that has been opened to see where its time went.
+func atPrecisely(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format("02 Jan 2006 15:04:05.000")
+}
+
+// fact is one line of what a request's row leaves out.
+type fact struct {
+	Label, Value string
+	// Code says the value is to be read letter by letter, as a URL or a path is.
+	Code bool
+}
+
+// Facts are what there is to say about a request beyond its row.
+func (r reportRow) Facts() []fact {
+	var facts []fact
+	// Where it ended up, when that is somewhere other than where it was sent.
+	if r.FinalURL != "" && r.FinalURL != r.URL {
+		facts = append(facts, fact{Label: "Final URL", Value: r.FinalURL, Code: true})
+	}
+	if r.File != "" {
+		facts = append(facts, fact{Label: "Saved to", Value: r.File, Code: true})
+	}
+	facts = append(facts,
+		fact{Label: "Started", Value: atPrecisely(r.Started)},
+		fact{Label: "Ended", Value: atPrecisely(r.Ended)},
+	)
+	if r.Error != "" {
+		// In full, and where it can be selected. On the row it is a tooltip.
+		facts = append(facts, fact{Label: "Error", Value: r.Error})
+	}
+	return facts
+}
+
+// TryRows are the tries the request took, each laid out against how long the
+// whole of it lasted. None when they were not kept.
+func (r reportRow) TryRows() []tryRow {
+	return tryRows(r.Tries, r.Started, r.Ended.Sub(r.Started))
+}
 
 // reportRowLimit bounds the table of URLs.
 //
@@ -329,6 +379,66 @@ type reportData struct {
 	Cards     []card
 	Service   string
 	CSS       template.CSS
+	// Detailed says some row has its tries to show, so the key to how they are
+	// drawn is worth printing.
+	Detailed bool
+	// Route is the way every request went, when they all went the same way.
+	// Routed says they did not, so that each row has to say its own.
+	Route  *route
+	Routed bool
+}
+
+// route is a way out: through a proxy or without one, and where that came out.
+type route struct {
+	Proxy string
+	Exit  egress
+}
+
+// routes is how the requests of a run went out: the one way, or that there was
+// more than one.
+//
+// One way is said once, above the rows, and leaves them the width of two
+// columns that would have said the same thing on every line. More than one is
+// those two columns.
+func routes(records []result, exits map[string]egress) (one *route, several bool) {
+	if len(records) == 0 {
+		return nil, false
+	}
+	first := records[0].Proxy
+	for _, r := range records[1:] {
+		if r.Proxy != first {
+			return nil, true
+		}
+	}
+	return &route{Proxy: redactProxy(first), Exit: exits[first]}, false
+}
+
+// Columns are the tracks every row is laid out on, the row of headings
+// included: the same for all of them, which is what lines the rows up without
+// their being a table.
+//
+// Lengths this file chose, so they are written into the document as they are.
+func (d reportData) Columns() template.CSS {
+	tracks := []string{"0.75rem"}
+	if d.Numbered() {
+		tracks = append(tracks, "2.5rem")
+	}
+	// The URL takes what the rest leave.
+	tracks = append(tracks, "1fr", "7.5rem", "4.5rem", "8rem", "4.5rem", "2.5rem")
+	if d.Routed {
+		tracks = append(tracks, "11rem", "9rem")
+	}
+	return template.CSS(strings.Join(tracks, " "))
+}
+
+// Width is the least the rows are laid out on before they scroll sideways
+// instead: enough that the URL keeps a readable share, and no more than the
+// page is wide on a desktop.
+func (d reportData) Width() template.CSS {
+	if d.Routed {
+		return "76rem"
+	}
+	return "56rem"
 }
 
 // Numbered says the rows are told apart by which run they were, because a URL
@@ -457,12 +567,17 @@ func renderReport(w io.Writer, command string, records []result, s summary, exit
 	// otherwise materialise a million of them to show two thousand.
 	kept, dropped := limitRows(records, reportRowLimit)
 	rows := make([]reportRow, 0, len(kept))
+	detailed := false
 	for _, r := range kept {
 		rows = append(rows, reportRow{result: r, Proxy: redactProxy(r.Proxy), Exit: exits[r.Proxy]})
+		detailed = detailed || len(r.Tries) > 0
 	}
 	// By when the request went out, which is the order someone reading a run
 	// expects, rather than the order answers happened to come back in.
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Started.Before(rows[j].Started) })
+	// Of every request, shown or not: a run did not go one way because the rows
+	// that were kept did.
+	way, several := routes(records, exits)
 
 	data := reportData{
 		Command:   command,
@@ -472,6 +587,9 @@ func renderReport(w io.Writer, command string, records []result, s summary, exit
 		Rows:      rows,
 		Cards:     cards(s),
 		Service:   askedOf(),
+		Detailed:  detailed,
+		Route:     way,
+		Routed:    several,
 		// Trusted because it is this repository's own file, compiled in.
 		CSS: template.CSS(reportCSS),
 	}

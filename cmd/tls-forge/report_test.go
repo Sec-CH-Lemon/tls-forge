@@ -990,7 +990,7 @@ func TestFetchWritesAReport(t *testing.T) {
 		">Requests</p>",
 		"Every request",
 		// A row for every run, told apart by which one it was.
-		">Run</th>",
+		">Run</span>",
 		server.URL,
 		// Where the run came out, which was asked once before the first request.
 		"203.0.113.7", "\U0001F1F5\U0001F1F1",
@@ -1035,7 +1035,7 @@ func TestFetchReportOfOneRequest(t *testing.T) {
 			t.Errorf("the report has no %q", want)
 		}
 	}
-	if strings.Contains(html, ">Run</th>") {
+	if strings.Contains(html, ">Run</span>") {
 		t.Error("a single request was numbered")
 	}
 }
@@ -1142,7 +1142,7 @@ func TestBatchReportNumbersTheRunsOfARepeat(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	html := reportOf(t, path)
-	for _, want := range []string{">tls-forge batch</h1>", "2 of 2 requests in ", "Every request", ">Run</th>"} {
+	for _, want := range []string{">tls-forge batch</h1>", "2 of 2 requests in ", "Every request", ">Run</span>"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the report has no %q", want)
 		}

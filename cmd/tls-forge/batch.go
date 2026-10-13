@@ -45,6 +45,9 @@ type result struct {
 	Run      int    `json:"run,omitempty"`
 	Attempts int    `json:"attempts,omitempty"`
 	Error    string `json:"error,omitempty"`
+	// Tries are the attempts one by one, with what each waited on. Kept for a
+	// report and for nothing else: the lines are what they have always been.
+	Tries []try `json:"-"`
 }
 
 // MarshalJSON writes the record with the proxy password removed.
@@ -316,6 +319,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		clients: clients, workers: *workers, sink: sink,
 		retry: *again.retry, repeat: *again.repeat, bodyDir: *bodyDir,
 		counts: counts, notes: notes, trace: trace,
+		detailed: *report != "",
 	}, &records)
 
 	// Closed here rather than deferred, so the final counts land before the
@@ -570,6 +574,9 @@ type batch struct {
 	counts  *progress
 	notes   *stderrLog
 	trace   *tracer
+	// detailed says a report will be written, so every try is kept as it is
+	// made, with what it waited on.
+	detailed bool
 }
 
 // runJobs fetches the list and returns how many entries failed. A failure is
@@ -582,6 +589,9 @@ func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
 
 	queue := make(chan job)
 	var writeMu sync.Mutex
+	// How many of the records may go on holding their tries, counted under the
+	// same lock the records are added under.
+	var room tryBudget
 	encoder := json.NewEncoder(b.sink)
 	var wg sync.WaitGroup
 
@@ -601,7 +611,7 @@ func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
 				if r.Error != "" {
 					failures++
 				}
-				*records = append(*records, r.withoutBody())
+				*records = append(*records, room.trim(r.withoutBody()))
 				if runErr == nil {
 					if err := encoder.Encode(r); err != nil {
 						runErr = fmt.Errorf("batch: writing result: %w", err)
@@ -709,9 +719,9 @@ func (b batch) fetchOne(ctx context.Context, j job, lane *traceLane) result {
 		return r
 	}
 
-	res, attempts, err := retrier{retries: b.retry}.do(ctx, client,
+	res, attempts, tries, err := retrier{retries: b.retry, keep: b.detailed}.do(ctx, client,
 		tlsforge.Request{URL: j.URL}, lane, j.run, proxy)
-	r.Attempts = attempts
+	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
 
 	if err != nil {

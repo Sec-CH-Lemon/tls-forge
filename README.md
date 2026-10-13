@@ -428,10 +428,30 @@ else, so it can be opened offline and sent on as one file. At the top is the
 share of requests that came back as the page, with how many answered with
 something else and how many got no answer, and under it the data, the retries
 and the time the run took. Then there is a row for every request: when it
-started and ended, how long it took, how it ended, how much came back, how many
-tries it took, the proxy it went through and the address it came out of. Rows
-are in the order the requests were sent, and when a URL was asked for more than
-once each row says which run it was.
+started, how long it took, how it ended, how much came back and how many tries
+it took. Rows are in the order the requests were sent, and when a URL was asked
+for more than once each row says which run it was. The proxy and the address a
+request came out of are said once above the rows when every request went the
+same way, and on each row when they did not.
+
+Every row opens, and shows what that request took:
+
+- where it ended up when it was redirected, the file it was saved to, when it
+  started and ended to the millisecond, and the error in full;
+- every try that was made at it, with how the try ended, how long it took and
+  how long was waited before the next one;
+- the connection each try went out on: new or already open, the address at the
+  other end, and the TLS version, cipher suite and protocol the handshake
+  settled on;
+- each thing the try waited on and for how long: the name lookup with the
+  addresses it found, the dial, the handshake, sending the request, waiting for
+  the first byte and receiving the answer. A redirect is listed where it
+  happened, and the step a failed try stopped in is marked as that.
+
+Each try is also drawn as a bar on the length of the whole request, so the
+tries of one request line up as a picture of it, with the waits between them
+as the gaps. These are the steps a [trace](#tracing-a-run) records, measured by
+the same clock, so the report and the trace of one run agree.
 
 Given a directory, or a path ending in a separator, the report is named after
 the moment it was written, as `report-2026-08-16-091854-584.html`; any other

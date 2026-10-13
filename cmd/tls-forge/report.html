@@ -101,51 +101,117 @@
       table a browser can open. {{.Elsewhere}}
     </p>
     {{end}}
+    {{with .Route}}
+    <!-- Said once when it is the same for every row, which is what leaves the
+         rows room for what differs between them. -->
+    <p class="mb-3 text-xs text-muted dark:text-muted-dark">
+      Every request {{if .Proxy}}went through <span class="font-mono">{{.Proxy}}</span>{{else}}was made directly{{end}}{{if .Exit.IP}},
+      and came out of <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.IP}}</span>.{{else}}.
+      Where it came out was not looked up.{{end}}
+    </p>
+    {{end}}
+    {{if .Detailed}}
+    <p class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted dark:text-muted-dark">
+      <span>Open a row for every try that was made at it. A try is drawn on the length of the whole request:</span>
+      <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm bg-step-dns"></span>dns</span>
+      <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm bg-step-connect"></span>connect</span>
+      <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm bg-step-tls"></span>tls</span>
+      <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm bg-step-send"></span>send</span>
+      <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm bg-step-wait"></span>wait</span>
+      <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm bg-step-receive"></span>receive</span>
+    </p>
+    {{end}}
+    <!-- Rows that open rather than a table: what a request took does not fit in
+         a cell, and a table has nowhere else to put it without a script. Every
+         row is laid out on the same columns, which is what keeps them a table to
+         look at. -->
     <div class="overflow-x-auto rounded-xl border border-line dark:border-line-dark">
-      <table class="w-full min-w-[72rem] border-collapse text-sm">
-        <thead class="sticky top-0 bg-surface dark:bg-surface-dark">
-          <tr class="border-b border-line text-left dark:border-line-dark">
-            {{if .Numbered}}<th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Run</th>{{end}}
-            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">URL</th>
-            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Started</th>
-            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Ended</th>
-            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Took</th>
-            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Outcome</th>
-            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Data</th>
-            <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Tries</th>
-            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Via</th>
-            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Exit address</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{range .Rows}}
-          <tr class="border-b border-line/60 last:border-0 dark:border-line-dark/60">
-            {{if $.Numbered}}<td class="px-4 py-2.5 text-right tabular-nums text-muted dark:text-muted-dark">{{.Run}}</td>{{end}}
-            <td class="max-w-md px-4 py-2.5 break-words font-mono text-xs">{{.URL}}</td>
-            <td class="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted dark:text-muted-dark">{{.StartedAt}}</td>
-            <td class="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted dark:text-muted-dark">{{.EndedAt}}</td>
-            <td class="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">{{.Duration}}</td>
-            <!-- Icon and label as well as colour, so the state never rests on hue. -->
-            <td class="whitespace-nowrap px-4 py-2.5" {{if .Error}}title="{{.Error}}"{{end}}>
-              <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium
-                {{if .Failed}}bg-critical/12 text-critical-ink dark:text-critical
-                {{else if .Warned}}bg-serious/15 text-serious-ink dark:text-serious
-                {{else}}bg-good/12 text-good-ink dark:text-good{{end}}">
-                <span aria-hidden="true">{{.Glyph}}</span> {{.Outcome}}</span>
-            </td>
-            <td class="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">{{.Size}}</td>
-            <td class="px-4 py-2.5 text-right tabular-nums {{if gt .Attempts 1}}text-serious-ink dark:text-serious{{end}}">{{.Attempts}}</td>
-            <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
-              {{if .Proxy}}{{.Proxy}}{{else}}<span class="font-sans text-muted dark:text-muted-dark">direct</span>{{end}}
-            </td>
-            <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
-              {{if .Exit.IP}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.IP}}
-              {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
-            </td>
-          </tr>
+      <div class="text-sm" style="min-width:{{.Width}}">
+        <div class="grid gap-x-3 border-b border-line px-4 py-2.5 font-medium text-muted dark:border-line-dark dark:text-muted-dark" style="grid-template-columns:{{.Columns}}">
+          <span></span>
+          {{if .Numbered}}<span class="text-right">Run</span>{{end}}
+          <span>URL</span>
+          <span>Started</span>
+          <span class="text-right">Took</span>
+          <span>Outcome</span>
+          <span class="text-right">Data</span>
+          <span class="text-right">Tries</span>
+          {{if .Routed}}
+          <span>Via</span>
+          <span>Exit address</span>
           {{end}}
-        </tbody>
-      </table>
+        </div>
+        {{range .Rows}}
+        <details class="group border-b border-line/60 last:border-0 dark:border-line-dark/60">
+          <!-- Spans all the way down, because a summary holds a phrase and not
+               a block: the grid is what lays them out. -->
+          <summary class="cursor-pointer">
+            <span class="grid items-center gap-x-3 px-4 py-2.5" style="grid-template-columns:{{$.Columns}}">
+              <span aria-hidden="true" class="text-muted transition-transform group-open:rotate-90 dark:text-muted-dark">›</span>
+              {{if $.Numbered}}<span class="text-right tabular-nums text-muted dark:text-muted-dark">{{.Run}}</span>{{end}}
+              <span class="min-w-0 break-all font-mono text-xs">{{.URL}}</span>
+              <span class="whitespace-nowrap tabular-nums text-muted dark:text-muted-dark">{{.StartedAt}}</span>
+              <span class="whitespace-nowrap text-right tabular-nums">{{.Duration}}</span>
+              <!-- Icon and label as well as colour, so the state never rests on hue. -->
+              <span class="whitespace-nowrap" {{if .Error}}title="{{.Error}}"{{end}}>{{template "chip" .}}</span>
+              <span class="whitespace-nowrap text-right tabular-nums">{{.Size}}</span>
+              <span class="text-right tabular-nums {{if gt .Attempts 1}}text-serious-ink dark:text-serious{{end}}">{{.Attempts}}</span>
+              {{if $.Routed}}
+              <span class="min-w-0 break-all font-mono text-xs">
+                {{if .Proxy}}{{.Proxy}}{{else}}<span class="font-sans text-muted dark:text-muted-dark">direct</span>{{end}}
+              </span>
+              <span class="min-w-0 break-all font-mono text-xs">
+                {{if .Exit.IP}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.IP}}
+                {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
+              </span>
+              {{end}}
+            </span>
+          </summary>
+          <div class="space-y-5 border-t border-line/60 bg-line/25 px-4 py-4 pl-10 text-xs dark:border-line-dark/60 dark:bg-line-dark/30">
+            <dl class="grid grid-cols-[6rem_1fr] gap-x-4 gap-y-1.5">
+              {{range .Facts}}
+              <dt class="text-muted dark:text-muted-dark">{{.Label}}</dt>
+              <dd class="min-w-0 break-words {{if .Code}}font-mono{{end}}">{{.Value}}</dd>
+              {{end}}
+            </dl>
+            {{range .TryRows}}
+            <div>
+              <p class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span class="font-medium">Try {{.Number}} of {{.Of}}</span>
+                {{template "chip" .}}
+                <span class="tabular-nums">{{.Length}}</span>
+                {{if not .Failed}}<span class="tabular-nums">{{.Size}}</span>{{end}}
+                {{if gt .Number 1}}<span class="text-muted dark:text-muted-dark">began {{.After}} into the request</span>{{end}}
+                {{if .Connection}}<span class="text-muted dark:text-muted-dark">{{.Connection}}</span>{{end}}
+              </p>
+              {{if .Error}}<p class="mt-1.5 break-words text-critical-ink dark:text-critical">{{.Error}}</p>{{end}}
+              {{if .Bar}}
+              <div class="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-line dark:bg-line-dark">
+                {{range .Bar}}<div class="h-full {{.Class}}" style="width:{{.Width}}"{{if .Title}} title="{{.Title}}"{{end}}></div>{{end}}
+              </div>
+              {{end}}
+              {{if .Listed}}
+              <table class="mt-2 border-collapse">
+                <tbody>
+                  {{range .Listed}}
+                  <tr>
+                    <td class="py-0.5 pr-4 whitespace-nowrap">
+                      <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="size-2.5 rounded-sm {{.Class}}"></span>{{.Name}}</span>
+                    </td>
+                    <td class="py-0.5 pr-4 text-right whitespace-nowrap tabular-nums">{{if not .Moment}}{{.Length}}{{end}}</td>
+                    <td class="py-0.5 break-words text-muted dark:text-muted-dark">{{.Note}}{{if .Cut}}{{if .Note}} · {{end}}the try ended here{{end}}</td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+              {{end}}
+              {{if .Waited}}<p class="mt-2 text-muted dark:text-muted-dark">Then {{.Waited}} of waiting before the next try.</p>{{end}}
+            </div>
+            {{end}}
+          </div>
+        </details>
+        {{end}}
+      </div>
     </div>
   </section>
 
@@ -158,3 +224,11 @@
 </main>
 </body>
 </html>
+{{- /* How something ended, as a request's row and each of its tries show it. */ -}}
+{{- define "chip" -}}
+<span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium
+  {{if .Failed}}bg-critical/12 text-critical-ink dark:text-critical
+  {{else if .Warned}}bg-serious/15 text-serious-ink dark:text-serious
+  {{else}}bg-good/12 text-good-ink dark:text-good{{end}}">
+  <span aria-hidden="true">{{.Glyph}}</span> {{.Outcome}}</span>
+{{- end}}

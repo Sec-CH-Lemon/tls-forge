@@ -52,6 +52,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   request that got no answer included, uses the exit address `fetch` has
   already asked for, and its name is the last thing the run prints. A report
   that cannot be written fails the run with exit code 1.
+- Every row of the report opens to show what the request took: where it ended
+  up after a redirect, the file it was saved to, its error in full, and every
+  try that was made at it. A try gives how it ended, the connection it went
+  out on with what the handshake settled on, how long was waited before the
+  next one, and each thing it waited on with how long that took: the name
+  lookup, the dial, the handshake, the request, the wait for the first byte
+  and the answer. Each try is drawn as a bar on the length of the whole
+  request. A report holds the tries of the rows it can show, so a long run
+  does not keep them for every request.
 - `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
   Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
   opens: the settings, the profile, the exit-address lookup, and for each try
@@ -99,6 +108,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - The `batch` report is titled `tls-forge batch` rather than `tls-forge run`.
   When the list is gone through more than once it counts requests rather than
   URLs, and every row says which pass it was.
+- The rows of the report give `Started` without the year and no longer have an
+  `Ended` column: an opened row gives both moments to the millisecond. The
+  proxy and the exit address are said once above the rows when every request
+  went the same way, and stay on each row when they did not.
 - **`batch --repeat` is now `--retry`, and `--repeat` means something else.**
   The flag that asks again for a URL that did not load is `--retry`, still
   three by default. `--repeat N` now goes through the whole list `N` times, so

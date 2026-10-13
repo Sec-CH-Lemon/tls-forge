@@ -439,6 +439,30 @@ It is one file with nothing to fetch from anywhere else, so it opens offline
 and can be sent on as it is. A request that got no answer is reported like any
 other, which is usually the one the page is opened for.
 
+Every row opens, and inside it is everything that request took: each try, the
+connection it went out on, and what it waited on. A page that was refused once
+and then arrived reads like this:
+
+```
+Try 1 of 2   ! 503   84ms   19 B    new connection to 104.20.23.154:443 · TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2
+  dns        1.9ms   example.com → 104.20.23.154, 172.66.147.243
+  connect    6.4ms   104.20.23.154:443
+  tls         12ms   TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2
+  send        65µs
+  wait        63ms
+  receive    164µs
+Then 250ms of waiting before the next try.
+
+Try 2 of 2   ✓ 200   11ms   577 B   began 334ms into the request   connection already open to 104.20.23.154:443
+  send        66µs   on the connection already open to 104.20.23.154:443
+  wait        10ms
+  receive    162µs
+```
+
+Above each list the try is drawn as a bar on the length of the whole request,
+so the two tries and the wait between them are one picture. The second try
+looked nothing up and dialled nothing: the connection was still open.
+
 ## See what a run did
 
 ```bash

@@ -34,6 +34,18 @@
   --color-critical: #d03b3b;
   --color-critical-ink: #b12b2b;
 
+  /* What a try waited on, one shade for each step and none of them a status
+   * colour: a bar of these is about where the time went, not about how the try
+   * ended. Setting up the connection is the blues, lighter to darker as it
+   * gets nearer to being usable; the request and the answer are apart from
+   * those and from each other. Every bar is listed underneath by name. */
+  --color-step-dns: #9aa3b5;
+  --color-step-connect: #56b4e9;
+  --color-step-tls: #1f6fd6;
+  --color-step-send: #d78fc0;
+  --color-step-wait: #8e6bc8;
+  --color-step-receive: #19a79a;
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
@@ -44,5 +56,14 @@
 @layer base {
   :root {
     color-scheme: light dark;
+  }
+
+  /* A row opens on a chevron of its own, so the marker a browser draws is
+   * taken away, under both of the names browsers know it by. */
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
   }
 }

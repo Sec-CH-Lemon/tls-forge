@@ -803,7 +803,7 @@ func recording(t *testing.T, url, proxy string) (*brokenFile, *tracer, *attemptT
 	if err != nil {
 		t.Fatalf("openTrace: %v", err)
 	}
-	return file, trace, trace.main().attempt("GET", url, 1, 1, proxy)
+	return file, trace, trace.main().attempt("GET", url, 1, 1, proxy, nil)
 }
 
 // finished closes a trace and reads back what it holds.
@@ -975,7 +975,7 @@ func TestTraceOffCostsNothing(t *testing.T) {
 	lane.wearing(tlsforge.DefaultProfile)
 	lane.instant("nothing", "run", nil)
 	lane.since(lane.mark(), "nothing", "run", nil)
-	try := lane.attempt("GET", "https://example.test/", 1, 1, "")
+	try := lane.attempt("GET", "https://example.test/", 1, 1, "", nil)
 	if try != nil || try.hooks() != nil {
 		t.Error("a tracer that is off opened a try, or asked the client to report")
 	}

@@ -418,20 +418,22 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
 	// A try that is made again is said only to somebody who asked to hear about
 	// every request. Otherwise it is one more thing the count is not about.
-	policy := retrier{retries: *again.retry, note: notes.say}
+	policy := retrier{retries: *again.retry, note: notes.say, keep: *report != ""}
 
 	// Through the one client, so a second run finds the connection the first
 	// one opened and the cookies it was given: the request made again, the way
 	// reloading a page makes it again.
 	var kept []string
 	var records []result
+	var room tryBudget
 	var stopped error
 	unanswered := 0
 	for run := 1; run <= runs && stopped == nil; run++ {
 		counts.begin()
 		started := now()
-		res, attempts, err := policy.do(ctx, client, request, lane, run, *common.proxy)
+		res, attempts, tries, err := policy.do(ctx, client, request, lane, run, *common.proxy)
 		r := runResult(request.URL, *common.proxy, started, res, attempts, err)
+		r.Tries = tries
 		if runs > 1 {
 			r.Run = run
 		}
@@ -462,7 +464,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		if *report != "" {
 			// Only for a report. A request made a million times is otherwise
 			// counted and let go.
-			records = append(records, r)
+			records = append(records, room.trim(r))
 		}
 		if stopped == nil && err == nil {
 			stopped = show.response(res)

@@ -62,6 +62,9 @@ type retrier struct {
 	// note is told about a try that is about to be made again. Nil keeps quiet,
 	// which is what batch wants: it has a line per URL already.
 	note func(text string)
+	// keep asks for every try to be written down as it is made, with what it
+	// waited on, for a report to show.
+	keep bool
 }
 
 // do makes the request, and makes it again while the answer is not a 2xx.
@@ -70,25 +73,38 @@ type retrier struct {
 // reason to ask again is the same: whatever was wrong may have passed. The last
 // try's answer is the answer, whatever it was, so a run that never got its page
 // still hands back what it did get.
+//
+// The tries come back as well when they are being kept, and nil when not.
 func (p retrier) do(ctx context.Context, client *tlsforge.Client, req tlsforge.Request,
 	lane *traceLane, run int, proxy string,
-) (res *tlsforge.Response, attempts int, err error) {
+) (res *tlsforge.Response, attempts int, tries []try, err error) {
 	// One try, then as many again as asked for. The stopping comparison avoids
 	// forming retries+1, which overflows for the largest accepted int.
 	for attempt := 1; ; attempt++ {
 		attempts = attempt
-		shot := lane.attempt(req.Method, req.URL, run, attempt, proxy)
+		var log *try
+		if p.keep {
+			log = &try{}
+		}
+		shot := lane.attempt(req.Method, req.URL, run, attempt, proxy, log)
 		req.Context, req.Trace = ctx, shot.hooks()
 		res, err = client.Do(&req)
 		shot.end(res, err)
+		if log != nil {
+			// Copied once the try is over, when nothing is still writing to it.
+			tries = append(tries, *log)
+		}
 
 		if err == nil && res.OK() {
-			return res, attempts, nil
+			return res, attempts, tries, nil
 		}
 		if ctx.Err() != nil || attempt > p.retries {
-			return res, attempts, err
+			return res, attempts, tries, err
 		}
 		wait := retryWait(attempt)
+		if log != nil {
+			tries[len(tries)-1].Wait = wait
+		}
 		why := whyAgain(res, err, proxy)
 		lane.instant("retry", "retry", traceArgs{
 			"attempt": attempt, "reason": why, "wait_ms": wait.Milliseconds(),
@@ -98,7 +114,7 @@ func (p retrier) do(ctx context.Context, client *tlsforge.Client, req tlsforge.R
 				attempt, p.retries+1, why, preciseDuration(wait)))
 		}
 		if !pause(ctx, wait) {
-			return res, attempts, err
+			return res, attempts, tries, err
 		}
 	}
 }

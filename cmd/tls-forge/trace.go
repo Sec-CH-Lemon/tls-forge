@@ -283,21 +283,32 @@ func (l *traceLane) wearing(name string) {
 }
 
 // attempt opens one try at a URL: the bar everything the try does is drawn
-// inside.
-func (l *traceLane) attempt(method, url string, run, attempt int, proxy string) *attemptTrace {
-	if l == nil {
+// inside, and the record of it when somebody is keeping one.
+//
+// Either is enough to open it. A run that is neither traced nor reported gets
+// nil, and the client is not asked to report anything.
+func (l *traceLane) attempt(method, url string, run, attempt int, proxy string, log *try,
+) *attemptTrace {
+	if l == nil && log == nil {
 		return nil
 	}
-	if method == "" {
-		method = "GET"
+	a := &attemptTrace{lane: l, log: log, proxy: proxy, secure: isHTTPS(url)}
+	a.opened = a.at()
+	if log != nil {
+		log.Began = now()
 	}
-	about := traceArgs{"url": safeURL(url), "run": run, "attempt": attempt}
-	if proxy != "" {
-		about["proxy"] = redactProxy(proxy)
+	if l != nil {
+		if method == "" {
+			method = "GET"
+		}
+		about := traceArgs{"url": safeURL(url), "run": run, "attempt": attempt}
+		if proxy != "" {
+			about["proxy"] = redactProxy(proxy)
+		}
+		l.t.emit(traceEvent{Phase: phaseBegin, TID: l.tid, TS: a.opened, Cat: "request",
+			Name: method + " " + safeURL(url), Args: about})
 	}
-	l.t.emit(traceEvent{Phase: phaseBegin, TID: l.tid, TS: l.t.at(), Cat: "request",
-		Name: method + " " + safeURL(url), Args: about})
-	return &attemptTrace{lane: l, proxy: proxy, secure: isHTTPS(url)}
+	return a
 }
 
 // attemptTrace turns what the client reports about one try into the steps the
@@ -307,9 +318,16 @@ func (l *traceLane) attempt(method, url string, run, attempt int, proxy string) 
 // lengths, so each moment ends the step in progress and usually begins the
 // next, and a step is drawn when it ends. Only one is ever in progress. Steps
 // drawn side by side would overlap, and a viewer drops what overlaps.
+//
+// The steps go to the trace, to the record a report is written from, or to
+// both. One reading of what the client said rather than two, so that the
+// report and the trace of a run cannot tell it differently.
 type attemptTrace struct {
 	lane  *traceLane
+	log   *try
 	proxy string
+	// opened is when the try began, on the clock its steps are measured by.
+	opened int64
 
 	mu sync.Mutex
 	// over is set when the try has ended. A hook can still be called after
@@ -342,6 +360,16 @@ func (a *attemptTrace) hooks() *tlsforge.Trace {
 	}
 }
 
+// at is the moment something is filed under: the trace's own clock when there
+// is a trace, so that the report and the trace agree to the microsecond, and
+// the wall clock when there is not.
+func (a *attemptTrace) at() int64 {
+	if a.lane != nil {
+		return a.lane.t.at()
+	}
+	return now().UnixMicro()
+}
+
 // when runs one report's worth of bookkeeping at the moment it arrived, unless
 // the try is over.
 func (a *attemptTrace) when(do func(at int64)) {
@@ -350,7 +378,7 @@ func (a *attemptTrace) when(do func(at int64)) {
 	if a.over {
 		return
 	}
-	do(a.lane.t.at())
+	do(a.at())
 }
 
 // begin starts a step at a moment already taken.
@@ -366,7 +394,12 @@ func (a *attemptTrace) finish(at int64, more traceArgs) {
 	for key, value := range more {
 		a.about[key] = value
 	}
-	a.lane.span(a.step, a.category, a.since, at, a.about)
+	if a.lane != nil {
+		a.lane.span(a.step, a.category, a.since, at, a.about)
+	}
+	if a.log != nil {
+		a.log.keep(a.step, micros(a.since-a.opened), micros(at-a.since), a.about)
+	}
 	a.step = ""
 }
 
@@ -438,6 +471,9 @@ func (a *attemptTrace) connectDone(_, addr string, err error) {
 
 func (a *attemptTrace) gotConn(conn tlsforge.ConnInfo) {
 	a.when(func(at int64) {
+		if a.log != nil {
+			a.log.Conn, a.log.Connected = conn, true
+		}
 		// What the handshake settled on belongs to the handshake when there was
 		// one. It is said again on the request, because a connection that was
 		// already open had no handshake to say it on.
@@ -475,9 +511,14 @@ func (a *attemptTrace) firstByte() {
 func (a *attemptTrace) redirect(status int, location string) {
 	a.when(func(at int64) {
 		a.finish(at, traceArgs{"status": status})
-		a.lane.t.emit(traceEvent{Phase: phaseInstant, TID: a.lane.tid, TS: at, Cat: "http",
-			Name: "redirect", Scope: "t",
-			Args: traceArgs{"status": status, "location": safeURL(location)}})
+		if a.lane != nil {
+			a.lane.t.emit(traceEvent{Phase: phaseInstant, TID: a.lane.tid, TS: at, Cat: "http",
+				Name: "redirect", Scope: "t",
+				Args: traceArgs{"status": status, "location": safeURL(location)}})
+		}
+		if a.log != nil {
+			a.log.redirected(micros(at-a.opened), status, safeURL(location))
+		}
 		a.secure = isHTTPS(location)
 	})
 }
@@ -498,11 +539,20 @@ func (a *attemptTrace) end(res *tlsforge.Response, err error) {
 	if err == nil {
 		cut = traceArgs{"status": res.Status}
 	}
-	a.finish(a.lane.t.at(), cut)
+	at := a.at()
+	a.finish(at, cut)
 	a.over = true
-	a.lane.t.emit(traceEvent{Phase: phaseEnd, TID: a.lane.tid, TS: a.lane.t.at(),
-		Args: outcome(res, err, a.proxy)})
+	if a.lane != nil {
+		a.lane.t.emit(traceEvent{Phase: phaseEnd, TID: a.lane.tid, TS: a.lane.t.at(),
+			Args: outcome(res, err, a.proxy)})
+	}
+	if a.log != nil {
+		a.log.ended(micros(at-a.opened), res, err, a.proxy)
+	}
 }
+
+// micros is a length on the trace's clock as a duration.
+func micros(n int64) time.Duration { return time.Duration(n) * time.Microsecond }
 
 // connArgs is a connection as the trace describes it.
 func connArgs(conn tlsforge.ConnInfo) traceArgs {
