@@ -132,6 +132,7 @@ response, err := client.Do(&tlsforge.Request{
 | `Header` | Ordered headers layered over the profile. Existing names keep their original position; new names are appended. |
 | `Body` | Raw request bytes. |
 | `Cookies` | Cookies added to the jar before this request. |
+| `Trace` | Optional hooks told each step the request takes on the wire; see [Tracing a request](#tracing-a-request). |
 
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 transport deadline. A request ends when either limit is reached.
@@ -174,6 +175,54 @@ if errors.Is(err, tlsforge.ErrResponseTooLarge) {
 
 Other request, DNS, proxy, TLS, context and parsing failures are returned as
 wrapped errors with a `tlsforge:` prefix.
+
+## Tracing a request
+
+A response says how a request ended. `Request.Trace` reports how it got there:
+whether a name was looked up or a connection was already open, which address
+answered, what the handshake settled on, and the header fields in the order
+they were written.
+
+```go
+response, err := client.Do(&tlsforge.Request{
+	URL: "https://example.com/",
+	Trace: &tlsforge.Trace{
+		GotConn: func(conn tlsforge.ConnInfo) {
+			log.Printf("%s %s reused=%v via %s",
+				conn.TLSVersion, conn.ALPN, conn.Reused, conn.RemoteAddr)
+		},
+		WroteRequest: func(sent tlsforge.Header, err error) {
+			log.Printf("wrote %v", sent.Names())
+		},
+		Redirect: func(status int, location string) {
+			log.Printf("%d -> %s", status, location)
+		},
+	},
+})
+```
+
+| `Trace` hook | Called |
+|---|---|
+| `DNSStart(host)`, `DNSDone(addrs, err)` | Around a name lookup. A literal address or a reused connection has neither. |
+| `ConnectStart(network, addr)`, `ConnectDone(network, addr, err)` | Around each TCP dial, which goes to the proxy when one is configured. A host with several addresses is dialled more than once, and the dials can overlap. |
+| `GotConn(conn)` | When a connection is ready to carry the request, after its TLS handshake if it has one. |
+| `WroteRequest(sent, err)` | When the request has been written. `sent` holds the fields in wire order with their wire spelling, including HTTP/2 pseudo-headers and the `Cookie` header added from the jar. |
+| `FirstByte()` | When the first byte of the response arrives. |
+| `Redirect(status, location)` | When a redirect is about to be followed. |
+
+| `ConnInfo` field | Meaning |
+|---|---|
+| `Reused` | The connection had already carried a request, so nothing was looked up, dialled or negotiated for this one. |
+| `RemoteAddr` | The other end of the socket; the proxy's address when a proxy is in use. |
+| `TLSVersion`, `CipherSuite` | Names of what the handshake negotiated, such as `TLS 1.3` and `TLS_AES_128_GCM_SHA256`. Empty over plain HTTP. |
+| `ALPN` | Negotiated protocol, `h2` or `http/1.1`. Empty over plain HTTP or when the server negotiated none. |
+| `Resumed` | The handshake resumed an earlier TLS session. |
+
+Every hook is optional. Hooks run on the goroutines doing the work, so they can
+be called concurrently and must not block; one can also arrive after `Do` has
+returned, when a dial that lost a race finishes late. A redirected request calls
+the hooks again for each hop. Header values are passed as sent, credentials
+included, so redact them before logging.
 
 ## Ordered headers
 

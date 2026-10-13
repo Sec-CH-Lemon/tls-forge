@@ -47,7 +47,6 @@ import (
 	"github.com/bogdanfinn/fhttp/cookiejar"
 	fhttptrace "github.com/bogdanfinn/fhttp/httptrace"
 	tls_client "github.com/bogdanfinn/tls-client"
-	utls "github.com/bogdanfinn/utls"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -117,6 +116,11 @@ type Request struct {
 	// set earlier in the session would silently vanish from this request — which
 	// no real browser would ever do.
 	Cookies []Cookie
+	// Trace, when set, is told each step this request takes on the wire.
+	//
+	// On the request rather than on the client, because a client is shared: two
+	// requests through one connection are still two things to follow.
+	Trace *Trace
 }
 
 // Cookie is one cookie to seed the jar with.
@@ -245,8 +249,8 @@ func New(opts ...Option) (*Client, error) {
 		// Redirects are new requests. Their Context carries both layouts, but the
 		// GotConn hook must close over the new request rather than the first hop.
 		// For every profile and not only those with an HTTP/1.1 layout to
-		// prepare, so that the chain is bounded the same way whichever one is
-		// worn.
+		// prepare, so that the chain is bounded and traced the same way whichever
+		// one is worn.
 		options = append(options, tls_client.WithCustomRedirectFunc(followRedirect))
 	}
 	for _, opt := range cfg.extra {
@@ -326,6 +330,9 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	}
 	if req.Context != nil {
 		inner = inner.WithContext(req.Context)
+	}
+	if req.Trace != nil {
+		inner = inner.WithContext(req.Trace.attach(inner.Context()))
 	}
 
 	// The URL fhttp already parsed, rather than a second parse of the same
@@ -496,11 +503,16 @@ func withProtocolLayouts(req *fhttp.Request, layouts *protocolLayouts) *fhttp.Re
 // requests in five seconds.
 const maxRedirects = 10
 
-// followRedirect is the policy for every redirect: where the chain stops, and
-// which header layout the next request wears.
+// followRedirect is the policy for every redirect: where the chain stops, who
+// is told about the hop, and which header layout the next request wears.
 func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	if len(via) >= maxRedirects {
 		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	}
+	if t, _ := req.Context().Value(traceKey{}).(*Trace); t != nil {
+		// The transport sets Response on every request it builds to follow a
+		// redirect, to the response that sent it there.
+		t.redirect(req.Response.StatusCode, req.URL.String())
 	}
 	return prepareRedirectLayout(req, via)
 }
@@ -639,9 +651,6 @@ func setHeader(header fhttp.Header, lower string, values []string) {
 func connectionUsesHTTP1(target *url.URL, conn net.Conn) bool {
 	if target.Scheme == "http" {
 		return true
-	}
-	type connectionStater interface {
-		ConnectionState() utls.ConnectionState
 	}
 	state, ok := conn.(connectionStater)
 	if !ok {

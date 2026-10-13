@@ -18,6 +18,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   through every SDK, runs the published amd64 and arm64 container images, and
   installs and tests the current stable Homebrew formula. It is a separate,
   manually dispatched check for any chosen version.
+- `Request.Trace` in the Go package: optional hooks for the name lookup, each
+  dial, the connection and what its handshake negotiated, the header fields in
+  wire order, the first response byte and every redirect followed.
 
 ### Security
 
