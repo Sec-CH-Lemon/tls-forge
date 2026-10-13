@@ -15,7 +15,7 @@ import (
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
-// How hard a run tries.
+// How hard a run tries, and where it writes down what trying looked like.
 //
 // Two different things. Asking again because the answer was wrong is a retry;
 // asking again because once was never the plan is a repeat. Batch used to call
@@ -26,6 +26,7 @@ import (
 type runFlags struct {
 	retry  *int
 	repeat *int
+	trace  *string
 }
 
 // addRunFlags registers them. The number of retries a command makes when
@@ -36,6 +37,8 @@ func addRunFlags(fs *pflag.FlagSet, retries int) runFlags {
 		retry: fs.Int("retry", retries,
 			"times to ask again when the answer is not a 2xx, or does not come"),
 		repeat: fs.Int("repeat", 1, "times to make each request"),
+		trace: fs.String("trace", "",
+			"write every step of the run here as Trace Event JSON, for ui.perfetto.dev"),
 	}
 }
 
@@ -68,14 +71,16 @@ type retrier struct {
 // try's answer is the answer, whatever it was, so a run that never got its page
 // still hands back what it did get.
 func (p retrier) do(ctx context.Context, client *tlsforge.Client, req tlsforge.Request,
-	proxy string,
+	lane *traceLane, run int, proxy string,
 ) (res *tlsforge.Response, attempts int, err error) {
 	// One try, then as many again as asked for. The stopping comparison avoids
 	// forming retries+1, which overflows for the largest accepted int.
 	for attempt := 1; ; attempt++ {
 		attempts = attempt
-		req.Context = ctx
+		shot := lane.attempt(req.Method, req.URL, run, attempt, proxy)
+		req.Context, req.Trace = ctx, shot.hooks()
 		res, err = client.Do(&req)
+		shot.end(res, err)
 
 		if err == nil && res.OK() {
 			return res, attempts, nil
@@ -84,9 +89,13 @@ func (p retrier) do(ctx context.Context, client *tlsforge.Client, req tlsforge.R
 			return res, attempts, err
 		}
 		wait := retryWait(attempt)
+		why := whyAgain(res, err, proxy)
+		lane.instant("retry", "retry", traceArgs{
+			"attempt": attempt, "reason": why, "wait_ms": wait.Milliseconds(),
+		})
 		if p.note != nil {
 			p.note(fmt.Sprintf("  try %d of %d: %s, trying again in %s",
-				attempt, p.retries+1, whyAgain(res, err, proxy), preciseDuration(wait)))
+				attempt, p.retries+1, why, preciseDuration(wait)))
 		}
 		if !pause(ctx, wait) {
 			return res, attempts, err

@@ -240,6 +240,7 @@ Usage: `tls-forge fetch [flags] <url>`
 | `-H`, `--header "Name: value"` | Add or override an ordered request header; repeatable |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 | `--repeat <n>` | Make the request `n` times; default `1` |
+| `--trace <file>` | Write every step of the run as Trace Event JSON |
 
 Before the request, `fetch` asks a public service which address it comes out
 of, through the same proxy and with the same profile. No cookie is sent with the
@@ -293,6 +294,57 @@ gets a line on standard error:
 `fetch` exits non-zero if any run got no response. The two flags combine:
 `--retry` applies to every run.
 
+#### Tracing a run
+
+```bash
+tls-forge fetch --trace run.json https://example.com/
+tls-forge batch --input urls.csv --trace run.json
+```
+
+`--trace` records what a run did, step by step, in the Trace Event JSON format.
+Open the file at [ui.perfetto.dev](https://ui.perfetto.dev/) or in
+`chrome://tracing` to see it as a timeline: one row for the command, in `batch`
+one more row per worker, a bar for every try at a URL, and inside it a bar for
+each thing the try waited on.
+
+| In the trace | Meaning |
+|---|---|
+| `fetch` or `batch` | The whole run, with its settings; it ends with the error, if there was one |
+| `profile`, `exit-ip`, `cookies loaded`, `cookies saved`, `summary` | What the run was wearing, where it came out, and the session and totals it handled |
+| `GET <url>` | One try, with its run and attempt number. It ends with the status, size, final URL and response headers, or with the error |
+| `dns`, `connect` | The name lookup and the TCP dial, with every address tried and why any of them failed |
+| `tls`, or `proxy+tls` through a proxy | From the dial to a usable connection, with the TLS version, cipher and ALPN it settled on |
+| `send` | Writing the request: the header fields in wire order, and whether the connection was reused |
+| `wait`, `receive` | Until the first byte of the response, and from there to its end |
+| `redirect`, `retry`, `saved` | A redirect being followed, a try about to be made again and why, and a body written to a file |
+
+A step that was still in progress when a try failed is marked `unfinished`,
+which shows where the time went: a request that timed out waiting for the
+server ends in an unfinished `wait`. An answer that is not a 2xx keeps the first
+512 bytes of its body in the trace, because a later try replaces it everywhere
+else.
+
+The file holds one event per line, so it can be searched without a viewer:
+
+```bash
+grep '"error"' run.json
+jq -c '.[] | select(.name == "retry") | .args' run.json
+jq -r '.[] | select(.ph == "X") | "\(.name)\t\(.dur)"' run.json
+```
+
+Times are microseconds: `ts` since the Unix epoch and `dur` as a length. Events
+are written as they happen, so a run that is interrupted leaves a trace without
+its closing bracket. The format allows that: Perfetto opens such a file and
+shows the request that was in flight as unfinished. The file is replaced on
+every run and created with mode `0600`. Each try adds about two kilobytes,
+most of it the header fields of the request and the response.
+
+A trace is meant to be kept and passed on, so it leaves out what a session is
+worth. Proxy passwords, cookie values, `Authorization` credentials and the
+values of headers whose names contain `token`, `secret`, `password` or `key`
+are written as `***`; cookie names, cookie attributes and the authorization
+scheme are kept. URLs are recorded in full, including their query strings.
+
 ### `batch`
 
 Fetch a list concurrently and emit one JSON object per URL. Results go to
@@ -326,6 +378,7 @@ Usage: `tls-forge batch [flags] [urls...]`
 | `-d`, `--body-dir <dir>` | Store response bodies separately and reference their paths |
 | `--retry <n>` | Ask again up to `n` more times when a URL's answer is not a 2xx, or does not come; default `3` |
 | `--repeat <n>` | Go through the whole list `n` times; default `1` |
+| `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
 | `-v`, `--verbose` | Print one status line when each request finishes |
 | `--progress <mode>` | Live stderr status: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report <path>` | Write a self-contained HTML report; a directory gets a timestamped filename |

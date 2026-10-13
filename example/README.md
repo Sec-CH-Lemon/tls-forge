@@ -333,6 +333,59 @@ many times, and every line of the output says which pass it was:
 {"url":"https://example.com/","status":200,"file":"bodies/0f115db062b7c0dd-2.html","run":2,"attempts":1}
 ```
 
+## See what a run did
+
+```bash
+../bin/tls-forge fetch --repeat 3 --trace run.json https://example.com/
+```
+
+`--trace` writes down every step, in the Trace Event JSON format. Drop the file
+onto [ui.perfetto.dev](https://ui.perfetto.dev/) and the run is a timeline: a
+bar per request, and inside it a bar for the lookup, the dial, the handshake,
+the request, the wait and the answer. A batch gets a row per worker.
+
+It is one event to a line, so it also answers without a viewer. Where the time
+of each run went, in microseconds:
+
+```bash
+jq -r '.[] | select(.ph == "X") | "\(.name)\t\(.dur)"' run.json
+```
+
+```
+exit-ip	42618
+dns	14506
+connect	7468
+tls	15689
+send	97
+wait	18257
+receive	212
+send	93
+wait	13932
+receive	177
+```
+
+Which connection each run went out on:
+
+```bash
+jq -r '.[] | select(.name == "send") | .args | "\(.reused) \(.alpn) \(.tls) \(.remote)"' run.json
+```
+
+```
+false h2 TLS 1.3 104.20.23.154:443
+true h2 TLS 1.3 104.20.23.154:443
+true h2 TLS 1.3 104.20.23.154:443
+```
+
+And whatever went wrong, which is what the file is usually opened for:
+
+```bash
+grep -E '"error"|"name":"retry"' run.json
+```
+
+A trace keeps the names of cookies and leaves out their values, and does the
+same for proxy passwords and `Authorization` headers, so it can be attached to
+a bug report as it is.
+
 ## Everything at once
 
 ```bash
@@ -341,13 +394,14 @@ many times, and every line of the output says which pass it was:
   --cookies cookies.json --cookie-set warm-eu \
   --save-cookies session.json \
   -c 8 --retry 3 -v \
+  --trace run.json \
   -o results.jsonl -R reports/
 ```
 
 A list, a warmed session to start from, the session written back when it is
 done, eight pages at a time, three further tries for anything that does not
-come back as a page, a line per request, the results as JSON lines and a
-report to look at.
+come back as a page, a line per request, a trace of every step, the results as
+JSON lines and a report to look at.
 
 ## Where to read more
 

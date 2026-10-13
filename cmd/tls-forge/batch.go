@@ -187,7 +187,7 @@ func warnAboutConcurrency(errOut *printer, workers int) {
 		"be what you want.")
 }
 
-func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
+func runBatch(ctx context.Context, args []string, out, errOut *printer) (runErr error) {
 	fs := newFlagSet("batch", out)
 	common := addClientFlags(fs)
 	input := fs.StringP("input", "i", "", "file of URLs (default: standard input)")
@@ -249,6 +249,23 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 	requests := len(jobs) * *again.repeat
 
+	about := traceArgs{
+		"urls": len(jobs), "concurrency": *workers, "timeout": common.timeout.String(),
+		"retry": *again.retry, "repeat": *again.repeat,
+	}
+	if *common.proxy != "" {
+		about["proxy"] = redactProxy(*common.proxy)
+	}
+	trace, err := openTrace(*again.trace, "batch", *common.proxy, about)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := trace.close(runErr); err != nil {
+			runErr = errors.Join(runErr, err)
+		}
+	}()
+
 	if *bodyDir != "" {
 		if err := os.MkdirAll(*bodyDir, 0o755); err != nil {
 			return fmt.Errorf("batch: %w", err)
@@ -269,6 +286,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	// Once for the run, before the pool: it builds a client per proxy and would
 	// otherwise say the same line once per proxy.
 	common.wear(errOut)
+	trace.main().wearing(*common.profile)
 	clients := newPool(common, *common.proxy)
 	defer clients.close()
 
@@ -287,10 +305,10 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	// lock whether or not there is a status line to work around.
 	notes := &stderrLog{out: errOut, line: line, on: *verbose}
 
-	failures, runErr := runJobs(ctx, jobs, batch{
+	failures, fetchErr := runJobs(ctx, jobs, batch{
 		clients: clients, workers: *workers, sink: sink,
 		retry: *again.retry, repeat: *again.repeat, bodyDir: *bodyDir,
-		counts: counts, notes: notes,
+		counts: counts, notes: notes, trace: trace,
 	}, &records)
 
 	// Closed here rather than deferred, so the final counts land before the
@@ -300,11 +318,11 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	}
 	if outputFile != nil {
 		if err := closeBatchOutput(outputFile); err != nil {
-			runErr = errors.Join(runErr, fmt.Errorf("batch: closing output: %w", err))
+			fetchErr = errors.Join(fetchErr, fmt.Errorf("batch: closing output: %w", err))
 		}
 	}
-	if runErr != nil {
-		return runErr
+	if fetchErr != nil {
+		return fetchErr
 	}
 
 	// One lookup per proxy, not per URL: the address belongs to the proxy, and
@@ -313,7 +331,7 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 	if *report != "" && *reportIP {
 		errOut.printf("asking %s which address each proxy comes out of…\n", askedOf())
 		var skipped int
-		exits, skipped = lookupExits(clients, records)
+		exits, skipped = lookupExits(clients, records, trace.main())
 		if skipped > 0 {
 			errOut.printf("  %d further proxies were not asked about, at %d per run\n",
 				skipped, exitLookupLimit)
@@ -326,12 +344,18 @@ func runBatch(ctx context.Context, args []string, out, errOut *printer) error {
 		return err
 	} else if saved > 0 {
 		errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
+		trace.main().instant("cookies saved", "cookies",
+			traceArgs{"file": *common.saveCookies, "cookies": saved})
 	}
 
 	elapsed := now().Sub(counts.started)
 	totals := summarise(records, elapsed, exits)
 	totals.Output = *output
 	totals.Passes = *again.repeat
+	trace.main().instant("summary", "run", traceArgs{
+		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
+		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,
+	})
 	if *report != "" {
 		path := reportPath(*report, now())
 		if err := writeReport(path, records, totals, exits); err != nil {
@@ -537,6 +561,7 @@ type batch struct {
 	bodyDir string
 	counts  *progress
 	notes   *stderrLog
+	trace   *tracer
 }
 
 // runJobs fetches the list and returns how many entries failed. A failure is
@@ -552,13 +577,16 @@ func runJobs(ctx context.Context, jobs []job, b batch, records *[]result,
 	encoder := json.NewEncoder(b.sink)
 	var wg sync.WaitGroup
 
-	for range b.workers {
+	for worker := 1; worker <= b.workers; worker++ {
+		// A row of the trace per worker: one worker makes one request at a time,
+		// so what is drawn on its row never overlaps.
+		lane := b.trace.lane(mainLane+worker, "worker "+strconv.Itoa(worker))
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for j := range queue {
 				b.counts.begin()
-				r := b.fetchOne(runCtx, j)
+				r := b.fetchOne(runCtx, j, lane)
 				b.counts.finish(r)
 				b.notes.say(verboseLine(r))
 				writeMu.Lock()
@@ -628,7 +656,7 @@ var exitLookupLimit = 50
 //
 // Returns how many proxies were left unasked, so the caller can say so rather
 // than let the report imply that the addresses it is missing were unavailable.
-func lookupExits(clients *pool, records []result) (map[string]egress, int) {
+func lookupExits(clients *pool, records []result, lane *traceLane) (map[string]egress, int) {
 	seen := map[string]bool{}
 	exits := map[string]egress{}
 	skipped := 0
@@ -645,14 +673,17 @@ func lookupExits(clients *pool, records []result) (map[string]egress, int) {
 		// the report says "not looked up" rather than failing the run over it.
 		// Asked with the run's flags rather than through its clients: those hold
 		// the session, and an address service is not who the session is for.
-		if found, err := lookupExit(context.Background(), clients.flags, r.Proxy); err == nil {
+		asked := lane.mark()
+		found, err := lookupExit(context.Background(), clients.flags, r.Proxy)
+		lane.since(asked, "exit-ip", "net", exitArgs(r.Proxy, found, err))
+		if err == nil {
 			exits[r.Proxy] = found
 		}
 	}
 	return exits, skipped
 }
 
-func (b batch) fetchOne(ctx context.Context, j job) result {
+func (b batch) fetchOne(ctx context.Context, j job, lane *traceLane) result {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
 	r := result{URL: j.URL, Proxy: proxy, Started: started}
@@ -666,10 +697,12 @@ func (b batch) fetchOne(ctx context.Context, j job) result {
 	if err != nil {
 		r.setError(err)
 		r.finish(started)
+		lane.instant("error", "request", traceArgs{"url": safeURL(j.URL), "error": r.Error})
 		return r
 	}
 
-	res, attempts, err := retrier{retries: b.retry}.do(ctx, client, tlsforge.Request{URL: j.URL}, proxy)
+	res, attempts, err := retrier{retries: b.retry}.do(ctx, client,
+		tlsforge.Request{URL: j.URL}, lane, j.run, proxy)
 	r.Attempts = attempts
 	r.finish(started)
 
@@ -705,6 +738,7 @@ func (b batch) fetchOne(ctx context.Context, j job) result {
 		r.setError(err)
 		return r
 	}
+	lane.instant("saved", "file", traceArgs{"file": path, "bytes": len(res.Body)})
 	r.File = path
 	return r
 }

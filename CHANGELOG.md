@@ -31,6 +31,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   standard output. `batch` goes through the whole list once per pass, adds the
   pass to each JSON line as `run`, and gives each pass its own `--body-dir`
   file. Lines of a single pass are unchanged.
+- `--trace FILE`, for `fetch` and `batch`, records every step of a run in the
+  Trace Event JSON format that [ui.perfetto.dev](https://ui.perfetto.dev/)
+  opens: the settings, the profile, the exit-address lookup, and for each try
+  the name lookup, the dial, the TLS handshake, the request as written, the
+  wait, the response, redirects and the reason for a retry. `batch` draws a row
+  per worker. The file is one event per line, written as the run goes so that
+  an interrupted run still leaves a readable trace, created with mode `0600`
+  and replaced on every run. Proxy passwords, cookie values and
+  `Authorization` credentials are written as `***`.
 - `Request.Trace` in the Go package: optional hooks for the name lookup, each
   dial, the connection and what its handshake negotiated, the header fields in
   wire order, the first response byte and every redirect followed.

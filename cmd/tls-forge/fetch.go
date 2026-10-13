@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -316,12 +317,33 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		return err
 	}
 
+	about := traceArgs{
+		"url": safeURL(fs.Arg(0)), "method": *method, "timeout": common.timeout.String(),
+		"retry": *again.retry, "repeat": *again.repeat,
+	}
+	if *common.proxy != "" {
+		about["proxy"] = redactProxy(*common.proxy)
+	}
+	trace, err := openTrace(*again.trace, "fetch", *common.proxy, about)
+	if err != nil {
+		return err
+	}
+	// Registered first so that it runs last: saving the session is a step of the
+	// run, and belongs in the trace of it.
+	defer func() {
+		if err := trace.close(runErr); err != nil {
+			runErr = errors.Join(runErr, err)
+		}
+	}()
+	lane := trace.main()
+
 	// Left open, because the address the request comes out of is the report's
 	// last line, and nobody is asked for it until the cookies and the proxy have
 	// made a client: a run that cannot be made has no address to report. Closed
 	// on every way out, so a run that stops before then still ends it.
 	identity := common.wearOpen(errOut)
 	defer identity.close()
+	lane.wearing(*common.profile)
 
 	warmed, from, err := common.warmedCookies()
 	if err != nil {
@@ -337,12 +359,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// about to use, so the answer is for that identity. Not with its cookies:
 	// the session is for the site being fetched, not for whoever is asked about
 	// the address.
+	asked := lane.mark()
 	found, lookupErr := lookupExit(ctx, common, *common.proxy)
+	lane.since(asked, "exit-ip", "net", exitArgs(*common.proxy, found, lookupErr))
 	identity.field("exit-ip", describeExit(found, lookupErr, *common.proxy))
 	identity.close()
 
 	if from != "" {
 		errOut.printf("warmed from %s\n", from)
+		lane.instant("cookies loaded", "cookies", traceArgs{"from": from})
 	}
 
 	defer func() {
@@ -355,6 +380,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			}
 		} else if saved > 0 {
 			errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
+			lane.instant("cookies saved", "cookies",
+				traceArgs{"file": *common.saveCookies, "cookies": saved})
 		}
 	}()
 
@@ -374,7 +401,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	runs, unanswered := *again.repeat, 0
 	for run := 1; run <= runs; run++ {
 		started := now()
-		res, attempts, err := policy.do(ctx, client, request, *common.proxy)
+		res, attempts, err := policy.do(ctx, client, request, lane, run, *common.proxy)
 		if runs > 1 {
 			errOut.println(runLine(run, runs, res, err, attempts, now().Sub(started), *common.proxy))
 		}
@@ -395,7 +422,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		if path != "" && runs > 1 {
 			path = numbered(path, run)
 		}
-		if err := deliver(out, res, *showHeaders, path); err != nil {
+		if err := deliver(out, lane, res, *showHeaders, path); err != nil {
 			return err
 		}
 	}
@@ -410,7 +437,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 // deliver puts one response where it was asked for: the status and headers
 // first when they were wanted, then the body to the file named or to standard
 // output.
-func deliver(out *printer, res *tlsforge.Response, showHeaders bool, path string) error {
+func deliver(out *printer, lane *traceLane, res *tlsforge.Response, showHeaders bool, path string) error {
 	if showHeaders {
 		out.printf("%d %s\n", res.Status, res.URL)
 		names := make([]string, 0, len(res.Header))
@@ -428,6 +455,7 @@ func deliver(out *printer, res *tlsforge.Response, showHeaders bool, path string
 		if err := os.WriteFile(path, res.Body, 0o644); err != nil {
 			return err
 		}
+		lane.instant("saved", "file", traceArgs{"file": path, "bytes": len(res.Body)})
 		out.printf("wrote %d bytes to %s\n", len(res.Body), path)
 		return nil
 	}

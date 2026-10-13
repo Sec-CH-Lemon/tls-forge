@@ -866,7 +866,7 @@ func TestLookupExitsStopsAskingAfterAWhile(t *testing.T) {
 		records = append(records, result{URL: "https://x/", Proxy: fmt.Sprintf("http://p%d:8080", i)})
 	}
 
-	exits, skipped := lookupExits(clients, records)
+	exits, skipped := lookupExits(clients, records, nil)
 	if skipped != 7 {
 		t.Errorf("skipped = %d, want 7", skipped)
 	}
