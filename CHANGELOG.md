@@ -60,6 +60,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A chain of redirects ends after ten, for every profile.** With a profile
+  that carries an HTTP/1.1 layout, which includes every shipped Chrome profile,
+  redirects were followed without limit: the policy that prepares the next
+  request's headers replaced the transport's own check instead of adding to it.
+  Two pages redirecting to each other were requested until the timeout, and a
+  local server measured 54,600 requests in five seconds. The eleventh redirect
+  now fails the request with `stopped after 10 redirects`, as it already did
+  for catalogue profiles.
 - Stable releases fail visibly when the Homebrew tap credential is absent,
   instead of silently succeeding without publishing a formula. The published
   E2E check now diagnoses a missing tap formula directly.

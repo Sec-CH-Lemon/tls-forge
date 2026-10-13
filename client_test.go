@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -773,6 +774,46 @@ func TestRedirectChoosesTheLayoutOfTheNextConnection(t *testing.T) {
 		if strings.HasPrefix(lower, "authorization:") || strings.HasPrefix(lower, "cookie:") {
 			t.Errorf("cross-origin redirect leaked a credential: %q", line)
 		}
+	}
+}
+
+// hopServer redirects /hop to /landed, and /loop to itself for ever.
+func hopServer(t *testing.T) (*httptest.Server, *atomic.Int32) {
+	t.Helper()
+	var requests atomic.Int32
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		switch r.URL.Path {
+		case "/hop":
+			http.Redirect(w, r, "/landed", http.StatusFound)
+		case "/loop":
+			http.Redirect(w, r, "/loop", http.StatusFound)
+		default:
+			_, _ = w.Write([]byte("landed"))
+		}
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	t.Cleanup(server.Close)
+	return server, &requests
+}
+
+func TestRedirectsStopAfterTen(t *testing.T) {
+	// The default profile carries an HTTP/1.1 layout and the catalogue one does
+	// not, and that used to decide whether a chain of redirects ever ended.
+	for _, name := range []string{DefaultProfile, "chrome_133"} {
+		t.Run(name, func(t *testing.T) {
+			server, requests := hopServer(t)
+			client := newTestClient(t, WithProfile(name), WithTimeout(10*time.Second))
+
+			_, err := client.Get(server.URL + "/loop")
+			if err == nil || !strings.Contains(err.Error(), "stopped after 10 redirects") {
+				t.Fatalf("error = %v, want the redirect limit", err)
+			}
+			if got := requests.Load(); got != maxRedirects {
+				t.Errorf("the server was asked %d times, want %d", got, maxRedirects)
+			}
+		})
 	}
 }
 

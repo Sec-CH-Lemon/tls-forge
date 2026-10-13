@@ -77,7 +77,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithCookies(cookies)` | Seed the client's jar with a warmed session. Cookies are matched to each request URL before being inserted. |
 | `WithoutCookieJar()` | Disable cookie storage. Use this when another layer, such as an intercepting proxy, owns the `Cookie` header. |
 | `WithCookieJar(jar)` | Supply an `fhttp.CookieJar`, for example to share or persist a jar. |
-| `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default. |
+| `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default, up to ten in a row; the eleventh fails the request with `stopped after 10 redirects`. |
 | `WithInsecureSkipVerify()` | Disable upstream certificate verification. Intended for controlled local test endpoints. |
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
 | `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |

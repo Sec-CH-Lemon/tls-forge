@@ -241,10 +241,13 @@ func New(opts ...Option) (*Client, error) {
 	if cfg.insecureSkipVerify {
 		options = append(options, tls_client.WithInsecureSkipVerify())
 	}
-	if prof.HTTP1 != nil && cfg.followRedirects {
+	if cfg.followRedirects {
 		// Redirects are new requests. Their Context carries both layouts, but the
 		// GotConn hook must close over the new request rather than the first hop.
-		options = append(options, tls_client.WithCustomRedirectFunc(prepareRedirectLayout))
+		// For every profile and not only those with an HTTP/1.1 layout to
+		// prepare, so that the chain is bounded the same way whichever one is
+		// worn.
+		options = append(options, tls_client.WithCustomRedirectFunc(followRedirect))
 	}
 	for _, opt := range cfg.extra {
 		if opt == nil {
@@ -481,6 +484,25 @@ func withProtocolLayouts(req *fhttp.Request, layouts *protocolLayouts) *fhttp.Re
 		}
 	}}
 	return req.WithContext(fhttptrace.WithClientTrace(ctx, trace))
+}
+
+// maxRedirects is how many redirects one request follows before it gives up.
+//
+// Ten is what the transport allows when it is left alone, and it has to be
+// said again here because a redirect policy of one's own replaces that check
+// rather than adding to it. The policy that prepares the HTTP/1.1 layout let
+// everything through, so two pages redirecting to each other were followed
+// until the request's deadline: measured against a local server, 54,600
+// requests in five seconds.
+const maxRedirects = 10
+
+// followRedirect is the policy for every redirect: where the chain stops, and
+// which header layout the next request wears.
+func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	}
+	return prepareRedirectLayout(req, via)
 }
 
 func prepareRedirectLayout(req *fhttp.Request, _ []*fhttp.Request) error {
