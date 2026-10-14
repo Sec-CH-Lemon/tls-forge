@@ -86,9 +86,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   header fields and, when it was not a 2xx, the first 512 bytes of its body.
   Cookie values, credentials and proxy passwords are written as `***`, as in a
   trace.
-- `--report-format` writes the report as `html`, as `json`, or as both from
-  the same run with `html,json`. The default, `auto`, goes by the extension of
-  `--report`, so `--report run.json` is enough. The JSON document holds what
+- `--report-format` writes the report as `html`, the default, as `json`, or as
+  both from the same run with `html,json`. The JSON document holds what
   the page shows under names of its own: the summary, each proxy, and every
   request as the JSON line a list is answered with, with its exit address and
   its tries added, down to the steps and header fields of each. It holds every

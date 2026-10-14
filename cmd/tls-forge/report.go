@@ -475,9 +475,9 @@ type reportFlags struct {
 	chose func(string) bool
 }
 
-// formatHTML is the page a report is written as for whoever opens it. The other
-// format is formatJSON, the same word a list of URLs is read by: the same run
-// as a document, for whatever program comes next.
+// formatHTML is the page a report is written as for whoever opens it, unless
+// somebody asks for formatJSON, the same word a list of URLs is read by: the
+// same run as a document, for whatever program comes next.
 const formatHTML = "html"
 
 // reportWriters is how each of the two is written.
@@ -490,8 +490,8 @@ func addReportFlags(fs *pflag.FlagSet) reportFlags {
 	return reportFlags{
 		path: fs.StringP("report", "R", "",
 			"write a report here, as a page or as JSON; a directory gets report-<date-time>"),
-		format: fs.String("report-format", formatAuto,
-			"what to write the report as: html, json or html,json; auto goes by the name given to --report"),
+		format: fs.String("report-format", formatHTML,
+			"what to write the report as: html, json, or html,json for both"),
 		chose: fs.Changed,
 	}
 }
@@ -508,19 +508,11 @@ func (f reportFlags) formats() ([]string, error) {
 		}
 		return nil, nil
 	}
-	if *f.format == formatAuto {
-		// By what the file is called, as a list of URLs is read by what its file
-		// is called. Anything that is not named as JSON is the page.
-		if strings.EqualFold(filepath.Ext(*f.path), "."+formatJSON) {
-			return []string{formatJSON}, nil
-		}
-		return []string{formatHTML}, nil
-	}
 	var chosen []string
 	for _, word := range strings.Split(*f.format, ",") {
 		word = strings.ToLower(strings.TrimSpace(word))
 		if _, known := reportWriters[word]; !known {
-			return nil, &badFlag{"--report-format", *f.format, "auto, html, json or html,json"}
+			return nil, &badFlag{"--report-format", *f.format, "html, json or html,json"}
 		}
 		if !slices.Contains(chosen, word) {
 			chosen = append(chosen, word)

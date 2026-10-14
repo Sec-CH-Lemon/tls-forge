@@ -36,18 +36,15 @@ func TestReportFormats(t *testing.T) {
 		want []string
 	}{
 		{"no report asked for", nil, nil},
-		// By what the file is called, and anything not named as JSON is the page.
+		// The page unless somebody asks for the document, whatever the file is
+		// called.
 		{"a page by name", []string{"--report", "run.html"}, []string{"html"}},
-		{"a document by name, however it is cased", []string{"--report", "run.JSON"}, []string{"json"}},
+		{"a page into a file called json", []string{"--report", "run.json"}, []string{"html"}},
 		{"a directory", []string{"--report", "reports/"}, []string{"html"}},
-		{"a name that says nothing", []string{"--report", "run"}, []string{"html"}},
-		// Named outright, the format is what goes in the file whatever it is called.
-		{"a page into a file called json", []string{"--report", "run.json", "--report-format", "html"}, []string{"html"}},
 		{"a document", []string{"--report", "run", "--report-format", "json"}, []string{"json"}},
 		{"both", []string{"--report", "run", "--report-format", "html,json"}, []string{"html", "json"}},
 		// In the order given, once each, however they are spaced and cased.
 		{"both, untidily", []string{"--report", "run", "--report-format", " JSON , html,json"}, []string{"json", "html"}},
-		{"auto, said out loud", []string{"--report", "run.json", "--report-format", "auto"}, []string{"json"}},
 	} {
 		got, err := reportFlagsFrom(t, tc.args...).formats()
 		if err != nil || !slices.Equal(got, tc.want) {
@@ -57,7 +54,8 @@ func TestReportFormats(t *testing.T) {
 
 	// A word that is not a format, and a list with a hole in it, are said to be
 	// that. One of them is a typo away from the other.
-	for _, bad := range []string{"pdf", "html,", "html;json", ""} {
+	// Two formats there are, and no third that guesses between them.
+	for _, bad := range []string{"pdf", "html,", "html;json", "", "auto"} {
 		_, err := reportFlagsFrom(t, "--report", "run", "--report-format", bad).formats()
 		var refused *badFlag
 		if !errors.As(err, &refused) || !strings.Contains(err.Error(), "--report-format") {
@@ -288,8 +286,8 @@ func TestFetchWritesAReportAsJSON(t *testing.T) {
 	server, _ := replying(t, 503, 200, 200)
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	// Named as JSON, which is all it takes.
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--report", path, server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--report", path,
+		"--report-format", "json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

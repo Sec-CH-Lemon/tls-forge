@@ -255,7 +255,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report <path>` | Write a report with every request in it, as a page or as JSON; see [Reporting a run](#reporting-a-run) |
-| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `auto`, which goes by the extension of `--report` |
+| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `html` |
 | `--report-ip[=false]` | With `--report`, when the entries of a list go through different proxies, ask the address services once per proxy where each comes out; default `true` |
 
 What comes out is decided by how the command was asked, not by how many URLs
@@ -556,14 +556,14 @@ scheme are kept. URLs are recorded in full, including their query strings.
 
 ```bash
 tls-forge fetch --repeat 20 --retry 2 --report reports/ https://example.com/
-tls-forge fetch --repeat 20 --retry 2 --report run.json https://example.com/
+tls-forge fetch --repeat 20 --retry 2 --report run.json --report-format json https://example.com/
 tls-forge fetch --input urls.csv --report reports/ --report-format html,json
 ```
 
 `--report` writes the run down when it is over: as a page for whoever opens
 it, as a JSON document for a program, or as both from the same run.
-`--report-format` says which, as `html`, `json` or `html,json`. Left at `auto`,
-a path that ends in `.json` gets the document and any other gets the page.
+`--report-format` says which, as `html`, `json` or `html,json`; the page is
+the default.
 
 The page is one HTML file with nothing to load from anywhere else, so it can be
 opened offline and sent on as one file. At the top is the share of requests

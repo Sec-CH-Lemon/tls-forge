@@ -557,12 +557,11 @@ server: cloudflare
 
 Cookie values and credentials are written as `***`, as they are in a trace.
 
-The same report can be had as JSON, for a program rather than a person. A name
-ending in `.json` is enough, and `--report-format html,json` writes both from
-the one run:
+The same report can be had as JSON, for a program rather than a person, with
+`--report-format json`; `html,json` writes both from the one run:
 
 ```bash
-../bin/tls-forge fetch --repeat 20 --retry 2 -R run.json https://example.com/
+../bin/tls-forge fetch --repeat 20 --retry 2 -R run.json --report-format json https://example.com/
 ../bin/tls-forge fetch --repeat 20 --retry 2 -R reports/ --report-format html,json https://example.com/
 ```
 
