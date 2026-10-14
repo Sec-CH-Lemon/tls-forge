@@ -494,7 +494,7 @@ func TestBatchSaysWhereItWent(t *testing.T) {
 	if code != exitUsage || stdout != "" {
 		t.Errorf("exit code = %d and stdout = %q, want %d and nothing", code, stdout, exitUsage)
 	}
-	for _, want := range []string{"batch is now fetch", "--input", "--output", "--retry 3", "--json"} {
+	for _, want := range []string{"batch is now fetch", "--input", "--output", "--retry 3", "--json", "--report=PATH"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr has no %q:\n%s", want, stderr)
 		}

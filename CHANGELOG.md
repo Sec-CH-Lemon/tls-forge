@@ -67,10 +67,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   with each one nothing came back through, and where the pages, the JSON lines
   and the report went. A run that was interrupted says how far it got. A
   single request that was tried again ends its line with how many times.
-- `--report PATH` writes the run as a self-contained HTML page with a row for
-  every request, for one URL as for a list. It is written however the run
-  ended, a request that got no answer included, and its name is the last thing
-  the run prints. A report that cannot be written fails the run with exit code
+- `--report` writes the run as a self-contained HTML page with a row for every
+  request, for one URL as for a list. Given on its own it goes into the
+  `--output` directory, or the current one, as `report-<date-time>.html`;
+  `--report=PATH` says where instead. It is written however the run ended, a
+  request that got no answer included, and its name is the last thing the run
+  prints. A report that cannot be written fails the run with exit code
   1. The figures at its top include the average time of one request.
 - Every row of the report opens to show what the request took: where it ended
   up after a redirect, the file it was saved to, its error in full, and every
@@ -91,9 +93,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the page shows under names of its own: the summary, each proxy, and every
   request as the JSON line a list is answered with, with its exit address and
   its tries added, down to the steps and header fields of each. It holds every
-  request, where the page stops at 2,000 rows. A directory given to `--report`
-  gets one file for each format, named after the same moment, and a file path
-  given two formats names them both, as `run.html` and `run.json`.
+  request, where the page stops at 2,000 rows. A directory gets one file for
+  each format, named after the same moment, and a file path given two formats
+  names them both, as `run.html` and `run.json`.
 - `--trace FILE` records every step of a run in the Trace Event JSON format
   that [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the settings, the
   profile, the exit-address lookup, and for each try the name lookup, the
@@ -118,6 +120,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   | `-i FILE` | `--input FILE`; `-i` is `--include` |
   | `-o FILE`, the JSON lines | `> FILE`; `-o` is a directory every request is kept in |
   | `-d DIR` | `--output DIR`, whose files are named after the request rather than the URL; `-d` is `--data` |
+  | `-R PATH`, `--report PATH` | `-R=PATH`, `--report=PATH`; the flag alone puts the report beside `--output` |
   | three further tries by default, set with `--repeat N` | none by default, set with `--retry N`; add `--retry 3` to keep them |
   | `--repeat 0` to turn retries off | nothing: that is the default, and `--repeat` now means how many times each request is made |
   | one URL as the only argument | add `--json`; without it the answer is the page |

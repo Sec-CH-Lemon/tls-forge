@@ -38,13 +38,14 @@ func TestReportFormats(t *testing.T) {
 		{"no report asked for", nil, nil},
 		// The page unless somebody asks for the document, whatever the file is
 		// called.
-		{"a page by name", []string{"--report", "run.html"}, []string{"html"}},
-		{"a page into a file called json", []string{"--report", "run.json"}, []string{"html"}},
-		{"a directory", []string{"--report", "reports/"}, []string{"html"}},
-		{"a document", []string{"--report", "run", "--report-format", "json"}, []string{"json"}},
-		{"both", []string{"--report", "run", "--report-format", "html,json"}, []string{"html", "json"}},
+		{"the flag alone", []string{"--report"}, []string{"html"}},
+		{"its letter alone", []string{"-R"}, []string{"html"}},
+		{"a page by name", []string{"--report=run.html"}, []string{"html"}},
+		{"a page into a file called json", []string{"--report=run.json"}, []string{"html"}},
+		{"a document", []string{"--report", "--report-format", "json"}, []string{"json"}},
+		{"both", []string{"--report=run", "--report-format", "html,json"}, []string{"html", "json"}},
 		// In the order given, once each, however they are spaced and cased.
-		{"both, untidily", []string{"--report", "run", "--report-format", " JSON , html,json"}, []string{"json", "html"}},
+		{"both, untidily", []string{"--report=run", "--report-format", " JSON , html,json"}, []string{"json", "html"}},
 	} {
 		got, err := reportFlagsFrom(t, tc.args...).formats()
 		if err != nil || !slices.Equal(got, tc.want) {
@@ -56,7 +57,7 @@ func TestReportFormats(t *testing.T) {
 	// that. One of them is a typo away from the other.
 	// Two formats there are, and no third that guesses between them.
 	for _, bad := range []string{"pdf", "html,", "html;json", "", "auto"} {
-		_, err := reportFlagsFrom(t, "--report", "run", "--report-format", bad).formats()
+		_, err := reportFlagsFrom(t, "--report=run", "--report-format", bad).formats()
 		var refused *badFlag
 		if !errors.As(err, &refused) || !strings.Contains(err.Error(), "--report-format") {
 			t.Errorf("--report-format %q: %v", bad, err)
@@ -88,6 +89,10 @@ func TestReportFiles(t *testing.T) {
 		formats []string
 		want    []string
 	}{
+		// Given no path, beside what the run kept, and here when it kept nothing.
+		{"no path, beside the requests", reportBeside, both, []string{
+			"html " + in("report-"+stamp(when)+".html"), "json " + in("report-"+stamp(when)+".json"),
+		}},
 		// A directory names each of them after the same moment.
 		{"a directory", dir, both, []string{
 			"html " + in("report-"+stamp(when)+".html"), "json " + in("report-"+stamp(when)+".json"),
@@ -111,9 +116,61 @@ func TestReportFiles(t *testing.T) {
 			"html " + in("run.2026.txt.html"), "json " + in("run.2026.txt.json"),
 		}},
 	} {
-		if got := paths(reportFiles(tc.given, tc.formats, when)); !slices.Equal(got, tc.want) {
+		if got := paths(reportFiles(tc.given, dir, tc.formats, when)); !slices.Equal(got, tc.want) {
 			t.Errorf("%s:\n got %v\nwant %v", tc.name, got, tc.want)
 		}
+	}
+	if got := paths(reportFiles(reportBeside, "", []string{"html"}, when)); !slices.Equal(got, []string{
+		"html report-" + stamp(when) + ".html",
+	}) {
+		t.Errorf("no path and nothing kept: %v, want the current directory", got)
+	}
+}
+
+func TestReportWithoutAPathGoesBesideTheRequests(t *testing.T) {
+	server, _ := replying(t, 200)
+
+	// Into the directory the requests were kept in.
+	kept := filepath.Join(t.TempDir(), "out")
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", kept, "--report", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	reports, _ := filepath.Glob(filepath.Join(kept, "report-*.html"))
+	if len(reports) != 1 || !strings.HasSuffix(stderr, "\n  Report        "+reports[0]+"\n") {
+		t.Errorf("the directory holds %v, and stderr names:\n%s", keptIn(t, kept), stderr)
+	}
+
+	// And into the current directory when there is none: wherever the command
+	// was run, which for this test is a directory of its own.
+	here := t.TempDir()
+	t.Chdir(here)
+	code, _, stderr = exec(t, "fetch", "-R", "--report-format", "json", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	written := keptIn(t, here)
+	if len(written) != 1 || !strings.HasPrefix(written[0], "report-") || !strings.HasSuffix(written[0], ".json") ||
+		!strings.HasSuffix(stderr, "\n  report written to "+written[0]+"\n") {
+		t.Errorf("the current directory holds %v, and stderr names:\n%s", written, stderr)
+	}
+}
+
+func TestReportPathAfterASpaceIsTakenForAURL(t *testing.T) {
+	// The flag needs no path, so what follows it after a space is the next
+	// argument. When that is not a URL, the likeliest reason is said.
+	server, asked := replying(t, 200)
+	code, _, stderr := exec(t, "fetch", "--report", "reports/", server.URL)
+	if code != 1 || !strings.Contains(stderr, "--report=PATH") {
+		t.Errorf("exit code = %d, stderr = %q", code, stderr)
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("%d requests were made by a command that was refused", got)
+	}
+	// Not when the flag was given a path, which leaves nothing to suspect.
+	_, _, stderr = exec(t, "fetch", "--report=run.html", "not-a-url")
+	if strings.Contains(stderr, "--report=PATH") {
+		t.Errorf("the path that was given is suspected all the same: %q", stderr)
 	}
 }
 
@@ -286,7 +343,7 @@ func TestFetchWritesAReportAsJSON(t *testing.T) {
 	server, _ := replying(t, 503, 200, 200)
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--report", path,
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--report="+path,
 		"--report-format", "json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -341,7 +398,7 @@ func TestFetchWritesBothReports(t *testing.T) {
 	dir := t.TempDir()
 
 	// Into a directory, where each is named after the same moment.
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--report", dir, "--report-format", "html,json", server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--report="+dir, "--report-format", "html,json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -366,7 +423,7 @@ func TestFetchWritesBothReports(t *testing.T) {
 
 	// One request, and a name for the two of them to share.
 	base := filepath.Join(dir, "single.html")
-	code, _, stderr = exec(t, "fetch", "--report", base, "--report-format", "json,html", server.URL)
+	code, _, stderr = exec(t, "fetch", "--report="+base, "--report-format", "json,html", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -380,7 +437,7 @@ func TestFetchReportFormatsAreCheckedBeforeTheRun(t *testing.T) {
 	server, asked := replying(t, 200)
 	path := filepath.Join(t.TempDir(), "run")
 
-	code, _, stderr := exec(t, "fetch", "--report", path, "--report-format", "pdf", server.URL)
+	code, _, stderr := exec(t, "fetch", "--report="+path, "--report-format", "pdf", server.URL)
 	if code != 1 || !strings.Contains(stderr, "--report-format") || !strings.Contains(stderr, "pdf") {
 		t.Errorf("an unknown format: exit code = %d, stderr = %q", code, stderr)
 	}
@@ -388,7 +445,7 @@ func TestFetchReportFormatsAreCheckedBeforeTheRun(t *testing.T) {
 	if code != 2 || !strings.Contains(stderr, "--report-format requires --report") {
 		t.Errorf("a format with no report: exit code = %d, stderr = %q", code, stderr)
 	}
-	code, _, _ = exec(t, "fetch", "--report", path, "--report-format", "pdf", server.URL)
+	code, _, _ = exec(t, "fetch", "--report="+path, "--report-format", "pdf", server.URL)
 	if code != 1 {
 		t.Errorf("a list with an unknown format: exit code = %d", code)
 	}
@@ -407,7 +464,7 @@ func TestOneReportIsWrittenWhenTheOtherCannotBe(t *testing.T) {
 	}
 	server, _ := replying(t, 200)
 
-	code, _, stderr := exec(t, "fetch", "--report", base, "--report-format", "html,json", server.URL)
+	code, _, stderr := exec(t, "fetch", "--report="+base, "--report-format", "html,json", server.URL)
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -419,7 +476,7 @@ func TestOneReportIsWrittenWhenTheOtherCannotBe(t *testing.T) {
 	}
 
 	// A list does the same, and names the page among what the run came to.
-	code, _, stderr = exec(t, "fetch", "--report", base, "--report-format", "html,json", "--report-ip=false",
+	code, _, stderr = exec(t, "fetch", "--report="+base, "--report-format", "html,json", "--report-ip=false",
 		server.URL+"/one", server.URL+"/two")
 	if code != 1 || !strings.Contains(stderr, "  Report        "+base+".html\n") || !strings.Contains(stderr, "tlsforge: fetch: ") {
 		t.Errorf("a list: exit code = %d\n%s", code, stderr)
@@ -435,7 +492,7 @@ func TestListWritesBothReports(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "run")
 
-	code, _, stderr := exec(t, "fetch", "--report", base, "--report-format", "json,html", "--report-ip=false",
+	code, _, stderr := exec(t, "fetch", "--report="+base, "--report-format", "json,html", "--report-ip=false",
 		server.URL+"/a", server.URL+"/b", server.URL+"/c")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -474,7 +531,7 @@ func TestFetchReportOfManyNamesWhatThePageLeftOut(t *testing.T) {
 	server, _ := replying(t, 200)
 	base := filepath.Join(t.TempDir(), "run")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--report", base, "--report-format", "html,json", server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--report="+base, "--report-format", "html,json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

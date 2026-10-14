@@ -416,7 +416,7 @@ func TestListWritesAReport(t *testing.T) {
 	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--report", path, "--insecure",
+	code, _, stderr := exec(t, "fetch", "--report="+path, "--insecure",
 		server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -456,7 +456,7 @@ func TestListKeepsItsSessionFromTheAddressService(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "run.html")
 
 	code, stdout, stderr := exec(t, "fetch", "--insecure", "--progress", "never",
-		"-b", "session=s3cr3t", "--report", path, server.URL+"/")
+		"-b", "session=s3cr3t", "--report="+path, server.URL+"/")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -483,7 +483,7 @@ func TestListReportWithoutTheAddressLookup(t *testing.T) {
 
 	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
-	code, _, stderr := exec(t, "fetch", "--report", path, "--report-ip=false", server.URL+"/one")
+	code, _, stderr := exec(t, "fetch", "--report="+path, "--report-ip=false", server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -517,7 +517,7 @@ func TestListReportToAPathThatWillNotOpen(t *testing.T) {
 func TestListReportToADirectoryThatDoesNotExist(t *testing.T) {
 	server := pathServer(t)
 	dir := filepath.Join(t.TempDir(), "reports")
-	code, _, _ := exec(t, "fetch", "--report", dir+string(os.PathSeparator),
+	code, _, _ := exec(t, "fetch", "--report="+dir+string(os.PathSeparator),
 		"--report-ip=false", server.URL+"/one")
 	if code != 0 {
 		t.Errorf("exit code %d, want 0", code)
@@ -568,7 +568,7 @@ func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
 		"url,proxy\n%[1]s/bad,::not a proxy::\n%[1]s/good,\n%[1]s/also-good,\n", server.URL))
 
 	path := filepath.Join(t.TempDir(), "run.html")
-	code, _, stderr := exec(t, "fetch", "--input", list, "--report", path, "--insecure")
+	code, _, stderr := exec(t, "fetch", "--input", list, "--report="+path, "--insecure")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -728,7 +728,7 @@ func TestListNamesTheReportAfterTheRun(t *testing.T) {
 	server := pathServer(t)
 	dir := t.TempDir()
 
-	code, _, stderr := exec(t, "fetch", "--report", dir, "--report-ip=false", server.URL+"/one")
+	code, _, stderr := exec(t, "fetch", "--report="+dir, "--report-ip=false", server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -948,7 +948,7 @@ func TestListSaysWhatTheReportLeftOut(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "run.html")
 	urls := []string{server.URL + "/a", server.URL + "/b", server.URL + "/c", server.URL + "/d"}
 
-	args := append([]string{"fetch", "--report", path, "--report-ip=false"}, urls...)
+	args := append([]string{"fetch", "--report=" + path, "--report-ip=false"}, urls...)
 	code, _, stderr := exec(t, args...)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -969,7 +969,7 @@ func TestListSaysWhichProxiesItDidNotAskAbout(t *testing.T) {
 		"url,proxy\n%[1]s/a,http://127.0.0.1:9001\n%[1]s/b,http://127.0.0.1:9002\n", server.URL))
 
 	path := filepath.Join(t.TempDir(), "run.html")
-	_, _, stderr := exec(t, "fetch", "--input", list, "--report", path, "--timeout", "5s")
+	_, _, stderr := exec(t, "fetch", "--input", list, "--report="+path, "--timeout", "5s")
 	if !strings.Contains(stderr, "1 further proxies were not asked about") {
 		t.Errorf("stderr does not say which proxies went unasked:\n%s", stderr)
 	}
@@ -1001,7 +1001,7 @@ func TestFetchWritesAReport(t *testing.T) {
 	server, _ := replying(t, 200, 404, 200)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--report", path, server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--report="+path, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1044,7 +1044,7 @@ func TestFetchReportOfOneRequest(t *testing.T) {
 	server, _ := replying(t, 200)
 	dir := t.TempDir()
 
-	code, _, stderr := exec(t, "fetch", "--report", dir, server.URL)
+	code, _, stderr := exec(t, "fetch", "--report="+dir, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1071,7 +1071,7 @@ func TestFetchReportsTheRequestThatFailed(t *testing.T) {
 	// The run somebody opens a report about is the one that went wrong.
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--report", path, "--timeout", "3s", "https://127.0.0.1:1/gone")
+	code, _, stderr := exec(t, "fetch", "--report="+path, "--timeout", "3s", "https://127.0.0.1:1/gone")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -1097,7 +1097,7 @@ func TestFetchReportThatCannotBeWritten(t *testing.T) {
 
 	// The page was fetched and handed over all the same. It is the run that did
 	// not do everything it was asked.
-	code, stdout, stderr := exec(t, "fetch", "--report", path, server.URL)
+	code, stdout, stderr := exec(t, "fetch", "--report="+path, server.URL)
 	if code != 1 || stdout != "answer-1" {
 		t.Errorf("exit code = %d and stdout = %q, want 1 and the page\n%s", code, stdout, stderr)
 	}
@@ -1106,13 +1106,13 @@ func TestFetchReportThatCannotBeWritten(t *testing.T) {
 	}
 
 	// Several runs say what they came to without a report among it.
-	_, _, stderr = exec(t, "fetch", "--repeat", "2", "--report", path, server.URL)
+	_, _, stderr = exec(t, "fetch", "--repeat", "2", "--report="+path, server.URL)
 	if strings.Contains(stderr, "  Report  ") || !strings.Contains(stderr, "  Avg time  ") {
 		t.Errorf("the figures name a report that was not written:\n%s", stderr)
 	}
 
 	// And when the request failed as well, both are said.
-	code, _, stderr = exec(t, "fetch", "--report", path, "--timeout", "3s", "https://127.0.0.1:1/gone")
+	code, _, stderr = exec(t, "fetch", "--report="+path, "--timeout", "3s", "https://127.0.0.1:1/gone")
 	if code != 1 || !strings.Contains(stderr, "127.0.0.1:1") || !strings.Contains(stderr, "a-file") {
 		t.Errorf("exit code = %d, and stderr does not give both reasons:\n%s", code, stderr)
 	}
@@ -1126,7 +1126,7 @@ func TestFetchReportSaysWhatItLeftOut(t *testing.T) {
 	server, _ := replying(t, 200)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--report", path, server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--report="+path, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1151,7 +1151,7 @@ func TestFetchReportWithoutAnAddress(t *testing.T) {
 	server, _ := replying(t, 200)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	if code, _, stderr := exec(t, "fetch", "--report", path, server.URL); code != 0 {
+	if code, _, stderr := exec(t, "fetch", "--report="+path, server.URL); code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	if html := reportOf(t, path); !strings.Contains(html, "not looked up") || strings.Contains(html, "203.0.113.7") {
@@ -1163,7 +1163,7 @@ func TestListReportNumbersTheRunsOfARepeat(t *testing.T) {
 	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--report", path, "--report-ip=false",
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--report="+path, "--report-ip=false",
 		server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

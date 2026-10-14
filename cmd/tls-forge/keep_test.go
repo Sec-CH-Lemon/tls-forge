@@ -37,7 +37,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "out")
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", dir, "--report", path, "--report-format", "json", server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", dir, "--report="+path, "--report-format", "json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

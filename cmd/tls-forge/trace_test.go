@@ -690,7 +690,7 @@ func TestListTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 	path, saved := filepath.Join(dir, "trace.json"), filepath.Join(dir, "saved.json")
 
 	code, _, stderr := exec(t, "fetch", "--trace", path, "--save-cookies", saved,
-		"--report", filepath.Join(dir, "report.html"), server.URL+"/one")
+		"--report="+filepath.Join(dir, "report.html"), server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

@@ -137,16 +137,16 @@ the line when the one URL is named on the command line:
 ## Keep the results
 
 ```bash
-../bin/tls-forge fetch --input urls.csv -o out/ -R reports/ > results.jsonl
+../bin/tls-forge fetch --input urls.csv -o out/ -R > results.jsonl
 ```
 
 The JSON lines go where standard output goes, here a file. `-o` keeps every
-request in a directory, and `-R` writes an HTML report; given a directory, the
-report names itself after the run. Both are named at the end:
+request in a directory, and `-R` writes an HTML report of the run beside them,
+named after the moment it was written. Both are named at the end:
 
 ```
   Saved to      out/
-  Report        reports/report-2026-08-16-091854-584.html
+  Report        out/report-2026-08-16-091854-584.html
 ```
 
 One line of a run without `-o`, with the body cut short here:
@@ -488,7 +488,7 @@ says which pass it was:
 ## A report of every request
 
 ```bash
-../bin/tls-forge fetch --repeat 3 -R reports/ https://example.com/
+../bin/tls-forge fetch --repeat 3 -R=reports/ https://example.com/
 ```
 
 `-R` writes the run as an HTML page, for one URL made several times as for a
@@ -558,11 +558,12 @@ server: cloudflare
 Cookie values and credentials are written as `***`, as they are in a trace.
 
 The same report can be had as JSON, for a program rather than a person, with
-`--report-format json`; `html,json` writes both from the one run:
+`--report-format json`; `html,json` writes both from the one run. A path of the
+report's own goes after an equals sign:
 
 ```bash
-../bin/tls-forge fetch --repeat 20 --retry 2 -R run.json --report-format json https://example.com/
-../bin/tls-forge fetch --repeat 20 --retry 2 -R reports/ --report-format html,json https://example.com/
+../bin/tls-forge fetch --repeat 20 --retry 2 -R=run.json --report-format json https://example.com/
+../bin/tls-forge fetch --repeat 20 --retry 2 -R=reports/ --report-format html,json https://example.com/
 ```
 
 Everything the page shows is in it under a name, so a question about a run is
@@ -666,7 +667,7 @@ a bug report as it is.
   --save-cookies session.json \
   -c 8 --retry 3 -v \
   --trace run.json \
-  -o out/ -R reports/ --report-format html,json > results.jsonl
+  -o out/ -R --report-format html,json > results.jsonl
 ```
 
 A list, a warmed session to start from, the session written back when it is

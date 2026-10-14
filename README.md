@@ -254,7 +254,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
-| `-R`, `--report <path>` | Write a report with every request in it, as a page or as JSON; see [Reporting a run](#reporting-a-run) |
+| `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
 | `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `html` |
 | `--report-ip[=false]` | With `--report`, when the entries of a list go through different proxies, ask the address services once per proxy where each comes out; default `true` |
 
@@ -357,7 +357,7 @@ are compatible with tools such as curl and wget.
 ```bash
 tls-forge fetch https://example.com/ https://example.org/
 tls-forge fetch --input example/urls.csv --concurrency 8
-tls-forge fetch --input urls.json --report reports/ > results.jsonl
+tls-forge fetch --input urls.json --report=reports/ > results.jsonl
 cat urls.txt | tls-forge fetch --output pages/ > results.jsonl
 ```
 
@@ -555,15 +555,22 @@ scheme are kept. URLs are recorded in full, including their query strings.
 #### Reporting a run
 
 ```bash
-tls-forge fetch --repeat 20 --retry 2 --report reports/ https://example.com/
-tls-forge fetch --repeat 20 --retry 2 --report run.json --report-format json https://example.com/
-tls-forge fetch --input urls.csv --report reports/ --report-format html,json
+tls-forge fetch --repeat 20 --retry 2 -o out/ --report https://example.com/
+tls-forge fetch --repeat 20 --retry 2 --report=run.json --report-format json https://example.com/
+tls-forge fetch --input urls.csv --report=reports/ --report-format html,json
 ```
 
 `--report` writes the run down when it is over: as a page for whoever opens
 it, as a JSON document for a program, or as both from the same run.
 `--report-format` says which, as `html`, `json` or `html,json`; the page is
 the default.
+
+Given on its own, `--report` puts the report beside what the run kept: in the
+directory `--output` names, or in the current directory when there is none,
+named after the moment it was written, as `report-2026-08-16-091854-584.html`.
+A path of its own is given after an equals sign, `--report=reports/` or
+`-R=run.html`, because the flag needs none: a path after a space is read as
+the next URL, and `fetch` says so when it is not one.
 
 The page is one HTML file with nothing to load from anywhere else, so it can be
 opened offline and sent on as one file. At the top is the share of requests
@@ -671,11 +678,11 @@ are there for the requests whose tries were kept: the first 2,000 that failed
 or answered with something other than the page, and the first 2,000 others.
 
 Given a directory, or a path ending in a separator, a report is named after
-the moment it was written, as `report-2026-08-16-091854-584.html` or `.json`.
-One format given any other path is written to that path, whatever it is
-called, and replaced on every run. Two cannot both be, so the path then names
-them both: `--report run`, or `--report run.html`, with `html,json` writes
-`run.html` and `run.json`. A report is created with mode `0600`, and its name
+the moment it was written in the same way, `.html` or `.json`. One format given
+any other path is written to that path, whatever it is called, and replaced on
+every run. Two cannot both be, so the path then names them both:
+`--report=run`, or `--report=run.html`, with `html,json` writes `run.html` and
+`run.json`. A report is created with mode `0600`, and its name
 is the last thing a run prints. One that cannot be written fails the run with
 exit code 1, after the pages have gone where they were going; of two, the one
 that could be written still is.

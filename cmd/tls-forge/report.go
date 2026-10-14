@@ -486,14 +486,24 @@ var reportWriters = map[string]func(io.Writer, string, []result, summary, map[st
 	formatJSON: renderReportJSON,
 }
 
+// reportBeside is what --report is given when it is given no path: the report
+// goes into the directory the run keeps its requests in, or into the current
+// one when there is none, named after the moment it was written.
+const reportBeside = "auto"
+
 func addReportFlags(fs *pflag.FlagSet) reportFlags {
-	return reportFlags{
+	flags := reportFlags{
 		path: fs.StringP("report", "R", "",
-			"write a report here, as a page or as JSON; a directory gets report-<date-time>"),
+			"write a report of the run into --output, or here, as report-<date-time>; --report=PATH says where"),
 		format: fs.String("report-format", formatHTML,
 			"what to write the report as: html, json, or html,json for both"),
 		chose: fs.Changed,
 	}
+	// A path of its own is optional, so the flag alone is enough to ask for a
+	// report. The price is that a path is given as --report=PATH: given after a
+	// space, it would be read as the path the flag does not need.
+	fs.Lookup("report").NoOptDefVal = reportBeside
+	return flags
 }
 
 // formats settles what the report is to be written as, and returns none when
@@ -529,11 +539,17 @@ type reportFile struct {
 // reportFiles turns what --report was given into the files to write, one for
 // each format.
 //
-// One format is written to the path as it was given, whatever that is called:
-// naming the format says what goes in the file, and the name stays the
-// caller's. Two cannot both go there, so the path then names them both: an
-// extension that is one of the formats comes off, and each gets its own.
-func reportFiles(given string, formats []string, when time.Time) []reportFile {
+// Given no path, the report goes beside what the run kept, in the directory
+// --output names, or in the current directory when it names none. One format
+// is written to a path as it was given, whatever that is called: the format
+// says what goes in the file, and the name stays the caller's. Two cannot both
+// go there, so the path then names them both: an extension that is one of the
+// formats comes off, and each gets its own.
+func reportFiles(given, kept string, formats []string, when time.Time) []reportFile {
+	if given == reportBeside {
+		// As a directory, which is what names the file after the moment.
+		given = either(kept, ".") + string(os.PathSeparator)
+	}
 	files := make([]reportFile, 0, len(formats))
 	for _, format := range formats {
 		path := reportPath(given, format, when)

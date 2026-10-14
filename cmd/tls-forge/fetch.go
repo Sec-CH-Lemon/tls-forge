@@ -358,6 +358,11 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// The whole list is checked before anything is fetched, so a typo costs a
 	// message rather than half a scrape.
 	if err := validate(jobs); err != nil {
+		if *reporting.path == reportBeside && fs.NArg() > 0 {
+			// The likeliest reason for an argument that is not a URL, when
+			// --report was given nothing: it was meant to be the report's path.
+			err = fmt.Errorf("%w; a report's path is given as --report=PATH", err)
+		}
 		return err
 	}
 	// Every pass over the list is counted before the first one is made, and a
@@ -580,7 +585,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	var reportErr error
 	if len(formats) > 0 {
 		var written []reportFile
-		written, reportErr = writeReports(reportFiles(*reporting.path, formats, now()),
+		written, reportErr = writeReports(reportFiles(*reporting.path, *output, formats, now()),
 			"fetch", records, totals, exits)
 		for _, file := range written {
 			name := file.path
