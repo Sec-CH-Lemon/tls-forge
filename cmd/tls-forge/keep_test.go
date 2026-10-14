@@ -152,6 +152,7 @@ func keptRequest() (result, job, requestAbout) {
 		URL: "https://example.test/a", Proxy: "http://user:s3cr3t@proxy.test:8080",
 		Started: started, Ended: started.Add(400 * ms), Status: 200, Bytes: 577, Attempts: 2, Run: 2,
 		FinalURL: "https://example.test/b", File: "out/example.test-2026-03-04-093000-012-3.html",
+		ID: 3, Exit: egress{IP: "203.0.113.7", Country: "pl"},
 		Tries: []try{
 			{
 				Began: started, Took: 100 * ms, Status: 503, Bytes: 19, Wait: 250 * ms,
@@ -178,7 +179,7 @@ func keptRequest() (result, job, requestAbout) {
 			},
 		},
 	}
-	about := requestAbout{method: "GET", profile: "chrome_155_macos", exit: "203.0.113.7 · PL", requests: 6, runs: 2}
+	about := requestAbout{method: "GET", profile: "chrome_155_macos", requests: 6, runs: 2}
 	return r, job{id: 3, run: 2}, about
 }
 
@@ -242,6 +243,12 @@ func TestRequestLog(t *testing.T) {
 	if !strings.Contains(one, "  outcome  no response · no such proxy\n") || !strings.Contains(one, "  proxy    direct\n") {
 		t.Errorf("the log of a request that never went out:\n%s", one)
 	}
+
+	// Asked where it came out, and nobody could say.
+	r.Exit, r.ExitError = egress{}, "nobody answered"
+	if log := requestLog(r, j, about); !strings.Contains(log, "  exit-ip    not looked up · nobody answered\n") {
+		t.Errorf("the log of a request whose address nobody knew:\n%s", log)
+	}
 }
 
 func TestRequestTrace(t *testing.T) {
@@ -274,7 +281,8 @@ func TestRequestTrace(t *testing.T) {
 	if waited := one(t, events, phaseInstant, "retry"); waited.Args["wait_ms"] != int64(250) {
 		t.Errorf("the wait was traced as %+v", waited)
 	}
-	if ended := events[len(events)-1]; ended.Args["status"] != 200 || ended.Args["file"] != r.File {
+	if ended := events[len(events)-1]; ended.Args["status"] != 200 || ended.Args["file"] != r.File ||
+		ended.Args["exit_ip"] != "203.0.113.7" || ended.Args["exit_country"] != "PL" {
 		t.Errorf("the request ends as %+v", ended)
 	}
 	refused := named(events, phaseEnd, "")[0]
@@ -286,8 +294,13 @@ func TestRequestTrace(t *testing.T) {
 	gone := requestTrace(result{URL: "https://example.test/", Error: "no such proxy", Started: r.Started, Ended: r.Started},
 		job{id: 1}, about)
 	checkShape(t, gone)
-	if ended := gone[len(gone)-1]; len(gone) != 4 || ended.Args["error"] != "no such proxy" {
+	if ended := gone[len(gone)-1]; len(gone) != 4 || ended.Args["error"] != "no such proxy" || ended.Args["exit_ip"] != nil {
 		t.Errorf("a request that never went out is traced as %+v", gone)
+	}
+	// An address without a country is the address alone.
+	r.Exit = egress{IP: "203.0.113.7"}
+	if ended := requestTrace(r, j, about); ended[len(ended)-1].Args["exit_country"] != nil {
+		t.Errorf("a country was made up for %+v", ended[len(ended)-1])
 	}
 }
 

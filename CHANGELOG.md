@@ -90,12 +90,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   trace.
 - `--report-format` writes the report as `html`, the default, as `json`, or as
   both from the same run with `html,json`. The JSON document holds what
-  the page shows under names of its own: the summary, each proxy, and every
-  request as the JSON line a list is answered with, with its exit address and
-  its tries added, down to the steps and header fields of each. It holds every
+  the page shows under names of its own: the summary, each proxy with every
+  address it came out of, and every request as the JSON line a list is
+  answered with, with where it came out and its tries added, down to the steps
+  and header fields of each. It holds every
   request, where the page stops at 2,000 rows. A directory gets one file for
   each format, named after the same moment, and a file path given two formats
   names them both, as `run.html` and `run.json`.
+- **A report says where every request came out.** Each is asked about while it
+  is made, through the same proxy, because a proxy that hands every request an
+  address of its own makes the address of the run say nothing about any one of
+  them. When the addresses differ the rows get a column of them and the line
+  above them says how many there were; the table of proxies lists the
+  addresses each came out of. A request nobody could answer for says why when
+  its row is opened, and as `exit_error` in the JSON document. This is one
+  more request to a third party for every request, said before the first;
+  `--report-ip=false` turns it off, and a run of one request uses the answer
+  it was given before it began. The log and the trace kept of each request
+  under `--output` say where it came out as well.
 - `--trace FILE` records every step of a run in the Trace Event JSON format
   that [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the settings, the
   profile, the exit-address lookup, and for each try the name lookup, the
@@ -174,16 +186,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   every row says which run it was.
 - The rows of the report give `Started` without the year and no longer have an
   `Ended` column: an opened row gives both moments to the millisecond. The
-  proxy and the exit address are said once above the rows when every request
-  went the same way, and stay on each row when they did not.
+  proxy and the exit address are each said once above the rows when every
+  request had the same, and stay on each row when they did not.
 - `fetch` reports the address its requests come out of, as the last line of
   the profile block on standard error. The address is asked of a public
   service before the first request, with the same profile and proxy and
   without the session's cookies, so **every run that goes one way now makes at
   least one additional request to a third party**. A failure is reported on
   that line without failing the fetch. A list whose entries name different
-  proxies asks nobody before it starts, and afterwards only for `--report`,
-  once per proxy. `proxy` and `daemon` ask nobody.
+  proxies asks nobody before it starts, and only `--report` asks where each
+  of its requests came out. `proxy` and `daemon` ask nobody.
 - The exit address is asked of four services instead of one, for that line and
   for a report alike: `www.cloudflare.com/cdn-cgi/trace`, then
   `checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next is asked as

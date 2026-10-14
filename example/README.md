@@ -508,6 +508,12 @@ It is one file with nothing to fetch from anywhere else, so it opens offline
 and can be sent on as it is. A request that got no answer is reported like any
 other, which is usually the one the page is opened for.
 
+Where each request came out is asked while it is made, through the same proxy,
+because a proxy can give every request an address of its own. When they all
+came out of one, the page says so once; when they did not, every row has its
+own. That is a question to an address service for every request, said before
+the first, and `--report-ip=false` leaves it at the one asked before the run.
+
 Every row opens, and inside it is everything that request took: each try, the
 connection it went out on, and what it waited on. A page that was refused once
 and then arrived reads like this:

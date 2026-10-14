@@ -31,10 +31,23 @@ type proxyStat struct {
 	Proxy     string
 	Requests  int
 	Succeeded int
-	Exit      egress
+	// Exits are the addresses its requests came out of, each once, in the order
+	// they were first seen: a proxy that hands every request an address of its
+	// own has as many as it carried requests.
+	Exits []egress
 }
 
 func (p proxyStat) Alive() bool { return p.Succeeded > 0 }
+
+// exitsListed is how many of a proxy's addresses its row lists before it says
+// how many more there were. A rotating proxy can have thousands, and the row
+// is there to say which proxy it is and how it did.
+const exitsListed = 3
+
+// ListedExits are the addresses a proxy's row lists, and MoreExits how many it
+// leaves out.
+func (p proxyStat) ListedExits() []egress { return p.Exits[:min(len(p.Exits), exitsListed)] }
+func (p proxyStat) MoreExits() int        { return max(len(p.Exits)-exitsListed, 0) }
 
 // summary is the whole run in numbers.
 // Three outcomes, not two. A 503 is neither a page nor a dead connection:
@@ -80,9 +93,16 @@ func (r result) Warned() bool {
 	return r.Error == "" && (r.Status < 200 || r.Status > 299)
 }
 
-func summarise(records []result, elapsed time.Duration, exits map[string]egress) summary {
+func summarise(records []result, elapsed time.Duration) summary {
 	s := summary{Total: len(records), Elapsed: elapsed}
 	byProxy := map[string]*proxyStat{}
+	// The addresses each proxy has been seen to come out of, so that one met a
+	// thousand times is listed once without a thousand comparisons each time.
+	type exitOf struct {
+		proxy string
+		exit  egress
+	}
+	seenExits := map[exitOf]bool{}
 
 	for _, r := range records {
 		switch {
@@ -106,12 +126,16 @@ func summarise(records []result, elapsed time.Duration, exits map[string]egress)
 		stat, seen := byProxy[r.Proxy]
 		if !seen {
 			// Filed under the URL as given, shown without its password.
-			stat = &proxyStat{Proxy: redactProxy(r.Proxy), Exit: exits[r.Proxy]}
+			stat = &proxyStat{Proxy: redactProxy(r.Proxy)}
 			byProxy[r.Proxy] = stat
 		}
 		stat.Requests++
 		if r.Error == "" {
 			stat.Succeeded++
+		}
+		if key := (exitOf{r.Proxy, r.Exit}); r.Exit.IP != "" && !seenExits[key] {
+			seenExits[key] = true
+			stat.Exits = append(stat.Exits, r.Exit)
 		}
 	}
 
@@ -200,9 +224,8 @@ type reportRow struct {
 	result
 	// Proxy shadows the embedded result's field so the template renders the
 	// URL without its password. The embedded one stays as given, because it is
-	// what the exit-address lookup is keyed by.
+	// what the client pool is keyed by.
 	Proxy string
-	Exit  egress
 }
 
 // Duration is how long this URL took, including any retries.
@@ -293,6 +316,10 @@ func (r reportRow) Facts() []fact {
 		fact{Label: "Started", Value: atPrecisely(r.Started)},
 		fact{Label: "Ended", Value: atPrecisely(r.Ended)},
 	)
+	if r.ExitError != "" {
+		// Why the row says the address was not looked up.
+		facts = append(facts, fact{Label: "Exit address", Value: "not looked up · " + r.ExitError})
+	}
 	if r.Error != "" {
 		// In full, and where it can be selected. On the row it is a tooltip.
 		facts = append(facts, fact{Label: "Error", Value: r.Error})
@@ -360,36 +387,86 @@ type reportData struct {
 	// Detailed says some row has its tries to show, so the key to how they are
 	// drawn is worth printing.
 	Detailed bool
-	// Route is the way every request went, when they all went the same way.
-	// Routed says they did not, so that each row has to say its own.
+	// Route is how the requests went out, said once above the rows as far as
+	// they all went the same way. Via says they went through different proxies,
+	// and Exited that they came out in different places, so that each row has
+	// to say its own.
 	Route  *route
-	Routed bool
+	Via    bool
+	Exited bool
+	// Asked is how where they came out was found out.
+	Asked asking
 }
 
-// route is a way out: through a proxy or without one, and where that came out.
+// route is how the requests of a run went out: through which proxy, or none,
+// and where that came out.
 type route struct {
-	Proxy string
-	Exit  egress
+	// Proxy is the one they all went through, when SameProxy says they did.
+	Proxy     string
+	SameProxy bool
+	// Exit is where they all came out, when SameExit says they did. When they
+	// did not, Exits is how many addresses they came out of between them, and
+	// Unknown how many of the requests were not looked up.
+	Exit     egress
+	SameExit bool
+	Exits    int
+	Unknown  int
 }
 
-// routes is how the requests of a run went out: the one way, or that there was
-// more than one.
+// routes is how the requests of a run went out, or nothing for a run of none.
 //
-// One way is said once, above the rows, and leaves them the width of two
-// columns that would have said the same thing on every line. More than one is
-// those two columns.
-func routes(records []result, exits map[string]egress) (one *route, several bool) {
+// What every request had in common is said once, above the rows, and leaves
+// them the width of a column that would have said the same thing on every
+// line. What they did not is that column.
+func routes(records []result) *route {
 	if len(records) == 0 {
-		return nil, false
+		return nil
 	}
-	first := records[0].Proxy
-	for _, r := range records[1:] {
-		if r.Proxy != first {
-			return nil, true
+	first := records[0]
+	way := &route{Proxy: first.Proxy, SameProxy: true, Exit: first.Exit, SameExit: true}
+	seen := map[egress]bool{}
+	for _, r := range records {
+		way.SameProxy = way.SameProxy && r.Proxy == first.Proxy
+		way.SameExit = way.SameExit && r.Exit == first.Exit
+		switch {
+		case r.Exit.IP == "":
+			way.Unknown++
+		case !seen[r.Exit]:
+			seen[r.Exit] = true
+			way.Exits++
 		}
 	}
-	return &route{Proxy: redactProxy(first), Exit: exits[first]}, false
+	way.Proxy = redactProxy(way.Proxy)
+	return way
 }
+
+// Spread is how many places the requests came out of, when that was more than
+// one, as the line above the rows says it.
+func (r route) Spread() string {
+	said := "one address"
+	if r.Exits > 1 {
+		said = fmt.Sprintf("%d different addresses", r.Exits)
+	}
+	if r.Unknown > 0 {
+		said += fmt.Sprintf("; where %d of them came out was not looked up", r.Unknown)
+	}
+	return said
+}
+
+// asking is how a run found out where its requests came out.
+type asking int
+
+const (
+	// askedNobody: a list that went several ways, without a report that asked.
+	askedNobody asking = iota
+	// askedOnce: a run that went one way, asked before its first request.
+	askedOnce
+	// askedEach: a report, which asked beside every request.
+	askedEach
+)
+
+func (a asking) Once() bool { return a == askedOnce }
+func (a asking) Each() bool { return a == askedEach }
 
 // Columns are the tracks every row is laid out on, the row of headings
 // included: the same for all of them, which is what lines the rows up without
@@ -403,8 +480,11 @@ func (d reportData) Columns() template.CSS {
 	}
 	// The URL takes what the rest leave.
 	tracks = append(tracks, "1fr", "7.5rem", "4.5rem", "8rem", "4.5rem", "2.5rem")
-	if d.Routed {
-		tracks = append(tracks, "11rem", "9rem")
+	if d.Via {
+		tracks = append(tracks, "11rem")
+	}
+	if d.Exited {
+		tracks = append(tracks, "9rem")
 	}
 	return template.CSS(strings.Join(tracks, " "))
 }
@@ -413,10 +493,14 @@ func (d reportData) Columns() template.CSS {
 // instead: enough that the URL keeps a readable share, and no more than the
 // page is wide on a desktop.
 func (d reportData) Width() template.CSS {
-	if d.Routed {
-		return "76rem"
+	width := 56
+	if d.Via {
+		width += 11
 	}
-	return "56rem"
+	if d.Exited {
+		width += 9
+	}
+	return template.CSS(fmt.Sprintf("%drem", width))
 }
 
 // Numbered says the rows are told apart by which run they were, because a URL
@@ -481,9 +565,20 @@ type reportFlags struct {
 const formatHTML = "html"
 
 // reportWriters is how each of the two is written.
-var reportWriters = map[string]func(io.Writer, string, []result, summary, map[string]egress) error{
+var reportWriters = map[string]func(io.Writer, reportInput) error{
 	formatHTML: renderReport,
 	formatJSON: renderReportJSON,
+}
+
+// reportInput is what a report is written from.
+type reportInput struct {
+	// command is the one that made the run. It is named in the document, and in
+	// front of whatever goes wrong writing it.
+	command string
+	records []result
+	summary summary
+	// asked is how where the requests came out was found out.
+	asked asking
 }
 
 // reportBeside is what --report is given when it is given no path: the report
@@ -603,11 +698,9 @@ var chmodReport = (*os.File).Chmod
 // All of them are tried, and the ones that were written come back whatever
 // became of the others: a page that is there is worth naming beside the reason
 // its companion is not.
-func writeReports(files []reportFile, command string, records []result, s summary,
-	exits map[string]egress,
-) (written []reportFile, err error) {
+func writeReports(files []reportFile, in reportInput) (written []reportFile, err error) {
 	for _, file := range files {
-		if failed := writeReport(file, command, records, s, exits); failed != nil {
+		if failed := writeReport(file, in); failed != nil {
 			err = errors.Join(err, failed)
 			continue
 		}
@@ -621,11 +714,8 @@ func writeReports(files []reportFile, command string, records []result, s summar
 // The page is self-contained on purpose: no stylesheet, no script and no font
 // from anywhere else, so it can be opened from a laptop with no network and
 // mailed to someone as one attachment.
-//
-// The command is the one that made the run. It is named in the document, and in
-// front of whatever goes wrong writing it.
-func writeReport(to reportFile, command string, records []result, s summary, exits map[string]egress) error {
-	path := to.path
+func writeReport(to reportFile, in reportInput) error {
+	command, path := in.command, to.path
 	// The directory is made rather than required. `--report reports/` is what
 	// README and example/README both show, and before this it fetched the whole
 	// list and then failed at the last step because nothing had created the
@@ -644,20 +734,20 @@ func writeReport(to reportFile, command string, records []result, s summary, exi
 		return fmt.Errorf("%s: securing report: %w", command, err)
 	}
 	defer func() { _ = file.Close() }()
-	return reportWriters[to.format](file, command, records, s, exits)
+	return reportWriters[to.format](file, in)
 }
 
 // renderReport is the document itself, separate from the file it lands in, so
 // what it produces can be checked without one and so the failure to write it
 // can be reached at all.
-func renderReport(w io.Writer, command string, records []result, s summary, exits map[string]egress) error {
+func renderReport(w io.Writer, in reportInput) error {
 	// Cut down before the display structs are built: a run of a million would
 	// otherwise materialise a million of them to show two thousand.
-	kept, dropped := limitRows(records, reportRowLimit)
+	kept, dropped := limitRows(in.records, reportRowLimit)
 	rows := make([]reportRow, 0, len(kept))
 	detailed := false
 	for _, r := range kept {
-		rows = append(rows, reportRow{result: r, Proxy: redactProxy(r.Proxy), Exit: exits[r.Proxy]})
+		rows = append(rows, reportRow{result: r, Proxy: redactProxy(r.Proxy)})
 		detailed = detailed || len(r.Tries) > 0
 	}
 	// By when the request went out, which is the order someone reading a run
@@ -665,24 +755,26 @@ func renderReport(w io.Writer, command string, records []result, s summary, exit
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Started.Before(rows[j].Started) })
 	// Of every request, shown or not: a run did not go one way because the rows
 	// that were kept did.
-	way, several := routes(records, exits)
+	way := routes(in.records)
 
 	data := reportData{
-		Command:   command,
+		Command:   in.command,
 		Generated: at(now()),
 		Dropped:   dropped,
-		Summary:   s,
+		Summary:   in.summary,
 		Rows:      rows,
-		Cards:     cards(s),
+		Cards:     cards(in.summary),
 		Service:   askedOf(),
 		Detailed:  detailed,
 		Route:     way,
-		Routed:    several,
+		Via:       way != nil && !way.SameProxy,
+		Exited:    way != nil && !way.SameExit,
+		Asked:     in.asked,
 		// Trusted because it is this repository's own file, compiled in.
 		CSS: template.CSS(reportCSS),
 	}
 	if err := reportTemplate.Execute(w, data); err != nil {
-		return fmt.Errorf("%s: writing the report: %w", command, err)
+		return fmt.Errorf("%s: writing the report: %w", in.command, err)
 	}
 	return nil
 }

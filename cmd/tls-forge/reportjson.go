@@ -49,13 +49,14 @@ type documentSummary struct {
 	AvgMS int64 `json:"avg_ms"`
 }
 
-// documentProxy is one proxy's showing.
+// documentProxy is one proxy's showing, with every address its requests came
+// out of.
 type documentProxy struct {
-	Proxy    string        `json:"proxy"`
-	Requests int           `json:"requests"`
-	CameBack int           `json:"came_back"`
-	Alive    bool          `json:"alive"`
-	Exit     *documentExit `json:"exit,omitempty"`
+	Proxy    string         `json:"proxy"`
+	Requests int            `json:"requests"`
+	CameBack int            `json:"came_back"`
+	Alive    bool           `json:"alive"`
+	Exits    []documentExit `json:"exits,omitempty"`
 }
 
 // documentExit is where requests came out, when somebody could say.
@@ -75,6 +76,8 @@ type resultFields result
 type documentRequest struct {
 	resultFields
 	Exit *documentExit `json:"exit,omitempty"`
+	// ExitError is why nobody could say where it came out.
+	ExitError string `json:"exit_error,omitempty"`
 	// Tries are there for the requests whose tries were kept: the first few
 	// thousand of a run, the ones that went wrong before the others.
 	Tries []documentTry `json:"tries,omitempty"`
@@ -124,9 +127,10 @@ type documentStep struct {
 }
 
 // renderReportJSON is the run as that document.
-func renderReportJSON(w io.Writer, command string, records []result, s summary, exits map[string]egress) error {
+func renderReportJSON(w io.Writer, in reportInput) error {
+	s := in.summary
 	doc := reportDocument{
-		Command:   command,
+		Command:   in.command,
 		Version:   version,
 		Generated: now(),
 		Summary: documentSummary{
@@ -136,16 +140,19 @@ func renderReportJSON(w io.Writer, command string, records []result, s summary, 
 			ElapsedMS: s.Elapsed.Milliseconds(), AvgMS: s.Average().Milliseconds(),
 		},
 		// Never null: a run of nothing made no requests, which is a list of none.
-		Requests: make([]documentRequest, 0, len(records)),
+		Requests: make([]documentRequest, 0, len(in.records)),
 	}
 	for _, p := range s.Proxies {
-		doc.Proxies = append(doc.Proxies, documentProxy{
-			Proxy: p.Proxy, Requests: p.Requests, CameBack: p.Succeeded, Alive: p.Alive(),
-			Exit: exitOf(p.Exit),
-		})
+		proxy := documentProxy{Proxy: p.Proxy, Requests: p.Requests, CameBack: p.Succeeded, Alive: p.Alive()}
+		// Every one of them, where the page lists a few: this is what a program
+		// counts them from.
+		for _, exit := range p.Exits {
+			proxy.Exits = append(proxy.Exits, *exitOf(exit))
+		}
+		doc.Proxies = append(doc.Proxies, proxy)
 	}
-	for _, r := range records {
-		request := documentRequest{resultFields: resultFields(r), Exit: exitOf(exits[r.Proxy])}
+	for _, r := range in.records {
+		request := documentRequest{resultFields: resultFields(r), Exit: exitOf(r.Exit), ExitError: r.ExitError}
 		// Without its password, as everywhere else a person can read it.
 		request.Proxy = redactProxy(r.Proxy)
 		for _, t := range r.Tries {
@@ -165,7 +172,7 @@ func renderReportJSON(w io.Writer, command string, records []result, s summary, 
 	encoder.SetIndent("", "  ")
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(doc); err != nil {
-		return fmt.Errorf("%s: writing the report: %w", command, err)
+		return fmt.Errorf("%s: writing the report: %w", in.command, err)
 	}
 	return nil
 }

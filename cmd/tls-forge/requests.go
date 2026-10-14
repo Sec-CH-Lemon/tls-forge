@@ -52,6 +52,27 @@ type result struct {
 	// Tries are the attempts one by one, with what each waited on. Kept for a
 	// report and for nothing else: the lines are what they have always been.
 	Tries []try `json:"-"`
+	// ID is which request of the run this was, from one.
+	ID int `json:"-"`
+	// Exit is where the request came out, or ExitError why nobody could say.
+	// Asked for every request when a report is written, because a proxy that
+	// hands out an address per request is the reason somebody asks: the address
+	// of one request says nothing about the next.
+	Exit      egress `json:"-"`
+	ExitError string `json:"-"`
+}
+
+// exitSaid is where the request came out, as a line of its log says it, or
+// empty when nobody asked.
+func (r result) exitSaid() string {
+	switch {
+	case r.ExitError != "":
+		return "not looked up · " + r.ExitError
+	case r.Exit.IP == "":
+		return ""
+	default:
+		return describeExit(r.Exit, nil, "")
+	}
 }
 
 // MarshalJSON writes the record with the proxy password removed.
@@ -384,9 +405,15 @@ type runner struct {
 	// keep is the directory every request is kept in, with what it brought back,
 	// a log of it and a trace of it; none when it is empty. about is what the
 	// run knows of all of its requests, for those logs.
-	keep   string
-	about  requestAbout
-	counts *progress
+	keep  string
+	about requestAbout
+	// lookups says where each request comes out is to be asked as it is made.
+	// Otherwise exit is where all of them do, when the run went one way and that
+	// was asked once, and exitError why it could not be said.
+	lookups   bool
+	exit      egress
+	exitError string
+	counts    *progress
 	// note is told about a try that is about to be made again. Nil keeps quiet,
 	// which is what a run of several requests at once wants: the tries of two
 	// URLs would be said in turn with nothing to tell them apart.
@@ -488,48 +515,6 @@ func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
 	}
 }
 
-// exitLookupLimit bounds how many proxies are asked about.
-//
-// One request each, to somebody else's free service. A rotating list can name
-// thousands of proxies, and asking about every one of them would take minutes
-// and deserve the rate limit it would earn.
-//
-// A variable rather than a constant so a test can lower it, as with
-// reportRowLimit.
-var exitLookupLimit = 50
-
-// lookupExits asks the service once for each proxy that carried anything, and
-// once for the direct client if any URL went without one.
-//
-// Returns how many proxies were left unasked, so the caller can say so rather
-// than let the report imply that the addresses it is missing were unavailable.
-func lookupExits(clients *pool, records []result, lane *traceLane) (map[string]egress, int) {
-	seen := map[string]bool{}
-	exits := map[string]egress{}
-	skipped := 0
-	for _, r := range records {
-		if seen[r.Proxy] {
-			continue
-		}
-		seen[r.Proxy] = true
-		if len(seen) > exitLookupLimit {
-			skipped++
-			continue
-		}
-		// A proxy that cannot answer for itself is a fact about that proxy, and
-		// the report says "not looked up" rather than failing the run over it.
-		// Asked with the run's flags rather than through its clients: those hold
-		// the session, and an address service is not who the session is for.
-		asked := lane.mark()
-		found, err := lookupExit(context.Background(), clients.flags, r.Proxy)
-		lane.since(asked, "exit-ip", "net", exitArgs(r.Proxy, found, err))
-		if err == nil {
-			exits[r.Proxy] = found
-		}
-	}
-	return exits, skipped
-}
-
 // fetchOne makes one request, however many tries that takes, and returns the
 // record of it with what came back, which is nil when nothing did. The error is
 // not the request's, which is on the record: it is that the request could not be
@@ -537,7 +522,8 @@ func lookupExits(clients *pool, records []result, lane *traceLane) (map[string]e
 func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *tlsforge.Response, error) {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
-	r := result{URL: j.URL, Proxy: proxy, Started: started}
+	r := result{URL: j.URL, Proxy: proxy, Started: started, ID: j.id,
+		Exit: b.exit, ExitError: b.exitError}
 	if b.repeat > 1 {
 		// Only when there is more than one, so a request made once keeps the
 		// shape its line has always had.
@@ -552,12 +538,34 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 		return r, nil, b.kept(&r, nil, j, lane)
 	}
 
+	// Where this request comes out is asked while it is being made, through the
+	// same proxy, so that the answer is from the same moment and a slow address
+	// service costs no more than the request it is asked beside.
+	var exit chan exitAnswer
+	if b.lookups {
+		exit = make(chan exitAnswer, 1)
+		go func() {
+			found, err := lookupExit(ctx, b.clients.flags, proxy)
+			exit <- exitAnswer{found, err}
+		}()
+	}
+
 	request := b.request
 	request.URL = j.URL
 	res, attempts, tries, err := retrier{retries: b.retry, note: b.note, keep: b.detailed}.do(
 		ctx, client, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
+	if exit != nil {
+		answer := <-exit
+		r.Exit, r.ExitError = answer.found, ""
+		if answer.err != nil {
+			r.Exit, r.ExitError = egress{}, redactError(answer.err, proxy)
+		}
+		// A moment rather than a bar: it was asked beside the request, and a bar
+		// drawn across the request's own would hide one of them.
+		lane.instant("exit-ip", "net", exitArgs(proxy, answer.found, answer.err))
+	}
 
 	if err != nil {
 		r.setError(err)
@@ -573,6 +581,12 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 		keeps.fill(&r, res, j, lane)
 	}
 	return r, res, nil
+}
+
+// exitAnswer is what an address service said, or why it said nothing.
+type exitAnswer struct {
+	found egress
+	err   error
 }
 
 // kept writes the request down in the directory it is to be kept in, when

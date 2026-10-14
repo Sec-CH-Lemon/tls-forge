@@ -101,10 +101,8 @@ func TestReportHasNoProxyPassword(t *testing.T) {
 		Proxy:  "http://alice:s3cr3t@proxy.example:8080",
 		Status: 200,
 	}}
-	totals := summarise(records, 0, nil)
-
 	var out strings.Builder
-	if err := renderReport(&out, "fetch", records, totals, nil); err != nil {
+	if err := renderReport(&out, inputOf(records)); err != nil {
 		t.Fatalf("renderReport: %v", err)
 	}
 	if strings.Contains(out.String(), "s3cr3t") {

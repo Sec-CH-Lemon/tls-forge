@@ -19,8 +19,8 @@ import (
 // A process cannot see its own public address, and through a proxy the address
 // is the proxy's, so somebody outside has to be asked. A run that goes one way
 // asks once, before its first request, for the last line of what it says it is
-// wearing. A list with a proxy for each URL asks once per proxy, afterwards,
-// and only for a report.
+// wearing. A report asks again for every request, while it is made, because a
+// proxy can hand each one an address of its own.
 
 // egress is where a client's requests come out.
 type egress struct {

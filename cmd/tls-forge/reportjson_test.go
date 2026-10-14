@@ -197,7 +197,7 @@ func TestReportAsJSON(t *testing.T) {
 		{
 			URL: "https://example.test/b?x=1&y=2", Proxy: proxy, Started: started.Add(time.Second),
 			Ended: started.Add(1400 * ms), Millis: 400, Status: 200, FinalURL: "https://example.test/b/",
-			Bytes: 577, File: "page-2.html", Run: 2, Attempts: 2,
+			Bytes: 577, File: "page-2.html", Run: 2, Attempts: 2, Exit: egress{IP: "203.0.113.7", Country: "pl"},
 			Tries: []try{
 				{
 					Began: started.Add(time.Second), Took: 100300 * time.Microsecond, Status: 503, Bytes: 19,
@@ -220,13 +220,13 @@ func TestReportAsJSON(t *testing.T) {
 		},
 		{
 			URL: "https://example.test/a", Started: started, Ended: started.Add(300 * ms),
-			Millis: 300, Attempts: 1, Error: "no route to host",
+			Millis: 300, Attempts: 1, Error: "no route to host", ExitError: "nobody answered",
 		},
 		{URL: "https://example.test/c", Started: started.Add(2 * time.Second), Status: 404, Millis: 200, Attempts: 1},
 	}
-	exits := map[string]egress{proxy: {IP: "203.0.113.7", Country: "pl"}}
 	var out strings.Builder
-	if err := renderReportJSON(&out, "fetch", records, summarise(records, 3*time.Second, exits), exits); err != nil {
+	if err := renderReportJSON(&out, reportInput{command: "fetch", records: records,
+		summary: summarise(records, 3*time.Second)}); err != nil {
 		t.Fatalf("renderReportJSON: %v", err)
 	}
 	raw := out.String()
@@ -248,8 +248,8 @@ func TestReportAsJSON(t *testing.T) {
 		t.Fatalf("proxies = %+v", doc.Proxies)
 	}
 	if p := doc.Proxies[0]; p.Proxy != "http://user@proxy.test:8080" || p.Requests != 1 || p.CameBack != 1 || !p.Alive ||
-		p.Exit == nil || *p.Exit != (documentExit{IP: "203.0.113.7", Country: "PL"}) {
-		t.Errorf("the proxy is written as %+v, out of %+v", p, p.Exit)
+		!slices.Equal(p.Exits, []documentExit{{IP: "203.0.113.7", Country: "PL"}}) {
+		t.Errorf("the proxy is written as %+v", p)
 	}
 	if strings.Contains(raw, "s3cr3t") {
 		t.Errorf("the document holds a password:\n%s", raw)
@@ -265,7 +265,8 @@ func TestReportAsJSON(t *testing.T) {
 	}
 	failed, page := doc.Requests[0], doc.Requests[1]
 	// A request is the line of JSON written for it, under the names it has there.
-	if failed.Error != "no route to host" || failed.Millis != 300 || failed.Exit != nil || failed.Tries != nil {
+	if failed.Error != "no route to host" || failed.Millis != 300 || failed.Exit != nil || failed.Tries != nil ||
+		failed.ExitError != "nobody answered" {
 		t.Errorf("the request that failed is written as %+v", failed)
 	}
 	if page.Status != 200 || page.FinalURL != "https://example.test/b/" || page.Bytes != 577 || page.File != "page-2.html" ||
@@ -307,7 +308,8 @@ func TestReportAsJSON(t *testing.T) {
 	// they are rather than escaped for a browser that will never see them.
 	for _, want := range []string{
 		"\n  \"summary\": {\n", `"url": "https://example.test/b?x=1&y=2"`, `"body_start": "<h1>slow down</h1>"`,
-		`"success_rate": 33.3`, `"from_ms": 10.065`,
+		`"success_rate": 33.3`, `"from_ms": 10.065`, `"exit_error": "nobody answered"`,
+		"\"exits\": [\n        {\n          \"ip\": \"203.0.113.7\",\n          \"country\": \"PL\"\n        }\n      ]",
 	} {
 		if !strings.Contains(raw, want) {
 			t.Errorf("the document has no %q:\n%s", want, raw)
@@ -325,7 +327,7 @@ func TestReportAsJSONOfNothing(t *testing.T) {
 	// A run of nothing made no requests, which is a list of none and a rate of
 	// none, not a null and a division by zero.
 	var out strings.Builder
-	if err := renderReportJSON(&out, "fetch", nil, summarise(nil, time.Second, nil), nil); err != nil {
+	if err := renderReportJSON(&out, inputOf(nil)); err != nil {
 		t.Fatalf("renderReportJSON: %v", err)
 	}
 	if raw := out.String(); !strings.Contains(raw, `"requests": []`) || !strings.Contains(raw, `"success_rate": 0`) ||
@@ -333,7 +335,7 @@ func TestReportAsJSONOfNothing(t *testing.T) {
 		t.Errorf("the document of nothing:\n%s", raw)
 	}
 
-	err := renderReportJSON(failingWriter{}, "fetch", nil, summary{}, nil)
+	err := renderReportJSON(failingWriter{}, reportInput{command: "fetch"})
 	if err == nil || !strings.Contains(err.Error(), "fetch: writing the report") {
 		t.Errorf("a document that could not be written: %v", err)
 	}
@@ -487,6 +489,9 @@ func TestListWritesBothReports(t *testing.T) {
 	original := reportRowLimit
 	t.Cleanup(func() { reportRowLimit = original })
 	reportRowLimit = 2
+	// A clock that stands still, so what the requests took does not depend on
+	// the machine.
+	fakeClock(t)
 
 	server := pathServer(t)
 	dir := t.TempDir()

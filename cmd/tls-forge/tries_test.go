@@ -401,21 +401,46 @@ func TestReportRowFacts(t *testing.T) {
 }
 
 func TestRoutes(t *testing.T) {
-	exits := map[string]egress{"http://user:pw@p1": {IP: "203.0.113.7", Country: "PL"}}
+	const p1 = "http://user:pw@p1"
+	pl, de := egress{IP: "203.0.113.7", Country: "PL"}, egress{IP: "198.51.100.9", Country: "DE"}
 
-	if one, several := routes(nil, exits); one != nil || several {
-		t.Errorf("a run of nothing went %+v, several = %v", one, several)
+	if way := routes(nil); way != nil {
+		t.Errorf("a run of nothing went %+v", way)
 	}
-	// One way: said once, without its password, with where it came out.
-	one, several := routes([]result{{Proxy: "http://user:pw@p1"}, {Proxy: "http://user:pw@p1"}}, exits)
-	if several || one == nil || one.Proxy != "http://user@p1" || one.Exit.IP != "203.0.113.7" {
-		t.Errorf("one proxy for every request: %+v, several = %v", one, several)
-	}
-	if one, several := routes([]result{{}, {}}, nil); several || one == nil || one.Proxy != "" || one.Exit.IP != "" {
-		t.Errorf("every request direct, and nobody asked: %+v, several = %v", one, several)
-	}
-	if one, several := routes([]result{{Proxy: "http://user:pw@p1"}, {}}, exits); one != nil || !several {
-		t.Errorf("two ways out: %+v, several = %v", one, several)
+	for _, tc := range []struct {
+		name    string
+		records []result
+		want    route
+		spread  string
+	}{
+		{
+			// Said once, without its password, with where it came out.
+			"one proxy, one address", []result{{Proxy: p1, Exit: pl}, {Proxy: p1, Exit: pl}},
+			route{Proxy: "http://user@p1", SameProxy: true, Exit: pl, SameExit: true, Exits: 1}, "one address",
+		},
+		{
+			"every request direct, and nobody asked", []result{{}, {}},
+			route{SameProxy: true, SameExit: true, Unknown: 2}, "one address; where 2 of them came out was not looked up",
+		},
+		{
+			// A proxy that hands every request an address of its own.
+			"one proxy, an address each", []result{{Proxy: p1, Exit: pl}, {Proxy: p1, Exit: de}, {Proxy: p1, Exit: pl}},
+			route{Proxy: "http://user@p1", SameProxy: true, Exit: pl, Exits: 2}, "2 different addresses",
+		},
+		{
+			"two ways out, one of them not looked up", []result{{Proxy: p1, Exit: pl}, {}},
+			route{Proxy: "http://user@p1", Exit: pl, Exits: 1, Unknown: 1},
+			"one address; where 1 of them came out was not looked up",
+		},
+	} {
+		way := routes(tc.records)
+		if way == nil || *way != tc.want {
+			t.Errorf("%s: went %+v, want %+v", tc.name, way, tc.want)
+			continue
+		}
+		if got := way.Spread(); got != tc.spread {
+			t.Errorf("%s: spread %q, want %q", tc.name, got, tc.spread)
+		}
 	}
 }
 
@@ -431,8 +456,16 @@ func TestReportColumns(t *testing.T) {
 			"0.75rem 2.5rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem", "56rem",
 		},
 		{
-			"numbered, and several ways out", reportData{Summary: summary{Passes: 2}, Routed: true},
+			"numbered, and several ways out", reportData{Summary: summary{Passes: 2}, Via: true, Exited: true},
 			"0.75rem 2.5rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem 11rem 9rem", "76rem",
+		},
+		{
+			"one proxy, an address for each request", reportData{Exited: true},
+			"0.75rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem 9rem", "65rem",
+		},
+		{
+			"several proxies, nobody asked where", reportData{Via: true},
+			"0.75rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem 11rem", "67rem",
 		},
 	} {
 		if got := string(tc.data.Columns()); got != tc.tracks {
@@ -468,7 +501,7 @@ func TestReportShowsEveryTry(t *testing.T) {
 		},
 	}}
 	var out strings.Builder
-	if err := renderReport(&out, "fetch", records, summarise(records, time.Second, nil), nil); err != nil {
+	if err := renderReport(&out, inputOf(records)); err != nil {
 		t.Fatalf("renderReport: %v", err)
 	}
 	html := out.String()
@@ -519,16 +552,22 @@ func TestReportShowsEveryTry(t *testing.T) {
 
 	// Without tries there is no key to them, and with more than one way out
 	// every row says its own.
-	bare := []result{{URL: "https://a/", Status: 200}, {URL: "https://b/", Status: 200, Proxy: "http://p1"}}
+	bare := []result{
+		{URL: "https://a/", Status: 200, Exit: egress{IP: "198.51.100.1"}},
+		{URL: "https://b/", Status: 200, Proxy: "http://p1", Exit: egress{IP: "198.51.100.2"}},
+	}
 	out.Reset()
-	if err := renderReport(&out, "fetch", bare, summarise(bare, time.Second, nil), nil); err != nil {
+	if err := renderReport(&out, inputOf(bare)); err != nil {
 		t.Fatalf("renderReport: %v", err)
 	}
 	html = out.String()
 	if strings.Contains(html, "A try is drawn") || strings.Contains(html, "Every request ") {
 		t.Error("a report with no tries, of requests that went two ways, says otherwise")
 	}
-	for _, want := range []string{">Via</span>", ">Exit address</span>", "min-width:76rem", "direct", "http://p1"} {
+	for _, want := range []string{
+		">Via</span>", ">Exit address</span>", "min-width:76rem", "direct", "http://p1",
+		"The requests came out of 2 different addresses.", "198.51.100.2",
+	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the report has no %q", want)
 		}

@@ -256,7 +256,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
 | `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `html` |
-| `--report-ip[=false]` | With `--report`, when the entries of a list go through different proxies, ask the address services once per proxy where each comes out; default `true` |
+| `--report-ip[=false]` | With `--report`, ask the address services where each request comes out, while it is made; default `true` |
 
 What comes out is decided by how the command was asked, not by how many URLs
 it ended up with:
@@ -344,9 +344,10 @@ first. Amazon and ipify report the address without a country.
 This is at least one additional request to a third party on every run. The
 lookup waits at most five seconds in all, and when nobody answers the line says
 so instead of failing the fetch. A proxy that assigns an address per connection
-can send the request itself from a different one. A list whose entries name
-different proxies has no one address to report: nobody is asked before it
-starts, and afterwards only for a [report](#reporting-a-run), once per proxy.
+can send the request itself from a different one, which is why a
+[report](#reporting-a-run) asks again for every request. A list whose entries
+name different proxies has no one address to report, and nobody is asked
+before it starts.
 
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
@@ -484,7 +485,8 @@ out/trace-example.com-2026-08-16-091854-584-1.json
   it turns a request away is the page most worth reading. A request that got
   no answer has none.
 - The `.log` is the request written out for a person: what it was, the
-  profile and the proxy it went with, how it ended, and every try at it with
+  profile and the proxy it went with, where it came out, how it ended, and
+  every try at it with
   the connection it went out on, each thing it waited on and for how long, the
   request as it was written, what the answer came with, how an answer that was
   not a 2xx began, and the wait before the next try.
@@ -517,7 +519,7 @@ URL, and inside it a bar for each thing the try waited on.
 | In the trace | Meaning |
 |---|---|
 | `fetch` | The whole run, with its settings; it ends with the error, if there was one |
-| `profile`, `exit-ip`, `cookies loaded`, `cookies saved`, `summary` | What the run was wearing, where it came out, and the session and totals it handled |
+| `profile`, `exit-ip`, `cookies loaded`, `cookies saved`, `summary` | What the run was wearing, where it came out and, for a report, where each request did, and the session and totals it handled |
 | `GET <url>` | One try, with its run and attempt number. It ends with the status, size, final URL and response headers, or with the error |
 | `dns`, `connect` | The name lookup and the TCP dial, with every address tried and why any of them failed |
 | `tls`, or `proxy+tls` through a proxy | From the dial to a usable connection, with the TLS version, cipher and ALPN it settled on |
@@ -579,14 +581,18 @@ many got no answer, and under it the data, the retries, the time the run took
 and the average time of one request. Then there is a row for every request:
 when it started, how long it took, how it ended, how much came back and how
 many tries it took. Rows are in the order the requests were sent, and when a
-URL was asked for more than once each row says which run it was. The proxy and
-the address a request came out of are said once above the rows when every
-request went the same way, and on each row when they did not.
+URL was asked for more than once each row says which run it was. The proxy a
+request went through and the address it came out of are each said once above
+the rows when every request had the same, and on each row when they did not:
+a proxy that hands every request an address of its own gives the rows a column
+of them, and the line above says how many there were. The table of proxies
+lists the addresses each one came out of.
 
 Every row opens, and shows what that request took:
 
 - where it ended up when it was redirected, the file it was saved to, when it
-  started and ended to the millisecond, and the error in full;
+  started and ended to the millisecond, why nobody could say where it came
+  out, and the error in full;
 - every try that was made at it, with how the try ended, how long it took and
   how long was waited before the next one;
 - the connection each try went out on: new or already open, the address at the
@@ -670,8 +676,9 @@ of a try and of its steps keep a fraction, because most steps are over in less
 than one. `success_rate` is a percentage. A step the try ended in carries
 `"unfinished": true`, a redirect is a step named `redirect`, and `proxies`
 lists each proxy that was used with its `requests`, `came_back`, `alive` and
-`exit`. A field with nothing to say is left out. The same things are masked as
-on the page.
+`exits`, every address its requests came out of. A request nobody could say
+that of has `exit_error` instead of `exit`. A field with nothing to say is left
+out. The same things are masked as on the page.
 
 The document holds every request, where the page stops at 2,000 rows. `tries`
 are there for the requests whose tries were kept: the first 2,000 that failed
@@ -688,12 +695,17 @@ exit code 1, after the pages have gone where they were going; of two, the one
 that could be written still is.
 
 The report is written however the run ended, a request that got no answer
-included. A run that went one way uses the exit address it asked for before
-its first request. A list with a proxy for each URL asks for the address of
-each proxy once, after the list is done, and `--report-ip=false` turns that
-off. The page holds at most 2,000 rows: the requests that failed or answered
-with something other than the page come first, and it says how many rows it
-left out.
+included. Where each request came out is asked of the same services as the
+address a run says it comes out of, while the request is made, through the
+same proxy and on a connection of its own. That is one more request to a third
+party for every request, and it is said before the first. The answer is where a
+request made at that moment came out: a proxy that gives every connection an
+address of its own may have given the request itself another. A run of one
+request uses the answer it was given before it began. `--report-ip=false` asks
+nothing more: a run that went one way then uses that answer for every request,
+and a list with a proxy for each URL has none. The page holds at most 2,000
+rows: the requests that failed or answered with something other than the page
+come first, and it says how many rows it left out.
 
 Runnable CLI and SDK examples, with complete sample inputs and outputs, are in
 [`example/`](example/).

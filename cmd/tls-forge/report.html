@@ -57,7 +57,7 @@
         <thead>
           <tr class="border-b border-line text-left dark:border-line-dark">
             <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Proxy</th>
-            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Exit address</th>
+            <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">Exit addresses</th>
             <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Requests</th>
             <th class="px-4 py-2.5 text-right font-medium text-muted dark:text-muted-dark">Came back</th>
             <th class="px-4 py-2.5 font-medium text-muted dark:text-muted-dark">State</th>
@@ -67,9 +67,12 @@
           {{range .Summary.Proxies}}
           <tr class="border-b border-line/60 last:border-0 dark:border-line-dark/60">
             <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">{{.Proxy}}</td>
+            <!-- Every address its requests came out of, up to a few: a proxy that
+                 hands each request its own would otherwise fill the table. -->
             <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
-              {{if .Exit.IP}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.IP}}
+              {{range .ListedExits}}<span class="block"><span class="not-italic">{{.Flag}}</span> {{.IP}}</span>
               {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
+              {{with .MoreExits}}<span class="block font-sans text-muted dark:text-muted-dark">and {{.}} more</span>{{end}}
             </td>
             <td class="px-4 py-2.5 text-right tabular-nums">{{.Requests}}</td>
             <td class="px-4 py-2.5 text-right tabular-nums">{{.Succeeded}}</td>
@@ -102,12 +105,21 @@
     </p>
     {{end}}
     {{with .Route}}
-    <!-- Said once when it is the same for every row, which is what leaves the
-         rows room for what differs between them. -->
+    <!-- Said once as far as it is the same for every row, which is what leaves
+         the rows room for what differs between them. -->
     <p class="mb-3 text-xs text-muted dark:text-muted-dark">
-      Every request {{if .Proxy}}went through <span class="font-mono">{{.Proxy}}</span>{{else}}was made directly{{end}}{{if .Exit.IP}},
+      {{if .SameProxy}}
+      Every request {{if .Proxy}}went through <span class="font-mono">{{.Proxy}}</span>{{else}}was made directly{{end}}{{if not .SameExit}},
+      and came out of {{.Spread}}.{{else if .Exit.IP}},
       and came out of <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.IP}}</span>.{{else}}.
       Where it came out was not looked up.{{end}}
+      {{else if not .SameExit}}
+      The requests came out of {{.Spread}}.
+      {{else if .Exit.IP}}
+      Every request came out of <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.IP}}</span>.
+      {{else}}
+      Where the requests came out was not looked up.
+      {{end}}
     </p>
     {{end}}
     {{if .Detailed}}
@@ -136,10 +148,8 @@
           <span>Outcome</span>
           <span class="text-right">Data</span>
           <span class="text-right">Tries</span>
-          {{if .Routed}}
-          <span>Via</span>
-          <span>Exit address</span>
-          {{end}}
+          {{if .Via}}<span>Via</span>{{end}}
+          {{if .Exited}}<span>Exit address</span>{{end}}
         </div>
         {{range .Rows}}
         <details class="group/row border-b border-line/60 last:border-0 dark:border-line-dark/60">
@@ -156,10 +166,12 @@
               <span class="whitespace-nowrap" {{if .Error}}title="{{.Error}}"{{end}}>{{template "chip" .}}</span>
               <span class="whitespace-nowrap text-right tabular-nums">{{.Size}}</span>
               <span class="text-right tabular-nums {{if gt .Attempts 1}}text-serious-ink dark:text-serious{{end}}">{{.Attempts}}</span>
-              {{if $.Routed}}
+              {{if $.Via}}
               <span class="min-w-0 break-all font-mono text-xs">
                 {{if .Proxy}}{{.Proxy}}{{else}}<span class="font-sans text-muted dark:text-muted-dark">direct</span>{{end}}
               </span>
+              {{end}}
+              {{if $.Exited}}
               <span class="min-w-0 break-all font-mono text-xs">
                 {{if .Exit.IP}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.IP}}
                 {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
@@ -242,8 +254,14 @@
 
   <footer class="mt-10 space-y-1 text-xs leading-relaxed text-muted dark:text-muted-dark">
     <p>Data volumes are the decompressed body, which is more than crossed the wire.</p>
-    <p>Exit addresses were asked of {{.Service}}, once for each proxy and once for
-       requests made without one, and are where they came out at the time of the run.</p>
+    {{if .Asked.Each}}
+    <p>Where each request came out was asked of {{.Service}} while it was being
+       made, through the same proxy on a connection of its own. A proxy that gives
+       every connection an address of its own may have given the request another.</p>
+    {{else if .Asked.Once}}
+    <p>Where the requests came out was asked of {{.Service}} once, before the
+       first of them, and is where the run came out at that moment.</p>
+    {{end}}
   </footer>
 
 </main>

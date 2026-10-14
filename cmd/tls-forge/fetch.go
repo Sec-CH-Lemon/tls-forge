@@ -320,7 +320,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	watch := addWatchFlags(fs)
 	reporting := addReportFlags(fs)
 	reportIP := fs.Bool("report-ip", true,
-		"with --report, when a list names different proxies, ask "+askedOf()+" which address each comes out of")
+		"with --report, ask where each request comes out while it is made: "+askedOf())
 	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -426,8 +426,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// command's failure rather than every request's, and where it comes out is
 	// asked once and said before the first request. A list with a proxy for
 	// each URL is as many identities as it has proxies. Their clients are made
-	// as the list reaches them, and where each comes out is a question for the
-	// report.
+	// as the list reaches them, and where each request comes out is a question
+	// for the report.
 	way, oneWay := sameWay(jobs, *common.proxy)
 	var found egress
 	var lookupErr error
@@ -457,6 +457,21 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if from != "" {
 		errOut.printf("warmed from %s\n", from)
 		lane.instant("cookies loaded", "cookies", traceArgs{"from": from})
+	}
+
+	// For a report, where each request comes out is asked beside it: a proxy can
+	// hand every request an address of its own, and then where the run came out
+	// says nothing about any of them. Not for one request, which the question
+	// before it has answered. Said before anybody is asked, as the question
+	// before the run is: a third party is named rather than contacted quietly.
+	asked := askedNobody
+	if oneWay {
+		asked = askedOnce
+	}
+	lookups := len(formats) > 0 && *reportIP && requests > 1
+	if lookups {
+		asked = askedEach
+		errOut.printf("asking where each request comes out while it is made: %s\n", askedOf())
 	}
 
 	// Made rather than required, as a report's is: a run that has fetched a list
@@ -517,13 +532,18 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			method: *method, profile: profileName(*common.profile),
 			requests: requests, runs: *again.repeat,
 		},
-		counts: counts, trace: trace,
+		lookups: lookups,
+		counts:  counts, trace: trace,
 		// Every try is written down for a report, and for the log and the trace
 		// each request is kept with.
 		detailed: len(formats) > 0 || *output != "",
 	}
-	if oneWay && lookupErr == nil {
-		with.about.exit = describeExit(found, nil, way)
+	if oneWay {
+		// Where every request came out, unless each is asked about itself.
+		with.exit = found
+		if lookupErr != nil {
+			with.exitError = redactError(lookupErr, way)
+		}
 	}
 	if asJSON {
 		lines.say, with.out = notes.say, lines
@@ -554,25 +574,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 	}
 
-	// Where the requests came out. One way was asked about before the run.
-	// Several are asked about now, once for each proxy rather than for each URL:
-	// the address belongs to the proxy, and asking per URL would be a request to
-	// a third party for every page.
-	exits := map[string]egress{}
-	switch {
-	case oneWay && lookupErr == nil:
-		exits[way] = found
-	case !oneWay && len(formats) > 0 && *reportIP:
-		errOut.printf("asking %s which address each proxy comes out of…\n", askedOf())
-		var skipped int
-		exits, skipped = lookupExits(clients, records, lane)
-		if skipped > 0 {
-			errOut.printf("  %d further proxies were not asked about, at %d per run\n",
-				skipped, exitLookupLimit)
-		}
-	}
-
-	totals := summarise(records, now().Sub(counts.started), exits)
+	totals := summarise(records, now().Sub(counts.started))
 	totals.Passes = *again.repeat
 	lane.instant("summary", "run", traceArgs{
 		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
@@ -586,7 +588,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if len(formats) > 0 {
 		var written []reportFile
 		written, reportErr = writeReports(reportFiles(*reporting.path, *output, formats, now()),
-			"fetch", records, totals, exits)
+			reportInput{command: "fetch", records: records, summary: totals, asked: asked})
 		for _, file := range written {
 			name := file.path
 			// Only the page stops at what a browser can open. The document has

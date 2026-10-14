@@ -211,6 +211,9 @@ func TestListFallsBackToTheProxyFlag(t *testing.T) {
 }
 
 func TestListKeepsEveryRequestInADirectory(t *testing.T) {
+	// A clock that stands still, so what the requests took does not depend on
+	// the machine.
+	fakeClock(t)
 	server := pathServer(t)
 	dir := filepath.Join(t.TempDir(), "out")
 

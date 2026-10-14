@@ -28,9 +28,6 @@ import (
 type requestAbout struct {
 	method  string
 	profile string
-	// exit is where the requests came out, when the run went one way and
-	// somebody could say.
-	exit string
 	// requests is how many the run makes, and runs how many times each URL is
 	// made.
 	requests, runs int
@@ -116,8 +113,8 @@ func requestLog(r result, j job, about requestAbout) string {
 	}
 	facts = append(facts, [2]string{"profile", about.profile},
 		[2]string{"proxy", either(redactProxy(r.Proxy), "direct")})
-	if about.exit != "" {
-		facts = append(facts, [2]string{"exit-ip", about.exit})
+	if exit := r.exitSaid(); exit != "" {
+		facts = append(facts, [2]string{"exit-ip", exit})
 	}
 	facts = append(facts,
 		[2]string{"started", atPrecisely(r.Started)},
@@ -292,6 +289,12 @@ func requestTrace(r result, j job, about requestAbout) []traceEvent {
 	}
 
 	ended := traceArgs{"attempts": r.Attempts}
+	if r.Exit.IP != "" {
+		ended["exit_ip"] = r.Exit.IP
+		if country := r.Exit.countryCode(); country != "" {
+			ended["exit_country"] = country
+		}
+	}
 	if r.Error != "" {
 		ended["error"] = r.Error
 	} else {
