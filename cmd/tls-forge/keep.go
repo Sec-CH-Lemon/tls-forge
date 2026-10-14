@@ -56,16 +56,21 @@ func keepRequest(dir string, r *result, res *tlsforge.Response, j job, about req
 	if err := os.WriteFile(log, []byte(requestLog(*r, j, about)), 0o600); err != nil {
 		return err
 	}
-	// In the shape a trace of the whole run has, one event to a line.
-	var events bytes.Buffer
+	return os.WriteFile(trace, traceFileOf(requestTrace(*r, about.method)), 0o600)
+}
+
+// traceFileOf is events as a file of them, in the shape a trace of the whole
+// run has: one event to a line.
+func traceFileOf(events []traceEvent) []byte {
+	var file bytes.Buffer
 	separator := "[\n"
-	for _, event := range requestTrace(*r, j, about) {
-		events.WriteString(separator)
-		events.Write(eventLine(event))
+	for _, event := range events {
+		file.WriteString(separator)
+		file.Write(eventLine(event))
 		separator = ",\n"
 	}
-	events.WriteString("\n]\n")
-	return os.WriteFile(trace, events.Bytes(), 0o600)
+	file.WriteString("\n]\n")
+	return file.Bytes()
 }
 
 // either is the first of two strings that is not empty.
@@ -204,7 +209,7 @@ func indented(log *strings.Builder, heading, block string) {
 // from the trace of the whole run. Every event is given a moment of its own and
 // every bar ends no earlier than what is drawn inside it, which is what a
 // viewer needs to put the bars inside one another.
-func requestTrace(r result, j job, about requestAbout) []traceEvent {
+func requestTrace(r result, method string) []traceEvent {
 	const row = mainLane
 	pid := os.Getpid()
 	last := int64(0)
@@ -221,7 +226,7 @@ func requestTrace(r result, j job, about requestAbout) []traceEvent {
 		return e
 	}
 
-	request := traceArgs{"url": safeURL(r.URL), "request": j.id}
+	request := traceArgs{"url": safeURL(r.URL), "request": r.ID}
 	if r.Run > 0 {
 		request["run"] = r.Run
 	}
@@ -231,9 +236,9 @@ func requestTrace(r result, j job, about requestAbout) []traceEvent {
 	events := []traceEvent{
 		event(traceEvent{Phase: phaseMetadata, Name: "process_name", Args: traceArgs{"name": "tls-forge fetch"}}),
 		event(traceEvent{Phase: phaseMetadata, Name: "thread_name",
-			Args: traceArgs{"name": "request " + strconv.Itoa(j.id)}}),
+			Args: traceArgs{"name": "request " + strconv.Itoa(r.ID)}}),
 		event(traceEvent{Phase: phaseBegin, TS: at(r.Started.UnixMicro()), Cat: "request",
-			Name: about.method + " " + safeURL(r.URL), Args: request}),
+			Name: method + " " + safeURL(r.URL), Args: request}),
 	}
 
 	for i, t := range r.Tries {

@@ -24,12 +24,14 @@ import (
 // reportDocument is the whole of it.
 type reportDocument struct {
 	// Command is which of them made the run, and Version which build of it.
-	Command   string            `json:"command"`
-	Version   string            `json:"version"`
-	Generated time.Time         `json:"generated"`
-	Summary   documentSummary   `json:"summary"`
-	Proxies   []documentProxy   `json:"proxies,omitempty"`
-	Requests  []documentRequest `json:"requests"`
+	Command   string    `json:"command"`
+	Version   string    `json:"version"`
+	Generated time.Time `json:"generated"`
+	// Trace is the file the whole run was traced to, when it was.
+	Trace    string            `json:"trace,omitempty"`
+	Summary  documentSummary   `json:"summary"`
+	Proxies  []documentProxy   `json:"proxies,omitempty"`
+	Requests []documentRequest `json:"requests"`
 }
 
 // documentSummary is the run in numbers: the three ways a request can end, and
@@ -133,6 +135,7 @@ func renderReportJSON(w io.Writer, in reportInput) error {
 		Command:   in.command,
 		Version:   version,
 		Generated: now(),
+		Trace:     in.trace,
 		Summary: documentSummary{
 			Requests: s.Total, Scraped: s.Succeeded, Not2xx: s.Warned, NoResponse: s.Failed,
 			SuccessRate: rate(s.Succeeded, s.Total),

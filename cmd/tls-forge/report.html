@@ -122,6 +122,12 @@
       {{end}}
     </p>
     {{end}}
+    {{if .Traced}}
+    <p class="mb-3 text-xs text-muted dark:text-muted-dark">
+      {{with .RunTrace}}The run was traced to <a class="font-mono underline decoration-line underline-offset-2 hover:decoration-current dark:decoration-line-dark" href="{{.Link}}">{{.Path}}</a>.{{end}}
+      A row that is opened names the trace of its request, and opens it at ui.perfetto.dev.
+    </p>
+    {{end}}
     {{if .Detailed}}
     <p class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted dark:text-muted-dark">
       <span>Open a row for every try that was made at it. A try is drawn on the length of the whole request:</span>
@@ -183,7 +189,14 @@
             <dl class="grid grid-cols-[6rem_1fr] gap-x-4 gap-y-1.5">
               {{range .Facts}}
               <dt class="text-muted dark:text-muted-dark">{{.Label}}</dt>
-              <dd class="min-w-0 break-words {{if .Code}}font-mono{{end}}">{{.Value}}</dd>
+              <dd class="min-w-0 break-words {{if .Code}}font-mono{{end}}">
+                {{- if .Link}}<a class="underline decoration-line underline-offset-2 hover:decoration-current dark:decoration-line-dark" href="{{.Link}}">{{.Value}}</a>{{else}}{{.Value}}{{end}}
+                {{- with .Open}}
+                <button type="button" class="ml-2 inline-flex cursor-pointer items-center gap-1 rounded-full bg-line px-2 py-0.5 align-middle font-sans font-medium text-ink hover:bg-line/60 dark:bg-line-dark dark:text-ink-dark dark:hover:bg-line-dark/60"
+                  data-trace="{{.Data}}" data-title="{{.Title}}" data-name="{{.Name}}"
+                  title="Opens ui.perfetto.dev with the trace of this request">Open in Perfetto <span aria-hidden="true">↗</span></button>
+                {{- end}}
+              </dd>
               {{end}}
             </dl>
             {{range .TryRows}}
@@ -262,9 +275,48 @@
     <p>Where the requests came out was asked of {{.Service}} once, before the
        first of them, and is where the run came out at that moment.</p>
     {{end}}
+    {{if .Traced}}
+    <p>Open in Perfetto hands the trace of a request to ui.perfetto.dev in a new
+       tab. A report opened from a file is not a page it knows, so it asks before
+       it opens what it was handed.</p>
+    {{end}}
   </footer>
 
 </main>
+{{if .Traced}}
+<!-- The one script, and only in a report with traces to open: a trace is handed
+     to another page, which nothing else in a document can do. -->
+<script>
+// The viewer is opened at once, while the click still counts as one and a page
+// is allowed to open another, then asked whether it is ready until it says so,
+// because what it is sent before then is lost, and then handed the trace.
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-trace]");
+  if (!button) {
+    return;
+  }
+  const origin = "https://ui.perfetto.dev";
+  const viewer = window.open(origin + "/#!/", "_blank");
+  if (!viewer) {
+    return;
+  }
+  const packed = Uint8Array.from(atob(button.dataset.trace), (c) => c.charCodeAt(0));
+  const unpacked = new Blob([packed]).stream().pipeThrough(new DecompressionStream("gzip"));
+  const buffer = await new Response(unpacked).arrayBuffer();
+  const asking = setInterval(() => viewer.postMessage("PING", origin), 50);
+  const giveUp = setTimeout(() => clearInterval(asking), 60000);
+  window.addEventListener("message", function ready(answer) {
+    if (answer.source !== viewer || answer.data !== "PONG") {
+      return;
+    }
+    clearInterval(asking);
+    clearTimeout(giveUp);
+    window.removeEventListener("message", ready);
+    viewer.postMessage({perfetto: {buffer, title: button.dataset.title, fileName: button.dataset.name}}, origin);
+  });
+});
+</script>
+{{end}}
 </body>
 </html>
 {{- /* How something ended, as a request's row and each of its tries show it. */ -}}

@@ -108,6 +108,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `--report-ip=false` turns it off, and a run of one request uses the answer
   it was given before it began. The log and the trace kept of each request
   under `--output` say where it came out as well.
+- **A report opens the trace of every request.** When the run was traced, by
+  `--trace` or by `--output`, which keeps a trace of each request, an opened
+  row links to that trace and to the request's log, relative to where the
+  report is, and has **Open in Perfetto**: it opens ui.perfetto.dev in a new
+  tab and hands it the trace of that request, written into the page so that a
+  report opened from a file needs nothing else. Perfetto asks before it opens a
+  trace from a page opened from a file. A traced report holds this one inline
+  script; any other is still without one. The JSON document names the trace of
+  the run as `trace`.
 - `--trace FILE` records every step of a run in the Trace Event JSON format
   that [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the settings, the
   profile, the exit-address lookup, and for each try the name lookup, the

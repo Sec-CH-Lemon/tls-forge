@@ -252,8 +252,8 @@ func TestRequestLog(t *testing.T) {
 }
 
 func TestRequestTrace(t *testing.T) {
-	r, j, about := keptRequest()
-	events := requestTrace(r, j, about)
+	r, _, about := keptRequest()
+	events := requestTrace(r, about.method)
 	// Everything a viewer needs to put the bars inside one another.
 	checkShape(t, events)
 
@@ -291,15 +291,15 @@ func TestRequestTrace(t *testing.T) {
 	}
 
 	// A request that never went out is the request alone, and why.
-	gone := requestTrace(result{URL: "https://example.test/", Error: "no such proxy", Started: r.Started, Ended: r.Started},
-		job{id: 1}, about)
+	gone := requestTrace(result{URL: "https://example.test/", Error: "no such proxy", Started: r.Started, Ended: r.Started,
+		ID: 1}, about.method)
 	checkShape(t, gone)
 	if ended := gone[len(gone)-1]; len(gone) != 4 || ended.Args["error"] != "no such proxy" || ended.Args["exit_ip"] != nil {
 		t.Errorf("a request that never went out is traced as %+v", gone)
 	}
 	// An address without a country is the address alone.
 	r.Exit = egress{IP: "203.0.113.7"}
-	if ended := requestTrace(r, j, about); ended[len(ended)-1].Args["exit_country"] != nil {
+	if ended := requestTrace(r, about.method); ended[len(ended)-1].Args["exit_country"] != nil {
 		t.Errorf("a country was made up for %+v", ended[len(ended)-1])
 	}
 }

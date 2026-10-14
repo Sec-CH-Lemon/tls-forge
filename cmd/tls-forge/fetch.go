@@ -588,7 +588,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if len(formats) > 0 {
 		var written []reportFile
 		written, reportErr = writeReports(reportFiles(*reporting.path, *output, formats, now()),
-			reportInput{command: "fetch", records: records, summary: totals, asked: asked})
+			reportInput{command: "fetch", records: records, summary: totals, asked: asked,
+				method: *method, trace: *again.trace})
 		for _, file := range written {
 			name := file.path
 			// Only the page stops at what a browser can open. The document has

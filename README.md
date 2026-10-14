@@ -548,6 +548,9 @@ shows the request that was in flight as unfinished. The file is replaced on
 every run and created with mode `0600`. Each try adds about two kilobytes,
 most of it the header fields of the request and the response.
 
+A [report](#reporting-a-run) of a traced run links every request to the trace
+and opens the request's own at ui.perfetto.dev with one click.
+
 A trace is meant to be kept and passed on, so it leaves out what a session is
 worth. Proxy passwords, cookie values, `Authorization` credentials and the
 values of headers whose names contain `token`, `secret`, `password` or `key`
@@ -575,24 +578,29 @@ A path of its own is given after an equals sign, `--report=reports/` or
 the next URL, and `fetch` says so when it is not one.
 
 The page is one HTML file with nothing to load from anywhere else, so it can be
-opened offline and sent on as one file. At the top is the share of requests
-that came back as the page, with how many answered with something else and how
-many got no answer, and under it the data, the retries, the time the run took
-and the average time of one request. Then there is a row for every request:
-when it started, how long it took, how it ended, how much came back and how
-many tries it took. Rows are in the order the requests were sent, and when a
-URL was asked for more than once each row says which run it was. The proxy a
-request went through and the address it came out of are each said once above
-the rows when every request had the same, and on each row when they did not:
-a proxy that hands every request an address of its own gives the rows a column
-of them, and the line above says how many there were. The table of proxies
-lists the addresses each one came out of.
+opened offline and sent on as one file; only opening a trace in Perfetto, below,
+goes anywhere. At the top is the share of requests that came back as the page,
+with how many answered with something else and how many got no answer, and under
+it the data, the retries, the time the run took and the average time of one
+request. Then there is a row for every request: when it started, how long it
+took, how it ended, how much came back and how many tries it took. Rows are in
+the order the requests were sent, and when a URL was asked for more than once
+each row says which run it was. The proxy a request went through and the address
+it came out of are each said once above the rows when every request had the
+same, and on each row when they did not: a proxy that hands every request an
+address of its own gives the rows a column of them, and the line above says how
+many there were. The table of proxies lists the addresses each one came out of.
 
 Every row opens, and shows what that request took:
 
 - where it ended up when it was redirected, the file it was saved to, when it
   started and ended to the millisecond, why nobody could say where it came
   out, and the error in full;
+- when the run was traced, the trace: the one the request was kept with under
+  `--output`, with its log, or else the `--trace` file of the whole run, each
+  a link from where the report is; and **Open in Perfetto**, which opens the
+  trace of that request alone at [ui.perfetto.dev](https://ui.perfetto.dev/)
+  in a new tab;
 - every try that was made at it, with how the try ended, how long it took and
   how long was waited before the next one;
 - the connection each try went out on: new or already open, the address at the
@@ -612,6 +620,16 @@ Each try is also drawn as a bar on the length of the whole request, so the
 tries of one request line up as a picture of it, with the waits between them
 as the gaps. These are the steps a [trace](#tracing-a-run) records, measured by
 the same clock, so the report and the trace of one run agree.
+
+Open in Perfetto needs nothing but the report: the trace of each request is
+written into the page, compressed, because a page opened from a file may read no
+other file, and handed to the viewer it opens. It is the trace kept beside the
+request under `--output`, byte for byte, and without `--output` the request as
+it would have been kept. Perfetto asks before it opens a trace that a page it
+does not know hands it, which a page opened from a file is: answer Yes. The
+report holds the one script that does this, and only when the run was traced.
+Links are relative, so a directory that holds the report and what the run kept
+can be moved or sent on whole.
 
 A report leaves out what a trace does, so that it can be passed on: proxy
 passwords, cookie values, `Authorization` credentials and the values of
@@ -673,12 +691,13 @@ The JSON document holds what the page shows, under names of its own:
 A request is the JSON line a list is answered with, without the body and under
 the same names, with `exit` and `tries` added. Times are milliseconds, and those
 of a try and of its steps keep a fraction, because most steps are over in less
-than one. `success_rate` is a percentage. A step the try ended in carries
-`"unfinished": true`, a redirect is a step named `redirect`, and `proxies`
-lists each proxy that was used with its `requests`, `came_back`, `alive` and
-`exits`, every address its requests came out of. A request nobody could say
-that of has `exit_error` instead of `exit`. A field with nothing to say is left
-out. The same things are masked as on the page.
+than one. `success_rate` is a percentage. `trace` is the `--trace` file of the
+run, when there was one. A step the try ended in carries `"unfinished": true`, a
+redirect is a step named `redirect`, and `proxies` lists each proxy that was
+used with its `requests`, `came_back`, `alive` and `exits`, every address its
+requests came out of. A request nobody could say that of has `exit_error`
+instead of `exit`. A field with nothing to say is left out. The same things are
+masked as on the page.
 
 The document holds every request, where the page stops at 2,000 rows. `tries`
 are there for the requests whose tries were kept: the first 2,000 that failed

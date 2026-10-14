@@ -620,7 +620,8 @@ jq '[.requests[].tries[].steps[] | select(.name == "wait") | .ms] | max' run.jso
 onto [ui.perfetto.dev](https://ui.perfetto.dev/) and the run is a timeline: a
 bar per request, and inside it a bar for the lookup, the dial, the handshake,
 the request, the wait and the answer. Several requests at once get a row per
-worker.
+worker. Add `-R` and every row of the report links to the trace and has
+**Open in Perfetto**, which opens that request alone there in a new tab.
 
 It is one event to a line, so it also answers without a viewer. Where the time
 of each run went, in microseconds:

@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -311,11 +315,97 @@ func TestWriteReport(t *testing.T) {
 		t.Error("the rows are not in the order the requests went out")
 	}
 
-	// Self-contained: nothing is fetched from anywhere when this is opened.
-	for _, forbidden := range []string{"<script", "src=", "@import", "<link", "url(http"} {
+	// Self-contained: nothing is fetched from anywhere when this is opened, and
+	// a run that was not traced has nothing for a script to do.
+	for _, forbidden := range []string{"<script", "src=", "@import", "<link", "url(http", "Open in Perfetto"} {
 		if strings.Contains(html, forbidden) {
 			t.Errorf("the report reaches outside itself: %q", forbidden)
 		}
+	}
+}
+
+func TestLinkTo(t *testing.T) {
+	for _, tc := range []struct{ file, report, want string }{
+		// Beside the report, and below where it is.
+		{"out/trace-a.json", "out/report.html", "trace-a.json"},
+		{"out/trace-a.json", "report.html", "out/trace-a.json"},
+		// Somewhere else, which is up and down again, escaped as a URL is.
+		{"out/trace-a.json", "reports/r.html", "../out/trace-a.json"},
+		{"/runs/out/trace a#1?.json", "/runs/reports/r.html", "../out/trace%20a%231%3F.json"},
+		// A colon in the first part of a path does not make it a scheme.
+		{"c:odd.json", "r.html", "./c:odd.json"},
+	} {
+		if got := linkTo(tc.file, tc.report); string(got) != tc.want {
+			t.Errorf("linkTo(%q, %q) = %q, want %q", tc.file, tc.report, got, tc.want)
+		}
+	}
+	// One given in full and the other not: the file where it is.
+	if got := string(linkTo("trace.json", filepath.Join(t.TempDir(), "r.html"))); !strings.HasPrefix(got, "file:///") ||
+		!strings.HasSuffix(got, "/trace.json") || strings.Contains(got, "\\") {
+		t.Errorf("a file the report has no relative way to is linked as %q", got)
+	}
+}
+
+func TestPerfettoOf(t *testing.T) {
+	r, _, about := keptRequest()
+	got := perfettoOf(r, about.method)
+
+	// The trace kept beside the request, byte for byte, once it is unpacked.
+	packed, err := base64.StdEncoding.DecodeString(got.Data)
+	if err != nil {
+		t.Fatalf("the trace is not base64: %v", err)
+	}
+	unzipper, err := gzip.NewReader(bytes.NewReader(packed))
+	if err != nil {
+		t.Fatalf("the trace is not gzip: %v", err)
+	}
+	trace, _ := io.ReadAll(unzipper)
+	if !bytes.Equal(trace, traceFileOf(requestTrace(r, about.method))) {
+		t.Errorf("the trace handed over is not the request's:\n%s", trace)
+	}
+	// Named as the file it is kept in would be, in what the viewer keeps of a
+	// name: anything else it makes a space of.
+	if got.Title != "GET https://example.test/a - request 3" || got.Name != "trace-example.test-2026-03-04-093000-012-3.json" {
+		t.Errorf("the trace is opened as %q, %q", got.Title, got.Name)
+	}
+	kept := regexp.MustCompile(`^[A-Za-z0-9.\-_#:/?=&;%+$ ]*$`)
+	if !kept.MatchString(got.Title) || !kept.MatchString(got.Name) {
+		t.Errorf("the viewer would change %q or %q", got.Title, got.Name)
+	}
+}
+
+func TestReportOpensEveryRequestInPerfetto(t *testing.T) {
+	r, _, _ := keptRequest()
+	r.Log, r.Trace = "out/a.log", "out/trace-a.json"
+	bare := result{URL: "https://example.test/b", ID: 4, Started: r.Started.Add(time.Second)}
+	in := inputOf([]result{r, bare})
+	in.method, in.trace, in.at = "GET", "run.trace.json", "out/report.html"
+
+	var out strings.Builder
+	if err := renderReport(&out, in); err != nil {
+		t.Fatalf("renderReport: %v", err)
+	}
+	html := out.String()
+	for _, want := range []string{
+		// The trace of the run, and of each request, from where the report is.
+		`The run was traced to <a class="font-mono underline`, `href="../run.trace.json">run.trace.json</a>`,
+		`href="a.log">out/a.log</a>`, `href="trace-a.json">out/trace-a.json</a>`,
+		// A request kept nowhere of its own is in the trace of the run.
+		`href="../run.trace.json">run.trace.json</a>`,
+		`data-title="GET https://example.test/a - request 3"`, `data-title="GET https://example.test/b - request 4"`,
+		"Open in Perfetto", "it asks before\n       it opens what it was handed",
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("the report has no %q", want)
+		}
+	}
+	// One script, written into the page, and still nothing fetched from
+	// anywhere when it is opened.
+	if strings.Count(html, "<script") != 1 || strings.Contains(html, "src=") || !strings.Contains(html, `"https://ui.perfetto.dev"`) {
+		t.Error("the report does not have its one script, or reaches outside itself")
+	}
+	if got := strings.Count(html, "data-trace="); got != 2 {
+		t.Errorf("%d traces to open, want one for each request", got)
 	}
 }
 
@@ -655,6 +745,73 @@ func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
 	}
 	if got := asked.Load(); got != 2 {
 		t.Errorf("the service was asked %d times, want once for each request that went out", got)
+	}
+}
+
+func TestReportBesideTheRequestsOpensTheirTraces(t *testing.T) {
+	// The report goes beside what the run kept, so every request's files are a
+	// name away, and what it opens in Perfetto is the trace kept with each.
+	clock := fakeClock(t)
+	server, _ := replying(t, 200)
+	dir := t.TempDir()
+	t.Chdir(dir)
+
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", "out", "--report", "--report-ip=false", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	name := "127.0.0.1-" + stamp(clock.now())
+	page := reportOf(t, filepath.Join("out", "report-"+stamp(clock.now())+".html"))
+	for _, want := range []string{`href="` + name + `-1.log"`, `href="trace-` + name + `-2.json"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the report has no %q", want)
+		}
+	}
+	if strings.Contains(page, "The run was traced to") {
+		t.Error("the report names a trace of the run, which was not traced as a whole")
+	}
+	found := regexp.MustCompile(`data-trace="([^"]+)" data-title="[^"]*" data-name="([^"]+)"`).FindAllStringSubmatch(page, -1)
+	if len(found) != 2 {
+		t.Fatalf("%d traces to open, want 2", len(found))
+	}
+	for _, opened := range found {
+		// As a browser reads the attribute, which is escaped as every one is.
+		packed, err := base64.StdEncoding.DecodeString(html.UnescapeString(opened[1]))
+		if err != nil {
+			t.Fatalf("the trace is not base64: %v", err)
+		}
+		unzipper, err := gzip.NewReader(bytes.NewReader(packed))
+		if err != nil {
+			t.Fatalf("the trace is not gzip: %v", err)
+		}
+		trace, _ := io.ReadAll(unzipper)
+		if kept, _ := os.ReadFile(filepath.Join("out", opened[2])); !bytes.Equal(trace, kept) {
+			t.Errorf("what the report opens is not %s:\n%s\n%s", opened[2], trace, kept)
+		}
+	}
+}
+
+func TestReportOfARunTracedToOneFile(t *testing.T) {
+	server, _ := replying(t, 200)
+	dir := t.TempDir()
+	trace, report := filepath.Join(dir, "run.trace.json"), filepath.Join(dir, "reports", "run")
+
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--trace", trace, "--report="+report,
+		"--report-format", "html,json", "--report-ip=false", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	// Every row is in the trace of the run, and opens a trace of its own.
+	html := reportOf(t, report+".html")
+	if got := strings.Count(html, `href="../run.trace.json"`); got != 3 {
+		t.Errorf("the trace of the run is linked to %d times, want once above the rows and once in each", got)
+	}
+	if got := strings.Count(html, "data-trace="); got != 2 {
+		t.Errorf("%d traces to open, want 2", got)
+	}
+	// And the document names it, for a program to open.
+	if doc := decoded(t, []byte(reportOf(t, report+".json"))); doc.Trace != trace {
+		t.Errorf("the document names the trace %q, want %q", doc.Trace, trace)
 	}
 }
 

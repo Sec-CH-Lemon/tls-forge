@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	_ "embed"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -226,6 +230,14 @@ type reportRow struct {
 	// URL without its password. The embedded one stays as given, because it is
 	// what the client pool is keyed by.
 	Proxy string
+	// at is where the report is written, which the files a row names are
+	// linked from.
+	at string
+	// trace is the file the request was traced to: its own, when it was kept,
+	// or the trace of the whole run. Perfetto is the request's own trace, to be
+	// handed to ui.perfetto.dev, when it was traced at all.
+	trace    string
+	Perfetto *perfettoTrace
 }
 
 // Duration is how long this URL took, including any retries.
@@ -296,6 +308,10 @@ type fact struct {
 	Label, Value string
 	// Code says the value is to be read letter by letter, as a URL or a path is.
 	Code bool
+	// Link is where the value is to be opened, when it names a file to open.
+	Link template.URL
+	// Open is a trace that the line offers to open at ui.perfetto.dev.
+	Open *perfettoTrace
 }
 
 // Facts are what there is to say about a request beyond its row.
@@ -305,12 +321,17 @@ func (r reportRow) Facts() []fact {
 	if r.FinalURL != "" && r.FinalURL != r.URL {
 		facts = append(facts, fact{Label: "Final URL", Value: r.FinalURL, Code: true})
 	}
+	// The page is named and not linked: opened in a browser, it would load
+	// whatever it loads from the site, from the browser's own address.
 	if r.File != "" {
 		facts = append(facts, fact{Label: "Saved to", Value: r.File, Code: true})
 	}
 	if r.Log != "" {
-		facts = append(facts, fact{Label: "Log", Value: r.Log, Code: true},
-			fact{Label: "Trace", Value: r.Trace, Code: true})
+		facts = append(facts, fact{Label: "Log", Value: r.Log, Code: true, Link: linkTo(r.Log, r.at)})
+	}
+	if r.trace != "" {
+		facts = append(facts, fact{Label: "Trace", Value: r.trace, Code: true, Link: linkTo(r.trace, r.at),
+			Open: r.Perfetto})
 	}
 	facts = append(facts,
 		fact{Label: "Started", Value: atPrecisely(r.Started)},
@@ -325,6 +346,53 @@ func (r reportRow) Facts() []fact {
 		facts = append(facts, fact{Label: "Error", Value: r.Error})
 	}
 	return facts
+}
+
+// linkTo is a file the run kept, as a link from the report written at report.
+//
+// Relative, so that a directory holding both can be moved or sent on whole. A
+// file there is no relative way to, because one path was given in full and the
+// other was not, or because they are on two drives, is linked where it is.
+func linkTo(file, report string) template.URL {
+	if rel, err := filepath.Rel(filepath.Dir(report), file); err == nil {
+		// Escaped by the URL rather than the template, which is why it can be
+		// trusted with the href: a path is not a URL until it has been.
+		return template.URL((&url.URL{Path: filepath.ToSlash(rel)}).String())
+	}
+	// Abs fails only when the working directory has gone, and then the path as
+	// it was given is the best there is.
+	full, _ := filepath.Abs(file)
+	path := filepath.ToSlash(either(full, file))
+	return template.URL((&url.URL{Scheme: "file", Path: "/" + strings.TrimPrefix(path, "/")}).String())
+}
+
+// perfettoTrace is a request's trace as the report hands it to ui.perfetto.dev:
+// compressed, as text an attribute can hold, with the title and the file name
+// it is opened under.
+//
+// The viewer makes a space of anything in those two but letters, digits and
+// the few marks a URL is made of, so they are written in nothing else.
+type perfettoTrace struct {
+	Data, Title, Name string
+}
+
+// perfettoOf is the trace of a request, drawn from its record as the trace it
+// is kept with is, ready to be opened from the report.
+//
+// In the page rather than fetched when it is wanted, because a page opened from
+// a file is allowed to read no other file. Compressed, because a report of two
+// thousand rows carries two thousand of them.
+func perfettoOf(r result, method string) *perfettoTrace {
+	var packed bytes.Buffer
+	zipper := gzip.NewWriter(&packed)
+	// A buffer takes whatever it is given, so neither of these can fail.
+	_, _ = zipper.Write(traceFileOf(requestTrace(r, method)))
+	_ = zipper.Close()
+	return &perfettoTrace{
+		Data:  base64.StdEncoding.EncodeToString(packed.Bytes()),
+		Title: fmt.Sprintf("%s %s - request %d", method, safeURL(r.URL), r.ID),
+		Name:  "trace-" + requestName(r.URL, r.Started, r.ID) + ".json",
+	}
 }
 
 // TryRows are the tries the request took, each laid out against how long the
@@ -396,6 +464,16 @@ type reportData struct {
 	Exited bool
 	// Asked is how where they came out was found out.
 	Asked asking
+	// Traced says some row has a trace to open, and RunTrace is the trace of
+	// the whole run, when there was one.
+	Traced   bool
+	RunTrace *keptFile
+}
+
+// keptFile is a file the run left, by the name it was given and as a link.
+type keptFile struct {
+	Path string
+	Link template.URL
 }
 
 // route is how the requests of a run went out: through which proxy, or none,
@@ -579,6 +657,12 @@ type reportInput struct {
 	summary summary
 	// asked is how where the requests came out was found out.
 	asked asking
+	// method is what every request asked with, and trace the file the whole run
+	// was traced to, if it was.
+	method, trace string
+	// at is the file being written, which what the report links to is linked
+	// from. Set as each file is written.
+	at string
 }
 
 // reportBeside is what --report is given when it is given no path: the report
@@ -716,6 +800,7 @@ func writeReports(files []reportFile, in reportInput) (written []reportFile, err
 // mailed to someone as one attachment.
 func writeReport(to reportFile, in reportInput) error {
 	command, path := in.command, to.path
+	in.at = path
 	// The directory is made rather than required. `--report reports/` is what
 	// README and example/README both show, and before this it fetched the whole
 	// list and then failed at the last step because nothing had created the
@@ -745,9 +830,15 @@ func renderReport(w io.Writer, in reportInput) error {
 	// otherwise materialise a million of them to show two thousand.
 	kept, dropped := limitRows(in.records, reportRowLimit)
 	rows := make([]reportRow, 0, len(kept))
-	detailed := false
+	detailed, traced := false, false
 	for _, r := range kept {
-		rows = append(rows, reportRow{result: r, Proxy: redactProxy(r.Proxy)})
+		row := reportRow{result: r, Proxy: redactProxy(r.Proxy), at: in.at, trace: either(r.Trace, in.trace)}
+		if row.trace != "" {
+			// Traced, so it can be opened as a trace: its own, drawn from what was
+			// written down of it, whether or not it was kept in a file of its own.
+			row.Perfetto, traced = perfettoOf(r, in.method), true
+		}
+		rows = append(rows, row)
 		detailed = detailed || len(r.Tries) > 0
 	}
 	// By when the request went out, which is the order someone reading a run
@@ -770,8 +861,12 @@ func renderReport(w io.Writer, in reportInput) error {
 		Via:       way != nil && !way.SameProxy,
 		Exited:    way != nil && !way.SameExit,
 		Asked:     in.asked,
+		Traced:    traced,
 		// Trusted because it is this repository's own file, compiled in.
 		CSS: template.CSS(reportCSS),
+	}
+	if in.trace != "" {
+		data.RunTrace = &keptFile{Path: in.trace, Link: linkTo(in.trace, in.at)}
 	}
 	if err := reportTemplate.Execute(w, data); err != nil {
 		return fmt.Errorf("%s: writing the report: %w", in.command, err)

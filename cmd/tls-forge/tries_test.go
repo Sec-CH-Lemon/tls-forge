@@ -398,6 +398,22 @@ func TestReportRowFacts(t *testing.T) {
 	if rows := full.TryRows(); len(rows) != 0 {
 		t.Errorf("a request whose tries were not kept has %d of them", len(rows))
 	}
+
+	// Kept and traced: the log and the trace linked to from where the report
+	// is, and the trace offered to a viewer.
+	open := &perfettoTrace{Data: "H4sI"}
+	kept := reportRow{
+		result: result{URL: "https://example.test/", Log: "out/a.log", Trace: "out/trace-a.json"},
+		at:     "out/report.html", trace: "out/trace-a.json", Perfetto: open,
+	}
+	want = []fact{
+		{Label: "Log", Value: "out/a.log", Code: true, Link: "a.log"},
+		{Label: "Trace", Value: "out/trace-a.json", Code: true, Link: "trace-a.json", Open: open},
+		{Label: "Started"}, {Label: "Ended"},
+	}
+	if got := kept.Facts(); !slices.Equal(got, want) {
+		t.Errorf("a request that was kept and traced: %+v", got)
+	}
 }
 
 func TestRoutes(t *testing.T) {
