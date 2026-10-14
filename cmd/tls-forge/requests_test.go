@@ -1041,7 +1041,7 @@ func TestFetchAnswersInTheShapeItWasAskedIn(t *testing.T) {
 		{"one URL", []string{one}, false},
 		{"one URL, asked for as a line", []string{"--json", one}, true},
 		// Kept in a directory, one URL is still answered with its page.
-		{"one URL, kept in a directory", []string{"--output", kept, "--body", one}, false},
+		{"one URL, kept in a directory", []string{"--output", kept, "--print-body", one}, false},
 		{"a list of one, in a file", []string{"--input", list}, true},
 		{"a list of one, on the command line", []string{"--urls", one}, true},
 		{"two URLs", []string{one, server.URL + "/two"}, true},
@@ -1214,7 +1214,7 @@ func TestEndingSaysWhereEverythingWent(t *testing.T) {
 	// As rows of the figures a run of several requests ends with.
 	wantRows := [][2]string{
 		{"Saved to", "out/"},
-		{"JSON lines", "not printed on a terminal; > FILE keeps them, --body shows them"},
+		{"JSON lines", "not printed on a terminal; > FILE keeps them, --print-body shows them"},
 		{"Report", "run.html"},
 		{"Report", "run.json"},
 	}
@@ -1224,7 +1224,7 @@ func TestEndingSaysWhereEverythingWent(t *testing.T) {
 	// And as one request says them, under the line it has said the rest on.
 	wantLines := []string{
 		"saved to out/",
-		"JSON lines not printed on a terminal; > FILE keeps them, --body shows them",
+		"JSON lines not printed on a terminal; > FILE keeps them, --print-body shows them",
 		"report written to run.html",
 		"report written to run.json",
 	}

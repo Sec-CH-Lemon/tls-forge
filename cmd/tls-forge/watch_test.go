@@ -355,7 +355,7 @@ func TestFetchPrintsThePageOnAScreenWhenAsked(t *testing.T) {
 			// --progress always as well: with pages going past on the same
 			// screen there is nothing to redraw a count between, so it is said
 			// once, when they have stopped.
-			code, stdout, stderr := exec(t, "fetch", "--body", "--progress", "always", server.URL)
+			code, stdout, stderr := exec(t, "fetch", "--print-body", "--progress", "always", server.URL)
 			if code != 0 {
 				t.Fatalf("exit code = %d\n%s", code, stderr)
 			}
@@ -381,7 +381,7 @@ func TestFetchKeepsThePageOutOfAPipeWhenItHasADirectory(t *testing.T) {
 	if _, stdout, _ := exec(t, "fetch", "-o", path, server.URL); stdout != "" {
 		t.Errorf("the page went down the pipe as well as into the directory: %q", stdout)
 	}
-	code, stdout, stderr := exec(t, "fetch", "-o", path, "--body", server.URL)
+	code, stdout, stderr := exec(t, "fetch", "-o", path, "--print-body", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -650,15 +650,15 @@ func TestListOnAScreenKeepsItsLinesToItself(t *testing.T) {
 		t.Errorf("what the run came to went with them:\n%s", stderr)
 	}
 	// And it says that they went nowhere, and the two ways to have them.
-	const unprinted = "  JSON lines    not printed on a terminal; > FILE keeps them, --body shows them\n"
+	const unprinted = "  JSON lines    not printed on a terminal; > FILE keeps them, --print-body shows them\n"
 	if !strings.HasSuffix(stderr, unprinted) {
 		t.Errorf("the run does not end by saying the lines were not printed:\n%s", stderr)
 	}
 
 	// Asked for, they are printed as they always were.
-	_, stdout, stderr = exec(t, "fetch", "--body", server.URL+"/one", server.URL+"/two")
+	_, stdout, stderr = exec(t, "fetch", "--print-body", server.URL+"/one", server.URL+"/two")
 	if got := lines(t, stdout); len(got) != 2 || got[server.URL+"/one"].Body != "page /one" {
-		t.Errorf("--body printed %q", stdout)
+		t.Errorf("--print-body printed %q", stdout)
 	}
 	if strings.Contains(stderr, "JSON lines") {
 		t.Errorf("lines that were printed were reported as not printed:\n%s", stderr)
@@ -668,7 +668,7 @@ func TestListOnAScreenKeepsItsLinesToItself(t *testing.T) {
 	// line, and says where the request itself was kept when it was.
 	dir := filepath.Join(t.TempDir(), "out")
 	_, _, stderr = exec(t, "fetch", "--json", "-o", dir, server.URL+"/one")
-	want := "\n  saved to " + dir + "\n  JSON lines not printed on a terminal; > FILE keeps them, --body shows them\n"
+	want := "\n  saved to " + dir + "\n  JSON lines not printed on a terminal; > FILE keeps them, --print-body shows them\n"
 	if !strings.HasSuffix(stderr, want) {
 		t.Errorf("one request does not say where it was kept and that its line was not printed:\n%s", stderr)
 	}

@@ -101,7 +101,7 @@ Release images are published for `linux/amd64` and `linux/arm64`:
 ```bash
 docker pull ghcr.io/sec-ch-lemon/tls-forge
 docker run --rm ghcr.io/sec-ch-lemon/tls-forge \
-  fetch --body https://tls.browserleaks.com/json
+  fetch --print-body https://tls.browserleaks.com/json
 ```
 
 Mount a directory when a command reads or writes files:
@@ -215,7 +215,7 @@ several URLs, or a list of them, with one JSON object for each request.
 
 ```bash
 tls-forge fetch https://example.com/
-tls-forge fetch --body https://tls.browserleaks.com/json
+tls-forge fetch --print-body https://tls.browserleaks.com/json
 tls-forge fetch https://example.com/ > page.html
 tls-forge fetch -i -H "Accept-Language: en-US" https://example.com/
 tls-forge fetch -X POST -H "Content-Type: application/json" \
@@ -250,7 +250,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 | `--repeat <n>` | Make every request `n` times; default `1` |
 | `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
-| `--body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
+| `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
@@ -317,12 +317,12 @@ how many times it was tried again when it was:
 
 The body is the output, so it still goes wherever standard output was pointed:
 `tls-forge fetch URL > page.html` and `tls-forge fetch URL | jq .` need no flag.
-It is only a terminal that does not get it unless `--body` asks, because a page
+It is only a terminal that does not get it unless `--print-body` asks, because a page
 is thousands of lines nobody reads as they go past. With `--output` the body
-goes to its directory alone, and `--body` prints it as well. `-i` prints the
+goes to its directory alone, and `--print-body` prints it as well. `-i` prints the
 status and headers whether or not the body is printed. JSON lines follow the
 same rule, each of them holding a whole page: a pipe and a redirect receive
-them, a terminal only with `--body`, and a run that printed none says so at
+them, a terminal only with `--print-body`, and a run that printed none says so at
 the end. The count and everything else that is commentary go to standard
 error, so the lines stay machine-readable.
 

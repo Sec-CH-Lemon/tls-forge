@@ -35,7 +35,7 @@ type watchFlags struct {
 // addWatchFlags registers them.
 func addWatchFlags(fs *pflag.FlagSet) watchFlags {
 	return watchFlags{
-		body: fs.Bool("body", false,
+		body: fs.Bool("print-body", false,
 			"print the output on stdout even when that is a terminal, or when --output has the page"),
 		verbose: fs.BoolP("verbose", "v", false, "print a line for every request as it finishes"),
 		progress: fs.String("progress", "auto",

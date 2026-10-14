@@ -385,11 +385,11 @@ it goes wherever standard output is pointed, and to the screen when asked:
 ```bash
 ../bin/tls-forge fetch https://example.com/ > page.html      # a file gets it
 ../bin/tls-forge fetch https://example.com/ | head -3        # so does a pipe
-../bin/tls-forge fetch --body https://example.com/           # and so does the screen
+../bin/tls-forge fetch --print-body https://example.com/           # and so does the screen
 ```
 
 A list does the same with its JSON lines: a terminal gets the count and what
-the run came to, a pipe or `-o` gets the lines, and `--body` prints them on the
+the run came to, a pipe or `-o` gets the lines, and `--print-body` prints them on the
 screen as well.
 
 Several requests are counted rather than listed. A bar shows how far the run

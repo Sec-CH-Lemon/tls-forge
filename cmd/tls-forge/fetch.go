@@ -676,7 +676,7 @@ type ending struct {
 // unprintedNote is what is said of JSON lines that went nowhere. Said, because
 // a run that fetched a list and kept none of it looks, from the outside, exactly
 // like one that kept it somewhere.
-const unprintedNote = "not printed on a terminal; > FILE keeps them, --body shows them"
+const unprintedNote = "not printed on a terminal; > FILE keeps them, --print-body shows them"
 
 // rows are those places as rows of the figures a run of several requests ends
 // with, each under what it holds.

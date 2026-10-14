@@ -158,7 +158,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - **A terminal no longer gets the page.** `fetch` printed the body on standard
   output wherever that led, and a list its JSON lines, each holding a whole
   page. On a terminal both now show the count of answers instead, and print
-  the body or the lines there only with `--body`; a run that printed no lines
+  the body or the lines there only with `--print-body`; a run that printed no lines
   says so at the end. A pipe, a redirect and `--output` receive exactly what
   they did before, so `tls-forge fetch URL > page.html` is unchanged.
 - **`fetch --output` names a directory, not a file.** `fetch -o page.html URL`
