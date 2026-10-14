@@ -108,7 +108,7 @@ Mount a directory when a command reads or writes files:
 
 ```bash
 docker run --rm -v "$PWD:/work" ghcr.io/sec-ch-lemon/tls-forge \
-  fetch --input /work/urls.csv --output /work/results.jsonl
+  fetch --input /work/urls.csv --output /work/out > results.jsonl
 ```
 
 `capture` and `compare` are intentionally not supported by the small release
@@ -221,7 +221,7 @@ tls-forge fetch -i -H "Accept-Language: en-US" https://example.com/
 tls-forge fetch -X POST -H "Content-Type: application/json" \
   -d '{"hello":"world"}' https://example.com/api
 tls-forge fetch https://example.com/ https://example.org/
-tls-forge fetch --input example/urls.csv --concurrency 8 --output results.jsonl
+tls-forge fetch --input example/urls.csv --concurrency 8 --output out/ > results.jsonl
 ```
 
 Usage: `tls-forge fetch [flags] [url...]`
@@ -245,13 +245,12 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-d`, `--data <text>` | Request body, for every URL |
 | `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
 | `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
-| `-o`, `--output <file>` | Write the page, or the JSON lines, to a file; a page asked for with `--repeat` gets one numbered file per run |
+| `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
 | `--json` | Write a JSON line for each request even when one URL is named |
-| `--body-dir <dir>` | Write every page to a file in this directory, and JSON lines that name the files |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 | `--repeat <n>` | Make every request `n` times; default `1` |
 | `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
-| `--body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` has it |
+| `--body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
@@ -266,7 +265,7 @@ it ended up with:
   answers;
 - several URLs, `--urls`, `--input` or a list on standard input are answered
   with JSON Lines, one object for each request, and so is anything given
-  `--json` or `--body-dir`.
+  `--json`.
 
 A list that happens to hold one URL therefore still comes out as a line, and a
 script reading the output does not have to know how long the list was.
@@ -320,11 +319,11 @@ The body is the output, so it still goes wherever standard output was pointed:
 `tls-forge fetch URL > page.html` and `tls-forge fetch URL | jq .` need no flag.
 It is only a terminal that does not get it unless `--body` asks, because a page
 is thousands of lines nobody reads as they go past. With `--output` the body
-goes to the file alone, and `--body` prints it as well. `-i` prints the status
-and headers whether or not the body is printed. JSON lines follow the same
-rule, each of them holding a whole page: a pipe, a redirect and `--output`
-receive them, a terminal only with `--body`, and a run that printed none says
-so at the end. The count and everything else that is commentary go to standard
+goes to its directory alone, and `--body` prints it as well. `-i` prints the
+status and headers whether or not the body is printed. JSON lines follow the
+same rule, each of them holding a whole page: a pipe and a redirect receive
+them, a terminal only with `--body`, and a run that printed none says so at
+the end. The count and everything else that is commentary go to standard
 error, so the lines stay machine-readable.
 
 Before the first request, `fetch` asks a public service which address it comes
@@ -358,8 +357,8 @@ are compatible with tools such as curl and wget.
 ```bash
 tls-forge fetch https://example.com/ https://example.org/
 tls-forge fetch --input example/urls.csv --concurrency 8
-tls-forge fetch --input urls.json --output results.jsonl --report reports/
-cat urls.txt | tls-forge fetch --body-dir pages/ > results.jsonl
+tls-forge fetch --input urls.json --report reports/ > results.jsonl
+cat urls.txt | tls-forge fetch --output pages/ > results.jsonl
 ```
 
 A list comes from `--urls`, then `--input`, then the URLs on the command line,
@@ -403,9 +402,9 @@ A request that got no response has `error` in place of `status`, and one that
 went through a proxy names it, without its password, as `proxy`. When a body
 is not valid UTF-8, `body` is base64 and the line contains
 `"body_encoding":"base64"`; `bytes` always remains the original byte count.
-`--body-dir` writes the original bytes to a file instead and puts its path in
-`file`; a URL that appears twice in one list gets a separate, stable file name
-for each. `-i` adds the response headers to every line as `headers`.
+With `--output`, the page is in a file instead, and the line names it as
+`file`, with the request's log and trace as `log` and `trace`. `-i` adds the
+response headers to every line as `headers`.
 
 `fetch` exits non-zero when one or more requests got no response. An answer
 that is not a 2xx is an answer: it is counted and written with its status, and
@@ -415,7 +414,7 @@ does not change the exit code.
 
 ```bash
 tls-forge fetch --retry 3 https://example.com/
-tls-forge fetch --repeat 3 -o page.html https://example.com/
+tls-forge fetch --repeat 3 -o out/ https://example.com/
 tls-forge fetch --retry 3 --repeat 2 --input urls.csv
 ```
 
@@ -429,18 +428,16 @@ for one URL, and a JSON line's `attempts` counts the tries.
 `--repeat` makes the same request several times through one client, so a later
 run reuses the connection and the cookies of the runs before it. One URL is
 asked for one run at a time, the way a page is reloaded, unless
-`--concurrency` says how many at once. With `-o page.html`, each run writes
-its own file: `page-1.html`, `page-2.html` and so on. Without `-o`, the bodies
-follow one another on standard output. A list is gone through from top to
-bottom once per pass: every line carries the pass it belongs to as `run`, and
-each pass writes its own file to `--body-dir`. The count covers all of the
-runs, and `-v` adds a line for each as it finishes, and for each try that is
-made again:
+`--concurrency` says how many at once. With `-o out/`, each run is kept under
+its own number. Without `-o`, the bodies follow one another on standard output.
+A list is gone through from top to bottom once per pass, and every line carries
+the pass it belongs to as `run`. The count covers all of the runs, and `-v`
+adds a line for each as it finishes, and for each try that is made again:
 
 ```text
-  1/3  200      577 B     29ms       page-1.html
-  2/3  200      577 B     11ms       page-2.html
-  3/3  200      577 B     10ms       page-3.html
+  1/3  200      577 B     29ms       out/example.com-2026-08-16-091854-584-1.html
+  2/3  200      577 B     11ms       out/example.com-2026-08-16-091854-614-2.html
+  3/3  200      577 B     10ms       out/example.com-2026-08-16-091854-626-3.html
   ████████████████████████████████████████  3/3  100%
   0s elapsed · 1.7 kB
 
@@ -450,7 +447,7 @@ made again:
   Retries       0
   Success rate  100.0%
   Avg time      16ms
-  Saved to      page-1.html … page-3.html
+  Saved to      out/
 ```
 
 `fetch` exits non-zero if any run got no response. The two flags combine:
@@ -465,6 +462,44 @@ back through, by name.
   dead proxy    http://user@198.51.100.4:8080  (12 requests, none came back)
   dead proxy    socks5://198.51.100.9:1080  (11 requests, none came back)
 ```
+
+#### Keeping every request
+
+```bash
+tls-forge fetch --repeat 20 --retry 2 -o out/ https://example.com/
+tls-forge fetch --input urls.csv -o out/ > results.jsonl
+```
+
+`--output` names a directory, made if it is not there, and every request is
+kept in it as three files under one name: the host it went to, when it was
+made, and which request of the run it was.
+
+```text
+out/example.com-2026-08-16-091854-584-1.html
+out/example.com-2026-08-16-091854-584-1.log
+out/trace-example.com-2026-08-16-091854-584-1.json
+```
+
+- The `.html` is what came back, whatever its status: what a server says when
+  it turns a request away is the page most worth reading. A request that got
+  no answer has none.
+- The `.log` is the request written out for a person: what it was, the
+  profile and the proxy it went with, how it ended, and every try at it with
+  the connection it went out on, each thing it waited on and for how long, the
+  request as it was written, what the answer came with, how an answer that was
+  not a 2xx began, and the wait before the next try.
+- The `trace-….json` is the same request as a trace of its own, in the Trace
+  Event JSON format [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the
+  request, inside it every try, and inside each try its steps.
+
+The host is written in lower case, without its port, and anything a file name
+cannot hold on every system becomes `_`. The moment is the one the request was
+made, to the millisecond, and the number counts the requests of the run from
+one, in the order they were handed out. A page is written with mode `0644` and
+the log and the trace with `0600`, as a report is: they name what was asked
+for and where it went, with credentials and cookie values written as `***`.
+A file that cannot be written ends the run, since every request after it
+would have nowhere to go either.
 
 #### Tracing a run
 

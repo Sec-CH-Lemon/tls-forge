@@ -28,6 +28,10 @@ type job struct {
 	occurrence int
 	// run is which pass over the list this is, from one.
 	run int
+	// id is which request of the run this is, from one, in the order they are
+	// handed out: what tells apart the files of two requests made to one host
+	// in one millisecond.
+	id int
 }
 
 // Formats a list can arrive in. `auto` reads the file's extension and falls

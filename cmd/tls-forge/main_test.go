@@ -253,27 +253,27 @@ func TestFetchWithHeadersAndStatusLine(t *testing.T) {
 	}
 }
 
-func TestFetchWritesToAFile(t *testing.T) {
+func TestFetchKeepsTheRequestInADirectory(t *testing.T) {
 	server := startEcho(t)
-	path := filepath.Join(t.TempDir(), "body.json")
-	code, stdout, stderr := exec(t, "fetch", "--insecure", "-o", path, server.URL()+"/api/all")
+	dir := filepath.Join(t.TempDir(), "out")
+	code, stdout, stderr := exec(t, "fetch", "--insecure", "-o", dir, server.URL()+"/api/all")
 	if code != 0 {
-		t.Fatalf("exit code = %d", code)
+		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	// The file is where the body was asked to go, so it goes nowhere else, and
-	// where it went is said with the rest of what the run reports.
+	// The directory is where the body was asked to go, so it goes nowhere else,
+	// and where it went is said with the rest of what the run reports.
 	if stdout != "" {
-		t.Errorf("the body went to stdout as well as to the file: %q", stdout)
+		t.Errorf("the body went to stdout as well as to the directory: %q", stdout)
 	}
-	if !strings.HasSuffix(stderr, "  saved to "+path+"\n") {
-		t.Errorf("stderr does not say where the body was saved:\n%s", stderr)
+	if !strings.HasSuffix(stderr, "  saved to "+dir+"\n") {
+		t.Errorf("stderr does not say where the request was kept:\n%s", stderr)
 	}
-	written, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading the output: %v", err)
+	pages, _ := filepath.Glob(filepath.Join(dir, "*-1.html"))
+	if len(pages) != 1 {
+		t.Fatalf("the directory has %v, want one page", keptIn(t, dir))
 	}
-	if len(written) == 0 {
-		t.Error("the file is empty")
+	if written, err := os.ReadFile(pages[0]); err != nil || len(written) == 0 {
+		t.Errorf("the page holds %q (%v)", written, err)
 	}
 }
 
@@ -315,12 +315,20 @@ func TestFetchArgumentErrors(t *testing.T) {
 	}
 }
 
-func TestFetchCannotWriteTheOutputFile(t *testing.T) {
-	server := startEcho(t)
-	code, _, stderr := exec(t, "fetch", "--insecure",
-		"-o", filepath.Join(t.TempDir(), "no-such-directory", "body"), server.URL()+"/api/all")
-	if code == 0 {
-		t.Errorf("exit code = 0, want non-zero; stderr = %q", stderr)
+func TestFetchCannotMakeTheOutputDirectory(t *testing.T) {
+	// A file is where the directory would go, so there is nowhere to keep
+	// anything, and nothing is fetched to be kept nowhere.
+	server, asked := replying(t, 200)
+	blocked := filepath.Join(t.TempDir(), "a-file")
+	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	code, _, stderr := exec(t, "fetch", "-o", filepath.Join(blocked, "out"), server.URL)
+	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: ") {
+		t.Errorf("exit code = %d, want 1; stderr = %q", code, stderr)
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("%d requests were made with nowhere to keep them", got)
 	}
 }
 
@@ -463,7 +471,7 @@ func TestARunThatGoesSeveralWaysAsksNobodyWhereItComesOut(t *testing.T) {
 	list := writeList(t, "two-ways.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/one,http://127.0.0.1:9001\n%[1]s/two,\n", server.URL))
 
-	code, _, stderr := exec(t, "fetch", "--input", list, "--timeout", "5s", "-o", os.DevNull)
+	code, _, stderr := exec(t, "fetch", "--input", list, "--timeout", "5s")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1: one of the two went through a dead proxy\n%s", code, stderr)
 	}
@@ -486,7 +494,7 @@ func TestBatchSaysWhereItWent(t *testing.T) {
 	if code != exitUsage || stdout != "" {
 		t.Errorf("exit code = %d and stdout = %q, want %d and nothing", code, stdout, exitUsage)
 	}
-	for _, want := range []string{"batch is now fetch", "--input", "--body-dir", "--retry 3", "--json"} {
+	for _, want := range []string{"batch is now fetch", "--input", "--output", "--retry 3", "--json"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr has no %q:\n%s", want, stderr)
 		}

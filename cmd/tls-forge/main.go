@@ -94,7 +94,7 @@ func commands() []command {
 // what to type instead.
 var movedCommands = map[string]string{
 	"batch": "batch is now fetch, which takes several URLs, --input FILE or --urls a,b,c.\n" +
-		"  The list flag -i is now --input, and the body directory -d is now --body-dir.\n" +
+		"  The list flag -i is now --input, and the body directory -d is now --output.\n" +
 		"  Add --retry 3 for the tries batch made by default, and --json for JSON lines\n" +
 		"  when one URL is named on the command line.",
 }

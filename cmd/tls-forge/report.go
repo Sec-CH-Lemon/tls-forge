@@ -285,6 +285,10 @@ func (r reportRow) Facts() []fact {
 	if r.File != "" {
 		facts = append(facts, fact{Label: "Saved to", Value: r.File, Code: true})
 	}
+	if r.Log != "" {
+		facts = append(facts, fact{Label: "Log", Value: r.Log, Code: true},
+			fact{Label: "Trace", Value: r.Trace, Code: true})
+	}
 	facts = append(facts,
 		fact{Label: "Started", Value: atPrecisely(r.Started)},
 		fact{Label: "Ended", Value: atPrecisely(r.Ended)},

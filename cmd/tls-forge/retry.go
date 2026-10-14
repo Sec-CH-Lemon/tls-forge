@@ -4,10 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -162,22 +159,4 @@ func pause(ctx context.Context, d time.Duration) bool {
 	case <-timer.C:
 		return true
 	}
-}
-
-// numbered is the file one run of several writes its page to: the name given,
-// with the run's number in front of the extension.
-//
-// In front of it rather than after, so that `page-2.html` still opens as what
-// it is. Every run is numbered, the first included: a directory holding
-// `page.html` beside `page-2.html` reads as a page and a stray copy.
-//
-// A name that is already something other than a file is left alone. Writing
-// to /dev/null is how a body is thrown away, and /dev/null-1 is neither that
-// nor anywhere a file can be made.
-func numbered(path string, run int) string {
-	if info, err := os.Stat(path); err == nil && !info.Mode().IsRegular() {
-		return path
-	}
-	ext := filepath.Ext(path)
-	return strings.TrimSuffix(path, ext) + "-" + strconv.Itoa(run) + ext
 }

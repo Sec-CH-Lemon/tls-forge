@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -211,33 +210,25 @@ func TestListFallsBackToTheProxyFlag(t *testing.T) {
 	}
 }
 
-func TestListWritesToAFileAndADirectory(t *testing.T) {
+func TestListKeepsEveryRequestInADirectory(t *testing.T) {
 	server := pathServer(t)
-	dir := t.TempDir()
-	outPath := filepath.Join(dir, "results.jsonl")
-	bodyDir := filepath.Join(dir, "bodies")
+	dir := filepath.Join(t.TempDir(), "out")
 
-	code, stdout, stderr := exec(t, "fetch", "--output", outPath, "--body-dir", bodyDir,
-		server.URL+"/one", server.URL+"/two")
+	code, stdout, stderr := exec(t, "fetch", "--output", dir, server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	// What the run came to is commentary, so it goes to stderr with the rest of
-	// it, and names where the results and the pages went.
+	// it, and names where the requests were kept.
 	want := "\n  Requests      2\n  Retries       0\n  Success rate  100.0%\n  Avg time      0ms\n" +
-		"  Saved to      " + bodyDir + "\n  Written to    " + outPath + "\n"
+		"  Saved to      " + dir + "\n"
 	if !strings.HasSuffix(stderr, want) {
 		t.Errorf("stderr does not end with what the run came to (%q):\n%s", want, stderr)
 	}
-	if stdout != "" {
-		t.Errorf("something landed on stdout beside the file: %q", stdout)
-	}
 
-	data, err := os.ReadFile(outPath)
-	if err != nil {
-		t.Fatalf("reading the results: %v", err)
-	}
-	got := lines(t, string(data))
+	// The lines still go where standard output goes, and name the files rather
+	// than carry the pages a second time.
+	got := lines(t, stdout)
 	if len(got) != 2 {
 		t.Fatalf("got %d results", len(got))
 	}
@@ -246,11 +237,14 @@ func TestListWritesToAFileAndADirectory(t *testing.T) {
 			t.Errorf("%s: the body was inlined as well as written out", url)
 		}
 		body, err := os.ReadFile(r.File)
-		if err != nil {
-			t.Fatalf("reading %s: %v", r.File, err)
+		if err != nil || !strings.HasPrefix(string(body), "page ") {
+			t.Errorf("%s: the page file %q holds %q (%v)", url, r.File, body, err)
 		}
-		if !strings.HasPrefix(string(body), "page ") {
-			t.Errorf("%s: body file holds %q", url, body)
+		if _, err := os.Stat(r.Log); err != nil {
+			t.Errorf("%s: no log at %q: %v", url, r.Log, err)
+		}
+		if _, err := os.Stat(r.Trace); err != nil {
+			t.Errorf("%s: no trace at %q: %v", url, r.Trace, err)
 		}
 	}
 }
@@ -262,9 +256,9 @@ func TestListKeepsRepeatedURLBodiesSeparate(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	bodyDir := filepath.Join(t.TempDir(), "bodies")
+	dir := filepath.Join(t.TempDir(), "out")
 	code, stdout, stderr := exec(t, "fetch", "--progress", "never", "--concurrency", "2",
-		"--body-dir", bodyDir, server.URL, server.URL)
+		"--output", dir, server.URL, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\nstderr: %s", code, stderr)
 	}
@@ -447,49 +441,15 @@ func TestListArgumentErrors(t *testing.T) {
 	}
 }
 
-func TestListCannotWriteWhereItWasTold(t *testing.T) {
-	server := pathServer(t)
-	missing := filepath.Join(t.TempDir(), "no-such-directory")
-
-	if code, _, _ := exec(t, "fetch", "--json", "--output",
-		filepath.Join(missing, "out.jsonl"), server.URL); code == 0 {
-		t.Error("an unwritable output file should fail")
-	}
-
-	// A body directory that cannot be made, because a file is in its way.
-	blocked := filepath.Join(t.TempDir(), "file")
-	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
-		t.Fatalf("writing: %v", err)
-	}
-	if code, _, _ := exec(t, "fetch", "--body-dir", blocked, server.URL); code == 0 {
-		t.Error("an unmakeable body directory should fail")
-	}
-}
-
-func TestListReportsAnOutputCloseFailure(t *testing.T) {
-	original := closeOutput
-	closeOutput = func(file *os.File) error {
-		_ = original(file)
-		return errors.New("close failed")
-	}
-	t.Cleanup(func() { closeOutput = original })
-
-	server := pathServer(t)
-	code, _, stderr := exec(t, "fetch", "--json", "--output", filepath.Join(t.TempDir(), "out.jsonl"), server.URL)
-	if code == 0 || !strings.Contains(stderr, "closing output") {
-		t.Fatalf("code = %d, stderr = %q", code, stderr)
-	}
-}
-
-func TestListReportsABodyItCannotWrite(t *testing.T) {
+func TestListStopsWhenItCannotKeepWhatItFetched(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows has no Unix permission bits: chmod only toggles read-only, so the write this needs to fail succeeds")
 	}
-	// The directory exists at start-up and is gone by the time a body is
-	// written. Reported on the entry's own line rather than ending the run: the
-	// page was fetched, and the next one may still be writable.
-	server := pathServer(t)
-	dir := filepath.Join(t.TempDir(), "bodies")
+	// The directory is there when the run starts and cannot be written to by the
+	// time the first page is in. Nowhere to keep that one is nowhere to keep the
+	// next, so the run ends rather than fetch pages to throw away.
+	server, asked := replying(t, 200)
+	dir := filepath.Join(t.TempDir(), "out")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -498,12 +458,13 @@ func TestListReportsABodyItCannotWrite(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o700) })
 
-	code, stdout, _ := exec(t, "fetch", "--body-dir", dir, server.URL+"/one")
-	if code != 1 {
-		t.Fatalf("exit code = %d, want 1\n%s", code, stdout)
+	code, _, stderr := exec(t, "fetch", "--output", dir, "--concurrency", "1",
+		server.URL+"/one", server.URL+"/two", server.URL+"/three")
+	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: ") {
+		t.Errorf("exit code = %d, want 1\n%s", code, stderr)
 	}
-	if r := lines(t, stdout)[server.URL+"/one"]; r.Error == "" {
-		t.Errorf("no error recorded: %+v", r)
+	if got := asked.Load(); got != 1 {
+		t.Errorf("the server was asked %d times after the first page could not be kept", got)
 	}
 }
 
@@ -1070,7 +1031,7 @@ func TestFetchAnswersInTheShapeItWasAskedIn(t *testing.T) {
 	server := pathServer(t)
 	one := server.URL + "/one"
 	list := writeList(t, "one.txt", one+"\n")
-	bodies := filepath.Join(t.TempDir(), "bodies")
+	kept := filepath.Join(t.TempDir(), "out")
 
 	for _, tc := range []struct {
 		name    string
@@ -1079,7 +1040,8 @@ func TestFetchAnswersInTheShapeItWasAskedIn(t *testing.T) {
 	}{
 		{"one URL", []string{one}, false},
 		{"one URL, asked for as a line", []string{"--json", one}, true},
-		{"one URL, with its page kept in a directory", []string{"--body-dir", bodies, one}, true},
+		// Kept in a directory, one URL is still answered with its page.
+		{"one URL, kept in a directory", []string{"--output", kept, "--body", one}, false},
 		{"a list of one, in a file", []string{"--input", list}, true},
 		{"a list of one, on the command line", []string{"--urls", one}, true},
 		{"two URLs", []string{one, server.URL + "/two"}, true},
@@ -1102,9 +1064,9 @@ func TestFetchAnswersInTheShapeItWasAskedIn(t *testing.T) {
 		})
 	}
 
-	// Kept in a directory, the page is in a file the line names and not in the
-	// line as well.
-	_, stdout, _ := exec(t, "fetch", "--body-dir", bodies, one)
+	// Kept in a directory, a line names the file the page is in and does not
+	// carry the page as well.
+	_, stdout, _ := exec(t, "fetch", "--output", kept, "--json", one)
 	r := lines(t, stdout)[one]
 	if page, err := os.ReadFile(r.File); err != nil || string(page) != "page /one" || r.Body != "" {
 		t.Errorf("the line names %q, which holds %q (%v), and carries %q itself", r.File, page, err, r.Body)
@@ -1186,9 +1148,9 @@ func TestFetchRepeatsOneAtATimeUnlessToldHowMany(t *testing.T) {
 	}
 
 	// Told how many at once, it is that many workers, each with a row, and every
-	// run still writes the page under its own number.
-	together, page := filepath.Join(dir, "together.json"), filepath.Join(dir, "page.html")
-	code, _, stderr := exec(t, "fetch", "--repeat", "4", "-c", "2", "--trace", together, "-o", page, server.URL)
+	// run still keeps its page under its own number.
+	together, kept := filepath.Join(dir, "together.json"), filepath.Join(dir, "out")
+	code, _, stderr := exec(t, "fetch", "--repeat", "4", "-c", "2", "--trace", together, "-o", kept, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1198,14 +1160,12 @@ func TestFetchRepeatsOneAtATimeUnlessToldHowMany(t *testing.T) {
 		t.Errorf("two at a time: rows %v, %d requests on the command's row, concurrency %v", rows, onCommandRow, concurrency)
 	}
 	for run := 1; run <= 4; run++ {
-		if _, err := os.Stat(filepath.Join(dir, fmt.Sprintf("page-%d.html", run))); err != nil {
-			t.Errorf("run %d wrote no page: %v", run, err)
+		if pages, _ := filepath.Glob(filepath.Join(kept, fmt.Sprintf("*-%d.html", run))); len(pages) != 1 {
+			t.Errorf("run %d kept no page among %v", run, keptIn(t, kept))
 		}
 	}
-	// Named from the first to the last, whichever order they finished in.
-	want := fmt.Sprintf("\n  Saved to      %s … %s\n", filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-4.html"))
-	if !strings.HasSuffix(stderr, want) {
-		t.Errorf("stderr does not end by naming the pages in order (%q):\n%s", want, stderr)
+	if want := "\n  Saved to      " + kept + "\n"; !strings.HasSuffix(stderr, want) {
+		t.Errorf("stderr does not end by naming the directory (%q):\n%s", want, stderr)
 	}
 }
 
@@ -1250,14 +1210,11 @@ func TestSameWay(t *testing.T) {
 }
 
 func TestEndingSaysWhereEverythingWent(t *testing.T) {
-	everything := ending{
-		saved: "bodies/", written: "out.jsonl", unprinted: true, reports: []string{"run.html", "run.json"},
-	}
+	everything := ending{saved: "out/", unprinted: true, reports: []string{"run.html", "run.json"}}
 	// As rows of the figures a run of several requests ends with.
 	wantRows := [][2]string{
-		{"Saved to", "bodies/"},
-		{"Written to", "out.jsonl"},
-		{"JSON lines", "not printed on a terminal; -o FILE keeps them, --body shows them"},
+		{"Saved to", "out/"},
+		{"JSON lines", "not printed on a terminal; > FILE keeps them, --body shows them"},
 		{"Report", "run.html"},
 		{"Report", "run.json"},
 	}
@@ -1266,9 +1223,8 @@ func TestEndingSaysWhereEverythingWent(t *testing.T) {
 	}
 	// And as one request says them, under the line it has said the rest on.
 	wantLines := []string{
-		"saved to bodies/",
-		"written to out.jsonl",
-		"JSON lines not printed on a terminal; -o FILE keeps them, --body shows them",
+		"saved to out/",
+		"JSON lines not printed on a terminal; > FILE keeps them, --body shows them",
 		"report written to run.html",
 		"report written to run.json",
 	}
@@ -1278,13 +1234,5 @@ func TestEndingSaysWhereEverythingWent(t *testing.T) {
 	// A run that left nothing anywhere has nothing to add.
 	if nothing := (ending{}); nothing.rows() != nil || nothing.lines() != nil {
 		t.Errorf("a run that left nothing says %q and %q", nothing.rows(), nothing.lines())
-	}
-}
-
-func TestPageOutputNamesItsFilesInTheOrderOfTheRuns(t *testing.T) {
-	// Several at once finish in whatever order they finish in.
-	pages := &pageOutput{kept: map[int]string{3: "page-3.html", 1: "page-1.html", 2: "page-2.html"}}
-	if got := pages.saved(); !slices.Equal(got, []string{"page-1.html", "page-2.html", "page-3.html"}) {
-		t.Errorf("saved = %q", got)
 	}
 }

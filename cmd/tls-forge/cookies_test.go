@@ -391,7 +391,7 @@ func TestListSavesOneSessionPerProxy(t *testing.T) {
 		"url,proxy\n%[1]s/set,\n%[1]s/set,\n%[1]s/set,http://127.0.0.1:9001\n", server.URL))
 
 	code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", path,
-		"--progress", "never", "--retry", "0", "--timeout", "5s", "-o", os.DevNull)
+		"--progress", "never", "--retry", "0", "--timeout", "5s")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (one URL went through a dead proxy)\n%s", code, stderr)
 	}
@@ -420,7 +420,7 @@ func TestListReportsASessionItCannotWrite(t *testing.T) {
 	server := cookieEcho(t)
 	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies",
 		filepath.Join(t.TempDir(), "no-such-directory", "w.json"),
-		"--progress", "never", "-o", os.DevNull, server.URL+"/set")
+		"--progress", "never", server.URL+"/set")
 	if code == 0 {
 		t.Error("a run whose session could not be saved reported success")
 	}
@@ -499,7 +499,7 @@ func TestListSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
 		"url,proxy\n%[1]s/set,::not a proxy::\n%[1]s/set,\n", server.URL))
 
 	code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", path,
-		"--progress", "never", "--retry", "0", "-o", os.DevNull)
+		"--progress", "never", "--retry", "0")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}

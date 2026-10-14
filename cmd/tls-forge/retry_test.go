@@ -215,34 +215,30 @@ func TestListKeepsTheAnswerItGotWhenToldNotToRetry(t *testing.T) {
 	}
 }
 
-func TestFetchRepeatWritesANumberedFilePerRun(t *testing.T) {
+func TestFetchRepeatKeepsEveryRunInTheDirectory(t *testing.T) {
 	server, _ := replying(t, 200)
-	dir := t.TempDir()
-	path := filepath.Join(dir, "page.html")
+	dir := filepath.Join(t.TempDir(), "out")
 
-	code, stdout, stderr := exec(t, "fetch", "--repeat", "3", "-o", path, server.URL)
+	code, stdout, stderr := exec(t, "fetch", "--repeat", "3", "-o", dir, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
+	// Each run under its own number, with the page it got.
 	for run := 1; run <= 3; run++ {
-		name := filepath.Join(dir, fmt.Sprintf("page-%d.html", run))
-		body, err := os.ReadFile(name)
-		if err != nil {
-			t.Fatalf("run %d wrote no file: %v", run, err)
+		pages, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("127.0.0.1-*-%d.html", run)))
+		if len(pages) != 1 {
+			t.Fatalf("run %d kept no page among %v", run, keptIn(t, dir))
 		}
-		if want := fmt.Sprintf("answer-%d", run); string(body) != want {
-			t.Errorf("%s holds %q, want %q", name, body, want)
+		if body, _ := os.ReadFile(pages[0]); string(body) != fmt.Sprintf("answer-%d", run) {
+			t.Errorf("%s holds %q", pages[0], body)
 		}
 	}
-	// The files are where the pages went, so nothing went to stdout, and where
-	// they went is said once, as the last of what the run came to: the first and
-	// the last name all of them.
+	// The directory is where the pages went, so nothing went to stdout, and
+	// where they went is said once, as the last of what the run came to.
 	if stdout != "" {
 		t.Errorf("stdout = %q, want nothing", stdout)
 	}
-	want := fmt.Sprintf("\n  Saved to      %s … %s\n",
-		filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-3.html"))
-	if !strings.HasSuffix(stderr, want) {
+	if want := "\n  Saved to      " + dir + "\n"; !strings.HasSuffix(stderr, want) {
 		t.Errorf("stderr does not end by saying where the runs went (%q):\n%s", want, stderr)
 	}
 	// Three runs counted, and not a line each.
@@ -251,28 +247,6 @@ func TestFetchRepeatWritesANumberedFilePerRun(t *testing.T) {
 	}
 	if strings.Contains(stderr, "1/3") {
 		t.Errorf("a run was reported on its own without being asked for:\n%s", stderr)
-	}
-	// Every run is numbered, so the name given is not also a file.
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Errorf("%s exists as well as its numbered runs", path)
-	}
-}
-
-func TestFetchWithoutRepeatKeepsTheNameItWasGiven(t *testing.T) {
-	server, _ := replying(t, 200)
-	path := filepath.Join(t.TempDir(), "page.html")
-
-	code, _, stderr := exec(t, "fetch", "-o", path, server.URL)
-	if code != 0 {
-		t.Fatalf("exit code = %d\n%s", code, stderr)
-	}
-	if body, err := os.ReadFile(path); err != nil || string(body) != "answer-1" {
-		t.Errorf("%s holds %q (%v)", path, body, err)
-	}
-	// Straight under the line about the one request: there are no rows for it
-	// to be mistaken for one of.
-	if !strings.HasSuffix(stderr, "s\n  saved to "+path+"\n") {
-		t.Errorf("stderr does not end by naming the file as it was given:\n%s", stderr)
 	}
 }
 
@@ -294,10 +268,9 @@ func TestFetchRepeatWritesEveryBodyToStandardOutput(t *testing.T) {
 func TestFetchRepeatGoesOnPastARunThatGotNoAnswer(t *testing.T) {
 	// Nine runs out of ten is a finding, not a reason to stop at the second.
 	server, _ := replying(t, 200, 0, 200)
-	dir := t.TempDir()
-	path := filepath.Join(dir, "page.html")
+	dir := filepath.Join(t.TempDir(), "out")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--timeout", "10s", "-o", path, server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--timeout", "10s", "-o", dir, server.URL)
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1: one run got nothing", code)
 	}
@@ -310,10 +283,14 @@ func TestFetchRepeatGoesOnPastARunThatGotNoAnswer(t *testing.T) {
 			t.Errorf("stderr has no %q:\n%s", want, stderr)
 		}
 	}
-	for run, wanted := range map[int]bool{1: true, 2: false, 3: true} {
-		_, err := os.Stat(filepath.Join(dir, fmt.Sprintf("page-%d.html", run)))
-		if exists := err == nil; exists != wanted {
-			t.Errorf("run %d: file exists = %v, want %v", run, exists, wanted)
+	// A page for each run that got one, and a log and a trace for every run,
+	// the one that got nothing most of all.
+	for run, answered := range map[int]bool{1: true, 2: false, 3: true} {
+		pages, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*-%d.html", run)))
+		logs, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*-%d.log", run)))
+		traces, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("trace-*-%d.json", run)))
+		if (len(pages) == 1) != answered || len(logs) != 1 || len(traces) != 1 {
+			t.Errorf("run %d kept %v, %v and %v", run, pages, logs, traces)
 		}
 	}
 }
@@ -357,65 +334,12 @@ func TestFetchRepeatStopsWhenInterrupted(t *testing.T) {
 	}
 }
 
-func TestFetchRepeatStopsWhenItCannotWrite(t *testing.T) {
-	server, asked := replying(t, 200)
-	path := filepath.Join(t.TempDir(), "no-such-directory", "page.html")
-
-	if code, _, _ := exec(t, "fetch", "--repeat", "3", "-o", path, server.URL); code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
-	// Nowhere to put the first page is nowhere to put the next two.
-	if got := asked.Load(); got != 1 {
-		t.Errorf("the server was asked %d times after the first write failed", got)
-	}
-}
-
-func TestFetchRepeatIntoADeviceDoesNotNumberIt(t *testing.T) {
-	server, asked := replying(t, 200)
-
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", os.DevNull, server.URL)
-	if code != 0 {
-		t.Fatalf("exit code = %d\n%s", code, stderr)
-	}
-	// Both runs went to the one place, which is said as one place.
-	if !strings.HasSuffix(stderr, "\n  Saved to      "+os.DevNull+"\n") {
-		t.Errorf("stderr does not end by naming the device once:\n%s", stderr)
-	}
-	if got := asked.Load(); got != 2 {
-		t.Errorf("the server was asked %d times, want 2", got)
-	}
-}
-
-func TestNumbered(t *testing.T) {
-	for _, tc := range []struct {
-		path string
-		run  int
-		want string
-	}{
-		{"page.html", 2, "page-2.html"},
-		{"page", 1, "page-1"},
-		// Only the last extension is one: this is a gzip of something.
-		{"archive.tar.gz", 3, "archive.tar-3.gz"},
-		// A dot in a directory's name is not the file's extension.
-		{filepath.Join("runs.v2", "page"), 4, filepath.Join("runs.v2", "page-4")},
-		{filepath.Join("out", "page.html"), 10, filepath.Join("out", "page-10.html")},
-	} {
-		if got := numbered(tc.path, tc.run); got != tc.want {
-			t.Errorf("numbered(%q, %d) = %q, want %q", tc.path, tc.run, got, tc.want)
-		}
-	}
-	// Something that is already there and is not a file is used as it is.
-	if got := numbered(os.DevNull, 2); got != os.DevNull {
-		t.Errorf("numbered(%q) = %q, want it left alone", os.DevNull, got)
-	}
-}
-
 func TestListRepeatGoesThroughTheListAgain(t *testing.T) {
 	server := pathServer(t)
-	bodyDir := filepath.Join(t.TempDir(), "bodies")
+	dir := filepath.Join(t.TempDir(), "out")
 
 	code, stdout, stderr := exec(t, "fetch", "--repeat", "3", "--concurrency", "2",
-		"--body-dir", bodyDir, server.URL+"/one", server.URL+"/two")
+		"--output", dir, server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

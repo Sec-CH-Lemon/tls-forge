@@ -1,14 +1,10 @@
 package main
 
 import (
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,9 +41,6 @@ type filler interface {
 // linesOutput writes a line of JSON for each request.
 type linesOutput struct {
 	encoder *json.Encoder
-	// bodyDir is where the pages are written when they are kept out of the
-	// lines, each of which then names its file.
-	bodyDir string
 	// headers says every line is to carry the header fields its response came
 	// with.
 	headers bool
@@ -55,38 +48,21 @@ type linesOutput struct {
 	say func(text string)
 }
 
-func (o *linesOutput) fill(r *result, res *tlsforge.Response, j job, lane *traceLane) {
+func (o *linesOutput) fill(r *result, res *tlsforge.Response, _ job, _ *traceLane) {
 	if o.headers {
 		r.Header = res.Header
 	}
-	if o.bodyDir == "" {
-		if utf8.Valid(res.Body) {
-			r.Body = string(res.Body)
-		} else {
-			r.Body = base64.StdEncoding.EncodeToString(res.Body)
-			r.BodyEncoding = "base64"
-		}
+	if r.File != "" {
+		// Kept in a file already, which the line names: a page is not carried
+		// twice.
 		return
 	}
-	// Named from the URL so a re-run overwrites the same file. A repeated URL in
-	// one input gets a stable occurrence suffix: concurrent workers must not
-	// truncate each other's body or make two records point at one response. A
-	// second pass over the list counts as a second occurrence, which is how each
-	// run of a repeat keeps its own page.
-	sum := sha256.Sum256([]byte(j.URL))
-	name := hex.EncodeToString(sum[:8])
-	if j.occurrence > 1 {
-		name += "-" + strconv.Itoa(j.occurrence)
+	if utf8.Valid(res.Body) {
+		r.Body = string(res.Body)
+	} else {
+		r.Body = base64.StdEncoding.EncodeToString(res.Body)
+		r.BodyEncoding = "base64"
 	}
-	path := filepath.Join(o.bodyDir, name+".html")
-	if err := os.WriteFile(path, res.Body, 0o644); err != nil {
-		// On the request's own line rather than ending the run: the page was
-		// fetched, and the next one may still be writable.
-		r.setError(err)
-		return
-	}
-	lane.instant("saved", "file", traceArgs{"file": path, "bytes": len(res.Body)})
-	r.File = path
 }
 
 func (o *linesOutput) write(r *result, _ *tlsforge.Response, _ *traceLane) error {
@@ -100,54 +76,20 @@ func (o *linesOutput) write(r *result, _ *tlsforge.Response, _ *traceLane) error
 // pageOutput hands the page over as it came.
 type pageOutput struct {
 	show *showing
-	// path is the file the page is written to, when one was named, and runs how
-	// many times the request is made. Made more than once, each run writes a
-	// file of its own.
-	path string
+	// runs is how many times the request is made.
 	runs int
 	// say is told about each run as it finishes.
 	say func(text string)
-	// kept is the file each run was written to, by which run it was.
-	kept map[int]string
 }
 
-func (o *pageOutput) write(r *result, res *tlsforge.Response, lane *traceLane) error {
+func (o *pageOutput) write(r *result, res *tlsforge.Response, _ *traceLane) error {
 	// A request made once is its own first run.
-	run := max(r.Run, 1)
-	var failed error
-	if res != nil && o.path != "" {
-		path := o.path
-		if o.runs > 1 {
-			path = numbered(path, run)
-		}
-		if failed = os.WriteFile(path, res.Body, 0o644); failed == nil {
-			r.File = path
-			o.kept[run] = path
-			lane.instant("saved", "file", traceArgs{"file": path, "bytes": len(res.Body)})
-		}
-	}
-	o.say(runLine(run, o.runs, *r))
-	// Nowhere to put this page is nowhere to put the next, so that ends the run.
+	o.say(runLine(max(r.Run, 1), o.runs, *r))
 	// A request that got no answer has no page to hand over.
-	if failed != nil || res == nil {
-		return failed
+	if res == nil {
+		return nil
 	}
 	return o.show.response(res)
-}
-
-// saved names the files the runs were written to, in the order of the runs,
-// whichever order they finished in.
-func (o *pageOutput) saved() []string {
-	runs := make([]int, 0, len(o.kept))
-	for run := range o.kept {
-		runs = append(runs, run)
-	}
-	sort.Ints(runs)
-	files := make([]string, 0, len(runs))
-	for _, run := range runs {
-		files = append(files, o.kept[run])
-	}
-	return files
 }
 
 // showing is what of a response is printed on standard output.
@@ -201,14 +143,4 @@ func runLine(run, runs int, r result) string {
 	r.URL, r.Proxy = r.File, ""
 	width := len(strconv.Itoa(runs))
 	return strings.TrimRight(fmt.Sprintf("  %*d/%d%s", width, run, runs, verboseLine(r)), " ")
-}
-
-// span names the files a run wrote: the one, or the first and the last of
-// several, which with numbered names is enough to say all of them. Runs that
-// all went to one place, as into /dev/null, went to one place.
-func span(files []string) string {
-	if first, last := files[0], files[len(files)-1]; first == last {
-		return first
-	}
-	return files[0] + " … " + files[len(files)-1]
 }

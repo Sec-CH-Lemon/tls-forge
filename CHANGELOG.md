@@ -22,8 +22,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `--input FILE` in lines, JSON or CSV, or a list piped to standard input are
   fetched `--concurrency` at a time, four by default, and answered with JSON
   Lines, one object per request. An entry can name its own proxy, with one
-  client and cookie jar for each. `--body-dir` keeps the pages in files, and
-  `--save-cookies` writes one set per proxy. This is everything `batch` did;
+  client and cookie jar for each. `--output` keeps every request in a
+  directory, and `--save-cookies` writes one set per proxy. This is everything `batch` did;
   see Removed for what to change in a command that called it. What a list
   could not do before: `-X`, `-H` and `-d` are applied to every URL, `-i` adds
   the response headers to each line as `headers`, and `--json` answers one URL
@@ -34,13 +34,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   while requests are made one at a time. The default is none, the last answer
   is the one that counts whatever its status, and the exit code still depends
   only on whether a response arrived.
-- `--repeat N` makes every request `N` times. `fetch -o page.html --repeat 3`
-  writes `page-1.html`, `page-2.html` and `page-3.html` and exits non-zero if
-  any run got no response; without `-o` the bodies follow one another on
+- `--repeat N` makes every request `N` times, and exits non-zero if any run
+  got no response; without `--output` the bodies follow one another on
   standard output. One URL is asked for one run at a time unless
-  `--concurrency` says how many at once. A list is gone through once per pass:
-  each JSON line carries its pass as `run`, and each pass has its own
-  `--body-dir` file. Lines of a single pass are unchanged.
+  `--concurrency` says how many at once. A list is gone through once per pass,
+  and each JSON line carries its pass as `run`. Lines of a single pass are
+  unchanged.
+- **`--output DIR` keeps every request in a directory**, made if it is not
+  there, as three files named after the host, the moment the request was made
+  and its number in the run, such as
+  `example.com-2026-08-16-091854-584-1.html`: the page, whatever its status,
+  when anything came back; a `.log` of the request for a person to read, with
+  every try, what each waited on, the header fields that went out and came
+  back, and how an answer that was not a 2xx began; and a
+  `trace-….json` of the request alone that ui.perfetto.dev opens. JSON lines
+  name the three as `file`, `log` and `trace` instead of carrying the page,
+  and so do both reports. The log and the trace are written with mode `0600`.
 - `fetch` counts the answers by status code while it runs: a bar for how far
   the run has got, cut by how the answers went, a line for how long it has
   taken and has left, and a row for each status, by number and by name, with
@@ -108,7 +117,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   | In `batch` | In `fetch` |
   |---|---|
   | `-i FILE` | `--input FILE`; `-i` is `--include` |
-  | `-d DIR` | `--body-dir DIR`; `-d` is `--data` |
+  | `-o FILE`, the JSON lines | `> FILE`; `-o` is a directory every request is kept in |
+  | `-d DIR` | `--output DIR`, whose files are named after the request rather than the URL; `-d` is `--data` |
   | three further tries by default, set with `--repeat N` | none by default, set with `--retry N`; add `--retry 3` to keep them |
   | `--repeat 0` to turn retries off | nothing: that is the default, and `--repeat` now means how many times each request is made |
   | one URL as the only argument | add `--json`; without it the answer is the page |
@@ -151,10 +161,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the body or the lines there only with `--body`; a run that printed no lines
   says so at the end. A pipe, a redirect and `--output` receive exactly what
   they did before, so `tls-forge fetch URL > page.html` is unchanged.
-- `fetch --output FILE` no longer prints `wrote N bytes to FILE` on standard
-  output. Where the body was saved is the last line on standard error,
-  `saved to FILE`, or the `Saved to` row of a repeated run's figures, and `-v`
-  names the file of every run.
+- **`fetch --output` names a directory, not a file.** `fetch -o page.html URL`
+  wrote the page to `page.html` and printed `wrote N bytes to FILE`; it now
+  makes a directory called `page.html` and keeps the request in it, with a log
+  and a trace beside the page. `tls-forge fetch URL > page.html` is what writes
+  one page to one file. Where the requests were kept is the last thing on
+  standard error, and `-v` names the page of every run.
 - The report is titled `tls-forge fetch` rather than `tls-forge run`. When a
   request is made more than once it counts requests rather than URLs, and
   every row says which run it was.

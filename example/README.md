@@ -137,19 +137,19 @@ the line when the one URL is named on the command line:
 ## Keep the results
 
 ```bash
-../bin/tls-forge fetch --input urls.csv -o results.jsonl -R reports/
+../bin/tls-forge fetch --input urls.csv -o out/ -R reports/ > results.jsonl
 ```
 
-`-o` sends the JSON lines to a file, `-R` writes an HTML report. Given a
-directory, the report names itself after the run, and both are named at the
-end:
+The JSON lines go where standard output goes, here a file. `-o` keeps every
+request in a directory, and `-R` writes an HTML report; given a directory, the
+report names itself after the run. Both are named at the end:
 
 ```
-  Written to    results.jsonl
+  Saved to      out/
   Report        reports/report-2026-08-16-091854-584.html
 ```
 
-One line of `results.jsonl`, with the body cut short here:
+One line of a run without `-o`, with the body cut short here:
 
 ```json
 {
@@ -165,9 +165,57 @@ One line of `results.jsonl`, with the body cut short here:
 }
 ```
 
-Bodies inline into that file. `--body-dir bodies/` writes them out as files
-instead and leaves a path in their place, which is what to do when the pages
-are large. `-i` adds the response headers to every line, as `headers`.
+Bodies inline into the line. With `-o`, the page is in a file instead and the
+line names it, which is what to do when the pages are large; `-i` adds the
+response headers to every line, as `headers`. For every request `-o` keeps
+three files, under the host, the moment and the number of the request:
+
+```
+out/example.com-2026-08-16-091854-584-1.html
+out/example.com-2026-08-16-091854-584-1.log
+out/trace-example.com-2026-08-16-091854-584-1.json
+```
+
+The page is whatever came back, a refusal included. The log is the request
+written out to be read: how it ended, every try with what it waited on, the
+header fields that went out and the ones that came back. The trace is the same
+request for [ui.perfetto.dev](https://ui.perfetto.dev/). A request that got no
+answer has a log and a trace, and no page. A log reads like this:
+
+```
+GET https://example.com/
+
+  request  1 of 3
+  profile  chrome_155_macos
+  proxy    direct
+  exit-ip  203.0.113.7 · PL
+  started  16 Aug 2026 09:18:54.584
+  ended    16 Aug 2026 09:18:55.087
+  took     503ms
+  outcome  200 OK · 559 B
+  tries    1
+  page     out/example.com-2026-08-16-091854-584-1.html
+
+try 1 of 1: 200 OK · 559 B, 503ms
+  began       16 Aug 2026 09:18:54.584
+  connection  new connection to 104.20.23.154:443 · TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2
+
+  dns         1.9ms  example.com → 104.20.23.154, 172.66.147.243
+  connect     6.4ms  104.20.23.154:443
+  tls          12ms  TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2
+  send         65µs
+  wait        482ms
+  receive     164µs
+
+  request headers, as written
+    :method: GET
+    :authority: example.com
+    …
+
+  response headers
+    content-type: text/html
+    …
+```
 
 ## Watch it happen
 
@@ -394,12 +442,11 @@ reported is how the request ended, so a page that arrived on the third try is a
 `fetch` makes no further tries unless told to, for a list as for one URL.
 
 ```bash
-../bin/tls-forge fetch --repeat 3 -o page.html https://example.com/
+../bin/tls-forge fetch --repeat 3 -o out/ https://example.com/
 ```
 
 `--repeat` is the other thing: the same request, made several times on purpose.
-Each run keeps its own page, numbered in front of the extension, and the count
-is of all of them:
+Each run is kept under its own number, and the count is of all of them:
 
 ```
   ████████████████████████████████████████  3/3  100%
@@ -411,15 +458,15 @@ is of all of them:
   Retries       0
   Success rate  100.0%
   Avg time      16ms
-  Saved to      page-1.html … page-3.html
+  Saved to      out/
 ```
 
 With `-v` there is a line for each run as well:
 
 ```
-  1/3  200      577 B     29ms       page-1.html
-  2/3  200      577 B     11ms       page-2.html
-  3/3  200      577 B     10ms       page-3.html
+  1/3  200      577 B     29ms       out/example.com-2026-08-16-091854-584-1.html
+  2/3  200      577 B     11ms       out/example.com-2026-08-16-091854-614-2.html
+  3/3  200      577 B     10ms       out/example.com-2026-08-16-091854-626-3.html
 ```
 
 The first run paid for a lookup, a dial and a handshake; the two after it found
@@ -429,13 +476,13 @@ goes through the whole of it that many times, and every line of the output
 says which pass it was:
 
 ```bash
-../bin/tls-forge fetch -u https://example.com/ --repeat 2 --body-dir bodies/ \
+../bin/tls-forge fetch -u https://example.com/ --repeat 2 -o out/ \
   | jq -c '{url, status, file, run, attempts}'
 ```
 
 ```json
-{"url":"https://example.com/","status":200,"file":"bodies/0f115db062b7c0dd.html","run":1,"attempts":1}
-{"url":"https://example.com/","status":200,"file":"bodies/0f115db062b7c0dd-2.html","run":2,"attempts":1}
+{"url":"https://example.com/","status":200,"file":"out/example.com-2026-08-16-091854-584-1.html","run":1,"attempts":1}
+{"url":"https://example.com/","status":200,"file":"out/example.com-2026-08-16-091855-103-2.html","run":2,"attempts":1}
 ```
 
 ## A report of every request
@@ -620,13 +667,14 @@ a bug report as it is.
   --save-cookies session.json \
   -c 8 --retry 3 -v \
   --trace run.json \
-  -o results.jsonl -R reports/ --report-format html,json
+  -o out/ -R reports/ --report-format html,json > results.jsonl
 ```
 
 A list, a warmed session to start from, the session written back when it is
 done, eight pages at a time, three further tries for anything that does not
-come back as a page, a line per request, a trace of every step, the results as
-JSON lines, and a report to look at with the same report as JSON beside it.
+come back as a page, a line per request, a trace of every step, every request
+kept in `out/` with its page, its log and its trace, the results as JSON lines,
+and a report to look at with the same report as JSON beside it.
 
 ## Where to read more
 

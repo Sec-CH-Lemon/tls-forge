@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -558,13 +557,20 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "run.html")
 
+	kept := filepath.Join(dir, "out")
 	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--report", path,
-		"-o", filepath.Join(dir, "page.html"), server.URL)
+		"-o", kept, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	html := reportOf(t, path)
 	address := strings.TrimPrefix(server.URL, "http://")
+	pages, _ := filepath.Glob(filepath.Join(kept, "*.html"))
+	logs, _ := filepath.Glob(filepath.Join(kept, "*.log"))
+	traces, _ := filepath.Glob(filepath.Join(kept, "trace-*.json"))
+	if len(pages) != 2 || len(logs) != 2 || len(traces) != 2 {
+		t.Fatalf("the directory holds %v", keptIn(t, kept))
+	}
 	for _, want := range []string{
 		// The first run: refused, then the page, on the connection the first try
 		// had opened.
@@ -574,7 +580,8 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 		"Then 20ms of waiting before the next try.",
 		// The second run, which was answered at once.
 		"Try 1 of 1",
-		filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-2.html"),
+		// Where each run was kept: its page, its log and its trace.
+		pages[0], pages[1], logs[0], logs[1], traces[0], traces[1],
 		"bg-step-wait",
 		// What went out, and what the try that was refused got back for it: the
 		// body the stand-in answers every request with.
@@ -590,11 +597,10 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 
 func TestListReportShowsEveryTryAndTheLinesDoNot(t *testing.T) {
 	server, _ := replying(t, 503, 200)
-	dir := t.TempDir()
-	path, lines := filepath.Join(dir, "run.html"), filepath.Join(dir, "out.jsonl")
+	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--retry", "1", "--report", path, "--report-ip=false",
-		"-o", lines, server.URL+"/flaky")
+	code, written, stderr := exec(t, "fetch", "--json", "--retry", "1", "--report", path, "--report-ip=false",
+		server.URL+"/flaky")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -605,11 +611,7 @@ func TestListReportShowsEveryTryAndTheLinesDoNot(t *testing.T) {
 		}
 	}
 	// The lines are what they have always been.
-	written, err := os.ReadFile(lines)
-	if err != nil {
-		t.Fatalf("reading the lines: %v", err)
-	}
-	if lower := strings.ToLower(string(written)); strings.Contains(lower, "tries") || strings.Contains(lower, "steps") {
+	if lower := strings.ToLower(written); strings.Contains(lower, "tries") || strings.Contains(lower, "steps") {
 		t.Errorf("the JSON lines carry the tries: %s", written)
 	}
 }

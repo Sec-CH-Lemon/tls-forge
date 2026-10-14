@@ -438,13 +438,13 @@ func TestListWritesBothReports(t *testing.T) {
 	base := filepath.Join(dir, "run")
 
 	code, _, stderr := exec(t, "fetch", "--report", base, "--report-format", "json,html", "--report-ip=false",
-		"--output", os.DevNull, server.URL+"/a", server.URL+"/b", server.URL+"/c")
+		server.URL+"/a", server.URL+"/b", server.URL+"/c")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	// The page stops at what a browser can open and says so, once, beside its
 	// own name. The document has every request.
-	want := "  Written to    " + os.DevNull + "\n  Report        " + base + ".json\n" +
+	want := "  Avg time      0ms\n  Report        " + base + ".json\n" +
 		"  Report        " + base + ".html  (without 1 of the requests)\n"
 	if !strings.HasSuffix(stderr, want) || strings.Count(stderr, "of the requests") != 1 {
 		t.Errorf("stderr does not name the two, or says more than once what the page left out (%q):\n%s", want, stderr)

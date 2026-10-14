@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -372,14 +371,15 @@ func TestFetchPrintsThePageOnAScreenWhenAsked(t *testing.T) {
 	}
 }
 
-func TestFetchKeepsThePageOutOfAPipeWhenItHasAFile(t *testing.T) {
+func TestFetchKeepsThePageOutOfAPipeWhenItHasADirectory(t *testing.T) {
 	// Standard output here is a buffer, which is to say a pipe. A page with a
-	// file to go to goes there; asked for on standard output too, it gets both.
+	// directory to go to goes there; asked for on standard output too, it gets
+	// both.
 	server, _ := replying(t, 200)
-	path := filepath.Join(t.TempDir(), "page.html")
+	path := filepath.Join(t.TempDir(), "out")
 
 	if _, stdout, _ := exec(t, "fetch", "-o", path, server.URL); stdout != "" {
-		t.Errorf("the page went down the pipe as well as into the file: %q", stdout)
+		t.Errorf("the page went down the pipe as well as into the directory: %q", stdout)
 	}
 	code, stdout, stderr := exec(t, "fetch", "-o", path, "--body", server.URL)
 	if code != 0 {
@@ -388,8 +388,8 @@ func TestFetchKeepsThePageOutOfAPipeWhenItHasAFile(t *testing.T) {
 	if stdout != "answer-2" {
 		t.Errorf("stdout = %q, want the page that was asked for there", stdout)
 	}
-	if kept, err := os.ReadFile(path); err != nil || string(kept) != "answer-2" {
-		t.Errorf("the file holds %q (%v)", kept, err)
+	if kept, _ := filepath.Glob(filepath.Join(path, "*.html")); len(kept) != 2 {
+		t.Errorf("the directory holds %v, want a page for each of the two runs", keptIn(t, path))
 	}
 }
 
@@ -573,14 +573,20 @@ func TestFetchOfOnePageHasNothingToSumUp(t *testing.T) {
 
 func TestFetchVerboseSaysEveryRunAndWhereItWent(t *testing.T) {
 	server, _ := replying(t, 503, 200, 200)
-	dir := t.TempDir()
-	path := filepath.Join(dir, "page.html")
+	dir := filepath.Join(t.TempDir(), "out")
 
-	code, _, stderr := exec(t, "fetch", "-v", "--repeat", "2", "--retry", "1", "-o", path, server.URL)
+	code, _, stderr := exec(t, "fetch", "-v", "--repeat", "2", "--retry", "1", "-o", dir, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	first, second := filepath.Join(dir, "page-1.html"), filepath.Join(dir, "page-2.html")
+	pages, _ := filepath.Glob(filepath.Join(dir, "*.html"))
+	if len(pages) != 2 {
+		t.Fatalf("the directory holds %v", keptIn(t, dir))
+	}
+	first, second := pages[0], pages[1]
+	if strings.HasSuffix(first, "-2.html") {
+		first, second = second, first
+	}
 	for _, want := range []string{
 		"try 1 of 2: HTTP 503",
 		// The columns a list prints for a URL, with the file where it has the URL.
@@ -644,7 +650,7 @@ func TestListOnAScreenKeepsItsLinesToItself(t *testing.T) {
 		t.Errorf("what the run came to went with them:\n%s", stderr)
 	}
 	// And it says that they went nowhere, and the two ways to have them.
-	const unprinted = "  JSON lines    not printed on a terminal; -o FILE keeps them, --body shows them\n"
+	const unprinted = "  JSON lines    not printed on a terminal; > FILE keeps them, --body shows them\n"
 	if !strings.HasSuffix(stderr, unprinted) {
 		t.Errorf("the run does not end by saying the lines were not printed:\n%s", stderr)
 	}
@@ -658,21 +664,13 @@ func TestListOnAScreenKeepsItsLinesToItself(t *testing.T) {
 		t.Errorf("lines that were printed were reported as not printed:\n%s", stderr)
 	}
 
-	// And a file gets them whatever standard output is. One request says where
-	// they went under its own line.
-	path := filepath.Join(t.TempDir(), "results.jsonl")
-	if _, stdout, stderr = exec(t, "fetch", "--json", "--output", path, server.URL+"/one"); stdout != "" ||
-		strings.Contains(stderr, "JSON lines") || !strings.HasSuffix(stderr, "\n  written to "+path+"\n") {
-		t.Errorf("with --output: stdout = %q, stderr = %q", stdout, after(stderr))
-	}
-	if kept, err := os.ReadFile(path); err != nil || len(lines(t, string(kept))) != 1 {
-		t.Errorf("the file holds %q (%v)", kept, err)
-	}
-
-	// One request whose line went nowhere says so the same way.
-	_, _, stderr = exec(t, "fetch", "--json", server.URL+"/one")
-	if !strings.HasSuffix(stderr, "\n  JSON lines not printed on a terminal; -o FILE keeps them, --body shows them\n") {
-		t.Errorf("one request does not say its line was not printed:\n%s", stderr)
+	// One request whose line went nowhere says so the same way, under its own
+	// line, and says where the request itself was kept when it was.
+	dir := filepath.Join(t.TempDir(), "out")
+	_, _, stderr = exec(t, "fetch", "--json", "-o", dir, server.URL+"/one")
+	want := "\n  saved to " + dir + "\n  JSON lines not printed on a terminal; > FILE keeps them, --body shows them\n"
+	if !strings.HasSuffix(stderr, want) {
+		t.Errorf("one request does not say where it was kept and that its line was not printed:\n%s", stderr)
 	}
 }
 

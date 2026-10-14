@@ -176,15 +176,19 @@ func (t *tracer) emit(event traceEvent) {
 func (t *tracer) put(event traceEvent) {
 	event.PID = t.pid
 
-	var line bytes.Buffer
 	// The separator goes in front of an event, not behind it, so that the file
 	// is a well-formed array up to wherever it stops.
-	if t.wrote {
-		line.WriteString(",\n")
-	} else {
-		line.WriteString("[\n")
+	separator := ",\n"
+	if !t.wrote {
+		separator = "[\n"
 		t.wrote = true
 	}
+	t.send(append([]byte(separator), eventLine(event)...))
+}
+
+// eventLine is one event as one line of a trace file.
+func eventLine(event traceEvent) []byte {
+	var line bytes.Buffer
 	encoder := json.NewEncoder(&line)
 	// A URL is mostly ampersands, and escaped for HTML it no longer matches the
 	// one somebody is searching the file for.
@@ -192,7 +196,7 @@ func (t *tracer) put(event traceEvent) {
 	// Nothing an event holds can fail to encode: strings, numbers, booleans and
 	// lists of strings.
 	_ = encoder.Encode(event)
-	t.send(bytes.TrimSuffix(line.Bytes(), []byte("\n")))
+	return bytes.TrimSuffix(line.Bytes(), []byte("\n"))
 }
 
 // send writes to the file, and remembers the first time that fails rather than

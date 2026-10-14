@@ -313,11 +313,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	showHeaders := fs.BoolP("include", "i", false,
 		"print the status and response headers; with JSON lines, add the headers to each")
 	output := fs.StringP("output", "o", "",
-		"write the output to a file; with --repeat, one numbered page per run")
+		"keep every request in this directory: its page, a log of it and a trace of it")
 	asLines := fs.Bool("json", false,
 		"write a line of JSON for each request rather than the page, as for a list")
-	bodyDir := fs.String("body-dir", "",
-		"write every page to this directory, and JSON lines that name the files")
 	again := addRunFlags(fs)
 	watch := addWatchFlags(fs)
 	reporting := addReportFlags(fs)
@@ -374,7 +372,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// for each request when it names several, or a list, or asks for lines: by
 	// how it was asked rather than by how many URLs turned up, so that a list
 	// which happens to hold one is not answered in another shape.
-	asJSON := *asLines || *bodyDir != "" || named || len(jobs) > 1
+	asJSON := *asLines || named || len(jobs) > 1
 	// One URL is asked for one request at a time, the way a page is reloaded,
 	// unless somebody says how many at once.
 	if len(jobs) == 1 && !fs.Changed("concurrency") {
@@ -456,8 +454,10 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		lane.instant("cookies loaded", "cookies", traceArgs{"from": from})
 	}
 
-	if *bodyDir != "" {
-		if err := os.MkdirAll(*bodyDir, 0o755); err != nil {
+	// Made rather than required, as a report's is: a run that has fetched a list
+	// should not fail at the end for want of a directory.
+	if *output != "" {
+		if err := os.MkdirAll(*output, 0o755); err != nil {
 			return fmt.Errorf("fetch: %w", err)
 		}
 	}
@@ -468,24 +468,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 
 	// Where the output goes, and whether the status is redrawn beside it.
 	var line *statusLine
-	var outputFile *os.File
 	var pages *pageOutput
 	var lines *linesOutput
 	unprinted := false
 	if asJSON {
-		// A file when one was named. Otherwise standard output, unless that is a
-		// screen and nobody asked for the lines there: each one holds a whole
-		// page, and a run being watched is watched for whether it is working.
+		// Standard output, unless that is a screen and nobody asked for the lines
+		// there: each one holds a whole page, and a run being watched is watched
+		// for whether it is working.
 		sink := io.Writer(out)
-		switch {
-		case *output != "":
-			file, err := os.Create(*output)
-			if err != nil {
-				return fmt.Errorf("fetch: %w", err)
-			}
-			outputFile = file
-			sink = file
-		case !watch.wanted(out, false):
+		if !watch.wanted(out, false) {
 			sink = io.Discard
 			unprinted = true
 		}
@@ -496,7 +487,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			line = newStatusLine(errOut, sink, counts, paint)
 			sink = line
 		}
-		lines = &linesOutput{encoder: json.NewEncoder(sink), bodyDir: *bodyDir, headers: *showHeaders}
+		lines = &linesOutput{encoder: json.NewEncoder(sink), headers: *showHeaders}
 	} else {
 		show := &showing{out: out, headers: *showHeaders, body: watch.wanted(out, *output != "")}
 		// Redrawn as the run goes when somebody is watching, unless pages are
@@ -507,7 +498,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			line = newStatusLine(errOut, out, counts, paint)
 			show.out = line
 		}
-		pages = &pageOutput{show: show, path: *output, runs: requests, kept: map[int]string{}}
+		pages = &pageOutput{show: show, runs: requests}
 	}
 	// Where a run talks while it runs. Several workers write here, so it is one
 	// lock whether or not there is a status line to work around.
@@ -516,7 +507,18 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		clients: clients, workers: *workers,
 		request: tlsforge.Request{Method: *method, Header: tlsforge.Header(headers), Body: []byte(*data)},
 		retry:   *again.retry, repeat: *again.repeat,
-		counts: counts, trace: trace, detailed: len(formats) > 0,
+		keep: *output,
+		about: requestAbout{
+			method: *method, profile: profileName(*common.profile),
+			requests: requests, runs: *again.repeat,
+		},
+		counts: counts, trace: trace,
+		// Every try is written down for a report, and for the log and the trace
+		// each request is kept with.
+		detailed: len(formats) > 0 || *output != "",
+	}
+	if oneWay && lookupErr == nil {
+		with.about.exit = describeExit(found, nil, way)
 	}
 	if asJSON {
 		lines.say, with.out = notes.say, lines
@@ -544,11 +546,6 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 		for _, row := range counts.frame(now(), paint) {
 			errOut.println(row)
-		}
-	}
-	if outputFile != nil {
-		if err := closeOutput(outputFile); err != nil {
-			failed = errors.Join(failed, fmt.Errorf("fetch: closing output: %w", err))
 		}
 	}
 
@@ -597,12 +594,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 
 	// Under the count, what is read off a run when it is over.
-	end := ending{reports: reported, unprinted: unprinted}
-	if asJSON {
-		end.saved, end.written = *bodyDir, *output
-	} else if kept := pages.saved(); len(kept) > 0 {
-		end.saved = span(kept)
-	}
+	end := ending{saved: *output, reports: reported, unprinted: unprinted}
 	if requests > 1 {
 		figures := counts.summary()
 		if *again.repeat > 1 && len(jobs) > 1 {
@@ -646,6 +638,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	return errors.Join(failed, reportErr, saveErr)
 }
 
+// profileName is the profile a run wears, by the name it resolves to: "chrome"
+// is whichever Chrome is newest, and a log read next month should say which.
+func profileName(name string) string {
+	if p, err := profile.Get(name); err == nil {
+		return p.Name
+	}
+	return name
+}
+
 // sameWay is the proxy every request of a run goes through, when they all go
 // the same way: through one proxy, or through none.
 func sameWay(jobs []job, fallback string) (proxy string, same bool) {
@@ -664,9 +665,8 @@ func sameWay(jobs []job, fallback string) (proxy string, same bool) {
 
 // ending is where a run left what it made, for the last thing it says.
 type ending struct {
-	// saved is where the pages went, when they went to files, and written where
-	// the JSON lines did.
-	saved, written string
+	// saved is the directory the requests were kept in.
+	saved string
 	// unprinted says the JSON lines went nowhere: standard output was a
 	// terminal, and nobody asked for them there or named a file.
 	unprinted bool
@@ -676,7 +676,7 @@ type ending struct {
 // unprintedNote is what is said of JSON lines that went nowhere. Said, because
 // a run that fetched a list and kept none of it looks, from the outside, exactly
 // like one that kept it somewhere.
-const unprintedNote = "not printed on a terminal; -o FILE keeps them, --body shows them"
+const unprintedNote = "not printed on a terminal; > FILE keeps them, --body shows them"
 
 // rows are those places as rows of the figures a run of several requests ends
 // with, each under what it holds.
@@ -684,9 +684,6 @@ func (e ending) rows() [][2]string {
 	var rows [][2]string
 	if e.saved != "" {
 		rows = append(rows, [2]string{"Saved to", e.saved})
-	}
-	if e.written != "" {
-		rows = append(rows, [2]string{"Written to", e.written})
 	}
 	if e.unprinted {
 		rows = append(rows, [2]string{"JSON lines", unprintedNote})
@@ -703,9 +700,6 @@ func (e ending) lines() []string {
 	var lines []string
 	if e.saved != "" {
 		lines = append(lines, "saved to "+e.saved)
-	}
-	if e.written != "" {
-		lines = append(lines, "written to "+e.written)
 	}
 	if e.unprinted {
 		lines = append(lines, "JSON lines "+unprintedNote)

@@ -584,8 +584,8 @@ func TestFetchTracesWhereEachRunWasWritten(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "trace.json")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", filepath.Join(dir, "page.html"),
-		"--trace", path, server.URL)
+	kept := filepath.Join(dir, "out")
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", kept, "--trace", path, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -601,9 +601,10 @@ func TestFetchTracesWhereEachRunWasWritten(t *testing.T) {
 		if runs[i].Args["run"] != float64(i+1) {
 			t.Errorf("run %d was traced as run %v", i+1, runs[i].Args["run"])
 		}
-		want := filepath.Join(dir, fmt.Sprintf("page-%d.html", i+1))
-		if file.Args["file"] != want || file.Args["bytes"] != 8.0 || file.Cat != "file" {
-			t.Errorf("run %d's file was traced as %+v, want %s", i+1, file, want)
+		saved, _ := file.Args["file"].(string)
+		if !strings.HasPrefix(saved, kept+string(os.PathSeparator)) || !strings.HasSuffix(saved, fmt.Sprintf("-%d.html", i+1)) ||
+			file.Args["bytes"] != 8.0 || file.Cat != "file" {
+			t.Errorf("run %d's file was traced as %+v", i+1, file)
 		}
 	}
 }
@@ -617,7 +618,7 @@ func TestListTraceHasARowForEveryWorker(t *testing.T) {
 		server.URL))
 
 	code, _, stderr := exec(t, "fetch", "--input", list, "--concurrency", "2", "--retry", "0",
-		"--body-dir", filepath.Join(dir, "bodies"), "--trace", path, "-o", os.DevNull)
+		"--output", filepath.Join(dir, "out"), "--trace", path)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (one URL names a proxy that cannot be used)\n%s", code, stderr)
 	}
@@ -689,7 +690,7 @@ func TestListTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 	path, saved := filepath.Join(dir, "trace.json"), filepath.Join(dir, "saved.json")
 
 	code, _, stderr := exec(t, "fetch", "--trace", path, "--save-cookies", saved,
-		"--report", filepath.Join(dir, "report.html"), "-o", os.DevNull, server.URL+"/one")
+		"--report", filepath.Join(dir, "report.html"), server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -772,8 +773,7 @@ func TestATraceThatCannotBeWrittenFailsTheRunWithoutStoppingIt(t *testing.T) {
 		file := &brokenFile{closeErr: errors.New("close failed")}
 		traceInto(t, file)
 
-		code, _, stderr := exec(t, "fetch", "--trace", "anywhere", "-o", os.DevNull,
-			server.URL+"/one", server.URL+"/two")
+		code, _, stderr := exec(t, "fetch", "--trace", "anywhere", server.URL+"/one", server.URL+"/two")
 		if code != 1 || !strings.Contains(stderr, "fetch: writing the trace: close failed") {
 			t.Errorf("exit code = %d, stderr = %q", code, stderr)
 		}

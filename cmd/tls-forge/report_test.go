@@ -948,8 +948,7 @@ func TestListSaysWhatTheReportLeftOut(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "run.html")
 	urls := []string{server.URL + "/a", server.URL + "/b", server.URL + "/c", server.URL + "/d"}
 
-	args := append([]string{"fetch", "--report", path, "--report-ip=false",
-		"--output", os.DevNull}, urls...)
+	args := append([]string{"fetch", "--report", path, "--report-ip=false"}, urls...)
 	code, _, stderr := exec(t, args...)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

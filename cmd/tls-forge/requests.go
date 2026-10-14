@@ -35,11 +35,15 @@ type result struct {
 	Body   string              `json:"body,omitempty"`
 	// BodyEncoding is "base64" when Body was not valid UTF-8. It is omitted
 	// for text so existing JSONL consumers keep seeing the old shape normally.
-	BodyEncoding string    `json:"body_encoding,omitempty"`
-	File         string    `json:"file,omitempty"`
-	Started      time.Time `json:"started"`
-	Ended        time.Time `json:"ended"`
-	Millis       int64     `json:"ms"`
+	BodyEncoding string `json:"body_encoding,omitempty"`
+	// File, Log and Trace are where the page, the log and the trace of the
+	// request were kept, when there was somewhere to keep them.
+	File    string    `json:"file,omitempty"`
+	Log     string    `json:"log,omitempty"`
+	Trace   string    `json:"trace,omitempty"`
+	Started time.Time `json:"started"`
+	Ended   time.Time `json:"ended"`
+	Millis  int64     `json:"ms"`
 	// Run is which time this request was made, under --repeat. Omitted when
 	// every request is made once, as it always used to be.
 	Run      int    `json:"run,omitempty"`
@@ -139,7 +143,6 @@ func redactError(err error, proxy string) string {
 
 // listInput is os.Stdin, named so a test can supply a list.
 var listInput io.Reader = os.Stdin
-var closeOutput = (*os.File).Close
 
 // numCPU is runtime.NumCPU, named so a test can answer for it. A machine's core
 // count is not something a test can choose, and the warning below is worth
@@ -377,7 +380,12 @@ type runner struct {
 	retry  int
 	repeat int
 	// out is what becomes of what each request brings back.
-	out    output
+	out output
+	// keep is the directory every request is kept in, with what it brought back,
+	// a log of it and a trace of it; none when it is empty. about is what the
+	// run knows of all of its requests, for those logs.
+	keep   string
+	about  requestAbout
 	counts *progress
 	// note is told about a try that is about to be made again. Nil keeps quiet,
 	// which is what a run of several requests at once wants: the tries of two
@@ -418,16 +426,20 @@ func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 			defer wg.Done()
 			for j := range queue {
 				b.counts.begin()
-				r, res := b.fetchOne(runCtx, j, lane)
+				r, res, kept := b.fetchOne(runCtx, j, lane)
 				b.counts.finish(r)
 				writeMu.Lock()
 				if r.Error != "" {
 					failures++
 				}
-				// Nothing more is handed on once handing on has failed: the next
-				// result has nowhere to go either.
+				// Nothing more is handed on once handing on has failed, and
+				// nothing more is fetched once there is nowhere to keep it: the
+				// next result has nowhere to go either.
 				if runErr == nil {
-					if runErr = b.out.write(&r, res, lane); runErr != nil {
+					if runErr = kept; runErr == nil {
+						runErr = b.out.write(&r, res, lane)
+					}
+					if runErr != nil {
 						cancel()
 					}
 				}
@@ -457,11 +469,14 @@ func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 // server does under a burst.
 func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
 	occurrences := make(map[string]int)
+	handed := 0
 	for pass := 1; pass <= b.repeat; pass++ {
 		for _, j := range jobs {
 			occurrences[j.URL]++
 			j.occurrence = occurrences[j.URL]
 			j.run = pass
+			handed++
+			j.id = handed
 			select {
 			case <-ctx.Done():
 				// Stop handing out work. Requests already in flight receive the same
@@ -516,8 +531,10 @@ func lookupExits(clients *pool, records []result, lane *traceLane) (map[string]e
 }
 
 // fetchOne makes one request, however many tries that takes, and returns the
-// record of it with what came back, which is nil when nothing did.
-func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *tlsforge.Response) {
+// record of it with what came back, which is nil when nothing did. The error is
+// not the request's, which is on the record: it is that the request could not be
+// kept where it was to be kept.
+func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *tlsforge.Response, error) {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
 	r := result{URL: j.URL, Proxy: proxy, Started: started}
@@ -532,7 +549,7 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 		r.setError(err)
 		r.finish(started)
 		lane.instant("error", "request", traceArgs{"url": safeURL(j.URL), "error": r.Error})
-		return r, nil
+		return r, nil, b.kept(&r, nil, j, lane)
 	}
 
 	request := b.request
@@ -544,13 +561,28 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 
 	if err != nil {
 		r.setError(err)
-		return r, nil
+		return r, nil, b.kept(&r, nil, j, lane)
 	}
 	r.Status = res.Status
 	r.FinalURL = res.URL
 	r.Bytes = len(res.Body)
+	if err := b.kept(&r, res, j, lane); err != nil {
+		return r, res, err
+	}
 	if keeps, ok := b.out.(filler); ok {
 		keeps.fill(&r, res, j, lane)
 	}
-	return r, res
+	return r, res, nil
+}
+
+// kept writes the request down in the directory it is to be kept in, when
+// there is one.
+func (b runner) kept(r *result, res *tlsforge.Response, j job, lane *traceLane) error {
+	if b.keep == "" {
+		return nil
+	}
+	if err := keepRequest(b.keep, r, res, j, b.about, lane); err != nil {
+		return fmt.Errorf("fetch: %w", err)
+	}
+	return nil
 }
