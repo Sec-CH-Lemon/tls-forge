@@ -397,8 +397,19 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
 		inner.Header[fhttp.PHeaderOrderKey] = order
 	}
-	if c.profile.HTTP1 != nil {
-		http1 := measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
+	var http1 fhttp.Header
+	switch {
+	case c.profile.HTTP1 != nil:
+		http1 = measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
+	case !headers.Has("user-agent"):
+		// The one field the two protocols cannot be told the same way: an
+		// HTTP/1.1 connection gets a layout of its own even where nothing else
+		// differs.
+		http1 = cloneHeaderLayout(inner.Header)
+	}
+	quietUserAgent(inner.Header, http2UserAgent)
+	if http1 != nil {
+		quietUserAgent(http1, http1UserAgent)
 		layouts := &protocolLayouts{
 			http1:   http1,
 			http2:   cloneHeaderLayout(inner.Header),
@@ -510,6 +521,33 @@ func measuredHTTP1Layout(headers Header, measured *profile.HTTP1, host string) f
 	out[fhttp.HeaderOrderKey] = order
 	return out
 }
+
+// quietUserAgent keeps the transport from naming itself. fhttp gives a request
+// that carries no User-Agent its own, "Go-http-client", which says what is
+// talking more plainly than any handshake could hide it; and a request can come
+// without one, from a profile out of the transport's catalogue, which knows a
+// handshake and no headers, or from a hand-written one.
+//
+// Each protocol is told it is named and empty in the one way its writer takes
+// as that: HTTP/2 by an empty value, which it leaves out, and HTTP/1.1 by the
+// field with no values at all, since an empty value is a line of its own there
+// and no values is no line. Neither reads the other's way: HTTP/2 passes over a
+// field with no values before it notices the name, and HTTP/1.1 writes
+// "User-Agent: " for an empty one.
+func quietUserAgent(header fhttp.Header, empty []string) {
+	for name := range header {
+		if strings.EqualFold(name, "user-agent") {
+			return
+		}
+	}
+	header["User-Agent"] = empty
+}
+
+// How each protocol's writer is told a request names no user agent.
+var (
+	http2UserAgent = []string{""}
+	http1UserAgent = []string{}
+)
 
 type protocolLayouts struct {
 	http1   fhttp.Header
@@ -642,9 +680,16 @@ func redirectHTTP1Layout(http1, original, current fhttp.Header, host string) fht
 func cloneHeaderLayout(header fhttp.Header) fhttp.Header {
 	out := make(fhttp.Header, len(header))
 	for name, values := range header {
-		out[name] = append([]string(nil), values...)
+		out[name] = copyValues(values)
 	}
 	return out
+}
+
+// copyValues copies a field's values, and keeps a field with none as one with
+// none rather than as nil: to fhttp a nil field is one that is not there, and an
+// HTTP/1.1 request without a User-Agent field is one fhttp gives its own.
+func copyValues(values []string) []string {
+	return append(make([]string, 0, len(values)), values...)
 }
 
 func headerValues(header fhttp.Header) map[string][]string {
@@ -715,7 +760,7 @@ func applyHeaderLayout(target, layout fhttp.Header, managed map[string]bool) {
 		}
 	}
 	for name, values := range layout {
-		target[name] = append([]string(nil), values...)
+		target[name] = copyValues(values)
 	}
 }
 

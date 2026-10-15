@@ -1097,6 +1097,14 @@ accepted directly:
 tls-forge fetch --profile ./profiles/my-chrome.json https://example.com/
 ```
 
+A name from the transport's catalogue — `firefox_148`, `safari_ios_18_5`,
+`okhttp4_android_13` — brings a handshake and HTTP/2 settings and no headers:
+the transport has never claimed to know what headers a browser sends. A
+request with one carries only the headers given with `-H`, and no `User-Agent`
+unless one of them is; never the transport's own `Go-http-client`, which would
+say what is talking more plainly than any handshake could hide it. The run
+says so in its header.
+
 ### `proxy`
 
 Run an intercepting HTTP/HTTPS proxy. It terminates incoming TLS and creates a

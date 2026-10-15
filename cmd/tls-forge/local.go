@@ -90,6 +90,11 @@ func openReport(errOut *printer, name string) *identityReport {
 	said.field("browser", browserOf(p))
 	said.field("from", from(p))
 	said.field("user-agent", p.UserAgent)
+	if len(p.Headers) == 0 {
+		// A handshake from the catalogue, or a hand-written profile that names
+		// none: the run would otherwise look like it wears a browser's headers.
+		said.field("headers", "none of its own: only those given with -H go out, and no User-Agent unless one is")
+	}
 	return said
 }
 
@@ -121,6 +126,8 @@ func (r *identityReport) close() {
 // machine also keeps.
 func origin(p *profile.Profile) string {
 	switch dir := profile.Default.Dir(); {
+	case fromCatalogue(p):
+		return "from tls-client's catalogue: a handshake, and no headers"
 	case p.Source() == "":
 		return "shipped with tls-forge"
 	case dir != "" && strings.HasPrefix(p.Source(), dir+string(filepath.Separator)):
@@ -132,10 +139,19 @@ func origin(p *profile.Profile) string {
 // from is where the profile was read, and says so even when there is no file:
 // "inside the binary" is an answer, and a blank line is not.
 func from(p *profile.Profile) string {
-	if p.Source() == "" {
+	switch {
+	case fromCatalogue(p):
+		return "tls-client's catalogue, built into tls-forge"
+	case p.Source() == "":
 		return "built into tls-forge"
 	}
 	return shorten(p.Source())
+}
+
+// fromCatalogue says a profile is a bare name out of the transport's catalogue:
+// read from no file, measured from no browser, borrowing its handshake.
+func fromCatalogue(p *profile.Profile) bool {
+	return p.Source() == "" && len(p.ClientHello) == 0 && p.Base != ""
 }
 
 // browserOf reads the browser, its version and the platform out of a profile,

@@ -248,3 +248,28 @@ func TestBrowserOfSaysNothingAboutABrowserItCannotRead(t *testing.T) {
 		t.Errorf("browserOf = %q, want no platform on a name without one", got)
 	}
 }
+
+func TestARunWearingACatalogueProfileSaysWhatItLacks(t *testing.T) {
+	// A handshake from the catalogue, with no headers of its own: the header of
+	// the run says where it came from and what it goes without, rather than
+	// claiming to have shipped with tls-forge.
+	server := startEcho(t)
+	code, _, stderr := exec(t, "fetch", "--insecure", "--profile", "firefox_148", server.URL()+"/api/all")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	for _, want := range []string{
+		"profile     firefox_148 · from tls-client's catalogue: a handshake, and no headers",
+		"from        tls-client's catalogue, built into tls-forge",
+		"headers     none of its own: only those given with -H go out, and no User-Agent unless one is",
+	} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("the run's header has no %q:\n%s", want, stderr)
+		}
+	}
+	// A profile that has headers says nothing of the kind.
+	_, _, stderr = exec(t, "fetch", "--insecure", server.URL()+"/api/all")
+	if strings.Contains(stderr, "headers     none of its own") || strings.Contains(stderr, "catalogue") {
+		t.Errorf("the default profile's header:\n%s", stderr)
+	}
+}

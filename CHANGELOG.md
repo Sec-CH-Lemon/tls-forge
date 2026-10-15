@@ -317,6 +317,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A request never says `Go-http-client`. A profile from the transport's
+  catalogue (`firefox_148`, `safari_ios_18_5`) brings a handshake and no
+  headers, and the transport gave such a request its own user agent; it now
+  sends none unless the profile or the caller names one, over HTTP/1.1 and
+  HTTP/2 and on a redirect. `fetch` says, in the header of the run, that such a
+  profile comes from tls-client's catalogue with no headers of its own, rather
+  than that it shipped with tls-forge.
 - **A chain of redirects ends after ten, for every profile.** With a profile
   that carries an HTTP/1.1 layout, which includes every shipped Chrome profile,
   redirects were followed without limit: the policy that prepares the next
