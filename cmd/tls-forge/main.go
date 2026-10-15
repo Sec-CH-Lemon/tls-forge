@@ -17,6 +17,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -278,16 +279,69 @@ func newFlagSet(name string, out io.Writer) *pflag.FlagSet {
 }
 
 // setUsage gives a command one usage block, so the seven of them cannot end up
-// describing themselves seven different ways.
-func setUsage(fs *pflag.FlagSet, out io.Writer, line string) {
+// describing themselves seven different ways. A command with groups shows its
+// flags under what each is for, which a command with many of them needs for
+// one to be found.
+func setUsage(fs *pflag.FlagSet, out io.Writer, line string, groups ...flagGroup) {
 	fs.Usage = func() {
 		_, _ = io.WriteString(out, line+"\n")
-		if flags := fs.FlagUsages(); flags != "" {
-			_, _ = io.WriteString(out, "\nflags:\n"+flags)
-		} else {
+		switch flags := fs.FlagUsages(); {
+		case flags == "":
 			_, _ = io.WriteString(out, "\nThis command takes no flags.\n")
+		case len(groups) == 0:
+			_, _ = io.WriteString(out, "\nflags:\n"+flags)
+		default:
+			_, _ = io.WriteString(out, groupedFlags(flags, groups))
 		}
 	}
+}
+
+// flagGroup is a heading --help shows flags under, and the flags under it, by
+// name, in the order they are shown.
+type flagGroup struct {
+	title string
+	names []string
+}
+
+// flagLine is how a flag's own line begins in what pflag lists: its letter,
+// when it has one, and its name.
+var flagLine = regexp.MustCompile(`^\s+(?:-[^-\s], )?--([^\s=\[]+)`)
+
+// groupedFlags is pflag's listing of a command's flags, in the one column pflag
+// lines them all up in, with each flag under the heading of its group. A flag
+// no group names is shown under a heading of its own at the end, so that one
+// added without a group is still there to be found.
+func groupedFlags(listing string, groups []flagGroup) string {
+	// Each flag's lines: its own, and any its description runs on to.
+	blocks := map[string]string{}
+	var order []string
+	name := ""
+	for _, line := range strings.SplitAfter(listing, "\n") {
+		if match := flagLine.FindStringSubmatch(line); match != nil {
+			name = match[1]
+			order = append(order, name)
+		}
+		blocks[name] += line
+	}
+	var out strings.Builder
+	shown := map[string]bool{}
+	section := func(title string, names []string) {
+		var lines strings.Builder
+		for _, name := range names {
+			if block, ok := blocks[name]; ok && !shown[name] {
+				shown[name] = true
+				lines.WriteString(block)
+			}
+		}
+		if lines.Len() > 0 {
+			out.WriteString("\n" + title + ":\n" + lines.String())
+		}
+	}
+	for _, group := range groups {
+		section(group.title, group.names)
+	}
+	section("other flags", order)
+	return out.String()
 }
 
 func runVersion(_ context.Context, args []string, out, _ *printer) error {

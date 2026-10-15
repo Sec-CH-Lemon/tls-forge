@@ -238,38 +238,48 @@ tls-forge fetch --input example/urls.csv --concurrency 8 --output out/ > results
 
 Usage: `tls-forge fetch [flags] [url...]`
 
+`tls-forge fetch --help` lists the flags under the same headings as this table.
+
 | Flag or argument | Meaning |
 |---|---|
+| **What to fetch** | |
 | `[url...]` | One HTTP or HTTPS URL, or several |
 | `--input <file>` | Read the URLs from a file; a list piped to standard input is read when no URL is named |
 | `-u`, `--urls <a,b,c>` | Comma-separated URLs; highest input precedence |
 | `-F`, `--format <format>` | How the list is read: `auto`, `lines`, `json` or `csv`; default `auto` |
-| `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given |
+| **The request** | |
+| `-X`, `--method <method>` | HTTP method, for every URL; default `GET` |
+| `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
+| `-d`, `--data <text>` | Request body, for every URL |
+| **Fingerprint and transport** | |
+| `-p`, `--profile <name-or-path>` | Profile to impersonate |
+| `-t`, `--timeout <duration>` | Request timeout; default `30s` |
+| `-k`, `--insecure` | Skip upstream certificate verification |
+| **Proxy** | |
+| `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
+| `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
+| **Session** | |
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
 | `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
 | `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random |
 | `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format |
-| `-p`, `--profile <name-or-path>` | Profile to impersonate |
-| `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
-| `-t`, `--timeout <duration>` | Request timeout; default `30s` |
-| `-k`, `--insecure` | Skip upstream certificate verification |
-| `-X`, `--method <method>` | HTTP method, for every URL; default `GET` |
-| `-d`, `--data <text>` | Request body, for every URL |
-| `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
-| `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
-| `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
-| `--json` | Write a JSON line for each request even when one URL is named |
+| **Running** | |
+| `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
 | `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
 | `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
-| `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
+| **Output** | |
+| `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
+| `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
+| `--json` | Write a JSON line for each request even when one URL is named |
 | `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
+| **Report and trace** | |
 | `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
 | `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; by default `json` for a `--report=PATH` ending in `.json`, and `html` otherwise |
-| `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
+| `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
 
 What comes out is decided by how the command was asked, not by how many URLs
 it ended up with:

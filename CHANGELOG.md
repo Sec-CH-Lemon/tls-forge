@@ -215,6 +215,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **`fetch --help` shows its flags under what each is for**: what to fetch,
+  the request, fingerprint and transport, proxy, session, running, output,
+  and report and trace, rather than in one list of 28. The table of flags in
+  README.md is under the same headings.
 - **Every request goes out on a connection of its own.** Every URL, every
   `--repeat` of it and every `--retry` try opens a connection of its own, with
   a TLS handshake of its own, where it used to go out on the one a request

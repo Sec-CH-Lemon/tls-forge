@@ -23,6 +23,20 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
+// fetchFlagGroups is how fetch --help shows its flags: under what each is for,
+// there being too many to find in one list. A flag left out of every group is
+// shown under "other flags", and TestFetchHelpShowsEveryFlagUnderAGroup says so.
+var fetchFlagGroups = []flagGroup{
+	{"what to fetch", []string{"input", "urls", "format"}},
+	{"the request", []string{"method", "header", "data"}},
+	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
+	{"proxy", []string{"proxy", "exit-headers"}},
+	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
+	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection"}},
+	{"output", []string{"output", "include", "json", "print-body", "verbose", "progress", "color"}},
+	{"report and trace", []string{"report", "report-format", "trace"}},
+}
+
 // headerFlag collects repeated -H "Name: value" flags, in the order given.
 //
 // A slice rather than a map, and in the order given, because that order is part
@@ -326,7 +340,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	exitHeaders := fs.String("exit-headers", "",
 		"a JSON file laid over the exit header fields built in: one of the same key replaces ours, "+
 			"\"off\" takes ours out, the rest are added")
-	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]")
+	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]", fetchFlagGroups...)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
