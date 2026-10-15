@@ -83,8 +83,13 @@ func TestSpecFromCapturedClientHello(t *testing.T) {
 	if got, want := len(spec.CipherSuites), 16; got != want {
 		t.Errorf("ciphers = %d, want %d", got, want)
 	}
-	if got, want := len(spec.Extensions), 18; got != want {
+	// The capture's 18, and the pre_shared_key the browser resumes a session
+	// with, last.
+	if got, want := len(spec.Extensions), 19; got != want {
 		t.Errorf("extensions = %d, want %d", got, want)
+	}
+	if _, ok := spec.Extensions[len(spec.Extensions)-1].(*tls.UtlsPreSharedKeyExtension); !ok {
+		t.Errorf("the last extension is %T, want the pre_shared_key slot", spec.Extensions[len(spec.Extensions)-1])
 	}
 
 	// Fresh on every call. utls extensions are pointers with mutable state, and a
@@ -599,6 +604,34 @@ func TestFromCaptureRefusesAResumedHandshake(t *testing.T) {
 	} else if _, err := FromCapture("chrome", &capture.Capture{RawClientHello: resumed, TLS: rendered}); err == nil ||
 		!strings.Contains(err.Error(), "RESUMED") {
 		t.Errorf("a hello Chrome resumed with: error = %v, want it to explain the resumption", err)
+	}
+}
+
+func TestWithResumption(t *testing.T) {
+	// A hello that offers no psk_key_exchange_modes resumes nothing, and gets no
+	// slot to.
+	cold := tls.ClientHelloSpec{Extensions: []tls.TLSExtension{&tls.SNIExtension{}, &tls.UtlsGREASEExtension{}}}
+	if got := withResumption(cold); len(got.Extensions) != 2 {
+		t.Errorf("a hello with no PSK modes got %d extensions", len(got.Extensions))
+	}
+	// One that has a pre_shared_key already, a hello captured on a resumed
+	// connection, keeps the one it has.
+	raw, err := os.ReadFile("../testdata/chrome155-clienthello-resumed.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	spec, err := (&Profile{Name: "resumed", ClientHello: raw}).Spec()
+	if err != nil {
+		t.Fatalf("Spec: %v", err)
+	}
+	psks := 0
+	for _, extension := range spec.Extensions {
+		if _, ok := extension.(tls.PreSharedKeyExtension); ok {
+			psks++
+		}
+	}
+	if psks != 1 {
+		t.Errorf("a hello with a pre_shared_key has %d of them", psks)
 	}
 }
 

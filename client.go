@@ -262,6 +262,9 @@ func New(opts ...Option) (*Client, error) {
 	if cfg.insecureSkipVerify {
 		options = append(options, tls_client.WithInsecureSkipVerify())
 	}
+	if cfg.noResumption {
+		options = append(options, tls_client.WithDisableSessionTickets())
+	}
 	if cfg.followRedirects {
 		// Redirects are new requests. Their Context carries both layouts, but the
 		// GotConn hook must close over the new request rather than the first hop.
@@ -824,6 +827,12 @@ func (c *Client) Cookies(rawURL string) ([]Cookie, error) {
 	}
 	return out, nil
 }
+
+// CloseIdleConnections closes the connections the client holds open between
+// requests, so that the next request opens one of its own: one that resumes
+// the TLS session of the last, when the profile's browser resumes and the site
+// issued a ticket, as a browser's new connection does. The client stays open.
+func (c *Client) CloseIdleConnections() { c.inner.CloseIdleConnections() }
 
 // Close releases the client's connections. A closed client must not be reused.
 func (c *Client) Close() error {

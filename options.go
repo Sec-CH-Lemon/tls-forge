@@ -24,6 +24,7 @@ type config struct {
 	headers            Header
 	jar                fhttp.CookieJar
 	noJar              bool
+	noResumption       bool
 	cookies            []Cookie
 	followRedirects    bool
 	insecureSkipVerify bool
@@ -126,6 +127,15 @@ func WithCookieJar(jar fhttp.CookieJar) Option {
 // WithoutRedirects returns the 3xx instead of following it.
 func WithoutRedirects() Option {
 	return func(c *config) { c.followRedirects = false }
+}
+
+// WithoutSessionResumption keeps no TLS session to resume, so that every
+// connection is the cold handshake of a browser's first contact. Without it a
+// profile whose browser resumes does as the browser does: a new connection to
+// a site that issued a ticket resumes that session, with pre_shared_key, and
+// a different JA4.
+func WithoutSessionResumption() Option {
+	return func(c *config) { c.noResumption = true }
 }
 
 // WithInsecureSkipVerify disables certificate verification.

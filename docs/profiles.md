@@ -154,6 +154,12 @@ time. The echo server does not issue session tickets by default, so this should
 never happen — the check is there because the failure it prevents looks like
 success.
 
+A profile resumes all the same. `Spec` ends the spec of a hello that offers
+`psk_key_exchange_modes` with the `pre_shared_key` slot a resumed hello has,
+last, which utls fills only on a connection with a session to resume: the
+first connection to a site is the capture, and the next one is the browser
+coming back.
+
 ## Keeping profiles current
 
 A browser update is when an impersonation silently stops being true. For a

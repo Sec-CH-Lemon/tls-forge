@@ -62,6 +62,15 @@ locally installed profile; select `local` explicitly when that is desired.
 `Client.Close()` releases idle connections and is final. Calls made after close
 return an error; construct another client to create another identity.
 
+A client resumes TLS sessions as its browser does. A measured profile's
+handshake is the browser's first contact, and its spec ends with the
+`pre_shared_key` the browser resumes with, which is sent only when there is a
+session to resume: a client's new connection to a site that issued a ticket
+resumes it, with that extension last, after the second GREASE one, and a JA4 of
+one extension more, the same as Chrome's. `Client.CloseIdleConnections()`
+closes the connections a client holds open between requests, so that the next
+request opens a new one, which then resumes; the client stays open.
+
 `Client.Fresh()` is a client of the same session, with the same profile, header
 fields, cookie jar and warmed cookies, and connections and a TLS session cache
 of its own. What it sends shares no connection with the client or any other
@@ -97,6 +106,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithoutCookieJar()` | Disable cookie storage. Use this when another layer, such as an intercepting proxy, owns the `Cookie` header. |
 | `WithCookieJar(jar)` | Supply an `fhttp.CookieJar`, for example to share or persist a jar. |
 | `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default, up to ten in a row; the eleventh fails the request with `stopped after 10 redirects`. |
+| `WithoutSessionResumption()` | Keep no TLS session to resume, so that every connection is the cold handshake of a first contact. Without it a profile whose browser resumes does as the browser does; see below. |
 | `WithInsecureSkipVerify()` | Disable upstream certificate verification. Intended for controlled local test endpoints. |
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
 | `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |

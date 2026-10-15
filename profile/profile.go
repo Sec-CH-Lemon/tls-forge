@@ -174,7 +174,7 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 			return tls.ClientHelloSpec{}, fmt.Errorf(
 				"profile %q: unsupported extension %d", p.Name, generic.Id)
 		}
-		return *spec, nil
+		return withResumption(*spec), nil
 	}
 	if p.Base != "" {
 		base, ok := profiles.MappedTLSClients[p.Base]
@@ -185,6 +185,30 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 		return baseID.ToSpec()
 	}
 	return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: %w", p.Name, ErrNoHandshake)
+}
+
+// withResumption gives a spec that offers psk_key_exchange_modes the
+// pre_shared_key it resumes a session with, as its last extension: where a
+// browser puts it, after the GREASE extension Chrome ends its list with, and
+// where its shuffle does not move it. No capture has one, a first connection
+// being what is captured, and utls leaves it out of every hello with no session
+// to resume, so a first connection is still the capture and the next one to a
+// site that issued a ticket is the browser coming back. A spec that has one
+// already is left as it is.
+func withResumption(spec tls.ClientHelloSpec) tls.ClientHelloSpec {
+	offers := false
+	for _, extension := range spec.Extensions {
+		switch extension.(type) {
+		case *tls.PSKKeyExchangeModesExtension:
+			offers = true
+		case tls.PreSharedKeyExtension:
+			return spec
+		}
+	}
+	if offers {
+		spec.Extensions = append(spec.Extensions, &tls.UtlsPreSharedKeyExtension{})
+	}
+	return spec
 }
 
 // ClientProfile converts to the form the transport consumes.
