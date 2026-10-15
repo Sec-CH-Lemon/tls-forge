@@ -25,6 +25,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   response names, or as UTF-8 when it names none and is that throughout, and
   is not rendered: no script runs. A selector that will not parse, one of only
   spaces, and `-X HEAD`, which gets no body, are usage errors.
+- `fetch --wait-for TEXT` counts an answer as the page when its body has the
+  text in it, case and all, whatever its status, or, written as `/regexp/`
+  with any of the flags `i`, `m`, `s` and `U`, text the regular expression
+  (Go's syntax) matches. An answer without it is counted, asked for again and
+  fails the run as one without the element does: `✗ 200 OK, no "In stock"`,
+  `missing_text` in its JSON line, and `no_text` beside `wait_for` in the JSON
+  report. Given both flags, a page has to have both. Another flag, an empty
+  `//`, a pattern that does not compile, text that is not UTF-8 and `-X HEAD`
+  are usage errors.
 - `fetch --clear-output-dir` empties the `--output` directory before the run
   writes into it, of every file and directory in it, and leaves the directory
   itself. It refuses, before removing anything, the root of the file system,

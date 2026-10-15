@@ -66,13 +66,14 @@ type summary struct {
 	Failed    int
 	// Lacked is how many came back without what the page has, whatever their
 	// status: NoElement how many had no element matching WantedElement, the
-	// selector --wait-for-element names.
-	Lacked        int
-	NoElement     int
-	WantedElement string
-	Bytes         int64
-	Retries       int
-	Elapsed       time.Duration
+	// selector --wait-for-element names, and NoText how many had no text
+	// matching WantedText, what --wait-for names. One can be without both.
+	Lacked                    int
+	NoElement, NoText         int
+	WantedElement, WantedText string
+	Bytes                     int64
+	Retries                   int
+	Elapsed                   time.Duration
 	// Spent is how long the requests took between them, which is not Elapsed:
 	// several are out at once.
 	Spent   time.Duration
@@ -137,6 +138,9 @@ func summarise(records []result, elapsed time.Duration) summary {
 			if r.MissingElement != "" {
 				s.NoElement++
 			}
+			if r.MissingText != "" {
+				s.NoText++
+			}
 		default:
 			s.Succeeded++
 		}
@@ -184,6 +188,22 @@ func (s summary) SuccessRate() string { return percent(s.Succeeded, s.Total) }
 func (s summary) WarnRate() string    { return percent(s.Warned, s.Total) }
 func (s summary) FailRate() string    { return percent(s.Failed, s.Total) }
 func (s summary) LackRate() string    { return percent(s.Lacked, s.Total) }
+
+// Wants are what the page has to have, as a report shows them: the selector,
+// then the text.
+func (s summary) Wants() []string {
+	var wants []string
+	if s.WantedElement != "" {
+		wants = append(wants, s.WantedElement)
+	}
+	if s.WantedText != "" {
+		wants = append(wants, s.ShownText())
+	}
+	return wants
+}
+
+// ShownText is the text --wait-for names, as a report shows it.
+func (s summary) ShownText() string { return shownText(s.WantedText) }
 
 // The widths of the meter's three segments.
 func (s summary) SuccessWidth() string { return width(s.Succeeded, s.Total) }
@@ -600,10 +620,10 @@ func (d reportData) Columns() template.CSS {
 
 // outcomeWidth is how wide the column of how each request ended is: eight, room
 // for "no response", and for an answer without what the page has, the whole of
-// what it was without on one line, which is as long as the selector it names.
-// A character of it is about 0.37rem wide, measured in the page, and the glyph
-// and the padding around it 1.1rem; a little more of each is allowed, for
-// letters wider than most.
+// what it was without on one line, which is as long as the selector or the
+// text it names. A character of it is about 0.37rem wide, measured in the
+// page, and the glyph and the padding around it 1.1rem; a little more of each
+// is allowed, for letters wider than most.
 func (d reportData) outcomeWidth() int {
 	longest := 0
 	for _, r := range d.Rows {

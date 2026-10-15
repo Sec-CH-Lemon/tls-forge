@@ -268,6 +268,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
 | `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
 | `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
+| `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |
 | `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
 | **Output** | |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
@@ -607,15 +608,15 @@ tls-forge fetch --retry 3 --repeat 2 --input urls.csv
 ```
 
 `--retry` asks again when the answer is not a 2xx, or when no answer comes at
-all; with `--wait-for-element`, when the answer is without the element,
-whatever its status, and not when it has it. The waits
+all; with `--wait-for-element` or `--wait-for`, when the answer is without the
+element or the text, whatever its status, and not when it has them. The waits
 between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
 goes out on a connection of its own, so through a proxy that rotates, a try
 turned away from one exit is made again from another; `--reuse-connection`
 makes it again on the same connection. When the
 tries run out, the last answer is the one that is counted, printed or saved,
 whatever its status, and the exit code still depends only on whether a response
-arrived, and on whether it had what `--wait-for-element` names.
+arrived, and on whether it had what `--wait-for-element` and `--wait-for` name.
 Nothing is asked for again unless `--retry` says so, for a list as
 for one URL, and a JSON line's `attempts` counts the tries.
 
@@ -649,8 +650,9 @@ adds a line for each as it finishes, and for each try that is made again:
 ```
 
 `fetch` exits non-zero if any run got no response, or, with
-`--wait-for-element`, came back without the element, whatever its status. The
-two flags combine: `--retry` applies to every run.
+`--wait-for-element` or `--wait-for`, came back without the element or the
+text, whatever its status. The two flags combine: `--retry` applies to every
+run.
 
 A run of several requests through proxies adds them to what it ends with: how
 many were used, how many of them carried anything, and each one nothing came
@@ -667,31 +669,53 @@ back through, by name.
 ```bash
 tls-forge fetch --wait-for-element '#price' https://shop.example/item/7
 tls-forge fetch --wait-for-element '.product [data-sku]' --retry 2 --input urls.txt --report
+tls-forge fetch --wait-for 'In stock' https://shop.example/item/7
+tls-forge fetch --wait-for '/"status":\s*"ok"/' https://api.example/health
+tls-forge fetch --wait-for '/в наличии/i' --wait-for-element '#price' https://shop.example/item/7
 ```
 
 A site that turns a client away often does it with a 200 and a page of its
 own, a challenge or a notice, rather than with a status that says so; and one
 that does say so may still send the page. `--wait-for-element` names, as a CSS
-selector, an element the real page has. Given it, the body decides and the
-status does not: an answer whose HTML has an element matching the selector is
-the page, a 403 too, and one without it is not, a 200 too. Such an answer is
-counted on its own row of the count, as `✗ 200 OK, no #price` or
-`✗ 403 Forbidden, no #price`, kept out of the share that came back as the
+selector, an element the real page has, and `--wait-for` text it has. Given
+either, the body decides and the status does not: an answer whose HTML has an
+element matching the selector, and whose body has the text, is the page, a 403
+too, and one without one of them is not, a 200 too. Such an answer is counted
+on its own row of the count, as `✗ 200 OK, no #price` or
+`✗ 403 Forbidden, no "In stock"`, kept out of the share that came back as the
 page, asked for again by `--retry` as a 503 would be, and makes the run exit
-non-zero, saying how many pages were without it; one with it is counted as the
-page, `✓ 403 Forbidden`, and is not asked for again. Its line of JSON says
-`"missing_element": "#price"`, its row in a report says `200, no #price` with
-how the page began, and its log and trace say it too. So name something only
-the real page has: a selector that an error page matches too makes that page
-the page. A `-X HEAD` gets no body to look into, and is refused with it.
+non-zero, saying how many pages were without each; one with it is counted as
+the page, `✓ 403 Forbidden`, and is not asked for again. Its line of JSON says
+`"missing_element": "#price"` or `"missing_text": "In stock"`, its row in a
+report says `200, no #price` with how the page began, and its log and trace
+say it too. Given both, a page has to have both, and its row names each it is
+without: `200, no #price and no "In stock"`. So name something only the real
+page has: a selector that an error page matches too makes that page the page.
+A `-X HEAD` gets no body to look into, and is refused with either.
+
+`--wait-for` is text, looked for as it is, case and all, unless it is written
+as a regular expression: between slashes, with any of the flags `i` (any
+case), `m` (`^` and `$` at every line), `s` (`.` matches a newline) and `U`
+after the last, as `/\d+ in stock/i`. The syntax is Go's (RE2): no
+look-around and no back-references, and a control character written as `\n`,
+`\t` or `\x{…}`. So a value that begins with a slash and ends with one, or
+with one and letters, is a regular expression, and its letters must be those
+flags: `/in stock/g` and `/path/to/file` are refused, and text that has that
+shape is looked for as `/\/path\/to\/file/`. Any other value is text, a path
+like `/catalog/item.html` with it. Text is shown in quotes and a regular
+expression between its slashes, so the two are told apart: `no "In stock"`,
+`no /\d+ in stock/i`. A flag that is not one of the four, an empty `//`, a
+pattern that does not compile and text that is not UTF-8 are usage errors,
+before anything is fetched.
 
 The body is what came, decompressed and nothing else: the HTML as the server
 sent it, read in the encoding its byte order mark or its `Content-Type` names,
 else as UTF-8 when it is that throughout, else in the one its `<meta>` names,
-or as windows-1252. Nothing is rendered and no script runs, so an element a
-script adds is not there to be found, and nothing is waited for. A selector
-that will not parse, or is only spaces, is a usage error, before anything is
-fetched.
+or as windows-1252. Nothing is rendered and no script runs, so an element or
+text a script adds is not there to be found, and nothing is waited for. Text
+is looked for in the markup, so `Tom &amp; Jerry` is what a page with an
+ampersand has, and a script's text is in it like any other. A selector that
+will not parse, or is only spaces, is a usage error too.
 
 #### Keeping every request
 
@@ -835,9 +859,9 @@ the next URL, and `fetch` says so when it is not one.
 The page is one HTML file with nothing to load from anywhere else, so it can be
 opened offline and sent on as one file; only opening a trace in Perfetto, below,
 goes anywhere. At the top is the share of requests that came back as the page,
-with how many answered with something else, or, when `--wait-for-element`
-names what the page has, how many answers were without it, and how many got
-no answer, and under
+with how many answered with something else, or, when `--wait-for-element` or
+`--wait-for` names what the page has, how many answers were without it, and
+how many got no answer, and under
 it the data, the retries, the time the run took and the average time of one
 request. Then there is a row for every request: when it started, how long it
 took, how it ended, how much came back and how many tries it took. Rows are in

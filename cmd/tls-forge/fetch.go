@@ -32,7 +32,7 @@ var fetchFlagGroups = []flagGroup{
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
 	{"proxy", []string{"proxy", "exit-headers"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
-	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for-element"}},
+	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element"}},
 	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
 	{"report and trace", []string{"report", "report-format", "trace"}},
 }
@@ -337,6 +337,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	asLines := fs.Bool("json", false,
 		"write a line of JSON for each request rather than the page, as for a list")
 	again := addRunFlags(fs)
+	waitFor := fs.String("wait-for", "",
+		"count an answer as the page when its body has this text in it, whatever its status, or, written as "+
+			"/regexp/ with any of the flags i, m, s and U, text this regular expression matches")
 	waitForElement := fs.String("wait-for-element", "",
 		"count an answer as the page when its HTML has an element matching this CSS selector, whatever its "+
 			"status; the HTML as it came: no script runs")
@@ -355,14 +358,14 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if *clearOutputDir && *output == "" {
 		return fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
 	}
-	check, err := newPageCheck(*waitForElement)
+	check, err := newPageCheck(*waitForElement, *waitFor)
 	if err != nil {
 		return err
 	}
 	// A HEAD gets no body, and every answer to it would be without what the
 	// page has, whatever came back.
 	if check != nil && strings.EqualFold(*method, "HEAD") {
-		return fmt.Errorf("%w: --wait-for-element looks into the body, and -X HEAD gets none", errUsage)
+		return fmt.Errorf("%w: --wait-for and --wait-for-element look into the body, and -X HEAD gets none", errUsage)
 	}
 	if err := again.check(); err != nil {
 		return err
@@ -625,13 +628,16 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 
 	totals := summarise(records, now().Sub(counts.started))
 	totals.Passes = *again.repeat
-	totals.WantedElement = check.wants()
+	totals.WantedElement, totals.WantedText = check.wants()
 	summed := traceArgs{
 		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
 		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,
 	}
 	if totals.WantedElement != "" {
 		summed["no_element"] = totals.NoElement
+	}
+	if totals.WantedText != "" {
+		summed["no_text"] = totals.NoText
 	}
 	lane.instant("summary", "run", summed)
 
@@ -696,9 +702,11 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 	}
 	// A page without what the page has is not the page, and a run that asked
-	// for it fails for it as for a request that got nothing, saying how many
-	// were without it.
-	failed = errors.Join(failed, pagesWithout(totals.NoElement, requests, "element matching "+totals.WantedElement))
+	// for it fails for it as for a request that got nothing: a line for each
+	// thing, saying how many were without it.
+	failed = errors.Join(failed,
+		pagesWithout(totals.NoElement, requests, "element matching "+totals.WantedElement),
+		pagesWithout(totals.NoText, requests, "text matching "+totals.ShownText()))
 	// All of them, so that the reason the fetch failed is not lost behind a
 	// report or a session that could not be written.
 	return errors.Join(failed, reportErr, saveErr)

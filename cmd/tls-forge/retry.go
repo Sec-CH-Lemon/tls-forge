@@ -72,8 +72,8 @@ type retrier struct {
 }
 
 // do makes the request, and makes it again while the answer is not the page:
-// not a 2xx, or, when --wait-for-element names what the page has, without it,
-// whatever its status.
+// not a 2xx, or, when --wait-for-element or --wait-for names what the page has,
+// without it, whatever its status.
 //
 // A status counts as much as a dead connection. A 503 is not the page, and the
 // reason to ask again is the same: whatever was wrong may have passed. So is a
@@ -103,6 +103,9 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 		}
 		if found.MissingElement != "" {
 			lane.instant("no element", "check", traceArgs{"selector": found.MissingElement})
+		}
+		if found.MissingText != "" {
+			lane.instant("no text", "check", traceArgs{"text": found.MissingText})
 		}
 		if log != nil {
 			log.finding = found

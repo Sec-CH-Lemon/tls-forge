@@ -100,7 +100,7 @@ func TestWaitForElementIsSaidEverywhereARequestIs(t *testing.T) {
 		if r.URL != server.URL+"/challenge" {
 			continue
 		}
-		if r.MissingElement != "#price" || len(r.Tries) != 1 || r.Tries[0].MissingElement != "#price" ||
+		if r.MissingElement != "#price" || r.MissingText != "" || len(r.Tries) != 1 || r.Tries[0].MissingElement != "#price" ||
 			!strings.Contains(r.Tries[0].BodyStart, "checking your browser") {
 			t.Errorf("the request without the element is %+v", r)
 		}
@@ -134,7 +134,8 @@ func TestWaitForElementIsSaidEverywhereARequestIs(t *testing.T) {
 	if seen := named(events, phaseInstant, "no element"); len(seen) != 2 || seen[0].Args["selector"] != "#price" {
 		t.Errorf("the run's trace says %+v", seen)
 	}
-	if summed := named(events, phaseInstant, "summary"); len(summed) != 1 || summed[0].Args["no_element"] != 2.0 {
+	if summed := named(events, phaseInstant, "summary"); len(summed) != 1 || summed[0].Args["no_element"] != 2.0 ||
+		summed[0].Args["no_text"] != nil {
 		t.Errorf("the run's summary is %+v", summed)
 	}
 }
@@ -188,14 +189,17 @@ func TestAPageWithoutWhatThePageHasInTheCount(t *testing.T) {
 	// without what the page has is not the page, whatever its status; one whose
 	// body was looked into and had it is, whatever its status; one whose body was
 	// not looked into is what its status says.
-	without, page := finding{MissingElement: "#price", looked: true}, finding{looked: true}
-	other := finding{MissingElement: "#cart", looked: true}
-	p := newProgress(15)
+	element := finding{MissingElement: "#price", looked: true}
+	text := finding{MissingText: "In stock", looked: true}
+	both := finding{MissingElement: "#price", MissingText: "In stock", looked: true}
+	page := finding{looked: true}
+	p := newProgress(17)
 	for _, r := range []result{
-		{Status: 200}, {Status: 200}, {Status: 200, finding: without}, {Status: 200, finding: other},
-		{Status: 200, finding: without}, {Status: 203, finding: without}, {Status: 503},
-		{Status: 403, finding: page}, {Status: 403}, {Status: 403, finding: without}, {Status: 403, finding: page},
-		{Status: 301, finding: without}, {Status: 301}, {Status: 301, finding: page}, {Error: "refused"},
+		{Status: 200}, {Status: 200}, {Status: 200, finding: text}, {Status: 200, finding: element},
+		{Status: 200, finding: both}, {Status: 200, finding: element}, {Status: 203, finding: element},
+		{Status: 503}, {Status: 403, finding: page}, {Status: 403}, {Status: 403, finding: text},
+		{Status: 403, finding: page}, {Status: 301, finding: text}, {Status: 301}, {Status: 301, finding: page},
+		{Status: 599, finding: text}, {Error: "refused"},
 	} {
 		p.begin()
 		p.finish(r)
@@ -204,20 +208,20 @@ func TestAPageWithoutWhatThePageHasInTheCount(t *testing.T) {
 	for _, row := range p.tallies() {
 		rows = append(rows, fmt.Sprintf("%s %s %d", verdictMark[row.how], row.label, row.count))
 	}
-	want := []string{"✓ 200 OK 2", "✗ 200 OK, no #cart 1", "✗ 200 OK, no #price 2",
-		"✗ 203 Non-Authoritative Information, no #price 1",
-		"✓ 301 Moved Permanently 1", "→ 301 Moved Permanently 1", "✗ 301 Moved Permanently, no #price 1",
-		"✓ 403 Forbidden 2", "✗ 403 Forbidden 1", "✗ 403 Forbidden, no #price 1",
-		"✗ 503 Service Unavailable 1", "✗ no response 1"}
+	want := []string{"✓ 200 OK 2", `✗ 200 OK, no "In stock" 1`, "✗ 200 OK, no #price 2",
+		`✗ 200 OK, no #price and no "In stock" 1`, "✗ 203 Non-Authoritative Information, no #price 1",
+		"✓ 301 Moved Permanently 1", "→ 301 Moved Permanently 1", `✗ 301 Moved Permanently, no "In stock" 1`,
+		"✓ 403 Forbidden 2", "✗ 403 Forbidden 1", `✗ 403 Forbidden, no "In stock" 1`,
+		"✗ 503 Service Unavailable 1", `✗ 599, no "In stock" 1`, "✗ no response 1"}
 	if !slices.Equal(rows, want) {
 		t.Errorf("rows %q\nwant %q", rows, want)
 	}
 	// The pages: the two 200s, the 403s and the 301 that had what it has.
-	if rate := p.summary()[2]; rate[1] != "33.3%" {
+	if rate := p.summary()[2]; rate[1] != "29.4%" {
 		t.Errorf("the success rate is %q", rate[1])
 	}
-	if line := verboseLine(result{Status: 403, finding: without, URL: "https://example.test/"}); !strings.HasSuffix(line,
-		"  no element matching #price") {
+	if line := verboseLine(result{Status: 403, finding: both, URL: "https://example.test/"}); !strings.HasSuffix(line,
+		`  no element matching #price and no text matching "In stock"`) {
 		t.Errorf("verboseLine = %q", line)
 	}
 	if line := verboseLine(result{Status: 403, finding: page, URL: "https://example.test/"}); strings.Contains(line, "  no ") {
@@ -228,18 +232,19 @@ func TestAPageWithoutWhatThePageHasInTheCount(t *testing.T) {
 func TestAPageWithoutWhatThePageHasIsTrouble(t *testing.T) {
 	lacked := result{Status: 200, finding: finding{MissingElement: "#price", looked: true}}
 	records := []result{
-		{Status: 200}, lacked, {Status: 503}, {Error: "x"},
+		{Status: 200}, lacked, {Status: 200, finding: finding{MissingText: "x", looked: true}},
+		{Status: 200, finding: finding{MissingElement: "#price", MissingText: "x", looked: true}}, {Status: 503}, {Error: "x"},
 		// Whatever the status: without it, not the page; with it, the page.
-		{Status: 503, finding: finding{MissingElement: "#price", looked: true}}, {Status: 403, finding: finding{looked: true}},
+		{Status: 503, finding: finding{MissingText: "x", looked: true}}, {Status: 403, finding: finding{looked: true}},
 	}
 	s := summarise(records, 0)
-	if s.Succeeded != 2 || s.Lacked != 2 || s.NoElement != 2 || s.Warned != 1 || s.Failed != 1 ||
-		s.LackRate() != "33.3%" {
+	if s.Succeeded != 2 || s.Lacked != 4 || s.NoElement != 2 || s.NoText != 3 || s.Warned != 1 || s.Failed != 1 ||
+		s.LackRate() != "50.0%" {
 		t.Errorf("summarise = %+v", s)
 	}
 	// One outcome each, even of a finding that says something is missing of a
 	// body it does not say was looked into.
-	odd := result{Status: 404, finding: finding{MissingElement: "#price"}}
+	odd := result{Status: 404, finding: finding{MissingText: "x"}}
 	if !odd.Lacked() || odd.Warned() || odd.Failed() {
 		t.Errorf("%+v: lacked %v, warned %v", odd, odd.Lacked(), odd.Warned())
 	}
@@ -251,17 +256,19 @@ func TestAPageWithoutWhatThePageHasIsTrouble(t *testing.T) {
 	}
 	var budget tryBudget
 	budget.fine = reportRowLimit
-	if got := budget.trim(result{finding: finding{MissingElement: "#price", looked: true}, Tries: []try{{}}}); len(got.Tries) != 1 {
-		t.Error("a request without the element was counted as fine for its tries")
+	if got := budget.trim(result{finding: finding{MissingText: "x", looked: true}, Tries: []try{{}}}); len(got.Tries) != 1 {
+		t.Error("a request without the text was counted as fine for its tries")
 	}
 	for _, tc := range []struct {
 		row            reportRow
 		glyph, outcome string
 	}{
 		{reportRow{result: lacked}, "✕", "200, no #price"},
-		{reportRow{result: records[2]}, "!", "503"},
-		{reportRow{result: records[4]}, "✕", "503, no #price"},
-		{reportRow{result: records[5]}, "✓", "403"},
+		{reportRow{result: records[2]}, "✕", `200, no "x"`},
+		{reportRow{result: records[3]}, "✕", `200, no #price and no "x"`},
+		{reportRow{result: records[4]}, "!", "503"},
+		{reportRow{result: records[6]}, "✕", `503, no "x"`},
+		{reportRow{result: records[7]}, "✓", "403"},
 	} {
 		if tc.row.Glyph() != tc.glyph || tc.row.Outcome() != tc.outcome {
 			t.Errorf("the row is %s %s, want %s %s", tc.row.Glyph(), tc.row.Outcome(), tc.glyph, tc.outcome)
@@ -275,12 +282,27 @@ func TestAPageWithoutWhatThePageHasIsTrouble(t *testing.T) {
 	}{
 		{try{Status: 403, finding: finding{looked: true}}, false, false, "✓"},
 		{try{Status: 403}, false, true, "!"},
-		{try{Status: 403, finding: finding{MissingElement: "#price", looked: true}}, true, false, "✕"},
-		{try{Status: 200, finding: finding{MissingElement: "#price", looked: true}}, true, false, "✕"},
+		{try{Status: 403, finding: finding{MissingText: "x", looked: true}}, true, false, "✕"},
+		{try{Status: 200, finding: finding{MissingText: "x", looked: true}}, true, false, "✕"},
 	} {
 		row := tryRow{try: tc.try}
 		if row.Lacked() != tc.lacked || row.Warned() != tc.warned || row.Glyph() != tc.glyph {
 			t.Errorf("%+v: lacked %v, warned %v, %s", tc.try, row.Lacked(), row.Warned(), row.Glyph())
+		}
+	}
+	// What the page had to have, as the report names it.
+	for _, tc := range []struct {
+		element, text string
+		wants         []string
+	}{
+		{"", "", nil},
+		{"#price", "", []string{"#price"}},
+		{"", "In stock", []string{`"In stock"`}},
+		{"#price", "/in stock/i", []string{"#price", "/in stock/i"}},
+	} {
+		s := summary{WantedElement: tc.element, WantedText: tc.text}
+		if got := s.Wants(); !slices.Equal(got, tc.wants) {
+			t.Errorf("Wants of %q and %q = %q, want %q", tc.element, tc.text, got, tc.wants)
 		}
 	}
 }

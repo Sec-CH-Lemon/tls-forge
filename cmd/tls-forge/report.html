@@ -36,7 +36,7 @@
       <span><span aria-hidden="true" class="text-good">●</span> {{.Summary.Succeeded}} scraped</span>
       <!-- A run that names what the page has goes by the body, whatever the
            status, and none of its answers is merely not a 2xx. -->
-      {{with .Summary.WantedElement}}<span><span aria-hidden="true" class="text-critical">●</span> {{$.Summary.Lacked}} answers with no <span class="font-mono">{{.}}</span> ({{$.Summary.LackRate}})</span>
+      {{with .Summary.Wants}}<span><span aria-hidden="true" class="text-critical">●</span> {{$.Summary.Lacked}} answers with {{range $i, $want := .}}{{if $i}} or {{end}}no <span class="font-mono">{{$want}}</span>{{end}} ({{$.Summary.LackRate}})</span>
       {{- else}}<span><span aria-hidden="true" class="text-serious">●</span> {{.Summary.Warned}} answered, not 2xx ({{.Summary.WarnRate}})</span>{{end}}
       <span><span aria-hidden="true" class="text-critical">●</span> {{.Summary.Failed}} no response ({{.Summary.FailRate}})</span>
     </p>
@@ -280,9 +280,13 @@
 
   <footer class="mt-10 space-y-1 text-xs leading-relaxed text-muted dark:text-muted-dark">
     <p>Data volumes are the decompressed body, which is more than crossed the wire.</p>
-    {{with .Summary.WantedElement}}
-    <p>An answer counts as the page when its HTML has an element matching
-       <span class="font-mono">{{.}}</span>, as --wait-for-element asked,
+    {{if .Summary.Wants}}
+    <p>An answer counts as the page when
+       {{- with .Summary.WantedElement}} its HTML has an element matching
+       <span class="font-mono">{{.}}</span>, as --wait-for-element asked{{end}}
+       {{- if and .Summary.WantedElement .Summary.WantedText}}, and{{end}}
+       {{- if .Summary.WantedText}} its body has text matching
+       <span class="font-mono">{{.Summary.ShownText}}</span>, as --wait-for asked{{end}},
        whatever its status: a 403 with it is the page, and a 200 without it is not,
        its row saying what it was without. The body is as it came, with no script
        run, so what a script adds is not there to be found.</p>

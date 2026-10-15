@@ -49,8 +49,9 @@ type result struct {
 	Run      int    `json:"run,omitempty"`
 	Attempts int    `json:"attempts,omitempty"`
 	Error    string `json:"error,omitempty"`
-	// finding is what its body was without of what --wait-for-element says the
-	// page has, which makes it not the page whatever its status says.
+	// finding is what its body was without of what --wait-for-element and
+	// --wait-for say the page has, which makes it not the page whatever its
+	// status says.
 	finding
 	// Tries are the attempts one by one, with what each waited on. Kept for a
 	// report and for nothing else: the lines are what they have always been.
@@ -425,7 +426,7 @@ type runner struct {
 	exits exitTable
 	names *resolver
 	// check is what an answer has to have to be the page, when
-	// --wait-for-element names it; nil asks nothing of it.
+	// --wait-for-element or --wait-for names it; nil asks nothing of it.
 	check *pageCheck
 	// held keeps every URL's connection across its repeats and tries, when
 	// --reuse-connection asks; nil gives every try a connection of its own.

@@ -497,16 +497,16 @@ func TestReportColumns(t *testing.T) {
 		},
 		{
 			// And the column made as wide as the longest of them, on one line.
-			"answers without longer selectors", reportData{Rows: []reportRow{
+			"an answer without both", reportData{Rows: []reportRow{
 				{result: result{Status: 200}},
-				{result: result{Status: 200, finding: finding{MissingElement: "main .card[data-sku] > #price"}}},
-				{result: result{Status: 403, finding: finding{MissingElement: `[title="в наличии"]`}}},
+				{result: result{Status: 200, finding: finding{MissingElement: "#price", MissingText: `/in stock: \d+/i`}}},
+				{result: result{Status: 200, finding: finding{MissingText: "в наличии"}}},
 			}},
 			"0.75rem 1fr 7.5rem 4.5rem 18rem 4.5rem 2.5rem", "66rem",
 		},
 		{
-			"an answer without an element named in Cyrillic", reportData{Rows: []reportRow{{result: result{Status: 200, finding: finding{MissingElement: `[title="в наличии"]`}}}}},
-			"0.75rem 1fr 7.5rem 4.5rem 14rem 4.5rem 2.5rem", "62rem",
+			"an answer without text in Cyrillic", reportData{Rows: []reportRow{{result: result{Status: 200, finding: finding{MissingText: "в наличии"}}}}},
+			"0.75rem 1fr 7.5rem 4.5rem 10rem 4.5rem 2.5rem", "58rem",
 		},
 	} {
 		if got := string(tc.data.Columns()); got != tc.tracks {
