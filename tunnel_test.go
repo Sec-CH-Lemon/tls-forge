@@ -284,7 +284,7 @@ func TestATunnelKeepsWhatCameWithTheAnswer(t *testing.T) {
 	}()
 
 	u, _ := url.Parse("http://" + listener.Addr().String())
-	conn, err := newConnectDialer(u, 5*time.Second, nil, nil).DialContext(context.Background(), "tcp", "example.test:443")
+	conn, err := newConnectDialer(u, 5*time.Second, nil, nil, nil).DialContext(context.Background(), "tcp", "example.test:443")
 	if err != nil {
 		t.Fatalf("DialContext: %v", err)
 	}
@@ -308,7 +308,7 @@ func (unwritable) SetWriteDeadline(time.Time) error { return nil }
 
 func TestATunnelThatCannotBeAskedFor(t *testing.T) {
 	u, _ := url.Parse("http://proxy.test")
-	if _, err := newConnectDialer(u, time.Second, nil, nil).open(context.Background(), unwritable{}, "example.test:443"); err == nil ||
+	if _, err := newConnectDialer(u, time.Second, nil, nil, nil).open(context.Background(), unwritable{}, "example.test:443"); err == nil ||
 		!strings.Contains(err.Error(), "broken pipe") {
 		t.Errorf("err = %v", err)
 	}
@@ -330,15 +330,22 @@ func TestConnectDialerSettings(t *testing.T) {
 		{secure, "proxy.test:443", true},
 		{named, "proxy.test:8443", true},
 	} {
-		d := newConnectDialer(tc.u, time.Second, local, extra)
+		d := newConnectDialer(tc.u, time.Second, local, extra, nil)
 		if d.address != tc.address || d.secure != tc.secure || d.name != "proxy.test" || d.dialer.LocalAddr != local ||
 			d.header.Get("X-Session") != "7" || d.header.Get("Proxy-Authorization") != "" {
 			t.Errorf("%s: %+v", tc.u, d)
 		}
 	}
 	// No address of its own to dial from when none was given.
-	if d := newConnectDialer(plain, time.Second, nil, nil); d.dialer.LocalAddr != nil {
+	if d := newConnectDialer(plain, time.Second, nil, nil, nil); d.dialer.LocalAddr != nil {
 		t.Errorf("dialling from %v", d.dialer.LocalAddr)
+	}
+	// And the same for a site dialled with nothing between.
+	if d := newDirectDialer(time.Second, local, nil); d.dialer.LocalAddr != local || d.dialer.Timeout != time.Second {
+		t.Errorf("dialling directly with %+v", d.dialer)
+	}
+	if d := newDirectDialer(time.Second, nil, nil); d.dialer.LocalAddr != nil {
+		t.Errorf("dialling directly from %v", d.dialer.LocalAddr)
 	}
 }
 
@@ -346,13 +353,21 @@ func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 	// A SOCKS proxy, and a URL that does not parse, are the transport's: it
 	// knows what to say about them.
 	for _, proxyURL := range []string{"socks5://127.0.0.1:1080", "://not a url", "http://"} {
-		if got := proxyOptions(proxyURL); len(got) != 1 {
+		if got := dialOptions(proxyURL, true, nil); len(got) != 1 {
 			t.Errorf("%q is given %d options, want the transport's one", proxyURL, len(got))
 		}
 	}
 	// An HTTP proxy is tunnelled here, and without HTTP/3, which it cannot carry.
-	if got := proxyOptions("http://proxy.test:8080"); len(got) != 2 {
+	if got := dialOptions("http://proxy.test:8080", true, nil); len(got) != 2 {
 		t.Errorf("an HTTP proxy is given %d options", len(got))
+	}
+	// No proxy is dialled here, unless the caller has options of its own for
+	// the transport, which may say how to dial.
+	if got := dialOptions("", true, nil); len(got) != 1 {
+		t.Errorf("a client without a proxy is given %d options", len(got))
+	}
+	if got := dialOptions("", false, nil); len(got) != 0 {
+		t.Errorf("a client with transport options of its own is given %d options", len(got))
 	}
 }
 

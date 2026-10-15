@@ -13,6 +13,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `WithLogger` has a Go client write down what it does, as it does it, to a
+  `*slog.Logger`, and `Request.Logger` gives one request a logger of its own:
+  each lookup and dial, the `CONNECT` and the proxy's answer, the connection
+  and what its handshake settled on, the header fields as written, the answer,
+  and the step a failed request gave up in, with the ClientHello of every
+  connection and its server's certificates at `tlsforge.LevelTrace`. The
+  connections HTTP/2 dials apart from any request, every one after a client's
+  first to a host, are logged with `background=true`. Proxy passwords, cookie
+  values and credentials are `***`.
 - `capture --manual` measures a browser tls-forge cannot launch — Firefox,
   Safari, a phone's — which the person using it opens the page in:
   `--addr 0.0.0.0:8443 --host <address>` lets in a phone on the network. The
@@ -253,6 +262,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- A client without a proxy dials through a dialer of tls-forge's own, with the
+  timeout and local address the transport's would have had, so that the
+  connections HTTP/2 dials apart from any request can be logged. A client
+  given `WithTransportOption` keeps the transport's, since one of those options
+  may be a dialer or a proxy.
 - **A new connection to a site resumes its TLS session, as Chrome's does.** A
   measured profile's handshake is the browser's first contact, and every
   connection was one, however many times a run went to a site. Now a profile

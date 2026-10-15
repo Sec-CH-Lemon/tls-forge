@@ -29,10 +29,12 @@ package tlsforge
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net"
 	"net/textproto"
@@ -62,8 +64,9 @@ import (
 // A Client is safe for concurrent use.
 type Client struct {
 	inner tls_client.HttpClient
-	// options are what inner was built with, which Fresh builds another with.
-	options []tls_client.HttpClientOption
+	// options are what inner was built with, but for how it dials, which is
+	// the client's own: Fresh builds another with them.
+	options func(log *slog.Logger) []tls_client.HttpClientOption
 	profile *profile.Profile
 	jar     fhttp.CookieJar
 	headers Header
@@ -80,6 +83,18 @@ type Client struct {
 	// a URL synthesised from a domain has no port, which a jar keyed by host and
 	// port then never matches. The request knows the URL exactly.
 	warm *warmSession
+
+	// id is the client's number in the process, and log what it writes down
+	// what it does to, with that number; nil writes nothing. logger is the one
+	// it was given, which a client made Fresh numbers itself in, and requests
+	// numbers the requests it is not told the purpose of.
+	id       uint64
+	log      *slog.Logger
+	logger   *slog.Logger
+	requests atomic.Uint64
+	// proxy is the proxy every connection goes through, which what is logged
+	// is cleaned of.
+	proxy string
 }
 
 // warmSession is a session a client was handed, with which of its cookies have
@@ -131,6 +146,10 @@ type Request struct {
 	// On the request rather than on the client, because a client is shared: two
 	// requests through one connection are still two things to follow.
 	Trace *Trace
+	// Logger, when set, is what this request's steps are written to instead of
+	// the client's logger, so that what the request is for goes with every one
+	// of them: which item of a list, which try. See WithLogger.
+	Logger *slog.Logger
 }
 
 // Cookie is one cookie to seed the jar with.
@@ -249,9 +268,6 @@ func New(opts ...Option) (*Client, error) {
 	if !cfg.followRedirects {
 		options = append(options, tls_client.WithNotFollowRedirects())
 	}
-	if cfg.proxy != "" {
-		options = append(options, proxyOptions(cfg.proxy)...)
-	}
 	if len(cfg.proxyHeader) > 0 {
 		asked := fhttp.Header{}
 		for _, field := range cfg.proxyHeader {
@@ -278,9 +294,15 @@ func New(opts ...Option) (*Client, error) {
 			return nil, fmt.Errorf("tlsforge: nil transport option")
 		}
 	}
-	options = append(options, cfg.extra...)
+	// How it dials comes last but for the caller's own, and is made for each
+	// client, so that every one logs its connections as itself.
+	built := func(log *slog.Logger) []tls_client.HttpClientOption {
+		out := append(slices.Clone(options), dialOptions(cfg.proxy, len(cfg.extra) == 0, log)...)
+		return append(out, cfg.extra...)
+	}
 
-	inner, err := newInnerClient(tls_client.NewNoopLogger(), options...)
+	id, log := newClientLog(cfg.logger)
+	inner, err := newInnerClient(tls_client.NewNoopLogger(), built(log)...)
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
@@ -293,10 +315,25 @@ func New(opts ...Option) (*Client, error) {
 	http1Headers := profileHTTP1Headers(prof)
 	http1Headers = http1Headers.Merge(cfg.headers)
 
-	return &Client{inner: inner, options: options, profile: prof, jar: jar, headers: headers,
+	client := &Client{inner: inner, options: built, profile: prof, jar: jar, headers: headers,
 		http1Headers: http1Headers,
 		warm:         &warmSession{cookies: cfg.cookies, seeded: map[warmCookieKey]struct{}{}},
-		maxBody:      cfg.maxResponseBody}, nil
+		maxBody:      cfg.maxResponseBody,
+		id:           id, log: log, logger: cfg.logger, proxy: cfg.proxy}
+	if log != nil {
+		client.describe(cfg, shuffleExtensions, clientProfile)
+	}
+	return client, nil
+}
+
+// newClientLog numbers a client, and is the log it writes to under that
+// number, or nil when it was given none.
+func newClientLog(logger *slog.Logger) (uint64, *slog.Logger) {
+	id := clientCount.Add(1)
+	if logger == nil {
+		return id, nil
+	}
+	return id, logger.With("client", id)
 }
 
 // newInnerClient is tls_client.NewHttpClient, named so a test can make it
@@ -317,12 +354,17 @@ func (c *Client) Fresh() (*Client, error) {
 	if c.closed.Load() {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
-	inner, err := newInnerClient(tls_client.NewNoopLogger(), c.options...)
+	id, log := newClientLog(c.logger)
+	inner, err := newInnerClient(tls_client.NewNoopLogger(), c.options(log)...)
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
+	if log != nil {
+		log.Debug("fresh client", "from", c.id)
+	}
 	return &Client{inner: inner, options: c.options, profile: c.profile, jar: c.jar, headers: c.headers,
-		http1Headers: c.http1Headers, warm: c.warm, maxBody: c.maxBody}, nil
+		http1Headers: c.http1Headers, warm: c.warm, maxBody: c.maxBody,
+		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
 }
 
 func profileHTTP1Headers(prof *profile.Profile) Header {
@@ -356,6 +398,33 @@ func (c *Client) Get(url string) (*Response, error) {
 
 // Do performs a request.
 func (c *Client) Do(req *Request) (*Response, error) {
+	r := c.requestLog(req)
+	res, err := c.do(req, r)
+	if r != nil {
+		r.ended(res, err)
+	}
+	return res, err
+}
+
+// requestLog is the log a request is written down in: its own logger's, or
+// the client's with the request's number, or nil when there is neither.
+func (c *Client) requestLog(req *Request) *requestLog {
+	log := c.log
+	switch {
+	case req != nil && req.Logger != nil:
+		log = req.Logger.With("client", c.id)
+	case log != nil:
+		log = log.With("request", c.requests.Add(1))
+	default:
+		return nil
+	}
+	return newRequestLog(log, c.proxy, "prepare")
+}
+
+func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
+	if r != nil && req != nil {
+		r.start(cmp.Or(req.Method, fhttp.MethodGet), req.URL, len(req.Body))
+	}
 	if c.closed.Load() {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
@@ -380,6 +449,9 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	}
 	if req.Trace != nil {
 		inner = inner.WithContext(req.Trace.attach(inner.Context()))
+	}
+	if r != nil {
+		inner = inner.WithContext(r.attach(inner.Context()))
 	}
 
 	// The URL fhttp already parsed, rather than a second parse of the same
@@ -418,11 +490,17 @@ func (c *Client) Do(req *Request) (*Response, error) {
 		inner = withProtocolLayouts(inner, layouts)
 	}
 
+	if r != nil {
+		r.step("connect")
+	}
 	res, err := c.inner.Do(inner)
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()
+	if r != nil {
+		r.answered(res)
+	}
 
 	read, err := io.ReadAll(io.LimitReader(res.Body, c.maxBody+1))
 	if err != nil {
@@ -591,13 +669,20 @@ const maxRedirects = 10
 // followRedirect is the policy for every redirect: where the chain stops, who
 // is told about the hop, and which header layout the next request wears.
 func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
+	// The transport sets Response on every request it builds to follow a
+	// redirect, to the response that sent it there.
+	r := requestLogOf(req.Context())
 	if len(via) >= maxRedirects {
+		if r != nil {
+			r.stopped(len(via), req.Response.StatusCode, req.URL.String())
+		}
 		return fmt.Errorf("stopped after %d redirects", maxRedirects)
 	}
 	if t, _ := req.Context().Value(traceKey{}).(*Trace); t != nil {
-		// The transport sets Response on every request it builds to follow a
-		// redirect, to the response that sent it there.
 		t.redirect(req.Response.StatusCode, req.URL.String())
+	}
+	if r != nil {
+		r.redirect(len(via), req.Response.StatusCode, req.URL.String(), req.Response.Header)
 	}
 	return prepareRedirectLayout(req, via)
 }
@@ -877,12 +962,20 @@ func (c *Client) Cookies(rawURL string) ([]Cookie, error) {
 // requests, so that the next request opens one of its own: one that resumes
 // the TLS session of the last, when the profile's browser resumes and the site
 // issued a ticket, as a browser's new connection does. The client stays open.
-func (c *Client) CloseIdleConnections() { c.inner.CloseIdleConnections() }
+func (c *Client) CloseIdleConnections() {
+	c.inner.CloseIdleConnections()
+	if c.log != nil {
+		c.log.Debug("idle connections closed")
+	}
+}
 
 // Close releases the client's connections. A closed client must not be reused.
 func (c *Client) Close() error {
 	c.closed.Store(true)
 	c.inner.CloseIdleConnections()
+	if c.log != nil {
+		c.log.Debug("client closed")
+	}
 	return nil
 }
 

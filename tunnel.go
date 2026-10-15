@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/url"
 	"sort"
@@ -80,13 +81,33 @@ type connectDialer struct {
 	header  fhttp.Header
 	timeout time.Duration
 	dialer  net.Dialer
+	// proxy is the proxy's URL, which what is logged is cleaned of, and log is
+	// the client's, for a tunnel no request waits on. One a request waits on is
+	// logged with the request.
+	proxy string
+	log   *slog.Logger
 }
 
-// proxyOptions route a client through a proxy. An HTTP or HTTPS proxy is
-// tunnelled through here. Any other, and a URL that will not parse, are left
-// to the transport, which knows what to say about them: a SOCKS proxy answers
-// with no header fields to keep.
-func proxyOptions(proxyURL string) []tls_client.HttpClientOption {
+// dialOptions are how a client's connections are dialled. Through an HTTP or
+// HTTPS proxy, by a tunnel opened here. Through any other, and to a proxy URL
+// that will not parse, by the transport, which knows what to say about them: a
+// SOCKS proxy answers with no header fields to keep. Without a proxy, by a
+// dialer of this package's, which logs the dials the transport makes for no
+// request in particular; unless the caller gave the transport options of its
+// own (own is false), one of which may be a dialer or a proxy of its own.
+func dialOptions(proxyURL string, own bool, log *slog.Logger) []tls_client.HttpClientOption {
+	if proxyURL == "" {
+		if !own {
+			return nil
+		}
+		return []tls_client.HttpClientOption{
+			tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
+				_ fhttp.Header, _ tls_client.Logger,
+			) (proxy.ContextDialer, error) {
+				return newDirectDialer(timeout, local, log), nil
+			}),
+		}
+	}
 	u, err := url.Parse(proxyURL)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 		return []tls_client.HttpClientOption{tls_client.WithProxyUrl(proxyURL)}
@@ -95,7 +116,7 @@ func proxyOptions(proxyURL string) []tls_client.HttpClientOption {
 		tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
 			header fhttp.Header, _ tls_client.Logger,
 		) (proxy.ContextDialer, error) {
-			return newConnectDialer(u, timeout, local, header), nil
+			return newConnectDialer(u, timeout, local, header, log), nil
 		}),
 		// The transport tells by the proxy's URL that QUIC cannot go through it,
 		// and it is given a dialer here instead of the URL. Without this, a
@@ -105,10 +126,32 @@ func proxyOptions(proxyURL string) []tls_client.HttpClientOption {
 	}
 }
 
-func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header) *connectDialer {
+// directDialer dials a site with nothing between, as the transport's own
+// dialer does, and has a dial no request waits on logged to the client's log.
+type directDialer struct {
+	dialer net.Dialer
+	log    *slog.Logger
+}
+
+func newDirectDialer(timeout time.Duration, local *net.TCPAddr, log *slog.Logger) *directDialer {
+	d := &directDialer{log: log}
+	d.dialer.Timeout = timeout
+	if local != nil {
+		d.dialer.LocalAddr = local
+	}
+	return d
+}
+
+func (d *directDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return d.dialer.DialContext(watchDial(ctx, d.log, ""), network, address)
+}
+
+func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header,
+	log *slog.Logger,
+) *connectDialer {
 	d := &connectDialer{
 		address: u.Host, secure: u.Scheme == "https", name: u.Hostname(),
-		header: fhttp.Header{}, timeout: timeout,
+		header: fhttp.Header{}, timeout: timeout, proxy: u.String(), log: log,
 	}
 	if u.Port() == "" {
 		port := "80"
@@ -135,6 +178,7 @@ func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, ext
 // DialContext opens a tunnel to address. The network is what the proxy is
 // dialled over: tcp, or tcp4 or tcp6 when the other is turned off.
 func (d *connectDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	ctx = watchDial(ctx, d.log, d.proxy)
 	conn, err := d.reach(ctx, network)
 	if err != nil {
 		return nil, err
@@ -152,12 +196,26 @@ func (d *connectDialer) reach(ctx context.Context, network string) (net.Conn, er
 	if !d.secure {
 		return d.dialer.DialContext(ctx, network, d.address)
 	}
+	// The dial and the handshake together no longer than the timeout, as
+	// tls.Dialer has them, and apart, so that the log can tell which failed.
+	ctx, cancel := context.WithTimeout(ctx, d.timeout)
+	defer cancel()
+	raw, err := d.dialer.DialContext(ctx, network, d.address)
+	if err != nil {
+		return nil, err
+	}
 	// HTTP/1.1 only, so that every tunnel is a connection of its own, and the
 	// answer that opened it belongs to it alone.
-	secure := &tls.Dialer{NetDialer: &d.dialer, Config: &tls.Config{
-		ServerName: d.name, NextProtos: []string{"http/1.1"}, RootCAs: proxyRoots,
-	}}
-	return secure.DialContext(ctx, network, d.address)
+	conn := tls.Client(raw, &tls.Config{ServerName: d.name, NextProtos: []string{"http/1.1"}, RootCAs: proxyRoots})
+	err = conn.HandshakeContext(ctx)
+	if r := requestLogOf(ctx); r != nil {
+		r.proxyTLS(conn.ConnectionState(), err)
+	}
+	if err != nil {
+		_ = raw.Close()
+		return nil, err
+	}
+	return conn, nil
 }
 
 // open asks the proxy, over a connection to it, for a tunnel to address.
@@ -173,24 +231,41 @@ func (d *connectDialer) open(ctx context.Context, conn net.Conn, address string)
 		Method: fhttp.MethodConnect, URL: &url.URL{Host: address}, Host: address,
 		Header: d.header.Clone(), Proto: "HTTP/1.1", ProtoMajor: 1, ProtoMinor: 1,
 	}
+	r := requestLogOf(ctx)
+	if r != nil {
+		r.proxyAsk(address, ask.Header)
+	}
 	if err := ask.Write(conn); err != nil {
+		if r != nil {
+			r.proxyFailed(err)
+		}
 		return nil, err
 	}
 	reader := bufio.NewReader(conn)
 	answer, err := fhttp.ReadResponse(reader, ask)
 	if err != nil {
+		if r != nil {
+			r.proxyFailed(err)
+		}
 		return nil, err
 	}
 	if answer.StatusCode != fhttp.StatusOK {
+		if r != nil {
+			r.proxyRefused(answer, refusalBody(answer))
+		}
 		return nil, fmt.Errorf("proxy responded with non 200 code: %s", answer.Status)
 	}
 	_ = conn.SetDeadline(time.Time{})
 	// Whatever was read past the answer is the tunnel's already.
 	rest, _ := reader.Peek(reader.Buffered())
-	return &tunnel{
+	opened := &tunnel{
 		Conn: conn, reader: io.MultiReader(bytes.NewReader(rest), conn), header: answerHeader(answer.Header),
 		id: tunnels.Add(1),
-	}, nil
+	}
+	if r != nil {
+		r.proxyAnswer(answer, opened.id)
+	}
+	return opened, nil
 }
 
 // answerHeader is a proxy's answer as the header fields a response comes with:

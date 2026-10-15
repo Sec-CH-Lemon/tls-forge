@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"log/slog"
 	"time"
 
 	fhttp "github.com/bogdanfinn/fhttp"
@@ -30,6 +31,7 @@ type config struct {
 	insecureSkipVerify bool
 	shuffleExtensions  *bool
 	extra              []tls_client.HttpClientOption
+	logger             *slog.Logger
 }
 
 func defaults() config {
@@ -168,6 +170,20 @@ func WithRandomExtensionOrder() Option {
 		random := true
 		c.shuffleExtensions = &random
 	}
+}
+
+// WithLogger has the client write down what it does, as it does it: each step
+// of every request, from the lookup of a name to the end of the answer's body,
+// and the connections they go out on, through a proxy or not. Debug says the
+// steps, LevelTrace adds the ClientHello of every connection and the
+// certificates its server showed, and Info is a line for each request and each
+// answer. Secrets stay out of it: a proxy's password, and the values of
+// cookies and credentials.
+//
+// A request's own Logger, when it has one, is written to instead, so that what
+// the request is for can be said with every record of it.
+func WithLogger(log *slog.Logger) Option {
+	return func(c *config) { c.logger = log }
 }
 
 // WithTransportOption passes an option through to the underlying tls-client,

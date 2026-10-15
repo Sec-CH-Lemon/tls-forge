@@ -111,6 +111,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
 | `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |
 | `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. |
+| `WithLogger(logger)` | Write down what the client does, as it does it, to a `*slog.Logger`; see [Logging](#logging). |
 
 Example:
 
@@ -162,6 +163,7 @@ response, err := client.Do(&tlsforge.Request{
 | `Body` | Raw request bytes. |
 | `Cookies` | Cookies added to the jar before this request. |
 | `Trace` | Optional hooks told each step the request takes on the wire; see [Tracing a request](#tracing-a-request). |
+| `Logger` | A `*slog.Logger` this request is logged to instead of the client's, so that what it is for goes with every record of it; see [Logging](#logging). |
 
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 transport deadline. A request ends when either limit is reached.
@@ -232,7 +234,7 @@ response, err := client.Do(&tlsforge.Request{
 
 | `Trace` hook | Called |
 |---|---|
-| `DNSStart(host)`, `DNSDone(addrs, err)` | Around a name lookup. A literal address or a reused connection has neither. |
+| `DNSStart(host)`, `DNSDone(addrs, err)` | Around a name lookup. A literal address or a reused connection has neither, and nor has a connection HTTP/2 dials apart from the request, as it does every one after a client's first to a host; [Logging](#logging) has those. |
 | `ConnectStart(network, addr)`, `ConnectDone(network, addr, err)` | Around each TCP dial, which goes to the proxy when one is configured. A host with several addresses is dialled more than once, and the dials can overlap. |
 | `GotConn(conn)` | When a connection is ready to carry the request, after its TLS handshake if it has one. |
 | `WroteRequest(sent, err)` | When the request has been written. `sent` holds the fields in wire order with their wire spelling, including HTTP/2 pseudo-headers and the `Cookie` header added from the jar. |
@@ -256,6 +258,57 @@ the hooks again for each hop. Header values are passed as sent, credentials
 included, so redact them before logging.
 
 The `tls-forge fetch --trace` flag is built on these hooks.
+
+## Logging
+
+`WithLogger` has a client write down what it does, as it does it: every step
+of every request, from the lookup of a name to the end of the answer's body,
+and the connections they go out on, through a proxy or not. It is for the
+request that went wrong and is looked into afterwards, so each step is a record
+of its own, and a request that failed says which step it was in.
+
+```go
+logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+	Level: tlsforge.LevelTrace,
+}))
+client, err := tlsforge.New(tlsforge.WithLogger(logger))
+if err != nil {
+	return err
+}
+defer client.Close()
+
+response, err := client.Do(&tlsforge.Request{
+	URL:    "https://example.com/",
+	Logger: logger.With("job", 42),
+})
+```
+
+| Level | What is logged |
+|---|---|
+| `slog.LevelInfo` | The client and its profile; a record for each request and each answer. |
+| `slog.LevelWarn` | A request that failed: the step it gave up in as `phase` (`prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect`), whether it was a timeout, and the error. A lookup that failed, a proxy that would not open a tunnel, with up to 1 KiB of what it said, a handshake with an HTTPS proxy that failed, and a redirect past the tenth. |
+| `slog.LevelDebug` | Every step: each lookup with the addresses found, each TCP dial, the `CONNECT` to a proxy and its answer with the tunnel's number, the connection by its two ends with what its handshake settled on and the server's certificate, a connection reused, the header fields as written, pseudo-headers included, the first byte, the answer's header fields, each redirect, and when a client is made, made `Fresh`, closes its idle connections and is closed. The profile's JA4, HTTP/2 preface and header order when a client is made. |
+| `tlsforge.LevelTrace` | The ClientHello of every new connection, with its JA4, JA4_r, JA3 and every list in it, and every certificate of the server's chain. |
+
+Every record carries `client`, the client's number in the process, and
+`request`, the request's number on the client. A request with a `Logger` of its
+own is logged there instead, with `client` added and without `request`, so that
+a caller can say what the request is for. A record that ends a step says how
+long the step took as `took`.
+
+HTTP/2 dials every connection after a client's first to a host apart from the
+request that needs it, so its lookup and dial are not the request's: they are
+logged with the client's logger and `background=true`, and the request's
+`connected` record names the same connection as `conn` and the same tunnel as
+`tunnel`. A client given `WithTransportOption` dials the transport's own way,
+since one of those options may be a dialer or a proxy; such dials then go
+unlogged.
+
+A log is made to be passed on, so it leaves out what a session is worth: a
+proxy's password, cookie values, `Authorization` and `Proxy-Authorization`
+credentials and the values of headers whose names contain `token`, `secret`,
+`password` or `key` are written as `***`. Without `WithLogger`, or a request's
+`Logger`, nothing is logged and nothing is spent on it.
 
 ## Ordered headers
 
