@@ -151,6 +151,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   that an interrupted run still leaves a readable trace, created with mode
   `0600` and replaced on every run. Proxy passwords, cookie values and
   `Authorization` credentials are written as `***`.
+- `Client.Fresh()` in the Go package: a client of the same session, with the
+  same profile, header fields, cookie jar and warmed cookies, and connections
+  and a TLS session cache of its own. What it sends shares no connection with
+  the client or another fresh one, and resumes none of their TLS sessions, so
+  through a proxy that hands every connection an address each comes out of
+  its own.
 - `Request.Trace` in the Go package: optional hooks for the name lookup, each
   dial, the connection and what its handshake negotiated, the header fields in
   wire order, the first response byte and every redirect followed.

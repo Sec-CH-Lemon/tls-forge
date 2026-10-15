@@ -61,7 +61,9 @@ import (
 //
 // A Client is safe for concurrent use.
 type Client struct {
-	inner   tls_client.HttpClient
+	inner tls_client.HttpClient
+	// options are what inner was built with, which Fresh builds another with.
+	options []tls_client.HttpClientOption
 	profile *profile.Profile
 	jar     fhttp.CookieJar
 	headers Header
@@ -77,9 +79,17 @@ type Client struct {
 	// Not at construction: the jar files a cookie under the URL it is given, and
 	// a URL synthesised from a domain has no port, which a jar keyed by host and
 	// port then never matches. The request knows the URL exactly.
-	warm       []Cookie
-	warmMu     sync.Mutex
-	warmSeeded map[warmCookieKey]struct{}
+	warm *warmSession
+}
+
+// warmSession is a session a client was handed, with which of its cookies have
+// been filed already. Every client made Fresh from one shares it, so a cookie
+// is filed once whichever of them asks first, and a value the server has since
+// replaced in the jar is not put back.
+type warmSession struct {
+	cookies []Cookie
+	mu      sync.Mutex
+	seeded  map[warmCookieKey]struct{}
 }
 
 type warmCookieKey struct {
@@ -267,7 +277,7 @@ func New(opts ...Option) (*Client, error) {
 	}
 	options = append(options, cfg.extra...)
 
-	inner, err := tls_client.NewHttpClient(tls_client.NewNoopLogger(), options...)
+	inner, err := newInnerClient(tls_client.NewNoopLogger(), options...)
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
@@ -280,9 +290,36 @@ func New(opts ...Option) (*Client, error) {
 	http1Headers := profileHTTP1Headers(prof)
 	http1Headers = http1Headers.Merge(cfg.headers)
 
-	return &Client{inner: inner, profile: prof, jar: jar, headers: headers, http1Headers: http1Headers,
-		warm: cfg.cookies, warmSeeded: map[warmCookieKey]struct{}{},
-		maxBody: cfg.maxResponseBody}, nil
+	return &Client{inner: inner, options: options, profile: prof, jar: jar, headers: headers,
+		http1Headers: http1Headers,
+		warm:         &warmSession{cookies: cfg.cookies, seeded: map[warmCookieKey]struct{}{}},
+		maxBody:      cfg.maxResponseBody}, nil
+}
+
+// newInnerClient is tls_client.NewHttpClient, named so a test can make it
+// fail where nothing else would.
+var newInnerClient = tls_client.NewHttpClient
+
+// Fresh is a client of the same session that opens connections of its own:
+// the same profile, header fields, cookie jar and warmed cookies, with a
+// transport and a TLS session cache of its own. Nothing it sends goes out on a
+// connection of this client's, or of any other client made Fresh, and its
+// handshakes resume none of their TLS sessions, which would tell a server two
+// connections were one visitor. Through a proxy that hands every connection an
+// address, what it sends comes out of an address of its own.
+//
+// Each must be closed when it is done with. Closing one leaves this client,
+// and the session they share, as they were.
+func (c *Client) Fresh() (*Client, error) {
+	if c.closed.Load() {
+		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
+	}
+	inner, err := newInnerClient(tls_client.NewNoopLogger(), c.options...)
+	if err != nil {
+		return nil, fmt.Errorf("tlsforge: %w", err)
+	}
+	return &Client{inner: inner, options: c.options, profile: c.profile, jar: c.jar, headers: c.headers,
+		http1Headers: c.http1Headers, warm: c.warm, maxBody: c.maxBody}, nil
 }
 
 func profileHTTP1Headers(prof *profile.Profile) Header {
@@ -684,16 +721,17 @@ func applyHeaderLayout(target, layout fhttp.Header, managed map[string]bool) {
 // asked, so it is seeded once per distinct host; a domain cookie is seeded once
 // in total and the jar then applies its domain scope.
 func (c *Client) seedWarmCookies(u *url.URL) {
-	if len(c.warm) == 0 || c.jar == nil {
+	warm := c.warm
+	if len(warm.cookies) == 0 || c.jar == nil {
 		return
 	}
 
 	host := strings.ToLower(u.Hostname())
-	c.warmMu.Lock()
-	defer c.warmMu.Unlock()
+	warm.mu.Lock()
+	defer warm.mu.Unlock()
 
-	ready := make([]Cookie, 0, len(c.warm))
-	for i, cookie := range c.warm {
+	ready := make([]Cookie, 0, len(warm.cookies))
+	for i, cookie := range warm.cookies {
 		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
 		if domain != "" && domain != host && !strings.HasSuffix(host, "."+domain) {
 			continue
@@ -702,10 +740,10 @@ func (c *Client) seedWarmCookies(u *url.URL) {
 		if domain == "" {
 			key.host = host
 		}
-		if _, seeded := c.warmSeeded[key]; seeded {
+		if _, seeded := warm.seeded[key]; seeded {
 			continue
 		}
-		c.warmSeeded[key] = struct{}{}
+		warm.seeded[key] = struct{}{}
 		ready = append(ready, cookie)
 	}
 	c.seedCookies(u, ready)

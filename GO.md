@@ -62,6 +62,24 @@ locally installed profile; select `local` explicitly when that is desired.
 `Client.Close()` releases idle connections and is final. Calls made after close
 return an error; construct another client to create another identity.
 
+`Client.Fresh()` is a client of the same session, with the same profile, header
+fields, cookie jar and warmed cookies, and connections and a TLS session cache
+of its own. What it sends shares no connection with the client or any other
+fresh one, and resumes none of their TLS sessions, which would tell a server
+the two connections were one visitor. Through a proxy that hands every
+connection an address, each fresh client comes out of an address of its own
+while the session stays one. Close each when it is done with; that leaves the
+client, and the session they share, as they were.
+
+```go
+fresh, err := client.Fresh()
+if err != nil {
+	return err
+}
+defer fresh.Close()
+res, err := fresh.Get("https://example.com/")
+```
+
 ## Client options
 
 Every option below is passed to `tlsforge.New(options...)`.
