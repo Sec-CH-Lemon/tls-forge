@@ -95,3 +95,25 @@ func TestCloseEndsAnAlreadyTrackedConnection(t *testing.T) {
 		t.Fatal("Close() blocked on a connection it had tracked")
 	}
 }
+
+// TestAConnectionHandedOverAfterCloseIsTurnedAway is the late side of the
+// window, without the race: a handler that starts once Close has taken its
+// snapshot is refused by track and closes its connection, rather than reading
+// from it with nobody left to close it.
+func TestAConnectionHandedOverAfterCloseIsTurnedAway(t *testing.T) {
+	server, err := Start(Options{CA: newCAForTest(t), Client: stubClient{status: 200}})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	_ = server.Close()
+
+	late, peer := net.Pipe()
+	defer func() { _ = peer.Close() }()
+	server.handle(late)
+	if _, err := peer.Write([]byte("GET / HTTP/1.1\r\n\r\n")); err == nil {
+		t.Error("a connection handed over after Close was kept open")
+	}
+	if server.track(late) || len(server.conns) != 0 {
+		t.Error("a closed server tracked a connection")
+	}
+}
