@@ -41,6 +41,11 @@ type documentSummary struct {
 	Scraped    int `json:"scraped"`
 	Not2xx     int `json:"not_2xx"`
 	NoResponse int `json:"no_response"`
+	// WaitForElement is the selector an answer had to have an element matching,
+	// when --wait-for-element named one, and NoElement how many did not: those
+	// are not the page, whatever their status, and not scraped.
+	WaitForElement string `json:"wait_for_element,omitempty"`
+	NoElement      *int   `json:"no_element,omitempty"`
 	// SuccessRate is the share that came back as the page, as a percentage.
 	SuccessRate float64 `json:"success_rate"`
 	Bytes       int64   `json:"bytes"`
@@ -100,6 +105,8 @@ type documentTry struct {
 	// Connection is what the request went out on, when the try got that far.
 	Connection *documentConnection `json:"connection,omitempty"`
 	Steps      []documentStep      `json:"steps,omitempty"`
+	// finding is what its body was without of what the page has.
+	finding
 	// ResponseHeaders are the fields the answer came with, and BodyStart how
 	// its body began when it was not the page.
 	ResponseHeaders []string `json:"response_headers,omitempty"`
@@ -146,12 +153,16 @@ func renderReportJSON(w io.Writer, in reportInput) error {
 		Trace:     in.trace,
 		Summary: documentSummary{
 			Requests: s.Total, Scraped: s.Succeeded, Not2xx: s.Warned, NoResponse: s.Failed,
-			SuccessRate: rate(s.Succeeded, s.Total),
-			Bytes:       s.Bytes, Retries: s.Retries,
+			WaitForElement: s.WantedElement,
+			SuccessRate:    rate(s.Succeeded, s.Total),
+			Bytes:          s.Bytes, Retries: s.Retries,
 			ElapsedMS: s.Elapsed.Milliseconds(), AvgMS: s.Average().Milliseconds(),
 		},
 		// Never null: a run of nothing made no requests, which is a list of none.
 		Requests: make([]documentRequest, 0, len(in.records)),
+	}
+	if s.WantedElement != "" {
+		doc.Summary.NoElement = &s.NoElement
 	}
 	for _, p := range s.Proxies {
 		proxy := documentProxy{Proxy: p.Proxy, Requests: p.Requests, CameBack: p.Succeeded, Alive: p.Alive()}
@@ -191,7 +202,7 @@ func renderReportJSON(w io.Writer, in reportInput) error {
 // documentTryOf is one try as the document has it.
 func documentTryOf(t try) documentTry {
 	out := documentTry{
-		Started: t.Began, MS: millis(t.Took), Status: t.Status, Bytes: t.Bytes, Error: t.Error,
+		Started: t.Began, MS: millis(t.Took), Status: t.Status, Bytes: t.Bytes, Error: t.Error, finding: t.finding,
 		ResponseHeaders: fieldLines(t.Answer), BodyStart: t.Body, WaitMS: t.Wait.Milliseconds(),
 	}
 	if t.Connected {

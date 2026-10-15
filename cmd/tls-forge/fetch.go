@@ -32,7 +32,7 @@ var fetchFlagGroups = []flagGroup{
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
 	{"proxy", []string{"proxy", "exit-headers"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
-	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection"}},
+	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for-element"}},
 	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
 	{"report and trace", []string{"report", "report-format", "trace"}},
 }
@@ -337,6 +337,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	asLines := fs.Bool("json", false,
 		"write a line of JSON for each request rather than the page, as for a list")
 	again := addRunFlags(fs)
+	waitForElement := fs.String("wait-for-element", "",
+		"count an answer as the page when its HTML has an element matching this CSS selector, whatever its "+
+			"status; the HTML as it came: no script runs")
 	watch := addWatchFlags(fs)
 	reporting := addReportFlags(fs)
 	exitHeaders := fs.String("exit-headers", "",
@@ -351,6 +354,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	if *clearOutputDir && *output == "" {
 		return fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
+	}
+	check, err := newPageCheck(*waitForElement)
+	if err != nil {
+		return err
+	}
+	// A HEAD gets no body, and every answer to it would be without what the
+	// page has, whatever came back.
+	if check != nil && strings.EqualFold(*method, "HEAD") {
+		return fmt.Errorf("%w: --wait-for-element looks into the body, and -X HEAD gets none", errUsage)
 	}
 	if err := again.check(); err != nil {
 		return err
@@ -558,6 +570,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// lock whether or not there is a status line to work around.
 	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
 	with := runner{
+		check:   check,
 		clients: clients, workers: *workers,
 		request: tlsforge.Request{Method: *method, Header: tlsforge.Header(headers), Body: []byte(*data)},
 		retry:   *again.retry, repeat: *again.repeat,
@@ -612,10 +625,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 
 	totals := summarise(records, now().Sub(counts.started))
 	totals.Passes = *again.repeat
-	lane.instant("summary", "run", traceArgs{
+	totals.WantedElement = check.wants()
+	summed := traceArgs{
 		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
 		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,
-	})
+	}
+	if totals.WantedElement != "" {
+		summed["no_element"] = totals.NoElement
+	}
+	lane.instant("summary", "run", summed)
 
 	// Whatever the run came to, and most of all when it came to nothing: a
 	// request that failed is the one somebody opens a report about.
@@ -677,9 +695,25 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			failed = fmt.Errorf("fetch: %d of %d requests got no response", failures, requests)
 		}
 	}
+	// A page without what the page has is not the page, and a run that asked
+	// for it fails for it as for a request that got nothing, saying how many
+	// were without it.
+	failed = errors.Join(failed, pagesWithout(totals.NoElement, requests, "element matching "+totals.WantedElement))
 	// All of them, so that the reason the fetch failed is not lost behind a
 	// report or a session that could not be written.
 	return errors.Join(failed, reportErr, saveErr)
+}
+
+// pagesWithout is why a run fails for the pages that came back without
+// something the page has, or nil when none did.
+func pagesWithout(count, requests int, what string) error {
+	switch {
+	case count == 0:
+		return nil
+	case requests == 1:
+		return fmt.Errorf("fetch: the page has no %s", what)
+	}
+	return fmt.Errorf("fetch: %d of %d pages have no %s", count, requests, what)
 }
 
 // profileName is the profile a run wears, by the name it resolves to: "chrome"

@@ -49,6 +49,9 @@ type result struct {
 	Run      int    `json:"run,omitempty"`
 	Attempts int    `json:"attempts,omitempty"`
 	Error    string `json:"error,omitempty"`
+	// finding is what its body was without of what --wait-for-element says the
+	// page has, which makes it not the page whatever its status says.
+	finding
 	// Tries are the attempts one by one, with what each waited on. Kept for a
 	// report and for nothing else: the lines are what they have always been.
 	Tries []try `json:"-"`
@@ -266,6 +269,9 @@ func verboseLine(r result) string {
 	if r.Error != "" {
 		line += "  " + r.Error
 	}
+	if said := r.said(); said != "" {
+		line += "  " + said
+	}
 	return line
 }
 
@@ -418,6 +424,9 @@ type runner struct {
 	// nothing or say a name. names asks each name once.
 	exits exitTable
 	names *resolver
+	// check is what an answer has to have to be the page, when
+	// --wait-for-element names it; nil asks nothing of it.
+	check *pageCheck
 	// held keeps every URL's connection across its repeats and tries, when
 	// --reuse-connection asks; nil gives every try a connection of its own.
 	held   *heldClients
@@ -562,7 +571,7 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 
 	request := b.request
 	request.URL = j.URL
-	res, attempts, tries, err := retrier{retries: b.retry, note: b.note, keep: b.detailed}.do(
+	res, attempts, tries, found, err := retrier{retries: b.retry, note: b.note, keep: b.detailed, check: b.check}.do(
 		ctx, conns, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
@@ -577,6 +586,7 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 	r.Status = res.Status
 	r.FinalURL = res.URL
 	r.Bytes = len(res.Body)
+	r.finding = found
 	if err := b.kept(&r, res, j, lane); err != nil {
 		return r, res, err
 	}

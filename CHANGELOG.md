@@ -13,6 +13,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `fetch --wait-for-element SELECTOR` counts an answer as the page when its
+  HTML has an element matching the CSS selector, whatever its status, for a
+  site that turns a client away with a 200 and a page of its own, or sends the
+  page under a 403. An answer without it has a row of its own in the count
+  (`✗ 200 OK, no #price`), is kept out of the success rate, is asked for again
+  by `--retry`, and makes the run exit non-zero; one with it is the page, a
+  403 too. Its JSON line has `missing_element`, its row in the report says
+  `200, no …` with how the page began, and the JSON report counts them as
+  `no_element` beside `wait_for_element`. The HTML is read in the encoding the
+  response names, or as UTF-8 when it names none and is that throughout, and
+  is not rendered: no script runs. A selector that will not parse, one of only
+  spaces, and `-X HEAD`, which gets no body, are usage errors.
 - `fetch --clear-output-dir` empties the `--output` directory before the run
   writes into it, of every file and directory in it, and leaves the directory
   itself. It refuses, before removing anything, the root of the file system,

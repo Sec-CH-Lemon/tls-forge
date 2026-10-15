@@ -1,10 +1,12 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -75,9 +77,6 @@ func (f watchFlags) wanted(out io.Writer, kept bool) bool {
 	return *f.body || (!kept && !onScreen(out))
 }
 
-// noResponse is the status a request is counted under when it got none.
-const noResponse = 0
-
 // verdict is how an answer went, which is what the count is drawn by.
 type verdict int
 
@@ -133,16 +132,28 @@ type progress struct {
 	// spent how long the requests took between them, those tries included.
 	retries int
 	spent   time.Duration
-	// statuses is how many answers came back with each status code, and under
-	// noResponse how many requests got no answer at all.
-	statuses map[int]int
+	// answers is how many answers came back as each row of the count has them:
+	// by status, what was said of their body, and how that went. lost is how
+	// many requests got no answer at all.
+	answers map[answerRow]int
+	lost    int
 	// solo says the requests are made one at a time, so that how many are
 	// running is never news.
 	solo bool
 }
 
+// answerRow is a row of the count: a status, what the answers that came with it
+// were without of what the page has, as a row says it, and how they went. That
+// is their status's way unless the run names what the page has: then one with
+// it came back as the page, a 403 too, and one without it did not, a 200 too.
+type answerRow struct {
+	status int
+	brief  string
+	how    verdict
+}
+
 func newProgress(total int) *progress {
-	return &progress{total: total, started: now(), statuses: map[int]int{}}
+	return &progress{total: total, started: now(), answers: map[answerRow]int{}}
 }
 
 // begin records a request going out.
@@ -162,11 +173,17 @@ func (p *progress) finish(r result) {
 	// One attempt is the request; the rest are the retries.
 	p.retries += max(r.Attempts-1, 0)
 	p.spent += time.Duration(r.Millis) * time.Millisecond
-	if r.Failed() {
-		p.statuses[noResponse]++
+	how := answered
+	switch {
+	case r.Failed():
+		p.lost++
 		return
+	case r.Lacked():
+		how = refused
+	case r.Warned():
+		how = verdictOf(r.Status)
 	}
-	p.statuses[r.Status]++
+	p.answers[answerRow{r.Status, r.brief(), how}]++
 }
 
 // tally is one row of the count: a status, by number and by name, and how many
@@ -184,28 +201,32 @@ type tally struct {
 // does. Lowest code first, so the rows stay where they are as others arrive,
 // and the requests that got no answer last: they have no code to sort by.
 func (p *progress) tallies() []tally {
-	codes := make([]int, 0, len(p.statuses))
-	for code := range p.statuses {
-		if code != noResponse {
-			codes = append(codes, code)
+	// A status alone first, and after it what was said of the ones with it.
+	keys := slices.SortedFunc(maps.Keys(p.answers), func(a, b answerRow) int {
+		return cmp.Or(cmp.Compare(a.status, b.status), strings.Compare(a.brief, b.brief), cmp.Compare(a.how, b.how))
+	})
+	rows := make([]tally, 0, len(keys)+1)
+	for _, key := range keys {
+		label := statusLabel(key.status)
+		if key.brief != "" {
+			label += ", " + key.brief
 		}
+		rows = append(rows, tally{key.how, label, p.answers[key]})
 	}
-	sort.Ints(codes)
-
-	rows := make([]tally, 0, len(p.statuses))
-	for _, code := range codes {
-		// The name beside the number, for whoever does not keep the table of
-		// them in their head. A code nobody has named goes without.
-		label := strconv.Itoa(code)
-		if name := http.StatusText(code); name != "" {
-			label += " " + name
-		}
-		rows = append(rows, tally{verdictOf(code), label, p.statuses[code]})
-	}
-	if lost := p.statuses[noResponse]; lost > 0 {
-		rows = append(rows, tally{refused, "no response", lost})
+	if p.lost > 0 {
+		rows = append(rows, tally{refused, "no response", p.lost})
 	}
 	return rows
+}
+
+// statusLabel is a status as a row of the count names it: the name beside the
+// number, for whoever does not keep the table of them in their head. A code
+// nobody has named goes without.
+func statusLabel(code int) string {
+	if name := http.StatusText(code); name != "" {
+		return strconv.Itoa(code) + " " + name
+	}
+	return strconv.Itoa(code)
 }
 
 // frame is the whole status, as the lines it is drawn in: a bar for how far the
@@ -336,8 +357,8 @@ func (p *progress) summary() [][2]string {
 		made += " of " + strconv.Itoa(p.total)
 	}
 	pages := 0
-	for code, count := range p.statuses {
-		if verdictOf(code) == answered {
+	for row, count := range p.answers {
+		if row.how == answered {
 			pages += count
 		}
 	}

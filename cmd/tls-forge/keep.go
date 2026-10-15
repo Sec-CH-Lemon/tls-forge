@@ -126,7 +126,7 @@ func requestLog(r result, j job, about requestAbout) string {
 		[2]string{"started", atPrecisely(r.Started)},
 		[2]string{"ended", atPrecisely(r.Ended)},
 		[2]string{"took", preciseDuration(r.Ended.Sub(r.Started))},
-		[2]string{"outcome", outcomeOf(r.Status, r.Bytes, r.Error)},
+		[2]string{"outcome", outcomeOf(r.Status, r.Bytes, r.Error, r.finding)},
 		[2]string{"tries", strconv.Itoa(max(r.Attempts, len(r.Tries)))},
 	)
 	if r.FinalURL != "" && r.FinalURL != r.URL {
@@ -139,7 +139,7 @@ func requestLog(r result, j job, about requestAbout) string {
 
 	for _, t := range tryRows(r.Tries, r.Started, r.Ended.Sub(r.Started)) {
 		fmt.Fprintf(&log, "\ntry %d of %d: %s, %s\n", t.Number, t.Of,
-			outcomeOf(t.Status, t.Bytes, t.Error), t.Length())
+			outcomeOf(t.Status, t.Bytes, t.Error, t.finding), t.Length())
 		about := [][2]string{{"began", atPrecisely(t.Began)}}
 		if connection := t.Connection(); connection != "" {
 			about = append(about, [2]string{"connection", connection})
@@ -190,11 +190,15 @@ func requestLog(r result, j job, about requestAbout) string {
 }
 
 // outcomeOf is how a request or a try ended, as a log says it.
-func outcomeOf(status, bytes int, failure string) string {
+func outcomeOf(status, bytes int, failure string, found finding) string {
 	if failure != "" {
 		return "no response · " + failure
 	}
-	return fmt.Sprintf("%d %s · %s", status, http.StatusText(status), humanBytes(int64(bytes)))
+	said := fmt.Sprintf("%d %s · %s", status, http.StatusText(status), humanBytes(int64(bytes)))
+	if what := found.said(); what != "" {
+		said += " · " + what
+	}
+	return said
 }
 
 // indented writes a block under a heading, every line of it set in.
@@ -289,6 +293,7 @@ func requestTrace(r result, method string) []traceEvent {
 		if t.Body != "" {
 			ended["body"] = t.Body
 		}
+		t.missingInto(ended)
 		if len(t.Conn.ProxyHeader) > 0 {
 			ended["proxy_answer"] = safeHeaders(t.Conn.ProxyHeader)
 		}
@@ -302,6 +307,7 @@ func requestTrace(r result, method string) []traceEvent {
 	}
 
 	ended := traceArgs{"attempts": r.Attempts}
+	r.missingInto(ended)
 	r.Exit.into(ended)
 	if r.Error != "" {
 		ended["error"] = r.Error

@@ -34,7 +34,10 @@
     </div>
     <p class="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted dark:text-muted-dark">
       <span><span aria-hidden="true" class="text-good">●</span> {{.Summary.Succeeded}} scraped</span>
-      <span><span aria-hidden="true" class="text-serious">●</span> {{.Summary.Warned}} answered, not 2xx ({{.Summary.WarnRate}})</span>
+      <!-- A run that names what the page has goes by the body, whatever the
+           status, and none of its answers is merely not a 2xx. -->
+      {{with .Summary.WantedElement}}<span><span aria-hidden="true" class="text-critical">●</span> {{$.Summary.Lacked}} answers with no <span class="font-mono">{{.}}</span> ({{$.Summary.LackRate}})</span>
+      {{- else}}<span><span aria-hidden="true" class="text-serious">●</span> {{.Summary.Warned}} answered, not 2xx ({{.Summary.WarnRate}})</span>{{end}}
       <span><span aria-hidden="true" class="text-critical">●</span> {{.Summary.Failed}} no response ({{.Summary.FailRate}})</span>
     </p>
   </section>
@@ -256,7 +259,7 @@
               {{if .Answer}}
               <!-- Open already when the answer was not the page: what came back
                    is then the reason the row was opened. -->
-              <details class="group/part mt-2"{{if .Warned}} open{{end}}>
+              <details class="group/part mt-2"{{if or .Warned .Lacked}} open{{end}}>
                 <summary class="cursor-pointer text-muted dark:text-muted-dark">
                   <span aria-hidden="true" class="inline-block transition-transform group-open/part:rotate-90">›</span>
                   The answer came with {{.Fields}}{{if .Body}}, and its body began like this{{end}}
@@ -277,6 +280,13 @@
 
   <footer class="mt-10 space-y-1 text-xs leading-relaxed text-muted dark:text-muted-dark">
     <p>Data volumes are the decompressed body, which is more than crossed the wire.</p>
+    {{with .Summary.WantedElement}}
+    <p>An answer counts as the page when its HTML has an element matching
+       <span class="font-mono">{{.}}</span>, as --wait-for-element asked,
+       whatever its status: a 403 with it is the page, and a 200 without it is not,
+       its row saying what it was without. The body is as it came, with no script
+       run, so what a script adds is not there to be found.</p>
+    {{end}}
     {{with .Before}}
     {{if .Proxy}}
     <p>Before the first request, where a request through
@@ -360,7 +370,7 @@ document.addEventListener("click", async (event) => {
 {{- /* How something ended, as a request's row and each of its tries show it. */ -}}
 {{- define "chip" -}}
 <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium
-  {{if .Failed}}bg-critical/12 text-critical-ink dark:text-critical
+  {{if or .Failed .Lacked}}bg-critical/12 text-critical-ink dark:text-critical
   {{else if .Warned}}bg-serious/15 text-serious-ink dark:text-serious
   {{else}}bg-good/12 text-good-ink dark:text-good{{end}}">
   <span aria-hidden="true">{{.Glyph}}</span> {{.Outcome}}</span>

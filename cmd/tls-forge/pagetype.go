@@ -89,13 +89,24 @@ func pageExtension(header map[string][]string, body []byte) string {
 	return sniffedExtension(body)
 }
 
-// contentTypeOf is the media type a browser goes by: of every value of every
-// Content-Type field, split at the commas between types, the last that names
-// one, as the Fetch standard and Chrome read a response that sends two. "*/*"
-// names none. Fields whose names differ only in case are read in the order of
-// their names, so that the answer does not change with the order a map is
-// read in.
+// contentTypeOf is the media type a browser goes by: of every type the
+// Content-Type fields name, the last, as the Fetch standard and Chrome read a
+// response that sends two. "*/*" names none.
 func contentTypeOf(header map[string][]string) string {
+	last := ""
+	for _, item := range contentTypeItems(header) {
+		if mediaType := mediaTypeOf(item); mediaType != "" && mediaType != "*/*" {
+			last = mediaType
+		}
+	}
+	return last
+}
+
+// contentTypeItems are the values of every Content-Type field, split at the
+// commas between types, in the order a browser reads them. Fields whose names
+// differ only in case are read in the order of their names, so that the answer
+// does not change with the order a map is read in.
+func contentTypeItems(header map[string][]string) []string {
 	var names []string
 	for name := range header {
 		if strings.EqualFold(name, "Content-Type") {
@@ -103,17 +114,13 @@ func contentTypeOf(header map[string][]string) string {
 		}
 	}
 	slices.Sort(names)
-	last := ""
+	var items []string
 	for _, name := range names {
 		for _, value := range header[name] {
-			for _, item := range splitOutsideQuotes(value, ',') {
-				if mediaType := mediaTypeOf(item); mediaType != "" && mediaType != "*/*" {
-					last = mediaType
-				}
-			}
+			items = append(items, splitOutsideQuotes(value, ',')...)
 		}
 	}
-	return last
+	return items
 }
 
 // splitOutsideQuotes is a field value split at every sep, a comma between the

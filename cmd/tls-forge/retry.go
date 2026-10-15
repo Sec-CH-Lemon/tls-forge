@@ -67,19 +67,24 @@ type retrier struct {
 	// keep asks for every try to be written down as it is made, with what it
 	// waited on, for a report to show.
 	keep bool
+	// check is what an answer has to have to be the page; nil asks nothing.
+	check *pageCheck
 }
 
-// do makes the request, and makes it again while the answer is not a 2xx.
+// do makes the request, and makes it again while the answer is not the page:
+// not a 2xx, or, when --wait-for-element names what the page has, without it,
+// whatever its status.
 //
 // A status counts as much as a dead connection. A 503 is not the page, and the
-// reason to ask again is the same: whatever was wrong may have passed. The last
-// try's answer is the answer, whatever it was, so a run that never got its page
-// still hands back what it did get.
+// reason to ask again is the same: whatever was wrong may have passed. So is a
+// 200 that is somebody's challenge rather than the page. The last try's answer
+// is the answer, whatever it was, so a run that never got its page still hands
+// back what it did get, and found says what its body had of what the page has.
 //
 // The tries come back as well when they are being kept, and nil when not.
 func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Request,
 	lane *traceLane, run int, proxy string,
-) (res *tlsforge.Response, attempts int, tries []try, err error) {
+) (res *tlsforge.Response, attempts int, tries []try, found finding, err error) {
 	// One try, then as many again as asked for. The stopping comparison avoids
 	// forming retries+1, which overflows for the largest accepted int.
 	for attempt := 1; ; attempt++ {
@@ -92,22 +97,47 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 		req.Context, req.Trace = ctx, shot.hooks()
 		res, err = conns.do(&req)
 		shot.end(res, err)
+		found = finding{}
+		if err == nil {
+			found = p.check.look(res)
+		}
+		if found.MissingElement != "" {
+			lane.instant("no element", "check", traceArgs{"selector": found.MissingElement})
+		}
 		if log != nil {
+			log.finding = found
+			if found.looked {
+				// How an answer that is not the page began, its body and not its
+				// status saying so: it is usually where a site says what it is.
+				log.Body = ""
+				if found.misses() {
+					log.Body = preview(res.Body)
+				}
+			}
 			// Copied once the try is over, when nothing is still writing to it.
 			tries = append(tries, *log)
 		}
 
-		if err == nil && res.OK() {
-			return res, attempts, tries, nil
+		// What the run names the page by says whether it came, when it names
+		// anything, and the status when it does not.
+		page := err == nil && res.OK()
+		if p.check != nil {
+			page = err == nil && !found.misses()
+		}
+		if page {
+			return res, attempts, tries, found, nil
 		}
 		if ctx.Err() != nil || attempt > p.retries {
-			return res, attempts, tries, err
+			return res, attempts, tries, found, err
 		}
 		wait := retryWait(attempt)
 		if log != nil {
 			tries[len(tries)-1].Wait = wait
 		}
 		why := whyAgain(res, err, proxy)
+		if found.misses() {
+			why = found.said()
+		}
 		lane.instant("retry", "retry", traceArgs{
 			"attempt": attempt, "reason": why, "wait_ms": wait.Milliseconds(),
 		})
@@ -116,7 +146,7 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 				attempt, p.retries+1, why, preciseDuration(wait)))
 		}
 		if !pause(ctx, wait) {
-			return res, attempts, tries, err
+			return res, attempts, tries, found, err
 		}
 	}
 }

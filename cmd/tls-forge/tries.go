@@ -26,6 +26,8 @@ type try struct {
 	Status int
 	Bytes  int
 	Error  string
+	// finding is what its body was without of what the page has.
+	finding
 	// Answer is the header fields that came back, one to a line, and Body how
 	// the body began when the answer was not the page: that is usually where a
 	// server says why.
@@ -176,7 +178,7 @@ type tryBudget struct {
 // trim is the record to keep: with its tries while there is room for them.
 func (b *tryBudget) trim(r result) result {
 	count := &b.fine
-	if r.Failed() || r.Warned() {
+	if r.Trouble() {
 		count = &b.trouble
 	}
 	if *count++; *count > reportRowLimit {
@@ -288,11 +290,12 @@ func share(part, whole time.Duration) string {
 
 // How the try ended, in the words and marks a row uses for a request.
 func (t tryRow) ending() reportRow {
-	return reportRow{result: result{Status: t.Status, Error: t.Error}}
+	return reportRow{result: result{Status: t.Status, Error: t.Error, finding: t.finding}}
 }
 
 func (t tryRow) Failed() bool    { return t.ending().Failed() }
 func (t tryRow) Warned() bool    { return t.ending().Warned() }
+func (t tryRow) Lacked() bool    { return t.ending().Lacked() }
 func (t tryRow) Glyph() string   { return t.ending().Glyph() }
 func (t tryRow) Outcome() string { return t.ending().Outcome() }
 

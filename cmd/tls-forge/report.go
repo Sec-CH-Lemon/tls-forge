@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/spf13/pflag"
 )
@@ -63,9 +64,15 @@ type summary struct {
 	Succeeded int
 	Warned    int
 	Failed    int
-	Bytes     int64
-	Retries   int
-	Elapsed   time.Duration
+	// Lacked is how many came back without what the page has, whatever their
+	// status: NoElement how many had no element matching WantedElement, the
+	// selector --wait-for-element names.
+	Lacked        int
+	NoElement     int
+	WantedElement string
+	Bytes         int64
+	Retries       int
+	Elapsed       time.Duration
 	// Spent is how long the requests took between them, which is not Elapsed:
 	// several are out at once.
 	Spent   time.Duration
@@ -89,13 +96,24 @@ func (s summary) Thing() string {
 }
 
 // Failed means nothing came back at all; Warned that something did and it was
-// not a 2xx. On the record rather than on the row that displays it, so the
-// summary and the table cannot come to different conclusions about a 503.
+// not a 2xx, in a run where the status is what says so. On the record rather
+// than on the row that displays it, so the summary and the table cannot come
+// to different conclusions about a 503.
 func (r result) Failed() bool { return r.Error != "" }
 
+// A run that names what the page has goes by the body instead, and its answers
+// are never Warned: one with it is the page and one without it Lacked, a 200
+// or a 403 alike.
 func (r result) Warned() bool {
-	return r.Error == "" && (r.Status < 200 || r.Status > 299)
+	return r.Error == "" && !r.looked && !r.misses() && (r.Status < 200 || r.Status > 299)
 }
+
+// Lacked means an answer came back without something the page has: it is not
+// the page, whatever its status, and counts as not having come back as one.
+func (r result) Lacked() bool { return r.Error == "" && r.misses() }
+
+// Trouble is any of the ways a request does not come back as the page.
+func (r result) Trouble() bool { return r.Failed() || r.Warned() || r.Lacked() }
 
 func summarise(records []result, elapsed time.Duration) summary {
 	s := summary{Total: len(records), Elapsed: elapsed}
@@ -114,6 +132,11 @@ func summarise(records []result, elapsed time.Duration) summary {
 			s.Failed++
 		case r.Warned():
 			s.Warned++
+		case r.Lacked():
+			s.Lacked++
+			if r.MissingElement != "" {
+				s.NoElement++
+			}
 		default:
 			s.Succeeded++
 		}
@@ -160,6 +183,7 @@ func summarise(records []result, elapsed time.Duration) summary {
 func (s summary) SuccessRate() string { return percent(s.Succeeded, s.Total) }
 func (s summary) WarnRate() string    { return percent(s.Warned, s.Total) }
 func (s summary) FailRate() string    { return percent(s.Failed, s.Total) }
+func (s summary) LackRate() string    { return percent(s.Lacked, s.Total) }
 
 // The widths of the meter's three segments.
 func (s summary) SuccessWidth() string { return width(s.Succeeded, s.Total) }
@@ -251,15 +275,18 @@ func (r reportRow) Duration() string {
 // and it was not the page. Colour never carries this alone; the glyph and the
 // word go with it everywhere it is shown.
 func (r reportRow) Outcome() string {
-	if r.Failed() {
+	switch {
+	case r.Failed():
 		return "no response"
+	case r.brief() != "":
+		return fmt.Sprintf("%d, %s", r.Status, r.brief())
 	}
 	return fmt.Sprintf("%d", r.Status)
 }
 
 func (r reportRow) Glyph() string {
 	switch {
-	case r.Failed():
+	case r.Failed(), r.Lacked():
 		return "✕"
 	case r.Warned():
 		return "!"
@@ -424,7 +451,7 @@ func limitRows(records []result, limit int) (kept []result, dropped int) {
 	}
 	var trouble, fine []result
 	for _, r := range records {
-		if r.Failed() || r.Warned() {
+		if r.Trouble() {
 			trouble = append(trouble, r)
 		} else {
 			fine = append(fine, r)
@@ -561,7 +588,7 @@ func (d reportData) Columns() template.CSS {
 		tracks = append(tracks, "2.5rem")
 	}
 	// The URL takes what the rest leave.
-	tracks = append(tracks, "1fr", "7.5rem", "4.5rem", "8rem", "4.5rem", "2.5rem")
+	tracks = append(tracks, "1fr", "7.5rem", "4.5rem", fmt.Sprintf("%drem", d.outcomeWidth()), "4.5rem", "2.5rem")
 	if d.Via {
 		tracks = append(tracks, "11rem")
 	}
@@ -569,6 +596,20 @@ func (d reportData) Columns() template.CSS {
 		tracks = append(tracks, fmt.Sprintf("%drem", d.exitWidth()))
 	}
 	return template.CSS(strings.Join(tracks, " "))
+}
+
+// outcomeWidth is how wide the column of how each request ended is: eight, room
+// for "no response", and for an answer without what the page has, the whole of
+// what it was without on one line, which is as long as the selector it names.
+// A character of it is about 0.37rem wide, measured in the page, and the glyph
+// and the padding around it 1.1rem; a little more of each is allowed, for
+// letters wider than most.
+func (d reportData) outcomeWidth() int {
+	longest := 0
+	for _, r := range d.Rows {
+		longest = max(longest, utf8.RuneCountInString(r.Outcome()))
+	}
+	return max(8, (longest*42+99)/100+2)
 }
 
 // exitWidth is how wide the column of where each request came out is: an
@@ -585,7 +626,7 @@ func (d reportData) exitWidth() int {
 // instead: enough that the URL keeps a readable share, and no more than the
 // page is wide on a desktop.
 func (d reportData) Width() template.CSS {
-	width := 56
+	width := 48 + d.outcomeWidth()
 	if d.Via {
 		width += 11
 	}

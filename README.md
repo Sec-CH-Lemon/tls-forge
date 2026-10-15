@@ -268,6 +268,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
 | `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
 | `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
+| `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
 | **Output** | |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
 | `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
@@ -606,13 +607,16 @@ tls-forge fetch --retry 3 --repeat 2 --input urls.csv
 ```
 
 `--retry` asks again when the answer is not a 2xx, or when no answer comes at
-all. The waits between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
+all; with `--wait-for-element`, when the answer is without the element,
+whatever its status, and not when it has it. The waits
+between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
 goes out on a connection of its own, so through a proxy that rotates, a try
 turned away from one exit is made again from another; `--reuse-connection`
 makes it again on the same connection. When the
 tries run out, the last answer is the one that is counted, printed or saved,
 whatever its status, and the exit code still depends only on whether a response
-arrived. Nothing is asked for again unless `--retry` says so, for a list as
+arrived, and on whether it had what `--wait-for-element` names.
+Nothing is asked for again unless `--retry` says so, for a list as
 for one URL, and a JSON line's `attempts` counts the tries.
 
 `--repeat` makes the same request several times in one session, so a later run
@@ -644,8 +648,9 @@ adds a line for each as it finishes, and for each try that is made again:
   Saved to      out/
 ```
 
-`fetch` exits non-zero if any run got no response. The two flags combine:
-`--retry` applies to every run.
+`fetch` exits non-zero if any run got no response, or, with
+`--wait-for-element`, came back without the element, whatever its status. The
+two flags combine: `--retry` applies to every run.
 
 A run of several requests through proxies adds them to what it ends with: how
 many were used, how many of them carried anything, and each one nothing came
@@ -656,6 +661,37 @@ back through, by name.
   dead proxy    http://user@198.51.100.4:8080  (12 requests, none came back)
   dead proxy    socks5://198.51.100.9:1080  (11 requests, none came back)
 ```
+
+#### Checking the page
+
+```bash
+tls-forge fetch --wait-for-element '#price' https://shop.example/item/7
+tls-forge fetch --wait-for-element '.product [data-sku]' --retry 2 --input urls.txt --report
+```
+
+A site that turns a client away often does it with a 200 and a page of its
+own, a challenge or a notice, rather than with a status that says so; and one
+that does say so may still send the page. `--wait-for-element` names, as a CSS
+selector, an element the real page has. Given it, the body decides and the
+status does not: an answer whose HTML has an element matching the selector is
+the page, a 403 too, and one without it is not, a 200 too. Such an answer is
+counted on its own row of the count, as `✗ 200 OK, no #price` or
+`✗ 403 Forbidden, no #price`, kept out of the share that came back as the
+page, asked for again by `--retry` as a 503 would be, and makes the run exit
+non-zero, saying how many pages were without it; one with it is counted as the
+page, `✓ 403 Forbidden`, and is not asked for again. Its line of JSON says
+`"missing_element": "#price"`, its row in a report says `200, no #price` with
+how the page began, and its log and trace say it too. So name something only
+the real page has: a selector that an error page matches too makes that page
+the page. A `-X HEAD` gets no body to look into, and is refused with it.
+
+The body is what came, decompressed and nothing else: the HTML as the server
+sent it, read in the encoding its byte order mark or its `Content-Type` names,
+else as UTF-8 when it is that throughout, else in the one its `<meta>` names,
+or as windows-1252. Nothing is rendered and no script runs, so an element a
+script adds is not there to be found, and nothing is waited for. A selector
+that will not parse, or is only spaces, is a usage error, before anything is
+fetched.
 
 #### Keeping every request
 
@@ -799,7 +835,9 @@ the next URL, and `fetch` says so when it is not one.
 The page is one HTML file with nothing to load from anywhere else, so it can be
 opened offline and sent on as one file; only opening a trace in Perfetto, below,
 goes anywhere. At the top is the share of requests that came back as the page,
-with how many answered with something else and how many got no answer, and under
+with how many answered with something else, or, when `--wait-for-element`
+names what the page has, how many answers were without it, and how many got
+no answer, and under
 it the data, the retries, the time the run took and the average time of one
 request. Then there is a row for every request: when it started, how long it
 took, how it ended, how much came back and how many tries it took. Rows are in

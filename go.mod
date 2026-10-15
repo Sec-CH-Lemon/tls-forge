@@ -3,6 +3,7 @@ module github.com/Sec-CH-Lemon/tls-forge
 go 1.26.9
 
 require (
+	github.com/andybalholm/cascadia v1.3.3
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/bogdanfinn/utls v1.7.8-barnius

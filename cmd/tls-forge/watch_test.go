@@ -129,7 +129,7 @@ func TestVerdictOfAStatus(t *testing.T) {
 		// Never the last word from a server, and not a page if it ever is.
 		{101, refused},
 		// What a request that got no answer is counted under.
-		{noResponse, refused},
+		{0, refused},
 	} {
 		if got := verdictOf(tc.code); got != tc.want {
 			t.Errorf("verdictOf(%d) = %d, want %d", tc.code, got, tc.want)

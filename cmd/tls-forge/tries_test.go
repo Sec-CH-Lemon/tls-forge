@@ -489,6 +489,25 @@ func TestReportColumns(t *testing.T) {
 			"several proxies, nobody asked where", reportData{Via: true},
 			"0.75rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem 11rem", "67rem",
 		},
+		{
+			// An answer without what the page has, which a short selector fits in
+			// the column as it is.
+			"an answer without an element", reportData{Rows: []reportRow{{result: result{Status: 200, finding: finding{MissingElement: "#price"}}}}},
+			"0.75rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem", "56rem",
+		},
+		{
+			// And the column made as wide as the longest of them, on one line.
+			"answers without longer selectors", reportData{Rows: []reportRow{
+				{result: result{Status: 200}},
+				{result: result{Status: 200, finding: finding{MissingElement: "main .card[data-sku] > #price"}}},
+				{result: result{Status: 403, finding: finding{MissingElement: `[title="в наличии"]`}}},
+			}},
+			"0.75rem 1fr 7.5rem 4.5rem 18rem 4.5rem 2.5rem", "66rem",
+		},
+		{
+			"an answer without an element named in Cyrillic", reportData{Rows: []reportRow{{result: result{Status: 200, finding: finding{MissingElement: `[title="в наличии"]`}}}}},
+			"0.75rem 1fr 7.5rem 4.5rem 14rem 4.5rem 2.5rem", "62rem",
+		},
 	} {
 		if got := string(tc.data.Columns()); got != tc.tracks {
 			t.Errorf("%s: columns %q, want %q", tc.name, got, tc.tracks)
