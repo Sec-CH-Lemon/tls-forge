@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"math/rand"
 	"net/url"
@@ -34,7 +35,7 @@ var fetchFlagGroups = []flagGroup{
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element"}},
 	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
-	{"report and trace", []string{"report", "report-format", "trace"}},
+	{"report, trace and log", []string{"report", "report-format", "trace", "log", "log-level"}},
 }
 
 // headerFlag collects repeated -H "Name: value" flags, in the order given.
@@ -79,6 +80,10 @@ type clientFlags struct {
 	// asked is what every CONNECT through a proxy says, for the proxies that
 	// say where the tunnel comes out only when they are asked.
 	asked tlsforge.Header
+
+	// log is what every client made with these flags writes down what it does
+	// to, or nil.
+	log *slog.Logger
 }
 
 // addScopedClientFlags keeps unsupported flags out of --help. Accepting
@@ -293,6 +298,9 @@ func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 	if *f.insecure {
 		opts = append(opts, tlsforge.WithInsecureSkipVerify())
 	}
+	if f.log != nil {
+		opts = append(opts, tlsforge.WithLogger(f.log))
+	}
 	return tlsforge.New(append(opts, extra...)...)
 }
 
@@ -331,7 +339,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	showHeaders := fs.BoolP("include", "i", false,
 		"print the status and response headers; with JSON lines, add the headers to each")
 	output := fs.StringP("output", "o", "",
-		"keep every request in this directory: its page, a log of it and a trace of it")
+		"keep every request in this directory: its page, a log of it and a trace of it, and a log of the run")
 	clearOutputDir := fs.Bool("clear-output-dir", false,
 		"empty the --output directory before the run writes into it: every file and directory in it")
 	asLines := fs.Bool("json", false,
@@ -345,6 +353,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			"status; the HTML as it came: no script runs")
 	watch := addWatchFlags(fs)
 	reporting := addReportFlags(fs)
+	logging := addLogFlags(fs)
 	exitHeaders := fs.String("exit-headers", "",
 		"a JSON file laid over the exit header fields built in: one of the same key replaces ours, "+
 			"\"off\" takes ours out, the rest are added")
@@ -377,6 +386,10 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		return err
 	}
 	formats, err := reporting.formats()
+	if err != nil {
+		return err
+	}
+	logLevel, err := logging.levelOf()
 	if err != nil {
 		return err
 	}
@@ -452,6 +465,26 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 		errOut.printf("cleared %s: %s removed\n", *output, counted(cleared, "entry", "entries"))
 	}
+	// Once the directory is emptied, so that the log in it is this run's, and
+	// before anything is asked of anybody, so that it has all of it.
+	runLog, err := openRunLog(*logging.path, logLevel, *output, now(), errOut, map[string]string{
+		"--input": *input, "--cookies": *common.cookieFile, "--exit-headers": *exitHeaders,
+		"--trace": *again.trace, "--save-cookies": *common.saveCookies, "--report": reportFileOf(*reporting.path),
+	})
+	if err != nil {
+		return err
+	}
+	// Registered before the trace's, so that it runs after it: the log says
+	// how the run ended, the trace's failure included.
+	defer func() {
+		if err := runLog.close(runErr); err != nil {
+			runErr = errors.Join(runErr, err)
+		}
+	}()
+	common.log = runLog.logger()
+	runLog.say(slog.LevelInfo, "run", runAttrs(about, "version", version, "profile", profileName(*common.profile),
+		"output", *output, "wait_for", *waitFor, "wait_for_element", *waitForElement,
+		"reuse_connection", *again.reuse, "log_level", strings.ToLower(*logging.level))...)
 	trace, err := openTrace(*again.trace, "fetch", *common.proxy, about)
 	if err != nil {
 		return err
@@ -506,11 +539,14 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		found, lookupErr = lookupExit(ctx, common, way)
 		lane.since(asked, "exit-ip", "net", exitArgs(way, found, lookupErr))
 		identity.field("exit-ip", describeExit(found, lookupErr, way))
+		runLog.say(slog.LevelInfo, "exit", runAttrs(nil, "proxy", redactProxy(way),
+			"said", describeExit(found, lookupErr, way))...)
 	}
 	identity.close()
 	if from != "" {
 		errOut.printf("warmed from %s\n", from)
 		lane.instant("cookies loaded", "cookies", traceArgs{"from": from})
+		runLog.say(slog.LevelInfo, "cookies loaded", "from", from)
 	}
 
 	// What was asked before the run, for the report to say. It answers for the
@@ -569,6 +605,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 		pages = &pageOutput{show: show, runs: requests}
 	}
+	if line != nil {
+		runLog.shareStderr(line)
+	}
 	// Where a run talks while it runs. Several workers write here, so it is one
 	// lock whether or not there is a status line to work around.
 	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
@@ -583,7 +622,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			requests: requests, runs: *again.repeat,
 		},
 		exits: exits, names: &resolver{},
-		counts: counts, trace: trace,
+		counts: counts, trace: trace, log: runLog.logger(),
 		// Every try is written down for a report, and for the log and the trace
 		// each request is kept with.
 		detailed: len(formats) > 0 || *output != "",
@@ -614,7 +653,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// The count, left where it ended: redrawn for the last time when it was being
 	// redrawn, and said once when it was not.
 	if line != nil {
-		line.Close()
+		runLog.closeStatus(line)
 	} else {
 		if pages != nil && pages.show.midLine && onScreen(out) {
 			// A page rarely ends with a newline, and the count would start on
@@ -640,6 +679,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		summed["no_text"] = totals.NoText
 	}
 	lane.instant("summary", "run", summed)
+	runLog.say(slog.LevelInfo, "summary", runAttrs(summed, "took", totals.Elapsed)...)
 
 	// Whatever the run came to, and most of all when it came to nothing: a
 	// request that failed is the one somebody opens a report about.
@@ -651,6 +691,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			reportInput{command: "fetch", records: records, summary: totals, before: before,
 				method: *method, trace: *again.trace})
 		for _, file := range written {
+			runLog.say(slog.LevelInfo, "report", "file", file.path, "format", file.format)
 			name := file.path
 			// Only the page stops at what a browser can open. The document has
 			// every request.
@@ -686,6 +727,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	saved, saveErr := clients.saveSessions(common, records)
 	if saved > 0 {
 		errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
+		runLog.say(slog.LevelInfo, "cookies saved", "file", *common.saveCookies, "cookies", saved)
 		lane.instant("cookies saved", "cookies",
 			traceArgs{"file": *common.saveCookies, "cookies": saved})
 	}

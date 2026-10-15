@@ -335,6 +335,12 @@ func TestFetchCannotMakeTheOutputDirectory(t *testing.T) {
 	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: ") {
 		t.Errorf("exit code = %d, want 1; stderr = %q", code, stderr)
 	}
+	// The same with the run's log kept elsewhere, which is not what stops it.
+	code, _, stderr = exec(t, "fetch", "-o", filepath.Join(blocked, "out"),
+		"--log", filepath.Join(t.TempDir(), "run.log"), server.URL)
+	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: mkdir "+blocked) {
+		t.Errorf("exit code = %d, want 1; stderr = %q", code, stderr)
+	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("%d requests were made with nowhere to keep them", got)
 	}

@@ -105,7 +105,8 @@ func TestClearOutputDirOfOneNotThereYet(t *testing.T) {
 	if code != 0 || !strings.Contains(stderr, "cleared "+out+": 0 entries removed\n") {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	if len(keptIn(t, out)) != 3 {
+	// The page, its log and its trace, and the log of the run.
+	if len(keptIn(t, out)) != 4 {
 		t.Errorf("the new directory holds %v", keptIn(t, out))
 	}
 }

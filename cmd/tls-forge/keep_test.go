@@ -42,8 +42,10 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	name := "127.0.0.1-" + stamp(clock.now())
+	// And the log of the whole run, named for when it began.
+	runLog := "run-" + stamp(clock.now()) + ".log"
 	want := []string{
-		name + "-1.log", name + "-1.txt", name + "-2.log", name + "-2.txt",
+		name + "-1.log", name + "-1.txt", name + "-2.log", name + "-2.txt", runLog,
 		"trace-" + name + "-1.json", "trace-" + name + "-2.json",
 	}
 	if got := keptIn(t, dir); !slices.Equal(got, want) {
@@ -92,7 +94,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 		// What describes a request is private, as a report and a trace of the
 		// whole run are. The page is what it was before it was kept.
 		for file, mode := range map[string]os.FileMode{
-			name + "-1.txt": 0o644, name + "-1.log": 0o600, "trace-" + name + "-1.json": 0o600,
+			name + "-1.txt": 0o644, name + "-1.log": 0o600, "trace-" + name + "-1.json": 0o600, runLog: 0o600,
 		} {
 			if info, err := os.Stat(filepath.Join(dir, file)); err != nil || info.Mode().Perm() != mode {
 				t.Errorf("%s: mode %v (%v), want %v", file, info.Mode().Perm(), err, mode)
@@ -111,14 +113,15 @@ func TestOutputKeepsALogAndATraceOfARequestThatGotNothing(t *testing.T) {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
 	kept := keptIn(t, dir)
-	if len(kept) != 2 || !strings.HasSuffix(kept[0], "-1.log") || !strings.HasPrefix(kept[1], "trace-127.0.0.1-") {
-		t.Fatalf("the directory holds %v, want a log and a trace", kept)
+	if len(kept) != 3 || !strings.HasSuffix(kept[0], "-1.log") || !strings.HasPrefix(kept[1], "run-") ||
+		!strings.HasPrefix(kept[2], "trace-127.0.0.1-") {
+		t.Fatalf("the directory holds %v, want a log and a trace, and the run's log", kept)
 	}
 	log, _ := os.ReadFile(filepath.Join(dir, kept[0]))
 	if !strings.Contains(string(log), "  outcome  no response · ") || !strings.Contains(string(log), "127.0.0.1:1") {
 		t.Errorf("the log does not say why nothing came back:\n%s", log)
 	}
-	events := traceFile(t, filepath.Join(dir, kept[1]))
+	events := traceFile(t, filepath.Join(dir, kept[2]))
 	checkShape(t, events)
 	if ended := events[len(events)-1]; ended.Phase != phaseEnd || ended.Args["error"] == nil {
 		t.Errorf("the trace ends as %+v", ended)

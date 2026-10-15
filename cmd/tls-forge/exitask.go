@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 	"sync"
@@ -25,7 +26,7 @@ import (
 // said when the file says how to ask for it, and what the site says over the
 // same connection when the proxy said nothing.
 func (b runner) cameOut(ctx context.Context, client *tlsforge.Client, proxy string, tries []try,
-	res *tlsforge.Response, lane *traceLane,
+	res *tlsforge.Response, lane *traceLane, log *slog.Logger,
 ) (egress, string) {
 	var answer map[string][]string
 	if res != nil {
@@ -36,7 +37,7 @@ func (b runner) cameOut(ctx context.Context, client *tlsforge.Client, proxy stri
 	case found.IP == "" && found.Hash != "" && field.Resolve != nil:
 		return b.names.resolve(ctx, b.clients.flags, proxy, found, *field.Resolve, lane), ""
 	case why != "" && res != nil:
-		if probed := b.probe(ctx, client, res, tries[len(tries)-1].Conn.Tunnel, lane); probed.Known() {
+		if probed := b.probe(ctx, client, res, tries[len(tries)-1].Conn.Tunnel, lane, log); probed.Known() {
 			return probed, ""
 		}
 	}
@@ -48,7 +49,7 @@ func (b runner) cameOut(ctx context.Context, client *tlsforge.Client, proxy stri
 // the tunnel the request went out on: through another, it would be another
 // exit's.
 func (b runner) probe(ctx context.Context, client *tlsforge.Client, res *tlsforge.Response, tunnel uint64,
-	lane *traceLane,
+	lane *traceLane, log *slog.Logger,
 ) egress {
 	site, err := url.Parse(res.URL)
 	if err != nil {
@@ -61,13 +62,14 @@ func (b runner) probe(ctx context.Context, client *tlsforge.Client, res *tlsforg
 		asked := site.Scheme + "://" + site.Host + p.Path
 		var mu sync.Mutex
 		var went tlsforge.ConnInfo
-		answer, err := client.Do(&tlsforge.Request{Context: ctx, URL: asked, Trace: &tlsforge.Trace{
-			GotConn: func(conn tlsforge.ConnInfo) {
+		answer, err := client.Do(&tlsforge.Request{
+			Context: ctx, URL: asked, Logger: withLog(log, "probe", p.Path),
+			Trace: &tlsforge.Trace{GotConn: func(conn tlsforge.ConnInfo) {
 				mu.Lock()
 				defer mu.Unlock()
 				went = conn
-			},
-		}})
+			}},
+		})
 		mu.Lock()
 		same := tunnel != 0 && went.Tunnel == tunnel
 		mu.Unlock()

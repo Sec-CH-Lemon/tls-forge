@@ -646,7 +646,7 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	html := reportOf(t, path)
 	address := strings.TrimPrefix(server.URL, "http://")
 	pages, _ := filepath.Glob(filepath.Join(kept, "*.txt"))
-	logs, _ := filepath.Glob(filepath.Join(kept, "*.log"))
+	logs, _ := filepath.Glob(filepath.Join(kept, "127.0.0.1-*.log"))
 	traces, _ := filepath.Glob(filepath.Join(kept, "trace-*.json"))
 	if len(pages) != 2 || len(logs) != 2 || len(traces) != 2 {
 		t.Fatalf("the directory holds %v", keptIn(t, kept))

@@ -271,7 +271,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |
 | `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
 | **Output** | |
-| `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
+| `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it, and a log of the run; see [Keeping every request](#keeping-every-request) |
 | `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
 | `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
 | `--json` | Write a JSON line for each request even when one URL is named |
@@ -279,10 +279,12 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
-| **Report and trace** | |
+| **Report, trace and log** | |
 | `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
 | `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; by default `json` for a `--report=PATH` ending in `.json`, and `html` otherwise |
 | `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
+| `--log <file>` | Write down everything the run does as it does it: every request, the connections it went out on and what came back; `-` is standard error, and a name ending in `.json`, `.jsonl` or `.ndjson` gets JSON lines. With `--output`, kept there as `run-<time>.log` unless this names another; see [Logging a run](#logging-a-run) |
+| `--log-level <level>` | How much the log says: `error`, `warn`, `info`, `debug`, or `trace`, which adds every TLS handshake, certificate and HTTP/2 frame; default `trace` |
 
 What comes out is decided by how the command was asked, not by how many URLs
 it ended up with:
@@ -757,6 +759,10 @@ out/trace-example.com-2026-08-16-091854-584-1.json
   Event JSON format [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the
   request, inside it every try, and inside each try its steps.
 
+Beside them is the log of the whole run, `run-<time>.log`, named for the
+moment the run began, unless `--log` puts it somewhere else; see
+[Logging a run](#logging-a-run).
+
 The host is written in lower case, without its port, and anything a file name
 cannot hold on every system becomes `_`. The moment is the one the request was
 made, to the millisecond, and the number counts the requests of the run from
@@ -834,6 +840,75 @@ worth. Proxy passwords, cookie values, `Authorization` credentials and the
 values of headers whose names contain `token`, `secret`, `password` or `key`
 are written as `***`; cookie names, cookie attributes and the authorization
 scheme are kept. URLs are recorded in full, including their query strings.
+
+#### Logging a run
+
+```bash
+tls-forge fetch -o out/ https://example.com/
+tls-forge fetch --input urls.csv --log run.log
+tls-forge fetch --log run.jsonl --log-level debug https://example.com/
+tls-forge fetch --log - --log-level info https://example.com/
+```
+
+A run writes down what it does as it does it, a line for each thing, for
+whoever has to work out afterwards what went wrong: every lookup of a name and
+what it found, every dial, what a proxy said to `CONNECT`, every TLS handshake
+with the ClientHello that went out and the certificates that came back, the
+header fields of each request in the order they were written, the HTTP/2
+frames that came back, and how each try ended. A run that never finished has
+it up to where it stopped.
+
+With `--output` the log is kept there as `run-<time>.log`; `--log FILE` puts it
+anywhere else, in a directory made for it if there is none, and `--log -` on
+standard error, around the count. Without either there is none. A file is
+added to rather than replaced, so that a run does not lose the one before it,
+and is created with mode `0600`. A name ending in `.json`, `.jsonl` or
+`.ndjson` gets JSON lines, and anything else `key=value` text, its times to the
+microsecond:
+
+```text
+time=2026-10-15T23:51:58.983934+02:00 level=DEBUG msg=connected worker=1 req=1 run=1 try=1 client=3 conn=127.0.0.1:56797->127.0.0.1:9417 tls="TLS 1.3" cipher=TLS_AES_128_GCM_SHA256 alpn=h2 resumed=false server_name=localhost certificate="CN=tlsforge echo" took=688.375µs
+```
+
+`--log-level` says how much. `trace`, the default, is all of it; `debug` leaves
+out the ClientHellos, the certificates and the HTTP/2 frames; `info` is a line
+for each request, each answer, each try's result and the run; `warn` and
+`error` keep what went wrong.
+
+| Record | Level | What it says |
+|---|---|---|
+| `run`, `summary`, `run ended` | INFO, or WARN for a run that failed | The run's settings, its totals, and how it ended |
+| `client`, `fresh client`, `profile handshake`, `profile http2`, `profile headers`, `idle connections closed`, `client closed` | INFO, DEBUG | Each client: the profile, its JA4, the HTTP/2 preface with its Akamai fingerprint, the header order; each worker's own, and when their connections were let go |
+| `request`, `response`, `request failed` | INFO, WARN | Each try: what was asked, and the answer, or why there was none, whether that was a timeout, and the step it gave up in: `prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect` |
+| `dns lookup`, `dns answer`, `dns failed`, `dial`, `dialed`, `dial failed` | DEBUG, WARN | The lookup with every address it found, and each TCP dial. A dial that fails is DEBUG: another address may still answer, and a request none answered says so itself |
+| `proxy tls`, `proxy connect`, `proxy answer`, `proxy refused`, `proxy tls failed`, `proxy connect failed` | DEBUG, WARN | The handshake with an HTTPS proxy, the `CONNECT` with its header fields, the answer with the tunnel's number and header fields, and a refusal with up to 1 KiB of what the proxy said |
+| `connected`, `reused connection`, `connection kept for the next request` | DEBUG | The connection by both its ends, the tunnel it goes through, the TLS version, cipher suite and ALPN, whether the session was resumed, the server name and certificate |
+| `client hello`, `certificate`, `handshake extras` | TRACE | The ClientHello that went out on each new connection: JA4, JA4_r, JA3, and every extension, cipher suite, version, group, key share and signature algorithm in order; each certificate of the server's chain |
+| `request sent`, `first byte`, `response headers`, `redirect`, `redirect not followed` | DEBUG, WARN | The header fields as written, pseudo-headers included, in order; the answer's status, protocol and header fields; each redirect, and the one past the tenth |
+| `transport` | TRACE, WARN | What the HTTP/2 transport says: every frame it reads, the connections it opens and closes, and, as a warning, a server breaking the protocol or a cookie it will not keep |
+| `retry`, `page check`, `result`, `exit`, `cookies loaded`, `cookies saved`, `report` | INFO, WARN | Why a try is made again and after how long, what `--wait-for` and `--wait-for-element` found, how each request ended, where the run comes out, the session and the report |
+
+Every record of a request says which it is: `req`, its number in the run,
+`run` under `--repeat`, `worker`, `try`, and `client`, the client it went
+through; one that asks a site where the request came out says `probe`. A
+record that ends a step says how long the step took as `took`. HTTP/2 dials
+every connection after a client's first to a site apart from any request, and
+the records of such a dial say `background=true` and the client: the
+`connected` record of the request names the same connection, as `conn`, and
+the same tunnel. What the transport says of a frame names no request either;
+with one request at a time, a frame belongs to the one around it.
+
+A log leaves out what a trace does: proxy passwords, cookie values,
+`Authorization` credentials and the values of headers whose names contain
+`token`, `secret`, `password` or `key` are written as `***`. The lines in which
+the HTTP/2 transport says each header field it encodes are left out, since
+`request sent` has the fields without their secrets. A DATA frame shows up to
+256 bytes of the body it carried, as the transport does.
+
+`--log` cannot name a file the run reads or writes for another flag
+(`--input`, `--cookies`, `--exit-headers`, `--trace`, `--report`,
+`--save-cookies`), by any path or link to it: that is a usage error. A log
+that cannot be written is said once the run is over, and the run exits 1.
 
 #### Reporting a run
 

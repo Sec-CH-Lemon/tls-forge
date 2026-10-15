@@ -67,11 +67,16 @@ func TestASiteSaysWhereARequestCameFromOverTheSameConnection(t *testing.T) {
 	via := startProxy(t)
 	tmp := t.TempDir()
 	report, trace := filepath.Join(tmp, "run.json"), filepath.Join(tmp, "run.trace.json")
+	runLog := filepath.Join(tmp, "run.jsonl")
 
 	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--trace", trace,
-		"--report="+report, "--report-format", "json", site.URL+"/page")
+		"--report="+report, "--report-format", "json", "--log", runLog, site.URL+"/page")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	// The question is logged with the request it was asked for.
+	if asked := recordsOf(logRecords(t, runLog), "request", "probe", "/cdn-cgi/trace", "req", "1"); len(asked) != 1 {
+		t.Errorf("the probe was logged as %v", asked)
 	}
 	doc := decoded(t, []byte(reportOf(t, report)))
 	want := documentExit{IP: "198.51.100.1", Country: "NL", By: "Cloudflare /cdn-cgi/trace, on the same connection"}
@@ -279,7 +284,7 @@ func TestAskingThatGoesNowhere(t *testing.T) {
 		exitReading: exitReading{Format: "lines", IP: "ip"}}}}}
 	cloudflare := map[string][]string{"cf-ray": {"1"}}
 	for _, at := range []string{"::not a URL::", "https://127.0.0.1:1/"} {
-		if got := b.probe(context.Background(), client, &tlsforge.Response{URL: at, Header: cloudflare}, 7, nil); got.Known() {
+		if got := b.probe(context.Background(), client, &tlsforge.Response{URL: at, Header: cloudflare}, 7, nil, nil); got.Known() {
 			t.Errorf("a probe of %q answered %+v", at, got)
 		}
 	}

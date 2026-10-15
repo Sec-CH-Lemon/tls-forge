@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"strconv"
 	"sync"
@@ -69,6 +70,9 @@ type retrier struct {
 	keep bool
 	// check is what an answer has to have to be the page; nil asks nothing.
 	check *pageCheck
+	// log is the request's in the run's log, which every try is written to
+	// under its number, or nil.
+	log *slog.Logger
 }
 
 // do makes the request, and makes it again while the answer is not the page:
@@ -94,12 +98,20 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 			log = &try{}
 		}
 		shot := lane.attempt(req.Method, req.URL, run, attempt, proxy, log)
-		req.Context, req.Trace = ctx, shot.hooks()
+		tried := withLog(p.log, "try", attempt)
+		req.Context, req.Trace, req.Logger = ctx, shot.hooks(), tried
 		res, err = conns.do(&req)
 		shot.end(res, err)
 		found = finding{}
 		if err == nil {
 			found = p.check.look(res)
+		}
+		if tried != nil && found.looked {
+			if found.misses() {
+				tried.Warn("page check", "status", res.Status, "found", found.said())
+			} else {
+				tried.Info("page check", "status", res.Status, "found", "what the page has")
+			}
 		}
 		if found.MissingElement != "" {
 			lane.instant("no element", "check", traceArgs{"selector": found.MissingElement})
@@ -144,6 +156,9 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 		lane.instant("retry", "retry", traceArgs{
 			"attempt": attempt, "reason": why, "wait_ms": wait.Milliseconds(),
 		})
+		if tried != nil {
+			tried.Info("retry", "reason", why, "wait", wait, "next", attempt+1)
+		}
 		if p.note != nil {
 			p.note(fmt.Sprintf("  try %d of %d: %s, trying again in %s",
 				attempt, p.retries+1, why, preciseDuration(wait)))

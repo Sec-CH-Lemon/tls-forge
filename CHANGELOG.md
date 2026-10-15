@@ -13,6 +13,25 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`fetch` writes down everything it does, as it does it**, for whoever has
+  to work out afterwards what went wrong: every lookup of a name and the
+  addresses it found, every dial, the handshake with an HTTPS proxy, the
+  `CONNECT` and the proxy's answer, or its refusal with up to 1 KiB of what it
+  said, every TLS handshake with the ClientHello that went out (JA4, JA4_r,
+  JA3 and every list in it) and each certificate that came back, the header
+  fields of each request in the order they were written, the HTTP/2 frames
+  that came back, each redirect, retry and page check, and how each try and
+  request ended, with the step a failed one gave up in. With `--output` it is
+  kept there as `run-<time>.log`; `--log FILE` puts it anywhere else and
+  `--log -` on standard error, around the count. A name ending in `.json`,
+  `.jsonl` or `.ndjson` gets JSON lines, anything else `key=value` text with
+  times to the microsecond; a file is added to, with mode `0600`.
+  `--log-level` is `trace` (the default, everything), `debug`, `info`, `warn`
+  or `error`. Every record of a request says which it is: `req`, `run`,
+  `worker`, `try` and `client`. Proxy passwords, cookie values and
+  credentials are `***`. `--log` naming a file the run reads or writes for
+  another flag is a usage error, and a log that cannot be written makes the
+  run exit 1.
 - `WithLogger` has a Go client write down what it does, as it does it, to a
   `*slog.Logger`, and `Request.Logger` gives one request a logger of its own:
   each lookup and dial, the `CONNECT` and the proxy's answer, the connection
@@ -267,6 +286,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   connections HTTP/2 dials apart from any request can be logged. A client
   given `WithTransportOption` keeps the transport's, since one of those options
   may be a dialer or a proxy.
+- What the HTTP/2 transport says without being asked, such as a server
+  breaking the protocol or a cookie with a domain it will not keep, goes into
+  the run's log as a warning when there is one, rather than onto standard
+  error between the lines of the count.
 - **A new connection to a site resumes its TLS session, as Chrome's does.** A
   measured profile's handshake is the browser's first contact, and every
   connection was one, however many times a run went to a site. Now a profile

@@ -461,13 +461,25 @@ func TestListStopsWhenItCannotKeepWhatItFetched(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o700) })
 
-	code, _, stderr := exec(t, "fetch", "--output", dir, "--concurrency", "1",
+	// The run's log elsewhere, since it is the first thing the run would keep
+	// in the directory, and the run would stop before asking for anything.
+	elsewhere := filepath.Join(t.TempDir(), "run.log")
+	code, _, stderr := exec(t, "fetch", "--output", dir, "--concurrency", "1", "--log", elsewhere,
 		server.URL+"/one", server.URL+"/two", server.URL+"/three")
 	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: ") {
 		t.Errorf("exit code = %d, want 1\n%s", code, stderr)
 	}
 	if got := asked.Load(); got != 1 {
 		t.Errorf("the server was asked %d times after the first page could not be kept", got)
+	}
+
+	// Without one, nothing at all is asked for.
+	code, _, stderr = exec(t, "fetch", "--output", dir, server.URL+"/four")
+	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: open "+filepath.Join(dir, "run-")) {
+		t.Errorf("exit code = %d, want 1\n%s", code, stderr)
+	}
+	if got := asked.Load(); got != 1 {
+		t.Errorf("the server was asked %d times by a run with nowhere to keep its log", got)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"runtime"
 	"sort"
@@ -384,6 +385,9 @@ type runner struct {
 	// URLs would be said in turn with nothing to tell them apart.
 	note  func(text string)
 	trace *tracer
+	// log is the run's log, which every try of every request is written down
+	// in, or nil.
+	log *slog.Logger
 	// detailed says a report will be written, so every try is kept as it is
 	// made, with what it waited on.
 	detailed bool
@@ -413,6 +417,7 @@ func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 		if b.workers > 1 {
 			lane = b.trace.lane(mainLane+worker, "worker "+strconv.Itoa(worker))
 		}
+		log := withLog(b.log, "worker", worker)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -420,7 +425,7 @@ func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 			defer own.close()
 			for j := range queue {
 				b.counts.begin()
-				r, res, kept := b.fetchOne(runCtx, j, lane, own)
+				r, res, kept := b.fetchOne(runCtx, j, lane, own, log)
 				b.counts.finish(r)
 				writeMu.Lock()
 				if r.Error != "" {
@@ -488,11 +493,18 @@ func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
 // record of it with what came back, which is nil when nothing did. The error is
 // not the request's, which is on the record: it is that the request could not be
 // kept where it was to be kept.
-func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *workerClients,
+func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *workerClients, log *slog.Logger,
 ) (result, *tlsforge.Response, error) {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
 	r := result{URL: j.URL, Proxy: proxy, Started: started, ID: j.id}
+	// Every record of the request says which it is, and which time it was made
+	// when it was made more than once.
+	log = withLog(log, "req", j.id)
+	if b.repeat > 1 {
+		log = withLog(log, "run", j.run)
+	}
+	defer func() { logResult(log, r) }()
 	if proxy == "" {
 		// Where the machine comes out, which every request made without a
 		// proxy shares.
@@ -519,12 +531,12 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 
 	request := b.request
 	request.URL = j.URL
-	res, attempts, tries, found, err := retrier{retries: b.retry, note: b.note, keep: b.detailed, check: b.check}.do(
-		ctx, conns, request, lane, j.run, proxy)
+	res, attempts, tries, found, err := retrier{retries: b.retry, note: b.note, keep: b.detailed, check: b.check,
+		log: log}.do(ctx, conns, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
 	if proxy != "" {
-		r.Exit, r.ExitError = b.cameOut(ctx, conns.current(), proxy, tries, res, lane)
+		r.Exit, r.ExitError = b.cameOut(ctx, conns.current(), proxy, tries, res, lane, log)
 	}
 
 	if err != nil {
@@ -542,6 +554,34 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 		keeps.fill(&r, res, j, lane)
 	}
 	return r, res, nil
+}
+
+// logResult writes down how a request ended, as the run's log says it: as a
+// warning when it did not come back as the page.
+func logResult(log *slog.Logger, r result) {
+	if log == nil {
+		return
+	}
+	level, outcome := slog.LevelInfo, "scraped"
+	switch {
+	case r.Failed():
+		level, outcome = slog.LevelWarn, "no_response"
+	case r.Lacked():
+		level, outcome = slog.LevelWarn, "lacking"
+	case r.Warned():
+		level, outcome = slog.LevelWarn, "not_2xx"
+	}
+	attrs := []any{"url", safeURL(r.URL), "outcome", outcome, "status", r.Status, "bytes", r.Bytes,
+		"attempts", r.Attempts, "took", r.Ended.Sub(r.Started)}
+	for _, said := range [][2]string{
+		{"final_url", safeURL(r.FinalURL)}, {"proxy", redactProxy(r.Proxy)}, {"error", r.Error},
+		{"page", r.said()}, {"exit", r.exitSaid()}, {"file", r.File},
+	} {
+		if said[1] != "" {
+			attrs = append(attrs, said[0], said[1])
+		}
+	}
+	log.Log(context.Background(), level, "result", attrs...)
 }
 
 // exitThrough is where a request through a proxy came out, or why that is not

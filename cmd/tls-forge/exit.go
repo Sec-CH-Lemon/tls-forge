@@ -204,7 +204,8 @@ func (s addressService) ask(ctx context.Context, client *tlsforge.Client) (egres
 // pages, "which address do I come out of" arrived at the address service with
 // the session cookie attached.
 func (f clientFlags) asker(proxy string) (*tlsforge.Client, error) {
-	return f.clientViaWarmed(proxy, nil, tlsforge.WithoutCookieJar())
+	return f.clientViaWarmed(proxy, nil, tlsforge.WithoutCookieJar(),
+		tlsforge.WithLogger(withLog(f.log, "purpose", "where the run comes out")))
 }
 
 // exitLookupWait bounds how long a run waits to learn where it comes out.
