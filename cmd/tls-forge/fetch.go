@@ -33,7 +33,7 @@ var fetchFlagGroups = []flagGroup{
 	{"proxy", []string{"proxy", "exit-headers"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection"}},
-	{"output", []string{"output", "include", "json", "print-body", "verbose", "progress", "color"}},
+	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
 	{"report and trace", []string{"report", "report-format", "trace"}},
 }
 
@@ -332,6 +332,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		"print the status and response headers; with JSON lines, add the headers to each")
 	output := fs.StringP("output", "o", "",
 		"keep every request in this directory: its page, a log of it and a trace of it")
+	clearOutputDir := fs.Bool("clear-output-dir", false,
+		"empty the --output directory before the run writes into it: every file and directory in it")
 	asLines := fs.Bool("json", false,
 		"write a line of JSON for each request rather than the page, as for a list")
 	again := addRunFlags(fs)
@@ -346,6 +348,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	if *workers < 1 {
 		return fmt.Errorf("%w: --concurrency must be at least 1", errUsage)
+	}
+	if *clearOutputDir && *output == "" {
+		return fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
 	}
 	if err := again.check(); err != nil {
 		return err
@@ -420,6 +425,17 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	if *common.proxy != "" {
 		about["proxy"] = redactProxy(*common.proxy)
+	}
+	// Emptied once everything the run reads before it starts has been read, and
+	// before anything is written: the trace may be opened in it.
+	if *clearOutputDir {
+		cleared, err := clearOutput(*output, map[string]string{
+			"--input": *input, "--cookies": *common.cookieFile, "--exit-headers": *exitHeaders,
+		}, streamFiles(out.w, errOut.w))
+		if err != nil {
+			return err
+		}
+		errOut.printf("cleared %s: %s removed\n", *output, counted(cleared, "entry", "entries"))
 	}
 	trace, err := openTrace(*again.trace, "fetch", *common.proxy, about)
 	if err != nil {

@@ -270,6 +270,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
 | **Output** | |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
+| `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
 | `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
 | `--json` | Write a JSON line for each request even when one URL is named |
 | `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
@@ -704,6 +705,21 @@ the log and the trace with `0600`, as a report is: they name what was asked
 for and where it went, with credentials and cookie values written as `***`.
 A file that cannot be written ends the run, since every request after it
 would have nowhere to go either.
+
+`--clear-output-dir` empties the `--output` directory first, so that what is
+in it afterwards is this run's and nothing else's: every file and directory in
+it, hidden ones too, and a link without what it points to, while the
+directory itself stays where it was. It happens once the run has read what it
+reads before it starts and before it writes anything, so a `--trace`, a
+`--report` or `--save-cookies` file in the directory is this run's. A
+directory that is not there yet has nothing to empty, and how many entries
+went is said on standard error. Since it deletes, it refuses, with the reason
+and without removing anything, a directory whose loss would be a disaster
+rather than a clean slate: the root of the file system, the home directory or
+one that holds it, the directory the command runs in or one that holds it
+(`-o .`), one with a git repository in it, one holding a file the run reads
+(`--input`, `--cookies`, `--exit-headers`), and one holding the file standard
+output or error is redirected to.
 
 #### Tracing a run
 

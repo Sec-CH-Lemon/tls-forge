@@ -13,6 +13,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `fetch --clear-output-dir` empties the `--output` directory before the run
+  writes into it, of every file and directory in it, and leaves the directory
+  itself. It refuses, before removing anything, the root of the file system,
+  the home directory, the directory the command runs in, any directory that
+  holds one of those, one with a git repository in it, one holding a file the
+  run reads, and one holding the file its output is redirected to.
 - A registry-facing end-to-end workflow installs an exact released version of
   the Go, npm and PyPI distributions on Linux, macOS and Windows, makes requests
   through every SDK, runs the published amd64 and arm64 container images, and
