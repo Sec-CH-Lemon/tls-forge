@@ -7,37 +7,6 @@ import (
 	"testing"
 )
 
-func TestRedactProxy(t *testing.T) {
-	cases := []struct {
-		name  string
-		given string
-		want  string
-	}{
-		{"empty", "", ""},
-		{"no credentials", "http://proxy.example:8080", "http://proxy.example:8080"},
-		{"username only", "http://alice@proxy.example:8080", "http://alice@proxy.example:8080"},
-		{"password", "http://alice:s3cr3t@proxy.example:8080", "http://alice@proxy.example:8080"},
-		{"empty password", "http://alice:@proxy.example:8080", "http://alice@proxy.example:8080"},
-		{"socks5", "socks5://bob:hunter2@127.0.0.1:1080", "socks5://bob@127.0.0.1:1080"},
-		{"encoded password", "http://alice:p%40ss@proxy.example:8080", "http://alice@proxy.example:8080"},
-		{"scheme-less password", "alice:s3cr3t@proxy.example:8080", "alice@proxy.example:8080"},
-		{"scheme-less username", "alice@proxy.example:8080", "alice@proxy.example:8080"},
-		// Carries an "@" but will not parse. Everything before the last one goes,
-		// rather than guessing at the shape and printing a password by accident.
-		{"unparseable", "://alice:s3cr3t@bad", "[redacted]@bad"},
-		// An "@" in the path is not a credential, and rewriting it would corrupt
-		// a perfectly good URL.
-		{"at sign in path", "http://proxy.example:8080/pa@th", "http://proxy.example:8080/pa@th"},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			if got := redactProxy(c.given); got != c.want {
-				t.Errorf("redactProxy(%q) = %q, want %q", c.given, got, c.want)
-			}
-		})
-	}
-}
-
 // TestResultJSONHasNoProxyPassword covers the sink people keep: the JSON lines
 // are appended across runs and read back by other tools.
 func TestResultJSONHasNoProxyPassword(t *testing.T) {

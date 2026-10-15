@@ -1000,36 +1000,6 @@ func TestTraceOffCostsNothing(t *testing.T) {
 	}
 }
 
-func TestSafeValue(t *testing.T) {
-	for _, tc := range []struct{ name, value, want string }{
-		// The names stay, because which cookie went out is the question.
-		{"Cookie", "a=1; b=two=2;c=3", "a=***; b=***; c=***"},
-		{"cookie", "", "***"},
-		// So do the attributes: how a cookie was scoped is the other question.
-		{"set-cookie", "sid=abc; Domain=example.com; Secure", "sid=***; Domain=example.com; Secure"},
-		{"Set-Cookie", "sid=abc", "sid=***"},
-		{"Set-Cookie", "malformed", "***"},
-		// The scheme stays, since Basic and Bearer fail for different reasons.
-		{"Authorization", "Bearer abc.def", "Bearer ***"},
-		{"proxy-authorization", "Basic dXNlcjpwYXNz", "Basic ***"},
-		{"Authorization", "bare-credential", "***"},
-		// Nobody's standard, and where an API key usually travels.
-		{"X-Api-Key", "abc", "***"},
-		{"x-csrf-token", "abc", "***"},
-		{"X-Client-Secret", "abc", "***"},
-		{"X-Password", "abc", "***"},
-		// Everything else is what the trace is for.
-		{"User-Agent", "Mozilla/5.0", "Mozilla/5.0"},
-		{":path", "/search?q=token", "/search?q=token"},
-		{"Keep-Alive", "timeout=5", "timeout=5"},
-		{"upgrade-insecure-requests", "1", "1"},
-	} {
-		if got := safeValue(tc.name, tc.value); got != tc.want {
-			t.Errorf("safeValue(%q, %q) = %q, want %q", tc.name, tc.value, got, tc.want)
-		}
-	}
-}
-
 func TestSafeHeadersKeepTheOrderTheyWereWrittenIn(t *testing.T) {
 	sent := tlsforge.Header{
 		profile.Field{Name: ":method", Value: "GET"},

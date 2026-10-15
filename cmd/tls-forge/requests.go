@@ -5,16 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"runtime"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // Making a list of requests: the record of each, the clients they go through,
@@ -106,39 +105,7 @@ func (r result) MarshalJSON() ([]byte, error) {
 //
 // The username stays: it is what tells two proxies apart in a report, and a
 // report that calls every proxy the same thing is not worth writing.
-func redactProxy(proxy string) string {
-	if proxy == "" || !strings.Contains(proxy, "@") {
-		return proxy
-	}
-	parsed := proxy
-	schemeLess := !strings.Contains(proxy, "://")
-	if schemeLess {
-		// url.Parse reads "alice:secret@host" as an opaque URL whose scheme is
-		// alice, so User is nil and the password used to pass through unchanged.
-		parsed = "proxy://" + proxy
-	}
-	u, err := url.Parse(parsed)
-	if err != nil {
-		// Unparseable but carrying an "@" — drop everything before the last one
-		// rather than guess at its shape and print a password by accident.
-		return "[redacted]@" + proxy[strings.LastIndex(proxy, "@")+1:]
-	}
-	if u.User == nil {
-		// Parsed, and the "@" belongs to the path or the query rather than to
-		// any credentials. Rewriting it would corrupt a URL that holds nothing
-		// worth hiding.
-		return proxy
-	}
-	if _, hasPassword := u.User.Password(); !hasPassword {
-		return proxy
-	}
-	u.User = url.User(u.User.Username())
-	safe := u.String()
-	if schemeLess {
-		safe = strings.TrimPrefix(safe, "proxy://")
-	}
-	return safe
-}
+func redactProxy(proxy string) string { return redact.URL(proxy) }
 
 // setError records a failure with the proxy password taken out of its text.
 func (r *result) setError(err error) {
@@ -146,27 +113,7 @@ func (r *result) setError(err error) {
 }
 
 // redactError is what an error says, with the proxy password taken out of it.
-//
-// Needed on top of redactProxy because the proxy URL turns up inside error
-// messages as well as in the proxy field: url.Parse quotes back the whole
-// string it could not parse, so a mistyped proxy writes its own password into
-// the output that was just cleaned of it.
-func redactError(err error, proxy string) string {
-	text := err.Error()
-	safe := redactProxy(proxy)
-	if safe != proxy {
-		text = strings.ReplaceAll(text, proxy, safe)
-		// The message may quote a normalised form rather than the string as
-		// given, so the credentials are replaced in that shape too.
-		if u, parseErr := url.Parse(proxy); parseErr == nil && u.User != nil {
-			if _, ok := u.User.Password(); ok {
-				text = strings.ReplaceAll(text, u.User.String()+"@",
-					url.User(u.User.Username()).String()+"@")
-			}
-		}
-	}
-	return text
-}
+func redactError(err error, proxy string) string { return redact.Error(err, proxy) }
 
 // listInput is os.Stdin, named so a test can supply a list.
 var listInput io.Reader = os.Stdin

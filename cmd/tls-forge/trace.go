@@ -13,6 +13,7 @@ import (
 	"time"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -641,9 +642,6 @@ func safeURL(url string) string { return redactProxy(url) }
 // worth: the names of cookies without their values, and the scheme of an
 // Authorization header without its credentials.
 
-// masked stands in for a value that is not written down.
-const masked = "***"
-
 // safeHeaders is a request's header fields as written, in the order written.
 func safeHeaders(sent tlsforge.Header) []string {
 	lines := make([]string, 0, len(sent))
@@ -672,41 +670,7 @@ func safeResponseHeaders(header map[string][]string) []string {
 }
 
 // safeValue is a header's value, or what is left of it once the secret is out.
-func safeValue(name, value string) string {
-	switch lower := strings.ToLower(name); {
-	case lower == "cookie":
-		pairs := strings.Split(value, ";")
-		for i, pair := range pairs {
-			pairs[i] = maskAfter(strings.TrimSpace(pair), "=")
-		}
-		return strings.Join(pairs, "; ")
-	case lower == "set-cookie":
-		// The attributes stay. Whether a cookie was scoped to the right domain
-		// is what a session that will not stick usually turns on.
-		pair, attributes, _ := strings.Cut(value, ";")
-		if attributes != "" {
-			attributes = ";" + attributes
-		}
-		return maskAfter(pair, "=") + attributes
-	case lower == "authorization", lower == "proxy-authorization":
-		return maskAfter(value, " ")
-	case strings.Contains(lower, "token"), strings.Contains(lower, "secret"),
-		strings.Contains(lower, "password"), strings.Contains(lower, "key"):
-		// Nobody's standard, and where an API key usually travels.
-		return masked
-	}
-	return value
-}
-
-// maskAfter keeps what comes before a separator and masks the rest. With no
-// separator there is no telling the name from the secret, so all of it goes.
-func maskAfter(value, separator string) string {
-	name, _, found := strings.Cut(value, separator)
-	if !found {
-		return masked
-	}
-	return name + separator + masked
-}
+func safeValue(name, value string) string { return redact.Value(name, value) }
 
 // cookieNames is the jar as name=value pairs, without the values.
 func cookieNames(pairs []string) []string {
