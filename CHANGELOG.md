@@ -92,15 +92,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   header fields and, when it was not a 2xx, the first 512 bytes of its body.
   Cookie values, credentials and proxy passwords are written as `***`, as in a
   trace.
-- `--report-format` writes the report as `html`, the default, as `json`, or as
-  both from the same run with `html,json`. The JSON document holds what
-  the page shows under names of its own: the summary, each proxy with every
-  address it came out of, and every request as the JSON line a list is
-  answered with, with where it came out and its tries added, down to the steps
-  and header fields of each. It holds every
-  request, where the page stops at 2,000 rows. A directory gets one file for
-  each format, named after the same moment, and a file path given two formats
-  names them both, as `run.html` and `run.json`.
+- `--report-format` writes the report as `html`, as `json`, or as both from
+  the same run with `html,json`. Without it a `--report=PATH` ending in
+  `.json` is written as the document and anything else as the page. The JSON
+  document holds what the page shows under names of its own: the summary, each
+  proxy with every address it came out of, and every request as the JSON line
+  a list is answered with, with where it came out and its tries added, down to
+  the steps and header fields of each. It holds every request, where the page
+  stops at 2,000 rows. A directory gets one file for each format, named after
+  the same moment, and a file path given two formats names them both, as
+  `run.html` and `run.json`.
 - **Every request says where it came out, when its proxy says.** `fetch` opens
   the tunnel through an HTTP or HTTPS proxy itself and keeps the header fields
   of the proxy's answer to `CONNECT` with the connection. A proxy that hands

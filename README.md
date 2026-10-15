@@ -267,7 +267,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
-| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `html` |
+| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; by default `json` for a `--report=PATH` ending in `.json`, and `html` otherwise |
 | `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
 
 What comes out is decided by how the command was asked, not by how many URLs
@@ -746,14 +746,15 @@ scheme are kept. URLs are recorded in full, including their query strings.
 
 ```bash
 tls-forge fetch --repeat 20 --retry 2 -o out/ --report https://example.com/
-tls-forge fetch --repeat 20 --retry 2 --report=run.json --report-format json https://example.com/
+tls-forge fetch --repeat 20 --retry 2 --report=run.json https://example.com/
 tls-forge fetch --input urls.csv --report=reports/ --report-format html,json
 ```
 
 `--report` writes the run down when it is over: as a page for whoever opens
 it, as a JSON document for a program, or as both from the same run.
-`--report-format` says which, as `html`, `json` or `html,json`; the page is
-the default.
+`--report-format` says which, as `html`, `json` or `html,json`. Without it the
+name says: a path ending in `.json`, in any case, gets the document, and
+anything else the page, a directory as well, whatever it is called.
 
 Given on its own, `--report` puts the report beside what the run kept: in the
 directory `--output` names, or in the current directory when there is none,

@@ -31,18 +31,34 @@ func reportFlagsFrom(t *testing.T, args ...string) reportFlags {
 }
 
 func TestReportFormats(t *testing.T) {
+	// A directory whose name ends in .json is still a directory, and gets the
+	// page, named after the moment, as any other does.
+	directory := filepath.Join(t.TempDir(), "reports.json")
+	if err := os.Mkdir(directory, 0o755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
 	for _, tc := range []struct {
 		name string
 		args []string
 		want []string
 	}{
 		{"no report asked for", nil, nil},
-		// The page unless somebody asks for the document, whatever the file is
-		// called.
+		// Unless --report-format says, the name of the file does: the document
+		// for one ending in .json, and the page for anything else.
 		{"the flag alone", []string{"--report"}, []string{"html"}},
 		{"its letter alone", []string{"-R"}, []string{"html"}},
 		{"a page by name", []string{"--report=run.html"}, []string{"html"}},
-		{"a page into a file called json", []string{"--report=run.json"}, []string{"html"}},
+		{"a document by name", []string{"--report=run.json"}, []string{"json"}},
+		{"a document by name, in capitals", []string{"--report=RUN.JSON"}, []string{"json"}},
+		{"a document by name, in a directory", []string{"--report=out/run.json"}, []string{"json"}},
+		{"a name of no format", []string{"--report=run.txt"}, []string{"html"}},
+		{"a name with no extension", []string{"--report=run"}, []string{"html"}},
+		{"a name that only ends in json", []string{"--report=runjson"}, []string{"html"}},
+		{"a directory by its separator", []string{"--report=reports.json/"}, []string{"html"}},
+		{"a directory that is one", []string{"--report=" + directory}, []string{"html"}},
+		// What --report-format says goes, whatever the file is called.
+		{"the page into a file called json", []string{"--report=run.json", "--report-format", "html"}, []string{"html"}},
+		{"the document into a file called html", []string{"--report=run.html", "--report-format", "json"}, []string{"json"}},
 		{"a document", []string{"--report", "--report-format", "json"}, []string{"json"}},
 		{"both", []string{"--report=run", "--report-format", "html,json"}, []string{"html", "json"}},
 		// In the order given, once each, however they are spaced and cased.
@@ -68,6 +84,20 @@ func TestReportFormats(t *testing.T) {
 	// something to ignore: the report it was meant for would not be written.
 	if _, err := reportFlagsFrom(t, "--report-format", "json").formats(); !errors.Is(err, errUsage) {
 		t.Errorf("a format with no report: %v", err)
+	}
+}
+
+func TestAReportNamedJSONIsTheDocument(t *testing.T) {
+	// Named run.json and asked for as nothing else, the report is the document
+	// a program reads, not a page in a file that says it is JSON.
+	server := tlsPathServer(t)
+	path := filepath.Join(t.TempDir(), "run.json")
+	code, _, stderr := exec(t, "fetch", "--insecure", "--report="+path, server.URL+"/page")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if doc := decoded(t, []byte(reportOf(t, path))); len(doc.Requests) != 1 || doc.Requests[0].Status != 200 {
+		t.Errorf("the document holds %+v", doc.Requests)
 	}
 }
 

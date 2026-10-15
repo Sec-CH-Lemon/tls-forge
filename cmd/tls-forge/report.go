@@ -689,8 +689,9 @@ func addReportFlags(fs *pflag.FlagSet) reportFlags {
 	flags := reportFlags{
 		path: fs.StringP("report", "R", "",
 			"write a report of the run into --output, or here, as report-<date-time>; --report=PATH says where"),
-		format: fs.String("report-format", formatHTML,
-			"what to write the report as: html, json, or html,json for both"),
+		format: fs.String("report-format", "",
+			"what to write the report as: html, json, or html,json for both; "+
+				"by default json for a --report=PATH ending in .json, and html otherwise"),
 		chose: fs.Changed,
 	}
 	// A path of its own is optional, so the flag alone is enough to ask for a
@@ -712,6 +713,9 @@ func (f reportFlags) formats() ([]string, error) {
 		}
 		return nil, nil
 	}
+	if !f.chose("report-format") {
+		return []string{formatOfPath(*f.path)}, nil
+	}
 	var chosen []string
 	for _, word := range strings.Split(*f.format, ",") {
 		word = strings.ToLower(strings.TrimSpace(word))
@@ -725,6 +729,19 @@ func (f reportFlags) formats() ([]string, error) {
 	return chosen, nil
 }
 
+// formatOfPath is what a report is written as when --report-format does not
+// say: the document for a file whose name ends in .json, in any case, and the
+// page for anything else, a directory as well, whatever it is called.
+func formatOfPath(path string) string {
+	if !strings.EqualFold(filepath.Ext(path), "."+formatJSON) {
+		return formatHTML
+	}
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		return formatHTML
+	}
+	return formatJSON
+}
+
 // reportFile is one file a report is written to, and what it is written as.
 type reportFile struct {
 	format, path string
@@ -735,8 +752,8 @@ type reportFile struct {
 //
 // Given no path, the report goes beside what the run kept, in the directory
 // --output names, or in the current directory when it names none. One format
-// is written to a path as it was given, whatever that is called: the format
-// says what goes in the file, and the name stays the caller's. Two cannot both
+// is written to a path as it was given: the name stays the caller's, and unless
+// --report-format said otherwise it is what said the format. Two cannot both
 // go there, so the path then names them both: an extension that is one of the
 // formats comes off, and each gets its own.
 func reportFiles(given, kept string, formats []string, when time.Time) []reportFile {
