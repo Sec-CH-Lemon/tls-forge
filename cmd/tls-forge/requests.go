@@ -416,8 +416,11 @@ type runner struct {
 	// exits are how where a request through a proxy came out is found: the
 	// header fields its answers are read for, and what is asked when they say
 	// nothing or say a name. names asks each name once.
-	exits  exitTable
-	names  *resolver
+	exits exitTable
+	names *resolver
+	// held keeps every URL's connection across its repeats and tries, when
+	// --reuse-connection asks; nil gives every try a connection of its own.
+	held   *heldClients
 	counts *progress
 	// note is told about a try that is about to be made again. Nil keeps quiet,
 	// which is what a run of several requests at once wants: the tries of two
@@ -484,6 +487,7 @@ func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 	b.dispatch(runCtx, jobs, queue)
 	close(queue)
 	wg.Wait()
+	b.held.closeAll()
 	if runErr != nil {
 		return failures, runErr
 	}
@@ -503,7 +507,8 @@ func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
 	occurrences := make(map[string]int)
 	handed := 0
 	for pass := 1; pass <= b.repeat; pass++ {
-		for _, j := range jobs {
+		for entry, j := range jobs {
+			j.entry = entry
 			occurrences[j.URL]++
 			j.occurrence = occurrences[j.URL]
 			j.run = pass
@@ -547,8 +552,8 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 		return r, nil, b.kept(&r, nil, j, lane)
 	}
 
-	// Through a proxy, every try on a connection of its own.
-	conns := &connections{session: client, fresh: proxy != ""}
+	// Every try on a connection of its own, unless the URL keeps its own.
+	conns := &connections{session: client, held: b.held, entry: j.entry}
 	defer conns.close()
 
 	request := b.request

@@ -619,7 +619,7 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	path := filepath.Join(dir, "run.html")
 
 	kept := filepath.Join(dir, "out")
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--report="+path,
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--reuse-connection", "--report="+path,
 		"-o", kept, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -634,7 +634,7 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	}
 	for _, want := range []string{
 		// The first run: refused, then the page, on the connection the first try
-		// had opened.
+		// had opened, which the URL kept.
 		"Try 1 of 2", "Try 2 of 2",
 		"new connection to " + address,
 		"connection already open to " + address,

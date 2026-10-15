@@ -376,7 +376,9 @@ func TestFetchWritesAReportAsJSON(t *testing.T) {
 	server, _ := replying(t, 503, 200, 200)
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--report="+path,
+	// On the connection the URL keeps, so that the second try finds the first
+	// one's open, and the document says which was which.
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--reuse-connection", "--report="+path,
 		"--report-format", "json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

@@ -542,6 +542,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		// each request is kept with.
 		detailed: len(formats) > 0 || *output != "",
 	}
+	if *again.reuse {
+		with.held = newHeldClients(*again.repeat)
+	}
 	switch {
 	case !oneWay:
 		with.directError = "not asked, as the run went more than one way"

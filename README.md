@@ -259,8 +259,9 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it; see [Keeping every request](#keeping-every-request) |
 | `--json` | Write a JSON line for each request even when one URL is named |
-| `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; through a proxy every try goes out on a tunnel of its own; default `0` |
-| `--repeat <n>` | Make every request `n` times; through a proxy each on a tunnel of its own; default `1` |
+| `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
+| `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
+| `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
 | `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
 | `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
 | `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
@@ -375,13 +376,13 @@ opens each tunnel. `fetch` opens the tunnel through an HTTP or HTTPS proxy
 itself and keeps that answer with the connection, so every request says where
 it came out, and no request is made to anybody to find out.
 
-Through a proxy every request, every repeat of it and every try goes out on a
-tunnel of its own, with a TLS handshake of its own that resumes no other's, so
-a proxy that hands every connection an address of its own gives each one. A
-request's redirects, and what its site is asked over the same connection, go
-through its tunnel. Without a proxy requests share their connections, as a
-browser does: a fresh handshake for every request from one address is what a
-browser does not do.
+Every URL, every repeat of it and every try goes out on a connection of its
+own, through a proxy on a tunnel of its own, with a TLS handshake of its own
+that resumes no other's, so a proxy that hands every connection an address of
+its own gives each one. `--reuse-connection` keeps a URL's connection for its
+repeats and its tries instead, so that they come out where its first request
+did. A request's redirects, and what its site is asked over the same
+connection, go through its connection.
 
 Which fields say it, and what to ask when none does, is a table,
 [`cmd/tls-forge/exit-headers.json`](cmd/tls-forge/exit-headers.json), built
@@ -590,19 +591,21 @@ tls-forge fetch --retry 3 --repeat 2 --input urls.csv
 ```
 
 `--retry` asks again when the answer is not a 2xx, or when no answer comes at
-all. The waits between tries are 250 ms, 500 ms, 1 s and then 2 s. Through a
-proxy every try goes out on a tunnel of its own, so a try turned away from one
-exit is made again from another, through a proxy that rotates. When the
+all. The waits between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
+goes out on a connection of its own, so through a proxy that rotates, a try
+turned away from one exit is made again from another; `--reuse-connection`
+makes it again on the same connection. When the
 tries run out, the last answer is the one that is counted, printed or saved,
 whatever its status, and the exit code still depends only on whether a response
 arrived. Nothing is asked for again unless `--retry` says so, for a list as
 for one URL, and a JSON line's `attempts` counts the tries.
 
 `--repeat` makes the same request several times in one session, so a later run
-sends the cookies the runs before it were given. Without a proxy it also goes
-out on their connection, as a reloaded page does; through a proxy every run
-opens a tunnel of its own, so a proxy that hands every connection an address
-gives every run another. One URL is
+sends the cookies the runs before it were given. Every run opens a connection
+of its own, so through a proxy that hands every connection an address every
+run comes out of another; with `--reuse-connection` the runs of a URL go out
+on the connection the first one opened, as a reloaded page does, and every
+other URL keeps one of its own. One URL is
 asked for one run at a time, the way a page is reloaded, unless
 `--concurrency` says how many at once. With `-o out/`, each run is kept under
 its own number. Without `-o`, the bodies follow one another on standard output.

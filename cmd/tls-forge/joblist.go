@@ -26,6 +26,9 @@ type job struct {
 	URL        string `json:"url"`
 	Proxy      string `json:"proxy,omitempty"`
 	occurrence int
+	// entry is which URL of the list this is, from zero, the same in every
+	// pass over it.
+	entry int
 	// run is which pass over the list this is, from one.
 	run int
 	// id is which request of the run this is, from one, in the order they are

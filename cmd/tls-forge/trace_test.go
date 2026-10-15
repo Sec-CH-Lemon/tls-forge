@@ -422,7 +422,7 @@ func TestTraceKeepsWhatAWrongAnswerSaidAndWhyItWasAskedAgain(t *testing.T) {
 	t.Cleanup(server.Close)
 	path := filepath.Join(t.TempDir(), "trace.json")
 
-	code, stdout, stderr := exec(t, "fetch", "--retry", "2", "--trace", path, server.URL)
+	code, stdout, stderr := exec(t, "fetch", "--retry", "2", "--reuse-connection", "--trace", path, server.URL)
 	if code != 0 || stdout != "page" {
 		t.Fatalf("exit code = %d, stdout = %q\n%s", code, stdout, stderr)
 	}
@@ -455,7 +455,8 @@ func TestTraceKeepsWhatAWrongAnswerSaidAndWhyItWasAskedAgain(t *testing.T) {
 	if again.TS <= ends[0].TS || again.TS >= tries[1].TS {
 		t.Errorf("the retry is not between the tries it separates")
 	}
-	// The second try found the first one's connection still open.
+	// The second try found the first one's connection still open, which the
+	// URL kept for it.
 	sends := named(events, phaseComplete, "send")
 	if len(sends) != 2 || sends[0].Args["reused"] != false || sends[1].Args["reused"] != true {
 		t.Errorf("connections traced as %v then %v", sends[0].Args["reused"], sends[1].Args["reused"])

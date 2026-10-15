@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -22,7 +23,9 @@ import (
 type runFlags struct {
 	retry  *int
 	repeat *int
-	trace  *string
+	// reuse keeps a URL's connection for its repeats and its tries.
+	reuse *bool
+	trace *string
 }
 
 // addRunFlags registers them. Nothing is asked for again unless somebody says
@@ -33,6 +36,8 @@ func addRunFlags(fs *pflag.FlagSet) runFlags {
 		retry: fs.Int("retry", 0,
 			"times to ask again when the answer is not a 2xx, or does not come"),
 		repeat: fs.Int("repeat", 1, "times to make each request"),
+		reuse: fs.Bool("reuse-connection", false,
+			"repeat a URL, and try it again, on the connection its first request opened, rather than on a new one"),
 		trace: fs.String("trace", "",
 			"write every step of the run here as Trace Event JSON, for ui.perfetto.dev"),
 	}
@@ -118,34 +123,45 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 
 // connections hands every try of a request the client it goes out through.
 //
-// Without a proxy that is the session's own client, whose connections are
-// kept as a browser keeps them: a fresh handshake for every request from one
-// address is what a browser does not do. Through a proxy every try gets a
-// client of the same session with a connection of its own, and so a tunnel of
-// its own: a proxy that hands every connection an address gives every try
-// one, which is what a repeat or a list through a rotating proxy is run for.
-// The try's redirects, and what its site is asked over the same connection,
-// go on that connection, and none of them resumes another try's TLS session.
+// A try gets a client of the session with a connection of its own, so that
+// every URL, every repeat of it and every try goes out on one of its own:
+// through a proxy that hands every connection an address, each comes out of
+// another, and no handshake resumes another's TLS session. Under
+// --reuse-connection a URL keeps its connection instead, for its repeats and
+// its tries, in a client the first of them makes and the last lets go of.
+// What a try's site is asked over the same connection goes through the client
+// the try went through.
 type connections struct {
 	session *tlsforge.Client
-	// fresh asks for a client of its own for every try, and last is the one
-	// the latest try went through.
-	fresh bool
-	last  *tlsforge.Client
+	// held keeps each URL's client, when the URL keeps its connection, and
+	// entry is which URL this is.
+	held  *heldClients
+	entry int
+	// last is the client the latest try went through.
+	last *tlsforge.Client
 }
 
 // do makes a try through the client it is to go out through.
 func (c *connections) do(req *tlsforge.Request) (*tlsforge.Response, error) {
-	client := c.session
-	if c.fresh {
-		c.close()
-		fresh, err := c.session.Fresh()
-		if err != nil {
-			return nil, err
-		}
-		c.last, client = fresh, fresh
+	client, err := c.next()
+	if err != nil {
+		return nil, err
 	}
 	return client.Do(req)
+}
+
+// next is the client for the next try: the URL's own when it keeps one, and
+// otherwise a client of its own, the one before it let go of.
+func (c *connections) next() (*tlsforge.Client, error) {
+	if c.held != nil {
+		client, err := c.held.of(c.entry, c.session)
+		c.last = client
+		return client, err
+	}
+	c.release()
+	client, err := c.session.Fresh()
+	c.last = client
+	return client, err
 }
 
 // current is the client the latest try went through, over whose connection
@@ -157,12 +173,87 @@ func (c *connections) current() *tlsforge.Client {
 	return c.session
 }
 
-// close lets go of the latest try's connection. The session's own are kept,
-// for the requests after.
+// close lets go of what the request held: its latest try's client, or its
+// share of the URL's, which is closed once the URL's last repeat is over.
 func (c *connections) close() {
+	if c.held != nil {
+		c.held.done(c.entry)
+		return
+	}
+	c.release()
+}
+
+// release closes the latest try's client of its own.
+func (c *connections) release() {
 	if c.last != nil {
 		_ = c.last.Close()
 		c.last = nil
+	}
+}
+
+// heldClients are the clients the URLs of a run keep their connections in
+// under --reuse-connection: made by the first request to a URL, and closed
+// when the last of its repeats is over, so that a long list does not hold a
+// connection open for every URL it has been through.
+type heldClients struct {
+	mu      sync.Mutex
+	repeats int
+	clients map[int]*heldClient
+}
+
+// heldClient is one URL's client, and how many of its repeats are not over.
+type heldClient struct {
+	client *tlsforge.Client
+	left   int
+}
+
+func newHeldClients(repeats int) *heldClients {
+	return &heldClients{repeats: repeats, clients: map[int]*heldClient{}}
+}
+
+// of is the URL's client, made from the session the first time it is asked
+// for.
+func (h *heldClients) of(entry int, session *tlsforge.Client) (*tlsforge.Client, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if held, ok := h.clients[entry]; ok {
+		return held.client, nil
+	}
+	client, err := session.Fresh()
+	if err != nil {
+		return nil, err
+	}
+	h.clients[entry] = &heldClient{client: client, left: h.repeats}
+	return client, nil
+}
+
+// done says one repeat of the URL is over. After the last, its client is
+// closed.
+func (h *heldClients) done(entry int) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	held, ok := h.clients[entry]
+	if !ok {
+		return
+	}
+	if held.left--; held.left > 0 {
+		return
+	}
+	_ = held.client.Close()
+	delete(h.clients, entry)
+}
+
+// closeAll closes what a run that ended before its last repeats left held.
+// Nil holds nothing.
+func (h *heldClients) closeAll() {
+	if h == nil {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for entry, held := range h.clients {
+		_ = held.client.Close()
+		delete(h.clients, entry)
 	}
 }
 
