@@ -18,12 +18,17 @@ func runCompare(ctx context.Context, args []string, out, errOut *printer) error 
 	asJSON := fs.BoolP("json", "j", false, "print both captures and the diff as JSON")
 	colour := fs.StringP("color", "c", "auto", "colourise the diff: auto, always or never")
 	full := fs.BoolP("full", "f", false, "print matching values in full; differing ones always are")
-	timeout := fs.DurationP("timeout", "t", 2*time.Minute, "how long to wait for the browser")
+	timeout := fs.DurationP("timeout", "t", 2*time.Minute,
+		"how long to wait for the browser; with --manual, ten minutes unless given")
 	browserArgs := browserArgFlag(fs)
+	visits := addVisitFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if err := requireNoArgs(fs); err != nil {
+		return err
+	}
+	if err := visits.check(fs); err != nil {
 		return err
 	}
 
@@ -34,12 +39,18 @@ func runCompare(ctx context.Context, args []string, out, errOut *printer) error 
 		return err
 	}
 
-	errOut.println("measuring the browser…")
-	result, err := tlsforge.CompareToBrowser(ctx,
-		tlsforge.MeasureOptions{Browser: *browserName, Headless: *headless, Timeout: *timeout,
-			BrowserArgs: *browserArgs},
-		tlsforge.WithProfile(*profileName),
-	)
+	var result *tlsforge.Comparison
+	if *visits.manual {
+		result, err = compareVisitor(ctx, visits, visits.waitFor(fs, *timeout), errOut,
+			tlsforge.WithProfile(*profileName))
+	} else {
+		errOut.println("measuring the browser…")
+		result, err = tlsforge.CompareToBrowser(ctx,
+			tlsforge.MeasureOptions{Browser: *browserName, Headless: *headless, Timeout: *timeout,
+				BrowserArgs: *browserArgs},
+			tlsforge.WithProfile(*profileName),
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -50,6 +61,9 @@ func runCompare(ctx context.Context, args []string, out, errOut *printer) error 
 		}
 	} else {
 		printComparison(out, result, pal, *full)
+		if *visits.manual {
+			out.println("HTTP/1.1 is not measured from a browser you open, and is not compared.")
+		}
 	}
 
 	if !result.OK() {

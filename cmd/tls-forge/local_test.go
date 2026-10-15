@@ -210,7 +210,7 @@ func TestShortenPutsTheHomeDirectoryBack(t *testing.T) {
 
 func TestPlatformLabel(t *testing.T) {
 	for platform, want := range map[string]string{
-		"macos": "macOS", "windows": "Windows", "linux": "Linux", "plan9": "plan9",
+		"macos": "macOS", "windows": "Windows", "linux": "Linux", "android": "Android", "ios": "iOS", "plan9": "plan9",
 	} {
 		if got := platformLabel(platform); got != want {
 			t.Errorf("platformLabel(%q) = %q, want %q", platform, got, want)
@@ -225,6 +225,13 @@ func TestBrowserFrom(t *testing.T) {
 		{"… Chrome/120.0.0.0 OPR/106.0.0.0", "opera", "106"},
 		{"… Firefox/133.0", "firefox", "133"},
 		{"… Version/18.1 Safari/605.1.15", "safari", "18"},
+		// The phones' own names for themselves, ahead of what they are built on.
+		{"… Chrome/138.0.0.0 Mobile Safari/537.36 EdgA/138.0.0.0", "edge", "138"},
+		{"… Version/18.0 EdgiOS/138.0.3351.65 Mobile/15E148 Safari/604.1", "edge", "138"},
+		{"… SamsungBrowser/28.0 Chrome/130.0.0.0 Mobile Safari/537.36", "samsung", "28"},
+		{"… Chrome/134.0.0.0 YaBrowser/25.4.1.1027 Safari/537.36", "yandex", "25"},
+		{"… CriOS/138.0.7204.156 Mobile/15E148 Safari/604.1", "chrome", "138"},
+		{"… FxiOS/140.0 Mobile/15E148 Safari/605.1.15", "firefox", "140"},
 		{"Mozilla/5.0 (compatible; Nobody/1.0)", "", ""},
 		// A token with nothing after it: the family is known, the version is not.
 		{"… Chrome/", "chrome", ""},
@@ -246,6 +253,17 @@ func TestBrowserOfSaysNothingAboutABrowserItCannotRead(t *testing.T) {
 	got := browserOf(&profile.Profile{Name: "mine", UserAgent: "… Chrome/151.0.0.0"})
 	if got != "Chrome 151" {
 		t.Errorf("browserOf = %q, want no platform on a name without one", got)
+	}
+}
+
+func TestBrowserOfAPhone(t *testing.T) {
+	for _, tc := range []struct{ name, ua, want string }{
+		{"chrome_138_android", "… Chrome/138.0.0.0 Mobile Safari/537.36", "Chrome 138 on Android"},
+		{"safari_18_ios", "… Version/18.5 Mobile/15E148 Safari/604.1", "Safari 18 on iOS"},
+	} {
+		if got := browserOf(&profile.Profile{Name: tc.name, UserAgent: tc.ua}); got != tc.want {
+			t.Errorf("browserOf(%s) = %q, want %q", tc.name, got, tc.want)
+		}
 	}
 }
 

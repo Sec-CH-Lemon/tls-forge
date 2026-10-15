@@ -46,6 +46,10 @@ type Session struct {
 	http1         *capture.HTTP1
 	navigator     *capture.Navigator
 	remote        string
+	// requests is how many requests have come on the connection, so that a
+	// visit made on one that has carried another can be told apart: what the
+	// session records is the first.
+	requests int
 
 	// navigation and reported are guarded by the Server's mutex, not this
 	// session's. They describe how the server files this session among the
@@ -139,6 +143,11 @@ type Server struct {
 	// panics holds what has been recovered from connection handlers.
 	panics []string
 
+	// manual is set for a browser a person opens the page in, and trusted holds
+	// the browsers that have made their first visit, by address and user agent.
+	manual  bool
+	trusted map[string]bool
+
 	closeOnce sync.Once
 	closed    chan struct{}
 	wg        sync.WaitGroup
@@ -149,6 +158,7 @@ type options struct {
 	host    string
 	hosts   []string
 	tickets bool
+	manual  bool
 }
 
 // Option configures a Server.
@@ -182,6 +192,23 @@ func WithHost(host string) Option {
 //
 // Turn it on to study resumption itself.
 func WithSessionTickets(enabled bool) Option { return func(o *options) { o.tickets = enabled } }
+
+// WithManual serves a browser a person opens the page in, rather than one
+// launched with its certificate check turned off: Firefox, Safari, a phone's.
+//
+// Such a browser has to be talked into this run's certificate first, and the
+// visit it makes after saying yes is not one to measure: it may be a reload,
+// and it is not one a person makes by opening an address. So its first visit
+// only shows it what to do next, and the visit measured is a later one, typed
+// or pasted into a new tab, on a connection of its own: every answer that is
+// not part of a measurement ends its connection, so that nothing the browser
+// keeps open can carry the visit that counts. A visit that is a reload, or comes
+// from a link, or on a connection that has carried another, is turned away with
+// the reason, and the browser can try again.
+//
+// It is measured over HTTP/2 alone: a browser nobody launched cannot be sent to
+// the HTTP/1.1 listener without the trip showing in what it sends.
+func WithManual(enabled bool) Option { return func(o *options) { o.manual = enabled } }
 
 // listenCapture binds the protocol-restricted listener beside the main one.
 // Named because the second bind can fail after the first succeeded, a branch a
@@ -247,6 +274,8 @@ func Start(opts ...Option) (*Server, error) {
 		ready:            make(chan struct{}),
 		conns:            map[net.Conn]struct{}{},
 		navigationByID:   map[string]*Session{},
+		manual:           cfg.manual,
+		trusted:          map[string]bool{},
 	}
 	s.wg.Add(2)
 	go s.accept(false)
@@ -579,6 +608,16 @@ func (s *Server) captureSession(token string, fallback *Session) (*Session, erro
 	return fallback, nil
 }
 
+// completeAfter completes the capture a request finished, once it has been
+// answered: whoever is waiting may close the server the moment it hears, and a
+// page that reported back is then told it went through rather than that the
+// server went away.
+func (s *Server) completeAfter(req *request) {
+	if req.completes != nil {
+		s.complete(req.completes)
+	}
+}
+
 // complete hands a finished capture to whoever is waiting for one.
 func (s *Server) complete(sess *Session) {
 	s.mu.Lock()
@@ -591,7 +630,15 @@ func (s *Server) complete(sess *Session) {
 // respond routes a request. The endpoint set is intentionally four items long.
 func (s *Server) respond(h *h2conn, sess *Session, req *request) error {
 	status, contentType, body := s.route(sess, req)
-	return h.writeResponse(req.stream, status, contentType, body)
+	err := h.writeResponse(req.stream, status, contentType, body)
+	s.completeAfter(req)
+	if err != nil {
+		return err
+	}
+	if !req.last {
+		return nil
+	}
+	return h.goAway(req.stream)
 }
 
 func (s *Server) route(sess *Session, req *request) (status, contentType string, body []byte) {
@@ -606,8 +653,19 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		path = path[:i]
 	}
 
+	// A browser a person drives is measured on a connection of its own, so
+	// every answer that is not part of a measurement ends the connection it was
+	// asked on.
+	req.last = s.manual
 	switch path {
 	case "/":
+		if s.manual {
+			if page := s.manualVisit(sess, req); page != nil {
+				return "200", "text/html; charset=utf-8", page
+			}
+			req.last = false
+			http1Done = true
+		}
 		token, err := s.setNavigation(sess, navigationToken)
 		if err != nil {
 			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
@@ -625,6 +683,7 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		return jsonResponse(sess.Capture(capture.SourceBrowser))
 
 	case "/collect":
+		req.last = false
 		var nav capture.Navigator
 		if err := json.Unmarshal(req.body, &nav); err != nil {
 			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
@@ -641,7 +700,7 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		target.mu.Lock()
 		target.navigator = &nav
 		target.mu.Unlock()
-		s.complete(target)
+		req.completes = target
 		return jsonResponse(target.Capture(capture.SourceBrowser))
 
 	default:

@@ -84,8 +84,20 @@ func (p *Profile) Clone() *Profile {
 // ShufflesExtensions reports whether this browser family randomises the TLS
 // extension order on each connection. Chromium browsers do; Firefox and Safari
 // do not. The user agent is a fallback for custom captured profile names.
+//
+// Nothing on an iPhone or an iPad does, whatever it is called: every browser
+// there connects through Apple's own stack, so Chrome on iOS sends Safari's
+// handshake, in Safari's order.
 func (p *Profile) ShufflesExtensions() bool {
 	identity := strings.ToLower(p.Name + " " + p.Base + " " + p.UserAgent)
+	if _, platform := Split(p.Name); platform == "ios" {
+		return false
+	}
+	for _, marker := range []string{"iphone", "ipad", "ipod"} {
+		if strings.Contains(identity, marker) {
+			return false
+		}
+	}
 	for _, marker := range []string{"chrome", "chromium", "brave", "opera", " opr/"} {
 		if strings.Contains(identity, marker) {
 			return true

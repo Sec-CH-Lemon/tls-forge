@@ -402,6 +402,13 @@ func TestShufflesExtensionsByBrowserFamily(t *testing.T) {
 		{profile: Profile{Name: "custom", UserAgent: "Mozilla/5.0 Chrome/151.0"}, want: true},
 		{profile: Profile{Name: "firefox_148"}, want: false},
 		{profile: Profile{Name: "safari_18_5"}, want: false},
+		// Chrome on Android is Chrome; on iOS it is Apple's stack under another
+		// name, said by the platform in its name or by its user agent.
+		{profile: Profile{Name: "chrome_138_android"}, want: true},
+		{profile: Profile{Name: "chrome_138_ios"}, want: false},
+		{profile: Profile{Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
+		{profile: Profile{Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPad; CPU OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
+		{profile: Profile{Name: "custom", Base: "safari_ios_18_5"}, want: false},
 	} {
 		if got := tc.profile.ShufflesExtensions(); got != tc.want {
 			t.Errorf("%q ShufflesExtensions = %v, want %v", tc.profile.Name, got, tc.want)

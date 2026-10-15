@@ -1,0 +1,121 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/spf13/pflag"
+
+	"github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/echo"
+)
+
+// A browser nobody here can launch — Firefox, Safari, a phone's — is measured
+// by the person using it: tls-forge listens, and the person opens its page. The
+// browser's first visit follows its warning about a certificate made for the
+// run and only says what to do next; the visit measured is the next one, typed
+// into a new tab. echo.WithManual has the reasons.
+
+// visitFlags are what capture and compare take to measure a browser a person
+// opens the page in, rather than one they launch themselves.
+type visitFlags struct {
+	manual *bool
+	addr   *string
+	host   *string
+}
+
+func addVisitFlags(fs *pflag.FlagSet) visitFlags {
+	return visitFlags{
+		manual: fs.Bool("manual", false,
+			"measure a browser you open the page in yourself, which nothing here can launch: Firefox, Safari, a phone's"),
+		addr: fs.String("addr", "127.0.0.1:0",
+			"with --manual, where to listen; 0.0.0.0:8443 lets in a phone on this network"),
+		host: fs.String("host", "localhost",
+			"with --manual, the name or address the page is opened at, which its certificate is made for"),
+	}
+}
+
+// check refuses flags that do not go together, before anything starts.
+func (v visitFlags) check(fs *pflag.FlagSet) error {
+	if *v.manual {
+		for _, name := range []string{"browser", "headless", "browser-arg"} {
+			if fs.Changed(name) {
+				return fmt.Errorf("%w: --%s is for a browser tls-forge starts, and --manual waits for one you open",
+					errUsage, name)
+			}
+		}
+		return nil
+	}
+	for _, name := range []string{"addr", "host"} {
+		if fs.Changed(name) {
+			return fmt.Errorf("%w: --%s is for --manual, where a browser you open comes to tls-forge", errUsage, name)
+		}
+	}
+	return nil
+}
+
+// visitorWait is how long a browser a person opens is waited for when --timeout
+// does not say: long enough to find a phone and type an address into it twice.
+const visitorWait = 10 * time.Minute
+
+// waitFor is the --timeout to keep: the one given, or a person's time for a
+// browser a person opens.
+func (v visitFlags) waitFor(fs *pflag.FlagSet, timeout time.Duration) time.Duration {
+	if *v.manual && !fs.Changed("timeout") {
+		return visitorWait
+	}
+	return timeout
+}
+
+// visitorReady is told the address a person is to open, once it is open. A
+// variable so that a test can be that person.
+var visitorReady = func(string) {}
+
+// openForVisitors starts the server a person's browser comes to, and says how
+// to bring it.
+func openForVisitors(v visitFlags, component string, errOut *printer) (*echo.Server, error) {
+	server, err := echo.Start(echo.WithAddr(*v.addr), echo.WithHost(*v.host), echo.WithManual(true))
+	if err != nil {
+		return nil, err
+	}
+	warnPublicListener(component, server.Addr(), errOut)
+	address := server.URL() + "/"
+	errOut.printf("waiting for a browser at %s\n", address)
+	errOut.println("  1. Open that address in the browser to measure: type or paste it.")
+	errOut.println("  2. It warns about the certificate, made for this run: accept it.")
+	errOut.println("  3. Open the address again in a new tab, typed or pasted: that visit is measured.")
+	if !listenerIsLoopback(server.Addr()) && *v.host == "localhost" {
+		errOut.println("A phone cannot open localhost: give --host this machine's address on the network.")
+	}
+	visitorReady(address)
+	return server, nil
+}
+
+// measureVisitor waits, as long as it is given, for a browser a person opens
+// the page in, and returns what it sent.
+func measureVisitor(ctx context.Context, v visitFlags, wait time.Duration, errOut *printer) (*capture.Capture, error) {
+	server, err := openForVisitors(v, "capture", errOut)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = server.Close() }()
+	ctx, cancel := context.WithTimeout(ctx, wait)
+	defer cancel()
+	return tlsforge.MeasureVisitorAt(ctx, server)
+}
+
+// compareVisitor is measureVisitor for a comparison: the browser, then this
+// library on the same server.
+func compareVisitor(ctx context.Context, v visitFlags, wait time.Duration, errOut *printer,
+	opts ...tlsforge.Option) (*tlsforge.Comparison, error) {
+	server, err := openForVisitors(v, "compare", errOut)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = server.Close() }()
+	ctx, cancel := context.WithTimeout(ctx, wait)
+	defer cancel()
+	return tlsforge.CompareVisitorAt(ctx, server, opts...)
+}

@@ -1016,11 +1016,16 @@ optionally save a reusable profile. HTTP/1.1 and HTTP/2 are measured as two
 independent cold top-level navigations, each using a fresh temporary browser
 profile, so the transition between protocols cannot alter `Sec-Fetch-*`.
 
+A browser tls-forge cannot launch — Firefox, Safari, a phone's — is measured
+with `--manual`: tls-forge listens, and you open its page in that browser.
+
 ```bash
 tls-forge capture
 mkdir -p profiles && tls-forge capture --save profiles/
 tls-forge capture --browser edge --headless --save edge.json
 tls-forge capture --install
+tls-forge capture --manual --install
+tls-forge capture --manual --addr 0.0.0.0:8443 --host 192.168.1.20 --save profiles/
 ```
 
 Usage: `tls-forge capture [flags]`
@@ -1035,11 +1040,52 @@ Usage: `tls-forge capture [flags]`
 | `-j`, `--json` | Print the raw capture instead of a human summary |
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
 | `--browser-arg <argument>` | Append a browser process argument; repeatable, mainly for CI environments |
+| `--manual` | Wait for a browser you open the page in yourself, rather than launching one; `--timeout` is then ten minutes unless given |
+| `--addr <host:port>` | With `--manual`, where to listen; default `127.0.0.1:0`. `0.0.0.0:8443` lets in a phone on this network |
+| `--host <name>` | With `--manual`, the name or address the page is opened at, which its certificate is made for; default `localhost` |
 
 Installed profiles live below the operating system's user configuration
 directory. Set `TLSFORGE_PROFILES` to choose another directory. Running
 `capture --install` again replaces the local machine profile after a browser
 update.
+
+#### Measuring a browser you open
+
+`--manual` prints an address and waits for a browser to come to it, in three
+steps the page itself walks you through:
+
+1. Open the address in the browser to measure, typed or pasted.
+2. It warns about the certificate, made for this run: accept it. The page then
+   asks for one more visit.
+3. Open the address again in a new tab, typed or pasted. That visit is the one
+   measured, and the command ends with it.
+
+The visit after the warning is not measured, because what a browser sends once
+a person says yes to a certificate can be a reload of the refused page, which
+is not what it sends when somebody opens an address. The visit measured has to
+come on a connection of its own, so every answer outside a measurement ends
+its connection; a visit that is a reload, comes from a link, or comes on a
+connection that has carried another request is turned away with the reason,
+and you can open the address again. Each browser has a first visit of its own,
+told apart by its address and its user agent, so Firefox and Safari can be
+measured one after the other.
+
+For a phone, listen on the network and name this machine the way the phone
+reaches it: `--addr 0.0.0.0:8443 --host 192.168.1.20`. Nothing on the server
+authenticates anybody, which the command warns about; stop it once the phone
+has been measured. Without `--host`, the address printed is `localhost`, which
+a phone cannot open, and the command says so.
+
+The profile is named after the browser and its version, `firefox_148`, and
+filed under the platform its user agent says, which for a phone is not this
+machine's: `safari_18/ios.json`, used as `--profile safari_18_ios`.
+`--install` keeps it under that name rather than as `local`, so
+`--profile firefox_148` then finds the Firefox measured here ahead of the
+catalogue's handshake without headers. A browser that opens the page is
+measured over HTTP/2 alone: it cannot be sent to a second, HTTP/1.1-only
+listener without the trip showing in what it sends, so its profile has no
+HTTP/1.1 section, and a request that goes out over HTTP/1.1 with it uses the
+same headers in canonical spelling.
 
 ### `compare`
 
@@ -1055,7 +1101,13 @@ work with the historical fallback.
 tls-forge compare
 tls-forge compare --profile chrome_151 --headless
 tls-forge compare --json > comparison.json
+tls-forge compare --manual --profile firefox_148
 ```
+
+With `--manual` the browser is one you open the page in, as for
+[`capture --manual`](#measuring-a-browser-you-open), and the comparison covers
+TLS and HTTP/2: the browser is not measured over HTTP/1.1, so the client's
+HTTP/1.1 is not held to it, and the output says so.
 
 Usage: `tls-forge compare [flags]`
 
@@ -1069,6 +1121,7 @@ Usage: `tls-forge compare [flags]`
 | `-f`, `--full` | Do not trim matching values; differences are always printed in full |
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
 | `--browser-arg <argument>` | Append a browser process argument; repeatable |
+| `--manual`, `--addr`, `--host` | Compare with a browser you open the page in; as for `capture` |
 
 Exit codes are meaningful:
 
@@ -1103,7 +1156,8 @@ the transport has never claimed to know what headers a browser sends. A
 request with one carries only the headers given with `-H`, and no `User-Agent`
 unless one of them is; never the transport's own `Go-http-client`, which would
 say what is talking more plainly than any handshake could hide it. The run
-says so in its header.
+says so in its header. To wear Firefox or Safari whole, measure it with
+`capture --manual`.
 
 ### `proxy`
 

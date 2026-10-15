@@ -277,6 +277,8 @@ func TestSplitAndHostPlatform(t *testing.T) {
 		"chrome_151_macos":   {"chrome_151", "macos"},
 		"chrome_151_linux":   {"chrome_151", "linux"},
 		"chrome_151_windows": {"chrome_151", "windows"},
+		"chrome_138_android": {"chrome_138", "android"},
+		"safari_18_ios":      {"safari_18", "ios"},
 		"chrome_151":         {"chrome_151", ""},
 		"my_browser":         {"my_browser", ""},
 	} {

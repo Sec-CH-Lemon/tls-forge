@@ -153,6 +153,22 @@ func validateColdHTTP1(measured *capture.HTTP1) error {
 	return nil
 }
 
+// MeasureVisitorAt waits for a browser a person opens a server's page in, and
+// returns what it sent: Firefox, Safari, a phone's, none of which this library
+// can launch. The server is one started with echo.WithManual(true), whose page
+// walks the person through the visit that is measured; the browser is measured
+// over HTTP/2 alone.
+func MeasureVisitorAt(ctx context.Context, server *echo.Server) (*capture.Capture, error) {
+	if server == nil {
+		return nil, fmt.Errorf("tlsforge: measuring a visiting browser needs an echo server")
+	}
+	session, err := server.Await(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("tlsforge: no browser came to %s: %w", server.URL(), err)
+	}
+	return session.Capture(capture.SourceBrowser), nil
+}
+
 // MeasureSelf returns what THIS library sends, measured the same way.
 func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error) {
 	server, err := startEchoServer()
@@ -279,6 +295,23 @@ func CompareToBrowser(ctx context.Context, measure MeasureOptions, opts ...Optio
 	if err != nil {
 		return nil, err
 	}
+	return Compare(browserCapture, clientCapture)
+}
+
+// CompareVisitorAt measures a visiting browser and this library on one server
+// and diffs them, over TLS and HTTP/2: the browser is not measured over
+// HTTP/1.1, so this library's HTTP/1.1 has nothing to be held to, and is left
+// out rather than reported as a difference.
+func CompareVisitorAt(ctx context.Context, server *echo.Server, opts ...Option) (*Comparison, error) {
+	browserCapture, err := MeasureVisitorAt(ctx, server)
+	if err != nil {
+		return nil, err
+	}
+	clientCapture, err := MeasureSelfAt(ctx, server, opts...)
+	if err != nil {
+		return nil, err
+	}
+	clientCapture.HTTP1 = nil
 	return Compare(browserCapture, clientCapture)
 }
 

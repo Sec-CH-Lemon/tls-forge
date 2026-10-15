@@ -13,6 +13,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `capture --manual` measures a browser tls-forge cannot launch — Firefox,
+  Safari, a phone's — which the person using it opens the page in:
+  `--addr 0.0.0.0:8443 --host <address>` lets in a phone on the network. The
+  first visit only gets the browser past the certificate made for the run; the
+  visit measured is the next, typed into a new tab, on a connection of its
+  own. A reload, a link, or a visit on a used connection is turned away with
+  the reason. The profile is named after the browser and filed under the
+  platform its user agent says (`safari_18/ios.json`), `--install` keeps it
+  under that name, and it is measured over HTTP/2 alone. `compare --manual`
+  holds a profile to such a browser over TLS and HTTP/2. The library has
+  `MeasureVisitorAt`, `CompareVisitorAt` and `echo.WithManual`.
 - `fetch --wait-for-element SELECTOR` counts an answer as the page when its
   HTML has an element matching the CSS selector, whatever its status, for a
   site that turns a client away with a 200 and a page of its own, or sends the
@@ -324,6 +335,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   HTTP/2 and on a redirect. `fetch` says, in the header of the run, that such a
   profile comes from tls-client's catalogue with no headers of its own, rather
   than that it shipped with tls-forge.
+- A capture page that reported back is answered before the measurement is
+  handed over, so the browser's page says it went through rather than that the
+  server went away.
+- Profile names know the phones' platforms, `_android` and `_ios`, and a
+  profile from an iPhone or an iPad does not shuffle its TLS extensions: every
+  browser there connects through Apple's stack, Chrome included.
 - **A chain of redirects ends after ten, for every profile.** With a profile
   that carries an HTTP/1.1 layout, which includes every shipped Chrome profile,
   redirects were followed without limit: the policy that prepares the next

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
@@ -49,6 +50,9 @@ type h2conn struct {
 	framer *http2.Framer
 	enc    *hpack.Encoder
 	encBuf *bytes.Buffer
+	// goneAway says the connection takes no new streams: a request on one is
+	// refused, which a client takes as leave to make it again elsewhere.
+	goneAway bool
 }
 
 func newH2Conn(rw io.ReadWriter) *h2conn {
@@ -116,6 +120,12 @@ func (s *Server) serveHTTP2(conn net.Conn, sess *Session) error {
 			if f.Truncated {
 				return fmt.Errorf("echo: HTTP/2 header list exceeds %d bytes", maxHTTP2HeaderListSize)
 			}
+			if h.goneAway {
+				// A refusal that cannot be written is a connection that has
+				// gone, which the next read finds.
+				_ = h.framer.WriteRSTStream(f.StreamID, http2.ErrCodeRefusedStream)
+				continue
+			}
 			req := requestFromFrame(f)
 			sess.recordRequest(f)
 			if f.StreamEnded() {
@@ -176,16 +186,33 @@ type request struct {
 	path   string
 	stream uint32
 	body   []byte
+	// headers are the fields a visit is judged by, by their names in lower
+	// case, and last says the connection ends with this response.
+	headers map[string]string
+	last    bool
+	// completes is the capture this request finishes, to be handed over once
+	// it has been answered.
+	completes *Session
+}
+
+// goAway takes no new streams after this one: the client's next request opens
+// a connection of its own. The connection ends when the client closes it, once
+// what it already sent is answered or refused, rather than under it.
+func (h *h2conn) goAway(lastStream uint32) error {
+	h.goneAway = true
+	return h.framer.WriteGoAway(lastStream, http2.ErrCodeNo, nil)
 }
 
 func requestFromFrame(f *http2.MetaHeadersFrame) *request {
-	req := &request{stream: f.StreamID}
+	req := &request{stream: f.StreamID, headers: map[string]string{}}
 	for _, field := range f.Fields {
 		switch field.Name {
 		case ":method":
 			req.method = field.Value
 		case ":path":
 			req.path = field.Value
+		default:
+			req.headers[strings.ToLower(field.Name)] = field.Value
 		}
 	}
 	return req
@@ -297,6 +324,7 @@ func (s *Session) recordPriority(f *http2.PriorityFrame) {
 func (s *Session) recordRequest(f *http2.MetaHeadersFrame) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.requests++
 	if s.http2Recorded {
 		return
 	}

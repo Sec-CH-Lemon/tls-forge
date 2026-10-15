@@ -42,14 +42,22 @@ func (s *Server) serveHTTP1(conn net.Conn, sess *Session) error {
 		}
 		sess.recordHTTP1(req)
 
-		status, contentType, body := s.route(sess, &request{path: req.Path, body: req.body})
-		if _, err := fmt.Fprintf(conn,
-			"HTTP/1.1 %s %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nCache-Control: no-store\r\nConnection: keep-alive\r\n\r\n",
-			status, statusText(status), contentType, len(body)); err != nil {
+		asked := &request{path: req.Path, body: req.body, headers: map[string]string{}}
+		for _, field := range req.Headers {
+			asked.headers[strings.ToLower(field.Name)] = field.Value
+		}
+		status, contentType, body := s.route(sess, asked)
+		connection := "keep-alive"
+		if asked.last {
+			connection = "close"
+		}
+		err = writeHTTP1Response(conn, status, contentType, connection, body)
+		s.completeAfter(asked)
+		if err != nil {
 			return err
 		}
-		if _, err := conn.Write(body); err != nil {
-			return err
+		if asked.last {
+			return nil
 		}
 	}
 }
@@ -96,6 +104,16 @@ func (s *Server) serveCaptureHTTP1(conn net.Conn, sess *Session) error {
 	}
 	location := s.URL() + "/?navigation=" + url.QueryEscape(token) + "&http1=done"
 	return writeCaptureHTTP1Response(conn, "302", "text/plain; charset=utf-8", location, nil)
+}
+
+func writeHTTP1Response(conn net.Conn, status, contentType, connection string, body []byte) error {
+	if _, err := fmt.Fprintf(conn,
+		"HTTP/1.1 %s %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nCache-Control: no-store\r\nConnection: %s\r\n\r\n",
+		status, statusText(status), contentType, len(body), connection); err != nil {
+		return err
+	}
+	_, err := conn.Write(body)
+	return err
 }
 
 func writeCaptureHTTP1Response(conn net.Conn, status, contentType, location string, body []byte) error {
@@ -206,6 +224,7 @@ func readLine(r *bufio.Reader) (string, error) {
 func (s *Session) recordHTTP1(req *http1Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.requests++
 	if s.http1 != nil {
 		return
 	}

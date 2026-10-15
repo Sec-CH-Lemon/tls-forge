@@ -206,8 +206,9 @@ func HostPlatform() string { return hostPlatform }
 // Split separates a name into the version and the platform it names, if it
 // names one. Only a platform this project knows counts: "chrome_151" is a
 // version whose last word happens to be a number, not a platform called 151.
+// The phones' are among them, for a browser measured on one rather than here.
 func Split(name string) (version, platform string) {
-	for _, known := range []string{"macos", "linux", "windows"} {
+	for _, known := range []string{"macos", "linux", "windows", "android", "ios"} {
 		if rest, ok := strings.CutSuffix(name, "_"+known); ok {
 			return rest, known
 		}

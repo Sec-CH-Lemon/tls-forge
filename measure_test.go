@@ -646,3 +646,122 @@ func TestMeasureBrowserPassesExtraFlagsToTheBrowser(t *testing.T) {
 		}
 	}
 }
+
+// visitAsAPerson does at a manual server what a person does: opens the page,
+// which only says what to do next; opens it again, as if in a new tab; and lets
+// the page report back.
+func visitAsAPerson(server *echo.Server, profileName string) error {
+	client, err := New(WithProfile(profileName), WithInsecureSkipVerify(), WithoutRedirects())
+	if err != nil {
+		return err
+	}
+	defer func() { _ = client.Close() }()
+	opened := NewHeader("sec-fetch-site", "none", "sec-fetch-mode", "navigate",
+		"sec-fetch-dest", "document", "sec-fetch-user", "?1")
+	if _, err := client.Do(&Request{URL: server.URL() + "/", Header: opened}); err != nil {
+		return err
+	}
+	page, err := client.Do(&Request{URL: server.URL() + "/", Header: opened})
+	if err != nil {
+		return err
+	}
+	const marker = "fetch('"
+	start := strings.Index(page.Text(), marker)
+	if start < 0 {
+		return fmt.Errorf("the second visit was not measured:\n%s", page.Text())
+	}
+	start += len(marker)
+	end := strings.IndexByte(page.Text()[start:], '\'')
+	_, err = client.Do(&Request{
+		Method: "POST", URL: server.URL() + page.Text()[start:start+end],
+		Body:   []byte(`{"user_agent":"a person's browser"}`),
+		Header: NewHeader("content-type", "application/json"),
+	})
+	return err
+}
+
+func manualServer(t *testing.T) *echo.Server {
+	t.Helper()
+	server, err := echo.Start(echo.WithManual(true))
+	if err != nil {
+		t.Fatalf("echo.Start: %v", err)
+	}
+	t.Cleanup(func() { _ = server.Close() })
+	return server
+}
+
+func TestMeasureVisitorAt(t *testing.T) {
+	server := manualServer(t)
+	visited := make(chan error, 1)
+	go func() { visited <- visitAsAPerson(server, DefaultProfile) }()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	measured, err := MeasureVisitorAt(ctx, server)
+	if err != nil {
+		t.Fatalf("MeasureVisitorAt: %v", err)
+	}
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	if measured.Source != capture.SourceBrowser || measured.HTTP2 == nil || measured.HTTP1 != nil ||
+		len(measured.RawClientHello) == 0 || measured.Navigator == nil ||
+		measured.Navigator.UserAgent != "a person's browser" {
+		t.Errorf("measured from %s: HTTP/2 %v, HTTP/1.1 %v, %d bytes of hello, navigator %+v", measured.Source,
+			measured.HTTP2 != nil, measured.HTTP1 != nil, len(measured.RawClientHello), measured.Navigator)
+	}
+}
+
+func TestMeasureVisitorThatNeverComes(t *testing.T) {
+	if _, err := MeasureVisitorAt(context.Background(), nil); err == nil {
+		t.Error("measuring without a server succeeded")
+	}
+	server := manualServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := MeasureVisitorAt(ctx, server); err == nil || !strings.Contains(err.Error(), "no browser came to "+server.URL()) {
+		t.Errorf("err = %v", err)
+	}
+	if _, err := CompareVisitorAt(ctx, server); err == nil {
+		t.Error("comparing with no browser succeeded")
+	}
+}
+
+func TestCompareVisitorAt(t *testing.T) {
+	for _, tc := range []struct {
+		profile string
+		same    bool
+	}{{DefaultProfile, true}, {"firefox_148", false}} {
+		server := manualServer(t)
+		visited := make(chan error, 1)
+		go func() { visited <- visitAsAPerson(server, DefaultProfile) }()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		result, err := CompareVisitorAt(ctx, server, WithProfile(tc.profile))
+		cancel()
+		if err != nil {
+			t.Fatalf("%s: CompareVisitorAt: %v", tc.profile, err)
+		}
+		if err := <-visited; err != nil {
+			t.Fatalf("visiting: %v", err)
+		}
+		// HTTP/1.1 is not measured from the browser, and so not held against
+		// the client either.
+		if result.OK() != tc.same || result.Client.HTTP1 != nil || len(result.HTTP1.Differences) != 0 {
+			t.Errorf("%s: same %v, client HTTP/1.1 %+v, differences %+v", tc.profile, result.OK(),
+				result.Client.HTTP1, result.HTTP1.Differences)
+		}
+	}
+}
+
+func TestCompareVisitorWithAClientThatCannotBeMade(t *testing.T) {
+	server := manualServer(t)
+	visited := make(chan error, 1)
+	go func() { visited <- visitAsAPerson(server, DefaultProfile) }()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if _, err := CompareVisitorAt(ctx, server, WithProfile("no_such_profile")); err == nil {
+		t.Error("a comparison with a client that cannot be made succeeded")
+	}
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+}

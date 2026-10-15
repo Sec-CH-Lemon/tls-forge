@@ -181,6 +181,10 @@ func platformLabel(platform string) string {
 		return "Windows"
 	case "linux":
 		return "Linux"
+	case "android":
+		return "Android"
+	case "ios":
+		return "iOS"
 	}
 	return platform
 }

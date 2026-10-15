@@ -30,24 +30,35 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		"keep the profile in this machine's own directory, where --profile finds it by name")
 	name := fs.StringP("name", "n", "", "profile name (default: derived from the browser's version)")
 	asJSON := fs.BoolP("json", "j", false, "print the raw capture instead of a summary")
-	timeout := fs.DurationP("timeout", "t", 2*time.Minute, "how long to wait for the browser")
+	timeout := fs.DurationP("timeout", "t", 2*time.Minute,
+		"how long to wait for the browser; with --manual, ten minutes unless given")
 	browserArgs := browserArgFlag(fs)
+	visits := addVisitFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if err := requireNoArgs(fs); err != nil {
 		return err
 	}
+	if err := visits.check(fs); err != nil {
+		return err
+	}
 
 	// To stderr: --json makes standard output a document, and a line of
 	// commentary in front of it is a document that will not parse.
-	errOut.println("opening a browser… (it will show the result; you can close it)")
-	measured, err := tlsforge.MeasureBrowser(ctx, tlsforge.MeasureOptions{
-		Browser:     *browserName,
-		Headless:    *headless,
-		Timeout:     *timeout,
-		BrowserArgs: *browserArgs,
-	})
+	var measured *capture.Capture
+	var err error
+	if *visits.manual {
+		measured, err = measureVisitor(ctx, visits, visits.waitFor(fs, *timeout), errOut)
+	} else {
+		errOut.println("opening a browser… (it will show the result; you can close it)")
+		measured, err = tlsforge.MeasureBrowser(ctx, tlsforge.MeasureOptions{
+			Browser:     *browserName,
+			Headless:    *headless,
+			Timeout:     *timeout,
+			BrowserArgs: *browserArgs,
+		})
+	}
 	if err != nil {
 		return err
 	}
@@ -77,10 +88,13 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	// rather than one per version: measuring again after Chrome updates should
 	// replace it, not leave two. --save is the other case — a profile going
 	// somewhere to be kept or shipped — and that one is named for the browser.
+	// --install keeps this machine's own browser as "local"; a browser a person
+	// opened is kept under its own name, so that --profile firefox_148 finds the
+	// Firefox measured here rather than the catalogue's handshake without headers.
 	profileName := *name
 	if profileName == "" {
 		profileName = profileNameFor(measured.UserAgent())
-		if *install {
+		if *install && !*visits.manual {
 			profileName = localName
 		}
 	}
@@ -130,8 +144,13 @@ func saveProfile(where, name string, measured *capture.Capture) (profileName, pa
 	if info, err := os.Stat(where); err == nil && info.IsDir() {
 		// A directory per version holding one file per platform, so a machine
 		// that measures Chrome 151 on two of them has one profile with two
-		// spellings rather than two profiles.
+		// spellings rather than two profiles. The platform is the one the name
+		// says, else the one the browser does, which for a phone is not this
+		// machine's, else this machine's.
 		version, platform := profile.Split(built.Name)
+		if platform == "" {
+			platform = platformFrom(built.UserAgent)
+		}
 		if platform == "" {
 			platform = profile.HostPlatform()
 		}
@@ -189,6 +208,26 @@ func profileNameFor(userAgent string) string {
 	return family + "_" + major
 }
 
+// platformFrom reads the platform a user agent says it runs on, spelled as a
+// profile file is named, or nothing for one it does not say. The phones first:
+// an iPhone says it is "like Mac OS X", and Android says it is Linux.
+func platformFrom(userAgent string) string {
+	for _, known := range []struct{ token, platform string }{
+		{"Android", "android"},
+		{"iPhone", "ios"},
+		{"iPad", "ios"},
+		{"iPod", "ios"},
+		{"Windows", "windows"},
+		{"Macintosh", "macos"},
+		{"Linux", "linux"},
+	} {
+		if strings.Contains(userAgent, known.token) {
+			return known.platform
+		}
+	}
+	return ""
+}
+
 // browserFrom reads the browser and its major version out of a user-agent,
 // returning empty strings for one it does not know.
 //
@@ -198,7 +237,15 @@ func profileNameFor(userAgent string) string {
 func browserFrom(userAgent string) (family, major string) {
 	for _, known := range []struct{ token, name string }{
 		{"Edg/", "edge"},
+		{"EdgA/", "edge"},
+		{"EdgiOS/", "edge"},
 		{"OPR/", "opera"},
+		{"SamsungBrowser/", "samsung"},
+		{"YaBrowser/", "yandex"},
+		// The iOS ones name themselves apart from what they run on, which is
+		// Safari's engine, and a "Version/" that is Safari's.
+		{"CriOS/", "chrome"},
+		{"FxiOS/", "firefox"},
 		{"Chrome/", "chrome"},
 		{"Firefox/", "firefox"},
 		{"Version/", "safari"},
