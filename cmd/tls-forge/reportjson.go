@@ -61,10 +61,14 @@ type documentProxy struct {
 	Exits    []documentExit `json:"exits,omitempty"`
 }
 
-// documentExit is where requests came out, when somebody could say.
+// documentExit is where requests came out, when somebody could say: by the
+// address, or by the hash of it a proxy gave instead.
 type documentExit struct {
-	IP      string `json:"ip"`
+	IP      string `json:"ip,omitempty"`
+	Hash    string `json:"hash,omitempty"`
 	Country string `json:"country,omitempty"`
+	// By is how the address was found, when the proxy did not say it.
+	By string `json:"by,omitempty"`
 }
 
 // resultFields is a result without its own way of being written, so that
@@ -112,6 +116,10 @@ type documentConnection struct {
 	Cipher  string `json:"cipher,omitempty"`
 	ALPN    string `json:"alpn,omitempty"`
 	Resumed bool   `json:"resumed,omitempty"`
+	// ProxyAnswer is the header fields of the proxy's answer when it opened the
+	// connection, and Exit where that said the connection came out.
+	ProxyAnswer []string      `json:"proxy_answer,omitempty"`
+	Exit        *documentExit `json:"exit,omitempty"`
 }
 
 // documentStep is one thing a try waited on.
@@ -190,6 +198,7 @@ func documentTryOf(t try) documentTry {
 		out.Connection = &documentConnection{
 			Reused: t.Conn.Reused, Remote: t.Conn.RemoteAddr, TLS: t.Conn.TLSVersion,
 			Cipher: t.Conn.CipherSuite, ALPN: t.Conn.ALPN, Resumed: t.Conn.Resumed,
+			ProxyAnswer: safeHeaders(t.Conn.ProxyHeader), Exit: exitOf(t.Exit),
 		}
 	}
 	for _, s := range t.Steps {
@@ -203,10 +212,10 @@ func documentTryOf(t try) documentTry {
 
 // exitOf is where something came out, or nothing when nobody said.
 func exitOf(found egress) *documentExit {
-	if found.IP == "" {
+	if !found.Known() {
 		return nil
 	}
-	return &documentExit{IP: found.IP, Country: found.countryCode()}
+	return &documentExit{IP: found.IP, Hash: found.Hash, Country: found.countryCode(), By: found.By}
 }
 
 // rate is a share as a percentage to one decimal place, which is what the page

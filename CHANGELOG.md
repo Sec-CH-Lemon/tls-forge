@@ -101,17 +101,38 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   request, where the page stops at 2,000 rows. A directory gets one file for
   each format, named after the same moment, and a file path given two formats
   names them both, as `run.html` and `run.json`.
-- **A report says where every request came out.** Each is asked about while it
-  is made, through the same proxy, because a proxy that hands every request an
-  address of its own makes the address of the run say nothing about any one of
-  them. When the addresses differ the rows get a column of them and the line
-  above them says how many there were; the table of proxies lists the
-  addresses each came out of. A request nobody could answer for says why when
-  its row is opened, and as `exit_error` in the JSON document. This is one
-  more request to a third party for every request, said before the first;
-  `--report-ip=false` turns it off, and a run of one request uses the answer
-  it was given before it began. The log and the trace kept of each request
-  under `--output` say where it came out as well.
+- **Every request says where it came out, when its proxy says.** `fetch` opens
+  the tunnel through an HTTP or HTTPS proxy itself and keeps the header fields
+  of the proxy's answer to `CONNECT` with the connection. A proxy that hands
+  every connection an address of its own and names it there, in `X-Exit-IP`
+  (with `X-Exit-Country`), in `X-ProxyMesh-IP` or in a field a file of your
+  own names, gives every request, a reused connection's included, the address
+  it really came out of, and nothing is asked of anybody to find it. Which
+  fields say it is a table built in, `exit-headers.json`, holding every field
+  known when it was written: those of Massive, NodeMaven, shellroute,
+  ProxyMesh, g3proxy, SOAX, Bright Data and Luminati, NetNut, Scrapoxy and Zyte
+  Smart Proxy Manager. The file `--exit-headers` names, wherever it is, is
+  laid over it as `mergeRight` lays one object over another: its fields and
+  probes replace the table's of the same key, `"off": true` takes one out,
+  and the rest are added and read first. A field can be a
+  parameter of another, such as `brd_ip` in `Proxy-Status`, can come in the
+  response a proxy decrypted, and can need the `CONNECT` to ask for it, as
+  SOAX's `Respond-With` does. When a proxy says nothing, or only a name, the
+  table says what to ask where only the same exit can answer: a probe of
+  the site over the very connection the request went out on, as Cloudflare's
+  `/cdn-cgi/trace`, believed only when its answer came back over the same
+  tunnel, and a resolve of the name through the same proxy, as Bright Data's
+  `-ip-<hash>` asking `brdtest.com/myip.json`, once for each name. Bright Data
+  names a hash of the address in `x-brd-ip` instead, and that hash is shown
+  where the address would be: the same hash is the same address. A request
+  made without a proxy comes out where the run does, as asked before the
+  first request. Where neither says, the exit is unknown, and the report and
+  the log say why. When the addresses differ the report's rows get a column of
+  them and the line above them says how many there were; the table of proxies
+  lists the addresses each came out of; every try shows the proxy's answer.
+  The log and the traces have it too, and the JSON report has it as
+  `proxy_answer` and `exit` on each connection and `exit` or `exit_error` on
+  each request, an `exit` holding its `ip` or its `hash`.
 - **A report opens the trace of every request.** When the run was traced, by
   `--trace` or by `--output`, which keeps a trace of each request, an opened
   row links to that trace and to the request's log, relative to where the
@@ -154,6 +175,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   | `--repeat 0` to turn retries off | nothing: that is the default, and `--repeat` now means how many times each request is made |
   | one URL as the only argument | add `--json`; without it the answer is the page |
   | waits for URLs to be typed when none is given | a usage error; a list piped to standard input is still read |
+  | `--report-ip[=false]` | nothing: a report asks nobody where its requests came out, and takes it from what each proxy said |
 
   Other things a `batch` user will see change: a try is made again for an
   answer that is not a 2xx as well as for no answer, once `--retry` asks for
@@ -211,8 +233,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   without the session's cookies, so **every run that goes one way now makes at
   least one additional request to a third party**. A failure is reported on
   that line without failing the fetch. A list whose entries name different
-  proxies asks nobody before it starts, and only `--report` asks where each
-  of its requests came out. `proxy` and `daemon` ask nobody.
+  proxies asks nobody, before it starts or after. `proxy` and `daemon` ask
+  nobody.
 - The exit address is asked of four services instead of one, for that line and
   for a report alike: `www.cloudflare.com/cdn-cgi/trace`, then
   `checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next is asked as

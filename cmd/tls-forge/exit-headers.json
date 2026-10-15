@@ -1,0 +1,145 @@
+{
+  "about": "Header fields in which a proxy says where a tunnel comes out, and what to ask when it does not. fetch has this file built in and reads it when a run begins, with the file --exit-headers names laid over it, and believes the first field that holds what it says it holds. header: the field, in any case. value: address (an IP address, with or without a port after it; 0.0.0.0 and :: say nothing), hash (the proxy's own hash of the address: letters and digits only, at least sixteen of them), name (whatever else the proxy calls where the tunnel comes out: letters, digits, dot, underscore, colon and hyphen), or left out for an address or a hash. param: the parameter that holds it, when the field is name=value pairs separated by semicolons, in any item of a list of them separated by commas; neither separates inside quotes. country, country_param: the field, and the parameter of it, that name the tunnel's country, when there is one. in: connect (the proxy's answer to CONNECT, which is what leaving it out means) or response (the answer to the request, which a proxy that decrypts the traffic writes into; a site can write a field there as well, so it is believed only when the answer to CONNECT said nothing). ask: header fields every CONNECT is to say, for a proxy that answers with the field only when asked. resolve: how a hash or a name in the field is turned into the address, by asking url through the same proxy with the user name user ({user} the one the run was given, {value} the name) and reading the answer as format (json, an object, or lines, a key=value to a line) at the keys ip and country. probes: what is asked of the site a request went to when no field said where it came out: path, over the same connection, of a site whose response came with the field when, read as resolve's answer is. provider, source and note are for whoever reads this.",
+  "fields": [
+    {
+      "header": "X-Exit-IP",
+      "value": "address",
+      "country": "X-Exit-Country",
+      "provider": "Massive; NodeMaven; shellroute",
+      "source": "https://docs.joinmassive.com/residential/exit-node-headers",
+      "note": "Massive and NodeMaven send X-Exit-Timezone and X-Exit-ASN beside it when they know them."
+    },
+    {
+      "header": "X-Proxy-Exit-IP",
+      "value": "address",
+      "provider": "NodeMaven",
+      "source": "https://github.com/nodemaven/nodemaven-python/blob/main/docs/observed-behavior.md",
+      "note": "One kind of gateway behind the hostname sends this, another X-Exit-IP, and some send no address at all."
+    },
+    {
+      "header": "X-ProxyMesh-IP",
+      "value": "address",
+      "provider": "ProxyMesh",
+      "source": "https://docs.proxymesh.com/article/7-request-response-headers"
+    },
+    {
+      "header": "X-BD-Outgoing-Ip",
+      "value": "address",
+      "provider": "g3proxy",
+      "source": "https://g3-project.readthedocs.io/projects/g3proxy/en/latest/protocol/client/http_custom_headers.html",
+      "note": "Sent when the proxy is set up with echo_chained_info."
+    },
+    {
+      "header": "X-BD-Dynamic-Egress-Info",
+      "param": "ip",
+      "value": "address",
+      "provider": "g3proxy",
+      "source": "https://g3-project.readthedocs.io/projects/g3proxy/en/latest/protocol/client/http_custom_headers.html",
+      "note": "<server_id>; isp=<isp>; ip=<ip>; area=<area>: the egress address as seen from outside."
+    },
+    {
+      "header": "Node-Ip",
+      "value": "address",
+      "country": "Node-Country",
+      "ask": {
+        "Respond-With": "ip,country"
+      },
+      "provider": "SOAX",
+      "source": "https://web.archive.org/web/20251207153602/https://helpcenter.soax.com/en/articles/9956908-getting-node-information-with-the-respond-with-header",
+      "note": "Sent only when the CONNECT asks with Respond-With, which ask makes every CONNECT say. Respond-With also takes uid, region, city, isp, asn and conn_type. SOAX's current documentation no longer mentions it."
+    },
+    {
+      "header": "x-brd-ip",
+      "resolve": {
+        "user": "{user}-ip-{value}",
+        "url": "https://brdtest.com/myip.json",
+        "format": "json",
+        "ip": "ip",
+        "country": "country"
+      },
+      "provider": "Bright Data",
+      "source": "https://docs.brightdata.com/proxy-networks/residential/faqs",
+      "note": "The address in the clear on datacenter and ISP zones. On residential and mobile zones a hash of it, r and 32 hex digits, which -ip-<hash> in the user name asks for again: resolve asks Bright Data's own brdtest.com through the exit of that hash, once for each hash, for the address. 'superproxy bypass' when the super proxy itself was the exit, which is neither. Bright Data's Proxy Manager passes it on."
+    },
+    {
+      "header": "Proxy-Status",
+      "param": "brd_ip",
+      "resolve": {
+        "user": "{user}-ip-{value}",
+        "url": "https://brdtest.com/myip.json",
+        "format": "json",
+        "ip": "ip",
+        "country": "country"
+      },
+      "provider": "Bright Data",
+      "source": "https://docs.brightdata.com/proxy-networks/errorCatalog",
+      "note": "The same value as x-brd-ip, as a parameter of the RFC 9209 field. Seen in answers from brd.superproxy.io; not documented."
+    },
+    {
+      "header": "X-NN-LLS",
+      "value": "name",
+      "provider": "NetNut",
+      "source": "https://web.archive.org/web/2026/https://help.netnut.io/netnut-documentation/netnut-proxies/residential-proxies/curl-request-parameters",
+      "note": "A long-session token that holds one exit, so the same token is the same exit. Sent when the user name asks for a long session with -nnid-0, and asked for again with -nnid-<token>. Documented on the answer to a plain HTTP request; whether the answer to CONNECT has it is not. NetNut's domains were seized in July 2026."
+    },
+    {
+      "header": "x-luminati-ip",
+      "provider": "Bright Data",
+      "source": "https://docs.brightdata.com/proxy-networks/errorCatalog",
+      "note": "What x-brd-ip was called before. Not sent since 1 May 2026."
+    },
+    {
+      "header": "x-hola-ip",
+      "value": "address",
+      "provider": "Luminati",
+      "source": "https://github.com/wenerme/wener",
+      "note": "zproxy.luminati.io, before Bright Data. No longer in use."
+    },
+    {
+      "header": "X-Scrapoxy-Proxyname",
+      "value": "name",
+      "provider": "Scrapoxy",
+      "source": "https://github.com/jmaitrehenry/scrapoxy",
+      "note": "<connector id>:<proxy key>, on the answer to CONNECT in tunnel mode. Scrapoxy was discontinued in February 2026."
+    },
+    {
+      "header": "X-Scrapoxy-Proxyname",
+      "value": "name",
+      "in": "response",
+      "provider": "Scrapoxy",
+      "source": "https://github.com/jmaitrehenry/scrapoxy",
+      "note": "The same, on the response, when Scrapoxy decrypts the traffic."
+    },
+    {
+      "header": "X-Crawlera-Slave",
+      "value": "address",
+      "in": "response",
+      "provider": "Zyte Smart Proxy Manager",
+      "source": "https://github.com/scrapinghub/varanus",
+      "note": "<ip>:<port>, on the response Zyte decrypted. No longer open to new users."
+    },
+    {
+      "header": "x-brd-debug",
+      "param": "peer_ip",
+      "value": "hash",
+      "country": "x-brd-debug",
+      "country_param": "peer_country",
+      "in": "response",
+      "provider": "Bright Data Web Unlocker; SERP API",
+      "source": "https://docs.brightdata.com/llms-full.txt",
+      "note": "Sent with -debug-full in the user name, on the response it decrypted."
+    }
+  ],
+  "probes": [
+    {
+      "when": "cf-ray",
+      "path": "/cdn-cgi/trace",
+      "format": "lines",
+      "ip": "ip",
+      "country": "loc",
+      "provider": "Cloudflare",
+      "source": "https://developers.cloudflare.com/fundamentals/reference/cdn-cgi-endpoint/",
+      "note": "Every site behind Cloudflare answers it at the edge with the address the request came from, ip=, and its country, loc=. Asked of the site a request went to, over the same connection, which is the only way its answer is the request's exit; an answer that came over another is not believed."
+    }
+  ]
+}

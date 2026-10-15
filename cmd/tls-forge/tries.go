@@ -37,6 +37,8 @@ type try struct {
 	// the try got as far as having one. After a redirect it is the last of them.
 	Conn      tlsforge.ConnInfo
 	Connected bool
+	// Exit is where that connection came out, when its proxy said.
+	Exit egress
 	// Wait is how long was let pass after it before the request was made again.
 	Wait time.Duration
 }
@@ -313,11 +315,24 @@ func (t tryRow) Connection() string {
 		kind = "connection already open to "
 	}
 	parts := []string{kind + t.Conn.RemoteAddr}
+	if t.Exit.Known() {
+		parts = append(parts, "came out at "+describeExit(t.Exit, nil, ""))
+	}
 	if settled := handshakeNote(t.Conn.TLSVersion, t.Conn.CipherSuite, t.Conn.ALPN, t.Conn.Resumed); settled != "" {
 		parts = append(parts, settled)
 	}
 	return strings.Join(parts, " · ")
 }
+
+// ProxyAnswer is the header fields of the proxy's answer when it opened the
+// connection, one to a line, which is where a proxy says where it came out
+// when it says.
+func (t tryRow) ProxyAnswer() string {
+	return strings.Join(safeHeaders(t.Conn.ProxyHeader), "\n")
+}
+
+// ProxyFields is how many header fields that answer came with.
+func (t tryRow) ProxyFields() string { return fields(t.ProxyAnswer()) }
 
 // Fields is how many header fields the answer came with.
 func (t tryRow) Fields() string { return fields(t.Answer) }

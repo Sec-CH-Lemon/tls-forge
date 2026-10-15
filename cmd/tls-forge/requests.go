@@ -54,24 +54,26 @@ type result struct {
 	Tries []try `json:"-"`
 	// ID is which request of the run this was, from one.
 	ID int `json:"-"`
-	// Exit is where the request came out, or ExitError why nobody could say.
-	// Asked for every request when a report is written, because a proxy that
-	// hands out an address per request is the reason somebody asks: the address
-	// of one request says nothing about the next.
+	// Exit is where the request came out, and ExitError why that is not known.
+	// Through a proxy it is what the proxy said when it opened the connection
+	// the request went out on: a proxy that hands every connection an address
+	// of its own makes anything asked on another connection somebody else's
+	// address. Without one it is where the run came out when that was asked,
+	// before the first request.
 	Exit      egress `json:"-"`
 	ExitError string `json:"-"`
 }
 
-// exitSaid is where the request came out, as a line of its log says it, or
-// empty when nobody asked.
+// exitSaid is where the request came out, as its log and its opened row say
+// it, or empty when there is nothing to say.
 func (r result) exitSaid() string {
 	switch {
-	case r.ExitError != "":
-		return "not looked up · " + r.ExitError
-	case r.Exit.IP == "":
-		return ""
-	default:
+	case r.Exit.Known():
 		return describeExit(r.Exit, nil, "")
+	case r.ExitError != "":
+		return "unknown · " + r.ExitError
+	default:
+		return ""
 	}
 }
 
@@ -407,13 +409,16 @@ type runner struct {
 	// run knows of all of its requests, for those logs.
 	keep  string
 	about requestAbout
-	// lookups says where each request comes out is to be asked as it is made.
-	// Otherwise exit is where all of them do, when the run went one way and that
-	// was asked once, and exitError why it could not be said.
-	lookups   bool
-	exit      egress
-	exitError string
-	counts    *progress
+	// direct is where a request made without a proxy comes out, as it was asked
+	// before the first request, and directError why that is not known.
+	direct      egress
+	directError string
+	// exits are how where a request through a proxy came out is found: the
+	// header fields its answers are read for, and what is asked when they say
+	// nothing or say a name. names asks each name once.
+	exits  exitTable
+	names  *resolver
+	counts *progress
 	// note is told about a try that is about to be made again. Nil keeps quiet,
 	// which is what a run of several requests at once wants: the tries of two
 	// URLs would be said in turn with nothing to tell them apart.
@@ -522,8 +527,12 @@ func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
 func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *tlsforge.Response, error) {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
-	r := result{URL: j.URL, Proxy: proxy, Started: started, ID: j.id,
-		Exit: b.exit, ExitError: b.exitError}
+	r := result{URL: j.URL, Proxy: proxy, Started: started, ID: j.id}
+	if proxy == "" {
+		// Where the machine comes out, which every request made without a
+		// proxy shares.
+		r.Exit, r.ExitError = b.direct, b.directError
+	}
 	if b.repeat > 1 {
 		// Only when there is more than one, so a request made once keeps the
 		// shape its line has always had.
@@ -538,33 +547,14 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 		return r, nil, b.kept(&r, nil, j, lane)
 	}
 
-	// Where this request comes out is asked while it is being made, through the
-	// same proxy, so that the answer is from the same moment and a slow address
-	// service costs no more than the request it is asked beside.
-	var exit chan exitAnswer
-	if b.lookups {
-		exit = make(chan exitAnswer, 1)
-		go func() {
-			found, err := lookupExit(ctx, b.clients.flags, proxy)
-			exit <- exitAnswer{found, err}
-		}()
-	}
-
 	request := b.request
 	request.URL = j.URL
 	res, attempts, tries, err := retrier{retries: b.retry, note: b.note, keep: b.detailed}.do(
 		ctx, client, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
-	if exit != nil {
-		answer := <-exit
-		r.Exit, r.ExitError = answer.found, ""
-		if answer.err != nil {
-			r.Exit, r.ExitError = egress{}, redactError(answer.err, proxy)
-		}
-		// A moment rather than a bar: it was asked beside the request, and a bar
-		// drawn across the request's own would hide one of them.
-		lane.instant("exit-ip", "net", exitArgs(proxy, answer.found, answer.err))
+	if proxy != "" {
+		r.Exit, r.ExitError = b.cameOut(ctx, client, proxy, tries, res, lane)
 	}
 
 	if err != nil {
@@ -583,10 +573,36 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 	return r, res, nil
 }
 
-// exitAnswer is what an address service said, or why it said nothing.
-type exitAnswer struct {
-	found egress
-	err   error
+// exitThrough is where a request through a proxy came out, or why that is not
+// known: what the proxy said when it opened the connection the request's last
+// try went out on, or failing that, what the answer to the request says, which
+// a proxy that reads the traffic writes. Each try is given what its own
+// connection's proxy said.
+//
+// Nothing, and no reason, when the tries were not kept, or the last of them
+// never had a connection to come out of.
+//
+// The field that said it comes back with it, for how to turn a name it holds
+// into an address.
+func exitThrough(tries []try, answer map[string][]string, fields []exitField) (egress, string, exitField) {
+	var said exitField
+	for i := range tries {
+		tries[i].Exit, said = exitIn(tries[i].Conn.ProxyHeader, fields, "connect")
+	}
+	if len(tries) == 0 || !tries[len(tries)-1].Connected {
+		return egress{}, "", exitField{}
+	}
+	if found := tries[len(tries)-1].Exit; found.Known() {
+		return found, "", said
+	}
+	if found, field := exitIn(headerOf(answer), fields, "response"); found.Known() {
+		return found, "", field
+	}
+	if len(fields) == 0 {
+		// Not that the proxy said nothing: nobody looked.
+		return egress{}, "no field in exit-headers.json to read the proxy's answer with", exitField{}
+	}
+	return egress{}, "the proxy did not say", exitField{}
 }
 
 // kept writes the request down in the directory it is to be kept in, when

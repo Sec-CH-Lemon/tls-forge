@@ -246,7 +246,7 @@ func TestRequestLog(t *testing.T) {
 
 	// Asked where it came out, and nobody could say.
 	r.Exit, r.ExitError = egress{}, "nobody answered"
-	if log := requestLog(r, j, about); !strings.Contains(log, "  exit-ip    not looked up · nobody answered\n") {
+	if log := requestLog(r, j, about); !strings.Contains(log, "  exit-ip    unknown · nobody answered\n") {
 		t.Errorf("the log of a request whose address nobody knew:\n%s", log)
 	}
 }

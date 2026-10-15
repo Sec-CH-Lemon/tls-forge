@@ -164,6 +164,9 @@ func requestLog(r result, j job, about requestAbout) string {
 				written = append(written, s.Written)
 			}
 		}
+		if answered := t.ProxyAnswer(); answered != "" {
+			indented(&log, "the proxy's answer to CONNECT", answered)
+		}
 		// Under the steps rather than among them, and numbered only when a
 		// redirect made the request more than once.
 		for i, request := range written {
@@ -286,6 +289,10 @@ func requestTrace(r result, method string) []traceEvent {
 		if t.Body != "" {
 			ended["body"] = t.Body
 		}
+		if len(t.Conn.ProxyHeader) > 0 {
+			ended["proxy_answer"] = safeHeaders(t.Conn.ProxyHeader)
+		}
+		t.Exit.into(ended)
 		events = append(events, event(traceEvent{Phase: phaseEnd,
 			TS: at(max(began+t.Took.Microseconds(), reached)), Args: ended}))
 		if t.Wait > 0 {
@@ -295,12 +302,7 @@ func requestTrace(r result, method string) []traceEvent {
 	}
 
 	ended := traceArgs{"attempts": r.Attempts}
-	if r.Exit.IP != "" {
-		ended["exit_ip"] = r.Exit.IP
-		if country := r.Exit.countryCode(); country != "" {
-			ended["exit_country"] = country
-		}
-	}
+	r.Exit.into(ended)
 	if r.Error != "" {
 		ended["error"] = r.Error
 	} else {

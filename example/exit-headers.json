@@ -1,0 +1,30 @@
+{
+  "about": "A file laid over the exit header fields tls-forge has built in, as mergeRight lays one object over another, when it is named with --exit-headers, wherever it is. A field or a probe here replaces the built-in one of the same key (a field's header, the answer it comes in and the param it reads, a probe's when and path), one with off takes the built-in one out, and the rest are added, and read before the built-in ones.",
+  "fields": [
+    {
+      "header": "X-Egress-IP",
+      "value": "address",
+      "country": "X-Egress-Country",
+      "provider": "a proxy of one's own",
+      "note": "Not built in: added, and read before the built-in fields."
+    },
+    {
+      "header": "x-brd-ip",
+      "provider": "Bright Data",
+      "note": "Replaces the built-in x-brd-ip with one that has no resolve, so a hash is shown as it is and brdtest.com is not asked what it stands for."
+    },
+    {
+      "header": "Node-Ip",
+      "off": true,
+      "note": "Takes SOAX's field out, and with it the Respond-With every CONNECT said for it."
+    }
+  ],
+  "probes": [
+    {
+      "when": "cf-ray",
+      "path": "/cdn-cgi/trace",
+      "off": true,
+      "note": "A site behind Cloudflare is not asked for /cdn-cgi/trace, which a browser does not ask for."
+    }
+  ]
+}

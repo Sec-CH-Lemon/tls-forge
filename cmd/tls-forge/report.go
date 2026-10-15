@@ -137,7 +137,7 @@ func summarise(records []result, elapsed time.Duration) summary {
 		if r.Error == "" {
 			stat.Succeeded++
 		}
-		if key := (exitOf{r.Proxy, r.Exit}); r.Exit.IP != "" && !seenExits[key] {
+		if key := (exitOf{r.Proxy, r.Exit}); r.Exit.Known() && !seenExits[key] {
 			seenExits[key] = true
 			stat.Exits = append(stat.Exits, r.Exit)
 		}
@@ -337,9 +337,10 @@ func (r reportRow) Facts() []fact {
 		fact{Label: "Started", Value: atPrecisely(r.Started)},
 		fact{Label: "Ended", Value: atPrecisely(r.Ended)},
 	)
-	if r.ExitError != "" {
-		// Why the row says the address was not looked up.
-		facts = append(facts, fact{Label: "Exit address", Value: "not looked up · " + r.ExitError})
+	if r.ExitError != "" || r.Exit.By != "" {
+		// Why the row says the address is unknown, or how it was found when the
+		// proxy did not say it.
+		facts = append(facts, fact{Label: "Exit address", Value: r.exitSaid()})
 	}
 	if r.Error != "" {
 		// In full, and where it can be selected. On the row it is a tooltip.
@@ -462,8 +463,15 @@ type reportData struct {
 	Route  *route
 	Via    bool
 	Exited bool
-	// Asked is how where they came out was found out.
-	Asked asking
+	// Before is what was asked before the run, of where it comes out. Said says
+	// a proxy told where some request came out, and Unsaid that one did not.
+	// Hashed says a proxy told it by a hash of the address, and Found that an
+	// address was found by asking for it where only the same exit could answer.
+	Before *probe
+	Said   bool
+	Unsaid bool
+	Hashed bool
+	Found  bool
 	// Traced says some row has a trace to open, and RunTrace is the trace of
 	// the whole run, when there was one.
 	Traced   bool
@@ -484,7 +492,7 @@ type route struct {
 	SameProxy bool
 	// Exit is where they all came out, when SameExit says they did. When they
 	// did not, Exits is how many addresses they came out of between them, and
-	// Unknown how many of the requests were not looked up.
+	// Unknown how many of the requests nobody knows that of.
 	Exit     egress
 	SameExit bool
 	Exits    int
@@ -507,7 +515,7 @@ func routes(records []result) *route {
 		way.SameProxy = way.SameProxy && r.Proxy == first.Proxy
 		way.SameExit = way.SameExit && r.Exit == first.Exit
 		switch {
-		case r.Exit.IP == "":
+		case !r.Exit.Known():
 			way.Unknown++
 		case !seen[r.Exit]:
 			seen[r.Exit] = true
@@ -526,25 +534,21 @@ func (r route) Spread() string {
 		said = fmt.Sprintf("%d different addresses", r.Exits)
 	}
 	if r.Unknown > 0 {
-		said += fmt.Sprintf("; where %d of them came out was not looked up", r.Unknown)
+		said += fmt.Sprintf("; where %d of them came out is not known", r.Unknown)
 	}
 	return said
 }
 
-// asking is how a run found out where its requests came out.
-type asking int
-
-const (
-	// askedNobody: a list that went several ways, without a report that asked.
-	askedNobody asking = iota
-	// askedOnce: a run that went one way, asked before its first request.
-	askedOnce
-	// askedEach: a report, which asked beside every request.
-	askedEach
-)
-
-func (a asking) Once() bool { return a == askedOnce }
-func (a asking) Each() bool { return a == askedEach }
+// probe is the question asked before a run that went one way, of where it
+// comes out.
+type probe struct {
+	// Proxy is the one it was asked through, without its password, and none for
+	// a run made directly.
+	Proxy string
+	Exit  egress
+	// Error is why nobody could say.
+	Error string
+}
 
 // Columns are the tracks every row is laid out on, the row of headings
 // included: the same for all of them, which is what lines the rows up without
@@ -562,9 +566,19 @@ func (d reportData) Columns() template.CSS {
 		tracks = append(tracks, "11rem")
 	}
 	if d.Exited {
-		tracks = append(tracks, "9rem")
+		tracks = append(tracks, fmt.Sprintf("%drem", d.exitWidth()))
 	}
 	return template.CSS(strings.Join(tracks, " "))
+}
+
+// exitWidth is how wide the column of where each request came out is: an
+// address fits in nine, and a hash a proxy gave instead needs room for the
+// whole of it, so that it can be read off the row and compared with another.
+func (d reportData) exitWidth() int {
+	if d.Hashed {
+		return 16
+	}
+	return 9
 }
 
 // Width is the least the rows are laid out on before they scroll sideways
@@ -576,7 +590,7 @@ func (d reportData) Width() template.CSS {
 		width += 11
 	}
 	if d.Exited {
-		width += 9
+		width += d.exitWidth()
 	}
 	return template.CSS(fmt.Sprintf("%drem", width))
 }
@@ -655,8 +669,9 @@ type reportInput struct {
 	command string
 	records []result
 	summary summary
-	// asked is how where the requests came out was found out.
-	asked asking
+	// before is what was asked before the run, of where it comes out: nothing,
+	// when the run went more than one way and nobody was asked.
+	before *probe
 	// method is what every request asked with, and trace the file the whole run
 	// was traced to, if it was.
 	method, trace string
@@ -847,6 +862,13 @@ func renderReport(w io.Writer, in reportInput) error {
 	// Of every request, shown or not: a run did not go one way because the rows
 	// that were kept did.
 	way := routes(in.records)
+	said, unsaid, hashed, found := false, false, false, false
+	for _, r := range in.records {
+		said = said || (r.Proxy != "" && r.Exit.Known())
+		unsaid = unsaid || (r.Proxy != "" && !r.Exit.Known())
+		hashed = hashed || r.Exit.Hash != ""
+		found = found || r.Exit.By != ""
+	}
 
 	data := reportData{
 		Command:   in.command,
@@ -860,7 +882,11 @@ func renderReport(w io.Writer, in reportInput) error {
 		Route:     way,
 		Via:       way != nil && !way.SameProxy,
 		Exited:    way != nil && !way.SameExit,
-		Asked:     in.asked,
+		Before:    in.before,
+		Said:      said,
+		Unsaid:    unsaid,
+		Hashed:    hashed,
+		Found:     found,
 		Traced:    traced,
 		// Trusted because it is this repository's own file, compiled in.
 		CSS: template.CSS(reportCSS),

@@ -22,6 +22,11 @@ type recordingProxy struct {
 	mu       sync.Mutex
 	targets  []string
 	listener net.Listener
+	// says is what the answer to the nth CONNECT adds to its status line, as
+	// header fields, each ending in a CRLF, given the header fields the CONNECT
+	// came with, and heard is told those fields, when it is set.
+	says  func(n int, asked []string) string
+	heard func(asked []string)
 }
 
 // startProxy runs a CONNECT proxy on a loopback port.
@@ -32,11 +37,25 @@ type recordingProxy struct {
 // proxy than this is here to be.
 func startProxy(t *testing.T) *recordingProxy {
 	t.Helper()
+	return startProxySaying(t, func(int) string { return "" })
+}
+
+// startProxySaying runs a CONNECT proxy whose answers say more than that the
+// tunnel is open: where it comes out, as some proxies do.
+func startProxySaying(t *testing.T, says func(n int) string) *recordingProxy {
+	t.Helper()
+	return startProxyHearing(t, func(n int, _ []string) string { return says(n) })
+}
+
+// startProxyHearing runs a CONNECT proxy whose answers depend on what the
+// CONNECT asked for, as some proxies say where they come out only when asked.
+func startProxyHearing(t *testing.T, says func(n int, asked []string) string) *recordingProxy {
+	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listening: %v", err)
 	}
-	p := &recordingProxy{addr: listener.Addr().String(), listener: listener}
+	p := &recordingProxy{addr: listener.Addr().String(), listener: listener, says: says}
 	t.Cleanup(func() { _ = listener.Close() })
 
 	go func() {
@@ -66,6 +85,7 @@ func (p *recordingProxy) handle(conn net.Conn) {
 	target := fields[1]
 
 	// Drain the headers, so the tunnel starts where the client expects it to.
+	var asked []string
 	for {
 		header, err := reader.ReadString('\n')
 		if err != nil {
@@ -74,6 +94,7 @@ func (p *recordingProxy) handle(conn net.Conn) {
 		if strings.TrimSpace(header) == "" {
 			break
 		}
+		asked = append(asked, strings.TrimSpace(header))
 	}
 
 	upstream, err := net.Dial("tcp", target)
@@ -87,9 +108,14 @@ func (p *recordingProxy) handle(conn net.Conn) {
 	// through rather than what was merely asked for.
 	p.mu.Lock()
 	p.targets = append(p.targets, target)
+	tunnel := len(p.targets)
+	heard := p.heard
 	p.mu.Unlock()
+	if heard != nil {
+		heard(asked)
+	}
 
-	if _, err := fmt.Fprint(conn, "HTTP/1.1 200 Connection established\r\n\r\n"); err != nil {
+	if _, err := fmt.Fprint(conn, "HTTP/1.1 200 Connection established\r\n"+p.says(tunnel, asked)+"\r\n"); err != nil {
 		return
 	}
 	go func() { _, _ = io.Copy(upstream, reader) }()

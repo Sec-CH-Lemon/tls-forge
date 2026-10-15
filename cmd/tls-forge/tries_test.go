@@ -437,7 +437,7 @@ func TestRoutes(t *testing.T) {
 		},
 		{
 			"every request direct, and nobody asked", []result{{}, {}},
-			route{SameProxy: true, SameExit: true, Unknown: 2}, "one address; where 2 of them came out was not looked up",
+			route{SameProxy: true, SameExit: true, Unknown: 2}, "one address; where 2 of them came out is not known",
 		},
 		{
 			// A proxy that hands every request an address of its own.
@@ -447,7 +447,7 @@ func TestRoutes(t *testing.T) {
 		{
 			"two ways out, one of them not looked up", []result{{Proxy: p1, Exit: pl}, {}},
 			route{Proxy: "http://user@p1", Exit: pl, Exits: 1, Unknown: 1},
-			"one address; where 1 of them came out was not looked up",
+			"one address; where 1 of them came out is not known",
 		},
 	} {
 		way := routes(tc.records)
@@ -479,6 +479,11 @@ func TestReportColumns(t *testing.T) {
 		{
 			"one proxy, an address for each request", reportData{Exited: true},
 			"0.75rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem 9rem", "65rem",
+		},
+		{
+			// Room for the whole of a hash a proxy gave instead of the address.
+			"one proxy, a hash of the address for each request", reportData{Exited: true, Hashed: true},
+			"0.75rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem 16rem", "72rem",
 		},
 		{
 			"several proxies, nobody asked where", reportData{Via: true},
@@ -526,7 +531,7 @@ func TestReportShowsEveryTry(t *testing.T) {
 		// The key to how a try is drawn, and the one way every request went.
 		"A try is drawn on the length of the whole request",
 		"Every request was made directly",
-		"Where it came out was not looked up.",
+		"Where it came out is not known.",
 		"grid-template-columns:0.75rem 1fr 7.5rem 4.5rem 8rem 4.5rem 2.5rem",
 		"min-width:56rem",
 		"04 Mar 2026 09:30:00.400",
@@ -655,7 +660,7 @@ func TestListReportShowsEveryTryAndTheLinesDoNot(t *testing.T) {
 	server, _ := replying(t, 503, 200)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, written, stderr := exec(t, "fetch", "--json", "--retry", "1", "--report="+path, "--report-ip=false",
+	code, written, stderr := exec(t, "fetch", "--json", "--retry", "1", "--report="+path,
 		server.URL+"/flaky")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

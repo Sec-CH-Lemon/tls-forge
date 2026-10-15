@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -35,29 +36,6 @@ func standInIPService(t *testing.T, body string, status int) *atomic.Int32 {
 		asked.Add(1)
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(body))
-	}))
-	t.Cleanup(server.Close)
-
-	askOnly(t, addressService{URL: server.URL, read: readJSON})
-	return asked
-}
-
-// rotatingIPService answers every question with an address of its own, as a
-// proxy that hands each connection a new one seems to from inside: 203.0.113.1
-// to the first, 203.0.113.2 to the second. A question refuse picks out by its
-// number is turned away with a 429 instead.
-//
-// Over TLS, so that it can be reached through a proxy, which only tunnels.
-func rotatingIPService(t *testing.T, refuse func(n int32) bool) *atomic.Int32 {
-	t.Helper()
-	asked := &atomic.Int32{}
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		n := asked.Add(1)
-		if refuse != nil && refuse(n) {
-			w.WriteHeader(http.StatusTooManyRequests)
-			return
-		}
-		_, _ = fmt.Fprintf(w, `{"ip":"203.0.113.%d","country":"PL"}`, n)
 	}))
 	t.Cleanup(server.Close)
 
@@ -274,7 +252,7 @@ func TestWriteReport(t *testing.T) {
 		},
 	}
 	in := inputOf(records)
-	in.summary.Elapsed, in.asked = 2*time.Second, askedEach
+	in.summary.Elapsed = 2 * time.Second
 
 	path := filepath.Join(t.TempDir(), "report.html")
 	if err := writeReport(reportFile{formatHTML, path}, in); err != nil {
@@ -299,11 +277,12 @@ func TestWriteReport(t *testing.T) {
 		"203.0.113.7",
 		"\U0001F1F5\U0001F1F1", // the flag
 		"direct",
-		"not looked up",
+		"unknown",
 		// Why, in the row that opens.
-		"not looked up · nobody answered",
-		// How it was found out, for whoever wonders whether to believe it.
-		"Where each request came out was asked of " + askedOf() + " while it was being",
+		"unknown · nobody answered",
+		// Where the address the proxy gave came from, for whoever wonders whether
+		// to believe it.
+		"Where a request through a proxy came out is what the proxy said",
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the report has no %q", want)
@@ -577,15 +556,9 @@ func TestListWritesAReport(t *testing.T) {
 		t.Errorf("stderr does not end with what the run came to (%q):\n%s", want, stderr)
 	}
 	// Both went the same way, so where that came out was asked once, before the
-	// first of them, and is said where the run says what it is wearing. For the
-	// report each was asked about as well, which is said before it is done.
-	for _, want := range []string{
-		"  exit-ip     203.0.113.7 · PL\n",
-		"asking where each request comes out while it is made: " + askedOf() + "\n",
-	} {
-		if !strings.Contains(stderr, want) {
-			t.Errorf("stderr has no %q:\n%s", want, stderr)
-		}
+	// first of them, and is said where the run says what it is wearing.
+	if !strings.Contains(stderr, "  exit-ip     203.0.113.7 · PL\n") {
+		t.Errorf("stderr does not say where the run came out:\n%s", stderr)
 	}
 
 	data, err := os.ReadFile(path)
@@ -637,20 +610,17 @@ func TestListKeepsItsSessionFromTheAddressService(t *testing.T) {
 }
 
 func TestListReportWithoutAskingAboutEachRequest(t *testing.T) {
-	// --report-ip=false, so where the run came out is asked once, before it,
-	// as it is for every run that goes one way, and not again for each request.
-	// The stand-in counts what it is asked.
+	// Where the run came out is asked once, before it, as it is for every run
+	// that goes one way, and a report asks nobody again for each request. The
+	// stand-in counts what it is asked.
 	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
 
 	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
-	code, _, stderr := exec(t, "fetch", "--report="+path, "--report-ip=false", "--insecure",
-		server.URL+"/one", server.URL+"/two")
+	code, _, stderr := exec(t, "fetch", "--report="+path, "--insecure",
+		server.URL+"/one", server.URL+"/two", server.URL+"/three")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
-	}
-	if strings.Contains(stderr, "asking where each request") {
-		t.Errorf("a lookup for each request was announced anyway:\n%s", stderr)
 	}
 	if got := asked.Load(); got != 1 {
 		t.Errorf("the service was asked %d times, want once", got)
@@ -671,7 +641,7 @@ func TestListReportToAPathThatWillNotOpen(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	code, _, stderr := exec(t, "fetch", "--report="+filepath.Join(blocked, "r.html"),
-		"--report-ip=false", server.URL+"/one")
+		server.URL+"/one")
 	if code != 1 || !strings.Contains(stderr, "a-file") {
 		t.Errorf("an unwritable report path: exit code %d\n%s", code, stderr)
 	}
@@ -683,7 +653,7 @@ func TestListReportToADirectoryThatDoesNotExist(t *testing.T) {
 	server := pathServer(t)
 	dir := filepath.Join(t.TempDir(), "reports")
 	code, _, _ := exec(t, "fetch", "--report="+dir+string(os.PathSeparator),
-		"--report-ip=false", server.URL+"/one")
+		server.URL+"/one")
 	if code != 0 {
 		t.Errorf("exit code %d, want 0", code)
 	}
@@ -722,12 +692,13 @@ func TestRenderReportReportsAWriteFailure(t *testing.T) {
 }
 
 func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
-	// The proxy column had a typo, so the URL failed and there is no client to
-	// ask where it would have come out. The report is still written, and says
-	// the address was not looked up rather than failing the run.
+	// The proxy column had a typo, so the URL failed and there was no proxy to
+	// say where it came out. The report is still written, and says that is not
+	// known rather than failing the run.
 	asked := standInIPService(t, `{"ip":"203.0.113.7","country":"PL"}`, http.StatusOK)
 	server := pathServer(t)
-	// Two of the three went without a proxy, and each of those is asked about.
+	// Two of the three went without a proxy. The list went two ways, so nobody
+	// was asked where the machine comes out, and that is said as well.
 	list := writeList(t, "typo.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/bad,::not a proxy::\n%[1]s/good,\n%[1]s/also-good,\n", server.URL))
 
@@ -740,11 +711,15 @@ func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading the report: %v", err)
 	}
-	if !strings.Contains(string(data), "not looked up") {
-		t.Error("the report claims to know where a broken proxy came out")
+	for _, want := range []string{
+		"Where the requests came out is not known.", "unknown · not asked, as the run went more than one way",
+	} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("the report has no %q", want)
+		}
 	}
-	if got := asked.Load(); got != 2 {
-		t.Errorf("the service was asked %d times, want once for each request that went out", got)
+	if got := asked.Load(); got != 0 {
+		t.Errorf("the service was asked %d times, want never", got)
 	}
 }
 
@@ -756,7 +731,7 @@ func TestReportBesideTheRequestsOpensTheirTraces(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", "out", "--report", "--report-ip=false", server.URL)
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "-o", "out", "--report", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -797,7 +772,7 @@ func TestReportOfARunTracedToOneFile(t *testing.T) {
 	trace, report := filepath.Join(dir, "run.trace.json"), filepath.Join(dir, "reports", "run")
 
 	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--trace", trace, "--report="+report,
-		"--report-format", "html,json", "--report-ip=false", server.URL)
+		"--report-format", "html,json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -815,110 +790,263 @@ func TestReportOfARunTracedToOneFile(t *testing.T) {
 	}
 }
 
-func TestReportAsksWhereEachRequestCameOut(t *testing.T) {
-	// A proxy can hand every request an address of its own, so for a report each
-	// one is asked about while it is made. The stand-in gives a new address to
-	// every question, as such a proxy would seem to, and turns every second one
-	// away: the first, before the run, is answered, and so is the third.
-	rotatingIPService(t, func(n int32) bool { return n%2 == 0 })
-	server, _ := replying(t, 200)
+func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
+	// A proxy that hands every connection an address of its own, and says which
+	// in its answer to CONNECT: the nth tunnel comes out at 203.0.113.n. Where a
+	// request came out is the address of the tunnel it went through, and nobody
+	// is asked about it: the one question before the run is its own tunnel.
+	clock := fakeClock(t)
+	asked := standInIPService(t, `{"ip":"192.0.2.9","country":"DE"}`, http.StatusOK)
+	via := startProxySaying(t, func(n int) string { return fmt.Sprintf("X-Exit-IP: 203.0.113.%d\r\n", n) })
+	first, second := tlsPathServer(t), tlsPathServer(t)
+	list := writeList(t, "rotating.txt", first.URL+"/a\n"+second.URL+"/b\n"+first.URL+"/c\n")
 	tmp := t.TempDir()
 	dir, report, trace := filepath.Join(tmp, "out"), filepath.Join(tmp, "run"), filepath.Join(tmp, "run.trace.json")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--insecure", "-o", dir, "--trace", trace,
-		"--report="+report, "--report-format", "html,json", server.URL)
+	code, _, stderr := exec(t, "fetch", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
+		"-o", dir, "--trace", trace, "--report="+report, "--report-format", "html,json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	if !strings.Contains(stderr, "  exit-ip     203.0.113.1 · PL\n") || !strings.Contains(stderr, "asking where each request") {
-		t.Errorf("stderr does not say where the run came out, and that each request will be asked about:\n%s", stderr)
+	if got := asked.Load(); got != 1 {
+		t.Errorf("the address service was asked %d times, want only before the run", got)
 	}
-	refused := "not looked up · " + ipServices[0].URL + ": HTTP 429"
-
-	// One request at a time, so the questions are asked in the order they went.
+	// The question before the run went through the first tunnel. The pages took
+	// the next two, one for each server, and the last request went out on the
+	// connection the first one had left open, so it came out where that did.
 	doc := decoded(t, []byte(reportOf(t, report+".json")))
-	if len(doc.Requests) != 3 {
-		t.Fatalf("%d requests in the report, want 3", len(doc.Requests))
+	var exits []string
+	for _, r := range doc.Requests {
+		if r.Exit == nil || r.ExitError != "" {
+			t.Fatalf("%s came out of %+v (%q)", r.URL, r.Exit, r.ExitError)
+		}
+		exits = append(exits, r.Exit.IP)
 	}
-	first, second, third := doc.Requests[0], doc.Requests[1], doc.Requests[2]
-	if first.Exit != nil || !strings.HasSuffix(first.ExitError, ": HTTP 429") ||
-		second.Exit == nil || *second.Exit != (documentExit{IP: "203.0.113.3", Country: "PL"}) || second.ExitError != "" ||
-		third.Exit != nil || third.ExitError == "" {
-		t.Errorf("the requests came out of %+v, %+v and %+v", first, second, third)
+	if want := []string{"203.0.113.2", "203.0.113.3", "203.0.113.2"}; !slices.Equal(exits, want) {
+		t.Errorf("the requests came out of %v, want %v", exits, want)
+	}
+	if got := doc.Requests[0].Tries[0].Connection; got == nil || got.Exit == nil || got.Exit.IP != "203.0.113.2" ||
+		!slices.Equal(got.ProxyAnswer, []string{"x-exit-ip: 203.0.113.2"}) {
+		t.Errorf("the first try went out on %+v", got)
 	}
 
-	// Different for different rows, so every row says its own, and why one was
-	// not looked up when it is opened.
-	html := reportOf(t, report+".html")
+	page := reportOf(t, report+".html")
 	for _, want := range []string{
-		"Every request was made directly,\n      and came out of one address; where 2 of them came out was not looked up.",
-		">Exit address</span>", "203.0.113.3", refused,
-		"Where each request came out was asked of " + askedOf(),
+		"and came out of 2 different addresses.", ">Exit address</span>",
+		"The proxy answered CONNECT with 1 header field", "x-exit-ip: 203.0.113.2",
+		"came out at 203.0.113.3",
+		"Where a request through a proxy came out is what the proxy said",
+		// The one question asked before the run, which is given to no request.
+		"192.0.2.9</span>. That was a connection of its own",
 	} {
-		if !strings.Contains(html, want) {
+		if !strings.Contains(page, want) {
 			t.Errorf("the report has no %q", want)
 		}
 	}
-	if strings.Contains(html, "203.0.113.1<") {
-		t.Error("the report has the address the run came out of before it began for a request")
-	}
 
-	// The log and the trace each request is kept with say the same.
-	logs, _ := filepath.Glob(filepath.Join(dir, "*.log"))
-	sort.Strings(logs)
-	if len(logs) != 3 {
-		t.Fatalf("logs kept: %v", logs)
-	}
-	for i, want := range []string{"  exit-ip  " + refused + "\n", "  exit-ip  203.0.113.3 · PL\n"} {
-		if log, _ := os.ReadFile(logs[i]); !strings.Contains(string(log), want) {
-			t.Errorf("the log of request %d has no %q:\n%s", i+1, want, log)
+	// The log and the trace each request is kept with say the same, and so does
+	// the trace of the run.
+	name := "127.0.0.1-" + stamp(clock.now())
+	log, _ := os.ReadFile(filepath.Join(dir, name+"-3.log"))
+	for _, want := range []string{
+		"  exit-ip  203.0.113.2\n", "came out at 203.0.113.2",
+		"\n  the proxy's answer to CONNECT\n    x-exit-ip: 203.0.113.2\n",
+	} {
+		if !strings.Contains(string(log), want) {
+			t.Errorf("the log of the last request has no %q:\n%s", want, log)
 		}
 	}
-	kept := traceFile(t, filepath.Join(dir, "trace-"+strings.TrimSuffix(filepath.Base(logs[1]), ".log")+".json"))
-	if ended := kept[len(kept)-1]; ended.Args["exit_ip"] != "203.0.113.3" || ended.Args["exit_country"] != "PL" {
+	kept := traceFile(t, filepath.Join(dir, "trace-"+name+"-2.json"))
+	if ended := kept[len(kept)-1]; ended.Args["exit_ip"] != "203.0.113.3" {
 		t.Errorf("the trace of the second request ends as %+v", ended)
 	}
-	// And the trace of the run has a moment for each question.
-	asked := named(traceFile(t, trace), phaseInstant, "exit-ip")
-	if len(asked) != 3 || asked[0].Args["error"] == nil || asked[1].Args["ip"] != "203.0.113.3" {
-		t.Errorf("the run traced the questions as %+v", asked)
+	answered := 0
+	for _, event := range traceFile(t, trace) {
+		if event.Name == "proxy+tls" && event.Args["proxy_answer"] != nil {
+			answered++
+		}
+	}
+	if answered != 2 {
+		t.Errorf("the trace of the run has the proxy's answer to %d tunnels, want the two the pages opened", answered)
 	}
 }
 
-func TestListAsksWhereEachRequestCameOutThroughItsProxy(t *testing.T) {
-	// The question goes the way its request went, so that the answer is about
-	// that proxy: each one carries the question as well as its own request.
-	rotatingIPService(t, nil)
-	first, second := tlsPathServer(t), tlsPathServer(t)
-	proxyA, proxyB := startProxy(t), startProxy(t)
-	list := writeList(t, "routed.csv", fmt.Sprintf("url,proxy\n%s/a,http://%s\n%s/b,http://%s\n",
-		first.URL, proxyA.addr, second.URL, proxyB.addr))
+func TestListTakesWhereEachRequestCameOutFromItsOwnProxy(t *testing.T) {
+	// Two proxies, each saying where it comes out in a field of its own, and a
+	// third that says nothing. Nobody else is asked about any of them.
+	asked := standInIPService(t, `{"ip":"192.0.2.9"}`, http.StatusOK)
+	massive := startProxySaying(t, func(int) string { return "X-Exit-IP: 198.51.100.1\r\nX-Exit-Country: NL\r\n" })
+	mesh := startProxySaying(t, func(int) string { return "X-ProxyMesh-IP: 2001:db8::0:1\r\n" })
+	silent := startProxy(t)
+	server := tlsPathServer(t)
+	list := writeList(t, "routed.csv", fmt.Sprintf("url,proxy\n%[1]s/a,http://%[2]s\n%[1]s/b,http://%[3]s\n%[1]s/c,http://%[4]s\n",
+		server.URL, massive.addr, mesh.addr, silent.addr))
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--input", list, "--insecure", "--timeout", "20s",
-		"--report="+path, "--report-format", "json")
+	code, _, stderr := exec(t, "fetch", "--input", list, "--insecure", "--report="+path, "--report-format", "json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	service := hostOf(ipServices[0].URL)
-	for name, proxy := range map[string]*recordingProxy{"the first": proxyA, "the second": proxyB} {
-		if seen := proxy.seen(); !slices.Contains(seen, service) {
-			t.Errorf("%s proxy did not carry the question: %v", name, seen)
-		}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("the address service was asked %d times", got)
 	}
-	// Nobody was asked before the run, which went two ways, so the two answers
-	// are the first two the stand-in gave, one to each.
 	doc := decoded(t, []byte(reportOf(t, path)))
-	var exits []string
-	for _, p := range doc.Proxies {
-		if len(p.Exits) != 1 {
-			t.Fatalf("%s came out of %+v", p.Proxy, p.Exits)
+	got := map[string]string{}
+	for _, r := range doc.Requests {
+		switch {
+		case r.Exit != nil:
+			got[r.URL] = r.Exit.IP + " " + r.Exit.Country
+		default:
+			got[r.URL] = r.ExitError
 		}
-		exits = append(exits, p.Exits[0].IP)
 	}
-	sort.Strings(exits)
-	if !slices.Equal(exits, []string{"203.0.113.1", "203.0.113.2"}) {
-		t.Errorf("the proxies came out of %v", exits)
+	want := map[string]string{
+		server.URL + "/a": "198.51.100.1 NL",
+		// Written the way an address is written, whatever the proxy wrote.
+		server.URL + "/b": "2001:db8::1 ",
+		server.URL + "/c": "the proxy did not say",
+	}
+	if !maps.Equal(got, want) {
+		t.Errorf("the requests came out of %v, want %v", got, want)
+	}
+}
+
+func TestReportTakesAProxysHashOfTheAddress(t *testing.T) {
+	// Bright Data does not say the address a tunnel comes out of. It says a hash
+	// of it, the same for the same address, and that is where a request came
+	// out: every new tunnel here comes out of another one.
+	clock := fakeClock(t)
+	hash := func(n int) string { return fmt.Sprintf("r%032x", n) }
+	via := startProxySaying(t, func(n int) string { return "x-brd-ip: " + hash(n) + "\r\n" })
+	first, second := tlsPathServer(t), tlsPathServer(t)
+	list := writeList(t, "hashed.txt", first.URL+"/a\n"+second.URL+"/b\n")
+	tmp := t.TempDir()
+	dir, report := filepath.Join(tmp, "out"), filepath.Join(tmp, "run")
+	// The field alone, without the example's way of asking Bright Data what a
+	// hash stands for, which would ask brdtest.com on the internet.
+	fields := filepath.Join(tmp, "exit-headers.json")
+	if err := os.WriteFile(fields, []byte(`{"fields": [{"header": "x-brd-ip"}]}`), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	code, _, stderr := exec(t, "fetch", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
+		"--exit-headers", fields, "-o", dir, "--report="+report, "--report-format", "html,json")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	// The question before the run took the first tunnel, and the pages the next.
+	doc := decoded(t, []byte(reportOf(t, report+".json")))
+	var exits []string
+	for _, r := range doc.Requests {
+		if r.Exit == nil || r.Exit.IP != "" {
+			t.Fatalf("%s came out of %+v", r.URL, r.Exit)
+		}
+		exits = append(exits, r.Exit.Hash)
+	}
+	if want := []string{hash(2), hash(3)}; !slices.Equal(exits, want) {
+		t.Errorf("the requests came out of %v, want %v", exits, want)
+	}
+
+	page := reportOf(t, report+".html")
+	for _, want := range []string{
+		"and came out of 2 different addresses.",
+		// The whole of each, in a column wide enough for it.
+		"</span> " + hash(2) + "\n", "</span> " + hash(3) + "\n", "min-width:72rem",
+		"came out at " + hash(3) + " (the proxy&#39;s name for the address)",
+		"names it instead, as Bright Data does\n       with a hash of it in x-brd-ip",
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the report has no %q", want)
+		}
+	}
+	name := "127.0.0.1-" + stamp(clock.now())
+	if log, _ := os.ReadFile(filepath.Join(dir, name+"-1.log")); !strings.Contains(string(log),
+		"  exit-ip  "+hash(2)+" (the proxy's name for the address)\n") {
+		t.Errorf("the log of the first request does not say where it came out:\n%s", log)
+	}
+	kept := traceFile(t, filepath.Join(dir, "trace-"+name+"-2.json"))
+	if ended := kept[len(kept)-1]; ended.Args["exit_hash"] != hash(3) || ended.Args["exit_ip"] != nil {
+		t.Errorf("the trace of the second request ends as %+v", ended)
+	}
+}
+
+func TestAProxyThatSaysOnlyWhenAsked(t *testing.T) {
+	// SOAX names the node a tunnel came out of when the CONNECT asks for it
+	// with Respond-With, which the file says every CONNECT is to say.
+	via := startProxyHearing(t, func(_ int, asked []string) string {
+		if slices.Contains(asked, "Respond-With: ip,country") {
+			return "Node-Ip: 203.0.113.30\r\nNode-Country: al\r\n"
+		}
+		return ""
+	})
+	server := tlsPathServer(t)
+	path := filepath.Join(t.TempDir(), "run.json")
+
+	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--report="+path,
+		"--report-format", "json", server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	doc := decoded(t, []byte(reportOf(t, path)))
+	if got := doc.Requests[0].Exit; got == nil || *got != (documentExit{IP: "203.0.113.30", Country: "AL"}) {
+		t.Errorf("the request came out of %+v", got)
+	}
+}
+
+func TestReportOfAProxyNobodyCouldBeAskedThrough(t *testing.T) {
+	// The question before the run went unanswered, which the report says, and a
+	// proxy that says nothing either leaves every request's exit unknown.
+	standInIPService(t, "busy", http.StatusServiceUnavailable)
+	via := startProxy(t)
+	server := tlsPathServer(t)
+	path := filepath.Join(t.TempDir(), "run.html")
+
+	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--report="+path, server.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	page := reportOf(t, path)
+	for _, want := range []string{
+		"comes out was asked of " + askedOf() + ",\n       and nobody could say: ", ": HTTP 503. That was a connection",
+		"Where it came out is not known.", "unknown · the proxy did not say",
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the report has no %q", want)
+		}
+	}
+}
+
+func TestExitHeadersTeachAFieldAProxySaysItIn(t *testing.T) {
+	via := startProxySaying(t, func(int) string { return "X-Egress: 192.0.2.44\r\n" })
+	server := tlsPathServer(t)
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "run.html")
+
+	// Not a field anybody is known to say it in, so it is not known.
+	args := []string{"fetch", "--proxy", "http://" + via.addr, "--insecure", "--report=" + path, server.URL}
+	if code, _, stderr := exec(t, args...); code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if page := reportOf(t, path); !strings.Contains(page, "unknown · the proxy did not say") ||
+		!strings.Contains(page, "a proxy that says it in another is taught it in a file") {
+		t.Error("the report does not say the proxy did not say where it came out")
+	}
+	// Named in a file, it is read.
+	mine := filepath.Join(tmp, "exit-headers.json")
+	if err := os.WriteFile(mine, []byte(`{"fields": [{"header": "X-Egress", "value": "address"}]}`), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if code, _, stderr := exec(t, append(args, "--exit-headers", mine)...); code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if page := reportOf(t, path); !strings.Contains(page, "and came out of <span class=\"not-italic\"></span> "+
+		"<span class=\"font-mono\">192.0.2.44</span>.") {
+		t.Error("the report does not say where the named field said it came out")
+	}
+	// A file that was named and is not there ends the run before it begins.
+	none := filepath.Join(tmp, "none.json")
+	if code, _, stderr := exec(t, append(args, "--exit-headers", none)...); code != 1 || !strings.Contains(stderr, none) {
+		t.Errorf("exit code = %d, want 1 and the file named\n%s", code, stderr)
 	}
 }
 
@@ -1069,7 +1197,7 @@ func TestListNamesTheReportAfterTheRun(t *testing.T) {
 	server := pathServer(t)
 	dir := t.TempDir()
 
-	code, _, stderr := exec(t, "fetch", "--report="+dir, "--report-ip=false", server.URL+"/one")
+	code, _, stderr := exec(t, "fetch", "--report="+dir, server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1258,7 +1386,7 @@ func TestListSaysWhatTheReportLeftOut(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "run.html")
 	urls := []string{server.URL + "/a", server.URL + "/b", server.URL + "/c", server.URL + "/d"}
 
-	args := append([]string{"fetch", "--report=" + path, "--report-ip=false"}, urls...)
+	args := append([]string{"fetch", "--report=" + path}, urls...)
 	code, _, stderr := exec(t, args...)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -1448,7 +1576,8 @@ func TestFetchReportWithoutAnAddress(t *testing.T) {
 	if code, _, stderr := exec(t, "fetch", "--report="+path, server.URL); code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	if html := reportOf(t, path); !strings.Contains(html, "not looked up") || strings.Contains(html, "203.0.113.7") {
+	if html := reportOf(t, path); !strings.Contains(html, "nobody could say: no address service to ask.") ||
+		strings.Contains(html, "203.0.113.7") {
 		t.Error("the report claims to know where the run came out")
 	}
 }
@@ -1457,7 +1586,7 @@ func TestListReportNumbersTheRunsOfARepeat(t *testing.T) {
 	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--report="+path, "--report-ip=false",
+	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--report="+path,
 		server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

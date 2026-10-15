@@ -61,6 +61,10 @@ type clientFlags struct {
 	// chose reports whether a flag was given rather than defaulted, which is
 	// how "no profile named" is told from "--profile chrome".
 	chose func(string) bool
+
+	// asked is what every CONNECT through a proxy says, for the proxies that
+	// say where the tunnel comes out only when they are asked.
+	asked tlsforge.Header
 }
 
 // addScopedClientFlags keeps unsupported flags out of --help. Accepting
@@ -270,7 +274,7 @@ func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 		opts = append(opts, tlsforge.WithCookies(asClientCookies(warmed)))
 	}
 	if proxy != "" {
-		opts = append(opts, tlsforge.WithProxy(proxy))
+		opts = append(opts, tlsforge.WithProxy(proxy), tlsforge.WithProxyHeader(f.asked))
 	}
 	if *f.insecure {
 		opts = append(opts, tlsforge.WithInsecureSkipVerify())
@@ -319,8 +323,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	again := addRunFlags(fs)
 	watch := addWatchFlags(fs)
 	reporting := addReportFlags(fs)
-	reportIP := fs.Bool("report-ip", true,
-		"with --report, ask where each request comes out while it is made: "+askedOf())
+	exitHeaders := fs.String("exit-headers", "",
+		"a JSON file laid over the exit header fields built in: one of the same key replaces ours, "+
+			"\"off\" takes ours out, the rest are added")
 	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -341,6 +346,11 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if err != nil {
 		return err
 	}
+	exits, err := loadExitTable(*exitHeaders)
+	if err != nil {
+		return err
+	}
+	common.asked = askedBy(exits.Fields)
 
 	// Nothing named a URL, and standard input is somebody at a keyboard rather
 	// than a list: the command was typed without what it is for. Said at once,
@@ -426,8 +436,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// command's failure rather than every request's, and where it comes out is
 	// asked once and said before the first request. A list with a proxy for
 	// each URL is as many identities as it has proxies. Their clients are made
-	// as the list reaches them, and where each request comes out is a question
-	// for the report.
+	// as the list reaches them, and nobody is asked where any of them comes out.
 	way, oneWay := sameWay(jobs, *common.proxy)
 	var found egress
 	var lookupErr error
@@ -459,19 +468,14 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		lane.instant("cookies loaded", "cookies", traceArgs{"from": from})
 	}
 
-	// For a report, where each request comes out is asked beside it: a proxy can
-	// hand every request an address of its own, and then where the run came out
-	// says nothing about any of them. Not for one request, which the question
-	// before it has answered. Said before anybody is asked, as the question
-	// before the run is: a third party is named rather than contacted quietly.
-	asked := askedNobody
+	// What was asked before the run, for the report to say. It answers for the
+	// requests made without a proxy, and for none made through one.
+	var before *probe
 	if oneWay {
-		asked = askedOnce
-	}
-	lookups := len(formats) > 0 && *reportIP && requests > 1
-	if lookups {
-		asked = askedEach
-		errOut.printf("asking where each request comes out while it is made: %s\n", askedOf())
+		before = &probe{Proxy: redactProxy(way), Exit: found}
+		if lookupErr != nil {
+			before.Error = redactError(lookupErr, way)
+		}
 	}
 
 	// Made rather than required, as a report's is: a run that has fetched a list
@@ -532,18 +536,17 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			method: *method, profile: profileName(*common.profile),
 			requests: requests, runs: *again.repeat,
 		},
-		lookups: lookups,
-		counts:  counts, trace: trace,
+		exits: exits, names: &resolver{},
+		counts: counts, trace: trace,
 		// Every try is written down for a report, and for the log and the trace
 		// each request is kept with.
 		detailed: len(formats) > 0 || *output != "",
 	}
-	if oneWay {
-		// Where every request came out, unless each is asked about itself.
-		with.exit = found
-		if lookupErr != nil {
-			with.exitError = redactError(lookupErr, way)
-		}
+	switch {
+	case !oneWay:
+		with.directError = "not asked, as the run went more than one way"
+	case way == "":
+		with.direct, with.directError = found, before.Error
 	}
 	if asJSON {
 		lines.say, with.out = notes.say, lines
@@ -588,7 +591,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if len(formats) > 0 {
 		var written []reportFile
 		written, reportErr = writeReports(reportFiles(*reporting.path, *output, formats, now()),
-			reportInput{command: "fetch", records: records, summary: totals, asked: asked,
+			reportInput{command: "fetch", records: records, summary: totals, before: before,
 				method: *method, trace: *again.trace})
 		for _, file := range written {
 			name := file.path
@@ -728,10 +731,19 @@ func describeExit(found egress, err error, proxy string) string {
 	if err != nil {
 		return "not looked up · " + redactError(err, proxy)
 	}
-	if country := found.countryCode(); country != "" {
-		return found.IP + " · " + country
+	if found.IP == "" {
+		// A proxy that will not say the address, and named it instead: a hash
+		// of it, or whatever else the proxy calls it.
+		return found.Hash + " (the proxy's name for the address)"
 	}
-	return found.IP
+	said := found.IP
+	if country := found.countryCode(); country != "" {
+		said += " · " + country
+	}
+	if found.By != "" {
+		said += " (by " + found.By + ")"
+	}
+	return said
 }
 
 func runDaemon(_ context.Context, args []string, out, errOut *printer) error {

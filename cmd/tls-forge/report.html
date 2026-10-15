@@ -70,8 +70,8 @@
             <!-- Every address its requests came out of, up to a few: a proxy that
                  hands each request its own would otherwise fill the table. -->
             <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
-              {{range .ListedExits}}<span class="block"><span class="not-italic">{{.Flag}}</span> {{.IP}}</span>
-              {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
+              {{range .ListedExits}}<span class="block"><span class="not-italic">{{.Flag}}</span> {{.Shown}}</span>
+              {{else}}<span class="font-sans text-muted dark:text-muted-dark">unknown</span>{{end}}
               {{with .MoreExits}}<span class="block font-sans text-muted dark:text-muted-dark">and {{.}} more</span>{{end}}
             </td>
             <td class="px-4 py-2.5 text-right tabular-nums">{{.Requests}}</td>
@@ -110,15 +110,15 @@
     <p class="mb-3 text-xs text-muted dark:text-muted-dark">
       {{if .SameProxy}}
       Every request {{if .Proxy}}went through <span class="font-mono">{{.Proxy}}</span>{{else}}was made directly{{end}}{{if not .SameExit}},
-      and came out of {{.Spread}}.{{else if .Exit.IP}},
-      and came out of <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.IP}}</span>.{{else}}.
-      Where it came out was not looked up.{{end}}
+      and came out of {{.Spread}}.{{else if .Exit.Known}},
+      and came out of <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.Shown}}</span>.{{else}}.
+      Where it came out is not known.{{end}}
       {{else if not .SameExit}}
       The requests came out of {{.Spread}}.
-      {{else if .Exit.IP}}
-      Every request came out of <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.IP}}</span>.
+      {{else if .Exit.Known}}
+      Every request came out of <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.Shown}}</span>.
       {{else}}
-      Where the requests came out was not looked up.
+      Where the requests came out is not known.
       {{end}}
     </p>
     {{end}}
@@ -179,8 +179,8 @@
               {{end}}
               {{if $.Exited}}
               <span class="min-w-0 break-all font-mono text-xs">
-                {{if .Exit.IP}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.IP}}
-                {{else}}<span class="font-sans text-muted dark:text-muted-dark">not looked up</span>{{end}}
+                {{if .Exit.Known}}<span class="not-italic">{{.Exit.Flag}}</span> {{.Exit.Shown}}
+                {{else}}<span class="font-sans text-muted dark:text-muted-dark">unknown</span>{{end}}
               </span>
               {{end}}
             </span>
@@ -243,6 +243,16 @@
                 </tbody>
               </table>
               {{end}}
+              {{if .ProxyAnswer}}
+              <!-- Where a proxy says where the connection came out, when it says. -->
+              <details class="group/part mt-2">
+                <summary class="cursor-pointer text-muted dark:text-muted-dark">
+                  <span aria-hidden="true" class="inline-block transition-transform group-open/part:rotate-90">›</span>
+                  The proxy answered CONNECT with {{.ProxyFields}}
+                </summary>
+                <pre class="mt-1 whitespace-pre-wrap break-all font-mono">{{.ProxyAnswer}}</pre>
+              </details>
+              {{end}}
               {{if .Answer}}
               <!-- Open already when the answer was not the page: what came back
                    is then the reason the row was opened. -->
@@ -267,13 +277,41 @@
 
   <footer class="mt-10 space-y-1 text-xs leading-relaxed text-muted dark:text-muted-dark">
     <p>Data volumes are the decompressed body, which is more than crossed the wire.</p>
-    {{if .Asked.Each}}
-    <p>Where each request came out was asked of {{.Service}} while it was being
-       made, through the same proxy on a connection of its own. A proxy that gives
-       every connection an address of its own may have given the request another.</p>
-    {{else if .Asked.Once}}
-    <p>Where the requests came out was asked of {{.Service}} once, before the
+    {{with .Before}}
+    {{if .Proxy}}
+    <p>Before the first request, where a request through
+       <span class="font-mono">{{.Proxy}}</span> comes out was asked of {{$.Service}}{{if .Exit.IP}}:
+       <span class="not-italic">{{.Exit.Flag}}</span> <span class="font-mono">{{.Exit.IP}}</span>{{else}},
+       and nobody could say: {{.Error}}{{end}}. That was a connection of its own,
+       and is given to none of the requests: a proxy can hand every connection an
+       address of its own.</p>
+    {{else if .Exit.IP}}
+    <p>Where the requests came out was asked of {{$.Service}} once, before the
        first of them, and is where the run came out at that moment.</p>
+    {{else}}
+    <p>Where the requests came out was asked of {{$.Service}} before the first of
+       them, and nobody could say: {{.Error}}.</p>
+    {{end}}
+    {{end}}
+    {{if .Said}}
+    <p>Where a request through a proxy came out is what the proxy said when it
+       opened the connection the request went out on, in its answer to CONNECT.</p>
+    {{end}}
+    {{if .Hashed}}
+    <p>A proxy that will not say the address names it instead, as Bright Data does
+       with a hash of it in x-brd-ip: the same name is the same address.</p>
+    {{end}}
+    {{if .Found}}
+    <p>Where a proxy did not say the address, it was asked for where only the same
+       exit could answer: of the site, over the very connection the request went
+       out on, or of the proxy's own service, through the exit the proxy named. An
+       opened row says which.</p>
+    {{end}}
+    {{if .Unsaid}}
+    <p>Where a proxy did not say that, it is not known: asking anybody else would
+       be asking about another connection. The fields a proxy's answer is read for
+       are built in, and a proxy that says it in another is taught it in a file
+       named with --exit-headers.</p>
     {{end}}
     {{if .Traced}}
     <p>Open in Perfetto hands the trace of a request to ui.perfetto.dev in a new

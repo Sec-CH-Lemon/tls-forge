@@ -19,13 +19,50 @@ import (
 // A process cannot see its own public address, and through a proxy the address
 // is the proxy's, so somebody outside has to be asked. A run that goes one way
 // asks once, before its first request, for the last line of what it says it is
-// wearing. A report asks again for every request, while it is made, because a
-// proxy can hand each one an address of its own.
+// wearing.
+//
+// That answers for every request made without a proxy, which all come out
+// where the machine does. It answers for no request made through one: it was
+// asked on a connection of its own, and a proxy can hand every connection an
+// address of its own. Where those came out is what the proxy said when it
+// opened each of them, when it said anything.
 
 // egress is where a client's requests come out.
 type egress struct {
 	IP      string `json:"ip"`
 	Country string `json:"country"`
+	// Hash is what a proxy that will not say the address calls it instead: its
+	// own hash of the address, the same for the same address. Never read from
+	// an address service's answer, which is where the two above come from.
+	Hash string `json:"-"`
+	// By is how the address was found when the proxy did not say it: who was
+	// asked, and over what.
+	By string `json:"-"`
+}
+
+// Known says where it came out is known, by the address or by a proxy's hash
+// of it.
+func (e egress) Known() bool { return e.IP != "" || e.Hash != "" }
+
+// Shown is where it came out, as the report shows it: the address, or the
+// whole of the hash a proxy gave instead.
+func (e egress) Shown() string { return either(e.IP, e.Hash) }
+
+// into writes where it came out into a trace event, under the names a trace
+// gives it.
+func (e egress) into(args traceArgs) {
+	if e.IP != "" {
+		args["exit_ip"] = e.IP
+	}
+	if e.Hash != "" {
+		args["exit_hash"] = e.Hash
+	}
+	if country := e.countryCode(); country != "" {
+		args["exit_country"] = country
+	}
+	if e.By != "" {
+		args["exit_by"] = e.By
+	}
 }
 
 // Flag is the country as its flag, or empty when there is no country.
@@ -172,9 +209,9 @@ func (f clientFlags) asker(proxy string) (*tlsforge.Client, error) {
 
 // exitLookupWait bounds how long a run waits to learn where it comes out.
 //
-// The address is commentary. Fetch asks for it before every request, so it does
-// not get the request's whole timeout to hold the request up with: on a network
-// that drops the question, that would be half a minute added to every fetch.
+// The address is commentary. Fetch asks for it before every run, so it does not
+// get the request's whole timeout to hold the run up with: on a network that
+// drops the question, that would be half a minute added to every fetch.
 //
 // A variable rather than a constant so a test can lower it.
 var exitLookupWait = 5 * time.Second

@@ -561,6 +561,10 @@ func micros(n int64) time.Duration { return time.Duration(n) * time.Microsecond 
 // connArgs is a connection as the trace describes it.
 func connArgs(conn tlsforge.ConnInfo) traceArgs {
 	about := traceArgs{"reused": conn.Reused, "remote": conn.RemoteAddr}
+	if len(conn.ProxyHeader) > 0 {
+		// Where a proxy says where the connection came out, when it says.
+		about["proxy_answer"] = safeHeaders(conn.ProxyHeader)
+	}
 	if conn.TLSVersion != "" {
 		about["tls"] = conn.TLSVersion
 		about["cipher"] = conn.CipherSuite

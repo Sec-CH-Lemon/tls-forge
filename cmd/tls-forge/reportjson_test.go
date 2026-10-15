@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -283,7 +284,7 @@ func TestReportAsJSON(t *testing.T) {
 		Remote: "198.51.100.7:8080", TLS: "TLS 1.3", Cipher: "TLS_AES_128_GCM_SHA256", ALPN: "h2", Resumed: true,
 	}
 	if first.MS != 100.3 || first.Status != 503 || first.Bytes != 19 || first.WaitMS != 250 ||
-		first.Connection == nil || *first.Connection != wantConn || first.BodyStart != "<h1>slow down</h1>" ||
+		first.Connection == nil || !reflect.DeepEqual(*first.Connection, wantConn) || first.BodyStart != "<h1>slow down</h1>" ||
 		!slices.Equal(first.ResponseHeaders, []string{"Retry-After: 1", "Server: test"}) {
 		t.Errorf("the first try is written as %+v", first)
 	}
@@ -478,7 +479,7 @@ func TestOneReportIsWrittenWhenTheOtherCannotBe(t *testing.T) {
 	}
 
 	// A list does the same, and names the page among what the run came to.
-	code, _, stderr = exec(t, "fetch", "--report="+base, "--report-format", "html,json", "--report-ip=false",
+	code, _, stderr = exec(t, "fetch", "--report="+base, "--report-format", "html,json",
 		server.URL+"/one", server.URL+"/two")
 	if code != 1 || !strings.Contains(stderr, "  Report        "+base+".html\n") || !strings.Contains(stderr, "tlsforge: fetch: ") {
 		t.Errorf("a list: exit code = %d\n%s", code, stderr)
@@ -497,7 +498,7 @@ func TestListWritesBothReports(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "run")
 
-	code, _, stderr := exec(t, "fetch", "--report="+base, "--report-format", "json,html", "--report-ip=false",
+	code, _, stderr := exec(t, "fetch", "--report="+base, "--report-format", "json,html",
 		server.URL+"/a", server.URL+"/b", server.URL+"/c")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

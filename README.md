@@ -256,7 +256,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
 | `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
 | `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; default `html` |
-| `--report-ip[=false]` | With `--report`, ask the address services where each request comes out, while it is made; default `true` |
+| `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
 
 What comes out is decided by how the command was asked, not by how many URLs
 it ended up with:
@@ -343,15 +343,166 @@ first. Amazon and ipify report the address without a country.
 
 This is at least one additional request to a third party on every run. The
 lookup waits at most five seconds in all, and when nobody answers the line says
-so instead of failing the fetch. A proxy that assigns an address per connection
-can send the request itself from a different one, which is why a
-[report](#reporting-a-run) asks again for every request. A list whose entries
-name different proxies has no one address to report, and nobody is asked
-before it starts.
+so instead of failing the fetch. A list whose entries name different proxies
+has no one address to report, and nobody is asked.
 
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
 are compatible with tools such as curl and wget.
+
+#### Where a request came out
+
+The address asked about before the run is where every request made without a
+proxy comes out. Through a proxy it is not where any request came out: the
+question went on a connection of its own, and a proxy that hands every
+connection an address of its own gave the requests others. Asking again for
+each request would ask about another connection each time.
+
+Only the proxy knows, and some say so in their answer to the `CONNECT` that
+opens each tunnel. `fetch` opens the tunnel through an HTTP or HTTPS proxy
+itself and keeps that answer with the connection, so every request that goes
+out on it, a reused one included, says where it came out, and no request is
+made to anybody to find out.
+
+Which fields say it, and what to ask when none does, is a table,
+[`cmd/tls-forge/exit-headers.json`](cmd/tls-forge/exit-headers.json), built
+into the binary. The file `--exit-headers` names, wherever it is, is laid over
+it when a run begins, as `mergeRight` lays one object over another, so the
+table is changed without building anything. The table built in covers:
+
+| Field | Sent by |
+|---|---|
+| `X-Exit-IP`, with the country in `X-Exit-Country` | Massive, NodeMaven, shellroute |
+| `X-Proxy-Exit-IP` | NodeMaven |
+| `X-ProxyMesh-IP` | ProxyMesh |
+| `X-BD-Outgoing-Ip`, and `ip=` in `X-BD-Dynamic-Egress-Info` | g3proxy |
+| `Node-Ip`, with `Node-Country` | SOAX, when the `CONNECT` asks with `Respond-With: ip,country`, which the file makes every `CONNECT` say |
+| `x-brd-ip`, and `brd_ip=` in `Proxy-Status` | Bright Data: the address on datacenter and ISP zones, a hash of it on residential and mobile ones |
+| `x-luminati-ip`, `x-hola-ip` | Bright Data and Luminati before it, no longer sent |
+| `X-NN-LLS` | NetNut, a long-session token that holds one exit, when the user name asks for one with `-nnid-0` |
+| `X-Scrapoxy-Proxyname` | Scrapoxy, the name of the proxy rather than its address |
+| `X-Crawlera-Slave`, in the response | Zyte Smart Proxy Manager |
+| `peer_ip=` in `x-brd-debug`, in the response | Bright Data Web Unlocker and SERP API, with `-debug-full` |
+
+Oxylabs, Decodo, IPRoyal, Webshare, Apify, Nimble, Evomi, DataImpulse, GeoNode,
+Infatica, Rayobyte, PacketStream, Proxy-Cheap, Live Proxies, Storm Proxies,
+Shifter, Proxy-Seller, ProxyEmpire, Froxy, MarsProxies, Proxyrack, Asocks,
+anyIP, Byteful, Thordata, Zyte API, Crawlbase, ScraperAPI, ScrapingBee and
+ScrapeOps document no such field: some send one on errors, and Byteful an ID
+of the request rather than of the exit. Nor do Kookeey, IPFoxy and the IPIDEA
+network, 922 S5, PIA S5, LunaProxy, PyProxy, IPIDEA and ABCProxy, which was
+taken down in January 2026: each of them says to read the address off a
+service that echoes it. Nor does an open-source forward proxy
+as it comes: Squid, Tinyproxy, 3proxy, Privoxy, mitmproxy, goproxy, Envoy,
+Caddy's forwardproxy, gost, glider, v2ray and Xray, sing-box, mihomo and Tor's
+HTTP tunnel all answer `CONNECT` without one. Envoy can be set up to add one
+with `response_headers_to_add` and `%UPSTREAM_LOCAL_ADDRESS%`, and a field of
+your own then reads it. A proxy in front of another, as Squid with a
+`cache_peer`, mitmproxy, gost, v2ray or mihomo are, answers `CONNECT` itself
+and drops whatever the proxy behind it said.
+
+A file laid over the table needs only what it changes. A field or a probe in it
+replaces the table's of the same key, which is a field's `header`, in any case,
+the answer it comes `in` and the `param` it reads, and a probe's `when` and
+`path`; one with `"off": true` takes the table's out; the rest are added. The file's are read before
+what is left of the table's, so where an answer holds both, the file's is
+believed. [`example/exit-headers.json`](example/exit-headers.json) does each of
+these:
+
+```json
+{
+  "fields": [
+    {"header": "X-Egress-IP", "value": "address", "country": "X-Egress-Country", "provider": "a proxy of one's own"},
+    {"header": "x-brd-ip", "provider": "Bright Data"},
+    {"header": "Node-Ip", "off": true}
+  ],
+  "probes": [
+    {"when": "cf-ray", "path": "/cdn-cgi/trace", "off": true}
+  ]
+}
+```
+
+It adds a field the table does not have, replaces Bright Data's with one that
+does not ask what a hash stands for, and takes out SOAX's field, with the
+`Respond-With` every `CONNECT` said for it, and the Cloudflare probe.
+
+`header` is the field, in any case. `value` is what it holds: `address`, an IP
+address with or without a port after it, `hash`, the proxy's own hash of the
+address, `name`, whatever else the proxy calls where the tunnel comes out, or
+left out for an address or a hash. `0.0.0.0` and `::` say nothing, and an IPv4
+address written as IPv6 is the IPv4 address. `param` is the parameter that
+holds it when the field is `name=value` pairs separated by semicolons, as
+`brd_ip` in `Proxy-Status`, in any of the items of a list of them separated
+by commas, which a `Proxy-Status` two proxies wrote is; a semicolon or a comma
+in quotes separates nothing. `country` and `country_param` are the field, and the parameter
+of it, that name the tunnel's country. `in` is `response` for a field a proxy
+that decrypts the traffic writes into the answer to the request; a site can
+write one there as well, so it is believed only when the answer to `CONNECT`
+said nothing. `ask` is header fields every `CONNECT` is to say, for a proxy
+that answers with the field only when asked; they go to every proxy, and to
+no site. `provider`, `source` and `note` are for whoever reads the file. A key
+the file does not know, a `header`, `country` or `when` that no header field
+can be called, an `ask` a `CONNECT` cannot say (one that frames it, such as
+`Content-Length`, or the credentials, which come from the proxy's URL), a
+`value` or `in` that is none of the ones above, two fields or two probes of
+one key, an empty file, or more after the table ends the run before it
+begins, so that a misspelled file is not silently ignored. A byte order mark
+before the table is passed over.
+
+When the proxy says nothing, or says only a name, the file can say what to
+ask, and only where nothing but the same exit can answer:
+
+- `probes` are asked of the site itself, over the very connection the request
+  went out on. The example asks a site behind Cloudflare, one whose response
+  came with `cf-ray`, for `/cdn-cgi/trace`, which every such site answers with
+  `ip=` and `loc=`: where the request came from, and so where it came out. The
+  answer is believed only when it came back over the same tunnel, which the
+  tunnel's number says; over another it would be another exit's.
+- `resolve`, on a field, turns a name the proxy gave into the address: it asks
+  `url` through the same proxy with a user name that says to go out through the
+  exit of that name. The example asks Bright Data's `brdtest.com/myip.json`
+  with `-ip-<hash>`, once for each hash.
+
+Both are a request more, to the site or to the proxy's own service, and only
+when a report is written or the requests are kept. A site behind Cloudflare
+sees a visitor ask for `/cdn-cgi/trace`, which a browser does not; take the
+probe out with `"off": true` if that matters more than the address. Nothing is asked
+of anybody else on a connection of its own: the answer would be another
+connection's.
+
+```json
+{
+  "fields": [{"header": "x-brd-ip", "resolve": {"user": "{user}-ip-{value}",
+    "url": "https://brdtest.com/myip.json", "format": "json", "ip": "ip", "country": "country"}}],
+  "probes": [{"when": "cf-ray", "path": "/cdn-cgi/trace", "format": "lines", "ip": "ip", "country": "loc"}]
+}
+```
+
+`format` is `json`, an object, or `lines`, a `key=value` to a line, and `ip`
+and `country` the keys that hold the address and the country. An address found
+this way says how in the opened row of the report, in the log, as `by` in the
+JSON report and as `exit_by` in the traces.
+
+The value has to be what the field says before it is believed: a hash is
+letters and digits only, at least sixteen of them, and a name has nothing in
+it a terminal would take for an instruction. A proxy that will not say the
+address and names it instead, as Bright Data does with a hash, is taken at its
+word: the name is where the request came out, the same name being the same
+address, and it is shown as it is, since there is no telling the address from
+it. A proxy that says nothing, as most do, leaves where its requests came out
+unknown, and the [report](#reporting-a-run) says so rather than guess. The
+fields of the answer are in the report, in the log of every request kept with
+`--output` and in the trace, so whether a proxy says anything can be read off
+one run:
+
+```bash
+tls-forge fetch -o out/ --proxy http://user:pass@proxy.example:8080 https://example.com/
+grep -A5 "answer to CONNECT" out/*.log
+```
+
+A SOCKS proxy's answer has no header fields, and through one where a request
+came out is not known. Through an HTTP or HTTPS proxy HTTP/3 is off, as QUIC
+cannot go through it.
 
 #### A list of URLs
 
@@ -496,7 +647,7 @@ out/trace-example.com-2026-08-16-091854-584-1.json
   rest.
 - The `.log` is the request written out for a person: what it was, the
   profile and the proxy it went with, where it came out, how it ended, and
-  every try at it with
+  every try at it with what the proxy answered when it opened the tunnel,
   the connection it went out on, each thing it waited on and for how long, the
   request as it was written, what the answer came with, how an answer that was
   not a 2xx began, and the wait before the next try.
@@ -529,10 +680,10 @@ URL, and inside it a bar for each thing the try waited on.
 | In the trace | Meaning |
 |---|---|
 | `fetch` | The whole run, with its settings; it ends with the error, if there was one |
-| `profile`, `exit-ip`, `cookies loaded`, `cookies saved`, `summary` | What the run was wearing, where it came out and, for a report, where each request did, and the session and totals it handled |
+| `profile`, `exit-ip`, `cookies loaded`, `cookies saved`, `summary` | What the run was wearing, where it came out, and the session and totals it handled |
 | `GET <url>` | One try, with its run and attempt number. It ends with the status, size, final URL and response headers, or with the error |
 | `dns`, `connect` | The name lookup and the TCP dial, with every address tried and why any of them failed |
-| `tls`, or `proxy+tls` through a proxy | From the dial to a usable connection, with the TLS version, cipher and ALPN it settled on |
+| `tls`, or `proxy+tls` through a proxy | From the dial to a usable connection, with the TLS version, cipher and ALPN it settled on, and the proxy's answer to `CONNECT` as `proxy_answer` |
 | `send` | Writing the request: the header fields in wire order, and whether the connection was reused |
 | `wait`, `receive` | Until the first byte of the response, and from there to its end |
 | `redirect`, `retry`, `saved` | A redirect being followed, a try about to be made again and why, and a body written to a file |
@@ -604,8 +755,8 @@ many there were. The table of proxies lists the addresses each one came out of.
 Every row opens, and shows what that request took:
 
 - where it ended up when it was redirected, the file it was saved to, when it
-  started and ended to the millisecond, why nobody could say where it came
-  out, and the error in full;
+  started and ended to the millisecond, why where it came out is not known,
+  and the error in full;
 - when the run was traced, the trace: the one the request was kept with under
   `--output`, with its log, or else the `--trace` file of the whole run, each
   a link from where the report is; and **Open in Perfetto**, which opens the
@@ -614,8 +765,9 @@ Every row opens, and shows what that request took:
 - every try that was made at it, with how the try ended, how long it took and
   how long was waited before the next one;
 - the connection each try went out on: new or already open, the address at the
-  other end, and the TLS version, cipher suite and protocol the handshake
-  settled on;
+  other end, where it came out when its proxy said, the TLS version, cipher
+  suite and protocol the handshake settled on, and the header fields of the
+  proxy's answer to `CONNECT`;
 - each thing the try waited on and for how long: the name lookup with the
   addresses it found, the dial, the handshake, sending the request, waiting for
   the first byte and receiving the answer. A redirect is listed where it
@@ -705,9 +857,11 @@ than one. `success_rate` is a percentage. `trace` is the `--trace` file of the
 run, when there was one. A step the try ended in carries `"unfinished": true`, a
 redirect is a step named `redirect`, and `proxies` lists each proxy that was
 used with its `requests`, `came_back`, `alive` and `exits`, every address its
-requests came out of. A request nobody could say that of has `exit_error`
-instead of `exit`. A field with nothing to say is left out. The same things are
-masked as on the page.
+requests came out of. An `exit` has the `ip`, or the `hash` of it when that is
+all the proxy said. A request whose exit is not known has `exit_error`, why,
+instead of `exit`, and the `connection` of a try has the proxy's answer as
+`proxy_answer` and where it said the connection came out as `exit`. A field
+with nothing to say is left out. The same things are masked as on the page.
 
 The document holds every request, where the page stops at 2,000 rows. `tries`
 are there for the requests whose tries were kept: the first 2,000 that failed
@@ -724,17 +878,13 @@ exit code 1, after the pages have gone where they were going; of two, the one
 that could be written still is.
 
 The report is written however the run ended, a request that got no answer
-included. Where each request came out is asked of the same services as the
-address a run says it comes out of, while the request is made, through the
-same proxy and on a connection of its own. That is one more request to a third
-party for every request, and it is said before the first. The answer is where a
-request made at that moment came out: a proxy that gives every connection an
-address of its own may have given the request itself another. A run of one
-request uses the answer it was given before it began. `--report-ip=false` asks
-nothing more: a run that went one way then uses that answer for every request,
-and a list with a proxy for each URL has none. The page holds at most 2,000
-rows: the requests that failed or answered with something other than the page
-come first, and it says how many rows it left out.
+included. Where a request came out is what its proxy said, or for one made
+without a proxy, the address asked about before the run; see
+[Where a request came out](#where-a-request-came-out). The address a run
+through a proxy was asked about before it began is at the foot of the page,
+and given to no request. The page holds at most 2,000 rows: the requests that
+failed or answered with something other than the page come first, and it says
+how many rows it left out.
 
 Runnable CLI and SDK examples, with complete sample inputs and outputs, are in
 [`example/`](example/).

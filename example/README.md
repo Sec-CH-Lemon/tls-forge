@@ -508,11 +508,15 @@ It is one file with nothing to fetch from anywhere else, so it opens offline
 and can be sent on as it is. A request that got no answer is reported like any
 other, which is usually the one the page is opened for.
 
-Where each request came out is asked while it is made, through the same proxy,
-because a proxy can give every request an address of its own. When they all
-came out of one, the page says so once; when they did not, every row has its
-own. That is a question to an address service for every request, said before
-the first, and `--report-ip=false` leaves it at the one asked before the run.
+Each row also says where the request came out. Through a proxy that is what the
+proxy said when it opened the tunnel the request went through, in `X-Exit-IP`,
+`X-ProxyMesh-IP` or another field the table built in, or a file
+`--exit-headers` lays over it, names (`exit-headers.json` here is one), so a
+proxy that gives every
+connection an address of its own gives every row its own, and nothing is asked
+of anybody to find out. Bright Data says a hash of the address instead, in
+`x-brd-ip`, and the row shows that hash: the same hash is the same address. When they all came out of one, the page says so once.
+A proxy that says nothing leaves it unknown, and the row says so.
 
 Every row opens, and inside it is everything that request took: each try, the
 connection it went out on, and what it waited on. A page that was refused once
