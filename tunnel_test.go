@@ -1,0 +1,370 @@
+package tlsforge
+
+import (
+	"bufio"
+	"context"
+	"crypto/x509"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+// connectProxy stands in for an HTTP proxy: it opens a tunnel for every
+// CONNECT and answers with whatever answer makes of the tunnel's number, from
+// one. A proxy that hands every connection an address of its own says so in a
+// header field; one that turns the request away says that instead.
+type connectProxy struct {
+	server  *httptest.Server
+	tunnels atomic.Int32
+	mu      sync.Mutex
+	// credentials are the Proxy-Authorization of each CONNECT, and asked the
+	// Respond-With.
+	credentials []string
+	asked       []string
+}
+
+func startConnectProxy(t *testing.T, secure bool, answer func(n int32) string) *connectProxy {
+	t.Helper()
+	p := &connectProxy{}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			http.Error(w, "CONNECT only", http.StatusMethodNotAllowed)
+			return
+		}
+		p.mu.Lock()
+		p.credentials = append(p.credentials, r.Header.Get("Proxy-Authorization"))
+		p.asked = append(p.asked, r.Header.Get("Respond-With"))
+		p.mu.Unlock()
+		client, buffered, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			return
+		}
+		defer func() { _ = client.Close() }()
+		said := answer(p.tunnels.Add(1))
+		if _, err := client.Write([]byte(said)); err != nil || !strings.Contains(said, " 200 ") {
+			return
+		}
+		upstream, err := net.Dial("tcp", r.Host)
+		if err != nil {
+			return
+		}
+		defer func() { _ = upstream.Close() }()
+		go func() { _, _ = io.Copy(upstream, buffered) }()
+		_, _ = io.Copy(client, upstream)
+	})
+	if secure {
+		p.server = httptest.NewTLSServer(handler)
+	} else {
+		p.server = httptest.NewServer(handler)
+	}
+	t.Cleanup(p.server.Close)
+	return p
+}
+
+// url is the proxy's, with credentials.
+func (p *connectProxy) url() string {
+	return strings.Replace(p.server.URL, "://", "://user:s3cr3t@", 1)
+}
+
+// exitAnswer is a proxy that says where each tunnel comes out, a new address
+// for every one.
+func exitAnswer(n int32) string {
+	return fmt.Sprintf("HTTP/1.1 200 Connection established\r\nX-Exit-IP: 203.0.113.%d\r\nX-Exit-Country: PL\r\n\r\n", n)
+}
+
+func TestATunnelKeepsWhatTheProxyAnswered(t *testing.T) {
+	server := startEcho(t)
+	via := startConnectProxy(t, false, exitAnswer)
+	client := newTestClient(t, WithProxy(via.url()))
+
+	var first recorded
+	if _, err := client.Do(&Request{URL: server.URL() + "/api/all", Trace: first.trace()}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if len(first.conns) != 1 {
+		t.Fatalf("connections reported = %d", len(first.conns))
+	}
+	conn := first.conns[0]
+	// The socket goes to the proxy, and the proxy said where the tunnel came
+	// out, in the order and the case the header fields of a response have.
+	if conn.RemoteAddr != strings.TrimPrefix(via.server.URL, "http://") || conn.TLSVersion != "TLS 1.3" {
+		t.Errorf("the connection was reported as %+v", conn)
+	}
+	want := Header{{Name: "x-exit-country", Value: "PL"}, {Name: "x-exit-ip", Value: "203.0.113.1"}}
+	if !equalHeader(conn.ProxyHeader, want) {
+		t.Errorf("the proxy's answer was reported as %v, want %v", conn.ProxyHeader, want)
+	}
+	if got := via.credentials; len(got) != 1 || got[0] != "Basic "+base64.StdEncoding.EncodeToString([]byte("user:s3cr3t")) {
+		t.Errorf("the proxy was asked with %q", got)
+	}
+
+	// The next request goes out on the same tunnel, which came out where it did.
+	var second recorded
+	if _, err := client.Do(&Request{URL: server.URL() + "/api/all", Trace: second.trace()}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if len(second.conns) != 1 || !second.conns[0].Reused || second.conns[0].ProxyHeader.Get("x-exit-ip") != "203.0.113.1" {
+		t.Errorf("the second request's connection was reported as %+v", second.conns)
+	}
+	// The same tunnel, by its number, and another client's is another.
+	if conn.Tunnel == 0 || second.conns[0].Tunnel != conn.Tunnel {
+		t.Errorf("the tunnels were numbered %d and %d", conn.Tunnel, second.conns[0].Tunnel)
+	}
+	var third recorded
+	other := newTestClient(t, WithProxy(via.url()))
+	if _, err := other.Do(&Request{URL: server.URL() + "/api/all", Trace: third.trace()}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if len(third.conns) != 1 || third.conns[0].Tunnel == conn.Tunnel || third.conns[0].Tunnel == 0 {
+		t.Errorf("another tunnel was numbered %+v", third.conns)
+	}
+}
+
+func TestATunnelAsksWhatTheClientAsks(t *testing.T) {
+	// A proxy that says where the tunnel comes out only when the CONNECT asks.
+	server := startEcho(t)
+	via := startConnectProxy(t, false, exitAnswer)
+	asked := Header{{Name: "Respond-With", Value: "ip,country"}}
+	client := newTestClient(t, WithProxy(via.server.URL), WithProxyHeader(asked))
+	asked[0].Value = "changed afterwards"
+
+	if _, err := client.Get(server.URL()); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got := via.asked; len(got) != 1 || got[0] != "ip,country" {
+		t.Errorf("the proxy was asked %q", got)
+	}
+	// What goes to the proxy goes no further.
+	res, err := client.Get(server.URL() + "/api/all")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if strings.Contains(strings.ToLower(string(res.Body)), "respond-with") {
+		t.Errorf("the site was told what the proxy was asked: %s", res.Body)
+	}
+}
+
+func TestATunnelToAPlainHTTPSite(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("plain"))
+	}))
+	t.Cleanup(server.Close)
+	via := startConnectProxy(t, false, exitAnswer)
+	client := newTestClient(t, WithProxy(via.server.URL))
+
+	var seen recorded
+	res, err := client.Do(&Request{URL: server.URL, Trace: seen.trace()})
+	if err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if string(res.Body) != "plain" {
+		t.Errorf("body = %q", res.Body)
+	}
+	if len(seen.conns) != 1 || seen.conns[0].ProxyHeader.Get("x-exit-ip") != "203.0.113.1" {
+		t.Errorf("the connection was reported as %+v", seen.conns)
+	}
+	// Without credentials, nothing is claimed for them.
+	if got := via.credentials; len(got) != 1 || got[0] != "" {
+		t.Errorf("the proxy was asked with %q", got)
+	}
+}
+
+func TestATunnelThroughAnHTTPSProxy(t *testing.T) {
+	server := startEcho(t)
+	via := startConnectProxy(t, true, exitAnswer)
+	roots := x509.NewCertPool()
+	roots.AddCert(via.server.Certificate())
+	original := proxyRoots
+	t.Cleanup(func() { proxyRoots = original })
+	proxyRoots = roots
+
+	client := newTestClient(t, WithProxy(via.url()))
+	var seen recorded
+	if _, err := client.Do(&Request{URL: server.URL() + "/api/all", Trace: seen.trace()}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if len(seen.conns) != 1 || seen.conns[0].ProxyHeader.Get("x-exit-ip") != "203.0.113.1" {
+		t.Errorf("the connection was reported as %+v", seen.conns)
+	}
+}
+
+func TestATunnelTheProxyWillNotOpen(t *testing.T) {
+	server := startEcho(t)
+	for _, tc := range []struct {
+		name, answer, want string
+	}{
+		{"turned away", "HTTP/1.1 407 Proxy Authentication Required\r\nContent-Length: 0\r\n\r\n", "407 Proxy Authentication Required"},
+		// Hung up on without an answer.
+		{"no answer", "", "EOF"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			via := startConnectProxy(t, false, func(int32) string { return tc.answer })
+			client := newTestClient(t, WithProxy(via.server.URL))
+			if _, err := client.Get(server.URL()); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("err = %v, want one that says %q", err, tc.want)
+			}
+		})
+	}
+
+	// Nothing to talk to.
+	client := newTestClient(t, WithProxy("http://127.0.0.1:1"), WithTimeout(2*time.Second))
+	if _, err := client.Get(server.URL()); err == nil {
+		t.Error("a proxy that is not there opened a tunnel")
+	}
+}
+
+func TestATunnelThatIsNoLongerWanted(t *testing.T) {
+	// A proxy that takes the request and never answers it holds the request no
+	// longer than the request is wanted.
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Listen: %v", err)
+	}
+	var mu sync.Mutex
+	var held []net.Conn
+	t.Cleanup(func() {
+		_ = listener.Close()
+		mu.Lock()
+		defer mu.Unlock()
+		for _, conn := range held {
+			_ = conn.Close()
+		}
+	})
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			held = append(held, conn)
+			mu.Unlock()
+		}
+	}()
+
+	client := newTestClient(t, WithProxy("http://"+listener.Addr().String()))
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	began := time.Now()
+	if _, err := client.Do(&Request{Context: ctx, URL: "https://example.test/"}); err == nil {
+		t.Fatal("a proxy that never answered opened a tunnel")
+	}
+	if took := time.Since(began); took > 5*time.Second {
+		t.Errorf("the request waited %s on a proxy it no longer wanted", took)
+	}
+}
+
+func TestATunnelKeepsWhatCameWithTheAnswer(t *testing.T) {
+	// A proxy that starts on the tunnel in the same write as its answer: what
+	// was read along with the answer is the tunnel's, and comes first.
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Listen: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		_, _ = bufio.NewReader(conn).ReadString('\n')
+		_, _ = conn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\nalready"))
+		_, _ = conn.Write([]byte(" here"))
+	}()
+
+	u, _ := url.Parse("http://" + listener.Addr().String())
+	conn, err := newConnectDialer(u, 5*time.Second, nil, nil).DialContext(context.Background(), "tcp", "example.test:443")
+	if err != nil {
+		t.Fatalf("DialContext: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	got, _ := io.ReadAll(conn)
+	if string(got) != "already here" {
+		t.Errorf("the tunnel began with %q", got)
+	}
+	if header := conn.(*tunnel).header; len(header) != 0 {
+		t.Errorf("an answer with no header fields was kept as %v", header)
+	}
+}
+
+// unwritable is a connection that takes nothing.
+type unwritable struct{ net.Conn }
+
+func (unwritable) Write([]byte) (int, error)        { return 0, errors.New("broken pipe") }
+func (unwritable) SetDeadline(time.Time) error      { return nil }
+func (unwritable) SetReadDeadline(time.Time) error  { return nil }
+func (unwritable) SetWriteDeadline(time.Time) error { return nil }
+
+func TestATunnelThatCannotBeAskedFor(t *testing.T) {
+	u, _ := url.Parse("http://proxy.test")
+	if _, err := newConnectDialer(u, time.Second, nil, nil).open(context.Background(), unwritable{}, "example.test:443"); err == nil ||
+		!strings.Contains(err.Error(), "broken pipe") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestConnectDialerSettings(t *testing.T) {
+	plain, _ := url.Parse("http://proxy.test")
+	secure, _ := url.Parse("https://proxy.test")
+	named, _ := url.Parse("https://proxy.test:8443")
+	local := &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)}
+	extra := map[string][]string{"X-Session": {"7"}}
+	for _, tc := range []struct {
+		u       *url.URL
+		address string
+		secure  bool
+	}{
+		// The port the scheme has when the URL names none.
+		{plain, "proxy.test:80", false},
+		{secure, "proxy.test:443", true},
+		{named, "proxy.test:8443", true},
+	} {
+		d := newConnectDialer(tc.u, time.Second, local, extra)
+		if d.address != tc.address || d.secure != tc.secure || d.name != "proxy.test" || d.dialer.LocalAddr != local ||
+			d.header.Get("X-Session") != "7" || d.header.Get("Proxy-Authorization") != "" {
+			t.Errorf("%s: %+v", tc.u, d)
+		}
+	}
+	// No address of its own to dial from when none was given.
+	if d := newConnectDialer(plain, time.Second, nil, nil); d.dialer.LocalAddr != nil {
+		t.Errorf("dialling from %v", d.dialer.LocalAddr)
+	}
+}
+
+func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
+	// A SOCKS proxy, and a URL that does not parse, are the transport's: it
+	// knows what to say about them.
+	for _, proxyURL := range []string{"socks5://127.0.0.1:1080", "://not a url", "http://"} {
+		if got := proxyOptions(proxyURL); len(got) != 1 {
+			t.Errorf("%q is given %d options, want the transport's one", proxyURL, len(got))
+		}
+	}
+	// An HTTP proxy is tunnelled here, and without HTTP/3, which it cannot carry.
+	if got := proxyOptions("http://proxy.test:8080"); len(got) != 2 {
+		t.Errorf("an HTTP proxy is given %d options", len(got))
+	}
+}
+
+// equalHeader says two headers hold the same fields in the same order.
+func equalHeader(a, b Header) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}

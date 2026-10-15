@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -251,7 +252,7 @@ type addresslessConn struct{ net.Conn }
 func (addresslessConn) RemoteAddr() net.Addr { return nil }
 
 func TestConnOfAConnectionWithNoAddress(t *testing.T) {
-	if got, want := connOf(addresslessConn{}, true), (ConnInfo{Reused: true}); got != want {
+	if got, want := connOf(addresslessConn{}, true), (ConnInfo{Reused: true}); !reflect.DeepEqual(got, want) {
 		t.Errorf("connOf = %+v, want %+v", got, want)
 	}
 }

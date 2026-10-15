@@ -240,7 +240,14 @@ func New(opts ...Option) (*Client, error) {
 		options = append(options, tls_client.WithNotFollowRedirects())
 	}
 	if cfg.proxy != "" {
-		options = append(options, tls_client.WithProxyUrl(cfg.proxy))
+		options = append(options, proxyOptions(cfg.proxy)...)
+	}
+	if len(cfg.proxyHeader) > 0 {
+		asked := fhttp.Header{}
+		for _, field := range cfg.proxyHeader {
+			asked.Add(field.Name, field.Value)
+		}
+		options = append(options, tls_client.WithConnectHeaders(asked))
 	}
 	if cfg.insecureSkipVerify {
 		options = append(options, tls_client.WithInsecureSkipVerify())

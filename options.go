@@ -18,6 +18,7 @@ type config struct {
 	profileValueSet    bool
 	profileName        string
 	proxy              string
+	proxyHeader        Header
 	timeout            time.Duration
 	maxResponseBody    int64
 	headers            Header
@@ -65,6 +66,14 @@ func WithProfileValue(p *profile.Profile) Option {
 // socks5h://, with optional user:pass credentials.
 func WithProxy(proxyURL string) Option {
 	return func(c *config) { c.proxy = proxyURL }
+}
+
+// WithProxyHeader adds header fields to the CONNECT that opens every tunnel
+// through an HTTP or HTTPS proxy: for a proxy that says more about the tunnel
+// when it is asked to, as SOAX does with Respond-With. They go to the proxy and
+// no further, and a SOCKS proxy is sent none.
+func WithProxyHeader(header Header) Option {
+	return func(c *config) { c.proxyHeader = header.Clone() }
 }
 
 // WithTimeout sets the per-request deadline.

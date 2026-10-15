@@ -71,6 +71,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithProfile(name)` | Resolve a built-in, locally installed or runtime-registered profile by name. A profile file path is also accepted by the default registry. |
 | `WithProfileValue(profile)` | Use a previously loaded `*profile.Profile` directly. |
 | `WithProxy(url)` | Route requests through `http://`, `https://`, `socks5://` or `socks5h://`; credentials may be included in the URL. |
+| `WithProxyHeader(h)` | Header fields to add to the `CONNECT` that opens every tunnel through an HTTP or HTTPS proxy, for a proxy that says more when asked, such as SOAX with `Respond-With`. They reach the proxy and no further. |
 | `WithTimeout(duration)` | Set the transport request timeout. The default is `tlsforge.Timeout` (`30s`). Values must be positive and fit into a signed 32-bit millisecond value. |
 | `WithMaxResponseBody(bytes)` | Limit the decompressed response retained in memory. The default is `tlsforge.DefaultMaxResponseBody` (64 MiB). Values must be positive and bounded. |
 | `WithHeaders(header)` | Layer ordered default headers over the profile for every request. Existing names keep their profile position. |
@@ -217,6 +218,8 @@ response, err := client.Do(&tlsforge.Request{
 | `TLSVersion`, `CipherSuite` | Names of what the handshake negotiated, such as `TLS 1.3` and `TLS_AES_128_GCM_SHA256`. Empty over plain HTTP. |
 | `ALPN` | Negotiated protocol, `h2` or `http/1.1`. Empty over plain HTTP or when the server negotiated none. |
 | `Resumed` | The handshake resumed an earlier TLS session. |
+| `Tunnel` | Through an HTTP or HTTPS proxy, the number of the tunnel the connection goes through: the same for every request that goes out on it, so two requests with the same number came out of the same place. 0 without such a proxy. |
+| `ProxyHeader` | Through an HTTP or HTTPS proxy, the header fields of its answer to the `CONNECT` that opened the tunnel, in lower case. Some proxies say there where the tunnel comes out, such as `X-Exit-IP`, which nothing else a request can see does. Nil without such a proxy and through SOCKS. |
 
 Every hook is optional. Hooks run on the goroutines doing the work, so they can
 be called concurrently and must not block; one can also arrive after `Do` has

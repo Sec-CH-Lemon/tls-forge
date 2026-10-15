@@ -133,6 +133,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `Request.Trace` in the Go package: optional hooks for the name lookup, each
   dial, the connection and what its handshake negotiated, the header fields in
   wire order, the first response byte and every redirect followed.
+  `ConnInfo.ProxyHeader` is the header fields of an HTTP or HTTPS proxy's
+  answer to `CONNECT` for the tunnel a connection goes through,
+  `ConnInfo.Tunnel` the number of that tunnel, and `WithProxyHeader` adds
+  header fields to every `CONNECT`.
 
 ### Removed
 
@@ -216,6 +220,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   wait, and the first to answer is believed. A lookup waits at most five
   seconds in all; for a report it used to wait the full request timeout for
   each proxy. Amazon and ipify report the address without a country.
+- HTTP and HTTPS proxies are tunnelled by tls-forge rather than by the
+  transport, so that the proxy's answer to `CONNECT` is kept. The proxy is
+  spoken to over HTTP/1.1, one connection to it for each tunnel, and HTTP/3 is
+  turned off for a client that has one, which the transport refused through
+  such a proxy anyway. SOCKS proxies are unchanged.
 - Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and
   uTLS 1.7.8, including upstream fixes for HTTP/2 flow control, ALPN transport
   reuse and per-connection signature GREASE. Runtime cryptography and

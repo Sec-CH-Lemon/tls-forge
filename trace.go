@@ -71,6 +71,16 @@ type ConnInfo struct {
 	ALPN        string
 	// Resumed reports a handshake that picked up an earlier session.
 	Resumed bool
+	// ProxyHeader is what an HTTP or HTTPS proxy answered when it opened the
+	// tunnel the connection goes through: the header fields of its reply to
+	// CONNECT, in lower case. Some proxies say there where the tunnel comes
+	// out, which nothing else a request can see of itself does. Nil without
+	// such a proxy, and for a SOCKS proxy, whose answer has no header fields.
+	ProxyHeader Header
+	// Tunnel is the number of that tunnel, the same for every request that
+	// goes out on it and for no other tunnel, and 0 without one. Two requests
+	// with the same number came out of the same place.
+	Tunnel uint64
 }
 
 // The hooks, each behind the check for whether anybody asked for it.
@@ -193,6 +203,9 @@ func connOf(conn net.Conn, reused bool) ConnInfo {
 	out := ConnInfo{Reused: reused}
 	if addr := conn.RemoteAddr(); addr != nil {
 		out.RemoteAddr = addr.String()
+	}
+	if through := tunnelOf(conn); through != nil {
+		out.ProxyHeader, out.Tunnel = through.header, through.id
 	}
 	if secure, ok := conn.(connectionStater); ok {
 		state := secure.ConnectionState()

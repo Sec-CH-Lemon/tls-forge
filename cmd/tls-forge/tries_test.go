@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -71,7 +72,7 @@ func TestATryIsWrittenDownWithoutATrace(t *testing.T) {
 	if log.Took != 100100*time.Microsecond || log.Status != 200 || log.Bytes != 4 || log.Error != "" {
 		t.Errorf("the try ended as %+v", log)
 	}
-	if !log.Connected || log.Conn != conn {
+	if !log.Connected || !reflect.DeepEqual(log.Conn, conn) {
 		t.Errorf("the connection was kept as %+v", log.Conn)
 	}
 	// What came back with the page, by name. The page itself is the output, and
