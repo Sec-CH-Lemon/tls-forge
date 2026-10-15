@@ -268,7 +268,15 @@ func TestFetchKeepsTheRequestInADirectory(t *testing.T) {
 	if !strings.HasSuffix(stderr, "  saved to "+dir+"\n") {
 		t.Errorf("stderr does not say where the request was kept:\n%s", stderr)
 	}
-	pages, _ := filepath.Glob(filepath.Join(dir, "*-1.html"))
+	// The echo answers in JSON, so the page is kept as JSON, beside the
+	// trace's own .json.
+	var pages []string
+	matches, _ := filepath.Glob(filepath.Join(dir, "*-1.json"))
+	for _, m := range matches {
+		if !strings.HasPrefix(filepath.Base(m), "trace-") {
+			pages = append(pages, m)
+		}
+	}
 	if len(pages) != 1 {
 		t.Fatalf("the directory has %v, want one page", keptIn(t, dir))
 	}

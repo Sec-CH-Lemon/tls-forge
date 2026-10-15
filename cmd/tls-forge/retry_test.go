@@ -225,7 +225,7 @@ func TestFetchRepeatKeepsEveryRunInTheDirectory(t *testing.T) {
 	}
 	// Each run under its own number, with the page it got.
 	for run := 1; run <= 3; run++ {
-		pages, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("127.0.0.1-*-%d.html", run)))
+		pages, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("127.0.0.1-*-%d.txt", run)))
 		if len(pages) != 1 {
 			t.Fatalf("run %d kept no page among %v", run, keptIn(t, dir))
 		}
@@ -286,7 +286,7 @@ func TestFetchRepeatGoesOnPastARunThatGotNoAnswer(t *testing.T) {
 	// A page for each run that got one, and a log and a trace for every run,
 	// the one that got nothing most of all.
 	for run, answered := range map[int]bool{1: true, 2: false, 3: true} {
-		pages, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*-%d.html", run)))
+		pages, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*-%d.txt", run)))
 		logs, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*-%d.log", run)))
 		traces, _ := filepath.Glob(filepath.Join(dir, fmt.Sprintf("trace-*-%d.json", run)))
 		if (len(pages) == 1) != answered || len(logs) != 1 || len(traces) != 1 {

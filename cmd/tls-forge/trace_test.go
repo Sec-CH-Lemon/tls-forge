@@ -602,7 +602,7 @@ func TestFetchTracesWhereEachRunWasWritten(t *testing.T) {
 			t.Errorf("run %d was traced as run %v", i+1, runs[i].Args["run"])
 		}
 		saved, _ := file.Args["file"].(string)
-		if !strings.HasPrefix(saved, kept+string(os.PathSeparator)) || !strings.HasSuffix(saved, fmt.Sprintf("-%d.html", i+1)) ||
+		if !strings.HasPrefix(saved, kept+string(os.PathSeparator)) || !strings.HasSuffix(saved, fmt.Sprintf("-%d.txt", i+1)) ||
 			file.Args["bytes"] != 8.0 || file.Cat != "file" {
 			t.Errorf("run %d's file was traced as %+v", i+1, file)
 		}

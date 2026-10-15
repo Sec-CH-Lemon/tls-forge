@@ -17,8 +17,9 @@ import (
 // What is kept of each request, in the directory --output names.
 //
 // Three files for every request, under one name: the page, when anything came
-// back, whatever its status; a log of the request that a person reads; and a
-// trace of it that ui.perfetto.dev draws. The name is the host the request
+// back, whatever its status, ending in what its Content-Type says it is; a log
+// of the request that a person reads; and a trace of it that ui.perfetto.dev
+// draws. The name is the host the request
 // went to, when it was made, and which request of the run it was, so that a
 // directory of them lists by host and then by time, and the three files of one
 // request sit beside one another.
@@ -41,7 +42,7 @@ func keepRequest(dir string, r *result, res *tlsforge.Response, j job, about req
 	if res != nil {
 		// Whatever came back, an error page included: what a server says when it
 		// turns a request away is the most interesting page it sends.
-		page := filepath.Join(dir, name+".html")
+		page := filepath.Join(dir, name+pageExtension(res.Header, res.Body))
 		if err := os.WriteFile(page, res.Body, 0o644); err != nil {
 			return err
 		}

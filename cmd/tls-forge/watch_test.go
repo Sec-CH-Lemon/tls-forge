@@ -388,7 +388,7 @@ func TestFetchKeepsThePageOutOfAPipeWhenItHasADirectory(t *testing.T) {
 	if stdout != "answer-2" {
 		t.Errorf("stdout = %q, want the page that was asked for there", stdout)
 	}
-	if kept, _ := filepath.Glob(filepath.Join(path, "*.html")); len(kept) != 2 {
+	if kept, _ := filepath.Glob(filepath.Join(path, "*.txt")); len(kept) != 2 {
 		t.Errorf("the directory holds %v, want a page for each of the two runs", keptIn(t, path))
 	}
 }
@@ -579,12 +579,12 @@ func TestFetchVerboseSaysEveryRunAndWhereItWent(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	pages, _ := filepath.Glob(filepath.Join(dir, "*.html"))
+	pages, _ := filepath.Glob(filepath.Join(dir, "*.txt"))
 	if len(pages) != 2 {
 		t.Fatalf("the directory holds %v", keptIn(t, dir))
 	}
 	first, second := pages[0], pages[1]
-	if strings.HasSuffix(first, "-2.html") {
+	if strings.HasSuffix(first, "-2.txt") {
 		first, second = second, first
 	}
 	for _, want := range []string{

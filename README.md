@@ -481,9 +481,19 @@ out/example.com-2026-08-16-091854-584-1.log
 out/trace-example.com-2026-08-16-091854-584-1.json
 ```
 
-- The `.html` is what came back, whatever its status: what a server says when
+- The page is what came back, whatever its status: what a server says when
   it turns a request away is the page most worth reading. A request that got
-  no answer has none.
+  no answer has none. It ends in what its `Content-Type` says it is, so that it
+  opens as that: `.html`, `.json`, `.xml`, `.js`, `.css`, `.txt`, `.png`,
+  `.pdf` and the like, `.json` for any `+json` type and `.xml` for any `+xml`.
+  The header wins over the bytes: JSON sent as `text/plain` is kept as `.txt`,
+  as a browser would show it. A response that names more than one type, in two
+  fields or in one, is kept as the last of them, the one a browser goes by;
+  `*/*` names none. Only when there is no `Content-Type`, it says no more than
+  `application/octet-stream`, or it names a type the list does not know, do
+  the bytes decide: `.json` when they parse as JSON, then what
+  `http.DetectContentType` recognises, else `.txt` for text and `.bin` for the
+  rest.
 - The `.log` is the request written out for a person: what it was, the
   profile and the proxy it went with, where it came out, how it ended, and
   every try at it with

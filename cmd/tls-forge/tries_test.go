@@ -620,7 +620,7 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	}
 	html := reportOf(t, path)
 	address := strings.TrimPrefix(server.URL, "http://")
-	pages, _ := filepath.Glob(filepath.Join(kept, "*.html"))
+	pages, _ := filepath.Glob(filepath.Join(kept, "*.txt"))
 	logs, _ := filepath.Glob(filepath.Join(kept, "*.log"))
 	traces, _ := filepath.Glob(filepath.Join(kept, "trace-*.json"))
 	if len(pages) != 2 || len(logs) != 2 || len(traces) != 2 {

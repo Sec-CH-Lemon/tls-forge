@@ -43,7 +43,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	}
 	name := "127.0.0.1-" + stamp(clock.now())
 	want := []string{
-		name + "-1.html", name + "-1.log", name + "-2.html", name + "-2.log",
+		name + "-1.log", name + "-1.txt", name + "-2.log", name + "-2.txt",
 		"trace-" + name + "-1.json", "trace-" + name + "-2.json",
 	}
 	if got := keptIn(t, dir); !slices.Equal(got, want) {
@@ -53,7 +53,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	// The first run was turned away with a 503, and its page is kept all the
 	// same: what a server says when it refuses is the page worth reading.
 	for run, page := range map[string]string{"1": "answer-1", "2": "answer-2"} {
-		if kept, err := os.ReadFile(filepath.Join(dir, name+"-"+run+".html")); err != nil || string(kept) != page {
+		if kept, err := os.ReadFile(filepath.Join(dir, name+"-"+run+".txt")); err != nil || string(kept) != page {
 			t.Errorf("run %s kept %q (%v), want %q", run, kept, err, page)
 		}
 	}
@@ -65,7 +65,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 		"GET " + server.URL + "\n",
 		"  request  1 of 2\n",
 		"  outcome  503 Service Unavailable · 8 B\n",
-		"  page     " + filepath.Join(dir, name+"-1.html") + "\n",
+		"  page     " + filepath.Join(dir, name+"-1.txt") + "\n",
 		"try 1 of 1: 503 Service Unavailable · 8 B",
 		"request headers, as written",
 		"the body began\n    answer-1\n",
@@ -83,7 +83,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	// A report says where each request was kept, under the names a line uses.
 	doc := decoded(t, []byte(reportOf(t, path)))
 	first := doc.Requests[0]
-	if first.File != filepath.Join(dir, name+"-1.html") || first.Log != filepath.Join(dir, name+"-1.log") ||
+	if first.File != filepath.Join(dir, name+"-1.txt") || first.Log != filepath.Join(dir, name+"-1.log") ||
 		first.Trace != filepath.Join(dir, "trace-"+name+"-1.json") {
 		t.Errorf("the report has the first request kept at %q, %q and %q", first.File, first.Log, first.Trace)
 	}
@@ -92,7 +92,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 		// What describes a request is private, as a report and a trace of the
 		// whole run are. The page is what it was before it was kept.
 		for file, mode := range map[string]os.FileMode{
-			name + "-1.html": 0o644, name + "-1.log": 0o600, "trace-" + name + "-1.json": 0o600,
+			name + "-1.txt": 0o644, name + "-1.log": 0o600, "trace-" + name + "-1.json": 0o600,
 		} {
 			if info, err := os.Stat(filepath.Join(dir, file)); err != nil || info.Mode().Perm() != mode {
 				t.Errorf("%s: mode %v (%v), want %v", file, info.Mode().Perm(), err, mode)
@@ -319,7 +319,8 @@ func TestKeepRequestReportsAFileItCannotWrite(t *testing.T) {
 			t.Fatalf("Mkdir: %v", err)
 		}
 		r := r
-		err := keepRequest(dir, &r, &tlsforge.Response{Status: 200, Body: []byte("page")}, j, about, nil)
+		page := &tlsforge.Response{Status: 200, Header: map[string][]string{"Content-Type": {"text/html"}}, Body: []byte("page")}
+		err := keepRequest(dir, &r, page, j, about, nil)
 		var notAFile *os.PathError
 		if !errors.As(err, &notAFile) {
 			t.Errorf("with %s in the way: %v", blocked, err)

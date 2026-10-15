@@ -44,7 +44,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   there, as three files named after the host, the moment the request was made
   and its number in the run, such as
   `example.com-2026-08-16-091854-584-1.html`: the page, whatever its status,
-  when anything came back; a `.log` of the request for a person to read, with
+  when anything came back, ending in what its `Content-Type` says it is
+  (`.html`, `.json`, `.xml`, `.txt`, `.png` and so on, and the last type when
+  it names more than one, as a browser reads it), or in what its bytes look
+  like when the header says nothing more than octet-stream; a `.log` of
+  the request for a person to read, with
   every try, what each waited on, the header fields that went out and came
   back, and how an answer that was not a 2xx began; and a
   `trace-….json` of the request alone that ui.perfetto.dev opens. JSON lines
