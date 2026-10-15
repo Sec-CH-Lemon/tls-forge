@@ -72,7 +72,7 @@ type retrier struct {
 // still hands back what it did get.
 //
 // The tries come back as well when they are being kept, and nil when not.
-func (p retrier) do(ctx context.Context, client *tlsforge.Client, req tlsforge.Request,
+func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Request,
 	lane *traceLane, run int, proxy string,
 ) (res *tlsforge.Response, attempts int, tries []try, err error) {
 	// One try, then as many again as asked for. The stopping comparison avoids
@@ -85,7 +85,7 @@ func (p retrier) do(ctx context.Context, client *tlsforge.Client, req tlsforge.R
 		}
 		shot := lane.attempt(req.Method, req.URL, run, attempt, proxy, log)
 		req.Context, req.Trace = ctx, shot.hooks()
-		res, err = client.Do(&req)
+		res, err = conns.do(&req)
 		shot.end(res, err)
 		if log != nil {
 			// Copied once the try is over, when nothing is still writing to it.
@@ -113,6 +113,56 @@ func (p retrier) do(ctx context.Context, client *tlsforge.Client, req tlsforge.R
 		if !pause(ctx, wait) {
 			return res, attempts, tries, err
 		}
+	}
+}
+
+// connections hands every try of a request the client it goes out through.
+//
+// Without a proxy that is the session's own client, whose connections are
+// kept as a browser keeps them: a fresh handshake for every request from one
+// address is what a browser does not do. Through a proxy every try gets a
+// client of the same session with a connection of its own, and so a tunnel of
+// its own: a proxy that hands every connection an address gives every try
+// one, which is what a repeat or a list through a rotating proxy is run for.
+// The try's redirects, and what its site is asked over the same connection,
+// go on that connection, and none of them resumes another try's TLS session.
+type connections struct {
+	session *tlsforge.Client
+	// fresh asks for a client of its own for every try, and last is the one
+	// the latest try went through.
+	fresh bool
+	last  *tlsforge.Client
+}
+
+// do makes a try through the client it is to go out through.
+func (c *connections) do(req *tlsforge.Request) (*tlsforge.Response, error) {
+	client := c.session
+	if c.fresh {
+		c.close()
+		fresh, err := c.session.Fresh()
+		if err != nil {
+			return nil, err
+		}
+		c.last, client = fresh, fresh
+	}
+	return client.Do(req)
+}
+
+// current is the client the latest try went through, over whose connection
+// its site is asked where it came from.
+func (c *connections) current() *tlsforge.Client {
+	if c.last != nil {
+		return c.last
+	}
+	return c.session
+}
+
+// close lets go of the latest try's connection. The session's own are kept,
+// for the requests after.
+func (c *connections) close() {
+	if c.last != nil {
+		_ = c.last.Close()
+		c.last = nil
 	}
 }
 

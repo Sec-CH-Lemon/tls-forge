@@ -106,8 +106,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   of the proxy's answer to `CONNECT` with the connection. A proxy that hands
   every connection an address of its own and names it there, in `X-Exit-IP`
   (with `X-Exit-Country`), in `X-ProxyMesh-IP` or in a field a file of your
-  own names, gives every request, a reused connection's included, the address
-  it really came out of, and nothing is asked of anybody to find it. Which
+  own names, gives every request the address it really came out of, and
+  nothing is asked of anybody to find it. Which
   fields say it is a table built in, `exit-headers.json`, holding every field
   known when it was written: those of Massive, NodeMaven, shellroute,
   ProxyMesh, g3proxy, SOAX, Bright Data and Luminati, NetNut, Scrapoxy and Zyte
@@ -214,6 +214,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **Through a proxy every request goes out on a tunnel of its own.** Every
+  request, every `--repeat` of it and every `--retry` try opens a connection of
+  its own through the proxy, with a TLS handshake of its own, where it used to
+  go out on the one a request before it had left open, and over HTTP/2 to share
+  it with the requests made at the same time: a list or a repeat through a
+  proxy that hands every connection an address came out of one of them. Now
+  each request gets its own, and a try turned away from one exit is made again
+  from another. A request's redirects, and what its site is asked over the same
+  connection, still go through its tunnel, and the cookies are the session's
+  as before. Without a proxy requests share connections as they did, as a
+  browser does.
 - **A terminal no longer gets the page.** `fetch` printed the body on standard
   output wherever that led, and a list its JSON lines, each holding a whole
   page. On a terminal both now show the count of answers instead, and print

@@ -547,14 +547,18 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 		return r, nil, b.kept(&r, nil, j, lane)
 	}
 
+	// Through a proxy, every try on a connection of its own.
+	conns := &connections{session: client, fresh: proxy != ""}
+	defer conns.close()
+
 	request := b.request
 	request.URL = j.URL
 	res, attempts, tries, err := retrier{retries: b.retry, note: b.note, keep: b.detailed}.do(
-		ctx, client, request, lane, j.run, proxy)
+		ctx, conns, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
 	if proxy != "" {
-		r.Exit, r.ExitError = b.cameOut(ctx, client, proxy, tries, res, lane)
+		r.Exit, r.ExitError = b.cameOut(ctx, conns.current(), proxy, tries, res, lane)
 	}
 
 	if err != nil {

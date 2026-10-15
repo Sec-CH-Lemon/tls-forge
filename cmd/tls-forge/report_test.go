@@ -811,9 +811,9 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 	if got := asked.Load(); got != 1 {
 		t.Errorf("the address service was asked %d times, want only before the run", got)
 	}
-	// The question before the run went through the first tunnel. The pages took
-	// the next two, one for each server, and the last request went out on the
-	// connection the first one had left open, so it came out where that did.
+	// The question before the run went through the first tunnel, and every
+	// request through one of its own: the last as well, though the first had
+	// left a connection to the same server open.
 	doc := decoded(t, []byte(reportOf(t, report+".json")))
 	var exits []string
 	for _, r := range doc.Requests {
@@ -822,7 +822,7 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 		}
 		exits = append(exits, r.Exit.IP)
 	}
-	if want := []string{"203.0.113.2", "203.0.113.3", "203.0.113.2"}; !slices.Equal(exits, want) {
+	if want := []string{"203.0.113.2", "203.0.113.3", "203.0.113.4"}; !slices.Equal(exits, want) {
 		t.Errorf("the requests came out of %v, want %v", exits, want)
 	}
 	if got := doc.Requests[0].Tries[0].Connection; got == nil || got.Exit == nil || got.Exit.IP != "203.0.113.2" ||
@@ -832,7 +832,7 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 
 	page := reportOf(t, report+".html")
 	for _, want := range []string{
-		"and came out of 2 different addresses.", ">Exit address</span>",
+		"and came out of 3 different addresses.", ">Exit address</span>",
 		"The proxy answered CONNECT with 1 header field", "x-exit-ip: 203.0.113.2",
 		"came out at 203.0.113.3",
 		"Where a request through a proxy came out is what the proxy said",
@@ -849,8 +849,8 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 	name := "127.0.0.1-" + stamp(clock.now())
 	log, _ := os.ReadFile(filepath.Join(dir, name+"-3.log"))
 	for _, want := range []string{
-		"  exit-ip  203.0.113.2\n", "came out at 203.0.113.2",
-		"\n  the proxy's answer to CONNECT\n    x-exit-ip: 203.0.113.2\n",
+		"  exit-ip  203.0.113.4\n", "came out at 203.0.113.4",
+		"\n  the proxy's answer to CONNECT\n    x-exit-ip: 203.0.113.4\n",
 	} {
 		if !strings.Contains(string(log), want) {
 			t.Errorf("the log of the last request has no %q:\n%s", want, log)
@@ -866,8 +866,8 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 			answered++
 		}
 	}
-	if answered != 2 {
-		t.Errorf("the trace of the run has the proxy's answer to %d tunnels, want the two the pages opened", answered)
+	if answered != 3 {
+		t.Errorf("the trace of the run has the proxy's answer to %d tunnels, want the three the pages opened", answered)
 	}
 }
 

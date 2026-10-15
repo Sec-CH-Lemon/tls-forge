@@ -27,8 +27,14 @@ func cloudflareSite(t *testing.T) *httptest.Server {
 	t.Helper()
 	var mu sync.Mutex
 	numbers := map[string]int{}
+	var busy atomic.Bool
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cf-Ray", "8f1c0d9e2b4a7f8e-AMS")
+		// Turned away the first time, for a request to be tried again.
+		if r.URL.Query().Has("busy-once") && busy.CompareAndSwap(false, true) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		if r.URL.Path == "/cdn-cgi/trace" {
 			mu.Lock()
 			n := numbers[r.RemoteAddr]
@@ -86,6 +92,26 @@ func TestASiteSaysWhereARequestCameFromOverTheSameConnection(t *testing.T) {
 	doc = decoded(t, []byte(reportOf(t, report)))
 	if got := doc.Requests[0]; got.Exit != nil || got.ExitError != "the proxy did not say" {
 		t.Errorf("an answer over another connection was believed: %+v, %q", got.Exit, got.ExitError)
+	}
+}
+
+func TestASiteIsAskedOverTheConnectionOfTheLastTry(t *testing.T) {
+	// The first try is turned away and the second is not, each through a
+	// tunnel of its own: the site is asked over the second's, the second
+	// connection it was asked over, which is where the request came out.
+	site := cloudflareSite(t)
+	via := startProxy(t)
+	report := filepath.Join(t.TempDir(), "run.json")
+
+	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--retry", "1",
+		"--report="+report, "--report-format", "json", site.URL+"/page?busy-once")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	doc := decoded(t, []byte(reportOf(t, report)))
+	want := documentExit{IP: "198.51.100.2", Country: "NL", By: "Cloudflare /cdn-cgi/trace, on the same connection"}
+	if got := doc.Requests[0]; got.Exit == nil || *got.Exit != want || len(got.Tries) != 2 {
+		t.Errorf("the request came out of %+v after %d tries, want %+v after 2", got.Exit, len(got.Tries), want)
 	}
 }
 
