@@ -584,6 +584,22 @@ func TestFromCaptureRefusesAResumedHandshake(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "RESUMED") {
 		t.Fatalf("error = %v, want it to explain the resumption", err)
 	}
+
+	// And a hello Chrome 155 really resumed with, which says so by itself.
+	resumed, err := os.ReadFile("../testdata/chrome155-clienthello-resumed.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	hello, err = fingerprint.ParseClientHello(resumed)
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	if rendered := capture.FromClientHello(hello); !rendered.Resumed {
+		t.Error("a hello with pre_shared_key was not taken to resume")
+	} else if _, err := FromCapture("chrome", &capture.Capture{RawClientHello: resumed, TLS: rendered}); err == nil ||
+		!strings.Contains(err.Error(), "RESUMED") {
+		t.Errorf("a hello Chrome resumed with: error = %v, want it to explain the resumption", err)
+	}
 }
 
 func TestPseudoNamesIgnoresUnknownLetters(t *testing.T) {
