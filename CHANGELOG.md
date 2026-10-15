@@ -262,6 +262,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   local server measured 54,600 requests in five seconds. The eleventh redirect
   now fails the request with `stopped after 10 redirects`, as it already did
   for catalogue profiles.
+- Every line of an error is printed with `tlsforge: ` at its start, once. An
+  error from the Go library, which already begins that way, was printed as
+  `tlsforge: tlsforge: Get "http://127.0.0.1:1/": … connection refused`, and
+  when a run failed for two reasons at once, such as a request that got no
+  answer and a report that could not be written, the second line had no
+  prefix at all. Errors the library returns to Go programs are unchanged.
 - Stable releases fail visibly when the Homebrew tap credential is absent,
   instead of silently succeeding without publishing a formula. The published
   E2E check now diagnoses a missing tap formula directly.

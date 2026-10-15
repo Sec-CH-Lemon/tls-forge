@@ -201,6 +201,18 @@ tls-forge <command> [flags]
 Run `tls-forge <command> --help` for generated command help. Durations use Go
 syntax such as `500ms`, `30s` or `2m`.
 
+A command that fails says why on standard error, on a line that begins with
+`tlsforge: ` once, whether the reason is the command's own or one the Go
+library gave it:
+
+```text
+tlsforge: Get "http://127.0.0.1:1/": dial tcp 127.0.0.1:1: connect: connection refused
+```
+
+A run that fails for more than one reason, such as a request that got no
+answer and then a report that could not be written, gives each reason a line
+of its own, and every one of them begins the same way.
+
 When no profile is selected, the network commands (`fetch`, `proxy` and
 `daemon`) use a profile installed as `local`, if one exists, and otherwise
 the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`

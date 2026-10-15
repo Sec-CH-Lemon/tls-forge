@@ -17,6 +17,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/spf13/pflag"
 )
@@ -157,10 +158,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		case errors.Is(err, pflag.ErrHelp):
 			return exitUsage
 		case errors.Is(err, errUsage):
-			errOut.println("tlsforge:", err)
+			errOut.println(prefixed(err))
 			return exitUsage
 		default:
-			errOut.println("tlsforge:", err)
+			errOut.println(prefixed(err))
 			return exitError
 		}
 	}
@@ -176,6 +177,39 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	errOut.printf("tlsforge: unknown command %q\n\n", name)
 	usage(errOut)
 	return 2
+}
+
+// errorPrefix begins every line of an error tls-forge prints.
+const errorPrefix = "tlsforge: "
+
+// prefixed is an error as tls-forge prints it: every line of it beginning with
+// errorPrefix, once.
+//
+// Once, because the library begins its own errors the same way, for the Go
+// programs that print them, and one of those reaching here was printed as
+// "tlsforge: tlsforge: Get …". A line that begins with the prefix keeps it
+// rather than gaining a second, and one that begins with it more than once, as
+// a library error wrapped in "tlsforge: %w" again does, keeps one. Only the
+// start of a line is read: the rest is the error's own text, the library's
+// included, and is printed as it is.
+//
+// Every line, because errors.Join puts each error it holds on a line of its
+// own: a fetch that got no answer and then could not write its report failed
+// twice, and the second line is as much an error as the first.
+func prefixed(err error) string {
+	lines := strings.Split(err.Error(), "\n")
+	for i, line := range lines {
+		for strings.HasPrefix(line, errorPrefix) {
+			line = line[len(errorPrefix):]
+		}
+		// The name and its colon with nothing after them are the prefix too,
+		// of a line with nothing else to say.
+		if line == strings.TrimSuffix(errorPrefix, " ") {
+			line = ""
+		}
+		lines[i] = errorPrefix + line
+	}
+	return strings.Join(lines, "\n")
 }
 
 func usage(out *printer) {

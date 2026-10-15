@@ -345,6 +345,97 @@ func reportLines(stderr string) []string {
 	return strings.Split(strings.TrimRight(stderr, "\n"), "\n")
 }
 
+func TestFetchSaysWhyItFailedWithThePrefixOnce(t *testing.T) {
+	// The library begins its errors with "tlsforge: " for the Go programs that
+	// print them, and a refused request was printed with it twice. fetch's own
+	// errors begin with the command instead, and had it once all along.
+	tmp := t.TempDir()
+	blocked := filepath.Join(tmp, "a-file")
+	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	refused := `tlsforge: Get "http://127.0.0.1:1/": `
+	for _, tc := range []struct {
+		name string
+		args []string
+		// want is how each line of the error begins. The error is the last
+		// thing on stderr, after whatever the run said before it.
+		want []string
+	}{
+		{"a refused request, which the library says",
+			[]string{"fetch", "http://127.0.0.1:1/"},
+			[]string{refused}},
+		{"a file of exit headers that is not there, which fetch says",
+			[]string{"fetch", "--exit-headers", filepath.Join(tmp, "none.json"), "http://127.0.0.1:1/"},
+			[]string{"tlsforge: fetch: open "}},
+		// Two errors joined, a line each. The second used to have no prefix.
+		{"both: the refused request, then the report it could not write",
+			[]string{"fetch", "--report=" + filepath.Join(blocked, "run.html"), "http://127.0.0.1:1/"},
+			[]string{refused, "tlsforge: fetch: "}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			code, _, stderr := exec(t, tc.args...)
+			if code != 1 {
+				t.Errorf("exit code = %d, want 1\n%s", code, stderr)
+			}
+			if got := strings.Count(stderr, "tlsforge:"); got != len(tc.want) {
+				t.Errorf("stderr says tlsforge: %d times, want %d\n%s", got, len(tc.want), stderr)
+			}
+			lines := reportLines(stderr)
+			if len(lines) < len(tc.want) {
+				t.Fatalf("stderr has %d lines, want at least %d\n%s", len(lines), len(tc.want), stderr)
+			}
+			for i, line := range lines[len(lines)-len(tc.want):] {
+				if !strings.HasPrefix(line, tc.want[i]) {
+					t.Errorf("line %q does not begin %q\n%s", line, tc.want[i], stderr)
+				}
+			}
+		})
+	}
+}
+
+func TestAnErrorIsPrefixedOnce(t *testing.T) {
+	_, library := tlsforge.New(tlsforge.WithTimeout(0))
+	if library == nil || !strings.HasPrefix(library.Error(), "tlsforge: ") {
+		t.Fatalf("tlsforge.New(WithTimeout(0)) = %v, want one of the library's errors", library)
+	}
+	own := errors.New("fetch: open none.json: no such file or directory")
+	for _, tc := range []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"the command's own error gets the prefix", own, "tlsforge: " + own.Error()},
+		{"the library's has it, and keeps it", library, library.Error()},
+		{"wrapped in it once more", fmt.Errorf("tlsforge: %w", library), library.Error()},
+		{"wrapped in it twice more", fmt.Errorf("tlsforge: %w", fmt.Errorf("tlsforge: %w", library)),
+			library.Error()},
+		// Only the start of a line is read. What follows is the error's own
+		// text, and the library's text is not the command's to change.
+		{"wrapped by the command", fmt.Errorf("fetch: %w", library), "tlsforge: fetch: " + library.Error()},
+		// Two errors wrapped on one line, the way a usage error is.
+		{"a usage error", fmt.Errorf("%w: %w", errUsage, errors.New("unknown flag: --nope")),
+			"tlsforge: bad usage: unknown flag: --nope"},
+		{"joined", errors.Join(library, own), library.Error() + "\ntlsforge: " + own.Error()},
+		{"joined the other way round", errors.Join(own, library),
+			"tlsforge: " + own.Error() + "\n" + library.Error()},
+		{"joined inside an error that wraps them",
+			fmt.Errorf("fetch: writing the trace: %w", errors.Join(io.ErrShortWrite, os.ErrClosed)),
+			"tlsforge: fetch: writing the trace: short write\ntlsforge: file already closed"},
+		{"exactly the prefix", errors.New("tlsforge: "), "tlsforge: "},
+		{"the prefix without its space", errors.New("tlsforge:"), "tlsforge: "},
+		{"the prefix twice, and nothing else", errors.New("tlsforge: tlsforge:"), "tlsforge: "},
+		{"nothing at all", errors.New(""), "tlsforge: "},
+		// The name and its colon, and then anything but a space, are not the
+		// prefix but the start of what the error says.
+		{"the name run into what follows", errors.New("tlsforge:x"), "tlsforge: tlsforge:x"},
+	} {
+		if got := prefixed(tc.err); got != tc.want {
+			t.Errorf("%s: prefixed(%q) = %q, want %q", tc.name, tc.err, got, tc.want)
+		}
+	}
+}
+
 func TestFetchSaysWhichAddressItComesOutOf(t *testing.T) {
 	asked := standInIPService(t, `{"ip":"203.0.113.7","country":"pl","city":"Warsaw"}`, http.StatusOK)
 	server := startEcho(t)
