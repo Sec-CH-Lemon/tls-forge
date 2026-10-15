@@ -459,9 +459,11 @@ func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			own := newWorkerClients()
+			defer own.close()
 			for j := range queue {
 				b.counts.begin()
-				r, res, kept := b.fetchOne(runCtx, j, lane)
+				r, res, kept := b.fetchOne(runCtx, j, lane, own)
 				b.counts.finish(r)
 				writeMu.Lock()
 				if r.Error != "" {
@@ -529,7 +531,8 @@ func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
 // record of it with what came back, which is nil when nothing did. The error is
 // not the request's, which is on the record: it is that the request could not be
 // kept where it was to be kept.
-func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *tlsforge.Response, error) {
+func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *workerClients,
+) (result, *tlsforge.Response, error) {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
 	r := result{URL: j.URL, Proxy: proxy, Started: started, ID: j.id}
@@ -552,8 +555,9 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane) (result, *
 		return r, nil, b.kept(&r, nil, j, lane)
 	}
 
-	// Every try on a connection of its own, unless the URL keeps its own.
-	conns := &connections{session: client, held: b.held, entry: j.entry}
+	// Every try on a connection of its own, through the worker's client, unless
+	// the URL keeps its own.
+	conns := &connections{session: client, own: own, proxy: proxy, held: b.held, entry: j.entry}
 	defer conns.close()
 
 	request := b.request

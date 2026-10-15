@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/echo"
 )
 
 // rotatingProxy hands every tunnel an address of its own, and says which.
@@ -232,6 +233,115 @@ func TestHeldClients(t *testing.T) {
 	}
 }
 
+func TestRequestsResumeTheSessionTheirSiteHandedOut(t *testing.T) {
+	// A site that hands out session tickets, as most do: every repeat is a
+	// connection of its own, and every one after the first resumes the session
+	// the one before was handed, as a browser's new connection does.
+	server, err := echo.Start(echo.WithSessionTickets(true))
+	if err != nil {
+		t.Fatalf("echo.Start: %v", err)
+	}
+	t.Cleanup(func() { _ = server.Close() })
+	path := filepath.Join(t.TempDir(), "run.json")
+	code, _, stderr := exec(t, "fetch", "--insecure", "--repeat", "3", "-c", "1",
+		"--report="+path, "--report-format", "json", server.URL()+"/api/all")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	var reused, resumed []bool
+	for _, r := range decoded(t, []byte(reportOf(t, path))).Requests {
+		if len(r.Tries) != 1 || r.Tries[0].Connection == nil {
+			t.Fatalf("a request was kept as %+v", r)
+		}
+		reused = append(reused, r.Tries[0].Connection.Reused)
+		resumed = append(resumed, r.Tries[0].Connection.Resumed)
+	}
+	if !slices.Equal(reused, []bool{false, false, false}) || !slices.Equal(resumed, []bool{false, true, true}) {
+		t.Errorf("the three went out reused %v and resumed %v", reused, resumed)
+	}
+}
+
+func TestRequestsAndTheirTriesThroughAProxyResume(t *testing.T) {
+	// Through a proxy, as without one: every try is a tunnel of its own, and
+	// every one after the first resumes the session the one before was handed,
+	// the try made again after a 503 among them.
+	via := startProxy(t)
+	var asked atomic.Int32
+	site := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if asked.Add(1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+		_, _ = w.Write([]byte("page"))
+	}))
+	t.Cleanup(site.Close)
+	path := filepath.Join(t.TempDir(), "run.json")
+
+	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "2", "--retry", "1",
+		"-c", "1", "--report="+path, "--report-format", "json", site.URL)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	var reused, resumed []bool
+	for _, r := range decoded(t, []byte(reportOf(t, path))).Requests {
+		for _, try := range r.Tries {
+			if try.Connection == nil {
+				t.Fatalf("a try of %s went out on nothing", r.URL)
+			}
+			reused = append(reused, try.Connection.Reused)
+			resumed = append(resumed, try.Connection.Resumed)
+		}
+	}
+	// The first run's two tries, the 503 and the page, and the second run's one.
+	if !slices.Equal(reused, []bool{false, false, false}) || !slices.Equal(resumed, []bool{false, true, true}) {
+		t.Errorf("the tries went out reused %v and resumed %v", reused, resumed)
+	}
+	tunnels := 0
+	for _, target := range via.seen() {
+		if target == strings.TrimPrefix(site.URL, "https://") {
+			tunnels++
+		}
+	}
+	if tunnels != 3 {
+		t.Errorf("the proxy opened %d tunnels to the site, want one for each of the 3 tries", tunnels)
+	}
+}
+
+func TestWorkerClients(t *testing.T) {
+	session, err := tlsforge.New(tlsforge.WithInsecureSkipVerify())
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+
+	// One client for each proxy, the same every time it is asked for.
+	own := newWorkerClients()
+	direct, err := own.of("", session)
+	if err != nil {
+		t.Fatalf("of: %v", err)
+	}
+	if again, _ := own.of("", session); again != direct {
+		t.Error("a worker was handed a second client for one proxy")
+	}
+	if proxied, _ := own.of("http://127.0.0.1:1", session); proxied == direct {
+		t.Error("two proxies were handed one client")
+	}
+	// Closed with the worker.
+	own.close()
+	if _, err := direct.Get("https://127.0.0.1:1/"); err == nil || !strings.Contains(err.Error(), "closed") {
+		t.Errorf("a worker's client after the worker was done: %v", err)
+	}
+
+	// A session that is closed makes no client.
+	closed, err := tlsforge.New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	_ = closed.Close()
+	if _, err := newWorkerClients().of("", closed); err == nil || !strings.Contains(err.Error(), "closed") {
+		t.Errorf("a client of a closed session: %v", err)
+	}
+}
+
 func TestConnectionsOfAClosedSession(t *testing.T) {
 	// A session closed under a try: the try fails as a try does, saying why,
 	// and there is no connection of it to ask anything over, whether the URL
@@ -241,7 +351,7 @@ func TestConnectionsOfAClosedSession(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	_ = session.Close()
-	for _, conns := range []*connections{{session: session}, {session: session, held: newHeldClients(1)}} {
+	for _, conns := range []*connections{{session: session, own: newWorkerClients()}, {session: session, held: newHeldClients(1)}} {
 		if _, err := conns.do(&tlsforge.Request{URL: "https://127.0.0.1:1/"}); err == nil || !strings.Contains(err.Error(), "closed") {
 			t.Errorf("a try through a closed session: %v", err)
 		}

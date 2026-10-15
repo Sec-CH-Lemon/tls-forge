@@ -387,12 +387,16 @@ itself and keeps that answer with the connection, so every request says where
 it came out, and no request is made to anybody to find out.
 
 Every URL, every repeat of it and every try goes out on a connection of its
-own, through a proxy on a tunnel of its own, with a TLS handshake of its own
-that resumes no other's, so a proxy that hands every connection an address of
-its own gives each one. `--reuse-connection` keeps a URL's connection for its
-repeats and its tries instead, so that they come out where its first request
-did. A request's redirects, and what its site is asked over the same
-connection, go through its connection.
+own, through a proxy on a tunnel of its own, so a proxy that hands every
+connection an address of its own gives each one. Once the run has been to a
+site, a new connection there resumes the TLS session the site handed out, as
+Chrome's does: the same handshake with `pre_shared_key` added last, and so a
+JA4 of one extension more. Each of the `--concurrency` workers keeps sessions
+of its own, so a site sees as many first contacts as there are workers that
+went to it. `--reuse-connection` keeps a URL's connection for its repeats and
+its tries instead, so that they come out where its first request did. A
+request's redirects, and what its site is asked over the same connection, go
+through its connection.
 
 Which fields say it, and what to ask when none does, is a table,
 [`cmd/tls-forge/exit-headers.json`](cmd/tls-forge/exit-headers.json), built

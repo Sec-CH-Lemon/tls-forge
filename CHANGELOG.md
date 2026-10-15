@@ -217,14 +217,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 - **A new connection to a site resumes its TLS session, as Chrome's does.** A
   measured profile's handshake is the browser's first contact, and every
-  connection was one, however many times a client went to a site. Now a
-  profile whose hello offers `psk_key_exchange_modes`, every measured one, ends
-  its spec with the `pre_shared_key` the browser resumes with, sent only when
-  there is a session to resume: a new connection to a site that issued a ticket
+  connection was one, however many times a run went to a site. Now a profile
+  whose hello offers `psk_key_exchange_modes`, every measured one, ends its
+  spec with the `pre_shared_key` the browser resumes with, sent only when there
+  is a session to resume: a new connection to a site that issued a ticket
   resumes it, with that extension last, after the second GREASE one. Measured
   against Chrome 155, whose cold and resumed hellos are now in `testdata/`: the
   resumed connection's JA4 is `t13d1518h2_8daaf6152771_e2d80978ab2e`, Chrome's
-  own. `WithoutSessionResumption()` keeps every connection cold, and
+  own. `fetch` keeps one client for each worker and proxy, which lets go of its
+  connection after every try and keeps its sessions, so every request still
+  goes out on a connection of its own and the ones after the first resume.
+  `WithoutSessionResumption()` keeps every connection cold, and
   `Client.CloseIdleConnections()` closes the connections a client holds open.
 - **`fetch --help` shows its flags under what each is for**: what to fetch,
   the request, fingerprint and transport, proxy, session, running, output,

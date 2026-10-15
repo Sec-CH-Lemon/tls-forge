@@ -123,18 +123,23 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 
 // connections hands every try of a request the client it goes out through.
 //
-// A try gets a client of the session with a connection of its own, so that
-// every URL, every repeat of it and every try goes out on one of its own:
-// through a proxy that hands every connection an address, each comes out of
-// another, and no handshake resumes another's TLS session. Under
-// --reuse-connection a URL keeps its connection instead, for its repeats and
-// its tries, in a client the first of them makes and the last lets go of.
-// What a try's site is asked over the same connection goes through the client
-// the try went through.
+// Without --reuse-connection that is the worker's client for the request's
+// proxy, a client of the session made Fresh once for each worker, which lets go
+// of its connection after every try: every URL, every repeat of it and every
+// try goes out on a connection of its own. Its TLS sessions it keeps, so that
+// once the worker has been to a site a new connection there resumes the
+// session the site handed out, as a browser's new connection does, rather than
+// being a first contact every time. Under --reuse-connection a URL keeps its
+// connection instead, for its repeats and its tries, in a client the first of
+// them makes and the last lets go of. What a try's site is asked over the same
+// connection goes through the client the try went through.
 type connections struct {
 	session *tlsforge.Client
-	// held keeps each URL's client, when the URL keeps its connection, and
-	// entry is which URL this is.
+	// own holds the worker's clients, one for each proxy, and proxy is this
+	// request's; held, under --reuse-connection, keeps each URL's, and entry is
+	// which URL this is.
+	own   *workerClients
+	proxy string
 	held  *heldClients
 	entry int
 	// last is the client the latest try went through.
@@ -151,15 +156,16 @@ func (c *connections) do(req *tlsforge.Request) (*tlsforge.Response, error) {
 }
 
 // next is the client for the next try: the URL's own when it keeps one, and
-// otherwise a client of its own, the one before it let go of.
+// otherwise the worker's, with the connection of the try before let go of.
 func (c *connections) next() (*tlsforge.Client, error) {
+	var client *tlsforge.Client
+	var err error
 	if c.held != nil {
-		client, err := c.held.of(c.entry, c.session)
-		c.last = client
-		return client, err
+		client, err = c.held.of(c.entry, c.session)
+	} else {
+		c.release()
+		client, err = c.own.of(c.proxy, c.session)
 	}
-	c.release()
-	client, err := c.session.Fresh()
 	c.last = client
 	return client, err
 }
@@ -173,8 +179,9 @@ func (c *connections) current() *tlsforge.Client {
 	return c.session
 }
 
-// close lets go of what the request held: its latest try's client, or its
-// share of the URL's, which is closed once the URL's last repeat is over.
+// close lets go of what the request held: the connection of its latest try,
+// or its share of the URL's, which is closed once the URL's last repeat is
+// over.
 func (c *connections) close() {
 	if c.held != nil {
 		c.held.done(c.entry)
@@ -183,11 +190,44 @@ func (c *connections) close() {
 	c.release()
 }
 
-// release closes the latest try's client of its own.
+// release closes the connection the latest try went out on, keeping the client
+// it went through and the TLS sessions that holds.
 func (c *connections) release() {
 	if c.last != nil {
-		_ = c.last.Close()
-		c.last = nil
+		c.last.CloseIdleConnections()
+	}
+}
+
+// workerClients are one worker's clients, one for each proxy it has gone
+// through, each made Fresh from that proxy's session the first time it is
+// needed: connections of their own, and the TLS sessions of the sites they
+// have been to. A worker makes one request at a time, so nothing here is
+// shared with another.
+type workerClients struct {
+	clients map[string]*tlsforge.Client
+}
+
+func newWorkerClients() *workerClients {
+	return &workerClients{clients: map[string]*tlsforge.Client{}}
+}
+
+// of is the worker's client for a proxy.
+func (w *workerClients) of(proxy string, session *tlsforge.Client) (*tlsforge.Client, error) {
+	if client, ok := w.clients[proxy]; ok {
+		return client, nil
+	}
+	client, err := session.Fresh()
+	if err != nil {
+		return nil, err
+	}
+	w.clients[proxy] = client
+	return client, nil
+}
+
+// close closes them all, when the worker is done.
+func (w *workerClients) close() {
+	for _, client := range w.clients {
+		_ = client.Close()
 	}
 }
 
