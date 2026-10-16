@@ -39,7 +39,7 @@ declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
 feeds, plain text and bodies with no type.
 
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
-(arm64), headless and in English, sent on 2026-10-16 and 2026-10-17 for 67
+(arm64), headless and in English, sent on 2026-10-16 and 2026-10-17 for 69
 scenarios, over HTTP/2 and over HTTP/1.1: navigations typed and from pages
 under each referrer policy, to and from `http://localhost`, forms posted and
 sent by GET, `fetch()` and XHR of every mode and credentials, CORS

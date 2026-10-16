@@ -248,6 +248,30 @@ func TestNoEncodingIsOfferedThatTheProfileDoesNotOffer(t *testing.T) {
 	}
 }
 
+func TestALoneAuthorizationGoesBeforeTheUserAgent(t *testing.T) {
+	page := mustURL(t, "https://www.example.com/page")
+	base := NewHeader("User-Agent", "UA", "sec-ch-ua", "CH", "sec-ch-ua-platform", "P")
+	for _, tc := range []struct {
+		script Header
+		want   string
+	}{
+		{Header{{Name: "authorization", Value: "x"}}, "sec-ch-ua-platform authorization user-agent sec-ch-ua"},
+		{Header{{Name: "AUTHORIZATION", Value: "x"}}, "sec-ch-ua-platform AUTHORIZATION user-agent sec-ch-ua"},
+		{Header{{Name: "X-Foo", Value: "1"}}, "sec-ch-ua-platform user-agent sec-ch-ua X-Foo"},
+		{Header{{Name: "Authorization", Value: "x"}, {Name: "X-Foo", Value: "1"}},
+			"sec-ch-ua-platform user-agent sec-ch-ua Authorization X-Foo"},
+	} {
+		for _, kind := range []RequestKind{KindFetch, KindXHR} {
+			r := browserRequest{kind: kind, method: "GET", initiator: page, from: originOf(page),
+				policy: policyStrictOriginWhenCrossOrigin, mode: modeCORS, credentials: credentialsSame, script: tc.script}
+			got := r.header(page, base).Names()
+			if names := strings.Join(got[:min(len(got), len(strings.Fields(tc.want)))], " "); names != tc.want {
+				t.Errorf("%s with %v: %v, want %s first", kind, tc.script, got, tc.want)
+			}
+		}
+	}
+}
+
 func uniqueNames(names []string) map[string]bool {
 	out := map[string]bool{}
 	for _, name := range names {

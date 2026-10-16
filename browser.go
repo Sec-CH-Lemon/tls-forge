@@ -355,11 +355,21 @@ var (
 	scriptOrder = []string{"content-length", "sec-ch-ua-platform", "user-agent", "sec-ch-ua", slotScript,
 		"sec-ch-ua-mobile", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest",
 		"sec-fetch-storage-access", "referer", "accept-encoding", "accept-language", "cookie", "priority"}
+	// authorizationOrder is a script's whose one header of its own is
+	// Authorization, which Chrome's renderer keeps before User-Agent where it
+	// keeps Content-Type and X-Foo after sec-ch-ua: it keeps them in a hash
+	// table, and each name has its place there.
+	authorizationOrder = []string{"content-length", "sec-ch-ua-platform", slotScript, "user-agent", "sec-ch-ua",
+		"sec-ch-ua-mobile", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest",
+		"sec-fetch-storage-access", "referer", "accept-encoding", "accept-language", "cookie", "priority"}
 )
 
 // order is the request's slots, in Chrome's order.
 func (r *browserRequest) order() []string {
 	switch {
+	case len(r.script) == 1 && strings.EqualFold(r.script[0].Name, "authorization"):
+		// Only a script's request has headers of its own.
+		return authorizationOrder
 	case r.kind == KindFetch || r.kind == KindXHR:
 		return scriptOrder
 	case r.kind == KindForm && r.method == fhttp.MethodPost:
