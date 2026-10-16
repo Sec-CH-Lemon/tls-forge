@@ -65,10 +65,10 @@ func unsafeHeaderNames(header Header) []string {
 	return slices.Compact(unsafe)
 }
 
-// needsPreflight reports a request that goes after a preflight: one in cors
-// mode to another origin, with a method or a header CORS asks about.
-func (r *browserRequest) needsPreflight() bool {
-	return r.cors && (!corsSafelistedMethod(r.method) || len(unsafeHeaderNames(r.script)) > 0)
+// needsPreflight reports a hop that goes after a preflight: one CORS answers
+// for, with a method or a header CORS asks about.
+func (r *browserRequest) needsPreflight(h hop) bool {
+	return h.cors && (!corsSafelistedMethod(h.method) || len(unsafeHeaderNames(h.script)) > 0)
 }
 
 // preflightOrder is the order of a preflight's headers in Chrome 155, as
@@ -77,12 +77,15 @@ var preflightOrder = []string{"accept", "access-control-request-method", "access
 	"user-agent", "sec-fetch-mode", "sec-fetch-site", "sec-fetch-dest", "referer", "accept-encoding",
 	"accept-language", "priority"}
 
-// preflightHeader is the headers of the preflight of a request to target.
-func (r *browserRequest) preflightHeader(target origin, base Header) Header {
-	values := r.values(target, base)
+// preflightHeader is the headers of the preflight of a hop: its own
+// Sec-Fetch-Site, which goes by the URL it asks about alone, and the hop's
+// Origin, which a request CORS answers always carries.
+func (r *browserRequest) preflightHeader(h hop, base Header) Header {
+	h.site = relation(r.from, h.to)
+	values := r.values(h, base)
 	values["accept"] = acceptAnything
-	values["access-control-request-method"] = r.method
-	if unsafe := unsafeHeaderNames(r.script); len(unsafe) > 0 {
+	values["access-control-request-method"] = h.method
+	if unsafe := unsafeHeaderNames(h.script); len(unsafe) > 0 {
 		values["access-control-request-headers"] = strings.Join(unsafe, ",")
 	}
 	var out Header
@@ -95,18 +98,18 @@ func (r *browserRequest) preflightHeader(target origin, base Header) Header {
 }
 
 // corsCheck is whether an answer is the page's, as the Fetch standard's CORS
-// check has it: Access-Control-Allow-Origin, said once, names the page's
-// origin, or is "*" for a request without credentials; and for one with them,
-// Access-Control-Allow-Credentials is "true".
-func (r *browserRequest) corsCheck(header fhttp.Header) error {
+// check has it: Access-Control-Allow-Origin, said once, names the origin the
+// request carried, serialized, or is "*" for a request without credentials;
+// and for one with them, Access-Control-Allow-Credentials is "true".
+func (r *browserRequest) corsCheck(header fhttp.Header, serialized string) error {
 	allowed := header.Values("Access-Control-Allow-Origin")
 	switch {
 	case len(allowed) != 1:
 		return fmt.Errorf("Access-Control-Allow-Origin is said %d times, not once", len(allowed))
 	case r.credentials != credentialsAll && allowed[0] == "*":
 		return nil
-	case allowed[0] != r.from.String():
-		return fmt.Errorf("Access-Control-Allow-Origin is %q, not %q", allowed[0], r.from.String())
+	case allowed[0] != serialized:
+		return fmt.Errorf("Access-Control-Allow-Origin is %q, not %q", allowed[0], serialized)
 	case r.credentials != credentialsAll:
 		return nil
 	case header.Get("Access-Control-Allow-Credentials") != "true":
@@ -133,12 +136,12 @@ const (
 // does not: a status that is not 2xx, a CORS check that fails, a method or a
 // header it does not list. "*" stands for any method or header but
 // Authorization, for a request without credentials.
-func (r *browserRequest) checkPreflight(res *fhttp.Response) (allowance, error) {
+func (r *browserRequest) checkPreflight(res *fhttp.Response, h hop) (allowance, error) {
 	var a allowance
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		return a, fmt.Errorf("it was answered %d", res.StatusCode)
 	}
-	if err := r.corsCheck(res.Header); err != nil {
+	if err := r.corsCheck(res.Header, h.serialized(r)); err != nil {
 		return a, err
 	}
 	var err error
@@ -149,11 +152,11 @@ func (r *browserRequest) checkPreflight(res *fhttp.Response) (allowance, error) 
 		return a, err
 	}
 	wildcard := r.credentials != credentialsAll
-	if !corsSafelistedMethod(r.method) && !slices.Contains(a.methods, r.method) &&
+	if !corsSafelistedMethod(h.method) && !slices.Contains(a.methods, h.method) &&
 		(!wildcard || !slices.Contains(a.methods, "*")) {
-		return a, fmt.Errorf("Access-Control-Allow-Methods does not allow %s", r.method)
+		return a, fmt.Errorf("Access-Control-Allow-Methods does not allow %s", h.method)
 	}
-	for _, name := range unsafeHeaderNames(r.script) {
+	for _, name := range unsafeHeaderNames(h.script) {
 		listed := slices.ContainsFunc(a.headers, func(h string) bool { return strings.EqualFold(h, name) })
 		if !listed && (!wildcard || name == "authorization" || !slices.Contains(a.headers, "*")) {
 			return a, fmt.Errorf("Access-Control-Allow-Headers does not allow %s", name)
@@ -212,15 +215,17 @@ func newPreflightCache() *preflightCache {
 	return &preflightCache{allowed: map[preflightKey]time.Time{}, now: time.Now}
 }
 
-// key is the cache's key for a request to a URL, of a method or a header.
-func (r *browserRequest) key(target, method, header string) preflightKey {
-	return preflightKey{r.from.String(), target, r.credentials == credentialsAll, method, header}
+// key is the cache's key for a request carrying origin to a URL, of a method
+// or a header.
+func (r *browserRequest) key(origin, target, method, header string) preflightKey {
+	return preflightKey{origin, target, r.credentials == credentialsAll, method, header}
 }
 
-// allows reports a request a cached preflight lets through: its method, and
-// every header it would ask about, each allowed by name or by a wildcard a
-// request without credentials can use.
-func (c *preflightCache) allows(r *browserRequest, target string) bool {
+// allows reports a hop a cached preflight lets through: its method, and every
+// header it would ask about, each allowed by name or by a wildcard a request
+// without credentials can use, for the origin it carries.
+func (c *preflightCache) allows(r *browserRequest, h hop, target string) bool {
+	origin := h.serialized(r)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	now := c.now()
@@ -229,28 +234,30 @@ func (c *preflightCache) allows(r *browserRequest, target string) bool {
 		return ok && now.Before(until)
 	}
 	wildcard := r.credentials != credentialsAll
-	if !corsSafelistedMethod(r.method) && !live(r.key(target, r.method, "")) &&
-		(!wildcard || !live(r.key(target, "*", ""))) {
+	if !corsSafelistedMethod(h.method) && !live(r.key(origin, target, h.method, "")) &&
+		(!wildcard || !live(r.key(origin, target, "*", ""))) {
 		return false
 	}
-	for _, name := range unsafeHeaderNames(r.script) {
-		if !live(r.key(target, "", name)) && (!wildcard || name == "authorization" || !live(r.key(target, "", "*"))) {
+	for _, name := range unsafeHeaderNames(h.script) {
+		if !live(r.key(origin, target, "", name)) &&
+			(!wildcard || name == "authorization" || !live(r.key(origin, target, "", "*"))) {
 			return false
 		}
 	}
 	return true
 }
 
-// keep files what a preflight allowed.
-func (c *preflightCache) keep(r *browserRequest, target string, a allowance) {
+// keep files what a preflight allowed a hop.
+func (c *preflightCache) keep(r *browserRequest, h hop, target string, a allowance) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	origin := h.serialized(r)
 	until := c.now().Add(a.maxAge)
 	for _, method := range a.methods {
-		c.allowed[r.key(target, method, "")] = until
+		c.allowed[r.key(origin, target, method, "")] = until
 	}
 	for _, header := range a.headers {
-		c.allowed[r.key(target, "", strings.ToLower(header))] = until
+		c.allowed[r.key(origin, target, "", strings.ToLower(header))] = until
 	}
 }
 
@@ -266,18 +273,19 @@ type preflightContextKey struct{}
 //
 // base is the request's context before its own layouts were hung on it, so
 // that what the preflight's connection is told is the preflight's.
-func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browserRequest, transport tls_client.HttpClient,
-	log *requestLog) error {
-	target := inner.URL.String()
+func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browserRequest, h hop,
+	transport tls_client.HttpClient, log *requestLog) error {
+	shown := shownURL(inner)
+	target := shown.String()
 	u := *inner.URL
 	ask := (&fhttp.Request{Method: fhttp.MethodOptions, URL: &u, Host: inner.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
 		ProtoMinor: 1}).WithContext(context.WithValue(base, preflightContextKey{}, true))
-	field := r.preflightHeader(originOf(inner.URL), c.headers)
-	ask.Header = browserLayout(field, preflightOrder, inner.URL.Host)
+	field := r.preflightHeader(h, c.headers)
+	ask.Header = browserLayout(field, preflightOrder, shown.Host)
 	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
 		ask.Header[fhttp.PHeaderOrderKey] = order
 	}
-	http1 := browserHTTP1Layout(field, nil, preflightOrder, c.profile.HTTP1, c.http1Headers, inner.URL.Host)
+	http1 := browserHTTP1Layout(field, nil, preflightOrder, c.profile.HTTP1, c.http1Headers, shown.Host)
 	ask = withProtocolLayouts(ask, &protocolLayouts{http1: http1, http2: cloneHeaderLayout(ask.Header),
 		managed: managedHeaderNames(ask.Header, http1)})
 	withPort(ask)
@@ -291,14 +299,14 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	}
 	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
 	_ = res.Body.Close()
-	allowed, err := r.checkPreflight(res)
+	allowed, err := r.checkPreflight(res, h)
 	if log != nil {
 		log.preflight(target, res.StatusCode, err)
 	}
 	if err != nil {
-		return corsError("the preflight of %s %s from %s refused it: %v", r.method, target, r.from, err)
+		return corsError("the preflight of %s %s from %s refused it: %v", h.method, target, h.serialized(r), err)
 	}
-	c.preflights.keep(r, target, allowed)
+	c.preflights.keep(r, h, target, allowed)
 	return nil
 }
 

@@ -46,9 +46,10 @@ The handshake and the headers are not all that gives a client away, and
 tls-forge does not reproduce everything else. It does not run
 JavaScript, load a page's subresources, solve challenges or speak HTTP/3; the
 TCP/IP packets under every connection are this machine's operating system's;
-and redirects and client hints do not yet go out exactly as Chrome sends
-them. A form's POST, `fetch()` and an XHR do, CORS and all, from the Go
-library, when a request says it is one ([GO.md](GO.md#browser-contexts)).
+and client hints a server asks for do not yet go out as Chrome sends them.
+Redirects are followed as Chrome follows them, and a form's POST, `fetch()`
+and an XHR go out as Chrome sends them, CORS and all, when a request says it
+is one ([GO.md](GO.md#browser-contexts)).
 [docs/support.md](docs/support.md)
 lists what is reproduced, how each part is checked, and where it is known not
 to be.
@@ -768,7 +769,9 @@ a form's POST with `Cache-Control`, `Origin` and the form's `Content-Type`;
 cookies SameSite lets through. A `fetch` or `xhr` to another origin that CORS
 asks about goes after a preflight, an `OPTIONS`, and not at all when the
 preflight does not allow it: that URL fails, said with `CORS:`, and is not
-tried again.
+tried again. Its redirects are followed as Chrome follows a page's, each hop
+worked out again ([GO.md](GO.md#redirects)), and one Chrome would not follow
+fails the same way.
 
 What a page could not send is refused, with exit code 2, before anything is
 sent or written: a navigation with `-H` or `-d`, a form, `fetch` or `xhr`
@@ -1058,7 +1061,7 @@ line about a frame, which cost a request on loopback about a tenth of its time.
 | `proxy tls`, `proxy connect`, `proxy answer`, `proxy refused`, `proxy tls failed`, `proxy connect failed` | DEBUG, WARN | The handshake with an HTTPS proxy, the `CONNECT` with its header fields, the answer with the tunnel's number and header fields, and a refusal with up to 1 KiB of what the proxy said |
 | `connected`, `reused connection`, `connection kept for the next request` | DEBUG | The connection by both its ends, the tunnel it goes through, the TLS version, cipher suite and ALPN, whether the session was resumed, the server name and certificate |
 | `client hello`, `certificate`, `handshake extras` | TRACE | The ClientHello that went out on each new connection: JA4, JA4_r, JA3, and every extension, cipher suite, version, group, key share and signature algorithm in order, and the length of its GREASE ECH payload as `ech_payload_bytes`, drawn for each connection; each certificate of the server's chain |
-| `request sent`, `first byte`, `response headers`, `redirect`, `redirect not followed` | DEBUG, WARN | The header fields as written, pseudo-headers included, in order; the answer's status, protocol and header fields; each redirect, and the one past the tenth |
+| `request sent`, `first byte`, `response headers`, `redirect`, `redirect not followed` | DEBUG, WARN | The header fields as written, pseudo-headers included, in order; the answer's status, protocol and header fields; each redirect, and the twentieth, which is not followed |
 | `transport` | TRACE, WARN | What the HTTP/2 transport says: every frame it reads, the connections it opens and closes, and, as a warning, a server breaking the protocol or a cookie it will not keep |
 | `retry`, `page check`, `result`, `exit`, `cookies loaded`, `cookies saved`, `report` | INFO, WARN | Why a try is made again and after how long, what `--wait-for` and `--wait-for-element` found, how each request ended, where the run comes out, the session and the report |
 

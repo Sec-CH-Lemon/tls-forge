@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -89,6 +90,18 @@ func (h *Header) Del(name string) {
 		}
 	}
 	*h = out
+}
+
+// without is the header without the fields of the names given, in any case,
+// leaving h as it was.
+func (h Header) without(names ...string) Header {
+	var out Header
+	for _, f := range h {
+		if !slices.ContainsFunc(names, func(name string) bool { return strings.EqualFold(f.Name, name) }) {
+			out = append(out, f)
+		}
+	}
+	return out
 }
 
 // Names lists the header names in order.

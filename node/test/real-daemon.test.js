@@ -67,6 +67,43 @@ test('a request the real Go daemon cannot make rejects', { skip: !binary }, asyn
   }
 });
 
+test('the real Go daemon follows nineteen redirects and stops at the twentieth', { skip: !binary }, async () => {
+  // As Chrome 155 does, and as the CLI and the Go library do: twenty requests,
+  // the twentieth redirect not followed, and nothing past it asked.
+  let requests = 0;
+  let ends = 0;
+  const server = http.createServer((request, response) => {
+    requests += 1;
+    const left = Number(request.url.slice('/chain/'.length));
+    if (left === 0) {
+      ends += 1;
+      response.end('landed');
+      return;
+    }
+    response.writeHead(302, { location: `/chain/${left - 1}` });
+    response.end();
+  });
+  await listen(server);
+  const client = new Client({ binary, timeout: 10_000 });
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    for (const [redirects, landed] of [[19, true], [20, false], [21, false]]) {
+      requests = 0;
+      ends = 0;
+      const asked = client.get(`${base}/chain/${redirects}`);
+      if (landed) {
+        assert.equal((await asked).body, 'landed');
+      } else {
+        await assert.rejects(asked, /the 20th redirect was not followed/);
+      }
+      assert.deepEqual({ redirects, requests, ends }, { redirects, requests: 20, ends: landed ? 1 : 0 });
+    }
+  } finally {
+    client.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 // listen starts a server on a port of its own on this machine.
 async function listen(server) {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));

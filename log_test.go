@@ -262,11 +262,11 @@ func TestALogFollowsARedirect(t *testing.T) {
 		t.Fatal("a redirect that never ends was followed to an answer")
 	}
 	stopped := book.one(t, "redirect not followed")
-	if stopped.get("hop") != "10" || stopped.get("limit") != "10" || stopped.get("level") != "WARN" {
+	if stopped.get("hop") != "20" || stopped.get("limit") != "20" || stopped.get("level") != "WARN" {
 		t.Errorf("the redirect not followed was said as %v", stopped)
 	}
 	if failed := book.one(t, "request failed"); failed.get("phase") != "redirect" ||
-		!strings.Contains(failed.get("error"), "stopped after 10 redirects") {
+		!strings.Contains(failed.get("error"), "the 20th redirect was not followed") {
 		t.Errorf("the failure was said as %v", failed)
 	}
 }

@@ -115,6 +115,8 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 			"", other, NewHeader("X-Foo", "1"), "", "with only the headers CORS lets through"},
 		{"no-cors mode with JSON", BrowserContext{Kind: KindFetch, Initiator: page, Mode: "no-cors"}, "POST", other,
 			NewHeader("Content-Type", "application/json"), "{}", "with only the headers CORS lets through"},
+		{"a URL with credentials", BrowserContext{Kind: KindFetch, Initiator: page}, "",
+			"https://u:p@www.example.com/x", nil, "", "fetch() is given no URL with credentials in it"},
 	} {
 		browser := tc.browser
 		_, err := client.Do(&Request{Method: tc.method, URL: tc.url, Header: tc.header, Body: []byte(tc.body),
@@ -171,27 +173,27 @@ func TestTheHeadersOfARequestInAContext(t *testing.T) {
 		want    map[string]string
 		absent  []string
 	}{
-		{"a form posted from https to http", browserRequest{kind: KindForm, method: "POST", initiator: page,
+		{"a form posted from https to http", browserRequest{kind: KindForm, method: "POST", posted: true, initiator: page,
 			from: originOf(page), policy: policyStrictOriginWhenCrossOrigin, contentType: formEncoded},
 			"http://www.example.com/form",
 			map[string]string{"origin": "null", "accept-encoding": "gzip, deflate", "cache-control": "max-age=0"},
 			[]string{"sec-fetch-site", "sec-ch-ua", "referer"}},
-		{"a form posted to the machine itself", browserRequest{kind: KindForm, method: "POST", initiator: page,
+		{"a form posted to the machine itself", browserRequest{kind: KindForm, method: "POST", posted: true, initiator: page,
 			from: originOf(page), policy: policyStrictOriginWhenCrossOrigin, contentType: formEncoded},
 			"http://localhost:8080/form",
 			map[string]string{"origin": "null", "sec-fetch-site": "cross-site",
 				"accept-encoding": "gzip, deflate, br, zstd"},
 			[]string{"referer"}},
-		{"a form posted under no-referrer", browserRequest{kind: KindForm, method: "POST", initiator: page,
+		{"a form posted under no-referrer", browserRequest{kind: KindForm, method: "POST", posted: true, initiator: page,
 			from: originOf(page), policy: policyNoReferrer, contentType: formEncoded},
 			"https://www.example.com/form", map[string]string{"origin": "null"}, []string{"referer"}},
-		{"a form posted under same-origin to another site", browserRequest{kind: KindForm, method: "POST",
+		{"a form posted under same-origin to another site", browserRequest{kind: KindForm, method: "POST", posted: true,
 			initiator: page, from: originOf(page), policy: policySameOrigin, contentType: formEncoded},
 			"https://www.example.net/form", map[string]string{"origin": "null"}, []string{"referer"}},
-		{"a form posted under same-origin to its own origin", browserRequest{kind: KindForm, method: "POST",
+		{"a form posted under same-origin to its own origin", browserRequest{kind: KindForm, method: "POST", posted: true,
 			initiator: page, from: originOf(page), policy: policySameOrigin, contentType: formEncoded},
 			"https://www.example.com/form", map[string]string{"origin": "https://www.example.com"}, nil},
-		{"a form posted under unsafe-url to http", browserRequest{kind: KindForm, method: "POST", initiator: page,
+		{"a form posted under unsafe-url to http", browserRequest{kind: KindForm, method: "POST", posted: true, initiator: page,
 			from: originOf(page), policy: policyUnsafeURL, contentType: formEncoded},
 			"http://www.example.com/form",
 			map[string]string{"origin": "https://www.example.com", "referer": "https://www.example.com/page?q=1"}, nil},
@@ -223,7 +225,7 @@ func TestTheHeadersOfARequestInAContext(t *testing.T) {
 			script: NewHeader("Accept", "application/json")},
 			"https://www.example.com/api", map[string]string{"accept": "application/json"}, nil},
 	} {
-		got := tc.request.header(mustURL(t, tc.target), base)
+		got := tc.request.header(tc.request.first(mustURL(t, tc.target)), base)
 		for name, want := range tc.want {
 			if value := got.Get(name); value != want || !got.Has(name) {
 				t.Errorf("%s: %s is %q, want %q", tc.name, name, value, want)
@@ -242,7 +244,7 @@ func TestTheHeadersOfARequestInAContext(t *testing.T) {
 
 func TestNoEncodingIsOfferedThatTheProfileDoesNotOffer(t *testing.T) {
 	r := browserRequest{kind: KindNavigation, method: "GET"}
-	got := r.header(mustURL(t, "http://www.example.com/"), NewHeader("User-Agent", "x"))
+	got := r.header(r.first(mustURL(t, "http://www.example.com/")), NewHeader("User-Agent", "x"))
 	if got.Has("accept-encoding") {
 		t.Errorf("Accept-Encoding: %q", got.Get("accept-encoding"))
 	}
@@ -264,7 +266,7 @@ func TestALoneAuthorizationGoesBeforeTheUserAgent(t *testing.T) {
 		for _, kind := range []RequestKind{KindFetch, KindXHR} {
 			r := browserRequest{kind: kind, method: "GET", initiator: page, from: originOf(page),
 				policy: policyStrictOriginWhenCrossOrigin, mode: modeCORS, credentials: credentialsSame, script: tc.script}
-			got := r.header(page, base).Names()
+			got := r.header(r.first(page), base).Names()
 			if names := strings.Join(got[:min(len(got), len(strings.Fields(tc.want)))], " "); names != tc.want {
 				t.Errorf("%s with %v: %v, want %s first", kind, tc.script, got, tc.want)
 			}
@@ -470,7 +472,7 @@ func TestTheCookiesARequestInAContextCarries(t *testing.T) {
 	}{
 		{"a typed navigation", browserRequest{kind: KindNavigation, method: "GET"}, "https://www.example.net/",
 			sendRule{topLevel: true, safe: true}},
-		{"a form posted to another site", browserRequest{kind: KindForm, method: "POST", initiator: page,
+		{"a form posted to another site", browserRequest{kind: KindForm, method: "POST", posted: true, initiator: page,
 			from: originOf(page)}, "https://www.example.net/", sendRule{crossSite: true, topLevel: true}},
 		{"fetch() omitting credentials", browserRequest{kind: KindFetch, method: "GET", initiator: page,
 			from: originOf(page), credentials: credentialsNone}, "https://www.example.com/", sendRule{none: true, safe: true}},
@@ -484,7 +486,7 @@ func TestTheCookiesARequestInAContextCarries(t *testing.T) {
 			initiator: page, from: originOf(page), credentials: credentialsAll}, "https://www.example.net/",
 			sendRule{crossSite: true, safe: true}},
 	} {
-		if got := tc.request.cookies(originOf(mustURL(t, tc.target))); got != tc.want {
+		if got := tc.request.cookies(tc.request.first(mustURL(t, tc.target))); got != tc.want {
 			t.Errorf("%s: %+v, want %+v", tc.name, got, tc.want)
 		}
 	}

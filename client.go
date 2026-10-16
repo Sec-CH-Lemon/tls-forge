@@ -518,15 +518,22 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	c.seedWarmCookies(parsed)
 	c.seedCookies(parsed, req.Cookies)
 
+	ch := &chain{client: c, transport: transport, log: r, browser: browser, urls: []*url.URL{parsed}}
 	var http1 fhttp.Header
 	switch {
 	case browser != nil:
-		field := browser.header(parsed, c.headers)
-		order := browser.wireOrder()
+		first := browser.first(parsed)
+		ch.last, ch.policy = first, browser.policy
+		if first.referrer != "" {
+			ch.referrer, _ = url.Parse(first.referrer)
+		}
+		field := browser.header(first, c.headers)
+		order := browser.wireOrder(first)
 		inner.Header = browserLayout(field, order, parsed.Host)
-		http1 = browserHTTP1Layout(field, browser.script, order, c.profile.HTTP1, c.http1Headers, parsed.Host)
+		http1 = browserHTTP1Layout(field, first.script, order, c.profile.HTTP1, c.http1Headers, parsed.Host)
 	default:
 		headers := c.headers.Merge(req.Header)
+		ch.given = headers.Values("referer")
 		inner.Header = legacyHeaderLayout(headers, parsed.Host)
 		switch {
 		case c.profile.HTTP1 != nil:
@@ -542,7 +549,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		inner.Header[fhttp.PHeaderOrderKey] = order
 	}
 	quietUserAgent(inner.Header, http2UserAgent)
-	unlaid := inner.Context()
+	ch.base = inner.Context()
 	if http1 != nil {
 		quietUserAgent(http1, http1UserAgent)
 		layouts := &protocolLayouts{
@@ -552,17 +559,18 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		}
 		inner = withProtocolLayouts(inner, layouts)
 	}
+	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
 
-	if browser != nil && browser.needsPreflight() && !c.preflights.allows(browser, inner.URL.String()) {
-		if err := c.preflight(unlaid, inner, browser, transport, r); err != nil {
-			return nil, err
+	defer ch.release()
+	if browser != nil {
+		if browser.needsPreflight(ch.last) && !c.preflights.allows(browser, ch.last, inner.URL.String()) {
+			if err := c.preflight(ch.base, inner, browser, ch.last, transport, r); err != nil {
+				return nil, err
+			}
 		}
-	}
-	if browser != nil && c.jar != nil {
 		// By the URL the transport will ask the jar about: the request's own,
 		// which every WithContext above copied anew.
-		c.jar.restrict(inner.URL, browser.cookies(originOf(inner.URL)))
-		defer c.jar.release(inner.URL)
+		ch.rule(inner.URL, browser.cookies(ch.last))
 	}
 	if r != nil {
 		r.step("connect")
@@ -576,10 +584,11 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	if r != nil {
 		r.answered(res)
 	}
-	if browser != nil && browser.cors {
-		if err := browser.corsCheck(res.Header); err != nil {
-			return nil, corsError("the answer of %s %s did not allow %s: %v", browser.method, shownURL(res.Request),
-				browser.from, err)
+	if browser != nil && ch.last.cors {
+		serialized := ch.last.serialized(browser)
+		if err := browser.corsCheck(res.Header, serialized); err != nil {
+			return nil, corsError("the answer of %s %s did not allow %s: %v", ch.last.method,
+				shownURL(res.Request).Redacted(), serialized, err)
 		}
 	}
 
@@ -797,16 +806,6 @@ func withProtocolLayouts(req *fhttp.Request, layouts *protocolLayouts) *fhttp.Re
 	return req.WithContext(fhttptrace.WithClientTrace(ctx, trace))
 }
 
-// maxRedirects is how many redirects one request follows before it gives up.
-//
-// Ten is what the transport allows when it is left alone, and it has to be
-// said again here because a redirect policy of one's own replaces that check
-// rather than adding to it. The policy that prepares the HTTP/1.1 layout let
-// everything through, so two pages redirecting to each other were followed
-// until the request's deadline: measured against a local server, 54,600
-// requests in five seconds.
-const maxRedirects = 10
-
 // followRedirect is the policy for every redirect: where the chain stops, who
 // is told about the hop, and which header layout the next request wears.
 func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
@@ -821,7 +820,7 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		if r != nil {
 			r.stopped(len(via), req.Response.StatusCode, shownURL(req).String())
 		}
-		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+		return fmt.Errorf("the %dth redirect was not followed", maxRedirects)
 	}
 	if t, _ := req.Context().Value(traceKey{}).(*Trace); t != nil {
 		t.redirect(req.Response.StatusCode, shownURL(req).String())
@@ -830,13 +829,17 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		r.redirect(len(via), req.Response.StatusCode, shownURL(req).String(), req.Response.Header)
 	}
 	withPort(req)
-	return prepareRedirectLayout(req, via)
+	ch, _ := req.Context().Value(chainKey{}).(*chain)
+	return ch.follow(req, via)
 }
 
-func prepareRedirectLayout(req *fhttp.Request, _ []*fhttp.Request) error {
+// prepareRedirectLayout gives a redirect's request of a request without a
+// browser context the HTTP/1.1 layout of the first, as the redirect left its
+// headers.
+func prepareRedirectLayout(req *fhttp.Request) {
 	layouts, _ := req.Context().Value(protocolLayoutsKey{}).(*protocolLayouts)
 	if layouts == nil {
-		return nil
+		return
 	}
 	// fhttp has already copied only the headers that are safe for this redirect.
 	// Replaying the first hop's complete HTTP/1 block here would undo that
@@ -857,7 +860,6 @@ func prepareRedirectLayout(req *fhttp.Request, _ []*fhttp.Request) error {
 	}
 	prepared := withProtocolLayouts(req, redirect)
 	*req = *prepared
-	return nil
 }
 
 // redirectHTTP1Layout keeps the measured spelling and HTTP/1-only fields from

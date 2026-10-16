@@ -472,7 +472,8 @@ func keepsOrder(got, layout []string) bool {
 func TestARedirectToAnotherProtocolWearsThatProtocolsLayout(t *testing.T) {
 	// From HTTP/2 to a server that speaks only HTTP/1.1, and back: each hop
 	// goes out in the header layout of the protocol it was made over, not in
-	// the one the chain began with.
+	// the one the chain began with, its client hints after Sec-Fetch-Dest as
+	// Chrome sends them after a redirect.
 	echoServer := startEcho(t)
 	redirectTo := func(h2 bool, target string) string {
 		t.Helper()
@@ -511,16 +512,18 @@ func TestARedirectToAnotherProtocolWearsThatProtocolsLayout(t *testing.T) {
 	if toH1.HTTP1 == nil || toH1.HTTP1.Proto != "HTTP/1.1" {
 		t.Fatalf("the hop to HTTP/1.1 was recorded as %+v", toH1.HTTP1)
 	}
-	if names := toH1.HTTP1.HeaderNames; len(names) == 0 || names[0] != "Host" || !keepsOrder(names, profile.HTTP1.HeaderOrder) {
-		t.Errorf("the HTTP/1.1 hop went out as %v, want the order %v", names, profile.HTTP1.HeaderOrder)
+	if names, want := toH1.HTTP1.HeaderNames, hintsAfterDest(profile.HTTP1.HeaderOrder); len(names) == 0 ||
+		names[0] != "Host" || !keepsOrder(names, want) || !keepsOrder(want, names) {
+		t.Errorf("the HTTP/1.1 hop went out as %v, want the order %v", names, want)
 	}
 
 	toH2 := measured(redirectTo(false, echoServer.URL()+"/api/all"))
 	if toH2.Negotiated != "h2" || toH2.HTTP2 == nil {
 		t.Fatalf("the hop to HTTP/2 went over %q", toH2.Negotiated)
 	}
-	if names := toH2.HTTP2.HeaderOrder; !keepsOrder(names, h2Order) || slices.Contains(names, "host") || slices.Contains(names, "connection") {
-		t.Errorf("the HTTP/2 hop went out as %v, want the order %v", names, h2Order)
+	if names, want := toH2.HTTP2.HeaderOrder, hintsAfterDest(h2Order); !keepsOrder(names, want) ||
+		!keepsOrder(want, names) || slices.Contains(names, "host") || slices.Contains(names, "connection") {
+		t.Errorf("the HTTP/2 hop went out as %v, want the order %v", names, want)
 	}
 }
 

@@ -86,6 +86,59 @@ def test_a_deflate_page_arrives_decoded_with_fields_that_describe_it() -> None:
         thread.join(timeout=2)
 
 
+class _ChainHandler(BaseHTTPRequestHandler):
+    """/chain/N redirects to /chain/N-1, and /chain/0 is a page; the server
+    counts what it was asked."""
+
+    def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        counts = self.server.counts  # type: ignore[attr-defined]
+        counts["requests"] += 1
+        left = int(self.path.removeprefix("/chain/"))
+        if left == 0:
+            counts["ends"] += 1
+            body = b"landed"
+            self.send_response(200)
+            self.send_header("content-length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        self.send_response(302)
+        self.send_header("location", f"/chain/{left - 1}")
+        self.send_header("content-length", "0")
+        self.end_headers()
+
+    def log_message(self, _format: str, *_args: object) -> None:
+        pass
+
+
+def test_the_real_go_daemon_follows_nineteen_redirects_and_stops_at_the_twentieth() -> None:
+    """As Chrome 155 does, and as the CLI and the Go library do: twenty
+    requests, the twentieth redirect not followed, nothing past it asked."""
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _ChainHandler)
+    server.counts = {"requests": 0, "ends": 0}  # type: ignore[attr-defined]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with Client(binary=binary, timeout=10) as client:
+            for redirects, landed in ((19, True), (20, False), (21, False)):
+                server.counts.update(requests=0, ends=0)  # type: ignore[attr-defined]
+                url = f"http://127.0.0.1:{server.server_port}/chain/{redirects}"
+                if landed:
+                    assert client.get(url).body == "landed"
+                else:
+                    with pytest.raises(RequestFailed, match="the 20th redirect was not followed"):
+                        client.get(url)
+                assert server.counts == {"requests": 20, "ends": int(landed)}  # type: ignore[attr-defined]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
 def test_a_request_the_real_go_daemon_cannot_make_raises_request_failed() -> None:
     binary = os.environ.get("TLSFORGE_REAL_BIN")
     if not binary:

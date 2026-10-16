@@ -150,8 +150,8 @@ func TestATransportFailureQuotesThePlainURLAsAsked(t *testing.T) {
 }
 
 func TestAPreflightToPlainHTTPAfterHTTPS(t *testing.T) {
-	secure := newRecorder(t, "h2", answeringCORS)
-	plain := newRecorder(t, "http", answeringCORS)
+	secure := newRecorder(t, "h2", answeringAsMeasured)
+	plain := newRecorder(t, "http", answeringAsMeasured)
 	client := newTestClient(t, WithProfile("chrome_155_macos"), secure.dialingWith(plain))
 	// fetch() goes out on a client of its own: its HTTPS first, on HTTP/2.
 	fetch := &BrowserContext{Kind: KindFetch, Initiator: "https://www.example.com/page"}

@@ -182,8 +182,9 @@ func TestTraceDoesNotReportARedirectThatWasRefused(t *testing.T) {
 	if _, err := client.Do(&Request{URL: server.URL + "/loop", Trace: seen.trace()}); err == nil {
 		t.Fatal("a redirect that never ends was followed to an answer")
 	}
-	// Ten requests were made, so nine redirects were followed. The tenth was
-	// the one the chain stopped at, and is not reported as one that was taken.
+	// Twenty requests were made, so nineteen redirects were followed. The
+	// twentieth was the one the chain stopped at, and is not reported as one
+	// that was taken.
 	if len(seen.redirects) != maxRedirects-1 {
 		t.Errorf("redirects reported = %d, want %d", len(seen.redirects), maxRedirects-1)
 	}

@@ -93,6 +93,58 @@ type browserRequest struct {
 	// cors is a request CORS answers: fetch() or an XHR in cors mode to
 	// another origin.
 	cors bool
+	// posted is a form sent by POST: its redirects keep its Cache-Control.
+	posted bool
+}
+
+// hop is one request of a chain of redirects, the first included, as what is
+// worked out for it stands: where it goes and how it stands to the page, the
+// Referer and the Origin it carries, its method, and whether it follows a
+// redirect, after which Chrome sends a page's client hints later.
+type hop struct {
+	to         origin
+	site       string
+	referrer   string
+	origin     string
+	method     string
+	redirected bool
+	// script are the headers fetch() or an XHR was given that the hop still
+	// carries: a redirect to another origin drops Authorization, and one that
+	// drops the body the headers that describe it.
+	script Header
+	// cors is a request CORS answers from this hop on; tainted is one whose
+	// Origin has gone across origins, and is "null" from here on.
+	cors, tainted bool
+	// lateOrigin is an Origin a redirect gave a script's request that the
+	// hop before it went without, which Chrome sends after Sec-Fetch-*, there
+	// from then on.
+	lateOrigin bool
+}
+
+// first is the first request of a chain: to target, as the page sends it.
+func (r *browserRequest) first(target *url.URL) hop {
+	h := hop{to: originOf(target), method: r.method, cors: r.cors, script: r.script}
+	if r.initiator == nil {
+		h.site = "none"
+		return h
+	}
+	h.site = relation(r.from, h.to)
+	h.referrer = referrerFor(r.initiator, h.to, r.policy)
+	h.origin = r.originHeader(h)
+	return h
+}
+
+// scripted reports a request a page's script makes: fetch() or an XHR.
+func (r *browserRequest) scripted() bool {
+	return r.kind == KindFetch || r.kind == KindXHR
+}
+
+// kindName is what a script's request is called: fetch() or an XHR.
+func (r *browserRequest) kindName() string {
+	if r.kind == KindXHR {
+		return "an XHR"
+	}
+	return "fetch()"
 }
 
 // errContext is what is wrong with a browser context, said before anything is
@@ -177,6 +229,7 @@ func (b *BrowserContext) resolveForm(r *browserRequest, header Header, body []by
 			return errContext("a form sent by GET has its fields in the URL, not a body")
 		}
 	case fhttp.MethodPost:
+		r.posted = true
 		r.contentType = header.Get("content-type")
 		if r.contentType == "" {
 			r.contentType = formEncoded
@@ -203,10 +256,7 @@ func formEncoding(contentType string) bool {
 }
 
 func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, header Header, body []byte) error {
-	what := "fetch()"
-	if b.Kind == KindXHR {
-		what = "an XHR"
-	}
+	what := r.kindName()
 	if r.initiator == nil {
 		return errContext("%s is sent by a page's script: name the page as the initiator", what)
 	}
@@ -240,6 +290,8 @@ func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, heade
 	r.script = header
 	to := originOf(target)
 	switch {
+	case b.Kind == KindFetch && target.User != nil:
+		return errContext("fetch() is given no URL with credentials in it, as a Request cannot be")
 	case r.mode == modeSameOrigin && to != r.from:
 		return errContext("%s in same-origin mode cannot go to another origin", what)
 	case r.mode == modeNoCORS && !noCORSSafe(r.method, header):
@@ -352,43 +404,63 @@ var (
 	formOrder = []string{"content-length", "cache-control", "sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform",
 		"upgrade-insecure-requests", "content-type", "user-agent", "origin", "accept", "sec-fetch-site",
 		"sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie", "priority"}
-	scriptOrder = []string{"content-length", "sec-ch-ua-platform", "user-agent", "sec-ch-ua", slotScript,
-		"sec-ch-ua-mobile", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest",
-		"sec-fetch-storage-access", "referer", "accept-encoding", "accept-language", "cookie", "priority"}
-	// authorizationOrder is a script's whose one header of its own is
-	// Authorization, which Chrome's renderer keeps before User-Agent where it
-	// keeps Content-Type and X-Foo after sec-ch-ua: it keeps them in a hash
-	// table, and each name has its place there.
-	authorizationOrder = []string{"content-length", "sec-ch-ua-platform", slotScript, "user-agent", "sec-ch-ua",
-		"sec-ch-ua-mobile", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest",
-		"sec-fetch-storage-access", "referer", "accept-encoding", "accept-language", "cookie", "priority"}
+	// redirectedOrder is a navigation's or a form's after a redirect.
+	redirectedOrder = []string{"content-length", "cache-control", "upgrade-insecure-requests", "content-type",
+		"user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest",
+		"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "referer", "accept-encoding", "accept-language",
+		"cookie", "priority"}
 )
 
-// order is the request's slots, in Chrome's order.
-func (r *browserRequest) order() []string {
+// order is a request's slots, in Chrome's order: a page's after a redirect
+// has its client hints after Sec-Fetch-Dest.
+func (r *browserRequest) order(h hop) []string {
 	switch {
-	case len(r.script) == 1 && strings.EqualFold(r.script[0].Name, "authorization"):
-		// Only a script's request has headers of its own.
-		return authorizationOrder
-	case r.kind == KindFetch || r.kind == KindXHR:
-		return scriptOrder
-	case r.kind == KindForm && r.method == fhttp.MethodPost:
+	case r.scripted():
+		return scriptOrder(h)
+	case h.redirected:
+		return redirectedOrder
+	case r.posted:
 		return formOrder
 	}
 	return navigationOrder
+}
+
+// scriptOrder is a script's request's slots: its own headers where Chrome's
+// renderer keeps them, which is a hash table where each name has its place, a
+// lone Authorization before User-Agent and any other after sec-ch-ua, as
+// Content-Type and X-Foo were measured; and its Origin before Sec-Fetch-*, or
+// after them once a redirect gave it one.
+func scriptOrder(h hop) []string {
+	authorization := len(h.script) == 1 && strings.EqualFold(h.script[0].Name, "authorization")
+	out := []string{"content-length", "sec-ch-ua-platform"}
+	if authorization {
+		out = append(out, slotScript)
+	}
+	out = append(out, "user-agent", "sec-ch-ua")
+	if !authorization {
+		out = append(out, slotScript)
+	}
+	out = append(out, "sec-ch-ua-mobile", "accept")
+	if !h.lateOrigin {
+		out = append(out, "origin")
+	}
+	out = append(out, "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "sec-fetch-storage-access")
+	if h.lateOrigin {
+		out = append(out, "origin")
+	}
+	return append(out, "referer", "accept-encoding", "accept-language", "cookie", "priority")
 }
 
 // header is the request's headers to target, in Chrome's order: the
 // profile's values where the browser's are the same for every request, and
 // the rest worked out for this one. The transport adds Content-Length and the
 // cookies, in their slots; Host and Connection are HTTP/1.1's own.
-func (r *browserRequest) header(target *url.URL, base Header) Header {
-	to := originOf(target)
-	values := r.values(to, base)
+func (r *browserRequest) header(h hop, base Header) Header {
+	values := r.values(h, base)
 	var out Header
-	for _, name := range r.order() {
+	for _, name := range r.order(h) {
 		if name == slotScript {
-			out = append(out, r.script...)
+			out = append(out, h.script...)
 			continue
 		}
 		if value, ok := values[name]; ok {
@@ -399,7 +471,8 @@ func (r *browserRequest) header(target *url.URL, base Header) Header {
 }
 
 // values are the request's header values by name, where it has one.
-func (r *browserRequest) values(to origin, base Header) map[string]string {
+func (r *browserRequest) values(h hop, base Header) map[string]string {
+	to := h.to
 	values := map[string]string{}
 	for _, name := range []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "user-agent",
 		"accept-language", "accept-encoding"} {
@@ -407,7 +480,7 @@ func (r *browserRequest) values(to origin, base Header) map[string]string {
 			values[name] = base.Get(name)
 		}
 	}
-	script := r.kind == KindFetch || r.kind == KindXHR
+	script := r.scripted()
 	if script {
 		values["accept"] = acceptAnything
 		values["priority"] = priorityFetch
@@ -422,20 +495,21 @@ func (r *browserRequest) values(to origin, base Header) map[string]string {
 		values["sec-fetch-mode"] = modeNavigate
 		values["sec-fetch-dest"] = destDocument
 	}
-	if r.kind == KindForm && r.method == fhttp.MethodPost {
+	if r.posted {
 		values["cache-control"] = "max-age=0"
-		values["content-type"] = r.contentType
+		if h.method == fhttp.MethodPost {
+			values["content-type"] = r.contentType
+		}
 	}
+	values["sec-fetch-site"] = h.site
 	if r.initiator == nil {
-		values["sec-fetch-site"], values["sec-fetch-user"] = "none", "?1"
-	} else {
-		values["sec-fetch-site"] = relation(r.from, to)
-		if referrer := referrerFor(r.initiator, to, r.policy); referrer != "" {
-			values["referer"] = referrer
-		}
-		if serialized := r.originHeader(to); serialized != "" {
-			values["origin"] = serialized
-		}
+		values["sec-fetch-user"] = "?1"
+	}
+	if h.referrer != "" {
+		values["referer"] = h.referrer
+	}
+	if h.origin != "" {
+		values["origin"] = h.origin
 	}
 	if script && r.credentials == credentialsAll && values["sec-fetch-site"] == "cross-site" {
 		values["sec-fetch-storage-access"] = "active"
@@ -453,7 +527,7 @@ func (r *browserRequest) values(to origin, base Header) map[string]string {
 			values["accept-encoding"] = withoutCodings(offered, "br", "zstd")
 		}
 	}
-	for _, f := range r.script {
+	for _, f := range h.script {
 		// What a script set in place of what the browser would have.
 		delete(values, strings.ToLower(f.Name))
 	}
@@ -464,12 +538,20 @@ func (r *browserRequest) values(to origin, base Header) map[string]string {
 // appends one: the initiator's origin for a request that CORS answers, and,
 // for one that is neither GET nor HEAD, that origin or "null" as the
 // referrer policy says. Empty is none.
-func (r *browserRequest) originHeader(to origin) string {
-	if r.cors {
-		return r.from.String()
+//
+// Across origins a redirect taints it: Chrome then sends "null", lest a page
+// that posted to another site be posted back to as from itself.
+func (r *browserRequest) originHeader(h hop) string {
+	serialized := r.from.String()
+	if h.tainted {
+		serialized = "null"
 	}
-	cors := (r.kind == KindFetch || r.kind == KindXHR) && r.mode == modeCORS
-	if r.method == fhttp.MethodGet || r.method == fhttp.MethodHead {
+	if h.cors {
+		return serialized
+	}
+	to := h.to
+	cors := r.scripted() && r.mode == modeCORS
+	if h.method == fhttp.MethodGet || h.method == fhttp.MethodHead {
 		return ""
 	}
 	if !cors {
@@ -486,7 +568,7 @@ func (r *browserRequest) originHeader(to origin) string {
 			}
 		}
 	}
-	return r.from.String()
+	return serialized
 }
 
 // withoutCodings is an Accept-Encoding value without some of its codings.
@@ -506,33 +588,36 @@ func withoutCodings(value string, codings ...string) string {
 // lower-case names: every slot of its kind, so that Content-Length and the
 // cookies the transport adds itself go where Chrome puts them, and the
 // script's headers in theirs.
-func (r *browserRequest) wireOrder() []string {
+func (r *browserRequest) wireOrder(h hop) []string {
 	var out []string
-	for _, name := range r.order() {
+	for _, name := range r.order(h) {
 		if name != slotScript {
 			out = append(out, name)
 			continue
 		}
-		for _, f := range r.script {
+		for _, f := range h.script {
 			out = append(out, strings.ToLower(f.Name))
 		}
 	}
 	return out
 }
 
-// cookies are which of its cookies the request carries to a URL of origin to.
-func (r *browserRequest) cookies(to origin) sendRule {
+// cookies are which of its cookies a request carries on a hop. SameSite goes
+// by the page and the hop's URL alone, as Chrome's does: a redirect through
+// another site does not make a request cross-site, as measured. A request
+// kept to its own origin carries none once CORS answers for it.
+func (r *browserRequest) cookies(h hop) sendRule {
 	rule := sendRule{
 		topLevel: r.kind == KindNavigation || r.kind == KindForm,
-		safe:     r.method == fhttp.MethodGet || r.method == fhttp.MethodHead,
+		safe:     h.method == fhttp.MethodGet || h.method == fhttp.MethodHead,
 	}
 	if r.initiator != nil {
-		rule.crossSite = relation(r.from, to) == "cross-site"
+		rule.crossSite = relation(r.from, h.to) == "cross-site"
 	}
 	switch {
 	case r.credentials == credentialsNone:
 		rule.none = true
-	case r.credentials == credentialsSame && r.from != to:
+	case r.credentials == credentialsSame && (r.from != h.to || h.cors):
 		rule.none = true
 	}
 	return rule

@@ -52,8 +52,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   to a page that is not potentially trustworthy, and only the cookies
   SameSite and the credentials mode let
   through, a form's POST carrying for two minutes those that named none. What
-  a page cannot send is refused before anything is sent, and redirects are
-  followed as before. A request without one goes out as before.
+  a page cannot send is refused before anything is sent. A request without
+  one goes out as before.
+- **Redirects are followed as Chrome 155 follows them**, measured
+  (`testdata/chrome155-requests.json`): 301 and 302 make a `GET` of a `POST`
+  alone and 303 of all but `HEAD`, each dropping the body and what describes
+  it for good, where 307 and 308 keep both (Go's transport made a `GET` of
+  every method, and sent a dropped body again after a 307); no `Referer` a
+  request was not given; from a hop to another origin on, no `Authorization`
+  and an `Origin` of `null`; no credentials a `Location` names; a Chromium
+  profile's client hints after `Sec-Fetch-Dest`. A request in a browser
+  context works each hop out again: `Sec-Fetch-Site` over every URL of the
+  chain, the `Referer` narrowed from the one before under the page's policy
+  or one a redirect's `Referrer-Policy` sets, `Origin` tainted as Chrome
+  taints it and, given by a redirect, sent after `Sec-Fetch-*`, CORS on every
+  redirect and a preflight again where a hop needs one, and an error wrapping
+  `ErrCORS` for a redirect Chrome would not follow: `fetch()` in `same-origin`
+  mode to another origin, and to a URL with credentials in it. `fetch()` of
+  such a URL is refused before anything is sent.
   `Profile.Chromium` says which profiles take one.
 - **`fetch --html-decoding browser` reads a page as Chrome 155 decodes it**
   for `--wait-for` and `--wait-for-element`: by its byte order mark, its
@@ -838,14 +854,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - Profile names know the phones' platforms, `_android` and `_ios`, and a
   profile from an iPhone or an iPad does not shuffle its TLS extensions: every
   browser there connects through Apple's stack, Chrome included.
-- **A chain of redirects ends after ten, for every profile.** With a profile
-  that carries an HTTP/1.1 layout, which includes every shipped Chrome profile,
-  redirects were followed without limit: the policy that prepares the next
-  request's headers replaced the transport's own check instead of adding to it.
-  Two pages redirecting to each other were requested until the timeout, and a
-  local server measured 54,600 requests in five seconds. The eleventh redirect
-  now fails the request with `stopped after 10 redirects`, as it already did
-  for catalogue profiles.
+- **A chain of redirects ends at its twentieth request, for every profile, as
+  Chrome's does.** With a profile that carries an HTTP/1.1 layout, which
+  includes every shipped Chrome profile, redirects were followed without
+  limit: the policy that prepares the next request's headers replaced the
+  transport's own check instead of adding to it. Two pages redirecting to each
+  other were requested until the timeout, and a local server measured 54,600
+  requests in five seconds. Chrome 155, measured on a chain that does not
+  end, makes twenty requests and does not follow the twentieth redirect; the
+  request fails there now with `the 20th redirect was not followed`, in the
+  library, `fetch` and both SDKs. A catalogue profile stopped after ten with
+  `stopped after 10 redirects`, and follows nineteen now.
+- A redirect sent the URL that redirected, query and all, as `Referer` to
+  wherever it led, another site included, where Chrome sends none a request
+  was not given; a `Referer` a request was given was replaced by it.
 - Every line of an error is printed with `tlsforge: ` at its start, once. An
   error from the Go library, which already begins that way, was printed as
   `tlsforge: tlsforge: Get "http://127.0.0.1:1/": … connection refused`, and

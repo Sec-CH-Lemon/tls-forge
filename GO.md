@@ -105,7 +105,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithCookies(cookies)` | Seed the client's jar with a warmed session. Cookies are matched to each request URL before being inserted. |
 | `WithoutCookieJar()` | Disable cookie storage. Use this when another layer, such as an intercepting proxy, owns the `Cookie` header. |
 | `WithCookieJar(jar)` | Supply an `fhttp.CookieJar`, for example to share or persist a jar. |
-| `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default, up to ten in a row; the eleventh fails the request with `stopped after 10 redirects`. |
+| `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default as Chrome follows them ([Redirects](#redirects)): nineteen in a row, and the twentieth fails the request with `the 20th redirect was not followed`. |
 | `WithoutSessionResumption()` | Keep no TLS session to resume, so that every connection is the cold handshake of a first contact. Without it a profile whose browser resumes does as the browser does; see below. |
 | `WithInsecureSkipVerify()` | Disable upstream certificate verification. Intended for controlled local test endpoints. |
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
@@ -218,8 +218,8 @@ where Chrome puts a script's, but none a script cannot set (`Cookie`, `Origin`,
 `Referer`, `Sec-*`, `User-Agent` and the rest of the Fetch standard's list).
 Anything else is an error before anything is sent: a context with no kind, an
 unknown policy or mode, a form or a script with no initiator, a request in
-`same-origin` mode to another origin, and one in `no-cors` mode with a method
-or header CORS would ask about. A method is sent as `fetch()` sends it: the
+`same-origin` mode to another origin, one in `no-cors` mode with a method or
+header CORS would ask about, and a `fetch()` of a URL with credentials in it. A method is sent as `fetch()` sends it: the
 six it knows (`GET`, `POST` and the rest) in capitals, whatever case they were
 given in. A context needs a profile of a Chromium
 browser with headers to send: one of another browser, or a bare entry of the
@@ -253,11 +253,53 @@ HTTP/2 `HEADERS` frame weight 220 where it gives a page 256, and the transport
 puts one weight on every request it sends. They resume TLS sessions among
 themselves, not with a client's other requests.
 
-What a context does not do yet: redirects as Chrome follows them (a
-redirect is followed as a request without a context is), the order of
-several headers a script set (Chrome's depends on the set of names; one is
-placed exactly), frames, and a form submitted by the user's click
+What a context does not do yet: the order of several headers a script set
+(Chrome's renderer keeps them in a hash table where each name has its place,
+so the order changes with the set of names; one goes where Chrome was
+measured to put it), frames, and a form submitted by the user's click
 (`Sec-Fetch-User`).
+
+### Redirects
+
+A redirect is followed as Chrome 155 was measured following one
+(`testdata/chrome155-requests.json`), by every request:
+
+- 301 and 302 make a `GET` of a `POST` alone, and 303 of every method but
+  `HEAD`; each drops the body for good, with the headers that describe it.
+  307 and 308 keep the method and the body. Go's transport made a `GET` of
+  every method on the first three, and sent a dropped body again after a 307.
+- A hop carries no `Referer` the request was not given. Go's transport sent
+  the redirecting URL, query and all, to wherever it redirected. A request
+  without a context keeps the `Referer` it was given on every hop.
+- From a hop to another origin on, `Authorization` is gone and an `Origin`
+  says `null`.
+- Credentials a `Location` names are not sent: Chrome sends them only when
+  the server asks for them.
+- A Chromium profile's client hints go after `Sec-Fetch-Dest` once a request
+  is redirected.
+- Nineteen redirects are followed. The twentieth is not, and the request
+  fails with `the 20th redirect was not followed`: on a chain that does not
+  end, Chrome made twenty requests.
+
+In a browser context each hop is worked out again from the hops before it:
+
+- `Sec-Fetch-Site` goes by every URL asked, so a chain through another site
+  is `cross-site` to its end, back home too. A navigation typed into the
+  address bar is `none`, with `Sec-Fetch-User: ?1`, wherever it goes.
+  SameSite goes by the page and the hop's URL alone, as Chrome's does.
+- The `Referer` is worked out from the one before under the page's policy,
+  so it only narrows, or under the policy a redirect's `Referrer-Policy`
+  sets: the last name in it that is a policy, in any case.
+- `Origin` says `null` once the request has gone across origins: for a
+  request CORS answers, from an origin that is not the page's. A script's
+  request that a redirect gives an `Origin` sends it after `Sec-Fetch-*`.
+- CORS has to allow a redirect itself, and a hop that needs a preflight is
+  asked about again at the URL it goes to, with its own `Sec-Fetch-Site`.
+  `fetch()` in `same-origin` mode follows no redirect to another origin.
+  To a URL with credentials in it, `fetch()` follows none but to the page's
+  own origin with the page's own credentials, and a request in `cors` mode
+  none across origins. Each of these is an error wrapping
+  `tlsforge.ErrCORS`, with nothing more sent.
 
 ## Responses and errors
 
@@ -384,7 +426,7 @@ response, err := client.Do(&tlsforge.Request{
 | Level | What is logged |
 |---|---|
 | `slog.LevelInfo` | The client and its profile; a record for each request and each answer. |
-| `slog.LevelWarn` | A request that failed: the step it gave up in as `phase` (`prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect`), whether it was a timeout, and the error. A lookup that failed, a proxy that would not open a tunnel, with up to 1 KiB of what it said, a handshake with an HTTPS proxy that failed, and a redirect past the tenth. |
+| `slog.LevelWarn` | A request that failed: the step it gave up in as `phase` (`prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect`), whether it was a timeout, and the error. A lookup that failed, a proxy that would not open a tunnel, with up to 1 KiB of what it said, a handshake with an HTTPS proxy that failed, and the redirect that is not followed, the twentieth. |
 | `slog.LevelDebug` | Every step: each lookup with the addresses found, each TCP dial, the `CONNECT` to a proxy and its answer with the tunnel's number, the connection by its two ends with what its handshake settled on and the server's certificate, a connection reused, the header fields as written, pseudo-headers included, the first byte, the answer's header fields, each redirect, and when a client is made, made `Fresh`, closes its idle connections and is closed. The profile's JA4, HTTP/2 preface and header order when a client is made. |
 | `tlsforge.LevelTrace` | The ClientHello of every new connection, with its JA4, JA4_r, JA3, every list in it and the length of its GREASE ECH payload as `ech_payload_bytes`, and every certificate of the server's chain. |
 

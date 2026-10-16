@@ -19,6 +19,7 @@ import (
 	"net/http/httptest"
 	neturl "net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -785,8 +786,9 @@ func TestProtocolLayoutEdgeCases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest: %v", err)
 	}
-	if err := prepareRedirectLayout(req, nil); err != nil {
-		t.Fatalf("prepareRedirectLayout without layouts: %v", err)
+	prepareRedirectLayout(req)
+	if req.Context().Value(protocolLayoutsKey{}) != nil {
+		t.Fatal("prepareRedirectLayout made layouts of none")
 	}
 	customHost := &protocolLayouts{
 		http1: fhttp.Header{
@@ -798,9 +800,7 @@ func TestProtocolLayoutEdgeCases(t *testing.T) {
 	}
 	req.Host = "virtual.test"
 	req = withProtocolLayouts(req, customHost)
-	if err := prepareRedirectLayout(req, nil); err != nil {
-		t.Fatalf("prepareRedirectLayout with custom host: %v", err)
-	}
+	prepareRedirectLayout(req)
 	prepared, _ := req.Context().Value(protocolLayoutsKey{}).(*protocolLayouts)
 	if got := prepared.http1["Host"]; !reflect.DeepEqual(got, []string{"virtual.test"}) {
 		t.Errorf("relative redirect custom Host = %v", got)
@@ -867,22 +867,56 @@ func hopServer(t *testing.T) (*httptest.Server, *atomic.Int32) {
 	return server, &requests
 }
 
-func TestRedirectsStopAfterTen(t *testing.T) {
-	// The default profile carries an HTTP/1.1 layout and the catalogue one does
-	// not, and that used to decide whether a chain of redirects ever ended.
-	for _, name := range []string{DefaultProfile, "chrome_133"} {
-		t.Run(name, func(t *testing.T) {
-			server, requests := hopServer(t)
-			client := newTestClient(t, WithProfile(name), WithTimeout(10*time.Second))
+// chainServer answers /chain/N with a redirect to /chain/N-1 and /chain/0
+// with a page, and says how many requests it was asked and how many of them
+// reached the page.
+func chainServer(t *testing.T) (*httptest.Server, func() (requests, ends int32)) {
+	t.Helper()
+	var requests, ends atomic.Int32
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		n, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/chain/"))
+		if n == 0 {
+			ends.Add(1)
+			_, _ = w.Write([]byte("landed"))
+			return
+		}
+		http.Redirect(w, r, "/chain/"+strconv.Itoa(n-1), http.StatusFound)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	t.Cleanup(server.Close)
+	return server, func() (int32, int32) { return requests.Load(), ends.Load() }
+}
 
-			_, err := client.Get(server.URL + "/loop")
-			if err == nil || !strings.Contains(err.Error(), "stopped after 10 redirects") {
-				t.Fatalf("error = %v, want the redirect limit", err)
-			}
-			if got := requests.Load(); got != maxRedirects {
-				t.Errorf("the server was asked %d times, want %d", got, maxRedirects)
-			}
-		})
+func TestAChainOfRedirectsEndsAtItsTwentiethRequest(t *testing.T) {
+	// As Chrome 155 was measured to: 19 redirects are followed to the answer,
+	// 20 requests in all; the 20th redirect is not followed, and nothing past
+	// it is asked. The default profile carries an HTTP/1.1 layout and the
+	// catalogue one does not, which once decided whether a chain ever ended.
+	for _, name := range []string{DefaultProfile, "chrome_133"} {
+		for _, tc := range []struct {
+			redirects      int
+			requests, ends int32
+		}{
+			{0, 1, 1}, {1, 2, 1}, {19, 20, 1}, {20, 20, 0}, {21, 20, 0}, {100, 20, 0},
+		} {
+			t.Run(fmt.Sprintf("%s/%d", name, tc.redirects), func(t *testing.T) {
+				server, count := chainServer(t)
+				client := newTestClient(t, WithProfile(name), WithTimeout(10*time.Second))
+				res, err := client.Get(fmt.Sprintf("%s/chain/%d", server.URL, tc.redirects))
+				switch {
+				case tc.ends == 0 && (err == nil || !strings.Contains(err.Error(), "the 20th redirect was not followed")):
+					t.Errorf("error = %v, want the redirect limit", err)
+				case tc.ends == 1 && (err != nil || string(res.Body) != "landed"):
+					t.Errorf("Get = %v, %v", res, err)
+				}
+				if requests, ends := count(); requests != tc.requests || ends != tc.ends {
+					t.Errorf("the server was asked %d times, the page %d; want %d and %d", requests, ends,
+						tc.requests, tc.ends)
+				}
+			})
+		}
 	}
 }
 

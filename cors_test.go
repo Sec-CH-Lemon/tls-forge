@@ -68,7 +68,7 @@ func TestWhatAPreflightAsksAbout(t *testing.T) {
 		{corsRequest("GET", credentialsSame, NewHeader("X-Foo", "1")), true},
 		{&browserRequest{method: "PUT"}, false},
 	} {
-		if got := tc.request.needsPreflight(); got != tc.want {
+		if got := tc.request.needsPreflight(tc.request.first(mustURLOf("https://www.example.net/api"))); got != tc.want {
 			t.Errorf("%s %v: %v", tc.request.method, tc.request.script, got)
 		}
 	}
@@ -100,7 +100,7 @@ func TestTheCORSCheck(t *testing.T) {
 		{"credentials allowed, none sent", credentialsNone, fhttp.Header{"Access-Control-Allow-Origin": {"*"},
 			"Access-Control-Allow-Credentials": {"true"}}, ""},
 	} {
-		err := corsRequest("GET", tc.credentials, nil).corsCheck(tc.header)
+		err := corsRequest("GET", tc.credentials, nil).corsCheck(tc.header, origin)
 		if tc.says == "" && err != nil || tc.says != "" && (err == nil || !strings.Contains(err.Error(), tc.says)) {
 			t.Errorf("%s: %v, want %q", tc.name, err, tc.says)
 		}
@@ -173,7 +173,7 @@ func TestWhatAPreflightAllows(t *testing.T) {
 		{"kept for a negative while", corsRequest("PUT", credentialsSame, nil),
 			allowed(fhttp.Header{"Access-Control-Allow-Methods": {"PUT"}, "Access-Control-Max-Age": {"-1"}}), "", 5 * time.Second},
 	} {
-		got, err := tc.request.checkPreflight(tc.answer)
+		got, err := tc.request.checkPreflight(tc.answer, tc.request.first(mustURLOf("https://www.example.net/api")))
 		if tc.says == "" && (err != nil || got.maxAge != tc.maxAge) ||
 			tc.says != "" && (err == nil || !strings.Contains(err.Error(), tc.says)) {
 			t.Errorf("%s: %+v, %v; want %q, %v", tc.name, got, err, tc.says, tc.maxAge)
@@ -186,14 +186,20 @@ func TestThePreflightCache(t *testing.T) {
 	now := time.Date(2026, 10, 17, 9, 0, 0, 0, time.UTC)
 	cache.now = func() time.Time { return now }
 	const target = "https://www.example.net/api"
+	allows := func(r *browserRequest, target string) bool {
+		return cache.allows(r, r.first(mustURLOf(target)), target)
+	}
+	keep := func(r *browserRequest, target string, a allowance) {
+		cache.keep(r, r.first(mustURLOf(target)), target, a)
+	}
 	put := corsRequest("PUT", credentialsSame, nil)
 	json := corsRequest("POST", credentialsSame, NewHeader("Content-Type", "application/json"))
-	if cache.allows(put, target) || cache.allows(json, target) {
+	if allows(put, target) || allows(json, target) {
 		t.Fatal("an empty cache allows")
 	}
-	cache.keep(put, target, allowance{methods: []string{"PUT"}, maxAge: time.Minute})
-	cache.keep(json, target, allowance{headers: []string{"Content-Type"}, maxAge: time.Minute})
-	if !cache.allows(put, target) || !cache.allows(json, target) {
+	keep(put, target, allowance{methods: []string{"PUT"}, maxAge: time.Minute})
+	keep(json, target, allowance{headers: []string{"Content-Type"}, maxAge: time.Minute})
+	if !allows(put, target) || !allows(json, target) {
 		t.Error("what was kept is not allowed")
 	}
 	for name, other := range map[string]*browserRequest{
@@ -202,29 +208,29 @@ func TestThePreflightCache(t *testing.T) {
 		"with credentials":    corsRequest("PUT", credentialsAll, nil),
 		"from another origin": {method: "PUT", from: originOf(mustURL(t, "https://api.example.com/")), credentials: credentialsSame, cors: true},
 	} {
-		if cache.allows(other, target) {
+		if allows(other, target) {
 			t.Errorf("%s is allowed", name)
 		}
 	}
-	if cache.allows(put, target+"?other") {
+	if allows(put, target+"?other") {
 		t.Error("another URL is allowed")
 	}
 	now = now.Add(time.Minute)
-	if cache.allows(put, target) {
+	if allows(put, target) {
 		t.Error("an expired allowance holds")
 	}
 	// A wildcard stands for what a request without credentials sends, but
 	// for Authorization.
-	cache.keep(put, target, allowance{methods: []string{"*"}, headers: []string{"*"}, maxAge: time.Minute})
-	if !cache.allows(corsRequest("PATCH", credentialsSame, NewHeader("X-Foo", "1")), target) {
+	keep(put, target, allowance{methods: []string{"*"}, headers: []string{"*"}, maxAge: time.Minute})
+	if !allows(corsRequest("PATCH", credentialsSame, NewHeader("X-Foo", "1")), target) {
 		t.Error("the wildcards allow nothing")
 	}
-	if cache.allows(corsRequest("GET", credentialsSame, NewHeader("Authorization", "x")), target) {
+	if allows(corsRequest("GET", credentialsSame, NewHeader("Authorization", "x")), target) {
 		t.Error("the wildcard allows Authorization")
 	}
 	include := corsRequest("PATCH", credentialsAll, nil)
-	cache.keep(include, target, allowance{methods: []string{"*"}, headers: []string{"*"}, maxAge: time.Minute})
-	if cache.allows(include, target) || cache.allows(corsRequest("GET", credentialsAll, NewHeader("X-Foo", "1")), target) {
+	keep(include, target, allowance{methods: []string{"*"}, headers: []string{"*"}, maxAge: time.Minute})
+	if allows(include, target) || allows(corsRequest("GET", credentialsAll, NewHeader("X-Foo", "1")), target) {
 		t.Error("a wildcard allows a request with credentials")
 	}
 }
@@ -362,7 +368,7 @@ func TestAPreflightAsksForEveryHeaderOnOneLine(t *testing.T) {
 	base := NewHeader("user-agent", "UA")
 	request := corsRequest("POST", credentialsSame, Header{{Name: "X-Foo", Value: "1"}, {Name: "Content-Type",
 		Value: "application/json"}})
-	got := request.preflightHeader(originOf(mustURL(t, "https://www.example.net/api")), base)
+	got := request.preflightHeader(request.first(mustURL(t, "https://www.example.net/api")), base)
 	if asked := got.Get("access-control-request-headers"); asked != "content-type,x-foo" {
 		t.Errorf("asks for %q", asked)
 	}
