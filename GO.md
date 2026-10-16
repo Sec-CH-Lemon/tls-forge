@@ -583,8 +583,12 @@ certificate and key files must match, be currently valid and form a usable
 self-signed CA. Treat the private key as a sensitive credential. The proxy has
 no incoming-client authentication; protect any non-loopback `Addr` with a
 firewall or authenticated tunnel. Incoming connections close after 30 seconds
-without read or write progress. Each authority caches at most 1024 generated
-leaf certificates and evicts the oldest hostname when full.
+without read or write progress. A request's header has 10 seconds from its
+first byte and 1 MiB, past which it is answered 431, and the TLS handshake in a
+tunnel has 10 seconds; a body is bounded by `MaxRequestBody` and by the 30
+seconds of each read, not by a time for the whole. At most 1024 connections are
+served at once; the next waits to be accepted. Each authority caches at most
+1024 generated leaf certificates and evicts the oldest hostname when full.
 
 ## Local echo server
 

@@ -1396,8 +1396,13 @@ and remove that trust when the proxy is no longer needed. The proxy does not
 authenticate incoming clients: a non-loopback `--addr` must be protected by a
 firewall or authenticated tunnel. The certificate and key must either both
 exist and match or both be absent. Incoming connections expire after 30 seconds
-without any read or write progress, and the generated leaf-certificate cache is
-limited to 1024 hostnames.
+without any read or write progress. A request's header has 10 seconds from its
+first byte to arrive, and one longer than 1 MiB is answered 431; the TLS
+handshake in a tunnel has 10 seconds in all. A body has no such time, only the
+30 seconds of each read, so a large upload on a slow link goes through. At most
+1024 connections are served at once, and the next waits to be accepted until
+one of them ends. The generated leaf-certificate cache is limited to 1024
+hostnames.
 
 ### `serve`
 

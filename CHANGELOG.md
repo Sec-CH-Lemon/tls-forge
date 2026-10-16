@@ -454,6 +454,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **`proxy` bounds what one connection can hold.** A request's header had no
+  limit of size, and a header, or the handshake in a tunnel, sent a byte at a
+  time held its connection for as long as each byte came within 30 seconds of
+  the last. A header longer than 1 MiB is now answered 431, a header has 10
+  seconds from its first byte and the handshake 10 seconds in all, and 1024
+  connections are served at once, the next waiting to be accepted until one
+  ends. A body keeps only the 30 seconds of each read, so a large upload on a
+  slow link still goes through. Running out of file descriptors for a moment
+  stopped the proxy accepting connections for good; it is waited out. An
+  answer outside a tunnel was cut off 30 seconds into it, however steadily the
+  client read it.
 - A `CONNECT` to a port other than 443 lost its port when the request inside
   named the host alone, and the request went to port 443; a request inside a
   tunnel that named another host went to that host. A request now goes to

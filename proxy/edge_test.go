@@ -182,8 +182,9 @@ func newTestServer(t *testing.T, client Client) (*Server, *errorLog) {
 	t.Helper()
 	problems := &errorLog{}
 	return &Server{
-		opts:  Options{CA: newCAForTest(t), Client: client, OnError: problems.add},
-		conns: map[net.Conn]struct{}{},
+		opts:   Options{CA: newCAForTest(t), Client: client, OnError: problems.add},
+		budget: defaultBudget,
+		conns:  map[net.Conn]struct{}{},
 	}, problems
 }
 

@@ -28,11 +28,44 @@ import (
 	"time"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/accept"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
-const connectionIdleTimeout = 30 * time.Second
+// budget is what one connection may cost, and how many may cost it at once.
+//
+// A connection is served for as long as it keeps making progress, and no
+// longer. A request's header is sent at once by every client there is, so one
+// that trickles in, a byte at a time inside the idle timeout, is holding a
+// connection rather than making a request, and the same goes for a handshake.
+// A body is bounded by MaxRequestBody and by the idle timeout of each read,
+// not by a time for the whole: a large upload on a slow link is a real one.
+type budget struct {
+	// idle is how long a connection may wait for its next request, and how
+	// long any one read or write may wait for the peer.
+	idle time.Duration
+	// header is how long a request's header may take, from its first byte.
+	header time.Duration
+	// handshake is how long the TLS handshake in a tunnel may take, in all.
+	handshake time.Duration
+	// headerBytes bounds a request's header, its request line included, as
+	// net/http's DefaultMaxHeaderBytes does.
+	headerBytes int64
+	// connections is how many are served at once. The next one waits to be
+	// accepted until one of them ends: Chrome opens at most 32 to a proxy.
+	connections int
+}
+
+// defaultBudget is what Start serves with. A variable so that a test can make
+// it small; a server keeps the one it started with.
+var defaultBudget = budget{
+	idle:        30 * time.Second,
+	header:      10 * time.Second,
+	handshake:   10 * time.Second,
+	headerBytes: 1 << 20,
+	connections: 1024,
+}
 
 // Client is the part of *tlsforge.Client the proxy needs, named so tests can
 // answer without opening a socket.
@@ -70,6 +103,9 @@ const DefaultMaxRequestBody int64 = 16 << 20
 
 var errRequestTooLarge = errors.New("proxy: request body is too large")
 
+// errHeaderTooLarge is a request header that ran past budget.headerBytes.
+var errHeaderTooLarge = errors.New("proxy: request header is too large")
+
 // errUpgradeRefused ends a connection whose request asked to become another
 // protocol, once it has been told this proxy does not do that.
 var errUpgradeRefused = errors.New("proxy: an upgrade to another protocol was refused")
@@ -78,6 +114,11 @@ var errUpgradeRefused = errors.New("proxy: an upgrade to another protocol was re
 type Server struct {
 	listener net.Listener
 	opts     Options
+	budget   budget
+	// slots holds a token for every connection being served, so that accept
+	// waits while it is full. Close ends that wait as it ends every
+	// connection, which frees their slots.
+	slots chan struct{}
 
 	mu     sync.Mutex
 	conns  map[net.Conn]struct{}
@@ -114,7 +155,8 @@ func Start(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("proxy: listen: %w", err)
 	}
-	s := &Server{listener: listener, opts: opts, conns: map[net.Conn]struct{}{}}
+	s := &Server{listener: listener, opts: opts, budget: defaultBudget, conns: map[net.Conn]struct{}{},
+		slots: make(chan struct{}, defaultBudget.connections)}
 	s.wg.Add(1)
 	go s.accept()
 	return s, nil
@@ -149,14 +191,24 @@ func (s *Server) Close() error {
 
 func (s *Server) accept() {
 	defer s.wg.Done()
+	var pause time.Duration
 	for {
+		// A slot first: while every one is taken, the next connection waits
+		// in the listener's queue rather than being accepted and starved.
+		s.slots <- struct{}{}
 		conn, err := s.listener.Accept()
 		if err != nil {
+			<-s.slots
+			if accept.Again(err, &pause) {
+				continue
+			}
 			return
 		}
+		pause = 0
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
+			defer func() { <-s.slots }()
 			s.handle(conn)
 		}()
 	}
@@ -169,15 +221,13 @@ func (s *Server) handle(conn net.Conn) {
 	}
 	raw := conn
 	defer s.forget(raw)
-	conn = deadlineconn.Wrap(conn, connectionIdleTimeout)
+	conn = deadlineconn.Wrap(conn, s.budget.idle)
 
-	reader := bufio.NewReader(conn)
+	requests := s.requestsOn(conn)
 	for {
-		req, err := http.ReadRequest(reader)
+		req, err := requests.next()
 		if err != nil {
-			if !isClosed(err) && err != io.EOF {
-				s.opts.OnError(fmt.Errorf("proxy: reading a request: %w", err))
-			}
+			s.unread(conn, err, "")
 			return
 		}
 		if req.Method == http.MethodConnect {
@@ -185,7 +235,7 @@ func (s *Server) handle(conn net.Conn) {
 			// ends here whatever happens. What the caller sent behind the
 			// CONNECT without waiting for the answer is in the reader already,
 			// and is the start of the tunnel.
-			s.serveConnect(&bufferedConn{Conn: conn, reader: reader}, req)
+			s.serveConnect(&bufferedConn{Conn: conn, reader: requests.reader}, req)
 			return
 		}
 		if err := s.forward(conn, req, "http"); err != nil {
@@ -194,6 +244,100 @@ func (s *Server) handle(conn net.Conn) {
 			}
 			return
 		}
+	}
+}
+
+// requests reads one request after another from a connection: waiting for
+// each for as long as a connection may idle and, once it has begun, giving its
+// header only so long to arrive and only so many bytes to arrive in.
+type requests struct {
+	conn   net.Conn
+	budget budget
+	limit  headerLimit
+	reader *bufio.Reader
+}
+
+func (s *Server) requestsOn(conn net.Conn) *requests {
+	r := &requests{conn: conn, budget: s.budget, limit: headerLimit{r: conn, left: -1}}
+	r.reader = bufio.NewReader(&r.limit)
+	return r
+}
+
+// next is the next request, its body still to be read: the header's bounds
+// end with it.
+//
+// Waiting for the first byte has a deadline of its own, rather than leaving it
+// to the connection's idle timeout, which a read that returns anything renews:
+// in a tunnel, that first byte comes at the end of a whole TLS record, which a
+// peer could otherwise send a byte at a time.
+//
+// A header cut short by its budget or its time is said to be, whatever the
+// parser made of it: the line it was in the middle of reaches the parser as
+// though it were whole, and is then malformed.
+func (r *requests) next() (*http.Request, error) {
+	_ = r.conn.SetReadDeadline(time.Now().Add(r.budget.idle))
+	if _, err := r.reader.Peek(1); err != nil {
+		return nil, err
+	}
+	deadline := time.Now().Add(r.budget.header)
+	_ = r.conn.SetReadDeadline(deadline)
+	r.limit.left = r.budget.headerBytes
+	req, err := http.ReadRequest(r.reader)
+	spent := r.limit.left == 0
+	r.limit.left = -1
+	_ = r.conn.SetReadDeadline(time.Time{})
+	switch {
+	case err == nil:
+		return req, nil
+	case spent:
+		return nil, errHeaderTooLarge
+	case !time.Now().Before(deadline):
+		return nil, fmt.Errorf("proxy: no request header within %v: %w", r.budget.header, os.ErrDeadlineExceeded)
+	}
+	return nil, err
+}
+
+// headerLimit is what the reader of a request may still read before its
+// header has run too long: once it is spent, the header is refused, and a
+// read past it says so. Bytes the reader holds already are not counted, so
+// that a header is refused only beyond budget.headerBytes and at most one
+// buffer more. left is -1 between headers, while a body is read.
+type headerLimit struct {
+	r    io.Reader
+	left int64
+}
+
+func (l *headerLimit) Read(p []byte) (int, error) {
+	if l.left < 0 {
+		return l.r.Read(p)
+	}
+	if l.left == 0 {
+		return 0, errHeaderTooLarge
+	}
+	if int64(len(p)) > l.left {
+		p = p[:l.left]
+	}
+	n, err := l.r.Read(p)
+	l.left -= int64(n)
+	return n, err
+}
+
+// unread answers a request that could not be read, when the caller can be
+// told why, and reports what is worth reporting. A header that ran too long
+// is answered 431 and is the caller's doing; a connection that ended or went
+// quiet is an ordinary end; anything else is a failure, in the tunnel to
+// where when where is not empty.
+func (s *Server) unread(w io.Writer, err error, where string) {
+	switch {
+	case errors.Is(err, errHeaderTooLarge):
+		_ = writeResponse(w, http.StatusRequestHeaderFieldsTooLarge,
+			map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
+			[]byte(fmt.Sprintf("request header exceeds %d bytes\n", s.budget.headerBytes)), "")
+	case isClosed(err):
+	case where != "":
+		s.opts.OnError(fmt.Errorf("proxy: reading a request for %s: %w", where, err))
+	default:
+		s.opts.OnError(fmt.Errorf("proxy: reading a request: %w", err))
 	}
 }
 
@@ -241,20 +385,24 @@ func (s *Server) serveConnect(conn net.Conn, req *http.Request) {
 	}
 
 	tlsConn := tlsServer(conn, cert)
+	_ = tlsConn.SetDeadline(time.Now().Add(s.budget.handshake))
 	if err := tlsConn.Handshake(); err != nil {
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			s.opts.OnError(fmt.Errorf("proxy: the TLS handshake for %s took longer than %v", host, s.budget.handshake))
+			return
+		}
 		// Almost always the client refusing our authority, which is a decision
 		// on their side rather than a failure on ours.
 		s.opts.OnError(fmt.Errorf("proxy: %s did not accept the certificate: %w", host, err))
 		return
 	}
+	_ = tlsConn.SetDeadline(time.Time{})
 
-	reader := bufio.NewReader(tlsConn)
+	requests := s.requestsOn(tlsConn)
 	for {
-		req, err := http.ReadRequest(reader)
+		req, err := requests.next()
 		if err != nil {
-			if !isClosed(err) && err != io.EOF {
-				s.opts.OnError(fmt.Errorf("proxy: reading a request for %s: %w", host, err))
-			}
+			s.unread(tlsConn, err, host)
 			return
 		}
 		if inner := firstNonEmpty(req.URL.Host, req.Host); misdirected(inner, host, port) {
