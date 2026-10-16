@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -454,17 +455,6 @@ func TestWriteReportMakesTheDirectory(t *testing.T) {
 	}
 }
 
-func TestWriteReportReportsAChmodFailure(t *testing.T) {
-	original := chmodReport
-	t.Cleanup(func() { chmodReport = original })
-	chmodReport = func(_ *os.File, _ os.FileMode) error { return fmt.Errorf("permission denied") }
-
-	err := writeReport(reportFile{formatHTML, filepath.Join(t.TempDir(), "report.html")}, reportInput{command: "fetch"})
-	if err == nil || !strings.Contains(err.Error(), "securing report") {
-		t.Fatalf("writeReport error = %v", err)
-	}
-}
-
 func TestLookupExit(t *testing.T) {
 	standInIPService(t, `{"ip":"203.0.113.7","country":"PL","city":"Warsaw"}`, http.StatusOK)
 
@@ -635,15 +625,20 @@ func TestListReportWithoutAskingAboutEachRequest(t *testing.T) {
 }
 
 func TestListReportToAPathThatWillNotOpen(t *testing.T) {
-	server := pathServer(t)
+	// A file where its directory would go: refused before the run, rather
+	// than found out once the list has been fetched.
+	server, asked := replying(t, 200)
 	blocked := filepath.Join(t.TempDir(), "a-file")
 	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	code, _, stderr := exec(t, "fetch", "--report="+filepath.Join(blocked, "r.html"),
-		server.URL+"/one")
-	if code != 1 || !strings.Contains(stderr, "a-file") {
+	path := filepath.Join(blocked, "r.html")
+	code, _, stderr := exec(t, "fetch", "--report="+path, server.URL+"/one", server.URL+"/two")
+	if code != 2 || !strings.Contains(stderr, "--report "+path+" cannot be written: "+blocked+" is not a directory") {
 		t.Errorf("an unwritable report path: exit code %d\n%s", code, stderr)
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("the server was asked %d times", got)
 	}
 }
 
@@ -1509,34 +1504,75 @@ func TestFetchReportsTheRequestThatFailed(t *testing.T) {
 }
 
 func TestFetchReportThatCannotBeWritten(t *testing.T) {
-	// A parent that is a regular file, so there is nowhere to put the report.
-	blocked := filepath.Join(t.TempDir(), "a-file")
-	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
+	// Where the report's directory was to go, a file turns up while the run
+	// goes on, so there is nowhere to put it once the run is over.
+	blocking := func(t *testing.T, status int) (string, string, *httptest.Server) {
+		blocked := filepath.Join(t.TempDir(), "a-file")
+		server, _ := meanwhile(t, status, fileIn(t, blocked))
+		return filepath.Join(blocked, "run.html"), blocked, server
 	}
-	path := filepath.Join(blocked, "run.html")
-	server, _ := replying(t, 200)
 
 	// The page was fetched and handed over all the same. It is the run that did
 	// not do everything it was asked.
+	path, blocked, server := blocking(t, 200)
 	code, stdout, stderr := exec(t, "fetch", "--report="+path, server.URL)
-	if code != 1 || stdout != "answer-1" {
+	if code != 1 || stdout != "the page" {
 		t.Errorf("exit code = %d and stdout = %q, want 1 and the page\n%s", code, stdout, stderr)
 	}
-	if !strings.Contains(stderr, "tlsforge: fetch: ") || strings.Contains(stderr, "report written") {
+	if !strings.Contains(stderr, "tlsforge: fetch: mkdir "+blocked) || strings.Contains(stderr, "report written") {
 		t.Errorf("stderr does not say the report failed, or says it was written:\n%s", stderr)
 	}
 
 	// Several runs say what they came to without a report among it.
+	path, _, server = blocking(t, 200)
 	_, _, stderr = exec(t, "fetch", "--repeat", "2", "--report="+path, server.URL)
 	if strings.Contains(stderr, "  Report  ") || !strings.Contains(stderr, "  Avg time  ") {
 		t.Errorf("the figures name a report that was not written:\n%s", stderr)
 	}
 
-	// And when the request failed as well, both are said.
-	code, _, stderr = exec(t, "fetch", "--report="+path, "--timeout", "3s", "https://127.0.0.1:1/gone")
-	if code != 1 || !strings.Contains(stderr, "127.0.0.1:1") || !strings.Contains(stderr, "a-file") {
+	// And when the request got nothing as well, both are said.
+	path, blocked, server = blocking(t, 0)
+	code, _, stderr = exec(t, "fetch", "--report="+path, server.URL)
+	if code != 1 || !strings.Contains(stderr, server.URL) || !strings.Contains(stderr, "mkdir "+blocked) {
 		t.Errorf("exit code = %d, and stderr does not give both reasons:\n%s", code, stderr)
+	}
+}
+
+func TestWriteReportKeepsTheLastOneWhenThisOneFails(t *testing.T) {
+	// A report that stops half way leaves the one before it as it was: what
+	// was written of this one went into a file beside it, which is gone.
+	original := reportWriters[formatHTML]
+	t.Cleanup(func() { reportWriters[formatHTML] = original })
+	broke := errors.New("fetch: writing the report: the template broke")
+	reportWriters[formatHTML] = func(w io.Writer, in reportInput) error {
+		_, _ = io.WriteString(w, "<!doctype html>half of it")
+		return broke
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "run.html")
+	if err := os.WriteFile(path, []byte("the last run's"), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	// Said as the document says it, with nothing more in front.
+	if err := writeReport(reportFile{formatHTML, path}, reportInput{command: "fetch"}); err != broke {
+		t.Errorf("writeReport() = %v, want the document's own error", err)
+	}
+	if data, _ := os.ReadFile(path); string(data) != "the last run's" {
+		t.Errorf("the report before it holds %q", data)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("left beside it: %v", entries)
+	}
+}
+
+func TestWriteReportIntoADevice(t *testing.T) {
+	// The null device, or standard output by its name, is written to as it is:
+	// there is no file there to replace.
+	if err := writeReport(reportFile{formatJSON, os.DevNull}, reportInput{command: "fetch"}); err != nil {
+		t.Fatalf("writeReport(%s): %v", os.DevNull, err)
+	}
+	if info, err := os.Stat(os.DevNull); err != nil || info.Mode().IsRegular() {
+		t.Errorf("%s is not a device any more: %v, %v", os.DevNull, info, err)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -155,6 +156,22 @@ func TestReportFiles(t *testing.T) {
 		"html report-" + stamp(when) + ".html",
 	}) {
 		t.Errorf("no path and nothing kept: %v, want the current directory", got)
+	}
+
+	// The directory the requests are kept in, named for the report, is that
+	// directory whether or not it has been made yet, and however it is spelt.
+	out := filepath.Join(dir, "out")
+	stamped := []string{"html " + filepath.Join(out, "report-"+stamp(when)+".html")}
+	if got := paths(reportFiles(out, out, []string{"html"}, when)); !slices.Equal(got, stamped) {
+		t.Errorf("the --output directory, not made yet: %v, want %v", got, stamped)
+	}
+	t.Chdir(dir)
+	if got := paths(reportFiles(filepath.Join(".", "out"), out, []string{"html"}, when)); !slices.Equal(got, stamped) {
+		t.Errorf("the --output directory, spelt otherwise: %v, want %v", got, stamped)
+	}
+	// And no report asked for is no file.
+	if got := reportFiles("", out, nil, when); got != nil {
+		t.Errorf("no report: %v", got)
 	}
 }
 
@@ -490,20 +507,22 @@ func TestFetchReportFormatsAreCheckedBeforeTheRun(t *testing.T) {
 }
 
 func TestOneReportIsWrittenWhenTheOtherCannotBe(t *testing.T) {
-	// The document's name is taken by a directory, so only the page can be
-	// written. It is named all the same, beside the reason its companion is not.
-	dir := t.TempDir()
-	base := filepath.Join(dir, "run")
-	if err := os.Mkdir(base+".json", 0o755); err != nil {
-		t.Fatalf("Mkdir: %v", err)
+	// The document's name is taken by a directory while the run goes on, so
+	// only the page can be written. It is named all the same, beside the
+	// reason its companion is not.
+	taken := func(t *testing.T) (string, *httptest.Server) {
+		base := filepath.Join(t.TempDir(), "run")
+		server, _ := meanwhile(t, 200, func() { _ = os.Mkdir(base+".json", 0o755) })
+		return base, server
 	}
-	server, _ := replying(t, 200)
 
+	base, server := taken(t)
 	code, _, stderr := exec(t, "fetch", "--report="+base, "--report-format", "html,json", server.URL)
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1\n%s", code, stderr)
 	}
-	if !strings.Contains(stderr, "  report written to "+base+".html\n") || !strings.Contains(stderr, "tlsforge: fetch: ") {
+	if !strings.Contains(stderr, "  report written to "+base+".html\n") ||
+		!strings.Contains(stderr, "tlsforge: fetch: open "+base+".json") {
 		t.Errorf("stderr does not name the page, or the failure:\n%s", stderr)
 	}
 	if html := reportOf(t, base+".html"); !strings.Contains(html, "1 of 1 URLs") {
@@ -511,6 +530,7 @@ func TestOneReportIsWrittenWhenTheOtherCannotBe(t *testing.T) {
 	}
 
 	// A list does the same, and names the page among what the run came to.
+	base, server = taken(t)
 	code, _, stderr = exec(t, "fetch", "--report="+base, "--report-format", "html,json",
 		server.URL+"/one", server.URL+"/two")
 	if code != 1 || !strings.Contains(stderr, "  Report        "+base+".html\n") || !strings.Contains(stderr, "tlsforge: fetch: ") {

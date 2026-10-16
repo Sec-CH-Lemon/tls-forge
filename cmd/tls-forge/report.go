@@ -19,6 +19,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/spf13/pflag"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
 )
 
 // What a run turned out to be.
@@ -743,7 +745,7 @@ type reportInput struct {
 
 // reportBeside is what --report is given when it is given no path: the report
 // goes into the directory the run keeps its requests in, or into the current
-// one when there is none, named after the moment it was written.
+// one when there is none, named after the moment the run began.
 const reportBeside = "auto"
 
 func addReportFlags(fs *pflag.FlagSet) reportFlags {
@@ -812,15 +814,26 @@ type reportFile struct {
 // each format.
 //
 // Given no path, the report goes beside what the run kept, in the directory
-// --output names, or in the current directory when it names none. One format
-// is written to a path as it was given: the name stays the caller's, and unless
-// --report-format said otherwise it is what said the format. Two cannot both
-// go there, so the path then names them both: an extension that is one of the
-// formats comes off, and each gets its own.
+// --output names, or in the current directory when it names none; given that
+// directory, it goes there too, whether or not it has been made yet. One
+// format is written to a path as it was given: the name stays the caller's,
+// and unless --report-format said otherwise it is what said the format. Two
+// cannot both go there, so the path then names them both: an extension that
+// is one of the formats comes off, and each gets its own.
+//
+// Settled before the run, so that the files it is about to write can be
+// checked against the ones it reads, and named after the moment it began.
 func reportFiles(given, kept string, formats []string, when time.Time) []reportFile {
-	if given == reportBeside {
+	if len(formats) == 0 {
+		return nil
+	}
+	cwd, _ := workingDir()
+	switch {
+	case given == reportBeside:
 		// As a directory, which is what names the file after the moment.
 		given = either(kept, ".") + string(os.PathSeparator)
+	case kept != "" && samePath(located(given, cwd), located(kept, cwd)):
+		given = kept + string(os.PathSeparator)
 	}
 	files := make([]reportFile, 0, len(formats))
 	for _, format := range formats {
@@ -868,8 +881,6 @@ func stamp(t time.Time) string {
 	return t.Format("2006-01-02-150405") + fmt.Sprintf("-%03d", t.Nanosecond()/int(time.Millisecond))
 }
 
-var chmodReport = (*os.File).Chmod
-
 // writeReports writes the run down as every file asked for.
 //
 // All of them are tried, and the ones that were written come back whatever
@@ -891,6 +902,10 @@ func writeReports(files []reportFile, in reportInput) (written []reportFile, err
 // The page is self-contained on purpose: no stylesheet, no script and no font
 // from anywhere else, so it can be opened from a laptop with no network and
 // mailed to someone as one attachment.
+//
+// Written beside the file and moved over it once whole, with mode 0600: a
+// report that fails half way, or a disk that fills, leaves the one before as
+// it was rather than half of this one.
 func writeReport(to reportFile, in reportInput) error {
 	command, path := in.command, to.path
 	in.at = path
@@ -903,16 +918,17 @@ func writeReport(to reportFile, in reportInput) error {
 			return fmt.Errorf("%s: %w", command, err)
 		}
 	}
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
+	// What the document says went wrong is said as it says it; what went wrong
+	// with the file is said with the command in front.
+	var rendered error
+	err := atomicfile.Stream(path, 0o600, func(w io.Writer) error {
+		rendered = reportWriters[to.format](w, in)
+		return rendered
+	})
+	if err != nil && rendered == nil {
 		return fmt.Errorf("%s: %w", command, err)
 	}
-	if err := chmodReport(file, 0o600); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("%s: securing report: %w", command, err)
-	}
-	defer func() { _ = file.Close() }()
-	return reportWriters[to.format](file, in)
+	return err
 }
 
 // renderReport is the document itself, separate from the file it lands in, so

@@ -278,6 +278,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Security
 
+- A page `--output` keeps is written with mode `0600`, as the log, the trace
+  and the report are. It was `0644`, readable by everyone on the machine, and
+  a page can be one that only a session could open.
 - **A report no longer sends session cookies to the address service.** A
   cookie given without a domain, such as `--cookie name=value`, is filed
   against every host a client talks to, so the exit-address lookup that
@@ -297,6 +300,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- A report given a directory, or `--report` alone, is named after the moment
+  the run began, as the run's log is, rather than the moment it was written,
+  so that the files of one run share it. `--report` naming the `--output`
+  directory puts the report in it even before the run has made it.
 - `cookie.File.Encode` returns `([]byte, error)`: it fails rather than write
   less than it was given.
 - `cookie.Set.EncodeNetscape` writes a cookie's include-subdomains column from
@@ -390,6 +397,30 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **Two flags naming one file no longer lose it.** `--input urls.txt --trace
+  urls.txt` read the list and wrote the trace over it, and a report, a log or
+  a saved session could be written over the list, the session a run started
+  from, the exit header fields, or one another, by one name, a link or a hard
+  link. Every file a run reads and writes is now checked together before the
+  list is read or anything is emptied, opened or asked. Two that are one file
+  when the run writes it for either are a usage error, as are a file the
+  run's standard output or error is redirected to, a file that is the
+  `--output` directory or would have to hold it or another file, and a file
+  that is a directory or whose directory a file is in the way of. `--cookies`
+  and `--save-cookies` may still name one file. `--clear-output-dir` refuses
+  a directory holding a `.json` `--save-cookies`, which a run reads to add its
+  session to.
+- A report is written beside its file and moved over it once whole. One that
+  failed half way, or a disk that filled, left half a report where the last
+  one had been. A symbolic link where a report goes is replaced rather than
+  written through, and a device such as `/dev/null` is written to as it is.
+- `--trace` and `--save-cookies` make the directory their file goes in, as
+  `--report` and `--log` did: a trace into a directory not there yet stopped
+  the run, and a session saved into one was lost once the run was over.
+- A host of more than about 200 characters made the names of a request's
+  files longer than a file system allows, and `--output` stopped the run at
+  the first such request. A host longer than 100 characters now keeps its
+  first 91 and a hash of the whole.
 - A file of sessions could be replaced by a single newline. A cookie dated
   after the year 9999, which a Netscape file can say and a browser export
   can write as a number, made the encoder write an empty document without an

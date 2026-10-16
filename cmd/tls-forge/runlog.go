@@ -89,39 +89,43 @@ var openLogFile = func(path string) (io.WriteCloser, error) {
 	return os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 }
 
-// openRunLog opens the log of a run: the file --log names, standard error for
-// "-", or one named after the moment in the --output directory, when there is
-// one and --log does not say. Nil when there is none of those.
-//
-// files are the others the run reads or writes, by the flag that names them.
-// A log written over one of them would be lost in it, or would lose it.
-func openRunLog(path string, level slog.Level, output string, when time.Time, errOut *printer,
-	files map[string]string,
-) (*runLog, error) {
-	if path == "" && output != "" {
-		path = filepath.Join(output, "run-"+stamp(when)+".log")
+// runLogPath is the file a run's log goes to: the one --log names, or one
+// named after the moment the run began in the --output directory when --log
+// names none. Nothing for no log, and for one on standard error.
+func runLogPath(path, output string, when time.Time) string {
+	switch {
+	case path == "-":
+		return ""
+	case path == "" && output != "":
+		return filepath.Join(output, "run-"+stamp(when)+".log")
 	}
-	if path == "" {
+	return path
+}
+
+// openRunLog opens the log of a run: the file runLogPath names, or standard
+// error for "-". Nil when there is neither.
+//
+// That it is no file another flag names is the run's file plan's to say.
+func openRunLog(path string, level slog.Level, output string, when time.Time, errOut *printer) (*runLog, error) {
+	file := runLogPath(path, output, when)
+	if file == "" && path != "-" {
 		return nil, nil
 	}
 
-	l := &runLog{path: path}
+	l := &runLog{path: either(file, path)}
 	var w io.Writer
-	if path == "-" {
+	if file == "" {
 		l.stderr = &stderrLines{out: errOut}
 		w = l.stderr
 	} else {
-		if flag := clashesWith(path, files); flag != "" {
-			return nil, fmt.Errorf("%w: --log %s is the file %s names", errUsage, path, flag)
-		}
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 			return nil, fmt.Errorf("fetch: %w", err)
 		}
-		file, err := openLogFile(path)
+		opened, err := openLogFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("fetch: %w", err)
 		}
-		l.file, w = file, file
+		l.file, w = opened, opened
 	}
 	l.out = &logWriter{w: w}
 
@@ -134,30 +138,6 @@ func openRunLog(path string, level slog.Level, output string, when time.Time, er
 	l.log = slog.New(handler)
 	transportLines.add(l.log)
 	return l, nil
-}
-
-// clashesWith is the flag that names the same file as path, of files, or
-// nothing when none does.
-func clashesWith(path string, files map[string]string) string {
-	cwd, _ := workingDir()
-	at := resolve(absolute(path, cwd))
-	info, statErr := os.Stat(at)
-	for _, flag := range slices.Sorted(maps.Keys(files)) {
-		other := files[flag]
-		if other == "" || other == "-" {
-			continue
-		}
-		there := resolve(absolute(other, cwd))
-		if there == at {
-			return flag
-		}
-		if statErr == nil {
-			if otherInfo, err := os.Stat(there); err == nil && os.SameFile(info, otherInfo) {
-				return flag
-			}
-		}
-	}
-	return ""
 }
 
 // logAttr writes a record's time to the microsecond, which is the scale a
@@ -252,15 +232,6 @@ func runAttrs(about traceArgs, extra ...any) []any {
 		attrs = append(attrs, key, about[key])
 	}
 	return attrs
-}
-
-// reportFileOf is the file --report names, when it names one rather than
-// being given alone.
-func reportFileOf(given string) string {
-	if given == reportBeside {
-		return ""
-	}
-	return given
 }
 
 // withLog is a logger with more to say on every record, or nil when there is

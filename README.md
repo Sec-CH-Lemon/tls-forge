@@ -797,13 +797,15 @@ moment the run began, unless `--log` puts it somewhere else; see
 [Logging a run](#logging-a-run).
 
 The host is written in lower case, without its port, and anything a file name
-cannot hold on every system becomes `_`. The moment is the one the request was
-made, to the millisecond, and the number counts the requests of the run from
-one, in the order they were handed out. A page is written with mode `0644` and
-the log and the trace with `0600`, as a report is: they name what was asked
-for and where it went, with credentials and cookie values written as `***`.
-A file that cannot be written ends the run, since every request after it
-would have nowhere to go either.
+cannot hold on every system becomes `_`; a host longer than 100 characters
+keeps its first 91 and a hash of the whole, so that every name fits a file
+system and two such hosts still list apart. The moment is the one the request
+was made, to the millisecond, and the number counts the requests of the run
+from one, in the order they were handed out. All three are written with mode
+`0600`, as a report is: the log and the trace name what was asked for and
+where it went, with credentials and cookie values written as `***`, and a page
+can be one that only a session could open. A file that cannot be written ends
+the run, since every request after it would have nowhere to go either.
 
 `--clear-output-dir` empties the `--output` directory first, so that what is
 in it afterwards is this run's and nothing else's: every file and directory in
@@ -817,8 +819,38 @@ and without removing anything, a directory whose loss would be a disaster
 rather than a clean slate: the root of the file system, the home directory or
 one that holds it, the directory the command runs in or one that holds it
 (`-o .`), one with a git repository in it, one holding a file the run reads
-(`--input`, `--cookies`, `--exit-headers`), and one holding the file standard
-output or error is redirected to.
+(`--input`, `--cookies`, `--exit-headers`, and a `.json` `--save-cookies`,
+which a run reads to add its session to the ones there), and one holding the
+file standard output or error is redirected to.
+
+#### Files a run reads and writes
+
+Before it reads the list, empties a directory or opens a file, a run checks
+every file its flags name together: what it reads (`--input`, `--cookies`,
+`--exit-headers`), what it writes (`--trace`, `--log`, `--report`,
+`--save-cookies`), and the files its standard output and error are
+redirected to. These are usage errors, with exit code 2 and the reason, before
+anything is emptied, opened, made or asked:
+
+- one file under two flags, when the run writes it for either: by the same
+  name, through a symbolic link, by a hard link, or, on macOS and Windows, by
+  a name that differs only in case. `--input urls.txt --trace urls.txt` would
+  have read the list and written the trace over it. Two flags that only read a
+  file may name it, and so may `--cookies` and `--save-cookies`, which start a
+  session from a file and save it back there;
+- a file the run writes that standard output or error is redirected to;
+- a file that is the `--output` directory, or that the directory or another
+  file would have to be made in;
+- a file the run writes that is a directory, is named with a trailing
+  separator, or would go in a directory that a file is in the way of.
+
+What is in a directory `--clear-output-dir` is about to empty counts as gone,
+since it will be by then. Every file a run writes goes in a directory made for
+it if there is none, and is created with mode `0600`. A report and a session
+are written beside their file and moved over it once whole, so one that fails
+half way, or a disk that fills, leaves the one before it as it was; a symbolic
+link where one goes is replaced rather than followed, and a device such as
+`/dev/null` is written to as it is.
 
 #### Tracing a run
 
@@ -862,7 +894,8 @@ Times are microseconds: `ts` since the Unix epoch and `dur` as a length. Events
 are written as they happen, so a run that is interrupted leaves a trace without
 its closing bracket. The format allows that: Perfetto opens such a file and
 shows the request that was in flight as unfinished. The file is replaced on
-every run and created with mode `0600`. Each try adds about two kilobytes,
+every run, in a directory made for it if there is none, and created with mode
+`0600`. Each try adds about two kilobytes,
 most of it the header fields of the request and the response.
 
 A [report](#reporting-a-run) of a traced run links every request to the trace
@@ -938,10 +971,10 @@ the HTTP/2 transport says each header field it encodes are left out, since
 `request sent` has the fields without their secrets. A DATA frame shows up to
 256 bytes of the body it carried, as the transport does.
 
-`--log` cannot name a file the run reads or writes for another flag
-(`--input`, `--cookies`, `--exit-headers`, `--trace`, `--report`,
-`--save-cookies`), by any path or link to it: that is a usage error. A log
-that cannot be written is said once the run is over, and the run exits 1.
+`--log` cannot name a file another flag names, by any path or link to it:
+that is a usage error, as it is for every file a run reads or writes; see
+[Files a run reads and writes](#files-a-run-reads-and-writes). A log that
+cannot be written is said once the run is over, and the run exits 1.
 
 #### Reporting a run
 
@@ -959,7 +992,8 @@ anything else the page, a directory as well, whatever it is called.
 
 Given on its own, `--report` puts the report beside what the run kept: in the
 directory `--output` names, or in the current directory when there is none,
-named after the moment it was written, as `report-2026-08-16-091854-584.html`.
+named after the moment the run began, as its log is:
+`report-2026-08-16-091854-584.html`.
 A path of its own is given after an equals sign, `--report=reports/` or
 `-R=run.html`, because the flag needs none: a path after a space is read as
 the next URL, and `fetch` says so when it is not one.
@@ -1096,14 +1130,18 @@ are there for the requests whose tries were kept: the first 2,000 that failed
 or answered with something other than the page, and the first 2,000 others.
 
 Given a directory, or a path ending in a separator, a report is named after
-the moment it was written in the same way, `.html` or `.json`. One format given
-any other path is written to that path, whatever it is called, and replaced on
-every run. Two cannot both be, so the path then names them both:
-`--report=run`, or `--report=run.html`, with `html,json` writes `run.html` and
-`run.json`. A report is created with mode `0600`, and its name
-is the last thing a run prints. One that cannot be written fails the run with
-exit code 1, after the pages have gone where they were going; of two, the one
-that could be written still is.
+the moment the run began in the same way, `.html` or `.json`; the `--output`
+directory counts as one before the run has made it. One format given any other
+path is written to that path, whatever it is called, and replaced on every run
+once the new one is whole. Two cannot both be, so the path then names them
+both: `--report=run`, or `--report=run.html`, with `html,json` writes
+`run.html` and `run.json`. A report is created with mode `0600`, and its name
+is the last thing a run prints. A path that cannot be a report's is refused
+before the run, as for every file; see
+[Files a run reads and writes](#files-a-run-reads-and-writes). One that cannot
+be written once the run is over fails it with exit code 1, after the pages
+have gone where they were going; of two, the one that could be written still
+is.
 
 The report is written however the run ended, a request that got no answer
 included. Where a request came out is what its proxy said, or for one made

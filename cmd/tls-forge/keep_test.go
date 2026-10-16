@@ -1,7 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"maps"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -9,6 +13,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
@@ -91,10 +96,11 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	}
 
 	if runtime.GOOS != "windows" {
-		// What describes a request is private, as a report and a trace of the
-		// whole run are. The page is what it was before it was kept.
+		// All of it is private, as a report and a trace of the whole run are:
+		// what describes a request names where it went, and a page can be one
+		// that only a session could open.
 		for file, mode := range map[string]os.FileMode{
-			name + "-1.txt": 0o644, name + "-1.log": 0o600, "trace-" + name + "-1.json": 0o600, runLog: 0o600,
+			name + "-1.txt": 0o600, name + "-1.log": 0o600, "trace-" + name + "-1.json": 0o600, runLog: 0o600,
 		} {
 			if info, err := os.Stat(filepath.Join(dir, file)); err != nil || info.Mode().Perm() != mode {
 				t.Errorf("%s: mode %v (%v), want %v", file, info.Mode().Perm(), err, mode)
@@ -139,10 +145,55 @@ func TestRequestName(t *testing.T) {
 		// No host to name it after.
 		{"::not a URL::", "request-2026-08-16-010945-123-7"},
 		{"mailto:somebody@example.test", "request-2026-08-16-010945-123-7"},
+		// As long as a host may be kept whole; one more, and it is cut.
+		{"https://" + strings.Repeat("a", maxNameHost) + "/", strings.Repeat("a", maxNameHost) + "-2026-08-16-010945-123-7"},
+		{"https://" + strings.Repeat("a", maxNameHost+1) + "/",
+			strings.Repeat("a", maxNameHost-9) + "_" + hostHash(strings.Repeat("a", maxNameHost+1)) + "-2026-08-16-010945-123-7"},
 	} {
 		if got := requestName(tc.url, when, 7); got != tc.want {
 			t.Errorf("requestName(%q) = %q, want %q", tc.url, got, tc.want)
 		}
+	}
+}
+
+// hostHash is the hash a cut host ends in.
+func hostHash(host string) string {
+	sum := sha256.Sum256([]byte(host))
+	return hex.EncodeToString(sum[:4])
+}
+
+func TestRequestNameFitsAFileName(t *testing.T) {
+	// A file name is 255 bytes at most, and a host may be longer than that
+	// before a URL is refused: as long as DNS allows, in labels of 63, or a
+	// thousand letters, or in a script that is a byte to each of its
+	// characters only once it is underscores.
+	when := time.Date(2026, 8, 16, 1, 9, 45, 123_000_000, time.UTC)
+	label := strings.Repeat("x", 63)
+	dns := strings.Join([]string{label, label, label, strings.Repeat("y", 61)}, ".")
+	cyrillic := strings.Repeat("пример", 60) + ".рф"
+	longest := slices.MaxFunc(slices.Collect(maps.Values(pageExtensions)), func(a, b string) int { return len(a) - len(b) })
+	seen := map[string]string{}
+	for _, host := range []string{dns, strings.Repeat("z", 1000), cyrillic, dns + "x"} {
+		name := requestName("https://"+host+"/", when, math.MaxInt)
+		for _, file := range []string{name + longest, name + ".log", "trace-" + name + ".json"} {
+			if len(file) > 255 {
+				t.Errorf("%d bytes for a host of %d: %s", len(file), len(host), file)
+			}
+		}
+		if !utf8.ValidString(name) || strings.ContainsFunc(name, func(r rune) bool { return r > 0x7f }) {
+			t.Errorf("%q is not ASCII", name)
+		}
+		// Hosts that begin alike are told apart by the hash of the whole.
+		if other, ok := seen[name]; ok {
+			t.Errorf("%q and %q are kept under one name", host, other)
+		}
+		seen[name] = host
+	}
+
+	// And a file of that name can be made.
+	name := requestName("https://"+strings.Repeat("z", 1000)+"/", when, math.MaxInt)
+	if err := os.WriteFile(filepath.Join(t.TempDir(), "trace-"+name+".json"), nil, 0o600); err != nil {
+		t.Errorf("the name of a request's trace cannot be a file's: %v", err)
 	}
 }
 

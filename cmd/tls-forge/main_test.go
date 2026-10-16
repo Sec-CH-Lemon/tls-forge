@@ -325,21 +325,39 @@ func TestFetchArgumentErrors(t *testing.T) {
 
 func TestFetchCannotMakeTheOutputDirectory(t *testing.T) {
 	// A file is where the directory would go, so there is nowhere to keep
-	// anything, and nothing is fetched to be kept nowhere.
+	// anything, and nothing is fetched to be kept nowhere: refused before the
+	// run, as a usage error, with the log kept elsewhere or not.
 	server, asked := replying(t, 200)
 	blocked := filepath.Join(t.TempDir(), "a-file")
 	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
+	refused := "tlsforge: bad usage: --output " + filepath.Join(blocked, "out") + " cannot be made: " +
+		blocked + " is not a directory"
 	code, _, stderr := exec(t, "fetch", "-o", filepath.Join(blocked, "out"), server.URL)
-	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: ") {
-		t.Errorf("exit code = %d, want 1; stderr = %q", code, stderr)
+	if code != 2 || !strings.Contains(stderr, refused) {
+		t.Errorf("exit code = %d, want 2; stderr = %q", code, stderr)
 	}
-	// The same with the run's log kept elsewhere, which is not what stops it.
 	code, _, stderr = exec(t, "fetch", "-o", filepath.Join(blocked, "out"),
 		"--log", filepath.Join(t.TempDir(), "run.log"), server.URL)
-	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: mkdir "+blocked) {
-		t.Errorf("exit code = %d, want 1; stderr = %q", code, stderr)
+	if code != 2 || !strings.Contains(stderr, refused) {
+		t.Errorf("exit code = %d, want 2; stderr = %q", code, stderr)
+	}
+
+	// A directory it may not make anything in is found out only by trying,
+	// which is before the first request all the same.
+	if runtime.GOOS != "windows" {
+		notRoot(t)
+		locked := filepath.Join(t.TempDir(), "locked")
+		if err := os.Mkdir(locked, 0o755); err != nil {
+			t.Fatalf("Mkdir: %v", err)
+		}
+		lock(t, locked, 0o500)
+		code, _, stderr = exec(t, "fetch", "-o", filepath.Join(locked, "out"),
+			"--log", filepath.Join(t.TempDir(), "run.log"), server.URL)
+		if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: mkdir "+filepath.Join(locked, "out")) {
+			t.Errorf("exit code = %d, want 1; stderr = %q", code, stderr)
+		}
 	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("%d requests were made with nowhere to keep them", got)
@@ -356,10 +374,10 @@ func TestFetchSaysWhyItFailedWithThePrefixOnce(t *testing.T) {
 	// print them, and a refused request was printed with it twice. fetch's own
 	// errors begin with the command instead, and had it once all along.
 	tmp := t.TempDir()
+	// A server that hangs up without an answer, and while it is asked puts a
+	// file where the report's directory was to go.
 	blocked := filepath.Join(tmp, "a-file")
-	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
+	gone, _ := meanwhile(t, 0, fileIn(t, blocked))
 	refused := `tlsforge: Get "http://127.0.0.1:1/": `
 	for _, tc := range []struct {
 		name string
@@ -375,9 +393,9 @@ func TestFetchSaysWhyItFailedWithThePrefixOnce(t *testing.T) {
 			[]string{"fetch", "--exit-headers", filepath.Join(tmp, "none.json"), "http://127.0.0.1:1/"},
 			[]string{"tlsforge: fetch: open "}},
 		// Two errors joined, a line each. The second used to have no prefix.
-		{"both: the refused request, then the report it could not write",
-			[]string{"fetch", "--report=" + filepath.Join(blocked, "run.html"), "http://127.0.0.1:1/"},
-			[]string{refused, "tlsforge: fetch: "}},
+		{"both: the request that got nothing, then the report it could not write",
+			[]string{"fetch", "--report=" + filepath.Join(blocked, "run.html"), gone.URL + "/"},
+			[]string{`tlsforge: Get "` + gone.URL + `/": `, "tlsforge: fetch: mkdir " + blocked}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			code, _, stderr := exec(t, tc.args...)

@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -39,18 +41,19 @@ func keepRequest(dir string, r *result, res *tlsforge.Response, j job, about req
 	lane *traceLane,
 ) error {
 	name := requestName(r.URL, r.Started, j.id)
+	// 0600, all three, as for a report or a trace of the whole run: the log and
+	// the trace name what was asked for and where it went, and a page can be
+	// one that only a session could open.
 	if res != nil {
 		// Whatever came back, an error page included: what a server says when it
 		// turns a request away is the most interesting page it sends.
 		page := filepath.Join(dir, name+pageExtension(res.Header, res.Body))
-		if err := os.WriteFile(page, res.Body, 0o644); err != nil {
+		if err := os.WriteFile(page, res.Body, 0o600); err != nil {
 			return err
 		}
 		r.File = page
 		lane.instant("saved", "file", traceArgs{"file": page, "bytes": len(res.Body)})
 	}
-	// 0600 for the two that describe the request, as for a report or a trace of
-	// the whole run: they name what was asked for and where it went.
 	log := filepath.Join(dir, name+".log")
 	trace := filepath.Join(dir, "trace-"+name+".json")
 	r.Log, r.Trace = log, trace
@@ -82,26 +85,41 @@ func either(first, fallback string) string {
 	return fallback
 }
 
+// maxNameHost is the most of a host the name of a request's files keeps.
+//
+// A file name is at most 255 bytes on the file systems anybody uses, and what
+// the files of a request add to the host is under 60: a trace's prefix, the
+// moment, the request's number and the longest extension. A host is at most
+// 253 bytes to DNS, and a URL may name a longer one still.
+const maxNameHost = 100
+
 // requestName is what the files of a request are called, without what each
 // one ends in.
 //
 // The host as it is written, in lower case, and with anything that is not a
 // letter, a digit, a dot or a hyphen made an underscore: an IPv6 address is
-// full of colons, and a colon cannot name a file on Windows.
+// full of colons, and a colon cannot name a file on Windows. So the name is
+// ASCII, a byte to each character of the host. A host longer than
+// maxNameHost keeps its beginning and a hash of the whole of it, so two such
+// hosts still list apart.
 func requestName(rawURL string, started time.Time, id int) string {
 	host := "request"
 	if u, err := url.Parse(rawURL); err == nil && u.Hostname() != "" {
-		host = u.Hostname()
+		host = strings.ToLower(u.Hostname())
 	}
-	host = strings.Map(func(r rune) rune {
+	name := strings.Map(func(r rune) rune {
 		switch {
 		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '.', r == '-':
 			return r
 		default:
 			return '_'
 		}
-	}, strings.ToLower(host))
-	return host + "-" + stamp(started) + "-" + strconv.Itoa(id)
+	}, host)
+	if len(name) > maxNameHost {
+		sum := sha256.Sum256([]byte(host))
+		name = name[:maxNameHost-9] + "_" + hex.EncodeToString(sum[:4])
+	}
+	return name + "-" + stamp(started) + "-" + strconv.Itoa(id)
 }
 
 // requestLog is the request written out for a person: what it was, how it

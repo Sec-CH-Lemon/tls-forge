@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -97,6 +98,12 @@ var createTrace = func(path string) (io.WriteCloser, error) {
 func openTrace(path, command, proxy string, about traceArgs) (*tracer, error) {
 	if path == "" {
 		return nil, nil
+	}
+	// In a directory made for it, as a report and a log are: `--trace
+	// traces/run.json` is a trace, not a reason to stop before the first
+	// request.
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, fmt.Errorf("%s: %w", command, err)
 	}
 	file, err := createTrace(path)
 	if err != nil {

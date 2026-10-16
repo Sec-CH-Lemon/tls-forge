@@ -234,10 +234,6 @@ func TestClearOutputDirThatCannotBeCleared(t *testing.T) {
 			lock(t, filepath.Dir(out), 0o000)
 			return out
 		}, "permission denied"},
-		{"a file", func(t *testing.T, out string) string {
-			tree(t, out, "x.txt")
-			return filepath.Join(out, "x.txt")
-		}, "is not a directory"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			out := filepath.Join(t.TempDir(), "out")
@@ -248,6 +244,15 @@ func TestClearOutputDirThatCannotBeCleared(t *testing.T) {
 			}
 		})
 	}
+
+	// A file is refused by the run's file plan before the clearing is asked,
+	// and by the clearing all the same, which deletes, whoever asks it.
+	file := filepath.Join(t.TempDir(), "x.txt")
+	tree(t, filepath.Dir(file), "x.txt")
+	if _, err := clearOutput(file, nil, nil); err == nil || !strings.Contains(err.Error(), file+" is not a directory") {
+		t.Errorf("clearOutput(a file) = %v", err)
+	}
+	untouched(t, filepath.Dir(file), "x.txt")
 }
 
 // lock gives a path the mode, and the test's clean-up back the one to remove

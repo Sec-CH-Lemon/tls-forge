@@ -142,7 +142,7 @@ the line when the one URL is named on the command line:
 
 The JSON lines go where standard output goes, here a file. `-o` keeps every
 request in a directory, and `-R` writes an HTML report of the run beside them,
-named after the moment it was written. Both are named at the end:
+named after the moment the run began. Both are named at the end:
 
 ```
   Saved to      out/

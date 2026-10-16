@@ -325,9 +325,25 @@ func TestFetchLogThatCannotBeWritten(t *testing.T) {
 	if err := os.WriteFile(file, nil, 0o600); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	if code, _, stderr := exec(t, "fetch", "--log", filepath.Join(file, "run.log"), server.URL); code != 1 ||
-		!strings.Contains(stderr, "tlsforge: fetch: mkdir "+file) {
+	// A file where its directory would go is refused before the run.
+	if code, _, stderr := exec(t, "fetch", "--log", filepath.Join(file, "run.log"), server.URL); code != 2 ||
+		!strings.Contains(stderr, "cannot be written: "+file+" is not a directory") {
 		t.Errorf("exit code = %d\n%s", code, stderr)
+	}
+	// A directory it may not make one in is found out by trying, and stops
+	// the run as one that will not open does.
+	if runtime.GOOS != "windows" {
+		notRoot(t)
+		locked := filepath.Join(t.TempDir(), "locked")
+		if err := os.Mkdir(locked, 0o755); err != nil {
+			t.Fatalf("Mkdir: %v", err)
+		}
+		lock(t, locked, 0o500)
+		path := filepath.Join(locked, "logs", "run.log")
+		if code, _, stderr := exec(t, "fetch", "--log", path, server.URL); code != 1 ||
+			!strings.Contains(stderr, "tlsforge: fetch: mkdir "+filepath.Dir(path)) {
+			t.Errorf("exit code = %d\n%s", code, stderr)
+		}
 	}
 	if got := asked.Load(); got != 2 {
 		t.Errorf("the server was asked %d times", got)
@@ -512,33 +528,6 @@ func TestRunAttrs(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Errorf("runAttrs = %v, want %v", got, want)
 	}
-	if reportFileOf(reportBeside) != "" || reportFileOf("run.html") != "run.html" {
-		t.Error("reportFileOf")
-	}
-}
-
-func TestClashesWith(t *testing.T) {
-	dir := t.TempDir()
-	at := filepath.Join(dir, "a.txt")
-	if err := os.WriteFile(at, nil, 0o600); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	for _, tc := range []struct {
-		path  string
-		files map[string]string
-		want  string
-	}{
-		{at, map[string]string{"--input": "", "--trace": "-"}, ""},
-		{at, map[string]string{"--input": filepath.Join(dir, "b.txt")}, ""},
-		// The first by name, of two that clash.
-		{at, map[string]string{"--trace": at, "--input": at}, "--input"},
-		// One not there yet clashes by name alone.
-		{filepath.Join(dir, "new.log"), map[string]string{"--trace": filepath.Join(dir, "new.log")}, "--trace"},
-	} {
-		if got := clashesWith(tc.path, tc.files); got != tc.want {
-			t.Errorf("clashesWith(%q, %v) = %q, want %q", tc.path, tc.files, got, tc.want)
-		}
-	}
 }
 
 func TestANilRunLogDoesNothing(t *testing.T) {
@@ -559,7 +548,7 @@ func TestANilRunLogDoesNothing(t *testing.T) {
 func TestALogOnStandardErrorGoesAroundTheStatusLine(t *testing.T) {
 	var screen bytes.Buffer
 	errOut := newPrinter(&screen)
-	l, err := openRunLog("-", slog.LevelInfo, "", now(), errOut, nil)
+	l, err := openRunLog("-", slog.LevelInfo, "", now(), errOut)
 	if err != nil {
 		t.Fatalf("openRunLog: %v", err)
 	}

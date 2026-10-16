@@ -708,14 +708,46 @@ func TestListTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 	}
 }
 
+func TestTraceGoesInADirectoryMadeForIt(t *testing.T) {
+	// As a report and a log do: `--trace traces/run.json` is a trace, not a
+	// reason to stop before the first request.
+	server, _ := replying(t, 200)
+	path := filepath.Join(t.TempDir(), "no-such-directory", "deeper", "trace.json")
+	if code, _, stderr := exec(t, "fetch", "--trace", path, server.URL); code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if events := traceFile(t, path); len(events) == 0 {
+		t.Error("the trace is empty")
+	}
+}
+
 func TestTraceThatCannotBeOpenedStopsTheRunBeforeItStarts(t *testing.T) {
+	// A trace was asked for. Running without one would be doing something
+	// else, so nobody is asked anything.
 	server, asked := replying(t, 200)
-	missing := filepath.Join(t.TempDir(), "no-such-directory", "trace.json")
-	code, _, stderr := exec(t, "fetch", "--trace", missing, server.URL)
-	if code != 1 || !strings.Contains(stderr, "fetch: ") || !strings.Contains(stderr, "no-such-directory") {
+	original := createTrace
+	t.Cleanup(func() { createTrace = original })
+	createTrace = func(string) (io.WriteCloser, error) { return nil, errors.New("no such device") }
+	code, _, stderr := exec(t, "fetch", "--trace", filepath.Join(t.TempDir(), "trace.json"), server.URL)
+	if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: no such device") {
 		t.Errorf("exit code = %d, stderr = %q", code, stderr)
 	}
-	// A trace was asked for. Running without one would be doing something else.
+	createTrace = original
+
+	// Nor when its directory cannot be made, which only trying finds out.
+	if runtime.GOOS != "windows" {
+		notRoot(t)
+		locked := filepath.Join(t.TempDir(), "locked")
+		if err := os.Mkdir(locked, 0o755); err != nil {
+			t.Fatalf("Mkdir: %v", err)
+		}
+		lock(t, locked, 0o500)
+		path := filepath.Join(locked, "traces", "trace.json")
+		code, _, stderr = exec(t, "fetch", "--trace", path, server.URL)
+		if code != 1 || !strings.Contains(stderr, "tlsforge: fetch: mkdir "+filepath.Dir(path)) {
+			t.Errorf("exit code = %d, stderr = %q", code, stderr)
+		}
+	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("%d requests were made by runs that could not be traced", got)
 	}

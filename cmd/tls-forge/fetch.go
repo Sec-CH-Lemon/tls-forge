@@ -212,6 +212,11 @@ func (f clientFlags) saveSession(client *tlsforge.Client, note string) (int, err
 	if err != nil {
 		return 0, err
 	}
+	// In a directory made for it, as every file a run writes is: the run is
+	// over, and failing for want of one would lose the session it came to.
+	if err := os.MkdirAll(filepath.Dir(*f.saveCookies), 0o755); err != nil {
+		return 0, fmt.Errorf("tlsforge: %w", err)
+	}
 	// 0600: a warmed session is a credential. Replace atomically so a full disk
 	// or interrupted process cannot leave half a credential file behind.
 	if err := atomicfile.Write(*f.saveCookies, data, 0o600); err != nil {
@@ -393,6 +398,22 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	common.asked = askedBy(exits.Fields)
 
+	// Every file the run reads or writes, settled before the list is read, a
+	// directory emptied or a file opened: two flags naming one file is a
+	// mistake to refuse, rather than a file to lose. The log and the report are
+	// named after the moment the run began, so the files of one run share it.
+	started := now()
+	files := fetchFiles{
+		input: *input, cookies: *common.cookieFile, exitHeaders: *exitHeaders,
+		saveCookies: *common.saveCookies, trace: *again.trace,
+		log:     runLogPath(*logging.path, *output, started),
+		reports: reportFiles(*reporting.path, *output, formats, started),
+		output:  *output, cleared: *clearOutputDir,
+	}
+	if err := files.plan(out.w, errOut.w).check(); err != nil {
+		return err
+	}
+
 	// Nothing named a URL, and standard input is somebody at a keyboard rather
 	// than a list: the command was typed without what it is for. Said at once,
 	// because waiting to be typed at looks like having hung.
@@ -460,9 +481,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// Emptied once everything the run reads before it starts has been read, and
 	// before anything is written: the trace may be opened in it.
 	if *clearOutputDir {
-		cleared, err := clearOutput(*output, map[string]string{
-			"--input": *input, "--cookies": *common.cookieFile, "--exit-headers": *exitHeaders,
-		}, streamFiles(out.w, errOut.w))
+		cleared, err := clearOutput(*output, files.reads(), streamFiles(out.w, errOut.w))
 		if err != nil {
 			return err
 		}
@@ -470,10 +489,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 	// Once the directory is emptied, so that the log in it is this run's, and
 	// before anything is asked of anybody, so that it has all of it.
-	runLog, err := openRunLog(*logging.path, logLevel, *output, now(), errOut, map[string]string{
-		"--input": *input, "--cookies": *common.cookieFile, "--exit-headers": *exitHeaders,
-		"--trace": *again.trace, "--save-cookies": *common.saveCookies, "--report": reportFileOf(*reporting.path),
-	})
+	runLog, err := openRunLog(*logging.path, logLevel, *output, started, errOut)
 	if err != nil {
 		return err
 	}
@@ -690,7 +706,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	var reportErr error
 	if len(formats) > 0 {
 		var written []reportFile
-		written, reportErr = writeReports(reportFiles(*reporting.path, *output, formats, now()),
+		written, reportErr = writeReports(files.reports,
 			reportInput{command: "fetch", records: records, summary: totals, before: before,
 				method: *method, trace: *again.trace})
 		for _, file := range written {
@@ -755,6 +771,46 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// All of them, so that the reason the fetch failed is not lost behind a
 	// report or a session that could not be written.
 	return errors.Join(failed, reportErr, saveErr)
+}
+
+// fetchFiles are the files a fetch reads and writes, as its flags name them,
+// and the directory it keeps its requests in.
+type fetchFiles struct {
+	input, cookies, exitHeaders, saveCookies, trace, log string
+	reports                                              []reportFile
+	output                                               string
+	cleared                                              bool
+}
+
+// plan is those files in one plan: what the run reads, then what it writes,
+// then where its output and errors go, so that a message about two of them
+// names the one that would have done the damage.
+func (f fetchFiles) plan(stdout, stderr io.Writer) *filePlan {
+	plan := newFilePlan()
+	plan.keepIn(f.output, f.cleared)
+	plan.add("--input", f.input, readsFile)
+	plan.add(flagCookies, f.cookies, readsFile)
+	plan.add("--exit-headers", f.exitHeaders, readsFile)
+	plan.add(flagSaveCookies, f.saveCookies, writesFile)
+	plan.add("--trace", f.trace, writesFile)
+	plan.add("--log", f.log, writesFile)
+	for _, report := range f.reports {
+		plan.add("--report", report.path, writesFile)
+	}
+	plan.stream("standard output", stdout)
+	plan.stream("standard error", stderr)
+	return plan
+}
+
+// reads are the files the run reads, by flag, for --clear-output-dir to keep
+// out of the directory it empties: a .json --save-cookies among them, since a
+// run adds its session to those already there.
+func (f fetchFiles) reads() map[string]string {
+	reads := map[string]string{"--input": f.input, flagCookies: f.cookies, "--exit-headers": f.exitHeaders}
+	if !netscapeFile(f.saveCookies) {
+		reads[flagSaveCookies] = f.saveCookies
+	}
+	return reads
 }
 
 // pagesWithout is why a run fails for the pages that came back without

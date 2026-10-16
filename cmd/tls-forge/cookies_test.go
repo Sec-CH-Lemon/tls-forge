@@ -326,15 +326,40 @@ func TestFetchSavesNothingWhenThereIsNothingToSave(t *testing.T) {
 	}
 }
 
-func TestFetchReportsASessionItCannotWrite(t *testing.T) {
+func TestFetchSavesASessionInADirectoryMadeForIt(t *testing.T) {
 	server := cookieEcho(t)
-	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies",
-		filepath.Join(t.TempDir(), "no-such-directory", "warm.json"), server.URL+"/set")
-	if code == 0 {
-		t.Error("an unsaved session reported success")
+	path := filepath.Join(t.TempDir(), "no-such-directory", "deeper", "warm.json")
+	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies", path, server.URL+"/set")
+	if code != 0 || !strings.Contains(stderr, "saved 2 cookies to "+path) {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
-	if !strings.Contains(stderr, "tlsforge:") {
-		t.Errorf("stderr = %q", stderr)
+	info, err := os.Stat(path)
+	if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o600) {
+		t.Errorf("the session is %v (%v), want a file of mode 0600", info, err)
+	}
+}
+
+func TestFetchReportsASessionItCannotWrite(t *testing.T) {
+	// The directory it was to go in became a file while the run went on, so
+	// the session it came to has nowhere to go. The page has gone where it was
+	// going all the same. A cookies.txt, which is written without being read.
+	later := filepath.Join(t.TempDir(), "later")
+	server, _ := meanwhile(t, 200, fileIn(t, later))
+	code, stdout, stderr := exec(t, "fetch", "--save-cookies", filepath.Join(later, "warm.txt"), server.URL)
+	if code != 1 || stdout != "the page" {
+		t.Errorf("exit code = %d and stdout = %q, want 1 and the page", code, stdout)
+	}
+	if !strings.Contains(stderr, "tlsforge: mkdir "+later+": not a directory") || strings.Contains(stderr, "saved") {
+		t.Errorf("stderr does not say why the session was not saved, or says it was:\n%s", stderr)
+	}
+
+	// Or the name it was to have was taken by a directory, which is not
+	// written over.
+	path := filepath.Join(t.TempDir(), "warm.txt")
+	server, _ = meanwhile(t, 200, func() { _ = os.Mkdir(path, 0o755) })
+	code, _, stderr = exec(t, "fetch", "--save-cookies", path, server.URL)
+	if code != 1 || !strings.Contains(stderr, "tlsforge: open "+path) || strings.Contains(stderr, "saved") {
+		t.Errorf("exit code = %d, want 1 and why the session was not saved\n%s", code, stderr)
 	}
 }
 
@@ -427,15 +452,18 @@ func TestListSavesOneSessionPerProxy(t *testing.T) {
 }
 
 func TestListReportsASessionItCannotWrite(t *testing.T) {
-	server := cookieEcho(t)
-	code, _, stderr := exec(t, "fetch", "-k", "--save-cookies",
-		filepath.Join(t.TempDir(), "no-such-directory", "w.json"),
-		"--progress", "never", server.URL+"/set")
-	if code == 0 {
-		t.Error("a run whose session could not be saved reported success")
+	// A file of sessions, which is read first so that the run's is added to
+	// those already there, and cannot be.
+	later := filepath.Join(t.TempDir(), "later")
+	server, asked := meanwhile(t, 200, fileIn(t, later))
+	path := filepath.Join(later, "w.json")
+	code, _, stderr := exec(t, "fetch", "--save-cookies", path,
+		"--progress", "never", server.URL+"/one", server.URL+"/two")
+	if code != 1 || !strings.Contains(stderr, "tlsforge: reading existing sessions from "+path) {
+		t.Errorf("exit code = %d, want 1 and why the session was not saved\n%s", code, stderr)
 	}
-	if !strings.Contains(stderr, "tlsforge:") {
-		t.Errorf("stderr = %q", stderr)
+	if got := asked.Load(); got != 2 {
+		t.Errorf("the server was asked %d times, want both", got)
 	}
 }
 
