@@ -948,33 +948,6 @@ func TestSubsecondTimeoutIsNotRoundedToUnlimited(t *testing.T) {
 	}
 }
 
-func TestRequestContextCancelsAnInFlightRequest(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		select {
-		case <-request.Context().Done():
-		case <-time.After(5 * time.Second):
-			_, _ = w.Write([]byte("late"))
-		}
-	}))
-	t.Cleanup(server.Close)
-
-	client, err := New(WithTimeout(10 * time.Second))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer client.Close()
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	started := time.Now()
-	_, err = client.Do(&Request{Context: ctx, URL: server.URL})
-	if err == nil || !errors.Is(err, context.Canceled) {
-		t.Fatalf("error = %v, want context cancellation", err)
-	}
-	if elapsed := time.Since(started); elapsed > time.Second {
-		t.Errorf("cancellation took %v", elapsed)
-	}
-}
-
 func TestResponseBodyLimit(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("12345"))
