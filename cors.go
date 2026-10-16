@@ -280,13 +280,14 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	http1 := browserHTTP1Layout(field, nil, preflightOrder, c.profile.HTTP1, c.http1Headers, inner.URL.Host)
 	ask = withProtocolLayouts(ask, &protocolLayouts{http1: http1, http2: cloneHeaderLayout(ask.Header),
 		managed: managedHeaderNames(ask.Header, http1)})
+	withPort(ask)
 	if c.jar != nil {
 		c.jar.restrict(ask.URL, sendRule{none: true})
 		defer c.jar.release(ask.URL)
 	}
 	res, err := transport.Do(ask)
 	if err != nil {
-		return fmt.Errorf("tlsforge: %w", err)
+		return transportError(err)
 	}
 	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
 	_ = res.Body.Close()

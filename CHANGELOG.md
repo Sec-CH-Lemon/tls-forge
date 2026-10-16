@@ -605,6 +605,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A plain-http request to a host the client had reached over HTTP/2 failed
+  with "http2: unsupported scheme", and an HTTPS request a plain one was
+  redirected to on its own host failed with "protocol negotiated": tls-client
+  took a URL with no port for one on 443, whatever its scheme, and sent it on
+  the connections HTTPS had there. A plain-http request is told port 80 now,
+  and keeps the host it was asked for: `Host`, the answer's URL, logs, traces
+  and errors say it as it was.
 - A profile written by hand on a catalogue entry that is one of utls's own
   presets, such as `chrome_110` or `safari_16_0`, failed with "please
   implement this method": its spec is read now as utls reads it to connect.

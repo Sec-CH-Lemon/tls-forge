@@ -45,12 +45,20 @@ type recorder struct {
 	got     []*keptRequest
 	addr    string
 	handler http.Handler
+	// into is a recorder this one keeps what it is sent in instead.
+	into *recorder
 }
 
 func (r *recorder) keep(req *keptRequest) {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.got = append(r.got, req)
+	into := r.into
+	if into == nil {
+		r.got = append(r.got, req)
+	}
+	r.mu.Unlock()
+	if into != nil {
+		into.keep(req)
+	}
 }
 
 func (r *recorder) requests() []*keptRequest {
@@ -64,6 +72,23 @@ func (r *recorder) dialing() Option {
 	return WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
 		var d net.Dialer
 		return d.DialContext(ctx, network, r.addr)
+	}))
+}
+
+// dialingWith routes the connections the client opens to port 80 to plain,
+// a recorder in the clear, and the rest to r, and has plain keep what it is
+// sent in r's list: one list, in the order a chain of redirects went.
+func (r *recorder) dialingWith(plain *recorder) Option {
+	plain.mu.Lock()
+	plain.into = r
+	plain.mu.Unlock()
+	return WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
+		to := r.addr
+		if strings.HasSuffix(addr, ":80") {
+			to = plain.addr
+		}
+		var d net.Dialer
+		return d.DialContext(ctx, network, to)
 	}))
 }
 

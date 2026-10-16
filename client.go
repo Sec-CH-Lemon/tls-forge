@@ -567,9 +567,10 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	if r != nil {
 		r.step("connect")
 	}
+	withPort(inner)
 	res, err := transport.Do(inner)
 	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %w", err)
+		return nil, transportError(err)
 	}
 	defer func() { _ = res.Body.Close() }()
 	if r != nil {
@@ -577,7 +578,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	}
 	if browser != nil && browser.cors {
 		if err := browser.corsCheck(res.Header); err != nil {
-			return nil, corsError("the answer of %s %s did not allow %s: %v", browser.method, res.Request.URL,
+			return nil, corsError("the answer of %s %s did not allow %s: %v", browser.method, shownURL(res.Request),
 				browser.from, err)
 		}
 	}
@@ -602,7 +603,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	}
 	cookieURL := parsed
 	if res.Request != nil && res.Request.URL != nil {
-		out.URL = res.Request.URL.String()
+		out.URL = shownURL(res.Request).String()
 		cookieURL = res.Request.URL
 	}
 	for name, values := range res.Header {
@@ -818,16 +819,17 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	r := requestLogOf(req.Context())
 	if len(via) >= maxRedirects {
 		if r != nil {
-			r.stopped(len(via), req.Response.StatusCode, req.URL.String())
+			r.stopped(len(via), req.Response.StatusCode, shownURL(req).String())
 		}
 		return fmt.Errorf("stopped after %d redirects", maxRedirects)
 	}
 	if t, _ := req.Context().Value(traceKey{}).(*Trace); t != nil {
-		t.redirect(req.Response.StatusCode, req.URL.String())
+		t.redirect(req.Response.StatusCode, shownURL(req).String())
 	}
 	if r != nil {
-		r.redirect(len(via), req.Response.StatusCode, req.URL.String(), req.Response.Header)
+		r.redirect(len(via), req.Response.StatusCode, shownURL(req).String(), req.Response.Header)
 	}
+	withPort(req)
 	return prepareRedirectLayout(req, via)
 }
 
