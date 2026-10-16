@@ -158,27 +158,32 @@ func TestReadJobsFromEachSource(t *testing.T) {
 	}
 }
 
-func TestReadJobsPrefersTheMostExplicitSource(t *testing.T) {
-	// Each of these is a deliberate way to say "here is the list", so the first
-	// one present wins rather than the four being merged into a pile nobody can
-	// account for.
+func TestReadJobsTakesTheListFromOneSource(t *testing.T) {
+	// Each of these is a deliberate way to say "here is the list", so two of
+	// them are a usage error, rather than one quietly preferred to the other or
+	// the two merged into a pile nobody can account for. Standard input is
+	// read when none of them is given, and is not one of them.
 	path := writeList(t, "list.txt", "https://from-file/\n")
-	got, err := readJobs(context.Background(), "https://from-flag/", path, formatAuto,
-		[]string{"https://from-args/"}, strings.NewReader("https://from-stdin/\n"))
-	if err != nil {
-		t.Fatalf("readJobs: %v", err)
+	stdin := strings.NewReader("https://from-stdin/\n")
+	for _, tc := range []struct {
+		inline, path string
+		args         []string
+		says         string
+	}{
+		{"https://from-flag/", path, nil, "--urls and --input each give"},
+		{"https://from-flag/", "", []string{"https://from-args/"}, "--urls and URLs on the command line each give"},
+		{"", path, []string{"https://from-args/"}, "--input and URLs on the command line each give"},
+		{"https://from-flag/", path, []string{"https://from-args/"},
+			"--urls and --input and URLs on the command line each give the list of URLs: give one"},
+	} {
+		_, err := readJobs(context.Background(), tc.inline, tc.path, formatAuto, tc.args, stdin)
+		if !errors.Is(err, errUsage) || !strings.Contains(err.Error(), tc.says) {
+			t.Errorf("readJobs(%q, %q, %q) = %v, want a usage error saying %q", tc.inline, tc.path, tc.args, err, tc.says)
+		}
 	}
-	if len(got) != 1 || got[0].URL != "https://from-flag/" {
-		t.Errorf("got %+v", got)
-	}
-
-	got, err = readJobs(context.Background(), "", path, formatAuto,
-		[]string{"https://from-args/"}, strings.NewReader("https://from-stdin/\n"))
-	if err != nil {
-		t.Fatalf("readJobs: %v", err)
-	}
-	if len(got) != 1 || got[0].URL != "https://from-file/" {
-		t.Errorf("got %+v", got)
+	got, err := readJobs(context.Background(), "", path, formatAuto, nil, stdin)
+	if err != nil || len(got) != 1 || got[0].URL != "https://from-file/" {
+		t.Errorf("one source: %+v, %v", got, err)
 	}
 }
 

@@ -695,7 +695,7 @@ func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
 	// Two of the three went without a proxy. The list went two ways, so nobody
 	// was asked where the machine comes out, and that is said as well.
 	list := writeList(t, "typo.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/bad,::not a proxy::\n%[1]s/good,\n%[1]s/also-good,\n", server.URL))
+		"url,proxy\n%[1]s/bad,http://127.0.0.1:1\n%[1]s/good,\n%[1]s/also-good,\n", server.URL))
 
 	path := filepath.Join(t.TempDir(), "run.html")
 	code, _, stderr := exec(t, "fetch", "--input", list, "--report="+path, "--insecure")

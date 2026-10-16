@@ -64,7 +64,7 @@ var logLevels = map[string]slog.Level{
 func (f logFlags) levelOf() (slog.Level, error) {
 	level, ok := logLevels[strings.ToLower(*f.level)]
 	if !ok {
-		return 0, fmt.Errorf("%w: %w", errUsage, &badFlag{"--log-level", *f.level, "error, warn, info, debug or trace"})
+		return 0, badValue("--log-level", *f.level, "error, warn, info, debug or trace")
 	}
 	return level, nil
 }

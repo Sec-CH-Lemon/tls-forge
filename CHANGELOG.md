@@ -330,6 +330,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **`fetch` refuses what it cannot run with, as a usage error, before it
+  touches anything.** A value a flag does not take (`--progress`, `--color`,
+  `--format`, `--report-format`, as `--log-level` already was), an unknown
+  profile, a `--proxy` or a list entry's proxy that is no `http`, `https`,
+  `socks4`, `socks4a`, `socks5` or `socks5h` URL with a host, a `--timeout`
+  of nothing, and a list that does not read as one or holds an entry that is
+  not an HTTP or HTTPS URL now exit 2, before a directory is emptied or a
+  file opened, the address is asked about or a request is made; they exited
+  1, and an unusable proxy or profile only once the run had begun. `proxy`
+  refuses an unknown profile and an unusable proxy the same way, before it
+  makes its authority. Two of `--urls`, `--input` and URLs on the command
+  line are refused too, rather than one quietly taken over the other.
 - A request's deadline in the Node.js and Python packages counts from the
   call. The time it waits behind another request is inside it, so a call
   settles within its timeout rather than within that many times the number of
@@ -442,6 +454,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A list that began with a UTF-8 byte order mark, as one saved by some
+  Windows editors does, had its first URL refused; the mark is taken off. A
+  URL whose scheme was written in capitals, `HTTP://`, was refused as not an
+  HTTP URL; it goes out as `http://`. A line of a list longer than 1 MiB is
+  said to be, with which line it is.
 - **SIGTERM stops a command in order, as Ctrl-C does.** It ended `fetch`
   where it stood, without its report, its session or the end of its trace,
   which `kill`, a service manager and `docker stop` all send; and `daemon`,

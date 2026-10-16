@@ -626,7 +626,7 @@ func TestFetchRejectsWordsItDoesNotKnow(t *testing.T) {
 		{"--color", "sometimes"},
 	} {
 		code, _, stderr := exec(t, "fetch", tc.flag, tc.value, server.URL)
-		if code != 1 || !strings.Contains(stderr, tc.flag) || !strings.Contains(stderr, tc.value) {
+		if code != 2 || !strings.Contains(stderr, tc.flag) || !strings.Contains(stderr, tc.value) {
 			t.Errorf("%s %s: exit code = %d, stderr = %q", tc.flag, tc.value, code, stderr)
 		}
 	}

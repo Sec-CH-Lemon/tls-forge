@@ -509,13 +509,14 @@ func TestSaveSessionWritesTheWholeJar(t *testing.T) {
 }
 
 func TestListSavesNothingForAProxyItCouldNotBuild(t *testing.T) {
-	// A typo in the proxy column means no client was ever made for it, so there
-	// is no jar to write down and the rest of the run is still saved.
+	// No client was ever made for the proxy, so there is no jar of it to
+	// write down, and the rest of the run is still saved.
 	fakeClock(t)
 	server := cookieEcho(t)
+	failingClients(t, func(proxy string) bool { return proxy == "http://127.0.0.1:1" })
 	path := filepath.Join(t.TempDir(), "warm.json")
 	list := writeList(t, "typo.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/set,::not a proxy::\n%[1]s/set,\n", server.URL))
+		"url,proxy\n%[1]s/set,http://127.0.0.1:1\n%[1]s/set,\n", server.URL))
 
 	code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", path,
 		"--progress", "never", "--retry", "0")

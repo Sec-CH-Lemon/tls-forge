@@ -305,8 +305,9 @@ func TestFetchArgumentErrors(t *testing.T) {
 	// must never come out as 1.
 	for _, args := range [][]string{
 		{"fetch"}, // no URL, and nobody piping a list in
-		{"fetch", "-H", "no-colon", "https://x/"}, // malformed header
-		{"fetch", "--nonsense", "https://x/"},     // unknown flag
+		{"fetch", "-H", "no-colon", "https://x/"},          // malformed header
+		{"fetch", "--nonsense", "https://x/"},              // unknown flag
+		{"fetch", "--profile", "netscape_4", "https://x/"}, // unknown profile
 	} {
 		if code, _, _ := exec(t, args...); code != 2 {
 			t.Errorf("%v: exit code = %d, want 2", args, code)
@@ -314,8 +315,7 @@ func TestFetchArgumentErrors(t *testing.T) {
 	}
 
 	for _, args := range [][]string{
-		{"fetch", "--profile", "netscape_4", "https://x/"}, // unknown profile
-		{"fetch", "https://127.0.0.1:1/"},                  // nothing listening
+		{"fetch", "https://127.0.0.1:1/"}, // nothing listening
 	} {
 		if code, _, _ := exec(t, args...); code != 1 {
 			t.Errorf("%v: exit code = %d, want 1", args, code)
@@ -975,8 +975,8 @@ func TestCompareRejectsAnUnknownColourMode(t *testing.T) {
 	// Rejected before the browser starts: a typo should not cost two minutes of
 	// waiting to report itself.
 	code, _, stderr := exec(t, "compare", "--color", "sometimes")
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
+	if code != 2 {
+		t.Errorf("exit code = %d, want 2", code)
 	}
 	if !strings.Contains(stderr, "--color") || !strings.Contains(stderr, "sometimes") {
 		t.Errorf("stderr = %q", stderr)

@@ -183,18 +183,20 @@ func nowhereSaid(t *testing.T, dir string, said ...string) {
 func TestAProxysPasswordIsWrittenNowhere(t *testing.T) {
 	server, _ := countingTLS(t)
 
-	// One that will not parse, quoted back whole by whatever tried to read it,
-	// and the run stops before its first request: what it says, its log of
-	// either kind and its trace.
-	for _, log := range []string{"run.log", "run.jsonl"} {
+	// One that will not parse is refused before the run, as a usage error,
+	// without its password, and nothing is written.
+	for _, proxy := range []string{"http://alice:" + secret + "@[bad", "alice:" + secret + "@proxy.test:8080"} {
 		dir := t.TempDir()
-		t.Setenv("RUN_PROXY", "http://alice:"+secret+"@[bad")
+		t.Setenv("RUN_PROXY", proxy)
 		code, stdout, stderr := exec(t, "fetch", "-k", "--proxy-env", "RUN_PROXY",
-			"--log", filepath.Join(dir, log), "--trace", filepath.Join(dir, "trace.json"), server.URL)
-		if code != 1 || !strings.Contains(stderr, "[redacted]@[bad") {
-			t.Errorf("exit code = %d, want 1 and what could not be read\n%s", code, stderr)
+			"--log", filepath.Join(dir, "run.jsonl"), "--trace", filepath.Join(dir, "trace.json"), server.URL)
+		if code != 2 || !strings.Contains(stderr, "tlsforge: bad usage: --proxy-env RUN_PROXY: ") ||
+			strings.Contains(stdout+stderr, secret) {
+			t.Errorf("%s: exit code = %d, want 2 and the proxy refused without its password\n%s", proxy, code, stderr)
 		}
-		nowhereSaid(t, dir, stdout, stderr)
+		if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+			t.Errorf("%s: written: %v", proxy, entries)
+		}
 	}
 
 	// One that turns the password away, for every request and the question

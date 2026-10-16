@@ -209,7 +209,7 @@ func TestReportPathAfterASpaceIsTakenForAURL(t *testing.T) {
 	// argument. When that is not a URL, the likeliest reason is said.
 	server, asked := replying(t, 200)
 	code, _, stderr := exec(t, "fetch", "--report", "reports/", server.URL)
-	if code != 1 || !strings.Contains(stderr, "--report=PATH") {
+	if code != 2 || !strings.Contains(stderr, "--report=PATH") {
 		t.Errorf("exit code = %d, stderr = %q", code, stderr)
 	}
 	if got := asked.Load(); got != 0 {
@@ -490,7 +490,7 @@ func TestFetchReportFormatsAreCheckedBeforeTheRun(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "run")
 
 	code, _, stderr := exec(t, "fetch", "--report="+path, "--report-format", "pdf", server.URL)
-	if code != 1 || !strings.Contains(stderr, "--report-format") || !strings.Contains(stderr, "pdf") {
+	if code != 2 || !strings.Contains(stderr, "--report-format") || !strings.Contains(stderr, "pdf") {
 		t.Errorf("an unknown format: exit code = %d, stderr = %q", code, stderr)
 	}
 	code, _, stderr = exec(t, "fetch", "--report-format", "json", server.URL)
@@ -498,7 +498,7 @@ func TestFetchReportFormatsAreCheckedBeforeTheRun(t *testing.T) {
 		t.Errorf("a format with no report: exit code = %d, stderr = %q", code, stderr)
 	}
 	code, _, _ = exec(t, "fetch", "--report="+path, "--report-format", "pdf", server.URL)
-	if code != 1 {
+	if code != 2 {
 		t.Errorf("a list with an unknown format: exit code = %d", code)
 	}
 	if got := asked.Load(); got != 0 {

@@ -528,19 +528,24 @@ func TestTraceOfARequestThatNeverConnected(t *testing.T) {
 }
 
 func TestTraceOfARunThatCouldNotStart(t *testing.T) {
-	// No such profile, so no client and no request. The trace still opens and
-	// closes, and ends with the reason.
-	path := filepath.Join(t.TempDir(), "trace.json")
-	code, _, _ := exec(t, "fetch", "--profile", "netscape_4", "--trace", path, "https://example.invalid/")
+	// A session that cannot be read, found out once the run is under way, so
+	// no client and no request. The trace still closes, and ends with the
+	// reason.
+	dir := t.TempDir()
+	path, session := filepath.Join(dir, "trace.json"), filepath.Join(dir, "session.json")
+	if err := os.WriteFile(session, []byte("{not a session"), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	code, _, _ := exec(t, "fetch", "--cookies", session, "--trace", path, "https://example.invalid/")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1", code)
 	}
 	events := traceFile(t, path)
 	checkShape(t, events)
-	if len(named(events, phaseInstant, "profile")) != 0 {
-		t.Error("a profile that does not exist was traced as worn")
+	if len(named(events, phaseBegin, "GET https://example.invalid/")) != 0 {
+		t.Error("a request was made by a run that could not start")
 	}
-	if last := events[len(events)-1]; !strings.Contains(fmt.Sprint(last.Args["error"]), "netscape_4") {
+	if last := events[len(events)-1]; !strings.Contains(fmt.Sprint(last.Args["error"]), "cookie") {
 		t.Errorf("the run ended as %v, want the reason it could not start", last.Args)
 	}
 }
@@ -615,13 +620,13 @@ func TestListTraceHasARowForEveryWorker(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "trace.json")
 	list := writeList(t, "list.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/one,\n%[1]s/two,\n%[1]s/three,\n%[1]s/four,\n%[1]s/five,::not a proxy::\n",
+		"url,proxy\n%[1]s/one,\n%[1]s/two,\n%[1]s/three,\n%[1]s/four,\n%[1]s/five,http://127.0.0.1:1\n",
 		server.URL))
 
 	code, _, stderr := exec(t, "fetch", "--input", list, "--concurrency", "2", "--retry", "0",
 		"--output", filepath.Join(dir, "out"), "--trace", path)
 	if code != 1 {
-		t.Fatalf("exit code = %d, want 1 (one URL names a proxy that cannot be used)\n%s", code, stderr)
+		t.Fatalf("exit code = %d, want 1 (one URL names a proxy nothing answers at)\n%s", code, stderr)
 	}
 	events := traceFile(t, path)
 	checkShape(t, events)
@@ -659,13 +664,18 @@ func TestListTraceHasARowForEveryWorker(t *testing.T) {
 			written++
 		}
 	}
-	if requests != 4 || written != 4 {
-		t.Errorf("%d requests and %d bodies traced, want 4 of each", requests, written)
+	if requests != 5 || written != 4 {
+		t.Errorf("%d requests and %d bodies traced, want 5 and 4", requests, written)
 	}
-	// The URL that never became a request is in the trace all the same.
-	refused := one(t, events, phaseInstant, "error")
-	if refused.Args["url"] != server.URL+"/five" || refused.Args["error"] == nil || refused.TID == mainLane {
-		t.Errorf("the unusable proxy was traced as %+v", refused)
+	// The one through the proxy nothing answers at ends with why.
+	failed := 0
+	for _, event := range events {
+		if event.Phase == phaseEnd && event.Args["error"] != nil && strings.Contains(fmt.Sprint(event.Args["error"]), "127.0.0.1:1") {
+			failed++
+		}
+	}
+	if failed == 0 {
+		t.Error("the request through the proxy nothing answers at does not end with why")
 	}
 
 	sum := one(t, events, phaseInstant, "summary")
@@ -1019,7 +1029,7 @@ func TestTraceOffCostsNothing(t *testing.T) {
 	if lane != nil || trace.lane(2, "worker 1") != nil {
 		t.Error("a tracer that is off handed out a row")
 	}
-	lane.wearing(tlsforge.DefaultProfile)
+	lane.wearing(nil)
 	lane.instant("nothing", "run", nil)
 	lane.since(lane.mark(), "nothing", "run", nil)
 	try := lane.attempt("GET", "https://example.test/", 1, 1, "", nil)

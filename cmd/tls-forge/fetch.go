@@ -126,24 +126,59 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 // send a run through a proxy nobody asked for. Usage errors, before anything
 // is read or asked: a name that is empty, a variable that is not set or is
 // empty, and --proxy given as well, since a run's proxy comes from one place.
-func (f clientFlags) proxyFromEnv() error {
-	if !f.chose("proxy-env") {
-		return nil
+//
+// It is all the daemon checks before it starts. The packages that start it
+// read its exit code 2 as arguments it does not understand, which from them
+// is only --proxy-env, from a tls-forge older than they are; a proxy or a
+// profile that cannot be used ends it with 1, as the client it cannot make.
+func (f clientFlags) proxyFromEnv() (string, error) {
+	given := "--proxy " + redactProxy(*f.proxy)
+	if f.chose("proxy-env") {
+		name := *f.proxyEnv
+		value, set := os.LookupEnv(name)
+		switch {
+		case name == "":
+			return "", fmt.Errorf("%w: --proxy-env needs the name of an environment variable", errUsage)
+		case f.chose("proxy"):
+			return "", fmt.Errorf("%w: --proxy and --proxy-env both name the proxy: give one of them", errUsage)
+		case !set:
+			return "", fmt.Errorf("%w: --proxy-env %s: there is no such environment variable", errUsage, name)
+		case value == "":
+			return "", fmt.Errorf("%w: --proxy-env %s: the variable is empty", errUsage, name)
+		}
+		*f.proxy = value
+		given = "--proxy-env " + name + ": " + redactProxy(value)
 	}
-	name := *f.proxyEnv
-	value, set := os.LookupEnv(name)
-	switch {
-	case name == "":
-		return fmt.Errorf("%w: --proxy-env needs the name of an environment variable", errUsage)
-	case f.chose("proxy"):
-		return fmt.Errorf("%w: --proxy and --proxy-env both name the proxy: give one of them", errUsage)
-	case !set:
-		return fmt.Errorf("%w: --proxy-env %s: there is no such environment variable", errUsage, name)
-	case value == "":
-		return fmt.Errorf("%w: --proxy-env %s: the variable is empty", errUsage, name)
+	return given, nil
+}
+
+// settle is what a command that makes requests of its own checks before it
+// starts, as usage errors: the proxy from where it is named, a proxy that is
+// no proxy's URL, a timeout of nothing and a profile there is none of, which
+// the transport would otherwise refuse only once a run had emptied a
+// directory, opened its log or made its authority. It is the profile the run
+// wears.
+func (f clientFlags) settle() (*profile.Profile, error) {
+	given, err := f.proxyFromEnv()
+	if err != nil {
+		return nil, err
 	}
-	*f.proxy = value
-	return nil
+	if *f.proxy != "" {
+		if why := proxyProblem(*f.proxy); why != "" {
+			return nil, fmt.Errorf("%w: %s %s", errUsage, given, why)
+		}
+	}
+	if *f.timeout <= 0 {
+		return nil, fmt.Errorf("%w: --timeout is %v, and has to be more than nothing", errUsage, *f.timeout)
+	}
+	if !f.chose("profile") {
+		*f.profile = defaultProfileName()
+	}
+	worn, err := profile.Get(*f.profile)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errUsage, err)
+	}
+	return worn, nil
 }
 
 // The full request flags, which are fetch's.
@@ -331,7 +366,15 @@ func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 	if f.log != nil {
 		opts = append(opts, tlsforge.WithLogger(f.log))
 	}
-	return tlsforge.New(append(opts, extra...)...)
+	return newClient(proxy, append(opts, extra...)...)
+}
+
+// newClient makes the client for a proxy: tlsforge.New, named so that a test
+// can have it fail. What it would refuse of the flags is refused before a
+// command starts (settle), so what is left is the library's own trouble,
+// which a test cannot otherwise cause.
+var newClient = func(_ string, opts ...tlsforge.Option) (*tlsforge.Client, error) {
+	return tlsforge.New(opts...)
 }
 
 // asClientCookies is the file's shape as the client's.
@@ -391,7 +434,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if err := parse(fs, args); err != nil {
 		return err
 	}
-	if err := common.proxyFromEnv(); err != nil {
+	worn, err := common.settle()
+	if err != nil {
 		return err
 	}
 	if *workers < 1 {
@@ -557,7 +601,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// on every way out, so a run that stops before then still ends it.
 	identity := common.wearOpen(errOut)
 	defer identity.close()
-	lane.wearing(*common.profile)
+	lane.wearing(worn)
 
 	clients := newPool(common, *common.proxy)
 	defer clients.close()
@@ -962,7 +1006,7 @@ func runDaemon(ctx context.Context, args []string, out, errOut *printer) error {
 	if err := parse(fs, args); err != nil {
 		return err
 	}
-	if err := common.proxyFromEnv(); err != nil {
+	if _, err := common.proxyFromEnv(); err != nil {
 		return err
 	}
 	if err := requireNoArgs(fs); err != nil {

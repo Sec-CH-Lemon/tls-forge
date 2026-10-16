@@ -138,7 +138,7 @@ func progressWanted(mode string, w io.Writer) (bool, error) {
 	case "auto":
 		return isTerminal(w), nil
 	default:
-		return false, &badFlag{"--progress", mode, "auto, always or never"}
+		return false, badValue("--progress", mode, "auto, always or never")
 	}
 }
 

@@ -147,18 +147,27 @@ func TestProxyCommandErrors(t *testing.T) {
 
 	for _, tc := range []struct {
 		args []string
+		code int
 		want string
 	}{
 		{[]string{"proxy", "--ca-cert", filepath.Join(blocked, "ca.pem"),
-			"--ca-key", filepath.Join(blocked, "ca.key")}, "proxy: reading"},
-		{[]string{"proxy", "--ca-cert", cert, "--ca-key", key, "--profile", "netscape_4"},
+			"--ca-key", filepath.Join(blocked, "ca.key")}, 1, "proxy: reading"},
+		// Refused before the authority is made, as a usage error.
+		{[]string{"proxy", "--ca-cert", cert, "--ca-key", key, "--profile", "netscape_4"}, 2,
 			`unknown profile "netscape_4"`},
-		{[]string{"proxy", "--ca-cert", cert, "--ca-key", key, "--addr", "256.256.256.256:0"},
+		{[]string{"proxy", "--ca-cert", cert, "--ca-key", key, "--proxy", "::not a proxy::"}, 2,
+			"--proxy ::not a proxy:: is not a URL"},
+		{[]string{"proxy", "--ca-cert", cert, "--ca-key", key, "--addr", "256.256.256.256:0"}, 1,
 			"proxy: listen"},
 	} {
 		code, _, stderr := exec(t, tc.args...)
-		if code != 1 || !strings.Contains(stderr, tc.want) {
-			t.Errorf("%v: exit code %d, stderr %q; want 1 and %q", tc.args, code, stderr, tc.want)
+		if code != tc.code || !strings.Contains(stderr, tc.want) {
+			t.Errorf("%v: exit code %d, stderr %q; want %d and %q", tc.args, code, stderr, tc.code, tc.want)
+		}
+		if tc.code == 2 {
+			if _, err := os.Stat(cert); !os.IsNotExist(err) {
+				t.Errorf("%v made the authority: %v", tc.args, err)
+			}
 		}
 	}
 }

@@ -577,11 +577,11 @@ func TestListStopsHandingOutWorkWhenInterrupted(t *testing.T) {
 }
 
 func TestListReportsAProxyItCannotUse(t *testing.T) {
-	// A typo in the proxy column. It is the entry's failure, not the run's:
+	// A proxy nothing answers at. It is the entry's failure, not the run's:
 	// the other URLs still go out, and the line says which one was wrong.
 	server := pathServer(t)
 	path := writeList(t, "typo.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/bad,::not a proxy::\n%[1]s/good,\n", server.URL))
+		"url,proxy\n%[1]s/bad,http://127.0.0.1:1\n%[1]s/good,\n", server.URL))
 
 	code, stdout, _ := exec(t, "fetch", "--input", path)
 	if code != 1 {
@@ -708,7 +708,7 @@ func TestListRejectsAnUnknownProgressMode(t *testing.T) {
 	// Rejected before the list is read, so a typo does not cost a run that then
 	// has nowhere to report itself.
 	code, _, stderr := exec(t, "fetch", "--progress", "sometimes", "https://example.com/")
-	if code != 1 {
+	if code != 2 {
 		t.Errorf("exit code = %d", code)
 	}
 	if !strings.Contains(stderr, "--progress") {
@@ -1185,21 +1185,18 @@ func TestFetchRepeatsOneAtATimeUnlessToldHowMany(t *testing.T) {
 }
 
 func TestListThroughAProxyThatCannotBeUsedFailsBeforeItStarts(t *testing.T) {
-	// One way for every URL is one client, made before anything is fetched: a
-	// proxy that cannot be used is the command's failure, said once, rather
-	// than the same failure on every line.
+	// A proxy that is no proxy's URL is the command's failure, said once, as a
+	// usage error, before the run says what it is wearing or asks anybody
+	// anything, rather than the same failure on every line.
 	server, asked := replying(t, 200)
 
 	code, stdout, stderr := exec(t, "fetch", "--proxy", "::not a proxy::", server.URL+"/one", server.URL+"/two")
-	if code != 1 || stdout != "" {
-		t.Errorf("exit code = %d and stdout = %q, want 1 and nothing\n%s", code, stdout, stderr)
+	if code != 2 || stdout != "" ||
+		stderr != "tlsforge: bad usage: --proxy ::not a proxy:: is not a URL: missing protocol scheme\n" {
+		t.Errorf("exit code = %d and stdout = %q, want 2 and nothing\n%s", code, stdout, stderr)
 	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("%d requests were made through a proxy that cannot be used", got)
-	}
-	// What the run was wearing is still closed off, with no address under it.
-	if strings.Count(stderr, identityRule) != 2 || strings.Contains(stderr, "exit-ip") {
-		t.Errorf("the report of what the run was wearing was left open, or names an address:\n%s", stderr)
 	}
 }
 

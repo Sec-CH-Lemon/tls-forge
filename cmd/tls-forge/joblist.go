@@ -2,14 +2,20 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"unicode"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // Reading a list of URLs.
@@ -67,19 +73,33 @@ func resolveFormat(format, path string) (string, error) {
 			return formatLines, nil
 		}
 	default:
-		return "", &badFlag{"--format", format, strings.Join(listFormats, ", ")}
+		return "", badValue("--format", format, strings.Join(listFormats, ", "))
 	}
 }
 
 // readJobs collects the list from whichever source was given.
 //
-// In order of precedence: --urls, then --input, then any arguments, then
-// standard input. Each is a deliberate way to say "here is the list", so the
-// first one present wins rather than the four being merged into a pile nobody
-// can account for.
+// --urls, --input or arguments, and standard input when none of them is. Each
+// is a deliberate way to say "here is the list", so two of them are a usage
+// error rather than one quietly preferred to the other, or the two merged
+// into a pile nobody can account for.
 func readJobs(ctx context.Context, inline, path, format string, args []string,
 	stdin io.Reader,
 ) ([]job, error) {
+	var given []string
+	if inline != "" {
+		given = append(given, "--urls")
+	}
+	if path != "" {
+		given = append(given, "--input")
+	}
+	if len(args) > 0 {
+		given = append(given, "URLs on the command line")
+	}
+	if len(given) > 1 {
+		return nil, fmt.Errorf("%w: %s each give the list of URLs: give one", errUsage, strings.Join(given, " and "))
+	}
+
 	// Resolved first, before the source is chosen. A misspelled format is a
 	// mistake whether or not the list happens to come from somewhere the format
 	// applies to, and a flag that is silently ignored under some inputs is
@@ -139,6 +159,7 @@ func decodeStream(ctx context.Context, r io.Reader, format string) ([]job, error
 }
 
 func decodeJobs(r io.Reader, format, source string) ([]job, error) {
+	r = withoutBOM(r)
 	switch format {
 	case formatJSON:
 		return decodeJSONJobs(r, source)
@@ -172,6 +193,24 @@ func jobsFromURLs(urls []string) []job {
 	return jobs
 }
 
+// byteOrderMark is what a list saved by some Windows editors begins with.
+var byteOrderMark = []byte("\xef\xbb\xbf")
+
+// withoutBOM is r without the UTF-8 byte order mark it may begin with. Read
+// as text, it would be the first character of the first URL, which would then
+// be no URL; anywhere but the beginning it is text, and left alone.
+func withoutBOM(r io.Reader) io.Reader {
+	buffered := bufio.NewReader(r)
+	if mark, err := buffered.Peek(len(byteOrderMark)); err == nil && bytes.Equal(mark, byteOrderMark) {
+		_, _ = buffered.Discard(len(byteOrderMark))
+	}
+	return buffered
+}
+
+// maxListLine is the longest line a list of lines can have, its newline
+// included: a URL a megabyte long is a file read as the wrong format.
+const maxListLine = 1 << 20
+
 // decodeLineJobs reads one URL per line.
 //
 // Optionally followed by a proxy, separated by whitespace, so the plainest
@@ -179,8 +218,10 @@ func jobsFromURLs(urls []string) []job {
 func decodeLineJobs(r io.Reader, source string) ([]job, error) {
 	var jobs []job
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	scanner.Buffer(make([]byte, 64*1024), maxListLine)
+	read := 0
 	for scanner.Scan() {
+		read++
 		line := strings.TrimSpace(scanner.Text())
 		// Blank lines and comments, so a list can be annotated and a line can
 		// be commented out rather than deleted.
@@ -193,7 +234,11 @@ func decodeLineJobs(r io.Reader, source string) ([]job, error) {
 		}
 		jobs = append(jobs, job{URL: strings.TrimSpace(url), Proxy: strings.TrimSpace(proxy)})
 	}
-	if err := scanner.Err(); err != nil {
+	switch err := scanner.Err(); {
+	case errors.Is(err, bufio.ErrTooLong):
+		return nil, fmt.Errorf("%w: fetch: %s: line %d is longer than %d bytes, its newline included",
+			errUsage, source, read+1, maxListLine)
+	case err != nil:
 		return nil, fmt.Errorf("fetch: %s: %w", source, err)
 	}
 	return jobs, nil
@@ -219,7 +264,7 @@ func decodeJSONJobs(r io.Reader, source string) ([]job, error) {
 
 	var raw []json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, fmt.Errorf("fetch: %s: expected a JSON array: %w", source, err)
+		return nil, fmt.Errorf("%w: fetch: %s: expected a JSON array: %w", errUsage, source, err)
 	}
 
 	jobs := make([]job, 0, len(raw))
@@ -233,7 +278,7 @@ func decodeJSONJobs(r io.Reader, source string) ([]job, error) {
 		decoder := json.NewDecoder(strings.NewReader(string(item)))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&entry); err != nil {
-			return nil, fmt.Errorf("fetch: %s: entry %d: %w", source, i+1, err)
+			return nil, fmt.Errorf("%w: fetch: %s: entry %d: %w", errUsage, source, i+1, err)
 		}
 		jobs = append(jobs, job{
 			URL:   strings.TrimSpace(entry.URL),
@@ -260,7 +305,11 @@ func decodeCSVJobs(r io.Reader, source string) ([]job, error) {
 	reader.TrimLeadingSpace = true
 
 	records, err := reader.ReadAll()
-	if err != nil {
+	var malformed *csv.ParseError
+	switch {
+	case errors.As(err, &malformed):
+		return nil, fmt.Errorf("%w: fetch: %s: %w", errUsage, source, err)
+	case err != nil:
 		return nil, fmt.Errorf("fetch: %s: %w", source, err)
 	}
 	if len(records) == 0 {
@@ -308,27 +357,69 @@ func field(record []string, at int) string {
 	return record[at]
 }
 
-// validate rejects a list before any of it is fetched.
+// validate rejects a list before any of it is fetched, as a usage error, and
+// writes the scheme of every URL in lower case, as a browser does: `HTTP://`
+// is an http URL.
 //
 // All of it, rather than the first problem: someone who mistyped two lines of a
 // hundred should learn that from one run.
 func validate(jobs []job) error {
 	if len(jobs) == 0 {
-		return fmt.Errorf("fetch: no URLs given")
+		return fmt.Errorf("%w: fetch: no URLs given", errUsage)
 	}
 	var problems []string
-	for i, j := range jobs {
-		if j.URL == "" {
+	for i := range jobs {
+		j := &jobs[i]
+		switch u, err := url.Parse(j.URL); {
+		case j.URL == "":
 			problems = append(problems, fmt.Sprintf("entry %d has no URL", i+1))
+		case err != nil:
+			problems = append(problems, fmt.Sprintf("entry %d: %q is not a URL: %v", i+1, j.URL, parseReason(err)))
+		case u.Scheme != "http" && u.Scheme != "https":
+			problems = append(problems, fmt.Sprintf("entry %d: %q is not an http or https URL", i+1, j.URL))
+		case u.Hostname() == "":
+			problems = append(problems, fmt.Sprintf("entry %d: %q names no host", i+1, j.URL))
+		default:
+			j.URL = u.Scheme + j.URL[len(u.Scheme):]
+		}
+		if j.Proxy == "" {
 			continue
 		}
-		if !strings.HasPrefix(j.URL, "http://") && !strings.HasPrefix(j.URL, "https://") {
-			problems = append(problems,
-				fmt.Sprintf("entry %d: %q is not an http or https URL", i+1, j.URL))
+		if why := proxyProblem(j.Proxy); why != "" {
+			problems = append(problems, fmt.Sprintf("entry %d: the proxy %s %s", i+1, redact.URL(j.Proxy), why))
 		}
 	}
 	if len(problems) > 0 {
-		return fmt.Errorf("fetch: %s", strings.Join(problems, "; "))
+		return fmt.Errorf("%w: fetch: %s", errUsage, strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+// proxySchemes are the proxies the transport can go through.
+var proxySchemes = []string{"http", "https", "socks4", "socks4a", "socks5", "socks5h"}
+
+// proxyProblem is what is wrong with a proxy's URL, or nothing: what the
+// transport would refuse only when a client for it is made, after a run had
+// emptied a directory and opened its log, or half way through a list.
+func proxyProblem(proxy string) string {
+	switch u, err := url.Parse(proxy); {
+	case err != nil:
+		return "is not a URL: " + parseReason(err)
+	case !slices.Contains(proxySchemes, u.Scheme):
+		return "is not an " + strings.Join(proxySchemes[:len(proxySchemes)-1], ", ") + " or " +
+			proxySchemes[len(proxySchemes)-1] + " URL"
+	case u.Hostname() == "":
+		return "names no host"
+	}
+	return ""
+}
+
+// parseReason is why url.Parse would not read a URL, without the URL, which
+// it quotes whole, password and all.
+func parseReason(err error) string {
+	var parse *url.Error
+	if errors.As(err, &parse) {
+		return parse.Err.Error()
+	}
+	return err.Error()
 }

@@ -608,11 +608,17 @@ tls-forge fetch --input urls.json --report=reports/ > results.jsonl
 cat urls.txt | tls-forge fetch --output pages/ > results.jsonl
 ```
 
-A list comes from `--urls`, then `--input`, then the URLs on the command line,
-then standard input when it is piped and nothing else named one. The whole list
-is checked before anything is fetched, and every entry that is not an HTTP or
-HTTPS URL is reported at once. With `--format auto`, `.json` selects JSON,
-`.csv` selects CSV and every other name uses one URL per line:
+A list comes from one of `--urls`, `--input` and the URLs on the command line,
+or from standard input when it is piped and none of them is given; two of them
+are a usage error, rather than one quietly preferred. The whole list is checked
+before anything is fetched, and every entry whose URL is not an HTTP or HTTPS
+URL with a host, or whose proxy is not an `http`, `https`, `socks4`,
+`socks4a`, `socks5` or `socks5h` URL, is reported at once, as a usage error.
+A scheme is read in any case, as a browser reads it, and `HTTP://` goes out as
+`http://`. A list may begin with a UTF-8 byte order mark, which is taken off;
+a line of one, its newline included, is at most 1 MiB. With `--format auto`,
+`.json` selects JSON, `.csv` selects CSV and every other name uses one URL per
+line:
 
 ```text
 # lines: URL followed by an optional proxy
@@ -653,9 +659,14 @@ With `--output`, the page is in a file instead, and the line names it as
 `file`, with the request's log and trace as `log` and `trace`. `-i` adds the
 response headers to every line as `headers`.
 
-`fetch` exits non-zero when one or more requests got no response. An answer
-that is not a 2xx is an answer: it is counted and written with its status, and
-does not change the exit code.
+`fetch` exits 1 when one or more requests got no response. An answer that is
+not a 2xx is an answer: it is counted and written with its status, and does not
+change the exit code. It exits 2 for what it is given that it cannot run with,
+before it empties, opens or makes anything, asks where it comes out or makes a
+request: a flag or a value of one it does not take, such as `--progress
+sometimes`, an unknown profile, a `--proxy` that is no proxy's URL, a
+`--timeout` of nothing, two sources of the list, and a list that does not read
+as one or holds an entry that is not a URL.
 
 #### Retrying and repeating
 

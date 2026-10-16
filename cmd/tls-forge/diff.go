@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -66,7 +67,7 @@ func paletteFor(mode string, w io.Writer) (palette, error) {
 		}
 		return inColour, nil
 	default:
-		return palette{}, &badFlag{"--color", mode, "auto, always or never"}
+		return palette{}, badValue("--color", mode, "auto, always or never")
 	}
 }
 
@@ -74,6 +75,12 @@ type badFlag struct{ flag, got, want string }
 
 func (e *badFlag) Error() string {
 	return e.flag + " is " + strconv.Quote(e.got) + ", want " + e.want
+}
+
+// badValue is a flag given a value it does not take, which is a usage error
+// wherever it is found out: exit code 2, as for a flag that does not parse.
+func badValue(flag, got, want string) error {
+	return fmt.Errorf("%w: %w", errUsage, &badFlag{flag, got, want})
 }
 
 // isTerminal reports whether the writer is a character device, which is the

@@ -783,7 +783,7 @@ func (f reportFlags) formats() ([]string, error) {
 	for _, word := range strings.Split(*f.format, ",") {
 		word = strings.ToLower(strings.TrimSpace(word))
 		if _, known := reportWriters[word]; !known {
-			return nil, &badFlag{"--report-format", *f.format, "html, json or html,json"}
+			return nil, badValue("--report-format", *f.format, "html, json or html,json")
 		}
 		if !slices.Contains(chosen, word) {
 			chosen = append(chosen, word)
