@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"slices"
 	"testing"
@@ -111,5 +112,54 @@ func TestAClientWithoutSessionResumption(t *testing.T) {
 			t.Errorf("a connection without resumption was %s, resumed %v", measured.TLS.JA4, measured.TLS.Resumed)
 		}
 		client.CloseIdleConnections()
+	}
+}
+
+// echLengths are the GREASE ECH payload lengths of the hellos a log says went
+// out, resumed or cold as asked, with how often each went.
+func echLengths(t *testing.T, book *logBook, resumed bool) map[string]int {
+	t.Helper()
+	out := map[string]int{}
+	for _, hello := range book.with(t, "client hello", "pre_shared_key", fmt.Sprint(resumed)) {
+		out[hello.get("ech_payload_bytes")]++
+	}
+	return out
+}
+
+func TestEveryConnectionDrawsItsECHLengthColdOrResumed(t *testing.T) {
+	// Chrome draws the length afresh for every connection, from four, each as
+	// likely, whether it resumes or not. Sixteen connections each way: all
+	// sixteen alike would come by chance once in a billion runs.
+	const connections = 16
+	server := startEchoWithTickets(t)
+	for _, resumed := range []bool{false, true} {
+		book, log := newLogBook(LevelTrace)
+		opts := []Option{WithProfile("chrome_155_macos"), WithLogger(log)}
+		if !resumed {
+			opts = append(opts, WithoutSessionResumption())
+		}
+		client := newTestClient(t, opts...)
+		// With resumption the first connection is cold, and the rest resume.
+		for range connections + 1 {
+			if _, err := client.Get(server.URL() + "/api/all"); err != nil {
+				t.Fatalf("Get: %v", err)
+			}
+			client.CloseIdleConnections()
+		}
+		lengths := echLengths(t, book, resumed)
+		sent := 0
+		for length, count := range lengths {
+			if !slices.Contains([]string{"144", "176", "208", "240"}, length) {
+				t.Errorf("resumed %v: %d hellos went with an ECH payload of %q bytes", resumed, count, length)
+			}
+			sent += count
+		}
+		want := connections
+		if !resumed {
+			want++ // the first one too
+		}
+		if sent != want || len(lengths) < 2 {
+			t.Errorf("resumed %v: %d hellos, want %d, drew %v", resumed, sent, want, lengths)
+		}
 	}
 }

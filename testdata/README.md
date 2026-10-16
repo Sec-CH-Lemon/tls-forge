@@ -12,3 +12,10 @@ opened for the capture page's fetch() once it held a ticket: it resumes, with
 JA4 t13d1518h2_8daaf6152771_e2d80978ab2e, and differs from the first by one
 extension, pre_shared_key, last. Only the records are kept; what the page's
 JavaScript reported about the machine is not.
+
+`chrome155-ech.json` is how Google Chrome 155.0.8059.80 on macOS 27.0 (arm64)
+draws the length of the payload of its GREASE encrypted_client_hello
+extension: two series on 2026-10-16, 301 connections in all, each launch with
+a fresh user-data-dir at the local echo server. Every length was one of 144,
+176, 208 and 240 bytes, as often as the others; the cipher suite and the
+32-byte key never changed.

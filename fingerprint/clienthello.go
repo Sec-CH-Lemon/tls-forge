@@ -337,6 +337,39 @@ func (c *ClientHello) PSKKeyExchangeModes() []uint8 {
 	return c.uint8Vector(ExtPSKKeyExchangeModes)
 }
 
+// ECH is what a server can read of the encrypted_client_hello extension of a
+// hello to it when it published no ECH configuration, which is every server a
+// browser has not been told about: GREASE, the shape of a real one with random
+// contents, so that servers cannot come to depend on its absence. Its cipher
+// suite, the length of its encapsulated key and the length of its payload.
+type ECH struct {
+	KDF, AEAD     uint16
+	ConfigID      uint8
+	EncLength     int
+	PayloadLength int
+}
+
+// EncryptedClientHello returns the encrypted_client_hello extension of an outer
+// ClientHello, or false for a hello without one, or with one that is an inner
+// hello's or does not parse.
+func (c *ClientHello) EncryptedClientHello() (ECH, bool) {
+	data, ok := c.Extension(ExtEncryptedClientHello)
+	if !ok {
+		return ECH{}, false
+	}
+	s := cryptobyte.String(data)
+	var out ECH
+	var outer uint8
+	var enc, payload cryptobyte.String
+	if !s.ReadUint8(&outer) || outer != 0 || !s.ReadUint16(&out.KDF) || !s.ReadUint16(&out.AEAD) ||
+		!s.ReadUint8(&out.ConfigID) || !s.ReadUint16LengthPrefixed(&enc) ||
+		!s.ReadUint16LengthPrefixed(&payload) || !s.Empty() {
+		return ECH{}, false
+	}
+	out.EncLength, out.PayloadLength = len(enc), len(payload)
+	return out, true
+}
+
 // ApplicationSettings returns the ALPS protocol list. Chrome sends this
 // extension under two different numbers depending on version, and which one it
 // picks is itself a version signal, so both are read.

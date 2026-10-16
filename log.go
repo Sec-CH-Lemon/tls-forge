@@ -266,17 +266,23 @@ func (r *requestLog) gotConn(info fhttptrace.GotConnInfo) {
 }
 
 // handshake is what a connection's handshake was, in full: the ClientHello it
-// sent, and each certificate the server answered with.
+// sent, and each certificate the server answered with. The length of the ECH
+// payload is said because it is drawn afresh for each connection, as Chrome
+// draws it, and is nowhere else to be seen.
 func (r *requestLog) handshake(name string, conn net.Conn, state utls.ConnectionState) {
 	if hello := sentHello(conn); hello != nil {
 		sent := capture.FromClientHello(hello)
-		r.trace("client hello", "conn", name, "ja4", sent.JA4, "ja4_r", sent.JA4Raw,
+		args := []any{"conn", name, "ja4", sent.JA4, "ja4_r", sent.JA4Raw,
 			"ja3", sent.JA3, "ja3_hash", sent.JA3Hash, "server_name", sent.ServerName, "alpn", sent.ALPN,
 			"extensions", valueNames(sent.Extensions), "cipher_suites", valueNames(sent.CipherSuites),
 			"versions", valueNames(sent.SupportedVersions), "groups", valueNames(sent.SupportedGroups),
 			"key_shares", valueNames(sent.KeyShareGroups),
 			"signature_algorithms", valueNames(sent.SignatureAlgorithms),
-			"pre_shared_key", sent.Resumed, "bytes", len(hello.Raw))
+			"pre_shared_key", sent.Resumed, "bytes", len(hello.Raw)}
+		if ech, ok := hello.EncryptedClientHello(); ok {
+			args = append(args, "ech_payload_bytes", ech.PayloadLength)
+		}
+		r.trace("client hello", args...)
 	}
 	for depth, cert := range state.PeerCertificates {
 		r.trace("certificate", certificateArgs(name, depth, cert)...)

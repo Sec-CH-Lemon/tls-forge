@@ -180,7 +180,8 @@ func TestALogFollowsARequestOntoTheWire(t *testing.T) {
 	hello := book.one(t, "client hello")
 	if hello.get("ja4") == "" || hello.get("ja4") != book.one(t, "profile handshake").get("ja4") ||
 		hello.get("conn") != connected.get("conn") || hello.get("level") != "DEBUG-4" ||
-		hello.get("server_name") != "localhost" {
+		hello.get("server_name") != "localhost" ||
+		!slices.Contains([]string{"144", "176", "208", "240"}, hello.get("ech_payload_bytes")) {
 		t.Errorf("the hello was said as %v", hello)
 	}
 	if cert := book.one(t, "certificate"); cert.get("depth") != "0" || !strings.Contains(cert.get("dns_names"), "localhost") {
@@ -735,6 +736,19 @@ func TestALogSaysWhatTheClientWears(t *testing.T) {
 	}
 	if strings.Contains(book.text(), "s3cr3t") {
 		t.Errorf("the proxy's password was written down:\n%s", book.text())
+	}
+}
+
+func TestALogSaysNoECHOfAHelloWithout(t *testing.T) {
+	// Safari 16 sends no encrypted_client_hello, so there is no length to say.
+	server := startEcho(t)
+	book, log := newLogBook(LevelTrace)
+	client := newTestClient(t, WithProfile("safari_16_0"), WithLogger(log))
+	if _, err := client.Get(server.URL() + "/api/all"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if hello := book.one(t, "client hello"); hello.get("ja4") == "" || hello.get("ech_payload_bytes") != "" {
+		t.Errorf("the hello was said as %v", hello)
 	}
 }
 

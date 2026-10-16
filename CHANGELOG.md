@@ -13,6 +13,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `fingerprint.ClientHello.EncryptedClientHello` reads the outer
+  `encrypted_client_hello` of a hello as a `fingerprint.ECH`: its cipher
+  suite, its config id and the lengths of its key and payload. The log's
+  `client hello` record says the payload's length as `ech_payload_bytes`.
 - **Every output of a run names the run.** Its id is the moment it began,
   `2026-08-16-091850-563`, which its log and report were already named
   after: the log's `run` record says `run_id`, the trace's run says it and
@@ -465,6 +469,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A Chrome profile sent the payload of its GREASE `encrypted_client_hello`
+  at one length on every connection, the one its capture happened to draw,
+  where Chrome draws one of 144, 176, 208 and 240 bytes for each connection,
+  each as likely: measured on Chrome 155 over 301 connections. A length that
+  never changed told tls-forge's connections apart from Chrome's. A Chromium
+  profile now draws it as Chrome does, cold or resumed; its config id, key
+  and payload were fresh for each connection already. A profile of another
+  browser keeps the length it was captured with.
 - A browser `capture` launched was ended by killing its own process alone:
   the renderer, GPU and network processes Chrome starts were left to end by
   themselves, and anything that did not stayed running after the run. The

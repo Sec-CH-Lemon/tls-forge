@@ -1,0 +1,14 @@
+{
+  "browser": "Google Chrome 155.0.8059.80, --headless=new, macOS 27.0 (arm64)",
+  "how": "a fresh --user-data-dir for each launch, at the local echo server with session tickets off; every connection's ClientHello read",
+  "series": [
+    {"measured": "2026-10-16", "connections": 208, "payload_lengths": {"144": 55, "176": 55, "208": 49, "240": 49}},
+    {"measured": "2026-10-16", "launches": 60, "connections": 93, "payload_lengths": {"144": 28, "176": 18, "208": 26, "240": 21}}
+  ],
+  "connections": 301,
+  "payload_lengths": {"144": 83, "176": 73, "208": 75, "240": 70},
+  "kdf": 1,
+  "aead": 1,
+  "enc_length": 32,
+  "note": "the payload of the GREASE encrypted_client_hello extension, drawn afresh for every connection from four lengths, each as likely: before the 16-byte AEAD tag, 128, 160, 192 and 224 bytes. The extension is 42 bytes longer than its payload. kdf 1 is HKDF-SHA256, aead 1 AES-128-GCM."
+}

@@ -9,13 +9,14 @@
 // The authoritative field is ClientHello: a real browser's ClientHello, captured
 // off the wire. utls turns those bytes back into a live handshake, regenerating
 // everything that must be fresh per connection — GREASE values, key shares, the
-// ECH payload — so the result matches the browser without being a recording of
-// one connection.
+// ECH payload, and for Chromium the length of that payload — so the result
+// matches the browser without being a recording of one connection.
 package profile
 
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
@@ -88,7 +89,12 @@ func (p *Profile) Clone() *Profile {
 // Nothing on an iPhone or an iPad does, whatever it is called: every browser
 // there connects through Apple's own stack, so Chrome on iOS sends Safari's
 // handshake, in Safari's order.
-func (p *Profile) ShufflesExtensions() bool {
+func (p *Profile) ShufflesExtensions() bool { return p.chromium() }
+
+// chromium reports a profile of a Chromium browser with Chromium's own TLS
+// stack, BoringSSL: by its name, its base or, for a custom captured profile,
+// its user agent. Not one on an iPhone or an iPad, whatever it is called.
+func (p *Profile) chromium() bool {
 	identity := strings.ToLower(p.Name + " " + p.Base + " " + p.UserAgent)
 	if _, platform := Split(p.Name); platform == "ios" {
 		return false
@@ -149,6 +155,14 @@ type Priority struct {
 	Weight    uint8  `json:"weight"`
 }
 
+// chromeECHPayloadLengths are the lengths a Chromium browser draws the payload
+// of its GREASE encrypted_client_hello from, afresh for every connection and
+// each as likely, before the AEAD's 16-byte tag: BoringSSL's guess at the size
+// of an inner hello, 32 times 4 to 7 (ssl_setup_ech_grease). Chrome 155 was
+// measured sending all four, as often as one another, over 301 connections:
+// testdata/chrome155-ech.json.
+var chromeECHPayloadLengths = []uint16{128, 160, 192, 224}
+
 // ErrNoHandshake reports a profile that names neither a captured ClientHello nor
 // a base profile, and so cannot produce a handshake.
 var ErrNoHandshake = fmt.Errorf("profile: neither client_hello nor base is set")
@@ -170,21 +184,26 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 			return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: %w", p.Name, err)
 		}
 		for _, extension := range spec.Extensions {
-			generic, ok := extension.(*tls.GenericExtension)
-			if !ok {
-				continue
-			}
-			if generic.Id == fingerprint.ExtTrustAnchors {
-				payload, err := processTrustAnchors.payload(generic.Data)
+			switch extension := extension.(type) {
+			case *tls.GREASEEncryptedClientHelloExtension:
+				// The fingerprinter keeps the one length the capture drew,
+				// and a length that never changes marks this client apart
+				// from the browser, which draws one on every connection.
+				if p.chromium() {
+					extension.CandidatePayloadLens = slices.Clone(chromeECHPayloadLengths)
+				}
+			case *tls.GenericExtension:
+				if extension.Id != fingerprint.ExtTrustAnchors {
+					return tls.ClientHelloSpec{}, fmt.Errorf(
+						"profile %q: unsupported extension %d", p.Name, extension.Id)
+				}
+				payload, err := processTrustAnchors.payload(extension.Data)
 				if err != nil {
 					return tls.ClientHelloSpec{}, fmt.Errorf(
 						"profile %q: malformed trust_anchors: %w", p.Name, err)
 				}
-				generic.Data = payload
-				continue
+				extension.Data = payload
 			}
-			return tls.ClientHelloSpec{}, fmt.Errorf(
-				"profile %q: unsupported extension %d", p.Name, generic.Id)
 		}
 		return withResumption(*spec), nil
 	}

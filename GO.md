@@ -299,7 +299,7 @@ response, err := client.Do(&tlsforge.Request{
 | `slog.LevelInfo` | The client and its profile; a record for each request and each answer. |
 | `slog.LevelWarn` | A request that failed: the step it gave up in as `phase` (`prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect`), whether it was a timeout, and the error. A lookup that failed, a proxy that would not open a tunnel, with up to 1 KiB of what it said, a handshake with an HTTPS proxy that failed, and a redirect past the tenth. |
 | `slog.LevelDebug` | Every step: each lookup with the addresses found, each TCP dial, the `CONNECT` to a proxy and its answer with the tunnel's number, the connection by its two ends with what its handshake settled on and the server's certificate, a connection reused, the header fields as written, pseudo-headers included, the first byte, the answer's header fields, each redirect, and when a client is made, made `Fresh`, closes its idle connections and is closed. The profile's JA4, HTTP/2 preface and header order when a client is made. |
-| `tlsforge.LevelTrace` | The ClientHello of every new connection, with its JA4, JA4_r, JA3 and every list in it, and every certificate of the server's chain. |
+| `tlsforge.LevelTrace` | The ClientHello of every new connection, with its JA4, JA4_r, JA3, every list in it and the length of its GREASE ECH payload as `ech_payload_bytes`, and every certificate of the server's chain. |
 
 Every record carries `client`, the client's number in the process, and
 `request`, the request's number on the client. A request with a `Logger` of its
