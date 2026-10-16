@@ -5,7 +5,7 @@ stored as JSON so it can be committed and reviewed.
 
 ```json
 {
-  "schema": 1,
+  "schema": 2,
   "name": "chrome_151",
   "user_agent": "Mozilla/5.0 (Macintosh; …) Chrome/151.0.0.0 Safari/537.36",
   "client_hello": "FgMBBvgBAAb0AwPdnWafT…",
@@ -35,6 +35,11 @@ stored as JSON so it can be committed and reviewed.
     {"name": "sec-ch-ua-mobile", "value": "?0"},
     …
   ],
+  "client_hints": [
+    {"name": "sec-ch-ua-arch", "value": "\"arm\""},
+    {"name": "sec-ch-ua-full-version-list", "value": "\"Google Chrome\";v=\"155.0.8059.80\", …"},
+    …
+  ],
   "notes": "captured 2026-08-15T09:12:44Z from Mozilla/5.0 …"
 }
 ```
@@ -61,10 +66,23 @@ does, and one that gives no brands is judged by its user agent, on iOS never
 Chromium's. A profile without `per_connection` is judged by its name and user
 agent each time it is used, as profiles were before they said it.
 
-`schema` is the version of the format the profile was written in, 1 today. A
+`client_hints` are the values of the client hints the browser sends when a
+server asks for them with `Accept-CH`, by name in lower case, as the browser
+writes them: the user agent's beyond `sec-ch-ua`, `sec-ch-ua-mobile` and
+`sec-ch-ua-platform`, which it sends unasked and which are in `headers`, and
+the device's, the network's and the user's preferences. A hint the profile has
+no value for is not sent, asked for or not. `capture` writes the user agent's
+from what the browser gives JavaScript (`getHighEntropyValues()`), which is
+what Chrome sends; the shipped `chrome_155_macos` has every one Chrome 155
+sent there when asked, `rtt`, `downlink` and the viewport being what one
+measurement gave, as Chrome estimates them anew. The names a profile may give
+are `profile.ClientHintOrder` but those three, in the order Chrome sends them.
+
+`schema` is the version of the format the profile was written in, 2 today. A
 profile that names one is read strictly: a field the format does not have, at
 any depth, is an error naming it, so a misspelt `heders` is found when the
-profile is read rather than on the wire. A profile with a newer schema than
+profile is read rather than on the wire. Schema 1 is read as strictly, and has
+no `client_hints`, which schema 2 added. A profile with a newer schema than
 this tls-forge reads is refused, and says to upgrade. A profile with no
 `schema` was written before the format had one and is read as it always was,
 fields the format does not have passed over; it is written with the schema the

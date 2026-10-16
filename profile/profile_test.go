@@ -227,6 +227,7 @@ func TestClientProfileFromCapturedHello(t *testing.T) {
 func TestCloneIsIndependent(t *testing.T) {
 	original := &Profile{
 		Name: "browser", ClientHello: []byte{1}, Headers: []Field{{Name: "accept"}},
+		ClientHints: []Field{{Name: "dpr", Value: "1"}},
 		HTTP1: &HTTP1{HeaderOrder: []string{"Host", "accept"},
 			Headers: []Field{{Name: "accept", Value: "text/plain"}}},
 		HTTP2: HTTP2{
@@ -237,6 +238,7 @@ func TestCloneIsIndependent(t *testing.T) {
 	cloned := original.Clone()
 	cloned.ClientHello[0] = 2
 	cloned.Headers[0].Name = "changed"
+	cloned.ClientHints[0].Value = "2"
 	cloned.HTTP1.HeaderOrder[0] = "changed"
 	cloned.HTTP1.Headers[0].Value = "changed"
 	cloned.HTTP2.Settings[0].ID = 2
@@ -244,7 +246,7 @@ func TestCloneIsIndependent(t *testing.T) {
 	cloned.HTTP2.Priorities[0].StreamID = 5
 	cloned.HTTP2.HeaderPriority.StreamID = 7
 
-	if original.ClientHello[0] != 1 || original.Headers[0].Name != "accept" ||
+	if original.ClientHello[0] != 1 || original.Headers[0].Name != "accept" || original.ClientHints[0].Value != "1" ||
 		original.HTTP1.HeaderOrder[0] != "Host" || original.HTTP1.Headers[0].Value != "text/plain" ||
 		original.HTTP2.Settings[0].ID != 1 || original.HTTP2.PseudoHeaderOrder[0] != ":method" ||
 		original.HTTP2.Priorities[0].StreamID != 1 || original.HTTP2.HeaderPriority.StreamID != 3 {
@@ -380,7 +382,10 @@ func TestAProfileIsReadAsItsSchemaSays(t *testing.T) {
 		{"a field spelt wrong", `{"schema":1,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
 		{"one spelt wrong inside another", `{"schema":1,"name":"x","base":"chrome_133","http2":{"setings":[]}}`,
 			`unknown field "setings"`},
-		{"a newer schema", `{"schema":2,"name":"x"}`, "schema 2 is newer than this tls-forge reads, 1"},
+		{"a newer schema", `{"schema":3,"name":"x"}`, "schema 3 is newer than this tls-forge reads, 2"},
+		{"schema 2 is as strict", `{"schema":2,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
+		{"client hints in schema 1", `{"schema":1,"name":"x","base":"chrome_133",` +
+			`"client_hints":[{"name":"sec-ch-ua-arch","value":"\"arm\""}]}`, "schema 1 has no client_hints"},
 		{"schema 0", `{"schema":0,"name":"x"}`, "schema 0 is not one"},
 		{"a schema below it", `{"schema":-3,"name":"x"}`, "schema -3 is not one"},
 		{"a schema that is no number", `{"schema":"1","name":"x"}`, "cannot unmarshal string"},
@@ -418,6 +423,39 @@ func TestLoadErrors(t *testing.T) {
 	legacy, err := Load([]byte(`{"name":"old","base":"chrome_133"}`))
 	if err != nil || legacy.HTTP1 != nil {
 		t.Errorf("legacy profile no longer loads: %+v, %v", legacy, err)
+	}
+}
+
+func TestAProfilesClientHintsAreOnesAServerAsksFor(t *testing.T) {
+	load := func(hints string) error {
+		_, err := Load([]byte(`{"schema":2,"name":"x","base":"chrome_133","client_hints":[` + hints + `]}`))
+		return err
+	}
+	if err := load(`{"name":"sec-ch-ua-arch","value":"\"arm\""},{"name":"rtt","value":"100"},` +
+		`{"name":"sec-ch-ua-model","value":"\"\""}`); err != nil {
+		t.Errorf("valid hints: %v", err)
+	}
+	for _, tc := range []struct{ hints, says string }{
+		{`{"name":"sec-ch-ua-foo","value":"1"}`, `"sec-ch-ua-foo" is no client hint a server asks for`},
+		{`{"name":"Sec-CH-UA-Arch","value":"1"}`, `"Sec-CH-UA-Arch" is no client hint`},
+		{`{"name":"sec-ch-ua","value":"1"}`, `"sec-ch-ua" is no client hint a server asks for`},
+		{`{"name":"sec-ch-ua-mobile","value":"?0"}`, `"sec-ch-ua-mobile" is no client hint`},
+		{`{"name":"sec-ch-ua-platform","value":"\"macOS\""}`, `"sec-ch-ua-platform" is no client hint`},
+		{`{"name":"save-data","value":"on"}`, `"save-data" is no client hint`},
+		{`{"name":"dpr","value":"1"},{"name":"dpr","value":"2"}`, "client hint dpr is said twice"},
+		{`{"name":"dpr","value":""}`, "client hint dpr has no value a header can carry"},
+		{`{"name":"dpr","value":"1\r\nX: y"}`, "client hint dpr has no value a header can carry"},
+	} {
+		if err := load(tc.hints); err == nil || !strings.Contains(err.Error(), tc.says) {
+			t.Errorf("%s: %v, want %q", tc.hints, err, tc.says)
+		}
+	}
+	// The error names the hints there are, which are Chrome's but the three
+	// it always sends.
+	err := load(`{"name":"x","value":"1"}`)
+	if err == nil || !strings.Contains(err.Error(), "device-memory, sec-ch-device-memory") ||
+		strings.Contains(err.Error(), "sec-ch-ua,") || !strings.Contains(err.Error(), "sec-ch-prefers-reduced-transparency") {
+		t.Errorf("%v", err)
 	}
 }
 

@@ -127,6 +127,75 @@ func TestFromCaptureSaysWhatTheBrowserDrawsPerConnection(t *testing.T) {
 	}
 }
 
+func TestFromCaptureSaysTheUserAgentsHintsAsChromeSendsThem(t *testing.T) {
+	raw, err := os.ReadFile("../testdata/chrome155-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	built := func(nav *capture.Navigator) []Field {
+		t.Helper()
+		p, err := FromCapture("custom", &capture.Capture{RawClientHello: raw, Navigator: nav, HTTP2: &capture.HTTP2{
+			PseudoHeaderOrder: []string{"m", "a", "s", "p"},
+			Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
+		}})
+		if err != nil {
+			t.Fatalf("FromCapture: %v", err)
+		}
+		return p.ClientHints
+	}
+	// What Chrome 155 on this Mac told JavaScript is what it sent when asked,
+	// as the shipped profile has it, measured.
+	shipped, err := Get("chrome_155_macos")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	measured := map[string]string{}
+	for _, hint := range shipped.ClientHints {
+		measured[hint.Name] = hint.Value
+	}
+	got := built(&capture.Navigator{
+		FullVersionList: []capture.Brand{{Brand: "Google Chrome", Version: "155.0.8059.80"},
+			{Brand: "Chromium", Version: "155.0.8059.80"}, {Brand: "Not(A:Brand", Version: "24.0.0.0"}},
+		Architecture: "arm", Bitness: "64", Model: "", PlatformVersion: "27.0.1", UAFullVersion: "155.0.8059.80",
+		FormFactors: []string{"Desktop"},
+	})
+	var names []string
+	for _, hint := range got {
+		names = append(names, hint.Name)
+		if measured[hint.Name] != hint.Value {
+			t.Errorf("%s: %s, Chrome sent %s", hint.Name, hint.Value, measured[hint.Name])
+		}
+	}
+	if want := "sec-ch-ua-full-version sec-ch-ua-arch sec-ch-ua-platform-version sec-ch-ua-model sec-ch-ua-bitness " +
+		"sec-ch-ua-wow64 sec-ch-ua-full-version-list sec-ch-ua-form-factors"; strings.Join(names, " ") != want {
+		t.Errorf("%v", names)
+	}
+	// A browser that gave no high-entropy values has none; WOW64 and form
+	// factors are said as given, and strings escaped as Structured Fields.
+	if hints := built(&capture.Navigator{Brands: []capture.Brand{{Brand: "Chromium", Version: "155"}}}); hints != nil {
+		t.Errorf("no values: %v", hints)
+	}
+	if hints := built(nil); hints != nil {
+		t.Errorf("no navigator: %v", hints)
+	}
+	got = built(&capture.Navigator{FullVersionList: []capture.Brand{{Brand: `A"B\C`, Version: "1"}}, WOW64: true,
+		FormFactors: []string{"Tablet", "XR"}})
+	values := map[string]string{}
+	for _, hint := range got {
+		values[hint.Name] = hint.Value
+	}
+	if values["sec-ch-ua-wow64"] != "?1" || values["sec-ch-ua-form-factors"] != `"Tablet", "XR"` ||
+		values["sec-ch-ua-full-version-list"] != `"A\"B\\C";v="1"` || values["sec-ch-ua-arch"] != `""` {
+		t.Errorf("%v", values)
+	}
+	if _, ok := values["sec-ch-ua-form-factors"]; !ok {
+		t.Error("no form factors")
+	}
+	if got := built(&capture.Navigator{FullVersionList: []capture.Brand{{Brand: "B", Version: "1"}}}); len(got) != 7 {
+		t.Errorf("no form factors given, and %v", got)
+	}
+}
+
 func TestAnECHPayloadLengthIsOneABrowserCouldDraw(t *testing.T) {
 	// The payload's length field holds 65535 bytes, the AEAD's tag among them.
 	for length, ok := range map[int]bool{0: false, 1: true, 65519: true, 65520: false} {

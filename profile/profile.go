@@ -37,7 +37,29 @@ import (
 // and is read as it always was: what it holds that the format does not is
 // passed over. Saving writes the schema, so a profile read that way is strict
 // from then on.
-const Schema = 1
+//
+// Schema 2 added client_hints. A profile of schema 1 is read as strictly, and
+// has none: no tls-forge that wrote 1 knew of them.
+const Schema = 2
+
+// ClientHintOrder is every client hint Chrome 155 sends when a server asks
+// for it with Accept-CH, in the order it sends them, as measured
+// (testdata/chrome155-requests.json): the device's and the network's, some
+// under two names, the user agent's, and the user's preferences. Three of the
+// user agent's, sec-ch-ua, sec-ch-ua-mobile and sec-ch-ua-platform, go with
+// every request, and are a profile's headers; a profile's ClientHints are the
+// values of the rest.
+var ClientHintOrder = []string{
+	"device-memory", "sec-ch-device-memory", "dpr", "sec-ch-dpr", "viewport-width", "sec-ch-viewport-width",
+	"sec-ch-viewport-height", "rtt", "downlink", "ect",
+	"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-full-version", "sec-ch-ua-arch", "sec-ch-ua-platform",
+	"sec-ch-ua-platform-version", "sec-ch-ua-model", "sec-ch-ua-bitness", "sec-ch-ua-wow64",
+	"sec-ch-ua-full-version-list", "sec-ch-ua-form-factors",
+	"sec-ch-prefers-color-scheme", "sec-ch-prefers-reduced-motion", "sec-ch-prefers-reduced-transparency",
+}
+
+// defaultClientHints are the hints Chrome sends unasked.
+var defaultClientHints = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"}
 
 // Profile is a complete browser identity.
 type Profile struct {
@@ -64,6 +86,13 @@ type Profile struct {
 	HTTP1   *HTTP1  `json:"http1,omitempty"`
 	HTTP2   HTTP2   `json:"http2"`
 	Headers []Field `json:"headers,omitempty"`
+
+	// ClientHints are the values of the client hints the browser sends when a
+	// server asks for them, by name in lower case, as the browser sends them:
+	// the user agent's beyond the three it always sends, and the device's, the
+	// network's and the user's preferences where they were measured. A hint
+	// the profile has no value for is not sent, asked for or not.
+	ClientHints []Field `json:"client_hints,omitempty"`
 
 	// Notes is free text carried into the JSON so a committed profile can say
 	// where it came from — which browser build, measured when, on what OS.
@@ -93,6 +122,7 @@ func (p *Profile) Clone() *Profile {
 		out.PerConnection = &perConnection
 	}
 	out.Headers = append([]Field(nil), p.Headers...)
+	out.ClientHints = append([]Field(nil), p.ClientHints...)
 	out.HTTP2.Settings = append([]Setting(nil), p.HTTP2.Settings...)
 	out.HTTP2.PseudoHeaderOrder = append([]string(nil), p.HTTP2.PseudoHeaderOrder...)
 	out.HTTP2.Priorities = append([]Priority(nil), p.HTTP2.Priorities...)
@@ -477,11 +507,14 @@ func Load(data []byte) (*Profile, error) {
 		if err := json.Unmarshal(data, &p); err != nil {
 			return nil, fmt.Errorf("profile: %w", err)
 		}
-	case *written.Schema == Schema:
+	case *written.Schema == 1 || *written.Schema == Schema:
 		decoder := json.NewDecoder(bytes.NewReader(data))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&p); err != nil {
-			return nil, fmt.Errorf("profile: schema %d: %w", Schema, err)
+			return nil, fmt.Errorf("profile: schema %d: %w", *written.Schema, err)
+		}
+		if *written.Schema == 1 && len(p.ClientHints) > 0 {
+			return nil, fmt.Errorf("profile: schema 1 has no client_hints: they are schema %d's", Schema)
 		}
 	case *written.Schema > Schema:
 		return nil, fmt.Errorf("profile: schema %d is newer than this tls-forge reads, %d: upgrade tls-forge",
@@ -508,7 +541,42 @@ func Load(data []byte) (*Profile, error) {
 	if err := p.validateHTTP1(); err != nil {
 		return nil, err
 	}
+	if err := p.validateClientHints(); err != nil {
+		return nil, err
+	}
 	return &p, nil
+}
+
+// validateClientHints refuses a hint Chrome does not send when asked, one it
+// sends unasked (the profile's headers say those), one said twice, and a value
+// that is no header value.
+func (p *Profile) validateClientHints() error {
+	seen := map[string]bool{}
+	for _, hint := range p.ClientHints {
+		switch {
+		case !slices.Contains(ClientHintOrder, hint.Name) || slices.Contains(defaultClientHints, hint.Name):
+			return fmt.Errorf("profile %q: %q is no client hint a server asks for: client_hints are %s, "+
+				"in lower case", p.Name, hint.Name, strings.Join(askable(), ", "))
+		case seen[hint.Name]:
+			return fmt.Errorf("profile %q: client hint %s is said twice", p.Name, hint.Name)
+		case hint.Value == "" || !httpguts.ValidHeaderFieldValue(hint.Value):
+			return fmt.Errorf("profile %q: client hint %s has no value a header can carry: %q", p.Name,
+				hint.Name, hint.Value)
+		}
+		seen[hint.Name] = true
+	}
+	return nil
+}
+
+// askable are the client hints a server has to ask for.
+func askable() []string {
+	var out []string
+	for _, name := range ClientHintOrder {
+		if !slices.Contains(defaultClientHints, name) {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // Save writes a profile as indented JSON, the form meant to be committed and

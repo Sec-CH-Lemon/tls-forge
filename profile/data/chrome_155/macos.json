@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "name": "chrome_155_macos",
   "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
   "client_hello": "FgMBB3gBAAd0AwPn1faJG48jbQd1xitkp541lypzWGRRB0ixmbybe4AVVyCFGqjc7auqvGfssNZA8WJ6pb2UvPYJTdRakb+csYRyHQAgGhoTARMCEwPAK8AvwCzAMMypzKjAE8AUAJwAnQAvADUBAAcLenoAAAAbAAMCAAIACgAMAApqahHsAB0AFwAYAAsAAgEAAAUABQEAAAAAADME7wTtamoAAQAR7ATAN9dNXefN5/ac3ot/W7azy2tmuVYx8sh4QXJZZ5g1dNll8UJ3fwV/O7qqSJWVewEEmyYmLloicFrJpOIrNhJQYhMUfANka7E8kskhfuwIGTmuRGGwr8Ut7zetlFSgjyoIGaKJN4mlSNdHFDaSddXL3foxJCQSoOJ2+4jKPJamCLste+Y78TasT1sPLJfINncZZImGkcBnrqVSQLxvthE5cKBAchdNZjlkAyRm1rgLHUx8tINQXbwKXlkri4YHFsc7Y3DDwWvEL6CXKtRsQ+pYjZsetLuXinlNTzI8y6EaHQPGS3VOIMUhbWe85TCwjmsAFstc+cQAVXpen3BmwyhSmXAreaN3QStfieicjOIhZVWz0xs/yxKiF0xdYqGLHWk05MnKI2FSwuWMtrevzVOJ5hcBf0da3iNXJfx7zwRzq+APxzyzjZZrNYZdL5bKvaQMt2dDOHangOpwQouWnZubKEbJIiB2mPXH3pQFyNkvVyA7fJaNRux5DTmXZYdXaMdRhxai9dpcQ8JHNaNnsjRn+TY5yEafZgkDPUAYdwsVQhC3BWhSdJOz77kGPEO93QnPt7Mak6JMApc5Bgma+Vi0A/pwcaSWVqKl1kue8SuTzbCNVvGHhMKq2LaVe5HDgLOHkBbCEHm3OrW5gmVz3LBj5XyCvwGR22WEHEyY4uRpODyXQoAUHBoEfKZNMWBcxBS+vngGi/ghj6aggTI3h/hsXFO+FXZAciaSIQqv0ZEIPXvL6FSHY0yjPZia4pOzUOtdr6BQYxIxwzJl67lpVVlqh0eUuWl1UAIPp4KYcSV+iQRLDoi7GwzPuZUNSbUUgyUHsbxw5iJUE4I2bCJ2UwA+Abg9SYUQ1AKyUABorkFxVUepHpAavfhNq5FFdieD1rpINRsY99yIRHS8uRwzpeUzl/CVaUd2b7h26sunIgmh8Foevry+hsBz1iqmdIZrxsKlIEqXkUkRSTlGFcGRWuIaYqBpzGwV6NlYoMqiaDzBSrrOacOP2ZANR9ATRsWoAWRTfZa5VjoM/LmPCmNXDAkzx6We9WAKt2ywoIWiBSdyxPF091gsyUp1Hoe8dyouVNVnZprDhgDOu8yInjJ5LUxY+zA6kQlcltCdxoo89kJSAUc04AxSMwxFv6U2bxh5KTlIJRIKwFMw0TseJ+wiGKXH+4oXPxNcw1CjLUsVtYeNIcg9Grw2kvOscZdSRiFWfgMJqiqfbcwne9KQW3OfkdshltoUh6CTjwkMFVledUlMf/KyPYwSpElxYgt/d0nNfwtTETYY2QQqkQe+a1liwHeJTIxxEAuJ8byDyyUxobebgfl0njBhwNWi9rLB39IFdopvWezB3MKTSpuy+gxaFrdeq/YxoMEQX5ZsxdjG4PE58sEKzAqictZd4hTC+KsBDiGPDsgwQOTB3ta+0maHX2RsluRgqAp5e+mbWIEgKXON9PvFlDAkaHOX9FlugIqVFPI6Fhkb9Xst3vA4BSeHtNadKxCRGHBDcjeM6Vo/W/KYk4syZ6NzGFWRWrZJfPgqpcy4m2UrHrdtu5MDuI1I8R+B+QP0UsZezJYkI2ZzyGCz1DUeT1JaCH7RDRdQvRPAxLI75Yzwpxh5dz+wz5lXaQpfTAAdACCGlFXSryukFhc3bfyx9+goRl7cPexmekeAW/98hNhRSgAQAA4ADAJoMghodHRwLzEuMQAXAAAAKwAHBtraAwQDAwANABoAGEpKCQQJBQkGBAMIBAQBBQMIBQUBCAYGAQASAAAAIwAAyjQAugC4BYLfEwIBBYLfEwIGBYLfEwINBYLfEwIOBYLfEwIPBYLfEwISBYLfEwITBYLfEwIUCIOaZIybLQEHCIOaZIybLQEICIOaZIybLQEJCIOaZIybLQEKCIOaZIybLQELCIOaZIybLQEMCIOaZIybLQENCIOaZIybLQESCIOaZIybLQETBNZ5CQEE1nkJBATWeQkFBNZ5CQYE1nkJBwTWeQkIBNZ5CQoE1nkJCwTWeQkMBNZ5CQ0E1nkJDwAtAAIBAf8BAAEARM0ABQADAmgy/g0AugAAAQABgwAgPMTP1PVH4E+Gfxhe9sYmSgdXXM1tPvUTg/DTn6tMjVgAkAQSQuyGPd3+QjLWXiT+Ha/41nkZLMyCbV8GPqCj8Qp2T3aGglxDPrdfuehf2s13XzU1H4mmkuG9IYGp6LTXorX6anM+SQtRJ0/6cXIqAVf/n+aTPk0UG4b6cdhOsRt0crf3EslUMmkHjOIrQvODEiNwCvL6X3uL+7sFwytXn46C6JsGpfSPTwImjiFnTBPd0wAAAA4ADAAACWxvY2FsaG9zdNraAAEA",
@@ -123,5 +123,91 @@
       "value": "u=0, i"
     }
   ],
-  "notes": "captured 2026-10-12T15:37:49Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+  "client_hints": [
+    {
+      "name": "device-memory",
+      "value": "32"
+    },
+    {
+      "name": "sec-ch-device-memory",
+      "value": "32"
+    },
+    {
+      "name": "dpr",
+      "value": "1"
+    },
+    {
+      "name": "sec-ch-dpr",
+      "value": "1"
+    },
+    {
+      "name": "viewport-width",
+      "value": "756"
+    },
+    {
+      "name": "sec-ch-viewport-width",
+      "value": "756"
+    },
+    {
+      "name": "sec-ch-viewport-height",
+      "value": "413"
+    },
+    {
+      "name": "rtt",
+      "value": "100"
+    },
+    {
+      "name": "downlink",
+      "value": "1.45"
+    },
+    {
+      "name": "ect",
+      "value": "4g"
+    },
+    {
+      "name": "sec-ch-ua-full-version",
+      "value": "\"155.0.8059.80\""
+    },
+    {
+      "name": "sec-ch-ua-arch",
+      "value": "\"arm\""
+    },
+    {
+      "name": "sec-ch-ua-platform-version",
+      "value": "\"27.0.1\""
+    },
+    {
+      "name": "sec-ch-ua-model",
+      "value": "\"\""
+    },
+    {
+      "name": "sec-ch-ua-bitness",
+      "value": "\"64\""
+    },
+    {
+      "name": "sec-ch-ua-wow64",
+      "value": "?0"
+    },
+    {
+      "name": "sec-ch-ua-full-version-list",
+      "value": "\"Google Chrome\";v=\"155.0.8059.80\", \"Chromium\";v=\"155.0.8059.80\", \"Not(A:Brand\";v=\"24.0.0.0\""
+    },
+    {
+      "name": "sec-ch-ua-form-factors",
+      "value": "\"Desktop\""
+    },
+    {
+      "name": "sec-ch-prefers-color-scheme",
+      "value": "dark"
+    },
+    {
+      "name": "sec-ch-prefers-reduced-motion",
+      "value": "no-preference"
+    },
+    {
+      "name": "sec-ch-prefers-reduced-transparency",
+      "value": "no-preference"
+    }
+  ],
+  "notes": "captured 2026-10-12T15:37:49Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36; client hints measured 2026-10-17 from Chrome 155.0.8059.80 on macOS 27.0.1 (arm64), headless, a server having asked for every one: the device's, the network's and the preferences' are what that machine, its window and its network gave"
 }

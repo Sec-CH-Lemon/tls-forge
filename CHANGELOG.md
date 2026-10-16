@@ -114,10 +114,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the browser it describes, where it was guessed from the profile's name and
   user agent, as it still is for a profile that says nothing.
 - **A profile says the version of its format.** Profiles are written with
-  `"schema": 1` (`profile.Schema`), the shipped ones too, and one that says
+  `"schema": 2` (`profile.Schema`), the shipped ones too, and one that says
   it is read strictly: a field the format does not have, at any depth, is an
   error that names it, where it was passed over without a word, and a newer
-  schema is refused. A profile with no `schema` is read as before.
+  schema is refused. Schema 1 is read as strictly, without `client_hints`. A
+  profile with no `schema` is read as before.
+- **A profile has the values of the client hints its browser sends when
+  asked**, as `client_hints`: the user agent's beyond the three it sends
+  unasked, and the device's, the network's and the user's preferences, by
+  name, as the browser writes them (`profile.ClientHintOrder`, Chrome 155's
+  order). `capture` writes the user agent's from what the browser gives
+  JavaScript, and `chrome_155_macos` ships every one Chrome 155 sent on macOS
+  when a server asked for all of them. A hint a profile has no value for is
+  never sent.
 - **A comparison says what it was made of.** `Comparison.Measured` holds the
   browser's build and platform as it says them, how it was run, and the
   requests compared, protocol by protocol; `Comparison.Manifest` the rule

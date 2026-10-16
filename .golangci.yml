@@ -28,6 +28,11 @@ linters:
     - unconvert
 
   settings:
+    misspell:
+      # ect is a header's name: the client hint of the Effective Connection
+      # Type, which Chrome sends when a server asks for it.
+      ignore-rules:
+        - ect
     revive:
       rules:
         - name: exported

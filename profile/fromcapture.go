@@ -117,6 +117,7 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 	if c.Navigator != nil && c.Navigator.UserAgent != "" {
 		p.UserAgent = c.Navigator.UserAgent
 	}
+	p.ClientHints = clientHintsOf(c.Navigator)
 	p.PerConnection = perConnectionOf(p)
 	if c.Navigator != nil && len(c.Navigator.Brands) > 0 {
 		p.PerConnection = &PerConnection{}
@@ -125,6 +126,48 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 		}
 	}
 	return p, nil
+}
+
+// clientHintsOf are the client hints of the user agent its browser sends when
+// a server asks for them, as it gave them to JavaScript: the high-entropy
+// values of navigator.userAgentData, written as Structured Fields, as Chrome
+// writes them. None for a browser that gave none: the full version list is
+// what getHighEntropyValues gives every Chromium, and nothing else.
+func clientHintsOf(n *capture.Navigator) []Field {
+	if n == nil || len(n.FullVersionList) == 0 {
+		return nil
+	}
+	brands := make([]string, len(n.FullVersionList))
+	for i, b := range n.FullVersionList {
+		brands[i] = sfString(b.Brand) + ";v=" + sfString(b.Version)
+	}
+	wow64 := "?0"
+	if n.WOW64 {
+		wow64 = "?1"
+	}
+	hints := []Field{
+		{Name: "sec-ch-ua-full-version", Value: sfString(n.UAFullVersion)},
+		{Name: "sec-ch-ua-arch", Value: sfString(n.Architecture)},
+		{Name: "sec-ch-ua-platform-version", Value: sfString(n.PlatformVersion)},
+		{Name: "sec-ch-ua-model", Value: sfString(n.Model)},
+		{Name: "sec-ch-ua-bitness", Value: sfString(n.Bitness)},
+		{Name: "sec-ch-ua-wow64", Value: wow64},
+		{Name: "sec-ch-ua-full-version-list", Value: strings.Join(brands, ", ")},
+	}
+	if len(n.FormFactors) > 0 {
+		factors := make([]string, len(n.FormFactors))
+		for i, factor := range n.FormFactors {
+			factors[i] = sfString(factor)
+		}
+		hints = append(hints, Field{Name: "sec-ch-ua-form-factors", Value: strings.Join(factors, ", ")})
+	}
+	return hints
+}
+
+// sfString is a Structured Field string (RFC 8941): in double quotes, with a
+// backslash before a double quote or a backslash.
+func sfString(s string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) + `"`
 }
 
 // perConnectionOf is what a profile's browser draws for every connection, as
