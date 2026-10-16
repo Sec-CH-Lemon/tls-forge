@@ -182,8 +182,10 @@ func (s *Server) handle(conn net.Conn) {
 		}
 		if req.Method == http.MethodConnect {
 			// Everything after this is TLS, so the loop over plaintext requests
-			// ends here whatever happens.
-			s.serveConnect(conn, req)
+			// ends here whatever happens. What the caller sent behind the
+			// CONNECT without waiting for the answer is in the reader already,
+			// and is the start of the tunnel.
+			s.serveConnect(&bufferedConn{Conn: conn, reader: reader}, req)
 			return
 		}
 		if err := s.forward(conn, req, "http"); err != nil {
@@ -195,14 +197,37 @@ func (s *Server) handle(conn net.Conn) {
 	}
 }
 
+// bufferedConn is a connection read through the reader that already holds the
+// start of what came on it.
+type bufferedConn struct {
+	net.Conn
+	reader *bufio.Reader
+}
+
+func (c *bufferedConn) Read(p []byte) (int, error) { return c.reader.Read(p) }
+
 // serveConnect answers CONNECT by becoming the destination.
+//
+// The destination is the host and port the CONNECT names: the certificate is
+// made for the host, and every request in the tunnel goes to both. One that
+// names another host, or another port, is answered 421 rather than sent
+// somewhere the tunnel was not opened to; one that names no port is the
+// tunnel's.
 func (s *Server) serveConnect(conn net.Conn, req *http.Request) {
-	host := req.URL.Hostname()
+	host, port := req.URL.Hostname(), req.URL.Port()
 	if host == "" {
-		host, _, _ = net.SplitHostPort(req.Host)
+		host, port, _ = net.SplitHostPort(req.Host)
 	}
 	if host == "" {
 		host = req.Host
+	}
+	if port == "" {
+		port = "443"
+	}
+	tunnel := net.JoinHostPort(host, port)
+	if port == "443" {
+		// As a browser writes it: the default port goes without saying.
+		tunnel = strings.TrimSuffix(tunnel, ":443")
 	}
 
 	cert, err := s.opts.CA.leafFor(host)
@@ -232,7 +257,13 @@ func (s *Server) serveConnect(conn net.Conn, req *http.Request) {
 			}
 			return
 		}
-		req.Host = firstNonEmpty(req.Host, host)
+		if inner := firstNonEmpty(req.URL.Host, req.Host); misdirected(inner, host, port) {
+			_ = writeResponse(tlsConn, http.StatusMisdirectedRequest,
+				map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
+				[]byte("this tunnel was opened to "+tunnel+", not "+inner+"\n"), req.Method)
+			return
+		}
+		req.URL.Scheme, req.URL.Host, req.Host = "", "", tunnel
 		if err := s.forward(tlsConn, req, "https"); err != nil {
 			if !isClosed(err) && !errors.Is(err, errRequestTooLarge) && !errors.Is(err, errUpgradeRefused) {
 				s.opts.OnError(err)
@@ -456,6 +487,20 @@ func (s *Server) forget(conn net.Conn) {
 	delete(s.conns, conn)
 	s.mu.Unlock()
 	_ = conn.Close()
+}
+
+// misdirected says a request in a tunnel opened to host and port names
+// somewhere else: another host, in any case, or a port it gives that is not
+// the tunnel's. One that names none, or no port, is the tunnel's.
+func misdirected(inner, host, port string) bool {
+	if inner == "" {
+		return false
+	}
+	name, given, err := net.SplitHostPort(inner)
+	if err != nil {
+		name, given = strings.TrimSuffix(strings.TrimPrefix(inner, "["), "]"), ""
+	}
+	return !strings.EqualFold(name, host) || (given != "" && given != port)
 }
 
 func firstNonEmpty(values ...string) string {

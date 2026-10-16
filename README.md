@@ -1386,7 +1386,11 @@ not passed from one to the other, in either direction: `Connection`,
 names. An answer to `HEAD` keeps the length a `GET` would have had and has no
 body, and a 204 or a 304 has neither. A request to upgrade to another
 protocol, a WebSocket among them, is answered 501 and its connection ended,
-rather than sent on as an ordinary request. The generated CA can impersonate any site to a client that trusts it.
+rather than sent on as an ordinary request. A request inside a `CONNECT`
+tunnel goes to the host and port the `CONNECT` named, whatever port its own
+`Host` leaves out; one that names another host or another port is answered 421
+and goes nowhere. What a client sends behind its `CONNECT` without waiting for
+the answer is the start of the tunnel. The generated CA can impersonate any site to a client that trusts it.
 Prefer trusting it only for the specific process, keep the private key secret,
 and remove that trust when the proxy is no longer needed. The proxy does not
 authenticate incoming clients: a non-loopback `--addr` must be protected by a

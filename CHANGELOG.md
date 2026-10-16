@@ -454,6 +454,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A `CONNECT` to a port other than 443 lost its port when the request inside
+  named the host alone, and the request went to port 443; a request inside a
+  tunnel that named another host went to that host. A request now goes to
+  the host and port the `CONNECT` named, and one that names somewhere else is
+  answered 421 Misdirected Request. Bytes a client sent behind its `CONNECT`
+  without waiting for the answer, the start of its handshake, were left
+  unread, and the handshake waited until the connection timed out.
 - **`proxy` passes on no field of the connection it came on.** A field the
   caller's or the origin's `Connection` named, `Connection: X-Hop` with
   `X-Hop`, went on to the other side, and so did `TE` and `Trailer` from the
