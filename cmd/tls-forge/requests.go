@@ -305,13 +305,13 @@ func (p *pool) saveSessions(flags clientFlags, records []result) (int, error) {
 	if *flags.saveCookies == "" {
 		return 0, nil
 	}
-	hostsByProxy := map[string][]string{}
+	used := map[string]bool{}
 	for _, r := range records {
-		hostsByProxy[r.Proxy] = append(hostsByProxy[r.Proxy], r.URL)
+		used[r.Proxy] = true
 	}
 
-	proxies := make([]string, 0, len(hostsByProxy))
-	for proxy := range hostsByProxy {
+	proxies := make([]string, 0, len(used))
+	for proxy := range used {
 		proxies = append(proxies, proxy)
 	}
 	sort.Strings(proxies)
@@ -328,7 +328,7 @@ func (p *pool) saveSessions(flags clientFlags, records []result) (int, error) {
 		if proxy != "" {
 			note = "via " + redactProxy(proxy)
 		}
-		n, err := flags.saveSession(client, hostsByProxy[proxy], note)
+		n, err := flags.saveSession(client, note)
 		if err != nil {
 			return saved, err
 		}

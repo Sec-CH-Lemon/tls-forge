@@ -307,3 +307,83 @@ func TestParse(t *testing.T) {
 		}
 	}
 }
+
+func TestAFileKeepsWhichCookiesAreTheirHostsAlone(t *testing.T) {
+	file := &File{Sets: []Set{{ID: "s", Cookies: []Cookie{
+		{Name: "host", Value: "1", Domain: "example.com", HostOnly: true, SameSite: "lax"},
+		{Name: "domain", Value: "2", Domain: "example.com", SameSite: "none"},
+	}}}}
+	data := file.Encode()
+	if !strings.Contains(string(data), `"version": 2`) || !strings.Contains(string(data), `"host_only": true`) ||
+		!strings.Contains(string(data), `"same_site": "lax"`) {
+		t.Fatalf("the scope or the SameSite was not written:\n%s", data)
+	}
+	if strings.Count(string(data), "host_only") != 1 {
+		t.Errorf("a domain's cookie was written as its host's:\n%s", data)
+	}
+	again, err := Load(data)
+	if err != nil {
+		t.Fatalf("reading back: %v", err)
+	}
+	got := again.Sets[0].Cookies
+	if !got[0].HostOnly || got[1].HostOnly || got[0].SameSite != "lax" || got[1].SameSite != "none" {
+		t.Errorf("round trip lost the scope or the SameSite: %+v", got)
+	}
+	if again.Unscoped() {
+		t.Error("a file written now says it does not keep scope")
+	}
+}
+
+func TestAnOlderFileSaysItDidNotKeepScope(t *testing.T) {
+	// Version 1 wrote every cookie without its scope, so a host's cookie reads
+	// as its domain's; the file says so, and is read as it was then.
+	old, err := Load([]byte(`{"version":1,"sets":[{"id":"a","cookies":[{"name":"s","value":"1","domain":"example.com"}]}]}`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !old.Unscoped() || old.Sets[0].Cookies[0].HostOnly {
+		t.Errorf("version 1: unscoped %v, cookie %+v", old.Unscoped(), old.Sets[0].Cookies[0])
+	}
+	// Written again, it is this version, and says nothing of the sort.
+	again, err := Load(old.Encode())
+	if err != nil || again.Unscoped() || again.Version != currentVersion {
+		t.Errorf("rewritten: %v, unscoped %v, version %d", err, again.Unscoped(), again.Version)
+	}
+	for _, body := range []string{`{"sets":[]}`, `[]`, "example.com\tTRUE\t/\tFALSE\t0\tn\tv\n"} {
+		file, err := Load([]byte(body))
+		if err != nil || file.Unscoped() {
+			t.Errorf("%q: %v, unscoped %v", body, err, file.Unscoped())
+		}
+	}
+}
+
+func TestABrowserExportKeepsScopeLifetimeAndSameSite(t *testing.T) {
+	file, err := Load([]byte(`[
+	  {"name":"a","value":"1","domain":"example.com","hostOnly":true,"session":true,
+	   "expirationDate":1893553445,"sameSite":"no_restriction"},
+	  {"name":"b","value":"2","domain":".example.com","hostOnly":false,"sameSite":"lax",
+	   "expirationDate":1893553445},
+	  {"name":"c","value":"3","domain":"example.com","sameSite":"unspecified"},
+	  {"name":"d","value":"4","domain":"example.com","host_only":true,"same_site":"Strict"}
+	]`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	got := file.Sets[0].Cookies
+	for i, want := range []struct {
+		hostOnly bool
+		session  bool
+		sameSite string
+	}{
+		// A session cookie has no expiry, whatever date the export wrote beside it.
+		{true, true, "none"},
+		{false, false, "lax"},
+		{false, true, ""},
+		{true, true, "strict"},
+	} {
+		if got[i].HostOnly != want.hostOnly || got[i].Expires.IsZero() != want.session || got[i].SameSite != want.sameSite {
+			t.Errorf("cookie %s: host only %v, expires %v, SameSite %q; want %v, session %v, %q",
+				got[i].Name, got[i].HostOnly, got[i].Expires, got[i].SameSite, want.hostOnly, want.session, want.sameSite)
+		}
+	}
+}

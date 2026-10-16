@@ -97,8 +97,8 @@ func TestLoadNetscapeRejectsWhatItCannotRead(t *testing.T) {
 
 func TestEncodeNetscape(t *testing.T) {
 	set := Set{Cookies: []Cookie{
-		{Name: "tier", Value: "gold", Domain: "127.0.0.1", Path: "/"},
-		{Name: "visitor", Value: "42", Domain: "127.0.0.1", Path: "/",
+		{Name: "tier", Value: "gold", Domain: "127.0.0.1", HostOnly: true, Path: "/"},
+		{Name: "visitor", Value: "42", Domain: "127.0.0.1", HostOnly: true, Path: "/",
 			Secure: true, HTTPOnly: true},
 	}}
 	written := string(set.EncodeNetscape())
@@ -119,20 +119,55 @@ func TestEncodeNetscape(t *testing.T) {
 
 func TestEncodeNetscapeDetails(t *testing.T) {
 	set := Set{Cookies: []Cookie{
-		// A leading dot is what this format uses to say "and everything under
-		// it", which is the second column.
+		// A domain's cookie is written with a leading dot and TRUE, which is
+		// what this format uses to say "and everything under it", however the
+		// domain was spelled: a jar spells it without the dot.
 		{Name: "wide", Value: "1", Domain: ".example.com",
 			Expires: time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)},
-		// No path given: a cookie without one belongs to the root.
-		{Name: "narrow", Value: "2", Domain: "example.com"},
+		{Name: "jar", Value: "3", Domain: "example.com"},
+		// No path given: a cookie without one belongs to the root. A host's
+		// alone loses a leading dot it should not have had.
+		{Name: "narrow", Value: "2", Domain: ".example.com", HostOnly: true},
 	}}
 	written := string(set.EncodeNetscape())
 
-	if !strings.Contains(written, ".example.com\tTRUE\t/\tFALSE\t1893553445\twide\t1\n") {
-		t.Errorf("the wide cookie:\n%s", written)
+	for _, want := range []string{
+		".example.com\tTRUE\t/\tFALSE\t1893553445\twide\t1\n",
+		".example.com\tTRUE\t/\tFALSE\t0\tjar\t3\n",
+		"\nexample.com\tFALSE\t/\tFALSE\t0\tnarrow\t2\n",
+	} {
+		if !strings.Contains(written, want) {
+			t.Errorf("the file has no %q:\n%s", want, written)
+		}
 	}
-	if !strings.Contains(written, "example.com\tFALSE\t/\tFALSE\t0\tnarrow\t2\n") {
-		t.Errorf("the narrow cookie:\n%s", written)
+}
+
+func TestNetscapeSaysWhichCookiesAreTheirHostsAlone(t *testing.T) {
+	// FALSE in the second column is a cookie its host's alone. Read as its
+	// domain's, it went to every subdomain: a session handed to hosts it never
+	// went to.
+	file, err := Load([]byte("example.com\tFALSE\t/\tFALSE\t0\thost\t1\n" +
+		".example.com\tTRUE\t/\tFALSE\t0\tdomain\t2\n" +
+		"example.org\tTRUE\t/\tFALSE\t0\tundotted\t3\n" +
+		".example.net\tFALSE\t/\tFALSE\t0\tcontradicted\t4\n"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	for i, want := range []struct {
+		domain   string
+		hostOnly bool
+	}{
+		{"example.com", true},
+		{".example.com", false},
+		{".example.org", false},
+		// The column decides, whatever the domain was spelled with.
+		{"example.net", true},
+	} {
+		got := file.Sets[0].Cookies[i]
+		if got.Domain != want.domain || got.HostOnly != want.hostOnly {
+			t.Errorf("cookie %s: domain %q, host only %v; want %q, %v",
+				got.Name, got.Domain, got.HostOnly, want.domain, want.hostOnly)
+		}
 	}
 }
 
@@ -153,7 +188,7 @@ func TestNetscapeRoundTrip(t *testing.T) {
 	for i, want := range original.Sets[0].Cookies {
 		got := again.Sets[0].Cookies[i]
 		if got.Name != want.Name || got.Value != want.Value || got.Domain != want.Domain ||
-			got.Secure != want.Secure || got.HTTPOnly != want.HTTPOnly ||
+			got.HostOnly != want.HostOnly || got.Secure != want.Secure || got.HTTPOnly != want.HTTPOnly ||
 			!got.Expires.Equal(want.Expires) {
 			t.Errorf("cookie %d: got %+v, want %+v", i, got, want)
 		}

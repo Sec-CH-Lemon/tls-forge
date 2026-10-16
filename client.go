@@ -68,7 +68,8 @@ type Client struct {
 	// the client's own: Fresh builds another with them.
 	options func(log *slog.Logger) []tls_client.HttpClientOption
 	profile *profile.Profile
-	jar     fhttp.CookieJar
+	// jar is nil when the client keeps no cookies.
+	jar     *keptJar
 	headers Header
 	// http1Headers begins with the shared profile headers, then applies values
 	// measured only on HTTP/1.1. It stays separate so Connection can never leak
@@ -152,20 +153,30 @@ type Request struct {
 	Logger *slog.Logger
 }
 
-// Cookie is one cookie to seed the jar with.
+// Cookie is one cookie, as a jar holds it and as a session is written down.
 //
 // Domain, Secure and HttpOnly matter for a session warmed elsewhere: a cookie
 // the server set for a parent domain has to go back to the whole of it, and one
 // marked Secure has to keep saying so. An empty Domain means the host being
 // asked, which is what a cookie given as a bare name and value means.
 type Cookie struct {
-	Name     string
-	Value    string
-	Domain   string
+	Name   string
+	Value  string
+	Domain string
+	// HostOnly says the cookie goes to the host of Domain alone, as one set
+	// without a Domain attribute does, and not to its subdomains. A cookie
+	// seeded with it is filed for that host only, and not for any other.
+	HostOnly bool
 	Path     string
 	Secure   bool
 	HTTPOnly bool
-	Expires  time.Time
+	// Expires is when a persistent cookie expires; zero is a session cookie,
+	// which lasts as long as the client.
+	Expires time.Time
+	// SameSite is the attribute as the server set it: "strict", "lax", "none",
+	// or empty when it named none. Kept so that a session written down and
+	// read back says what the server said.
+	SameSite string
 }
 
 // Response is one HTTP response, with the body already read and decoded.
@@ -227,12 +238,20 @@ func New(opts ...Option) (*Client, error) {
 
 	// A nil jar reaches the transport as nil, which then keeps no cookies at
 	// all. That is what WithoutCookieJar asks for.
-	jar := cfg.jar
-	if jar == nil && !cfg.noJar {
-		jar, err = newDefaultCookieJar()
+	given := cfg.jar
+	if given == nil && !cfg.noJar {
+		given, err = newDefaultCookieJar()
 		if err != nil {
 			return nil, fmt.Errorf("tlsforge: cookie jar: %w", err)
 		}
+	}
+	var jar *keptJar
+	// An interface holding a nil *keptJar is not nil to the transport, which
+	// would call it: only a jar that exists is handed over.
+	var transportJar fhttp.CookieJar
+	if given != nil {
+		jar = newKeptJar(given)
+		transportJar = jar
 	}
 	milliseconds := cfg.timeout.Milliseconds()
 	if milliseconds == 0 {
@@ -247,7 +266,7 @@ func New(opts ...Option) (*Client, error) {
 	options := []tls_client.HttpClientOption{
 		tls_client.WithTimeoutMilliseconds(int(milliseconds)),
 		tls_client.WithClientProfile(clientProfile),
-		tls_client.WithCookieJar(jar),
+		tls_client.WithCookieJar(transportJar),
 		// Six idle connections per host, which is Chrome's own limit for
 		// HTTP/1.1 and six times the transport's default of one.
 		//
@@ -888,7 +907,7 @@ func (c *Client) seedWarmCookies(u *url.URL) {
 	ready := make([]Cookie, 0, len(warm.cookies))
 	for i, cookie := range warm.cookies {
 		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
-		if domain != "" && domain != host && !strings.HasSuffix(host, "."+domain) {
+		if domain != "" && domain != host && (cookie.HostOnly || !strings.HasSuffix(host, "."+domain)) {
 			continue
 		}
 		key := warmCookieKey{index: i}
@@ -904,8 +923,8 @@ func (c *Client) seedWarmCookies(u *url.URL) {
 	c.seedCookies(u, ready)
 }
 
-// CookiesFor returns what the jar holds for a URL, which is how a warmed
-// session is read back out and written down.
+// CookiesFor returns what the jar would send to a URL, each cookie with its
+// scope, its lifetime and its SameSite.
 func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -914,38 +933,49 @@ func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
 	if c.jar == nil {
 		return nil, nil
 	}
-	held := c.jar.Cookies(u)
-	out := make([]Cookie, 0, len(held))
-	for _, cookie := range held {
-		out = append(out, Cookie{
-			Name:     cookie.Name,
-			Value:    cookie.Value,
-			Domain:   cookie.Domain,
-			Path:     cookie.Path,
-			Secure:   cookie.Secure,
-			HTTPOnly: cookie.HttpOnly,
-			Expires:  cookie.Expires,
-		})
-	}
-	return out, nil
+	return c.jar.forURL(u), nil
 }
 
+// Cookies returns the jar's cookies for a URL. It is CookiesFor by its older
+// name.
+func (c *Client) Cookies(rawURL string) ([]Cookie, error) { return c.CookiesFor(rawURL) }
+
+// AllCookies returns every cookie the jar holds, for every host, which is how
+// a warmed session is written down whole: a cookie a redirect's host set is in
+// it as well as those of the URLs that were asked for. Each comes with its
+// scope, its lifetime and its SameSite, sorted by domain, path and name.
+//
+// A cookie set through another client that shares the jar, given with
+// WithCookieJar, is listed by that client and not by this one.
+func (c *Client) AllCookies() []Cookie {
+	if c.jar == nil {
+		return nil
+	}
+	return c.jar.all()
+}
+
+// seedCookies files cookies in the jar against u, each as what it is: a
+// cookie its host's alone under that host and under no other, a domain's under
+// the domain, a session cookie without an expiry.
 func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
 	if len(cookies) == 0 || c.jar == nil {
 		return
 	}
+	host := strings.ToLower(u.Hostname())
 	jarCookies := make([]*fhttp.Cookie, 0, len(cookies))
 	for _, cookie := range cookies {
 		path := cookie.Path
 		if path == "" {
 			path = "/"
 		}
-		domain := cookie.Domain
+		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
 		// RFC 6265 does not permit a Domain attribute on an IP address. A
-		// browser-exported cookie often spells the request IP there anyway; treat
-		// the matching value as the host-only cookie it represents.
-		if net.ParseIP(strings.TrimPrefix(domain, ".")) != nil &&
-			strings.TrimPrefix(domain, ".") == u.Hostname() {
+		// browser-exported cookie often spells the request IP there anyway; the
+		// matching value is the host-only cookie it represents.
+		if cookie.HostOnly || domain == "" || (net.ParseIP(domain) != nil && domain == host) {
+			if domain != "" && domain != host {
+				continue
+			}
 			domain = ""
 		}
 		jarCookies = append(jarCookies, &fhttp.Cookie{
@@ -956,28 +986,10 @@ func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
 			Secure:   cookie.Secure,
 			HttpOnly: cookie.HTTPOnly,
 			Expires:  cookie.Expires,
+			SameSite: sameSiteMode(cookie.SameSite),
 		})
 	}
 	c.jar.SetCookies(u, jarCookies)
-}
-
-// Cookies returns the jar's cookies for a URL.
-func (c *Client) Cookies(rawURL string) ([]Cookie, error) {
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %w", err)
-	}
-	if c.jar == nil {
-		return nil, nil
-	}
-	var out []Cookie
-	for _, cookie := range c.jar.Cookies(parsed) {
-		out = append(out, Cookie{
-			Name: cookie.Name, Value: cookie.Value, Domain: cookie.Domain, Path: cookie.Path,
-			Secure: cookie.Secure, HTTPOnly: cookie.HttpOnly, Expires: cookie.Expires,
-		})
-	}
-	return out, nil
 }
 
 // CloseIdleConnections closes the connections the client holds open between

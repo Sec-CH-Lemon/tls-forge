@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -23,6 +24,13 @@ import (
 func cookieEcho(t *testing.T) *httptest.Server {
 	t.Helper()
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/hop" {
+			// To the same server under another name, which is another host to a
+			// jar: what it sets there is not the asked-for host's.
+			_, port, _ := net.SplitHostPort(r.Host)
+			http.Redirect(w, r, "https://localhost:"+port+"/set", http.StatusFound)
+			return
+		}
 		if r.URL.Path == "/set" {
 			http.SetCookie(w, &http.Cookie{Name: "visitor", Value: "42", Path: "/",
 				Secure: true, HttpOnly: true})
@@ -429,9 +437,10 @@ func TestListReportsASessionItCannotWrite(t *testing.T) {
 	}
 }
 
-func TestSaveSessionSkipsAURLItCannotRead(t *testing.T) {
-	// A record whose URL will not parse has no jar to read; the rest of the run
-	// is still written down.
+func TestSaveSessionWritesTheWholeJar(t *testing.T) {
+	// Every cookie the jar holds, whoever set it: the host a redirect led to as
+	// well as the one asked for, which is often where a login lives. Each with
+	// its scope, and a session cookie without an expiry, as the server set it.
 	fakeClock(t)
 	server := cookieEcho(t)
 	fs := newFlagSet("fetch", newPrinter(io.Discard))
@@ -445,47 +454,27 @@ func TestSaveSessionSkipsAURLItCannotRead(t *testing.T) {
 		t.Fatalf("client: %v", err)
 	}
 	defer func() { _ = client.Close() }()
-	if _, err := client.Get(server.URL + "/set"); err != nil {
+	if _, err := client.Get(server.URL + "/hop"); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 
-	saved, err := flags.saveSession(client, []string{"://not a url", server.URL + "/"}, "")
+	saved, err := flags.saveSession(client, "")
+	if err != nil || saved != 2 {
+		t.Fatalf("saveSession = %d, %v; want the two cookies the redirect's host set", saved, err)
+	}
+	data, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("saveSession: %v", err)
+		t.Fatalf("reading: %v", err)
 	}
-	// The two the readable URL's host had; the unreadable one contributed
-	// nothing rather than ending the save.
-	if saved != 2 {
-		t.Errorf("saved %d cookies, want the two the readable URL had", saved)
-	}
-}
-
-func TestSaveSessionDeduplicatesCookiesAcrossPathsOnOneOrigin(t *testing.T) {
-	fakeClock(t)
-	server := cookieEcho(t)
-	fs := newFlagSet("fetch", newPrinter(io.Discard))
-	flags := addClientFlags(fs)
-	path := filepath.Join(t.TempDir(), "warm.json")
-	if err := parse(fs, []string{"--insecure", "--save-cookies", path}); err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	client, err := flags.client()
+	file, err := cookie.Load(data)
 	if err != nil {
-		t.Fatalf("client: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	defer func() { _ = client.Close() }()
-	if _, err := client.Get(server.URL + "/set"); err != nil {
-		t.Fatalf("Get: %v", err)
-	}
-
-	saved, err := flags.saveSession(client, []string{
-		server.URL + "/one", server.URL + "/two", server.URL + "/three",
-	}, "")
-	if err != nil {
-		t.Fatalf("saveSession: %v", err)
-	}
-	if saved != 2 {
-		t.Errorf("saved %d cookies, want each of the origin's two cookies once", saved)
+	for _, c := range file.Sets[0].Cookies {
+		if c.Domain != "localhost" || !c.HostOnly || !c.Expires.IsZero() {
+			t.Errorf("cookie %s: domain %q, host only %v, expires %v; want localhost's alone, for the session",
+				c.Name, c.Domain, c.HostOnly, c.Expires)
+		}
 	}
 }
 
@@ -610,5 +599,34 @@ func TestCookiesTxtIsNotSentToAnotherSite(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "mine=ok") {
 		t.Errorf("this site's cookie was not sent: %q", stdout)
+	}
+}
+
+func TestAnOlderCookieFileSaysWhatItDidNotKeep(t *testing.T) {
+	// A version 1 file did not keep which cookies were their host's alone, so
+	// each is sent to its domain's subdomains too, as it was then: the run says
+	// so rather than widen a cookie's reach without a word.
+	server := cookieEcho(t)
+	file := filepath.Join(t.TempDir(), "old.json")
+	if err := os.WriteFile(file, []byte(`{"version":1,"sets":[{"id":"a","cookies":[`+
+		`{"name":"s","value":"1","domain":"`+hostnameOf(t, server.URL)+`"}]}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	code, _, stderr := exec(t, "fetch", "-k", "--cookies", file, server.URL+"/")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	if !strings.Contains(stderr, "written before tls-forge kept which cookies are their host's alone") {
+		t.Errorf("the run did not say the file kept no scope:\n%s", stderr)
+	}
+
+	current := filepath.Join(t.TempDir(), "current.json")
+	if err := os.WriteFile(current, []byte(`{"version":2,"sets":[{"id":"a","cookies":[`+
+		`{"name":"s","value":"1","domain":"`+hostnameOf(t, server.URL)+`","host_only":true}]}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, stderr = exec(t, "fetch", "-k", "--cookies", current, server.URL+"/")
+	if strings.Contains(stderr, "written before") {
+		t.Errorf("a current file was said to keep no scope:\n%s", stderr)
 	}
 }

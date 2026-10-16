@@ -394,7 +394,15 @@ has no one address to report, and nobody is asked.
 
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
-are compatible with tools such as curl and wget.
+are compatible with tools such as curl and wget. `--save-cookies` writes down
+every cookie the session holds, a redirect's host's as well as those of the
+URLs asked for, each as the server set it: its host's alone or its domain's, a
+session cookie without an expiry, and its `SameSite`, so a session read back
+with `--cookies` goes to the hosts it went to before and to no others. A
+cookie lives at most 400 days, as in Chrome. A JSON file written by a
+tls-forge older than this did not keep which cookies were their host's alone;
+read, each of its cookies goes to its domain's subdomains as well, as it did
+then, and the line that says where the session was warmed from says so too.
 
 #### Where a request came out
 

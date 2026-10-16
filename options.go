@@ -118,7 +118,10 @@ func WithoutCookieJar() Option {
 }
 
 // WithCookieJar supplies a jar, which is how a session is shared between
-// clients or restored from disk.
+// clients or restored from disk. The client wraps it to keep what a jar does
+// not say of its cookies, so AllCookies lists the cookies set through this
+// client, and a jar that does not report a cookie's domain and path when asked
+// for it, as tls-client's does, is listed by AllCookies as holding none.
 func WithCookieJar(jar fhttp.CookieJar) Option {
 	return func(c *config) {
 		c.jar = jar

@@ -23,17 +23,24 @@ import (
 // Cookie is one cookie as a browser holds it.
 //
 // More than a name and a value, because a warmed session is not portable
-// without the rest: the domain decides what it is sent to, Secure and HttpOnly
-// are part of what the server set, and an expiry that has passed is a cookie
-// that will be ignored.
+// without the rest: the domain decides what it is sent to, and whether to its
+// subdomains as well, Secure, HttpOnly and SameSite are part of what the server
+// set, and an expiry that has passed is a cookie that will be ignored, while no
+// expiry at all is a session cookie.
 type Cookie struct {
-	Name     string    `json:"name"`
-	Value    string    `json:"value"`
-	Domain   string    `json:"domain,omitempty"`
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Domain string `json:"domain,omitempty"`
+	// HostOnly says the cookie goes to the host of Domain alone, as one set
+	// without a Domain attribute does. Without it a cookie is its domain's,
+	// and goes to every subdomain too.
+	HostOnly bool      `json:"host_only,omitempty"`
 	Path     string    `json:"path,omitempty"`
 	Secure   bool      `json:"secure,omitempty"`
 	HTTPOnly bool      `json:"http_only,omitempty"`
 	Expires  time.Time `json:"expires,omitempty"`
+	// SameSite is "strict", "lax", "none", or empty when the server named none.
+	SameSite string `json:"same_site,omitempty"`
 }
 
 // MarshalJSON leaves out an expiry that was never set.
@@ -69,11 +76,19 @@ type browserCookie struct {
 	Path   string `json:"path"`
 	Secure bool   `json:"secure"`
 
-	// Two spellings of the same flag, and two of the same date: the underscored
-	// ones are this file's own, the others are what a browser writes.
-	HTTPOnlySnake bool `json:"http_only"`
-	HTTPOnlyCamel bool `json:"httpOnly"`
+	// Two spellings of the same flags, and two of the same date: the
+	// underscored ones are this file's own, the others are what a browser
+	// writes.
+	HTTPOnlySnake bool   `json:"http_only"`
+	HTTPOnlyCamel bool   `json:"httpOnly"`
+	HostOnlySnake bool   `json:"host_only"`
+	HostOnlyCamel bool   `json:"hostOnly"`
+	SameSiteSnake string `json:"same_site"`
+	SameSiteCamel string `json:"sameSite"`
 
+	// Session is how a browser export says a cookie has no expiry, whatever
+	// date it writes beside it.
+	Session        bool       `json:"session"`
 	Expires        *time.Time `json:"expires"`
 	ExpirationDate *float64   `json:"expirationDate"`
 }
@@ -83,11 +98,14 @@ func (b browserCookie) cookie() Cookie {
 		Name:     b.Name,
 		Value:    b.Value,
 		Domain:   b.Domain,
+		HostOnly: b.HostOnlySnake || b.HostOnlyCamel,
 		Path:     b.Path,
 		Secure:   b.Secure,
 		HTTPOnly: b.HTTPOnlySnake || b.HTTPOnlyCamel,
+		SameSite: sameSite(b.SameSiteSnake + b.SameSiteCamel),
 	}
 	switch {
+	case b.Session:
 	case b.Expires != nil:
 		c.Expires = *b.Expires
 	case b.ExpirationDate != nil:
@@ -97,6 +115,21 @@ func (b browserCookie) cookie() Cookie {
 		c.Expires = time.Unix(seconds, int64(fraction*float64(time.Second))).UTC()
 	}
 	return c
+}
+
+// sameSite is a SameSite attribute as this file spells it, from however it
+// came: Chrome's extensions write "no_restriction" for None and "unspecified"
+// for a cookie that named none.
+func sameSite(said string) string {
+	switch strings.ToLower(strings.TrimSpace(said)) {
+	case "strict":
+		return "strict"
+	case "lax":
+		return "lax"
+	case "none", "no_restriction":
+		return "none"
+	}
+	return ""
 }
 
 // Set is one warmed session.
@@ -139,11 +172,19 @@ type File struct {
 	// Version is written so a later format can be told from this one. Nothing
 	// is rejected for it: a file from the future is more likely to be readable
 	// than not, and refusing to try is not the reader's call to make.
+	//
+	// Version 1 did not keep which cookies were their host's alone: every
+	// cookie in it is its domain's, as it was read then, and Unscoped says so.
 	Version int   `json:"version"`
 	Sets    []Set `json:"sets"`
 }
 
-const currentVersion = 1
+const currentVersion = 2
+
+// Unscoped says the file was written before a cookie's scope was kept, so
+// that a cookie its host's alone when it was set reads as its domain's and is
+// sent to subdomains too. Written again, it keeps the scope of what is in it.
+func (f *File) Unscoped() bool { return f.Version == 1 }
 
 // Load reads a cookie file.
 //
@@ -270,15 +311,14 @@ func (f *File) Add(set Set) {
 	f.Sets = append(f.Sets, set)
 }
 
-// Encode writes the file back out.
+// Encode writes the file back out, in this version of the format, which
+// reads the sets of an older one as that one did.
 //
 // No error to return: encoding/json fails on types this format does not have
 // and cannot grow without someone noticing, and a signature that promises a
 // failure nobody can produce is a branch no test can reach.
 func (f *File) Encode() []byte {
-	if f.Version == 0 {
-		f.Version = currentVersion
-	}
+	f.Version = currentVersion
 	data, _ := json.MarshalIndent(f, "", "  ")
 	return append(data, '\n')
 }

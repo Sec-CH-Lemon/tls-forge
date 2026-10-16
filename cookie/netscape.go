@@ -74,11 +74,12 @@ func loadNetscape(body string) (*File, error) {
 		if !strings.EqualFold(includeField, "TRUE") && !strings.EqualFold(includeField, "FALSE") {
 			return nil, fmt.Errorf("cookie: line %d: %q is not TRUE or FALSE", line, fields[1])
 		}
-		domain := fields[0]
-		if strings.EqualFold(includeField, "TRUE") && !strings.HasPrefix(domain, ".") {
-			// Go's cookie jar expresses include-subdomains with a leading dot.
-			// Ignoring the explicit Netscape column silently narrowed the cookie
-			// to one host when exporters wrote example.com + TRUE.
+		// The column says whether the cookie goes to subdomains. FALSE is a
+		// cookie its host's alone, and reading it as the domain's sent it to
+		// every subdomain, which is a session handed to hosts it never went to.
+		domain := strings.TrimPrefix(fields[0], ".")
+		hostOnly := strings.EqualFold(includeField, "FALSE")
+		if !hostOnly {
 			domain = "." + domain
 		}
 
@@ -86,6 +87,7 @@ func loadNetscape(body string) (*File, error) {
 			Name:     fields[5],
 			Value:    fields[6],
 			Domain:   domain,
+			HostOnly: hostOnly,
 			Path:     fields[2],
 			Secure:   strings.EqualFold(strings.TrimSpace(fields[3]), "TRUE"),
 			HTTPOnly: httpOnly,
@@ -117,7 +119,12 @@ func (s Set) EncodeNetscape() []byte {
 	b.WriteString("# Written by tls-forge. Every line is seven tab-separated fields.\n\n")
 
 	for _, c := range s.Cookies {
-		domain := c.Domain
+		// A domain's cookie is written with a leading dot and TRUE, as curl
+		// writes one, a host's alone without either.
+		domain := strings.TrimPrefix(c.Domain, ".")
+		if !c.HostOnly {
+			domain = "." + domain
+		}
 		if c.HTTPOnly {
 			domain = httpOnlyPrefix + domain
 		}
@@ -131,7 +138,7 @@ func (s Set) EncodeNetscape() []byte {
 		}
 		fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%d\t%s\t%s\n",
 			domain,
-			upper(strings.HasPrefix(c.Domain, ".")),
+			upper(!c.HostOnly),
 			path,
 			upper(c.Secure),
 			expires,

@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"math"
 	"math/rand"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -179,44 +178,31 @@ func (f clientFlags) warmedCookies() ([]cookie.Cookie, string, error) {
 		if dead := len(set.Cookies) - len(live.Cookies); dead > 0 {
 			from += fmt.Sprintf(" (%d expired)", dead)
 		}
+		if file.Unscoped() {
+			// Not silent: a host's cookie in such a file goes to its subdomains
+			// as well, as it did when the file was written.
+			from += "; written before tls-forge kept which cookies are their host's alone, " +
+				"so each goes to its domain's subdomains as well, until the session is saved again"
+		}
 	}
 	return append(chosen, f.cookies.cookies...), from, nil
 }
 
-// saveSession writes what the jar ended up holding for the hosts that were
-// asked, so a session warmed by a run can be used by the next one.
+// saveSession writes down everything the client's jar ended up holding, so a
+// session warmed by a run can be used by the next one: every cookie of every
+// host, a redirect's as well as the URLs', each with its scope, its lifetime
+// and its SameSite.
 //
 // Under an id naming when it was warmed, and appended to whatever the file
 // already held: a file of sessions is built up over time rather than replaced
 // by the last run.
-func (f clientFlags) saveSession(client *tlsforge.Client, hosts []string, note string) (int, error) {
+func (f clientFlags) saveSession(client *tlsforge.Client, note string) (int, error) {
 	set := cookie.Set{ID: now().Format("2006-01-02-15-04-05"), Warmed: now(), Note: note}
-	// The same cookie can be returned for every one of thousands of paths on a
-	// host. Keep one copy of each cookie identity per host: including the host
-	// preserves two independent host-only cookies with the same name, while
-	// domain and path preserve the distinctions RFC 6265 gives them.
-	type cookieKey struct{ host, name, domain, path string }
-	seenCookie := map[cookieKey]bool{}
-	for _, rawURL := range hosts {
-		parsed, err := url.Parse(rawURL)
-		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-			continue
-		}
-		host := strings.ToLower(parsed.Hostname())
-		// CookiesFor can only fail while parsing the same URL already parsed
-		// above, so its error path is unreachable here.
-		held, _ := client.CookiesFor(rawURL)
-		for _, c := range held {
-			key := cookieKey{host: host, name: c.Name, domain: c.Domain, path: c.Path}
-			if seenCookie[key] {
-				continue
-			}
-			seenCookie[key] = true
-			set.Cookies = append(set.Cookies, cookie.Cookie{
-				Name: c.Name, Value: c.Value, Domain: c.Domain, Path: c.Path,
-				Secure: c.Secure, HTTPOnly: c.HTTPOnly, Expires: c.Expires,
-			})
-		}
+	for _, c := range client.AllCookies() {
+		set.Cookies = append(set.Cookies, cookie.Cookie{
+			Name: c.Name, Value: c.Value, Domain: c.Domain, HostOnly: c.HostOnly, Path: c.Path,
+			Secure: c.Secure, HTTPOnly: c.HTTPOnly, Expires: c.Expires, SameSite: c.SameSite,
+		})
 	}
 	if len(set.Cookies) == 0 {
 		return 0, nil
@@ -309,8 +295,8 @@ func asClientCookies(cookies []cookie.Cookie) []tlsforge.Cookie {
 	out := make([]tlsforge.Cookie, 0, len(cookies))
 	for _, c := range cookies {
 		out = append(out, tlsforge.Cookie{
-			Name: c.Name, Value: c.Value, Domain: c.Domain, Path: c.Path,
-			Secure: c.Secure, HTTPOnly: c.HTTPOnly, Expires: c.Expires,
+			Name: c.Name, Value: c.Value, Domain: c.Domain, HostOnly: c.HostOnly, Path: c.Path,
+			Secure: c.Secure, HTTPOnly: c.HTTPOnly, Expires: c.Expires, SameSite: c.SameSite,
 		})
 	}
 	return out

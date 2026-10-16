@@ -348,7 +348,8 @@ headers.Del("X-Trace")
 ## Cookies and sessions
 
 The default jar uses the public suffix list and applies normal domain, path,
-secure and expiry rules.
+secure and expiry rules. A cookie lives at most 400 days, as in Chrome: a later
+`Expires` or a longer `Max-Age` is cut to that.
 
 ```go
 client, err := tlsforge.New(tlsforge.WithCookies([]tlsforge.Cookie{
@@ -368,17 +369,32 @@ client, err := tlsforge.New(tlsforge.WithCookies([]tlsforge.Cookie{
 |---|---|
 | `Name`, `Value` | Cookie pair |
 | `Domain` | Parent or host domain. Empty means the request host. |
+| `HostOnly` | The cookie goes to the host of `Domain` alone, as one set without a `Domain` attribute does, and not to its subdomains. Seeded, it is filed for that host only. |
 | `Path` | Cookie path. Empty defaults to `/` when seeded. |
 | `Secure` | Send only over HTTPS. |
 | `HTTPOnly` | Preserve the HttpOnly attribute in exported session data. |
 | `Expires` | Expiration time; zero represents a session cookie. |
+| `SameSite` | `strict`, `lax`, `none`, or empty when the server named none. Kept and written down; not enforced when a request is sent. |
 
-`client.Cookies(url)` returns cookies currently applicable to a URL.
-`client.CookiesFor(url)` returns the same full cookie representation and is the
-method used by session exporters. Both return `nil` when the jar is disabled.
+`client.CookiesFor(url)` returns the cookies the jar would send to a URL, and
+`client.Cookies(url)` is the same method by its older name. `client.AllCookies()`
+returns every cookie the jar holds, for every host, sorted by domain, path and
+name: that is what a session is written down from, so a cookie set by a
+redirect's host is kept as well as those of the URLs asked for. Each comes with
+its scope, a session cookie with no expiry and the `SameSite` the server set.
+All three return `nil` when the jar is disabled. A jar supplied with
+`WithCookieJar` is wrapped to keep what a jar does not say of a cookie, so
+`AllCookies` lists the cookies set through this client; a jar that does not
+report where it filed a cookie, as `tls_client.NewCookieJar` does not, is
+listed as holding none.
 
 The `cookie` subpackage reads and writes project JSON session files, flat
-browser-export JSON and Netscape cookies.txt data:
+browser-export JSON and Netscape cookies.txt data, keeping each cookie's scope
+(`host_only`, the browser export's `hostOnly`, the Netscape include-subdomains
+column), its lifetime (a browser export's `session`) and its `SameSite`. A file
+of version 1, written before the scope was kept, reads every cookie as its
+domain's, as it did then; `File.Unscoped` says so, and the file is written back
+as version 2:
 
 ```go
 data, err := os.ReadFile("cookies.json")

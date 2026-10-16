@@ -41,6 +41,8 @@ plausible it looks.
 | Redirects | differs | tls-forge adds `Referer` with the redirecting URL and keeps the first hop's header order; Chrome sends no `Referer` after a direct navigation is redirected and moves its `sec-ch-ua` headers. tls-forge gives up after 10 redirects, Chrome after 20 |
 | Client hints asked for with `Accept-CH` or `Critical-CH` | not modelled | the profile's headers are sent as they are, and a request is never retried for hints |
 | Response bodies decoded from gzip, x-gzip, deflate (zlib or raw), br and zstd, in the reverse of the order applied; a coding Chrome does not know passed through; a zstd window over 8 MiB refused | checked | `TestABodyIsDecodedFromEveryCodingChromeAccepts` and the tests beside it, over HTTP/1.1 and HTTP/2, through the proxy, `fetch` and both SDKs |
+| A saved session keeps each cookie's scope (its host's alone or its domain's), a session cookie without an expiry, and `SameSite`; a cookie lives at most 400 days | checked | `TestASessionComesBackWithEachCookiesScope` and the jar tests beside it |
+| `SameSite` and partitioned cookies enforced when a request is sent | not modelled | `SameSite` is kept and written down; every cookie the jar holds for a URL goes to it |
 | HPACK representations, frame and TLS record boundaries | not checked | |
 | Connections: one per try by default, one per URL with `--reuse-connection` | by design | neither is a browser's pool of connections per origin; this is a choice of the command line, not a claim |
 | HTTP/3 and QUIC | not supported | an `Alt-Svc` that offers HTTP/3 is ignored; requests go over HTTP/2 or HTTP/1.1 |

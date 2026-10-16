@@ -15,6 +15,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 - `Response.Encoding` says which codings a body was decoded from, and the
   `response` record of the log says it as `decoded_from`.
+- `Client.AllCookies` lists every cookie a client holds, for every host, and
+  `Cookie` has `HostOnly` and `SameSite`. The cookie file is version 2, with
+  `host_only` and `same_site`; a browser export's `hostOnly`, `session` and
+  `sameSite` are read too. A version 1 file is read as it was, and
+  `File.Unscoped` says it did not keep which cookies were their host's alone.
 - **What tls-forge reproduces of Chrome, and how each part is checked**, is
   one table: [docs/support.md](docs/support.md). It names what is checked
   against a capture or by `compare`, what is known to differ, and what is not
@@ -292,6 +297,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- `cookie.Set.EncodeNetscape` writes a cookie's include-subdomains column from
+  `HostOnly` rather than from a leading dot in `Domain`: a cookie is its
+  domain's unless it says it is its host's alone, and a domain's cookie is
+  written with a leading dot. `Client.Cookies` is `CookiesFor` by an older name.
 - A profile from tls-client's catalogue no longer sends the transport's own
   `accept-encoding: gzip, deflate, br`: like every other header field, it goes
   out only when given. A measured profile sends Chrome's, as before.
@@ -379,6 +388,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A saved session keeps where each cookie goes and how long it lasts.** A
+  cookie its host's alone was written down without saying so and read back as
+  its domain's, so it went to every subdomain; a session cookie came back
+  expiring in the year 9999; and a Netscape line whose include-subdomains
+  column said FALSE was filed as its domain's too. Each cookie now keeps its
+  scope, its lifetime and its `SameSite` from the jar to the file and back,
+  in all three formats, and `--save-cookies` writes the whole session,
+  including what a redirect's host set. A cookie lives at most 400 days, as
+  in Chrome, which also keeps a `Max-Age` of centuries from becoming a date
+  that cannot be written down.
 - **A compressed answer is decoded as Chrome decodes it, and its header
   fields describe what is left.** A `deflate` body in the zlib form the name
   means hung until the request's deadline, over HTTP/1.1 and HTTP/2; a raw

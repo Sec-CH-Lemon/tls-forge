@@ -468,7 +468,7 @@ func TestLastCookieJarOptionWins(t *testing.T) {
 	}
 
 	with := newTestClient(t, WithoutCookieJar(), WithCookieJar(jar))
-	if with.jar != jar {
+	if with.jar == nil || with.jar.inner != jar {
 		t.Fatal("WithCookieJar did not override the earlier jarless option")
 	}
 }
