@@ -47,8 +47,10 @@ import (
 
 	fhttp "github.com/bogdanfinn/fhttp"
 	"github.com/bogdanfinn/fhttp/cookiejar"
+	"github.com/bogdanfinn/fhttp/http2"
 	fhttptrace "github.com/bogdanfinn/fhttp/httptrace"
 	tls_client "github.com/bogdanfinn/tls-client"
+	"github.com/bogdanfinn/tls-client/profiles"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
@@ -66,9 +68,15 @@ import (
 type Client struct {
 	inner tls_client.HttpClient
 	// options are what inner was built with, but for how it dials, which is
-	// the client's own: Fresh builds another with them.
-	options func(log *slog.Logger) []tls_client.HttpClientOption
-	profile *profile.Profile
+	// the client's own, and the client profile, which is clientProfile: Fresh
+	// builds another with them.
+	options       func(log *slog.Logger, built profiles.ClientProfile) []tls_client.HttpClientOption
+	clientProfile profiles.ClientProfile
+	// script is the transport requests of fetch() and an XHR go out on, made
+	// when one first does: see scriptClient.
+	scriptMu sync.Mutex
+	script   tls_client.HttpClient
+	profile  *profile.Profile
 	// jar is nil when the client keeps no cookies.
 	jar     *keptJar
 	headers Header
@@ -152,6 +160,10 @@ type Request struct {
 	// the client's logger, so that what the request is for goes with every one
 	// of them: which item of a list, which try. See WithLogger.
 	Logger *slog.Logger
+	// Browser, when set, says what in a browser this request stands for, and
+	// it goes out as Chrome sends that request: see BrowserContext. Nil sends
+	// it as a navigation typed into the address bar, as it always was.
+	Browser *BrowserContext
 }
 
 // Cookie is one cookie, as a jar holds it and as a session is written down.
@@ -266,7 +278,6 @@ func New(opts ...Option) (*Client, error) {
 
 	options := []tls_client.HttpClientOption{
 		tls_client.WithTimeoutMilliseconds(int(milliseconds)),
-		tls_client.WithClientProfile(clientProfile),
 		tls_client.WithCookieJar(transportJar),
 		// Six idle connections per host, which is Chrome's own limit for
 		// HTTP/1.1 and six times the transport's default of one.
@@ -330,13 +341,14 @@ func New(opts ...Option) (*Client, error) {
 	}
 	// How it dials comes last but for the caller's own, and is made for each
 	// client, so that every one logs its connections as itself.
-	built := func(log *slog.Logger) []tls_client.HttpClientOption {
-		out := append(slices.Clone(options), dialOptions(cfg.proxy, len(cfg.extra) == 0, log)...)
+	built := func(log *slog.Logger, profile profiles.ClientProfile) []tls_client.HttpClientOption {
+		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(profile)}, options...)
+		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, log)...)
 		return append(out, cfg.extra...)
 	}
 
 	id, log := newClientLog(cfg.logger)
-	inner, err := newInnerClient(tls_client.NewNoopLogger(), built(log)...)
+	inner, err := newInnerClient(tls_client.NewNoopLogger(), built(log, clientProfile)...)
 	if err != nil {
 		// A proxy the transport cannot read is quoted back whole, password and
 		// all, by url.Parse and by the transport alike.
@@ -351,7 +363,8 @@ func New(opts ...Option) (*Client, error) {
 	http1Headers := profileHTTP1Headers(prof)
 	http1Headers = http1Headers.Merge(cfg.headers)
 
-	client := &Client{inner: inner, options: built, profile: prof, jar: jar, headers: headers,
+	client := &Client{inner: inner, options: built, clientProfile: clientProfile, profile: prof, jar: jar,
+		headers:      headers,
 		http1Headers: http1Headers,
 		warm:         &warmSession{cookies: cfg.cookies, seeded: map[warmCookieKey]struct{}{}},
 		maxBody:      cfg.maxResponseBody,
@@ -391,14 +404,15 @@ func (c *Client) Fresh() (*Client, error) {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
 	id, log := newClientLog(c.logger)
-	inner, err := newInnerClient(tls_client.NewNoopLogger(), c.options(log)...)
+	inner, err := newInnerClient(tls_client.NewNoopLogger(), c.options(log, c.clientProfile)...)
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, c.proxy))
 	}
 	if log != nil {
 		log.Debug("fresh client", "from", c.id)
 	}
-	return &Client{inner: inner, options: c.options, profile: c.profile, jar: c.jar, headers: c.headers,
+	return &Client{inner: inner, options: c.options, clientProfile: c.clientProfile, profile: c.profile, jar: c.jar,
+		headers:      c.headers,
 		http1Headers: c.http1Headers, warm: c.warm, maxBody: c.maxBody,
 		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
 }
@@ -498,26 +512,46 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// string: two parsers agreeing is not something to verify at runtime, and a
 	// second parse is a second chance to disagree about what the request is for.
 	parsed := inner.URL
+	transport := c.inner
+	var browser *browserRequest
+	if req.Browser != nil {
+		if browser, err = c.resolveBrowser(req, method, parsed); err != nil {
+			return nil, err
+		}
+		if browser.kind == KindFetch || browser.kind == KindXHR {
+			if transport, err = c.scriptClient(); err != nil {
+				return nil, err
+			}
+		}
+	}
 	// The warmed session, filed against this request's URL once. Re-seeding it on
 	// every request would overwrite a value the server had refreshed in the jar
 	// with the stale value loaded at construction.
 	c.seedWarmCookies(parsed)
 	c.seedCookies(parsed, req.Cookies)
 
-	headers := c.headers.Merge(req.Header)
-	inner.Header = legacyHeaderLayout(headers, parsed.Host)
-	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
-		inner.Header[fhttp.PHeaderOrderKey] = order
-	}
 	var http1 fhttp.Header
 	switch {
-	case c.profile.HTTP1 != nil:
-		http1 = measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
-	case !headers.Has("user-agent"):
-		// The one field the two protocols cannot be told the same way: an
-		// HTTP/1.1 connection gets a layout of its own even where nothing else
-		// differs.
-		http1 = cloneHeaderLayout(inner.Header)
+	case browser != nil:
+		field := browser.header(parsed, c.headers)
+		order := browser.wireOrder()
+		inner.Header = browserLayout(field, order, parsed.Host)
+		http1 = browserHTTP1Layout(field, browser.script, order, c.profile.HTTP1, c.http1Headers, parsed.Host)
+	default:
+		headers := c.headers.Merge(req.Header)
+		inner.Header = legacyHeaderLayout(headers, parsed.Host)
+		switch {
+		case c.profile.HTTP1 != nil:
+			http1 = measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
+		case !headers.Has("user-agent"):
+			// The one field the two protocols cannot be told the same way: an
+			// HTTP/1.1 connection gets a layout of its own even where nothing
+			// else differs.
+			http1 = cloneHeaderLayout(inner.Header)
+		}
+	}
+	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
+		inner.Header[fhttp.PHeaderOrderKey] = order
 	}
 	quietUserAgent(inner.Header, http2UserAgent)
 	if http1 != nil {
@@ -530,10 +564,16 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		inner = withProtocolLayouts(inner, layouts)
 	}
 
+	if browser != nil && c.jar != nil {
+		// By the URL the transport will ask the jar about: the request's own,
+		// which every WithContext above copied anew.
+		c.jar.restrict(inner.URL, browser.cookies(originOf(inner.URL)))
+		defer c.jar.release(inner.URL)
+	}
 	if r != nil {
 		r.step("connect")
 	}
-	res, err := c.inner.Do(inner)
+	res, err := transport.Do(inner)
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
@@ -578,6 +618,19 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		}
 	}
 	return out, nil
+}
+
+// resolveBrowser is a request's browser context resolved against it, or why
+// it cannot be sent as one: the layouts are Chromium's, measured on Chrome,
+// and are filled in with the profile's own header values.
+func (c *Client) resolveBrowser(req *Request, method string, target *url.URL) (*browserRequest, error) {
+	switch {
+	case !c.profile.Chromium():
+		return nil, errContext("is measured on Chrome; profile %q is not of a Chromium browser", c.profile.Name)
+	case !c.headers.Has("user-agent"):
+		return nil, errContext("needs the profile's headers, and profile %q has none to send", c.profile.Name)
+	}
+	return req.Browser.resolve(method, target, req.Header, req.Body)
 }
 
 // legacyHeaderLayout is the compatibility path for profiles captured before
@@ -1005,6 +1058,7 @@ func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
 // issued a ticket, as a browser's new connection does. The client stays open.
 func (c *Client) CloseIdleConnections() {
 	c.inner.CloseIdleConnections()
+	c.closeScript()
 	if c.log != nil {
 		c.log.Debug("idle connections closed")
 	}
@@ -1014,11 +1068,57 @@ func (c *Client) CloseIdleConnections() {
 func (c *Client) Close() error {
 	c.closed.Store(true)
 	c.inner.CloseIdleConnections()
+	c.closeScript()
 	if c.log != nil {
 		c.log.Debug("client closed")
 	}
 	return nil
 }
+
+// closeScript closes the idle connections of the transport of fetch() and an
+// XHR, when there is one.
+func (c *Client) closeScript() {
+	c.scriptMu.Lock()
+	defer c.scriptMu.Unlock()
+	if c.script != nil {
+		c.script.CloseIdleConnections()
+	}
+}
+
+// scriptClient is the transport a request of fetch() or an XHR goes out on,
+// made when one first does: the client's own, but for the priority on each
+// request's HEADERS frame, which Chrome gives such a request (weight 220)
+// where it gives a page its highest (256). The transport puts one priority on
+// every request it sends, so these go out on connections of their own, with
+// TLS sessions of their own.
+func (c *Client) scriptClient() (tls_client.HttpClient, error) {
+	c.scriptMu.Lock()
+	defer c.scriptMu.Unlock()
+	if c.script == nil {
+		built := withHeaderPriority(c.clientProfile, scriptHeaderPriority)
+		script, err := newInnerClient(tls_client.NewNoopLogger(), c.options(c.log, built)...)
+		if err != nil {
+			return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, c.proxy))
+		}
+		c.script = script
+	}
+	return c.script, nil
+}
+
+// withHeaderPriority is a client profile with another priority on the
+// HEADERS frame of every request.
+func withHeaderPriority(p profiles.ClientProfile, priority http2.PriorityParam) profiles.ClientProfile {
+	return profiles.NewClientProfile(p.GetClientHelloId(), p.GetSettings(), p.GetSettingsOrder(),
+		p.GetPseudoHeaderOrder(), p.GetConnectionFlow(), p.GetPriorities(), &priority, p.GetStreamID(),
+		p.GetAllowHTTP(), p.GetHttp3Settings(), p.GetHttp3SettingsOrder(), p.GetHttp3PriorityParam(),
+		p.GetHttp3PseudoHeaderOrder(), p.GetHttp3SendGreaseFrames())
+}
+
+// scriptHeaderPriority is the priority Chrome 155 puts on the HEADERS frame of
+// fetch(), an XHR and a CORS preflight: exclusive, on no stream (on a
+// connection of their own), weight 220 (219 on the wire), as measured in
+// testdata/chrome155-requests.json, where a page's is 256.
+var scriptHeaderPriority = http2.PriorityParam{Exclusive: true, Weight: 219}
 
 // Timeout is the default request deadline.
 const Timeout = 30 * time.Second

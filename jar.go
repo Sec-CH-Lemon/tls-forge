@@ -31,6 +31,9 @@ type keptJar struct {
 	inner fhttp.CookieJar
 	mu    sync.Mutex
 	kept  map[cookieKey]cookieFacts
+	// rules are what a request in a browser context lets through, by the URL
+	// the transport asks the jar about for it: its own, for each hop.
+	rules sync.Map
 }
 
 // cookieKey is a cookie's identity in a jar: a second cookie of the same name,
@@ -42,6 +45,9 @@ type cookieFacts struct {
 	hostOnly   bool
 	persistent bool
 	sameSite   fhttp.SameSite
+	// created is when the cookie was first set: one set again over it keeps
+	// the first's, as RFC 6265 has a browser keep it.
+	created time.Time
 }
 
 // maxCookieLifetime is the longest Chrome keeps a cookie: a later Expires or a
@@ -79,17 +85,87 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 		case c.MaxAge < 0 || (c.MaxAge == 0 && !c.Expires.IsZero() && !c.Expires.After(now)):
 			delete(j.kept, key)
 		default:
+			created := now
+			if before, known := j.kept[key]; known {
+				created = before.created
+			}
 			j.kept[key] = cookieFacts{
 				hostOnly:   hostOnly,
 				persistent: c.MaxAge > 0 || !c.Expires.IsZero(),
 				sameSite:   c.SameSite,
+				created:    created,
 			}
 		}
 	}
 }
 
-// Cookies is the jar's own answer: what goes to a URL.
-func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie { return j.inner.Cookies(u) }
+// Cookies is the jar's own answer, what goes to a URL, less what a request in
+// a browser context does not carry, when u is that request's.
+func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
+	held := j.inner.Cookies(u)
+	ruled, ok := j.rules.Load(u)
+	if !ok {
+		return held
+	}
+	rule := ruled.(sendRule)
+	now := time.Now()
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	kept := held[:0:0]
+	for _, c := range held {
+		facts, known := j.kept[cookieKey{c.Name, c.Domain, c.Path}]
+		if rule.allows(facts, known, now) {
+			kept = append(kept, c)
+		}
+	}
+	return kept
+}
+
+// restrict has the jar answer the transport, when it asks about u, with what
+// a request in a browser context carries; release forgets it.
+func (j *keptJar) restrict(u *url.URL, rule sendRule) { j.rules.Store(u, rule) }
+func (j *keptJar) release(u *url.URL)                 { j.rules.Delete(u) }
+
+// sendRule is which cookies a request in a browser context carries.
+type sendRule struct {
+	// none carries none: fetch() with credentials omitted, or kept to its
+	// own origin and going to another.
+	none bool
+	// crossSite goes to another site than its initiator's.
+	crossSite bool
+	// topLevel loads a page at the top: a navigation or a form.
+	topLevel bool
+	// safe is a GET or a HEAD.
+	safe bool
+}
+
+// laxAllowingUnsafe is how long after it was set a cookie that named no
+// SameSite still goes with a page's POST to it from another site: Chrome's
+// two minutes, measured in testdata/chrome155-requests.json.
+const laxAllowingUnsafe = 2 * time.Minute
+
+// allows reports a cookie a request carries, by its SameSite: to its own site
+// any; to another, one of SameSite=None, one of Lax when a page is loaded by
+// GET, and one that named none, which is Lax, also when a page is posted to
+// within two minutes of its being set. A cookie the wrapper never saw set
+// named none, as far as it knows, and was not set lately.
+func (rule sendRule) allows(facts cookieFacts, known bool, now time.Time) bool {
+	switch {
+	case rule.none:
+		return false
+	case !rule.crossSite:
+		return true
+	}
+	switch facts.sameSite {
+	case fhttp.SameSiteNoneMode:
+		return true
+	case fhttp.SameSiteStrictMode:
+		return false
+	case fhttp.SameSiteLaxMode:
+		return rule.topLevel && rule.safe
+	}
+	return rule.topLevel && (rule.safe || known && now.Sub(facts.created) < laxAllowingUnsafe)
+}
 
 // forURL is what goes to a URL, with what the jar does not say of each cookie.
 func (j *keptJar) forURL(u *url.URL) []Cookie {

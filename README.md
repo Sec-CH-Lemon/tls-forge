@@ -46,8 +46,10 @@ The handshake and the headers are not all that gives a client away, and
 tls-forge does not reproduce everything else. It does not run
 JavaScript, load a page's subresources, solve challenges or speak HTTP/3; the
 TCP/IP packets under every connection are this machine's operating system's;
-and requests other than a page navigation, redirects and client hints do not
-yet go out exactly as Chrome sends them. [docs/support.md](docs/support.md)
+and redirects, CORS and client hints do not yet go out exactly as Chrome sends
+them. A form's POST, `fetch()` and an XHR do, from the Go library, when a
+request says it is one ([GO.md](GO.md#browser-contexts)).
+[docs/support.md](docs/support.md)
 lists what is reproduced, how each part is checked, and where it is known not
 to be.
 

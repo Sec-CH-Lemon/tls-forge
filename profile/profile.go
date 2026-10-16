@@ -160,6 +160,12 @@ func (p *Profile) echPayloadLengths() []uint16 {
 	return nil
 }
 
+// Chromium reports a profile of a Chromium browser: Chrome, Chromium, Edge,
+// Brave, Opera and the like, on any platform but iOS, where every browser is
+// Safari underneath. What tls-forge has measured of how a browser sends each
+// kind of request, it measured on Chrome, and applies to these alone.
+func (p *Profile) Chromium() bool { return p.chromium() }
+
 // chromium reports a profile of a Chromium browser with Chromium's own TLS
 // stack, BoringSSL: by its name, its base or, for a custom captured profile,
 // its user agent. Not one on an iPhone or an iPad, whatever it is called.

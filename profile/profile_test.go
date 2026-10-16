@@ -444,6 +444,10 @@ func TestShufflesExtensionsByBrowserFamily(t *testing.T) {
 		if got := tc.profile.ShufflesExtensions(); got != tc.want {
 			t.Errorf("%q ShufflesExtensions = %v, want %v", tc.profile.Name, got, tc.want)
 		}
+		// What a browser context is measured on is the same family.
+		if got := tc.profile.Chromium(); got != tc.want {
+			t.Errorf("%q Chromium = %v, want %v", tc.profile.Name, got, tc.want)
+		}
 	}
 }
 

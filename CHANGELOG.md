@@ -13,6 +13,21 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **A request can say what in a browser it stands for**, with
+  `Request.Browser`: a navigation, typed or from a page, a form's GET or POST,
+  `fetch()` or an XHR, from the page `Initiator` names, under its referrer
+  policy, mode and credentials. It goes out as Chrome 155 was measured sending
+  that request over HTTP/2 and HTTP/1.1 (`testdata/chrome155-requests.json`):
+  its kind's headers in Chrome's order and values, `Sec-Fetch-Site`,
+  `Sec-Fetch-Mode`, `Sec-Fetch-Dest` and `Sec-Fetch-User`, `Origin` and
+  `Referer` as the Fetch and Referrer Policy standards have them, the HTTP/2
+  `HEADERS` weight Chrome gives `fetch()` (220, on connections of their own),
+  no client hints or `Sec-Fetch-*` to a page that is not potentially
+  trustworthy, and only the cookies SameSite and the credentials mode let
+  through, a form's POST carrying for two minutes those that named none. What
+  a page cannot send, and what is not done yet (CORS, redirects as Chrome
+  follows them), is refused before anything is sent. A request without one
+  goes out as before. `Profile.Chromium` says which profiles take one.
 - **`fetch --html-decoding browser` reads a page as Chrome 155 decodes it**
   for `--wait-for` and `--wait-for-element`: by its byte order mark, its
   `Content-Type`, then what a document of its type names in itself (in HTML

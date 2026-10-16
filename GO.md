@@ -164,6 +164,7 @@ response, err := client.Do(&tlsforge.Request{
 | `Cookies` | Cookies added to the jar before this request. |
 | `Trace` | Optional hooks told each step the request takes on the wire; see [Tracing a request](#tracing-a-request). |
 | `Logger` | A `*slog.Logger` this request is logged to instead of the client's, so that what it is for goes with every record of it; see [Logging](#logging). |
+| `Browser` | A `*BrowserContext`: what in a browser the request stands for, a navigation, a form, `fetch()` or an XHR, sent as Chrome sends that; see [Browser contexts](#browser-contexts). `nil` sends it as a navigation typed into the address bar, as always. |
 
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 transport deadline. A request ends when either limit is reached.
@@ -171,6 +172,72 @@ transport deadline. A request ends when either limit is reached.
 Do not construct a `Cookie` header manually unless replacing the jar's complete
 output is intentional. `Request.Cookies` adds values to the jar, preserving
 cookies received earlier in the session.
+
+## Browser contexts
+
+A request on its own goes out as a navigation typed into the address bar: the
+profile's headers, with whatever the caller adds. Chrome sends other requests
+differently. A form's POST has `Cache-Control`, `Origin` and its own order;
+`fetch()` sends `Accept: */*`, `Sec-Fetch-Mode: cors` and a lower HTTP/2
+priority; every request from a page carries `Referer` as the page's referrer
+policy says, `Sec-Fetch-Site` as it stands to the page, and only the cookies
+SameSite lets through. `Request.Browser` says which request this is, and it
+goes out as Chrome 155 was measured sending it
+(`testdata/chrome155-requests.json`).
+
+```go
+page := "https://shop.example/item/7"
+response, err := client.Do(&tlsforge.Request{
+	Method: "POST",
+	URL:    "https://shop.example/api/cart",
+	Header: tlsforge.NewHeader("Content-Type", "application/json"),
+	Body:   []byte(`{"item":7}`),
+	Browser: &tlsforge.BrowserContext{
+		Kind:      tlsforge.KindFetch,
+		Initiator: page,
+	},
+})
+```
+
+| `BrowserContext` field | Meaning |
+|---|---|
+| `Kind` | `KindNavigation`, `KindForm`, `KindFetch` or `KindXHR`. Required. |
+| `Initiator` | The URL of the page that sends the request. Empty for a navigation is one typed into the address bar (`Sec-Fetch-Site: none`, `Sec-Fetch-User: ?1`, no `Referer`); a form, `fetch()` and an XHR need one. |
+| `ReferrerPolicy` | The page's referrer policy. Empty is Chrome's default, `strict-origin-when-cross-origin`. |
+| `Mode` | `fetch()`'s mode: `cors` (default), `no-cors` or `same-origin`. |
+| `Credentials` | `fetch()`'s credentials: `same-origin` (default), `include` or `omit`; an XHR's `same-origin` or `include` (`withCredentials`). |
+
+Each kind sends what a page can: a navigation sends no headers of the caller's
+and no body; a form sends `GET`, or `POST` with a body and a `Content-Type` of
+`application/x-www-form-urlencoded` (the default), `multipart/form-data;
+boundary=...` or `text/plain`; `fetch()` and an XHR send the caller's headers
+where Chrome puts a script's, but none a script cannot set (`Cookie`, `Origin`,
+`Referer`, `Sec-*`, `User-Agent` and the rest of the Fetch standard's list).
+Anything else is an error before anything is sent: a context with no kind, an
+unknown policy or mode, a form or a script with no initiator, a request in
+`same-origin` mode to another origin, one in `no-cors` mode with a method or
+header CORS would ask about, and, until tls-forge does CORS, `fetch()` or an
+XHR in `cors` mode to another origin. A context needs a profile of a Chromium
+browser with headers to send: one of another browser, or a bare entry of the
+transport's catalogue, is refused.
+
+The cookies go as Chrome sends them. To another site, a navigation carries
+cookies of `SameSite=None` and `Lax`, and those that named none; a form's POST
+carries `None`, and those that named none only for two minutes after they were
+set; `fetch()` and an XHR carry `None` alone, and none at all under
+credentials `omit`, or under `same-origin` to another origin. To its own site
+a request carries every cookie the jar holds for it.
+
+`fetch()` and an XHR go out on connections of their own: Chrome gives their
+HTTP/2 `HEADERS` frame weight 220 where it gives a page 256, and the transport
+puts one weight on every request it sends. They resume TLS sessions among
+themselves, not with a client's other requests.
+
+What a context does not do yet: CORS (a preflight, its cache, the checks on
+the answer), redirects as Chrome follows them (a redirect is followed as a
+request without a context is), the order of several headers a script set
+(Chrome's depends on the set of names; one is placed exactly), frames, and a
+form submitted by the user's click (`Sec-Fetch-User`).
 
 ## Responses and errors
 
