@@ -86,11 +86,14 @@ def test_a_client_is_reused_rather_than_respawned_per_request(client):
 def test_null_fields_come_back_as_empty_rather_than_none(client):
     # The transport really does send `"headers": null` on a failure, and a
     # caller reaching into None would get an AttributeError instead of an answer.
-    res = client().get("https://null-fields/x")
-    assert res.headers == {}
-    assert res.cookies == ()
-    assert res.status == 0
-    assert not res.ok
+    # And every field null.
+    for scenario in ("null-fields", "null-values"):
+        res = client().get(f"https://{scenario}/x")
+        assert res.headers == {}
+        assert res.cookies == ()
+        assert res.status == 0
+        assert res.url == "" and res.body == ""
+        assert not res.ok
 
 
 # --- the options -----------------------------------------------------------

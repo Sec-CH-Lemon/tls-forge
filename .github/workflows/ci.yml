@@ -119,7 +119,7 @@ jobs:
       # build the equivalent native fixture there. It is under testdata and can
       # never enter a release binary or Go's normal package list.
       - uses: actions/setup-go@v7
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' || (matrix.os == 'ubuntu-latest' && matrix.coverage)
         with:
           go-version-file: go.mod
           cache: true
@@ -130,6 +130,14 @@ jobs:
           $daemon = Join-Path $env:RUNNER_TEMP 'tls-forge-test-daemon.exe'
           go build -o $daemon ./testdata/fake-daemon
           "TLSFORGE_TEST_DAEMON=$daemon" >> $env:GITHUB_ENV
+      # The native transport runs on Linux too, so that it answers as the Node
+      # fake does (testdata/fake-daemon/scenarios.json) is found here and not
+      # only on Windows.
+      - name: test against the native test transport
+        if: matrix.os == 'ubuntu-latest' && matrix.coverage
+        run: |
+          go build -o "$RUNNER_TEMP/tls-forge-test-daemon" ./testdata/fake-daemon
+          cd node && TLSFORGE_TEST_DAEMON="$RUNNER_TEMP/tls-forge-test-daemon" node --test "test/*.test.js"
 
       - name: test release scripts
         if: matrix.os == 'ubuntu-latest' && matrix.coverage
@@ -173,7 +181,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - uses: actions/setup-go@v7
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' || (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13')
         with:
           go-version-file: go.mod
           cache: true
@@ -185,6 +193,14 @@ jobs:
           go build -o $daemon ./testdata/fake-daemon
           "TLSFORGE_TEST_DAEMON=$daemon" >> $env:GITHUB_ENV
       - run: pip install -e 'python[test]'
+      # The native transport runs on Linux too, so that it answers as the
+      # Python fake does (testdata/fake-daemon/scenarios.json) is found here and
+      # not only on Windows.
+      - name: test against the native test transport
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: |
+          go build -o "$RUNNER_TEMP/tls-forge-test-daemon" ./testdata/fake-daemon
+          cd python && TLSFORGE_TEST_DAEMON="$RUNNER_TEMP/tls-forge-test-daemon" python -m pytest -q
       # A gate, like `make cover` for Go: 100% of lines and branches. Runs
       # against a stand-in transport and needs no network. Windows builds the
       # native form of that fixture above; Unix uses the existing shell wrapper.

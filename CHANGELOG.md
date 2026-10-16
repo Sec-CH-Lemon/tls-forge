@@ -378,6 +378,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- The three fake daemons the Node.js and Python suites run against answer
+  one list of scenarios, `testdata/fake-daemon/scenarios.json`, each from a
+  table it dispatches on and declares, and each suite holds its fake to the
+  list; a scenario no fake knows is an error naming it, where it was a 404.
+  CI runs both suites against the native fake on Linux as well as on
+  Windows: it counted a body's length in bytes where the others count
+  characters, which only Windows could have shown.
 - **`compare` reads HTTP/2 as it went.** The echo server keeps the frames a
   client sends from the end of its preface to the end of its first request's
   header block, captures carry them as `raw_frames`, and `compare` holds the

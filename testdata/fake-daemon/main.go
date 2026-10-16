@@ -1,6 +1,9 @@
 // Command fake-daemon is the native test transport used where shell-script
 // wrappers are not executable, most notably on Windows. It deliberately lives
 // under testdata so `go test ./...` and release builds ignore it.
+//
+// Its scenarios are the ones testdata/fake-daemon/scenarios.json names, and
+// every fake answers the same ones: see that file.
 package main
 
 import (
@@ -8,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -87,10 +91,7 @@ func main() {
 			continue
 		}
 		_ = json.Unmarshal(scanner.Bytes(), &fields)
-		for name := range fields {
-			req.sent = append(req.sent, name)
-		}
-		slices.Sort(req.sent)
+		req.sent = slices.Sorted(maps.Keys(fields))
 		if req.Control != nil {
 			controls++
 			control(req)
@@ -99,222 +100,197 @@ func main() {
 		requests++
 
 		parsed, _ := url.Parse(req.URL)
-		switch parsed.Hostname() {
-		case "ok":
-			emit(answer(req))
-		case "error":
-			emit(map[string]any{"id": req.ID, "error": "upstream refused"})
-		case "null-fields":
-			emit(map[string]any{
-				"id": req.ID, "status": 0, "url": "", "body": "",
-				"headers": nil, "cookies": nil,
-			})
-		case "fixture", "fixture-text", "fixture-error":
-			name := map[string]string{
-				"fixture":       "response.json",
-				"fixture-text":  "response-text.json",
-				"fixture-error": "response-error.json",
-			}[parsed.Hostname()]
-			data, err := os.ReadFile(filepath.Join(
-				os.Getenv("TLSFORGE_PROTOCOL_FIXTURES"), name,
-			))
-			if err != nil {
-				emit(map[string]any{"id": req.ID, "error": err.Error()})
-				continue
-			}
-			var response map[string]any
-			if err := json.Unmarshal(data, &response); err != nil {
-				emit(map[string]any{"id": req.ID, "error": err.Error()})
-				continue
-			}
-			response["id"] = req.ID
-			emit(response)
-		// Keep these malformed protocol cases aligned with the Python and Node
-		// fixtures: this native version is what both suites run on Windows.
-		case "bad-error":
-			response := answer(req)
-			response["error"] = map[string]any{}
-			emit(response)
-		case "bad-status":
-			response := answer(req)
-			response["status"] = "200"
-			emit(response)
-		case "bad-url":
-			response := answer(req)
-			response["url"] = 7
-			emit(response)
-		case "bad-body":
-			response := answer(req)
-			response["body"] = []any{}
-			emit(response)
-		case "binary":
-			// PNG magic followed by a byte that cannot be represented as UTF-8.
-			raw := []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff}
-			response := answer(req)
-			response["body"] = base64.StdEncoding.EncodeToString(raw)
-			response["bodyEncoding"] = "base64"
-			emit(response)
-		case "echo-body":
-			response := answer(req)
-			body := ""
-			if req.Body != nil {
-				body = *req.Body
-			}
-			response["body"] = body
-			response["bodyEncoding"] = req.BodyEncoding
-			emit(response)
-		case "utf8-encoding":
-			response := answer(req)
-			response["body"] = "plain text"
-			response["bodyEncoding"] = "utf8"
-			emit(response)
-		case "bad-body-encoding":
-			response := answer(req)
-			response["body"] = "x"
-			response["bodyEncoding"] = "rot13"
-			emit(response)
-		case "bad-body-encoding-type":
-			response := answer(req)
-			response["body"] = "x"
-			response["bodyEncoding"] = 7
-			emit(response)
-		case "bad-base64":
-			response := answer(req)
-			response["body"] = "!!not base64!!"
-			response["bodyEncoding"] = "base64"
-			emit(response)
-		case "bad-headers":
-			response := answer(req)
-			response["headers"] = []any{}
-			emit(response)
-		case "bad-header-scalar":
-			response := answer(req)
-			response["headers"] = map[string]any{"broken": 7}
-			emit(response)
-		case "bad-header-list":
-			response := answer(req)
-			response["headers"] = map[string]any{"broken": []any{7}}
-			emit(response)
-		case "bad-cookies":
-			response := answer(req)
-			response["cookies"] = map[string]any{}
-			emit(response)
-		case "bad-cookie-item":
-			response := answer(req)
-			response["cookies"] = []any{7}
-			emit(response)
-		case "garbage":
-			raw("not json at all\n")
-		case "null-line":
-			raw("null\n")
-		case "no-id":
-			emit(map[string]any{"status": 200, "body": "anonymous"})
-			after(50*time.Millisecond, func() { emit(answer(req)) })
-		case "wrong-id":
-			emit(map[string]any{"id": req.ID + 1000, "status": 200, "body": "stray"})
-			after(50*time.Millisecond, func() { emit(answer(req)) })
-		case "silent":
-			// The client's deadline is the only thing that ends this request.
-		case "slow":
-			after(400*time.Millisecond, func() { emit(answer(req)) })
-		case "exit":
-			os.Exit(3)
-		case "stubborn":
-			// Never answers, and reads nothing more: the end of its input is
-			// not noticed, and it has to be stopped.
-			time.Sleep(30 * time.Second)
-		case "answer-then-exit":
-			// Answers, and dies while nobody is asking it anything.
-			emit(answer(req))
-			after(50*time.Millisecond, func() { os.Exit(4) })
-		case "stderr":
-			_, _ = fmt.Fprintln(os.Stderr, "a note on stderr")
-			time.Sleep(50 * time.Millisecond)
-			emit(answer(req))
-		case "stderr-chunks":
-			_, _ = fmt.Fprint(os.Stderr, "one logical")
-			time.Sleep(5 * time.Millisecond)
-			_, _ = fmt.Fprint(os.Stderr, " line\nsecond line\n")
-			emit(answer(req))
-		case "legacy-headers":
-			response := answer(req)
-			response["headers"] = map[string]string{"content-type": "application/json"}
-			emit(response)
-		case "null-headers":
-			response := answer(req)
-			response["headers"] = nil
-			emit(response)
-		case "trailing-lines":
-			emit(answer(req))
-			after(10*time.Millisecond, func() {
-				raw("not json at all\n")
-				emit(map[string]any{"status": 200, "body": "orphan"})
-			})
-		case "deaf":
-			emit(answer(req))
-			// Keep running after closing the read side. The client sees a dead
-			// pipe rather than a process exit on its next write.
-			_ = os.Stdin.Close()
-			time.Sleep(30 * time.Second)
-			return
-		default:
-			response := answer(req)
-			response["status"] = 404
-			emit(response)
+		scenario, known := scenarios[parsed.Hostname()]
+		if !known {
+			emit(map[string]any{"id": req.ID, "error": fmt.Sprintf("unknown scenario %q", parsed.Hostname())})
+			continue
 		}
+		scenario(req)
 	}
 }
 
-// control answers a control line with what the transport is: as
-// TLSFORGE_TEST_PROTOCOL says, protocol 2 with TLSFORGE_TEST_CAPABILITIES when
-// it says nothing.
-func control(req request) {
-	blank := func(extra map[string]any) map[string]any {
-		out := map[string]any{"id": req.ID, "status": 0, "url": "", "body": "", "headers": nil, "cookies": nil}
-		for name, value := range extra {
-			out[name] = value
-		}
-		return out
+// with is answer laid over with extra.
+func with(req request, extra map[string]any) map[string]any {
+	response := answer(req)
+	for name, value := range extra {
+		response[name] = value
 	}
-	fixture := func(name string) map[string]any {
-		var response map[string]any
-		data, err := os.ReadFile(filepath.Join(os.Getenv("TLSFORGE_PROTOCOL_FIXTURES"), name))
-		if err == nil {
-			err = json.Unmarshal(data, &response)
-		}
-		if err != nil {
-			return blank(map[string]any{"error": err.Error()})
-		}
-		response["id"] = req.ID
-		return response
+	return response
+}
+
+// replay is a committed answer, with the request's id: the wire format the
+// clients are held to, replayed. See testdata/protocol/README.md.
+func replay(req request, name string) map[string]any {
+	var response map[string]any
+	data, err := os.ReadFile(filepath.Join(os.Getenv("TLSFORGE_PROTOCOL_FIXTURES"), name))
+	if err == nil {
+		err = json.Unmarshal(data, &response)
 	}
-	switch os.Getenv("TLSFORGE_TEST_PROTOCOL") {
-	case "silent":
-	case "exit":
-		os.Exit(3)
-	case "1":
-		emit(blank(map[string]any{"error": "bad request: no url"}))
-	case "fixture":
-		emit(fixture("response-hello.json"))
-	case "fixture-old":
-		emit(fixture("response-hello-old.json"))
-	case "bad":
-		emit(blank(map[string]any{"protocol": "two"}))
-	case "bool":
-		emit(blank(map[string]any{"protocol": true}))
-	case "bad-capabilities":
-		emit(blank(map[string]any{"protocol": 2, "capabilities": []any{7}}))
-	case "no-capabilities":
-		emit(blank(map[string]any{"protocol": 2, "capabilities": "all"}))
-	case "low":
-		emit(blank(map[string]any{"protocol": 1}))
-	default:
+	if err != nil {
+		return map[string]any{"id": req.ID, "error": err.Error()}
+	}
+	response["id"] = req.ID
+	return response
+}
+
+// scenarios are what a request is answered with, by the host of its URL. Keep
+// them what scenarios.json says, and what the Python and Node fakes do: this
+// one is what both suites run on Windows.
+var scenarios = map[string]func(request){
+	"ok":    func(req request) { emit(answer(req)) },
+	"error": func(req request) { emit(map[string]any{"id": req.ID, "error": "upstream refused"}) },
+	// What the transport really sends when a request fails: the shape is whole.
+	"null-fields": func(req request) {
+		emit(map[string]any{"id": req.ID, "status": 0, "url": "", "body": "", "headers": nil, "cookies": nil})
+	},
+	"null-values": func(req request) {
+		emit(with(req, map[string]any{"status": nil, "url": nil, "body": nil, "headers": nil, "cookies": nil}))
+	},
+	"bad-error":  func(req request) { emit(with(req, map[string]any{"error": map[string]any{}})) },
+	"bad-status": func(req request) { emit(with(req, map[string]any{"status": "200"})) },
+	"bad-url":    func(req request) { emit(with(req, map[string]any{"url": 7})) },
+	"bad-body":   func(req request) { emit(with(req, map[string]any{"body": []any{}})) },
+	// PNG magic followed by a byte that cannot be represented as UTF-8.
+	"binary": func(req request) {
+		raw := []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff}
+		emit(with(req, map[string]any{"body": base64.StdEncoding.EncodeToString(raw), "bodyEncoding": "base64"}))
+	},
+	// Hands back what it was sent, so the request direction can be checked.
+	"echo-body": func(req request) {
+		body := ""
+		if req.Body != nil {
+			body = *req.Body
+		}
+		emit(with(req, map[string]any{"body": body, "bodyEncoding": req.BodyEncoding}))
+	},
+	"utf8-encoding": func(req request) {
+		emit(with(req, map[string]any{"body": "plain text", "bodyEncoding": "utf8"}))
+	},
+	"bad-body-encoding": func(req request) {
+		emit(with(req, map[string]any{"body": "x", "bodyEncoding": "rot13"}))
+	},
+	"bad-body-encoding-type": func(req request) {
+		emit(with(req, map[string]any{"body": "x", "bodyEncoding": 7}))
+	},
+	"bad-base64": func(req request) {
+		emit(with(req, map[string]any{"body": "!!not base64!!", "bodyEncoding": "base64"}))
+	},
+	"bad-headers":       func(req request) { emit(with(req, map[string]any{"headers": []any{}})) },
+	"bad-header-scalar": func(req request) { emit(with(req, map[string]any{"headers": map[string]any{"broken": 7}})) },
+	"bad-header-list": func(req request) {
+		emit(with(req, map[string]any{"headers": map[string]any{"broken": []any{7}}}))
+	},
+	"bad-cookies":     func(req request) { emit(with(req, map[string]any{"cookies": map[string]any{}})) },
+	"bad-cookie-item": func(req request) { emit(with(req, map[string]any{"cookies": []any{7}})) },
+	"legacy-headers": func(req request) {
+		emit(with(req, map[string]any{"headers": map[string]string{"content-type": "application/json"}}))
+	},
+	"null-headers":  func(req request) { emit(with(req, map[string]any{"headers": nil})) },
+	"fixture":       func(req request) { emit(replay(req, "response.json")) },
+	"fixture-text":  func(req request) { emit(replay(req, "response-text.json")) },
+	"fixture-error": func(req request) { emit(replay(req, "response-error.json")) },
+	"garbage":       func(request) { raw("not json at all\n") },
+	"null-line":     func(request) { raw("null\n") },
+	"no-id": func(req request) {
+		emit(map[string]any{"status": 200, "body": "anonymous"})
+		after(50*time.Millisecond, func() { emit(answer(req)) })
+	},
+	"wrong-id": func(req request) {
+		emit(map[string]any{"id": req.ID + 1000, "status": 200, "body": "stray"})
+		after(50*time.Millisecond, func() { emit(answer(req)) })
+	},
+	"trailing-lines": func(req request) {
+		emit(answer(req))
+		after(10*time.Millisecond, func() {
+			raw("not json at all\n")
+			emit(map[string]any{"status": 200, "body": "orphan"})
+		})
+	},
+	// The client's deadline is the only thing that ends this request.
+	"silent": func(request) {},
+	"slow":   func(req request) { after(400*time.Millisecond, func() { emit(answer(req)) }) },
+	"exit":   func(request) { os.Exit(3) },
+	// Answers, and dies while nobody is asking it anything.
+	"answer-then-exit": func(req request) {
+		emit(answer(req))
+		after(50*time.Millisecond, func() { os.Exit(4) })
+	},
+	// Never answers, and reads nothing more: the end of its input is not
+	// noticed, and it has to be stopped.
+	"stubborn": func(request) { time.Sleep(30 * time.Second) },
+	// Answers, and keeps running after closing the read side: the client sees
+	// a dead pipe rather than a process exit on its next write.
+	"deaf": func(req request) {
+		emit(answer(req))
+		_ = os.Stdin.Close()
+		time.Sleep(30 * time.Second)
+	},
+	"stderr": func(req request) {
+		_, _ = fmt.Fprintln(os.Stderr, "a note on stderr")
+		time.Sleep(50 * time.Millisecond)
+		emit(answer(req))
+	},
+	"stderr-chunks": func(req request) {
+		_, _ = fmt.Fprint(os.Stderr, "one logical")
+		time.Sleep(5 * time.Millisecond)
+		_, _ = fmt.Fprint(os.Stderr, " line\nsecond line\n")
+		emit(answer(req))
+	},
+}
+
+// blank is the answer to a control line, with extra laid over it.
+func blank(req request, extra map[string]any) map[string]any {
+	out := map[string]any{"id": req.ID, "status": 0, "url": "", "body": "", "headers": nil, "cookies": nil}
+	for name, value := range extra {
+		out[name] = value
+	}
+	return out
+}
+
+// protocols are what hello is answered with, by TLSFORGE_TEST_PROTOCOL:
+// protocol 2 with TLSFORGE_TEST_CAPABILITIES when it says nothing.
+var protocols = map[string]func(request){
+	"": func(req request) {
 		extra := map[string]any{"protocol": 2}
 		if names := strings.Split(os.Getenv("TLSFORGE_TEST_CAPABILITIES"), ","); names[0] != "" {
 			extra["capabilities"] = slices.DeleteFunc(names, func(name string) bool { return name == "" })
 		}
-		emit(blank(extra))
+		emit(blank(req, extra))
+	},
+	"1":           func(req request) { emit(blank(req, map[string]any{"error": "bad request: no url"})) },
+	"fixture":     func(req request) { emit(replay(req, "response-hello.json")) },
+	"fixture-old": func(req request) { emit(replay(req, "response-hello-old.json")) },
+	"bad":         func(req request) { emit(blank(req, map[string]any{"protocol": "two"})) },
+	"bool":        func(req request) { emit(blank(req, map[string]any{"protocol": true})) },
+	"bad-capabilities": func(req request) {
+		emit(blank(req, map[string]any{"protocol": 2, "capabilities": []any{7}}))
+	},
+	"no-capabilities": func(req request) {
+		emit(blank(req, map[string]any{"protocol": 2, "capabilities": "all"}))
+	},
+	"low":    func(req request) { emit(blank(req, map[string]any{"protocol": 1})) },
+	"silent": func(request) {},
+	"exit":   func(request) { os.Exit(3) },
+}
+
+// control answers a control line: "scenarios" with what this fake answers,
+// for the suite that holds it to scenarios.json, and hello as
+// TLSFORGE_TEST_PROTOCOL says.
+func control(req request) {
+	if *req.Control == "scenarios" {
+		emit(map[string]any{
+			"id": req.ID, "requests": slices.Sorted(maps.Keys(scenarios)),
+			"protocols": slices.Sorted(maps.Keys(protocols)),
+		})
+		return
 	}
+	mode := os.Getenv("TLSFORGE_TEST_PROTOCOL")
+	answerHello, known := protocols[mode]
+	if !known {
+		emit(blank(req, map[string]any{"error": fmt.Sprintf("unknown protocol mode %q", mode)}))
+		return
+	}
+	answerHello(req)
 }
 
 func answer(req request) map[string]any {

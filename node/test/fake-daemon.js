@@ -7,6 +7,9 @@
 // URL. That is the point: the interesting code in the client is what it does
 // with a late answer, a garbage line or a dead pipe, and none of those are
 // reproducible against a healthy server.
+//
+// The scenarios are the ones testdata/fake-daemon/scenarios.json names, and
+// every fake answers the same ones: see that file.
 
 import readline from 'node:readline';
 import { readFileSync } from 'node:fs';
@@ -31,197 +34,176 @@ const reader = readline.createInterface({ input: process.stdin });
 let controls = 0;
 let requests = 0;
 
+const write = (value) => process.stdout.write(JSON.stringify(value) + '\n');
+const raw = (line) => process.stdout.write(line);
+const fixture = (name) =>
+  JSON.parse(readFileSync(path.join(here, '..', '..', 'testdata', 'protocol', name), 'utf8'));
+
+// answer is a 200 to request, its body saying what reached this process, with
+// extra laid over it.
+function answer(request, extra = {}) {
+  return {
+    id: request.id,
+    status: 200,
+    url: request.url,
+    body: JSON.stringify({
+      argv: process.argv.slice(2),
+      env: { TLSFORGE_PROXY: process.env.TLSFORGE_PROXY ?? null },
+      // Which process answered, and how much of a body reached it: a
+      // request refused before it was sent must leave both as they were.
+      pid: process.pid,
+      bodyLength: (request.body ?? '').length,
+      headers: request.headers ?? {},
+      order: request.order ?? [],
+      cookies: request.setCookie ?? [],
+      // The browser context, as the transport was given it.
+      browser: request.browser ?? null,
+      sent: Object.keys(request).sort(),
+      controls,
+      requests,
+    }),
+    headers: { 'content-type': ['application/json'], 'set-cookie': ['a=1', 'b=2'] },
+    cookies: [],
+    ...extra,
+  };
+}
+
+const reply = (request, extra) => write(answer(request, extra));
+
+// What a request is answered with, by the host of its URL.
+const scenarios = {
+  ok: (request) => reply(request),
+  error: (request) => write({ id: request.id, error: 'upstream refused' }),
+  // What the transport really sends when a request fails: the shape is whole.
+  'null-fields': (request) =>
+    write({ id: request.id, status: 0, url: '', body: '', headers: null, cookies: null }),
+  'null-values': (request) => reply(request, { status: null, url: null, body: null, headers: null, cookies: null }),
+  'bad-error': (request) => reply(request, { error: {} }),
+  'bad-status': (request) => reply(request, { status: '200' }),
+  'bad-url': (request) => reply(request, { url: 7 }),
+  'bad-body': (request) => reply(request, { body: [] }),
+  // The bytes a JSON string cannot hold: PNG magic and a stray 0xff.
+  binary: (request) =>
+    reply(request, {
+      body: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff]).toString('base64'),
+      bodyEncoding: 'base64',
+    }),
+  // Hands back what it was sent, so the request direction can be checked.
+  'echo-body': (request) => reply(request, { body: request.body ?? '', bodyEncoding: request.bodyEncoding ?? '' }),
+  'utf8-encoding': (request) => reply(request, { body: 'plain text', bodyEncoding: 'utf8' }),
+  'bad-body-encoding': (request) => reply(request, { body: 'x', bodyEncoding: 'rot13' }),
+  'bad-body-encoding-type': (request) => reply(request, { body: 'x', bodyEncoding: 7 }),
+  'bad-base64': (request) => reply(request, { body: '!!not base64!!', bodyEncoding: 'base64' }),
+  'bad-headers': (request) => reply(request, { headers: [] }),
+  'bad-header-scalar': (request) => reply(request, { headers: { broken: 7 } }),
+  'bad-header-list': (request) => reply(request, { headers: { broken: [7] } }),
+  'bad-cookies': (request) => reply(request, { cookies: {} }),
+  'bad-cookie-item': (request) => reply(request, { cookies: [7] }),
+  'legacy-headers': (request) => reply(request, { headers: { 'content-type': 'application/json' } }),
+  'null-headers': (request) => reply(request, { headers: null }),
+  // The committed wire format, replayed verbatim except for the id, which the
+  // client matches on. See testdata/protocol/README.md.
+  fixture: (request) => write({ ...fixture('response.json'), id: request.id }),
+  'fixture-text': (request) => write({ ...fixture('response-text.json'), id: request.id }),
+  'fixture-error': (request) => write({ ...fixture('response-error.json'), id: request.id }),
+  garbage: () => raw('not json at all\n'),
+  'null-line': () => raw('null\n'),
+  'no-id': (request) => {
+    write({ status: 200, body: 'anonymous' });
+    setTimeout(() => reply(request), 50);
+  },
+  'wrong-id': (request) => {
+    write({ id: request.id + 1000, status: 200, body: 'stray' });
+    // …then the right one, so the request still completes and the test can
+    // assert the stray line was ignored rather than merely slow.
+    setTimeout(() => reply(request), 10);
+  },
+  'trailing-lines': (request) => {
+    reply(request);
+    setTimeout(() => {
+      raw('not json at all\n');
+      write({ status: 200, body: 'orphan' });
+    }, 10);
+  },
+  // Never answers. The client's deadline is the only thing that ends this.
+  silent: () => {},
+  slow: (request) => setTimeout(() => reply(request), 400),
+  exit: () => process.exit(3),
+  // Answers, and dies while nobody is asking it anything.
+  'answer-then-exit': (request) => {
+    reply(request);
+    setTimeout(() => process.exit(4), 50);
+  },
+  // Never answers, and reads nothing more: the end of its input is not
+  // noticed, and it has to be stopped.
+  stubborn: () => {
+    reader.close();
+    process.stdin.pause();
+    setTimeout(() => {}, 30_000);
+  },
+  // Answers, and then reads nothing more, for as long as it is left running:
+  // its client finds a pipe nobody reads rather than a process that exited.
+  deaf: (request) => {
+    reply(request);
+    reader.close();
+    process.stdin.destroy();
+    setTimeout(() => {}, 30_000);
+  },
+  stderr: (request) => {
+    process.stderr.write('a note on stderr\n');
+    reply(request);
+  },
+  'stderr-chunks': (request) => {
+    process.stderr.write('one logical');
+    setTimeout(() => {
+      process.stderr.write(' line\nsecond line\n');
+      reply(request);
+    }, 5);
+  },
+};
+
+// What hello is answered with, by TLSFORGE_TEST_PROTOCOL: protocol 2 with
+// TLSFORGE_TEST_CAPABILITIES when it says nothing.
+const blank = (request, extra) => ({ id: request.id, status: 0, url: '', body: '', headers: null, cookies: null, ...extra });
+const protocols = {
+  '': (request) => {
+    const capabilities = (process.env.TLSFORGE_TEST_CAPABILITIES ?? '').split(',').filter(Boolean);
+    write(blank(request, { protocol: 2, ...(capabilities.length ? { capabilities } : {}) }));
+  },
+  1: (request) => write(blank(request, { error: 'bad request: no url' })),
+  fixture: (request) => write({ ...fixture('response-hello.json'), id: request.id }),
+  'fixture-old': (request) => write({ ...fixture('response-hello-old.json'), id: request.id }),
+  bad: (request) => write(blank(request, { protocol: 'two' })),
+  bool: (request) => write(blank(request, { protocol: true })),
+  'bad-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: [7] })),
+  'no-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: 'all' })),
+  low: (request) => write(blank(request, { protocol: 1 })),
+  silent: () => {},
+  exit: () => process.exit(3),
+};
+
 reader.on('line', (line) => {
   let request;
   try {
     request = JSON.parse(line);
   } catch {
-    process.stdout.write('{"id":0,"error":"bad request"}\n');
+    raw('{"id":0,"error":"bad request"}\n');
     return;
   }
 
-  // A control line, which a daemon answers with what it is: as TLSFORGE_TEST_PROTOCOL
-  // says, protocol 2 with TLSFORGE_TEST_CAPABILITIES when it says nothing.
   if (request.control !== undefined) {
     controls += 1;
-    const answer = { id: request.id, status: 0, url: '', body: '', headers: null, cookies: null };
-    const fixture = (name) =>
-      JSON.parse(readFileSync(path.join(here, '..', '..', 'testdata', 'protocol', name), 'utf8'));
-    const capabilities = (process.env.TLSFORGE_TEST_CAPABILITIES ?? '').split(',').filter(Boolean);
-    const replies = {
-      1: { ...answer, error: 'bad request: no url' },
-      fixture: { ...fixture('response-hello.json'), id: request.id },
-      'fixture-old': { ...fixture('response-hello-old.json'), id: request.id },
-      bad: { ...answer, protocol: 'two' },
-      'bad-capabilities': { ...answer, protocol: 2, capabilities: [7] },
-      'no-capabilities': { ...answer, protocol: 2, capabilities: 'all' },
-      low: { ...answer, protocol: 1 },
-    };
+    // What this fake answers, for the suite that holds it to scenarios.json.
+    if (request.control === 'scenarios') {
+      write({ id: request.id, requests: Object.keys(scenarios).sort(), protocols: Object.keys(protocols).sort() });
+      return;
+    }
     const mode = process.env.TLSFORGE_TEST_PROTOCOL ?? '';
-    if (mode === 'silent') return;
-    if (mode === 'exit') process.exit(3);
-    const reply = replies[mode] ?? { ...answer, protocol: 2, ...(capabilities.length ? { capabilities } : {}) };
-    process.stdout.write(JSON.stringify(reply) + '\n');
+    (protocols[mode] ?? ((request) => write(blank(request, { error: `unknown protocol mode "${mode}"` }))))(request);
     return;
   }
 
   requests += 1;
   const behaviour = new URL(request.url).host;
-  const reply = (extra) =>
-    process.stdout.write(
-      JSON.stringify({
-        id: request.id,
-        status: 200,
-        url: request.url,
-        body: JSON.stringify({
-          argv: process.argv.slice(2),
-          env: { TLSFORGE_PROXY: process.env.TLSFORGE_PROXY ?? null },
-          // Which process answered, and how much of a body reached it: a
-          // request refused before it was sent must leave both as they were.
-          pid: process.pid,
-          bodyLength: (request.body ?? '').length,
-          headers: request.headers ?? {},
-          order: request.order ?? [],
-          cookies: request.setCookie ?? [],
-          // The browser context, as the transport was given it.
-          browser: request.browser ?? null,
-          sent: Object.keys(request).sort(),
-          controls,
-          requests,
-        }),
-        headers: { 'content-type': ['application/json'], 'set-cookie': ['a=1', 'b=2'] },
-        cookies: [],
-        ...extra,
-      }) + '\n',
-    );
-
-  switch (behaviour) {
-    case 'ok':
-      reply();
-      break;
-    case 'error':
-      process.stdout.write(JSON.stringify({ id: request.id, error: 'upstream refused' }) + '\n');
-      break;
-    case 'garbage':
-      process.stdout.write('not json at all\n');
-      break;
-    case 'null-line':
-      process.stdout.write('null\n');
-      break;
-    case 'wrong-id':
-      process.stdout.write(JSON.stringify({ id: request.id + 1000, status: 200, body: 'stray' }) + '\n');
-      // …then the right one, so the request still completes and the test can
-      // assert the stray line was ignored rather than merely slow.
-      setTimeout(() => reply(), 10);
-      break;
-    case 'silent':
-      // Never answers. The client's deadline is the only thing that ends this.
-      break;
-    case 'slow':
-      setTimeout(() => reply(), 400);
-      break;
-    case 'exit':
-      process.exit(3);
-      break;
-    case 'answer-then-exit':
-      // Answers, and dies while nobody is asking it anything.
-      reply();
-      setTimeout(() => process.exit(4), 50);
-      break;
-    case 'stderr':
-      process.stderr.write('a note on stderr\n');
-      reply();
-      break;
-    case 'stderr-chunks':
-      process.stderr.write('one logical');
-      setTimeout(() => {
-        process.stderr.write(' line\nsecond line\n');
-        reply();
-      }, 5);
-      break;
-    case 'legacy-headers':
-      reply({ headers: { 'content-type': 'application/json' } });
-      break;
-    case 'null-headers':
-      reply({ headers: null });
-      break;
-    case 'null-fields':
-      reply({ status: null, url: null, body: null, headers: null, cookies: null });
-      break;
-    case 'bad-error':
-      reply({ error: {} });
-      break;
-    case 'bad-status':
-      reply({ status: '200' });
-      break;
-    case 'bad-url':
-      reply({ url: 7 });
-      break;
-    case 'bad-body':
-      reply({ body: [] });
-      break;
-    case 'fixture':
-    case 'fixture-text':
-    case 'fixture-error': {
-      // The committed wire format, replayed verbatim except for the id, which
-      // the client matches on. See testdata/protocol/README.md.
-      const name = {
-        fixture: 'response.json',
-        'fixture-text': 'response-text.json',
-        'fixture-error': 'response-error.json',
-      }[behaviour];
-      const fixture = JSON.parse(
-        readFileSync(path.join(here, '..', '..', 'testdata', 'protocol', name), 'utf8'),
-      );
-      process.stdout.write(JSON.stringify({ ...fixture, id: request.id }) + '\n');
-      break;
-    }
-    case 'binary':
-      // The bytes a JSON string cannot hold: PNG magic and a stray 0xff.
-      reply({
-        body: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff]).toString('base64'),
-        bodyEncoding: 'base64',
-      });
-      break;
-    case 'echo-body':
-      // Hands back what it was sent, so the request direction can be checked.
-      reply({ body: request.body ?? '', bodyEncoding: request.bodyEncoding ?? '' });
-      break;
-    case 'utf8-encoding':
-      reply({ body: 'plain text', bodyEncoding: 'utf8' });
-      break;
-    case 'bad-body-encoding':
-      reply({ body: 'x', bodyEncoding: 'rot13' });
-      break;
-    case 'bad-body-encoding-type':
-      reply({ body: 'x', bodyEncoding: 7 });
-      break;
-    case 'bad-base64':
-      reply({ body: '!!not base64!!', bodyEncoding: 'base64' });
-      break;
-    case 'bad-headers':
-      reply({ headers: [] });
-      break;
-    case 'bad-header-scalar':
-      reply({ headers: { broken: 7 } });
-      break;
-    case 'bad-header-list':
-      reply({ headers: { broken: [7] } });
-      break;
-    case 'bad-cookies':
-      reply({ cookies: {} });
-      break;
-    case 'bad-cookie-item':
-      reply({ cookies: [7] });
-      break;
-    case 'trailing-lines':
-      reply();
-      setTimeout(() => {
-        process.stdout.write('not json at all\n');
-        process.stdout.write(JSON.stringify({ status: 200, body: 'orphan' }) + '\n');
-      }, 10);
-      break;
-    default:
-      reply({ status: 404 });
-  }
+  (scenarios[behaviour] ?? ((request) => write({ id: request.id, error: `unknown scenario "${behaviour}"` })))(request);
 });

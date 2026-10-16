@@ -426,14 +426,17 @@ test('legacy scalar and null response headers are normalised', async () => {
 });
 
 test('null response fields are normalised to the public response shape', async () => {
-  const c = fake();
-  const response = await c.get('https://null-fields/x');
-  assert.equal(response.status, 0);
-  assert.equal(response.url, '');
-  assert.equal(response.body, '');
-  assert.deepEqual(response.headers, {});
-  assert.deepEqual(response.cookies, []);
-  c.close();
+  // What the transport sends on a failure, and every field null.
+  for (const scenario of ['null-fields', 'null-values']) {
+    const c = fake();
+    const response = await c.get(`https://${scenario}/x`);
+    assert.equal(response.status, 0);
+    assert.equal(response.url, '');
+    assert.equal(response.body, '');
+    assert.deepEqual(response.headers, {});
+    assert.deepEqual(response.cookies, []);
+    c.close();
+  }
 });
 
 test('an unencodable request does not block the queue', async () => {

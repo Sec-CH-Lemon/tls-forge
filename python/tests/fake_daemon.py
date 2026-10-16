@@ -7,6 +7,9 @@ happen when something has gone wrong — is reachable by asking for it in the UR
 That is the point: the interesting code in the client is what it does with a
 late answer, a garbage line or a dead pipe, and none of those are reproducible
 against a healthy server.
+
+The scenarios are the ones testdata/fake-daemon/scenarios.json names, and every
+fake answers the same ones: see that file.
 """
 
 from __future__ import annotations
@@ -17,8 +20,10 @@ import os
 import sys
 import threading
 import time
+from typing import Callable
 from urllib.parse import urlsplit
 
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 #: How many control lines and requests this process has read: what a client
 #: sent, which a test of what it did not send reads back.
@@ -28,6 +33,16 @@ SEEN = {"controls": 0, "requests": 0}
 def emit(obj: dict) -> None:
     sys.stdout.write(json.dumps(obj) + "\n")
     sys.stdout.flush()
+
+
+def raw(line: str) -> None:
+    sys.stdout.write(line)
+    sys.stdout.flush()
+
+
+def fixture(name: str) -> dict:
+    with open(os.path.join(HERE, "..", "..", "testdata", "protocol", name), encoding="utf-8") as f:
+        return json.load(f)
 
 
 def answer(request: dict, **extra: object) -> dict:
@@ -65,34 +80,166 @@ def answer(request: dict, **extra: object) -> dict:
     }
 
 
-def control(request: dict) -> None:
-    """Answer a control line with what the transport is: as TLSFORGE_TEST_PROTOCOL
-    says, protocol 2 with TLSFORGE_TEST_CAPABILITIES when it says nothing."""
-    mode = os.environ.get("TLSFORGE_TEST_PROTOCOL", "")
-    if mode == "silent":
-        return
-    if mode == "exit":
-        sys.exit(3)
-    blank = {"id": request["id"], "status": 0, "url": "", "body": "", "headers": None, "cookies": None}
-    here = os.path.dirname(os.path.abspath(__file__))
+def later(seconds: float, fn: Callable[[], None]) -> None:
+    threading.Timer(seconds, fn).start()
 
-    def fixture(name: str) -> dict:
-        with open(os.path.join(here, "..", "..", "testdata", "protocol", name), encoding="utf-8") as f:
-            return {**json.load(f), "id": request["id"]}
 
+def _no_id(request: dict) -> None:
+    emit({"status": 200, "body": "anonymous"})
+    later(0.05, lambda: emit(answer(request)))
+
+
+def _wrong_id(request: dict) -> None:
+    emit({"id": request["id"] + 1000, "status": 200, "body": "stray"})
+    # …then the right one, so the request still completes and the test can
+    # assert the stray line was ignored rather than merely slow.
+    later(0.05, lambda: emit(answer(request)))
+
+
+def _trailing_lines(request: dict) -> None:
+    emit(answer(request))
+
+    def after() -> None:
+        raw("not json at all\n")
+        emit({"status": 200, "body": "orphan"})
+
+    later(0.01, after)
+
+
+def _stubborn(_request: dict) -> None:
+    # Never answers, and reads nothing more: the end of its input is not
+    # noticed, and it has to be stopped.
+    time.sleep(30)
+
+
+def _deaf(request: dict) -> None:
+    # Answers, and then reads nothing more, for as long as it is left running:
+    # its client finds a pipe nobody reads rather than a process that exited.
+    emit(answer(request))
+    sys.stdin.close()
+    time.sleep(30)
+
+
+def _answer_then_exit(request: dict) -> None:
+    # Answers, and dies while nobody is asking it anything.
+    emit(answer(request))
+    later(0.05, lambda: os._exit(4))
+
+
+def _stderr(request: dict) -> None:
+    sys.stderr.write("a note on stderr\n")
+    sys.stderr.flush()
+    time.sleep(0.05)
+    emit(answer(request))
+
+
+def _stderr_chunks(request: dict) -> None:
+    sys.stderr.write("one logical")
+    sys.stderr.flush()
+    time.sleep(0.005)
+    sys.stderr.write(" line\nsecond line\n")
+    sys.stderr.flush()
+    emit(answer(request))
+
+
+def _exit(_request: dict) -> None:
+    sys.exit(3)
+
+
+#: The bytes a JSON string cannot hold: PNG magic and a stray 0xff.
+_BINARY = base64.b64encode(bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0xFF])).decode("ascii")
+
+#: What a request is answered with, by the host of its URL.
+SCENARIOS: dict[str, Callable[[dict], None]] = {
+    "ok": lambda request: emit(answer(request)),
+    "error": lambda request: emit({"id": request["id"], "error": "upstream refused"}),
+    # What the transport really sends when a request fails: the shape is whole.
+    "null-fields": lambda request: emit(
+        {"id": request["id"], "status": 0, "url": "", "body": "", "headers": None, "cookies": None}
+    ),
+    "null-values": lambda request: emit(
+        answer(request, status=None, url=None, body=None, headers=None, cookies=None)
+    ),
+    "bad-error": lambda request: emit(answer(request, error={})),
+    "bad-status": lambda request: emit(answer(request, status="200")),
+    "bad-url": lambda request: emit(answer(request, url=7)),
+    "bad-body": lambda request: emit(answer(request, body=[])),
+    "binary": lambda request: emit(answer(request, body=_BINARY, bodyEncoding="base64")),
+    # Hands back what it was sent, so the request direction can be checked.
+    "echo-body": lambda request: emit(
+        answer(request, body=request.get("body", ""), bodyEncoding=request.get("bodyEncoding", ""))
+    ),
+    "utf8-encoding": lambda request: emit(answer(request, body="plain text", bodyEncoding="utf8")),
+    "bad-body-encoding": lambda request: emit(answer(request, body="x", bodyEncoding="rot13")),
+    "bad-body-encoding-type": lambda request: emit(answer(request, body="x", bodyEncoding=7)),
+    "bad-base64": lambda request: emit(answer(request, body="!!not base64!!", bodyEncoding="base64")),
+    "bad-headers": lambda request: emit(answer(request, headers=[])),
+    "bad-header-scalar": lambda request: emit(answer(request, headers={"broken": 7})),
+    "bad-header-list": lambda request: emit(answer(request, headers={"broken": [7]})),
+    "bad-cookies": lambda request: emit(answer(request, cookies={})),
+    "bad-cookie-item": lambda request: emit(answer(request, cookies=[7])),
+    "legacy-headers": lambda request: emit(answer(request, headers={"content-type": "application/json"})),
+    "null-headers": lambda request: emit(answer(request, headers=None)),
+    # The committed wire format, replayed verbatim except for the id, which the
+    # client matches on. See testdata/protocol/README.md.
+    "fixture": lambda request: emit({**fixture("response.json"), "id": request["id"]}),
+    "fixture-text": lambda request: emit({**fixture("response-text.json"), "id": request["id"]}),
+    "fixture-error": lambda request: emit({**fixture("response-error.json"), "id": request["id"]}),
+    "garbage": lambda _request: raw("not json at all\n"),
+    "null-line": lambda _request: raw("null\n"),
+    "no-id": _no_id,
+    "wrong-id": _wrong_id,
+    "trailing-lines": _trailing_lines,
+    # Never answers. The client's deadline is the only thing that ends this.
+    "silent": lambda _request: None,
+    "slow": lambda request: later(0.4, lambda: emit(answer(request))),
+    "exit": _exit,
+    "answer-then-exit": _answer_then_exit,
+    "stubborn": _stubborn,
+    "deaf": _deaf,
+    "stderr": _stderr,
+    "stderr-chunks": _stderr_chunks,
+}
+
+
+def _blank(request: dict, **extra: object) -> dict:
+    return {"id": request["id"], "status": 0, "url": "", "body": "", "headers": None, "cookies": None, **extra}
+
+
+def _hello(request: dict) -> None:
     capabilities = [name for name in os.environ.get("TLSFORGE_TEST_CAPABILITIES", "").split(",") if name]
-    replies = {
-        "1": lambda: {**blank, "error": "bad request: no url"},
-        "fixture": lambda: fixture("response-hello.json"),
-        "fixture-old": lambda: fixture("response-hello-old.json"),
-        "bad": lambda: {**blank, "protocol": "two"},
-        "bool": lambda: {**blank, "protocol": True},
-        "bad-capabilities": lambda: {**blank, "protocol": 2, "capabilities": [7]},
-        "no-capabilities": lambda: {**blank, "protocol": 2, "capabilities": "all"},
-        "low": lambda: {**blank, "protocol": 1},
-    }
-    default = {**blank, "protocol": 2, **({"capabilities": capabilities} if capabilities else {})}
-    emit(replies[mode]() if mode in replies else default)
+    emit(_blank(request, protocol=2, **({"capabilities": capabilities} if capabilities else {})))
+
+
+#: What hello is answered with, by TLSFORGE_TEST_PROTOCOL: protocol 2 with
+#: TLSFORGE_TEST_CAPABILITIES when it says nothing.
+PROTOCOLS: dict[str, Callable[[dict], None]] = {
+    "": _hello,
+    "1": lambda request: emit(_blank(request, error="bad request: no url")),
+    "fixture": lambda request: emit({**fixture("response-hello.json"), "id": request["id"]}),
+    "fixture-old": lambda request: emit({**fixture("response-hello-old.json"), "id": request["id"]}),
+    "bad": lambda request: emit(_blank(request, protocol="two")),
+    "bool": lambda request: emit(_blank(request, protocol=True)),
+    "bad-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities=[7])),
+    "no-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities="all")),
+    "low": lambda request: emit(_blank(request, protocol=1)),
+    "silent": lambda _request: None,
+    "exit": _exit,
+}
+
+
+def control(request: dict) -> None:
+    """Answer a control line: "scenarios" with what this fake answers, for the
+    suite that holds it to scenarios.json, and hello as TLSFORGE_TEST_PROTOCOL
+    says."""
+    if request["control"] == "scenarios":
+        emit({"id": request["id"], "requests": sorted(SCENARIOS), "protocols": sorted(PROTOCOLS)})
+        return
+    mode = os.environ.get("TLSFORGE_TEST_PROTOCOL", "")
+    if mode not in PROTOCOLS:
+        emit(_blank(request, error=f'unknown protocol mode "{mode}"'))
+        return
+    PROTOCOLS[mode](request)
 
 
 def refuses() -> bool:
@@ -129,98 +276,10 @@ def main() -> None:
         SEEN["requests"] += 1
 
         behaviour = urlsplit(request["url"]).hostname
-
-        if behaviour == "ok":
-            emit(answer(request))
-        elif behaviour == "error":
-            emit({"id": request["id"], "error": "upstream refused"})
-        elif behaviour == "null-fields":
-            # What the transport really sends when a request fails: the shape is
-            # whole, the fields are null.
-            emit({"id": request["id"], "status": 0, "url": "", "body": "",
-                  "headers": None, "cookies": None})
-        elif behaviour == "bad-error":
-            emit(answer(request, error={}))
-        elif behaviour == "bad-status":
-            emit(answer(request, status="200"))
-        elif behaviour == "bad-url":
-            emit(answer(request, url=7))
-        elif behaviour == "bad-body":
-            emit(answer(request, body=[]))
-        elif behaviour == "binary":
-            # The bytes a JSON string cannot hold: PNG magic and a stray 0xff.
-            raw = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0xFF])
-            emit(
-                answer(
-                    request,
-                    body=base64.b64encode(raw).decode("ascii"),
-                    bodyEncoding="base64",
-                )
-            )
-        elif behaviour == "echo-body":
-            # Hands back what it was sent, so the request direction can be checked.
-            emit(
-                answer(
-                    request,
-                    body=request.get("body", ""),
-                    bodyEncoding=request.get("bodyEncoding", ""),
-                )
-            )
-        elif behaviour == "utf8-encoding":
-            emit(answer(request, body="plain text", bodyEncoding="utf8"))
-        elif behaviour == "bad-body-encoding":
-            emit(answer(request, body="x", bodyEncoding="rot13"))
-        elif behaviour == "bad-body-encoding-type":
-            emit(answer(request, body="x", bodyEncoding=7))
-        elif behaviour == "bad-base64":
-            emit(answer(request, body="!!not base64!!", bodyEncoding="base64"))
-        elif behaviour == "bad-headers":
-            emit(answer(request, headers=[]))
-        elif behaviour == "bad-header-scalar":
-            emit(answer(request, headers={"broken": 7}))
-        elif behaviour == "bad-header-list":
-            emit(answer(request, headers={"broken": [7]}))
-        elif behaviour == "bad-cookies":
-            emit(answer(request, cookies={}))
-        elif behaviour == "bad-cookie-item":
-            emit(answer(request, cookies=[7]))
-        elif behaviour == "garbage":
-            sys.stdout.write("not json at all\n")
-            sys.stdout.flush()
-        elif behaviour == "null-line":
-            sys.stdout.write("null\n")
-            sys.stdout.flush()
-        elif behaviour == "no-id":
-            emit({"status": 200, "body": "anonymous"})
-            threading.Timer(0.05, lambda: emit(answer(request))).start()
-        elif behaviour == "wrong-id":
-            emit({"id": request["id"] + 1000, "status": 200, "body": "stray"})
-            # …then the right one, so the request still completes and the test
-            # can assert the stray line was ignored rather than merely slow.
-            threading.Timer(0.05, lambda: emit(answer(request))).start()
-        elif behaviour == "silent":
-            pass  # Never answers. The client's deadline is the only thing that ends this.
-        elif behaviour == "slow":
-            threading.Timer(0.4, lambda: emit(answer(request))).start()
-        elif behaviour == "exit":
-            sys.exit(3)
-        elif behaviour == "stubborn":
-            # Never answers, and reads nothing more: the end of its input is
-            # not noticed, and it has to be stopped.
-            time.sleep(30)
-        elif behaviour == "answer-then-exit":
-            # Answers, and dies while nobody is asking it anything.
-            emit(answer(request))
-            threading.Timer(0.05, lambda: os._exit(4)).start()
-        elif behaviour == "stderr":
-            sys.stderr.write("a note on stderr\n")
-            sys.stderr.flush()
-            time.sleep(0.05)
-            emit(answer(request))
-        elif behaviour == "legacy-headers":
-            emit(answer(request, headers={"content-type": "application/json"}))
-        else:
-            emit(answer(request, status=404))
+        if behaviour not in SCENARIOS:
+            emit({"id": request["id"], "error": f'unknown scenario "{behaviour}"'})
+            continue
+        SCENARIOS[behaviour](request)
 
 
 if __name__ == "__main__":
