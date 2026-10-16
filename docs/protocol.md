@@ -91,6 +91,12 @@ headers such as `set-cookie`. `cookies` is what the jar holds for that URL
 afterwards: an empty list when it holds nothing, and never `null` on an answer.
 `null` is how a failure, below, says it has no cookies to report.
 
+`body` has been decoded from any gzip, deflate, br or zstd it came in, and
+`headers` describe it decoded: `content-encoding` and `content-length` are left
+out once it is, so a client that passes the headers on with the body never
+tells the next reader to decode it again. A body in a coding Chrome does not
+know either comes as it came, its `content-encoding` with it.
+
 ### Bodies that are not text
 
 A JSON string cannot hold arbitrary bytes: an encoder replaces every byte that

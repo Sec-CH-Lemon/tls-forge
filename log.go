@@ -351,8 +351,11 @@ func (r *requestLog) ended(res *Response, err error) {
 			"timeout", isTimeout(err), "took", took)
 		return
 	}
-	r.log.Info("response", "status", res.Status, "bytes", len(res.Body), "url", redact.URL(res.URL),
-		"took", took)
+	attrs := []any{"status", res.Status, "bytes", len(res.Body), "url", redact.URL(res.URL)}
+	if res.Encoding != "" {
+		attrs = append(attrs, "decoded_from", res.Encoding)
+	}
+	r.log.Info("response", append(attrs, "took", took)...)
 }
 
 // What became of a tunnel, as connectDialer tells it.

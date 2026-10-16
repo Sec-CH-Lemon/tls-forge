@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import socket
 import threading
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
@@ -37,6 +38,44 @@ def test_python_decodes_bytes_emitted_by_the_real_go_daemon() -> None:
             response = client.get(f"http://127.0.0.1:{server.server_port}/binary")
         assert response.content == bytes([0x89, 0x50, 0x4E, 0x47, 0xFF, 0xD8, 0xFF])
         assert response.headers["set-cookie"] == ("a=1", "b=2")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+_PAGE = "a page worth compressing. " * 50
+
+
+class _DeflateHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        body = zlib.compress(_PAGE.encode())
+        self.send_response(200)
+        self.send_header("content-encoding", "deflate")
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, _format: str, *_args: object) -> None:
+        pass
+
+
+def test_a_deflate_page_arrives_decoded_with_fields_that_describe_it() -> None:
+    """deflate in the zlib form the name means: the transport used to hang on
+    it until the request's deadline."""
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _DeflateHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with Client(binary=binary, timeout=10) as client:
+            response = client.get(f"http://127.0.0.1:{server.server_port}/page")
+        assert response.body == _PAGE
+        assert "content-encoding" not in response.headers
+        assert "content-length" not in response.headers
     finally:
         server.shutdown()
         server.server_close()

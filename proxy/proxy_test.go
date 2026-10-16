@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -162,6 +164,57 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func TestACompressedAnswerReachesTheCallerDecodedOnce(t *testing.T) {
+	// Over HTTP/2 the transport used to decode a body and leave its
+	// Content-Encoding on. Passed on, the field told the caller to decode the
+	// page a second time, and a browser behind the proxy got an error page.
+	page := strings.Repeat("a page worth compressing. ", 50)
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	_, _ = writer.Write([]byte(page))
+	_ = writer.Close()
+	origin := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write(compressed.Bytes())
+	}))
+	origin.EnableHTTP2 = true
+	origin.StartTLS()
+	defer origin.Close()
+
+	client, err := tlsforge.New(tlsforge.WithInsecureSkipVerify(), tlsforge.WithoutCookieJar())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	ca := newCAForTest(t)
+	server, problems := startProxy(t, client, ca)
+
+	// A caller that decodes what it is told to, as browsers and curl
+	// --compressed do.
+	res, err := throughProxy(t, server, ca).Get(origin.URL + "/page")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("reading the page through the proxy: %v", err)
+	}
+	if string(body) != page {
+		t.Errorf("body = %q…, want the page", body[:min(len(body), 40)])
+	}
+	if got := res.Header.Get("Content-Encoding"); got != "" {
+		t.Errorf("Content-Encoding = %q reached the caller with a decoded body", got)
+	}
+	if res.ContentLength != int64(len(page)) {
+		t.Errorf("Content-Length = %d, want the decoded page's %d", res.ContentLength, len(page))
+	}
+	if reported := problems.list(); len(reported) != 0 {
+		t.Errorf("proxy reported: %v", reported)
+	}
 }
 
 func TestTheHeadersAreTheProfilesToo(t *testing.T) {

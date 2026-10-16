@@ -168,14 +168,23 @@ type Cookie struct {
 	Expires  time.Time
 }
 
-// Response is one HTTP response, with the body already read and decompressed.
+// Response is one HTTP response, with the body already read and decoded.
 type Response struct {
 	Status int
 	// URL is the final URL, after redirects.
-	URL     string
-	Header  map[string][]string
-	Body    []byte
-	Cookies []string
+	URL string
+	// Header describes Body. When Body was decoded from a content coding,
+	// Content-Encoding and Content-Length are left out of it: they said what
+	// came over the wire, and a caller that passed them on with Body would be
+	// telling the next reader to decode it again.
+	Header map[string][]string
+	Body   []byte
+	// Encoding is the content codings Body was decoded from, as a
+	// Content-Encoding field would list them ("gzip", "gzip, br"), or empty
+	// when Body is the bytes as they came. A body in a coding Chrome does not
+	// know is not decoded, and keeps its Content-Encoding in Header.
+	Encoding string
+	Cookies  []string
 }
 
 // Text returns the body as a string.
@@ -251,6 +260,11 @@ func New(opts ...Option) (*Client, error) {
 		// requests went over two connections.
 		tls_client.WithTransportOptions(&tls_client.TransportOptions{
 			MaxIdleConnsPerHost: 6,
+			// Bodies are decoded here rather than by the transport, which decodes
+			// some wrongly and adds an Accept-Encoding of its own: see
+			// encoding.go. A caller's WithTransportOption that sets transport
+			// options replaces these, and the transport decodes again.
+			DisableCompression: true,
 		}),
 	}
 	shuffleExtensions := prof.ShufflesExtensions()
@@ -502,19 +516,23 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		r.answered(res)
 	}
 
-	read, err := io.ReadAll(io.LimitReader(res.Body, c.maxBody+1))
-	if err != nil {
-		return nil, fmt.Errorf("tlsforge: reading body: %w", err)
+	answered := method
+	if res.Request != nil {
+		// The method of the request that was answered, which a redirect can
+		// have changed.
+		answered = res.Request.Method
 	}
-	if int64(len(read)) > c.maxBody {
-		return nil, fmt.Errorf("%w (limit %d bytes)", ErrResponseTooLarge, c.maxBody)
+	read, encoding, err := readBody(res, answered, c.maxBody)
+	if err != nil {
+		return nil, err
 	}
 
 	out := &Response{
-		Status: res.StatusCode,
-		URL:    req.URL,
-		Body:   read,
-		Header: map[string][]string{},
+		Status:   res.StatusCode,
+		URL:      req.URL,
+		Body:     read,
+		Encoding: encoding,
+		Header:   map[string][]string{},
 	}
 	cookieURL := parsed
 	if res.Request != nil && res.Request.URL != nil {
@@ -522,7 +540,11 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		cookieURL = res.Request.URL
 	}
 	for name, values := range res.Header {
-		out.Header[strings.ToLower(name)] = values
+		lower := strings.ToLower(name)
+		if encoding != "" && (lower == "content-encoding" || lower == "content-length") {
+			continue
+		}
+		out.Header[lower] = values
 	}
 	if c.jar != nil {
 		for _, cookie := range c.jar.Cookies(cookieURL) {

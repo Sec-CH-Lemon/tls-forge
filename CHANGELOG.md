@@ -13,6 +13,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `Response.Encoding` says which codings a body was decoded from, and the
+  `response` record of the log says it as `decoded_from`.
 - **What tls-forge reproduces of Chrome, and how each part is checked**, is
   one table: [docs/support.md](docs/support.md). It names what is checked
   against a capture or by `compare`, what is known to differ, and what is not
@@ -290,6 +292,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- A profile from tls-client's catalogue no longer sends the transport's own
+  `accept-encoding: gzip, deflate, br`: like every other header field, it goes
+  out only when given. A measured profile sends Chrome's, as before.
 - A client without a proxy dials through a dialer of tls-forge's own, with the
   timeout and local address the transport's would have had, so that the
   connections HTTP/2 dials apart from any request can be logged. A client
@@ -374,6 +379,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A compressed answer is decoded as Chrome decodes it, and its header
+  fields describe what is left.** A `deflate` body in the zlib form the name
+  means hung until the request's deadline, over HTTP/1.1 and HTTP/2; a raw
+  deflate body lost its first two bytes; and over HTTP/2 a gzip, br or zstd
+  body was decoded with its `content-encoding` and `content-length` left on,
+  so `tls-forge proxy` handed a browser behind it a page it could not decode,
+  and `daemon` gave the Node.js and Python clients fields that were not true
+  of the body. Bodies are now decoded by tls-forge from gzip, x-gzip, deflate
+  (zlib or raw), br and zstd, stacked in any order, with
+  `content-encoding` and `content-length` taken off once they are; a coding
+  Chrome does not know, a `206` range, an empty body and a `HEAD` are left as
+  they came, their fields with them. `WithMaxResponseBody` counts the decoded
+  bytes, so a small body that decodes to an enormous one stops at the limit,
+  and a zstd body that asks for a window over 8 MiB is refused, as Chrome
+  refuses it. An HTTP/1.1 answer that was not compressed keeps its
+  `content-length`, which the transport used to take off every one.
 - `daemon` answers a request whose session holds no cookies with
   `"cookies": []`, as the protocol document always showed, rather than `null`;
   `null` now only ever comes with `error`. The Node.js and Python clients read

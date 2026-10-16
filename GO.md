@@ -174,15 +174,21 @@ cookies received earlier in the session.
 
 ## Responses and errors
 
-The response body is already decompressed and read into memory, subject to the
-configured maximum.
+The response body is already decoded and read into memory, subject to the
+configured maximum, which counts the decoded bytes. A body is decoded as Chrome
+decodes it: from gzip, x-gzip, deflate (zlib, or the raw deflate some servers
+send under that name), br and zstd, in the reverse of the order they were
+applied. A body in a coding Chrome does not know either, one of a `206`'s
+ranges, an empty one and the answer to a `HEAD` are left as they came, with
+their `Content-Encoding`.
 
 | `Response` field or method | Meaning |
 |---|---|
 | `Status` | HTTP status code |
 | `URL` | Final URL after redirects |
-| `Header` | Lower-cased header names mapped to every field value |
-| `Body` | Decompressed `[]byte` body |
+| `Header` | Lower-cased header names mapped to every field value. They describe `Body`: once it is decoded, `content-encoding` and `content-length`, which described the bytes on the wire, are left out |
+| `Body` | Decoded `[]byte` body |
+| `Encoding` | The codings `Body` was decoded from, as a `Content-Encoding` field lists them (`gzip`, `gzip, br`), or empty when it is the bytes as they came |
 | `Cookies` | `name=value` pairs the jar holds for the final URL |
 | `Text()` | Body converted to `string` |
 | `OK()` | `true` for status codes from 200 through 299 |

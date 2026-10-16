@@ -766,7 +766,11 @@ out/trace-example.com-2026-08-16-091854-584-1.json
   `application/octet-stream`, or it names a type the list does not know, do
   the bytes decide: `.json` when they parse as JSON, then what
   `http.DetectContentType` recognises, else `.txt` for text and `.bin` for the
-  rest.
+  rest. A page that came compressed, as gzip, deflate, br or zstd, is kept
+  decoded, as a browser shows it, and the header fields that go with it in
+  `-i`, the JSON lines, the report and the trace describe it decoded:
+  `content-encoding` and `content-length` come off. A coding Chrome does not
+  know either is left as it came, its field with it.
 - The `.log` is the request written out for a person: what it was, the
   profile and the proxy it went with, where it came out, how it ended, and
   every try at it with what the proxy answered when it opened the tunnel,

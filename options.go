@@ -192,6 +192,14 @@ func WithLogger(log *slog.Logger) Option {
 // An escape hatch, on purpose: the alternative is either a wrapper for every
 // option the dependency has — a list that goes stale — or a hard stop for
 // callers who need one of them.
+//
+// One that sets the transport options (tls_client.WithTransportOptions)
+// replaces tls-forge's own along with them: six idle connections per host,
+// and leaving bodies to be decoded by tls-forge. The transport then decodes
+// gzip, deflate, br and zstd itself, the deflate it is sent as zlib only after
+// waiting out the request's deadline, and over HTTP/1.1 it takes
+// Content-Encoding off a body in any other coding, or in more than one,
+// without decoding it.
 func WithTransportOption(opts ...tls_client.HttpClientOption) Option {
 	return func(c *config) { c.extra = append(c.extra, opts...) }
 }

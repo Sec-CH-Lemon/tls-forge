@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import net from 'node:net';
 import { test } from 'node:test';
+import zlib from 'node:zlib';
 
 import { Client } from '../index.js';
 
@@ -21,6 +22,28 @@ test('the Node wrapper decodes bytes emitted by the real Go daemon', { skip: !bi
     const response = await client.get(`http://127.0.0.1:${address.port}/binary`);
     assert.deepEqual(response.content, want);
     assert.deepEqual(response.headers['set-cookie'], ['a=1', 'b=2']);
+  } finally {
+    client.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('a deflate page from the real Go daemon arrives decoded, its fields describing it', { skip: !binary }, async () => {
+  // deflate in the zlib form the name means: the transport used to hang on it
+  // until the request's deadline.
+  const page = 'a page worth compressing. '.repeat(50);
+  const server = http.createServer((_request, response) => {
+    response.setHeader('content-encoding', 'deflate');
+    response.end(zlib.deflateSync(page));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  const client = new Client({ binary, timeout: 10_000 });
+  try {
+    const response = await client.get(`http://127.0.0.1:${server.address().port}/page`);
+    assert.equal(response.body, page);
+    assert.equal(response.headers['content-encoding'], undefined);
+    assert.equal(response.headers['content-length'], undefined);
   } finally {
     client.close();
     await new Promise((resolve) => server.close(resolve));
