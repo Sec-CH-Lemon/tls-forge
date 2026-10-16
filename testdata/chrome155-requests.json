@@ -1,7 +1,7 @@
 {
  "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
- "measured": "2026-10-16",
- "how": "A local server answered three origins, www.example.com and api.example.com (one site) and www.example.net (another), mapped to 127.0.0.1 with --host-resolver-rules, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP; it kept every request as the bytes said it, headers in order with their values, and HTTP/2 the priority of its HEADERS frame (exclusive, stream it depends on, weight as on the wire). Each scenario ran in a fresh profile: a URL opened from the command line, or a page whose script navigated, submitted a form, called fetch() or sent an XHR. The pages that ran them, and the requests that set cookies for them, are left out, as are the port numbers.",
+ "measured": "2026-10-16, 2026-10-17",
+ "how": "A local server answered three origins, www.example.com and api.example.com (one site) and www.example.net (another), mapped to 127.0.0.1 with --host-resolver-rules, and localhost, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP; it kept every request as the bytes said it, headers in order with their values, and HTTP/2 the priority of its HEADERS frame (exclusive, stream it depends on, weight as on the wire). Each scenario ran in a fresh profile: a URL opened from the command line, or a page whose script navigated, submitted a form, called fetch() or sent an XHR. The pages that ran them, and the requests that set cookies for them, are left out, as are the port numbers.",
  "scenarios": {
   "fetch-get-cross-site": {
    "note": "fetch() of another site, CORS simple",
@@ -6110,6 +6110,212 @@
       [
        "Accept",
        "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "nav-https-to-localhost": {
+   "note": "location.href from an https page to http://localhost",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://localhost/p/nav-https-to-localhost",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://localhost/p/nav-https-to-localhost",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "nav-localhost-to-http": {
+   "note": "location.href from a page on http://localhost to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/nav-localhost-to-http",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Referer",
+       "http://localhost/"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/nav-localhost-to-http",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Referer",
+       "http://localhost/"
       ],
       [
        "Accept-Encoding",

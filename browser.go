@@ -397,10 +397,6 @@ func (r *browserRequest) values(to origin, base Header) map[string]string {
 			values[name] = base.Get(name)
 		}
 	}
-	if !strings.EqualFold(to.scheme, "https") {
-		// Brotli and zstd are offered over TLS alone.
-		values["accept-encoding"] = withoutCodings(values["accept-encoding"], "br", "zstd")
-	}
 	script := r.kind == KindFetch || r.kind == KindXHR
 	if script {
 		values["accept"] = acceptAnything
@@ -436,11 +432,15 @@ func (r *browserRequest) values(to origin, base Header) map[string]string {
 	}
 	if !trustworthy(to) {
 		// A page that is not potentially trustworthy is told neither the
-		// client's hints nor where its requests come from.
+		// client's hints nor where its requests come from, and is offered
+		// neither Brotli nor zstd.
 		for name := range values {
 			if strings.HasPrefix(name, "sec-ch-") || strings.HasPrefix(name, "sec-fetch-") {
 				delete(values, name)
 			}
+		}
+		if offered, ok := values["accept-encoding"]; ok {
+			values["accept-encoding"] = withoutCodings(offered, "br", "zstd")
 		}
 	}
 	for _, f := range r.script {

@@ -66,8 +66,13 @@ func TestTrustworthyIsWhatChromeTrusts(t *testing.T) {
 		"https://www.example.com/": true, "https://192.0.2.1/": true,
 		"http://localhost/": true, "http://LOCALHOST:8080/": true, "http://a.localhost/": true,
 		"http://127.0.0.1/": true, "http://127.5.5.5:81/": true, "http://[::1]/": true,
+		"http://localhost./": true, "http://a.localhost./": true,
 		"http://www.example.com/": false, "http://10.0.0.1/": false, "http://localhost.example/": false,
 		"http://[2001:db8::1]/": false, "http://notlocalhost/": false,
+		// Chrome reads an IPv6 address as loopback when it is ::1, and no
+		// other: an IPv4 one mapped into IPv6 is not.
+		"http://[::ffff:127.0.0.1]/": false, "http://[0:0:0:0:0:0:0:1]/": true,
+		"http://localhost../": false, "http://.localhost/": true,
 	} {
 		if got := trustworthy(originOf(mustURL(t, raw))); got != want {
 			t.Errorf("%s: %v", raw, got)
@@ -116,9 +121,11 @@ func TestTheReferrerIsWhatThePolicySays(t *testing.T) {
 		{policyNoReferrerWhenDowngrade, sameOrigin, full},
 		{policyNoReferrerWhenDowngrade, crossSite, full},
 		{policyNoReferrerWhenDowngrade, downgrade, ""},
-		// To the machine itself is no downgrade, by name or by address.
-		{"", "http://localhost/p", originOnly},
-		{"", "http://127.0.0.1:8080/p", originOnly},
+		// From https to the machine itself is a downgrade too, by name or by
+		// address, as Chrome was measured to have it.
+		{"", "http://localhost/p", ""},
+		{"", "http://127.0.0.1:8080/p", ""},
+		{policyNoReferrerWhenDowngrade, "http://localhost/p", ""},
 	} {
 		if got := referrerFor(mustURL(t, page), originOf(mustURL(t, tc.target)), tc.policy); got != tc.want {
 			t.Errorf("%q to %s: %q, want %q", tc.policy, tc.target, got, tc.want)
@@ -127,14 +134,19 @@ func TestTheReferrerIsWhatThePolicySays(t *testing.T) {
 }
 
 func TestFromHTTPToHTTPIsNoDowngrade(t *testing.T) {
-	page := mustURL(t, "http://www.example.com/a?b")
-	for policy, want := range map[string]string{
-		"":                            "http://www.example.com/",
-		policyStrictOrigin:            "http://www.example.com/",
-		policyNoReferrerWhenDowngrade: "http://www.example.com/a?b",
-	} {
-		if got := referrerFor(page, originOf(mustURL(t, "http://www.example.net/x")), policy); got != want {
-			t.Errorf("%q: %q, want %q", policy, got, want)
+	// Not even from the machine itself, which is potentially trustworthy: as
+	// Chrome was measured to have it, only https can be downgraded from.
+	for _, page := range []string{"http://www.example.com", "http://localhost:8080", "http://127.0.0.1",
+		"http://[::1]"} {
+		for policy, want := range map[string]string{
+			"":                            page + "/",
+			policyStrictOrigin:            page + "/",
+			policyNoReferrerWhenDowngrade: page + "/a?b",
+		} {
+			got := referrerFor(mustURL(t, page+"/a?b"), originOf(mustURL(t, "http://www.example.net/x")), policy)
+			if got != want {
+				t.Errorf("%s, %q: %q, want %q", page, policy, got, want)
+			}
 		}
 	}
 }

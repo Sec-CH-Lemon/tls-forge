@@ -39,13 +39,14 @@ declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
 feeds, plain text and bodies with no type.
 
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
-(arm64), headless and in English, sent on 2026-10-16 for 65 scenarios, over
-HTTP/2 and over HTTP/1.1: navigations typed and from pages under each
-referrer policy, forms posted and sent by GET, `fetch()` and XHR of every
-mode and credentials, CORS preflights allowed, refused and cached, redirects
-of every status, SameSite cookies, and the chain of redirects Chrome gives up
-on. A local server answered www.example.com and api.example.com (one site)
-and www.example.net (another), mapped to 127.0.0.1, and kept each request's
+(arm64), headless and in English, sent on 2026-10-16 and 2026-10-17 for 67
+scenarios, over HTTP/2 and over HTTP/1.1: navigations typed and from pages
+under each referrer policy, to and from `http://localhost`, forms posted and
+sent by GET, `fetch()` and XHR of every mode and credentials, CORS
+preflights allowed, refused and cached, redirects of every status, SameSite
+cookies, and the chain of redirects Chrome gives up on. A local server
+answered www.example.com and api.example.com (one site) and www.example.net
+(another), mapped to 127.0.0.1, and localhost, and kept each request's
 headers in order with their values, the priority of its HTTP/2 HEADERS frame,
 and its body. The pages that ran the scenarios are left out, as are the port
 numbers.

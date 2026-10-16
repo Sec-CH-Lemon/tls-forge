@@ -179,9 +179,9 @@ func TestTheHeadersOfARequestInAContext(t *testing.T) {
 		{"a form posted to the machine itself", browserRequest{kind: KindForm, method: "POST", initiator: page,
 			from: originOf(page), policy: policyStrictOriginWhenCrossOrigin, contentType: formEncoded},
 			"http://localhost:8080/form",
-			map[string]string{"origin": "null", "sec-fetch-site": "cross-site", "accept-encoding": "gzip, deflate",
-				"referer": "https://www.example.com/"},
-			nil},
+			map[string]string{"origin": "null", "sec-fetch-site": "cross-site",
+				"accept-encoding": "gzip, deflate, br, zstd"},
+			[]string{"referer"}},
 		{"a form posted under no-referrer", browserRequest{kind: KindForm, method: "POST", initiator: page,
 			from: originOf(page), policy: policyNoReferrer, contentType: formEncoded},
 			"https://www.example.com/form", map[string]string{"origin": "null"}, []string{"referer"}},
@@ -237,6 +237,14 @@ func TestTheHeadersOfARequestInAContext(t *testing.T) {
 		if names := got.Names(); len(names) != len(uniqueNames(names)) {
 			t.Errorf("%s: a header twice: %v", tc.name, names)
 		}
+	}
+}
+
+func TestNoEncodingIsOfferedThatTheProfileDoesNotOffer(t *testing.T) {
+	r := browserRequest{kind: KindNavigation, method: "GET"}
+	got := r.header(mustURL(t, "http://www.example.com/"), NewHeader("User-Agent", "x"))
+	if got.Has("accept-encoding") {
+		t.Errorf("Accept-Encoding: %q", got.Get("accept-encoding"))
 	}
 }
 

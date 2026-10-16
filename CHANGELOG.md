@@ -45,10 +45,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   that request over HTTP/2 and HTTP/1.1 (`testdata/chrome155-requests.json`):
   its kind's headers in Chrome's order and values, `Sec-Fetch-Site`,
   `Sec-Fetch-Mode`, `Sec-Fetch-Dest` and `Sec-Fetch-User`, `Origin` and
-  `Referer` as the Fetch and Referrer Policy standards have them, the HTTP/2
-  `HEADERS` weight Chrome gives `fetch()` (220, on connections of their own),
-  no client hints or `Sec-Fetch-*` to a page that is not potentially
-  trustworthy, and only the cookies SameSite and the credentials mode let
+  `Referer` as the Fetch and Referrer Policy standards have them (but that a
+  downgrade is from https to anything else, `http://localhost` included, as
+  in Chrome), the HTTP/2 `HEADERS` weight Chrome gives `fetch()` (220, on
+  connections of their own), no client hints, `Sec-Fetch-*`, Brotli or zstd
+  to a page that is not potentially trustworthy, and only the cookies
+  SameSite and the credentials mode let
   through, a form's POST carrying for two minutes those that named none. What
   a page cannot send is refused before anything is sent, and redirects are
   followed as before. A request without one goes out as before.

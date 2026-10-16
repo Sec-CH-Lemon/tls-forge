@@ -88,17 +88,23 @@ func relation(from, to origin) string {
 }
 
 // trustworthy reports a URL a browser deems potentially trustworthy: https,
-// or http to the machine itself, by loopback address or a localhost name.
-// Only to such a URL does Chrome send client hints and Sec-Fetch-*, and going
-// from one to a URL that is not is a downgrade.
+// or http to the machine itself, as Chrome tells it: a loopback address,
+// 127.0.0.0/8 or ::1 written as IPv6 (not an IPv4 one mapped), or the name
+// localhost or one ending in .localhost, either with a dot at the end. Only to
+// such a URL does Chrome send client hints and Sec-Fetch-*, and offer Brotli
+// and zstd.
 func trustworthy(o origin) bool {
 	if o.scheme == "https" {
 		return true
 	}
 	if ip := net.ParseIP(o.host); ip != nil {
+		if strings.Contains(o.host, ":") {
+			return ip.Equal(net.IPv6loopback)
+		}
 		return ip.IsLoopback()
 	}
-	return o.host == "localhost" || strings.HasSuffix(o.host, ".localhost")
+	host := strings.TrimSuffix(o.host, ".")
+	return host == "localhost" || strings.HasSuffix(host, ".localhost")
 }
 
 // Referrer policies, as a page names them in a Referrer-Policy header or a
@@ -128,6 +134,11 @@ const maxReferrerLength = 4096
 // source under a policy, as the Referrer Policy standard determines it: the
 // page's URL without its fragment or credentials, its origin alone, or
 // nothing. Empty means no Referer.
+//
+// A downgrade is from https to anything else, as Chrome has it, where the
+// standard goes by whether each URL is potentially trustworthy: measured, a
+// page on http://localhost tells a plain-http site where it came from, and an
+// https page tells http://localhost nothing.
 func referrerFor(source *url.URL, target origin, policy string) string {
 	from := originOf(source)
 	full := strippedURL(source)
@@ -136,7 +147,7 @@ func referrerFor(source *url.URL, target origin, policy string) string {
 		full = originOnly
 	}
 	sameOrigin := from == target
-	downgrade := trustworthy(from) && !trustworthy(target)
+	downgrade := from.scheme == "https" && target.scheme != "https"
 	switch policy {
 	case policyNoReferrer:
 		return ""
