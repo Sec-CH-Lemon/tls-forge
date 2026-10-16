@@ -13,6 +13,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `daemon.ServeContext` is `daemon.Serve` until a context is done: it takes no
+  more requests, cancels the one in flight and answers it with why, and
+  returns the context's error. `Serve` is unchanged.
 - `SessionReset`, in the Node.js and Python packages, for a request that was
   not sent because the session it was made in has gone, and
   `MAX_REQUEST_BYTES`, the most a request can be as the daemon reads it.
@@ -439,6 +442,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **SIGTERM stops a command in order, as Ctrl-C does.** It ended `fetch`
+  where it stood, without its report, its session or the end of its trace,
+  which `kill`, a service manager and `docker stop` all send; and `daemon`,
+  which never looked at Ctrl-C, ended without answering the request it was
+  making. Now `fetch` cancels the requests in flight and writes what it has,
+  and `daemon` answers the request in flight with why and exits 0. A second
+  signal ends either at once.
 - A Python request's deadline did not cover writing it. A daemon that stopped
   reading held a request with a 0.05-second deadline for as long as the daemon
   lived, since a body larger than the pipe waited on it; `close()` waited too.

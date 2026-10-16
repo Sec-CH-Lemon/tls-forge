@@ -30,6 +30,7 @@ package daemon
 
 import (
 	"bufio"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -37,6 +38,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
@@ -173,6 +175,24 @@ const (
 // comes back as a response with an Error field, attached to that request's id —
 // a daemon that exited on a bad URL would take the session's cookie jar with it.
 func Serve(in io.Reader, out io.Writer, client Client) error {
+	return ServeContext(context.Background(), in, out, client)
+}
+
+// answerGrace is how long the answer to the request in flight has, once ctx is
+// done, before a write waiting on the output is given up.
+const answerGrace = 250 * time.Millisecond
+
+// ServeContext is Serve until ctx is done.
+//
+// Once it is, no more requests are taken, the request in flight is cancelled
+// and answered with why, and ServeContext returns ctx's error. The input and
+// the output are the caller's, and are not closed. A read already waiting on
+// the input goes on waiting, on a goroutine of its own, until the input ends,
+// which is when its owner closes it: the daemon command's process ends. A
+// write waiting on the output is given a deadline in the past once the answer
+// to the request in flight has had answerGrace to be written, when the output
+// takes one, as a net.Conn does; one that does not is its owner's to release.
+func ServeContext(ctx context.Context, in io.Reader, out io.Writer, client Client) error {
 	if in == nil {
 		return errors.New("daemon: nil input")
 	}
@@ -183,28 +203,79 @@ func Serve(in io.Reader, out io.Writer, client Client) error {
 		return errors.New("daemon: nil client")
 	}
 
-	scanner := bufio.NewScanner(in)
-	scanner.Buffer(make([]byte, initialLineBuffer), maxLineBuffer)
-	encoder := json.NewEncoder(out)
+	stop := make(chan struct{})
+	defer close(stop)
+	go release(ctx, stop, out)
 
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
+	// Read on a goroutine of its own, so that ctx is answered while a read is
+	// waiting for a line that may never come.
+	lines := make(chan string)
+	ended := make(chan error, 1)
+	go func() {
+		scanner := bufio.NewScanner(in)
+		scanner.Buffer(make([]byte, initialLineBuffer), maxLineBuffer)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" {
+				continue
+			}
+			select {
+			case lines <- line:
+			case <-stop:
+				return
+			}
 		}
-		if err := encoder.Encode(handle(line, client)); err != nil {
-			return fmt.Errorf("daemon: writing response: %w", err)
+		ended <- scanner.Err()
+	}()
+
+	encoder := json.NewEncoder(out)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-ended:
+			// A line too long to read ends the input rather than being skipped
+			// to the next newline, which could be any distance away: the
+			// memory it takes is the buffer's, and the time it takes is that
+			// of reading the buffer full.
+			switch {
+			case errors.Is(err, bufio.ErrTooLong):
+				return fmt.Errorf("daemon: a request line is longer than %d bytes, its newline included: %w",
+					maxLineBuffer, err)
+			case err != nil:
+				return fmt.Errorf("daemon: reading requests: %w", err)
+			}
+			return nil
+		case line := <-lines:
+			if err := encoder.Encode(handle(ctx, line, client)); err != nil {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				return fmt.Errorf("daemon: writing response: %w", err)
+			}
 		}
 	}
-	// A line too long to read ends the input rather than being skipped to the
-	// next newline, which could be any distance away: the memory it takes is
-	// the buffer's, and the time it takes is that of reading the buffer full.
-	if err := scanner.Err(); errors.Is(err, bufio.ErrTooLong) {
-		return fmt.Errorf("daemon: a request line is longer than %d bytes, its newline included: %w", maxLineBuffer, err)
-	} else if err != nil {
-		return fmt.Errorf("daemon: reading requests: %w", err)
+}
+
+// release gives a write waiting on out a deadline in the past, when out takes
+// one, once ctx is done and the answer to the request in flight has had
+// answerGrace to be written; until stop, which is ServeContext returning.
+func release(ctx context.Context, stop <-chan struct{}, out io.Writer) {
+	select {
+	case <-ctx.Done():
+	case <-stop:
+		return
 	}
-	return nil
+	grace := time.NewTimer(answerGrace)
+	defer grace.Stop()
+	select {
+	case <-grace.C:
+	case <-stop:
+		return
+	}
+	if writer, ok := out.(interface{ SetWriteDeadline(time.Time) error }); ok {
+		_ = writer.SetWriteDeadline(time.Unix(1, 0))
+	}
 }
 
 // failed is the answer to a request that could not be made. What it says has
@@ -215,7 +286,7 @@ func failed(id uint64, err error) Response {
 	return Response{ID: id, Error: redact.Text(err.Error())}
 }
 
-func handle(line string, client Client) Response {
+func handle(ctx context.Context, line string, client Client) Response {
 	var req Request
 	if err := json.Unmarshal([]byte(line), &req); err != nil {
 		// req.ID is usable here for the failure that actually happens: a caller
@@ -250,6 +321,7 @@ func handle(line string, client Client) Response {
 		Header:  requestHeaders,
 		Body:    body,
 		Cookies: cookies,
+		Context: ctx,
 	})
 	if err != nil {
 		return failed(req.ID, err)

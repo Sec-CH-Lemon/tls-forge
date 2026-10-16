@@ -3,15 +3,20 @@ package daemon
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"reflect"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"testing/iotest"
+	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -549,3 +554,131 @@ func (c *recordingClient) Do(req *tlsforge.Request) (*tlsforge.Response, error) 
 }
 
 func (c *recordingClient) Headers() tlsforge.Header { return nil }
+
+// The old way of serving, as callers outside this package write it.
+var _ func(io.Reader, io.Writer, Client) error = Serve
+
+// goroutinesBackTo fails the test unless the goroutines are as many as before,
+// soon: whatever ServeContext started has ended.
+func goroutinesBackTo(t *testing.T, before int) {
+	t.Helper()
+	for deadline := time.Now().Add(3 * time.Second); runtime.NumGoroutine() > before; time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			stacks := make([]byte, 1<<20)
+			t.Fatalf("%d goroutines, %d before:\n%s", runtime.NumGoroutine(), before, stacks[:runtime.Stack(stacks, true)])
+		}
+	}
+}
+
+// served runs ServeContext on a goroutine, and is what it returned.
+func served(ctx context.Context, in io.Reader, out io.Writer, client Client) <-chan error {
+	done := make(chan error, 1)
+	go func() { done <- ServeContext(ctx, in, out, client) }()
+	return done
+}
+
+// returned is what ServeContext returned, within a bound.
+func returned(t *testing.T, done <-chan error) error {
+	t.Helper()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(3 * time.Second):
+		t.Fatal("ServeContext did not return")
+		return nil
+	}
+}
+
+func TestServeContextStopsWhileAReadWaits(t *testing.T) {
+	// Nothing comes on the input, and nothing will until its owner closes it:
+	// ServeContext returns when it is told to, and the read it leaves waiting
+	// ends with the input.
+	before := runtime.NumGoroutine()
+	ours, theirs := net.Pipe()
+	ctx, cancel := context.WithCancel(context.Background())
+	client := &fakeClient{}
+	done := served(ctx, ours, io.Discard, client)
+	cancel()
+	if err := returned(t, done); !errors.Is(err, context.Canceled) {
+		t.Errorf("ServeContext() = %v", err)
+	}
+	// A request that comes after it was told to stop is read, and dropped.
+	if _, err := io.WriteString(theirs, `{"id":1,"url":"https://example.com/late"}`+"\n"); err != nil {
+		t.Fatalf("writing: %v", err)
+	}
+	_ = theirs.Close()
+	_ = ours.Close()
+	goroutinesBackTo(t, before)
+	if client.got != nil {
+		t.Errorf("a request after the stop was made: %+v", client.got)
+	}
+}
+
+// writing is an output that says when it is first written to, and then waits
+// as a pipe nobody reads does.
+type writing struct {
+	net.Conn
+	once    sync.Once
+	started chan struct{}
+}
+
+func (w *writing) Write(p []byte) (int, error) {
+	w.once.Do(func() { close(w.started) })
+	return w.Conn.Write(p)
+}
+
+func TestServeContextStopsWhileAWriteWaits(t *testing.T) {
+	// The answer cannot be written, since nobody reads the output: once told,
+	// it is given up after answerGrace, and not before.
+	before := runtime.NumGoroutine()
+	ours, theirs := net.Pipe()
+	out := &writing{Conn: ours, started: make(chan struct{})}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := served(ctx, strings.NewReader(`{"id":1,"url":"https://example.com"}`+"\n"), out, &fakeClient{})
+	<-out.started
+	told := time.Now()
+	cancel()
+	if err := returned(t, done); !errors.Is(err, context.Canceled) {
+		t.Errorf("ServeContext() = %v", err)
+	}
+	if waited := time.Since(told); waited < answerGrace {
+		t.Errorf("the answer was given up after %v, before its %v", waited, answerGrace)
+	}
+	_ = theirs.Close()
+	_ = ours.Close()
+	goroutinesBackTo(t, before)
+}
+
+// waitingClient asks nobody, and answers when the request's context is done.
+type waitingClient struct{ asked chan struct{} }
+
+func (c *waitingClient) Do(req *tlsforge.Request) (*tlsforge.Response, error) {
+	close(c.asked)
+	<-req.Context.Done()
+	return nil, fmt.Errorf("tlsforge: Get %q: %w", req.URL, context.Cause(req.Context))
+}
+
+func (c *waitingClient) Headers() tlsforge.Header { return nil }
+
+func TestServeContextCancelsTheRequestInFlightAndAnswersIt(t *testing.T) {
+	before := runtime.NumGoroutine()
+	client := &waitingClient{asked: make(chan struct{})}
+	ours, theirs := net.Pipe()
+	var out bytes.Buffer
+	ctx, cancel := context.WithCancel(context.Background())
+	done := served(ctx, ours, &out, client)
+	go func() { _, _ = io.WriteString(theirs, `{"id":1,"url":"https://example.com/slow"}`+"\n") }()
+	<-client.asked
+	cancel()
+	if err := returned(t, done); !errors.Is(err, context.Canceled) {
+		t.Errorf("ServeContext() = %v", err)
+	}
+	want := `{"id":1,"status":0,"url":"","body":"","headers":null,"cookies":null,` +
+		`"error":"tlsforge: Get \"https://example.com/slow\": context canceled"}` + "\n"
+	if out.String() != want {
+		t.Errorf("answered %q, want %q", out.String(), want)
+	}
+	_ = theirs.Close()
+	_ = ours.Close()
+	goroutinesBackTo(t, before)
+}

@@ -206,6 +206,9 @@ matter:
   assigned to the wrong request
 * on timeout, restart the process *and* stop reading its old stdout — killing a
   process does not stop the bytes it already wrote from arriving
+* SIGTERM stops the daemon in order: it reads no more requests, cancels the
+  one it is making and answers it with an `error` saying so, and exits 0. A
+  second SIGTERM ends it at once
 * a process that is stopped or dies takes the session with it — cookies, TLS
   sessions, connections — so the packages fail every request waiting for it,
   or the next one made when none was waiting, with `SessionReset`, unsent,

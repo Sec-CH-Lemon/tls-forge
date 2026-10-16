@@ -956,7 +956,7 @@ func describeExit(found egress, err error, proxy string) string {
 	return said
 }
 
-func runDaemon(_ context.Context, args []string, out, errOut *printer) error {
+func runDaemon(ctx context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("daemon", out)
 	common := addDaemonFlags(fs)
 	if err := parse(fs, args); err != nil {
@@ -978,7 +978,15 @@ func runDaemon(_ context.Context, args []string, out, errOut *printer) error {
 
 	// stdin is read directly rather than through the writer the command was
 	// given: the protocol is a pipe, and tests substitute it through daemonInput.
-	return daemon.Serve(daemonInput, out, client)
+	//
+	// Until ctx is done, which a signal does: the request in flight is
+	// cancelled and answered, and the daemon ends as it does at the end of its
+	// input, since being told to stop is how a daemon is meant to end.
+	err = daemon.ServeContext(ctx, daemonInput, out, client)
+	if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
+		return nil
+	}
+	return err
 }
 
 // daemonInput is os.Stdin, named so a test can supply a script instead.

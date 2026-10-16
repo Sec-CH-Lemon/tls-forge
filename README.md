@@ -238,6 +238,16 @@ itself, such as its owner and root. The variable is read only when it is
 named, and naming one that is not set or is empty, or giving `--proxy` as
 well, is a usage error before anything is asked.
 
+Ctrl-C, or SIGTERM as `kill`, a service manager and `docker stop` send it,
+stops a command in order. `fetch` cancels the requests in flight, which its
+report and lines say ended with `context canceled`, makes no others, and
+writes its report, its session and the end of its trace, and exits 1; a
+cookie a cancelled request's header fields set is in the session. `daemon`
+answers the request it is making with that error, and exits 0, as it does at
+the end of its input. A second signal ends a command where it stands, should
+the first leave it waiting on something that does not look, such as an output
+nobody reads. SIGKILL cannot be caught, and leaves what it leaves.
+
 When no profile is selected, the network commands (`fetch`, `proxy` and
 `daemon`) use a profile installed as `local`, if one exists, and otherwise
 the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`

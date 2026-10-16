@@ -19,6 +19,7 @@ import (
 	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/pflag"
 
@@ -108,25 +109,31 @@ var movedCommands = map[string]string{
 // one part of the program nothing checks.
 var exit = os.Exit
 
+// stopSignals are what ask a command to stop: Ctrl-C, and SIGTERM, which is
+// what `kill`, a service manager and `docker stop` send. On Windows, where
+// nothing sends SIGTERM, the interrupt alone.
+var stopSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
+
 func main() {
 	// One exit point. Commands return errors and print to the writer they are
 	// given, which is what lets every one of them be driven from a test.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), stopSignals...)
 	defer stop()
 	releaseSignal(ctx, stop)
 	exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
 }
 
-// releaseSignal hands interrupts back to the runtime after the first one.
+// releaseSignal hands the signals back to the runtime after the first one.
 //
-// NotifyContext catches the interrupt and cancels the context instead of
-// letting it end the process. That is right for a command that can wind itself
-// down, and wrong for one blocked on a read that never looks at a context: the
-// signal is swallowed, nothing happens, and every further Ctrl-C is swallowed
-// too. Measured before this: a command waiting for a list on standard input
-// survived four of them.
+// NotifyContext catches the signal and cancels the context instead of letting
+// it end the process. That is right for a command that can wind itself down —
+// a fetch writes its report, its session and the end of its trace, and the
+// daemon answers the request it is making — and wrong for one stuck where it
+// never looks at a context: the signal is swallowed, nothing happens, and
+// every further Ctrl-C is swallowed too. Measured before this: a command
+// waiting for a list on standard input survived four of them.
 //
-// So the first interrupt still asks for an orderly stop, and any after it kill
+// So the first signal still asks for an orderly stop, and any after it end
 // the process the way they would have if nothing had been listening.
 func releaseSignal(ctx context.Context, stop func()) {
 	go func() {
