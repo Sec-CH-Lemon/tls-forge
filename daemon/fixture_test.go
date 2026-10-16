@@ -2,45 +2,57 @@ package daemon
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/Sec-CH-Lemon/tls-forge"
 )
 
 var updateFixtures = flag.Bool("update", false, "rewrite the protocol fixtures")
 
-// The fixture values. Deliberately exercising every field, including the ones
-// whose absence is meaningful, so that a rename or a retype of any of them
-// changes the file.
+// The response fixtures are what handle makes of a request, given what the
+// transport answered: the daemon's own path from an answer to a line, rather
+// than a Response written out here. Hand-written ones pinned "cookies": [] for
+// a session that held no cookies while the daemon sent null, and pinned no
+// failure at all, so renaming the field every failure travels in passed every
+// gate in all three languages.
+//
+// Every field is exercised, including the ones whose absence is meaningful,
+// so that a rename or a retype of any of them changes a file.
 func fixtureResponse() Response {
-	return Response{
-		ID:           7,
-		Status:       200,
-		URL:          "https://example.com/after-redirect",
-		Body:         "AP7/gA==",
-		BodyEncoding: BodyBase64,
-		Headers: map[string][]string{
+	return handle(`{"id":7,"url":"https://example.com/"}`, &fakeClient{response: &tlsforge.Response{
+		Status: 200,
+		URL:    "https://example.com/after-redirect",
+		Body:   []byte{0x00, 0xfe, 0xff, 0x80},
+		Header: map[string][]string{
 			"content-type": {"text/html; charset=utf-8"},
 			"set-cookie":   {"a=1", "b=2"},
 		},
 		Cookies: []string{"a=1", "b=2"},
-	}
+	}})
 }
 
 // Text is a separate fixture because absence is part of the protocol: old
 // readers must keep seeing the same response shape for ordinary UTF-8 bodies.
+// Its jar holds nothing, which the client reports as no cookies at all.
 func fixtureTextResponse() Response {
-	return Response{
-		ID:     8,
+	return handle(`{"id":8,"url":"https://example.com/text"}`, &fakeClient{response: &tlsforge.Response{
 		Status: 200,
 		URL:    "https://example.com/text",
-		Body:   "plain text — unchanged",
-		Headers: map[string][]string{
+		Body:   []byte("plain text — unchanged"),
+		Header: map[string][]string{
 			"content-type": {"text/plain; charset=utf-8"},
 		},
-		Cookies: []string{},
-	}
+	}})
+}
+
+// A request the transport could not make: the shape every failure has.
+func fixtureErrorResponse() Response {
+	return handle(`{"id":9,"url":"https://example.com/"}`, &fakeClient{err: errors.New(
+		`tlsforge: Get "https://example.com/": dial tcp 127.0.0.1:1: connect: connection refused`)})
 }
 
 func fixtureRequest() Request {
@@ -73,6 +85,7 @@ func TestProtocolFixture(t *testing.T) {
 	}{
 		{"response.json", fixtureResponse()},
 		{"response-text.json", fixtureTextResponse()},
+		{"response-error.json", fixtureErrorResponse()},
 		{"request.json", fixtureRequest()},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -112,10 +125,13 @@ func TestProtocolFixtureRoundTrips(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		id           uint64
+		status       int
 		bodyEncoding string
+		failed       bool
 	}{
-		{"response.json", 7, BodyBase64},
-		{"response-text.json", 8, ""},
+		{"response.json", 7, 200, BodyBase64, false},
+		{"response-text.json", 8, 200, "", false},
+		{"response-error.json", 9, 0, "", true},
 	} {
 		data, err := os.ReadFile(filepath.Join("..", "testdata", "protocol", tc.name))
 		if err != nil {
@@ -125,7 +141,8 @@ func TestProtocolFixtureRoundTrips(t *testing.T) {
 		if err := json.Unmarshal(data, &got); err != nil {
 			t.Fatalf("Unmarshal %s: %v", tc.name, err)
 		}
-		if got.ID != tc.id || got.Status != 200 || got.BodyEncoding != tc.bodyEncoding {
+		if got.ID != tc.id || got.Status != tc.status || got.BodyEncoding != tc.bodyEncoding ||
+			(got.Error != "") != tc.failed {
 			t.Errorf("decoded %s does not match the fixture: %+v", tc.name, got)
 		}
 	}

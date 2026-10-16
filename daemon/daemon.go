@@ -243,6 +243,14 @@ func handle(line string, client Client) Response {
 	for name, values := range res.Header {
 		headers[name] = append([]string(nil), values...)
 	}
+	// An empty list rather than null when the jar holds nothing for the URL,
+	// as docs/protocol.md has always shown it. Null is how a failure says it
+	// has nothing to report, and a reader should not have to tell an answer
+	// from a failure by anything but `error`.
+	held := res.Cookies
+	if held == nil {
+		held = []string{}
+	}
 	responseBody, encoding := encodeBody(res.Body)
 	return Response{
 		ID:           req.ID,
@@ -251,7 +259,7 @@ func handle(line string, client Client) Response {
 		Body:         responseBody,
 		BodyEncoding: encoding,
 		Headers:      headers,
-		Cookies:      res.Cookies,
+		Cookies:      held,
 	}
 }
 

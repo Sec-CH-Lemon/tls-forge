@@ -85,6 +85,31 @@ test('a text response keeps the legacy shape without bodyEncoding', async () => 
   }
 });
 
+test('a failure in the committed wire format rejects with its error', async () => {
+  // Pinned because a failure that lost its `error` field would arrive as an
+  // answer with status 0 and an empty body, and resolve.
+  const fixture = load('response-error.json');
+  assert.deepEqual(Object.keys(fixture).sort(), [
+    'body',
+    'cookies',
+    'error',
+    'headers',
+    'id',
+    'status',
+    'url',
+  ]);
+
+  const client = new Client({ binary: wrapper });
+  try {
+    await assert.rejects(
+      () => client.get('https://fixture-error/'),
+      (err) => err.message === fixture.error,
+    );
+  } finally {
+    await client.close();
+  }
+});
+
 test('the request fixture is the shape this client sends', () => {
   const request = load('request.json');
   assert.deepEqual(Object.keys(request).sort(), [

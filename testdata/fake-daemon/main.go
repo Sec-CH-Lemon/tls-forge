@@ -64,11 +64,12 @@ func main() {
 				"id": req.ID, "status": 0, "url": "", "body": "",
 				"headers": nil, "cookies": nil,
 			})
-		case "fixture", "fixture-text":
-			name := "response.json"
-			if parsed.Hostname() == "fixture-text" {
-				name = "response-text.json"
-			}
+		case "fixture", "fixture-text", "fixture-error":
+			name := map[string]string{
+				"fixture":       "response.json",
+				"fixture-text":  "response-text.json",
+				"fixture-error": "response-error.json",
+			}[parsed.Hostname()]
 			data, err := os.ReadFile(filepath.Join(
 				os.Getenv("TLSFORGE_PROTOCOL_FIXTURES"), name,
 			))

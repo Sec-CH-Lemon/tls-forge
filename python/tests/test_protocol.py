@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from tlsforge._client import _to_response
+from tlsforge._errors import RequestFailed
 
 FIXTURES = Path(__file__).resolve().parents[2] / "testdata" / "protocol"
 
@@ -41,6 +42,13 @@ def response_fixture() -> dict:
 def text_response_fixture() -> dict:
     return json.loads(
         (FIXTURES / "response-text.json").read_text(encoding="utf-8")
+    )
+
+
+@pytest.fixture
+def error_response_fixture() -> dict:
+    return json.loads(
+        (FIXTURES / "response-error.json").read_text(encoding="utf-8")
     )
 
 
@@ -80,6 +88,25 @@ def test_a_text_response_keeps_the_legacy_shape_without_body_encoding(
     res = _to_response(text_response_fixture)
     assert res.body == "plain text — unchanged"
     assert res.content == "plain text — unchanged".encode()
+
+
+def test_a_failure_raises_request_failed_with_its_error(
+    error_response_fixture: dict,
+) -> None:
+    """Pinned because a failure that lost its ``error`` field would parse as an
+    answer with status 0 and an empty body, and be returned."""
+    assert set(error_response_fixture) == {
+        "id",
+        "status",
+        "url",
+        "body",
+        "headers",
+        "cookies",
+        "error",
+    }
+    with pytest.raises(RequestFailed) as raised:
+        _to_response(error_response_fixture)
+    assert str(raised.value) == error_response_fixture["error"]
 
 
 def test_the_request_fixture_is_the_shape_this_client_sends(

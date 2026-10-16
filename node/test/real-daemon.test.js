@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import net from 'node:net';
 import { test } from 'node:test';
 
 import { Client } from '../index.js';
@@ -23,5 +24,21 @@ test('the Node wrapper decodes bytes emitted by the real Go daemon', { skip: !bi
   } finally {
     client.close();
     await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('a request the real Go daemon cannot make rejects', { skip: !binary }, async () => {
+  // A port that was listening a moment ago and is not any more: refused at
+  // once, on every platform, without reaching anything outside this machine.
+  const closed = net.createServer();
+  await new Promise((resolve) => closed.listen(0, '127.0.0.1', resolve));
+  const { port } = closed.address();
+  await new Promise((resolve) => closed.close(resolve));
+
+  const client = new Client({ binary });
+  try {
+    await assert.rejects(() => client.get(`http://127.0.0.1:${port}/`), /refused/i);
+  } finally {
+    client.close();
   }
 });

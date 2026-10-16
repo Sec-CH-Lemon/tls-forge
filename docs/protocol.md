@@ -88,7 +88,8 @@ neither.
 `url` is the final URL after redirects. Every value in `headers` is an array;
 values are never folded together because doing that changes the meaning of
 headers such as `set-cookie`. `cookies` is what the jar holds for that URL
-afterwards.
+afterwards: an empty list when it holds nothing, and never `null` on an answer.
+`null` is how a failure, below, says it has no cookies to report.
 
 ### Bodies that are not text
 

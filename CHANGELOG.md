@@ -365,6 +365,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- `daemon` answers a request whose session holds no cookies with
+  `"cookies": []`, as the protocol document always showed, rather than `null`;
+  `null` now only ever comes with `error`. The Node.js and Python clients read
+  both as no cookies, so nothing changes for them.
 - A request never says `Go-http-client`. A profile from the transport's
   catalogue (`firefox_148`, `safari_ios_18_5`) brings a handshake and no
   headers, and the transport gave such a request its own user agent; it now

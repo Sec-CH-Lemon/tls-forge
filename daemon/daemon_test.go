@@ -38,6 +38,27 @@ func (f *fakeClient) Do(req *tlsforge.Request) (*tlsforge.Response, error) {
 
 func (f *fakeClient) Headers() tlsforge.Header { return f.headers }
 
+func TestAnAnswerWithoutCookiesSaysSoWithAnEmptyList(t *testing.T) {
+	// Null is a failure's way of having nothing to report. An answer from a
+	// session whose jar holds nothing says [], as the protocol document shows.
+	for _, tc := range []struct {
+		name   string
+		client *fakeClient
+		want   string
+	}{
+		{"an answer", &fakeClient{}, `"cookies":[]`},
+		{"a failure", &fakeClient{err: errors.New("refused")}, `"cookies":null`},
+	} {
+		var out strings.Builder
+		if err := Serve(strings.NewReader(`{"id":1,"url":"https://example.com/"}`+"\n"), &out, tc.client); err != nil {
+			t.Fatalf("%s: Serve: %v", tc.name, err)
+		}
+		if !strings.Contains(out.String(), tc.want) {
+			t.Errorf("%s: wrote %s, want %s", tc.name, out.String(), tc.want)
+		}
+	}
+}
+
 func serve(t *testing.T, client Client, lines ...string) []Response {
 	t.Helper()
 	var out strings.Builder
