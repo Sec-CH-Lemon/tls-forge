@@ -596,3 +596,39 @@ func TestScriptsGoOutOnATransportOfTheirOwn(t *testing.T) {
 		t.Errorf("Close: %v", err)
 	}
 }
+
+func TestValidateRefusesWhatDoRefusesAndSendsNothing(t *testing.T) {
+	server := newRecorder(t, "h2", nil)
+	client := contextClient(t, server)
+	page := "https://www.example.com/page"
+	for _, tc := range []struct {
+		name string
+		req  *Request
+		says string
+	}{
+		{"no request", nil, "tlsforge: request needs a URL"},
+		{"no URL", &Request{}, "tlsforge: request needs a URL"},
+		{"a URL the transport cannot read", &Request{URL: "https://[::1"}, "tlsforge: parse"},
+		{"a method that is not one", &Request{Method: "GE T", URL: page}, "tlsforge: net/http: invalid method"},
+		{"a context a page could not be in", &Request{URL: page, Browser: &BrowserContext{Kind: KindForm}},
+			"tlsforge: browser context: a form is submitted from a page"},
+		{"a form posted in lower case", &Request{Method: "post", URL: page, Body: []byte("a=1"),
+			Browser: &BrowserContext{Kind: KindForm, Initiator: page}}, ""},
+		{"a request without a context", &Request{Method: "DELETE", URL: page, Header: NewHeader("X-Foo", "1")}, ""},
+	} {
+		err := client.Validate(tc.req)
+		if tc.says == "" && err != nil || tc.says != "" && (err == nil || !strings.HasPrefix(err.Error(), tc.says)) {
+			t.Errorf("%s: %v, want %q", tc.name, err, tc.says)
+		}
+	}
+	if err := client.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	// A closed client still says what it would have refused.
+	if err := client.Validate(&Request{URL: page, Browser: &BrowserContext{Kind: KindFetch}}); err == nil {
+		t.Error("a closed client let a script with no page through")
+	}
+	if got := server.requests(); len(got) != 0 {
+		t.Errorf("Validate sent %d requests", len(got))
+	}
+}

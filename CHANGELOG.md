@@ -13,6 +13,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`fetch --request-kind` and `--initiator-url` send a run's requests as
+  Chrome sends that kind**: `navigation`, `form`, `fetch` or `xhr`, from the
+  page `--initiator-url` names, CORS and all. What a page could not send, and
+  a profile that is not of a Chromium browser, is refused with exit code 2
+  before anything is sent or written; the run's header says what its
+  requests are sent as (`sent as`), and its log (`request_kind`,
+  `initiator_url`). A request CORS refuses is not tried again under
+  `--retry`.
+- **`Client.Validate` says why a request could not be sent**, without
+  sending it: what `Do` would refuse before anything goes out.
 - **`fetch()` and an XHR in a browser context do CORS as Chrome does.** One
   in cors mode to another origin whose method or headers CORS asks about
   goes after a preflight with Chrome's headers and no cookies, and not at all

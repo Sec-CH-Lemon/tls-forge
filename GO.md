@@ -207,6 +207,9 @@ response, err := client.Do(&tlsforge.Request{
 | `Mode` | `fetch()`'s mode: `cors` (default), `no-cors` or `same-origin`. |
 | `Credentials` | `fetch()`'s credentials: `same-origin` (default), `include` or `omit`; an XHR's `same-origin` or `include` (`withCredentials`). |
 
+`client.Validate(req)` says what of this `Do` would refuse, without sending
+anything: a command checks a whole list with it before it starts.
+
 Each kind sends what a page can: a navigation sends no headers of the caller's
 and no body; a form sends `GET`, or `POST` with a body and a `Content-Type` of
 `application/x-www-form-urlencoded` (the default), `multipart/form-data;

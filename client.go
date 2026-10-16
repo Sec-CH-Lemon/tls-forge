@@ -487,22 +487,11 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	if c.closed.Load() {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
-	if req == nil || req.URL == "" {
-		return nil, fmt.Errorf("tlsforge: request needs a URL")
-	}
-	method := req.Method
-	if method == "" {
-		method = fhttp.MethodGet
-	}
-
-	var body io.Reader
-	if len(req.Body) > 0 {
-		body = bytes.NewReader(req.Body)
-	}
-	inner, err := fhttp.NewRequest(method, req.URL, body)
+	inner, browser, err := c.parse(req)
 	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %w", err)
+		return nil, err
 	}
+	method := inner.Method
 	if req.Context != nil {
 		inner = inner.WithContext(req.Context)
 	}
@@ -518,16 +507,9 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// second parse is a second chance to disagree about what the request is for.
 	parsed := inner.URL
 	transport := c.inner
-	var browser *browserRequest
-	if req.Browser != nil {
-		if browser, err = c.resolveBrowser(req, method, parsed); err != nil {
+	if browser != nil && (browser.kind == KindFetch || browser.kind == KindXHR) {
+		if transport, err = c.scriptClient(); err != nil {
 			return nil, err
-		}
-		inner.Method = browser.method
-		if browser.kind == KindFetch || browser.kind == KindXHR {
-			if transport, err = c.scriptClient(); err != nil {
-				return nil, err
-			}
 		}
 	}
 	// The warmed session, filed against this request's URL once. Re-seeding it on
@@ -637,6 +619,44 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		}
 	}
 	return out, nil
+}
+
+// Validate reports why a request could not be sent as it is, without sending
+// it: no URL, one the transport cannot read, a method it cannot send, or a
+// browser context that is incomplete, names what does not exist, asks for what
+// a page cannot send, or that this client's profile cannot send. What Do
+// would refuse before sending anything, it refuses; a nil error is no promise
+// of an answer.
+func (c *Client) Validate(req *Request) error {
+	_, _, err := c.parse(req)
+	return err
+}
+
+// parse is a request as the transport will send it, and its browser context
+// resolved against it, the method normalized as the context says; or why it
+// cannot be sent.
+func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
+	if req == nil || req.URL == "" {
+		return nil, nil, fmt.Errorf("tlsforge: request needs a URL")
+	}
+	method := cmp.Or(req.Method, fhttp.MethodGet)
+	var body io.Reader
+	if len(req.Body) > 0 {
+		body = bytes.NewReader(req.Body)
+	}
+	inner, err := fhttp.NewRequest(method, req.URL, body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("tlsforge: %w", err)
+	}
+	if req.Browser == nil {
+		return inner, nil, nil
+	}
+	browser, err := c.resolveBrowser(req, method, inner.URL)
+	if err != nil {
+		return nil, nil, err
+	}
+	inner.Method = browser.method
+	return inner, browser, nil
 }
 
 // resolveBrowser is a request's browser context resolved against it, or why

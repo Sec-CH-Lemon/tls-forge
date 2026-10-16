@@ -28,7 +28,7 @@ import (
 // shown under "other flags", and TestFetchHelpShowsEveryFlagUnderAGroup says so.
 var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
-	{"the request", []string{"method", "header", "data"}},
+	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url"}},
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
 	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
@@ -456,6 +456,12 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// The request, which is the same for every URL it is made to.
 	method := fs.StringP("method", "X", "GET", "HTTP method")
 	data := fs.StringP("data", "d", "", "request body")
+	requestKind := fs.String("request-kind", "",
+		"send each request as Chrome sends this kind: navigation, form, fetch or xhr, from the page "+
+			"--initiator-url names; without it, as a navigation typed into the address bar, with what -H and -d give")
+	initiatorURL := fs.String("initiator-url", "",
+		"the page a --request-kind request is sent from: a form, fetch and xhr need one, and a navigation "+
+			"without one is typed into the address bar")
 	var headers headerFlag
 	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Referer: https://…\"")
 
@@ -512,6 +518,10 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		return fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
 	}
 	check, err := newPageCheck(*waitForElement, *waitFor, *htmlDecoding)
+	if err != nil {
+		return err
+	}
+	browser, err := browserContextOf(*requestKind, *initiatorURL, fs.Changed("initiator-url"))
 	if err != nil {
 		return err
 	}
@@ -589,6 +599,11 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 		return err
 	}
+	// What a browser would not send, or this profile cannot send as one, for
+	// any URL of the list, before anything is warmed, cleared or sent.
+	if err := checkBrowser(common.run.profile, jobs, *method, headers, *data, browser); err != nil {
+		return err
+	}
 	// Every pass over the list is counted before the first one is made, and a
 	// count that does not fit in an int is a mistake rather than a long run.
 	if *again.repeat > math.MaxInt/len(jobs) {
@@ -662,6 +677,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	common.log = runLog.logger()
 	runLog.say(slog.LevelInfo, "run", runAttrs(about, "version", version, "profile", worn.Name,
 		"output", *output, "wait_for", *waitFor, "wait_for_element", *waitForElement, "html_decoding", *htmlDecoding,
+		"request_kind", *requestKind, "initiator_url", safeURL(*initiatorURL),
 		"reuse_connection", *again.reuse, "log_level", strings.ToLower(*logging.level))...)
 	trace, err := openTrace(*again.trace, "fetch", *common.proxy, started, about)
 	if err != nil {
@@ -682,6 +698,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// on every way out, so a run that stops before then still ends it.
 	identity := common.wearOpen(errOut)
 	defer identity.close()
+	identity.field("sent as", describeContext(browser))
 	lane.wearing(worn)
 
 	clients := newPool(common, *common.proxy)
@@ -798,8 +815,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	with := runner{
 		check:   check,
 		clients: clients, workers: *workers,
-		request: tlsforge.Request{Method: *method, Header: tlsforge.Header(headers), Body: []byte(*data)},
-		retry:   *again.retry, repeat: *again.repeat,
+		request: tlsforge.Request{Method: *method, Header: tlsforge.Header(headers), Body: []byte(*data),
+			Browser: browser},
+		retry: *again.retry, repeat: *again.repeat,
 		keep: *output,
 		about: requestAbout{
 			method: *method, profile: worn.Name, run: common.run.id,

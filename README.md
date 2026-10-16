@@ -290,6 +290,8 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-X`, `--method <method>` | HTTP method, for every URL; default `GET` |
 | `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
 | `-d`, `--data <text>` | Request body, for every URL |
+| `--request-kind <kind>` | Send every request as Chrome sends this kind: `navigation`, `form`, `fetch` or `xhr`; see [Sending a request as a page would](#sending-a-request-as-a-page-would) |
+| `--initiator-url <url>` | The page a `--request-kind` request is sent from; a form, `fetch` and `xhr` need one, and a navigation without one is typed into the address bar |
 | **Fingerprint and transport** | |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate |
 | `-t`, `--timeout <duration>` | Request timeout; default `30s` |
@@ -743,6 +745,37 @@ back through, by name.
   dead proxy    http://user@198.51.100.4:8080  (12 requests, none came back)
   dead proxy    socks5://198.51.100.9:1080  (11 requests, none came back)
 ```
+
+#### Sending a request as a page would
+
+```bash
+tls-forge fetch --request-kind navigation https://shop.example/item/7
+tls-forge fetch --request-kind form --initiator-url https://shop.example/login \
+  -X POST -d 'user=a&password=b' https://shop.example/session
+tls-forge fetch --request-kind fetch --initiator-url https://shop.example/item/7 \
+  -X POST -H 'Content-Type: application/json' -d '{"item":7}' https://api.shop.example/cart
+```
+
+Without `--request-kind` a request goes out as a navigation typed into the
+address bar, with the profile's headers and whatever `-H` adds: what the
+first request of a visit is. A page sends others, and Chrome sends each kind
+its own way. `--request-kind` says which this is, and `--initiator-url` the
+page it is sent from, and every request of the run goes out as Chrome 155 was
+measured sending that kind ([GO.md](GO.md#browser-contexts) has the rules):
+a form's POST with `Cache-Control`, `Origin` and the form's `Content-Type`;
+`fetch()` and an XHR with `Accept: */*` and `Sec-Fetch-Mode: cors`;
+`Referer` and `Sec-Fetch-Site` as the page stands to the URL; and only the
+cookies SameSite lets through. A `fetch` or `xhr` to another origin that CORS
+asks about goes after a preflight, an `OPTIONS`, and not at all when the
+preflight does not allow it: that URL fails, said with `CORS:`, and is not
+tried again.
+
+What a page could not send is refused, with exit code 2, before anything is
+sent or written: a navigation with `-H` or `-d`, a form, `fetch` or `xhr`
+without `--initiator-url`, a header a script cannot set (`Cookie`, `Origin`,
+`Referer`, `Sec-*`, `User-Agent`), and a profile of a browser other than a
+Chromium one, or one with no headers of its own. The block the run begins
+with says what its requests are sent as.
 
 #### Checking the page
 

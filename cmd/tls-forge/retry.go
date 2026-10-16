@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -142,7 +143,8 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 		if page {
 			return res, attempts, tries, found, nil
 		}
-		if ctx.Err() != nil || attempt > p.retries {
+		// CORS says the same thing every time, and Chrome does not ask again.
+		if ctx.Err() != nil || attempt > p.retries || errors.Is(err, tlsforge.ErrCORS) {
 			return res, attempts, tries, found, err
 		}
 		wait := retryWait(attempt)
