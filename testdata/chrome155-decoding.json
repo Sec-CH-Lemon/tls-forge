@@ -1,0 +1,1508 @@
+{
+ "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-16",
+ "how": "Each body was served over plain HTTP from a local server, with the Content-Type given (none when null), and opened at the top level in a fresh profile with --dump-dom. word is the bytes a word in the body was written in. chrome_text is that word as Chrome decoded it: for HTML the textContent of #t, which a script in the page wrote into the title with document.characterSet, given as chrome_encoding; for other documents the decoding of the word found in the dumped DOM; null when the word was nowhere in it.",
+ "cases": [
+  {
+   "name": "h-1251-late",
+   "note": "windows-1251 HTML, no encoding named, the text after 1100 bytes of comment",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PCEtLXh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4LS0+PC9oZWFkPjxib2R5PjxwIGlkPXQ+z/Do4uXyIOzo8DwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-1251-meta",
+   "note": "windows-1251 HTML whose <meta> says so",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7P8Oji5fIg7OjwPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-1251-nodecl",
+   "note": "windows-1251 HTML that names no encoding",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+z/Do4uXyIOzo8DwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-1252-latin",
+   "note": "windows-1252 HTML, no encoding named",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+Y2Fm6SBjcuhtZTwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "Y2Fm6SBjcuhtZQ==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "café crème"
+  },
+  {
+   "name": "h-bom-meta1251",
+   "note": "a UTF-8 byte order mark, and a <meta> naming windows-1251",
+   "content_type": "text/html",
+   "body": "77u/PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "UTF-8",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-http-bogus-meta",
+   "note": "an unknown charset in the Content-Type, a <meta> naming windows-1251",
+   "content_type": "text/html; charset=bogus",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-http-empty",
+   "note": "an empty charset in the Content-Type, a <meta> naming koi8-r",
+   "content_type": "text/html; charset=",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0ia29pOC1yIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-http-latin1-utf8",
+   "note": "UTF-8 HTML whose Content-Type names iso-8859-1",
+   "content_type": "text/html; charset=iso-8859-1",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+Y2Fmw6k8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "Y2Fmw6k=",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "cafÃ©"
+  },
+  {
+   "name": "h-http-meta-both",
+   "note": "the Content-Type naming windows-1251, a <meta> naming koi8-r",
+   "content_type": "text/html; charset=windows-1251",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0ia29pOC1yIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-http-quoted",
+   "note": "a quoted charset in the Content-Type",
+   "content_type": "text/html; charset=\"windows-1251\"",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-http-quoted-space",
+   "note": "a quoted charset with a space before windows-1251",
+   "content_type": "text/html; charset=\" windows-1251\"",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-http-replacement",
+   "note": "iso-2022-kr in the Content-Type",
+   "content_type": "text/html; charset=iso-2022-kr",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "�"
+  },
+  {
+   "name": "h-http-two-same",
+   "note": "text/html naming windows-1251, then text/html",
+   "content_type": "text/html; charset=windows-1251, text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0ia29pOC1yIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-http-two-types",
+   "note": "text/plain naming windows-1251, then text/html, and a <meta> naming koi8-r",
+   "content_type": "text/plain; charset=windows-1251, text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0ia29pOC1yIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-http-upper",
+   "note": "TEXT/HTML; CHARSET=WINDOWS-1251",
+   "content_type": "TEXT/HTML; CHARSET=WINDOWS-1251",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-http-utf16le",
+   "note": "UTF-16LE HTML, the Content-Type says so",
+   "content_type": "text/html; charset=utf-16le",
+   "body": "PAAhAGQAbwBjAHQAeQBwAGUAIABoAHQAbQBsAD4APABoAHQAbQBsAD4APABoAGUAYQBkAD4APAAvAGgAZQBhAGQAPgA8AGIAbwBkAHkAPgA8AHAAIABpAGQAPQB0AD4AHwRABDgEMgQ1BEIEIAA8BDgEQAQ8AC8AcAA+ADwAcwBjAHIAaQBwAHQAPgBkAG8AYwB1AG0AZQBuAHQALgB0AGkAdABsAGUAPQBkAG8AYwB1AG0AZQBuAHQALgBjAGgAYQByAGEAYwB0AGUAcgBTAGUAdAArACIAfAAiACsAZQBuAGMAbwBkAGUAVQBSAEkAQwBvAG0AcABvAG4AZQBuAHQAKABkAG8AYwB1AG0AZQBuAHQALgBnAGUAdABFAGwAZQBtAGUAbgB0AEIAeQBJAGQAKAAiAHQAIgApAC4AdABlAHgAdABDAG8AbgB0AGUAbgB0ACkAPAAvAHMAYwByAGkAcAB0AD4APAAvAGIAbwBkAHkAPgA8AC8AaAB0AG0AbAA+AA==",
+   "word": "HwRABDgEMgQ1BEIEIAA8BDgEQAQ=",
+   "chrome_encoding": "UTF-16LE",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-http-xud",
+   "note": "x-user-defined in the Content-Type",
+   "content_type": "text/html; charset=x-user-defined",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "x-user-defined",
+   "chrome_text": " "
+  },
+  {
+   "name": "h-invalid",
+   "note": "UTF-8 HTML with a stray 0xFF, no encoding named",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgP88L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgP8=",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€ÿ"
+  },
+  {
+   "name": "h-meta-after-500",
+   "note": "a <meta> in the head after a 500-byte title",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRpdGxlPnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5PC90aXRsZT48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-after-head",
+   "note": "a <meta> after </head>, early",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-after-head-late",
+   "note": "a <meta> after </head>, past byte 1024",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRpdGxlPnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5PC90aXRsZT48L2hlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-after-script",
+   "note": "a <meta> in the head after an 1100-byte script",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHNjcmlwdD52YXIgYT0nenp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enonPC9zY3JpcHQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-after-span-late",
+   "note": "a <meta> in the head past byte 1024, after a <span>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHNwYW4+PC9zcGFuPjwhLS14eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eC0tPjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-after-title",
+   "note": "a <meta> in the head after an 1100-byte title",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRpdGxlPnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5PC90aXRsZT48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-before-head-late",
+   "note": "a <meta> past byte 1024 after <html> and a comment, before <head>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PCEtLXh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4LS0+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48aGVhZD48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-body-1023",
+   "note": "a <meta> after body text, beginning at byte 1023",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5Pnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-body-1024",
+   "note": "a <meta> after body text, beginning at byte 1024",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5Pnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eTxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-charset-blank",
+   "note": "a charset of spaces only, then a <meta> naming windows-1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iICAiPjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-charset-bogus-content",
+   "note": "an unknown charset with content naming koi8-r",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iYm9ndXMiIGNvbnRlbnQ9InRleHQvaHRtbDsgY2hhcnNldD1rb2k4LXIiIGh0dHAtZXF1aXY9ImNvbnRlbnQtdHlwZSI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-charset-bogus-then",
+   "note": "an unknown charset, then a <meta> naming windows-1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iYm9ndXMiPjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-charset-empty-then",
+   "note": "an empty charset, then a <meta> naming windows-1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iIj48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-charset-first",
+   "note": "charset naming windows-1251 before content naming koi8-r",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yIiBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-charset-kelvin",
+   "note": "charset KOI8-R spelt with a Kelvin sign",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iJiM4NDkwO09JOC1SIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-charset-nbsp",
+   "note": "charset windows-1251 followed by a no-break space",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxJiMxNjA7Ij48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-charset-spaces",
+   "note": "charset with spaces around windows-1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iIHdpbmRvd3MtMTI1MSAiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-charset-then-empty",
+   "note": "charset naming windows-1251, content naming koi8-r, then an empty charset",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yIiBjaGFyc2V0PSIiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-charset-vt",
+   "note": "charset windows-1251 followed by a vertical tab",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxJiMxMTsiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-comment",
+   "note": "a <meta> inside a comment",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PCEtLTxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+LS0+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-content-empty-charset",
+   "note": "content naming koi8-r, then an empty charset, with http-equiv",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PWtvaTgtciIgY2hhcnNldD0iIiBodHRwLWVxdWl2PSJjb250ZW50LXR5cGUiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-content-first",
+   "note": "content naming koi8-r before charset naming windows-1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PWtvaTgtciIgY2hhcnNldD0id2luZG93cy0xMjUxIiBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-content-no-pragma",
+   "note": "content naming windows-1251, no http-equiv",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PXdpbmRvd3MtMTI1MSI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-content-quote-ends",
+   "note": "content whose unquoted charset runs into a quote",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yJ3giPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-content-quoted",
+   "note": "content whose charset is in single quotes",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9J2tvaTgtciciPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-content-semicolon",
+   "note": "content whose charset ends at a semicolon",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yO3giPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-content-spaced",
+   "note": "content with spaces around the equals sign",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQgPSBrb2k4LXIiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-content-tab-ends",
+   "note": "content whose charset ends at a tab",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yJiM5O3giPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-content-then-bare",
+   "note": "content naming koi8-r, then content naming none, with http-equiv",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yIiBjb250ZW50PSJ0ZXh0L2h0bWwiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-content-twice",
+   "note": "content saying charsetx before charset=koi8-r",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXR4OyBjaGFyc2V0PWtvaTgtciI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-content-unclosed",
+   "note": "content whose quoted charset is not closed",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9J2tvaTgtciI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-content-upper",
+   "note": "content saying CHARSET=koi8-r, with http-equiv",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IENIQVJTRVQ9a29pOC1yIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-content-vt",
+   "note": "content with a vertical tab after the equals sign",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9JiMxMTtrb2k4LXIiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-cp1251",
+   "note": "a <meta> naming cp1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iY3AxMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-dup-charset",
+   "note": "a <meta> with charset twice: windows-1251, then koi8-r",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIiBjaGFyc2V0PSJrb2k4LXIiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-dup-content",
+   "note": "content naming koi8-r, then content naming windows-1251, with http-equiv",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9d2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-empty-charset-content",
+   "note": "an empty charset, then content naming koi8-r, with http-equiv",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9a29pOC1yIiBodHRwLWVxdWl2PSJjb250ZW50LXR5cGUiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-entity",
+   "note": "charset windows&#45;1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cyYjNDU7MTI1MSI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-head-5000",
+   "note": "a <meta> in the head after a 5000-byte title",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRpdGxlPnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5PC90aXRsZT48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-head-close-body",
+   "note": "a <meta> past byte 1024 after </title></head> and text",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRpdGxlPnQ8L3RpdGxlPjwvaGVhZD55eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eTxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-head-tags-late",
+   "note": "a <meta> past byte 1024 after link, style, base, object and other meta",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PGxpbmsgcmVsPWljb24gaHJlZj0iZGF0YTosIj48c3R5bGU+enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eno8L3N0eWxlPjxiYXNlIGhyZWY9Ii8iPjxvYmplY3Q+PC9vYmplY3Q+PG1ldGEgbmFtZT14IGNvbnRlbnQ9eT48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-head-text-late",
+   "note": "a <meta> past byte 1024 after text in the head",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk8bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-iframe",
+   "note": "a <meta> inside <iframe>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxpZnJhbWU+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2lmcmFtZT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-in-body",
+   "note": "a <meta> just inside the body, early",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-iso-2022-kr",
+   "note": "a <meta> naming iso-2022-kr",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iaXNvLTIwMjIta3IiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "�"
+  },
+  {
+   "name": "h-meta-koi8-ru",
+   "note": "a <meta> naming koi8-ru",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0ia29pOC1ydSI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-U",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-meta-late",
+   "note": "a <meta> in the head after 1100 bytes of comment",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PCEtLXh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4LS0+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-no-pragma-then-meta",
+   "note": "content naming koi8-r without http-equiv, then a <meta> naming windows-1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PWtvaTgtciI+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-noembed",
+   "note": "a <meta> inside <noembed> in the head",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG5vZW1iZWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L25vZW1iZWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-noframes",
+   "note": "a <meta> inside <noframes> in the head",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG5vZnJhbWVzPjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PC9ub2ZyYW1lcz48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-noscript",
+   "note": "a <meta> inside <noscript> in the head",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG5vc2NyaXB0PjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PC9ub3NjcmlwdD48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-noscript-late",
+   "note": "a <meta> past byte 1024, after text inside <noscript>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG5vc2NyaXB0Pnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5PC9ub3NjcmlwdD48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-pragma-last",
+   "note": "content naming windows-1251, http-equiv after it in capitals",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PXdpbmRvd3MtMTI1MSIgaHR0cC1lcXVpdj0iQ09OVEVOVC1UWVBFIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-pragma-other",
+   "note": "content naming windows-1251 with another http-equiv",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0ieC11YS1jb21wYXRpYmxlIiBjb250ZW50PSJ0ZXh0L2h0bWw7IGNoYXJzZXQ9d2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-pragma-then-bogus",
+   "note": "content naming koi8-r and http-equiv, then an unknown charset",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PWtvaTgtciIgaHR0cC1lcXVpdj0iY29udGVudC10eXBlIiBjaGFyc2V0PSJib2d1cyI+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-replacement",
+   "note": "a <meta> naming replacement",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0icmVwbGFjZW1lbnQiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "�"
+  },
+  {
+   "name": "h-meta-script",
+   "note": "a <meta> inside a script's string",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHNjcmlwdD52YXIgcz0nPG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj4nPC9zY3JpcHQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-self-closing",
+   "note": "<meta charset=windows-1251 />",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIi8+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-style",
+   "note": "a <meta> inside a style comment",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHN0eWxlPi8qPG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj4qLzwvc3R5bGU+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-template-late",
+   "note": "a <meta> past byte 1024 after a <template> in the head",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRlbXBsYXRlPjwvdGVtcGxhdGU+PCEtLXh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4LS0+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-textarea",
+   "note": "a <meta> inside <textarea>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5Pjx0ZXh0YXJlYT48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiPjwvdGV4dGFyZWE+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-title",
+   "note": "a <meta> inside <title>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRpdGxlPjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSI+PC90aXRsZT48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-unquoted",
+   "note": "<meta charset=windows-1251> unquoted",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD13aW5kb3dzLTEyNTE+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-upper",
+   "note": "<META CHARSET=WINDOWS-1251>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PE1FVEEgQ0hBUlNFVD0iV0lORE9XUy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-meta-utf16",
+   "note": "a <meta> naming UTF-16 in UTF-8 HTML",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0idXRmLTE2Ij48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "UTF-8",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-meta-utf16be",
+   "note": "a <meta> naming UTF-16BE in UTF-8 HTML",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0idXRmLTE2YmUiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "UTF-8",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-meta-windows1251",
+   "note": "a <meta> naming windows1251, not a label",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93czEyNTEiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-x-user-defined",
+   "note": "a <meta> naming x-user-defined",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0ieC11c2VyLWRlZmluZWQiPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-meta-xmp",
+   "note": "a <meta> inside <xmp>",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5Pjx4bXA+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L3htcD48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-utf16be-nobom",
+   "note": "UTF-16BE HTML with no byte order mark that begins <?x",
+   "content_type": "text/html",
+   "body": "ADwAPwB4AG0AbAAgAHYAZQByAHMAaQBvAG4APQAiADEALgAwACIAPwA+ADwAIQBkAG8AYwB0AHkAcABlACAAaAB0AG0AbAA+ADwAaAB0AG0AbAA+ADwAaABlAGEAZAA+ADwALwBoAGUAYQBkAD4APABiAG8AZAB5AD4APABwACAAaQBkAD0AdAA+BB8EQAQ4BDIENQRCACAEPAQ4BEAAPAAvAHAAPgA8AHMAYwByAGkAcAB0AD4AZABvAGMAdQBtAGUAbgB0AC4AdABpAHQAbABlAD0AZABvAGMAdQBtAGUAbgB0AC4AYwBoAGEAcgBhAGMAdABlAHIAUwBlAHQAKwAiAHwAIgArAGUAbgBjAG8AZABlAFUAUgBJAEMAbwBtAHAAbwBuAGUAbgB0ACgAZABvAGMAdQBtAGUAbgB0AC4AZwBlAHQARQBsAGUAbQBlAG4AdABCAHkASQBkACgAIgB0ACIAKQAuAHQAZQB4AHQAQwBvAG4AdABlAG4AdAApADwALwBzAGMAcgBpAHAAdAA+ADwALwBiAG8AZAB5AD4APAAvAGgAdABtAGwAPg==",
+   "word": "BB8EQAQ4BDIENQRCACAEPAQ4BEA=",
+   "chrome_encoding": "UTF-16BE",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-utf16le-nobom",
+   "note": "UTF-16LE HTML with no byte order mark that begins <?x",
+   "content_type": "text/html",
+   "body": "PAA/AHgAbQBsACAAdgBlAHIAcwBpAG8AbgA9ACIAMQAuADAAIgA/AD4APAAhAGQAbwBjAHQAeQBwAGUAIABoAHQAbQBsAD4APABoAHQAbQBsAD4APABoAGUAYQBkAD4APAAvAGgAZQBhAGQAPgA8AGIAbwBkAHkAPgA8AHAAIABpAGQAPQB0AD4AHwRABDgEMgQ1BEIEIAA8BDgEQAQ8AC8AcAA+ADwAcwBjAHIAaQBwAHQAPgBkAG8AYwB1AG0AZQBuAHQALgB0AGkAdABsAGUAPQBkAG8AYwB1AG0AZQBuAHQALgBjAGgAYQByAGEAYwB0AGUAcgBTAGUAdAArACIAfAAiACsAZQBuAGMAbwBkAGUAVQBSAEkAQwBvAG0AcABvAG4AZQBuAHQAKABkAG8AYwB1AG0AZQBuAHQALgBnAGUAdABFAGwAZQBtAGUAbgB0AEIAeQBJAGQAKAAiAHQAIgApAC4AdABlAHgAdABDAG8AbgB0AGUAbgB0ACkAPAAvAHMAYwByAGkAcAB0AD4APAAvAGIAbwBkAHkAPgA8AC8AaAB0AG0AbAA+AA==",
+   "word": "HwRABDgEMgQ1BEIEIAA8BDgEQAQ=",
+   "chrome_encoding": "UTF-16LE",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-utf8-http1251",
+   "note": "UTF-8 HTML whose Content-Type names windows-1251",
+   "content_type": "text/html; charset=windows-1251",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-utf8-late",
+   "note": "UTF-8 HTML, no encoding named, the text after 1100 bytes of comment",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PCEtLXh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4LS0+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-utf8-meta1251",
+   "note": "UTF-8 HTML whose <meta> names windows-1251",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-utf8-nodecl",
+   "note": "UTF-8 HTML that names no encoding",
+   "content_type": "text/html",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-xmldecl",
+   "note": "HTML that begins with an XML declaration naming windows-1251",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-xmldecl-XML",
+   "note": "<?XML in capitals naming windows-1251",
+   "content_type": "text/html",
+   "body": "PD9YTUwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-xmldecl-bom",
+   "note": "a UTF-8 byte order mark, then an XML declaration naming windows-1251",
+   "content_type": "text/html",
+   "body": "77u/PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "UTF-8",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-xmldecl-first-bad",
+   "note": "an XML declaration whose first 'encoding' is a value",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiB4PSJlbmNvZGluZyIgZW5jb2Rpbmc9IndpbmRvd3MtMTI1MSI/PjwhZG9jdHlwZSBodG1sPjxodG1sPjxoZWFkPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-xmldecl-gt",
+   "note": "an XML declaration with a > before encoding",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iPiIgZW5jb2Rpbmc9IndpbmRvd3MtMTI1MSI/PjwhZG9jdHlwZSBodG1sPjxodG1sPjxoZWFkPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-xmldecl-http",
+   "note": "an XML declaration naming windows-1251, the Content-Type koi8-r",
+   "content_type": "text/html; charset=koi8-r",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-xmldecl-meta",
+   "note": "an XML declaration naming windows-1251 and a <meta> naming koi8-r",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0ia29pOC1yIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "KOI8-R",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "h-xmldecl-pi",
+   "note": "an <?xml-stylesheet?> saying encoding=windows-1251",
+   "content_type": "text/html",
+   "body": "PD94bWwtc3R5bGVzaGVldCBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-xmldecl-space",
+   "note": "an XML declaration naming windows-1251 after a space",
+   "content_type": "text/html",
+   "body": "IDw/eG1sIHZlcnNpb249IjEuMCIgZW5jb2Rpbmc9IndpbmRvd3MtMTI1MSI/PjwhZG9jdHlwZSBodG1sPjxodG1sPjxoZWFkPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-xmldecl-spaced",
+   "note": "an XML declaration with spaces around the equals sign",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZyA9ICd3aW5kb3dzLTEyNTEnPz48IWRvY3R5cGUgaHRtbD48aHRtbD48aGVhZD48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "h-xmldecl-unquoted",
+   "note": "an XML declaration with encoding unquoted",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz13aW5kb3dzLTEyNTE/PjwhZG9jdHlwZSBodG1sPjxodG1sPjxoZWFkPjwvaGVhZD48Ym9keT48cCBpZD10PtCf0YDQuNCy0LXRgiDQvNC40YA8L3A+PHNjcmlwdD5kb2N1bWVudC50aXRsZT1kb2N1bWVudC5jaGFyYWN0ZXJTZXQrInwiK2VuY29kZVVSSUNvbXBvbmVudChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgidCIpLnRleHRDb250ZW50KTwvc2NyaXB0PjwvYm9keT48L2h0bWw+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-xmldecl-upper",
+   "note": "an XML declaration with ENCODING in capitals",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBFTkNPRElORz0id2luZG93cy0xMjUxIj8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "h-xmldecl-utf16",
+   "note": "an XML declaration naming UTF-16 in UTF-8 HTML",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTE2Ij8+PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "UTF-8",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "h-xmldecl-xud",
+   "note": "an XML declaration naming x-user-defined in HTML",
+   "content_type": "text/html",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0ieC11c2VyLWRlZmluZWQiPz48IWRvY3R5cGUgaHRtbD48aHRtbD48aGVhZD48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "x-user-defined",
+   "chrome_text": " "
+  },
+  {
+   "name": "j-1251-http",
+   "note": "windows-1251 JSON, the Content-Type says so",
+   "content_type": "application/json; charset=windows-1251",
+   "body": "eyJhIjoiz/Do4uXyIOzo8CJ9",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-1251bytes",
+   "note": "windows-1251 bytes in JSON, no charset",
+   "content_type": "application/json",
+   "body": "eyJhIjoiz/Do4uXyIOzo8CJ9",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "������ ���"
+  },
+  {
+   "name": "j-bom16le",
+   "note": "JSON with a UTF-16LE byte order mark",
+   "content_type": "application/json",
+   "body": "//57ACIAYQAiADoAIgAfBEAEOAQyBDUEQgQgADwEOARABCIAfQA=",
+   "word": "HwRABDgEMgQ1BEIEIAA8BDgEQAQ=",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-http1251-utf8",
+   "note": "UTF-8 JSON whose Content-Type names windows-1251",
+   "content_type": "application/json; charset=windows-1251",
+   "body": "eyJhIjoi0J/RgNC40LLQtdGCINC80LjRgCJ9",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "j-meta",
+   "note": "JSON with a <meta> naming windows-1251 in a string",
+   "content_type": "application/json",
+   "body": "eyJtIjoiPG1ldGEgY2hhcnNldD1cIndpbmRvd3MtMTI1MVwiPiIsImEiOiLQn9GA0LjQstC10YIg0LzQuNGAIn0=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-problem",
+   "note": "UTF-8 application/problem+json",
+   "content_type": "application/problem+json",
+   "body": "eyJhIjoi0J/RgNC40LLQtdGCINC80LjRgCJ9",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-text-json",
+   "note": "UTF-8 text/json",
+   "content_type": "text/json",
+   "body": "eyJhIjoi0J/RgNC40LLQtdGCINC80LjRgCJ9",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-truncated",
+   "note": "JSON with cut-off UTF-8 sequences",
+   "content_type": "application/json",
+   "body": "eyJhIjoieOKCefCfmHrAr3cifQ==",
+   "word": "eOKCefCfmHrAr3c=",
+   "chrome_text": "x�y�z��w"
+  },
+  {
+   "name": "j-utf8",
+   "note": "UTF-8 JSON",
+   "content_type": "application/json",
+   "body": "eyJhIjoi0J/RgNC40LLQtdGCINC80LjRgCJ9",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-utf8-error",
+   "note": "UTF-8 JSON with a stray byte before the text",
+   "content_type": "application/json",
+   "body": "eyJhIjoi/9Cf0YDQuNCy0LXRgiDQvNC40YAifQ==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-utf8-late",
+   "note": "UTF-8 JSON after 1100 ASCII bytes",
+   "content_type": "application/json",
+   "body": "eyJwYWQiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImEiOiLQn9GA0LjQstC10YIg0LzQuNGAIn0=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "j-xmldecl",
+   "note": "JSON that begins with an XML declaration naming windows-1251",
+   "content_type": "application/json",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+eyJhIjoi0J/RgNC40LLQtdGCINC80LjRgCJ9",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "n-application-unknown",
+   "note": "UTF-8 HTML with a <meta> naming windows-1251, typed application/unknown",
+   "content_type": "application/unknown",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "n-html-600ws",
+   "note": "600 spaces, then HTML with a <meta> naming windows-1251, no Content-Type",
+   "content_type": null,
+   "body": "ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "n-html-meta-sniffed",
+   "note": "UTF-8 HTML with a <meta> naming windows-1251, no Content-Type",
+   "content_type": null,
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "n-html-sniffed",
+   "note": "UTF-8 HTML with no Content-Type",
+   "content_type": null,
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PjxwIGlkPXQ+0J/RgNC40LLQtdGCINC80LjRgDwvcD48c2NyaXB0PmRvY3VtZW50LnRpdGxlPWRvY3VtZW50LmNoYXJhY3RlclNldCsifCIrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJ0IikudGV4dENvbnRlbnQpPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "n-json-sniffed",
+   "note": "UTF-8 JSON, no Content-Type",
+   "content_type": null,
+   "body": "eyJhIjoi0J/RgNC40LLQtdGCINC80LjRgCJ9",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "n-text-sniffed",
+   "note": "UTF-8 text with no Content-Type",
+   "content_type": null,
+   "body": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "n-unknown-unknown",
+   "note": "UTF-8 HTML with a <meta> naming windows-1251, typed unknown/unknown",
+   "content_type": "unknown/unknown",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1251",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "n-xml-sniffed",
+   "note": "windows-1251 XML declaring it, no Content-Type",
+   "content_type": null,
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PHI+z/Do4uXyIOzo8Dwvcj4=",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "t-1251-nodecl",
+   "note": "windows-1251 plain text, no charset",
+   "content_type": "text/plain",
+   "body": "z/Do4uXyIOzo8A==",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "t-bom-http1251",
+   "note": "plain text with a UTF-8 byte order mark, the Content-Type naming windows-1251",
+   "content_type": "text/plain; charset=windows-1251",
+   "body": "77u/0J/RgNC40LLQtdGCINC80LjRgA==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "t-css-1251",
+   "note": "windows-1251 CSS with no @charset",
+   "content_type": "text/css",
+   "body": "Lyogz/Do4uXyIOzo8CAqLw==",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "橡桠弪 扈�"
+  },
+  {
+   "name": "t-css-bogus",
+   "note": "UTF-8 CSS whose @charset names an unknown encoding",
+   "content_type": "text/css",
+   "body": "QGNoYXJzZXQgImJvZ3VzIjsgLyog0J/RgNC40LLQtdGCINC80LjRgCAqLw==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-css-charset",
+   "note": "UTF-8 CSS whose @charset names windows-1251",
+   "content_type": "text/css",
+   "body": "QGNoYXJzZXQgIndpbmRvd3MtMTI1MSI7IC8qINCf0YDQuNCy0LXRgiDQvNC40YAgKi8=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "t-css-http",
+   "note": "UTF-8 CSS whose @charset names windows-1251, the Content-Type koi8-r",
+   "content_type": "text/css; charset=koi8-r",
+   "body": "QGNoYXJzZXQgIndpbmRvd3MtMTI1MSI7IC8qINCf0YDQuNCy0LXRgiDQvNC40YAgKi8=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "t-css-leading-space",
+   "note": "UTF-8 CSS with a space before @charset",
+   "content_type": "text/css",
+   "body": "IEBjaGFyc2V0ICJ3aW5kb3dzLTEyNTEiOyAvKiDQn9GA0LjQstC10YIg0LzQuNGAICov",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-css-single",
+   "note": "UTF-8 CSS whose @charset is in single quotes",
+   "content_type": "text/css",
+   "body": "QGNoYXJzZXQgJ3dpbmRvd3MtMTI1MSc7IC8qINCf0YDQuNCy0LXRgiDQvNC40YAgKi8=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-css-space-semicolon",
+   "note": "UTF-8 CSS whose @charset has a space before the semicolon",
+   "content_type": "text/css",
+   "body": "QGNoYXJzZXQgIndpbmRvd3MtMTI1MSIgOyAvKiDQn9GA0LjQstC10YIg0LzQuNGAICov",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-css-upper",
+   "note": "UTF-8 CSS with @CHARSET in capitals naming windows-1251",
+   "content_type": "text/css",
+   "body": "QENIQVJTRVQgIndpbmRvd3MtMTI1MSI7IC8qINCf0YDQuNCy0LXRgiDQvNC40YAgKi8=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-css-utf16",
+   "note": "UTF-8 CSS whose @charset names UTF-16",
+   "content_type": "text/css",
+   "body": "QGNoYXJzZXQgInV0Zi0xNiI7IC8qINCf0YDQuNCy0LXRgiDQvNC40YAgKi8=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "t-css-utf8",
+   "note": "UTF-8 CSS with no @charset",
+   "content_type": "text/css",
+   "body": "Lyog0J/RgNC40LLQtdGCINC80LjRgCAqLw==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-js",
+   "note": "UTF-8 JavaScript",
+   "content_type": "text/javascript",
+   "body": "dmFyIGE9ItCf0YDQuNCy0LXRgiDQvNC40YAiOw==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-markdown",
+   "note": "UTF-8 text/markdown",
+   "content_type": "text/markdown",
+   "body": "IyDQn9GA0LjQstC10YIg0LzQuNGA",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-meta-ignored",
+   "note": "plain text that begins with a <meta> naming windows-1251",
+   "content_type": "text/plain",
+   "body": "PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj7Qn9GA0LjQstC10YIg0LzQuNGA",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-utf16be-bom",
+   "note": "plain text with a UTF-16BE byte order mark",
+   "content_type": "text/plain",
+   "body": "/v8EHwRABDgEMgQ1BEIAIAQ8BDgEQA==",
+   "word": "BB8EQAQ4BDIENQRCACAEPAQ4BEA=",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "t-utf8-http1251",
+   "note": "UTF-8 plain text whose Content-Type names windows-1251",
+   "content_type": "text/plain; charset=windows-1251",
+   "body": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "t-utf8-late",
+   "note": "UTF-8 plain text after 1100 ASCII bytes",
+   "content_type": "text/plain",
+   "body": "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHjQn9GA0LjQstC10YIg0LzQuNGA",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-utf8-nodecl",
+   "note": "UTF-8 plain text, no charset",
+   "content_type": "text/plain",
+   "body": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "t-xmldecl",
+   "note": "plain text that begins with an XML declaration naming windows-1251",
+   "content_type": "text/plain",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+0J/RgNC40LLQtdGCINC80LjRgA==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-1251-nodecl",
+   "note": "windows-1251 bytes in XML, no encoding declared",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHI+z/Do4uXyIOzo8Dwvcj4=",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": null
+  },
+  {
+   "name": "x-1253-unmapped",
+   "note": "windows-1253 XML with an unmapped byte before the text",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUzIj8+PHI+YapiIOHi4zwvcj4=",
+   "word": "4eLj",
+   "chrome_text": null
+  },
+  {
+   "name": "x-atom",
+   "note": "UTF-8 application/atom+xml",
+   "content_type": "application/atom+xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PGZlZWQ+PHQ+0J/RgNC40LLQtdGCINC80LjRgDwvdD48L2ZlZWQ+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-atom-css",
+   "note": "UTF-8 Atom that begins with an @charset naming windows-1251",
+   "content_type": "application/atom+xml",
+   "body": "QGNoYXJzZXQgIndpbmRvd3MtMTI1MSI7IDxmZWVkPjx0PtCf0YDQuNCy0LXRgiDQvNC40YA8L3Q+PC9mZWVkPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-atom-meta-late",
+   "note": "UTF-8 Atom with a <meta> naming windows-1251 past byte 1024",
+   "content_type": "application/atom+xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PGZlZWQ+PHg+eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk8L3g+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIi8+PHQ+0J/RgNC40LLQtdGCINC80LjRgDwvdD48L2ZlZWQ+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-bom16le",
+   "note": "XML with a UTF-16LE byte order mark",
+   "content_type": "application/xml",
+   "body": "//48AD8AeABtAGwAIAB2AGUAcgBzAGkAbwBuAD0AIgAxAC4AMAAiAD8APgA8AHIAPgAfBEAEOAQyBDUEQgQgADwEOARABDwALwByAD4A",
+   "word": "HwRABDgEMgQ1BEIEIAA8BDgEQAQ=",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-decl-koi8r",
+   "note": "UTF-8 XML whose declaration names koi8-r",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0ia29pOC1yIj8+PHI+0J/RgNC40LLQtdGCINC80LjRgDwvcj4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "п÷я─п╦п╡п╣я┌ п╪п╦я─"
+  },
+  {
+   "name": "x-decl-single",
+   "note": "windows-1251 XML, the declaration in single quotes",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nd2luZG93cy0xMjUxJz8+PHI+z/Do4uXyIOzo8Dwvcj4=",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-decl-utf16",
+   "note": "UTF-8 XML whose declaration names UTF-16",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTE2Ij8+PHI+0J/RgNC40LLQtdGCINC80LjRgDwvcj4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-decl1251",
+   "note": "windows-1251 XML whose declaration says so",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PHI+z/Do4uXyIOzo8Dwvcj4=",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-gbk-error",
+   "note": "GBK XML declaring it, a byte GBK has nothing for before the text",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iZ2JrIj8+PHI+Yf9iINCf0YDQuNCy0LXRgiDQvNC40YA8L3I+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": null
+  },
+  {
+   "name": "x-http1251-utf8",
+   "note": "UTF-8 XML whose Content-Type names windows-1251",
+   "content_type": "text/xml; charset=windows-1251",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHI+0J/RgNC40LLQtdGCINC80LjRgDwvcj4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "РџСЂРёРІРµС‚ РјРёСЂ"
+  },
+  {
+   "name": "x-rss",
+   "note": "UTF-8 application/rss+xml",
+   "content_type": "application/rss+xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHJzcz48dD7Qn9GA0LjQstC10YIg0LzQuNGAPC90PjwvcnNzPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-rss-1251-nodecl",
+   "note": "windows-1251 RSS, no encoding declared",
+   "content_type": "application/rss+xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHJzcz48dD7P8Oji5fIg7OjwPC90PjwvcnNzPg==",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-rss-decl1251",
+   "note": "windows-1251 RSS whose declaration says so",
+   "content_type": "application/rss+xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0id2luZG93cy0xMjUxIj8+PHJzcz48dD7P8Oji5fIg7OjwPC90PjwvcnNzPg==",
+   "word": "z/Do4uXyIOzo8A==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-rss-error",
+   "note": "UTF-8 RSS declaring it, a stray byte before the text",
+   "content_type": "application/rss+xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48cnNzPjx0Pv/Qn9GA0LjQstC10YIg0LzQuNGAPC90PjwvcnNzPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-rss-meta",
+   "note": "UTF-8 RSS with a <meta> naming windows-1251",
+   "content_type": "application/rss+xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHJzcz48bWV0YSBjaGFyc2V0PSJ3aW5kb3dzLTEyNTEiLz48dD7Qn9GA0LjQstC10YIg0LzQuNGAPC90PjwvcnNzPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-svg",
+   "note": "UTF-8 SVG",
+   "content_type": "image/svg+xml",
+   "body": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0PtCf0YDQuNCy0LXRgiDQvNC40YA8L3RleHQ+PC9zdmc+",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-utf16-lone",
+   "note": "UTF-16LE XML, the Content-Type says so, a lone surrogate before the text",
+   "content_type": "application/xml; charset=utf-16le",
+   "body": "PAA/AHgAbQBsACAAdgBlAHIAcwBpAG8AbgA9ACIAMQAuADAAIgA/AD4APAByAD4AYQAA3GIAHwRABDgEMgQ1BEIEIAA8BDgEQAQ8AC8AcgA+AA==",
+   "word": "HwRABDgEMgQ1BEIEIAA8BDgEQAQ=",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-utf16-odd",
+   "note": "UTF-16LE XML, the Content-Type says so, an odd byte at the end",
+   "content_type": "application/xml; charset=utf-16le",
+   "body": "PAA/AHgAbQBsACAAdgBlAHIAcwBpAG8AbgA9ACIAMQAuADAAIgA/AD4APAByAD4AHwRABDgEMgQ1BEIEIAA8BDgEQAQ8AC8AcgA+AEE=",
+   "word": "HwRABDgEMgQ1BEIEIAA8BDgEQAQ=",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-utf16le-nobom",
+   "note": "UTF-16LE XML with no byte order mark",
+   "content_type": "application/xml",
+   "body": "PAA/AHgAbQBsACAAdgBlAHIAcwBpAG8AbgA9ACIAMQAuADAAIgA/AD4APAByAD4AHwRABDgEMgQ1BEIEIAA8BDgEQAQ8AC8AcgA+AA==",
+   "word": "HwRABDgEMgQ1BEIEIAA8BDgEQAQ=",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-utf8-error-late",
+   "note": "UTF-8 XML with a stray byte after the text",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHI+0J/RgNC40LLQtdGCINC80LjRgP90YWlsPC9yPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": null
+  },
+  {
+   "name": "x-utf8-literal-fffd",
+   "note": "UTF-8 XML with a U+FFFD written in it before the text",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHI+77+90J/RgNC40LLQtdGCINC80LjRgDwvcj4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-utf8-nodecl",
+   "note": "UTF-8 XML, no encoding declared",
+   "content_type": "application/xml",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHI+0J/RgNC40LLQtdGCINC80LjRgDwvcj4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-xhtml-meta",
+   "note": "UTF-8 XHTML with a <meta> naming windows-1251",
+   "content_type": "application/xhtml+xml",
+   "body": "PGh0bWwgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGh0bWwiPjxoZWFkPjxtZXRhIGNoYXJzZXQ9IndpbmRvd3MtMTI1MSIvPjwvaGVhZD48Ym9keT48cCBpZD0idCI+0J/RgNC40LLQtdGCINC80LjRgDwvcD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "Привет мир"
+  },
+  {
+   "name": "x-xsl",
+   "note": "UTF-8 text/xsl, no encoding declared",
+   "content_type": "text/xsl",
+   "body": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHI+0J/RgNC40LLQtdGCINC80LjRgDwvcj4=",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  },
+  {
+   "name": "x-xsl-meta",
+   "note": "text/xsl with a <meta> naming windows-1251",
+   "content_type": "text/xsl",
+   "body": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0id2luZG93cy0xMjUxIj48L2hlYWQ+PGJvZHk+PHAgaWQ9dD7Qn9GA0LjQstC10YIg0LzQuNGAPC9wPjxzY3JpcHQ+ZG9jdW1lbnQudGl0bGU9ZG9jdW1lbnQuY2hhcmFjdGVyU2V0KyJ8IitlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInQiKS50ZXh0Q29udGVudCk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+   "word": "0J/RgNC40LLQtdGCINC80LjRgA==",
+   "chrome_encoding": "windows-1252",
+   "chrome_text": "ÐŸÑ€Ð¸Ð²ÐµÑ‚ Ð¼Ð¸Ñ€"
+  }
+ ]
+}

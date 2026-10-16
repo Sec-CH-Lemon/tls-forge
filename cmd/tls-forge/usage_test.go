@@ -85,6 +85,11 @@ func TestEveryBadFlagIsAUsageErrorThatTouchesNothing(t *testing.T) {
 		{[]string{"--proxy", "socks9://p.test:1"}, "--proxy socks9://p.test:1 is not an http, https, socks4, socks4a, socks5 or socks5h URL"},
 		{[]string{"--proxy", "http:///nowhere"}, "--proxy http:///nowhere names no host"},
 		{[]string{"--wait-for", "/x/g"}, "g is not a flag a regular expression takes"},
+		{[]string{"--html-decoding", "chrome", "--wait-for", "x"}, `--html-decoding is "chrome", want legacy or browser`},
+		{[]string{"--html-decoding", "", "--wait-for-element", "p"}, `--html-decoding is "", want legacy or browser`},
+		{[]string{"--html-decoding", "browser"}, "--html-decoding says how --wait-for and --wait-for-element read a " +
+			"body: give one of them"},
+		{[]string{"--html-decoding", "legacy", "--wait-for", ""}, "--html-decoding says how --wait-for and"},
 		{[]string{"--input", list}, "--input and URLs on the command line each give the list of URLs: give one"},
 		{[]string{"--urls", server.URL + "/inline"}, "--urls and URLs on the command line each give the list"},
 	} {

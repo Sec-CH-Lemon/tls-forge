@@ -13,6 +13,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`fetch --html-decoding browser` reads a page as Chrome 155 decodes it**
+  for `--wait-for` and `--wait-for-element`: by its byte order mark, its
+  `Content-Type`, then what a document of its type names in itself (in HTML
+  an XML declaration and, over it, the first `<meta>` naming an encoding
+  before the page leaves its head and is a kilobyte in; in XML its
+  declaration; in CSS an `@charset`), else UTF-8 for XML and JSON and
+  windows-1252 for the rest, and XML only up to the first byte its encoding
+  has nothing for. So UTF-8 that names windows-1251 is read as windows-1251,
+  as Chrome shows it. It is held to 174 bodies Chrome 155 was measured
+  decoding, `testdata/chrome155-decoding.json`; the encoding Chrome guesses
+  for a page that names none is not modelled. `legacy`, the default, reads as
+  page checks always have, and `--html-decoding` without either check is
+  refused. The report and the run log say which way a body was read
+  (`html_decoding`).
 - **`fetch --no-exit-lookup` makes no request to learn where requests come
   out**: no address service before the run, no probe of a site behind
   Cloudflare, no name a proxy gave for its exit resolved through its

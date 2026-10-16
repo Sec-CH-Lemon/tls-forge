@@ -26,3 +26,14 @@ extension: two series on 2026-10-16, 301 connections in all, each launch with
 a fresh user-data-dir at the local echo server. Every length was one of 144,
 176, 208 and 240 bytes, as often as the others; the cipher suite and the
 32-byte key never changed.
+
+`chrome155-decoding.json` is how Google Chrome 155.0.8059.80 on macOS 27.0.1
+(arm64), headless and in English, decoded 174 bodies on 2026-10-16: each
+served over plain HTTP from a local server with the `Content-Type` given and
+opened at the top level in a fresh profile with `--dump-dom`. Each case has
+the body, the bytes of a word in it, and that word as Chrome decoded it; for
+HTML, a script in the page wrote `document.characterSet` and the word's
+`textContent` into the title. The cases are what `--html-decoding browser` is
+held to: byte order marks, charsets in the `Content-Type`, `<meta>` and XML
+declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
+feeds, plain text and bodies with no type.

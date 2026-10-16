@@ -12,10 +12,20 @@ import (
 type pageCheck struct {
 	element *elementCheck
 	text    *textCheck
+	// decode reads a body as text, as decoding, the name --html-decoding
+	// gives it, says.
+	decode   func(*tlsforge.Response) []byte
+	decoding string
 }
 
-// newPageCheck reads what the two flags were given. Neither is no check.
-func newPageCheck(selector, text string) (*pageCheck, error) {
+// newPageCheck reads what the three flags were given: what the page has, and
+// how its body is read as text to look for it. Neither selector nor text is no
+// check, but the decoding is checked all the same.
+func newPageCheck(selector, text, decoding string) (*pageCheck, error) {
+	decode, err := decoderOf(decoding)
+	if err != nil {
+		return nil, err
+	}
 	element, err := newElementCheck(selector)
 	if err != nil {
 		return nil, err
@@ -27,20 +37,20 @@ func newPageCheck(selector, text string) (*pageCheck, error) {
 	if element == nil && found == nil {
 		return nil, nil
 	}
-	return &pageCheck{element: element, text: found}, nil
+	return &pageCheck{element: element, text: found, decode: decode, decoding: decoding}, nil
 }
 
 // look is what an answer's body is without of what the page has: the element,
 // the text or both, whatever its status. The body, and not the status, then
 // says whether the answer is the page: a 200 without it is not, and a 403 with
 // it is. No check, and no answer, finds nothing. The body is read as text once,
-// for both.
+// for both, as --html-decoding says.
 func (c *pageCheck) look(res *tlsforge.Response) finding {
 	if c == nil || res == nil {
 		return finding{}
 	}
 	found := finding{looked: true}
-	text := textOf(res)
+	text := c.decode(res)
 	if c.element != nil && c.element.lacksIn(text) {
 		found.MissingElement = c.element.selector
 	}
@@ -63,6 +73,15 @@ func (c *pageCheck) wants() (selector, text string) {
 		text = c.text.given
 	}
 	return selector, text
+}
+
+// readAs is how a body is read as text to look into it, as --html-decoding
+// names it, or nothing when nothing is looked for.
+func (c *pageCheck) readAs() string {
+	if c == nil {
+		return ""
+	}
+	return c.decoding
 }
 
 // finding is what looking into an answer's body found: the element matching

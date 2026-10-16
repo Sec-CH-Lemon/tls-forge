@@ -70,9 +70,12 @@ type summary struct {
 	// status: NoElement how many had no element matching WantedElement, the
 	// selector --wait-for-element names, and NoText how many had no text
 	// matching WantedText, what --wait-for names. One can be without both.
+	// Decoding is how a body was read as text to look into it, as
+	// --html-decoding names it.
 	Lacked                    int
 	NoElement, NoText         int
 	WantedElement, WantedText string
+	Decoding                  string
 	Bytes                     int64
 	Retries                   int
 	Elapsed                   time.Duration

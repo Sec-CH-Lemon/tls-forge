@@ -32,7 +32,8 @@ var fetchFlagGroups = []flagGroup{
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
 	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
-	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element"}},
+	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element",
+		"html-decoding"}},
 	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
 	{"report, trace and log", []string{"report", "report-format", "trace", "log", "log-level"}},
 }
@@ -483,6 +484,10 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	waitForElement := fs.String("wait-for-element", "",
 		"count an answer as the page when its HTML has an element matching this CSS selector, whatever its "+
 			"status; the HTML as it came: no script runs")
+	htmlDecoding := fs.String("html-decoding", decodingLegacy,
+		"how --wait-for and --wait-for-element read a body as text: legacy, by its byte order mark or "+
+			"Content-Type, else as UTF-8 when it is UTF-8 throughout, whatever a <meta> says; or browser, as "+
+			"Chrome 155 decodes the document, by those, then what a document of its type names in itself")
 	watch := addWatchFlags(fs)
 	reporting := addReportFlags(fs)
 	logging := addLogFlags(fs)
@@ -506,9 +511,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if *clearOutputDir && *output == "" {
 		return fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
 	}
-	check, err := newPageCheck(*waitForElement, *waitFor)
+	check, err := newPageCheck(*waitForElement, *waitFor, *htmlDecoding)
 	if err != nil {
 		return err
+	}
+	// It reads nothing on its own, and a run that seemed to read its pages as
+	// Chrome does, printed or kept, would not have.
+	if check == nil && fs.Changed("html-decoding") {
+		return fmt.Errorf("%w: --html-decoding says how --wait-for and --wait-for-element read a body: give one of them",
+			errUsage)
 	}
 	// A HEAD gets no body, and every answer to it would be without what the
 	// page has, whatever came back.
@@ -650,7 +661,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}()
 	common.log = runLog.logger()
 	runLog.say(slog.LevelInfo, "run", runAttrs(about, "version", version, "profile", worn.Name,
-		"output", *output, "wait_for", *waitFor, "wait_for_element", *waitForElement,
+		"output", *output, "wait_for", *waitFor, "wait_for_element", *waitForElement, "html_decoding", *htmlDecoding,
 		"reuse_connection", *again.reuse, "log_level", strings.ToLower(*logging.level))...)
 	trace, err := openTrace(*again.trace, "fetch", *common.proxy, started, about)
 	if err != nil {
@@ -841,6 +852,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	totals := summarise(records, now().Sub(counts.started))
 	totals.Passes = *again.repeat
 	totals.WantedElement, totals.WantedText = check.wants()
+	totals.Decoding = check.readAs()
 	summed := traceArgs{
 		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
 		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,

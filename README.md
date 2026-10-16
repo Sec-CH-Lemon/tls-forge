@@ -309,6 +309,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
 | `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |
 | `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
+| `--html-decoding <mode>` | How `--wait-for` and `--wait-for-element` read a body as text: `legacy`, the default, or `browser`, as Chrome 155 decodes the document; refused without either; see [Checking the page](#checking-the-page) |
 | **Output** | |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it, and a log of the run; see [Keeping every request](#keeping-every-request) |
 | `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
@@ -786,13 +787,33 @@ pattern that does not compile and text that is not UTF-8 are usage errors,
 before anything is fetched.
 
 The body is what came, decompressed and nothing else: the HTML as the server
-sent it, read in the encoding its byte order mark or its `Content-Type` names,
-else as UTF-8 when it is that throughout, else in the one its `<meta>` names,
-or as windows-1252. Nothing is rendered and no script runs, so an element or
-text a script adds is not there to be found, and nothing is waited for. Text
-is looked for in the markup, so `Tom &amp; Jerry` is what a page with an
-ampersand has, and a script's text is in it like any other. A selector that
-will not parse, or is only spaces, is a usage error too.
+sent it, read as text in one of two ways, as `--html-decoding` says. `legacy`,
+the default and what page checks have always done, reads it in the encoding
+its byte order mark or its `Content-Type` names, else as UTF-8 when it is that
+throughout, else in the one a `<meta>` in its first kilobyte names, or as
+windows-1252. `browser` reads it as Chrome 155 decodes a document of its type:
+in the encoding its byte order mark names, else its `Content-Type`, else what
+a document of the type names in itself, which for HTML is an XML declaration
+at the very start and, over it, the first `<meta>` naming an encoding before
+the page leaves its head and is a kilobyte in, for XML its declaration, and
+for CSS an `@charset` rule; else as UTF-8 for XML and JSON, and windows-1252,
+what Chrome in English falls back to, for HTML and text. So a page in UTF-8
+that names windows-1251 is read as windows-1251, as Chrome shows it, plain
+text that names nothing as windows-1252, and XML only up to the first byte
+its encoding has nothing for, where Chrome stops. Chrome also guesses the
+encoding of HTML, CSS and text that name none from their bytes, and finds
+windows-1251 or GBK that way; `browser` does not guess, and reads such a
+page as windows-1252. What Chrome 155 did with 174 bodies, and the few of
+them it guessed, are in `testdata/chrome155-decoding.json`, and `browser` is
+held to the rest. Given without `--wait-for` or `--wait-for-element`,
+`--html-decoding` reads nothing, and is refused. The report says which way the
+body was read.
+
+Nothing is rendered and no script runs, so an element or text a script adds is
+not there to be found, and nothing is waited for. Text is looked for in the
+markup, so `Tom &amp; Jerry` is what a page with an ampersand has, and a
+script's text is in it like any other. A selector that will not parse, or is
+only spaces, is a usage error too.
 
 #### Keeping every request
 

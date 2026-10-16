@@ -8,23 +8,34 @@ import (
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
-func TestPageCheckIsWhatTheTwoFlagsSay(t *testing.T) {
-	// Neither is no check, and asks nothing of any answer.
-	none, err := newPageCheck("", "")
-	if err != nil || none != nil || none.look(&tlsforge.Response{Status: 200}) != (finding{}) {
-		t.Errorf("no check: %v, %v", none, err)
+func TestPageCheckIsWhatTheThreeFlagsSay(t *testing.T) {
+	// Neither is no check, and asks nothing of any answer, however it would
+	// read one.
+	for _, decoding := range []string{decodingLegacy, decodingBrowser} {
+		none, err := newPageCheck("", "", decoding)
+		if err != nil || none != nil || none.look(&tlsforge.Response{Status: 200}) != (finding{}) {
+			t.Errorf("no check, %s: %v, %v", decoding, none, err)
+		}
+		if selector, text := none.wants(); selector != "" || text != "" {
+			t.Errorf("no check wants %q and %q", selector, text)
+		}
 	}
-	if selector, text := none.wants(); selector != "" || text != "" {
-		t.Errorf("no check wants %q and %q", selector, text)
-	}
-	// Either that cannot be used is said before anything is fetched.
-	for _, bad := range [][2]string{{"div[", ""}, {"", "//"}, {"#price", "/a(/"}, {"div[", "In stock"}} {
-		if _, err := newPageCheck(bad[0], bad[1]); !errors.Is(err, errUsage) {
+	// Any that cannot be used is said before anything is fetched: a decoding
+	// too, with or without anything to look for.
+	for _, bad := range [][3]string{
+		{"div[", "", decodingLegacy}, {"", "//", decodingLegacy}, {"#price", "/a(/", decodingBrowser},
+		{"div[", "In stock", decodingLegacy}, {"", "", "chrome"}, {"#price", "", ""}, {"", "In stock", "Browser"},
+	} {
+		if _, err := newPageCheck(bad[0], bad[1], bad[2]); !errors.Is(err, errUsage) {
 			t.Errorf("%q: %v", bad, err)
 		}
 	}
+	if _, err := newPageCheck("", "", "chrome"); err == nil ||
+		err.Error() != `bad usage: --html-decoding is "chrome", want legacy or browser` {
+		t.Errorf("an unknown decoding: %v", err)
+	}
 	for _, tc := range []struct{ selector, text string }{{"#price", ""}, {"", "In stock"}, {"#price", `/in stock/i`}} {
-		check, err := newPageCheck(tc.selector, tc.text)
+		check, err := newPageCheck(tc.selector, tc.text, decodingLegacy)
 		if err != nil {
 			t.Fatalf("%q: %v", tc, err)
 		}
@@ -35,11 +46,11 @@ func TestPageCheckIsWhatTheTwoFlagsSay(t *testing.T) {
 }
 
 func TestPageCheckSaysWhatABodyHas(t *testing.T) {
-	both, err := newPageCheck("#price", "In stock")
+	both, err := newPageCheck("#price", "In stock", decodingLegacy)
 	if err != nil {
 		t.Fatalf("newPageCheck: %v", err)
 	}
-	element, err := newPageCheck("#price", "")
+	element, err := newPageCheck("#price", "", decodingBrowser)
 	if err != nil {
 		t.Fatalf("newPageCheck: %v", err)
 	}
@@ -78,14 +89,42 @@ func TestPageCheckSaysWhatABodyHas(t *testing.T) {
 
 func TestPageCheckReadsThePageOnceInItsEncoding(t *testing.T) {
 	// The attribute and the text, in windows-1251, which only the page says.
-	check, err := newPageCheck(`[data-name="Цена"]`, "/цена: 9/i")
-	if err != nil {
-		t.Fatalf("newPageCheck: %v", err)
-	}
 	page := `<html><head><meta charset="windows-1251"></head><body><span data-name="` + cp1251 + `">` + cp1251 + `: 9</span></body></html>`
-	for _, status := range []int{200, 403} {
-		if got := check.look(&tlsforge.Response{Status: status, Body: []byte(page)}); got.misses() || !got.looked {
-			t.Errorf("the %d in windows-1251 is without %+v", status, got)
+	for _, decoding := range []string{decodingLegacy, decodingBrowser} {
+		check, err := newPageCheck(`[data-name="Цена"]`, "/цена: 9/i", decoding)
+		if err != nil {
+			t.Fatalf("newPageCheck: %v", err)
+		}
+		for _, status := range []int{200, 403} {
+			if got := check.look(&tlsforge.Response{Status: status, Body: []byte(page)}); got.misses() || !got.looked {
+				t.Errorf("%s: the %d in windows-1251 is without %+v", decoding, status, got)
+			}
+		}
+	}
+}
+
+func TestPageCheckReadsThePageAsItsDecodingSays(t *testing.T) {
+	// UTF-8 that names windows-1251: legacy reads the UTF-8, Chrome what the
+	// page names, and neither finds what the other does.
+	page := `<html><head><meta charset="windows-1251"></head><body><span data-name="Цена">Цена: 9</span></body></html>`
+	asChrome := "Р¦РµРЅР°" // «Цена» in UTF-8, read as windows-1251
+	for _, tc := range []struct {
+		decoding, selector, text string
+		want                     finding
+	}{
+		{decodingLegacy, `[data-name="Цена"]`, "Цена: 9", finding{looked: true}},
+		{decodingBrowser, `[data-name="Цена"]`, "Цена: 9",
+			finding{MissingElement: `[data-name="Цена"]`, MissingText: "Цена: 9", looked: true}},
+		{decodingBrowser, `[data-name="` + asChrome + `"]`, asChrome + ": 9", finding{looked: true}},
+		{decodingLegacy, `[data-name="` + asChrome + `"]`, asChrome + ": 9",
+			finding{MissingElement: `[data-name="` + asChrome + `"]`, MissingText: asChrome + ": 9", looked: true}},
+	} {
+		check, err := newPageCheck(tc.selector, tc.text, tc.decoding)
+		if err != nil {
+			t.Fatalf("newPageCheck: %v", err)
+		}
+		if got := check.look(&tlsforge.Response{Status: 200, Body: []byte(page)}); got != tc.want {
+			t.Errorf("%s, %s: %+v, want %+v", tc.decoding, tc.text, got, tc.want)
 		}
 	}
 }

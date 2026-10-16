@@ -54,6 +54,10 @@ type documentSummary struct {
 	NoElement      *int   `json:"no_element,omitempty"`
 	WaitFor        string `json:"wait_for,omitempty"`
 	NoText         *int   `json:"no_text,omitempty"`
+	// HTMLDecoding is how a body was read as text to look into it, as
+	// --html-decoding names it: legacy or browser. With either of the two
+	// above only.
+	HTMLDecoding string `json:"html_decoding,omitempty"`
 	// SuccessRate is the share that came back as the page, as a percentage.
 	SuccessRate float64 `json:"success_rate"`
 	Bytes       int64   `json:"bytes"`
@@ -164,7 +168,7 @@ func renderReportJSON(w io.Writer, in reportInput) error {
 		Trace:     in.trace,
 		Summary: documentSummary{
 			Requests: s.Total, Scraped: s.Succeeded, Not2xx: s.Warned, NoResponse: s.Failed,
-			WaitForElement: s.WantedElement, WaitFor: s.WantedText,
+			WaitForElement: s.WantedElement, WaitFor: s.WantedText, HTMLDecoding: s.Decoding,
 			SuccessRate: rate(s.Succeeded, s.Total),
 			Bytes:       s.Bytes, Retries: s.Retries,
 			ElapsedMS: s.Elapsed.Milliseconds(), AvgMS: s.Average().Milliseconds(),

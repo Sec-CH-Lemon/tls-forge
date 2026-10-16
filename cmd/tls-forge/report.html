@@ -291,7 +291,12 @@
        <span class="font-mono">{{.Summary.ShownText}}</span>, as --wait-for asked{{end}},
        whatever its status: a 403 with it is the page, and a 200 without it is not,
        its row saying what it was without. The body is as it came, with no script
-       run, so what a script adds is not there to be found.</p>
+       run, so what a script adds is not there to be found.
+       {{- if eq .Summary.Decoding "browser"}} It is read as Chrome decodes a document of its type, as
+       --html-decoding browser asked.
+       {{- else}} It is read in the encoding its byte order mark or Content-Type names, else as
+       UTF-8 when it is UTF-8 throughout, whatever a &lt;meta&gt; says, as --html-decoding legacy
+       does.{{end}}</p>
     {{end}}
     {{with .Before}}
     {{if .Proxy}}
