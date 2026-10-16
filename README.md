@@ -1663,6 +1663,7 @@ Release and maintenance documentation:
 - [`docs/article.ru.md`](docs/article.ru.md) — Russian introduction to TLS fingerprinting and TLS Forge;
 - [`docs/profiles.md`](docs/profiles.md) — capture format and profile resolution;
 - [`docs/protocol.md`](docs/protocol.md) — JSON Lines daemon protocol;
+- [`docs/pinned.md`](docs/pinned.md) — the Google Chrome a release is held to, and the check;
 - [`example/`](example/) — runnable Go, Node.js, Python and CLI examples.
 
 ## Licence and attribution

@@ -13,6 +13,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **The check a release is held to against a pinned Google Chrome**,
+  `go run ./internal/pinned` ([docs/pinned.md](docs/pinned.md)). It reads a
+  manifest of the reference build, holds the archived installer and the
+  installed browser to their SHA-256, the executable to its platform and
+  machine, and `--version` to Google Chrome of exactly that version, refusing
+  Chrome for Testing and Chromium by name, and then compares the profile with
+  it, launched as the manifest says. Nothing publishes on it yet.
 - **A client can ask the daemon what it is before relying on it.** A line
   with `"control": "hello"` is answered with the protocol the daemon speaks,
   2, and its `capabilities`, without a connection; a daemon older than that
