@@ -20,6 +20,12 @@ import { Client, MAX_REQUEST_BYTES, SessionReset, resolveBinary } from '../index
 import { builtBinary, exeName, platformPackage, platformPackageName } from '../binary.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+// Not the developer's: a TLSFORGE_BIN set in the shell that runs the tests
+// would answer every resolution these tests are about. A file is a process of
+// its own under node --test, so this is this file's alone, and a test that
+// wants the variable sets it.
+delete process.env.TLSFORGE_BIN;
 const fakeDaemon = path.join(here, 'fake-daemon.js');
 
 // The client builds its own argv, so the fake is injected as the BINARY: a
