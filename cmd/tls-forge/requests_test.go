@@ -595,9 +595,10 @@ func TestListReportsAProxyItCannotUse(t *testing.T) {
 }
 
 func TestListWarnsAboveTheCoreCount(t *testing.T) {
-	original := numCPU
-	t.Cleanup(func() { numCPU = original })
-	numCPU = func() int { return 4 }
+	// Four cores and no cgroup to cut them down: the machine the test runs on
+	// may have either, and a quota under four would warn at four.
+	fakeCores(t, 4)
+	fakeCgroup(t, nil)
 
 	server := pathServer(t)
 
@@ -645,9 +646,8 @@ func TestListWarnsAboveTheCoreCount(t *testing.T) {
 
 func TestListDoesNotWarnBeforeItFailsOnTheFlags(t *testing.T) {
 	// A warning about a number that was rejected anyway is noise.
-	original := numCPU
-	t.Cleanup(func() { numCPU = original })
-	numCPU = func() int { return 1 }
+	fakeCores(t, 1)
+	fakeCgroup(t, nil)
 
 	code, _, stderr := exec(t, "fetch", "-c", "0", "https://example.com/")
 	if code != 2 {

@@ -136,11 +136,11 @@ func TestClearOutputDirRefusesADirectoryWhoseLossIsADisaster(t *testing.T) {
 			return []string{"-o", "..", server.URL}, tmp
 		}, "is the directory the command runs in, or holds it"},
 		{"the home directory", func(t *testing.T, tmp string) ([]string, string) {
-			t.Setenv("HOME", filepath.Join(tmp, "a"))
+			homeAt(t, filepath.Join(tmp, "a"))
 			return []string{"-o", filepath.Join(tmp, "a"), server.URL}, tmp
 		}, "is the home directory, or holds it"},
 		{"one that holds it", func(t *testing.T, tmp string) ([]string, string) {
-			t.Setenv("HOME", filepath.Join(tmp, "a"))
+			homeAt(t, filepath.Join(tmp, "a"))
 			return []string{"-o", tmp, server.URL}, tmp
 		}, "is the home directory, or holds it"},
 		{"one with a repository in it", func(t *testing.T, tmp string) ([]string, string) {
@@ -300,10 +300,12 @@ func TestRefusal(t *testing.T) {
 			t.Errorf("%s: refusal = %q, want %q", tc.name, got, tc.want)
 		}
 	}
-	// With HOME unset there is no home directory to refuse.
-	t.Setenv("HOME", "")
+	// Where the platform finds no home directory there is none to refuse.
+	original := homeDir
+	t.Cleanup(func() { homeDir = original })
+	homeDir = func() (string, error) { return "", errors.New("$HOME is not defined") }
 	if got := home(); got != "" {
-		t.Errorf("home with HOME unset = %q", got)
+		t.Errorf("home without one = %q", got)
 	}
 }
 
@@ -327,4 +329,14 @@ func TestStreamFiles(t *testing.T) {
 	if info, err := file.Stat(); err != nil || len(got) != 1 || !os.SameFile(got[0], info) {
 		t.Errorf("streamFiles = %v", got)
 	}
+}
+
+// homeAt makes dir the home directory for the rest of the test, as
+// os.UserHomeDir would find it on any platform: HOME is not where Windows
+// looks.
+func homeAt(t *testing.T, dir string) {
+	t.Helper()
+	original := homeDir
+	t.Cleanup(func() { homeDir = original })
+	homeDir = func() (string, error) { return dir, nil }
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -44,6 +45,11 @@ const (
 // which the test that started it has, and nothing of the suite run.
 func TestMain(m *testing.M) {
 	retryWait = func(int) time.Duration { return 0 }
+	// Cores enough for any test, and no cgroup quota under them: a machine
+	// whose quota is under the four a list runs at warns on every list, and a
+	// test that is about the count sets its own.
+	numCPU = func() int { return 64 }
+	cgroupRoot = filepath.Join(os.TempDir(), "tls-forge-test-no-cgroup", "absent")
 
 	if os.Getenv(asProgram) == "1" {
 		profile.Default.SetDir(os.Getenv("TLSFORGE_PROFILES"))
