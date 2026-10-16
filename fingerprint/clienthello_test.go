@@ -272,7 +272,7 @@ func TestAccessorsOnAbsentAndMalformedExtensions(t *testing.T) {
 		withExtension(ExtALPN, []byte{0xff}).
 		withExtension(ExtSupportedGroups, []byte{0xff}).
 		withExtension(ExtKeyShare, []byte{0xff}).
-		withExtension(ExtApplicationSettings, []byte{0xff}).
+		withExtension(ExtALPSOld, []byte{0xff}).
 		withExtension(ExtECPointFormats, []byte{}).
 		records())
 	if err != nil {

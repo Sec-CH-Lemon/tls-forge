@@ -92,7 +92,7 @@ func TestCompareTLSDetectsEachField(t *testing.T) {
 			return replaceExtension(chrome151(), ExtALPN, alpn("http/1.1"))
 		}, "alpn"},
 		{"ALPS", func() *helloBuilder {
-			return replaceExtension(chrome151(), ExtApplicationSettingsOld, alpn("http/1.1"))
+			return replaceExtension(chrome151(), ExtALPS, alpn("http/1.1"))
 		}, "application_settings"},
 		{"point formats", func() *helloBuilder {
 			return replaceExtension(chrome151(), ExtECPointFormats, vector8(0, 1))

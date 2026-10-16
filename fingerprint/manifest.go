@@ -20,19 +20,19 @@ import (
 
 // Extensions another field of the comparison reads, value by value.
 var readByAField = map[uint16]bool{
-	ExtSupportedGroups:        true,
-	ExtECPointFormats:         true,
-	ExtSignatureAlgorithms:    true,
-	ExtALPN:                   true,
-	ExtCompressCertificate:    true,
-	ExtSupportedVersions:      true,
-	ExtPSKKeyExchangeModes:    true,
-	ExtKeyShare:               true,
-	ExtApplicationSettings:    true,
-	ExtApplicationSettingsOld: true,
-	ExtTrustAnchors:           true,
-	ExtEncryptedClientHello:   true,
-	ExtPreSharedKey:           true,
+	ExtSupportedGroups:      true,
+	ExtECPointFormats:       true,
+	ExtSignatureAlgorithms:  true,
+	ExtALPN:                 true,
+	ExtCompressCertificate:  true,
+	ExtSupportedVersions:    true,
+	ExtPSKKeyExchangeModes:  true,
+	ExtKeyShare:             true,
+	ExtALPS:                 true,
+	ExtALPSOld:              true,
+	ExtTrustAnchors:         true,
+	ExtEncryptedClientHello: true,
+	ExtPreSharedKey:         true,
 }
 
 // Extensions whose contents are not the client's to choose: server_name is the

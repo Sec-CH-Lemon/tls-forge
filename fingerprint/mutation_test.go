@@ -84,7 +84,7 @@ var tlsChanges = []change{
 	}},
 	{"h2 alone", cold, "alpn", func(_ *testing.T, b *helloBuilder) { b.set(ExtALPN, alpn("h2")) }},
 	{"ALPS for HTTP/1.1", cold, "application_settings", func(_ *testing.T, b *helloBuilder) {
-		b.set(ExtApplicationSettingsOld, alpn("http/1.1"))
+		b.set(ExtALPS, alpn("http/1.1"))
 	}},
 	{"two point formats", cold, "ec_point_formats", func(_ *testing.T, b *helloBuilder) {
 		b.set(ExtECPointFormats, vector8(0, 1))

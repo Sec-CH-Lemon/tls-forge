@@ -12,7 +12,8 @@ func TestNames(t *testing.T) {
 		want string
 	}{
 		{"extension", ExtensionName(ExtServerName), "server_name"},
-		{"application settings", ExtensionName(17613), "application_settings_old"},
+		{"ALPS, as Chrome 155 sends it", ExtensionName(ExtALPS), "application_settings"},
+		{"ALPS, as Chrome sent it first", ExtensionName(ExtALPSOld), "application_settings_old"},
 		{"trust anchors", ExtensionName(ExtTrustAnchors), "trust_anchors"},
 		{"group", GroupName(4588), "X25519MLKEM768"},
 		{"signature", SignatureName(0x0904), "mldsa44"},
@@ -55,5 +56,24 @@ func TestNamesOf(t *testing.T) {
 	got := namesOf([]uint16{0x1301, 0x1302}, CipherName)
 	if len(got) != 2 || got[0] != "TLS_AES_128_GCM_SHA256" {
 		t.Errorf("namesOf = %v", got)
+	}
+}
+
+func TestTheOldALPSNamesKeepTheirValues(t *testing.T) {
+	// A caller of the names that had them the wrong way round reads what it
+	// read before: the values stay, and the right names are the new ones.
+	for _, tc := range []struct{ got, want uint16 }{
+		{ExtApplicationSettings, 17513}, {ExtALPSOld, 17513},
+		{ExtApplicationSettingsOld, 17613}, {ExtALPS, 17613},
+	} {
+		if tc.got != tc.want {
+			t.Errorf("%d, want %d", tc.got, tc.want)
+		}
+	}
+	// A hello with both, which no browser sends, is read for the current one.
+	hello := mustParse(t, newHello().withCiphers(0x1301).
+		withExtension(ExtALPSOld, alpn("http/1.1")).withExtension(ExtALPS, alpn("h2")).records())
+	if got := hello.ApplicationSettings(); len(got) != 1 || got[0] != "h2" {
+		t.Errorf("ApplicationSettings = %q", got)
 	}
 }

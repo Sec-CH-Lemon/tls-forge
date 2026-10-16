@@ -191,7 +191,7 @@ func chrome151() *helloBuilder {
 		withExtension(ExtSupportedVersions, vector8of16(0xeaea, 0x0304, 0x0303)).
 		withExtension(ExtPSKKeyExchangeModes, vector8(1)).
 		withExtension(ExtKeyShare, keyShare(0xfafa, 4588, 29)).
-		withExtension(ExtApplicationSettingsOld, alpn("h2")).
+		withExtension(ExtALPS, alpn("h2")).
 		withExtension(ExtEncryptedClientHello, []byte{0, 0, 1, 0, 1}).
 		withExtension(ExtRenegotiationInfo, []byte{0}).
 		withExtension(0xaaaa, nil)

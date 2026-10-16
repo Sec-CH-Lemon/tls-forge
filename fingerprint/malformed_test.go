@@ -62,7 +62,7 @@ func TestAccessorsOnTruncatedInnerVectors(t *testing.T) {
 		withExtension(ExtServerName, truncatedSNI).
 		withExtension(ExtALPN, truncatedALPN).
 		withExtension(ExtKeyShare, truncatedKeyShare).
-		withExtension(ExtApplicationSettings, truncatedALPN).
+		withExtension(ExtALPSOld, truncatedALPN).
 		records())
 
 	if name, ok := hello.ServerName(); ok {

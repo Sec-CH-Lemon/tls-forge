@@ -21,26 +21,42 @@ import (
 // Extension numbers this package reads by name. The full registry is large and
 // mostly irrelevant here; these are the ones that feed a fingerprint.
 const (
-	ExtServerName             uint16 = 0
-	ExtStatusRequest          uint16 = 5
-	ExtSupportedGroups        uint16 = 10
-	ExtECPointFormats         uint16 = 11
-	ExtSignatureAlgorithms    uint16 = 13
-	ExtALPN                   uint16 = 16
-	ExtSCT                    uint16 = 18
-	ExtPadding                uint16 = 21
-	ExtExtendedMasterSecret   uint16 = 23
-	ExtCompressCertificate    uint16 = 27
-	ExtSessionTicket          uint16 = 35
-	ExtPreSharedKey           uint16 = 41
-	ExtSupportedVersions      uint16 = 43
-	ExtPSKKeyExchangeModes    uint16 = 45
-	ExtKeyShare               uint16 = 51
-	ExtApplicationSettings    uint16 = 17513
+	ExtServerName           uint16 = 0
+	ExtStatusRequest        uint16 = 5
+	ExtSupportedGroups      uint16 = 10
+	ExtECPointFormats       uint16 = 11
+	ExtSignatureAlgorithms  uint16 = 13
+	ExtALPN                 uint16 = 16
+	ExtSCT                  uint16 = 18
+	ExtPadding              uint16 = 21
+	ExtExtendedMasterSecret uint16 = 23
+	ExtCompressCertificate  uint16 = 27
+	ExtSessionTicket        uint16 = 35
+	ExtPreSharedKey         uint16 = 41
+	ExtSupportedVersions    uint16 = 43
+	ExtPSKKeyExchangeModes  uint16 = 45
+	ExtKeyShare             uint16 = 51
+	ExtTrustAnchors         uint16 = 51764
+	ExtEncryptedClientHello uint16 = 65037
+	ExtRenegotiationInfo    uint16 = 65281
+
+	// ExtALPS is application_settings, ALPS, under the codepoint BoringSSL
+	// gives it now, 17613 (0x44cd), which Chrome 155 sends; ExtALPSOld is the
+	// one it had first, 17513 (0x4469), which older Chrome sends. The names
+	// are BoringSSL's.
+	ExtALPS    uint16 = 17613
+	ExtALPSOld uint16 = 17513
+
+	// ExtApplicationSettings is 17513, the codepoint BoringSSL calls
+	// application_settings_old: this name says the other.
+	//
+	// Deprecated: use ExtALPSOld, of the same value.
+	ExtApplicationSettings uint16 = 17513
+	// ExtApplicationSettingsOld is 17613, the codepoint BoringSSL calls
+	// application_settings, which Chrome sends now: this name says the other.
+	//
+	// Deprecated: use ExtALPS, of the same value.
 	ExtApplicationSettingsOld uint16 = 17613
-	ExtTrustAnchors           uint16 = 51764
-	ExtEncryptedClientHello   uint16 = 65037
-	ExtRenegotiationInfo      uint16 = 65281
 )
 
 const (
@@ -502,9 +518,9 @@ func (c *ClientHello) EncryptedClientHello() (ECH, bool) {
 
 // ApplicationSettings returns the ALPS protocol list. Chrome sends this
 // extension under two different numbers depending on version, and which one it
-// picks is itself a version signal, so both are read.
+// picks is itself a version signal, so both are read, the current one first.
 func (c *ClientHello) ApplicationSettings() []string {
-	for _, typ := range []uint16{ExtApplicationSettings, ExtApplicationSettingsOld} {
+	for _, typ := range []uint16{ExtALPS, ExtALPSOld} {
 		data, ok := c.Extension(typ)
 		if !ok {
 			continue

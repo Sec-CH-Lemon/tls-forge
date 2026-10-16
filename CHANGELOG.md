@@ -509,6 +509,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- The two ALPS codepoints were named the wrong way round: 17613 (0x44cd),
+  which Chrome 155 sends and BoringSSL calls `application_settings`, was
+  shown as `application_settings_old`, and 17513 as `application_settings`.
+  Captures, logs and `compare` name them as BoringSSL does now.
+  `fingerprint.ExtALPS` (17613) and `fingerprint.ExtALPSOld` (17513) are the
+  names to use; `ExtApplicationSettings` and `ExtApplicationSettingsOld` keep
+  their values, and are deprecated.
 - A capture whose `session_resumed` said false made a profile of a resumed
   connection's hello: `FromCapture` read resumption from what the capture
   said, not from the hello. It reads it from the hello's bytes now, where a
