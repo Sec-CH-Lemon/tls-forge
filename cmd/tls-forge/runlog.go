@@ -140,6 +140,9 @@ func openRunLog(path string, level slog.Level, output string, when time.Time, er
 	}
 	l.log = slog.New(handler)
 	transportLines.add(l.log)
+	if level <= tlsforge.LevelTrace {
+		wantFrames()
+	}
 	return l, nil
 }
 
@@ -288,17 +291,30 @@ func (s *stderrLines) Write(p []byte) (int, error) {
 	return s.out.Write(p)
 }
 
-// The transport says what HTTP/2 frames it reads only through the standard
-// logger, and only when http2.VerboseLogs says to. It reads that from every
-// connection's goroutine, so it is set once, before any of them start, and
-// the standard logger then goes to the logs of the runs open at the time. It
-// says nothing there of which request a frame belongs to: with one request at
-// a time, a frame is the one around it.
+// The transport says what it has to say, a server breaking the protocol, a
+// cookie it will not keep, only through the standard logger: which goes, from
+// the start, to the logs of the runs open at the time, or to standard error
+// when none is, without a password in it.
 func init() {
-	http2.VerboseLogs = true
 	log.SetFlags(0)
 	log.SetOutput(transportLines)
 }
+
+// frames turns on, once, what the transport says of the HTTP/2 frames it
+// reads: see wantFrames.
+var frames sync.Once
+
+// wantFrames has the transport say what HTTP/2 frames it reads, and which
+// connections it opens and closes, from now on, for every log open then.
+//
+// It says them only when http2.VerboseLogs says to, which every connection's
+// goroutine reads, unguarded, and formats each line before anybody can say
+// whether it is wanted. So it is turned on by the first log that keeps lines
+// at the trace level, which a run opens before it makes a connection, and
+// never off again: a run that keeps no such log has no line about a frame
+// made for nobody. Nothing says which request a frame belongs to: with one
+// request at a time, a frame is the one around it.
+func wantFrames() { frames.Do(func() { http2.VerboseLogs = true }) }
 
 // transportLines are the logs what the transport says goes to.
 var transportLines = &transportLog{unlogged: os.Stderr}

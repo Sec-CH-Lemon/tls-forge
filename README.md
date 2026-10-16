@@ -983,7 +983,9 @@ time=2026-10-15T23:51:58.983934+02:00 level=DEBUG msg=connected worker=1 req=1 r
 `--log-level` says how much. `trace`, the default, is all of it; `debug` leaves
 out the ClientHellos, the certificates and the HTTP/2 frames; `info` is a line
 for each request, each answer, each try's result and the run; `warn` and
-`error` keep what went wrong.
+`error` keep what went wrong. The transport is asked to say what frames it reads
+only for a log kept at `trace`, and only from then on: without one it makes no
+line about a frame, which cost a request on loopback about a tenth of its time.
 
 | Record | Level | What it says |
 |---|---|---|

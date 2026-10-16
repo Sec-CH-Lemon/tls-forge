@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/bogdanfinn/fhttp/http2"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
@@ -15,6 +18,7 @@ import (
 const (
 	asProgram       = "TLSFORGE_TEST_AS_PROGRAM"
 	serviceVariable = "TLSFORGE_TEST_ADDRESS_SERVICE"
+	sayFrames       = "TLSFORGE_TEST_SAY_FRAMES"
 )
 
 // TestMain takes the waiting out of the suite.
@@ -44,9 +48,21 @@ func TestMain(m *testing.M) {
 	if os.Getenv(asProgram) == "1" {
 		profile.Default.SetDir(os.Getenv("TLSFORGE_PROFILES"))
 		ipServices = []addressService{{URL: os.Getenv(serviceVariable), read: readJSON}}
+		if os.Getenv(sayFrames) == "1" {
+			// Last, on standard error: whether the transport was ever told to say
+			// what frames it reads.
+			exit = func(code int) {
+				fmt.Fprintf(os.Stderr, "frames %v\n", http2.VerboseLogs)
+				os.Exit(code)
+			}
+		}
 		main()
 		return
 	}
+	// On for the whole suite, before any test opens a connection, which every
+	// test that reads the frames out of a log needs: a test may not turn it on
+	// once another's connections are reading it.
+	wantFrames()
 
 	dir, err := os.MkdirTemp("", "tls-forge-profiles-")
 	if err != nil {

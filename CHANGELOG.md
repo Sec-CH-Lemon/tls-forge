@@ -465,6 +465,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Every command had the HTTP/2 transport make a line about each frame it
+  read, whether or not anything kept it: `proxy` and `daemon` among them, and
+  a `fetch` with no log. Measured on loopback, that was 4 to 9% of a
+  request's time and some 50 to 75 allocations. The transport is told to say
+  them only by the first log a run keeps at the trace level, before the run
+  opens a connection, and is never told otherwise again, since every
+  connection reads the setting without a lock.
 - A list that goes several ways read its `--cookies` file again for each
   identity's client, as the list got to it, under the lock every worker
   waits on and from the file as it was by then: a file changed meanwhile, or
