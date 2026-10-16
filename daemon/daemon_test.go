@@ -193,6 +193,23 @@ func TestMalformedCookiesFailOnlyTheirRequest(t *testing.T) {
 	}
 }
 
+func TestAnAnswerSaysNoPasswordOfAnyURL(t *testing.T) {
+	// The answer goes to another process, which may log it: neither what the
+	// client said of a proxy nor a request's own URL that would not parse
+	// carries a password across.
+	client := &fakeClient{err: errors.New(`tlsforge: parse "http://alice:s3cr3t@[bad": missing ']' in host`)}
+	responses := serve(t, client, `{"id":1,"url":"https://example.com"}`)
+	if len(responses) != 1 || responses[0].Error != `tlsforge: parse "http://alice@[bad": missing ']' in host` {
+		t.Errorf("responses = %+v", responses)
+	}
+	// A bad request is said with what was wrong with it, quoted.
+	responses = serve(t, &fakeClient{}, `{"id":2,"url":"https://example.com","setCookie":["http://bob:s3cr3t@x"]}`)
+	if len(responses) != 1 ||
+		responses[0].Error != `bad request: cookie: expected name=value, got "http://bob@x"` {
+		t.Errorf("responses = %+v", responses)
+	}
+}
+
 func TestHeadersWithDuplicateCasingAreRejectedDeterministically(t *testing.T) {
 	client := &fakeClient{}
 	responses := serve(t, client,

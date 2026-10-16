@@ -445,6 +445,31 @@ func TestTransportLevel(t *testing.T) {
 	}
 }
 
+func TestTransportSaid(t *testing.T) {
+	for _, tc := range []struct{ line, want string }{
+		// A header field it decoded, which it says when GODEBUG asks: the
+		// value without its secret, as every request's record has it.
+		{`http2: decoded hpack field header field "set-cookie" = "sid=s3cr3t; Path=/"`,
+			`http2: decoded hpack field header field "set-cookie" = "sid=***; Path=/"`},
+		{`http2: decoded hpack field header field "authorization" = "Bearer s3cr3t" (sensitive)`,
+			`http2: decoded hpack field header field "authorization" = "Bearer ***" (sensitive)`},
+		{`http2: decoded hpack field header field "x-weird" = "a \"quoted\" s3cr3t-key"`,
+			`http2: decoded hpack field header field "x-weird" = "a \"quoted\" s3cr3t-key"`},
+		{`http2: decoded hpack field header field "x-api-key" = "s3cr3t"`,
+			`http2: decoded hpack field header field "x-api-key" = "***"`},
+		{`http2: decoded hpack field header field ":status" = "200"`,
+			`http2: decoded hpack field header field ":status" = "200"`},
+		// Anything else, with no URL's password in it.
+		{"RoundTrip failure: proxyconnect http://alice:s3cr3t@proxy.test: refused",
+			"RoundTrip failure: proxyconnect http://alice@proxy.test: refused"},
+		{"http2: Transport received PING len=8", "http2: Transport received PING len=8"},
+	} {
+		if got := transportSaid(tc.line); got != tc.want {
+			t.Errorf("transportSaid(%q) = %q, want %q", tc.line, got, tc.want)
+		}
+	}
+}
+
 func TestTheTransportIsHeardThroughTheStandardLogger(t *testing.T) {
 	if !http2.VerboseLogs || log.Writer() != transportLines || log.Flags() != 0 || transportLines.unlogged != os.Stderr {
 		t.Fatal("the transport's HTTP/2 is not heard")
@@ -477,11 +502,12 @@ func TestTheTransportIsHeardThroughTheStandardLogger(t *testing.T) {
 	log.Print("http2: Transport received PING len=8")
 	log.Print("protocol error: received DATA on a HEAD request")
 	log.Printf("http2: Transport encoding header %q = %q", "cookie", "session=s3cr3t")
+	log.Printf("http2: decoded hpack field header field %q = %q", "set-cookie", "session=s3cr3t")
 	transportLines.remove(one)
 	transportLines.remove(two)
 	log.Print("http2: Transport received GOAWAY len=8")
 
-	if got := strings.Count(first.String(), `"msg":"transport"`); got != 2 ||
+	if got := strings.Count(first.String(), `"msg":"transport"`); got != 3 ||
 		!strings.Contains(first.String(), `"said":"http2: Transport received PING len=8"`) {
 		t.Errorf("the first log heard:\n%s", first.String())
 	}
@@ -527,6 +553,27 @@ func TestRunAttrs(t *testing.T) {
 	want := []any{"kept", "yes", "zero", 0, "a", 1, "b", 2}
 	if !slices.Equal(got, want) {
 		t.Errorf("runAttrs = %v, want %v", got, want)
+	}
+}
+
+func TestTheRunLogEndsSayingNoPasswordOfAnyURL(t *testing.T) {
+	// However the run's error came to quote one: the library masks its own,
+	// and this is the log's own guard, whoever made the error.
+	original := openLogFile
+	t.Cleanup(func() { openLogFile = original })
+	written := &closingBuffer{}
+	openLogFile = func(string) (io.WriteCloser, error) { return written, nil }
+	l, err := openRunLog(filepath.Join(t.TempDir(), "run.log"), slog.LevelInfo, "", now(), newPrinter(io.Discard))
+	if err != nil {
+		t.Fatalf("openRunLog: %v", err)
+	}
+	ended := errors.Join(errors.New("fetch: 1 of 2 requests got no response"),
+		errors.New(`tlsforge: parse "http://alice:s3cr3t@[bad": missing ']' in host`))
+	if err := l.close(ended); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+	if said := written.String(); strings.Contains(said, "s3cr3t") || !strings.Contains(said, `http://alice@[bad`) {
+		t.Errorf("the log ended:\n%s", said)
 	}
 }
 

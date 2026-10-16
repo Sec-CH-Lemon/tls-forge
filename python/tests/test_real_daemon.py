@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import base64
 import os
 import socket
+import socketserver
+import subprocess
 import threading
 import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from tlsforge import Client, RequestFailed
+from tlsforge import Client, RequestFailed, TransportError
 
 
 class _BinaryHandler(BaseHTTPRequestHandler):
@@ -97,3 +100,138 @@ def test_a_request_the_real_go_daemon_cannot_make_raises_request_failed() -> Non
     with Client(binary=binary) as client:
         with pytest.raises(RequestFailed, match="(?i)refused"):
             client.get(f"http://127.0.0.1:{port}/")
+
+
+class _PageHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        body = b"through the proxy"
+        self.send_response(200)
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, _format: str, *_args: object) -> None:
+        pass
+
+
+class _Tunnelling(socketserver.ThreadingTCPServer):
+    """A proxy that opens a tunnel for a CONNECT that says who it is with the
+    right password, and turns away any other, as a paid proxy does. It keeps
+    where each tunnel went."""
+
+    daemon_threads = True
+
+    def __init__(self, user: str, password: str) -> None:
+        self.expected = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+        self.tunnels: list[str] = []
+        super().__init__(("127.0.0.1", 0), _TunnelHandler)
+        self.url = f"http://{user}:{password}@127.0.0.1:{self.server_address[1]}"
+
+
+class _TunnelHandler(socketserver.StreamRequestHandler):
+    server: _Tunnelling
+
+    def handle(self) -> None:
+        method, target, _ = self.rfile.readline().decode("latin-1").split(" ", 2)
+        headers: dict[str, str] = {}
+        while (line := self.rfile.readline().decode("latin-1").strip()) != "":
+            name, _, value = line.partition(":")
+            headers[name.strip().lower()] = value.strip()
+        if method != "CONNECT" or headers.get("proxy-authorization") != self.server.expected:
+            self.wfile.write(b"HTTP/1.1 407 Proxy Authentication Required\r\nContent-Length: 0\r\n\r\n")
+            return
+        self.server.tunnels.append(target)
+        host, port = target.rsplit(":", 1)
+        with socket.create_connection((host, int(port)), timeout=5) as upstream:
+            self.wfile.write(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+            back = threading.Thread(target=_pipe, args=(upstream, self.connection), daemon=True)
+            back.start()
+            _pipe(self.connection, upstream)
+            back.join(timeout=5)
+
+
+def _pipe(source: socket.socket, sink: socket.socket) -> None:
+    try:
+        while chunk := source.recv(65536):
+            sink.sendall(chunk)
+    except OSError:
+        pass
+    finally:
+        try:
+            sink.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass
+
+
+def _serving(server: socketserver.BaseServer) -> threading.Thread:
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return thread
+
+
+def test_the_real_go_daemon_goes_through_the_proxy_its_environment_names() -> None:
+    """The URL, password and all, reaches the daemon in its environment, named
+    on its command line by --proxy-env: a daemon that did not read it would go
+    to the site directly, and the proxy would see no tunnel."""
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    origin = ThreadingHTTPServer(("127.0.0.1", 0), _PageHandler)
+    proxy = _Tunnelling("alice", "s3cret")
+    threads = [_serving(origin), _serving(proxy)]
+    try:
+        with Client(binary=binary, proxy=proxy.url, timeout=10) as client:
+            response = client.get(f"http://127.0.0.1:{origin.server_port}/")
+        assert response.body == "through the proxy"
+        assert proxy.tunnels == [f"127.0.0.1:{origin.server_port}"]
+    finally:
+        for server in (origin, proxy):
+            server.shutdown()
+            server.server_close()
+        for thread in threads:
+            thread.join(timeout=2)
+
+
+def test_a_proxy_the_real_go_daemon_turns_down_says_why_without_its_password() -> None:
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    secret = "s3cret-never-shown"
+    origin = ThreadingHTTPServer(("127.0.0.1", 0), _PageHandler)
+    proxy = _Tunnelling("alice", "s3cret")
+    threads = [_serving(origin), _serving(proxy)]
+    try:
+        for url in (
+            # One that will not parse: quoted back whole by whatever read it.
+            f"http://alice:{secret}@[bad",
+            # One that answers 407 to a password it does not know.
+            f"http://alice:{secret}@127.0.0.1:{proxy.server_address[1]}",
+        ):
+            with Client(binary=binary, proxy=url, timeout=10) as client:
+                with pytest.raises((RequestFailed, TransportError)) as failed:
+                    client.get(f"http://127.0.0.1:{origin.server_port}/")
+            assert secret not in str(failed.value)
+        assert proxy.tunnels == []
+    finally:
+        for server in (origin, proxy):
+            server.shutdown()
+            server.server_close()
+        for thread in threads:
+            thread.join(timeout=2)
+
+    # What the daemon itself says of the one it cannot read, as the client
+    # starts it: its last words, read here to the end.
+    started = subprocess.run(
+        [binary, "daemon", "--proxy-env=TLSFORGE_PROXY"],
+        env={**os.environ, "TLSFORGE_PROXY": f"http://alice:{secret}@[bad"},
+        input="",
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert started.returncode == 1, started.stderr
+    assert "[redacted]@[bad" in started.stderr
+    assert secret not in started.stderr

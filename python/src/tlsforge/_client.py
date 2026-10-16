@@ -49,6 +49,14 @@ _SHUTDOWN_GRACE = 0.25
 #: request learns the process is gone without polling for it.
 _EOF = object()
 
+#: The environment variable a proxy's URL reaches the transport in.
+#:
+#: Its command line names the variable, with ``--proxy-env``, rather than
+#: carrying the URL: ``ps`` shows a command line, password and all, to every
+#: user of the machine, and a process's environment only to its owner. Set in
+#: the child's own environment, never in this process's.
+_PROXY_VARIABLE = "TLSFORGE_PROXY"
+
 
 @dataclass(frozen=True)
 class Response:
@@ -126,6 +134,7 @@ class Client:
         self._binary = resolve_binary(binary)
         self._timeout = float(timeout)
         self._on_stderr = on_stderr or _ignore
+        self._proxy = proxy or None
         self._args = _build_args(
             profile=profile,
             proxy=proxy,
@@ -273,6 +282,8 @@ class Client:
                 # for a process whose stdout has already ended.
                 stopped = self._stop()
                 assert stopped is not None  # started above, and the lock is ours
+                if stopped.returncode == 2:
+                    raise TransportError(_refused_arguments(self._binary, self._proxy is not None))
                 raise TransportError(f"tlsforge: transport exited (code {stopped.returncode})")
 
             response = _decode(line)
@@ -291,9 +302,14 @@ class Client:
     def _ensure_started(self) -> None:
         if self._process is not None:
             return
+        # A copy of this process's environment, with the proxy in it: a client's
+        # proxy reaches its own process and no other, and this process's
+        # environment is left as it was.
+        env = None if self._proxy is None else {**os.environ, _PROXY_VARIABLE: self._proxy}
         try:
             process = subprocess.Popen(  # noqa: S603 - the argv is this package's own
                 [self._binary, *self._args],
+                env=env,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -364,6 +380,21 @@ def _report_stderr(callback: Callable[[str], None], line: str) -> None:
         pass
 
 
+def _refused_arguments(binary: str, proxied: bool) -> str:
+    """Why a transport that exited at once with a usage error failed.
+
+    With a proxy, that is a tls-forge older than this package, which does not
+    know ``--proxy-env``; it never got as far as making a request.
+    """
+    said = f"tlsforge: the transport at {binary} refused its arguments (code 2)"
+    if not proxied:
+        return said
+    return (
+        f"{said}: a tls-forge older than this package does not know --proxy-env, which keeps "
+        "the proxy's password off its command line; use the tls-forge this package came with"
+    )
+
+
 def _build_args(
     *,
     profile: str | None,
@@ -376,12 +407,14 @@ def _build_args(
     args = ["daemon"]
     for flag, value in (
         ("--profile", profile),
-        ("--proxy", proxy),
         ("--cookies", cookie_file),
         ("--cookie-set", cookie_set),
     ):
         if value:
             args += [flag, os.fspath(value) if isinstance(value, (str, Path, os.PathLike)) else value]
+    if proxy:
+        # The variable's name, and never the URL: see _PROXY_VARIABLE.
+        args.append(f"--proxy-env={_PROXY_VARIABLE}")
     if insecure:
         args.append("--insecure")
     args += ["--timeout", f"{math.ceil(transport_timeout)}s"]

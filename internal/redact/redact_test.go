@@ -2,6 +2,8 @@ package redact
 
 import (
 	"errors"
+	"fmt"
+	"net/url"
 	"testing"
 )
 
@@ -43,6 +45,63 @@ func TestError(t *testing.T) {
 		if got := Error(errors.New(tc.err), tc.proxy); got != tc.want {
 			t.Errorf("%s: Error = %q, want %q", tc.name, got, tc.want)
 		}
+	}
+}
+
+func TestText(t *testing.T) {
+	for _, tc := range []struct{ name, text, want string }{
+		{"nothing to take out", "dial tcp 127.0.0.1:8080: connect: connection refused",
+			"dial tcp 127.0.0.1:8080: connect: connection refused"},
+		{"a URL without a password", `Get "https://example.test/a@b": EOF`, `Get "https://example.test/a@b": EOF`},
+		{"a username only", "ssh://git@example.test/repo", "ssh://git@example.test/repo"},
+		{"an empty password", "http://alice:@proxy.test", "http://alice:@proxy.test"},
+		// What url.Parse quotes back of a proxy it could not read.
+		{"a URL that will not parse", `parse "http://alice:s3cr3t@[bad": missing ']' in host`,
+			`parse "http://alice@[bad": missing ']' in host`},
+		{"a password with an @ in it", "http://alice:p@ss@proxy.test:8080/x", "http://alice@proxy.test:8080/x"},
+		{"a password escaped", "http://alice:p%40ss@proxy.test", "http://alice@proxy.test"},
+		{"a password with a quote, quoted", `parse "http://alice:se\"cret@[bad": invalid`,
+			`parse "http://alice@[bad": invalid`},
+		{"two URLs", "http://a:1@one.test and socks5://b:2@two.test:1080",
+			"http://a@one.test and socks5://b@two.test:1080"},
+		{"at the end", "via http://a:secret@p.test", "via http://a@p.test"},
+		{"over lines", "first http://a:x@one.test\nsecond https://b:y@two.test",
+			"first http://a@one.test\nsecond https://b@two.test"},
+		{"an @ after the authority", "http://p.test/user:pw@x", "http://p.test/user:pw@x"},
+		// Without "://" nothing reads as a URL. Error masks a proxy given so.
+		{"no scheme", "invalid url `alice:s3cr3t@proxy.test`", "invalid url `alice:s3cr3t@proxy.test`"},
+	} {
+		if got := Text(tc.text); got != tc.want {
+			t.Errorf("%s: Text(%q) = %q, want %q", tc.name, tc.text, got, tc.want)
+		}
+	}
+}
+
+func TestErr(t *testing.T) {
+	if Err(nil, "http://a:b@p") != nil {
+		t.Error("Err(nil) is not nil")
+	}
+	// Nothing to take out: the error itself, not a copy of it.
+	plain := errors.New("connection refused")
+	if Err(plain, "http://alice:s3cr3t@proxy.test") != plain {
+		t.Error("an error with nothing to mask was wrapped")
+	}
+
+	// A proxy without a scheme is known by what was given, and any URL by
+	// its shape; what it was is underneath, for errors.Is and errors.As.
+	cause := &url.Error{Op: "parse", URL: "http://bob:hunter2@[bad", Err: errors.New("missing ']' in host")}
+	wrapped := fmt.Errorf("tlsforge: invalid url `alice:s3cr3t@proxy.test`: %w", cause)
+	masked := Err(wrapped, "alice:s3cr3t@proxy.test", "")
+	want := "tlsforge: invalid url `alice@proxy.test`: parse \"http://bob@[bad\": missing ']' in host"
+	if masked.Error() != want {
+		t.Errorf("Err() = %q, want %q", masked.Error(), want)
+	}
+	var asURL *url.Error
+	if !errors.Is(masked, cause) || !errors.As(masked, &asURL) || asURL != cause {
+		t.Error("the cause is not underneath the masked error")
+	}
+	if errors.Unwrap(masked) != wrapped {
+		t.Error("the masked error does not unwrap to the error it masks")
 	}
 }
 

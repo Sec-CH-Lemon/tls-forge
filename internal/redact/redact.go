@@ -12,6 +12,7 @@ package redact
 import (
 	"net/url"
 	"strings"
+	"unicode"
 )
 
 // Masked stands in for a value that is not written down.
@@ -53,26 +54,98 @@ func URL(raw string) string {
 }
 
 // Error is what an error says, with the password of the proxy it went through
-// taken out of it.
+// taken out of it, and of any other URL it quotes.
 //
 // Needed on top of URL because a proxy's URL turns up inside error messages:
 // url.Parse quotes back the whole string it could not parse, so a mistyped
 // proxy writes its own password into the text that was just cleaned of it.
 func Error(err error, proxy string) string {
-	text := err.Error()
+	return Text(withoutProxy(err.Error(), proxy))
+}
+
+// Err is err as it may be shown: what it says with the password of each proxy
+// taken out, as Error does, and err itself underneath, for errors.Is and
+// errors.As. err itself when it says nothing that needs it, and nil for nil.
+//
+// For an error that leaves the program, to a terminal, a log or somebody
+// else's process: the text is what goes, and what it was is still there for a
+// program that asks.
+func Err(err error, proxies ...string) error {
+	if err == nil {
+		return nil
+	}
+	said := err.Error()
+	safe := said
+	for _, proxy := range proxies {
+		safe = withoutProxy(safe, proxy)
+	}
+	if safe = Text(safe); safe == said {
+		return err
+	}
+	return &masked{said: safe, err: err}
+}
+
+// masked is an error that says less than the one it wraps.
+type masked struct {
+	said string
+	err  error
+}
+
+func (m *masked) Error() string { return m.said }
+func (m *masked) Unwrap() error { return m.err }
+
+// withoutProxy is text with a proxy's password taken out of where it quotes it:
+// as it was given, which knows the proxy without a scheme as well, and as a
+// URL normalises it.
+func withoutProxy(text, proxy string) string {
 	safe := URL(proxy)
-	if safe != proxy {
-		text = strings.ReplaceAll(text, proxy, safe)
-		// The message may quote a normalised form rather than the string as
-		// given, so the credentials are replaced in that shape too.
-		if u, parseErr := url.Parse(proxy); parseErr == nil && u.User != nil {
-			if _, ok := u.User.Password(); ok {
-				text = strings.ReplaceAll(text, u.User.String()+"@",
-					url.User(u.User.Username()).String()+"@")
-			}
+	if safe == proxy {
+		return text
+	}
+	text = strings.ReplaceAll(text, proxy, safe)
+	if u, err := url.Parse(proxy); err == nil && u.User != nil {
+		if _, ok := u.User.Password(); ok {
+			text = strings.ReplaceAll(text, u.User.String()+"@", url.User(u.User.Username()).String()+"@")
 		}
 	}
 	return text
+}
+
+// Text is text with the password taken out of every URL in it, wherever it is
+// and whether or not it would parse: what an error quotes back, a URL that
+// could not be read included, which is the URL most likely to be quoted.
+//
+// A URL is a "://" and what follows it up to a "/" or a space. Its userinfo is
+// everything before the last "@" in that, and the password what follows the
+// first ":" of the userinfo. Quotes are not where a URL ends, since a password
+// may hold one, escaped.
+func Text(text string) string {
+	if !strings.Contains(text, "://") || !strings.Contains(text, "@") {
+		return text
+	}
+	var out strings.Builder
+	for {
+		start := strings.Index(text, "://")
+		if start < 0 {
+			out.WriteString(text)
+			return out.String()
+		}
+		start += len("://")
+		out.WriteString(text[:start])
+		text = text[start:]
+		end := strings.IndexFunc(text, func(r rune) bool { return r == '/' || unicode.IsSpace(r) })
+		if end < 0 {
+			end = len(text)
+		}
+		authority := text[:end]
+		if at := strings.LastIndex(authority, "@"); at >= 0 {
+			if name, password, found := strings.Cut(authority[:at], ":"); found && password != "" {
+				authority = name + authority[at:]
+			}
+		}
+		out.WriteString(authority)
+		text = text[end:]
+	}
 }
 
 // Value is a header field's value, or what is left of it once the secret is

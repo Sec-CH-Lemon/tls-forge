@@ -26,6 +26,9 @@ func runProxy(ctx context.Context, args []string, out, errOut *printer) error {
 	if err := requireNoArgs(fs); err != nil {
 		return err
 	}
+	if err := common.proxyFromEnv(); err != nil {
+		return err
+	}
 
 	defaultCert, defaultKey, err := defaultCAPaths()
 	if err != nil {

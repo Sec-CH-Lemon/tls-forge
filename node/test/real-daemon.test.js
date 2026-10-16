@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import http from 'node:http';
 import net from 'node:net';
 import { test } from 'node:test';
@@ -64,4 +65,99 @@ test('a request the real Go daemon cannot make rejects', { skip: !binary }, asyn
   } finally {
     client.close();
   }
+});
+
+// listen starts a server on a port of its own on this machine.
+async function listen(server) {
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  return server;
+}
+
+// tunnelling is a proxy that opens a tunnel for a CONNECT that says who it is
+// with the right password, and turns away any other, as a paid proxy does. It
+// keeps where each tunnel went.
+async function tunnelling(user, password) {
+  const tunnels = [];
+  const proxy = http.createServer((_request, response) => {
+    response.statusCode = 405;
+    response.end();
+  });
+  proxy.on('connect', (request, socket, head) => {
+    const expected = `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
+    if (request.headers['proxy-authorization'] !== expected) {
+      socket.end('HTTP/1.1 407 Proxy Authentication Required\r\nContent-Length: 0\r\n\r\n');
+      return;
+    }
+    tunnels.push(request.url);
+    const [host, port] = request.url.split(':');
+    const upstream = net.connect(Number(port), host, () => {
+      socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+      upstream.write(head);
+      upstream.pipe(socket);
+      socket.pipe(upstream);
+    });
+    upstream.on('error', () => socket.destroy());
+    socket.on('error', () => upstream.destroy());
+  });
+  await listen(proxy);
+  return { proxy, tunnels, url: `http://${user}:${password}@127.0.0.1:${proxy.address().port}` };
+}
+
+test('the real Go daemon goes through the proxy its environment names', { skip: !binary }, async () => {
+  // The URL, password and all, reaches the daemon in its environment, named on
+  // its command line by --proxy-env: a daemon that did not read it would go
+  // to the site directly, and the proxy would see no tunnel.
+  let asked = 0;
+  const origin = await listen(http.createServer((_request, response) => {
+    asked += 1;
+    response.end('through the proxy');
+  }));
+  const { proxy, tunnels, url } = await tunnelling('alice', 's3cret');
+  const client = new Client({ binary, proxy: url, timeout: 10_000 });
+  try {
+    const response = await client.get(`http://127.0.0.1:${origin.address().port}/`);
+    assert.equal(response.body, 'through the proxy');
+    assert.deepEqual(tunnels, [`127.0.0.1:${origin.address().port}`]);
+    assert.equal(asked, 1);
+  } finally {
+    client.close();
+    await new Promise((resolve) => proxy.close(resolve));
+    await new Promise((resolve) => origin.close(resolve));
+  }
+});
+
+test('a proxy the real Go daemon turns down says why without its password', { skip: !binary }, async () => {
+  const origin = await listen(http.createServer((_request, response) => response.end('never')));
+  const { proxy, tunnels } = await tunnelling('alice', 's3cret');
+  const port = proxy.address().port;
+  for (const url of [
+    // One that will not parse: quoted back whole by whatever tried to read it.
+    'http://alice:s3cret-never-shown@[bad',
+    // One that answers 407 to a password it does not know.
+    `http://alice:s3cret-never-shown@127.0.0.1:${port}`,
+  ]) {
+    const client = new Client({ binary, proxy: url, timeout: 10_000 });
+    try {
+      await assert.rejects(() => client.get(`http://127.0.0.1:${origin.address().port}/`), (err) => {
+        assert.ok(!err.message.includes('s3cret-never-shown'), err.message);
+        return true;
+      });
+    } finally {
+      client.close();
+    }
+  }
+  assert.deepEqual(tunnels, []);
+  await new Promise((resolve) => proxy.close(resolve));
+  await new Promise((resolve) => origin.close(resolve));
+
+  // What the daemon itself says of the one it cannot read, as the client
+  // starts it: its last words, read here to the end.
+  const started = spawnSync(binary, ['daemon', '--proxy-env=TLSFORGE_PROXY'], {
+    env: { ...process.env, TLSFORGE_PROXY: 'http://alice:s3cret-never-shown@[bad' },
+    input: '',
+    encoding: 'utf8',
+  });
+  assert.equal(started.status, 1, started.stderr);
+  assert.match(started.stderr, /\[redacted\]@\[bad/);
+  assert.ok(!started.stderr.includes('s3cret-never-shown'), started.stderr);
 });

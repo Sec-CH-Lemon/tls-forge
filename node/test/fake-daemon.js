@@ -15,6 +15,15 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+// A tls-forge older than the client, which does not know --proxy-env and
+// refuses to start as pflag does, with code 2; or one that refuses whatever it
+// is started with.
+const refuse = process.env.TLSFORGE_TEST_REFUSE;
+if (refuse === 'always' || (refuse === 'proxy-env' && process.argv.some((arg) => arg.startsWith('--proxy-env')))) {
+  process.stderr.write('tlsforge: bad usage: unknown flag: --proxy-env\n');
+  process.exit(2);
+}
+
 const reader = readline.createInterface({ input: process.stdin });
 
 reader.on('line', (line) => {
@@ -35,6 +44,7 @@ reader.on('line', (line) => {
         url: request.url,
         body: JSON.stringify({
           argv: process.argv.slice(2),
+          env: { TLSFORGE_PROXY: process.env.TLSFORGE_PROXY ?? null },
           headers: request.headers ?? {},
           order: request.order ?? [],
           cookies: request.setCookie ?? [],

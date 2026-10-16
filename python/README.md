@@ -71,7 +71,7 @@ client = tlsforge.Client(
 | Option | Type and default | Meaning |
 |---|---|---|
 | `profile` | `str | None`, CLI default | Profile name or JSON profile path passed to `tls-forge daemon --profile`. |
-| `proxy` | `str | None`, direct | HTTP, HTTPS or SOCKS proxy URL, optionally with credentials. |
+| `proxy` | `str | None`, direct | HTTP, HTTPS or SOCKS proxy URL, optionally with credentials. It reaches the daemon in that process's own environment, named by `--proxy-env`, and not on its command line, which `ps` shows every user of the machine; a `tls-forge` older than `--proxy-env` raises `TransportError` saying so, before any request. |
 | `timeout` | `float`, `45.0` | Per-request deadline in seconds. It must be positive and finite. The Go transport receives an additional 15-second grace period so both timeout layers do not race. |
 | `binary` | `str | os.PathLike | None`, auto | Explicit path to the transport executable. A missing explicit path raises `BinaryNotFound` and does not fall through. |
 | `insecure` | `bool`, `False` | Skip upstream certificate verification. Use only for controlled endpoints. |

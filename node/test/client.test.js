@@ -79,9 +79,110 @@ test('client options become daemon arguments', async () => {
   const c = fake({ profile: 'firefox', proxy: 'http://proxy:8080', insecure: true, timeout: 20_001 });
   const argv = JSON.parse((await c.get('https://ok/x')).body).argv;
   assert.deepEqual(argv, [
-    'daemon', '--profile', 'firefox', '--proxy', 'http://proxy:8080', '--insecure', '--timeout', '36s',
+    'daemon', '--profile', 'firefox', '--proxy-env=TLSFORGE_PROXY', '--insecure', '--timeout', '36s',
   ]);
   c.close();
+});
+
+// withEnv sets environment variables of this process for one test, and puts
+// back what was there, including nothing.
+async function withEnv(values, body) {
+  const before = Object.fromEntries(Object.keys(values).map((name) => [name, process.env[name]]));
+  for (const [name, value] of Object.entries(values)) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  }
+  try {
+    return await body();
+  } finally {
+    for (const [name, value] of Object.entries(before)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+}
+
+test("a proxy reaches its own process in its environment, and nowhere else", async () => {
+  // Off the command line, which `ps` shows every user of the machine, and in
+  // the environment of the client's own process: two clients do not get each
+  // other's, and this process's environment is left as it was.
+  await withEnv({ TLSFORGE_PROXY: undefined }, async () => {
+    const one = fake({ proxy: 'http://alice:s3cret-one@proxy.test:8080' });
+    const two = fake({ proxy: 'socks5://bob:s3cret-two@proxy.test:1080' });
+    const plain = fake();
+    try {
+      const [first, second, third] = await Promise.all([
+        one.get('https://ok/x'), two.get('https://ok/x'), plain.get('https://ok/x'),
+      ]);
+      for (const [response, proxy] of [[first, 'http://alice:s3cret-one@proxy.test:8080'],
+        [second, 'socks5://bob:s3cret-two@proxy.test:1080']]) {
+        const echoed = JSON.parse(response.body);
+        assert.equal(echoed.env.TLSFORGE_PROXY, proxy);
+        assert.ok(echoed.argv.includes('--proxy-env=TLSFORGE_PROXY'));
+        assert.ok(!echoed.argv.join(' ').includes('s3cret'), echoed.argv.join(' '));
+      }
+      const echoed = JSON.parse(third.body);
+      assert.equal(echoed.env.TLSFORGE_PROXY, null);
+      assert.ok(!echoed.argv.some((arg) => arg.startsWith('--proxy')));
+      assert.equal(process.env.TLSFORGE_PROXY, undefined);
+    } finally {
+      one.close();
+      two.close();
+      plain.close();
+    }
+  });
+});
+
+test("a variable this process has is not a proxy unless the client names one", async () => {
+  // Inherited, it is not named on the command line, and the transport reads
+  // the variable only when it is; named, the client's own replaces it.
+  await withEnv({ TLSFORGE_PROXY: 'http://someone:else@elsewhere.test:3128' }, async () => {
+    const plain = fake();
+    const proxied = fake({ proxy: 'http://mine.test:8080' });
+    try {
+      const inherited = JSON.parse((await plain.get('https://ok/x')).body);
+      assert.ok(!inherited.argv.some((arg) => arg.startsWith('--proxy')));
+      const own = JSON.parse((await proxied.get('https://ok/x')).body);
+      assert.equal(own.env.TLSFORGE_PROXY, 'http://mine.test:8080');
+      assert.equal(process.env.TLSFORGE_PROXY, 'http://someone:else@elsewhere.test:3128');
+    } finally {
+      plain.close();
+      proxied.close();
+    }
+  });
+});
+
+test('a transport older than the client is said to be, for every request waiting', async () => {
+  await withEnv({ TLSFORGE_TEST_REFUSE: 'proxy-env' }, async () => {
+    const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080' });
+    try {
+      const older = /refused its arguments \(code 2\): a tls-forge older than this package does not know --proxy-env/;
+      const [first, second] = await Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]);
+      assert.equal(first.status, 'rejected');
+      assert.match(first.reason.message, older);
+      assert.equal(second.status, 'rejected');
+      assert.match(second.reason.message, older);
+      assert.ok(!first.reason.message.includes('s3cret'));
+      // Asked again, it is asked of a new process, which says the same.
+      await assert.rejects(() => c.get('https://ok/c'), older);
+    } finally {
+      c.close();
+    }
+  });
+});
+
+test('a transport that refuses its arguments without a proxy says only that', async () => {
+  await withEnv({ TLSFORGE_TEST_REFUSE: 'always' }, async () => {
+    const c = fake();
+    try {
+      await assert.rejects(() => c.get('https://ok/a'), (err) => {
+        assert.match(err.message, /refused its arguments \(code 2\)$/);
+        return true;
+      });
+    } finally {
+      c.close();
+    }
+  });
 });
 
 test('cookie file options become daemon arguments', async () => {

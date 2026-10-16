@@ -10,7 +10,9 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"github.com/spf13/pflag"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // A run's log: everything it did, written down as it did it, for whoever has to
@@ -204,7 +207,7 @@ func (l *runLog) close(runErr error) error {
 		return nil
 	}
 	if runErr != nil {
-		l.say(slog.LevelWarn, "run ended", "error", runErr.Error())
+		l.say(slog.LevelWarn, "run ended", "error", redact.Text(runErr.Error()))
 	} else {
 		l.say(slog.LevelInfo, "run ended")
 	}
@@ -329,7 +332,7 @@ func (t *transportLog) Write(p []byte) (int, error) {
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	line := strings.TrimSuffix(string(p), "\n")
+	line := transportSaid(strings.TrimSuffix(string(p), "\n"))
 	if len(t.logs) == 0 && level >= slog.LevelWarn {
 		_, _ = fmt.Fprintf(t.unlogged, "%s %s\n", time.Now().Format("2006/01/02 15:04:05"), line)
 	}
@@ -346,6 +349,23 @@ var verboseLines = []string{
 	"http2: Transport readFrame error ", "http2: Transport conn ", "http2: Transport failed to get client conn ",
 	"http2: handling push promise", "http2: decoded hpack field ", "RoundTrip failure: ",
 	"transport got GOAWAY ", "Unhandled Setting: ",
+}
+
+// hpackField is how the transport says a header field it decoded, which it
+// does only when GODEBUG=http2debug=2 asks it to: the name and the value,
+// quoted, and whether the field was sent as sensitive.
+var hpackField = regexp.MustCompile(`^(http2: decoded hpack field header field )("(?:[^"\\]|\\.)*") = ("(?:[^"\\]|\\.)*")(.*)$`)
+
+// transportSaid is a line of what the transport says as it may be written
+// down: a header field's value without its secret, as every request's record
+// of what it sent has it, and no URL with its password.
+func transportSaid(line string) string {
+	if field := hpackField.FindStringSubmatch(line); field != nil {
+		name, _ := strconv.Unquote(field[2])
+		value, _ := strconv.Unquote(field[3])
+		return field[1] + strconv.Quote(name) + " = " + strconv.Quote(redact.Value(name, value)) + field[4]
+	}
+	return redact.Text(line)
 }
 
 // transportLevel is the level a line of what the transport says is logged at,

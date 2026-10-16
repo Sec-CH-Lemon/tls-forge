@@ -13,6 +13,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `--proxy-env NAME` takes the proxy from the environment variable `NAME`, for
+  `fetch`, `proxy` and `daemon`, so that its password is not on the command
+  line. The variable is read only when it is named. A name that is empty, a
+  variable that is not set or is empty, and `--proxy` given as well are usage
+  errors, before anything is asked or written.
 - `Response.Encoding` says which codings a body was decoded from, and the
   `response` record of the log says it as `decoded_from`.
 - `Client.AllCookies` lists every cookie a client holds, for every host, and
@@ -278,6 +283,25 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Security
 
+- **A proxy's password is said nowhere.** A proxy URL that could not be read
+  was quoted back whole, password and all, on standard error and in the run's
+  log. The password of every URL is now taken out of everything that is
+  written down or sent on: standard error, the log, the trace, the reports,
+  the JSON lines, the daemon's answers, and the `proxy` command's error lines
+  and 502 answers. A proxy's username is kept. The library's errors from
+  `New`, `Fresh` and `Do`, and what `proxy.Options.OnError` is given, say
+  nothing of a password, and wrap the error that did, for `errors.Is` and
+  `errors.As`. The HTTP/2 transport's own lines in the log, which name every
+  header field it decoded when `GODEBUG=http2debug=2` asks, keep a field's
+  name and lose its secret, as a request's record does.
+- **The Node.js and Python packages no longer put a proxy's URL on the
+  daemon's command line**, where `ps` showed its password to every user of
+  the machine. It goes in the daemon's own environment, named with
+  `--proxy-env`, and nowhere else: not in the calling process's environment,
+  and not in another client's daemon. A `tls-forge` older than `--proxy-env`
+  refuses the flag, and the packages say it is older than they are, before any
+  request. A daemon that refuses its arguments fails every request waiting on
+  it rather than being started again for each.
 - A page `--output` keeps is written with mode `0600`, as the log, the trace
   and the report are. It was `0644`, readable by everyone on the machine, and
   a page can be one that only a session could open.

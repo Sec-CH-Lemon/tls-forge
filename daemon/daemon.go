@@ -40,6 +40,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 func sortedKeys(m map[string]string) []string {
@@ -196,6 +197,14 @@ func Serve(in io.Reader, out io.Writer, client Client) error {
 	return scanner.Err()
 }
 
+// failed is the answer to a request that could not be made. What it says has
+// the password of any URL in it taken out: a request's URL that would not
+// parse is quoted back whole, and the answer goes to another process, which
+// may log it.
+func failed(id uint64, err error) Response {
+	return Response{ID: id, Error: redact.Text(err.Error())}
+}
+
 func handle(line string, client Client) Response {
 	var req Request
 	if err := json.Unmarshal([]byte(line), &req); err != nil {
@@ -205,7 +214,7 @@ func handle(line string, client Client) Response {
 		// error while continuing to decode — so the id is already in place. A
 		// genuine syntax error leaves it at 0, and the caller lets that request
 		// time out, which is the safe way to lose one.
-		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
+		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
 	if req.URL == "" {
 		return Response{ID: req.ID, Error: "bad request: no url"}
@@ -213,16 +222,16 @@ func handle(line string, client Client) Response {
 
 	requestHeaders, err := orderedHeaders(req, client)
 	if err != nil {
-		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
+		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
 	cookies, err := parseCookies(req.SetCookie)
 	if err != nil {
-		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
+		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
 
 	body, err := decodeBody(req.Body, req.BodyEncoding)
 	if err != nil {
-		return Response{ID: req.ID, Error: "bad request: " + err.Error()}
+		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
 
 	res, err := client.Do(&tlsforge.Request{
@@ -233,10 +242,10 @@ func handle(line string, client Client) Response {
 		Cookies: cookies,
 	})
 	if err != nil {
-		return Response{ID: req.ID, Error: err.Error()}
+		return failed(req.ID, err)
 	}
 	if err := validateResponseHeaders(res.Header); err != nil {
-		return Response{ID: req.ID, Error: err.Error()}
+		return failed(req.ID, err)
 	}
 
 	headers := make(map[string][]string, len(res.Header))

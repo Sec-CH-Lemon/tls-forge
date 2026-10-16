@@ -21,6 +21,8 @@ import (
 	"strings"
 
 	"github.com/spf13/pflag"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // version is stamped at build time:
@@ -197,8 +199,12 @@ const errorPrefix = "tlsforge: "
 // Every line, because errors.Join puts each error it holds on a line of its
 // own: a fetch that got no answer and then could not write its report failed
 // twice, and the second line is as much an error as the first.
+//
+// And without the password of any URL in it. Every command's error is printed
+// here, and a proxy that could not be read is quoted back whole by whatever
+// tried to read it.
 func prefixed(err error) string {
-	lines := strings.Split(err.Error(), "\n")
+	lines := strings.Split(redact.Text(err.Error()), "\n")
 	for i, line := range lines {
 		for strings.HasPrefix(line, errorPrefix) {
 			line = line[len(errorPrefix):]

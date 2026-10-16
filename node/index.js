@@ -18,6 +18,25 @@ import { resolveBinary } from './binary.js';
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 
+// The environment variable a proxy's URL reaches the transport in. Its command
+// line names the variable, with --proxy-env, rather than carrying the URL:
+// `ps` shows a command line, password and all, to every user of the machine,
+// and a process's environment only to its owner. Set in the child's own
+// environment, never in this process's.
+const PROXY_VARIABLE = 'TLSFORGE_PROXY';
+
+// refusedArguments is why a transport that exited at once with a usage error
+// failed. With a proxy, that is a tls-forge older than this package, which
+// does not know --proxy-env; it never got as far as making a request.
+function refusedArguments(binary, proxied) {
+  const said = `tlsforge: the transport at ${binary} refused its arguments (code 2)`;
+  if (!proxied) return said;
+  return (
+    `${said}: a tls-forge older than this package does not know --proxy-env, which keeps ` +
+    'the proxy\'s password off its command line; use the tls-forge this package came with'
+  );
+}
+
 function normaliseResponse(response) {
   if (response.error != null && typeof response.error !== 'string') {
     throw new TypeError('field "error" must be a string');
@@ -78,6 +97,7 @@ function normaliseResponse(response) {
 export class Client {
   #binary;
   #args;
+  #proxy;
   #timeout;
   #onStderr;
 
@@ -127,7 +147,8 @@ export class Client {
 
     const args = ['daemon'];
     if (options.profile) args.push('--profile', options.profile);
-    if (options.proxy) args.push('--proxy', options.proxy);
+    if (options.proxy) args.push(`--proxy-env=${PROXY_VARIABLE}`);
+    this.#proxy = options.proxy || undefined;
     if (options.insecure) args.push('--insecure');
     if (options.cookieFile) args.push('--cookies', options.cookieFile);
     if (options.cookieSet) args.push('--cookie-set', options.cookieSet);
@@ -232,31 +253,35 @@ export class Client {
     // request's page resolves another request's promise.
     this.#closeReaders();
 
-    const process = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'] });
-    this.#process = process;
-    this.#reader = readline.createInterface({ input: process.stdout });
+    // A copy of this process's environment, with the proxy in it: a client's
+    // proxy reaches its own process and no other, and this process's
+    // environment is left as it was.
+    const env = this.#proxy === undefined ? process.env : { ...process.env, [PROXY_VARIABLE]: this.#proxy };
+    const child = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'], env });
+    this.#process = child;
+    this.#reader = readline.createInterface({ input: child.stdout });
     this.#reader.on('line', (line) => this.#onLine(line));
-    this.#stderrReader = readline.createInterface({ input: process.stderr });
+    this.#stderrReader = readline.createInterface({ input: child.stderr });
     this.#stderrReader.on('line', (line) => this.#reportStderr(line));
 
     // The request timer is the reference that keeps Node alive while work is
     // outstanding. The idle daemon and its pipes must not force every script to
     // call close() merely to let the event loop finish.
-    process.unref();
-    process.stdin.unref();
-    process.stdout.unref();
-    process.stderr.unref();
+    child.unref();
+    child.stdin.unref();
+    child.stdout.unref();
+    child.stderr.unref();
 
     // A process that could not be spawned reports through 'error', not 'exit',
     // and an 'error' with no listener is an uncaught exception that takes the
     // whole program down rather than the one request. The reachable causes are
     // ordinary: a binary without its exec bit, a Linux binary in a macOS
     // checkout, a directory mounted noexec.
-    process.on('error', (err) => {
+    child.on('error', (err) => {
       // Node documents that exit may still follow error. Detach it before a
       // caller can start a replacement process, or the old exit could clear
       // the new process reference.
-      process.removeAllListeners('exit');
+      child.removeAllListeners('exit');
       this.#process = null;
       this.#closeReaders();
       this.#failAll(new Error(`tlsforge: transport failed to start (${this.#binary}): ${err.message}`));
@@ -266,11 +291,18 @@ export class Client {
     // stream with no 'error' listener is another uncaught exception. The
     // rejection is NOT done here — the write callback in #pump knows which
     // request was being written, and this handler does not.
-    process.stdin.on('error', this.#reportStderr.bind(this));
+    child.stdin.on('error', this.#reportStderr.bind(this));
 
-    process.on('exit', (code) => {
+    child.on('exit', (code) => {
       this.#process = null;
       this.#closeReaders();
+      if (code === 2) {
+        // A usage error: the transport would not take the arguments it was
+        // started with, and every replacement would refuse them the same way.
+        // No request reached it, so none of them is indeterminate.
+        this.#failAll(new Error(refusedArguments(this.#binary, this.#proxy !== undefined)));
+        return;
+      }
       // Only the request written to the dead transport is indeterminate. Jobs
       // still in the queue were never written and can safely use a replacement,
       // matching the Python wrapper's behaviour.

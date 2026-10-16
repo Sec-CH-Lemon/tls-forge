@@ -28,6 +28,7 @@ import (
 	fhttp "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
 	utls "github.com/bogdanfinn/utls"
+	"golang.org/x/net/proxy"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
@@ -333,6 +334,59 @@ func TestNewRejectsAnUnusableProfile(t *testing.T) {
 func TestNewRejectsAnUnusableProxy(t *testing.T) {
 	if _, err := New(WithProxy("://not a url")); err == nil {
 		t.Error("expected an error")
+	}
+}
+
+// quotingDialer fails every dial with an error that quotes the proxy, as a
+// transport's error may.
+type quotingDialer struct{ err error }
+
+func (d quotingDialer) Dial(string, string) (net.Conn, error) { return nil, d.err }
+func (d quotingDialer) DialContext(context.Context, string, string) (net.Conn, error) {
+	return nil, d.err
+}
+
+func TestARequestsErrorSaysNothingOfItsProxysPassword(t *testing.T) {
+	// The error is printed by whoever gets it. What it wraps is underneath.
+	const through = "alice:s3cr3t@proxy.test:8080"
+	refused := fmt.Errorf("dial through %s and http://bob:hunter2@other.test: refused", through)
+	client, err := New(WithProxy("http://"+through), WithTransportOption(tls_client.WithProxyDialerFactory(
+		func(string, time.Duration, *net.TCPAddr, fhttp.Header, tls_client.Logger) (proxy.ContextDialer, error) {
+			return quotingDialer{err: refused}, nil
+		})))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	_, err = client.Get("https://example.test/")
+	if err == nil || strings.Contains(err.Error(), "s3cr3t") || strings.Contains(err.Error(), "hunter2") ||
+		!strings.Contains(err.Error(), "alice@proxy.test:8080") {
+		t.Errorf("Get() = %v", err)
+	}
+	if !errors.Is(err, refused) {
+		t.Errorf("%v does not wrap what the dial said", err)
+	}
+}
+
+func TestAProxyThatCannotBeUsedIsNotQuotedWithItsPassword(t *testing.T) {
+	// url.Parse and the transport quote back the whole URL they could not
+	// use, and the error is printed by whoever gets it: with a scheme, and
+	// without one, which nothing but the URL as given can be told by.
+	for proxy, said := range map[string]string{
+		// One that will not parse keeps nothing before its last "@".
+		"http://alice:s3cr3t@[bad":     `parse "[redacted]@[bad"`,
+		"alice:s3cr3t@proxy.test:8080": "`alice@proxy.test:8080`",
+	} {
+		_, err := New(WithProxy(proxy))
+		if err == nil || strings.Contains(err.Error(), "s3cr3t") || !strings.Contains(err.Error(), said) {
+			t.Errorf("New(WithProxy(%q)) = %v, want one that says %s", proxy, err, said)
+		}
+	}
+	// What went wrong is underneath, for a program that asks.
+	_, err := New(WithProxy("http://alice:s3cr3t@[bad"))
+	var parse *neturl.Error
+	if !errors.As(err, &parse) || parse.URL != "http://alice:s3cr3t@[bad" {
+		t.Errorf("the parse error is not underneath %v", err)
 	}
 }
 

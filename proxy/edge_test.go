@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -13,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -474,4 +476,52 @@ func waitFor(t *testing.T, problems *errorLog, want string) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Errorf("never reported %q; got %v", want, problems.list())
+}
+
+func TestAProxySaysNoPasswordOfAnyURL(t *testing.T) {
+	// A 502 goes to whoever asked through the proxy, and OnError to whoever
+	// runs it: neither says the password of a URL an error quotes, and what
+	// OnError gets still unwraps to what went wrong.
+	failed := errors.New(`tlsforge: parse "http://alice:s3cr3t@[bad": missing ']' in host`)
+	server, problems := startProxy(t, stubClient{err: failed}, newCAForTest(t))
+
+	ask := func(request string) *bufio.Reader {
+		t.Helper()
+		conn, err := net.DialTimeout("tcp", server.Addr(), 5*time.Second)
+		if err != nil {
+			t.Fatalf("dialling the proxy: %v", err)
+		}
+		t.Cleanup(func() { _ = conn.Close() })
+		_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+		if _, err := io.WriteString(conn, request); err != nil {
+			t.Fatalf("writing: %v", err)
+		}
+		return bufio.NewReader(conn)
+	}
+
+	res, err := http.ReadResponse(ask("GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n"), nil)
+	if err != nil {
+		t.Fatalf("reading the answer: %v", err)
+	}
+	body, _ := io.ReadAll(res.Body)
+	if res.StatusCode != 502 || string(body) != `tlsforge: parse "http://alice@[bad": missing ']' in host`+"\n" {
+		t.Errorf("the proxy answered %d:\n%s", res.StatusCode, body)
+	}
+
+	// A request whose URL will not parse, quoted back by what read it. Read
+	// to the end, which is the proxy hanging up, by which time it has said why.
+	_, _ = io.ReadAll(ask("GET http://bob:s3cr3t@[bad HTTP/1.1\r\nHost: x\r\n\r\n"))
+	var unread *url.Error
+	found := false
+	for _, err := range problems.list() {
+		if strings.Contains(err.Error(), "s3cr3t") {
+			t.Errorf("OnError was told a password: %v", err)
+		}
+		if strings.Contains(err.Error(), "reading a request") {
+			found = errors.As(err, &unread)
+		}
+	}
+	if !found || unread.URL != "http://bob:s3cr3t@[bad" {
+		t.Errorf("what could not be read is not underneath: %v", problems.list())
+	}
 }

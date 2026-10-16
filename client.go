@@ -51,6 +51,7 @@ import (
 	tls_client "github.com/bogdanfinn/tls-client"
 	"golang.org/x/net/publicsuffix"
 
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -337,7 +338,9 @@ func New(opts ...Option) (*Client, error) {
 	id, log := newClientLog(cfg.logger)
 	inner, err := newInnerClient(tls_client.NewNoopLogger(), built(log)...)
 	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %w", err)
+		// A proxy the transport cannot read is quoted back whole, password and
+		// all, by url.Parse and by the transport alike.
+		return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, cfg.proxy))
 	}
 
 	headers := Header(nil)
@@ -390,7 +393,7 @@ func (c *Client) Fresh() (*Client, error) {
 	id, log := newClientLog(c.logger)
 	inner, err := newInnerClient(tls_client.NewNoopLogger(), c.options(log)...)
 	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %w", err)
+		return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, c.proxy))
 	}
 	if log != nil {
 		log.Debug("fresh client", "from", c.id)
@@ -430,13 +433,17 @@ func (c *Client) Get(url string) (*Response, error) {
 }
 
 // Do performs a request.
+//
+// An error says nothing of the password of the client's proxy, nor of any
+// other URL it quotes, since it is printed by whoever gets it; what it wraps is
+// underneath, for errors.Is and errors.As.
 func (c *Client) Do(req *Request) (*Response, error) {
 	r := c.requestLog(req)
 	res, err := c.do(req, r)
 	if r != nil {
 		r.ended(res, err)
 	}
-	return res, err
+	return res, redact.Err(err, c.proxy)
 }
 
 // requestLog is the log a request is written down in: its own logger's, or

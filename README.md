@@ -222,6 +222,22 @@ A run that fails for more than one reason, such as a request that got no
 answer and then a report that could not be written, gives each reason a line
 of its own, and every one of them begins the same way.
 
+What a command says has the password of every URL in it taken out, on
+standard error, in a log, a trace, a report and the JSON lines, in what
+`daemon` answers and in what `proxy` reports and sends back with a 502: a
+proxy that could not be read is otherwise quoted back whole, by whatever
+tried to read it. A proxy's username is kept, since it tells two proxies
+apart.
+
+`fetch`, `proxy` and `daemon` take the proxy from an environment variable
+with `--proxy-env NAME`, and the Node.js and Python packages start the
+daemon that way: on the command line, a password is one that `ps` shows to
+every user of the machine. The environment is not a secret either. It keeps
+the password from other users, and from nobody who can read the process
+itself, such as its owner and root. The variable is read only when it is
+named, and naming one that is not set or is empty, or giving `--proxy` as
+well, is a usage error before anything is asked.
+
 When no profile is selected, the network commands (`fetch`, `proxy` and
 `daemon`) use a profile installed as `local`, if one exists, and otherwise
 the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`
@@ -266,6 +282,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-k`, `--insecure` | Skip upstream certificate verification |
 | **Proxy** | |
 | `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
+| `--proxy-env <name>` | Read `--proxy` from this environment variable, which keeps its password off the command line; see [Commands](#commands) |
 | `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
 | **Session** | |
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
@@ -1330,6 +1347,7 @@ Usage: `tls-forge proxy [flags]`
 |---|---|
 | `-p`, `--profile <name-or-path>` | Profile used for outbound requests |
 | `-x`, `--proxy <url>` | Optional upstream proxy |
+| `--proxy-env <name>` | Read the upstream proxy from this environment variable instead |
 | `-t`, `--timeout <duration>` | Outbound request timeout; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification on outbound connections |
 | `-a`, `--addr <host:port>` | Listen address; default `127.0.0.1:8080` |
@@ -1392,6 +1410,7 @@ Usage: `tls-forge daemon [flags]`
 | `--cookie-set <id>` | Select a set from the cookie file |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate |
 | `-x`, `--proxy <url>` | Upstream proxy |
+| `--proxy-env <name>` | Read the upstream proxy from this environment variable instead, as the Node.js and Python packages do |
 | `-t`, `--timeout <duration>` | Transport request timeout; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification |
 

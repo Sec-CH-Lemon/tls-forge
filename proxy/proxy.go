@@ -29,6 +29,7 @@ import (
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 const connectionIdleTimeout = 30 * time.Second
@@ -57,7 +58,9 @@ type Options struct {
 
 	// OnError receives per-connection failures. A proxy that printed them to
 	// stdout would corrupt nothing, but a caller that wants them quiet should
-	// not have to redirect a stream.
+	// not have to redirect a stream. What each says has the password of any
+	// URL in it taken out, as it is made to be printed; what it wraps is
+	// underneath, for errors.Is and errors.As.
 	OnError func(error)
 }
 
@@ -97,7 +100,9 @@ func Start(opts Options) (*Server, error) {
 	if opts.Addr == "" {
 		opts.Addr = "127.0.0.1:0"
 	}
-	if opts.OnError == nil {
+	if given := opts.OnError; given != nil {
+		opts.OnError = func(err error) { given(redact.Err(err)) }
+	} else {
 		opts.OnError = func(error) {}
 	}
 
@@ -272,9 +277,10 @@ func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 	})
 	if err != nil {
 		// The caller is a client waiting on a socket; it deserves a status, not
-		// a dropped connection.
+		// a dropped connection, and the reason, without the password of any
+		// URL in it: the caller is somebody else.
 		return writeResponse(w, 502, map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
-			[]byte(err.Error()+"\n"))
+			[]byte(redact.Text(err.Error())+"\n"))
 	}
 	return writeResponse(w, res.Status, res.Header, res.Body)
 }

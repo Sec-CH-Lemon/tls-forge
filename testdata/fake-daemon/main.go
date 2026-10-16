@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 )
@@ -43,6 +45,17 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "--sleep" {
 		time.Sleep(30 * time.Second)
 		return
+	}
+
+	// A tls-forge older than the client, which does not know --proxy-env and
+	// refuses to start as pflag does, with code 2; or one that refuses whatever
+	// it is started with.
+	if refuse := os.Getenv("TLSFORGE_TEST_REFUSE"); refuse == "always" ||
+		(refuse == "proxy-env" && slices.ContainsFunc(os.Args, func(arg string) bool {
+			return strings.HasPrefix(arg, "--proxy-env")
+		})) {
+		_, _ = fmt.Fprintln(os.Stderr, "tlsforge: bad usage: unknown flag: --proxy-env")
+		os.Exit(2)
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -226,8 +239,13 @@ func answer(req request) map[string]any {
 		cookies = []string{}
 	}
 
+	proxy, set := os.LookupEnv("TLSFORGE_PROXY")
+	env := map[string]any{"TLSFORGE_PROXY": nil}
+	if set {
+		env["TLSFORGE_PROXY"] = proxy
+	}
 	body, _ := json.Marshal(map[string]any{
-		"argv": os.Args[1:], "method": req.Method, "headers": headers,
+		"argv": os.Args[1:], "env": env, "method": req.Method, "headers": headers,
 		"order": order, "cookies": cookies, "body": req.Body,
 	})
 	return map[string]any{

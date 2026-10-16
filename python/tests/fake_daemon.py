@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import sys
 import threading
 import time
@@ -34,6 +35,7 @@ def answer(request: dict, **extra: object) -> dict:
         "body": json.dumps(
             {
                 "argv": sys.argv[1:],
+                "env": {"TLSFORGE_PROXY": os.environ.get("TLSFORGE_PROXY")},
                 "method": request.get("method"),
                 "headers": request.get("headers", {}),
                 "order": request.get("order", []),
@@ -50,7 +52,20 @@ def answer(request: dict, **extra: object) -> dict:
     }
 
 
+def refuses() -> bool:
+    """Whether to refuse to start, with code 2, as pflag does: as a tls-forge
+    older than the client, which does not know --proxy-env, or whatever it is
+    started with."""
+    refuse = os.environ.get("TLSFORGE_TEST_REFUSE")
+    return refuse == "always" or (
+        refuse == "proxy-env" and any(arg.startswith("--proxy-env") for arg in sys.argv)
+    )
+
+
 def main() -> None:
+    if refuses():
+        sys.stderr.write("tlsforge: bad usage: unknown flag: --proxy-env\n")
+        sys.exit(2)
     for line in sys.stdin:
         try:
             request = json.loads(line)

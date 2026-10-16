@@ -446,6 +446,11 @@ func TestAnErrorIsPrefixedOnce(t *testing.T) {
 		{"joined inside an error that wraps them",
 			fmt.Errorf("fetch: writing the trace: %w", errors.Join(io.ErrShortWrite, os.ErrClosed)),
 			"tlsforge: fetch: writing the trace: short write\ntlsforge: file already closed"},
+		// Every command's error is printed here, and a proxy that could not be
+		// read is quoted back whole by whatever tried to read it.
+		{"a URL with a password, on any line", errors.Join(own,
+			errors.New(`tlsforge: parse "http://alice:s3cr3t@[bad": missing ']' in host`)),
+			"tlsforge: " + own.Error() + "\ntlsforge: parse \"http://alice@[bad\": missing ']' in host"},
 		{"exactly the prefix", errors.New("tlsforge: "), "tlsforge: "},
 		{"the prefix without its space", errors.New("tlsforge:"), "tlsforge: "},
 		{"the prefix twice, and nothing else", errors.New("tlsforge: tlsforge:"), "tlsforge: "},

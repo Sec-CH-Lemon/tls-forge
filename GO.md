@@ -211,7 +211,12 @@ if errors.Is(err, tlsforge.ErrResponseTooLarge) {
 ```
 
 Other request, DNS, proxy, TLS, context and parsing failures are returned as
-wrapped errors with a `tlsforge:` prefix.
+wrapped errors with a `tlsforge:` prefix. What an error from `New`, `Fresh` or
+`Do` says has the password of the client's proxy taken out, and that of any
+other URL it quotes, since it is printed by whoever gets it: a proxy URL that
+cannot be read is otherwise quoted back whole. What it wraps is underneath,
+for `errors.Is` and `errors.As`. The same is true of what `proxy.Options.OnError`
+is given, and of the body of the 502 the proxy answers a failed request with.
 
 ## Tracing a request
 

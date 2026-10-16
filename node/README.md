@@ -75,7 +75,7 @@ const client = new Client({
 | Option | Type and default | Meaning |
 |---|---|---|
 | `profile` | `string`, CLI default | Profile name or JSON profile path passed to `tls-forge daemon --profile`. |
-| `proxy` | `string`, direct | HTTP, HTTPS or SOCKS proxy URL, optionally with credentials. |
+| `proxy` | `string`, direct | HTTP, HTTPS or SOCKS proxy URL, optionally with credentials. It reaches the daemon in that process's own environment, named by `--proxy-env`, and not on its command line, which `ps` shows every user of the machine; a `tls-forge` older than `--proxy-env` is refused with an error saying so, before any request. |
 | `timeout` | `number`, `45000` | Per-request deadline in milliseconds. It must be positive and finite. The Go transport receives an additional 15-second grace period so both timeout layers do not race. |
 | `binary` | `string`, auto | Explicit path to the `tls-forge` executable. A missing explicit path is an error and does not fall through to another version. |
 | `insecure` | `boolean`, `false` | Skip upstream certificate verification. Use only for controlled endpoints. |

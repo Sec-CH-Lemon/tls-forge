@@ -9,8 +9,15 @@ that exceeds the limit ends the daemon with a scanner error because its request
 boundary cannot be recovered safely.
 
 ```bash
-tls-forge daemon --profile chrome --proxy http://user:pass@host:8080
+TLSFORGE_PROXY=http://user:pass@host:8080 tls-forge daemon --profile chrome --proxy-env=TLSFORGE_PROXY
 ```
+
+The Node.js and Python packages pass a proxy that way, in the daemon's own
+environment and named by `--proxy-env`, rather than with `--proxy`: a command
+line is what `ps` shows every user of the machine. A daemon older than
+`--proxy-env` refuses the flag with exit code 2 before it reads a request, and
+the packages say it is older than they are. An `error` field says nothing of
+the password of any URL it quotes.
 
 ## Request
 

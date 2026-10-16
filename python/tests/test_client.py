@@ -109,12 +109,66 @@ def test_the_options_become_the_transport_argv(client, tmp_path):
     assert argv[0] == "daemon"
     for flag, value in (
         ("--profile", "chrome_151"),
-        ("--proxy", "http://user:pass@host:8080"),
         ("--cookies", str(jar)),
         ("--cookie-set", "warm-eu"),
     ):
         assert argv[argv.index(flag) + 1] == value
     assert "--insecure" in argv
+    # The proxy by the name of the variable it is in, and never the URL.
+    assert "--proxy-env=TLSFORGE_PROXY" in argv
+    assert not any("pass" in arg for arg in argv)
+
+
+def test_a_proxy_reaches_its_own_process_in_its_environment(client, monkeypatch):
+    # Off the command line, which `ps` shows every user of the machine, and in
+    # the environment of the client's own process: two clients do not get each
+    # other's, and this process's environment is left as it was.
+    monkeypatch.delenv("TLSFORGE_PROXY", raising=False)
+    one = client(proxy="http://alice:s3cret-one@proxy.test:8080").get("https://ok/x").json()
+    two = client(proxy="socks5://bob:s3cret-two@proxy.test:1080").get("https://ok/x").json()
+    plain = client().get("https://ok/x").json()
+    for echoed, proxy in (
+        (one, "http://alice:s3cret-one@proxy.test:8080"),
+        (two, "socks5://bob:s3cret-two@proxy.test:1080"),
+    ):
+        assert echoed["env"]["TLSFORGE_PROXY"] == proxy
+        assert "--proxy-env=TLSFORGE_PROXY" in echoed["argv"]
+        assert "s3cret" not in " ".join(echoed["argv"])
+    assert plain["env"]["TLSFORGE_PROXY"] is None
+    assert not any(arg.startswith("--proxy") for arg in plain["argv"])
+    assert "TLSFORGE_PROXY" not in os.environ
+
+
+def test_a_variable_this_process_has_is_not_a_proxy_unless_named(client, monkeypatch):
+    # Inherited, it is not named on the command line, and the transport reads
+    # the variable only when it is; named, the client's own replaces it.
+    monkeypatch.setenv("TLSFORGE_PROXY", "http://someone:else@elsewhere.test:3128")
+    inherited = client().get("https://ok/x").json()
+    assert not any(arg.startswith("--proxy") for arg in inherited["argv"])
+    own = client(proxy="http://mine.test:8080").get("https://ok/x").json()
+    assert own["env"]["TLSFORGE_PROXY"] == "http://mine.test:8080"
+    assert os.environ["TLSFORGE_PROXY"] == "http://someone:else@elsewhere.test:3128"
+
+
+def test_a_transport_older_than_the_client_is_said_to_be(client, monkeypatch):
+    monkeypatch.setenv("TLSFORGE_TEST_REFUSE", "proxy-env")
+    c = client(proxy="http://alice:s3cret@proxy.test:8080")
+    older = (
+        r"refused its arguments \(code 2\): a tls-forge older than this package "
+        r"does not know --proxy-env"
+    )
+    with pytest.raises(tlsforge.TransportError, match=older) as refused:
+        c.get("https://ok/a")
+    assert "s3cret" not in str(refused.value)
+    # Asked again, it is asked of a new process, which says the same.
+    with pytest.raises(tlsforge.TransportError, match=older):
+        c.get("https://ok/b")
+
+
+def test_a_transport_that_refuses_its_arguments_without_a_proxy_says_only_that(client, monkeypatch):
+    monkeypatch.setenv("TLSFORGE_TEST_REFUSE", "always")
+    with pytest.raises(tlsforge.TransportError, match=r"refused its arguments \(code 2\)$"):
+        client().get("https://ok/a")
 
 
 def test_the_transport_gets_a_longer_deadline_than_ours(client):

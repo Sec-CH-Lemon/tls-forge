@@ -30,7 +30,7 @@ var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
 	{"the request", []string{"method", "header", "data"}},
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
-	{"proxy", []string{"proxy", "exit-headers"}},
+	{"proxy", []string{"proxy", "proxy-env", "exit-headers"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element"}},
 	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
@@ -69,6 +69,7 @@ type clientFlags struct {
 
 	profile  *string
 	proxy    *string
+	proxyEnv *string
 	timeout  *time.Duration
 	insecure *bool
 
@@ -110,9 +111,39 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 	}
 	flags.profile = fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to impersonate")
 	flags.proxy = fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port")
+	flags.proxyEnv = fs.String("proxy-env", "",
+		"name of an environment variable holding the proxy URL, which keeps its password off the command line")
 	flags.timeout = fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout")
 	flags.insecure = fs.BoolP("insecure", "k", false, "skip certificate verification")
 	return flags
+}
+
+// proxyFromEnv sets the proxy from the environment variable --proxy-env names.
+//
+// A password on the command line is one `ps` shows every user of the machine,
+// and the environment is one only the process's owner can read. The variable
+// is read only when it is named: one that happened to be set would otherwise
+// send a run through a proxy nobody asked for. Usage errors, before anything
+// is read or asked: a name that is empty, a variable that is not set or is
+// empty, and --proxy given as well, since a run's proxy comes from one place.
+func (f clientFlags) proxyFromEnv() error {
+	if !f.chose("proxy-env") {
+		return nil
+	}
+	name := *f.proxyEnv
+	value, set := os.LookupEnv(name)
+	switch {
+	case name == "":
+		return fmt.Errorf("%w: --proxy-env needs the name of an environment variable", errUsage)
+	case f.chose("proxy"):
+		return fmt.Errorf("%w: --proxy and --proxy-env both name the proxy: give one of them", errUsage)
+	case !set:
+		return fmt.Errorf("%w: --proxy-env %s: there is no such environment variable", errUsage, name)
+	case value == "":
+		return fmt.Errorf("%w: --proxy-env %s: the variable is empty", errUsage, name)
+	}
+	*f.proxy = value
+	return nil
 }
 
 // The full request flags, which are fetch's.
@@ -358,6 +389,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			"\"off\" takes ours out, the rest are added")
 	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]", fetchFlagGroups...)
 	if err := parse(fs, args); err != nil {
+		return err
+	}
+	if err := common.proxyFromEnv(); err != nil {
 		return err
 	}
 	if *workers < 1 {
@@ -926,6 +960,9 @@ func runDaemon(_ context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("daemon", out)
 	common := addDaemonFlags(fs)
 	if err := parse(fs, args); err != nil {
+		return err
+	}
+	if err := common.proxyFromEnv(); err != nil {
 		return err
 	}
 	if err := requireNoArgs(fs); err != nil {
