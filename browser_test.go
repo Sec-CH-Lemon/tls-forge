@@ -2,8 +2,11 @@ package tlsforge
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"maps"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
@@ -65,6 +68,9 @@ type asSent struct {
 	// form is a form's Content-Type, the measured request's.
 	form    bool
 	cookies []Cookie
+	// refused is what a scenario's page asked for that CORS refused: Chrome
+	// sent its preflight alone.
+	refused *chromeRequest
 }
 
 // run is the page a scenario ran in.
@@ -138,54 +144,150 @@ var sentInContexts = map[string]asSent{
 		Initiator: run("fetch-get-same-origin-cookies") + "?cookie=1"}, cookies: setByRun},
 	"xhr-get-same-origin":  {browser: BrowserContext{Kind: KindXHR, Initiator: run("xhr-get-same-origin")}},
 	"xhr-post-same-origin": {browser: BrowserContext{Kind: KindXHR, Initiator: run("xhr-post-same-origin")}, script: []string{"Content-Type"}},
+	// CORS: what goes to another origin in cors mode, a preflight first where
+	// one is asked for.
+	"fetch-get-same-site":  {browser: BrowserContext{Kind: KindFetch, Initiator: run("fetch-get-same-site")}},
+	"fetch-get-cross-site": {browser: BrowserContext{Kind: KindFetch, Initiator: run("fetch-get-cross-site")}},
+	"fetch-post-cross-site-json": {browser: BrowserContext{Kind: KindFetch,
+		Initiator: run("fetch-post-cross-site-json")}, script: []string{"Content-Type"}},
+	"fetch-post-cross-site-json-denied": {browser: BrowserContext{Kind: KindFetch,
+		Initiator: run("fetch-post-cross-site-json-denied")}, script: []string{"Content-Type"},
+		refused: &chromeRequest{Method: "POST", URL: "https://www.example.net/cors/fetch-post-cross-site-json-denied?deny=1",
+			Headers: [][2]string{{"Content-Type", "application/json"}}, Body: "{}"}},
+	"fetch-post-cross-site-json-cached": {browser: BrowserContext{Kind: KindFetch,
+		Initiator: run("fetch-post-cross-site-json-cached")}, script: []string{"Content-Type"}},
+	"fetch-get-cross-site-header": {browser: BrowserContext{Kind: KindFetch,
+		Initiator: run("fetch-get-cross-site-header")}, script: []string{"X-Foo"}},
+	"fetch-get-cross-site-credentials": {browser: BrowserContext{Kind: KindFetch,
+		Initiator: run("fetch-get-cross-site-credentials"), Credentials: "include"}},
+	"fetch-get-cross-site-samesite": {browser: BrowserContext{Kind: KindFetch,
+		Initiator: run("fetch-get-cross-site-samesite"), Credentials: "include"}, cookies: setOnEveryKind("www.example.net")},
+	"xhr-get-cross-site": {browser: BrowserContext{Kind: KindXHR, Initiator: run("xhr-get-cross-site")}},
+	"xhr-post-cross-site-json": {browser: BrowserContext{Kind: KindXHR, Initiator: run("xhr-post-cross-site-json")},
+		script: []string{"Content-Type"}},
+}
+
+// sentAfter are scenarios whose page made a first fetch() of another kind,
+// to set cookies, before the one measured: the context of each call.
+var sentAfter = map[string][]BrowserContext{
+	"fetch-get-cross-site-omit": {
+		{Kind: KindFetch, Initiator: run("fetch-get-cross-site-omit"), Credentials: "include"},
+		{Kind: KindFetch, Initiator: run("fetch-get-cross-site-omit"), Credentials: "omit"},
+	},
+	"fetch-get-cross-site-same-origin-creds": {
+		{Kind: KindFetch, Initiator: run("fetch-get-cross-site-same-origin-creds"), Credentials: "include"},
+		{Kind: KindFetch, Initiator: run("fetch-get-cross-site-same-origin-creds")},
+	},
 }
 
 func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 	measured := loadChromeRequests(t)
-	for _, scenario := range slices.Sorted(maps.Keys(sentInContexts)) {
+	scenarios := slices.Sorted(maps.Keys(sentInContexts))
+	scenarios = append(scenarios, slices.Sorted(maps.Keys(sentAfter))...)
+	for _, scenario := range scenarios {
 		how := sentInContexts[scenario]
 		measuredBoth, ok := measured.Scenarios[scenario]
 		if !ok {
 			t.Fatalf("%s is not in the fixture", scenario)
 		}
-		for proto, want := range map[string]chromeRequest{"h2": measuredBoth.H2[0], "h1": measuredBoth.H1[0]} {
+		for proto, want := range map[string][]chromeRequest{"h2": measuredBoth.H2, "h1": measuredBoth.H1} {
 			t.Run(scenario+"/"+proto, func(t *testing.T) {
-				got := sendAsMeasured(t, proto, how, want)
-				if diff := diffRequest(want, got, proto); diff != "" {
-					t.Errorf("%s over %s (%s):\n%s", scenario, proto, measuredBoth.Note, diff)
+				got := sendAsMeasured(t, proto, how, sentAfter[scenario], want)
+				if len(got) != len(want) {
+					t.Fatalf("%s over %s: sent %d requests, Chrome %d", scenario, proto, len(got), len(want))
+				}
+				for i := range want {
+					if diff := diffRequest(want[i], got[i], proto); diff != "" {
+						t.Errorf("%s over %s (%s), request %d:\n%s", scenario, proto, measuredBoth.Note, i+1, diff)
+					}
 				}
 			})
 		}
 	}
 }
 
-// sendAsMeasured sends a scenario's first request in its browser context to a
-// recorder speaking proto, or plain HTTP when Chrome went over it, and is what
-// the recorder kept.
-func sendAsMeasured(t *testing.T, proto string, how asSent, want chromeRequest) *keptRequest {
+// answeringCORS answers as the server the scenarios were measured against
+// did: a page, or under /cors/ an answer CORS allows, a preflight allowed but
+// for ?deny, kept as long as ?maxage says; and cookies for ?cookie=1.
+func answeringCORS(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	if q.Get("cookie") != "" {
+		w.Header().Add("Set-Cookie", "a=1; Max-Age=3600; Path=/")
+		w.Header().Add("Set-Cookie", "b=2; Max-Age=3600; Path=/; SameSite=None; Secure")
+	}
+	if !strings.HasPrefix(r.URL.Path, "/cors/") {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = io.WriteString(w, "<!doctype html><title>page</title>")
+		return
+	}
+	if origin := r.Header.Get("Origin"); origin != "" && q.Get("deny") == "" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+	if r.Method == http.MethodOptions {
+		if q.Get("deny") != "" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+		if asked := r.Header.Get("Access-Control-Request-Headers"); asked != "" {
+			w.Header().Set("Access-Control-Allow-Headers", asked)
+		}
+		w.Header().Set("Access-Control-Max-Age", q.Get("maxage"))
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = io.WriteString(w, `{"ok":true}`)
+}
+
+// sendAsMeasured sends what a scenario's page asked for, each request but the
+// preflights Chrome made itself, in its browser context, to a recorder
+// speaking proto, or plain HTTP when Chrome went over it, and is what the
+// recorder kept: preflights and all.
+func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserContext, want []chromeRequest) []*keptRequest {
 	t.Helper()
 	serving := proto
-	if strings.HasPrefix(want.URL, "http:") {
+	if strings.HasPrefix(want[0].URL, "http:") {
 		serving = "http"
 	}
-	server := newRecorder(t, serving, nil)
+	server := newRecorder(t, serving, answeringCORS)
 	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
-	req := &Request{Method: want.Method, URL: want.URL, Body: []byte(want.Body), Browser: &how.browser,
-		Cookies: how.cookies}
-	for _, name := range how.script {
-		req.Header = append(req.Header, profile.Field{Name: name, Value: want.header(name)})
+	var asked []chromeRequest
+	for _, req := range want {
+		if req.Method != http.MethodOptions {
+			asked = append(asked, req)
+		}
 	}
-	if how.form {
-		req.Header = append(req.Header, profile.Field{Name: "content-type", Value: want.header("content-type")})
+	if how.refused != nil {
+		asked = append(asked, *how.refused)
 	}
-	if _, err := client.Do(req); err != nil {
-		t.Fatalf("Do: %v", err)
+	for i, measured := range asked {
+		browser := how.browser
+		if contexts != nil {
+			browser = contexts[i]
+		}
+		req := &Request{Method: measured.Method, URL: measured.URL, Body: []byte(measured.Body), Browser: &browser}
+		if i == 0 {
+			req.Cookies = how.cookies
+		}
+		for _, name := range how.script {
+			req.Header = append(req.Header, profile.Field{Name: name, Value: measured.header(name)})
+		}
+		if how.form {
+			req.Header = append(req.Header, profile.Field{Name: "content-type", Value: measured.header("content-type")})
+		}
+		_, err := client.Do(req)
+		switch {
+		case how.refused != nil && i == len(asked)-1:
+			if !errors.Is(err, ErrCORS) {
+				t.Fatalf("CORS let it through: %v", err)
+			}
+		case err != nil:
+			t.Fatalf("Do: %v", err)
+		}
 	}
-	kept := server.requests()
-	if len(kept) != 1 {
-		t.Fatalf("the server was sent %d requests", len(kept))
-	}
-	return kept[0]
+	return server.requests()
 }
 
 // diffRequest is how a request sent differs from what Chrome sent: nothing

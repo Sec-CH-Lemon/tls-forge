@@ -115,10 +115,6 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 			"", other, NewHeader("X-Foo", "1"), "", "with only the headers CORS lets through"},
 		{"no-cors mode with JSON", BrowserContext{Kind: KindFetch, Initiator: page, Mode: "no-cors"}, "POST", other,
 			NewHeader("Content-Type", "application/json"), "{}", "with only the headers CORS lets through"},
-		{"cors mode to another origin", BrowserContext{Kind: KindFetch, Initiator: page}, "", other, nil, "",
-			"fetch() to another origin needs CORS, which tls-forge does not do yet"},
-		{"an XHR to another origin", BrowserContext{Kind: KindXHR, Initiator: page}, "", other, nil, "",
-			"an XHR to another origin needs CORS"},
 	} {
 		browser := tc.browser
 		_, err := client.Do(&Request{Method: tc.method, URL: tc.url, Header: tc.header, Body: []byte(tc.body),
@@ -219,7 +215,7 @@ func TestTheHeadersOfARequestInAContext(t *testing.T) {
 			"https://api.example.com/x", map[string]string{"sec-fetch-site": "same-site"},
 			[]string{"sec-fetch-storage-access"}},
 		{"cors fetch() of another origin", browserRequest{kind: KindFetch, method: "GET", initiator: page,
-			from: originOf(page), policy: policyNoReferrer, mode: modeCORS, credentials: credentialsSame},
+			from: originOf(page), policy: policyNoReferrer, mode: modeCORS, credentials: credentialsSame, cors: true},
 			"https://api.example.com/x", map[string]string{"origin": "https://www.example.com", "sec-fetch-mode": "cors"},
 			[]string{"referer"}},
 		{"fetch() with an Accept of its own", browserRequest{kind: KindFetch, method: "GET", initiator: page,

@@ -328,6 +328,17 @@ func (r *requestLog) stopped(hop, status int, location string) {
 		"limit", maxRedirects, "took", took)
 }
 
+// preflight is the answer to a CORS preflight: allowed, or why not.
+func (r *requestLog) preflight(target string, status int, refused error) {
+	took := r.step("preflight")
+	if refused != nil {
+		r.log.Warn("preflight refused", "url", redact.URL(target), "status", status, "why", refused.Error(),
+			"took", took)
+		return
+	}
+	r.log.Info("preflight", "url", redact.URL(target), "status", status, "took", took)
+}
+
 // start says what is asked for.
 func (r *requestLog) start(method, rawURL string, body int) {
 	attrs := []any{"method", method, "url", redact.URL(rawURL)}

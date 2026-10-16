@@ -13,6 +13,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`fetch()` and an XHR in a browser context do CORS as Chrome does.** One
+  in cors mode to another origin whose method or headers CORS asks about
+  goes after a preflight with Chrome's headers and no cookies, and not at all
+  when the preflight does not allow it; what a preflight allowed is kept for
+  the session as long as `Access-Control-Max-Age` says, five seconds by
+  default and two hours at most; and an answer that does not name the page's
+  origin, or does not allow the credentials that went, is an error. Every
+  such error wraps the new `tlsforge.ErrCORS`. Methods go out as `fetch()`
+  normalizes them.
 - **A request can say what in a browser it stands for**, with
   `Request.Browser`: a navigation, typed or from a page, a form's GET or POST,
   `fetch()` or an XHR, from the page `Initiator` names, under its referrer
@@ -25,9 +34,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   no client hints or `Sec-Fetch-*` to a page that is not potentially
   trustworthy, and only the cookies SameSite and the credentials mode let
   through, a form's POST carrying for two minutes those that named none. What
-  a page cannot send, and what is not done yet (CORS, redirects as Chrome
-  follows them), is refused before anything is sent. A request without one
-  goes out as before. `Profile.Chromium` says which profiles take one.
+  a page cannot send is refused before anything is sent, and redirects are
+  followed as before. A request without one goes out as before.
+  `Profile.Chromium` says which profiles take one.
 - **`fetch --html-decoding browser` reads a page as Chrome 155 decodes it**
   for `--wait-for` and `--wait-for-element`: by its byte order mark, its
   `Content-Type`, then what a document of its type names in itself (in HTML

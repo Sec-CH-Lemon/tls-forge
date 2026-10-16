@@ -215,9 +215,10 @@ where Chrome puts a script's, but none a script cannot set (`Cookie`, `Origin`,
 `Referer`, `Sec-*`, `User-Agent` and the rest of the Fetch standard's list).
 Anything else is an error before anything is sent: a context with no kind, an
 unknown policy or mode, a form or a script with no initiator, a request in
-`same-origin` mode to another origin, one in `no-cors` mode with a method or
-header CORS would ask about, and, until tls-forge does CORS, `fetch()` or an
-XHR in `cors` mode to another origin. A context needs a profile of a Chromium
+`same-origin` mode to another origin, and one in `no-cors` mode with a method
+or header CORS would ask about. A method is sent as `fetch()` sends it: the
+six it knows (`GET`, `POST` and the rest) in capitals, whatever case they were
+given in. A context needs a profile of a Chromium
 browser with headers to send: one of another browser, or a bare entry of the
 transport's catalogue, is refused.
 
@@ -228,16 +229,32 @@ set; `fetch()` and an XHR carry `None` alone, and none at all under
 credentials `omit`, or under `same-origin` to another origin. To its own site
 a request carries every cookie the jar holds for it.
 
+A request CORS answers, `fetch()` or an XHR in `cors` mode to another origin,
+goes as Chrome sends it. One with a method or a header CORS asks about goes
+after a preflight, an `OPTIONS` that asks whether it may, with Chrome's
+headers and no cookies; when the answer does not allow it (a status that is
+not 2xx, a redirect, an `Access-Control-Allow-Origin` that is not the page's,
+credentials not allowed, a method or header not listed), nothing more is sent
+and `Do` returns an error that wraps `tlsforge.ErrCORS`. What a preflight
+allowed is kept for as long as its `Access-Control-Max-Age` says (five
+seconds when it says nothing, two hours at most, as in Chrome), for the
+session: every client made `Fresh` from one shares it, another session has
+its own. The answer to the request itself has to name the page's origin, or
+`*` when no credentials went, and to allow credentials when they did; one
+that does not is an error wrapping `ErrCORS`, and is not returned. What comes
+back is returned whole: a page would see only the headers CORS exposes, and
+nothing of a `no-cors` answer.
+
 `fetch()` and an XHR go out on connections of their own: Chrome gives their
 HTTP/2 `HEADERS` frame weight 220 where it gives a page 256, and the transport
 puts one weight on every request it sends. They resume TLS sessions among
 themselves, not with a client's other requests.
 
-What a context does not do yet: CORS (a preflight, its cache, the checks on
-the answer), redirects as Chrome follows them (a redirect is followed as a
-request without a context is), the order of several headers a script set
-(Chrome's depends on the set of names; one is placed exactly), frames, and a
-form submitted by the user's click (`Sec-Fetch-User`).
+What a context does not do yet: redirects as Chrome follows them (a
+redirect is followed as a request without a context is), the order of
+several headers a script set (Chrome's depends on the set of names; one is
+placed exactly), frames, and a form submitted by the user's click
+(`Sec-Fetch-User`).
 
 ## Responses and errors
 

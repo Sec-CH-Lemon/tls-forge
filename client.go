@@ -76,7 +76,10 @@ type Client struct {
 	// when one first does: see scriptClient.
 	scriptMu sync.Mutex
 	script   tls_client.HttpClient
-	profile  *profile.Profile
+	// preflights is what CORS preflights allowed in the session: every
+	// client made Fresh from this one shares it.
+	preflights *preflightCache
+	profile    *profile.Profile
 	// jar is nil when the client keeps no cookies.
 	jar     *keptJar
 	headers Header
@@ -364,6 +367,7 @@ func New(opts ...Option) (*Client, error) {
 	http1Headers = http1Headers.Merge(cfg.headers)
 
 	client := &Client{inner: inner, options: built, clientProfile: clientProfile, profile: prof, jar: jar,
+		preflights:   newPreflightCache(),
 		headers:      headers,
 		http1Headers: http1Headers,
 		warm:         &warmSession{cookies: cfg.cookies, seeded: map[warmCookieKey]struct{}{}},
@@ -412,6 +416,7 @@ func (c *Client) Fresh() (*Client, error) {
 		log.Debug("fresh client", "from", c.id)
 	}
 	return &Client{inner: inner, options: c.options, clientProfile: c.clientProfile, profile: c.profile, jar: c.jar,
+		preflights:   c.preflights,
 		headers:      c.headers,
 		http1Headers: c.http1Headers, warm: c.warm, maxBody: c.maxBody,
 		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
@@ -518,6 +523,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		if browser, err = c.resolveBrowser(req, method, parsed); err != nil {
 			return nil, err
 		}
+		inner.Method = browser.method
 		if browser.kind == KindFetch || browser.kind == KindXHR {
 			if transport, err = c.scriptClient(); err != nil {
 				return nil, err
@@ -554,6 +560,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		inner.Header[fhttp.PHeaderOrderKey] = order
 	}
 	quietUserAgent(inner.Header, http2UserAgent)
+	unlaid := inner.Context()
 	if http1 != nil {
 		quietUserAgent(http1, http1UserAgent)
 		layouts := &protocolLayouts{
@@ -564,6 +571,11 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		inner = withProtocolLayouts(inner, layouts)
 	}
 
+	if browser != nil && browser.needsPreflight() && !c.preflights.allows(browser, inner.URL.String()) {
+		if err := c.preflight(unlaid, inner, browser, transport, r); err != nil {
+			return nil, err
+		}
+	}
 	if browser != nil && c.jar != nil {
 		// By the URL the transport will ask the jar about: the request's own,
 		// which every WithContext above copied anew.
@@ -580,6 +592,12 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	defer func() { _ = res.Body.Close() }()
 	if r != nil {
 		r.answered(res)
+	}
+	if browser != nil && browser.cors {
+		if err := browser.corsCheck(res.Header); err != nil {
+			return nil, corsError("the answer of %s %s did not allow %s: %v", browser.method, res.Request.URL,
+				browser.from, err)
+		}
 	}
 
 	answered := method
@@ -613,7 +631,8 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		out.Header[lower] = values
 	}
 	if c.jar != nil {
-		for _, cookie := range c.jar.Cookies(cookieURL) {
+		// What the jar holds for the URL, whatever this request carried.
+		for _, cookie := range c.jar.inner.Cookies(cookieURL) {
 			out.Cookies = append(out.Cookies, cookie.Name+"="+cookie.Value)
 		}
 	}
@@ -770,6 +789,10 @@ const maxRedirects = 10
 // followRedirect is the policy for every redirect: where the chain stops, who
 // is told about the hop, and which header layout the next request wears.
 func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
+	if req.Context().Value(preflightContextKey{}) != nil {
+		// A preflight answered with a redirect is refused, not followed.
+		return fhttp.ErrUseLastResponse
+	}
 	// The transport sets Response on every request it builds to follow a
 	// redirect, to the response that sent it there.
 	r := requestLogOf(req.Context())

@@ -90,6 +90,9 @@ type browserRequest struct {
 	contentType string
 	// script are the headers fetch() or an XHR was given, as given.
 	script Header
+	// cors is a request CORS answers: fetch() or an XHR in cors mode to
+	// another origin.
+	cors bool
 }
 
 // errContext is what is wrong with a browser context, said before anything is
@@ -103,7 +106,7 @@ func errContext(format string, args ...any) error {
 // incomplete, names what does not exist, or asks for what a browser would not
 // send or tls-forge does not send as one yet.
 func (b *BrowserContext) resolve(method string, target *url.URL, header Header, body []byte) (*browserRequest, error) {
-	r := &browserRequest{kind: b.Kind, method: method, policy: b.ReferrerPolicy}
+	r := &browserRequest{kind: b.Kind, method: normalizedMethod(method), policy: b.ReferrerPolicy}
 	if r.policy == "" {
 		r.policy = policyStrictOriginWhenCrossOrigin
 	}
@@ -241,10 +244,19 @@ func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, heade
 		return errContext("%s in same-origin mode cannot go to another origin", what)
 	case r.mode == modeNoCORS && !noCORSSafe(r.method, header):
 		return errContext("%s in no-cors mode sends GET, HEAD or POST with only the headers CORS lets through", what)
-	case r.mode == modeCORS && to != r.from:
-		return errContext("%s to another origin needs CORS, which tls-forge does not do yet", what)
 	}
+	r.cors = r.mode == modeCORS && to != r.from
 	return nil
+}
+
+// normalizedMethod is a method as fetch() sends it: the six it knows in
+// capitals, whatever case they were given in, and any other as given.
+func normalizedMethod(method string) string {
+	switch upper := strings.ToUpper(method); upper {
+	case "DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT":
+		return upper
+	}
+	return method
 }
 
 // forbiddenMethod reports a method fetch() and an XHR refuse.
@@ -443,10 +455,10 @@ func (r *browserRequest) values(to origin, base Header) map[string]string {
 // for one that is neither GET nor HEAD, that origin or "null" as the
 // referrer policy says. Empty is none.
 func (r *browserRequest) originHeader(to origin) string {
-	cors := (r.kind == KindFetch || r.kind == KindXHR) && r.mode == modeCORS
-	if cors && to != r.from {
+	if r.cors {
 		return r.from.String()
 	}
+	cors := (r.kind == KindFetch || r.kind == KindXHR) && r.mode == modeCORS
 	if r.method == fhttp.MethodGet || r.method == fhttp.MethodHead {
 		return ""
 	}
