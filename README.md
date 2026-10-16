@@ -42,6 +42,15 @@ Changing only `User-Agent` is therefore insufficient. Node.js and Python
 normally use OpenSSL, Go uses `crypto/tls`, while Chrome uses BoringSSL. Their
 handshakes differ before the server sees any HTTP header.
 
+The handshake and the headers are not all that gives a client away, and
+tls-forge does not reproduce everything else. It does not run
+JavaScript, load a page's subresources, solve challenges or speak HTTP/3; the
+TCP/IP packets under every connection are this machine's operating system's;
+and requests other than a page navigation, redirects and client hints do not
+yet go out exactly as Chrome sends them. [docs/support.md](docs/support.md)
+lists what is reproduced, how each part is checked, and where it is known not
+to be.
+
 Cloudflare uses these signals in its bot-detection products. Cloudflare Bot
 Management exposes JA3 and JA4 fingerprints as request fields that can be used
 in WAF custom rules, Transform Rules and Workers; see Cloudflare's official
@@ -361,6 +370,15 @@ that names the profile in use:
 
 ```text
   exit-ip     203.0.113.7 · PL
+```
+
+The same block says when the profile was measured on another platform than
+this machine's, whether it was asked for by name or chosen because no capture
+of that version exists for this machine. A profile changes the handshake and
+the headers, but the TCP/IP packets under them are always this machine's:
+
+```text
+  tcp/ip      this machine's, macOS: the profile is Windows's, and a server that reads TCP/IP can tell the two apart
 ```
 
 Four services are asked, in this order: `www.cloudflare.com/cdn-cgi/trace`,

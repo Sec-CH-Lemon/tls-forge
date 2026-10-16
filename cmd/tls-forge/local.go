@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,6 +89,7 @@ func openReport(errOut *printer, name string) *identityReport {
 	errOut.println(identityRule)
 	said.field("profile", p.Name+" · "+origin(p))
 	said.field("browser", browserOf(p))
+	said.field("tcp/ip", networkNote(name, p, profile.HostPlatform()))
 	said.field("from", from(p))
 	said.field("user-agent", p.UserAgent)
 	if len(p.Headers) == 0 {
@@ -169,6 +171,31 @@ func browserOf(p *profile.Profile) string {
 		said += " on " + platformLabel(platform)
 	}
 	return said
+}
+
+// networkNote is what a profile cannot change, said when it matters: the
+// TCP/IP a connection is made with is this machine's, whatever platform the
+// profile was measured on. A server that reads the first packets of a
+// connection (their TTL, window and options) sees this machine's operating
+// system behind the profile's user-agent, so a run that wears another
+// platform's profile is told so.
+//
+// And told when it did not ask for one: a version named without a platform is
+// this machine's capture when there is one and another platform's when there
+// is not, which nothing else on the screen would reveal. A profile named by
+// its file was chosen as it is.
+func networkNote(asked string, p *profile.Profile, host string) string {
+	_, platform := profile.Split(p.Name)
+	if platform == "" || platform == host {
+		return ""
+	}
+	_, named := profile.Split(asked)
+	if named != "" || asked == p.Source() {
+		return fmt.Sprintf("this machine's, %s: the profile is %s's, and a server that reads TCP/IP can tell the two apart",
+			platformLabel(host), platformLabel(platform))
+	}
+	return fmt.Sprintf("this machine's, %s, which no capture of this browser is for: the profile is %s's, "+
+		"and a server that reads TCP/IP can tell the two apart", platformLabel(host), platformLabel(platform))
 }
 
 // platformLabel spells a platform the way its makers do, since this line is for

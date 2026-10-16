@@ -111,6 +111,72 @@ func TestTheReportSaysWhatSomebodyNeedsToKnow(t *testing.T) {
 	}
 }
 
+func TestTheReportSaysWhoseTCPIPARunHas(t *testing.T) {
+	// A profile measured on another platform than this one: the run says the
+	// connection under it is this machine's.
+	keepProfilesIn(t)
+	elsewhere := "linux"
+	if profile.HostPlatform() == "linux" {
+		elsewhere = "windows"
+	}
+	said := &strings.Builder{}
+	openReport(newPrinter(said), "chrome_151_"+elsewhere).close()
+	if !strings.Contains(said.String(), "tcp/ip") ||
+		!strings.Contains(said.String(), "the profile is "+platformLabel(elsewhere)+"'s") {
+		t.Errorf("the report does not say whose TCP/IP the run has:\n%s", said)
+	}
+
+	// This machine's own: nothing to say.
+	said.Reset()
+	openReport(newPrinter(said), "chrome_151_"+profile.HostPlatform()).close()
+	if strings.Contains(said.String(), "tcp/ip") {
+		t.Errorf("the report warned about a profile of this machine's platform:\n%s", said)
+	}
+}
+
+func TestNetworkNote(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "mine.json")
+	if err := os.WriteFile(file, []byte(`{"name":"mine_windows","base":"chrome_133"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fromFile, err := profile.Get(file)
+	if err != nil {
+		t.Fatalf("loading %s: %v", file, err)
+	}
+	named := func(name string) *profile.Profile { return &profile.Profile{Name: name} }
+
+	for _, tc := range []struct {
+		name    string
+		asked   string
+		profile *profile.Profile
+		host    string
+		want    string // empty: nothing to say
+	}{
+		{"this machine's platform", "chrome_155", named("chrome_155_macos"), "macos", ""},
+		{"no platform in the name", "local", named("local"), "macos", ""},
+		{"a catalogue entry", "firefox_148", named("firefox_148"), "linux", ""},
+		{"another platform, asked for", "chrome_155_windows", named("chrome_155_windows"), "macos",
+			"this machine's, macOS: the profile is Windows's"},
+		{"another platform, because this one has no capture", "chrome_155", named("chrome_155_linux"), "freebsd",
+			"this machine's, freebsd, which no capture of this browser is for: the profile is Linux's"},
+		{"a family name that landed elsewhere", "chrome", named("chrome_155_windows"), "linux",
+			"which no capture of this browser is for"},
+		{"a file named as it is", file, fromFile, "macos", "this machine's, macOS: the profile is Windows's"},
+		{"a phone's, measured by hand", "safari_18_ios", named("safari_18_ios"), "macos",
+			"the profile is iOS's"},
+	} {
+		got := networkNote(tc.asked, tc.profile, tc.host)
+		switch {
+		case tc.want == "" && got != "":
+			t.Errorf("%s: said %q, want nothing", tc.name, got)
+		case tc.want != "" && !strings.Contains(got, tc.want):
+			t.Errorf("%s: said %q, want %q in it", tc.name, got, tc.want)
+		case tc.want != "" && !strings.HasSuffix(got, "a server that reads TCP/IP can tell the two apart"):
+			t.Errorf("%s: said %q without why it matters", tc.name, got)
+		}
+	}
+}
+
 func TestTheReportNamesTheFileAProfileCameFrom(t *testing.T) {
 	// "Which profile" is half an answer when several names resolve to one file
 	// and one name can resolve to several files.

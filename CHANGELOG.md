@@ -13,6 +13,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **What tls-forge reproduces of Chrome, and how each part is checked**, is
+  one table: [docs/support.md](docs/support.md). It names what is checked
+  against a capture or by `compare`, what is known to differ, and what is not
+  modelled at all, such as TCP/IP, HTTP/3 and JavaScript.
+- The block a run begins with says `tcp/ip` when the profile's platform is not
+  this machine's: the TCP/IP under the connection is still this machine's, and
+  a server that reads it can tell. It says so too when a version named without
+  a platform was answered with another platform's capture, for want of one of
+  this machine's.
 - **`fetch` writes down everything it does, as it does it**, for whoever has
   to work out afterwards what went wrong: every lookup of a name and the
   addresses it found, every dial, the handshake with an HTTPS proxy, the
