@@ -2,6 +2,7 @@ package profile
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
@@ -116,7 +117,26 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 	if c.Navigator != nil && c.Navigator.UserAgent != "" {
 		p.UserAgent = c.Navigator.UserAgent
 	}
+	p.PerConnection = perConnectionOf(p)
+	if c.Navigator != nil && len(c.Navigator.Brands) > 0 {
+		p.PerConnection = &PerConnection{}
+		if slices.ContainsFunc(c.Navigator.Brands, func(b capture.Brand) bool { return b.Brand == "Chromium" }) {
+			p.PerConnection = chromiumPerConnection()
+		}
+	}
 	return p, nil
+}
+
+// perConnectionOf is what a profile's browser draws for every connection, as
+// far as its name and user agent tell: Chromium's draws on every platform but
+// iOS, and nothing else's is known. A capture whose browser names its brands
+// says it better: only a Chromium browser counts Chromium among them, and
+// none on iOS has them to give.
+func perConnectionOf(p *Profile) *PerConnection {
+	if p.chromium() {
+		return chromiumPerConnection()
+	}
+	return &PerConnection{}
 }
 
 func http1FromCapture(measured *capture.HTTP1, shared []Field) *HTTP1 {

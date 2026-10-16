@@ -13,6 +13,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **A profile says what its browser draws for every connection**, as
+  `per_connection`: whether it shuffles its extensions, and the lengths of
+  its GREASE ECH payload. `capture` says it of the browser it measures, the
+  shipped profiles say Chrome's, and a profile written by hand can say it of
+  the browser it describes, where it was guessed from the profile's name and
+  user agent, as it still is for a profile that says nothing.
 - **A profile says the version of its format.** Profiles are written with
   `"schema": 1` (`profile.Schema`), the shipped ones too, and one that says
   it is read strictly: a field the format does not have, at any depth, is an
@@ -514,6 +520,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A profile written by hand on a catalogue entry that is one of utls's own
+  presets, such as `chrome_110` or `safari_16_0`, failed with "please
+  implement this method": its spec is read now as utls reads it to connect.
 - The two ALPS codepoints were named the wrong way round: 17613 (0x44cd),
   which Chrome 155 sends and BoringSSL calls `application_settings`, was
   shown as `application_settings_old`, and 17513 as `application_settings`.

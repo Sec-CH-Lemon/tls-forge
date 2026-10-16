@@ -56,6 +56,11 @@ type Profile struct {
 	// ClientHello is present. It is also what a hand-written profile builds on.
 	Base string `json:"base,omitempty"`
 
+	// PerConnection says what the browser draws afresh for every connection.
+	// Without it, that is guessed from the profile's name and user agent, as
+	// it was before profiles said it.
+	PerConnection *PerConnection `json:"per_connection,omitempty"`
+
 	HTTP1   *HTTP1  `json:"http1,omitempty"`
 	HTTP2   HTTP2   `json:"http2"`
 	Headers []Field `json:"headers,omitempty"`
@@ -82,6 +87,11 @@ func (p *Profile) Clone() *Profile {
 	}
 	out := *p
 	out.ClientHello = append([]byte(nil), p.ClientHello...)
+	if p.PerConnection != nil {
+		perConnection := *p.PerConnection
+		perConnection.ECHPayloadLengths = slices.Clone(p.PerConnection.ECHPayloadLengths)
+		out.PerConnection = &perConnection
+	}
 	out.Headers = append([]Field(nil), p.Headers...)
 	out.HTTP2.Settings = append([]Setting(nil), p.HTTP2.Settings...)
 	out.HTTP2.PseudoHeaderOrder = append([]string(nil), p.HTTP2.PseudoHeaderOrder...)
@@ -99,14 +109,56 @@ func (p *Profile) Clone() *Profile {
 	return &out
 }
 
-// ShufflesExtensions reports whether this browser family randomises the TLS
-// extension order on each connection. Chromium browsers do; Firefox and Safari
-// do not. The user agent is a fallback for custom captured profile names.
+// PerConnection is what a browser's TLS stack draws afresh for every
+// connection, said outright: FromCapture says it of the browser it captures,
+// and a profile written by hand can say it of the browser it describes.
+type PerConnection struct {
+	// ShufflesExtensions draws the order of the extensions for every
+	// connection, as Chromium has since version 110.
+	ShufflesExtensions bool `json:"shuffles_extensions,omitempty"`
+	// ECHPayloadLengths are the lengths the payload of the GREASE
+	// encrypted_client_hello is drawn from, each as likely, before the
+	// AEAD's 16-byte tag. None keeps the length the hello was captured with.
+	ECHPayloadLengths []uint16 `json:"ech_payload_lengths,omitempty"`
+}
+
+// chromiumPerConnection is what Chromium draws for every connection, on every
+// platform but iOS: BoringSSL's.
+func chromiumPerConnection() *PerConnection {
+	return &PerConnection{ShufflesExtensions: true, ECHPayloadLengths: slices.Clone(chromeECHPayloadLengths)}
+}
+
+// maxECHPayloadLength is the longest payload length that leaves room in the
+// extension for the AEAD's tag.
+const maxECHPayloadLength = 1<<16 - 1 - 16
+
+// ShufflesExtensions reports whether this browser randomises the TLS extension
+// order on each connection, as PerConnection says. A profile that does not say
+// is guessed at by its family: Chromium browsers do; Firefox and Safari do
+// not; the user agent is a fallback for custom captured profile names.
 //
 // Nothing on an iPhone or an iPad does, whatever it is called: every browser
 // there connects through Apple's own stack, so Chrome on iOS sends Safari's
 // handshake, in Safari's order.
-func (p *Profile) ShufflesExtensions() bool { return p.chromium() }
+func (p *Profile) ShufflesExtensions() bool {
+	if p.PerConnection != nil {
+		return p.PerConnection.ShufflesExtensions
+	}
+	return p.chromium()
+}
+
+// echPayloadLengths are what the GREASE ECH payload is drawn from, as
+// PerConnection says or, when it does not, as Chromium draws it for a
+// Chromium profile; nil keeps the captured length.
+func (p *Profile) echPayloadLengths() []uint16 {
+	if p.PerConnection != nil {
+		return p.PerConnection.ECHPayloadLengths
+	}
+	if p.chromium() {
+		return chromeECHPayloadLengths
+	}
+	return nil
+}
 
 // chromium reports a profile of a Chromium browser with Chromium's own TLS
 // stack, BoringSSL: by its name, its base or, for a custom captured profile,
@@ -206,8 +258,8 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 				// The fingerprinter keeps the one length the capture drew,
 				// and a length that never changes marks this client apart
 				// from the browser, which draws one on every connection.
-				if p.chromium() {
-					extension.CandidatePayloadLens = slices.Clone(chromeECHPayloadLengths)
+				if lengths := p.echPayloadLengths(); len(lengths) > 0 {
+					extension.CandidatePayloadLens = slices.Clone(lengths)
 				}
 			case *tls.GenericExtension:
 				if extension.Id != fingerprint.ExtTrustAnchors {
@@ -229,8 +281,14 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 		if !ok {
 			return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: unknown base %q", p.Name, p.Base)
 		}
+		// A catalogue entry is a spec of its own or one of utls's presets,
+		// which utls reads the way it does when it opens a connection.
 		baseID := base.GetClientHelloId()
-		return baseID.ToSpec()
+		spec, err := baseID.ToSpec()
+		if err != nil {
+			return tls.UTLSIdToSpec(baseID)
+		}
+		return spec, nil
 	}
 	return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: %w", p.Name, ErrNoHandshake)
 }
@@ -427,6 +485,14 @@ func Load(data []byte) (*Profile, error) {
 	}
 	if p.Name == "" {
 		return nil, fmt.Errorf("profile: name is required")
+	}
+	if p.PerConnection != nil {
+		for _, length := range p.PerConnection.ECHPayloadLengths {
+			if length == 0 || length > maxECHPayloadLength {
+				return nil, fmt.Errorf("profile %q: an ECH payload of %d bytes is not one: it is 1 to %d",
+					p.Name, length, maxECHPayloadLength)
+			}
+		}
 	}
 	if !p.isBareBase() {
 		if err := p.validatePseudoHeaderOrder(); err != nil {

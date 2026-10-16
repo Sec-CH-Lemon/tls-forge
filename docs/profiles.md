@@ -9,6 +9,10 @@ stored as JSON so it can be committed and reviewed.
   "name": "chrome_151",
   "user_agent": "Mozilla/5.0 (Macintosh; …) Chrome/151.0.0.0 Safari/537.36",
   "client_hello": "FgMBBvgBAAb0AwPdnWafT…",
+  "per_connection": {
+    "shuffles_extensions": true,
+    "ech_payload_lengths": [128, 160, 192, 224]
+  },
   "http1": {
     "header_order": ["Host", "Connection", "sec-ch-ua", "User-Agent", "Accept"],
     "headers": [
@@ -47,6 +51,15 @@ The `http1` object is optional for backward compatibility. A profile without it
 uses the historical canonical HTTP/1.1 header spelling; its TLS and HTTP/2
 fingerprints are unchanged. New captures include it whenever an HTTP/1.1
 navigation was observed.
+
+`per_connection` says what the browser draws afresh for every connection:
+whether it shuffles its extensions, and the lengths the payload of its GREASE
+`encrypted_client_hello` is drawn from, before the AEAD's 16-byte tag; with
+none, the captured length is kept. `capture` says it of the browser it
+measures: a browser that counts Chromium among its brands draws as Chromium
+does, and one that gives no brands is judged by its user agent, on iOS never
+Chromium's. A profile without `per_connection` is judged by its name and user
+agent each time it is used, as profiles were before they said it.
 
 `schema` is the version of the format the profile was written in, 1 today. A
 profile that names one is read strictly: a field the format does not have, at
