@@ -13,6 +13,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `SessionReset`, in the Node.js and Python packages, for a request that was
+  not sent because the session it was made in has gone, and
+  `MAX_REQUEST_BYTES`, the most a request can be as the daemon reads it.
 - `--proxy-env NAME` takes the proxy from the environment variable `NAME`, for
   `fetch`, `proxy` and `daemon`, so that its password is not on the command
   line. The variable is read only when it is named. A name that is empty, a
@@ -324,6 +327,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **The Node.js and Python packages say when a client's session has gone.** A
+  timeout or a broken write stops the daemon, and a daemon can die; its
+  cookies, TLS sessions and connections go with it. Every request waiting for
+  it is now rejected with `SessionReset`, without being sent, and the next one
+  made is when none was waiting, rather than going out as a new identity
+  nobody asked for. Requests after that start a new session. The request the
+  daemon was working on fails with the reason, as before.
 - A report given a directory, or `--report` alone, is named after the moment
   the run began, as the run's log is, rather than the moment it was written,
   so that the files of one run share it. `--report` naming the `--output`
@@ -421,6 +431,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A request longer than the daemon reads, 16 MiB with its JSON, a binary body
+  in base64 and the newline (a 13 MiB file, say), ended the daemon and the
+  session in it, and the next request went out without its cookies. The
+  Node.js and Python packages now refuse it before it is sent, with a
+  `RangeError` and a `ValueError`, and the daemon and its session are left as
+  they were. The daemon says why it stops at a line that long, which it reads
+  no further than its limit.
 - **Two flags naming one file no longer lose it.** `--input urls.txt --trace
   urls.txt` read the list and wrote the trace over it, and a report, a log or
   a saved session could be written over the list, the session a run started

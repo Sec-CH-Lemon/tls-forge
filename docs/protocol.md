@@ -4,9 +4,13 @@
 JSON object per line on stdout. It exists so a program in any language can
 borrow a browser's fingerprint without reimplementing one.
 
-Each input line is limited to 16 MiB, including an inline request body. A line
-that exceeds the limit ends the daemon with a scanner error because its request
-boundary cannot be recovered safely.
+An input line is read when it is at most 16 MiB, 16,777,216 bytes, its
+newline and an inline request body included. A longer line ends the daemon,
+with `daemon: a request line is longer than 16777216 bytes, its newline
+included` and exit code 1, after reading no more than that: where the next
+request begins could be any distance away, and is not looked for. A client
+measures a request before it sends it, as the Node.js and Python packages do
+(`MAX_REQUEST_BYTES`), since the session ends with the daemon.
 
 ```bash
 TLSFORGE_PROXY=http://user:pass@host:8080 tls-forge daemon --profile chrome --proxy-env=TLSFORGE_PROXY
@@ -202,3 +206,7 @@ matter:
   assigned to the wrong request
 * on timeout, restart the process *and* stop reading its old stdout — killing a
   process does not stop the bytes it already wrote from arriving
+* a process that is stopped or dies takes the session with it — cookies, TLS
+  sessions, connections — so the packages fail every request waiting for it,
+  or the next one made when none was waiting, with `SessionReset`, unsent,
+  rather than send it as a new identity nobody asked for

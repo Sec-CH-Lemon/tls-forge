@@ -211,12 +211,23 @@ failure category:
 - `tlsforge: write failed ...` — the daemon pipe closed during a write;
 - `tlsforge: bad response ...` — malformed or unexpected transport output;
 - a request error returned by the Go transport — DNS, proxy, TLS or connection
-  failure.
+  failure;
+- a `SessionReset` — the request was not sent, because the session it was made
+  in has gone;
+- a `RangeError` — the request is longer than `MAX_REQUEST_BYTES`, 16 MiB as
+  the transport reads it: JSON, a binary body in base64, and the newline. It is
+  refused before it is queued, and the transport and its session are left as
+  they were.
 
-A timeout or broken write restarts the transport before the next request. If
-the daemon exits, only the request already written to it fails; queued requests
-continue on the replacement. Each request and response carries a monotonically
-increasing id, so a late answer cannot resolve a newer request.
+A timeout or a broken write stops the transport, and a transport can die. The
+session in it goes with it: its cookies, TLS sessions and connections. The
+request it was working on fails with the reason, and every request waiting
+behind it is rejected with `SessionReset`, without being sent; when none was
+waiting, the next request made is. Requests after that start a new session in
+a new transport. The client never promises the identity it had before, so a
+session that has to be the same one is warmed again, or kept in a cookie file.
+Each request and response carries a monotonically increasing id, so a late
+answer cannot resolve a newer request.
 
 `onStderr` receives diagnostics such as dropped late responses. It is not a
 replacement for handling rejected request promises.

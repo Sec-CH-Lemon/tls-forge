@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
-import { Client, resolveBinary } from '../index.js';
+import { Client, MAX_REQUEST_BYTES, SessionReset, resolveBinary } from '../index.js';
 import { builtBinary, exeName, platformPackage, platformPackageName } from '../binary.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -253,8 +253,15 @@ test('an answer for a different id is ignored, not mistaken for this one', async
 });
 
 test('a request that is never answered times out and the client stays usable', async () => {
+  // Stopped, the transport took the session with it: the next request is told,
+  // unsent, and the one after starts a new session.
   const c = fake({ timeout: 150 });
   await assert.rejects(() => c.get('https://silent/x'), /timed out/);
+  await assert.rejects(() => c.get('https://ok/after'), (err) => {
+    assert.ok(err instanceof SessionReset);
+    assert.match(err.message, /has gone \(a request timed out, and it was stopped\)/);
+    return true;
+  });
   const res = await c.get('https://ok/after');
   assert.equal(res.status, 200);
   c.close();
@@ -266,13 +273,94 @@ test('a transport that exits rejects the request in flight', async () => {
   c.close();
 });
 
-test('a queued request survives a transport exit before it was written', async () => {
+test('requests waiting when the transport exits are told their session has gone, unsent', async () => {
+  // Made in a session that has gone, none of them would be what was asked for
+  // in a new one. The request after them starts that new one.
   const c = fake();
+  const before = JSON.parse((await c.get('https://ok/before')).body).pid;
   const first = c.get('https://exit/x');
-  const second = c.get('https://ok/after');
-  await assert.rejects(() => first, /exited|closed/);
-  assert.equal((await second).status, 200);
+  const waiting = [c.get('https://ok/one'), c.post('https://ok/two', 'a body')];
+  await assert.rejects(() => first, /transport exited \(code 3\)/);
+  for (const outcome of await Promise.allSettled(waiting)) {
+    assert.equal(outcome.status, 'rejected');
+    assert.ok(outcome.reason instanceof SessionReset, outcome.reason.message);
+    assert.match(outcome.reason.message, /has gone \(it exited \(code 3\)\).*was not sent/);
+  }
+  const after = JSON.parse((await c.get('https://ok/after')).body).pid;
+  assert.notEqual(after, before);
   c.close();
+});
+
+test('a transport that dies while nobody asks it anything tells the next request', async () => {
+  const c = fake();
+  await c.get('https://answer-then-exit/x');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  await assert.rejects(() => c.get('https://ok/after'), (err) => {
+    assert.ok(err instanceof SessionReset);
+    assert.match(err.message, /it exited \(code 4\)/);
+    return true;
+  });
+  assert.equal((await c.get('https://ok/again')).status, 200);
+  c.close();
+});
+
+// sized is a POST whose line is exactly size bytes as the transport reads it,
+// made as the id-th request of its client, with a body of one character
+// repeated: ASCII is a byte each, "я" two.
+function sized(size, id, char = 'x') {
+  const url = 'https://ok/sized';
+  const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id }) + '\n');
+  const each = Buffer.byteLength(char);
+  const count = Math.floor((size - overhead) / each);
+  const body = char.repeat(count) + 'x'.repeat(size - overhead - count * each);
+  assert.equal(Buffer.byteLength(JSON.stringify({ url, body, method: 'POST', id }) + '\n'), size);
+  return { url, body };
+}
+
+test('a request is measured as the transport reads it, and one too long is not sent', async () => {
+  const c = fake({ timeout: 30_000 });
+  try {
+    const first = JSON.parse((await c.get('https://ok/first')).body).pid;
+    let id = 1;
+    for (const [size, char] of [[MAX_REQUEST_BYTES - 1, 'x'], [MAX_REQUEST_BYTES, 'x'], [MAX_REQUEST_BYTES, 'я']]) {
+      const { url, body } = sized(size, ++id, char);
+      const echoed = JSON.parse((await c.post(url, body)).body);
+      assert.equal(echoed.bodyLength, body.length);
+      assert.equal(echoed.pid, first);
+    }
+    // One byte more, in bytes rather than characters: refused before it is
+    // queued, and the session it would have ended is the one the next request
+    // is made in.
+    for (const char of ['x', 'я']) {
+      const { url, body } = sized(MAX_REQUEST_BYTES + 1, ++id, char);
+      await assert.rejects(() => c.post(url, body), (err) => {
+        assert.ok(err instanceof RangeError);
+        assert.match(err.message, new RegExp(`is ${MAX_REQUEST_BYTES + 1} bytes .* more than the ${MAX_REQUEST_BYTES}`));
+        return true;
+      });
+    }
+    // Bytes travel as base64, four characters for every three.
+    const bytes = Buffer.alloc(Math.floor((MAX_REQUEST_BYTES / 4) * 3));
+    await assert.rejects(() => c.post('https://ok/binary', bytes), RangeError);
+    assert.equal(JSON.parse((await c.get('https://ok/after')).body).pid, first);
+  } finally {
+    c.close();
+  }
+});
+
+test('requests on either side of one too long are made in the same session', async () => {
+  const c = fake({ timeout: 30_000 });
+  try {
+    const big = 'x'.repeat(MAX_REQUEST_BYTES);
+    const [before, refused, after] = await Promise.allSettled([
+      c.get('https://ok/before'), c.post('https://ok/big', big), c.get('https://ok/after'),
+    ]);
+    assert.equal(refused.status, 'rejected');
+    assert.ok(refused.reason instanceof RangeError);
+    assert.equal(JSON.parse(before.value.body).pid, JSON.parse(after.value.body).pid);
+  } finally {
+    c.close();
+  }
 });
 
 test('stderr is forwarded to the callback', async () => {
@@ -547,7 +635,12 @@ test('a write into a dead pipe fails that request and restarts', async () => {
   const c = new Client({ binary, timeout: 5_000 });
   await c.get('https://deaf/first');
 
-  await assert.rejects(() => c.get('https://deaf/second'), /write failed/);
+  const second = c.get('https://deaf/second');
+  const waiting = c.get('https://deaf/third');
+  await assert.rejects(() => second, /write failed/);
+  // The transport is stopped, and the session in it lost: the request that
+  // waited behind is told so, unsent.
+  await assert.rejects(() => waiting, (err) => err instanceof SessionReset && /could not be written/.test(err.message));
   c.close();
 });
 

@@ -1421,9 +1421,11 @@ One request object is read per line:
 ```
 
 The response repeats `id` and contains `status`, final `url`, `body`,
-multi-valued `headers`, `cookies`, and `error` when the request failed. Input
-lines are limited to 16 MiB. Requests are processed sequentially so one daemon
-remains one browser identity and one cookie jar.
+multi-valued `headers`, `cookies`, and `error` when the request failed. An
+input line is read when it is at most 16 MiB, its newline included; a longer
+one ends the daemon, as described in [the protocol](docs/protocol.md).
+Requests are processed sequentially so one daemon remains one browser identity
+and one cookie jar.
 
 ### `version`
 

@@ -36,6 +36,10 @@ def answer(request: dict, **extra: object) -> dict:
             {
                 "argv": sys.argv[1:],
                 "env": {"TLSFORGE_PROXY": os.environ.get("TLSFORGE_PROXY")},
+                # Which process answered, and how much of a body reached it: a
+                # request refused before it was sent must leave both as they were.
+                "pid": os.getpid(),
+                "bodyLength": len(request.get("body") or ""),
                 "method": request.get("method"),
                 "headers": request.get("headers", {}),
                 "order": request.get("order", []),
@@ -149,6 +153,10 @@ def main() -> None:
             threading.Timer(0.4, lambda: emit(answer(request))).start()
         elif behaviour == "exit":
             sys.exit(3)
+        elif behaviour == "answer-then-exit":
+            # Answers, and dies while nobody is asking it anything.
+            emit(answer(request))
+            threading.Timer(0.05, lambda: os._exit(4)).start()
         elif behaviour == "stderr":
             sys.stderr.write("a note on stderr\n")
             sys.stderr.flush()

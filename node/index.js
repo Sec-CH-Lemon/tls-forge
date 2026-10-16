@@ -25,6 +25,25 @@ const DEFAULT_TIMEOUT_MS = 45_000;
 // environment, never in this process's.
 const PROXY_VARIABLE = 'TLSFORGE_PROXY';
 
+// The most a request can be as the transport reads it: one line of JSON, its
+// newline included, in UTF-8. A longer one would end the transport, and the
+// session in it, so it is refused before it is queued.
+export const MAX_REQUEST_BYTES = 16 * 1024 * 1024;
+
+/**
+ * A request that was not sent because the transport the client's session was
+ * in has gone: its cookies, TLS sessions and connections went with it. Every
+ * request waiting when that happens is rejected with this, and the next one
+ * made is when none was waiting; requests after that start a new session in a
+ * new transport. The client never promises the identity it had before.
+ */
+export class SessionReset extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SessionReset';
+  }
+}
+
 // refusedArguments is why a transport that exited at once with a usage error
 // failed. With a proxy, that is a tls-forge older than this package, which
 // does not know --proxy-env; it never got as far as making a request.
@@ -112,6 +131,10 @@ export class Client {
   // match the request that replaced it — the exact crossing the id exists to
   // prevent.
   #sequence = 0;
+
+  // Why the transport the session was in went, until a request has been told
+  // with SessionReset; null when nothing is to be told.
+  #lost = null;
 
   // close() is final. A client is one identity; once it has been given up there
   // is no identity left to make requests with, so a later request is a caller
@@ -226,6 +249,17 @@ export class Client {
         new TypeError(`tlsforge: request cannot be encoded as JSON: ${err.message}`),
       );
     }
+    // Measured as it is written: base64 and the newline included. The
+    // transport cannot read a longer line, and stops at one.
+    const size = Buffer.byteLength(line);
+    if (size > MAX_REQUEST_BYTES) {
+      return Promise.reject(
+        new RangeError(
+          `tlsforge: this request is ${size} bytes as the transport reads it, ` +
+            `more than the ${MAX_REQUEST_BYTES} it can: send a smaller body`,
+        ),
+      );
+    }
     return new Promise((resolve, reject) => {
       this.#queue.push({
         line,
@@ -303,9 +337,10 @@ export class Client {
         this.#failAll(new Error(refusedArguments(this.#binary, this.#proxy !== undefined)));
         return;
       }
-      // Only the request written to the dead transport is indeterminate. Jobs
-      // still in the queue were never written and can safely use a replacement,
-      // matching the Python wrapper's behaviour.
+      // Only the request written to the dead transport is indeterminate. The
+      // jobs still in the queue were never written, and are told the session
+      // they were made in has gone.
+      this.#lost = `it exited (code ${code})`;
       this.#failInFlight(new Error(`tlsforge: transport exited (code ${code})`));
       this.#pump();
     });
@@ -341,8 +376,10 @@ export class Client {
     process.kill();
   }
 
-  #restart() {
+  // restart stops a transport that has a session in it, which is lost.
+  #restart(why) {
     this.#kill();
+    this.#lost = why;
     this.#pump();
   }
 
@@ -429,6 +466,18 @@ export class Client {
     // request(), settle() and restart(); the last two run from callbacks that
     // return early once close() has cleared the job they were waiting on.
     if (this.#inFlight || !this.#queue.length) return;
+    if (this.#lost !== null) {
+      // Told, all of them, and not sent: each was made in a session that has
+      // gone, and none of them would be what the caller asked for in a new one.
+      const reset = new SessionReset(
+        `tlsforge: the transport this client's session was in has gone (${this.#lost}), ` +
+          'and with it its cookies, TLS sessions and connections; this request was not sent, ' +
+          'and the next one starts a new session',
+      );
+      this.#lost = null;
+      while (this.#queue.length) this.#queue.shift().reject(reset);
+      return;
+    }
     if (!this.#process) {
       try {
         this.#start();
@@ -451,7 +500,7 @@ export class Client {
       // Restarting stops it at the source, dropping the reader stops one
       // already written, and the id means that even if both of those failed the
       // stale line is discarded instead of handed to whoever asks next.
-      this.#restart();
+      this.#restart('a request timed out, and it was stopped');
     }, this.#timeout);
 
     this.#process.stdin.write(job.line, (err) => {
@@ -461,7 +510,7 @@ export class Client {
       this.#inFlight = null;
       clearTimeout(job.timer);
       job.reject(new Error(`tlsforge: write failed: ${err.message}`));
-      this.#restart();
+      this.#restart(`a request could not be written to it: ${err.message}`);
     });
   }
 }

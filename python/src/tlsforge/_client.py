@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from ._binary import resolve_binary
-from ._errors import RequestFailed, Timeout, TransportError
+from ._errors import RequestFailed, SessionReset, Timeout, TransportError
 
 DEFAULT_TIMEOUT = 45.0
 
@@ -48,6 +48,11 @@ _SHUTDOWN_GRACE = 0.25
 #: Put on the queue by a reader when its stream ends, which is how a waiting
 #: request learns the process is gone without polling for it.
 _EOF = object()
+
+#: The most a request can be as the transport reads it: one line of JSON, its
+#: newline included, in UTF-8. A longer one would end the transport, and the
+#: session in it, so it is refused before it is sent.
+MAX_REQUEST_BYTES = 16 * 1024 * 1024
 
 #: The environment variable a proxy's URL reaches the transport in.
 #:
@@ -155,6 +160,14 @@ class Client:
         self._sequence = 0
         self._closed = False
 
+        # How many transports with a session in them have gone, and why the
+        # last did. A request notes the count when it is made, so that every
+        # one waiting for the lock when a session goes is told with
+        # SessionReset; untold says nobody has been, so the next one made is.
+        self._losses = 0
+        self._why = ""
+        self._untold = False
+
         # A Popen that is merely garbage collected is not killed: CPython reaps
         # it later and warns, and the daemon goes on running. A scraper that
         # builds a client per site would leave one process behind per site. The
@@ -216,6 +229,7 @@ class Client:
         if not url:
             raise ValueError("tlsforge: request needs a url")
 
+        made_in = self._losses
         with self._lock:
             if self._closed:
                 raise TransportError(
@@ -239,6 +253,22 @@ class Client:
             if cookies:
                 payload["setCookie"] = list(cookies)
             line = _encode_request(payload)
+            if self._process is not None and self._process.poll() is not None:
+                # It went while nobody was asking it anything, and took the
+                # session with it: this request is told rather than written to
+                # a pipe nobody reads.
+                stopped = self._stop()
+                assert stopped is not None  # it was there a line ago, and the lock is ours
+                self._lose(f"it exited (code {stopped.returncode})")
+            if self._untold or made_in != self._losses:
+                # Told, and not sent: made in a session that has gone, it would
+                # not be what the caller asked for in a new one.
+                self._untold = False
+                raise SessionReset(
+                    f"tlsforge: the transport this client's session was in has gone ({self._why}), "
+                    "and with it its cookies, TLS sessions and connections; this request was not "
+                    "sent, and the next one starts a new session"
+                )
             return _to_response(self._exchange(payload["id"], line))
 
     def close(self) -> None:
@@ -274,6 +304,7 @@ class Client:
                 # is expected. Stopping it at the source is what keeps the
                 # answer from arriving in the middle of the next request.
                 self._stop()
+                self._lose("a request timed out, and it was stopped")
                 raise Timeout(f"tlsforge: request timed out after {self._timeout}s") from None
 
             if line is _EOF:
@@ -284,6 +315,7 @@ class Client:
                 assert stopped is not None  # started above, and the lock is ours
                 if stopped.returncode == 2:
                     raise TransportError(_refused_arguments(self._binary, self._proxy is not None))
+                self._lose(f"it exited (code {stopped.returncode})")
                 raise TransportError(f"tlsforge: transport exited (code {stopped.returncode})")
 
             response = _decode(line)
@@ -348,7 +380,14 @@ class Client:
             # The process can die between starting it and the bytes landing, and
             # a pipe whose reader is gone raises rather than returning short.
             self._stop()
+            self._lose(f"a request could not be written to it: {err}")
             raise TransportError(f"tlsforge: write failed: {err}") from err
+
+    def _lose(self, why: str) -> None:
+        """Note that the transport the session was in has gone, and why."""
+        self._losses += 1
+        self._why = why
+        self._untold = True
 
     def _stop(self) -> subprocess.Popen[str] | None:
         """End the process, if any, and hand it back reaped.
@@ -510,11 +549,20 @@ def _decode(line: str) -> dict[str, Any]:
 def _encode_request(payload: dict[str, Any]) -> str:
     """Encode before a request reaches the process or the in-flight state."""
     try:
-        return json.dumps(payload, separators=(",", ":")) + "\n"
+        line = json.dumps(payload, separators=(",", ":")) + "\n"
     except (TypeError, ValueError) as err:
         # Circular values and objects JSON does not support are caller errors.
         # They must not stop the daemon and discard the warmed session.
         raise ValueError(f"tlsforge: request cannot be encoded as JSON: {err}") from err
+    # json.dumps writes ASCII, every other character escaped, so the length of
+    # the line is its size in bytes: base64 and the newline included. The
+    # transport cannot read a longer line, and stops at one.
+    if len(line) > MAX_REQUEST_BYTES:
+        raise ValueError(
+            f"tlsforge: this request is {len(line)} bytes as the transport reads it, "
+            f"more than the {MAX_REQUEST_BYTES} it can: send a smaller body"
+        )
+    return line
 
 
 def _to_response(payload: dict[str, Any]) -> Response:

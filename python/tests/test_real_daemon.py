@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
 import socket
 import socketserver
@@ -11,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from tlsforge import Client, RequestFailed, TransportError
+from tlsforge import MAX_REQUEST_BYTES, Client, RequestFailed, TransportError
 
 
 class _BinaryHandler(BaseHTTPRequestHandler):
@@ -235,3 +236,62 @@ def test_a_proxy_the_real_go_daemon_turns_down_says_why_without_its_password() -
     assert started.returncode == 1, started.stderr
     assert "[redacted]@[bad" in started.stderr
     assert secret not in started.stderr
+
+
+class _SessionHandler(BaseHTTPRequestHandler):
+    seen: dict[str, object] = {}
+
+    def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        if self.path == "/set":
+            self._answer(b"set", ("set-cookie", "visitor=42; Path=/"))
+            return
+        type(self).seen = {"cookie": self.headers.get("cookie", ""), "length": 0}
+        self._answer(b"seen")
+
+    def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        length = int(self.headers.get("content-length", "0"))
+        self.rfile.read(length)
+        type(self).seen = {"cookie": self.headers.get("cookie", ""), "length": length}
+        self._answer(b"seen")
+
+    def _answer(self, body: bytes, *headers: tuple[str, str]) -> None:
+        self.send_response(200)
+        for name, value in headers:
+            self.send_header(name, value)
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, _format: str, *_args: object) -> None:
+        pass
+
+
+def test_the_real_go_daemon_reads_a_request_as_long_as_the_limit() -> None:
+    """The limit this client refuses a request at has to be the daemon's, to
+    the byte: one byte under it, and the daemon would end, its session with it."""
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    origin = ThreadingHTTPServer(("127.0.0.1", 0), _SessionHandler)
+    thread = _serving(origin)
+    try:
+        base = f"http://127.0.0.1:{origin.server_port}"
+        with Client(binary=binary, timeout=60) as client:
+            client.get(f"{base}/set")
+            url = f"{base}/echo"
+            overhead = len(
+                json.dumps({"id": 2, "method": "POST", "url": url, "body": ""}, separators=(",", ":")) + "\n"
+            )
+            body = "x" * (MAX_REQUEST_BYTES - overhead)
+            client.post(url, body)
+            assert _SessionHandler.seen == {"cookie": "visitor=42", "length": len(body)}
+
+            with pytest.raises(ValueError, match="more than"):
+                client.post(url, body + "x")
+            client.get(url)
+            assert _SessionHandler.seen == {"cookie": "visitor=42", "length": 0}
+    finally:
+        origin.shutdown()
+        origin.server_close()
+        thread.join(timeout=2)

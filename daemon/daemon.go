@@ -159,7 +159,9 @@ type Client interface {
 }
 
 // Limits on one line of input. A request larger than this is a caller bug; the
-// buffer is generous because a POST body travels inline.
+// buffer is generous because a POST body travels inline. A line is read when it
+// is at most maxLineBuffer bytes, its newline included, which is what the
+// Node.js and Python packages check a request against before they send it.
 const (
 	initialLineBuffer = 64 * 1024
 	maxLineBuffer     = 16 * 1024 * 1024
@@ -194,7 +196,15 @@ func Serve(in io.Reader, out io.Writer, client Client) error {
 			return fmt.Errorf("daemon: writing response: %w", err)
 		}
 	}
-	return scanner.Err()
+	// A line too long to read ends the input rather than being skipped to the
+	// next newline, which could be any distance away: the memory it takes is
+	// the buffer's, and the time it takes is that of reading the buffer full.
+	if err := scanner.Err(); errors.Is(err, bufio.ErrTooLong) {
+		return fmt.Errorf("daemon: a request line is longer than %d bytes, its newline included: %w", maxLineBuffer, err)
+	} else if err != nil {
+		return fmt.Errorf("daemon: reading requests: %w", err)
+	}
+	return nil
 }
 
 // failed is the answer to a request that could not be made. What it says has

@@ -5,7 +5,7 @@ import net from 'node:net';
 import { test } from 'node:test';
 import zlib from 'node:zlib';
 
-import { Client } from '../index.js';
+import { Client, MAX_REQUEST_BYTES } from '../index.js';
 
 const binary = process.env.TLSFORGE_REAL_BIN;
 
@@ -160,4 +160,40 @@ test('a proxy the real Go daemon turns down says why without its password', { sk
   assert.equal(started.status, 1, started.stderr);
   assert.match(started.stderr, /\[redacted\]@\[bad/);
   assert.ok(!started.stderr.includes('s3cret-never-shown'), started.stderr);
+});
+
+test('the real Go daemon reads a request as long as the limit, and keeps its session past one longer', { skip: !binary }, async () => {
+  // The limit this client refuses a request at has to be the daemon's, to the
+  // byte: one byte under it, and the daemon would end, its session with it.
+  let seen = null;
+  const origin = await listen(http.createServer((request, response) => {
+    if (request.url === '/set') {
+      response.setHeader('set-cookie', 'visitor=42; Path=/');
+      response.end('set');
+      return;
+    }
+    let length = 0;
+    request.on('data', (chunk) => { length += chunk.length; });
+    request.on('end', () => {
+      seen = { cookie: request.headers.cookie ?? '', length };
+      response.end('seen');
+    });
+  }));
+  const base = `http://127.0.0.1:${origin.address().port}`;
+  const client = new Client({ binary, timeout: 60_000 });
+  try {
+    await client.get(`${base}/set`);
+    const url = `${base}/echo`;
+    const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id: 2 }) + '\n');
+    const body = 'x'.repeat(MAX_REQUEST_BYTES - overhead);
+    await client.post(url, body);
+    assert.deepEqual(seen, { cookie: 'visitor=42', length: body.length });
+
+    await assert.rejects(() => client.post(url, `${body}x`), RangeError);
+    await client.get(url);
+    assert.deepEqual(seen, { cookie: 'visitor=42', length: 0 });
+  } finally {
+    client.close();
+    await new Promise((resolve) => origin.close(resolve));
+  }
 });

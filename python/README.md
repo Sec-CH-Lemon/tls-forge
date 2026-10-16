@@ -201,13 +201,23 @@ except tlsforge.TransportError:
 | `RequestFailed` | The daemon ran, but the HTTP request failed. |
 | `Timeout` | The Python deadline passed. Also inherits from built-in `TimeoutError`. |
 | `TransportError` | The daemon could not start, exited, could not be written to, or returned invalid protocol data. |
+| `SessionReset` | A `TransportError`: the request was not sent, because the session it was made in has gone. |
 
 Invalid caller values such as an empty URL, non-positive timeout or non-callable
-`on_stderr` raise standard `ValueError` or `TypeError`.
+`on_stderr` raise standard `ValueError` or `TypeError`, and so does a request
+longer than `MAX_REQUEST_BYTES`, 16 MiB as the transport reads it: JSON, a
+binary body in base64, and the newline. It is refused before it is sent, and
+the transport and its session are left as they were.
 
-The client remains usable after a request timeout or transport failure. The next
-request starts a fresh daemon while monotonically increasing request ids prevent
-a late response from being attached to the wrong call.
+A timeout or a broken write stops the transport, and a transport can die. The
+session in it goes with it: its cookies, TLS sessions and connections. The
+request it was working on fails with the reason, and every request waiting for
+the client then raises `SessionReset`, without being sent; when none was
+waiting, the next request made does. Requests after that start a new session in
+a fresh daemon. The client never promises the identity it had before, so a
+session that has to be the same one is warmed again, or kept in a cookie file.
+Monotonically increasing request ids keep a late response from being attached
+to the wrong call.
 
 ## Identity, threads and close
 

@@ -59,6 +59,9 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
+	// As much as the daemon reads, and more: a client's refusal of a longer
+	// request is what is under test, not this fake's.
+	scanner.Buffer(make([]byte, 64*1024), 32*1024*1024)
 	for scanner.Scan() {
 		var req request
 		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
@@ -187,6 +190,10 @@ func main() {
 			after(400*time.Millisecond, func() { emit(answer(req)) })
 		case "exit":
 			os.Exit(3)
+		case "answer-then-exit":
+			// Answers, and dies while nobody is asking it anything.
+			emit(answer(req))
+			after(50*time.Millisecond, func() { os.Exit(4) })
 		case "stderr":
 			_, _ = fmt.Fprintln(os.Stderr, "a note on stderr")
 			time.Sleep(50 * time.Millisecond)
@@ -244,8 +251,13 @@ func answer(req request) map[string]any {
 	if set {
 		env["TLSFORGE_PROXY"] = proxy
 	}
+	bodyLength := 0
+	if req.Body != nil {
+		bodyLength = len(*req.Body)
+	}
 	body, _ := json.Marshal(map[string]any{
-		"argv": os.Args[1:], "env": env, "method": req.Method, "headers": headers,
+		"argv": os.Args[1:], "env": env, "pid": os.Getpid(), "bodyLength": bodyLength,
+		"method": req.Method, "headers": headers,
 		"order": order, "cookies": cookies, "body": req.Body,
 	})
 	return map[string]any{

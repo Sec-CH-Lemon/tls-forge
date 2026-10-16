@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -301,6 +303,40 @@ func TestServeReportsAnUnreadableLine(t *testing.T) {
 	err := Serve(strings.NewReader(huge), &out, &fakeClient{})
 	if err == nil {
 		t.Fatal("expected an error for an oversized line")
+	}
+}
+
+func TestALineIsReadUpToItsLimitItsNewlineIncluded(t *testing.T) {
+	// The Node.js and Python packages refuse a request longer than this before
+	// they send it, so the two have to agree to the byte.
+	line := func(size int) string {
+		head, tail := `{"id":1,"url":"https://example.com","body":"`, `"}`+"\n"
+		return head + strings.Repeat("x", size-len(head)-len(tail)) + tail
+	}
+	for _, tc := range []struct {
+		size int
+		read bool
+	}{{maxLineBuffer - 1, true}, {maxLineBuffer, true}, {maxLineBuffer + 1, false}} {
+		var out strings.Builder
+		err := Serve(strings.NewReader(line(tc.size)), &out, &fakeClient{})
+		switch {
+		case tc.read && (err != nil || !strings.Contains(out.String(), `"status":200`)):
+			t.Errorf("a line of %d bytes: %v, %q", tc.size, err, out.String())
+		case !tc.read && (err == nil || !errors.Is(err, bufio.ErrTooLong) || out.Len() != 0 ||
+			!strings.Contains(err.Error(), "longer than 16777216 bytes, its newline included")):
+			t.Errorf("a line of %d bytes: %v, %q", tc.size, err, out.String())
+		}
+	}
+}
+
+func TestServeSaysWhyItCouldNotReadItsInput(t *testing.T) {
+	// The pipe the requests come down, failing: said as what it is, and
+	// underneath for errors.Is.
+	broken := errors.New("input/output error")
+	var out strings.Builder
+	err := Serve(iotest.ErrReader(broken), &out, &fakeClient{})
+	if !errors.Is(err, broken) || err.Error() != "daemon: reading requests: input/output error" {
+		t.Errorf("Serve() = %v", err)
 	}
 }
 

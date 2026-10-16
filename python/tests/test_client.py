@@ -305,9 +305,13 @@ def test_a_timeout_is_also_a_builtin_timeout_error(client):
 
 
 def test_the_client_stays_usable_after_a_timeout(client):
+    # Stopped, the transport took the session with it: the next request is
+    # told, unsent, and the one after starts a new session.
     one = client(timeout=0.3)
     with pytest.raises(Timeout):
         one.get("https://silent/x")
+    with pytest.raises(tlsforge.SessionReset, match=r"has gone \(a request timed out, and it was stopped\)"):
+        one.get("https://ok/after")
     assert one.get("https://ok/after").status == 200
 
 
@@ -318,6 +322,8 @@ def test_a_timeout_stops_the_process_so_a_late_answer_cannot_arrive(client):
     with pytest.raises(Timeout):
         one.get("https://slow/x")
     assert one._process is None
+    with pytest.raises(tlsforge.SessionReset):
+        one.get("https://ok/after")
     assert one.get("https://ok/after").json()["method"] == "GET"
 
 
@@ -333,6 +339,8 @@ def test_the_client_recovers_from_a_transport_that_exited(client):
     one = client()
     with pytest.raises(TransportError):
         one.get("https://exit/x")
+    with pytest.raises(tlsforge.SessionReset, match=r"has gone \(it exited \(code 3\)\)"):
+        one.get("https://ok/after")
     assert one.get("https://ok/after").status == 200
 
 
@@ -383,7 +391,95 @@ def test_a_write_into_a_dead_pipe_fails_that_request(deaf):
     assert one.get("https://deaf/first").status == 200
     with pytest.raises(TransportError, match="write failed|exited"):
         one.get("https://deaf/second")
+    # The transport is stopped, and the session in it lost: the next request
+    # is told so, unsent.
+    with pytest.raises(tlsforge.SessionReset, match="could not be written|exited"):
+        one.get("https://deaf/third")
     one.close()
+
+
+def test_requests_waiting_when_the_session_goes_are_told_unsent(client):
+    # Every thread waiting for the transport when its session goes is told,
+    # and none of their requests is sent; the request after them starts a new
+    # session.
+    one = client(timeout=0.5)
+    before = one.get("https://ok/before").json()["pid"]
+    outcomes: dict[str, BaseException | None] = {}
+    started = threading.Event()
+
+    def asking(name: str, url: str) -> None:
+        if name == "in flight":
+            started.set()
+        try:
+            one.get(url)
+            outcomes[name] = None
+        except BaseException as err:  # noqa: BLE001 - recorded, and asserted below
+            outcomes[name] = err
+
+    first = threading.Thread(target=asking, args=("in flight", "https://silent/x"))
+    first.start()
+    started.wait()
+    time.sleep(0.1)
+    waiting = [threading.Thread(target=asking, args=(f"waiting {n}", "https://ok/waiting")) for n in (1, 2)]
+    for thread in waiting:
+        thread.start()
+    for thread in [first, *waiting]:
+        thread.join()
+    assert isinstance(outcomes["in flight"], Timeout)
+    for name in ("waiting 1", "waiting 2"):
+        assert isinstance(outcomes[name], tlsforge.SessionReset), outcomes[name]
+        assert "was not sent" in str(outcomes[name])
+    assert one.get("https://ok/after").json()["pid"] != before
+
+
+def test_a_transport_that_dies_while_nobody_asks_tells_the_next_request(client):
+    one = client()
+    first = one.get("https://answer-then-exit/x").json()["pid"]
+    time.sleep(0.3)
+    with pytest.raises(tlsforge.SessionReset, match=r"it exited \(code 4\)"):
+        one.get("https://ok/after")
+    assert one.get("https://ok/again").json()["pid"] != first
+
+
+def _sized(size: int, request_id: int, char: str = "x") -> tuple[str, str]:
+    """A POST whose line is exactly size bytes as the transport reads it, made
+    as the request_id-th request of its client, its body one character
+    repeated: ASCII a byte each, anything else six, escaped."""
+    url = "https://ok/sized"
+    encoded = lambda body: (  # noqa: E731 - read in two places just below
+        json.dumps({"id": request_id, "method": "POST", "url": url, "body": body}, separators=(",", ":")) + "\n"
+    )
+    overhead = len(encoded(""))
+    each = len(encoded(char)) - overhead
+    count = (size - overhead) // each
+    body = char * count + "x" * (size - overhead - count * each)
+    assert len(encoded(body).encode()) == size
+    return url, body
+
+
+def test_a_request_is_measured_as_the_transport_reads_it(client):
+    one = client(timeout=30)
+    first = one.get("https://ok/first").json()["pid"]
+    request_id = 1
+    for size, char in ((tlsforge.MAX_REQUEST_BYTES - 1, "x"), (tlsforge.MAX_REQUEST_BYTES, "x"),
+                       (tlsforge.MAX_REQUEST_BYTES, "я")):
+        request_id += 1
+        url, body = _sized(size, request_id, char)
+        echoed = one.post(url, body).json()
+        assert echoed["bodyLength"] == len(body)
+        assert echoed["pid"] == first
+    # One byte more, in bytes rather than characters: refused before it is
+    # sent, and the session it would have ended is the one the next request is
+    # made in.
+    for char in ("x", "я"):
+        request_id += 1
+        url, body = _sized(tlsforge.MAX_REQUEST_BYTES + 1, request_id, char)
+        with pytest.raises(ValueError, match=rf"is {tlsforge.MAX_REQUEST_BYTES + 1} bytes .* more than"):
+            one.post(url, body)
+    # Bytes travel as base64, four characters for every three.
+    with pytest.raises(ValueError, match="more than"):
+        one.post("https://ok/binary", bytes(tlsforge.MAX_REQUEST_BYTES // 4 * 3))
+    assert one.get("https://ok/after").json()["pid"] == first
 
 
 # --- closing ---------------------------------------------------------------
@@ -466,8 +562,10 @@ def test_ids_never_repeat_across_a_restart(client):
     with pytest.raises(Timeout):
         one.get("https://silent/x")
     before = one._sequence
+    with pytest.raises(tlsforge.SessionReset):
+        one.get("https://ok/after")
     one.get("https://ok/after")
-    assert one._sequence > before
+    assert one._sequence > before + 1
 
 
 # --- Response --------------------------------------------------------------

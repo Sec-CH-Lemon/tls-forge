@@ -45,6 +45,10 @@ reader.on('line', (line) => {
         body: JSON.stringify({
           argv: process.argv.slice(2),
           env: { TLSFORGE_PROXY: process.env.TLSFORGE_PROXY ?? null },
+          // Which process answered, and how much of a body reached it: a
+          // request refused before it was sent must leave both as they were.
+          pid: process.pid,
+          bodyLength: (request.body ?? '').length,
           headers: request.headers ?? {},
           order: request.order ?? [],
           cookies: request.setCookie ?? [],
@@ -79,6 +83,11 @@ reader.on('line', (line) => {
       break;
     case 'exit':
       process.exit(3);
+      break;
+    case 'answer-then-exit':
+      // Answers, and dies while nobody is asking it anything.
+      reply();
+      setTimeout(() => process.exit(4), 50);
       break;
     case 'stderr':
       process.stderr.write('a note on stderr\n');

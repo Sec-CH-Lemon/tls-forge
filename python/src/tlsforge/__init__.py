@@ -14,10 +14,11 @@ and how it is verified.
 from __future__ import annotations
 
 from ._binary import ENV_VAR, bundled_binary, exe_name, resolve_binary
-from ._client import DEFAULT_TIMEOUT, Client, Response
+from ._client import DEFAULT_TIMEOUT, MAX_REQUEST_BYTES, Client, Response
 from ._errors import (
     BinaryNotFound,
     RequestFailed,
+    SessionReset,
     TLSForgeError,
     Timeout,
     TransportError,
@@ -27,9 +28,11 @@ __all__ = [
     "Client",
     "Response",
     "DEFAULT_TIMEOUT",
+    "MAX_REQUEST_BYTES",
     "TLSForgeError",
     "BinaryNotFound",
     "TransportError",
+    "SessionReset",
     "RequestFailed",
     "Timeout",
     "resolve_binary",
