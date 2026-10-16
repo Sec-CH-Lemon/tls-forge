@@ -13,6 +13,7 @@ package fingerprint
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"golang.org/x/crypto/cryptobyte"
 )
@@ -77,6 +78,13 @@ type ClientHello struct {
 	// makes it safe to write into a capture file and re-parse later.
 	Raw []byte
 
+	// RecordVersion is the version the record layer was written with, which
+	// is not the hello's: TLS 1.3 asks for 0x0301 there on a first hello.
+	// Records is how many records the hello came in, which says where the
+	// client cut it; a browser's fits in one, however long.
+	RecordVersion uint16
+	Records       int
+
 	LegacyVersion      uint16
 	Random             []byte
 	SessionID          []byte
@@ -94,13 +102,13 @@ type ClientHello struct {
 // in it, which is still one record; other clients fragment, and a parser that
 // assumed one record would report those as malformed.
 func ParseClientHello(records []byte) (*ClientHello, error) {
-	body, consumed, err := handshakeBody(records)
+	message, err := handshakeBody(records)
 	if err != nil {
 		return nil, err
 	}
 
-	s := cryptobyte.String(body)
-	hello := &ClientHello{Raw: records[:consumed]}
+	s := cryptobyte.String(message.body)
+	hello := &ClientHello{Raw: records[:message.consumed], RecordVersion: message.version, Records: message.records}
 	if !s.ReadUint16(&hello.LegacyVersion) {
 		return nil, fmt.Errorf("fingerprint: truncated at legacy_version")
 	}
@@ -150,9 +158,20 @@ func ParseClientHello(records []byte) (*ClientHello, error) {
 	return hello, nil
 }
 
+// reassembled is a ClientHello body put back together from its records: how
+// many bytes of the input they took, the version the first was written with,
+// and how many there were.
+type reassembled struct {
+	body     []byte
+	consumed int
+	version  uint16
+	records  int
+}
+
 // handshakeBody reassembles the ClientHello body from one or more records and
 // reports how many bytes of the input it consumed.
-func handshakeBody(records []byte) (body []byte, consumed int, err error) {
+func handshakeBody(records []byte) (reassembled, error) {
+	var out reassembled
 	var handshake []byte
 	s := cryptobyte.String(records)
 	for !s.Empty() {
@@ -160,11 +179,15 @@ func handshakeBody(records []byte) (body []byte, consumed int, err error) {
 		var version uint16
 		var payload cryptobyte.String
 		if !s.ReadUint8(&recordType) || !s.ReadUint16(&version) || !s.ReadUint16LengthPrefixed(&payload) {
-			return nil, 0, fmt.Errorf("fingerprint: truncated TLS record")
+			return reassembled{}, fmt.Errorf("fingerprint: truncated TLS record")
 		}
 		if recordType != recordTypeHandshake {
-			return nil, 0, ErrNotClientHello
+			return reassembled{}, ErrNotClientHello
 		}
+		if out.records == 0 {
+			out.version = version
+		}
+		out.records++
 		handshake = append(handshake, payload...)
 		if len(handshake) == 0 {
 			// A record carrying an empty payload. Legal framing, and it
@@ -178,21 +201,22 @@ func handshakeBody(records []byte) (body []byte, consumed int, err error) {
 		// record, and length-prefix parsing it as a ClientHello would produce a
 		// plausible, wrong answer instead of an error.
 		if handshake[0] != typeClientHello {
-			return nil, 0, ErrNotClientHello
+			return reassembled{}, ErrNotClientHello
 		}
 		if len(handshake) > maxHandshakeSize {
-			return nil, 0, fmt.Errorf("fingerprint: handshake exceeds %d bytes", maxHandshakeSize)
+			return reassembled{}, fmt.Errorf("fingerprint: handshake exceeds %d bytes", maxHandshakeSize)
 		}
 		// Stop as soon as the message is complete rather than draining every
 		// record: whatever follows belongs to the rest of the handshake.
 		if body, ok := completeHandshake(handshake); ok {
-			return body, len(records) - len(s), nil
+			out.body, out.consumed = body, len(records)-len(s)
+			return out, nil
 		}
 	}
 	if len(handshake) == 0 {
-		return nil, 0, fmt.Errorf("fingerprint: no TLS records")
+		return reassembled{}, fmt.Errorf("fingerprint: no TLS records")
 	}
-	return nil, 0, fmt.Errorf("fingerprint: incomplete ClientHello")
+	return reassembled{}, fmt.Errorf("fingerprint: incomplete ClientHello")
 }
 
 // completeHandshake reports whether the accumulated bytes hold a whole
@@ -306,6 +330,25 @@ func (c *ClientHello) CertCompressionAlgorithms() []uint16 {
 // client that offers X25519MLKEM768 but only ships an X25519 share is not the
 // browser it claims to be.
 func (c *ClientHello) KeyShareGroups() []uint16 {
+	var out []uint16
+	for _, share := range c.KeyShares() {
+		out = append(out, share.Group)
+	}
+	return out
+}
+
+// KeyShare is one entry of key_share: its group, and how long its key is. The
+// key itself is fresh for every connection, and only its length says anything
+// about the client: 1216 bytes for X25519MLKEM768, 32 for X25519, one for a
+// GREASE group's.
+type KeyShare struct {
+	Group  uint16
+	Length int
+}
+
+// KeyShares returns the entries of key_share in the order sent, GREASE
+// included, as far as they parse.
+func (c *ClientHello) KeyShares() []KeyShare {
 	data, ok := c.Extension(ExtKeyShare)
 	if !ok {
 		return nil
@@ -315,16 +358,103 @@ func (c *ClientHello) KeyShareGroups() []uint16 {
 	if !s.ReadUint16LengthPrefixed(&list) {
 		return nil
 	}
-	var out []uint16
+	var out []KeyShare
 	for !list.Empty() {
-		var group uint16
+		var share KeyShare
 		var key cryptobyte.String
-		if !list.ReadUint16(&group) || !list.ReadUint16LengthPrefixed(&key) {
+		if !list.ReadUint16(&share.Group) || !list.ReadUint16LengthPrefixed(&key) {
 			return out
 		}
-		out = append(out, group)
+		share.Length = len(key)
+		out = append(out, share)
 	}
 	return out
+}
+
+// TrustAnchors returns the IDs of trust_anchors in the order sent, each as the
+// relative object identifier it is, dotted (44947.2.1), or in hex when it is
+// not one. Chrome draws their order once for each process it runs, so the
+// order says which process sent them and the IDs which root store.
+func (c *ClientHello) TrustAnchors() []string {
+	body, ok := c.vectorBody(ExtTrustAnchors, uint16Prefixed)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for !body.Empty() {
+		var id cryptobyte.String
+		if !body.ReadUint8LengthPrefixed(&id) {
+			return out
+		}
+		out = append(out, relativeOID(id))
+	}
+	return out
+}
+
+// relativeOID reads a relative object identifier: arcs in base 128, the high
+// bit set on every byte of an arc but its last. Anything else is said in hex,
+// as is an arc with a needless leading zero, which is not the same ID written
+// another way but another ID.
+func relativeOID(b []byte) string {
+	var arcs []string
+	var arc uint64
+	for i, octet := range b {
+		if arc == 0 && octet == 0x80 || arc > 1<<56 {
+			return fmt.Sprintf("%x", b)
+		}
+		arc = arc<<7 | uint64(octet&0x7f)
+		if octet&0x80 == 0 {
+			arcs = append(arcs, fmt.Sprint(arc))
+			arc = 0
+			continue
+		}
+		if i == len(b)-1 {
+			return fmt.Sprintf("%x", b)
+		}
+	}
+	if len(arcs) == 0 {
+		return "(empty)"
+	}
+	return strings.Join(arcs, ".")
+}
+
+// PSK is what a server can read of pre_shared_key without its keys: how many
+// identities it offers, and how long each binder is. The identities are
+// tickets the server issued, and the binders are fresh for every hello.
+type PSK struct {
+	Identities int
+	Binders    []int
+}
+
+// PreSharedKey returns the shape of pre_shared_key, or false for a hello
+// without one, or with one that does not parse.
+func (c *ClientHello) PreSharedKey() (PSK, bool) {
+	data, ok := c.Extension(ExtPreSharedKey)
+	if !ok {
+		return PSK{}, false
+	}
+	s := cryptobyte.String(data)
+	var identities, binders cryptobyte.String
+	if !s.ReadUint16LengthPrefixed(&identities) || !s.ReadUint16LengthPrefixed(&binders) || !s.Empty() {
+		return PSK{}, false
+	}
+	var out PSK
+	for !identities.Empty() {
+		var identity cryptobyte.String
+		var age uint32
+		if !identities.ReadUint16LengthPrefixed(&identity) || !identities.ReadUint32(&age) {
+			return PSK{}, false
+		}
+		out.Identities++
+	}
+	for !binders.Empty() {
+		var binder cryptobyte.String
+		if !binders.ReadUint8LengthPrefixed(&binder) {
+			return PSK{}, false
+		}
+		out.Binders = append(out.Binders, len(binder))
+	}
+	return out, true
 }
 
 // ECPointFormats returns the elliptic curve point formats. JA3 hashes them.

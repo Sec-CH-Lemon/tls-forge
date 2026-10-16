@@ -17,11 +17,17 @@ func TestCompareTLSIdentical(t *testing.T) {
 
 func TestCompareTLSIgnoresExtensionOrderAndGREASE(t *testing.T) {
 	// Chrome does both on every connection, so a comparison that noticed either
-	// would report the browser as differing from itself.
-	rotated := chrome151()
-	rotated.extensions = append(append([]Extension{}, rotated.extensions[7:]...), rotated.extensions[:7]...)
+	// would report the browser as differing from itself. It shuffles the
+	// extensions between its two GREASE ones, which stay first and last, and
+	// draws every GREASE value afresh.
+	shuffled := chrome151()
+	middle := shuffled.extensions[1 : len(shuffled.extensions)-1]
+	rotated := append(append([]Extension{}, middle[7:]...), middle[:7]...)
+	copy(middle, rotated)
+	shuffled.ciphers[0] = 0x3a3a
+	shuffled.extensions[0].Type, shuffled.extensions[len(shuffled.extensions)-1].Type = 0x5a5a, 0x6a6a
 
-	report := CompareTLS(mustParse(t, chrome151().records()), mustParse(t, rotated.records()))
+	report := CompareTLS(mustParse(t, chrome151().records()), mustParse(t, shuffled.records()))
 	if !report.OK() {
 		t.Errorf("reordering extensions was reported as a difference:\n%s", report)
 	}
@@ -308,6 +314,14 @@ func TestFieldMatchesUsesTheRuleTheFieldIsComparedWith(t *testing.T) {
 			Field{Name: "alpn", Values: []string{"h2", "http/1.1"}},
 			Field{Name: "alpn", Values: []string{"http/1.1", "h2"}},
 			false,
+		},
+
+		// Drawn for every connection: shown, and never a difference.
+		{
+			"varies is never a difference",
+			Field{Name: "ech_payload_length", Values: []string{"176"}, Scalar: true, Varies: true},
+			Field{Name: "ech_payload_length", Values: []string{"240"}, Scalar: true, Varies: true},
+			true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

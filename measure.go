@@ -250,7 +250,7 @@ type Comparison struct {
 }
 
 // OK reports a client indistinguishable from the browser on every field
-// compared.
+// compared, with nothing left that could not be compared.
 func (c *Comparison) OK() bool { return c.TLS.OK() && c.HTTP1.OK() && c.HTTP2.OK() }
 
 func (c *Comparison) String() string {

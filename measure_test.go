@@ -14,6 +14,7 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -464,6 +465,19 @@ func TestCompareFindsDifferences(t *testing.T) {
 	}
 	if strings.Contains(rendered, "identical") {
 		t.Errorf("a differing pair was reported as identical:\n%s", rendered)
+	}
+}
+
+func TestAComparisonWithSomethingNotCheckedIsNotIdentical(t *testing.T) {
+	result := &Comparison{
+		Browser: &capture.Capture{}, Client: &capture.Capture{},
+		TLS: fingerprint.Report{Unchecked: []fingerprint.Difference{
+			{Field: "contents of 0x7777", Reference: "0102", Candidate: "empty"},
+		}},
+	}
+	if result.OK() || strings.Contains(result.String(), "identical") ||
+		!strings.Contains(result.String(), "not checked: contents of 0x7777") {
+		t.Errorf("OK %v:\n%s", result.OK(), result)
 	}
 }
 

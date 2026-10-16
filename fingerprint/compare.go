@@ -35,19 +35,27 @@ func (d Difference) String() string {
 // Report is the outcome of comparing a candidate against a reference.
 type Report struct {
 	Differences []Difference
+
+	// Unchecked is what both sides have and no rule says how to compare: an
+	// extension nobody has described, whose contents differ. It is neither a
+	// match nor a difference, and a report with any is not a match.
+	Unchecked []Difference `json:",omitempty"`
 }
 
 // OK reports a candidate indistinguishable from the reference on every field
-// compared.
-func (r Report) OK() bool { return len(r.Differences) == 0 }
+// compared, with nothing left that could not be.
+func (r Report) OK() bool { return len(r.Differences) == 0 && len(r.Unchecked) == 0 }
 
 func (r Report) String() string {
 	if r.OK() {
 		return "no differences"
 	}
-	parts := make([]string, len(r.Differences))
-	for i, d := range r.Differences {
-		parts[i] = d.String()
+	parts := make([]string, 0, len(r.Differences)+len(r.Unchecked))
+	for _, d := range r.Differences {
+		parts = append(parts, d.String())
+	}
+	for _, d := range r.Unchecked {
+		parts = append(parts, "not checked: "+d.String())
 	}
 	return strings.Join(parts, "\n")
 }
@@ -70,6 +78,11 @@ type Field struct {
 	// Scalar is a single value rather than a list, so a mismatch has no
 	// meaningful "missing" and "extra".
 	Scalar bool
+
+	// Varies is a value the browser draws afresh for every connection, such as
+	// the length of its ECH payload: shown for both sides and never compared,
+	// since the browser would not match itself.
+	Varies bool
 }
 
 // Render is the value as a person reads it.
@@ -92,6 +105,8 @@ func (f Field) Render() string {
 // below it said everything matched. The two answers have to come from one rule.
 func (f Field) Matches(other Field) bool {
 	switch {
+	case f.Varies:
+		return true
 	case f.Scalar:
 		return f.Render() == other.Render()
 	case f.Set:
@@ -105,31 +120,55 @@ func scalar(name, value string) Field {
 	return Field{Name: name, Values: []string{value}, Scalar: true}
 }
 
-// TLSFields is everything a ClientHello is compared on, in a fixed order.
+// TLSFields is everything a ClientHello is compared on, in a fixed order: the
+// manifest of the comparison.
 //
-// Two properties are deliberately absent, and leaving them out is what makes
-// the result meaningful:
+// What the browser draws for every connection is not compared as it is, since
+// the browser would not match itself; its shape is, which does not change:
 //
-//   - Extension ORDER. Chrome shuffles it on every connection, so the browser
-//     does not match itself. The extension SET is here instead, which is what
-//     JA4 hashes and what a server can actually rely on.
-//   - GREASE values. Random per connection by design (RFC 8701).
+//   - Extension ORDER. Chrome shuffles it on every connection. The extension
+//     SET is compared instead, which is what JA4 hashes, and the order of the
+//     trust anchors, drawn once for each browser process, likewise.
+//   - GREASE values (RFC 8701). Where they go, how long they are and which are
+//     one value is compared as grease.
+//   - The random, the session id, the keys, ECH's config id, key and payload,
+//     and the tickets and binders of pre_shared_key: their lengths are
+//     compared, the bytes are not.
+//   - The length of the ECH payload, which Chrome draws from four for every
+//     connection: shown, never compared (Varies).
+//   - The contents of server_name, which are the site's, and of padding, whose
+//     length follows from the rest.
 //
 // Everything else is stable for a given browser build and is compared exactly.
+// An extension both sides send that none of this describes, with contents
+// that differ, is reported by CompareTLS as not checked.
 func TLSFields(hello *ClientHello) []Field {
+	ech, echPayload := echShape(hello)
 	return []Field{
 		scalar("ja4", hello.JA4()),
+		scalar("record_version", VersionName(hello.RecordVersion)),
+		scalar("records", fmt.Sprint(hello.Records)),
+		scalar("legacy_version", VersionName(hello.LegacyVersion)),
+		scalar("session_id_length", fmt.Sprint(len(hello.SessionID))),
 		{Name: "cipher_suites", Values: namesOf(withoutGREASE(hello.CipherSuites), CipherName)},
+		{Name: "compression_methods", Values: decimalStrings(hello.CompressionMethods)},
 		{Name: "extensions", Values: namesOf(withoutGREASE(hello.ExtensionTypes()), ExtensionName), Set: true},
+		{Name: "grease", Values: greaseLayout(hello)},
 		{Name: "supported_versions", Values: namesOf(withoutGREASE(hello.SupportedVersions()), VersionName)},
 		{Name: "supported_groups", Values: namesOf(withoutGREASE(hello.SupportedGroups()), GroupName)},
 		{Name: "signature_algorithms", Values: namesOf(withoutGREASE(hello.SignatureAlgorithms()), SignatureName)},
 		{Name: "key_share_groups", Values: namesOf(withoutGREASE(hello.KeyShareGroups()), GroupName)},
+		{Name: "key_share_lengths", Values: keyShareLengths(hello)},
 		{Name: "alpn", Values: hello.ALPN()},
 		{Name: "application_settings", Values: hello.ApplicationSettings()},
 		{Name: "ec_point_formats", Values: decimalStrings(hello.ECPointFormats())},
 		{Name: "psk_key_exchange_modes", Values: decimalStrings(hello.PSKKeyExchangeModes())},
 		{Name: "compress_certificate", Values: decimalStrings16(hello.CertCompressionAlgorithms())},
+		{Name: "trust_anchors", Values: hello.TrustAnchors(), Set: true},
+		scalar("ech_grease", ech),
+		{Name: "ech_payload_length", Values: []string{echPayload}, Scalar: true, Varies: true},
+		scalar("pre_shared_key", pskShape(hello)),
+		{Name: "extension_contents", Values: extensionContents(hello), Set: true},
 	}
 }
 
@@ -165,7 +204,9 @@ func regularHeaderStrings(headers []HeaderField) []string {
 // CompareTLS diffs a candidate ClientHello against a reference one, usually a
 // real browser's. TLSFields says what is compared, and what is not.
 func CompareTLS(reference, candidate *ClientHello) Report {
-	return compareFields(TLSFields(reference), TLSFields(candidate))
+	report := compareFields(TLSFields(reference), TLSFields(candidate))
+	report.Unchecked = uncheckedExtensions(reference, candidate)
+	return report
 }
 
 // CompareHTTP2 diffs the connection preamble and the request headers.
@@ -186,6 +227,8 @@ func compareFields(reference, candidate []Field) Report {
 		got := candidate[i]
 		var d *Difference
 		switch {
+		case want.Varies:
+			continue
 		case want.Scalar:
 			d = diffValue(want.Name, want.Render(), got.Render())
 		case want.Set:

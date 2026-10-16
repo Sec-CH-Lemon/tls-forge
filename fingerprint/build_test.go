@@ -16,6 +16,11 @@ type helloBuilder struct {
 	ciphers       []uint16
 	compression   []byte
 	extensions    []Extension
+
+	// recordVersion is the record layer's version, 0x0301 when zero, and
+	// split cuts the message into records of at most that many bytes.
+	recordVersion uint16
+	split         int
 }
 
 func newHello() *helloBuilder {
@@ -118,9 +123,18 @@ func (b *helloBuilder) body() []byte {
 	return append(out, extensions...)
 }
 
-// records wraps the message in a handshake header and a single TLS record.
+// records wraps the message in a handshake header and a single TLS record, or
+// in as many as split asks for.
 func (b *helloBuilder) records() []byte {
-	return recordsOf(handshakeMessage(typeClientHello, b.body()))
+	message := handshakeMessage(typeClientHello, b.body())
+	if b.split > 0 {
+		return splitRecords(message, b.split)
+	}
+	out := recordsOf(message)
+	if b.recordVersion != 0 {
+		binary.BigEndian.PutUint16(out[1:3], b.recordVersion)
+	}
+	return out
 }
 
 func handshakeMessage(msgType byte, body []byte) []byte {

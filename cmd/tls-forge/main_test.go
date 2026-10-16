@@ -21,6 +21,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -1134,6 +1135,55 @@ func TestComparePrintsHTTP1(t *testing.T) {
 	if !strings.Contains(buf.String(), "HTTP/1.1") ||
 		!strings.Contains(buf.String(), "http1_header_order") {
 		t.Errorf("HTTP/1.1 section was not printed:\n%s", buf.String())
+	}
+}
+
+func TestComparePrintsWhatVariesAndWhatIsNotChecked(t *testing.T) {
+	read := func(name string) []byte {
+		raw, err := os.ReadFile("../../testdata/" + name)
+		if err != nil {
+			t.Fatalf("fixture: %v", err)
+		}
+		return raw
+	}
+	// Two of Chrome's own hellos, with ECH payloads of 176 and 208 bytes: both
+	// are shown, and neither is a difference.
+	result, err := tlsforge.Compare(&capture.Capture{RawClientHello: read("chrome155-clienthello.bin")},
+		&capture.Capture{RawClientHello: read("chrome151-clienthello.bin")})
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	var buf bytes.Buffer
+	printComparison(newPrinter(&buf), result, palette{}, false)
+	if !strings.Contains(buf.String(),
+		"~ ech_payload_length     browser 176, client 208: drawn for each connection, not compared\n") {
+		t.Errorf("the ECH payload's length was not shown as varying:\n%s", buf.String())
+	}
+	if strings.Contains(buf.String(), "- ech_payload_length") || strings.Contains(buf.String(), "not checked") {
+		t.Errorf("printed as a difference:\n%s", buf.String())
+	}
+
+	// What no rule describes is shown on its own, with both sides, and the
+	// two are not said to match.
+	same := &capture.Capture{RawClientHello: read("chrome155-clienthello.bin")}
+	result, err = tlsforge.Compare(same, same)
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	result.TLS.Unchecked = []fingerprint.Difference{{Field: "contents of 0x7777", Reference: "0102", Candidate: "empty"}}
+	buf.Reset()
+	printComparison(newPrinter(&buf), result, palette{warn: "<warn>", reset: "</>"}, false)
+	for _, want := range []string{
+		"not checked</>\n<warn>? contents of 0x7777     browser 0102, client empty</>\n",
+		"<warn>1 could not be compared:</> nothing says whether they may differ, so the client\n" +
+			"is not shown to match the browser there.\n",
+	} {
+		if !strings.Contains(buf.String(), want) {
+			t.Errorf("no %q in:\n%s", want, buf.String())
+		}
+	}
+	if strings.Contains(buf.String(), "indistinguishable") || strings.Contains(buf.String(), "field(s) differ") {
+		t.Errorf("a verdict was given:\n%s", buf.String())
 	}
 }
 

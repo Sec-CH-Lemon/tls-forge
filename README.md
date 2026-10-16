@@ -1292,6 +1292,19 @@ compared with their exact wire casing; HTTP/2 remains lower-case as required by
 the protocol. Profiles that predate the optional HTTP/1.1 section continue to
 work with the historical fallback.
 
+The ClientHello is compared field by field: the record layer, the versions,
+the session id's length, the cipher suites and compression methods, the
+extensions as a set, since Chrome shuffles them, each list an extension holds,
+the trust anchor IDs, and the contents of every extension that is the same on
+each connection. What the browser draws for each connection is compared by its
+shape instead of its bytes: where GREASE goes, how long it is and which of its
+values are one, the length of each key share, ECH's cipher suite and key, and
+the identities and binders of `pre_shared_key`. The length of the ECH payload,
+which Chrome draws from four for every connection, is shown on a `~` line and
+not compared. An extension no rule describes, sent by both with different
+contents, is listed under `not checked`: it is neither a match nor a
+difference, and the command exits `3`.
+
 ```bash
 tls-forge compare
 tls-forge compare --profile chrome_151 --headless
@@ -1323,7 +1336,7 @@ Exit codes are meaningful:
 | Code | Meaning |
 |---|---|
 | `0` | Browser and client match on every compared field |
-| `3` | Measurement succeeded, but fingerprints differ |
+| `3` | Measurement succeeded, but fingerprints differ, or something could not be compared |
 | `1` | Comparison could not be completed |
 | `2` | Invalid arguments or help output |
 

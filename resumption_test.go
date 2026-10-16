@@ -163,3 +163,31 @@ func TestEveryConnectionDrawsItsECHLengthColdOrResumed(t *testing.T) {
 		}
 	}
 }
+
+func TestTheHelloHasChromesShapeColdAndResumed(t *testing.T) {
+	// Held to Chrome 155's own hellos field by field, the shape of what is
+	// drawn for each connection included: where GREASE goes, how long each key
+	// is, ECH's cipher suite and key, pre_shared_key's identities and binders.
+	// Only the ECH payload's length may differ, which Chrome draws too.
+	server := startEchoWithTickets(t)
+	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	for _, name := range []string{"chrome155-clienthello.bin", "chrome155-clienthello-resumed.bin"} {
+		measured, _ := measuredOn(t, client, server)
+		client.CloseIdleConnections()
+		raw, err := os.ReadFile("testdata/" + name)
+		if err != nil {
+			t.Fatalf("fixture: %v", err)
+		}
+		chrome, err := fingerprint.ParseClientHello(raw)
+		if err != nil {
+			t.Fatalf("fixture: %v", err)
+		}
+		sent, err := measured.Hello()
+		if err != nil {
+			t.Fatalf("the hello sent: %v", err)
+		}
+		if report := fingerprint.CompareTLS(chrome, sent); !report.OK() {
+			t.Errorf("held to %s:\n%s", name, report)
+		}
+	}
+}

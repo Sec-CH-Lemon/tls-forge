@@ -13,6 +13,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- `fingerprint.ClientHello` keeps the record layer, as `RecordVersion` and
+  `Records`, and reads `KeyShares` with the length of each key,
+  `TrustAnchors` as dotted IDs and `PreSharedKey` without its tickets.
+  `fingerprint.Field.Varies` marks a value shown and never compared, and
+  `fingerprint.Report.Unchecked` what could not be compared; `OK()` is false
+  while there is any.
 - `fingerprint.ClientHello.EncryptedClientHello` reads the outer
   `encrypted_client_hello` of a hello as a `fingerprint.ECH`: its cipher
   suite, its config id and the lengths of its key and payload. The log's
@@ -341,6 +347,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **`compare` holds the whole ClientHello to the browser's.** It compared the
+  lists a JA4 is made of and little more: another trust anchor, record
+  version, legacy version, session id length or compression method, a key of
+  another length, GREASE somewhere else, or another `status_request` made no
+  difference. It now compares the record layer and every field of the hello,
+  the contents of each extension that is the same on every connection, and
+  the shape of what is drawn for each: where GREASE goes, how long it is and
+  which of its values are one, the length of each key, ECH's cipher suite and
+  key, and the identities and binders of `pre_shared_key`. The length of the
+  ECH payload, which Chrome draws for every connection, is shown on a `~`
+  line and not compared. An extension no rule describes, sent by both sides
+  with different contents, is shown as not checked, and the command exits 3.
 - `echo.Server.Sessions` returns the latest 128 connections rather than
   every one the server has seen, and the server keeps the latest 128 pages
   served, captures nobody has awaited, manual visitors and recovered panics:

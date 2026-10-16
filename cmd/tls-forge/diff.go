@@ -129,6 +129,12 @@ func (d *diffPrinter) section(title string, reference, candidate []fingerprint.F
 	d.out.printf("%s%s%s\n", d.colour.dim, title, d.colour.reset)
 	for i, want := range reference {
 		got := candidate[i]
+		// Drawn for every connection: both sides, and no verdict.
+		if want.Varies {
+			d.line(d.colour.dim, "~", want.Name,
+				"browser "+want.Render()+", client "+got.Render()+": drawn for each connection, not compared", false)
+			continue
+		}
 		if want.Matches(got) {
 			d.line(d.colour.match, " ", want.Name, want.Render(), !d.full)
 			continue
@@ -148,6 +154,16 @@ func (d *diffPrinter) line(colour, marker, name, value string, trim bool) {
 		value = value[:budget-1] + "…"
 	}
 	d.out.printf("%s%s %s %s%s\n", colour, marker, label, value, d.colour.reset)
+}
+
+// unchecked writes what could not be compared: both sides of each, and no
+// verdict, since there is no rule to give one by.
+func (d *diffPrinter) unchecked(items []fingerprint.Difference) {
+	d.out.printf("%snot checked%s\n", d.colour.dim, d.colour.reset)
+	for _, item := range items {
+		d.line(d.colour.warn, "?", item.Field, "browser "+item.Reference+", client "+item.Candidate, false)
+	}
+	d.out.println()
 }
 
 // widestLabel keeps the values aligned, which is what makes two long lists

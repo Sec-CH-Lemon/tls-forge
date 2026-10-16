@@ -302,3 +302,43 @@ func TestASpecsECHLengthsAreItsOwn(t *testing.T) {
 		t.Errorf("the next spec draws from %v", got)
 	}
 }
+
+func TestGREASEIsDrawnForEveryHelloWhereChromePutsIt(t *testing.T) {
+	p, err := Get("chrome_155_macos")
+	if err != nil {
+		t.Fatalf("profile: %v", err)
+	}
+	raw, err := os.ReadFile("../testdata/chrome155-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	chrome, err := fingerprint.ParseClientHello(raw)
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	layout := func(hello *fingerprint.ClientHello) []string {
+		for _, field := range fingerprint.TLSFields(hello) {
+			if field.Name == "grease" {
+				return field.Values
+			}
+		}
+		t.Fatal("no grease field")
+		return nil
+	}
+	// Sixteen hellos: GREASE where Chrome puts it in every one, and values
+	// drawn for each. Sixteen draws of sixteen values all alike would come by
+	// chance once in 10^18 runs.
+	ciphers, groups, extensions := map[uint16]bool{}, map[uint16]bool{}, map[uint16]bool{}
+	for range 16 {
+		hello := helloFrom(t, p)
+		if got := layout(hello); !reflect.DeepEqual(got, layout(chrome)) {
+			t.Fatalf("GREASE went\n%q\nChrome puts it\n%q", got, layout(chrome))
+		}
+		ciphers[hello.CipherSuites[0]] = true
+		groups[hello.SupportedGroups()[0]] = true
+		extensions[hello.Extensions[0].Type] = true
+	}
+	if len(ciphers) < 2 || len(groups) < 2 || len(extensions) < 2 {
+		t.Errorf("GREASE values did not vary: %v, %v, %v", ciphers, groups, extensions)
+	}
+}

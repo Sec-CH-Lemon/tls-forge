@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -111,6 +112,11 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 		d.section("HTTP/2", h2Want, h2Got)
 	}
 
+	unchecked := slices.Concat(result.TLS.Unchecked, result.HTTP1.Unchecked, result.HTTP2.Unchecked)
+	if len(unchecked) > 0 {
+		d.unchecked(unchecked)
+	}
+
 	if result.OK() {
 		out.printf("%severy field matches; the client is indistinguishable from the browser.%s\n",
 			pal.match, pal.reset)
@@ -120,11 +126,17 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 		return
 	}
 
-	differing := len(result.TLS.Differences) + len(result.HTTP1.Differences) + len(result.HTTP2.Differences)
-	out.printf("%s%d field(s) differ.%s Fix by measuring this browser and using the profile\n",
-		pal.differ, differing, pal.reset)
-	out.println("it produces:")
-	out.println("  tls-forge capture --save my-browser.json")
+	if differing := len(result.TLS.Differences) + len(result.HTTP1.Differences) + len(result.HTTP2.Differences); differing > 0 {
+		out.printf("%s%d field(s) differ.%s Fix by measuring this browser and using the profile\n",
+			pal.differ, differing, pal.reset)
+		out.println("it produces:")
+		out.println("  tls-forge capture --save my-browser.json")
+	}
+	if len(unchecked) > 0 {
+		out.printf("%s%d could not be compared:%s nothing says whether they may differ, so the client\n",
+			pal.warn, len(unchecked), pal.reset)
+		out.println("is not shown to match the browser there.")
+	}
 }
 
 func printCapture(out *printer, measured *capture.Capture) {
