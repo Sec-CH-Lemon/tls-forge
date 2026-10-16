@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -636,8 +637,8 @@ func TestANetscapeFileIsRefusedForARunWithMoreThanOneSession(t *testing.T) {
 	// One session per proxy, and a cookies.txt holds one: each would replace
 	// the last, and the count would say all were kept. Refused before anything
 	// is asked of anybody, and the file is left as it was.
-	hits := 0
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { hits++ }))
+	var hits atomic.Int32
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { hits.Add(1) }))
 	t.Cleanup(server.Close)
 	dir := t.TempDir()
 	kept := filepath.Join(dir, "session.txt")
@@ -663,8 +664,8 @@ func TestANetscapeFileIsRefusedForARunWithMoreThanOneSession(t *testing.T) {
 			}
 		})
 	}
-	if hits != 0 {
-		t.Errorf("the server was asked %d times; nothing should have been fetched", hits)
+	if got := hits.Load(); got != 0 {
+		t.Errorf("the server was asked %d times; nothing should have been fetched", got)
 	}
 	if data, _ := os.ReadFile(kept); string(data) != "# a session somebody kept\n" {
 		t.Errorf("the file was changed: %q", data)
