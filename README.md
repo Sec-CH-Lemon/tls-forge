@@ -299,7 +299,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | **Session** | |
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
 | `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
-| `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random |
+| `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random, once for each proxy the run goes through, when it starts, and the log and the trace say which |
 | `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format, which holds one session and is refused for a run through more than one proxy |
 | **Running** | |
 | `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given |

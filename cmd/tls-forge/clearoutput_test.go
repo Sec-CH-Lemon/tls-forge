@@ -155,7 +155,11 @@ func TestClearOutputDirRefusesADirectoryWhoseLossIsADisaster(t *testing.T) {
 			return []string{"-o", tmp, "--input", list}, tmp
 		}, "holds --input "},
 		{"the session it starts from", func(t *testing.T, tmp string) ([]string, string) {
-			return []string{"-o", tmp, "--cookies", filepath.Join(tmp, "a", "b"), server.URL}, tmp
+			session := filepath.Join(tmp, "a", "session.json")
+			if err := os.WriteFile(session, []byte(`{"sets":[{"id":"a","cookies":[]}]}`), 0o600); err != nil {
+				t.Fatalf("WriteFile: %v", err)
+			}
+			return []string{"-o", tmp, "--cookies", session, server.URL}, tmp
 		}, "holds --cookies"},
 		{"the exit fields it lays over its own", func(t *testing.T, tmp string) ([]string, string) {
 			fields := filepath.Join(tmp, "a", "exit-headers.json")

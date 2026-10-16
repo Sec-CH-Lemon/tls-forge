@@ -569,13 +569,13 @@ func TestFetchKeepsItsSessionFromTheAddressService(t *testing.T) {
 }
 
 func TestFetchEndsItsReportWhenItStopsEarly(t *testing.T) {
-	// The cookie file is missing, so there is never a client to ask with. The
+	// The client cannot be made, so there is never a client to ask with. The
 	// report is still closed, and nobody is asked on behalf of a run that made
 	// no request.
 	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
+	failingClients(t, func(string) bool { return true })
 
-	code, _, stderr := exec(t, "fetch", "--cookies", filepath.Join(t.TempDir(), "missing.json"),
-		"https://127.0.0.1:1/")
+	code, _, stderr := exec(t, "fetch", "https://127.0.0.1:1/")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -584,6 +584,32 @@ func TestFetchEndsItsReportWhenItStopsEarly(t *testing.T) {
 	}
 	if strings.Contains(stderr, "exit-ip") {
 		t.Errorf("an address was reported for a run with no client:\n%s", stderr)
+	}
+	if got := asked.Load(); got != 0 {
+		t.Errorf("the service was asked %d times", got)
+	}
+}
+
+func TestFetchStopsAtASessionItCannotReadBeforeSayingAnything(t *testing.T) {
+	// Read before the run begins: nothing said of what it wears, nobody asked
+	// where it comes out, and no log, trace or kept request left behind.
+	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
+	dir := t.TempDir()
+	out, trace := filepath.Join(dir, "out"), filepath.Join(dir, "trace.json")
+	broken := filepath.Join(dir, "session.json")
+	if err := os.WriteFile(broken, []byte("{not a session"), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	for _, session := range []string{filepath.Join(dir, "missing.json"), broken} {
+		code, _, stderr := exec(t, "fetch", "--cookies", session, "-o", out, "--trace", trace, "https://127.0.0.1:1/")
+		if code != 1 || strings.Contains(stderr, identityRule) {
+			t.Errorf("%s: exit code = %d\n%s", session, code, stderr)
+		}
+		for _, path := range []string{out, trace} {
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Errorf("%s: %s was made: %v", session, path, err)
+			}
+		}
 	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("the service was asked %d times", got)

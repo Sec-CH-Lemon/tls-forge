@@ -98,6 +98,16 @@ type runContext struct {
 	// a proxy the list reached last, would otherwise wear whatever a capture
 	// installed meanwhile, while the run said it wore what it began with.
 	profile *profile.Profile
+	// sessions are what the clients of each identity start with: one for each
+	// proxy the run goes through, or none, as the pool keys its clients.
+	sessions map[string]warmSession
+}
+
+// warmSession is the session one identity's client starts with, and where
+// the run says it came from: empty when it came from no file.
+type warmSession struct {
+	cookies []cookie.Cookie
+	from    string
 }
 
 // addScopedClientFlags keeps unsupported flags out of --help. Accepting
@@ -240,45 +250,67 @@ func (f *cookieFlag) Set(pair string) error {
 	return nil
 }
 
-// warmedCookies is the session a client starts with: whatever was named on the
-// command line, over whatever came out of the file.
+// warmup reads the cookie file and chooses, for each identity the run goes
+// through, each named once, the session its clients start with: whatever was
+// named on the command line, over the set chosen from the file.
 //
-// The file first and the flags on top, so a cookie given by hand overrides the
-// one of the same name in a set rather than being overridden by it.
-func (f clientFlags) warmedCookies() ([]cookie.Cookie, string, error) {
-	var chosen []cookie.Cookie
-	var from string
+// Once, before the run. The file was read, and a set drawn, as each identity's
+// client was made, which for a list that goes several ways is as the list
+// reaches each: under the lock every worker waits on, and from the file as it
+// was by then, which a run writing its session back into it may have changed.
+// A set drawn at random is drawn once for each identity, and the run says
+// which.
+func (f clientFlags) warmup(identities ...string) error {
 	if *f.cookieSet != "" && *f.cookieFile == "" {
-		return nil, "", fmt.Errorf("%w: --cookie-set requires --cookies", errUsage)
+		return fmt.Errorf("%w: --cookie-set requires --cookies", errUsage)
 	}
-
+	var file *cookie.File
 	if *f.cookieFile != "" {
 		data, err := os.ReadFile(*f.cookieFile)
 		if err != nil {
-			return nil, "", fmt.Errorf("tlsforge: %w", err)
+			return fmt.Errorf("tlsforge: %w", err)
 		}
-		file, err := cookie.Load(data)
+		if file, err = cookie.Load(data); err != nil {
+			return err
+		}
+	}
+	f.run.sessions = map[string]warmSession{}
+	for _, identity := range identities {
+		session, err := f.warmFrom(file)
 		if err != nil {
-			return nil, "", err
+			return err
 		}
+		f.run.sessions[identity] = session
+	}
+	return nil
+}
+
+// warmFrom is one identity's session: a set from the file, when there is one,
+// and the cookies named on the command line on top, so that a cookie given by
+// hand overrides the one of the same name in the set rather than the other way
+// round.
+func (f clientFlags) warmFrom(file *cookie.File) (warmSession, error) {
+	var session warmSession
+	if file != nil {
 		set, err := file.Pick(*f.cookieSet, pickCookieSet)
 		if err != nil {
-			return nil, "", err
+			return warmSession{}, err
 		}
 		live := set.Live(now())
-		chosen = append(chosen, live.Cookies...)
-		from = fmt.Sprintf("%s, set %s, %d cookies", *f.cookieFile, set.ID, len(live.Cookies))
+		session.cookies = append(session.cookies, live.Cookies...)
+		session.from = fmt.Sprintf("%s, set %s, %d cookies", *f.cookieFile, set.ID, len(live.Cookies))
 		if dead := len(set.Cookies) - len(live.Cookies); dead > 0 {
-			from += fmt.Sprintf(" (%d expired)", dead)
+			session.from += fmt.Sprintf(" (%d expired)", dead)
 		}
 		if file.Unscoped() {
 			// Not silent: a host's cookie in such a file goes to its subdomains
 			// as well, as it did when the file was written.
-			from += "; written before tls-forge kept which cookies are their host's alone, " +
+			session.from += "; written before tls-forge kept which cookies are their host's alone, " +
 				"so each goes to its domain's subdomains as well, until the session is saved again"
 		}
 	}
-	return append(chosen, f.cookies.cookies...), from, nil
+	session.cookies = append(session.cookies, f.cookies.cookies...)
+	return session, nil
 }
 
 // saveSession writes down everything the client's jar ended up holding, so a
@@ -362,18 +394,13 @@ func (f clientFlags) client(extra ...tlsforge.Option) (*tlsforge.Client, error) 
 }
 
 // clientVia builds a client through a named proxy, which a list needs because
-// there the proxy comes with the URL rather than from the flag.
+// there the proxy comes with the URL rather than from the flag, with the
+// session warmup chose for that identity.
 func (f clientFlags) clientVia(proxy string, extra ...tlsforge.Option) (*tlsforge.Client, error) {
-	warmed, _, err := f.warmedCookies()
-	if err != nil {
-		return nil, err
-	}
-	return f.clientViaWarmed(proxy, warmed, extra...)
+	return f.clientViaWarmed(proxy, f.run.sessions[proxy].cookies, extra...)
 }
 
-// clientViaWarmed builds a client from a session already selected. Fetch uses
-// this so the set named in its diagnostic is the same set the client received;
-// selecting from a multi-set file twice could draw two different sessions.
+// clientViaWarmed builds a client from a session already selected, or none.
 func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 	extra ...tlsforge.Option,
 ) (*tlsforge.Client, error) {
@@ -557,6 +584,12 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			"run has one for each proxy it goes through: name a .json file, which keeps each as a set of its own",
 			errUsage, *common.saveCookies)
 	}
+	// The session each identity starts from, chosen now, before anything is
+	// cleared, opened or asked, from the cookie file as it is now.
+	ways := waysOf(jobs, *common.proxy)
+	if err := common.warmup(ways...); err != nil {
+		return err
+	}
 	requests := len(jobs) * *again.repeat
 
 	// The page, when the command names the one URL it is after. A line of JSON
@@ -644,16 +677,12 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	var lookupErr error
 	var from string
 	if oneWay {
-		warmed, session, err := common.warmedCookies()
-		if err != nil {
-			return err
-		}
-		client, err := common.clientViaWarmed(way, warmed)
+		client, err := common.clientVia(way)
 		if err != nil {
 			return err
 		}
 		clients.hold(way, client)
-		from = session
+		from = common.run.sessions[way].from
 
 		// With the profile and through the proxy the requests are about to use,
 		// so the answer is for that identity. Not with its cookies: the session
@@ -669,8 +698,14 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	identity.close()
 	if from != "" {
 		errOut.printf("warmed from %s\n", from)
-		lane.instant("cookies loaded", "cookies", traceArgs{"from": from})
-		runLog.say(slog.LevelInfo, "cookies loaded", "from", from)
+	}
+	// Each identity's session, as it was chosen when the run began: what a
+	// run that went several ways can be read back from, set by set.
+	for _, way := range ways {
+		if session := common.run.sessions[way]; session.from != "" {
+			lane.instant("cookies loaded", "cookies", traceArgs{"proxy": redactProxy(way), "from": session.from})
+			runLog.say(slog.LevelInfo, "cookies loaded", "proxy", redactProxy(way), "from", session.from)
+		}
 	}
 
 	// What was asked before the run, for the report to say. It answers for the
@@ -930,6 +965,24 @@ func pagesWithout(count, requests int, what string) error {
 	return fmt.Errorf("fetch: %d of %d pages have no %s", count, requests, what)
 }
 
+// waysOf are the ways a run goes, each once, in the order its list first goes
+// each: through a proxy, or through none.
+func waysOf(jobs []job, fallback string) []string {
+	var ways []string
+	seen := map[string]bool{}
+	for _, j := range jobs {
+		way := j.Proxy
+		if way == "" {
+			way = fallback
+		}
+		if !seen[way] {
+			seen[way] = true
+			ways = append(ways, way)
+		}
+	}
+	return ways
+}
+
 // sameWay is the proxy every request of a run goes through, when they all go
 // the same way: through one proxy, or through none.
 func sameWay(jobs []job, fallback string) (proxy string, same bool) {
@@ -1033,6 +1086,9 @@ func runDaemon(ctx context.Context, args []string, out, errOut *printer) error {
 	// Not settle: a profile there is none of ends the daemon as the client it
 	// cannot make does, with 1, which the packages that start it read as such.
 	if _, err := common.resolve(); err != nil {
+		return err
+	}
+	if err := common.warmup(*common.proxy); err != nil {
 		return err
 	}
 

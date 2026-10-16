@@ -458,6 +458,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A list that goes several ways read its `--cookies` file again for each
+  identity's client, as the list got to it, under the lock every worker
+  waits on and from the file as it was by then: a file changed meanwhile, or
+  one that no longer read, gave a later identity another session or stopped
+  it. The file is read once, before the run, and each identity's set is
+  chosen then; one drawn at random is drawn once for each identity, and the
+  log and the trace say which, identity by identity. A cookie file that
+  cannot be read stops the run before its output directory is cleared or its
+  log, trace or report opened.
 - A run resolved its profile once for what it said and again for each client
   it made. A list that goes several ways makes a client for each as it gets
   to it, so a client made after `capture --install`, or after the file of a

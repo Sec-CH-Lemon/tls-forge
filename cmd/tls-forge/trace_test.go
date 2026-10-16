@@ -528,15 +528,11 @@ func TestTraceOfARequestThatNeverConnected(t *testing.T) {
 }
 
 func TestTraceOfARunThatCouldNotStart(t *testing.T) {
-	// A session that cannot be read, found out once the run is under way, so
-	// no client and no request. The trace still closes, and ends with the
-	// reason.
-	dir := t.TempDir()
-	path, session := filepath.Join(dir, "trace.json"), filepath.Join(dir, "session.json")
-	if err := os.WriteFile(session, []byte("{not a session"), 0o600); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	code, _, _ := exec(t, "fetch", "--cookies", session, "--trace", path, "https://example.invalid/")
+	// A client that cannot be made, found out once the run is under way, so
+	// no request. The trace still closes, and ends with the reason.
+	failingClients(t, func(string) bool { return true })
+	path := filepath.Join(t.TempDir(), "trace.json")
+	code, _, _ := exec(t, "fetch", "--trace", path, "https://example.invalid/")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1", code)
 	}
@@ -545,7 +541,7 @@ func TestTraceOfARunThatCouldNotStart(t *testing.T) {
 	if len(named(events, phaseBegin, "GET https://example.invalid/")) != 0 {
 		t.Error("a request was made by a run that could not start")
 	}
-	if last := events[len(events)-1]; !strings.Contains(fmt.Sprint(last.Args["error"]), "cookie") {
+	if last := events[len(events)-1]; !strings.Contains(fmt.Sprint(last.Args["error"]), "would not have it") {
 		t.Errorf("the run ended as %v, want the reason it could not start", last.Args)
 	}
 }

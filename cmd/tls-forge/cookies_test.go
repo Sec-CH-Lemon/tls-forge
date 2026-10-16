@@ -223,8 +223,8 @@ func TestClientFlagsReportCookieFileErrors(t *testing.T) {
 	if err := parse(fs, []string{"--cookies", missing}); err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if _, err := flags.client(); err == nil || !strings.Contains(err.Error(), "missing.json") {
-		t.Fatalf("client error = %v, want missing file", err)
+	if err := flags.warmup(*flags.proxy); err == nil || !strings.Contains(err.Error(), "missing.json") {
+		t.Fatalf("warmup error = %v, want missing file", err)
 	}
 }
 

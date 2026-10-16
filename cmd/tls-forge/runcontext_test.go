@@ -1,6 +1,8 @@
 package main
 
 import (
+	"maps"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -123,6 +125,107 @@ func TestTheDaemonStopsAtAProfileThereIsNoneOf(t *testing.T) {
 func TestTheDaemonStopsAtACookieFileItCannotRead(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "missing.json")
 	if code, _, stderr := exec(t, "daemon", "--cookies", missing); code != 1 || !strings.Contains(stderr, "missing.json") {
+		t.Errorf("exit %d\n%s", code, stderr)
+	}
+}
+
+// cookieKeeper is a server that keeps the Cookie header each path came with,
+// and does what then says when one is asked for.
+func cookieKeeper(t *testing.T, then func(path string)) (*httptest.Server, func() map[string]string) {
+	t.Helper()
+	var mu sync.Mutex
+	seen := map[string]string{}
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.URL.Path] = r.Header.Get("Cookie")
+		mu.Unlock()
+		then(r.URL.Path)
+		_, _ = w.Write([]byte("page"))
+	}))
+	t.Cleanup(server.Close)
+	return server, func() map[string]string {
+		mu.Lock()
+		defer mu.Unlock()
+		return maps.Clone(seen)
+	}
+}
+
+func TestTheCookieFileIsReadOnceBeforeTheRun(t *testing.T) {
+	// The second identity's client is made once the first has been fetched,
+	// and the file has changed under the run by then, or become one that does
+	// not read: it starts from the file as it was when the run began.
+	for _, tc := range []struct{ name, then string }{
+		{"written again", `{"sets":[{"id":"later","cookies":[{"name":"k","value":"after","domain":"127.0.0.1","path":"/"}]}]}`},
+		{"no longer a cookie file", "{not a session"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := writeCookieFile(t,
+				`{"sets":[{"id":"first","cookies":[{"name":"k","value":"before","domain":"127.0.0.1","path":"/"}]}]}`)
+			server, seen := cookieKeeper(t, func(asked string) {
+				if asked == "/first" {
+					if err := os.WriteFile(path, []byte(tc.then), 0o600); err != nil {
+						t.Errorf("rewriting the file: %v", err)
+					}
+				}
+			})
+			proxy := startProxy(t)
+			list := writeList(t, "list.txt", server.URL+"/first\n"+server.URL+"/second http://"+proxy.addr+"\n")
+			code, _, stderr := exec(t, "fetch", "-k", "--cookies", path, "--input", list, "--concurrency", "1",
+				"--progress", "never")
+			if code != 0 {
+				t.Fatalf("exit %d\n%s", code, stderr)
+			}
+			if got := seen(); got["/first"] != "k=before" || got["/second"] != "k=before" {
+				t.Errorf("the requests carried %v", got)
+			}
+		})
+	}
+}
+
+func TestEachIdentityDrawsItsSetOnceAndSaysWhich(t *testing.T) {
+	// A file of sets and a list that goes two ways, two URLs each way: a set
+	// drawn for each identity, in the order the list first goes each, and
+	// used for every request that way. The log says which, set by set, which
+	// is how such a run is read back.
+	original := pickCookieSet
+	t.Cleanup(func() { pickCookieSet = original })
+	const seed = 11
+	pickCookieSet = rand.New(rand.NewSource(seed))
+	sets := []string{"a", "b", "c"}
+	draw := rand.New(rand.NewSource(seed))
+	direct, through := sets[draw.Intn(len(sets))], sets[draw.Intn(len(sets))]
+
+	var lines []string
+	for _, id := range sets {
+		lines = append(lines, `{"id":"`+id+`","cookies":[{"name":"s","value":"`+id+`","domain":"127.0.0.1","path":"/"}]}`)
+	}
+	path := writeCookieFile(t, `{"sets":[`+strings.Join(lines, ",")+`]}`)
+	server, seen := cookieKeeper(t, func(string) {})
+	proxy := startProxy(t)
+	list := writeList(t, "list.txt", server.URL+"/direct/1\n"+server.URL+"/through/1 http://"+proxy.addr+"\n"+
+		server.URL+"/direct/2\n"+server.URL+"/through/2 http://"+proxy.addr+"\n")
+	log := filepath.Join(t.TempDir(), "run.jsonl")
+	code, _, stderr := exec(t, "fetch", "-k", "--cookies", path, "--input", list, "--concurrency", "1",
+		"--progress", "never", "--log", log)
+	if code != 0 {
+		t.Fatalf("exit %d\n%s", code, stderr)
+	}
+	got := seen()
+	for _, n := range []string{"1", "2"} {
+		if got["/direct/"+n] != "s="+direct || got["/through/"+n] != "s="+through {
+			t.Fatalf("the requests carried %v, want s=%s direct and s=%s through the proxy", got, direct, through)
+		}
+	}
+	loaded := recordsOf(logRecords(t, log), "cookies loaded")
+	if len(loaded) != 2 || loaded[0].get("proxy") != "" || !strings.Contains(loaded[0].get("from"), "set "+direct+",") ||
+		loaded[1].get("proxy") != "http://"+proxy.addr || !strings.Contains(loaded[1].get("from"), "set "+through+",") {
+		t.Errorf("the log says %v", loaded)
+	}
+}
+
+func TestTheDaemonStopsAtAClientItCannotMake(t *testing.T) {
+	failingClients(t, func(string) bool { return true })
+	if code, _, stderr := exec(t, "daemon"); code != 1 || !strings.Contains(stderr, "the transport would not have it") {
 		t.Errorf("exit %d\n%s", code, stderr)
 	}
 }
