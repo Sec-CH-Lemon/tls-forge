@@ -13,6 +13,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **The daemon applies a request's browser context**, and says so: `hello`
+  answers `capabilities: ["browser_context"]`, and the Node.js package's
+  `browserContext` and the Python package's `browser_context` now go out as
+  Chrome sends the kind they name, CORS and all. The `browser` object is read
+  strictly: a key the protocol does not have is a bad request, and nothing is
+  sent.
 - **`fetch --request-kind` and `--initiator-url` send a run's requests as
   Chrome sends that kind**: `navigation`, `form`, `fetch` or `xhr`, from the
   page `--initiator-url` names, CORS and all. What a page could not send, and
@@ -81,9 +87,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Node.js and Python packages ask it with `hello()`, and send a request with
   a browser context (`browserContext`, `browser_context`) only to a daemon
   that says `browser_context`, refusing it with the new `Unsupported` error,
-  unsent, otherwise. No daemon applies one yet: this one refuses a request
-  that carries `browser` rather than send it as though it did not, which is
-  what an older one does.
+  unsent, otherwise. A daemon older than the field sends `browser` as though
+  it were not there, which is why a client asks.
 - **A profile says what its browser draws for every connection**, as
   `per_connection`: whether it shuffles its extensions, and the lengths of
   its GREASE ECH payload. `capture` says it of the browser it measures, the

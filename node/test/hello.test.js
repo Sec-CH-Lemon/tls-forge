@@ -76,7 +76,7 @@ test('a transport older than the question speaks protocol 1', async () => {
 
 test('the committed answers to hello read as they say', async () => {
   for (const [mode, want] of [
-    ['fixture', { protocol: 2, capabilities: [] }],
+    ['fixture', { protocol: 2, capabilities: ['browser_context'] }],
     ['fixture-old', { protocol: 1, capabilities: [] }],
   ]) {
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {

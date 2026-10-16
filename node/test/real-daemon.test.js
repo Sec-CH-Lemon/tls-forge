@@ -5,7 +5,7 @@ import net from 'node:net';
 import { test } from 'node:test';
 import zlib from 'node:zlib';
 
-import { Client, MAX_REQUEST_BYTES, Unsupported } from '../index.js';
+import { Client, MAX_REQUEST_BYTES } from '../index.js';
 
 const binary = process.env.TLSFORGE_REAL_BIN;
 
@@ -198,27 +198,56 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
   }
 });
 
-test('the real Go daemon says what it is and sends no browser context', { skip: !binary }, async () => {
-  const hits = [];
-  const server = http.createServer((request, response) => {
-    hits.push(request.url);
-    response.statusCode = 204;
+test('the real Go daemon applies a browser context, CORS and all', { skip: !binary }, async () => {
+  // Two servers, two origins: the page's, and another one CORS answers for.
+  const serve = (answer) => {
+    const seen = [];
+    const server = http.createServer((request, response) => {
+      seen.push({ method: request.method, url: request.url, headers: request.headers });
+      answer(request, response);
+    });
+    return { seen, server };
+  };
+  const page = serve((_request, response) => response.end('ok'));
+  const other = serve((_request, response) => {
+    response.statusCode = 403;
     response.end();
   });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await Promise.all([page, other].map(({ server }) => new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))));
   const client = new Client({ binary });
   try {
-    const { port } = server.address();
-    assert.deepEqual(await client.hello(), { protocol: 2, capabilities: [] });
+    const base = `http://127.0.0.1:${page.server.address().port}`;
+    const elsewhere = `http://127.0.0.1:${other.server.address().port}`;
+    assert.deepEqual(await client.hello(), { protocol: 2, capabilities: ['browser_context'] });
+    const from = `${base}/page`;
+    const response = await client.get(`${base}/api`, { browserContext: { kind: 'fetch', initiator: from } });
+    assert.equal(response.status, 200);
+    const api = page.seen.find((hit) => hit.url === '/api');
+    assert.equal(api.headers['sec-fetch-mode'], 'cors');
+    assert.equal(api.headers['sec-fetch-site'], 'same-origin');
+    assert.equal(api.headers.accept, '*/*');
+    assert.equal(api.headers.referer, from);
+    assert.equal(api.headers['upgrade-insecure-requests'], undefined);
+
+    // JSON to the other origin asks first, is refused, and nothing more goes.
     await assert.rejects(
-      client.get(`http://127.0.0.1:${port}/context`, { browserContext: { kind: 'fetch' } }),
-      (err) => err instanceof Unsupported && /speaks protocol 2 and does not apply browser contexts/.test(err.message),
+      client.request({
+        url: `${elsewhere}/cart`, method: 'POST', body: '{}', headers: { 'content-type': 'application/json' },
+        browserContext: { kind: 'fetch', initiator: from },
+      }),
+      /CORS: the preflight of POST .* refused it: it was answered 403/,
     );
-    // Nothing reached the server for it; the next request does.
-    assert.equal((await client.get(`http://127.0.0.1:${port}/plain`)).status, 204);
-    assert.deepEqual(hits, ['/plain']);
+    assert.deepEqual(other.seen.map((hit) => hit.method), ['OPTIONS']);
+
+    // What the protocol does not have is refused, and nothing is sent.
+    const before = page.seen.length;
+    await assert.rejects(
+      client.get(`${base}/x`, { browserContext: { kind: 'fetch', initiator: from, frame: 'top' } }),
+      /bad request: browser: json: unknown field "frame"/,
+    );
+    assert.equal(page.seen.length, before);
   } finally {
     client.close();
-    await new Promise((resolve) => server.close(resolve));
+    await Promise.all([page, other].map(({ server }) => new Promise((resolve) => server.close(resolve))));
   }
 });

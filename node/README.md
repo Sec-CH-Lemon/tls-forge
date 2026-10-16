@@ -215,7 +215,8 @@ failure category:
 - a `SessionReset` — the request was not sent, because the session it was made
   in has gone;
 - an `Unsupported` — the request was not sent, because the transport does not
-  do what it needs: a `browserContext`, which no tls-forge applies yet;
+  do what it needs: a `browserContext`, which a tls-forge older than this one
+  does not apply;
 - a `RangeError` — the request is longer than `MAX_REQUEST_BYTES`, 16 MiB as
   the transport reads it: JSON, a binary body in base64, and the newline. It is
   refused before it is queued, and the transport and its session are left as
@@ -243,9 +244,30 @@ than the question speaks protocol 1, and can do nothing it is asked about.
 
 A request with a `browserContext` is sent only to a transport whose
 capabilities include `browser_context`, as the field `browser`, and rejected
-with `Unsupported`, unsent, by any other; no tls-forge applies one yet. The
-first such request waits for the answer to `hello`, so a request made after it
-may go first.
+with `Unsupported`, unsent, by any other. The first such request waits for the
+answer to `hello`, so a request made after it may go first.
+
+## Sending a request as a page would
+
+```js
+const page = 'https://shop.example/item/7';
+const response = await client.request({
+  url: 'https://api.shop.example/cart',
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: '{"item":7}',
+  browserContext: { kind: 'fetch', initiator: page },
+});
+```
+
+`browserContext` says what in a browser the request stands for, and it goes
+out as Chrome sends that: `kind` is `navigation`, `form`, `fetch` or `xhr`,
+`initiator` the page it is sent from, and `referrerPolicy`, `mode` and
+`credentials` are as in the Go library, whose
+[browser contexts](../GO.md#browser-contexts) say what each does, CORS and
+all. A request a page could not send, a key the protocol does not have, and a
+request CORS stops are rejected with the transport's error, and nothing more
+is sent.
 
 ## Binary resolution
 

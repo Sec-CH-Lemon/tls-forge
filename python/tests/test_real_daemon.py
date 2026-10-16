@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from tlsforge import MAX_REQUEST_BYTES, Client, Hello, RequestFailed, TransportError, Unsupported
+from tlsforge import MAX_REQUEST_BYTES, Client, Hello, RequestFailed, TransportError
 
 
 class _BinaryHandler(BaseHTTPRequestHandler):
@@ -297,34 +297,64 @@ def test_the_real_go_daemon_reads_a_request_as_long_as_the_limit() -> None:
         thread.join(timeout=2)
 
 
-def test_the_real_go_daemon_says_what_it_is_and_sends_no_browser_context() -> None:
+def test_the_real_go_daemon_applies_a_browser_context_cors_and_all() -> None:
     binary = os.environ.get("TLSFORGE_REAL_BIN")
     if not binary:
         pytest.skip("run through make wrapper-smoke")
 
-    hits = []
+    def serving(status: int) -> tuple[ThreadingHTTPServer, list]:
+        seen: list = []
 
-    class _Counting(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
-            hits.append(self.path)
-            self.send_response(204)
-            self.end_headers()
+        class _Keeping(BaseHTTPRequestHandler):
+            def _answer(self) -> None:
+                seen.append((self.command, self.path, dict(self.headers)))
+                self.send_response(status)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
 
-        def log_message(self, _format: str, *_args: object) -> None:
-            pass
+            do_GET = do_POST = do_OPTIONS = _answer  # noqa: N815 - BaseHTTPRequestHandler API
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), _Counting)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+            def log_message(self, _format: str, *_args: object) -> None:
+                pass
+
+        return ThreadingHTTPServer(("127.0.0.1", 0), _Keeping), seen
+
+    page, page_seen = serving(200)
+    other, other_seen = serving(403)
+    threads = [threading.Thread(target=s.serve_forever, daemon=True) for s in (page, other)]
+    for thread in threads:
+        thread.start()
     try:
+        base = f"http://127.0.0.1:{page.server_port}"
+        elsewhere = f"http://127.0.0.1:{other.server_port}"
+        initiator = f"{base}/page"
         with Client(binary=binary) as client:
-            assert client.hello() == Hello(2, ())
-            with pytest.raises(Unsupported, match="speaks protocol 2 and does not apply browser contexts"):
-                client.get(f"http://127.0.0.1:{server.server_port}/context", browser_context={"kind": "fetch"})
-            # Nothing reached the server for it; the next request does.
-            assert client.get(f"http://127.0.0.1:{server.server_port}/plain").status == 204
-        assert hits == ["/plain"]
+            assert client.hello() == Hello(2, ("browser_context",))
+            answer = client.get(f"{base}/api", browser_context={"kind": "fetch", "initiator": initiator})
+            assert answer.status == 200
+            method, path, headers = page_seen[0]
+            lowered = {name.lower(): value for name, value in headers.items()}
+            assert (method, path) == ("GET", "/api")
+            assert lowered["sec-fetch-mode"] == "cors" and lowered["sec-fetch-site"] == "same-origin"
+            assert lowered["accept"] == "*/*" and lowered["referer"] == initiator
+            assert "upgrade-insecure-requests" not in lowered
+
+            # JSON to the other origin asks first, is refused, and nothing more goes.
+            with pytest.raises(RequestFailed, match="CORS: the preflight of POST .* refused it: it was answered 403"):
+                client.post(
+                    f"{elsewhere}/cart",
+                    "{}",
+                    headers={"content-type": "application/json"},
+                    browser_context={"kind": "fetch", "initiator": initiator},
+                )
+            assert [hit[0] for hit in other_seen] == ["OPTIONS"]
+
+            # What the protocol does not have is refused, and nothing is sent.
+            with pytest.raises(RequestFailed, match='bad request: browser: json: unknown field "frame"'):
+                client.get(f"{base}/x", browser_context={"kind": "fetch", "initiator": initiator, "frame": "top"})
+            assert len(page_seen) == 1
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
+        for server, thread in zip((page, other), threads):
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)

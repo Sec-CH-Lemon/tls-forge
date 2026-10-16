@@ -47,7 +47,7 @@ the password of any URL it quotes.
 | `body` | request body |
 | `bodyEncoding` | how to read `body`: absent or `utf8` for text, `base64` for bytes |
 | `setCookie` | `name=value` pairs added to the jar before the request |
-| `browser` | the browser context of the request; refused by every daemon so far, see [Asking what a daemon is](#asking-what-a-daemon-is) |
+| `browser` | the browser context the request is made in: `{"kind": "fetch", "initiator": "https://shop.example/item/7"}`, with `referrerPolicy`, `mode` and `credentials` as the Go library's `BrowserContext` has them ([GO.md](../GO.md#browser-contexts)); sent only to a daemon that says `browser_context`, see [Asking what a daemon is](#asking-what-a-daemon-is) |
 | `control` | makes the line a question for the daemon instead of a request; see the same |
 
 JSON objects have no order, which is why `order` exists — but it orders the
@@ -157,7 +157,8 @@ that a client has to ask about before relying on it:
 
 ```json
 {"id": 10, "control": "hello"}
-{"id": 10, "status": 0, "url": "", "body": "", "headers": null, "cookies": null, "protocol": 2}
+{"id": 10, "status": 0, "url": "", "body": "", "headers": null, "cookies": null, "protocol": 2,
+ "capabilities": ["browser_context"]}
 ```
 
 `capabilities`, a list of names, is absent while there are none; a client reads
@@ -167,10 +168,13 @@ connection either: a client reads that as protocol 1 and no capabilities. Any
 other `control` is refused, as is a control line that carries a `url`.
 
 A request that needs a capability is sent only to a daemon that says it has it.
-`browser`, the browser context a request is made in, is the first: no daemon
-applies one yet, and this one refuses a request that carries one, with `error`
-and no connection, rather than sending it as though it had none, which is what a
-daemon that predates the field does with it. The Node.js and Python packages ask
+`browser`, the browser context a request is made in, is the first: a daemon
+that says `browser_context` sends the request as Chrome sends its kind, CORS
+and all, and one that predates the field sends it as though it had none. This
+one reads `browser` strictly: a field the protocol does not have, or a value
+of the wrong type, is `"error": "bad request: browser: ..."`, and what the
+library refuses of the context itself, and a request CORS stops, are an
+`error` too, with nothing more sent. The Node.js and Python packages ask
 `hello` before the first request with a browser context, refuse it with
 `Unsupported` when the daemon does not say `browser_context`, and keep the
 answer for the client's life: what a binary is does not change between its

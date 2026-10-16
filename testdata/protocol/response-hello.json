@@ -5,5 +5,8 @@
   "body": "",
   "headers": null,
   "cookies": null,
-  "protocol": 2
+  "protocol": 2,
+  "capabilities": [
+    "browser_context"
+  ]
 }

@@ -12,6 +12,7 @@ import (
 	"net"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -686,12 +687,14 @@ func TestServeContextCancelsTheRequestInFlightAndAnswersIt(t *testing.T) {
 func TestHelloSaysWhatTheDaemonIsWithoutAConnection(t *testing.T) {
 	client := &fakeClient{}
 	got := handle(context.Background(), `{"id":3,"control":"hello"}`, client)
-	if got.ID != 3 || got.Error != "" || got.Protocol != Protocol || got.Capabilities != nil || client.got != nil {
+	if got.ID != 3 || got.Error != "" || got.Protocol != Protocol || !slices.Equal(got.Capabilities, []string{"browser_context"}) ||
+		client.got != nil {
 		t.Errorf("hello: %+v, a request %v", got, client.got)
 	}
 	// What it can do is a copy: an answer cannot change what the next says.
+	original := capabilities
 	capabilities = []string{"something"}
-	defer func() { capabilities = []string{} }()
+	defer func() { capabilities = original }()
 	got = handle(context.Background(), `{"id":4,"control":"hello"}`, client)
 	got.Capabilities[0] = "changed"
 	if capabilities[0] != "something" {
@@ -708,21 +711,34 @@ func TestHelloSaysWhatTheDaemonIsWithoutAConnection(t *testing.T) {
 	}
 }
 
-func TestABrowserContextIsRefusedRatherThanIgnored(t *testing.T) {
-	// A daemon that applies no browser context sends none: a request that
-	// carries one is refused, not sent as though it did not.
+func TestABrowserContextIsApplied(t *testing.T) {
 	client := &fakeClient{}
-	got := handle(context.Background(),
-		`{"id":7,"url":"https://example.com/","browser":{"kind":"fetch"}}`, client)
-	if got.ID != 7 || !strings.Contains(got.Error, "does not apply browser contexts") || client.got != nil {
-		t.Errorf("a browser context: %+v, a request %v", got, client.got)
+	got := handle(context.Background(), `{"id":7,"url":"https://example.com/","browser":{"kind":"fetch",`+
+		`"initiator":"https://example.com/page","referrerPolicy":"origin","mode":"no-cors","credentials":"omit"}}`, client)
+	want := &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: "https://example.com/page",
+		ReferrerPolicy: "origin", Mode: "no-cors", Credentials: "omit"}
+	if got.Error != "" || client.got == nil || client.got.Browser == nil || *client.got.Browser != *want {
+		t.Errorf("a browser context: %+v, sent %+v", got, client.got)
 	}
 	// None given, or null, is none.
 	for _, line := range []string{`{"id":8,"url":"https://example.com/"}`,
 		`{"id":8,"url":"https://example.com/","browser":null}`} {
-		if got := handle(context.Background(), line, client); got.Error != "" || client.got == nil {
+		client.got = nil
+		if got := handle(context.Background(), line, client); got.Error != "" || client.got == nil ||
+			client.got.Browser != nil {
 			t.Errorf("%s: %+v", line, got)
 		}
+	}
+	// What the protocol does not have is a bad request, and nothing is sent.
+	for line, says := range map[string]string{
+		`{"id":9,"url":"https://example.com/","browser":{"kind":"fetch","frame":"top"}}`: `bad request: browser: json: unknown field "frame"`,
+		`{"id":9,"url":"https://example.com/","browser":{"kind":7}}`:                     "bad request: browser: json: cannot unmarshal number",
+		`{"id":9,"url":"https://example.com/","browser":"fetch"}`:                        "bad request: browser: json: cannot unmarshal string",
+	} {
 		client.got = nil
+		got := handle(context.Background(), line, client)
+		if got.ID != 9 || !strings.HasPrefix(got.Error, says) || client.got != nil {
+			t.Errorf("%s: %+v, sent %+v", line, got, client.got)
+		}
 	}
 }

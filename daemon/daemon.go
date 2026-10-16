@@ -30,6 +30,7 @@ package daemon
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -86,12 +87,39 @@ type Request struct {
 	// control line names no url, and is answered without a connection.
 	Control string `json:"control,omitempty"`
 
-	// Browser is the browser context a request is made in (what kind of
-	// request, from where): the field a daemon that applies browser contexts
-	// reads. This one applies none, and refuses a request that carries one
-	// rather than send it as though it had not, which is what a daemon that
-	// predates the field does; a client asks first, with hello.
+	// Browser is the browser context a request is made in, what kind of
+	// request from which page: BrowserContext, read strictly. A daemon that
+	// predates the field sends the request as though it had none, so a client
+	// asks first, with hello, for browser_context.
 	Browser json.RawMessage `json:"browser,omitempty"`
+}
+
+// BrowserContext is a request's browser context as a line carries it: the
+// library's tlsforge.BrowserContext, field for field.
+type BrowserContext struct {
+	Kind           string `json:"kind"`
+	Initiator      string `json:"initiator,omitempty"`
+	ReferrerPolicy string `json:"referrerPolicy,omitempty"`
+	Mode           string `json:"mode,omitempty"`
+	Credentials    string `json:"credentials,omitempty"`
+}
+
+// browserContextOf is the context a line carries, or nil for none: read
+// strictly, so that a field the protocol does not have, or a value of the
+// wrong type, is a bad request rather than a context applied in part. What
+// the library refuses of the context itself, it says, and nothing is sent.
+func browserContextOf(raw json.RawMessage) (*tlsforge.BrowserContext, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	var said BrowserContext
+	if err := decoder.Decode(&said); err != nil {
+		return nil, fmt.Errorf("browser: %w", err)
+	}
+	return &tlsforge.BrowserContext{Kind: tlsforge.RequestKind(said.Kind), Initiator: said.Initiator,
+		ReferrerPolicy: said.ReferrerPolicy, Mode: said.Mode, Credentials: said.Credentials}, nil
 }
 
 // Protocol is the version of the protocol this daemon speaks: 2 answers
@@ -100,9 +128,10 @@ type Request struct {
 const Protocol = 2
 
 // capabilities are what this daemon can do that a client has to ask about
-// before it relies on it. None yet: a client that needs one finds it missing,
-// and says so instead of being ignored.
-var capabilities = []string{}
+// before it relies on it: browser_context, a request's browser field applied.
+// A client that needs one a daemon does not say finds it missing, and says so
+// instead of being ignored.
+var capabilities = []string{"browser_context"}
 
 // Response is one line of output.
 type Response struct {
@@ -331,9 +360,9 @@ func handle(ctx context.Context, line string, client Client) Response {
 	if req.URL == "" {
 		return Response{ID: req.ID, Error: "bad request: no url"}
 	}
-	if len(req.Browser) > 0 && string(req.Browser) != "null" {
-		return Response{ID: req.ID, Error: "bad request: this tls-forge does not apply browser contexts; " +
-			"the request was not sent"}
+	browser, err := browserContextOf(req.Browser)
+	if err != nil {
+		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
 
 	requestHeaders, err := orderedHeaders(req, client)
@@ -357,6 +386,7 @@ func handle(ctx context.Context, line string, client Client) Response {
 		Body:    body,
 		Cookies: cookies,
 		Context: ctx,
+		Browser: browser,
 	})
 	if err != nil {
 		return failed(req.ID, err)

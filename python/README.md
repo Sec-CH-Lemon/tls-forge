@@ -202,7 +202,7 @@ except tlsforge.TransportError:
 | `Timeout` | The Python deadline passed. Also inherits from built-in `TimeoutError`. |
 | `TransportError` | The daemon could not start, exited, could not be written to, or returned invalid protocol data. |
 | `SessionReset` | A `TransportError`: the request was not sent, because the session it was made in has gone. |
-| `Unsupported` | The request was not sent, because the transport does not do what it needs: a `browser_context`, which no tls-forge applies yet. |
+| `Unsupported` | The request was not sent, because the transport does not do what it needs: a `browser_context`, which a tls-forge older than this one does not apply. |
 
 `client.hello()` returns a `Hello(protocol, capabilities)`: the protocol the
 transport speaks and what it can do that a client has to ask about, asked
@@ -211,6 +211,25 @@ question speaks protocol 1, and can do nothing it is asked about. A request with
 a `browser_context` is sent only to a transport whose capabilities include
 `browser_context`, as the field `browser`, and raises `Unsupported`, unsent,
 with any other.
+
+```python
+page = "https://shop.example/item/7"
+response = client.post(
+    "https://api.shop.example/cart",
+    '{"item":7}',
+    headers={"content-type": "application/json"},
+    browser_context={"kind": "fetch", "initiator": page},
+)
+```
+
+`browser_context` says what in a browser the request stands for, and it goes
+out as Chrome sends that. Its keys are the protocol's: `kind` (`navigation`,
+`form`, `fetch` or `xhr`), `initiator` (the page it is sent from),
+`referrerPolicy`, `mode` and `credentials`, as in the Go library, whose
+[browser contexts](../GO.md#browser-contexts) say what each does, CORS and
+all. A request a page could not send, a key the protocol does not have, and a
+request CORS stops raise `RequestFailed` with the transport's reason, and
+nothing more is sent.
 
 Invalid caller values such as an empty URL, non-positive timeout or non-callable
 `on_stderr` raise standard `ValueError` or `TypeError`, and so does a request

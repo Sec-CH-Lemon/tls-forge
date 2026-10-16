@@ -31,7 +31,7 @@ def test_a_transport_with_nothing_to_say(client, monkeypatch: pytest.MonkeyPatch
 
 @pytest.mark.parametrize(
     ("mode", "want"),
-    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(2, ())), ("fixture-old", tlsforge.Hello(1, ()))],
+    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(2, ("browser_context",))), ("fixture-old", tlsforge.Hello(1, ()))],
 )
 def test_older_transports_and_the_committed_answers(client, monkeypatch, mode, want) -> None:
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", mode)
