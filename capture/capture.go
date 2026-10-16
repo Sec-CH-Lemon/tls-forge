@@ -258,7 +258,7 @@ func (h *HTTP1) Fingerprint() *fingerprint.HTTP1 {
 	if h == nil {
 		return nil
 	}
-	out := &fingerprint.HTTP1{Headers: make([]fingerprint.HeaderField, len(h.Headers))}
+	out := &fingerprint.HTTP1{Method: h.Method, Proto: h.Proto, Headers: make([]fingerprint.HeaderField, len(h.Headers))}
 	for i, field := range h.Headers {
 		name := field.Name
 		if i < len(h.HeaderNames) && h.HeaderNames[i] != "" {

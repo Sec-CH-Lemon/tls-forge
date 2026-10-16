@@ -1305,6 +1305,14 @@ not compared. An extension no rule describes, sent by both with different
 contents, is listed under `not checked`: it is neither a match nor a
 difference, and the command exits `3`.
 
+Over HTTP/2 the comparison covers the SETTINGS in order, the connection's
+WINDOW_UPDATE, PRIORITY frames and the priority on HEADERS, the pseudo-header
+order and values, and every other field with its value, in order. Over
+HTTP/1.1 it covers the request's method and version, and every field in order
+with its spelling and value. The page asked for and the name the server was
+reached by are not compared: the values of `:path`, `:authority` and `Host`,
+and the target of the request line.
+
 ```bash
 tls-forge compare
 tls-forge compare --profile chrome_151 --headless

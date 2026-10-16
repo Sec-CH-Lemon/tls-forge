@@ -112,6 +112,9 @@ func TestFromHTTP2AndFingerprintOnNil(t *testing.T) {
 
 func TestHTTP1FingerprintKeepsWireCasing(t *testing.T) {
 	rendered := &HTTP1{
+		Method:      "GET",
+		Path:        "/?http1=cold",
+		Proto:       "HTTP/1.1",
 		HeaderOrder: []string{"host", "sec-ch-ua"},
 		HeaderNames: []string{"Host", "sec-ch-ua"},
 		Headers: []HeaderField{
@@ -122,6 +125,10 @@ func TestHTTP1FingerprintKeepsWireCasing(t *testing.T) {
 	got := rendered.Fingerprint()
 	if got.Headers[0].Name != "Host" || got.Headers[1].Name != "sec-ch-ua" {
 		t.Errorf("wire casing was lost: %+v", got.Headers)
+	}
+	// The request line goes with it, but for the page asked for.
+	if got.Method != "GET" || got.Proto != "HTTP/1.1" {
+		t.Errorf("the request line was lost: %q %q", got.Method, got.Proto)
 	}
 
 	// Captures written before header_names existed remain comparable.

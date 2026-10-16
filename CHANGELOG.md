@@ -487,6 +487,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- `compare` did not compare the priority on HEADERS: a client that sent none,
+  or another, matched Chrome, which sends one. Nor did it compare PRIORITY
+  frames but through the Akamai string, the values of `:method` and
+  `:scheme`, or an HTTP/1.1 request's method and version. It compares all of
+  them now, and says a priority's weight as RFC 9113 counts it, 1 to 256.
 - A Chrome profile sent the payload of its GREASE `encrypted_client_hello`
   at one length on every connection, the one its capture happened to draw,
   where Chrome draws one of 144, 176, 208 and 240 bytes for each connection,

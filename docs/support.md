@@ -33,8 +33,8 @@ plausible it looks.
 | GREASE `encrypted_client_hello` payload length drawn on every connection, from 144, 176, 208 and 240 bytes, each as likely; cipher suite, key and config id fresh too | checked | measured on Chrome 155 over 301 connections (`testdata/chrome155-ech.json`); `TestHelloAfterHelloDrawsItsOwnECH` over 256 hellos and `TestEveryConnectionDrawsItsECHLengthColdOrResumed` over cold and resumed connections. Only Chromium was measured: a profile of another browser keeps the length it was captured with |
 | ClientHello of a resumed connection (`pre_shared_key` last, one identity, a 32-byte binder) | checked | held to `testdata/chrome155-clienthello-resumed.bin`, field by field |
 | 0-RTT early data, and using a session ticket once | not checked | |
-| HTTP/2 SETTINGS, connection WINDOW_UPDATE, priority on HEADERS, pseudo-header order (the Akamai fingerprint) | checked | `tls-forge compare` |
-| Header order and values of a top-level navigation (GET, no body), HTTP/2 and HTTP/1.1, including HTTP/1.1 spelling | checked | `tls-forge compare` |
+| HTTP/2 SETTINGS, connection WINDOW_UPDATE, PRIORITY frames, priority on HEADERS, pseudo-header order (the Akamai fingerprint) and the pseudo-headers' values but `:path` and `:authority` | checked | `tls-forge compare`; `TestCompareHTTP2` changes each field once and holds the comparison to finding it |
+| Header order and values of a top-level navigation (GET, no body), HTTP/2 and HTTP/1.1, including HTTP/1.1 spelling and the request's method and version | checked | `tls-forge compare`; `TestCompareHTTP1` as `TestCompareHTTP2` |
 | `cookie` on a navigation | differs | over HTTP/2 Chrome sends it before `priority`; tls-forge after |
 | POST, form submissions, `fetch()` and XHR | differs | sent with a navigation's headers (`sec-fetch-*`, `accept`, `upgrade-insecure-requests`); `content-length`, `content-type` and `origin` sit in other places than Chrome's |
 | CORS preflight for a cross-origin `fetch()` or XHR | not modelled | Chrome sends `OPTIONS` first, and nothing more when it is refused; tls-forge sends the request itself |

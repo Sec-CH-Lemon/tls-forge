@@ -177,18 +177,58 @@ func TLSFields(hello *ClientHello) []Field {
 //
 // Header values are included. A profile is a complete browser identity, and a
 // Chrome ClientHello paired with a HeadlessChrome user-agent is exactly the kind
-// of cross-layer contradiction this comparison exists to expose. Pseudo-header
-// values are excluded because the two measurements deliberately use different
-// paths on the same local server.
+// of cross-layer contradiction this comparison exists to expose. The values of
+// :path and :authority are not: the two measurements ask for different pages,
+// and a browser opened by hand reaches the server by a name of its own.
 func HTTP2Fields(h *HTTP2) []Field {
 	return []Field{
 		scalar("http2_akamai", h.Akamai()),
 		{Name: "http2_settings", Values: settingStrings(h.Settings)},
 		scalar("http2_window_update", fmt.Sprint(h.WindowUpdate)),
+		{Name: "http2_priority_frames", Values: priorityStrings(h.Priorities)},
+		scalar("http2_header_priority", headerPriority(h.HeaderPriority)),
 		{Name: "pseudo_header_order", Values: h.PseudoHeaderOrder()},
+		{Name: "pseudo_header_values", Values: pseudoHeaderStrings(h.Headers)},
 		{Name: "header_order", Values: h.HeaderOrder()},
 		{Name: "header_values", Values: regularHeaderStrings(h.Headers)},
 	}
+}
+
+// priorityString is a priority as RFC 9113 counts its weight, 1 to 256: one
+// more than the byte on the wire.
+func priorityString(p Priority) string {
+	exclusive := ""
+	if p.Exclusive {
+		exclusive = "exclusive, "
+	}
+	return fmt.Sprintf("stream %d, %sdepends on %d, weight %d", p.StreamID, exclusive, p.DependsOn, int(p.Weight)+1)
+}
+
+func priorityStrings(priorities []Priority) []string {
+	out := make([]string, len(priorities))
+	for i, p := range priorities {
+		out[i] = priorityString(p)
+	}
+	return out
+}
+
+func headerPriority(p *Priority) string {
+	if p == nil {
+		return "(none)"
+	}
+	return priorityString(*p)
+}
+
+// pseudoHeaderStrings are the pseudo-headers with their values, but for the
+// page asked for and the name the server was reached by.
+func pseudoHeaderStrings(headers []HeaderField) []string {
+	var out []string
+	for _, header := range headers {
+		if strings.HasPrefix(header.Name, ":") && header.Name != ":path" && header.Name != ":authority" {
+			out = append(out, header.Name+": "+header.Value)
+		}
+	}
+	return out
 }
 
 func regularHeaderStrings(headers []HeaderField) []string {

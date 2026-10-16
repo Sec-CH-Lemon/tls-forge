@@ -536,9 +536,11 @@ if !comparison.OK() {
 }
 ```
 
-The comparison covers the ClientHello field by field, protocol mismatch, exact
-HTTP/1.1 header casing/order/values, HTTP/2 settings, pseudo-header order,
-normal header order and normal header values. `fingerprint.TLSFields` lists
+The comparison covers the ClientHello field by field, protocol mismatch, the
+HTTP/1.1 method and version with exact header casing/order/values, HTTP/2
+settings, PRIORITY frames and the priority on HEADERS, pseudo-header order and
+values but `:path` and `:authority`, normal header order and normal header
+values. `fingerprint.TLSFields` lists
 what a ClientHello is compared on and how: what the browser draws for every
 connection by its shape (where GREASE goes, how long each key is, ECH's cipher
 suite, the binders of `pre_shared_key`), and the length of the ECH payload,

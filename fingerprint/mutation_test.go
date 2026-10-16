@@ -2,7 +2,6 @@ package fingerprint
 
 import (
 	"slices"
-	"sort"
 	"testing"
 )
 
@@ -43,16 +42,7 @@ func TestEveryComparedTLSFieldCatchesAChange(t *testing.T) {
 	}
 
 	// And the manifest has no field without a change of its own.
-	var unheld []string
-	for _, field := range TLSFields(mustParse(t, fixture(t, cold))) {
-		if !field.Varies && !held[field.Name] {
-			unheld = append(unheld, field.Name)
-		}
-	}
-	sort.Strings(unheld)
-	if len(unheld) > 0 {
-		t.Errorf("no change is held to %v", unheld)
-	}
+	heldToEveryField(t, TLSFields(mustParse(t, fixture(t, cold))), held)
 }
 
 const cold, resumed = "chrome155-clienthello.bin", "chrome155-clienthello-resumed.bin"

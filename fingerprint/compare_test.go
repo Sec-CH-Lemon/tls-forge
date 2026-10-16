@@ -1,6 +1,7 @@
 package fingerprint
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -145,6 +146,22 @@ func TestCompareTLSCountsDuplicates(t *testing.T) {
 	}
 }
 
+// heldToEveryField fails for a field fields compares, Varies aside, that no
+// change was reported under: the manifest has no field a test does not hold
+// it to.
+func heldToEveryField(t *testing.T, fields []Field, held map[string]bool) {
+	t.Helper()
+	var unheld []string
+	for _, field := range fields {
+		if !field.Varies && !held[field.Name] {
+			unheld = append(unheld, field.Name)
+		}
+	}
+	if len(unheld) > 0 {
+		t.Errorf("no change is held to %v", unheld)
+	}
+}
+
 func TestCompareHTTP2(t *testing.T) {
 	reference := chromeHTTP2()
 
@@ -152,18 +169,28 @@ func TestCompareHTTP2(t *testing.T) {
 		t.Errorf("identical connections reported differences:\n%s", report)
 	}
 
+	held := map[string]bool{}
 	for _, tc := range []struct {
 		name   string
 		mutate func(*HTTP2)
 		field  string
 	}{
+		{"a PRIORITY frame", func(h *HTTP2) {
+			h.Priorities = []Priority{{StreamID: 3, DependsOn: 0, Weight: 200}}
+		}, "http2_akamai"},
 		{"settings order", func(h *HTTP2) {
 			h.Settings[0], h.Settings[1] = h.Settings[1], h.Settings[0]
 		}, "http2_settings"},
 		{"window update", func(h *HTTP2) { h.WindowUpdate = 65535 }, "http2_window_update"},
+		{"a PRIORITY frame, read", func(h *HTTP2) {
+			h.Priorities = []Priority{{StreamID: 3, Exclusive: true, DependsOn: 0, Weight: 200}}
+		}, "http2_priority_frames"},
+		{"no priority on HEADERS", func(h *HTTP2) { h.HeaderPriority = nil }, "http2_header_priority"},
+		{"another weight on HEADERS", func(h *HTTP2) { h.HeaderPriority.Weight = 219 }, "http2_header_priority"},
 		{"pseudo-header order", func(h *HTTP2) {
 			h.Headers[1], h.Headers[2] = h.Headers[2], h.Headers[1]
 		}, "pseudo_header_order"},
+		{"another method", func(h *HTTP2) { h.Headers[0].Value = "POST" }, "pseudo_header_values"},
 		{"header order", func(h *HTTP2) {
 			h.Headers[4], h.Headers[6] = h.Headers[6], h.Headers[4]
 		}, "header_order"},
@@ -171,27 +198,26 @@ func TestCompareHTTP2(t *testing.T) {
 			h.Headers[4].Value = "different"
 		}, "header_values"},
 	} {
+		held[tc.field] = true
 		t.Run(tc.name, func(t *testing.T) {
 			candidate := chromeHTTP2()
 			tc.mutate(candidate)
 			report := CompareHTTP2(reference, candidate)
-			if report.OK() {
-				t.Fatalf("expected a difference in %s", tc.field)
-			}
-			if !strings.Contains(report.String(), tc.field) {
+			if !slices.ContainsFunc(report.Differences, func(d Difference) bool { return d.Field == tc.field }) {
 				t.Errorf("report does not name %q:\n%s", tc.field, report)
 			}
 		})
 	}
+	heldToEveryField(t, HTTP2Fields(reference), held)
 }
 
 func TestCompareHTTP1(t *testing.T) {
-	reference := &HTTP1{Headers: []HeaderField{
+	reference := &HTTP1{Method: "GET", Proto: "HTTP/1.1", Headers: []HeaderField{
 		{Name: "Host", Value: "browser.example"},
 		{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
 		{Name: "Connection", Value: "keep-alive"},
 	}}
-	identical := &HTTP1{Headers: []HeaderField{
+	identical := &HTTP1{Method: "GET", Proto: "HTTP/1.1", Headers: []HeaderField{
 		{Name: "Host", Value: "client.example"},
 		{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
 		{Name: "Connection", Value: "keep-alive"},
@@ -200,31 +226,56 @@ func TestCompareHTTP1(t *testing.T) {
 		t.Errorf("destination-specific Host value differed:\n%s", report)
 	}
 
+	held := map[string]bool{}
 	for _, tc := range []struct {
 		name   string
 		mutate func(*HTTP1)
 		field  string
 	}{
+		{"HTTP/1.0", func(h *HTTP1) { h.Proto = "HTTP/1.0" }, "http1_request"},
+		{"another method", func(h *HTTP1) { h.Method = "HEAD" }, "http1_request"},
 		{"order", func(h *HTTP1) { h.Headers[1], h.Headers[2] = h.Headers[2], h.Headers[1] }, "http1_header_order"},
 		{"casing", func(h *HTTP1) { h.Headers[1].Name = "Sec-Ch-Ua" }, "http1_header_order"},
 		{"value", func(h *HTTP1) { h.Headers[2].Value = "close" }, "http1_header_values"},
 	} {
+		held[tc.field] = true
 		t.Run(tc.name, func(t *testing.T) {
-			candidate := &HTTP1{Headers: append([]HeaderField(nil), identical.Headers...)}
+			candidate := &HTTP1{Method: identical.Method, Proto: identical.Proto,
+				Headers: append([]HeaderField(nil), identical.Headers...)}
 			tc.mutate(candidate)
 			report := CompareHTTP1(reference, candidate)
-			if report.OK() || !strings.Contains(report.String(), tc.field) {
+			if !slices.ContainsFunc(report.Differences, func(d Difference) bool { return d.Field == tc.field }) {
 				t.Errorf("difference in %s was not reported:\n%s", tc.field, report)
 			}
 		})
 	}
+	heldToEveryField(t, HTTP1Fields(reference), held)
 }
 
-func TestHTTP2FieldsExcludePseudoHeaderValues(t *testing.T) {
+func TestHTTP2FieldsExcludeThePageAndTheSiteName(t *testing.T) {
+	// The two measurements ask for different pages, and a browser opened by
+	// hand reaches the server by a name of its own.
 	left, right := chromeHTTP2(), chromeHTTP2()
-	right.Headers[0].Value = "/another-path"
+	right.Headers[1].Value = "192.168.1.5:8443"
+	right.Headers[3].Value = "/another-path"
 	if report := CompareHTTP2(left, right); !report.OK() {
-		t.Errorf("request-specific pseudo-header value differed:\n%s", report)
+		t.Errorf("the page or the site's name differed:\n%s", report)
+	}
+	if got := HTTP2Fields(left)[6]; got.Name != "pseudo_header_values" ||
+		!slices.Equal(got.Values, []string{":method: GET", ":scheme: https"}) {
+		t.Errorf("pseudo-header values: %+v", got)
+	}
+}
+
+func TestPrioritiesAreSaidAsRFC9113CountsTheirWeight(t *testing.T) {
+	if got := headerPriority(&Priority{StreamID: 1, Exclusive: true, Weight: 255}); got != "stream 1, exclusive, depends on 0, weight 256" {
+		t.Errorf("Chrome's: %q", got)
+	}
+	if got := priorityString(Priority{StreamID: 5, DependsOn: 3, Weight: 0}); got != "stream 5, depends on 3, weight 1" {
+		t.Errorf("a PRIORITY frame: %q", got)
+	}
+	if got := headerPriority(nil); got != "(none)" {
+		t.Errorf("none: %q", got)
 	}
 }
 
