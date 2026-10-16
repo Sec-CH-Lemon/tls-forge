@@ -217,6 +217,10 @@ func (f clientFlags) asker(proxy string) (*tlsforge.Client, error) {
 // A variable rather than a constant so a test can lower it.
 var exitLookupWait = 5 * time.Second
 
+// errNotAsked is why a run with --no-exit-lookup does not know where its
+// requests come out.
+var errNotAsked = errors.New("--no-exit-lookup")
+
 // lookupExit asks where requests made with these flags, through this proxy,
 // come out.
 //

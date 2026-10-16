@@ -34,6 +34,7 @@ func (b runner) cameOut(ctx context.Context, client *tlsforge.Client, proxy stri
 	}
 	found, why, field := exitThrough(tries, answer, b.exits.Fields)
 	switch {
+	case b.noLookup:
 	case found.IP == "" && found.Hash != "" && field.Resolve != nil:
 		return b.names.resolve(ctx, b.clients.flags, proxy, found, *field.Resolve, lane), ""
 	case why != "" && res != nil:

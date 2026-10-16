@@ -296,6 +296,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
 | `--proxy-env <name>` | Read `--proxy` from this environment variable, which keeps its password off the command line; see [Commands](#commands) |
 | `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
+| `--no-exit-lookup` | Make no request to learn where requests come out: no address service before the run, no probe of a site, no name a proxy gave resolved. What a proxy says when it opens a tunnel is still read |
 | **Session** | |
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
 | `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
@@ -419,7 +420,8 @@ first. Amazon and ipify report the address without a country.
 This is at least one additional request to a third party on every run. The
 lookup waits at most five seconds in all, and when nobody answers the line says
 so instead of failing the fetch. A list whose entries name different proxies
-has no one address to report, and nobody is asked.
+has no one address to report, and nobody is asked. `--no-exit-lookup` asks
+nobody, and the line says `not looked up · --no-exit-lookup`.
 
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
@@ -565,7 +567,11 @@ when a report is written or the requests are kept. A site behind Cloudflare
 sees a visitor ask for `/cdn-cgi/trace`, which a browser does not; take the
 probe out with `"off": true` if that matters more than the address. Nothing is asked
 of anybody else on a connection of its own: the answer would be another
-connection's.
+connection's. `--no-exit-lookup` makes neither, nor the lookup before the run:
+what the proxy said is all that is known, a name it gave is shown as the name,
+and a request it said nothing of came out somewhere nobody asked about. The
+fields the file has a `CONNECT` say with `ask` are still said, being no
+request of their own.
 
 ```json
 {

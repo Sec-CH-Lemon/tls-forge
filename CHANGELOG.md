@@ -13,6 +13,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`fetch --no-exit-lookup` makes no request to learn where requests come
+  out**: no address service before the run, no probe of a site behind
+  Cloudflare, no name a proxy gave for its exit resolved through its
+  service. What a proxy says in its answer to `CONNECT`, or in the response,
+  is still read; a request it said nothing of has no known exit, and the run
+  says why. Without the flag a run makes these requests as before.
 - **The check a release is held to against a pinned Google Chrome**,
   `go run ./internal/pinned` ([docs/pinned.md](docs/pinned.md)). It reads a
   manifest of the reference build, holds the archived installer and the

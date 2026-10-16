@@ -375,6 +375,9 @@ type runner struct {
 	// nothing or say a name. names asks each name once.
 	exits exitTable
 	names *resolver
+	// noLookup asks nothing to learn where a request came out, for
+	// --no-exit-lookup: what its proxy said is all that is known.
+	noLookup bool
 	// check is what an answer has to have to be the page, when
 	// --wait-for-element or --wait-for names it; nil asks nothing of it.
 	check *pageCheck

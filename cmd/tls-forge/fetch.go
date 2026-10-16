@@ -30,7 +30,7 @@ var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
 	{"the request", []string{"method", "header", "data"}},
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
-	{"proxy", []string{"proxy", "proxy-env", "exit-headers"}},
+	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element"}},
 	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
@@ -489,6 +489,9 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	exitHeaders := fs.String("exit-headers", "",
 		"a JSON file laid over the exit header fields built in: one of the same key replaces ours, "+
 			"\"off\" takes ours out, the rest are added")
+	noExitLookup := fs.Bool("no-exit-lookup", false,
+		"make no request to learn where requests come out: no address service, no probe of the site, no "+
+			"name resolved; what the proxy says when it opens a connection is still read")
 	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]", fetchFlagGroups...)
 	if err := parse(fs, args); err != nil {
 		return err
@@ -696,7 +699,11 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		// is for the site being fetched, not for whoever is asked about the
 		// address.
 		asked := lane.mark()
-		found, lookupErr = lookupExit(ctx, common, way)
+		if *noExitLookup {
+			lookupErr = errNotAsked
+		} else {
+			found, lookupErr = lookupExit(ctx, common, way)
+		}
 		lane.since(asked, "exit-ip", "net", exitArgs(way, found, lookupErr))
 		identity.field("exit-ip", describeExit(found, lookupErr, way))
 		runLog.say(slog.LevelInfo, "exit", runAttrs(nil, "proxy", redactProxy(way),
@@ -787,7 +794,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			method: *method, profile: worn.Name, run: common.run.id,
 			requests: requests, runs: *again.repeat,
 		},
-		exits: exits, names: &resolver{},
+		exits: exits, names: &resolver{}, noLookup: *noExitLookup,
 		counts: counts, trace: trace, log: runLog.logger(),
 		// Every try is written down for a report, and for the log and the trace
 		// each request is kept with.
