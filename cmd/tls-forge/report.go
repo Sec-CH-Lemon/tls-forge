@@ -493,8 +493,11 @@ func limitRows(records []result, limit int) (kept []result, dropped int) {
 }
 
 type reportData struct {
-	// Command is the one that made the run.
+	// Command is the one that made the run, Run its id and Profile the one it
+	// wore.
 	Command   string
+	Run       string
+	Profile   string
 	Generated string
 	Dropped   int
 	Summary   summary
@@ -738,6 +741,9 @@ type reportInput struct {
 	// method is what every request asked with, and trace the file the whole run
 	// was traced to, if it was.
 	method, trace string
+	// run is the run's id, started when it began, and profile the one it wore.
+	run, profile string
+	started      time.Time
 	// at is the file being written, which what the report links to is linked
 	// from. Set as each file is written.
 	at string
@@ -966,6 +972,8 @@ func renderReport(w io.Writer, in reportInput) error {
 
 	data := reportData{
 		Command:   in.command,
+		Run:       in.run,
+		Profile:   in.profile,
 		Generated: at(now()),
 		Dropped:   dropped,
 		Summary:   in.summary,

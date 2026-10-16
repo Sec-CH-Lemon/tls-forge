@@ -149,7 +149,7 @@ func TestTheReportAndTheTraceTellATryTheSameWay(t *testing.T) {
 	// One reading of what the client said, written down in two places.
 	file := &brokenFile{}
 	traceInto(t, file)
-	trace, err := openTrace("anywhere", "fetch", "", traceArgs{})
+	trace, err := openTrace("anywhere", "fetch", "", now(), traceArgs{})
 	if err != nil {
 		t.Fatalf("openTrace: %v", err)
 	}

@@ -13,6 +13,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **Every output of a run names the run.** Its id is the moment it began,
+  `2026-08-16-091850-563`, which its log and report were already named
+  after: the log's `run` record says `run_id`, the trace's run says it and
+  begins when the run did rather than when the trace was opened, the report
+  says it with the profile worn, in its heading and as `run_id`, `started`
+  and `profile` in the JSON, each request kept says it, and a session saved
+  says it in its set's `note`, as `direct, run …` or `via …, run …`.
 - `daemon.ServeContext` is `daemon.Serve` until a context is done: it takes no
   more requests, cancels the one in flight and answers it with why, and
   returns the context's error. `Serve` is unchanged.

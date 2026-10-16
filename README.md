@@ -822,8 +822,9 @@ out/trace-example.com-2026-08-16-091854-584-1.json
   `-i`, the JSON lines, the report and the trace describe it decoded:
   `content-encoding` and `content-length` come off. A coding Chrome does not
   know either is left as it came, its field with it.
-- The `.log` is the request written out for a person: what it was, the
-  profile and the proxy it went with, where it came out, how it ended, and
+- The `.log` is the request written out for a person: what it was, the run
+  it was made in, the profile and the proxy it went with, where it came out,
+  how it ended, and
   every try at it with what the proxy answered when it opened the tunnel,
   the connection it went out on, each thing it waited on and for how long, the
   request as it was written, what the answer came with, how an answer that was
@@ -834,7 +835,10 @@ out/trace-example.com-2026-08-16-091854-584-1.json
 
 Beside them is the log of the whole run, `run-<time>.log`, named for the
 moment the run began, unless `--log` puts it somewhere else; see
-[Logging a run](#logging-a-run).
+[Logging a run](#logging-a-run). That moment, `2026-08-16-091850-563`, is the
+run's id: its log, its report, its trace, each request it keeps and each
+session it saves (in the set's `note`) say it, so that what one run left can be
+told from another's.
 
 The host is written in lower case, without its port, and anything a file name
 cannot hold on every system becomes `_`; a host longer than 100 characters
@@ -1106,6 +1110,9 @@ The JSON document holds what the page shows, under names of its own:
 {
   "command": "fetch",
   "version": "0.3.0",
+  "run_id": "2026-08-16-091850-563",
+  "started": "2026-08-16T09:18:50.563+02:00",
+  "profile": "chrome_155_macos",
   "generated": "2026-08-16T09:18:54.584+02:00",
   "summary": {
     "requests": 20, "scraped": 18, "not_2xx": 2, "no_response": 0,

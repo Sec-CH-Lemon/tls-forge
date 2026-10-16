@@ -233,7 +233,7 @@ func keptRequest() (result, job, requestAbout) {
 			},
 		},
 	}
-	about := requestAbout{method: "GET", profile: "chrome_155_macos", requests: 6, runs: 2}
+	about := requestAbout{method: "GET", profile: "chrome_155_macos", run: "2026-10-16-120000-000", requests: 6, runs: 2}
 	return r, job{id: 3, run: 2}, about
 }
 
@@ -245,6 +245,7 @@ func TestRequestLog(t *testing.T) {
 		"  request    3 of 6\n",
 		// A list gone through twice: which pass this was.
 		"  pass       2 of 2\n",
+		"  run        2026-10-16-120000-000\n",
 		"  profile    chrome_155_macos\n",
 		"  proxy      http://user@proxy.test:8080\n",
 		"  exit-ip    203.0.113.7 · PL\n",

@@ -7,9 +7,14 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/Sec-CH-Lemon/tls-forge/cookie"
 )
 
 // profileWith is a profile file, at path, of a shipped Chrome whose user agent
@@ -227,5 +232,66 @@ func TestTheDaemonStopsAtAClientItCannotMake(t *testing.T) {
 	failingClients(t, func(string) bool { return true })
 	if code, _, stderr := exec(t, "daemon"); code != 1 || !strings.Contains(stderr, "the transport would not have it") {
 		t.Errorf("exit %d\n%s", code, stderr)
+	}
+}
+
+func TestEveryOutputOfARunNamesTheOneRun(t *testing.T) {
+	// One id, and one moment it began: the log and the reports are named after
+	// it and say it, and so do the trace, each request kept and the session
+	// saved, so that what one run left can be told from another's and put
+	// together again.
+	// A clock a millisecond later each time it is read: the moment the run
+	// began is one reading, and anything that read its own would say another.
+	var ticks atomic.Int64
+	original := now
+	t.Cleanup(func() { now = original })
+	now = func() time.Time {
+		return time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).Add(time.Duration(ticks.Add(1)) * time.Millisecond)
+	}
+	server := cookieEcho(t)
+	dir := t.TempDir()
+	out, trace, session := filepath.Join(dir, "out"), filepath.Join(dir, "trace.json"), filepath.Join(dir, "session.json")
+	code, _, stderr := exec(t, "fetch", "-k", "-o", out, "--trace", trace, "--save-cookies", session,
+		"--report", "--report-format", "html,json", server.URL+"/set")
+	if code != 0 {
+		t.Fatalf("exit %d\n%s", code, stderr)
+	}
+	worn := resolved(t, defaultProfileName()).Name
+	logs, err := filepath.Glob(filepath.Join(out, "run-*.log"))
+	if err != nil || len(logs) != 1 {
+		t.Fatalf("logs %v, %v", logs, err)
+	}
+	id := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(logs[0]), "run-"), ".log")
+
+	logged, err := os.ReadFile(filepath.Join(out, "run-"+id+".log"))
+	if err != nil || !strings.Contains(string(logged), "run_id="+id) {
+		t.Errorf("the log does not say the run: %v\n%s", err, logged)
+	}
+	doc := decoded(t, []byte(reportOf(t, filepath.Join(out, "report-"+id+".json"))))
+	if doc.Run != id || stamp(doc.Started) != id || doc.Profile != worn {
+		t.Errorf("the JSON report says run %q, started %s, wearing %q", doc.Run, doc.Started, doc.Profile)
+	}
+	if page := reportOf(t, filepath.Join(out, "report-"+id+".html")); !strings.Contains(page, "run "+id+" · "+worn+" · ") {
+		t.Errorf("the page does not say the run and what it wore")
+	}
+	begun := named(traceFile(t, trace), phaseBegin, "fetch")
+	if len(begun) != 1 || begun[0].Args["run_id"] != id ||
+		begun[0].Args["started"] != doc.Started.Format(time.RFC3339Nano) {
+		t.Errorf("the trace begins %v", begun)
+	}
+	kept, err := filepath.Glob(filepath.Join(out, "127.0.0.1-*.log"))
+	if err != nil || len(kept) != 1 {
+		t.Fatalf("kept %v, %v", kept, err)
+	}
+	if data, err := os.ReadFile(kept[0]); err != nil ||
+		!regexp.MustCompile(`(?m)^  run +`+regexp.QuoteMeta(id)+`$`).Match(data) {
+		t.Errorf("the request kept says, %v:\n%s", err, data)
+	}
+	data, err := os.ReadFile(session)
+	if err != nil {
+		t.Fatalf("the session: %v", err)
+	}
+	if file, err := cookie.Load(data); err != nil || len(file.Sets) != 1 || file.Sets[0].Note != "direct, run "+id {
+		t.Errorf("the session saved is %+v, %v", file, err)
 	}
 }

@@ -418,7 +418,7 @@ func TestListWarmsEveryRequest(t *testing.T) {
 func TestListSavesOneSessionPerProxy(t *testing.T) {
 	// A jar is an identity, so two exits' sessions never share a set. The same
 	// URL twice is one host, asked once.
-	fakeClock(t)
+	clock := fakeClock(t)
 	server := cookieEcho(t)
 	path := filepath.Join(t.TempDir(), "warm.json")
 
@@ -446,8 +446,9 @@ func TestListSavesOneSessionPerProxy(t *testing.T) {
 	if len(file.Sets) != 1 {
 		t.Fatalf("%d sets: %+v", len(file.Sets), file.Sets)
 	}
-	if file.Sets[0].Note != "direct" {
-		t.Errorf("the set does not say which exit warmed it: %q", file.Sets[0].Note)
+	// And which run, which its log and its report are named after.
+	if file.Sets[0].Note != "direct, run "+stamp(clock.now()) {
+		t.Errorf("the set does not say which exit warmed it, and in which run: %q", file.Sets[0].Note)
 	}
 }
 

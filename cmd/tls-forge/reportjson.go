@@ -24,8 +24,13 @@ import (
 // reportDocument is the whole of it.
 type reportDocument struct {
 	// Command is which of them made the run, and Version which build of it.
-	Command   string    `json:"command"`
-	Version   string    `json:"version"`
+	Command string `json:"command"`
+	Version string `json:"version"`
+	// Run is the run's id, which its log and its report are named after,
+	// Started when it began, and Profile the profile it wore.
+	Run       string    `json:"run_id,omitempty"`
+	Started   time.Time `json:"started,omitzero"`
+	Profile   string    `json:"profile,omitempty"`
 	Generated time.Time `json:"generated"`
 	// Trace is the file the whole run was traced to, when it was.
 	Trace    string            `json:"trace,omitempty"`
@@ -152,6 +157,9 @@ func renderReportJSON(w io.Writer, in reportInput) error {
 	doc := reportDocument{
 		Command:   in.command,
 		Version:   version,
+		Run:       in.run,
+		Started:   in.started,
+		Profile:   in.profile,
 		Generated: now(),
 		Trace:     in.trace,
 		Summary: documentSummary{

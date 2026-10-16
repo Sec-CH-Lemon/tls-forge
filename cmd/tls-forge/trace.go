@@ -95,7 +95,7 @@ var createTrace = func(path string) (io.WriteCloser, error) {
 //
 // Nil is a tracer that does nothing, and so is everything made from one: a run
 // that is not being traced calls the same methods and pays for none of them.
-func openTrace(path, command, proxy string, about traceArgs) (*tracer, error) {
+func openTrace(path, command, proxy string, started time.Time, about traceArgs) (*tracer, error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -120,9 +120,9 @@ func openTrace(path, command, proxy string, about traceArgs) (*tracer, error) {
 	t.home = t.lane(mainLane, command)
 
 	// The clock in the file counts microseconds, which is what the format asks
-	// for and not what a person reads. Said once in words, so the rest can be
-	// placed against a log kept somewhere else.
-	about["started"] = began.Format(time.RFC3339Nano)
+	// for and not what a person reads. When the run began, said once in words,
+	// so the rest can be placed against its log and its report.
+	about["started"] = started.Format(time.RFC3339Nano)
 	about["version"] = version
 	t.emit(traceEvent{Phase: phaseBegin, TID: mainLane, TS: t.at(), Cat: "run",
 		Name: command, Args: about})

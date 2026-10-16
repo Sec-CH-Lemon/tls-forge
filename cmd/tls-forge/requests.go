@@ -328,6 +328,8 @@ func (p *pool) saveSessions(flags clientFlags, records []result) (int, error) {
 		if proxy != "" {
 			note = "via " + redactProxy(proxy)
 		}
+		// Which run warmed it, which its log and its report are named after.
+		note += ", run " + flags.run.id
 		n, err := flags.saveSession(client, note)
 		if err != nil {
 			return saved, err

@@ -11,7 +11,9 @@
   <header class="mb-10">
     <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
       <h1 class="text-xl font-semibold tracking-tight">tls-forge {{.Command}}</h1>
-      <p class="text-sm text-muted dark:text-muted-dark">{{.Generated}}</p>
+      <p class="text-sm text-muted dark:text-muted-dark">
+        {{if .Run}}run {{.Run}} · {{end}}{{if .Profile}}{{.Profile}} · {{end}}{{.Generated}}
+      </p>
     </div>
   </header>
 

@@ -31,6 +31,8 @@ import (
 type requestAbout struct {
 	method  string
 	profile string
+	// run is the id of the run that made it.
+	run string
 	// requests is how many the run makes, and runs how many times each URL is
 	// made.
 	requests, runs int
@@ -135,7 +137,7 @@ func requestLog(r result, j job, about requestAbout) string {
 		// said which run this was in the line above.
 		facts = append(facts, [2]string{"pass", fmt.Sprintf("%d of %d", j.run, about.runs)})
 	}
-	facts = append(facts, [2]string{"profile", about.profile},
+	facts = append(facts, [2]string{"run", about.run}, [2]string{"profile", about.profile},
 		[2]string{"proxy", either(redactProxy(r.Proxy), "direct")})
 	if exit := r.exitSaid(); exit != "" {
 		facts = append(facts, [2]string{"exit-ip", exit})

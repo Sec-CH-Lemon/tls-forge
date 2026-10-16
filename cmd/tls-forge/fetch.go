@@ -93,6 +93,11 @@ type clientFlags struct {
 // it then shares: the clients it makes, whenever it makes them, and what it
 // says and writes about itself.
 type runContext struct {
+	// id names the run in everything it writes: its log and its report are
+	// named after it, and each of them, its trace, the requests it keeps and
+	// the sessions it saves say it. started is when the run began.
+	id      string
+	started time.Time
 	// profile is the profile the run wears. Resolved once: a name is read off
 	// the disk each time it is looked up, so a client made late in a run, for
 	// a proxy the list reached last, would otherwise wear whatever a capture
@@ -535,6 +540,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// mistake to refuse, rather than a file to lose. The log and the report are
 	// named after the moment the run began, so the files of one run share it.
 	started := now()
+	common.run.id, common.run.started = stamp(started), started
 	files := fetchFiles{
 		input: *input, cookies: *common.cookieFile, exitHeaders: *exitHeaders,
 		saveCookies: *common.saveCookies, trace: *again.trace,
@@ -605,6 +611,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	warnAboutConcurrency(errOut, *workers)
 
 	about := traceArgs{
+		"run_id": common.run.id,
 		"method": *method, "timeout": common.timeout.String(), "concurrency": *workers,
 		"retry": *again.retry, "repeat": *again.repeat,
 	}
@@ -642,7 +649,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	runLog.say(slog.LevelInfo, "run", runAttrs(about, "version", version, "profile", worn.Name,
 		"output", *output, "wait_for", *waitFor, "wait_for_element", *waitForElement,
 		"reuse_connection", *again.reuse, "log_level", strings.ToLower(*logging.level))...)
-	trace, err := openTrace(*again.trace, "fetch", *common.proxy, about)
+	trace, err := openTrace(*again.trace, "fetch", *common.proxy, started, about)
 	if err != nil {
 		return err
 	}
@@ -777,7 +784,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		retry:   *again.retry, repeat: *again.repeat,
 		keep: *output,
 		about: requestAbout{
-			method: *method, profile: worn.Name,
+			method: *method, profile: worn.Name, run: common.run.id,
 			requests: requests, runs: *again.repeat,
 		},
 		exits: exits, names: &resolver{},
@@ -848,7 +855,8 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		var written []reportFile
 		written, reportErr = writeReports(files.reports,
 			reportInput{command: "fetch", records: records, summary: totals, before: before,
-				method: *method, trace: *again.trace})
+				method: *method, trace: *again.trace,
+				run: common.run.id, started: started, profile: worn.Name})
 		for _, file := range written {
 			runLog.say(slog.LevelInfo, "report", "file", file.path, "format", file.format)
 			name := file.path

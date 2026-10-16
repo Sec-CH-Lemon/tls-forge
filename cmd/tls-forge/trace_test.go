@@ -837,7 +837,7 @@ func recording(t *testing.T, url, proxy string) (*brokenFile, *tracer, *attemptT
 	t.Helper()
 	file := &brokenFile{}
 	traceInto(t, file)
-	trace, err := openTrace("anywhere", "fetch", proxy, traceArgs{})
+	trace, err := openTrace("anywhere", "fetch", proxy, now(), traceArgs{})
 	if err != nil {
 		t.Fatalf("openTrace: %v", err)
 	}
@@ -980,7 +980,7 @@ func TestTraceCallsARequestWithNoMethodAGet(t *testing.T) {
 	// Which is what the client makes of one, so it is what the trace calls it.
 	file := &brokenFile{}
 	traceInto(t, file)
-	trace, err := openTrace("anywhere", "fetch", "", traceArgs{})
+	trace, err := openTrace("anywhere", "fetch", "", now(), traceArgs{})
 	if err != nil {
 		t.Fatalf("openTrace: %v", err)
 	}
@@ -1017,7 +1017,7 @@ func TestTraceNeverFilesTwoEventsUnderOneMoment(t *testing.T) {
 func TestTraceOffCostsNothing(t *testing.T) {
 	// No file named, so no tracer, and everything made from one does nothing
 	// when asked. This is every traced call a run makes.
-	trace, err := openTrace("", "fetch", "", traceArgs{})
+	trace, err := openTrace("", "fetch", "", now(), traceArgs{})
 	if trace != nil || err != nil {
 		t.Fatalf("openTrace with no file = %v, %v", trace, err)
 	}
