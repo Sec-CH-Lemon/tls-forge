@@ -327,6 +327,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- A request's deadline in the Node.js and Python packages counts from the
+  call. The time it waits behind another request is inside it, so a call
+  settles within its timeout rather than within that many times the number of
+  requests in front of it. A Python request whose deadline passes while it
+  waits raises `Timeout` without being sent.
+- The Python `Client.close()` stops the daemon at once, as the Node.js one
+  does, rather than waiting for a request in flight: that request, and any
+  waiting for it, raises `TransportError("tlsforge: client closed")`.
 - **The Node.js and Python packages say when a client's session has gone.** A
   timeout or a broken write stops the daemon, and a daemon can die; its
   cookies, TLS sessions and connections go with it. Every request waiting for
@@ -431,6 +439,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A Python request's deadline did not cover writing it. A daemon that stopped
+  reading held a request with a 0.05-second deadline for as long as the daemon
+  lived, since a body larger than the pipe waited on it; `close()` waited too.
+  The write now ends at the deadline, the daemon is stopped, and the request
+  raises `Timeout`.
 - A request longer than the daemon reads, 16 MiB with its JSON, a binary body
   in base64 and the newline (a 13 MiB file, say), ended the daemon and the
   session in it, and the next request went out without its cookies. The

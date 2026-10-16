@@ -12,6 +12,7 @@ import pytest
 
 import tlsforge
 from tlsforge import Client, RequestFailed, Response, Timeout, TransportError
+from tlsforge import _client
 
 
 # --- the ordinary path -----------------------------------------------------
@@ -482,7 +483,125 @@ def test_a_request_is_measured_as_the_transport_reads_it(client):
     assert one.get("https://ok/after").json()["pid"] == first
 
 
+# --- deadlines -------------------------------------------------------------
+
+#: More than any pipe holds, so that writing it waits for the reader.
+_BIG = "x" * (4 * 1024 * 1024)
+
+
+def _settled(baseline: int) -> bool:
+    """Whether the threads a request started have ended, within a while."""
+    deadline = time.monotonic() + 3
+    while threading.active_count() > baseline and time.monotonic() < deadline:
+        time.sleep(0.01)
+    return threading.active_count() <= baseline
+
+
+def test_a_write_the_transport_does_not_read_ends_at_the_deadline(client, monkeypatch):
+    # A transport that reads nothing used to hold a request with a deadline of
+    # 0.05 s for as long as it lived: the write waited on it, and the deadline
+    # did not cover the write.
+    monkeypatch.setenv("TLSFORGE_TEST_DEAF_FOR", "10")
+    one = client(timeout=0.2)
+    baseline = threading.active_count()
+    started = time.monotonic()
+    with pytest.raises(Timeout, match=r"timed out after 0.2s$"):
+        one.post("https://ok/big", _BIG)
+    assert time.monotonic() - started < 2
+    assert one._process is None
+    assert _settled(baseline)
+
+
+def test_a_transport_that_dies_during_a_write_fails_it_at_once(client, monkeypatch):
+    monkeypatch.setenv("TLSFORGE_TEST_DEAF_FOR", "0.3")
+    one = client(timeout=10)
+    started = time.monotonic()
+    with pytest.raises(TransportError, match="write failed"):
+        one.post("https://ok/big", _BIG)
+    assert time.monotonic() - started < 3
+    monkeypatch.delenv("TLSFORGE_TEST_DEAF_FOR")
+    with pytest.raises(tlsforge.SessionReset, match="could not be written"):
+        one.get("https://ok/after")
+    assert one.get("https://ok/again").status == 200
+
+
+def test_a_request_whose_deadline_passes_while_it_waits_is_not_sent(client):
+    # Its deadline counts from the call. The one in front of it stops its
+    # transport at its own deadline, and takes a while to, since that transport
+    # does not notice the end of its input: the one behind runs out first.
+    one = client(timeout=0.3)
+    outcomes: dict[str, BaseException | None] = {}
+
+    def asking(name: str, url: str) -> None:
+        try:
+            one.get(url)
+            outcomes[name] = None
+        except BaseException as err:  # noqa: BLE001 - recorded, and asserted below
+            outcomes[name] = err
+
+    first = threading.Thread(target=asking, args=("first", "https://stubborn/x"))
+    first.start()
+    time.sleep(0.05)
+    second = threading.Thread(target=asking, args=("second", "https://ok/x"))
+    second.start()
+    first.join()
+    second.join()
+    assert isinstance(outcomes["first"], Timeout)
+    assert isinstance(outcomes["second"], Timeout)
+    assert str(outcomes["second"]).endswith("waiting for the one before it, and was not sent")
+
+
 # --- closing ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize("stuck", ["writing", "waiting for its answer"])
+def test_close_does_not_wait_for_a_request_in_flight(client, monkeypatch, stuck):
+    # The request is stopped, and says so; close() returns at once, however
+    # the request is stuck.
+    if stuck == "writing":
+        monkeypatch.setenv("TLSFORGE_TEST_DEAF_FOR", "10")
+    one = client(timeout=10)
+    baseline = threading.active_count()
+    outcome: list[BaseException] = []
+
+    def asking() -> None:
+        try:
+            if stuck == "writing":
+                one.post("https://ok/big", _BIG)
+            else:
+                one.get("https://silent/x")
+        except BaseException as err:  # noqa: BLE001 - recorded, and asserted below
+            outcome.append(err)
+
+    thread = threading.Thread(target=asking)
+    thread.start()
+    time.sleep(0.3)
+    started = time.monotonic()
+    one.close()
+    assert time.monotonic() - started < 2
+    thread.join(timeout=2)
+    assert not thread.is_alive()
+    assert isinstance(outcome[0], TransportError) and str(outcome[0]) == "tlsforge: client closed"
+    assert _settled(baseline)
+
+
+def test_close_while_a_request_is_made_stops_it_before_it_is_written(client, monkeypatch):
+    # close() between the request's own look at the client and its write, as
+    # when it comes while a large body is encoded: nothing is written.
+    one = client()
+    one.get("https://ok/start")
+    encode = _client._encode_request
+
+    def encoding_while_closed(payload: dict) -> str:
+        line = encode(payload)
+        one.close()
+        return line
+
+    monkeypatch.setattr(_client, "_encode_request", encoding_while_closed)
+    with pytest.raises(TransportError, match="^tlsforge: client closed$"):
+        one.get("https://ok/x")
+
+
 
 
 def test_close_stops_the_transport(client):

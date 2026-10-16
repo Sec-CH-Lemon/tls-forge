@@ -49,6 +49,10 @@ _SHUTDOWN_GRACE = 0.25
 #: request learns the process is gone without polling for it.
 _EOF = object()
 
+#: What a request made after close() is told, and one close() ended.
+_CLOSED = "tlsforge: this client was closed and will not respawn; construct a new one"
+_CLOSED_IN_FLIGHT = "tlsforge: client closed"
+
 #: The most a request can be as the transport reads it: one line of JSON, its
 #: newline included, in UTF-8. A longer one would end the transport, and the
 #: session in it, so it is refused before it is sent.
@@ -149,9 +153,17 @@ class Client:
             transport_timeout=self._timeout + _TRANSPORT_GRACE,
         )
 
+        # One request at a time holds the lock, for as long as it takes. The
+        # state lock is held only for a moment, by whatever starts, stops or
+        # writes to the process, so that close() never waits for a request.
         self._lock = threading.Lock()
+        self._state = threading.Lock()
         self._process: subprocess.Popen[str] | None = None
         self._lines: queue.Queue[Any] = queue.Queue()
+        # The thread writing a request now, if one is: a write stuck on a pipe
+        # the transport stopped reading holds the stream until the process is
+        # stopped, so whoever stops it has to know to stop it first.
+        self._writer: threading.Thread | None = None
 
         # Never reset, not even across a restart. An id must never name two
         # different requests on one client, or a late answer from the process we
@@ -229,57 +241,84 @@ class Client:
         if not url:
             raise ValueError("tlsforge: request needs a url")
 
+        # The call's deadline, from now: the time a request waits for the one
+        # before it is part of it.
+        deadline = time.monotonic() + self._timeout
         made_in = self._losses
-        with self._lock:
+        if not self._lock.acquire(timeout=self._timeout):
+            raise Timeout(
+                f"tlsforge: request timed out after {self._timeout}s waiting for the one before it, "
+                "and was not sent"
+            )
+        try:
+            return self._request(made_in, deadline, url, method, headers, order, body, cookies)
+        finally:
+            self._lock.release()
+
+    def _request(
+        self,
+        made_in: int,
+        deadline: float,
+        url: str,
+        method: str,
+        headers: Mapping[str, str] | None,
+        order: Sequence[str] | None,
+        body: str | bytes | None,
+        cookies: Iterable[str] | None,
+    ) -> Response:
+        """The request, made with the lock held."""
+        with self._state:
             if self._closed:
-                raise TransportError(
-                    "tlsforge: this client was closed and will not respawn; construct a new one"
-                )
-            self._sequence += 1
-            payload: dict[str, Any] = {"id": self._sequence, "method": method, "url": url}
-            if headers:
-                payload["headers"] = dict(headers)
-            if order:
-                payload["order"] = list(order)
-            if body is not None:
-                # Bytes travel as base64: a JSON string cannot hold arbitrary
-                # bytes, and the transport would replace every one that is not
-                # valid UTF-8 with U+FFFD rather than report a problem.
-                if isinstance(body, (bytes, bytearray)):
-                    payload["body"] = base64.b64encode(bytes(body)).decode("ascii")
-                    payload["bodyEncoding"] = "base64"
-                else:
-                    payload["body"] = body
-            if cookies:
-                payload["setCookie"] = list(cookies)
-            line = _encode_request(payload)
-            if self._process is not None and self._process.poll() is not None:
-                # It went while nobody was asking it anything, and took the
-                # session with it: this request is told rather than written to
-                # a pipe nobody reads.
-                stopped = self._stop()
-                assert stopped is not None  # it was there a line ago, and the lock is ours
-                self._lose(f"it exited (code {stopped.returncode})")
-            if self._untold or made_in != self._losses:
-                # Told, and not sent: made in a session that has gone, it would
-                # not be what the caller asked for in a new one.
-                self._untold = False
-                raise SessionReset(
-                    f"tlsforge: the transport this client's session was in has gone ({self._why}), "
-                    "and with it its cookies, TLS sessions and connections; this request was not "
-                    "sent, and the next one starts a new session"
-                )
-            return _to_response(self._exchange(payload["id"], line))
+                raise TransportError(_CLOSED)
+            gone = self._process if self._process is not None and self._process.poll() is not None else None
+            if gone is not None:
+                self._process = None
+                self._live.clear()
+        if gone is not None:
+            # It went while nobody was asking it anything, and took the session
+            # with it: this request is told rather than written to a pipe
+            # nobody reads.
+            _kill(gone)
+            self._lose(f"it exited (code {gone.returncode})")
+        self._sequence += 1
+        payload: dict[str, Any] = {"id": self._sequence, "method": method, "url": url}
+        if headers:
+            payload["headers"] = dict(headers)
+        if order:
+            payload["order"] = list(order)
+        if body is not None:
+            # Bytes travel as base64: a JSON string cannot hold arbitrary
+            # bytes, and the transport would replace every one that is not
+            # valid UTF-8 with U+FFFD rather than report a problem.
+            if isinstance(body, (bytes, bytearray)):
+                payload["body"] = base64.b64encode(bytes(body)).decode("ascii")
+                payload["bodyEncoding"] = "base64"
+            else:
+                payload["body"] = body
+        if cookies:
+            payload["setCookie"] = list(cookies)
+        line = _encode_request(payload)
+        if self._untold or made_in != self._losses:
+            # Told, and not sent: made in a session that has gone, it would
+            # not be what the caller asked for in a new one.
+            self._untold = False
+            raise SessionReset(
+                f"tlsforge: the transport this client's session was in has gone ({self._why}), "
+                "and with it its cookies, TLS sessions and connections; this request was not "
+                "sent, and the next one starts a new session"
+            )
+        return _to_response(self._exchange(payload["id"], line, deadline))
 
     def close(self) -> None:
         """Stop the transport. Idempotent, and final.
 
-        Waits for a request in flight, so that a session is never given up
-        halfway through one.
+        At once: a request in flight, or one waiting for it, is not waited for,
+        and raises TransportError. A write stuck on a pipe the transport has
+        stopped reading is ended by stopping the transport first.
         """
-        with self._lock:
+        with self._state:
             self._closed = True
-            self._stop()
+        self._stop()
 
     def __enter__(self) -> Client:
         return self
@@ -289,11 +328,9 @@ class Client:
 
     # --- the transport -----------------------------------------------------
 
-    def _exchange(self, request_id: int, line: str) -> dict[str, Any]:
-        """Send one request and wait for the answer with that id."""
-        deadline = time.monotonic() + self._timeout
-        self._ensure_started()
-        self._write(line)
+    def _exchange(self, request_id: int, line: str, deadline: float) -> dict[str, Any]:
+        """Send one request and wait, until the deadline, for the answer with that id."""
+        self._write(line, deadline)
 
         while True:
             try:
@@ -312,7 +349,9 @@ class Client:
                 # readable, and reading it before would report "still running"
                 # for a process whose stdout has already ended.
                 stopped = self._stop()
-                assert stopped is not None  # started above, and the lock is ours
+                if stopped is None:
+                    # close() stopped it, while this request waited.
+                    raise TransportError(_CLOSED_IN_FLIGHT)
                 if stopped.returncode == 2:
                     raise TransportError(_refused_arguments(self._binary, self._proxy is not None))
                 self._lose(f"it exited (code {stopped.returncode})")
@@ -331,9 +370,8 @@ class Client:
                 continue
             return response
 
-    def _ensure_started(self) -> None:
-        if self._process is not None:
-            return
+    def _start(self) -> None:
+        """Start a process, with the state lock held."""
         # A copy of this process's environment, with the proxy in it: a client's
         # proxy reaches its own process and no other, and this process's
         # environment is left as it was.
@@ -371,17 +409,55 @@ class Client:
         _pump(process.stdout, self._lines, _EOF)
         _pump(process.stderr, None, None, self._on_stderr)
 
-    def _write(self, line: str) -> None:
-        assert self._process is not None and self._process.stdin is not None
-        try:
-            self._process.stdin.write(line)
-            self._process.stdin.flush()
-        except OSError as err:
-            # The process can die between starting it and the bytes landing, and
-            # a pipe whose reader is gone raises rather than returning short.
+    def _write(self, line: str, deadline: float) -> None:
+        """Write a request to the process, giving up on it at the deadline.
+
+        On a thread of its own. A write blocks for as long as the pipe is full,
+        which is for as long as the process does not read it, and a deadline
+        that did not cover the write was one a process that stopped reading
+        could hold a caller past for as long as it lived.
+        """
+        failed: list[BaseException] = []
+        with self._state:
+            if self._closed:
+                # close() came after this request was made, and before now.
+                raise TransportError(_CLOSED_IN_FLIGHT)
+            if self._process is None:
+                self._start()
+            assert self._process is not None and self._process.stdin is not None
+            stream = self._process.stdin
+
+            def write() -> None:
+                try:
+                    stream.write(line)
+                    stream.flush()
+                except (OSError, ValueError) as err:
+                    # A pipe whose reader is gone raises rather than returning
+                    # short, and one closed under the write says it is closed.
+                    failed.append(err)
+
+            writer = threading.Thread(target=write, daemon=True)
+            self._writer = writer
+            writer.start()
+
+        writer.join(max(0.0, deadline - time.monotonic()))
+        if writer.is_alive():
+            # Still writing at the deadline: the process has stopped reading,
+            # and is stopped, which ends the write.
             self._stop()
-            self._lose(f"a request could not be written to it: {err}")
-            raise TransportError(f"tlsforge: write failed: {err}") from err
+            self._lose("a request timed out, and it was stopped")
+            raise Timeout(f"tlsforge: request timed out after {self._timeout}s")
+        with self._state:
+            if self._writer is writer:
+                self._writer = None
+            closed = self._closed
+        if failed:
+            if closed:
+                raise TransportError(_CLOSED_IN_FLIGHT) from failed[0]
+            # The process can die between starting it and the bytes landing.
+            self._stop()
+            self._lose(f"a request could not be written to it: {failed[0]}")
+            raise TransportError(f"tlsforge: write failed: {failed[0]}") from failed[0]
 
     def _lose(self, why: str) -> None:
         """Note that the transport the session was in has gone, and why."""
@@ -396,11 +472,13 @@ class Client:
         it is what lets a caller report the exit code, which only exists once
         the process has been waited on.
         """
-        process, self._process = self._process, None
+        with self._state:
+            process, self._process = self._process, None
+            writer, self._writer = self._writer, None
+            self._live.clear()
         if process is None:
             return None
-        _kill(process)
-        self._live.clear()
+        _kill(process, writer)
         return process
 
 
@@ -489,8 +567,13 @@ def _pump(
     threading.Thread(target=read, daemon=True).start()
 
 
-def _kill(process: subprocess.Popen[str]) -> None:
+def _kill(process: subprocess.Popen[str], writer: threading.Thread | None = None) -> None:
     """End a transport process.
+
+    A write stuck on a pipe the process stopped reading holds the stream for as
+    long as it is stuck, and closing the stream would wait for it: when one is,
+    the process is killed first, which ends the write, and then shut down as
+    any other.
 
     Closing stdin is the transport's own shutdown signal: it reads the protocol
     until end of input and returns, which lets it finish whatever it does on the
@@ -506,6 +589,10 @@ def _kill(process: subprocess.Popen[str]) -> None:
     outliving its parent turned close() into a thirty-second wait.
     """
     assert process.stdin is not None  # always a pipe: this module opened it
+    if writer is not None and writer.is_alive():
+        process.kill()
+        process.wait()
+        writer.join()
     try:
         process.stdin.close()
     except OSError:

@@ -267,6 +267,24 @@ test('a request that is never answered times out and the client stays usable', a
   c.close();
 });
 
+test("a request's deadline counts from the call, the time it waited included", async () => {
+  // The request in front of it is answered late, in time; what is left of the
+  // second's deadline is what it has once it is sent. Counted from being sent,
+  // it would have had the whole deadline again.
+  const c = fake({ timeout: 600 });
+  try {
+    const started = performance.now();
+    const first = c.get('https://slow/a');
+    const second = c.get('https://silent/b');
+    assert.equal((await first).status, 200);
+    await assert.rejects(() => second, /timed out/);
+    const took = performance.now() - started;
+    assert.ok(took > 550 && took < 900, `the second request took ${Math.round(took)} ms`);
+  } finally {
+    c.close();
+  }
+});
+
 test('a transport that exits rejects the request in flight', async () => {
   const c = fake();
   await assert.rejects(() => c.get('https://exit/x'), /exited|closed/);

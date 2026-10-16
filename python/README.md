@@ -72,7 +72,7 @@ client = tlsforge.Client(
 |---|---|---|
 | `profile` | `str | None`, CLI default | Profile name or JSON profile path passed to `tls-forge daemon --profile`. |
 | `proxy` | `str | None`, direct | HTTP, HTTPS or SOCKS proxy URL, optionally with credentials. It reaches the daemon in that process's own environment, named by `--proxy-env`, and not on its command line, which `ps` shows every user of the machine; a `tls-forge` older than `--proxy-env` raises `TransportError` saying so, before any request. |
-| `timeout` | `float`, `45.0` | Per-request deadline in seconds. It must be positive and finite. The Go transport receives an additional 15-second grace period so both timeout layers do not race. |
+| `timeout` | `float`, `45.0` | Per-request deadline in seconds, counted from the call: waiting for another thread's request, writing this one and waiting for its answer are all inside it, and a request whose deadline passes before it is sent raises `Timeout` unsent. It must be positive and finite. The Go transport receives an additional 15-second grace period so both timeout layers do not race. |
 | `binary` | `str | os.PathLike | None`, auto | Explicit path to the transport executable. A missing explicit path raises `BinaryNotFound` and does not fall through. |
 | `insecure` | `bool`, `False` | Skip upstream certificate verification. Use only for controlled endpoints. |
 | `cookie_file` | path or `None` | Load a warmed session from project JSON, browser-export JSON or Netscape cookies.txt. |
@@ -249,10 +249,13 @@ with ExitStack() as stack:
         pages = list(pool.map(lambda url: next(turns).get(url), urls))
 ```
 
-`close()` is idempotent and final. It waits for the current request, stops and
-reaps the daemon, and prevents later requests from silently creating a new
-identity. A finalizer also cleans up a forgotten client, but deterministic
-`with` or `close()` usage is preferred.
+`close()` is idempotent and final. It stops and reaps the daemon at once,
+without waiting for a request in flight: that request, and any waiting for it,
+raises `TransportError("tlsforge: client closed")`, and a write stuck on a
+daemon that stopped reading is ended by stopping the daemon first. Later
+requests raise rather than silently create a new identity. A finalizer also
+cleans up a forgotten client, but deterministic `with` or `close()` usage is
+preferred.
 
 ## Warmed cookie sessions
 

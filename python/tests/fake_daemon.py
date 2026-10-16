@@ -70,6 +70,12 @@ def main() -> None:
     if refuses():
         sys.stderr.write("tlsforge: bad usage: unknown flag: --proxy-env\n")
         sys.exit(2)
+    deaf_for = os.environ.get("TLSFORGE_TEST_DEAF_FOR")
+    if deaf_for:
+        # Reads nothing, for as long as it is told, and then is gone: a write
+        # larger than the pipe holds waits on it all that time.
+        time.sleep(float(deaf_for))
+        return
     for line in sys.stdin:
         try:
             request = json.loads(line)
@@ -153,6 +159,10 @@ def main() -> None:
             threading.Timer(0.4, lambda: emit(answer(request))).start()
         elif behaviour == "exit":
             sys.exit(3)
+        elif behaviour == "stubborn":
+            # Never answers, and reads nothing more: the end of its input is
+            # not noticed, and it has to be stopped.
+            time.sleep(30)
         elif behaviour == "answer-then-exit":
             # Answers, and dies while nobody is asking it anything.
             emit(answer(request))

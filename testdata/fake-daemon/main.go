@@ -58,6 +58,13 @@ func main() {
 		os.Exit(2)
 	}
 
+	// Reads nothing, for as long as it is told, and then is gone: a write
+	// larger than the pipe holds waits on it all that time.
+	if deaf, err := time.ParseDuration(os.Getenv("TLSFORGE_TEST_DEAF_FOR") + "s"); err == nil && deaf > 0 {
+		time.Sleep(deaf)
+		return
+	}
+
 	scanner := bufio.NewScanner(os.Stdin)
 	// As much as the daemon reads, and more: a client's refusal of a longer
 	// request is what is under test, not this fake's.
@@ -190,6 +197,10 @@ func main() {
 			after(400*time.Millisecond, func() { emit(answer(req)) })
 		case "exit":
 			os.Exit(3)
+		case "stubborn":
+			// Never answers, and reads nothing more: the end of its input is
+			// not noticed, and it has to be stopped.
+			time.Sleep(30 * time.Second)
 		case "answer-then-exit":
 			// Answers, and dies while nobody is asking it anything.
 			emit(answer(req))

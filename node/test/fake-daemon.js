@@ -81,6 +81,9 @@ reader.on('line', (line) => {
     case 'silent':
       // Never answers. The client's deadline is the only thing that ends this.
       break;
+    case 'slow':
+      setTimeout(() => reply(), 400);
+      break;
     case 'exit':
       process.exit(3);
       break;

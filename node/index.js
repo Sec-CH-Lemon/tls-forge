@@ -266,6 +266,9 @@ export class Client {
         id,
         resolve,
         reject,
+        // The call's deadline, from now: the time a request waits for the one
+        // before it is part of it.
+        deadline: performance.now() + this.#timeout,
       });
       this.#pump();
     });
@@ -492,6 +495,8 @@ export class Client {
 
     const job = this.#queue.shift();
     this.#inFlight = job;
+    // What is left of its deadline, which a request in front of it can only
+    // have used part of: that one's deadline came first, and ended it.
     job.timer = setTimeout(() => {
       this.#inFlight = null;
       job.reject(new Error('tlsforge: request timed out'));
@@ -501,7 +506,7 @@ export class Client {
       // already written, and the id means that even if both of those failed the
       // stale line is discarded instead of handed to whoever asks next.
       this.#restart('a request timed out, and it was stopped');
-    }, this.#timeout);
+    }, job.deadline - performance.now());
 
     this.#process.stdin.write(job.line, (err) => {
       if (!err || this.#inFlight !== job) return;
