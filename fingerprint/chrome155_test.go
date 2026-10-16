@@ -73,3 +73,56 @@ func TestChrome155ResumesWithOneExtensionMore(t *testing.T) {
 		t.Errorf("raw JA4s differ beyond pre_shared_key:\n%s\n%s", resumed.JA4Raw(), cold.JA4Raw())
 	}
 }
+
+func TestChrome155WritesItsFirstRequestSo(t *testing.T) {
+	// testdata/chrome155-http2-preamble.bin: what Chrome 155 sent before its
+	// first request was whole, a navigation to /?http1=done.
+	raw, err := os.ReadFile("../testdata/chrome155-http2-preamble.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	preamble, err := ParsePreamble(raw)
+	if err != nil || !bytes.Equal(preamble.Raw, raw) {
+		t.Fatalf("fixture: %v", err)
+	}
+	var frames []string
+	for _, frame := range preamble.Frames {
+		frames = append(frames, frame.String())
+	}
+	if want := []string{"SETTINGS on 0", "WINDOW_UPDATE on 0", "HEADERS on 1, END_STREAM|END_HEADERS|PRIORITY"}; !slices.Equal(frames, want) {
+		t.Errorf("frames %q, want %q", frames, want)
+	}
+	written, err := Representations(preamble.Block, 4096)
+	if err != nil {
+		t.Fatalf("Representations: %v", err)
+	}
+	var said []string
+	for _, r := range written {
+		said = append(said, r.Field+": "+r.String())
+	}
+	// Every field indexed but the pseudo-headers other than :authority, each
+	// name from the first static entry that has it, and every string
+	// Huffman-coded where that is shorter.
+	want := []string{
+		":method: indexed static 2",
+		":authority: with indexing, name static 1, value huffman",
+		":scheme: indexed static 7",
+		":path: without indexing, name static 4, value huffman",
+		"sec-ch-ua: with indexing, new name huffman, value huffman",
+		"sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+		"sec-ch-ua-platform: with indexing, new name huffman, value plain",
+		"upgrade-insecure-requests: with indexing, new name huffman, value plain",
+		"user-agent: with indexing, name static 58, value huffman",
+		"accept: with indexing, name static 19, value huffman",
+		"sec-fetch-site: with indexing, new name huffman, value huffman",
+		"sec-fetch-mode: with indexing, new name huffman, value huffman",
+		"sec-fetch-user: with indexing, new name huffman, value plain",
+		"sec-fetch-dest: with indexing, new name huffman, value huffman",
+		"accept-encoding: with indexing, name static 16, value huffman",
+		"accept-language: with indexing, name static 17, value huffman",
+		"priority: with indexing, new name huffman, value huffman",
+	}
+	if !slices.Equal(said, want) {
+		t.Errorf("written\n%s\nwant\n%s", strings.Join(said, "\n"), strings.Join(want, "\n"))
+	}
+}

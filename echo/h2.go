@@ -76,12 +76,15 @@ const (
 type h2conn struct {
 	// conn is what deadlines are set on, and in what frames are read from,
 	// so that the first byte of the next can be waited for on its own.
-	conn   net.Conn
-	in     *bufio.Reader
-	limits limits
-	framer *http2.Framer
-	enc    *hpack.Encoder
-	encBuf *bytes.Buffer
+	conn net.Conn
+	in   *bufio.Reader
+	// preamble keeps the frames as they come, until the first header block:
+	// what a comparison reads of them, which the framer does not keep.
+	preamble *preambleRecorder
+	limits   limits
+	framer   *http2.Framer
+	enc      *hpack.Encoder
+	encBuf   *bytes.Buffer
 	// goneAway says the connection takes no new streams: a request on one is
 	// refused, which a client takes as leave to make it again elsewhere.
 	goneAway bool
@@ -135,7 +138,10 @@ type stream struct {
 
 func newH2Conn(conn net.Conn) *h2conn {
 	in := bufio.NewReader(conn)
-	framer := http2.NewFramer(conn, in)
+	// The framer reads each frame exactly, its header and then its payload,
+	// so what it reads through the recorder is the frames and nothing more.
+	preamble := &preambleRecorder{r: in, on: true}
+	framer := http2.NewFramer(conn, preamble)
 	// Decoding into MetaHeadersFrame keeps the fields in the order the client
 	// sent them and reassembles CONTINUATION frames, which is exactly the two
 	// things a hand-rolled decoder would have to get right.
@@ -146,7 +152,7 @@ func newH2Conn(conn net.Conn) *h2conn {
 	framer.SetMaxReadFrameSize(maxFrameSize)
 	buf := &bytes.Buffer{}
 	return &h2conn{
-		conn: conn, in: in, framer: framer, enc: hpack.NewEncoder(buf), encBuf: buf,
+		conn: conn, in: in, preamble: preamble, framer: framer, enc: hpack.NewEncoder(buf), encBuf: buf,
 		streams: map[uint32]*stream{}, window: 65535, initialWindow: 65535,
 		answered: func(*request) {},
 	}
@@ -183,6 +189,8 @@ func (s *Server) serveFrames(h *h2conn, sess *Session) error {
 		switch {
 		case errors.As(err, &broken):
 			// One stream broke the protocol: it is reset, and the rest go on.
+			// What came before it is not a request's preamble.
+			h.preamble.take()
 			err = h.reset(broken.StreamID, broken.Code)
 		case err != nil:
 			return h.ended(err)
@@ -371,6 +379,9 @@ func (h *h2conn) windowUpdate(sess *Session, f *http2.WindowUpdateFrame) error {
 // headers takes a header block: a new request, the trailers of one, or one
 // this side does not take.
 func (s *Server) headers(h *h2conn, sess *Session, f *http2.MetaHeadersFrame) error {
+	// The frames up to this block, the first: those of the request recorded,
+	// if this is the one, and of none if it is refused.
+	preamble := h.preamble.take()
 	if st, open := h.streams[f.StreamID]; open {
 		switch {
 		case st.begun:
@@ -400,7 +411,7 @@ func (s *Server) headers(h *h2conn, sess *Session, f *http2.MetaHeadersFrame) er
 	}
 	st := &stream{id: f.StreamID, req: requestFromFrame(f), window: h.initialWindow, opened: time.Now()}
 	h.streams[st.id] = st
-	sess.recordRequest(f)
+	sess.recordRequest(f, preamble)
 	if f.Truncated {
 		// More than SETTINGS allows (RFC 9113, section 10.5.1). Not recorded,
 		// being only part of what was sent.
@@ -627,6 +638,38 @@ func requestFromFrame(f *http2.MetaHeadersFrame) *request {
 	return req
 }
 
+// maxPreambleBytes bounds the frames kept before a first request: a header
+// block as long as SETTINGS lets a header list be, and room for the frames
+// before it. A client that sends more is served, but its frames are not kept.
+const maxPreambleBytes = maxHTTP2HeaderListSize + 8<<10
+
+// preambleRecorder keeps what is read through it, until it is told to stop or
+// has kept maxPreambleBytes, and then nothing.
+type preambleRecorder struct {
+	r    io.Reader
+	kept []byte
+	on   bool
+}
+
+func (p *preambleRecorder) Read(b []byte) (int, error) {
+	n, err := p.r.Read(b)
+	if p.on {
+		if len(p.kept)+n > maxPreambleBytes {
+			p.on, p.kept = false, nil
+		} else {
+			p.kept = append(p.kept, b[:n]...)
+		}
+	}
+	return n, err
+}
+
+// take is what was kept, the first time it is asked, and stops keeping.
+func (p *preambleRecorder) take() []byte {
+	kept := p.kept
+	p.on, p.kept = false, nil
+	return kept
+}
+
 func readPreface(r io.Reader) error {
 	preface := make([]byte, len(http2.ClientPreface))
 	if _, err := io.ReadFull(r, preface); err != nil {
@@ -700,7 +743,7 @@ func (s *Session) recordPriority(f *http2.PriorityFrame) bool {
 // accept, different sec-fetch-* and no upgrade-insecure-requests. Recording the
 // last request instead of the first would quietly hand back an XHR's headers
 // labelled as a navigation's.
-func (s *Session) recordRequest(f *http2.MetaHeadersFrame) {
+func (s *Session) recordRequest(f *http2.MetaHeadersFrame, preamble []byte) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.requests++
@@ -710,6 +753,7 @@ func (s *Session) recordRequest(f *http2.MetaHeadersFrame) {
 		return
 	}
 	s.http2Recorded = true
+	s.http2.Raw = preamble
 	if p := f.Priority; p != (http2.PriorityParam{}) {
 		s.http2.HeaderPriority = &fingerprint.Priority{
 			StreamID:  f.StreamID,

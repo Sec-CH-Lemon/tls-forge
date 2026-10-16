@@ -546,7 +546,11 @@ connection by its shape (where GREASE goes, how long each key is, ECH's cipher
 suite, the binders of `pre_shared_key`), and the length of the ECH payload,
 which Chrome draws too, as a `Field` that `Varies`: shown, never compared.
 `Report.Unchecked` lists an extension both sides send that no rule describes,
-with contents that differ; `OK()` is false while it is not empty.
+with contents that differ, and a field one side did not record; `OK()` is
+false while it is not empty. `fingerprint.ParsePreamble` reads the frames a
+client sent before its first request was whole (`capture.HTTP2.RawFrames`),
+and `fingerprint.Representations` how each field of a header block was
+written.
 `fingerprint.CompareTLS`, `fingerprint.CompareHTTP1` and
 `fingerprint.CompareHTTP2` expose the three comparisons independently.
 

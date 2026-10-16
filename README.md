@@ -1307,11 +1307,17 @@ difference, and the command exits `3`.
 
 Over HTTP/2 the comparison covers the SETTINGS in order, the connection's
 WINDOW_UPDATE, PRIORITY frames and the priority on HEADERS, the pseudo-header
-order and values, and every other field with its value, in order. Over
-HTTP/1.1 it covers the request's method and version, and every field in order
-with its spelling and value. The page asked for and the name the server was
-reached by are not compared: the values of `:path`, `:authority` and `Host`,
-and the target of the request line.
+order and values, and every other field with its value, in order. It also
+reads the frames as they went, which the echo server keeps up to the end of
+the first request's header block: which frames came, in what order and with
+which flags, acknowledgements aside, and how each field was written in HPACK,
+indexed or not, its name from which table, each string Huffman-coded or not.
+Over HTTP/1.1 it covers the request's method and version, and every field in
+order with its spelling and value. The page asked for and the name the server
+was reached by are not compared: the values of `:path`, `:authority` and
+`Host`, and the target of the request line. How `:path` was written is
+compared on a line of its own, and shown on a `~` line when the page is one
+the static table holds whole, such as `/`, which every client writes alike.
 
 ```bash
 tls-forge compare

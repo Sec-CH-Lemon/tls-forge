@@ -16,9 +16,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `fingerprint.ClientHello` keeps the record layer, as `RecordVersion` and
   `Records`, and reads `KeyShares` with the length of each key,
   `TrustAnchors` as dotted IDs and `PreSharedKey` without its tickets.
-  `fingerprint.Field.Varies` marks a value shown and never compared, and
+  `fingerprint.Field.Varies` says why a value is shown and never compared,
+  `fingerprint.Field.Missing` marks one a side did not record, and
   `fingerprint.Report.Unchecked` what could not be compared; `OK()` is false
-  while there is any.
+  while there is any. `fingerprint.ParsePreamble` reads HTTP/2 frames up to a
+  first request's header block, `fingerprint.Representations` how each field
+  of a header block was written, and `fingerprint.HTTP2.Raw` and
+  `capture.HTTP2.RawFrames` keep the frames.
 - `fingerprint.ClientHello.EncryptedClientHello` reads the outer
   `encrypted_client_hello` of a hello as a `fingerprint.ECH`: its cipher
   suite, its config id and the lengths of its key and payload. The log's
@@ -347,6 +351,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **`compare` reads HTTP/2 as it went.** The echo server keeps the frames a
+  client sends from the end of its preface to the end of its first request's
+  header block, captures carry them as `raw_frames`, and `compare` holds the
+  client to the browser on which frames came, in what order and with which
+  flags, acknowledgements aside, and on how each field was written in HPACK:
+  indexed or not, its name from which table, each string Huffman-coded or
+  not. It finds one difference from Chrome 155: tls-forge's transport writes
+  `:path` with indexing and names it from the static table's second `:path`
+  entry, where Chrome writes it without indexing and names it from the
+  first. `compare` reports it, and exits 3, until the transport writes it as
+  Chrome does. A capture saved before has no frames, and they are shown as
+  not checked.
 - **`compare` holds the whole ClientHello to the browser's.** It compared the
   lists a JA4 is made of and little more: another trust anchor, record
   version, legacy version, session id length or compression method, a key of

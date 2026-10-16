@@ -73,6 +73,7 @@ func TestFromHTTP2(t *testing.T) {
 			{Name: ":method", Value: "GET"},
 			{Name: "user-agent", Value: "Mozilla/5.0"},
 		},
+		Raw: []byte{0, 0, 0, 4, 0, 0, 0, 0, 0},
 	}
 
 	rendered := FromHTTP2(source)
@@ -97,6 +98,14 @@ func TestFromHTTP2(t *testing.T) {
 	}
 	if !reflect.DeepEqual(back.HeaderPriority, source.HeaderPriority) {
 		t.Errorf("round trip lost the header priority: %v", back.HeaderPriority)
+	}
+	// The frames as they went, in a copy of their own each way.
+	if !reflect.DeepEqual(rendered.RawFrames, source.Raw) || !reflect.DeepEqual(back.Raw, source.Raw) {
+		t.Errorf("round trip lost the frames: %x, %x", rendered.RawFrames, back.Raw)
+	}
+	rendered.RawFrames[3] = 9
+	if source.Raw[3] != 4 || back.Raw[3] != 4 {
+		t.Error("the frames are shared")
 	}
 }
 

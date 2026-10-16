@@ -13,6 +13,13 @@ JA4 t13d1518h2_8daaf6152771_e2d80978ab2e, and differs from the first by one
 extension, pre_shared_key, last. Only the records are kept; what the page's
 JavaScript reported about the machine is not.
 
+`chrome155-http2-preamble.bin` is what Google Chrome 155.0.8059.80 on macOS
+27.0 (arm64), headless, sent on a new HTTP/2 connection to the local echo
+server from the end of its preface to the end of its first request's header
+block, a navigation to `/?http1=done` on 2026-10-16: SETTINGS, WINDOW_UPDATE
+and HEADERS with its priority, as the bytes went. Its user agent says
+HeadlessChrome; nothing that compares it reads the value.
+
 `chrome155-ech.json` is how Google Chrome 155.0.8059.80 on macOS 27.0 (arm64)
 draws the length of the payload of its GREASE encrypted_client_hello
 extension: two series on 2026-10-16, 301 connections in all, each launch with

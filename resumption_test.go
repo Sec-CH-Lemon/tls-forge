@@ -191,3 +191,26 @@ func TestTheHelloHasChromesShapeColdAndResumed(t *testing.T) {
 		}
 	}
 }
+
+func TestTheFirstRequestGoesOutInChromesFrames(t *testing.T) {
+	// Held to the frames Chrome 155 sent before its first request was whole,
+	// and to how it wrote each field: the same frames with the same flags,
+	// each field indexed or not and its name from the same table as Chrome's.
+	// How :path is written is not held here: tls-forge's transport indexes it
+	// and names it from the static table's second :path, where Chrome does
+	// neither (docs/support.md).
+	raw, err := os.ReadFile("testdata/chrome155-http2-preamble.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	server := startEcho(t)
+	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	measured, _ := measuredOn(t, client, server)
+	chrome := fingerprint.HTTP2Fields(&fingerprint.HTTP2{Raw: raw})
+	sent := fingerprint.HTTP2Fields(measured.HTTP2.Fingerprint())
+	for i, field := range chrome {
+		if (field.Name == "http2_frames" || field.Name == "http2_hpack") && !field.Matches(sent[i]) {
+			t.Errorf("%s\nChrome: %s\nsent:   %s", field.Name, field.Render(), sent[i].Render())
+		}
+	}
+}

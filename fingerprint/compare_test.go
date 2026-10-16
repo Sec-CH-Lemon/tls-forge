@@ -1,9 +1,12 @@
 package fingerprint
 
 import (
+	"bytes"
 	"slices"
 	"strings"
 	"testing"
+
+	"golang.org/x/net/http2"
 )
 
 func TestCompareTLSIdentical(t *testing.T) {
@@ -153,7 +156,7 @@ func heldToEveryField(t *testing.T, fields []Field, held map[string]bool) {
 	t.Helper()
 	var unheld []string
 	for _, field := range fields {
-		if !field.Varies && !held[field.Name] {
+		if field.Varies == "" && !held[field.Name] {
 			unheld = append(unheld, field.Name)
 		}
 	}
@@ -162,10 +165,19 @@ func heldToEveryField(t *testing.T, fields []Field, held map[string]bool) {
 	}
 }
 
-func TestCompareHTTP2(t *testing.T) {
-	reference := chromeHTTP2()
+// navigation is chromeHTTP2 opening a page no static entry holds, as the
+// browser measured does, so that how :path is written says something.
+func navigation() *HTTP2 {
+	h := chromeHTTP2Fields()
+	h.Headers[3].Value = "/?http1=done"
+	h.Raw = preambleOf(h, wire{})
+	return h
+}
 
-	if report := CompareHTTP2(reference, chromeHTTP2()); !report.OK() {
+func TestCompareHTTP2(t *testing.T) {
+	reference := navigation()
+
+	if report := CompareHTTP2(reference, navigation()); !report.OK() {
 		t.Errorf("identical connections reported differences:\n%s", report)
 	}
 
@@ -197,10 +209,18 @@ func TestCompareHTTP2(t *testing.T) {
 		{"header value", func(h *HTTP2) {
 			h.Headers[4].Value = "different"
 		}, "header_values"},
+		{"a PRIORITY frame first", func(h *HTTP2) { h.Raw = preambleOf(h, wire{priority: true}) }, "http2_frames"},
+		{"no WINDOW_UPDATE frame", func(h *HTTP2) { h.Raw = preambleOf(h, wire{noWindow: true}) }, "http2_frames"},
+		{"a CONTINUATION", func(h *HTTP2) { h.Raw = preambleOf(h, wire{split: true}) }, "http2_frames"},
+		{"user-agent never to be indexed", func(h *HTTP2) {
+			h.Raw = preambleOf(h, wire{sensitive: "user-agent"})
+		}, "http2_hpack"},
+		{"a table size update first", func(h *HTTP2) { h.Raw = preambleOf(h, wire{sizeUpdate: true}) }, "http2_hpack"},
+		{"the page never to be indexed", func(h *HTTP2) { h.Raw = preambleOf(h, wire{sensitive: ":path"}) }, "http2_hpack_path"},
 	} {
 		held[tc.field] = true
 		t.Run(tc.name, func(t *testing.T) {
-			candidate := chromeHTTP2()
+			candidate := navigation()
 			tc.mutate(candidate)
 			report := CompareHTTP2(reference, candidate)
 			if !slices.ContainsFunc(report.Differences, func(d Difference) bool { return d.Field == tc.field }) {
@@ -254,16 +274,108 @@ func TestCompareHTTP1(t *testing.T) {
 
 func TestHTTP2FieldsExcludeThePageAndTheSiteName(t *testing.T) {
 	// The two measurements ask for different pages, and a browser opened by
-	// hand reaches the server by a name of its own.
-	left, right := chromeHTTP2(), chromeHTTP2()
+	// hand reaches the server by a name of its own: what is asked for and
+	// where, and how either was written down.
+	left, right := chromeHTTP2(), chromeHTTP2Fields()
 	right.Headers[1].Value = "192.168.1.5:8443"
-	right.Headers[3].Value = "/another-path"
+	right.Headers[3].Value = "/another/path/that/no/table/holds"
+	right.Raw = preambleOf(right, wire{})
 	if report := CompareHTTP2(left, right); !report.OK() {
 		t.Errorf("the page or the site's name differed:\n%s", report)
+	}
+	// Nor whether either was Huffman-coded, which their letters decide: "["
+	// and "~" take thirteen bits of Huffman code, and are written as they are.
+	plain := chromeHTTP2Fields()
+	plain.Headers[1].Value = "[::1]:8443"
+	plain.Headers[3].Value = "/~~~~~~~~"
+	plain.Raw = preambleOf(plain, wire{})
+	if report := CompareHTTP2(navigation(), plain); !report.OK() {
+		t.Errorf("Huffman coding of the page or the site's name differed:\n%s", report)
+	}
+	// When the client acknowledges the server's SETTINGS depends on when they
+	// came.
+	right.Raw = preambleOf(right, wire{ackFirst: true})
+	if report := CompareHTTP2(left, right); !report.OK() {
+		t.Errorf("an acknowledgement differed:\n%s", report)
+	}
+	// A page the static table holds whole is written as that entry by any
+	// client: how the other side wrote its page is not held to it.
+	page := HTTP2Fields(left)[len(HTTP2Fields(left))-1]
+	if page.Name != "http2_hpack_path" || page.Render() != "indexed static 4" ||
+		page.Varies != "the page asked for decides it" {
+		t.Errorf("the page /: %+v", page)
+	}
+	if report := CompareHTTP2(left, navigation()); !report.OK() {
+		t.Errorf("/ against another page:\n%s", report)
+	}
+	if report := CompareHTTP2(navigation(), left); !report.OK() {
+		t.Errorf("another page against /:\n%s", report)
 	}
 	if got := HTTP2Fields(left)[6]; got.Name != "pseudo_header_values" ||
 		!slices.Equal(got.Values, []string{":method: GET", ":scheme: https"}) {
 		t.Errorf("pseudo-header values: %+v", got)
+	}
+}
+
+func TestHTTP2FieldsSayHowEachFieldWasWritten(t *testing.T) {
+	// Written by x/net's encoder, which indexes every field and names :path
+	// from the static table's second entry for it.
+	want := map[string][]string{
+		"http2_frames": {"SETTINGS on 0", "WINDOW_UPDATE on 0", "HEADERS on 1, END_STREAM|END_HEADERS|PRIORITY"},
+		"http2_hpack": {":method: indexed static 2", ":authority: with indexing, name static 1",
+			":scheme: indexed static 7", "sec-ch-ua: with indexing, new name huffman, value huffman",
+			"user-agent: with indexing, name static 58, value huffman",
+			"accept: with indexing, name static 19, value huffman"},
+		"http2_hpack_path": {"with indexing, name static 5"},
+	}
+	for _, field := range HTTP2Fields(navigation()) {
+		if expected, ok := want[field.Name]; ok && (!slices.Equal(field.Values, expected) || field.Missing || field.Varies != "") {
+			t.Errorf("%s: %+v", field.Name, field)
+		}
+	}
+	// A request without a :path, as CONNECT is.
+	connect := &HTTP2{Headers: []HeaderField{{Name: ":method", Value: "CONNECT"}, {Name: ":authority", Value: "a:443"}}}
+	connect.Raw = preambleOf(connect, wire{})
+	if got := HTTP2Fields(connect)[len(HTTP2Fields(connect))-1]; got.Render() != "(none)" || got.Missing {
+		t.Errorf("no :path: %+v", got)
+	}
+}
+
+func TestWhatWasNotRecordedIsNotChecked(t *testing.T) {
+	// A capture made before the frames were kept has none: not a match, and
+	// not a difference either.
+	recorded, unrecorded := chromeHTTP2(), chromeHTTP2()
+	unrecorded.Raw = nil
+	report := CompareHTTP2(recorded, unrecorded)
+	if report.OK() || len(report.Differences) != 0 || len(report.Unchecked) != 3 ||
+		report.Unchecked[0].Field != "http2_frames" || report.Unchecked[1].Candidate != "(not recorded)" ||
+		report.Unchecked[2].Field != "http2_hpack_path" {
+		t.Errorf("one side unrecorded: %+v", report)
+	}
+	// Frames that cannot be read are said why.
+	unrecorded.Raw = []byte{0, 0}
+	report = CompareHTTP2(unrecorded, recorded)
+	if len(report.Unchecked) != 3 || !strings.Contains(report.Unchecked[0].Reference, "cut short") {
+		t.Errorf("unreadable frames: %+v", report)
+	}
+	// A header block that cannot be read leaves the frames to compare.
+	broken := chromeHTTP2Fields()
+	var out bytes.Buffer
+	framer := http2.NewFramer(&out, nil)
+	_ = framer.WriteSettings(http2.Setting{ID: 1, Val: 65536}, http2.Setting{ID: 2, Val: 0},
+		http2.Setting{ID: 4, Val: 6291456}, http2.Setting{ID: 6, Val: 262144})
+	_ = framer.WriteWindowUpdate(0, 15663105)
+	_ = framer.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: []byte{0xff}, EndStream: true,
+		EndHeaders: true, Priority: http2.PriorityParam{Exclusive: true, Weight: 255}})
+	broken.Raw = out.Bytes()
+	report = CompareHTTP2(recorded, broken)
+	if len(report.Differences) != 0 || len(report.Unchecked) != 2 || report.Unchecked[0].Field != "http2_hpack" ||
+		report.Unchecked[1].Field != "http2_hpack_path" {
+		t.Errorf("an unreadable header block: %+v", report)
+	}
+	missing := Field{Name: "http2_frames", Values: []string{"(not recorded)"}, Missing: true}
+	if missing.Matches(missing) || (Field{Name: "x"}).Matches(missing) {
+		t.Error("a missing field matched")
 	}
 }
 
@@ -370,8 +482,8 @@ func TestFieldMatchesUsesTheRuleTheFieldIsComparedWith(t *testing.T) {
 		// Drawn for every connection: shown, and never a difference.
 		{
 			"varies is never a difference",
-			Field{Name: "ech_payload_length", Values: []string{"176"}, Scalar: true, Varies: true},
-			Field{Name: "ech_payload_length", Values: []string{"240"}, Scalar: true, Varies: true},
+			Field{Name: "ech_payload_length", Values: []string{"176"}, Scalar: true, Varies: drawn},
+			Field{Name: "ech_payload_length", Values: []string{"240"}, Scalar: true, Varies: drawn},
 			true,
 		},
 	} {

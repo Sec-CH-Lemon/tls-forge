@@ -100,6 +100,13 @@ type HTTP2 struct {
 	PseudoHeaderOrder []string      `json:"pseudo_header_order"`
 	HeaderOrder       []string      `json:"header_order"`
 	Headers           []HeaderField `json:"headers"`
+
+	// RawFrames is what the client sent from the end of its preface to the
+	// end of its first request's header block, as it went: the frames and the
+	// HPACK a comparison reads, as RawClientHello is for the handshake. Absent
+	// from a capture made before it was kept, whose frames are then not
+	// checked.
+	RawFrames []byte `json:"raw_frames,omitempty"`
 }
 
 // Setting is one HTTP/2 setting, named.
@@ -188,6 +195,7 @@ func FromHTTP2(h *fingerprint.HTTP2) *HTTP2 {
 	}
 	out := &HTTP2{
 		Akamai:            h.Akamai(),
+		RawFrames:         append([]byte(nil), h.Raw...),
 		WindowUpdate:      h.WindowUpdate,
 		PseudoHeaderOrder: h.PseudoHeaderOrder(),
 		HeaderOrder:       h.HeaderOrder(),
@@ -230,6 +238,7 @@ func (h *HTTP2) Fingerprint() *fingerprint.HTTP2 {
 		return nil
 	}
 	out := &fingerprint.HTTP2{
+		Raw:          append([]byte(nil), h.RawFrames...),
 		WindowUpdate: h.WindowUpdate,
 		Settings:     make([]fingerprint.Setting, len(h.Settings)),
 		Headers:      make([]fingerprint.HeaderField, len(h.Headers)),

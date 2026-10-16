@@ -18,6 +18,9 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/hpack"
+
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
@@ -1184,6 +1187,40 @@ func TestComparePrintsWhatVariesAndWhatIsNotChecked(t *testing.T) {
 	}
 	if strings.Contains(buf.String(), "indistinguishable") || strings.Contains(buf.String(), "field(s) differ") {
 		t.Errorf("a verdict was given:\n%s", buf.String())
+	}
+}
+
+func TestComparePrintsAPageThatSaysNothingOfTheClient(t *testing.T) {
+	// Chrome's own first request, to /?http1=done, against a client asking
+	// for /, which the static table holds whole and every client writes
+	// alike: how :path was written is shown for both, and not compared.
+	hello, err := os.ReadFile("../../testdata/chrome155-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	frames, err := os.ReadFile("../../testdata/chrome155-http2-preamble.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	var raw, block bytes.Buffer
+	framer := http2.NewFramer(&raw, nil)
+	enc := hpack.NewEncoder(&block)
+	for _, field := range [][2]string{{":method", "GET"}, {":authority", "localhost"}, {":scheme", "https"}, {":path", "/"}} {
+		_ = enc.WriteField(hpack.HeaderField{Name: field[0], Value: field[1]})
+	}
+	_ = framer.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: block.Bytes(), EndStream: true, EndHeaders: true})
+	result, err := tlsforge.Compare(
+		&capture.Capture{RawClientHello: hello, HTTP2: &capture.HTTP2{RawFrames: frames}},
+		&capture.Capture{RawClientHello: hello, HTTP2: &capture.HTTP2{RawFrames: raw.Bytes()}})
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	var buf bytes.Buffer
+	printComparison(newPrinter(&buf), result, palette{}, false)
+	want := "~ http2_hpack_path       browser without indexing, name static 4, client indexed static 4: " +
+		"the page asked for decides it, not compared\n"
+	if !strings.Contains(buf.String(), want) {
+		t.Errorf("no %q in:\n%s", want, buf.String())
 	}
 }
 

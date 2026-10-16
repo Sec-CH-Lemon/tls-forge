@@ -43,7 +43,10 @@ plausible it looks.
 | Response bodies decoded from gzip, x-gzip, deflate (zlib or raw), br and zstd, in the reverse of the order applied; a coding Chrome does not know passed through; a zstd window over 8 MiB refused | checked | `TestABodyIsDecodedFromEveryCodingChromeAccepts` and the tests beside it, over HTTP/1.1 and HTTP/2, through the proxy, `fetch` and both SDKs |
 | A saved session keeps each cookie's scope (its host's alone or its domain's), a session cookie without an expiry, and `SameSite`; a cookie lives at most 400 days | checked | `TestASessionComesBackWithEachCookiesScope` and the jar tests beside it |
 | `SameSite` and partitioned cookies enforced when a request is sent | not modelled | `SameSite` is kept and written down; every cookie the jar holds for a URL goes to it |
-| HPACK representations, frame and TLS record boundaries | not checked | |
+| The frames before the first request and their flags, acknowledgements aside; the records the ClientHello came in | checked | `tls-forge compare` reads the frames the echo server keeps; `TestTheFirstRequestGoesOutInChromesFrames` holds them to `testdata/chrome155-http2-preamble.bin` |
+| HPACK of the first request: each field indexed or not, its name from which table, each string Huffman-coded or not | checked | `tls-forge compare`; `TestTheFirstRequestGoesOutInChromesFrames` |
+| HPACK of `:path` | differs | Chrome writes it without indexing, its name from the static table's first `:path`; tls-forge's transport indexes it, with the name of the second. `tls-forge compare` reports it |
+| HPACK of later requests on a connection, against the dynamic table the first left | not checked | only a connection's first request is measured |
 | Connections: one per try by default, one per URL with `--reuse-connection` | by design | neither is a browser's pool of connections per origin; this is a choice of the command line, not a claim |
 | HTTP/3 and QUIC | not supported | an `Alt-Svc` that offers HTTP/3 is ignored; requests go over HTTP/2 or HTTP/1.1 |
 | TCP/IP: TTL, window, options of the first packets | not controlled | they are this machine's operating system's, whatever the profile; the run header says so when the profile's platform is another (`tcp/ip`) |

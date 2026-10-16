@@ -79,10 +79,17 @@ type Field struct {
 	// meaningful "missing" and "extra".
 	Scalar bool
 
-	// Varies is a value the browser draws afresh for every connection, such as
-	// the length of its ECH payload: shown for both sides and never compared,
-	// since the browser would not match itself.
-	Varies bool
+	// Varies says why a value says nothing of the client, for one shown for
+	// both sides and never compared: a value the browser draws afresh for
+	// every connection, such as the length of its ECH payload, where it would
+	// not match itself, or one the page asked for decides. Empty for a value
+	// compared. Either side's makes the field one.
+	Varies string
+
+	// Missing is a value the measurement does not hold: one made before it
+	// was recorded, or one that could not be read. Missing on either side, a
+	// field is not checked: neither a match nor a difference.
+	Missing bool
 }
 
 // Render is the value as a person reads it.
@@ -105,7 +112,9 @@ func (f Field) Render() string {
 // below it said everything matched. The two answers have to come from one rule.
 func (f Field) Matches(other Field) bool {
 	switch {
-	case f.Varies:
+	case f.Missing || other.Missing:
+		return false
+	case f.Varies != "" || other.Varies != "":
 		return true
 	case f.Scalar:
 		return f.Render() == other.Render()
@@ -115,6 +124,9 @@ func (f Field) Matches(other Field) bool {
 		return equalStrings(f.Values, other.Values)
 	}
 }
+
+// drawn is why a value the browser draws for every connection is not compared.
+const drawn = "drawn for each connection"
 
 func scalar(name, value string) Field {
 	return Field{Name: name, Values: []string{value}, Scalar: true}
@@ -166,7 +178,7 @@ func TLSFields(hello *ClientHello) []Field {
 		{Name: "compress_certificate", Values: decimalStrings16(hello.CertCompressionAlgorithms())},
 		{Name: "trust_anchors", Values: hello.TrustAnchors(), Set: true},
 		scalar("ech_grease", ech),
-		{Name: "ech_payload_length", Values: []string{echPayload}, Scalar: true, Varies: true},
+		{Name: "ech_payload_length", Values: []string{echPayload}, Scalar: true, Varies: drawn},
 		scalar("pre_shared_key", pskShape(hello)),
 		{Name: "extension_contents", Values: extensionContents(hello), Set: true},
 	}
@@ -181,6 +193,7 @@ func TLSFields(hello *ClientHello) []Field {
 // :path and :authority are not: the two measurements ask for different pages,
 // and a browser opened by hand reaches the server by a name of its own.
 func HTTP2Fields(h *HTTP2) []Field {
+	frames, fields, path := preambleFields(h.Raw)
 	return []Field{
 		scalar("http2_akamai", h.Akamai()),
 		{Name: "http2_settings", Values: settingStrings(h.Settings)},
@@ -191,7 +204,67 @@ func HTTP2Fields(h *HTTP2) []Field {
 		{Name: "pseudo_header_values", Values: pseudoHeaderStrings(h.Headers)},
 		{Name: "header_order", Values: h.HeaderOrder()},
 		{Name: "header_values", Values: regularHeaderStrings(h.Headers)},
+		frames,
+		fields,
+		path,
 	}
+}
+
+// http2TableSize is the dynamic table a client writes its first header block
+// for: the default, since the echo server's SETTINGS do not change it.
+const http2TableSize = 4096
+
+// preambleFields are the frames a client sent before its first request was
+// whole, acknowledgements aside, whose place depends on when the server's
+// frames arrived; how each field of the request's header block was written,
+// but the value of :authority, which is the site's name; and how :path was,
+// apart, without its value, which is the page's. A page the static table
+// holds whole, such as /, is written as that entry whatever the client: that
+// says nothing of it, and is not compared. Each is Missing when it was not
+// recorded or cannot be read.
+func preambleFields(raw []byte) (frames, fields, path Field) {
+	frames, fields = Field{Name: "http2_frames"}, Field{Name: "http2_hpack"}
+	path = Field{Name: "http2_hpack_path", Values: []string{"(none)"}, Scalar: true}
+	unread := func(why string, missing ...*Field) {
+		for _, f := range missing {
+			f.Values, f.Missing = []string{why}, true
+		}
+	}
+	if len(raw) == 0 {
+		unread("(not recorded)", &frames, &fields, &path)
+		return frames, fields, path
+	}
+	preamble, err := ParsePreamble(raw)
+	if err != nil {
+		unread(err.Error(), &frames, &fields, &path)
+		return frames, fields, path
+	}
+	for _, frame := range preamble.Frames {
+		if !frame.Ack() {
+			frames.Values = append(frames.Values, frame.String())
+		}
+	}
+	representations, err := Representations(preamble.Block, http2TableSize)
+	if err != nil {
+		unread(err.Error(), &fields, &path)
+		return frames, fields, path
+	}
+	for _, r := range representations {
+		switch r.Field {
+		case ":path":
+			path.Values = []string{r.describe(false)}
+			if r.Kind == "indexed" {
+				path.Varies = "the page asked for decides it"
+			}
+		case "":
+			fields.Values = append(fields.Values, r.String())
+		case ":authority":
+			fields.Values = append(fields.Values, r.Field+": "+r.describe(false))
+		default:
+			fields.Values = append(fields.Values, r.Field+": "+r.String())
+		}
+	}
+	return frames, fields, path
 }
 
 // priorityString is a priority as RFC 9113 counts its weight, 1 to 256: one
@@ -245,7 +318,7 @@ func regularHeaderStrings(headers []HeaderField) []string {
 // real browser's. TLSFields says what is compared, and what is not.
 func CompareTLS(reference, candidate *ClientHello) Report {
 	report := compareFields(TLSFields(reference), TLSFields(candidate))
-	report.Unchecked = uncheckedExtensions(reference, candidate)
+	report.Unchecked = append(report.Unchecked, uncheckedExtensions(reference, candidate)...)
 	return report
 }
 
@@ -262,12 +335,15 @@ func CompareHTTP1(reference, candidate *HTTP1) Report {
 // compareFields walks two lists produced by the same function, so they are the
 // same length and in the same order.
 func compareFields(reference, candidate []Field) Report {
-	var diffs []Difference
+	var diffs, unchecked []Difference
 	for i, want := range reference {
 		got := candidate[i]
 		var d *Difference
 		switch {
-		case want.Varies:
+		case want.Missing || got.Missing:
+			unchecked = append(unchecked, Difference{Field: want.Name, Reference: want.Render(), Candidate: got.Render()})
+			continue
+		case want.Varies != "" || got.Varies != "":
 			continue
 		case want.Scalar:
 			d = diffValue(want.Name, want.Render(), got.Render())
@@ -280,7 +356,7 @@ func compareFields(reference, candidate []Field) Report {
 			diffs = append(diffs, *d)
 		}
 	}
-	return Report{Differences: diffs}
+	return Report{Differences: diffs, Unchecked: unchecked}
 }
 
 func diffValue(field, reference, candidate string) *Difference {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"os"
@@ -129,10 +130,11 @@ func (d *diffPrinter) section(title string, reference, candidate []fingerprint.F
 	d.out.printf("%s%s%s\n", d.colour.dim, title, d.colour.reset)
 	for i, want := range reference {
 		got := candidate[i]
-		// Drawn for every connection: both sides, and no verdict.
-		if want.Varies {
+		// Saying nothing of the client: both sides, why, and no verdict.
+		if want.Varies != "" || got.Varies != "" {
 			d.line(d.colour.dim, "~", want.Name,
-				"browser "+want.Render()+", client "+got.Render()+": drawn for each connection, not compared", false)
+				"browser "+want.Render()+", client "+got.Render()+": "+cmp.Or(want.Varies, got.Varies)+
+					", not compared", false)
 			continue
 		}
 		if want.Matches(got) {

@@ -43,6 +43,11 @@ type HTTP2 struct {
 	// (exclusive, depends on stream 0, weight 255 on the wire); most HTTP
 	// clients send none.
 	HeaderPriority *Priority
+
+	// Raw is what the client sent from the end of its preface to the end of
+	// its first request's header block, as it went: ParsePreamble reads it.
+	// Empty when it was not recorded.
+	Raw []byte
 }
 
 // Akamai returns the Akamai HTTP/2 fingerprint, e.g.
