@@ -1,6 +1,7 @@
 package echo
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net"
 	"slices"
 	"strings"
+	"time"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
@@ -72,6 +74,11 @@ const (
 )
 
 type h2conn struct {
+	// conn is what deadlines are set on, and in what frames are read from,
+	// so that the first byte of the next can be waited for on its own.
+	conn   net.Conn
+	in     *bufio.Reader
+	limits limits
 	framer *http2.Framer
 	enc    *hpack.Encoder
 	encBuf *bytes.Buffer
@@ -100,12 +107,19 @@ type h2conn struct {
 	// answered is told of a request once its answer has gone, or gone as far
 	// as it ever will.
 	answered func(*request)
+	// active is when the connection began or a stream last closed: one with
+	// none open for as long as it may idle is done with, however the client
+	// keeps it busy with frames of no stream's.
+	active time.Time
 }
 
 // stream is one of the client's streams.
 type stream struct {
 	id  uint32
 	req *request
+	// opened is when it was: a request still arriving request time later is
+	// reset.
+	opened time.Time
 	// size is what the stream holds, counted in h2conn.held: its request's
 	// header list and body while they arrive, then what is left of its answer.
 	size int
@@ -119,8 +133,9 @@ type stream struct {
 	thenReset bool
 }
 
-func newH2Conn(rw io.ReadWriter) *h2conn {
-	framer := http2.NewFramer(rw, rw)
+func newH2Conn(conn net.Conn) *h2conn {
+	in := bufio.NewReader(conn)
+	framer := http2.NewFramer(conn, in)
 	// Decoding into MetaHeadersFrame keeps the fields in the order the client
 	// sent them and reassembles CONTINUATION frames, which is exactly the two
 	// things a hand-rolled decoder would have to get right.
@@ -131,7 +146,7 @@ func newH2Conn(rw io.ReadWriter) *h2conn {
 	framer.SetMaxReadFrameSize(maxFrameSize)
 	buf := &bytes.Buffer{}
 	return &h2conn{
-		framer: framer, enc: hpack.NewEncoder(buf), encBuf: buf,
+		conn: conn, in: in, framer: framer, enc: hpack.NewEncoder(buf), encBuf: buf,
 		streams: map[uint32]*stream{}, window: 65535, initialWindow: 65535,
 		answered: func(*request) {},
 	}
@@ -148,6 +163,8 @@ func (s *Server) serveHTTP2(conn net.Conn, sess *Session) error {
 // serveFrames serves the frames that follow the preface.
 func (s *Server) serveFrames(h *h2conn, sess *Session) error {
 	h.answered = s.completeAfter
+	h.limits = s.limits
+	h.active = time.Now()
 	// An answer the connection ends under has gone as far as it ever will, and
 	// a capture it completes is complete: whoever waits for it is not left
 	// waiting.
@@ -161,7 +178,7 @@ func (s *Server) serveFrames(h *h2conn, sess *Session) error {
 	}
 
 	for {
-		frame, err := h.framer.ReadFrame()
+		frame, err := h.nextFrame()
 		var broken http2.StreamError
 		switch {
 		case errors.As(err, &broken):
@@ -179,10 +196,44 @@ func (s *Server) serveFrames(h *h2conn, sess *Session) error {
 			// What the frame let go of: a window widened, a stream reset.
 			err = h.flush()
 		}
+		if err == nil {
+			err = h.expire()
+		}
 		if err != nil {
 			return err
 		}
+		if len(h.streams) == 0 && time.Since(h.active) > h.limits.idle {
+			// Nothing open for as long as a connection may idle: a client
+			// keeping it busy with PINGs is told it is done with.
+			return h.goAway()
+		}
 	}
+}
+
+// nextFrame reads the next frame. Its first byte is waited for as long as a
+// connection may idle, and from then the frame, or the header block, has as
+// long as a request may take: a peer sending either a byte at a time is
+// ended there.
+func (h *h2conn) nextFrame() (http2.Frame, error) {
+	_ = h.conn.SetReadDeadline(time.Now().Add(h.limits.idle))
+	if _, err := h.in.Peek(1); err != nil {
+		return nil, err
+	}
+	_ = h.conn.SetReadDeadline(time.Now().Add(h.limits.request))
+	return h.framer.ReadFrame()
+}
+
+// expire resets every stream whose request has not arrived whole as long
+// after it opened as a request may take.
+func (h *h2conn) expire() error {
+	for id, st := range h.streams {
+		if !st.begun && time.Since(st.opened) > h.limits.request {
+			if err := h.reset(id, http2.ErrCodeCancel); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // take does what one frame asks.
@@ -240,6 +291,11 @@ func (h *h2conn) ended(err error) error {
 // the same.
 func (h *h2conn) fail(code http2.ErrCode, why string) error {
 	_ = h.framer.WriteGoAway(h.lastStream, code, []byte(why))
+	// What the client still sends is read and dropped, for a moment, before
+	// the connection closes: closing with bytes unread sends a reset, which
+	// can lose the GOAWAY on its way.
+	_ = h.conn.SetReadDeadline(time.Now().Add(h.limits.linger))
+	_, _ = io.Copy(io.Discard, io.LimitReader(h.in, maxHeldBytes))
 	return fmt.Errorf("echo: HTTP/2 %v: %s", code, why)
 }
 
@@ -342,7 +398,7 @@ func (s *Server) headers(h *h2conn, sess *Session, f *http2.MetaHeadersFrame) er
 		// as leave to make it again.
 		return h.resetClosed(f.StreamID, http2.ErrCodeRefusedStream)
 	}
-	st := &stream{id: f.StreamID, req: requestFromFrame(f), window: h.initialWindow}
+	st := &stream{id: f.StreamID, req: requestFromFrame(f), window: h.initialWindow, opened: time.Now()}
 	h.streams[st.id] = st
 	sess.recordRequest(f)
 	if f.Truncated {
@@ -444,6 +500,7 @@ func (h *h2conn) drop(id uint32) {
 		return
 	}
 	delete(h.streams, id)
+	h.active = time.Now()
 	h.held -= st.size
 	if st.begun {
 		h.sending = slices.DeleteFunc(h.sending, func(other *stream) bool { return other == st })
@@ -520,6 +577,7 @@ func (h *h2conn) flush() error {
 		}
 		h.sending = slices.Delete(h.sending, i, i+1)
 		delete(h.streams, st.id)
+		h.active = time.Now()
 		h.answered(st.req)
 		if st.thenReset {
 			if err := h.resetClosed(st.id, http2.ErrCodeNo); err != nil {

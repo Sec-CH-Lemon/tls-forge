@@ -330,6 +330,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- `echo.Server.Sessions` returns the latest 128 connections rather than
+  every one the server has seen, and the server keeps the latest 128 pages
+  served, captures nobody has awaited, manual visitors and recovered panics:
+  `tls-forge serve` left running held all of them for as long as it ran.
 - **`fetch` refuses what it cannot run with, as a usage error, before it
   touches anything.** A value a flag does not take (`--progress`, `--color`,
   `--format`, `--report-format`, as `--log-level` already was), an unknown
@@ -454,6 +458,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The echo server bounds what a connection can hold, and for how long.** A
+  handshake, a request or an HTTP/2 frame sent a byte at a time held its
+  connection for as long as each byte came within 30 seconds of the last, an
+  HTTP/2 request that never ended was held for as long as its client kept the
+  connection busy, and any number of connections were served. A handshake now
+  has 10 seconds in all and a request 10 seconds from its first byte, an
+  HTTP/2 stream whose request has not ended by then is reset, a connection
+  with no stream open for 30 seconds is told `GOAWAY`, and 128 connections
+  are served at once, the next waiting to be accepted. A connection ended
+  for breaking HTTP/2 is read for a second more before it closes, so that
+  the `GOAWAY` saying why is not lost to a reset. Running out of file
+  descriptors for a moment stopped the server accepting connections for
+  good; it is waited out.
 - **The echo server's HTTP/2 keeps to the client's windows and settings, and
   to bounds of its own.** It sent answers without looking at the client's
   flow-control windows, so a client that kept them small, or did not widen

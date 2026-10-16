@@ -1428,7 +1428,13 @@ The certificate is generated for each run, so test clients must trust it or
 explicitly disable verification for this local endpoint. The server does not
 authenticate incoming clients; the CLI warns when `--addr` exposes it beyond
 loopback. A connection that makes no read or write progress for 30 seconds is
-closed.
+closed. The TLS handshake has 10 seconds in all, and a request 10 seconds from
+its first byte: over HTTP/1.1 the whole of it, over HTTP/2 each frame, and a
+stream whose request has not ended by then is reset. An HTTP/2 connection with
+no stream open for 30 seconds is told `GOAWAY`, however busy its client keeps
+it. At most 128 connections are served at once, and the next waits to be
+accepted until one ends. The server keeps the latest 128 connections, pages
+served, captures nobody has waited for, and visitors a manual capture trusts.
 
 HTTP/1.1 is read as RFC 9112 has it, and no further. A request the server
 cannot read whole is answered with the status that says why, and the reason,

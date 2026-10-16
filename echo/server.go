@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,10 +31,50 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/accept"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn"
 )
 
-const connectionIdleTimeout = 30 * time.Second
+// limits is what one connection may cost, how many may cost it at once, and
+// how much the server keeps of what it has seen.
+//
+// A connection is served while it makes progress, and a step on it has a time
+// of its own: what a peer sends a byte at a time, each inside the idle timeout,
+// is a peer holding a connection, not a client being slow.
+type limits struct {
+	// idle is how long a connection may wait for its peer to begin the next
+	// thing, and any one read or write for the peer.
+	idle time.Duration
+	// handshake is how long a TLS handshake may take, in all.
+	handshake time.Duration
+	// request is how long a request may take once its first byte has come:
+	// an HTTP/1.1 request whole, an HTTP/2 frame or header block, and an
+	// HTTP/2 stream's request, which is reset if it has not ended by then.
+	request time.Duration
+	// linger is how long a connection ended for breaking HTTP/2 is read and
+	// its bytes dropped before it closes: closing with bytes unread sends a
+	// reset, which can lose the GOAWAY on its way.
+	linger time.Duration
+	// connections is how many are served at once, on both listeners: the
+	// next waits to be accepted until one ends.
+	connections int
+	// kept is how many the server keeps of the latest of each thing it keeps
+	// a list of: connections, pages served, captures finished and not yet
+	// awaited, visitors a manual capture trusts, and recovered panics. A
+	// server left running, as serve is, holds the latest, not everything.
+	kept int
+}
+
+// defaultLimits is what Start serves with. A variable so that a test can make
+// it small; a server keeps the one it started with.
+var defaultLimits = limits{
+	idle:        30 * time.Second,
+	handshake:   10 * time.Second,
+	request:     10 * time.Second,
+	linger:      time.Second,
+	connections: 128,
+	kept:        128,
+}
 
 // Session is everything one connection revealed about its client.
 type Session struct {
@@ -112,6 +153,11 @@ type Server struct {
 	tlsConfig        *tls.Config
 	captureTLSConfig *tls.Config
 	host             string
+	limits           limits
+	// slots holds a token for every connection being served, on both
+	// listeners, so that accept waits while it is full. Close ends that wait
+	// as it ends every connection, which frees their slots.
+	slots chan struct{}
 
 	mu       sync.Mutex
 	sessions []*Session
@@ -121,7 +167,8 @@ type Server struct {
 	// A list rather than the single pinned session this used to hold: with one,
 	// the second browser to open the page was handed the FIRST browser's
 	// ClientHello and header order labelled with its own user agent. Which is
-	// wrong in a way that looks entirely plausible.
+	// wrong in a way that looks entirely plausible. The oldest past kept are
+	// forgotten, and their tokens with them.
 	navigations    []*Session
 	navigationByID map[string]*Session
 	nextNavigation uint64
@@ -144,9 +191,11 @@ type Server struct {
 	panics []string
 
 	// manual is set for a browser a person opens the page in, and trusted holds
-	// the browsers that have made their first visit, by address and user agent.
-	manual  bool
-	trusted map[string]bool
+	// the browsers that have made their first visit, by address and user agent;
+	// trustedOrder is them oldest first, so that the oldest past kept go.
+	manual       bool
+	trusted      map[string]bool
+	trustedOrder []string
 
 	closeOnce sync.Once
 	closed    chan struct{}
@@ -270,6 +319,8 @@ func Start(opts ...Option) (*Server, error) {
 		tlsConfig:        tlsConfig,
 		captureTLSConfig: captureTLSConfig,
 		host:             cfg.host,
+		limits:           defaultLimits,
+		slots:            make(chan struct{}, defaultLimits.connections),
 		closed:           make(chan struct{}),
 		ready:            make(chan struct{}),
 		conns:            map[net.Conn]struct{}{},
@@ -303,7 +354,8 @@ func (s *Server) CaptureURL() string {
 // of disabling verification wholesale.
 func (s *Server) Certificate() []byte { return s.tlsConfig.Certificates[0].Certificate[0] }
 
-// Sessions returns every connection observed so far, oldest first.
+// Sessions returns the latest connections observed, 128 of them, oldest
+// first: a server left running keeps what is recent, not everything.
 func (s *Server) Sessions() []*Session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -378,18 +430,29 @@ func (s *Server) Close() error {
 
 func (s *Server) accept(captureOnly bool) {
 	defer s.wg.Done()
+	listener := s.listener
+	if captureOnly {
+		listener = s.captureListener
+	}
+	var pause time.Duration
 	for {
-		listener := s.listener
-		if captureOnly {
-			listener = s.captureListener
-		}
 		conn, err := listener.Accept()
 		if err != nil {
+			if accept.Again(err, &pause) {
+				continue
+			}
 			return
 		}
+		pause = 0
+		// A slot before it is served: while every one is taken, it waits, and
+		// the connections after it wait in the listener's queue. Taken after
+		// Accept, not before, since the two listeners share the slots: one
+		// waiting on an idle listener would hold a slot the other needs.
+		s.slots <- struct{}{}
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
+			defer func() { <-s.slots }()
 			// One connection's panic costs that connection, not the process.
 			//
 			// This is its own goroutine, so an unrecovered panic here takes the
@@ -421,8 +484,16 @@ var handleConn = (*Server).handle
 // crashed.
 func (s *Server) panicked(r any) {
 	s.mu.Lock()
-	s.panics = append(s.panics, fmt.Sprintf("%v", r))
+	s.panics = latest(append(s.panics, fmt.Sprintf("%v", r)), s.limits.kept)
 	s.mu.Unlock()
+}
+
+// latest is list without its oldest past the most it keeps.
+func latest[T any](list []T, most int) []T {
+	if past := len(list) - most; past > 0 {
+		return slices.Delete(list, 0, past)
+	}
+	return list
 }
 
 // Panics returns what has been recovered from connection handlers, which should
@@ -476,7 +547,7 @@ func (s *Server) handleTLS(raw net.Conn, config *tls.Config, register bool) {
 		_ = raw.Close()
 	}()
 
-	recorder := &recordingConn{Conn: deadlineconn.Wrap(raw, connectionIdleTimeout)}
+	recorder := &recordingConn{Conn: deadlineconn.Wrap(raw, s.limits.idle)}
 	conn := tls.Server(recorder, config)
 	sess := &Session{remote: raw.RemoteAddr().String()}
 
@@ -492,9 +563,13 @@ func (s *Server) handleTLS(raw net.Conn, config *tls.Config, register bool) {
 	if register {
 		s.register(sess)
 	}
+	// However the peer trickles it, a handshake has as long as it has: until
+	// then the connection is a slot taken and nothing measured.
+	_ = conn.SetDeadline(time.Now().Add(s.limits.handshake))
 	if err := conn.Handshake(); err != nil {
 		return
 	}
+	_ = conn.SetDeadline(time.Time{})
 	sess.mu.Lock()
 	sess.hello = recorder.hello
 	sess.negotiated = conn.ConnectionState().NegotiatedProtocol
@@ -515,7 +590,20 @@ func (s *Server) handleTLS(raw net.Conn, config *tls.Config, register bool) {
 func (s *Server) register(sess *Session) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.sessions = append(s.sessions, sess)
+	s.sessions = latest(append(s.sessions, sess), s.limits.kept)
+}
+
+// file keeps a session as a navigation under its token, and forgets the
+// oldest past kept. Called with s.mu held.
+func (s *Server) file(sess *Session) {
+	s.navigations = append(s.navigations, sess)
+	s.navigationByID[sess.navigationToken] = sess
+	if past := len(s.navigations) - s.limits.kept; past > 0 {
+		for _, old := range s.navigations[:past] {
+			delete(s.navigationByID, old.navigationToken)
+		}
+		s.navigations = slices.Delete(s.navigations, 0, past)
+	}
 }
 
 // setNavigation records a connection that fetched the capture page.
@@ -542,8 +630,7 @@ func (s *Server) setNavigation(sess *Session, token string) (string, error) {
 	}
 	sess.navigation = true
 	sess.navigationToken = token
-	s.navigations = append(s.navigations, sess)
-	s.navigationByID[token] = sess
+	s.file(sess)
 	return token, nil
 }
 
@@ -603,8 +690,7 @@ func (s *Server) captureSession(token string, fallback *Session) (*Session, erro
 	fallback.navigationToken = strconv.FormatUint(s.nextNavigation, 36)
 	fallback.navigation = true
 	fallback.reported = true
-	s.navigations = append(s.navigations, fallback)
-	s.navigationByID[fallback.navigationToken] = fallback
+	s.file(fallback)
 	return fallback, nil
 }
 
@@ -621,7 +707,7 @@ func (s *Server) completeAfter(req *request) {
 // complete hands a finished capture to whoever is waiting for one.
 func (s *Server) complete(sess *Session) {
 	s.mu.Lock()
-	s.completed = append(s.completed, sess)
+	s.completed = latest(append(s.completed, sess), s.limits.kept)
 	close(s.ready)
 	s.ready = make(chan struct{})
 	s.mu.Unlock()

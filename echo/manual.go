@@ -3,6 +3,7 @@ package echo
 import (
 	"html"
 	"net"
+	"slices"
 	"strings"
 )
 
@@ -21,7 +22,16 @@ func (s *Server) manualVisit(sess *Session, req *request) []byte {
 	visitor := visitorOf(sess, req)
 	s.mu.Lock()
 	trusted := s.trusted[visitor]
-	s.trusted[visitor] = true
+	if !trusted {
+		s.trusted[visitor] = true
+		s.trustedOrder = append(s.trustedOrder, visitor)
+		if past := len(s.trustedOrder) - s.limits.kept; past > 0 {
+			for _, old := range s.trustedOrder[:past] {
+				delete(s.trusted, old)
+			}
+			s.trustedOrder = slices.Delete(s.trustedOrder, 0, past)
+		}
+	}
 	s.mu.Unlock()
 
 	if !trusted {

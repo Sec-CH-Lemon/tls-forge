@@ -164,7 +164,7 @@ func TestWriteResponseReportsAHeaderEncodingFailure(t *testing.T) {
 	// unreachable in production and would go untested with it. Pointing the
 	// encoder at a writer that does fail exercises the branch that keeps a
 	// half-written header block from being framed as a whole one.
-	h := newH2Conn(&bytes.Buffer{})
+	h := newH2Conn(writtenTo())
 	h.enc = hpack.NewEncoder(failingWriter{})
 	if err := h.answer(answering(h, 1, 65535), "200", "text/plain", []byte("body"), false); err == nil {
 		t.Error("expected an error when the header block cannot be encoded")

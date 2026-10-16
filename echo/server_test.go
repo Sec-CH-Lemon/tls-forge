@@ -764,10 +764,10 @@ func TestBadHTTP2Preface(t *testing.T) {
 
 func TestHTTP2EndsAConnectionWithAFrameLargerThanItReads(t *testing.T) {
 	// A header block of 64 KiB in one HEADERS frame, past the 16 KiB a frame
-	// may be when SETTINGS says nothing else: the connection ends, and nothing
-	// comes back on the stream. The rest of the frame is never read, so the
-	// write may fail, and the GOAWAY may be lost to the reset that closing on
-	// unread bytes makes; TestHTTP2RefusesAFrameLargerThanItReads has it.
+	// may be when SETTINGS says nothing else: the connection ends with
+	// FRAME_SIZE_ERROR, and nothing comes back on the stream. The rest of the
+	// frame is read and dropped before it closes, or closing on it unread
+	// would send a reset that could lose the GOAWAY.
 	server := startServer(t)
 	c := dialH2(t, server)
 	if err := c.framer.WriteSettings(); err != nil {
@@ -780,8 +780,15 @@ func TestHTTP2EndsAConnectionWithAFrameLargerThanItReads(t *testing.T) {
 			t.Fatalf("encoding: %v", err)
 		}
 	}
-	_ = c.framer.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: c.buf.Bytes(),
-		EndHeaders: true, EndStream: true})
+	if err := c.framer.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: c.buf.Bytes(),
+		EndHeaders: true, EndStream: true}); err != nil {
+		t.Fatalf("HEADERS: %v", err)
+	}
+	goAway := c.readUntil(t, func(f http2.Frame) bool { _, ok := f.(*http2.GoAwayFrame); return ok }).(*http2.GoAwayFrame)
+	if goAway.ErrCode != http2.ErrCodeFrameSize || goAway.LastStreamID != 0 {
+		t.Errorf("GOAWAY %+v", goAway)
+	}
+	_ = c.conn.CloseWrite()
 	c.refusedStream(t, 1)
 }
 
@@ -945,6 +952,11 @@ func TestAwaitEndsWhenTheServerCloses(t *testing.T) {
 	}
 }
 
+// writtenTo is a connection that reads nothing and keeps what is written to it.
+func writtenTo() *scriptedConn {
+	return &scriptedConn{reader: strings.NewReader(""), writeBudget: 1 << 20}
+}
+
 // answering is a stream whose request has arrived, with a window of window.
 func answering(h *h2conn, id uint32, window int64) *stream {
 	st := &stream{id: id, req: &request{stream: id, headers: map[string]string{}}, window: window}
@@ -955,7 +967,7 @@ func answering(h *h2conn, id uint32, window int64) *stream {
 func TestAnAnswerLargerThanTheServerBuildsIsRefused(t *testing.T) {
 	// None is that large. The guard makes one that ever grows past it fail
 	// loudly rather than go out unbounded.
-	h := newH2Conn(&bytes.Buffer{})
+	h := newH2Conn(writtenTo())
 	err := h.answer(answering(h, 1, 65535), "200", "text/plain", make([]byte, maxResponseBody+1), false)
 	if err == nil || err.Error() != fmt.Sprintf("echo: an answer of %d bytes exceeds the %d this server sends",
 		maxResponseBody+1, maxResponseBody) {
@@ -964,8 +976,9 @@ func TestAnAnswerLargerThanTheServerBuildsIsRefused(t *testing.T) {
 }
 
 func TestAnAnswerGoesInFramesNoLargerThanTheirSize(t *testing.T) {
-	out := &bytes.Buffer{}
-	h := newH2Conn(out)
+	conn := writtenTo()
+	out := &conn.written
+	h := newH2Conn(conn)
 	h.window = 1 << 20
 	if err := h.answer(answering(h, 1, 1<<20), "200", "text/plain", make([]byte, maxFrameSize+100), false); err != nil {
 		t.Fatalf("answer: %v", err)
@@ -990,8 +1003,9 @@ func TestAnAnswerGoesInFramesNoLargerThanTheirSize(t *testing.T) {
 }
 
 func TestAnAnswerWithAnEmptyBodyEndsWithItsHeaders(t *testing.T) {
-	out := &bytes.Buffer{}
-	h := newH2Conn(out)
+	conn := writtenTo()
+	out := &conn.written
+	h := newH2Conn(conn)
 	var answered []*request
 	h.answered = func(req *request) { answered = append(answered, req) }
 	st := answering(h, 1, 0)
@@ -1009,17 +1023,12 @@ func TestAnAnswerWithAnEmptyBodyEndsWithItsHeaders(t *testing.T) {
 
 func TestAnAnswerReportsAFailedWrite(t *testing.T) {
 	for _, body := range [][]byte{nil, []byte("hello"), make([]byte, maxFrameSize+1)} {
-		h := newH2Conn(failingReadWriter{})
+		h := newH2Conn(&scriptedConn{reader: strings.NewReader("")})
 		if err := h.answer(answering(h, 1, 1<<20), "200", "text/plain", body, false); err == nil {
 			t.Errorf("an answer of %d bytes did not fail", len(body))
 		}
 	}
 }
-
-type failingReadWriter struct{}
-
-func (failingReadWriter) Read([]byte) (int, error)  { return 0, io.EOF }
-func (failingReadWriter) Write([]byte) (int, error) { return 0, errors.New("pipe closed") }
 
 func TestReadPreface(t *testing.T) {
 	if err := readPreface(strings.NewReader(http2.ClientPreface)); err != nil {

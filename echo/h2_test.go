@@ -226,10 +226,11 @@ func (p *h2Peer) answer(stream uint32) (sent, []byte) {
 }
 
 // goneAway is the GOAWAY the server ends the connection with, and the end:
-// what serveFrames returned.
+// what serveFrames returned once the peer, told, hung up.
 func (p *h2Peer) goneAway() (sent, error) {
 	p.t.Helper()
 	f := p.next(func(f sent) bool { return f.Type == http2.FrameGoAway })
+	_ = p.conn.Close()
 	select {
 	case err := <-p.ended:
 		p.ended <- err
@@ -908,7 +909,7 @@ func drained(p *h2Peer) []sent {
 }
 
 func TestHTTP2Ended(t *testing.T) {
-	h := newH2Conn(&bytes.Buffer{})
+	h := newH2Conn(writtenTo())
 	other := errors.New("no route to host")
 	for _, tc := range []struct {
 		err  error

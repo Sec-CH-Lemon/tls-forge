@@ -616,9 +616,12 @@ fmt.Println(server.URL())
 | `WithSessionTickets(enabled)` | Enable or disable TLS session resumption; disabled by default. |
 
 Useful methods include `URL()`, `Addr()`, `Certificate()`, `Sessions()` and
-`Await(ctx)`. A `Session` can be rendered as a `capture.Capture`. Silent
-connections close after 30 seconds; the deadline rolls forward while traffic
-makes progress. An HTTP/1.1 request it cannot read whole, as RFC 9112 has it,
+`Await(ctx)`. A `Session` can be rendered as a `capture.Capture`. `Sessions()`
+is the latest 128 connections, and the server keeps no more than the latest
+128 pages served and completed captures either. Silent connections close
+after 30 seconds; the deadline rolls forward while traffic makes progress. A
+TLS handshake has 10 seconds in all and a request 10 seconds from its first
+byte, and at most 128 connections are served at once. An HTTP/1.1 request it cannot read whole, as RFC 9112 has it,
 is answered with a 4xx or 5xx that says why, and its connection closed. Over
 HTTP/2 it keeps to the client's flow-control windows and header table, holds
 at most 100 streams and 512 KiB per connection, and ends a connection that

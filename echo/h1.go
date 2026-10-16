@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 )
@@ -75,7 +76,7 @@ func unread(conn io.Writer, err error) error {
 func (s *Server) serveHTTP1(conn net.Conn, sess *Session) error {
 	reader := bufio.NewReaderSize(conn, maxHTTP1Line)
 	for {
-		req, err := readHTTP1Request(reader, conn)
+		req, err := s.nextRequest(conn, reader)
 		if err != nil {
 			return unread(conn, err)
 		}
@@ -106,7 +107,7 @@ func (s *Server) serveHTTP1(conn net.Conn, sess *Session) error {
 // listener has already recorded HTTP/2. /api/all is the library-side
 // instrument: it returns the HTTP/1.1 request directly without joining it.
 func (s *Server) serveCaptureHTTP1(conn net.Conn, sess *Session) error {
-	req, err := readHTTP1Request(bufio.NewReaderSize(conn, maxHTTP1Line), conn)
+	req, err := s.nextRequest(conn, bufio.NewReaderSize(conn, maxHTTP1Line))
 	if err != nil {
 		return unread(conn, err)
 	}
@@ -144,6 +145,22 @@ func (s *Server) serveCaptureHTTP1(conn net.Conn, sess *Session) error {
 	}
 	location := s.URL() + "/?navigation=" + url.QueryEscape(token) + "&http1=done"
 	return writeCaptureHTTP1Response(conn, "302", "text/plain; charset=utf-8", location, nil)
+}
+
+// nextRequest reads the next request on a connection. Its first byte is
+// waited for as long as a connection may idle, and from then the request has
+// as long as one may take, its body included.
+//
+// Both are deadlines of their own rather than the idle timeout, which a read
+// renews whenever it returns anything: the first byte comes at the end of a
+// whole TLS record, and a peer could send either a byte at a time.
+func (s *Server) nextRequest(conn net.Conn, r *bufio.Reader) (*http1Request, error) {
+	_ = conn.SetReadDeadline(time.Now().Add(s.limits.idle))
+	if _, err := r.Peek(1); err != nil {
+		return nil, err
+	}
+	_ = conn.SetReadDeadline(time.Now().Add(s.limits.request))
+	return readHTTP1Request(r, conn)
 }
 
 func writeHTTP1Response(conn io.Writer, status, contentType, connection string, body []byte) error {

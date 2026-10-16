@@ -399,6 +399,22 @@ func TestHTTP2MalformedFrameEndsTheConnection(t *testing.T) {
 	if _, err := conn.Write([]byte{0, 0, 5, byte(http2.FrameSettings), 0, 0, 0, 0, 0, 1, 2, 3, 4, 5}); err != nil {
 		t.Fatalf("write: %v", err)
 	}
+	// Told why, and then gone once the client is.
+	framer := http2.NewFramer(nil, conn)
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	for {
+		frame, err := framer.ReadFrame()
+		if err != nil {
+			t.Fatalf("no GOAWAY: %v", err)
+		}
+		if away, ok := frame.(*http2.GoAwayFrame); ok {
+			if away.ErrCode != http2.ErrCodeFrameSize {
+				t.Errorf("GOAWAY %v", away.ErrCode)
+			}
+			break
+		}
+	}
+	_ = conn.CloseWrite()
 	hungUpOn(t, conn)
 }
 
