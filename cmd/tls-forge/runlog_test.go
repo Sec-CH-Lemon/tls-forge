@@ -197,7 +197,8 @@ func TestFetchLogsWhatItFoundOfThePage(t *testing.T) {
 func TestFetchLogsHowARunThatFailedEnded(t *testing.T) {
 	server, _ := replying(t, 503)
 	path := filepath.Join(t.TempDir(), "run.json")
-	if code, _, _ := exec(t, "fetch", "--log", path, server.URL, "https://127.0.0.1:1/"); code != 1 {
+	nowhere := "https://" + deadAddr(t) + "/"
+	if code, _, _ := exec(t, "fetch", "--log", path, server.URL, nowhere); code != 1 {
 		t.Fatalf("exit code = %d", code)
 	}
 	records := logRecords(t, path)
@@ -208,7 +209,7 @@ func TestFetchLogsHowARunThatFailedEnded(t *testing.T) {
 	if warned := byURL[server.URL]; warned.get("outcome") != "not_2xx" || warned.get("level") != "WARN" {
 		t.Errorf("the 503 was said as %v", warned)
 	}
-	if failed := byURL["https://127.0.0.1:1/"]; failed.get("outcome") != "no_response" ||
+	if failed := byURL[nowhere]; failed.get("outcome") != "no_response" ||
 		failed.get("level") != "WARN" || !strings.Contains(failed.get("error"), "connection refused") {
 		t.Errorf("the request that got nothing was said as %v", failed)
 	}

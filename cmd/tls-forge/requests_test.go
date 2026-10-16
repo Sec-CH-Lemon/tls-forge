@@ -161,9 +161,10 @@ func TestListUsesEachURLsOwnProxy(t *testing.T) {
 	// their own port, and the third has to succeed. A run that shared one client
 	// could not produce that.
 	server := pathServer(t)
+	dead := deadAddrs(t, 2)
 	path := writeList(t, "mixed.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/one,http://127.0.0.1:9001\n%[1]s/two,http://127.0.0.1:9002\n%[1]s/three,\n",
-		server.URL))
+		"url,proxy\n%[1]s/one,http://%[2]s\n%[1]s/two,http://%[3]s\n%[1]s/three,\n",
+		server.URL, dead[0], dead[1]))
 
 	code, stdout, _ := exec(t, "fetch", "--input", path, "--timeout", "5s")
 	if code != 1 {
@@ -171,16 +172,16 @@ func TestListUsesEachURLsOwnProxy(t *testing.T) {
 	}
 
 	got := lines(t, stdout)
-	for port, path := range map[string]string{"9001": "/one", "9002": "/two"} {
+	for addr, path := range map[string]string{dead[0]: "/one", dead[1]: "/two"} {
 		r := got[server.URL+path]
 		if r.Error == "" {
 			t.Errorf("%s went through: status %d", path, r.Status)
 			continue
 		}
-		if !strings.Contains(r.Error, port) {
+		if !strings.Contains(r.Error, addr) {
 			t.Errorf("%s failed against the wrong proxy: %q", path, r.Error)
 		}
-		if r.Proxy != "http://127.0.0.1:"+port {
+		if r.Proxy != "http://"+addr {
 			t.Errorf("%s: the result does not record its proxy: %q", path, r.Proxy)
 		}
 	}
@@ -193,19 +194,20 @@ func TestListFallsBackToTheProxyFlag(t *testing.T) {
 	// --proxy is the default for entries that name none, so the two ways of
 	// saying it compose instead of one overriding the other.
 	server := pathServer(t)
+	dead := deadAddrs(t, 2)
 	path := writeList(t, "one.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/named,http://127.0.0.1:9001\n%[1]s/unnamed,\n", server.URL))
+		"url,proxy\n%[1]s/named,http://%[2]s\n%[1]s/unnamed,\n", server.URL, dead[0]))
 
 	_, stdout, _ := exec(t, "fetch", "--input", path,
-		"--proxy", "http://127.0.0.1:9003", "--timeout", "5s")
+		"--proxy", "http://"+dead[1], "--timeout", "5s")
 
 	got := lines(t, stdout)
-	if r := got[server.URL+"/named"]; !strings.Contains(r.Error, "9001") {
+	if r := got[server.URL+"/named"]; !strings.Contains(r.Error, dead[0]) {
 		t.Errorf("the entry's own proxy was not used: %q", r.Error)
 	}
-	if r := got[server.URL+"/unnamed"]; !strings.Contains(r.Error, "9003") {
+	if r := got[server.URL+"/unnamed"]; !strings.Contains(r.Error, dead[1]) {
 		t.Errorf("the flag was not used as the default: %q", r.Error)
-	} else if r.Proxy != "http://127.0.0.1:9003" {
+	} else if r.Proxy != "http://"+dead[1] {
 		t.Errorf("the result records proxy %q, want the fallback proxy", r.Proxy)
 	}
 }
@@ -337,8 +339,9 @@ func TestListTriesOnceWhenToldNotToRetry(t *testing.T) {
 func TestListTriesOnceUnlessToldOtherwise(t *testing.T) {
 	// A list is asked for the way one URL is: once each. Trying again is for
 	// whoever says how many times.
-	_, stdout, _ := exec(t, "fetch", "--json", "--timeout", "3s", "https://127.0.0.1:1/gone")
-	if r := lines(t, stdout)["https://127.0.0.1:1/gone"]; r.Attempts != 1 {
+	gone := "https://" + deadAddr(t) + "/gone"
+	_, stdout, _ := exec(t, "fetch", "--json", "--timeout", "3s", gone)
+	if r := lines(t, stdout)[gone]; r.Attempts != 1 {
 		t.Errorf("attempts = %d, want 1", r.Attempts)
 	}
 }
@@ -371,12 +374,12 @@ func TestRetryActuallyPauses(t *testing.T) {
 	t.Cleanup(func() { retryWait = original })
 	retryWait = backoff
 
+	gone := "https://" + deadAddr(t) + "/gone"
 	started := time.Now()
-	_, stdout, _ := exec(t, "fetch", "--json", "--retry", "1", "--timeout", "3s",
-		"https://127.0.0.1:1/gone")
+	_, stdout, _ := exec(t, "fetch", "--json", "--retry", "1", "--timeout", "3s", gone)
 	elapsed := time.Since(started)
 
-	if r := lines(t, stdout)["https://127.0.0.1:1/gone"]; r.Attempts != 2 {
+	if r := lines(t, stdout)[gone]; r.Attempts != 2 {
 		t.Fatalf("attempts = %d, want 2", r.Attempts)
 	}
 	if elapsed < 250*time.Millisecond {
@@ -394,7 +397,7 @@ func TestRetryDoesNotWaitOutAnInterruptedRun(t *testing.T) {
 	done := make(chan int, 1)
 	go func() {
 		done <- run(ctx, []string{"fetch", "--retry", "5", "--timeout", "3s",
-			"--progress", "never", "https://127.0.0.1:1/gone"},
+			"--progress", "never", "https://" + deadAddr(t) + "/gone"},
 			&strings.Builder{}, &strings.Builder{})
 	}()
 
@@ -490,11 +493,11 @@ func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 	p := newPool(flags, "")
 	defer p.close()
 
-	first, err := p.get("http://127.0.0.1:9001")
+	first, err := p.get("http://proxy-a.test:8080")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	again, err := p.get("http://127.0.0.1:9001")
+	again, err := p.get("http://proxy-a.test:8080")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -502,7 +505,7 @@ func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 		t.Error("the same proxy produced two clients")
 	}
 
-	other, err := p.get("http://127.0.0.1:9002")
+	other, err := p.get("http://proxy-b.test:8080")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -512,13 +515,13 @@ func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 
 	// An entry naming no proxy falls back to the flag, so it must not become a
 	// third identity of its own.
-	fallback := newPool(flags, "http://127.0.0.1:9001")
+	fallback := newPool(flags, "http://proxy-a.test:8080")
 	defer fallback.close()
 	viaEmpty, err := fallback.get("")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	viaNamed, err := fallback.get("http://127.0.0.1:9001")
+	viaNamed, err := fallback.get("http://proxy-a.test:8080")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -576,7 +579,7 @@ func TestListReportsAProxyItCannotUse(t *testing.T) {
 	// the other URLs still go out, and the line says which one was wrong.
 	server := pathServer(t)
 	path := writeList(t, "typo.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/bad,http://127.0.0.1:1\n%[1]s/good,\n", server.URL))
+		"url,proxy\n%[1]s/bad,http://%[2]s\n%[1]s/good,\n", server.URL, deadAddr(t)))
 
 	code, stdout, _ := exec(t, "fetch", "--input", path)
 	if code != 1 {

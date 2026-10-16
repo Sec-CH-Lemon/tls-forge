@@ -117,10 +117,11 @@ func TestWhatGoesWrongWhileRunningExitsOne(t *testing.T) {
 	if err := os.WriteFile(broken, []byte("{not a session"), 0o600); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
+	nowhere := "http://" + deadAddr(t) + "/"
 	for _, args := range [][]string{
-		{"fetch", "http://127.0.0.1:1/"},
+		{"fetch", nowhere},
 		{"fetch", "--input", filepath.Join(dir, "absent.txt")},
-		{"fetch", "--cookies", broken, "http://127.0.0.1:1/"},
+		{"fetch", "--cookies", broken, nowhere},
 	} {
 		if code, _, stderr := exec(t, args...); code != 1 {
 			t.Errorf("%q: exit code = %d, want 1\n%s", args, code, stderr)

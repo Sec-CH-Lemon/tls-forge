@@ -423,7 +423,7 @@ func TestListSavesOneSessionPerProxy(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "warm.json")
 
 	list := writeList(t, "mixed.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/set,\n%[1]s/set,\n%[1]s/set,http://127.0.0.1:9001\n", server.URL))
+		"url,proxy\n%[1]s/set,\n%[1]s/set,\n%[1]s/set,http://%[2]s\n", server.URL, deadAddr(t)))
 
 	code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", path,
 		"--progress", "never", "--retry", "0", "--timeout", "5s")

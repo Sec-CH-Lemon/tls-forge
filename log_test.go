@@ -274,11 +274,12 @@ func TestALogSaysWhereARequestFailed(t *testing.T) {
 	t.Run("nothing listens", func(t *testing.T) {
 		book, log := newLogBook(slog.LevelDebug)
 		client := newTestClient(t, WithLogger(log), WithTimeout(2*time.Second))
-		if _, err := client.Get("https://127.0.0.1:1/"); err == nil {
+		nowhere := refused(t)
+		if _, err := client.Get("https://" + nowhere + "/"); err == nil {
 			t.Fatal("expected a transport error")
 		}
 		// A literal address is looked up nowhere.
-		if dial := book.one(t, "dial failed"); dial.get("addr") != "127.0.0.1:1" || dial.get("level") != "DEBUG" {
+		if dial := book.one(t, "dial failed"); dial.get("addr") != nowhere || dial.get("level") != "DEBUG" {
 			t.Errorf("the dial was said as %v", dial)
 		}
 		if failed := book.one(t, "request failed"); failed.get("phase") != "connect" || failed.get("timeout") != "false" {
@@ -574,11 +575,12 @@ func TestALogFollowsAnHTTPSProxy(t *testing.T) {
 
 	// Nothing there to shake hands with.
 	book, log = newLogBook(slog.LevelDebug)
-	client = newTestClient(t, WithLogger(log), WithProxy("https://127.0.0.1:1"), WithTimeout(2*time.Second))
+	nowhere := refused(t)
+	client = newTestClient(t, WithLogger(log), WithProxy("https://"+nowhere), WithTimeout(2*time.Second))
 	if _, err := client.Get(server.URL()); err == nil {
 		t.Fatal("a proxy that is not there opened a tunnel")
 	}
-	book.one(t, "dial failed", "addr", "127.0.0.1:1")
+	book.one(t, "dial failed", "addr", nowhere)
 	if failed := book.one(t, "request failed"); failed.get("phase") != "connect" {
 		t.Errorf("the failure was said as %v", failed)
 	}

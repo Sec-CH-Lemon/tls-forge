@@ -32,6 +32,20 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 )
 
+// refused is an address a connection is refused at: a loopback port this
+// machine handed the test and the test let go of, rather than a port taken to
+// be free because nothing usually listens on it.
+func refused(t *testing.T) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	addr := listener.Addr().String()
+	_ = listener.Close()
+	return addr
+}
+
 // tlsListener is a TLS listener on a loopback port, with a certificate made for
 // it, offering protocols in ALPN.
 func tlsListener(t *testing.T, protocols ...string) net.Listener {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -39,6 +40,34 @@ func exec(t *testing.T, args ...string) (code int, stdout, stderr string) {
 	defer cancel()
 	code = run(ctx, args, &out, &errOut)
 	return code, out.String(), errOut.String()
+}
+
+// deadAddr is an address a connection is refused at: a loopback port this
+// machine handed the test and the test let go of, rather than a port taken to
+// be free because nothing usually listens on it.
+func deadAddr(t *testing.T) string {
+	t.Helper()
+	return deadAddrs(t, 1)[0]
+}
+
+// deadAddrs are n such addresses, each a different port: all of them are held
+// until the test has them all, so that two are never the same.
+func deadAddrs(t *testing.T, n int) []string {
+	t.Helper()
+	var addrs []string
+	var held []net.Listener
+	for range n {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatalf("listen: %v", err)
+		}
+		held = append(held, listener)
+		addrs = append(addrs, listener.Addr().String())
+	}
+	for _, listener := range held {
+		_ = listener.Close()
+	}
+	return addrs
 }
 
 func startEcho(t *testing.T) *echo.Server {
@@ -315,7 +344,7 @@ func TestFetchArgumentErrors(t *testing.T) {
 	}
 
 	for _, args := range [][]string{
-		{"fetch", "https://127.0.0.1:1/"}, // nothing listening
+		{"fetch", "https://" + deadAddr(t) + "/"}, // nothing listening
 	} {
 		if code, _, _ := exec(t, args...); code != 1 {
 			t.Errorf("%v: exit code = %d, want 1", args, code)
@@ -378,7 +407,7 @@ func TestFetchSaysWhyItFailedWithThePrefixOnce(t *testing.T) {
 	// file where the report's directory was to go.
 	blocked := filepath.Join(tmp, "a-file")
 	gone, _ := meanwhile(t, 0, fileIn(t, blocked))
-	refused := `tlsforge: Get "http://127.0.0.1:1/": `
+	nowhere := "http://" + deadAddr(t) + "/"
 	for _, tc := range []struct {
 		name string
 		args []string
@@ -387,10 +416,10 @@ func TestFetchSaysWhyItFailedWithThePrefixOnce(t *testing.T) {
 		want []string
 	}{
 		{"a refused request, which the library says",
-			[]string{"fetch", "http://127.0.0.1:1/"},
-			[]string{refused}},
+			[]string{"fetch", nowhere},
+			[]string{`tlsforge: Get "` + nowhere + `": `}},
 		{"a file of exit headers that is not there, which fetch says",
-			[]string{"fetch", "--exit-headers", filepath.Join(tmp, "none.json"), "http://127.0.0.1:1/"},
+			[]string{"fetch", "--exit-headers", filepath.Join(tmp, "none.json"), nowhere},
 			[]string{"tlsforge: fetch: open "}},
 		// Two errors joined, a line each. The second used to have no prefix.
 		{"both: the request that got nothing, then the report it could not write",
@@ -623,7 +652,7 @@ func TestARunThatGoesSeveralWaysAsksNobodyWhereItComesOut(t *testing.T) {
 	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
 	server := pathServer(t)
 	list := writeList(t, "two-ways.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/one,http://127.0.0.1:9001\n%[1]s/two,\n", server.URL))
+		"url,proxy\n%[1]s/one,http://%[2]s\n%[1]s/two,\n", server.URL, deadAddr(t)))
 
 	code, _, stderr := exec(t, "fetch", "--input", list, "--timeout", "5s")
 	if code != 1 {
@@ -1283,7 +1312,7 @@ func TestFetchThroughAProxy(t *testing.T) {
 	// Nothing is listening on the proxy port; what is being checked is that the
 	// flag reaches the client rather than being silently ignored.
 	code, _, stderr := exec(t, "fetch", "--insecure",
-		"--proxy", "http://127.0.0.1:1", "https://example.com/")
+		"--proxy", "http://"+deadAddr(t), "https://example.com/")
 	if code == 0 {
 		t.Error("exit code = 0, want non-zero")
 	}

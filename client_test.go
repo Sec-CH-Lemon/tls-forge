@@ -457,7 +457,7 @@ func TestDoReportsATransportFailure(t *testing.T) {
 	client := newTestClient(t, WithTimeout(2*time.Second))
 	// Nothing is listening on this port, and the error has to come back as an
 	// error rather than as an empty response.
-	if _, err := client.Get("https://127.0.0.1:1/"); err == nil {
+	if _, err := client.Get("https://" + refused(t) + "/"); err == nil {
 		t.Error("expected a transport error")
 	}
 }

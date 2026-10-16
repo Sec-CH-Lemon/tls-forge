@@ -217,7 +217,7 @@ func TestATunnelTheProxyWillNotOpen(t *testing.T) {
 	}
 
 	// Nothing to talk to.
-	client := newTestClient(t, WithProxy("http://127.0.0.1:1"), WithTimeout(2*time.Second))
+	client := newTestClient(t, WithProxy("http://"+refused(t)), WithTimeout(2*time.Second))
 	if _, err := client.Get(server.URL()); err == nil {
 		t.Error("a proxy that is not there opened a tunnel")
 	}

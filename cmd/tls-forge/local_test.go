@@ -35,7 +35,7 @@ func TestARunPrefersTheBrowserMeasuredHere(t *testing.T) {
 	// somebody else's browser on an earlier day; this one is the browser a
 	// server would compare against.
 	installed(t)
-	_, _, stderr := exec(t, "fetch", "--timeout", "1s", "https://127.0.0.1:1/")
+	_, _, stderr := exec(t, "fetch", "--timeout", "1s", "https://"+deadAddr(t)+"/")
 	if !strings.Contains(stderr, localName+"_"+profile.HostPlatform()) {
 		t.Errorf("did not wear the local profile:\n%s", stderr)
 	}
@@ -46,7 +46,7 @@ func TestARunPrefersTheBrowserMeasuredHere(t *testing.T) {
 
 func TestWithoutALocalProfileAShippedOneIsWorn(t *testing.T) {
 	keepProfilesIn(t)
-	_, _, stderr := exec(t, "fetch", "--timeout", "1s", "https://127.0.0.1:1/")
+	_, _, stderr := exec(t, "fetch", "--timeout", "1s", "https://"+deadAddr(t)+"/")
 	if !strings.Contains(stderr, "shipped with tls-forge") {
 		t.Errorf("did not fall back to a shipped profile:\n%s", stderr)
 	}
@@ -59,7 +59,7 @@ func TestANamedProfileIsTakenAtItsWord(t *testing.T) {
 	// Measured here or not, `--profile x` means x.
 	installed(t)
 	_, _, stderr := exec(t, "fetch", "--profile", "chrome_151_linux",
-		"--timeout", "1s", "https://127.0.0.1:1/")
+		"--timeout", "1s", "https://"+deadAddr(t)+"/")
 	if !strings.Contains(stderr, "chrome_151_linux") {
 		t.Errorf("did not wear what was asked for:\n%s", stderr)
 	}
@@ -70,9 +70,9 @@ func TestEveryCommandThatFetchesSaysWhatItIsWearing(t *testing.T) {
 	// and the one thing that is otherwise invisible.
 	keepProfilesIn(t)
 	for _, args := range [][]string{
-		{"fetch", "--timeout", "1s", "https://127.0.0.1:1/"},
+		{"fetch", "--timeout", "1s", "https://" + deadAddr(t) + "/"},
 		{"fetch", "--timeout", "1s", "--progress", "never", "--retry", "0",
-			"-u", "https://127.0.0.1:1/"},
+			"-u", "https://" + deadAddr(t) + "/"},
 	} {
 		t.Run(args[0], func(t *testing.T) {
 			if _, _, stderr := exec(t, args...); !strings.Contains(stderr, "profile ") {

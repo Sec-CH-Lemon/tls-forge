@@ -114,7 +114,8 @@ func TestOutputKeepsALogAndATraceOfARequestThatGotNothing(t *testing.T) {
 	// what there is to read about why.
 	dir := filepath.Join(t.TempDir(), "out")
 
-	code, _, stderr := exec(t, "fetch", "-o", dir, "--timeout", "3s", "https://127.0.0.1:1/gone")
+	nowhere := deadAddr(t)
+	code, _, stderr := exec(t, "fetch", "-o", dir, "--timeout", "3s", "https://"+nowhere+"/gone")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -124,7 +125,7 @@ func TestOutputKeepsALogAndATraceOfARequestThatGotNothing(t *testing.T) {
 		t.Fatalf("the directory holds %v, want a log and a trace, and the run's log", kept)
 	}
 	log, _ := os.ReadFile(filepath.Join(dir, kept[0]))
-	if !strings.Contains(string(log), "  outcome  no response · ") || !strings.Contains(string(log), "127.0.0.1:1") {
+	if !strings.Contains(string(log), "  outcome  no response · ") || !strings.Contains(string(log), nowhere) {
 		t.Errorf("the log does not say why nothing came back:\n%s", log)
 	}
 	events := traceFile(t, filepath.Join(dir, kept[2]))

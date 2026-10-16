@@ -499,7 +499,7 @@ func TestLookupExitErrors(t *testing.T) {
 	}
 
 	t.Run("a service that cannot be reached", func(t *testing.T) {
-		askOnly(t, addressService{URL: "https://127.0.0.1:1/", read: readJSON})
+		askOnly(t, addressService{URL: "https://" + deadAddr(t) + "/", read: readJSON})
 		if _, err := lookupExit(context.Background(), insecureFlags(t), ""); err == nil {
 			t.Error("no error")
 		}
@@ -675,14 +675,15 @@ func TestListSummaryNamesADeadProxy(t *testing.T) {
 	// The question the summary exists for: which of my proxies is the reason
 	// those pages are missing.
 	server := pathServer(t)
+	dead := deadAddr(t)
 	path := writeList(t, "dead.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/one,http://127.0.0.1:9001\n%[1]s/two,\n", server.URL))
+		"url,proxy\n%[1]s/one,http://%[2]s\n%[1]s/two,\n", server.URL, dead))
 
 	code, _, stderr := exec(t, "fetch", "--input", path, "--timeout", "5s")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
-	for _, want := range []string{"1 used, 0 alive", "dead proxy", "127.0.0.1:9001", "50.0%"} {
+	for _, want := range []string{"1 used, 0 alive", "dead proxy", dead, "50.0%"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr has no %q:\n%s", want, stderr)
 		}
@@ -705,7 +706,7 @@ func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
 	// Two of the three went without a proxy. The list went two ways, so nobody
 	// was asked where the machine comes out, and that is said as well.
 	list := writeList(t, "typo.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/bad,http://127.0.0.1:1\n%[1]s/good,\n%[1]s/also-good,\n", server.URL))
+		"url,proxy\n%[1]s/bad,http://%[2]s\n%[1]s/good,\n%[1]s/also-good,\n", server.URL, deadAddr(t)))
 
 	path := filepath.Join(t.TempDir(), "run.html")
 	code, _, stderr := exec(t, "fetch", "--input", list, "--report="+path, "--insecure")
@@ -1497,8 +1498,9 @@ func TestFetchReportOfOneRequest(t *testing.T) {
 func TestFetchReportsTheRequestThatFailed(t *testing.T) {
 	// The run somebody opens a report about is the one that went wrong.
 	path := filepath.Join(t.TempDir(), "run.html")
+	gone := "https://" + deadAddr(t) + "/gone"
 
-	code, _, stderr := exec(t, "fetch", "--report="+path, "--timeout", "3s", "https://127.0.0.1:1/gone")
+	code, _, stderr := exec(t, "fetch", "--report="+path, "--timeout", "3s", gone)
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -1506,7 +1508,7 @@ func TestFetchReportsTheRequestThatFailed(t *testing.T) {
 		t.Errorf("stderr does not name the report:\n%s", stderr)
 	}
 	html := reportOf(t, path)
-	for _, want := range []string{"0 of 1 URLs in ", "no response", "https://127.0.0.1:1/gone"} {
+	for _, want := range []string{"0 of 1 URLs in ", "no response", gone} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the report has no %q", want)
 		}

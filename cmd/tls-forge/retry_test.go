@@ -146,7 +146,7 @@ func TestFetchAsksAgainWhenNothingComesBack(t *testing.T) {
 }
 
 func TestFetchFailsWhenNoTryGetsAnAnswer(t *testing.T) {
-	code, _, stderr := exec(t, "fetch", "--retry", "1", "-v", "--timeout", "3s", "https://127.0.0.1:1/")
+	code, _, stderr := exec(t, "fetch", "--retry", "1", "-v", "--timeout", "3s", "https://"+deadAddr(t)+"/")
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
 	}
@@ -391,7 +391,7 @@ func TestListWithoutRepeatKeepsItsOldShape(t *testing.T) {
 
 func TestListRepeatCountsRequestsWhenItFails(t *testing.T) {
 	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "0", "--timeout", "3s",
-		"https://127.0.0.1:1/gone")
+		"https://"+deadAddr(t)+"/gone")
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
 	}

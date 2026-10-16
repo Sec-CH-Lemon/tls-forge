@@ -207,10 +207,11 @@ func TestTraceReportsADialThatFails(t *testing.T) {
 	client := newTestClient(t, WithTimeout(2*time.Second))
 	var seen recorded
 	// Nothing listens here, so the dial is the last thing that happens.
-	if _, err := client.Do(&Request{URL: "https://127.0.0.1:1/", Trace: seen.trace()}); err == nil {
+	nowhere := refused(t)
+	if _, err := client.Do(&Request{URL: "https://" + nowhere + "/", Trace: seen.trace()}); err == nil {
 		t.Fatal("expected a transport error")
 	}
-	if len(seen.failed) != 1 || seen.failed[0] != "127.0.0.1:1" {
+	if len(seen.failed) != 1 || seen.failed[0] != nowhere {
 		t.Errorf("failed dials reported = %v", seen.failed)
 	}
 	if len(seen.conns) != 0 || seen.index("first byte") >= 0 {

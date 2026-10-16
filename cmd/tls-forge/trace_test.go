@@ -500,7 +500,8 @@ func TestTraceFollowsARedirect(t *testing.T) {
 
 func TestTraceOfARequestThatNeverConnected(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "trace.json")
-	code, _, _ := exec(t, "fetch", "--timeout", "3s", "--trace", path, "https://127.0.0.1:1/gone")
+	nowhere := deadAddr(t)
+	code, _, _ := exec(t, "fetch", "--timeout", "3s", "--trace", path, "https://"+nowhere+"/gone")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1", code)
 	}
@@ -509,7 +510,7 @@ func TestTraceOfARequestThatNeverConnected(t *testing.T) {
 
 	// The dial is where it stopped, and is drawn as far as it got.
 	dial := one(t, events, phaseComplete, "connect")
-	if dial.Args["unfinished"] != true || !strings.Contains(fmt.Sprint(dial.Args["failed"]), "127.0.0.1:1") {
+	if dial.Args["unfinished"] != true || !strings.Contains(fmt.Sprint(dial.Args["failed"]), nowhere) {
 		t.Errorf("the dial that failed was traced as %v", dial.Args)
 	}
 	if got := steps(events, mainLane); follows(got, "send") {
@@ -521,7 +522,7 @@ func TestTraceOfARequestThatNeverConnected(t *testing.T) {
 		t.Fatalf("%d ends, want the try's and the run's", len(ends))
 	}
 	for i, end := range ends {
-		if !strings.Contains(fmt.Sprint(end.Args["error"]), "127.0.0.1:1") {
+		if !strings.Contains(fmt.Sprint(end.Args["error"]), nowhere) {
 			t.Errorf("end %d does not say why: %v", i+1, end.Args)
 		}
 	}
@@ -615,9 +616,10 @@ func TestListTraceHasARowForEveryWorker(t *testing.T) {
 	server := pathServer(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "trace.json")
+	nowhere := deadAddr(t)
 	list := writeList(t, "list.csv", fmt.Sprintf(
-		"url,proxy\n%[1]s/one,\n%[1]s/two,\n%[1]s/three,\n%[1]s/four,\n%[1]s/five,http://127.0.0.1:1\n",
-		server.URL))
+		"url,proxy\n%[1]s/one,\n%[1]s/two,\n%[1]s/three,\n%[1]s/four,\n%[1]s/five,http://%[2]s\n",
+		server.URL, nowhere))
 
 	code, _, stderr := exec(t, "fetch", "--input", list, "--concurrency", "2", "--retry", "0",
 		"--output", filepath.Join(dir, "out"), "--trace", path)
@@ -666,7 +668,7 @@ func TestListTraceHasARowForEveryWorker(t *testing.T) {
 	// The one through the proxy nothing answers at ends with why.
 	failed := 0
 	for _, event := range events {
-		if event.Phase == phaseEnd && event.Args["error"] != nil && strings.Contains(fmt.Sprint(event.Args["error"]), "127.0.0.1:1") {
+		if event.Phase == phaseEnd && event.Args["error"] != nil && strings.Contains(fmt.Sprint(event.Args["error"]), nowhere) {
 			failed++
 		}
 	}
@@ -824,9 +826,10 @@ func TestATraceThatCannotBeWrittenFailsTheRunWithoutStoppingIt(t *testing.T) {
 		file := &brokenFile{writeErr: errors.New("no space left on device")}
 		traceInto(t, file)
 
-		code, _, stderr := exec(t, "fetch", "--timeout", "3s", "--trace", "anywhere", "https://127.0.0.1:1/")
+		nowhere := deadAddr(t)
+		code, _, stderr := exec(t, "fetch", "--timeout", "3s", "--trace", "anywhere", "https://"+nowhere+"/")
 		// Both are said: the reason the fetch failed is not lost behind the trace.
-		if code != 1 || !strings.Contains(stderr, "127.0.0.1:1") || !strings.Contains(stderr, "writing the trace") {
+		if code != 1 || !strings.Contains(stderr, nowhere) || !strings.Contains(stderr, "writing the trace") {
 			t.Errorf("exit code = %d, stderr = %q", code, stderr)
 		}
 	})

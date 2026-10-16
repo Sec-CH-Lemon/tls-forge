@@ -245,7 +245,7 @@ func TestAskingThatGoesNowhere(t *testing.T) {
 	named := egress{Hash: "r1"}
 	// A proxy that is not one, a proxy nobody answers at, and a service that
 	// will not say: the name stays a name.
-	for _, proxy := range []string{"://not a proxy", "http://127.0.0.1:1"} {
+	for _, proxy := range []string{"://not a proxy", "http://" + deadAddr(t)} {
 		if got := (&resolver{}).resolve(context.Background(), flags, proxy, named, how, nil); got != named {
 			t.Errorf("through %q: %+v", proxy, got)
 		}
@@ -283,7 +283,7 @@ func TestAskingThatGoesNowhere(t *testing.T) {
 	b := runner{exits: exitTable{Probes: []exitProbe{{When: "cf-ray", Path: "/cdn-cgi/trace",
 		exitReading: exitReading{Format: "lines", IP: "ip"}}}}}
 	cloudflare := map[string][]string{"cf-ray": {"1"}}
-	for _, at := range []string{"::not a URL::", "https://127.0.0.1:1/"} {
+	for _, at := range []string{"::not a URL::", "https://" + deadAddr(t) + "/"} {
 		if got := b.probe(context.Background(), client, &tlsforge.Response{URL: at, Header: cloudflare}, 7, nil, nil); got.Known() {
 			t.Errorf("a probe of %q answered %+v", at, got)
 		}
