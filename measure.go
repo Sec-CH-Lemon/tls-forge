@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -247,6 +248,93 @@ type Comparison struct {
 	TLS     fingerprint.Report
 	HTTP1   fingerprint.Report
 	HTTP2   fingerprint.Report
+
+	// Measured is what the comparison was made of, and Manifest the rule each
+	// field was compared by: together, what a match covers.
+	Measured Measurement        `json:"measured"`
+	Manifest []fingerprint.Rule `json:"manifest"`
+}
+
+// Measurement is what a comparison was made of: the browser, as it says it
+// is, how it was run, and which of its requests were compared. The captures
+// beside it hold what was sent, as it went.
+type Measurement struct {
+	// Browser is the browser's build, as navigator.userAgentData says it, or
+	// its user agent when that says nothing.
+	Browser string `json:"browser,omitempty"`
+	// Platform is its operating system and machine, as navigator says them.
+	Platform string `json:"platform,omitempty"`
+	// Mode is how it was run: headless, with a window, or opened by a person;
+	// empty for captures compared after the fact.
+	Mode string `json:"mode,omitempty"`
+	// Scenario is what was compared, protocol by protocol.
+	Scenario []string `json:"scenario"`
+}
+
+// How a browser was run, for Measurement.Mode.
+const (
+	ModeHeadless = "headless"
+	ModeWindow   = "with a window"
+	ModeManual   = "opened by a person"
+)
+
+// measurementOf is what a capture of a browser says of it, and of the requests
+// the comparison holds the client to.
+func measurementOf(browser *capture.Capture) Measurement {
+	out := Measurement{Browser: browser.UserAgent()}
+	if nav := browser.Navigator; nav != nil {
+		if brand, ok := browserBrand(nav.FullVersionList); ok {
+			out.Browser = brand
+		}
+		out.Platform = strings.Join(slices.DeleteFunc([]string{
+			strings.TrimSpace(nav.Platform + " " + nav.PlatformVersion),
+			strings.TrimSpace(nav.Architecture + " " + nav.Bitness),
+		}, func(s string) bool { return s == "" }), ", ")
+	}
+	out.Scenario = append(out.Scenario, "TLS: "+map[bool]string{
+		false: "first contact", true: "resuming a session"}[browser.TLS.Resumed])
+	if http1 := browser.HTTP1; http1 != nil {
+		fields := map[string]string{}
+		for _, field := range http1.Headers {
+			fields[strings.ToLower(field.Name)] = field.Value
+		}
+		out.Scenario = append(out.Scenario, "HTTP/1.1: "+http1.Method+", "+requestKind(fields))
+	}
+	if http2 := browser.HTTP2; http2 != nil {
+		fields := map[string]string{}
+		for _, field := range http2.Headers {
+			fields[field.Name] = field.Value
+		}
+		out.Scenario = append(out.Scenario, "HTTP/2: "+fields[":method"]+", "+requestKind(fields)+
+			", the first request of its connection")
+	}
+	return out
+}
+
+// browserBrand is the brand a browser names itself by in its full version
+// list: not the GREASE one, and not Chromium when there is another.
+func browserBrand(brands []capture.Brand) (string, bool) {
+	var chromium string
+	for _, brand := range brands {
+		switch {
+		case strings.Contains(brand.Brand, "Not") && strings.Contains(brand.Brand, "Brand"):
+		case brand.Brand == "Chromium":
+			chromium = brand.Brand + " " + brand.Version
+		default:
+			return brand.Brand + " " + brand.Version, true
+		}
+	}
+	return chromium, chromium != ""
+}
+
+// requestKind is what a request was, as its Sec-Fetch fields say.
+func requestKind(fields map[string]string) string {
+	if fields["sec-fetch-mode"] == "navigate" && fields["sec-fetch-dest"] == "document" &&
+		fields["sec-fetch-site"] == "none" {
+		return "a page opened from the address bar"
+	}
+	return fmt.Sprintf("Sec-Fetch-Mode %q, Sec-Fetch-Dest %q, Sec-Fetch-Site %q",
+		fields["sec-fetch-mode"], fields["sec-fetch-dest"], fields["sec-fetch-site"])
 }
 
 // OK reports a client indistinguishable from the browser on every field
@@ -295,7 +383,21 @@ func CompareToBrowser(ctx context.Context, measure MeasureOptions, opts ...Optio
 	if err != nil {
 		return nil, err
 	}
-	return Compare(browserCapture, clientCapture)
+	mode := ModeWindow
+	if measure.Headless {
+		mode = ModeHeadless
+	}
+	return compared(browserCapture, clientCapture, mode)
+}
+
+// compared is what Compare makes of two captures, of a browser run as mode
+// says.
+func compared(browserCapture, clientCapture *capture.Capture, mode string) (*Comparison, error) {
+	out, err := Compare(browserCapture, clientCapture)
+	if out != nil {
+		out.Measured.Mode = mode
+	}
+	return out, err
 }
 
 // CompareVisitorAt measures a visiting browser and this library on one server
@@ -312,7 +414,7 @@ func CompareVisitorAt(ctx context.Context, server *echo.Server, opts ...Option) 
 		return nil, err
 	}
 	clientCapture.HTTP1 = nil
-	return Compare(browserCapture, clientCapture)
+	return compared(browserCapture, clientCapture, ModeManual)
 }
 
 // Compare diffs two measurements that were taken earlier, which is how a
@@ -334,9 +436,11 @@ func Compare(browserCapture, clientCapture *capture.Capture) (*Comparison, error
 	}
 
 	out := &Comparison{
-		Browser: browserCapture,
-		Client:  clientCapture,
-		TLS:     fingerprint.CompareTLS(browserHello, clientHello),
+		Browser:  browserCapture,
+		Client:   clientCapture,
+		TLS:      fingerprint.CompareTLS(browserHello, clientHello),
+		Measured: measurementOf(browserCapture),
+		Manifest: fingerprint.Manifest(),
 	}
 	switch {
 	case browserCapture.HTTP2 != nil && clientCapture.HTTP2 != nil:

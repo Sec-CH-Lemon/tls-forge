@@ -553,6 +553,11 @@ and `fingerprint.Representations` how each field of a header block was
 written.
 `fingerprint.CompareTLS`, `fingerprint.CompareHTTP1` and
 `fingerprint.CompareHTTP2` expose the three comparisons independently.
+`Comparison.Measured` says what a comparison was made of: the browser's build
+and platform, its `Mode` (`ModeHeadless`, `ModeWindow`, `ModeManual`, or empty
+for captures compared after the fact) and the `Scenario` compared.
+`Comparison.Manifest` is `fingerprint.Manifest()`: the rule each field was
+compared by.
 
 ## Programmatic proxy
 

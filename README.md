@@ -1319,6 +1319,12 @@ was reached by are not compared: the values of `:path`, `:authority` and
 compared on a line of its own, and shown on a `~` line when the page is one
 the static table holds whole, such as `/`, which every client writes alike.
 
+The output begins with what was measured: the browser's build and platform,
+as it says them, how it was run, and which of its requests were compared,
+protocol by protocol. `--json` carries the same as `measured`, the rule each
+field was compared by as `manifest`, and both captures with the hello and the
+HTTP/2 frames as they went.
+
 ```bash
 tls-forge compare
 tls-forge compare --profile chrome_151 --headless

@@ -85,7 +85,19 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 	}
 
 	out.printf("%s--- browser  %s%s\n", pal.differ, result.Browser.UserAgent(), pal.reset)
+	measured := result.Measured
+	if about := strings.Join(slices.DeleteFunc([]string{measured.Browser, measured.Platform, measured.Mode},
+		func(s string) bool { return s == "" || s == result.Browser.UserAgent() }), ", "); about != "" {
+		out.printf("%s             %s%s\n", pal.differ, about, pal.reset)
+	}
 	out.printf("%s+++ client   profile %s%s\n\n", pal.match, result.Client.Profile, pal.reset)
+	if len(measured.Scenario) > 0 {
+		out.printf("%smeasured%s\n", pal.dim, pal.reset)
+		for _, what := range measured.Scenario {
+			out.printf("  %s\n", what)
+		}
+		out.println()
+	}
 
 	tlsWant, tlsGot := fingerprint.TLSFields(browserHello), fingerprint.TLSFields(clientHello)
 	var h1Want, h1Got []fingerprint.Field

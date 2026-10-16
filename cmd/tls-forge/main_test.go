@@ -1224,6 +1224,45 @@ func TestComparePrintsAPageThatSaysNothingOfTheClient(t *testing.T) {
 	}
 }
 
+func TestComparePrintsWhatWasMeasured(t *testing.T) {
+	hello, err := os.ReadFile("../../testdata/chrome155-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	ua := "Mozilla/5.0 Chrome/155.0.0.0"
+	browser := &capture.Capture{RawClientHello: hello,
+		HTTP2: &capture.HTTP2{Headers: []capture.HeaderField{{Name: ":method", Value: "GET"}, {Name: "user-agent", Value: ua},
+			{Name: "sec-fetch-mode", Value: "navigate"}, {Name: "sec-fetch-dest", Value: "document"},
+			{Name: "sec-fetch-site", Value: "none"}}},
+		Navigator: &capture.Navigator{UserAgent: ua, Platform: "macOS", PlatformVersion: "27.0.0",
+			FullVersionList: []capture.Brand{{Brand: "Google Chrome", Version: "155.0.8059.80"}}}}
+	result, err := tlsforge.Compare(browser, &capture.Capture{RawClientHello: hello, HTTP2: browser.HTTP2, Profile: "chrome"})
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	result.Measured.Mode = tlsforge.ModeHeadless
+	var buf bytes.Buffer
+	printComparison(newPrinter(&buf), result, palette{}, false)
+	want := "--- browser  " + ua + "\n" +
+		"             Google Chrome 155.0.8059.80, macOS 27.0.0, headless\n" +
+		"+++ client   profile chrome\n\n" +
+		"measured\n" +
+		"  TLS: first contact\n" +
+		"  HTTP/2: GET, a page opened from the address bar, the first request of its connection\n\n" +
+		"TLS\n"
+	if !strings.HasPrefix(buf.String(), want) {
+		t.Errorf("printed\n%s\nwant it to begin\n%s", buf.String(), want)
+	}
+
+	// Nothing more to say than the user agent: no line for it.
+	result.Measured = tlsforge.Measurement{Browser: ua}
+	buf.Reset()
+	printComparison(newPrinter(&buf), result, palette{}, false)
+	if !strings.HasPrefix(buf.String(), "--- browser  "+ua+"\n+++ client   profile chrome\n\nTLS\n") {
+		t.Errorf("printed\n%s", buf.String())
+	}
+}
+
 func TestCompareCannotReReadItsCaptures(t *testing.T) {
 	// printComparison parses the two hellos again to lay them out. Compare has
 	// already parsed both, so this is unreachable in a real run, and it must not

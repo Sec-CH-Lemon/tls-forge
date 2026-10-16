@@ -7,7 +7,9 @@ import (
 	neturl "net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -421,6 +423,72 @@ func TestCompareToBrowser(t *testing.T) {
 	if !strings.Contains(rendered, result.Browser.TLS.JA4) {
 		t.Errorf("report does not show the JA4:\n%s", rendered)
 	}
+	// What was measured, and by which rules, goes with the result.
+	want := []string{"TLS: first contact", "HTTP/1.1: GET, a page opened from the address bar",
+		"HTTP/2: GET, a page opened from the address bar, the first request of its connection"}
+	if result.Measured.Mode != ModeWindow || !slices.Equal(result.Measured.Scenario, want) ||
+		!slices.Equal(result.Manifest, fingerprint.Manifest()) {
+		t.Errorf("measured %+v, %d rules", result.Measured, len(result.Manifest))
+	}
+	headless, err := CompareToBrowser(context.Background(), MeasureOptions{
+		Browser: browserStandIn(t), Headless: true, Timeout: 30 * time.Second,
+	})
+	if err != nil || headless.Measured.Mode != ModeHeadless {
+		t.Errorf("headless: %+v, %v", headless, err)
+	}
+}
+
+func TestAComparisonSaysWhatItWasMadeOf(t *testing.T) {
+	raw, err := os.ReadFile("testdata/chrome155-clienthello-resumed.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	browser := &capture.Capture{
+		RawClientHello: raw, TLS: capture.TLS{Resumed: true},
+		Navigator: &capture.Navigator{UserAgent: "Mozilla/5.0 Chrome/155", Platform: "macOS",
+			PlatformVersion: "27.0.0", Architecture: "arm", Bitness: "64",
+			FullVersionList: []capture.Brand{{Brand: "Not)A;Brand", Version: "8.0.0.0"},
+				{Brand: "Chromium", Version: "155.0.8059.80"}, {Brand: "Google Chrome", Version: "155.0.8059.80"}}},
+		HTTP2: &capture.HTTP2{Headers: []capture.HeaderField{{Name: ":method", Value: "POST"},
+			{Name: "sec-fetch-mode", Value: "cors"}, {Name: "sec-fetch-dest", Value: "empty"},
+			{Name: "sec-fetch-site", Value: "same-origin"}}},
+		// A page opened by a link, not from the address bar; HTTP/1.1 names
+		// in their wire spelling.
+		HTTP1: &capture.HTTP1{Method: "GET", Headers: []capture.HeaderField{
+			{Name: "Sec-Fetch-Mode", Value: "navigate"}, {Name: "Sec-Fetch-Dest", Value: "document"},
+			{Name: "Sec-Fetch-Site", Value: "same-origin"}}},
+	}
+	result, err := Compare(browser, &capture.Capture{RawClientHello: raw})
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	want := Measurement{Browser: "Google Chrome 155.0.8059.80", Platform: "macOS 27.0.0, arm 64",
+		Scenario: []string{"TLS: resuming a session",
+			`HTTP/1.1: GET, Sec-Fetch-Mode "navigate", Sec-Fetch-Dest "document", Sec-Fetch-Site "same-origin"`,
+			`HTTP/2: POST, Sec-Fetch-Mode "cors", Sec-Fetch-Dest "empty", Sec-Fetch-Site "same-origin", ` +
+				"the first request of its connection"}}
+	if !reflect.DeepEqual(result.Measured, want) {
+		t.Errorf("measured\n%+v\nwant\n%+v", result.Measured, want)
+	}
+	// A brand list of Chromium alone names Chromium; one with none, or no
+	// navigator at all, leaves the user agent; a platform said in part is
+	// said in part.
+	for _, tc := range []struct {
+		nav            *capture.Navigator
+		name, platform string
+	}{
+		{&capture.Navigator{UserAgent: "UA", Platform: "Linux",
+			FullVersionList: []capture.Brand{{Brand: "Chromium", Version: "155.0.1"}}}, "Chromium 155.0.1", "Linux"},
+		{&capture.Navigator{UserAgent: "UA", Architecture: "x86", FullVersionList: []capture.Brand{
+			{Brand: "Not A Brand", Version: "99"}}}, "UA", "x86"},
+		{nil, "UA", ""},
+	} {
+		got := measurementOf(&capture.Capture{Navigator: tc.nav,
+			HTTP2: &capture.HTTP2{Headers: []capture.HeaderField{{Name: "user-agent", Value: "UA"}}}})
+		if got.Browser != tc.name || got.Platform != tc.platform {
+			t.Errorf("%+v: %+v", tc.nav, got)
+		}
+	}
 }
 
 func TestCompareToBrowserReportsErrors(t *testing.T) {
@@ -759,7 +827,8 @@ func TestCompareVisitorAt(t *testing.T) {
 		}
 		// HTTP/1.1 is not measured from the browser, and so not held against
 		// the client either.
-		if result.OK() != tc.same || result.Client.HTTP1 != nil || len(result.HTTP1.Differences) != 0 {
+		if result.OK() != tc.same || result.Client.HTTP1 != nil || len(result.HTTP1.Differences) != 0 ||
+			result.Measured.Mode != ModeManual {
 			t.Errorf("%s: same %v, client HTTP/1.1 %+v, differences %+v", tc.profile, result.OK(),
 				result.Client.HTTP1, result.HTTP1.Differences)
 		}

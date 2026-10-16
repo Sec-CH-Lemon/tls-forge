@@ -13,6 +13,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **A comparison says what it was made of.** `Comparison.Measured` holds the
+  browser's build and platform as it says them, how it was run, and the
+  requests compared, protocol by protocol; `Comparison.Manifest` the rule
+  each field was compared by (`fingerprint.Manifest`). `compare` prints the
+  first above the diff, and `--json` carries both as `measured` and
+  `manifest`.
 - `fingerprint.ClientHello` keeps the record layer, as `RecordVersion` and
   `Records`, and reads `KeyShares` with the length of each key,
   `TrustAnchors` as dotted IDs and `PreSharedKey` without its tickets.

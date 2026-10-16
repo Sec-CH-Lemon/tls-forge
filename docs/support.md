@@ -68,6 +68,8 @@ tls-forge compare
 ```
 
 measures the Chrome installed here and the selected profile against the same
-local server, and prints every difference it finds. A run with no differences
-says so; the rows above marked "differs" or "not modelled" are not part of
-what it compares.
+local server, and prints every difference it finds, after what it measured:
+the browser's build, platform and mode, and the requests compared. A run with
+no differences says so; the rows above marked "differs" or "not modelled" are
+not part of what it compares, and `--json` carries the rule each field was
+compared by.

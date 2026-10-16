@@ -371,3 +371,56 @@ func TestShapesThatDoNotParse(t *testing.T) {
 		t.Errorf("an unknown suite: %q", fixed)
 	}
 }
+
+func TestTheManifestHasARuleForEveryField(t *testing.T) {
+	// One rule for each field compared, in the order compared, so that the
+	// rules a result carries cannot drift from what was done.
+	var fields []string
+	for layer, list := range map[string][]Field{
+		"tls":   TLSFields(mustParse(t, fixture(t, "chrome155-clienthello.bin"))),
+		"http1": HTTP1Fields(&HTTP1{}),
+		"http2": HTTP2Fields(navigation()),
+	} {
+		for _, field := range list {
+			fields = append(fields, layer+" "+field.Name)
+		}
+	}
+	var ruled []string
+	for _, rule := range Manifest() {
+		ruled = append(ruled, rule.Layer+" "+rule.Field)
+		if rule.How == "" {
+			t.Errorf("%s has no rule", rule.Field)
+		}
+	}
+	slices.Sort(fields)
+	if sorted := slices.Sorted(slices.Values(ruled)); !slices.Equal(sorted, fields) {
+		t.Errorf("the manifest has\n%q\nthe fields are\n%q", sorted, fields)
+	}
+	// In the order compared, layer by layer.
+	var inOrder []string
+	for _, list := range [][]Field{
+		TLSFields(mustParse(t, fixture(t, "chrome155-clienthello.bin"))), HTTP1Fields(&HTTP1{}), HTTP2Fields(navigation()),
+	} {
+		for _, field := range list {
+			inOrder = append(inOrder, field.Name)
+		}
+	}
+	var names []string
+	for _, rule := range Manifest() {
+		names = append(names, rule.Field)
+	}
+	if !slices.Equal(names, inOrder) {
+		t.Errorf("the manifest's order\n%q\nthe fields'\n%q", names, inOrder)
+	}
+	// What is shown and not compared says so.
+	for _, rule := range Manifest() {
+		if rule.Field == "ech_payload_length" && !strings.HasPrefix(rule.How, "shown, not compared") {
+			t.Errorf("%s: %s", rule.Field, rule.How)
+		}
+	}
+	// A copy: a caller cannot change the rules.
+	Manifest()[0].How = "changed"
+	if Manifest()[0].How == "changed" {
+		t.Error("the manifest is shared")
+	}
+}

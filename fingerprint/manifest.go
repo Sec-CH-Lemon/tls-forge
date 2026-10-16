@@ -3,6 +3,7 @@ package fingerprint
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -266,3 +267,75 @@ func pskShape(hello *ClientHello) string {
 	}
 	return "(none)"
 }
+
+// Rule is how a comparison holds a client to a browser on one field: what of
+// it is compared, and what is left alone and why. The rules together are the
+// manifest, which a comparison's result carries, so that a match can be read
+// for what it covers.
+type Rule struct {
+	Layer string `json:"layer"`
+	Field string `json:"field"`
+	How   string `json:"how"`
+}
+
+const (
+	inOrder         = "in order"
+	inOrderNoGREASE = "in order, GREASE aside: where GREASE goes is compared as grease"
+	exactly         = "exactly"
+)
+
+// manifest is every field TLSFields, HTTP1Fields and HTTP2Fields give, in
+// their order, and how it is compared.
+var manifest = []Rule{
+	{"tls", "ja4", exactly},
+	{"tls", "record_version", exactly},
+	{"tls", "records", exactly},
+	{"tls", "legacy_version", exactly},
+	{"tls", "session_id_length", "exactly; not the id, drawn for each connection"},
+	{"tls", "cipher_suites", inOrderNoGREASE},
+	{"tls", "compression_methods", inOrder},
+	{"tls", "extensions", "as a set, GREASE aside: the browser shuffles the order for each connection"},
+	{"tls", "grease", "in order: where GREASE goes, how long it is and which of its values are one; " +
+		"not the values, drawn for each connection"},
+	{"tls", "supported_versions", inOrderNoGREASE},
+	{"tls", "supported_groups", inOrderNoGREASE},
+	{"tls", "signature_algorithms", inOrderNoGREASE},
+	{"tls", "key_share_groups", inOrderNoGREASE},
+	{"tls", "key_share_lengths", "in order: how long each key is; not the keys, drawn for each connection"},
+	{"tls", "alpn", inOrder},
+	{"tls", "application_settings", inOrder},
+	{"tls", "ec_point_formats", inOrder},
+	{"tls", "psk_key_exchange_modes", inOrder},
+	{"tls", "compress_certificate", inOrder},
+	{"tls", "trust_anchors", "as a set: the browser draws their order for each process"},
+	{"tls", "ech_grease", "exactly: the cipher suite and the key's length; " +
+		"not the config id, key or payload, drawn for each connection"},
+	{"tls", "ech_payload_length", "shown, not compared: " + drawn},
+	{"tls", "pre_shared_key", "exactly: how many identities, how long each binder; not the tickets or binders"},
+	{"tls", "extension_contents", "as a set: the contents of each extension that is the same on every " +
+		"connection; not server_name's, the site's, or padding's; an extension no rule describes is not " +
+		"checked when the two differ"},
+	{"http1", "http1_request", "exactly: the method and the version; not the target, the page asked for"},
+	{"http1", "http1_header_order", "in order, with the spelling"},
+	{"http1", "http1_header_values", "in order; not Host's, the name the server was reached by"},
+	{"http2", "http2_akamai", exactly},
+	{"http2", "http2_settings", inOrder},
+	{"http2", "http2_window_update", exactly},
+	{"http2", "http2_priority_frames", inOrder},
+	{"http2", "http2_header_priority", exactly},
+	{"http2", "pseudo_header_order", inOrder},
+	{"http2", "pseudo_header_values", "in order; not :path's or :authority's, the page asked for and the name " +
+		"the server was reached by"},
+	{"http2", "header_order", inOrder},
+	{"http2", "header_values", inOrder},
+	{"http2", "http2_frames", "in order, up to the end of the first request's header block; not " +
+		"acknowledgements, which go when the server's frames come; not checked when a side did not record them"},
+	{"http2", "http2_hpack", "in order: how each field of the first request was written; :path apart, and " +
+		"not whether :authority's value was Huffman-coded"},
+	{"http2", "http2_hpack_path", "exactly: how :path was written, but its value; shown, not compared, " +
+		"for a page the static table holds whole, such as /"},
+}
+
+// Manifest is the rules a comparison holds a client to, field by field, in the
+// order the fields are compared.
+func Manifest() []Rule { return slices.Clone(manifest) }
