@@ -108,7 +108,8 @@ allow only intended clients. Do not expose it directly to the internet.
 
 Resource limits reduce the effect of a bad peer but are not an authentication
 boundary. Idle connections expire after 30 seconds, echo HTTP/1.1 requests are
-limited to 100 headers with at most 8 KiB per line, proxy request headers to
+limited to 100 headers with at most 8 KiB per line and 64 KiB in all, and read
+strictly, as RFC 9112 has them, proxy request headers to
 1 MiB and 10 seconds, the TLS handshake in a proxy tunnel to 10 seconds, proxy
 request bodies are bounded, the proxy serves at most 1024 connections at once,
 and each proxy authority caches at most 1024 generated leaf certificates.

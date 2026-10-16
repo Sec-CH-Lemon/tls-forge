@@ -1430,6 +1430,17 @@ authenticate incoming clients; the CLI warns when `--addr` exposes it beyond
 loopback. A connection that makes no read or write progress for 30 seconds is
 closed.
 
+HTTP/1.1 is read as RFC 9112 has it, and no further. A request the server
+cannot read whole is answered with the status that says why, and the reason,
+before its connection closes: 400 for a space before a header's colon, a header
+continued on the next line, a carriage return inside a line or a length that
+is not digits; 413 for a body over 64 KiB; 414 and 431 for a line over 8 KiB,
+more than 100 header lines, or header lines over 64 KiB in all; 417 for an
+expectation other than `100-continue`; 501 for `Transfer-Encoding`; 505 for a
+version other than HTTP/1. A client that sends `Expect: 100-continue` is told
+to go on before its body is read. `Connection: close`, or HTTP/1.0 without
+`Connection: keep-alive`, closes the connection after the answer.
+
 ### `daemon`
 
 Run one long-lived client behind a JSON Lines protocol. This is the transport

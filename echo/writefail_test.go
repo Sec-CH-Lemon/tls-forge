@@ -250,15 +250,30 @@ func TestHTTP1StopsWhenTheClientHangsUpMidWrite(t *testing.T) {
 }
 
 func TestCaptureHTTP1ReportsAMalformedRequest(t *testing.T) {
+	// Answered with why, as the main listener answers it: a request it cannot
+	// read, and a target that is no URI.
 	server := startServer(t)
-	for _, request := range []string{
-		"GET / HTTP/1.1\r\nheader-without-a-colon\r\n\r\n",
-		"GET % HTTP/1.1\r\nHost: localhost\r\n\r\n",
+	for _, tc := range []struct{ request, reason string }{
+		{"GET / HTTP/1.1\r\nheader-without-a-colon\r\n\r\n", `malformed header "header-without-a-colon"`},
+		{"GET % HTTP/1.1\r\nHost: localhost\r\n\r\n", `malformed request target "%"`},
 	} {
-		conn := &scriptedConn{reader: strings.NewReader(request), writeBudget: 1 << 20}
-		if err := server.serveCaptureHTTP1(conn, &Session{}); err == nil {
-			t.Errorf("serveCaptureHTTP1 accepted %q", request)
+		conn := &scriptedConn{reader: strings.NewReader(tc.request), writeBudget: 1 << 20}
+		if err := server.serveCaptureHTTP1(conn, &Session{}); err == nil || err.Error() != "echo: "+tc.reason {
+			t.Errorf("serveCaptureHTTP1(%q) = %v", tc.request, err)
 		}
+		if got := conn.written.String(); got != refused("400", tc.reason) {
+			t.Errorf("answered %q", got)
+		}
+	}
+}
+
+func TestCaptureHTTP1EndsCleanlyWhenTheClientGoes(t *testing.T) {
+	// A browser that opened the connection and closed it, which a cold
+	// launch can do: no request, and nothing to report.
+	server := startServer(t)
+	conn := &scriptedConn{reader: strings.NewReader(""), writeBudget: 1 << 20}
+	if err := server.serveCaptureHTTP1(conn, &Session{}); err != nil || conn.written.Len() != 0 {
+		t.Errorf("serveCaptureHTTP1 = %v, answered %q", err, conn.written.String())
 	}
 }
 

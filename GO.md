@@ -618,7 +618,8 @@ fmt.Println(server.URL())
 Useful methods include `URL()`, `Addr()`, `Certificate()`, `Sessions()` and
 `Await(ctx)`. A `Session` can be rendered as a `capture.Capture`. Silent
 connections close after 30 seconds; the deadline rolls forward while traffic
-makes progress. The echo protocol has no authentication. A non-loopback
+makes progress. An HTTP/1.1 request it cannot read whole, as RFC 9112 has it,
+is answered with a 4xx or 5xx that says why, and its connection closed. The echo protocol has no authentication. A non-loopback
 `WithAddr` is an explicit trust-boundary expansion and must be protected by a
 firewall or authenticated tunnel.
 

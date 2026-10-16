@@ -454,6 +454,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The echo server reads HTTP/1.1 as RFC 9112 has it, and says why it
+  refuses a request.** A space before a header's colon was taken out, so
+  `Content-Length : 5` was a length another server would not read; a header
+  continued on the next line, a carriage return inside a line, a length with
+  a sign and a version that is not HTTP/1 were taken too. They are refused
+  now, and every refusal is answered with its status and reason, 400, 413,
+  414, 417, 431, 501 or 505, before the connection closes, where the
+  connection used to close without a word. A client that sends `Expect:
+  100-continue` is told to go on before its body is read, rather than left
+  to wait; `Connection: close`, and HTTP/1.0 without `keep-alive`, end the
+  connection after the answer; and a request's header lines are held to 64
+  KiB in all, as an HTTP/2 header list is.
 - **`proxy` bounds what one connection can hold.** A request's header had no
   limit of size, and a header, or the handshake in a tunnel, sent a byte at a
   time held its connection for as long as each byte came within 30 seconds of

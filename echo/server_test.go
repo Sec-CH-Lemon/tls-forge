@@ -552,68 +552,144 @@ func requestLineOf(n int) string {
 	return head + strings.Repeat("a", n-len(head)-len(tail)) + tail
 }
 
+// headerOf is header lines of size bytes in all, each well within a line's
+// limit, their CRLFs counted.
+func headerOf(size int) string {
+	line := "X-Long: " + strings.Repeat("a", 6544) + "\r\n"
+	lines := strings.Repeat(line, size/len(line))
+	return lines + "X-End: " + strings.Repeat("b", size-len(lines)-len("X-End: \r\n")) + "\r\n"
+}
+
+// refused is how a request refused with status, for reason, is answered: with
+// both, and the connection's end.
+func refused(status, reason string) string {
+	body := reason + "\n"
+	return fmt.Sprintf("HTTP/1.1 %s %s\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: %d\r\n"+
+		"Cache-Control: no-store\r\nConnection: close\r\n\r\n%s", status, statusText(status), len(body), body)
+}
+
 func TestHTTP1RefusesWhatItCannotParse(t *testing.T) {
-	// Each guard of the parser, by the reason it gives. A test that only saw
-	// the connection end could not tell one guard from another, and passed with
-	// any of them taken out: the server closes the connection after a request
-	// it can parse too, once the client has hung up.
+	// Each guard of the parser, by the status and the reason it answers with,
+	// as RFC 9112 has a server answer: a test that only saw the connection end
+	// could not tell one guard from another. The connection ends after the
+	// answer, since what follows a request that could not be read cannot be
+	// told from the rest of it.
 	server := startServer(t)
 	headers := strings.Repeat("X-Test: value\r\n", maxHTTP1Headers+1)
-	for _, tc := range []struct{ name, request, want string }{
-		{"request line", "GARBAGE\r\n\r\n", `malformed request line "GARBAGE"`},
-		{"header without a colon", "GET / HTTP/1.1\r\nno-colon\r\n\r\n", `malformed header "no-colon"`},
+	long := strings.Repeat("X-Long: "+strings.Repeat("a", 7000)+"\r\n", 10)
+	for _, tc := range []struct{ name, request, status, reason string }{
+		{"request line", "GARBAGE\r\n\r\n", "400", `malformed request line "GARBAGE"`},
+		{"two spaces in the request line", "GET  / HTTP/1.1\r\n\r\n", "400", `malformed request line "GET  / HTTP/1.1"`},
+		{"a method that is not a token", "G(T / HTTP/1.1\r\n\r\n", "400", `malformed request line "G(T / HTTP/1.1"`},
+		{"a control character in the target", "GET /a\x01b HTTP/1.1\r\n\r\n", "400",
+			`malformed request line "GET /a\x01b HTTP/1.1"`},
+		{"a DEL in the target", "GET /a\x7fb HTTP/1.1\r\n\r\n", "400", `malformed request line "GET /a\x7fb HTTP/1.1"`},
+		{"a version in lower case", "GET / http/1.1\r\n\r\n", "400", `malformed request line "GET / http/1.1"`},
+		{"a version with more after it", "GET / HTTP/1.1x\r\n\r\n", "400", `malformed request line "GET / HTTP/1.1x"`},
+		{"a version without its dot", "GET / HTTP/11\r\n\r\n", "400", `malformed request line "GET / HTTP/11"`},
+		{"HTTP/2 over HTTP/1.1", "GET / HTTP/2.0\r\n\r\n", "505", "HTTP/2.0 is not a version of HTTP/1"},
+		{"HTTP/0.9", "GET / HTTP/0.9\r\n\r\n", "505", "HTTP/0.9 is not a version of HTTP/1"},
+		{"a carriage return in the request line", "GET /\r HTTP/1.1\r\n\r\n", "400",
+			`a carriage return inside "GET /\r HTTP/1.1"`},
+		{"header without a colon", "GET / HTTP/1.1\r\nno-colon\r\n\r\n", "400", `malformed header "no-colon"`},
+		// RFC 9112, section 5.1: a server MUST refuse it. One server reads
+		// "Content-Length " as the length and another does not.
+		{"a space before the colon", "GET / HTTP/1.1\r\nHost : x\r\n\r\n", "400", `malformed header "Host : x"`},
+		{"a tab before the colon", "GET / HTTP/1.1\r\nHost\t: x\r\n\r\n", "400", `malformed header "Host\t: x"`},
+		{"a space in a name", "GET / HTTP/1.1\r\nX Y: z\r\n\r\n", "400", `malformed header "X Y: z"`},
+		{"no name", "GET / HTTP/1.1\r\n: x\r\n\r\n", "400", `malformed header ": x"`},
+		{"a header continued on the next line", "GET / HTTP/1.1\r\nX-A: 1\r\n  more\r\n\r\n", "400",
+			`a header continued on another line, "  more"`},
+		{"a tab beginning a line", "GET / HTTP/1.1\r\nX-A: 1\r\n\tmore\r\n\r\n", "400",
+			`a header continued on another line, "\tmore"`},
+		{"a NUL in a value", "GET / HTTP/1.1\r\nX-A: a\x00b\r\n\r\n", "400", "the value of X-A holds a control character"},
+		{"a DEL in a value", "GET / HTTP/1.1\r\nX-A: a\x7fb\r\n\r\n", "400", "the value of X-A holds a control character"},
+		{"a carriage return in a value", "GET / HTTP/1.1\r\nX-A: a\rb\r\n\r\n", "400", `a carriage return inside "X-A: a\rb"`},
 		{"content length that is not a number",
-			"POST /collect HTTP/1.1\r\ncontent-length: enormous\r\n\r\n", `unusable content-length "enormous"`},
-		{"negative content length",
-			"POST /collect HTTP/1.1\r\ncontent-length: -1\r\n\r\n", `unusable content-length "-1"`},
+			"POST /collect HTTP/1.1\r\ncontent-length: enormous\r\n\r\n", "400", `unusable content-length "enormous"`},
+		{"negative content length", "POST /collect HTTP/1.1\r\ncontent-length: -1\r\n\r\n", "400",
+			`unusable content-length "-1"`},
+		{"content length with a sign", "POST /collect HTTP/1.1\r\ncontent-length: +5\r\n\r\n12345", "400",
+			`unusable content-length "+5"`},
+		{"empty content length", "POST /collect HTTP/1.1\r\ncontent-length:\r\n\r\n", "400", `unusable content-length ""`},
+		{"two lengths in one", "POST /collect HTTP/1.1\r\ncontent-length: 1, 1\r\n\r\n1", "400",
+			`unusable content-length "1, 1"`},
 		{"content length one over the limit",
-			fmt.Sprintf("POST /collect HTTP/1.1\r\ncontent-length: %d\r\n\r\n", maxResponseBody+1),
-			fmt.Sprintf("unusable content-length %q", fmt.Sprint(maxResponseBody+1))},
+			fmt.Sprintf("POST /collect HTTP/1.1\r\ncontent-length: %d\r\n\r\n", maxRequestBody+1), "413",
+			fmt.Sprintf("content-length %d exceeds %d bytes", maxRequestBody+1, maxRequestBody)},
+		{"content length past any number",
+			"POST /collect HTTP/1.1\r\ncontent-length: 99999999999999999999999\r\n\r\n", "413",
+			fmt.Sprintf("content-length 99999999999999999999999 exceeds %d bytes", maxRequestBody)},
 		{"duplicate content length",
-			"POST /collect HTTP/1.1\r\ncontent-length: 0\r\ncontent-length: 0\r\n\r\n", "duplicate content-length"},
+			"POST /collect HTTP/1.1\r\ncontent-length: 0\r\ncontent-length: 0\r\n\r\n", "400", "duplicate content-length"},
 		{"transfer encoding",
-			"POST /collect HTTP/1.1\r\ntransfer-encoding: chunked\r\n\r\n0\r\n\r\n", "transfer-encoding is not supported"},
+			"POST /collect HTTP/1.1\r\ntransfer-encoding: chunked\r\n\r\n0\r\n\r\n", "501", "transfer-encoding is not supported"},
 		{"transfer encoding in its canonical spelling",
-			"POST /collect HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n", "transfer-encoding is not supported"},
+			"POST /collect HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n", "501", "transfer-encoding is not supported"},
+		{"an expectation other than 100-continue",
+			"POST /collect HTTP/1.1\r\nExpect: 100-continue, something\r\nContent-Length: 2\r\n\r\n{}", "417",
+			`expectation "something" is not supported`},
 		{"request line one byte over the limit",
-			requestLineOf(maxHTTP1Line+1) + "\r\n", fmt.Sprintf("line exceeds %d bytes", maxHTTP1Line)},
+			requestLineOf(maxHTTP1Line+1) + "\r\n", "414", fmt.Sprintf("line exceeds %d bytes", maxHTTP1Line)},
 		{"header one byte over the limit",
-			"GET / HTTP/1.1\r\nx: " + strings.Repeat("a", maxHTTP1Line-4) + "\r\n\r\n",
+			"GET / HTTP/1.1\r\nx: " + strings.Repeat("a", maxHTTP1Line-4) + "\r\n\r\n", "431",
 			fmt.Sprintf("line exceeds %d bytes", maxHTTP1Line)},
-		{"one header too many", "GET / HTTP/1.1\r\n" + headers + "\r\n",
-			fmt.Sprintf("exceeds %d headers", maxHTTP1Headers)},
-		// A body that stops short of what content-length promised: the request
-		// is incomplete, not merely empty, and answering it would mean
-		// answering something the client never finished saying.
-		{"body shorter than its content length",
-			"POST /collect HTTP/1.1\r\ncontent-length: 100\r\n\r\nshort", io.ErrUnexpectedEOF.Error()},
+		{"one header too many", "GET / HTTP/1.1\r\n" + headers + "\r\n", "431",
+			fmt.Sprintf("request exceeds %d headers", maxHTTP1Headers)},
+		{"headers past their bytes", "GET / HTTP/1.1\r\n" + long + "\r\n", "431",
+			fmt.Sprintf("request header exceeds %d bytes", maxHTTP1HeaderBytes)},
+		{"headers one byte past their bytes", "GET / HTTP/1.1\r\n" + headerOf(maxHTTP1HeaderBytes+1) + "\r\n", "431",
+			fmt.Sprintf("request header exceeds %d bytes", maxHTTP1HeaderBytes)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			conn := &scriptedConn{reader: strings.NewReader(tc.request), writeBudget: 1 << 20}
+			conn := &scriptedConn{reader: strings.NewReader(tc.request + "GET / HTTP/1.1\r\n\r\n"), writeBudget: 1 << 20}
 			err := server.serveHTTP1(conn, &Session{})
-			if err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("serveHTTP1 = %v, want %q", err, tc.want)
+			if err == nil || err.Error() != "echo: "+tc.reason {
+				t.Fatalf("serveHTTP1 = %v, want %q", err, tc.reason)
 			}
-			if conn.written.Len() != 0 {
-				t.Errorf("answered a request it could not parse: %q", conn.written.String())
+			if got := conn.written.String(); got != refused(tc.status, tc.reason) {
+				t.Errorf("answered %q", got)
 			}
 		})
+	}
+}
+
+func TestHTTP1DoesNotAnswerARequestItNeverReceived(t *testing.T) {
+	// A body that stops short of what content-length promised: the request
+	// is incomplete, not merely empty, and answering it would mean answering
+	// something the client never finished saying, to a client that has gone.
+	server := startServer(t)
+	conn := &scriptedConn{reader: strings.NewReader("POST /collect HTTP/1.1\r\ncontent-length: 100\r\n\r\nshort"),
+		writeBudget: 1 << 20}
+	if err := server.serveHTTP1(conn, &Session{}); !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Errorf("serveHTTP1 = %v", err)
+	}
+	if conn.written.Len() != 0 {
+		t.Errorf("answered %q", conn.written.String())
 	}
 }
 
 func TestHTTP1AcceptsWhatIsJustWithinItsLimits(t *testing.T) {
 	// The other side of every limit above: one byte or one header fewer is a
 	// request, answered. A limit that is off by one refuses a client that did
-	// nothing wrong.
+	// nothing wrong. And what RFC 9112 lets a server take: empty lines before
+	// a request, a bare LF ending a line, bytes past ASCII and tabs in a value.
 	server := startServer(t)
 	for _, tc := range []struct{ name, request string }{
 		{"request line at the limit", requestLineOf(maxHTTP1Line) + "\r\n"},
 		{"header at the limit", "GET / HTTP/1.1\r\nx: " + strings.Repeat("a", maxHTTP1Line-5) + "\r\n\r\n"},
 		{"as many headers as allowed",
 			"GET / HTTP/1.1\r\n" + strings.Repeat("X-Test: value\r\n", maxHTTP1Headers) + "\r\n"},
+		{"headers of as many bytes as allowed", "GET / HTTP/1.1\r\n" + headerOf(maxHTTP1HeaderBytes) + "\r\n"},
 		{"content length at the limit", fmt.Sprintf("POST /collect HTTP/1.1\r\ncontent-length: %d\r\n\r\n%s",
-			maxResponseBody, strings.Repeat("a", maxResponseBody))},
+			maxRequestBody, strings.Repeat("a", maxRequestBody))},
+		{"content length with leading zeros", "POST /collect HTTP/1.1\r\ncontent-length: 002\r\n\r\n{}"},
 		{"empty body", "POST /collect HTTP/1.1\r\ncontent-length: 0\r\n\r\n"},
+		{"empty lines before the request", "\r\n\n\r\nGET / HTTP/1.1\r\n\r\n"},
+		{"lines ended by LF alone", "GET / HTTP/1.1\nHost: x\n\n"},
+		{"bytes past ASCII and tabs in a value", "GET / HTTP/1.1\r\nX-A: caf\xc3\xa9\tand\xff more\r\n\r\n"},
+		{"a later version of HTTP/1", "GET / HTTP/1.2\r\n\r\n"},
+		{"an expectation in HTTP/1.0, which knows none", "GET / HTTP/1.0\r\nExpect: something\r\n\r\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			conn := &scriptedConn{reader: strings.NewReader(tc.request), writeBudget: 1 << 20}
@@ -651,11 +727,12 @@ func TestHTTP1ClosesAConnectionItCannotParse(t *testing.T) {
 		t.Fatalf("dial: %v", err)
 	}
 	defer conn.Close()
-	if _, err := conn.Write([]byte("GARBAGE\r\n\r\n")); err != nil {
+	if _, err := conn.Write([]byte("GARBAGE\r\n\r\nGET /api/all HTTP/1.1\r\n\r\n")); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	if said := hungUpOn(t, conn); len(said) != 0 {
-		t.Errorf("answered a request it could not parse: %q", said)
+	// Answered with why, and nothing after it is read.
+	if said := hungUpOn(t, conn); string(said) != refused("400", `malformed request line "GARBAGE"`) {
+		t.Errorf("answered %q", said)
 	}
 }
 

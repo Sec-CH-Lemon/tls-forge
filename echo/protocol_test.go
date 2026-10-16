@@ -455,7 +455,10 @@ func TestRecordHTTP1KeepsTheFirstRequest(t *testing.T) {
 
 func TestStatusText(t *testing.T) {
 	for status, want := range map[string]string{
-		"200": "OK", "400": "Bad Request", "404": "Not Found", "500": "Error",
+		"200": "OK", "302": "Found", "400": "Bad Request", "404": "Not Found", "413": "Content Too Large",
+		"414": "URI Too Long", "417": "Expectation Failed", "431": "Request Header Fields Too Large",
+		"500": "Internal Server Error", "501": "Not Implemented", "505": "HTTP Version Not Supported",
+		"418": "Error",
 	} {
 		if got := statusText(status); got != want {
 			t.Errorf("statusText(%s) = %q, want %q", status, got, want)
