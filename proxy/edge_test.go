@@ -245,6 +245,7 @@ func TestConnectWithoutAPortStillNamesTheHost(t *testing.T) {
 			return
 		}
 	}
+	t.Errorf("the failed handshake was not reported naming the host: %v", problems.list())
 }
 
 func TestACertificateThatCannotBeMintedIsA500(t *testing.T) {

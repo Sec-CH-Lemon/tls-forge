@@ -154,6 +154,41 @@ func (c *h2Conn) headers(t *testing.T, streamID uint32, endStream bool, fields .
 	}
 }
 
+// hungUp reads what the server sends until it hangs up, and is the header of
+// every frame it sent first. A deadline fails the test: a server that merely
+// stopped answering used to pass for one that refused, both being an error
+// to a reader that read until any error.
+//
+// Headers rather than frames, because the framer reuses a frame once the next
+// one is read.
+func (c *h2Conn) hungUp(t *testing.T) []http2.FrameHeader {
+	t.Helper()
+	_ = c.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	var seen []http2.FrameHeader
+	for {
+		frame, err := c.framer.ReadFrame()
+		if err != nil {
+			var timeout net.Error
+			if errors.As(err, &timeout) && timeout.Timeout() {
+				t.Fatalf("the server kept the connection open after %d frames", len(seen))
+			}
+			return seen
+		}
+		seen = append(seen, frame.Header())
+	}
+}
+
+// refusedStream is hungUp for a request the server must not answer: the
+// connection ends, and nothing came back on the stream.
+func (c *h2Conn) refusedStream(t *testing.T, stream uint32) {
+	t.Helper()
+	for _, frame := range c.hungUp(t) {
+		if frame.StreamID == stream {
+			t.Errorf("the server answered stream %d with %v", stream, frame)
+		}
+	}
+}
+
 // readUntil reads frames until one satisfies the predicate or the deadline
 // passes.
 func (c *h2Conn) readUntil(t *testing.T, want func(http2.Frame) bool) http2.Frame {
@@ -246,10 +281,10 @@ func TestHTTP2GoAwayEndsTheConnection(t *testing.T) {
 	if err := c.framer.WriteGoAway(0, http2.ErrCodeNo, nil); err != nil {
 		t.Fatalf("GOAWAY: %v", err)
 	}
-	c.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	for {
-		if _, err := c.framer.ReadFrame(); err != nil {
-			return // the server hung up, which is the point
+	// SETTINGS and the acknowledgement of ours, and then the end.
+	for _, frame := range c.hungUp(t) {
+		if frame.Type != http2.FrameSettings {
+			t.Errorf("the server sent %v after GOAWAY", frame)
 		}
 	}
 }
@@ -274,16 +309,10 @@ func TestHTTP2RejectsAnOversizedRequestBody(t *testing.T) {
 			if i != frames-1 {
 				t.Fatalf("DATA frame %d: %v", i, err)
 			}
-			return // the server rejected the final frame and closed immediately
+			break // the server rejected the final frame and closed at once
 		}
 	}
-
-	c.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	for {
-		if _, err := c.framer.ReadFrame(); err != nil {
-			return // the oversized request ended the connection, as required
-		}
-	}
+	c.refusedStream(t, 1)
 }
 
 func TestHTTP2RecordsOnlyTheFirstRequest(t *testing.T) {
@@ -360,12 +389,13 @@ func TestHTTP2MalformedFrameEndsTheConnection(t *testing.T) {
 	if _, err := conn.Write([]byte(http2.ClientPreface)); err != nil {
 		t.Fatalf("preface: %v", err)
 	}
-	// A frame header claiming a length no client may send.
-	if _, err := conn.Write([]byte{0xff, 0xff, 0xff, 0x00, 0x00, 0, 0, 0, 0}); err != nil {
+	// SETTINGS five bytes long, which no settings list can be: they come six
+	// at a time. A frame header that only claimed an enormous length was used
+	// here, and the server waited for the payload until the test gave up.
+	if _, err := conn.Write([]byte{0, 0, 5, byte(http2.FrameSettings), 0, 0, 0, 0, 0, 1, 2, 3, 4, 5}); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	io.ReadAll(conn)
+	hungUpOn(t, conn)
 }
 
 func TestHTTP1WriteFailureIsSurvivable(t *testing.T) {
@@ -403,12 +433,14 @@ func TestHTTP1BodyShorterThanContentLength(t *testing.T) {
 		"POST /collect HTTP/1.1\r\ncontent-length: 100\r\n\r\n{\"a\":1}")); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	// The server waits for the rest of the body and then sees the connection
-	// end; it must not answer as though the body were complete.
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	body, _ := io.ReadAll(conn)
-	if bytes.Contains(body, []byte("200 OK")) {
-		t.Errorf("server answered a truncated body: %s", body)
+	// The client says it is done sending, seven bytes into the hundred it
+	// promised. The server must hang up rather than answer as though the body
+	// were complete, and must not wait for the rest until its idle deadline.
+	if err := conn.CloseWrite(); err != nil {
+		t.Fatalf("CloseWrite: %v", err)
+	}
+	if said := hungUpOn(t, conn); len(said) != 0 {
+		t.Errorf("server answered a truncated body: %q", said)
 	}
 }
 

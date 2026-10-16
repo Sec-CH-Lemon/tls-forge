@@ -222,8 +222,31 @@ func TestJA3(t *testing.T) {
 	if got := hello.JA3(); got != want {
 		t.Errorf("JA3  = %s\nwant  %s", got, want)
 	}
-	if got, want := hello.JA3Hash(), "1c17b2c0d68c37e0b47e4cf9d33e7dd1"; len(got) != 32 {
-		t.Errorf("JA3Hash = %q, want 32 hex characters (want-value %q is illustrative)", got, want)
+	// The MD5 of the string above, computed with Python's hashlib rather than
+	// by the code under test, so that a mistake in JA3Hash cannot agree with
+	// itself.
+	if got, want := hello.JA3Hash(), "8e19337e7524d2573be54efb2b0784c9"; got != want {
+		t.Errorf("JA3Hash = %s, want %s", got, want)
+	}
+}
+
+func TestJA3MatchesThePublishedExample(t *testing.T) {
+	// The worked example in the README of JA3's reference implementation
+	// (salesforce/ja3): a TLS 1.0 hello with twelve ciphers and three
+	// extensions, and the hash that implementation computes from it.
+	hello := newHello().withCiphers(47, 53, 5, 10, 49161, 49162, 49171, 49172, 50, 56, 19, 4).
+		withExtension(ExtServerName, sni("example.com")).
+		withExtension(ExtSupportedGroups, vector16(23, 24, 25)).
+		withExtension(ExtECPointFormats, vector8(0))
+	hello.legacyVersion = 0x0301
+	parsed := mustParse(t, hello.records())
+
+	const want = "769,47-53-5-10-49161-49162-49171-49172-50-56-19-4,0-10-11,23-24-25,0"
+	if got := parsed.JA3(); got != want {
+		t.Errorf("JA3 = %s\nwant %s", got, want)
+	}
+	if got, want := parsed.JA3Hash(), "ada70206e40642a3e4461f35503241d5"; got != want {
+		t.Errorf("JA3Hash = %s, want %s", got, want)
 	}
 }
 

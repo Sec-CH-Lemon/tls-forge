@@ -263,17 +263,32 @@ func TestCookiesOnAnUnparseableURL(t *testing.T) {
 }
 
 func TestRedirectsAreFollowedByDefaultAndCanBeTurnedOff(t *testing.T) {
-	server := startEcho(t)
+	server, requests := hopServer(t)
 
-	// The echo server has no redirects, so this checks the option reaches the
-	// transport rather than the behaviour of a redirect itself.
-	following := newTestClient(t)
-	if _, err := following.Get(server.URL() + "/api/all"); err != nil {
-		t.Fatalf("Get: %v", err)
+	res, err := newTestClient(t).Get(server.URL + "/hop")
+	if err != nil {
+		t.Fatalf("following: %v", err)
 	}
-	notFollowing := newTestClient(t, WithoutRedirects())
-	if _, err := notFollowing.Get(server.URL() + "/api/all"); err != nil {
-		t.Fatalf("Get: %v", err)
+	if res.Status != 200 || res.Text() != "landed" || res.URL != server.URL+"/landed" {
+		t.Errorf("following: %d %q at %s, want 200 \"landed\" at /landed", res.Status, res.Text(), res.URL)
+	}
+	if got := requests.Load(); got != 2 {
+		t.Errorf("following: the server saw %d requests, want the redirect and where it led", got)
+	}
+
+	requests.Store(0)
+	res, err = newTestClient(t, WithoutRedirects()).Get(server.URL + "/hop")
+	if err != nil {
+		t.Fatalf("not following: %v", err)
+	}
+	if res.Status != 302 || res.URL != server.URL+"/hop" {
+		t.Errorf("not following: %d at %s, want the 302 itself", res.Status, res.URL)
+	}
+	if got := res.Header["location"]; len(got) != 1 || got[0] != "/landed" {
+		t.Errorf("not following: location = %q, want /landed", got)
+	}
+	if got := requests.Load(); got != 1 {
+		t.Errorf("not following: the server saw %d requests, want 1", got)
 	}
 }
 

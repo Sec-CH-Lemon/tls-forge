@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -545,37 +546,103 @@ func TestHTTP1PostAndKeepAlive(t *testing.T) {
 	}
 }
 
-func TestHTTP1MalformedRequests(t *testing.T) {
+// requestLineOf is a request line exactly n bytes long, its CRLF included.
+func requestLineOf(n int) string {
+	const head, tail = "GET /", " HTTP/1.1\r\n"
+	return head + strings.Repeat("a", n-len(head)-len(tail)) + tail
+}
+
+func TestHTTP1RefusesWhatItCannotParse(t *testing.T) {
+	// Each guard of the parser, by the reason it gives. A test that only saw
+	// the connection end could not tell one guard from another, and passed with
+	// any of them taken out: the server closes the connection after a request
+	// it can parse too, once the client has hung up.
 	server := startServer(t)
-	for _, tc := range []struct{ name, request string }{
-		{"request line", "GARBAGE\r\n\r\n"},
-		{"header", "GET / HTTP/1.1\r\nno-colon\r\n\r\n"},
-		{"content length", "POST /collect HTTP/1.1\r\ncontent-length: enormous\r\n\r\n"},
-		{"content length too large", "POST /collect HTTP/1.1\r\ncontent-length: 999999999\r\n\r\n"},
-		{"duplicate content length", "POST /collect HTTP/1.1\r\ncontent-length: 0\r\ncontent-length: 0\r\n\r\n"},
-		{"transfer encoding", "POST /collect HTTP/1.1\r\ntransfer-encoding: chunked\r\n\r\n0\r\n\r\n"},
+	headers := strings.Repeat("X-Test: value\r\n", maxHTTP1Headers+1)
+	for _, tc := range []struct{ name, request, want string }{
+		{"request line", "GARBAGE\r\n\r\n", `malformed request line "GARBAGE"`},
+		{"header without a colon", "GET / HTTP/1.1\r\nno-colon\r\n\r\n", `malformed header "no-colon"`},
+		{"content length that is not a number",
+			"POST /collect HTTP/1.1\r\ncontent-length: enormous\r\n\r\n", `unusable content-length "enormous"`},
+		{"negative content length",
+			"POST /collect HTTP/1.1\r\ncontent-length: -1\r\n\r\n", `unusable content-length "-1"`},
+		{"content length one over the limit",
+			fmt.Sprintf("POST /collect HTTP/1.1\r\ncontent-length: %d\r\n\r\n", maxResponseBody+1),
+			fmt.Sprintf("unusable content-length %q", fmt.Sprint(maxResponseBody+1))},
+		{"duplicate content length",
+			"POST /collect HTTP/1.1\r\ncontent-length: 0\r\ncontent-length: 0\r\n\r\n", "duplicate content-length"},
+		{"transfer encoding",
+			"POST /collect HTTP/1.1\r\ntransfer-encoding: chunked\r\n\r\n0\r\n\r\n", "transfer-encoding is not supported"},
+		{"transfer encoding in its canonical spelling",
+			"POST /collect HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n", "transfer-encoding is not supported"},
+		{"request line one byte over the limit",
+			requestLineOf(maxHTTP1Line+1) + "\r\n", fmt.Sprintf("line exceeds %d bytes", maxHTTP1Line)},
+		{"header one byte over the limit",
+			"GET / HTTP/1.1\r\nx: " + strings.Repeat("a", maxHTTP1Line-4) + "\r\n\r\n",
+			fmt.Sprintf("line exceeds %d bytes", maxHTTP1Line)},
+		{"one header too many", "GET / HTTP/1.1\r\n" + headers + "\r\n",
+			fmt.Sprintf("exceeds %d headers", maxHTTP1Headers)},
+		// A body that stops short of what content-length promised: the request
+		// is incomplete, not merely empty, and answering it would mean
+		// answering something the client never finished saying.
+		{"body shorter than its content length",
+			"POST /collect HTTP/1.1\r\ncontent-length: 100\r\n\r\nshort", io.ErrUnexpectedEOF.Error()},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			conn, err := tls.Dial("tcp", server.Addr(), &tls.Config{
-				InsecureSkipVerify: true, NextProtos: []string{"http/1.1"},
-			})
-			if err != nil {
-				t.Fatalf("dial: %v", err)
+			conn := &scriptedConn{reader: strings.NewReader(tc.request), writeBudget: 1 << 20}
+			err := server.serveHTTP1(conn, &Session{})
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("serveHTTP1 = %v, want %q", err, tc.want)
 			}
-			defer conn.Close()
-			if _, err := conn.Write([]byte(tc.request)); err != nil {
-				t.Fatalf("write: %v", err)
-			}
-			// The server closes the connection rather than answering nonsense.
-			conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-			if _, err := io.ReadAll(conn); err == nil {
-				t.Log("server closed the connection, as expected")
+			if conn.written.Len() != 0 {
+				t.Errorf("answered a request it could not parse: %q", conn.written.String())
 			}
 		})
 	}
 }
 
-func TestHTTP1RejectsAnOverlongLine(t *testing.T) {
+func TestHTTP1AcceptsWhatIsJustWithinItsLimits(t *testing.T) {
+	// The other side of every limit above: one byte or one header fewer is a
+	// request, answered. A limit that is off by one refuses a client that did
+	// nothing wrong.
+	server := startServer(t)
+	for _, tc := range []struct{ name, request string }{
+		{"request line at the limit", requestLineOf(maxHTTP1Line) + "\r\n"},
+		{"header at the limit", "GET / HTTP/1.1\r\nx: " + strings.Repeat("a", maxHTTP1Line-5) + "\r\n\r\n"},
+		{"as many headers as allowed",
+			"GET / HTTP/1.1\r\n" + strings.Repeat("X-Test: value\r\n", maxHTTP1Headers) + "\r\n"},
+		{"content length at the limit", fmt.Sprintf("POST /collect HTTP/1.1\r\ncontent-length: %d\r\n\r\n%s",
+			maxResponseBody, strings.Repeat("a", maxResponseBody))},
+		{"empty body", "POST /collect HTTP/1.1\r\ncontent-length: 0\r\n\r\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			conn := &scriptedConn{reader: strings.NewReader(tc.request), writeBudget: 1 << 20}
+			if err := server.serveHTTP1(conn, &Session{}); err != nil {
+				t.Fatalf("serveHTTP1 = %v, want the request answered", err)
+			}
+			if !strings.HasPrefix(conn.written.String(), "HTTP/1.1 ") {
+				t.Errorf("no answer was written: %q", conn.written.String())
+			}
+		})
+	}
+}
+
+// hungUpOn reads what the server sends until it hangs up, failing the test if
+// it does not within the deadline. Reading until any error at all could not
+// tell a server that refused a request from one that stopped answering, since
+// a deadline is an error too.
+func hungUpOn(t *testing.T, conn net.Conn) []byte {
+	t.Helper()
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	said, err := io.ReadAll(conn)
+	var timeout net.Error
+	if errors.As(err, &timeout) && timeout.Timeout() {
+		t.Fatalf("the server kept the connection open; it had sent %q", said)
+	}
+	return said
+}
+
+func TestHTTP1ClosesAConnectionItCannotParse(t *testing.T) {
 	server := startServer(t)
 	conn, err := tls.Dial("tcp", server.Addr(), &tls.Config{
 		InsecureSkipVerify: true, NextProtos: []string{"http/1.1"},
@@ -584,18 +651,11 @@ func TestHTTP1RejectsAnOverlongLine(t *testing.T) {
 		t.Fatalf("dial: %v", err)
 	}
 	defer conn.Close()
-	if _, err := conn.Write([]byte("GET /" + strings.Repeat("a", maxHTTP1Line*2) + " HTTP/1.1\r\n")); err != nil {
+	if _, err := conn.Write([]byte("GARBAGE\r\n\r\n")); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	io.ReadAll(conn)
-}
-
-func TestHTTP1RejectsTooManyHeaders(t *testing.T) {
-	request := "GET / HTTP/1.1\r\n" + strings.Repeat("X-Test: value\r\n", maxHTTP1Headers+1) + "\r\n"
-	_, err := readHTTP1Request(bufio.NewReader(strings.NewReader(request)))
-	if err == nil || !strings.Contains(err.Error(), "exceeds 100 headers") {
-		t.Fatalf("error = %v, want the header-count limit", err)
+	if said := hungUpOn(t, conn); len(said) != 0 {
+		t.Errorf("answered a request it could not parse: %q", said)
 	}
 }
 
@@ -612,8 +672,10 @@ func TestBadHTTP2Preface(t *testing.T) {
 	if _, err := conn.Write([]byte("this is not the HTTP/2 preface at all\r\n\r\n")); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	io.ReadAll(conn)
+	// Not even SETTINGS: the server speaks HTTP/2 only to a client that has.
+	if said := hungUpOn(t, conn); len(said) != 0 {
+		t.Errorf("answered a connection without a preface: %q", said)
+	}
 
 	// The handshake still happened, so the hello was still recorded. A client
 	// that fails afterwards has already told us who it is.
@@ -633,13 +695,7 @@ func TestHTTP2RejectsAnOversizedDecodedHeaderList(t *testing.T) {
 		[2]string{":scheme", "https"}, [2]string{":path", "/"},
 		[2]string{"x-oversized", strings.Repeat("a", maxHTTP2HeaderListSize)},
 	)
-
-	c.conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	for {
-		if _, err := c.framer.ReadFrame(); err != nil {
-			return
-		}
-	}
+	c.refusedStream(t, 1)
 }
 
 func TestHandshakeFailureStillRecordsTheHello(t *testing.T) {

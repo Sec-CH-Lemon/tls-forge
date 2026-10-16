@@ -171,11 +171,21 @@ func TestParseClientHelloOddCipherList(t *testing.T) {
 }
 
 func TestParseClientHelloMalformedExtensions(t *testing.T) {
+	// Chop the extension block mid-extension: the block claims more than the
+	// message holds.
 	body := chrome151().body()
-	// Chop the extension block mid-extension.
 	_, err := ParseClientHello(recordsOf(handshakeMessage(typeClientHello, body[:len(body)-3])))
-	if err == nil {
-		t.Fatal("expected an error")
+	if err == nil || !contains(err.Error(), "truncated at extensions") {
+		t.Fatalf("chopped block: error = %v, want the extension block reported truncated", err)
+	}
+
+	// The block's own length is right, and the last extension in it claims one
+	// byte more than the block has left for it.
+	body = newHello().withCiphers(0x1301).withExtension(0xff01, []byte{1, 2, 3, 4}).body()
+	body[len(body)-5] = 5
+	_, err = ParseClientHello(recordsOf(handshakeMessage(typeClientHello, body)))
+	if err == nil || !contains(err.Error(), "malformed extension") {
+		t.Fatalf("overlong extension: error = %v, want a malformed extension", err)
 	}
 }
 

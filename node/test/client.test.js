@@ -453,8 +453,11 @@ test('a write into a dead pipe fails that request and restarts', async () => {
 test('a transport that cannot be spawned fails the request, not the process', async () => {
   // spawn throws synchronously for an argv it will not accept, rather than
   // emitting 'error'. Unhandled, that throw escapes request(), which returns a
-  // promise everywhere else, so the caller's catch would miss it.
-  const c = new Client({ binary: wrapper, profile: 'chrome 151' });
+  // promise everywhere else, so the caller's catch would miss it. A NUL byte
+  // is what spawn will not accept, written as an escape so that an editor or
+  // a formatter cannot quietly drop it and leave this test passing for
+  // another reason.
+  const c = new Client({ binary: wrapper, profile: 'chrome\u0000151' });
   await assert.rejects(() => c.get('https://ok/page'), /transport failed to start/);
   c.close();
 });

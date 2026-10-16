@@ -249,24 +249,6 @@ func TestHTTP1StopsWhenTheClientHangsUpMidWrite(t *testing.T) {
 	}
 }
 
-func TestHTTP1ReportsAMalformedRequest(t *testing.T) {
-	server := startServer(t)
-	for _, request := range []string{
-		"GARBAGE\r\n\r\n",
-		"GET / HTTP/1.1\r\nheader-without-a-colon\r\n\r\n",
-		"POST /collect HTTP/1.1\r\ncontent-length: not-a-number\r\n\r\n",
-		// A body that stops short of what content-length promised: the request
-		// is incomplete, not merely empty, and answering it would mean
-		// answering something the client never finished saying.
-		"POST /collect HTTP/1.1\r\ncontent-length: 100\r\n\r\nshort",
-	} {
-		conn := &scriptedConn{reader: strings.NewReader(request), writeBudget: 1 << 20}
-		if err := server.serveHTTP1(conn, &Session{}); err == nil {
-			t.Errorf("serveHTTP1 accepted %q", request)
-		}
-	}
-}
-
 func TestCaptureHTTP1ReportsAMalformedRequest(t *testing.T) {
 	server := startServer(t)
 	for _, request := range []string{
