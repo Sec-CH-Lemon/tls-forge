@@ -227,7 +227,7 @@ func (f clientFlags) saveSession(client *tlsforge.Client, note string) (int, err
 // reads one. Anything else is this project's JSON, which holds sets, so a run is
 // added to what the file already had rather than replacing it.
 func sessionFile(path string, set cookie.Set) ([]byte, error) {
-	if strings.EqualFold(filepath.Ext(path), ".txt") {
+	if netscapeFile(path) {
 		return set.EncodeNetscape(), nil
 	}
 	file := &cookie.File{}
@@ -246,6 +246,10 @@ func sessionFile(path string, set cookie.Set) ([]byte, error) {
 	file.Add(set)
 	return file.Encode(), nil
 }
+
+// netscapeFile says a session is written to path as a Netscape cookie file: a
+// name ending in .txt, in any case.
+func netscapeFile(path string) bool { return strings.EqualFold(filepath.Ext(path), ".txt") }
 
 // pickCookieSet chooses which warmed session to use. Seeded from the clock and
 // named, so a test can make the choice repeatable.
@@ -413,6 +417,15 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if *again.repeat > math.MaxInt/len(jobs) {
 		return fmt.Errorf("%w: --repeat %d is too many passes over %d URLs",
 			errUsage, *again.repeat, len(jobs))
+	}
+	// A Netscape cookie file holds one session, and a run through more than one
+	// proxy has one for each: written into one file, each would replace the one
+	// before, and the count would say they were all kept. Refused before
+	// anything is fetched or written, rather than found out afterwards.
+	if _, single := sameWay(jobs, *common.proxy); !single && netscapeFile(*common.saveCookies) {
+		return fmt.Errorf("%w: --save-cookies %s is a Netscape cookie file, which holds one session, and this "+
+			"run has one for each proxy it goes through: name a .json file, which keeps each as a set of its own",
+			errUsage, *common.saveCookies)
 	}
 	requests := len(jobs) * *again.repeat
 

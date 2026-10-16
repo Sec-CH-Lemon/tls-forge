@@ -388,6 +388,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- `--save-cookies` with a `.txt` file and a list through more than one proxy
+  kept only the last proxy's session, each replacing the one before, while
+  the count said every cookie was saved. Such a run is now refused before
+  anything is fetched, with exit code 2, and told to name a `.json` file,
+  which keeps each session as a set of its own.
 - **A saved session keeps where each cookie goes and how long it lasts.** A
   cookie its host's alone was written down without saying so and read back as
   its domain's, so it went to every subdomain; a session cookie came back

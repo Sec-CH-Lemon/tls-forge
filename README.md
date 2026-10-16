@@ -271,7 +271,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
 | `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
 | `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random |
-| `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format |
+| `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format, which holds one session and is refused for a run through more than one proxy |
 | **Running** | |
 | `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
@@ -403,6 +403,9 @@ cookie lives at most 400 days, as in Chrome. A JSON file written by a
 tls-forge older than this did not keep which cookies were their host's alone;
 read, each of its cookies goes to its domain's subdomains as well, as it did
 then, and the line that says where the session was warmed from says so too.
+A Netscape file holds one session, and a run through more than one proxy has
+one for each, so `--save-cookies` refuses a `.txt` for such a run before
+anything is fetched, and a `.json` keeps each session as a set of its own.
 
 #### Where a request came out
 

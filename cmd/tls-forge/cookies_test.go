@@ -630,3 +630,62 @@ func TestAnOlderCookieFileSaysWhatItDidNotKeep(t *testing.T) {
 		t.Errorf("a current file was said to keep no scope:\n%s", stderr)
 	}
 }
+
+func TestANetscapeFileIsRefusedForARunWithMoreThanOneSession(t *testing.T) {
+	// One session per proxy, and a cookies.txt holds one: each would replace
+	// the last, and the count would say all were kept. Refused before anything
+	// is asked of anybody, and the file is left as it was.
+	hits := 0
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { hits++ }))
+	t.Cleanup(server.Close)
+	dir := t.TempDir()
+	kept := filepath.Join(dir, "session.txt")
+	if err := os.WriteFile(kept, []byte("# a session somebody kept\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name string
+		list string
+		save string
+	}{
+		{"two proxies", "url,proxy\n%[1]s/,http://127.0.0.1:1\n%[1]s/,http://127.0.0.2:1\n", kept},
+		{"a proxy and none", "url,proxy\n%[1]s/,http://127.0.0.1:1\n%[1]s/,\n", kept},
+		{"a name in capitals", "url,proxy\n%[1]s/,http://127.0.0.1:1\n%[1]s/,\n", filepath.Join(dir, "OTHER.TXT")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			list := writeList(t, "list.csv", fmt.Sprintf(tc.list, server.URL))
+			code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", tc.save)
+			if code != 2 || !strings.Contains(stderr, "is a Netscape cookie file, which holds one session") ||
+				!strings.Contains(stderr, ".json") {
+				t.Errorf("exit code %d, stderr %q; want a usage error that names .json", code, stderr)
+			}
+		})
+	}
+	if hits != 0 {
+		t.Errorf("the server was asked %d times; nothing should have been fetched", hits)
+	}
+	if data, _ := os.ReadFile(kept); string(data) != "# a session somebody kept\n" {
+		t.Errorf("the file was changed: %q", data)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "OTHER.TXT")); err == nil {
+		t.Error("a file was written for a run that was refused")
+	}
+
+	// One session, whichever way: a cookies.txt is what it is for.
+	list := writeList(t, "one.csv", fmt.Sprintf("url,proxy\n%[1]s/,\n%[1]s/,\n", server.URL))
+	if code, _, stderr := exec(t, "fetch", "-k", "--input", list, "--save-cookies", kept); code != 0 {
+		t.Errorf("a run of one session: exit code %d\n%s", code, stderr)
+	}
+}
+
+func TestNetscapeFile(t *testing.T) {
+	for path, want := range map[string]bool{
+		"cookies.txt": true, "COOKIES.TXT": true, "dir.txt/cookies.json": false,
+		"cookies.json": false, "cookies": false, "": false, "txt": false,
+	} {
+		if got := netscapeFile(path); got != want {
+			t.Errorf("netscapeFile(%q) = %v, want %v", path, got, want)
+		}
+	}
+}
