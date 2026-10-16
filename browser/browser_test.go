@@ -164,11 +164,12 @@ func TestDefaultTablesAreConsistent(t *testing.T) {
 
 func TestOpenLaunchesAndCleansUp(t *testing.T) {
 	// The fake records the arguments it was given, then waits to be killed —
-	// which is what a browser does.
+	// which is what a browser does — or for ten seconds, so that a run that
+	// failed to kill it does not leave it behind for long.
 	output := filepath.Join(t.TempDir(), "args")
 	path := fakeBrowser(t, "recorder", fmt.Sprintf(`printf '%%s\n' "$@" > %q
 mv %q %q
-sleep 30
+sleep 10
 `, output+".tmp", output+".tmp", output))
 
 	found, err := Find(path)

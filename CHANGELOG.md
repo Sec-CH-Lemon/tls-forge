@@ -465,6 +465,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A browser `capture` launched was ended by killing its own process alone:
+  the renderer, GPU and network processes Chrome starts were left to end by
+  themselves, and anything that did not stayed running after the run. The
+  browser now starts as a process group of its own, a process tree on
+  Windows, and closing it, or the end of its context, ends all of it.
 - Every command had the HTTP/2 transport make a line about each frame it
   read, whether or not anything kept it: `proxy` and `daemon` among them, and
   a `fetch` with no log. Measured on loopback, that was 4 to 9% of a

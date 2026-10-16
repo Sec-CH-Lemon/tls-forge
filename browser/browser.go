@@ -137,8 +137,9 @@ type Options struct {
 // Open launches the browser at a URL and returns a function that closes it.
 //
 // The temporary profile directory is removed by the returned function. The
-// context kills the process; the caller should still call the close function to
-// clean up the directory.
+// context kills the browser; the caller should still call the close function to
+// clean up the directory. Either ends every process the browser started, not
+// only its own: a browser is many processes.
 func (b *Browser) Open(ctx context.Context, url string, opts Options) (close func(), err error) {
 	userDataDir, err := os.MkdirTemp("", "tls-forge-profile-")
 	if err != nil {
@@ -165,15 +166,15 @@ func (b *Browser) Open(ctx context.Context, url string, opts Options) (close fun
 	args = append(args, url)
 
 	cmd := exec.CommandContext(ctx, b.Path, args...)
+	ownGroup(cmd)
+	cmd.Cancel = func() error { return killTree(cmd.Process) }
 	if err := cmd.Start(); err != nil {
 		_ = os.RemoveAll(userDataDir)
 		return nil, fmt.Errorf("browser: launching %s: %w", b.Path, err)
 	}
 
 	return func() {
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
-		}
+		_ = killTree(cmd.Process)
 		_ = cmd.Wait()
 		// Best effort: the directory is under the system temp root, so a
 		// failure here leaves the OS to reclaim it.

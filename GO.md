@@ -633,7 +633,7 @@ firewall or authenticated tunnel.
 
 | Package | Purpose |
 |---|---|
-| `browser` | Find and launch Chrome, Chromium, Edge or Brave with a temporary profile. `browser.Options` contains `Headless` and `Args`. |
+| `browser` | Find and launch Chrome, Chromium, Edge or Brave with a temporary profile. `browser.Options` contains `Headless` and `Args`. Closing it, or the end of its context, ends every process the browser started, not only its own. |
 | `capture` | Serializable representation of observed TLS, HTTP/1, HTTP/2 and browser navigator data. |
 | `cookie` | Load, select, merge and encode warmed cookie sessions. |
 | `daemon` | JSON Lines request/response transport used by non-Go SDKs. `Serve` accepts any compatible client, and `ServeContext` stops when its context is done: no more requests are taken, the one in flight is cancelled and answered with why, and it returns the context's error. The input and output stay the caller's: a read already waiting goes on until the input ends, and a write waiting on an output with `SetWriteDeadline` is given up 250 ms later. |
