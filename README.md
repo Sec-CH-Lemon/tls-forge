@@ -1441,6 +1441,16 @@ version other than HTTP/1. A client that sends `Expect: 100-continue` is told
 to go on before its body is read. `Connection: close`, or HTTP/1.0 without
 `Connection: keep-alive`, closes the connection after the answer.
 
+HTTP/2 keeps to what the client said: an answer goes as its flow-control
+windows open, and the server's header blocks fit the header table it allows.
+A connection has at most 100 streams open and 512 KiB held for them at once;
+a stream past either is refused with `REFUSED_STREAM`, and one the client
+resets is let go at once. A header list over 64 KiB is answered 431 and a
+body over 64 KiB 413, and a stream that breaks the protocol is reset while the
+others go on. A frame over 16 KiB, a header block that cannot be decoded, a
+setting out of range, or a window past 2^31-1 ends the connection with a
+`GOAWAY` that says why. Request trailers are read and dropped.
+
 ### `daemon`
 
 Run one long-lived client behind a JSON Lines protocol. This is the transport

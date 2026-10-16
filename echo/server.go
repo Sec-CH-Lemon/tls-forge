@@ -627,20 +627,7 @@ func (s *Server) complete(sess *Session) {
 	s.mu.Unlock()
 }
 
-// respond routes a request. The endpoint set is intentionally four items long.
-func (s *Server) respond(h *h2conn, sess *Session, req *request) error {
-	status, contentType, body := s.route(sess, req)
-	err := h.writeResponse(req.stream, status, contentType, body)
-	s.completeAfter(req)
-	if err != nil {
-		return err
-	}
-	if !req.last {
-		return nil
-	}
-	return h.goAway(req.stream)
-}
-
+// route answers a request. The endpoint set is intentionally four items long.
 func (s *Server) route(sess *Session, req *request) (status, contentType string, body []byte) {
 	path := req.path
 	navigationToken := ""

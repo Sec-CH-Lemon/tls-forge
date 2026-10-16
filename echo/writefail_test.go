@@ -164,12 +164,9 @@ func TestWriteResponseReportsAHeaderEncodingFailure(t *testing.T) {
 	// unreachable in production and would go untested with it. Pointing the
 	// encoder at a writer that does fail exercises the branch that keeps a
 	// half-written header block from being framed as a whole one.
-	h := &h2conn{
-		framer: http2.NewFramer(&bytes.Buffer{}, nil),
-		enc:    hpack.NewEncoder(failingWriter{}),
-		encBuf: &bytes.Buffer{},
-	}
-	if err := h.writeResponse(1, "200", "text/plain", []byte("body")); err == nil {
+	h := newH2Conn(&bytes.Buffer{})
+	h.enc = hpack.NewEncoder(failingWriter{})
+	if err := h.answer(answering(h, 1, 65535), "200", "text/plain", []byte("body"), false); err == nil {
 		t.Error("expected an error when the header block cannot be encoded")
 	}
 }
@@ -332,7 +329,7 @@ func TestWriteResponseFailsPartWayThroughABody(t *testing.T) {
 	for budget := 0; budget < len(body)+2000; budget += 7 {
 		conn := &scriptedConn{reader: strings.NewReader(""), writeBudget: budget}
 		h := newH2Conn(conn)
-		if err := h.writeResponse(1, "200", "text/plain", body); err == nil && budget < len(body) {
+		if err := h.answer(answering(h, 1, 65535), "200", "text/plain", body, false); err == nil && budget < len(body) {
 			t.Errorf("budget %d wrote a %d-byte body without failing", budget, len(body))
 		}
 	}

@@ -454,6 +454,21 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The echo server's HTTP/2 keeps to the client's windows and settings, and
+  to bounds of its own.** It sent answers without looking at the client's
+  flow-control windows, so a client that kept them small, or did not widen
+  the connection's past 65535 bytes, was sent more than it allowed, and it
+  kept a header table larger than a client asking for none could follow. It
+  read frames of up to 16 MiB, held a request reset before its end until the
+  connection closed, and took streams past the 250 it announced. Now an
+  answer goes as the windows open, `SETTINGS_INITIAL_WINDOW_SIZE` and
+  `SETTINGS_HEADER_TABLE_SIZE` are kept to, a stream reset is let go at once,
+  and a connection holds at most 100 streams and 512 KiB, past which a stream
+  is refused. A header list over 64 KiB is answered 431 and a body over
+  64 KiB 413, where the connection used to close; a stream that breaks the
+  protocol is reset and the rest go on; a frame over 16 KiB, a header block
+  that cannot be decoded and a setting out of range end the connection with
+  a `GOAWAY` that says why. Request trailers are read and dropped.
 - **The echo server reads HTTP/1.1 as RFC 9112 has it, and says why it
   refuses a request.** A space before a header's colon was taken out, so
   `Content-Length : 5` was a length another server would not read; a header

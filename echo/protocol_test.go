@@ -292,6 +292,7 @@ func TestHTTP2GoAwayEndsTheConnection(t *testing.T) {
 func TestHTTP2RejectsAnOversizedRequestBody(t *testing.T) {
 	server := startServer(t)
 	c := dialH2(t, server)
+	c.framer.ReadMetaHeaders = hpack.NewDecoder(4096, nil)
 	if err := c.framer.WriteSettings(); err != nil {
 		t.Fatalf("SETTINGS: %v", err)
 	}
@@ -300,19 +301,22 @@ func TestHTTP2RejectsAnOversizedRequestBody(t *testing.T) {
 		[2]string{":scheme", "https"}, [2]string{":path", "/collect"})
 
 	// Four default-sized frames total 65536 bytes, one over the server's
-	// request limit. Exercise the limit through the frame loop, not only through
-	// appendRequestBody in isolation, so a dropped error cannot reopen the leak.
+	// request limit, and a fifth after it: answered 413 at the fourth, the
+	// client asked to stop, and the fifth goes nowhere.
 	chunk := make([]byte, maxFrameSize)
-	frames := maxRequestBody/maxFrameSize + 1
-	for i := range frames {
+	for i := range maxRequestBody/maxFrameSize + 2 {
 		if err := c.framer.WriteData(1, false, chunk); err != nil {
-			if i != frames-1 {
-				t.Fatalf("DATA frame %d: %v", i, err)
-			}
-			break // the server rejected the final frame and closed at once
+			t.Fatalf("DATA frame %d: %v", i, err)
 		}
 	}
-	c.refusedStream(t, 1)
+	headers := c.readUntil(t, func(f http2.Frame) bool { _, ok := f.(*http2.MetaHeadersFrame); return ok })
+	if status := headers.(*http2.MetaHeadersFrame).PseudoValue("status"); status != "413" {
+		t.Errorf("answered %s", status)
+	}
+	reset := c.readUntil(t, func(f http2.Frame) bool { _, ok := f.(*http2.RSTStreamFrame); return ok }).(*http2.RSTStreamFrame)
+	if reset.StreamID != 1 || reset.ErrCode != http2.ErrCodeNo {
+		t.Errorf("RST_STREAM %+v", reset)
+	}
 }
 
 func TestHTTP2RecordsOnlyTheFirstRequest(t *testing.T) {

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/hpack"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
@@ -761,17 +762,26 @@ func TestBadHTTP2Preface(t *testing.T) {
 	}
 }
 
-func TestHTTP2RejectsAnOversizedDecodedHeaderList(t *testing.T) {
+func TestHTTP2EndsAConnectionWithAFrameLargerThanItReads(t *testing.T) {
+	// A header block of 64 KiB in one HEADERS frame, past the 16 KiB a frame
+	// may be when SETTINGS says nothing else: the connection ends, and nothing
+	// comes back on the stream. The rest of the frame is never read, so the
+	// write may fail, and the GOAWAY may be lost to the reset that closing on
+	// unread bytes makes; TestHTTP2RefusesAFrameLargerThanItReads has it.
 	server := startServer(t)
 	c := dialH2(t, server)
 	if err := c.framer.WriteSettings(); err != nil {
 		t.Fatalf("SETTINGS: %v", err)
 	}
-	c.headers(t, 1, true,
-		[2]string{":method", "GET"}, [2]string{":authority", "localhost"},
-		[2]string{":scheme", "https"}, [2]string{":path", "/"},
-		[2]string{"x-oversized", strings.Repeat("a", maxHTTP2HeaderListSize)},
-	)
+	c.buf.Reset()
+	for _, field := range [][2]string{{":method", "GET"}, {":authority", "localhost"}, {":scheme", "https"},
+		{":path", "/"}, {"x-oversized", strings.Repeat("a", maxHTTP2HeaderListSize)}} {
+		if err := c.enc.WriteField(hpack.HeaderField{Name: field[0], Value: field[1]}); err != nil {
+			t.Fatalf("encoding: %v", err)
+		}
+	}
+	_ = c.framer.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: c.buf.Bytes(),
+		EndHeaders: true, EndStream: true})
 	c.refusedStream(t, 1)
 }
 
@@ -935,62 +945,74 @@ func TestAwaitEndsWhenTheServerCloses(t *testing.T) {
 	}
 }
 
-func TestWriteResponseRefusesABodyLargerThanTheWindow(t *testing.T) {
-	// This server skips flow control because every HTTP/2 endpoint starts with a
-	// 65535-octet window. The guard makes that assumption fail loudly rather
-	// than as a hang if a response ever grows past it.
+// answering is a stream whose request has arrived, with a window of window.
+func answering(h *h2conn, id uint32, window int64) *stream {
+	st := &stream{id: id, req: &request{stream: id, headers: map[string]string{}}, window: window}
+	h.streams[id] = st
+	return st
+}
+
+func TestAnAnswerLargerThanTheServerBuildsIsRefused(t *testing.T) {
+	// None is that large. The guard makes one that ever grows past it fail
+	// loudly rather than go out unbounded.
 	h := newH2Conn(&bytes.Buffer{})
-	err := h.writeResponse(1, "200", "text/plain", make([]byte, maxResponseBody+1))
-	if err == nil || !strings.Contains(err.Error(), "window") {
-		t.Fatalf("error = %v, want a window complaint", err)
+	err := h.answer(answering(h, 1, 65535), "200", "text/plain", make([]byte, maxResponseBody+1), false)
+	if err == nil || err.Error() != fmt.Sprintf("echo: an answer of %d bytes exceeds the %d this server sends",
+		maxResponseBody+1, maxResponseBody) {
+		t.Fatalf("error = %v", err)
 	}
 }
 
-func TestAppendRequestBodyEnforcesTheLimit(t *testing.T) {
-	req := &request{}
-	if err := appendRequestBody(req, make([]byte, maxRequestBody)); err != nil {
-		t.Fatalf("body at the limit: %v", err)
-	}
-	if err := appendRequestBody(req, []byte{1}); err == nil {
-		t.Fatal("expected an oversized request body to be rejected")
-	}
-	if len(req.body) != maxRequestBody {
-		t.Errorf("body length = %d after rejection, want %d", len(req.body), maxRequestBody)
-	}
-}
-
-func TestWriteResponseChunksLargeBodies(t *testing.T) {
+func TestAnAnswerGoesInFramesNoLargerThanTheirSize(t *testing.T) {
 	out := &bytes.Buffer{}
 	h := newH2Conn(out)
-	if err := h.writeResponse(1, "200", "text/plain", make([]byte, maxFrameSize+100)); err != nil {
-		t.Fatalf("writeResponse: %v", err)
+	h.window = 1 << 20
+	if err := h.answer(answering(h, 1, 1<<20), "200", "text/plain", make([]byte, maxFrameSize+100), false); err != nil {
+		t.Fatalf("answer: %v", err)
 	}
-	if out.Len() < maxFrameSize {
-		t.Errorf("wrote %d bytes, expected the whole body", out.Len())
+	framer := http2.NewFramer(nil, out)
+	var sizes []int
+	for {
+		frame, err := framer.ReadFrame()
+		if err != nil {
+			break
+		}
+		if data, ok := frame.(*http2.DataFrame); ok {
+			sizes = append(sizes, len(data.Data()))
+		}
+	}
+	if len(sizes) != 2 || sizes[0] != maxFrameSize || sizes[1] != 100 {
+		t.Errorf("DATA frames of %v bytes", sizes)
+	}
+	if len(h.streams) != 0 || len(h.sending) != 0 || h.held != 0 {
+		t.Errorf("a finished answer is still held: %d, %d, %d", len(h.streams), len(h.sending), h.held)
 	}
 }
 
-func TestWriteResponseWithAnEmptyBody(t *testing.T) {
+func TestAnAnswerWithAnEmptyBodyEndsWithItsHeaders(t *testing.T) {
 	out := &bytes.Buffer{}
 	h := newH2Conn(out)
-	if err := h.writeResponse(1, "404", "text/plain", nil); err != nil {
-		t.Fatalf("writeResponse: %v", err)
+	var answered []*request
+	h.answered = func(req *request) { answered = append(answered, req) }
+	st := answering(h, 1, 0)
+	if err := h.answer(st, "404", "text/plain", nil, false); err != nil {
+		t.Fatalf("answer: %v", err)
 	}
-	if out.Len() == 0 {
-		t.Error("nothing was written")
+	frame, err := http2.NewFramer(nil, out).ReadFrame()
+	if err != nil || !frame.(*http2.HeadersFrame).StreamEnded() || out.Len() != 0 {
+		t.Errorf("wrote %v, %v, and %d bytes more", frame, err, out.Len())
+	}
+	if len(h.streams) != 0 || len(answered) != 1 || answered[0] != st.req {
+		t.Errorf("streams %v, answered %v", h.streams, answered)
 	}
 }
 
-func TestWriteResponseReportsAFailedWrite(t *testing.T) {
-	h := newH2Conn(failingReadWriter{})
-	if err := h.writeResponse(1, "200", "text/plain", []byte("hello")); err == nil {
-		t.Error("expected a write failure")
-	}
-	if err := h.writeResponse(1, "200", "text/plain", nil); err == nil {
-		t.Error("expected a write failure with an empty body too")
-	}
-	if err := h.writeResponse(1, "200", "text/plain", make([]byte, maxFrameSize+1)); err == nil {
-		t.Error("expected a write failure while chunking")
+func TestAnAnswerReportsAFailedWrite(t *testing.T) {
+	for _, body := range [][]byte{nil, []byte("hello"), make([]byte, maxFrameSize+1)} {
+		h := newH2Conn(failingReadWriter{})
+		if err := h.answer(answering(h, 1, 1<<20), "200", "text/plain", body, false); err == nil {
+			t.Errorf("an answer of %d bytes did not fail", len(body))
+		}
 	}
 }
 

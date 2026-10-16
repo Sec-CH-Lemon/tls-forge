@@ -276,9 +276,12 @@ func TestCollectIsAnsweredBeforeTheCaptureIsHandedOver(t *testing.T) {
 		go func() { _, _ = io.Copy(io.Discard, theirs) }()
 		path := "/collect?navigation=" + token
 		if protocol == "HTTP/2" {
-			req := &request{method: "POST", path: path, stream: 1, body: []byte(`{}`), headers: map[string]string{}}
-			if err := server.respond(newH2Conn(watcher), sess, req); err != nil {
-				t.Fatalf("respond: %v", err)
+			h := newH2Conn(watcher)
+			h.answered = server.completeAfter
+			st := answering(h, 1, 65535)
+			st.req.method, st.req.path, st.req.body = "POST", path, []byte(`{}`)
+			if err := server.arrived(h, sess, st); err != nil {
+				t.Fatalf("arrived: %v", err)
 			}
 		} else {
 			go func() {
