@@ -583,35 +583,90 @@ func TestFromCaptureRefusesAResumedHandshake(t *testing.T) {
 	// A resumed hello carries pre_shared_key, so its JA4 is not the one a server
 	// sees on first contact. Building a profile from it would produce something
 	// that matches the browser about half the time — the worst possible outcome,
-	// because it looks like it works.
-	raw := chromeHelloBytes(t)
-	hello, err := fingerprint.ParseClientHello(raw)
-	if err != nil {
-		t.Fatalf("fixture: %v", err)
-	}
-	rendered := capture.FromClientHello(hello)
-	rendered.Resumed = true
-
-	_, err = FromCapture("chrome", &capture.Capture{RawClientHello: raw, TLS: rendered})
-	if err == nil || !strings.Contains(err.Error(), "RESUMED") {
-		t.Fatalf("error = %v, want it to explain the resumption", err)
-	}
-
-	// And a hello Chrome 155 really resumed with, which says so by itself.
+	// because it looks like it works. The bytes say which it is; what the
+	// capture says of them is held to them.
+	cold := chromeHelloBytes(t)
 	resumed, err := os.ReadFile("../testdata/chrome155-clienthello-resumed.bin")
 	if err != nil {
 		t.Fatalf("fixture: %v", err)
 	}
-	hello, err = fingerprint.ParseClientHello(resumed)
-	if err != nil {
-		t.Fatalf("fixture: %v", err)
+	// A pre_shared_key that does not parse is one all the same.
+	malformed := withExtension(t, chromeHelloBytes(t), fingerprint.ExtPreSharedKey, []byte{0xff})
+	rendered := func(raw []byte, resumed bool) capture.TLS {
+		hello, err := fingerprint.ParseClientHello(raw)
+		if err != nil {
+			t.Fatalf("fixture: %v", err)
+		}
+		out := capture.FromClientHello(hello)
+		out.Resumed = resumed
+		return out
 	}
-	if rendered := capture.FromClientHello(hello); !rendered.Resumed {
-		t.Error("a hello with pre_shared_key was not taken to resume")
-	} else if _, err := FromCapture("chrome", &capture.Capture{RawClientHello: resumed, TLS: rendered}); err == nil ||
-		!strings.Contains(err.Error(), "RESUMED") {
-		t.Errorf("a hello Chrome resumed with: error = %v, want it to explain the resumption", err)
+	const ok, refused, contradicts = "", "RESUMED", "not one capture"
+	for _, tc := range []struct {
+		name string
+		raw  []byte
+		tls  capture.TLS
+		want string
+	}{
+		{"cold, said cold", cold, rendered(cold, false), ok},
+		{"cold, said resumed", cold, rendered(cold, true), contradicts},
+		{"cold, nothing said", cold, capture.TLS{}, ok},
+		{"resumed, said resumed", resumed, rendered(resumed, true), refused},
+		{"resumed, said cold", resumed, rendered(resumed, false), contradicts},
+		{"resumed, nothing said", resumed, capture.TLS{}, refused},
+		{"a malformed pre_shared_key, nothing said", malformed, capture.TLS{}, refused},
+		{"a malformed pre_shared_key, said cold", malformed, rendered(malformed, false), contradicts},
+		{"another hello's JA4", cold, rendered(resumed, false), contradicts},
+	} {
+		measured := &capture.Capture{RawClientHello: tc.raw, TLS: tc.tls, HTTP2: &capture.HTTP2{
+			PseudoHeaderOrder: []string{"m", "a", "s", "p"},
+			Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
+		}}
+		_, err := FromCapture("chrome", measured)
+		switch {
+		case tc.want == ok && err != nil:
+			t.Errorf("%s: %v", tc.name, err)
+		case tc.want != ok && (err == nil || !strings.Contains(err.Error(), tc.want)):
+			t.Errorf("%s: %v, want it to say %q", tc.name, err, tc.want)
+		}
 	}
+}
+
+// withExtension is a hello record with one more extension, last, its lengths
+// set again.
+func withExtension(t *testing.T, raw []byte, typ uint16, data []byte) []byte {
+	t.Helper()
+	out := append([]byte(nil), raw...)
+	// read is the big-endian number of n bytes at at.
+	read := func(at, n int) int {
+		v := 0
+		for _, b := range out[at : at+n] {
+			v = v<<8 | int(b)
+		}
+		return v
+	}
+	put := func(at, n, v int) {
+		for i := range n {
+			out[at+n-1-i] = byte(v >> (8 * i))
+		}
+	}
+	// The record's header, the message's, its version and random; then the
+	// session id, the cipher suites and the compression methods.
+	at := 5 + 4 + 2 + 32
+	at += 1 + read(at, 1)
+	at += 2 + read(at, 2)
+	at += 1 + read(at, 1)
+	extensions := at
+	out = append(out, byte(typ>>8), byte(typ), byte(len(data)>>8), byte(len(data)))
+	out = append(out, data...)
+	grow := 4 + len(data)
+	put(3, 2, read(3, 2)+grow)
+	put(6, 3, read(6, 3)+grow)
+	put(extensions, 2, read(extensions, 2)+grow)
+	if _, err := fingerprint.ParseClientHello(out); err != nil {
+		t.Fatalf("withExtension: %v", err)
+	}
+	return out
 }
 
 func TestWithResumption(t *testing.T) {

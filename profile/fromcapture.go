@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
 // perRequest names the headers a profile must NOT carry.
@@ -51,20 +52,30 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 	// Parsing here rather than trusting the capture: a profile built from bytes
 	// that do not parse would fail later, on the first request, somewhere far
 	// from the mistake.
-	if _, err := c.Hello(); err != nil {
+	hello, err := c.Hello()
+	if err != nil {
 		return nil, fmt.Errorf("profile: %w", err)
+	}
+	// What the capture says of the hello, when it says anything, is checked
+	// against the hello: one that says otherwise is not one capture, whichever
+	// of the two is wrong. A capture that rendered its hello gave its JA4.
+	_, resumed := hello.Extension(fingerprint.ExtPreSharedKey)
+	if c.TLS.JA4 != "" && (c.TLS.JA4 != hello.JA4() || c.TLS.Resumed != resumed) {
+		return nil, fmt.Errorf("profile: the capture says JA4 %s, session_resumed %v, and its ClientHello "+
+			"%s, %v: it is not one capture", c.TLS.JA4, c.TLS.Resumed, hello.JA4(), resumed)
+	}
+	// Read from the bytes, the capture's word aside: a pre_shared_key, whether
+	// it parses or not, is a resumed connection's.
+	if resumed {
+		return nil, fmt.Errorf("profile: capture is from a RESUMED connection; " +
+			"its pre_shared_key makes it a different fingerprint from the same browser's " +
+			"first contact. Capture again against a server that does not issue tickets")
 	}
 
 	p := &Profile{
 		Name:        name,
 		UserAgent:   c.UserAgent(),
 		ClientHello: append([]byte(nil), c.RawClientHello...),
-	}
-
-	if c.TLS.Resumed {
-		return nil, fmt.Errorf("profile: capture is from a RESUMED connection; " +
-			"its pre_shared_key makes it a different fingerprint from the same browser's " +
-			"first contact. Capture again against a server that does not issue tickets")
 	}
 	if c.HTTP2 == nil {
 		return nil, fmt.Errorf("profile: capture has no HTTP/2 data; a reusable browser profile needs pseudo headers")

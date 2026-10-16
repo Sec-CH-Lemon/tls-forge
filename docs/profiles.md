@@ -154,6 +154,12 @@ time. The echo server does not issue session tickets by default, so this should
 never happen — the check is there because the failure it prevents looks like
 success.
 
+The hello's own bytes decide: a `pre_shared_key` is a resumed connection's,
+whether it parses or not, whatever the capture says. A capture that says
+something of its hello, its JA4 and `session_resumed`, is held to it, and one
+that says otherwise is refused as not one capture; one that says nothing is
+read from the bytes alone.
+
 A profile resumes all the same. `Spec` ends the spec of a hello that offers
 `psk_key_exchange_modes` with the `pre_shared_key` slot a resumed hello has,
 last, which utls fills only on a connection with a session to resume: the

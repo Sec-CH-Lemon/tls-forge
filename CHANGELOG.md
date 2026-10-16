@@ -509,6 +509,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A capture whose `session_resumed` said false made a profile of a resumed
+  connection's hello: `FromCapture` read resumption from what the capture
+  said, not from the hello. It reads it from the hello's bytes now, where a
+  `pre_shared_key` that does not parse counts too, and refuses a capture
+  whose JA4 or `session_resumed` contradicts its hello.
 - `compare` did not compare the priority on HEADERS: a client that sent none,
   or another, matched Chrome, which sends one. Nor did it compare PRIORITY
   frames but through the Akamai string, the values of `:method` and
