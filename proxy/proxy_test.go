@@ -516,7 +516,7 @@ func TestWriteResponseRecomputesFraming(t *testing.T) {
 		"transfer-encoding": {"chunked"},
 		"connection":        {"close"},
 		"set-cookie":        {"a=1", "b=2"},
-	}, []byte("hello"))
+	}, []byte("hello"), http.MethodGet)
 	if err != nil {
 		t.Fatalf("writeResponse: %v", err)
 	}
@@ -534,10 +534,10 @@ func TestWriteResponseRecomputesFraming(t *testing.T) {
 }
 
 func TestWriteResponseReportsAFailedWrite(t *testing.T) {
-	if err := writeResponse(failingWriter{}, 200, nil, []byte("x")); err == nil {
+	if err := writeResponse(failingWriter{}, 200, nil, []byte("x"), http.MethodGet); err == nil {
 		t.Error("expected an error writing the head")
 	}
-	if err := writeResponse(&headOnlyWriter{}, 200, nil, []byte("x")); err == nil {
+	if err := writeResponse(&headOnlyWriter{}, 200, nil, []byte("x"), http.MethodGet); err == nil {
 		t.Error("expected an error writing the body")
 	}
 }

@@ -1378,7 +1378,15 @@ Usage: `tls-forge proxy [flags]`
 | `--max-request-body <bytes>` | Largest request body buffered by the proxy; default `16777216` (16 MiB) |
 
 The proxy deliberately has no cookie jar; it forwards the caller's `Cookie`
-header. The generated CA can impersonate any site to a client that trusts it.
+header. Fields that describe a connection rather than what goes over it are
+not passed from one to the other, in either direction: `Connection`,
+`Keep-Alive`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade`,
+`Proxy-Connection`, and every field a `Connection` names, as well as
+`Proxy-Authorization`. An answer's fields are written in the order of their
+names. An answer to `HEAD` keeps the length a `GET` would have had and has no
+body, and a 204 or a 304 has neither. A request to upgrade to another
+protocol, a WebSocket among them, is answered 501 and its connection ended,
+rather than sent on as an ordinary request. The generated CA can impersonate any site to a client that trusts it.
 Prefer trusting it only for the specific process, keep the private key secret,
 and remove that trust when the proxy is no longer needed. The proxy does not
 authenticate incoming clients: a non-loopback `--addr` must be protected by a

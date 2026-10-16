@@ -454,6 +454,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **`proxy` passes on no field of the connection it came on.** A field the
+  caller's or the origin's `Connection` named, `Connection: X-Hop` with
+  `X-Hop`, went on to the other side, and so did `TE` and `Trailer` from the
+  caller and `Keep-Alive`, `Upgrade` and `Proxy-Connection` from the origin.
+  An answer to `HEAD` said its length was 0, and a 204 or a 304 was sent
+  with a length and the body the transport had; the next answer on the
+  connection could then not be read. A request to upgrade to a WebSocket was
+  sent on as an ordinary one, and its answer taken for the upgrade's; it is
+  answered 501 now. An answer's fields are written in a fixed order.
 - A list that began with a UTF-8 byte order mark, as one saved by some
   Windows editors does, had its first URL refused; the mark is taken off. A
   URL whose scheme was written in capitals, `HTTP://`, was refused as not an

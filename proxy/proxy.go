@@ -70,6 +70,10 @@ const DefaultMaxRequestBody int64 = 16 << 20
 
 var errRequestTooLarge = errors.New("proxy: request body is too large")
 
+// errUpgradeRefused ends a connection whose request asked to become another
+// protocol, once it has been told this proxy does not do that.
+var errUpgradeRefused = errors.New("proxy: an upgrade to another protocol was refused")
+
 // Server is a running proxy.
 type Server struct {
 	listener net.Listener
@@ -183,7 +187,7 @@ func (s *Server) handle(conn net.Conn) {
 			return
 		}
 		if err := s.forward(conn, req, "http"); err != nil {
-			if !isClosed(err) && !errors.Is(err, errRequestTooLarge) {
+			if !isClosed(err) && !errors.Is(err, errRequestTooLarge) && !errors.Is(err, errUpgradeRefused) {
 				s.opts.OnError(err)
 			}
 			return
@@ -230,7 +234,7 @@ func (s *Server) serveConnect(conn net.Conn, req *http.Request) {
 		}
 		req.Host = firstNonEmpty(req.Host, host)
 		if err := s.forward(tlsConn, req, "https"); err != nil {
-			if !isClosed(err) && !errors.Is(err, errRequestTooLarge) {
+			if !isClosed(err) && !errors.Is(err, errRequestTooLarge) && !errors.Is(err, errUpgradeRefused) {
 				s.opts.OnError(err)
 			}
 			return
@@ -242,6 +246,18 @@ func (s *Server) serveConnect(conn net.Conn, req *http.Request) {
 // answer back.
 func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 	defer func() { _ = req.Body.Close() }()
+	if req.Header.Get("Upgrade") != "" && connectionNames(req.Header)["upgrade"] {
+		// A request that is to become another protocol once it is answered,
+		// a WebSocket among them, which this proxy does not speak. Refused,
+		// rather than sent on as an ordinary request whose answer the caller
+		// would take for the upgrade's.
+		if err := writeResponse(w, http.StatusNotImplemented,
+			map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
+			[]byte("this proxy does not pass on an upgrade to another protocol\n"), req.Method); err != nil {
+			return err
+		}
+		return errUpgradeRefused
+	}
 	limit := s.opts.MaxRequestBody
 	if limit == 0 {
 		limit = DefaultMaxRequestBody
@@ -253,7 +269,7 @@ func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 	if int64(len(body)) > limit {
 		if err := writeResponse(w, http.StatusRequestEntityTooLarge,
 			map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
-			[]byte(fmt.Sprintf("request body exceeds %d bytes\n", limit))); err != nil {
+			[]byte(fmt.Sprintf("request body exceeds %d bytes\n", limit)), req.Method); err != nil {
 			return err
 		}
 		// Close after the complete 413. The unread remainder belongs to this
@@ -280,9 +296,44 @@ func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 		// a dropped connection, and the reason, without the password of any
 		// URL in it: the caller is somebody else.
 		return writeResponse(w, 502, map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
-			[]byte(redact.Text(err.Error())+"\n"))
+			[]byte(redact.Text(err.Error())+"\n"), req.Method)
 	}
-	return writeResponse(w, res.Status, res.Header, res.Body)
+	return writeResponse(w, res.Status, res.Header, res.Body, req.Method)
+}
+
+// hopByHop are the fields that describe a connection rather than what goes
+// over it, and are not passed from one connection to the next (RFC 9110,
+// section 7.6.1): the standard ones, and Trailer, since what goes on is a
+// whole body with no trailers after it.
+var hopByHop = []string{"connection", "proxy-connection", "keep-alive", "te", "trailer", "transfer-encoding", "upgrade"}
+
+// connectionOptions are the fields a message says are its connection's alone,
+// in lower case: the standard ones, and every one its Connection fields name.
+func connectionOptions(header map[string][]string) map[string]bool {
+	named := connectionNames(header)
+	for _, name := range hopByHop {
+		named[name] = true
+	}
+	return named
+}
+
+// connectionNames are what a message's Connection fields name, in lower case:
+// every token, on however many lines, in any case and with any spaces.
+func connectionNames(header map[string][]string) map[string]bool {
+	named := map[string]bool{}
+	for key, values := range header {
+		if !strings.EqualFold(key, "connection") {
+			continue
+		}
+		for _, value := range values {
+			for _, token := range strings.Split(value, ",") {
+				if token = strings.ToLower(strings.TrimSpace(token)); token != "" {
+					named[token] = true
+				}
+			}
+		}
+	}
+	return named
 }
 
 // mergeHeaders decides what the outgoing request says about itself.
@@ -299,17 +350,18 @@ func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 // its own.
 func mergeHeaders(profile tlsforge.Header, incoming http.Header) tlsforge.Header {
 	out := profile.Clone()
+	hop := connectionOptions(incoming)
 
 	extras := make([]string, 0, len(incoming))
 	for name := range incoming {
 		lower := strings.ToLower(name)
-		switch lower {
-		case "proxy-connection", "connection", "keep-alive", "transfer-encoding",
-			"upgrade", "host", "content-length":
-			// Hop-by-hop, or recomputed by the transport. Forwarding them
-			// describes the connection to the proxy, not the one to the site.
+		switch {
+		case hop[lower], lower == "host", lower == "content-length":
+			// Hop-by-hop, those the caller's Connection names as well, or
+			// recomputed by the transport. Forwarding them describes the
+			// connection to the proxy, not the one to the site.
 			continue
-		case "proxy-authorization", "proxy-authenticate":
+		case lower == "proxy-authorization", lower == "proxy-authenticate":
 			// Addressed to this proxy, not through it. Forwarding them hands
 			// the user's proxy password to whatever site they browsed to.
 			continue
@@ -328,22 +380,50 @@ func mergeHeaders(profile tlsforge.Header, incoming http.Header) tlsforge.Header
 	return out
 }
 
-func writeResponse(w io.Writer, status int, header map[string][]string, body []byte) error {
+// writeResponse writes an answer to a request made with method.
+//
+// Without the fields that described the connection the answer came on, those
+// its Connection names included, and in the order of their names, so that two
+// answers alike are written alike. Its length is what is sent: an upstream
+// content-length would describe the body the transport has decoded. An answer
+// to HEAD keeps the length the origin gave, of the body a GET would have had,
+// and sends none; a 1xx, a 204 and a 304 have no body and say no length.
+func writeResponse(w io.Writer, status int, header map[string][]string, body []byte, method string) error {
+	hop := connectionOptions(header)
+	names := make([]string, 0, len(header))
+	length := ""
+	for name, values := range header {
+		lower := strings.ToLower(name)
+		switch {
+		case lower == "content-length":
+			if len(values) > 0 {
+				length = values[0]
+			}
+		case !hop[lower]:
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+
 	var b strings.Builder
 	fmt.Fprintf(&b, "HTTP/1.1 %d %s\r\n", status, http.StatusText(status))
-	for name, values := range header {
-		switch strings.ToLower(name) {
-		case "content-length", "transfer-encoding", "connection":
-			// Written below from what is actually being sent. An upstream
-			// content-length copied verbatim would describe the compressed body
-			// the transport already decompressed.
-			continue
-		}
-		for _, value := range values {
+	for _, name := range names {
+		for _, value := range header[name] {
 			fmt.Fprintf(&b, "%s: %s\r\n", name, value)
 		}
 	}
-	fmt.Fprintf(&b, "content-length: %d\r\n\r\n", len(body))
+	switch {
+	case status < 200 || status == http.StatusNoContent || status == http.StatusNotModified:
+		body = nil
+	case method == http.MethodHead:
+		if length != "" {
+			fmt.Fprintf(&b, "content-length: %s\r\n", length)
+		}
+		body = nil
+	default:
+		fmt.Fprintf(&b, "content-length: %d\r\n", len(body))
+	}
+	b.WriteString("\r\n")
 
 	if _, err := io.WriteString(w, b.String()); err != nil {
 		return err
