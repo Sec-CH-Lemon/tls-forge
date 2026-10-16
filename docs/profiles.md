@@ -5,6 +5,7 @@ stored as JSON so it can be committed and reviewed.
 
 ```json
 {
+  "schema": 1,
   "name": "chrome_151",
   "user_agent": "Mozilla/5.0 (Macintosh; …) Chrome/151.0.0.0 Safari/537.36",
   "client_hello": "FgMBBvgBAAb0AwPdnWafT…",
@@ -46,6 +47,15 @@ The `http1` object is optional for backward compatibility. A profile without it
 uses the historical canonical HTTP/1.1 header spelling; its TLS and HTTP/2
 fingerprints are unchanged. New captures include it whenever an HTTP/1.1
 navigation was observed.
+
+`schema` is the version of the format the profile was written in, 1 today. A
+profile that names one is read strictly: a field the format does not have, at
+any depth, is an error naming it, so a misspelt `heders` is found when the
+profile is read rather than on the wire. A profile with a newer schema than
+this tls-forge reads is refused, and says to upgrade. A profile with no
+`schema` was written before the format had one and is read as it always was,
+fields the format does not have passed over; it is written with the schema the
+next time it is saved, as `capture --save` and `--install` do.
 
 ## Capturing one
 

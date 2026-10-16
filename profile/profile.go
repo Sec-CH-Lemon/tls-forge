@@ -14,6 +14,7 @@
 package profile
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -26,8 +27,24 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
+// Schema is the version of the profile format this tls-forge writes, and the
+// newest it reads.
+//
+// A profile that says its schema is read strictly: a field the format does not
+// have is an error, so that a name spelt wrong is found when the profile is
+// read, not on the wire. One with a newer schema is refused rather than read
+// in part. One that says none was written before the format had a version,
+// and is read as it always was: what it holds that the format does not is
+// passed over. Saving writes the schema, so a profile read that way is strict
+// from then on.
+const Schema = 1
+
 // Profile is a complete browser identity.
 type Profile struct {
+	// Schema is the version of the format the profile was written in: see
+	// the constant. Save writes the current one.
+	Schema int `json:"schema,omitempty"`
+
 	Name      string `json:"name"`
 	UserAgent string `json:"user_agent,omitempty"`
 
@@ -381,11 +398,32 @@ func (p *Profile) Header(name string) (string, bool) {
 	return "", false
 }
 
-// Load reads a profile from JSON.
+// Load reads a profile from JSON, as its schema says: see Schema.
 func Load(data []byte) (*Profile, error) {
-	var p Profile
-	if err := json.Unmarshal(data, &p); err != nil {
+	var written struct {
+		Schema *int `json:"schema"`
+	}
+	if err := json.Unmarshal(data, &written); err != nil {
 		return nil, fmt.Errorf("profile: %w", err)
+	}
+	var p Profile
+	switch {
+	case written.Schema == nil:
+		// Written before the format had a version.
+		if err := json.Unmarshal(data, &p); err != nil {
+			return nil, fmt.Errorf("profile: %w", err)
+		}
+	case *written.Schema == Schema:
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&p); err != nil {
+			return nil, fmt.Errorf("profile: schema %d: %w", Schema, err)
+		}
+	case *written.Schema > Schema:
+		return nil, fmt.Errorf("profile: schema %d is newer than this tls-forge reads, %d: upgrade tls-forge",
+			*written.Schema, Schema)
+	default:
+		return nil, fmt.Errorf("profile: schema %d is not one; schemas begin at 1", *written.Schema)
 	}
 	if p.Name == "" {
 		return nil, fmt.Errorf("profile: name is required")
@@ -403,8 +441,13 @@ func Load(data []byte) (*Profile, error) {
 
 // Save writes a profile as indented JSON, the form meant to be committed and
 // reviewed. Indented and newline-terminated so a profile update shows up in a
-// diff as the fields that changed rather than as one very long line.
-func (p *Profile) Save() ([]byte, error) { return encodeJSON(p) }
+// diff as the fields that changed rather than as one very long line. It is
+// written in the current schema, whichever it was read in.
+func (p *Profile) Save() ([]byte, error) {
+	current := *p
+	current.Schema = Schema
+	return encodeJSON(&current)
+}
 
 func encodeJSON(v any) ([]byte, error) {
 	data, err := json.MarshalIndent(v, "", "  ")

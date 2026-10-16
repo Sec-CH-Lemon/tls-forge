@@ -73,6 +73,7 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 	}
 
 	p := &Profile{
+		Schema:      Schema,
 		Name:        name,
 		UserAgent:   c.UserAgent(),
 		ClientHello: append([]byte(nil), c.RawClientHello...),

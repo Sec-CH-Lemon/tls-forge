@@ -356,8 +356,39 @@ func TestLoadAndSave(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if !reflect.DeepEqual(loaded, original) {
-		t.Errorf("round trip changed the profile:\n got %+v\nwant %+v", loaded, original)
+	// Saved in the current schema, whatever it was in; nothing else changes,
+	// and the profile saved is not touched.
+	want := *original
+	want.Schema = Schema
+	if !reflect.DeepEqual(loaded, &want) || original.Schema != 0 {
+		t.Errorf("round trip changed the profile:\n got %+v\nwant %+v", loaded, &want)
+	}
+}
+
+func TestAProfileIsReadAsItsSchemaSays(t *testing.T) {
+	read := func(document string) (*Profile, error) { return Load([]byte(document)) }
+	// Written before there was a schema: read as it always was, what the
+	// format does not have passed over.
+	legacy, err := read(`{"name":"old","base":"chrome_133","heders":[{"name":"a","value":"b"}]}`)
+	if err != nil || legacy.Name != "old" || legacy.Schema != 0 || legacy.Headers != nil {
+		t.Errorf("a profile with no schema: %+v, %v", legacy, err)
+	}
+	if current, err := read(`{"schema":1,"name":"new","base":"chrome_133"}`); err != nil || current.Schema != 1 {
+		t.Errorf("schema 1: %+v, %v", current, err)
+	}
+	for _, tc := range []struct{ name, document, want string }{
+		{"a field spelt wrong", `{"schema":1,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
+		{"one spelt wrong inside another", `{"schema":1,"name":"x","base":"chrome_133","http2":{"setings":[]}}`,
+			`unknown field "setings"`},
+		{"a newer schema", `{"schema":2,"name":"x"}`, "schema 2 is newer than this tls-forge reads, 1"},
+		{"schema 0", `{"schema":0,"name":"x"}`, "schema 0 is not one"},
+		{"a schema below it", `{"schema":-3,"name":"x"}`, "schema -3 is not one"},
+		{"a schema that is no number", `{"schema":"1","name":"x"}`, "cannot unmarshal string"},
+		{"more after the profile", `{"schema":1,"name":"x","base":"chrome_133"} {}`, "invalid character"},
+	} {
+		if _, err := read(tc.document); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.name, err, tc.want)
+		}
 	}
 }
 
@@ -464,6 +495,9 @@ func TestFromCapture(t *testing.T) {
 	built, err := FromCapture("chrome_151", measured)
 	if err != nil {
 		t.Fatalf("FromCapture: %v", err)
+	}
+	if built.Schema != Schema {
+		t.Errorf("a profile captured is in schema %d", built.Schema)
 	}
 
 	if got, want := built.HeaderOrder(), []string{"sec-ch-ua", "user-agent", "accept-encoding"}; !reflect.DeepEqual(got, want) {

@@ -13,6 +13,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **A profile says the version of its format.** Profiles are written with
+  `"schema": 1` (`profile.Schema`), the shipped ones too, and one that says
+  it is read strictly: a field the format does not have, at any depth, is an
+  error that names it, where it was passed over without a word, and a newer
+  schema is refused. A profile with no `schema` is read as before.
 - **A comparison says what it was made of.** `Comparison.Measured` holds the
   browser's build and platform as it says them, how it was run, and the
   requests compared, protocol by protocol; `Comparison.Manifest` the rule
