@@ -20,6 +20,11 @@ import time
 from urllib.parse import urlsplit
 
 
+#: How many control lines and requests this process has read: what a client
+#: sent, which a test of what it did not send reads back.
+SEEN = {"controls": 0, "requests": 0}
+
+
 def emit(obj: dict) -> None:
     sys.stdout.write(json.dumps(obj) + "\n")
     sys.stdout.flush()
@@ -45,6 +50,10 @@ def answer(request: dict, **extra: object) -> dict:
                 "order": request.get("order", []),
                 "cookies": request.get("setCookie", []),
                 "body": request.get("body"),
+                # The browser context, as the transport was given it.
+                "browser": request.get("browser"),
+                "sent": sorted(request),
+                **SEEN,
             }
         ),
         "headers": {
@@ -54,6 +63,36 @@ def answer(request: dict, **extra: object) -> dict:
         "cookies": [],
         **extra,
     }
+
+
+def control(request: dict) -> None:
+    """Answer a control line with what the transport is: as TLSFORGE_TEST_PROTOCOL
+    says, protocol 2 with TLSFORGE_TEST_CAPABILITIES when it says nothing."""
+    mode = os.environ.get("TLSFORGE_TEST_PROTOCOL", "")
+    if mode == "silent":
+        return
+    if mode == "exit":
+        sys.exit(3)
+    blank = {"id": request["id"], "status": 0, "url": "", "body": "", "headers": None, "cookies": None}
+    here = os.path.dirname(os.path.abspath(__file__))
+
+    def fixture(name: str) -> dict:
+        with open(os.path.join(here, "..", "..", "testdata", "protocol", name), encoding="utf-8") as f:
+            return {**json.load(f), "id": request["id"]}
+
+    capabilities = [name for name in os.environ.get("TLSFORGE_TEST_CAPABILITIES", "").split(",") if name]
+    replies = {
+        "1": lambda: {**blank, "error": "bad request: no url"},
+        "fixture": lambda: fixture("response-hello.json"),
+        "fixture-old": lambda: fixture("response-hello-old.json"),
+        "bad": lambda: {**blank, "protocol": "two"},
+        "bool": lambda: {**blank, "protocol": True},
+        "bad-capabilities": lambda: {**blank, "protocol": 2, "capabilities": [7]},
+        "no-capabilities": lambda: {**blank, "protocol": 2, "capabilities": "all"},
+        "low": lambda: {**blank, "protocol": 1},
+    }
+    default = {**blank, "protocol": 2, **({"capabilities": capabilities} if capabilities else {})}
+    emit(replies[mode]() if mode in replies else default)
 
 
 def refuses() -> bool:
@@ -82,6 +121,12 @@ def main() -> None:
         except ValueError:
             emit({"id": 0, "error": "bad request"})
             continue
+
+        if "control" in request:
+            SEEN["controls"] += 1
+            control(request)
+            continue
+        SEEN["requests"] += 1
 
         behaviour = urlsplit(request["url"]).hostname
 

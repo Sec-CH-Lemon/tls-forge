@@ -56,6 +56,17 @@ func fixtureErrorResponse() Response {
 		`tlsforge: Get "https://example.com/": dial tcp 127.0.0.1:1: connect: connection refused`)})
 }
 
+// What a daemon answers hello with: its protocol and capabilities, and no
+// connection. A daemon that predates control lines answers it as
+// response-hello-old.json, a request with no url.
+func fixtureHelloResponse() Response {
+	return handle(context.Background(), `{"id":10,"control":"hello"}`, &fakeClient{})
+}
+
+func fixtureOldHelloResponse() Response {
+	return Response{ID: 10, Error: "bad request: no url"}
+}
+
 func fixtureRequest() Request {
 	return Request{
 		ID:           7,
@@ -87,6 +98,8 @@ func TestProtocolFixture(t *testing.T) {
 		{"response.json", fixtureResponse()},
 		{"response-text.json", fixtureTextResponse()},
 		{"response-error.json", fixtureErrorResponse()},
+		{"response-hello.json", fixtureHelloResponse()},
+		{"response-hello-old.json", fixtureOldHelloResponse()},
 		{"request.json", fixtureRequest()},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

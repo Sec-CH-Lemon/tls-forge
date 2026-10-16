@@ -80,7 +80,29 @@ type Request struct {
 
 	// SetCookie seeds the jar with "name=value" pairs before the request.
 	SetCookie []string `json:"setCookie,omitempty"`
+
+	// Control makes the line a question for the daemon rather than a request
+	// to send: "hello" asks which protocol it speaks and what it can do. A
+	// control line names no url, and is answered without a connection.
+	Control string `json:"control,omitempty"`
+
+	// Browser is the browser context a request is made in (what kind of
+	// request, from where): the field a daemon that applies browser contexts
+	// reads. This one applies none, and refuses a request that carries one
+	// rather than send it as though it had not, which is what a daemon that
+	// predates the field does; a client asks first, with hello.
+	Browser json.RawMessage `json:"browser,omitempty"`
 }
+
+// Protocol is the version of the protocol this daemon speaks: 2 answers
+// control lines. A daemon of protocol 1 predates them, and answers hello as a
+// request with no url.
+const Protocol = 2
+
+// capabilities are what this daemon can do that a client has to ask about
+// before it relies on it. None yet: a client that needs one finds it missing,
+// and says so instead of being ignored.
+var capabilities = []string{}
 
 // Response is one line of output.
 type Response struct {
@@ -100,6 +122,12 @@ type Response struct {
 	Headers      map[string][]string `json:"headers"`
 	Cookies      []string            `json:"cookies"`
 	Error        string              `json:"error,omitempty"`
+
+	// Protocol and Capabilities answer hello: the protocol the daemon speaks,
+	// and what it can do that a client must ask about. Absent from the answer
+	// to a request.
+	Protocol     int      `json:"protocol,omitempty"`
+	Capabilities []string `json:"capabilities,omitempty"`
 }
 
 // How a body is spelled on the wire.
@@ -297,8 +325,15 @@ func handle(ctx context.Context, line string, client Client) Response {
 		// time out, which is the safe way to lose one.
 		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
+	if req.Control != "" {
+		return control(req)
+	}
 	if req.URL == "" {
 		return Response{ID: req.ID, Error: "bad request: no url"}
+	}
+	if len(req.Browser) > 0 && string(req.Browser) != "null" {
+		return Response{ID: req.ID, Error: "bad request: this tls-forge does not apply browser contexts; " +
+			"the request was not sent"}
 	}
 
 	requestHeaders, err := orderedHeaders(req, client)
@@ -351,6 +386,19 @@ func handle(ctx context.Context, line string, client Client) Response {
 		BodyEncoding: encoding,
 		Headers:      headers,
 		Cookies:      held,
+	}
+}
+
+// control answers a control line: what the daemon is, never a connection.
+func control(req Request) Response {
+	if req.URL != "" {
+		return Response{ID: req.ID, Error: "bad request: a control line is not a request, and has no url"}
+	}
+	switch req.Control {
+	case "hello":
+		return Response{ID: req.ID, Protocol: Protocol, Capabilities: append([]string(nil), capabilities...)}
+	default:
+		return Response{ID: req.ID, Error: fmt.Sprintf("bad request: unknown control %q", req.Control)}
 	}
 }
 

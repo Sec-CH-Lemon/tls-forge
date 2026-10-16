@@ -47,6 +47,8 @@ the password of any URL it quotes.
 | `body` | request body |
 | `bodyEncoding` | how to read `body`: absent or `utf8` for text, `base64` for bytes |
 | `setCookie` | `name=value` pairs added to the jar before the request |
+| `browser` | the browser context of the request; refused by every daemon so far, see [Asking what a daemon is](#asking-what-a-daemon-is) |
+| `control` | makes the line a question for the daemon instead of a request; see the same |
 
 JSON objects have no order, which is why `order` exists — but it orders the
 headers **you** send, not the whole request. They are then merged into the
@@ -146,6 +148,34 @@ the base64 it claims to be, comes back the same way with `error` set.
 
 The daemon does not exit on a bad request. A daemon that died on a malformed URL
 would take the session's cookie jar with it.
+
+## Asking what a daemon is
+
+A line with `control` instead of `url` is a question for the daemon, answered
+without a connection. `hello` asks which protocol it speaks and what it can do
+that a client has to ask about before relying on it:
+
+```json
+{"id": 10, "control": "hello"}
+{"id": 10, "status": 0, "url": "", "body": "", "headers": null, "cookies": null, "protocol": 2}
+```
+
+`capabilities`, a list of names, is absent while there are none; a client reads
+its absence as none. A daemon older than control lines, protocol 1, answers
+`hello` as a request with no url, `"error": "bad request: no url"`, and makes no
+connection either: a client reads that as protocol 1 and no capabilities. Any
+other `control` is refused, as is a control line that carries a `url`.
+
+A request that needs a capability is sent only to a daemon that says it has it.
+`browser`, the browser context a request is made in, is the first: no daemon
+applies one yet, and this one refuses a request that carries one, with `error`
+and no connection, rather than sending it as though it had none, which is what a
+daemon that predates the field does with it. The Node.js and Python packages ask
+`hello` before the first request with a browser context, refuse it with
+`Unsupported` when the daemon does not say `browser_context`, and keep the
+answer for the client's life: what a binary is does not change between its
+processes. A question is made in no session: it is not told that a session has
+gone, and the next request is.
 
 ## One process is one identity
 

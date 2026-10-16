@@ -202,6 +202,15 @@ except tlsforge.TransportError:
 | `Timeout` | The Python deadline passed. Also inherits from built-in `TimeoutError`. |
 | `TransportError` | The daemon could not start, exited, could not be written to, or returned invalid protocol data. |
 | `SessionReset` | A `TransportError`: the request was not sent, because the session it was made in has gone. |
+| `Unsupported` | The request was not sent, because the transport does not do what it needs: a `browser_context`, which no tls-forge applies yet. |
+
+`client.hello()` returns a `Hello(protocol, capabilities)`: the protocol the
+transport speaks and what it can do that a client has to ask about, asked
+without a connection and once for the client's life. A tls-forge older than the
+question speaks protocol 1, and can do nothing it is asked about. A request with
+a `browser_context` is sent only to a transport whose capabilities include
+`browser_context`, as the field `browser`, and raises `Unsupported`, unsent,
+with any other.
 
 Invalid caller values such as an empty URL, non-positive timeout or non-callable
 `on_stderr` raise standard `ValueError` or `TypeError`, and so does a request

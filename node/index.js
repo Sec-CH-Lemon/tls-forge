@@ -44,6 +44,36 @@ export class SessionReset extends Error {
   }
 }
 
+/**
+ * A request this client's transport cannot make as asked: it does not do what
+ * the request needs, as it says when asked with hello(), or it is older than
+ * the question. The request was not sent.
+ */
+export class Unsupported extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'Unsupported';
+  }
+}
+
+// What a transport is, as its answer to hello says. One older than control
+// lines answers it as a request with no url: protocol 1, nothing it can do.
+function helloOf(response) {
+  if (response.error != null) return { protocol: 1, capabilities: [] };
+  const { protocol, capabilities = [] } = response;
+  if (
+    !Number.isInteger(protocol) ||
+    protocol < 2 ||
+    !Array.isArray(capabilities) ||
+    !capabilities.every((name) => typeof name === 'string')
+  ) {
+    throw new TypeError(
+      `hello must give a protocol from 2 and a list of capabilities, not ${JSON.stringify({ protocol, capabilities })}`,
+    );
+  }
+  return { protocol, capabilities: [...capabilities] };
+}
+
 // refusedArguments is why a transport that exited at once with a usage error
 // failed. With a proxy, that is a tls-forge older than this package, which
 // does not know --proxy-env; it never got as far as making a request.
@@ -142,6 +172,10 @@ export class Client {
   // fingerprint and an empty jar.
   #closed = false;
 
+  // The transport's answer to hello, asked once: what a binary is does not
+  // change between its processes.
+  #hello = null;
+
   /**
    * @param {object}  [options]
    * @param {string}  [options.profile]  profile to impersonate, e.g. "chrome"
@@ -208,8 +242,43 @@ export class Client {
   }
 
   /**
+   * What the transport is: the protocol it speaks and what it can do, asked
+   * without a connection and once. One older than the question speaks
+   * protocol 1, and can do nothing a client has to ask about.
+   * @returns {Promise<{protocol:number,capabilities:string[]}>}
+   */
+  hello() {
+    if (this.#closed) {
+      return Promise.reject(
+        new Error('tlsforge: this client was closed and will not respawn; construct a new one'),
+      );
+    }
+    this.#hello ??= this.#enqueue({ control: 'hello' }, true)
+      .then((response) => {
+        try {
+          return helloOf(response);
+        } catch (err) {
+          throw new Error(`tlsforge: bad response: ${err.message}`);
+        }
+      })
+      .catch((err) => {
+        // Asked again next time: a transport that failed to answer has not
+        // said what it is.
+        this.#hello = null;
+        throw err;
+      });
+    return this.#hello.then(({ protocol, capabilities }) => ({ protocol, capabilities: [...capabilities] }));
+  }
+
+  /**
    * Make a request.
-   * @param {{url:string,method?:string,headers?:Record<string,string>,order?:string[],body?:string|Buffer|Uint8Array,cookies?:string[]}} request
+   *
+   * A request with a browserContext is sent only to a transport that says,
+   * when asked with hello(), that it applies one, and to no other: it is
+   * refused with Unsupported rather than sent as though it had none. The
+   * first such request waits for that answer, and a request made after it
+   * may go first.
+   * @param {{url:string,method?:string,headers?:Record<string,string>,order?:string[],body?:string|Buffer|Uint8Array,cookies?:string[],browserContext?:object}} request
    * @returns {Promise<Response>}
    */
   request(request) {
@@ -219,9 +288,31 @@ export class Client {
         new Error('tlsforge: this client was closed and will not respawn; construct a new one'),
       );
     }
+    const { browserContext, ...asked } = request;
+    if (browserContext === undefined) return this.#send(asked);
+    return this.hello().then(({ protocol, capabilities }) => {
+      if (!capabilities.includes('browser_context')) {
+        throw new Unsupported(
+          `tlsforge: the tls-forge at ${this.#binary} speaks protocol ${protocol} and does not apply ` +
+            'browser contexts; the request was not sent',
+        );
+      }
+      return this.#send({ ...asked, browser: browserContext });
+    });
+  }
+
+  // send queues a request, its wire fields named as the protocol names them.
+  #send(request) {
     const { cookies, ...rest } = request;
+    return this.#enqueue({ ...rest, setCookie: cookies }, false);
+  }
+
+  // enqueue writes fields as one line, with an id of its own, once the lines
+  // before it are answered; control is a question for the transport, whose
+  // answer is handed back as it came rather than read as a page.
+  #enqueue(fields, control) {
     const id = ++this.#sequence;
-    const payload = { ...rest, setCookie: cookies, id };
+    const payload = { ...fields, id };
     // Bytes travel as base64: JSON.stringify would otherwise turn a Buffer into
     // an object of numbered keys, and the transport replaces every byte that is
     // not valid UTF-8 with U+FFFD rather than reporting a problem.
@@ -264,6 +355,7 @@ export class Client {
       this.#queue.push({
         line,
         id,
+        control,
         resolve,
         reject,
         // The call's deadline, from now: the time a request waits for the one
@@ -437,6 +529,14 @@ export class Client {
       return;
     }
 
+    if (job.control) {
+      this.#inFlight = null;
+      clearTimeout(job.timer);
+      job.resolve(response);
+      this.#pump();
+      return;
+    }
+
     try {
       response = normaliseResponse(response);
     } catch (err) {
@@ -469,17 +569,20 @@ export class Client {
     // request(), settle() and restart(); the last two run from callbacks that
     // return early once close() has cleared the job they were waiting on.
     if (this.#inFlight || !this.#queue.length) return;
-    if (this.#lost !== null) {
+    if (this.#lost !== null && this.#queue.some((job) => !job.control)) {
       // Told, all of them, and not sent: each was made in a session that has
       // gone, and none of them would be what the caller asked for in a new one.
+      // A question for the transport was made in no session, and goes on.
       const reset = new SessionReset(
         `tlsforge: the transport this client's session was in has gone (${this.#lost}), ` +
           'and with it its cookies, TLS sessions and connections; this request was not sent, ' +
           'and the next one starts a new session',
       );
       this.#lost = null;
-      while (this.#queue.length) this.#queue.shift().reject(reset);
-      return;
+      const told = this.#queue.filter((job) => !job.control);
+      this.#queue = this.#queue.filter((job) => job.control);
+      for (const job of told) job.reject(reset);
+      if (!this.#queue.length) return;
     }
     if (!this.#process) {
       try {

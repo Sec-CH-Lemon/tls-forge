@@ -26,6 +26,11 @@ if (refuse === 'always' || (refuse === 'proxy-env' && process.argv.some((arg) =>
 
 const reader = readline.createInterface({ input: process.stdin });
 
+// How many control lines and requests this process has read: what a client
+// sent, which a test of what it did not send reads back.
+let controls = 0;
+let requests = 0;
+
 reader.on('line', (line) => {
   let request;
   try {
@@ -35,6 +40,32 @@ reader.on('line', (line) => {
     return;
   }
 
+  // A control line, which a daemon answers with what it is: as TLSFORGE_TEST_PROTOCOL
+  // says, protocol 2 with TLSFORGE_TEST_CAPABILITIES when it says nothing.
+  if (request.control !== undefined) {
+    controls += 1;
+    const answer = { id: request.id, status: 0, url: '', body: '', headers: null, cookies: null };
+    const fixture = (name) =>
+      JSON.parse(readFileSync(path.join(here, '..', '..', 'testdata', 'protocol', name), 'utf8'));
+    const capabilities = (process.env.TLSFORGE_TEST_CAPABILITIES ?? '').split(',').filter(Boolean);
+    const replies = {
+      1: { ...answer, error: 'bad request: no url' },
+      fixture: { ...fixture('response-hello.json'), id: request.id },
+      'fixture-old': { ...fixture('response-hello-old.json'), id: request.id },
+      bad: { ...answer, protocol: 'two' },
+      'bad-capabilities': { ...answer, protocol: 2, capabilities: [7] },
+      'no-capabilities': { ...answer, protocol: 2, capabilities: 'all' },
+      low: { ...answer, protocol: 1 },
+    };
+    const mode = process.env.TLSFORGE_TEST_PROTOCOL ?? '';
+    if (mode === 'silent') return;
+    if (mode === 'exit') process.exit(3);
+    const reply = replies[mode] ?? { ...answer, protocol: 2, ...(capabilities.length ? { capabilities } : {}) };
+    process.stdout.write(JSON.stringify(reply) + '\n');
+    return;
+  }
+
+  requests += 1;
   const behaviour = new URL(request.url).host;
   const reply = (extra) =>
     process.stdout.write(
@@ -52,6 +83,11 @@ reader.on('line', (line) => {
           headers: request.headers ?? {},
           order: request.order ?? [],
           cookies: request.setCookie ?? [],
+          // The browser context, as the transport was given it.
+          browser: request.browser ?? null,
+          sent: Object.keys(request).sort(),
+          controls,
+          requests,
         }),
         headers: { 'content-type': ['application/json'], 'set-cookie': ['a=1', 'b=2'] },
         cookies: [],

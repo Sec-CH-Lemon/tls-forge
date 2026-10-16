@@ -5,7 +5,7 @@ import net from 'node:net';
 import { test } from 'node:test';
 import zlib from 'node:zlib';
 
-import { Client, MAX_REQUEST_BYTES } from '../index.js';
+import { Client, MAX_REQUEST_BYTES, Unsupported } from '../index.js';
 
 const binary = process.env.TLSFORGE_REAL_BIN;
 
@@ -195,5 +195,30 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
   } finally {
     client.close();
     await new Promise((resolve) => origin.close(resolve));
+  }
+});
+
+test('the real Go daemon says what it is and sends no browser context', { skip: !binary }, async () => {
+  const hits = [];
+  const server = http.createServer((request, response) => {
+    hits.push(request.url);
+    response.statusCode = 204;
+    response.end();
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const client = new Client({ binary });
+  try {
+    const { port } = server.address();
+    assert.deepEqual(await client.hello(), { protocol: 2, capabilities: [] });
+    await assert.rejects(
+      client.get(`http://127.0.0.1:${port}/context`, { browserContext: { kind: 'fetch' } }),
+      (err) => err instanceof Unsupported && /speaks protocol 2 and does not apply browser contexts/.test(err.message),
+    );
+    // Nothing reached the server for it; the next request does.
+    assert.equal((await client.get(`http://127.0.0.1:${port}/plain`)).status, 204);
+    assert.deepEqual(hits, ['/plain']);
+  } finally {
+    client.close();
+    await new Promise((resolve) => server.close(resolve));
   }
 });

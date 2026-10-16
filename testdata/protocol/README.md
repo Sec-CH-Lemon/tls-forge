@@ -3,7 +3,9 @@
 `response.json`, `response-text.json`, `response-error.json` and
 `request.json` are three encoded `daemon.Response` values and one
 `daemon.Request`, as they travel between the Go daemon and the Python and Node
-clients. The responses pin both sides of the body contract — binary uses
+clients. `response-hello.json` is a daemon's answer to `hello`, and
+`response-hello-old.json` the answer a daemon older than control lines gives
+it, which both clients read as protocol 1. The responses pin both sides of the body contract — binary uses
 `bodyEncoding: "base64"`, while ordinary text keeps the old shape with no
 `bodyEncoding` field — and the shape every failure has: `error` set, the id
 intact, and `headers` and `cookies` null. A session whose jar holds nothing

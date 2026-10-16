@@ -1,9 +1,9 @@
 """What can go wrong, as types a caller can act on.
 
-Four, because there are four different things to do about them: fix the install,
-retry, give up on the request, or fix the call. Anything finer would be a
-taxonomy nobody branches on, but for the one that says the session is not the
-one the caller made: SessionReset, a TransportError.
+Five, because there are five different things to do about them: fix the install,
+retry, give up on the request, fix the call, or ask less of the transport.
+Anything finer would be a taxonomy nobody branches on, but for the one that says
+the session is not the one the caller made: SessionReset, a TransportError.
 """
 
 from __future__ import annotations
@@ -46,6 +46,15 @@ class RequestFailed(TLSForgeError):
     A refused connection, a DNS failure, a TLS error: the far end's doing, not
     the transport's. Distinct from TransportError because retrying this one can
     make sense and there is nothing wrong locally.
+    """
+
+
+class Unsupported(TLSForgeError):
+    """The transport cannot make the request as asked, and it was not sent.
+
+    It does not do what the request needs, as it says when asked with
+    Client.hello(), or it is older than the question. A newer tls-forge, or a
+    request that does not need it, is the fix.
     """
 
 

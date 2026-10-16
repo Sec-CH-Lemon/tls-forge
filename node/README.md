@@ -214,6 +214,8 @@ failure category:
   failure;
 - a `SessionReset` — the request was not sent, because the session it was made
   in has gone;
+- an `Unsupported` — the request was not sent, because the transport does not
+  do what it needs: a `browserContext`, which no tls-forge applies yet;
 - a `RangeError` — the request is longer than `MAX_REQUEST_BYTES`, 16 MiB as
   the transport reads it: JSON, a binary body in base64, and the newline. It is
   refused before it is queued, and the transport and its session are left as
@@ -231,6 +233,19 @@ answer cannot resolve a newer request.
 
 `onStderr` receives diagnostics such as dropped late responses. It is not a
 replacement for handling rejected request promises.
+
+## Asking what the transport is
+
+`await client.hello()` resolves to `{ protocol, capabilities }`: the protocol
+the transport speaks and what it can do that a client has to ask about,
+asked without a connection and once for the client's life. A tls-forge older
+than the question speaks protocol 1, and can do nothing it is asked about.
+
+A request with a `browserContext` is sent only to a transport whose
+capabilities include `browser_context`, as the field `browser`, and rejected
+with `Unsupported`, unsent, by any other; no tls-forge applies one yet. The
+first such request waits for the answer to `hello`, so a request made after it
+may go first.
 
 ## Binary resolution
 

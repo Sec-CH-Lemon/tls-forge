@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 type request struct {
@@ -26,9 +27,18 @@ type request struct {
 	SetCookie    []string          `json:"setCookie"`
 	Body         *string           `json:"body"`
 	BodyEncoding string            `json:"bodyEncoding"`
+	Control      *string           `json:"control"`
+	Browser      json.RawMessage   `json:"browser"`
+
+	// sent are the names of the fields the line had.
+	sent []string
 }
 
 var outputMu sync.Mutex
+
+// How many control lines and requests this process has read: what a client
+// sent, which a test of what it did not send reads back.
+var controls, requests int
 
 func main() {
 	// A copy named where.exe is used by the Node resolver tests. Keeping this in
@@ -71,10 +81,22 @@ func main() {
 	scanner.Buffer(make([]byte, 64*1024), 32*1024*1024)
 	for scanner.Scan() {
 		var req request
+		var fields map[string]json.RawMessage
 		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
 			emit(map[string]any{"id": 0, "error": "bad request"})
 			continue
 		}
+		_ = json.Unmarshal(scanner.Bytes(), &fields)
+		for name := range fields {
+			req.sent = append(req.sent, name)
+		}
+		slices.Sort(req.sent)
+		if req.Control != nil {
+			controls++
+			control(req)
+			continue
+		}
+		requests++
 
 		parsed, _ := url.Parse(req.URL)
 		switch parsed.Hostname() {
@@ -243,6 +265,58 @@ func main() {
 	}
 }
 
+// control answers a control line with what the transport is: as
+// TLSFORGE_TEST_PROTOCOL says, protocol 2 with TLSFORGE_TEST_CAPABILITIES when
+// it says nothing.
+func control(req request) {
+	blank := func(extra map[string]any) map[string]any {
+		out := map[string]any{"id": req.ID, "status": 0, "url": "", "body": "", "headers": nil, "cookies": nil}
+		for name, value := range extra {
+			out[name] = value
+		}
+		return out
+	}
+	fixture := func(name string) map[string]any {
+		var response map[string]any
+		data, err := os.ReadFile(filepath.Join(os.Getenv("TLSFORGE_PROTOCOL_FIXTURES"), name))
+		if err == nil {
+			err = json.Unmarshal(data, &response)
+		}
+		if err != nil {
+			return blank(map[string]any{"error": err.Error()})
+		}
+		response["id"] = req.ID
+		return response
+	}
+	switch os.Getenv("TLSFORGE_TEST_PROTOCOL") {
+	case "silent":
+	case "exit":
+		os.Exit(3)
+	case "1":
+		emit(blank(map[string]any{"error": "bad request: no url"}))
+	case "fixture":
+		emit(fixture("response-hello.json"))
+	case "fixture-old":
+		emit(fixture("response-hello-old.json"))
+	case "bad":
+		emit(blank(map[string]any{"protocol": "two"}))
+	case "bool":
+		emit(blank(map[string]any{"protocol": true}))
+	case "bad-capabilities":
+		emit(blank(map[string]any{"protocol": 2, "capabilities": []any{7}}))
+	case "no-capabilities":
+		emit(blank(map[string]any{"protocol": 2, "capabilities": "all"}))
+	case "low":
+		emit(blank(map[string]any{"protocol": 1}))
+	default:
+		extra := map[string]any{"protocol": 2}
+		if names := strings.Split(os.Getenv("TLSFORGE_TEST_CAPABILITIES"), ","); names[0] != "" {
+			extra["capabilities"] = slices.DeleteFunc(names, func(name string) bool { return name == "" })
+		}
+		emit(blank(extra))
+	}
+}
+
 func answer(req request) map[string]any {
 	headers := req.Headers
 	if headers == nil {
@@ -262,14 +336,19 @@ func answer(req request) map[string]any {
 	if set {
 		env["TLSFORGE_PROXY"] = proxy
 	}
+	// In characters, as the Python and Node fakes count a string: a body of
+	// "я" is one long, not two.
 	bodyLength := 0
 	if req.Body != nil {
-		bodyLength = len(*req.Body)
+		bodyLength = utf8.RuneCountInString(*req.Body)
 	}
+	var browser any
+	_ = json.Unmarshal(req.Browser, &browser)
 	body, _ := json.Marshal(map[string]any{
 		"argv": os.Args[1:], "env": env, "pid": os.Getpid(), "bodyLength": bodyLength,
 		"method": req.Method, "headers": headers,
 		"order": order, "cookies": cookies, "body": req.Body,
+		"browser": browser, "sent": req.sent, "controls": controls, "requests": requests,
 	})
 	return map[string]any{
 		"id": req.ID, "status": 200, "url": req.URL, "body": string(body),

@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from tlsforge import MAX_REQUEST_BYTES, Client, RequestFailed, TransportError
+from tlsforge import MAX_REQUEST_BYTES, Client, Hello, RequestFailed, TransportError, Unsupported
 
 
 class _BinaryHandler(BaseHTTPRequestHandler):
@@ -294,4 +294,37 @@ def test_the_real_go_daemon_reads_a_request_as_long_as_the_limit() -> None:
     finally:
         origin.shutdown()
         origin.server_close()
+        thread.join(timeout=2)
+
+
+def test_the_real_go_daemon_says_what_it_is_and_sends_no_browser_context() -> None:
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    hits = []
+
+    class _Counting(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+            hits.append(self.path)
+            self.send_response(204)
+            self.end_headers()
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _Counting)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with Client(binary=binary) as client:
+            assert client.hello() == Hello(2, ())
+            with pytest.raises(Unsupported, match="speaks protocol 2 and does not apply browser contexts"):
+                client.get(f"http://127.0.0.1:{server.server_port}/context", browser_context={"kind": "fetch"})
+            # Nothing reached the server for it; the next request does.
+            assert client.get(f"http://127.0.0.1:{server.server_port}/plain").status == 204
+        assert hits == ["/plain"]
+    finally:
+        server.shutdown()
+        server.server_close()
         thread.join(timeout=2)

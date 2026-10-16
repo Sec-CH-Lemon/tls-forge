@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from ._binary import resolve_binary
-from ._errors import RequestFailed, SessionReset, Timeout, TransportError
+from ._errors import RequestFailed, SessionReset, Timeout, TransportError, Unsupported
 
 DEFAULT_TIMEOUT = 45.0
 
@@ -94,6 +94,17 @@ class Response:
     def json(self, **kwargs: Any) -> Any:
         """The body parsed as JSON. Raises `json.JSONDecodeError` if it is not."""
         return json.loads(self.body, **kwargs)
+
+
+@dataclass(frozen=True)
+class Hello:
+    """What a transport is, as it says when asked: the protocol it speaks, and
+    what it can do that a client has to ask about before relying on it. One
+    older than the question speaks protocol 1 and can do nothing it is asked
+    about."""
+
+    protocol: int
+    capabilities: tuple[str, ...]
 
 
 class Client:
@@ -180,6 +191,10 @@ class Client:
         self._why = ""
         self._untold = False
 
+        # The transport's answer to hello, asked once: what a binary is does
+        # not change between its processes.
+        self._hello: Hello | None = None
+
         # A Popen that is merely garbage collected is not killed: CPython reaps
         # it later and warns, and the daemon goes on running. A scraper that
         # builds a client per site would leave one process behind per site. The
@@ -197,9 +212,13 @@ class Client:
         headers: Mapping[str, str] | None = None,
         order: Sequence[str] | None = None,
         cookies: Iterable[str] | None = None,
+        browser_context: Mapping[str, Any] | None = None,
     ) -> Response:
         """GET a URL."""
-        return self.request(url, method="GET", headers=headers, order=order, cookies=cookies)
+        return self.request(
+            url, method="GET", headers=headers, order=order, cookies=cookies,
+            browser_context=browser_context,
+        )
 
     def post(
         self,
@@ -209,11 +228,40 @@ class Client:
         headers: Mapping[str, str] | None = None,
         order: Sequence[str] | None = None,
         cookies: Iterable[str] | None = None,
+        browser_context: Mapping[str, Any] | None = None,
     ) -> Response:
         """POST a body."""
         return self.request(
-            url, method="POST", body=body, headers=headers, order=order, cookies=cookies
+            url, method="POST", body=body, headers=headers, order=order, cookies=cookies,
+            browser_context=browser_context,
         )
+
+    def hello(self) -> Hello:
+        """What the transport is: the protocol it speaks and what it can do,
+        asked without a connection, and once. One older than the question speaks
+        protocol 1, and can do nothing a client has to ask about.
+
+        :raises TransportError: the transport would not start, died, or spoke
+            nonsense; asked again next time.
+        :raises Timeout: the deadline passed with no answer; asked again next
+            time.
+        """
+        if self._hello is not None:
+            return self._hello
+        deadline = time.monotonic() + self._timeout
+        if not self._lock.acquire(timeout=self._timeout):
+            raise Timeout(
+                f"tlsforge: hello timed out after {self._timeout}s waiting for the request before it, "
+                "and was not asked"
+            )
+        try:
+            self._reap()
+            self._sequence += 1
+            payload = {"id": self._sequence, "control": "hello"}
+            self._hello = _hello_of(self._exchange(payload["id"], _encode_request(payload), deadline))
+        finally:
+            self._lock.release()
+        return self._hello
 
     def request(
         self,
@@ -224,6 +272,7 @@ class Client:
         order: Sequence[str] | None = None,
         body: str | bytes | None = None,
         cookies: Iterable[str] | None = None,
+        browser_context: Mapping[str, Any] | None = None,
     ) -> Response:
         """Make a request.
 
@@ -233,13 +282,25 @@ class Client:
         :param order: the order of the headers *you* send. Without it they go
             last, sorted.
         :param cookies: ``name=value`` pairs added to the jar before the request.
+        :param browser_context: the browser context the request is made in, sent
+            only to a transport that says, when asked with :meth:`hello`, that it
+            applies one.
         :raises RequestFailed: the request ran and failed — refused, DNS, TLS.
         :raises TransportError: the transport would not start, died, or spoke
             nonsense. The client stays usable.
         :raises Timeout: the deadline passed with no answer.
+        :raises Unsupported: a browser context, to a transport that does not
+            apply one; the request was not sent.
         """
         if not url:
             raise ValueError("tlsforge: request needs a url")
+        if browser_context is not None:
+            hello = self.hello()
+            if "browser_context" not in hello.capabilities:
+                raise Unsupported(
+                    f"tlsforge: the tls-forge at {self._binary} speaks protocol {hello.protocol} "
+                    "and does not apply browser contexts; the request was not sent"
+                )
 
         # The call's deadline, from now: the time a request waits for the one
         # before it is part of it.
@@ -251,9 +312,26 @@ class Client:
                 "and was not sent"
             )
         try:
-            return self._request(made_in, deadline, url, method, headers, order, body, cookies)
+            return self._request(
+                made_in, deadline, url, method, headers, order, body, cookies, browser_context
+            )
         finally:
             self._lock.release()
+
+    def _reap(self) -> None:
+        """Note, with the lock held, a transport that went while nobody was
+        asking it anything: it took the session with it, and the next request
+        is told rather than written to a pipe nobody reads."""
+        with self._state:
+            if self._closed:
+                raise TransportError(_CLOSED)
+            gone = self._process if self._process is not None and self._process.poll() is not None else None
+            if gone is not None:
+                self._process = None
+                self._live.clear()
+        if gone is not None:
+            _kill(gone)
+            self._lose(f"it exited (code {gone.returncode})")
 
     def _request(
         self,
@@ -265,21 +343,10 @@ class Client:
         order: Sequence[str] | None,
         body: str | bytes | None,
         cookies: Iterable[str] | None,
+        browser_context: Mapping[str, Any] | None,
     ) -> Response:
         """The request, made with the lock held."""
-        with self._state:
-            if self._closed:
-                raise TransportError(_CLOSED)
-            gone = self._process if self._process is not None and self._process.poll() is not None else None
-            if gone is not None:
-                self._process = None
-                self._live.clear()
-        if gone is not None:
-            # It went while nobody was asking it anything, and took the session
-            # with it: this request is told rather than written to a pipe
-            # nobody reads.
-            _kill(gone)
-            self._lose(f"it exited (code {gone.returncode})")
+        self._reap()
         self._sequence += 1
         payload: dict[str, Any] = {"id": self._sequence, "method": method, "url": url}
         if headers:
@@ -297,6 +364,8 @@ class Client:
                 payload["body"] = body
         if cookies:
             payload["setCookie"] = list(cookies)
+        if browser_context is not None:
+            payload["browser"] = dict(browser_context)
         line = _encode_request(payload)
         if self._untold or made_in != self._losses:
             # Told, and not sent: made in a session that has gone, it would
@@ -631,6 +700,27 @@ def _decode(line: str) -> dict[str, Any]:
         # `null`, `7` and `[]` are all valid JSON and none can carry an id.
         raise TransportError(f"tlsforge: bad response: expected an object, got {line[:40]!r}")
     return response
+
+
+def _hello_of(response: dict[str, Any]) -> Hello:
+    """What a transport is, as its answer to hello says. One older than control
+    lines answers it as a request with no url: protocol 1, nothing it can do."""
+    if response.get("error") is not None:
+        return Hello(1, ())
+    protocol = response.get("protocol")
+    capabilities = response.get("capabilities", [])
+    if (
+        not isinstance(protocol, int)
+        or protocol < 2
+        or not isinstance(capabilities, list)
+        or not all(isinstance(name, str) for name in capabilities)
+    ):
+        said = json.dumps({"protocol": protocol, "capabilities": capabilities}, separators=(",", ":"))
+        raise TransportError(
+            "tlsforge: bad response: hello must give a protocol from 2 and a list of capabilities, "
+            f"not {said}"
+        )
+    return Hello(protocol, tuple(capabilities))
 
 
 def _encode_request(payload: dict[str, Any]) -> str:

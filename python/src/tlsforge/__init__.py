@@ -14,7 +14,7 @@ and how it is verified.
 from __future__ import annotations
 
 from ._binary import ENV_VAR, bundled_binary, exe_name, resolve_binary
-from ._client import DEFAULT_TIMEOUT, MAX_REQUEST_BYTES, Client, Response
+from ._client import DEFAULT_TIMEOUT, MAX_REQUEST_BYTES, Client, Hello, Response
 from ._errors import (
     BinaryNotFound,
     RequestFailed,
@@ -22,10 +22,12 @@ from ._errors import (
     TLSForgeError,
     Timeout,
     TransportError,
+    Unsupported,
 )
 
 __all__ = [
     "Client",
+    "Hello",
     "Response",
     "DEFAULT_TIMEOUT",
     "MAX_REQUEST_BYTES",
@@ -35,6 +37,7 @@ __all__ = [
     "SessionReset",
     "RequestFailed",
     "Timeout",
+    "Unsupported",
     "resolve_binary",
     "bundled_binary",
     "exe_name",

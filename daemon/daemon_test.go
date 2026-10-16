@@ -682,3 +682,47 @@ func TestServeContextCancelsTheRequestInFlightAndAnswersIt(t *testing.T) {
 	_ = ours.Close()
 	goroutinesBackTo(t, before)
 }
+
+func TestHelloSaysWhatTheDaemonIsWithoutAConnection(t *testing.T) {
+	client := &fakeClient{}
+	got := handle(context.Background(), `{"id":3,"control":"hello"}`, client)
+	if got.ID != 3 || got.Error != "" || got.Protocol != Protocol || got.Capabilities != nil || client.got != nil {
+		t.Errorf("hello: %+v, a request %v", got, client.got)
+	}
+	// What it can do is a copy: an answer cannot change what the next says.
+	capabilities = []string{"something"}
+	defer func() { capabilities = []string{} }()
+	got = handle(context.Background(), `{"id":4,"control":"hello"}`, client)
+	got.Capabilities[0] = "changed"
+	if capabilities[0] != "something" {
+		t.Error("an answer shares the daemon's capabilities")
+	}
+	for line, want := range map[string]string{
+		`{"id":5,"control":"hello","url":"https://example.com/"}`: "a control line is not a request, and has no url",
+		`{"id":6,"control":"goodbye"}`:                            `unknown control "goodbye"`,
+	} {
+		got := handle(context.Background(), line, client)
+		if got.Protocol != 0 || !strings.Contains(got.Error, want) || client.got != nil {
+			t.Errorf("%s: %+v, a request %v", line, got, client.got)
+		}
+	}
+}
+
+func TestABrowserContextIsRefusedRatherThanIgnored(t *testing.T) {
+	// A daemon that applies no browser context sends none: a request that
+	// carries one is refused, not sent as though it did not.
+	client := &fakeClient{}
+	got := handle(context.Background(),
+		`{"id":7,"url":"https://example.com/","browser":{"kind":"fetch"}}`, client)
+	if got.ID != 7 || !strings.Contains(got.Error, "does not apply browser contexts") || client.got != nil {
+		t.Errorf("a browser context: %+v, a request %v", got, client.got)
+	}
+	// None given, or null, is none.
+	for _, line := range []string{`{"id":8,"url":"https://example.com/"}`,
+		`{"id":8,"url":"https://example.com/","browser":null}`} {
+		if got := handle(context.Background(), line, client); got.Error != "" || client.got == nil {
+			t.Errorf("%s: %+v", line, got)
+		}
+		client.got = nil
+	}
+}
