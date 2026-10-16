@@ -57,16 +57,26 @@ func askOnly(t *testing.T, services ...addressService) {
 	ipServices = services
 }
 
+// startedFlags are fetch's flags as a run has them once it has begun: parsed from
+// args, and its profile resolved.
+func startedFlags(t *testing.T, args ...string) clientFlags {
+	t.Helper()
+	fs := newFlagSet("fetch", newPrinter(io.Discard))
+	flags := addClientFlags(fs)
+	if err := parse(fs, args); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if _, err := flags.resolve(); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	return flags
+}
+
 // insecureFlags are a run's flags, set to talk to a stand-in's self-signed
 // certificate.
 func insecureFlags(t *testing.T) clientFlags {
 	t.Helper()
-	fs := newFlagSet("fetch", newPrinter(io.Discard))
-	flags := addClientFlags(fs)
-	if err := parse(fs, []string{"--insecure"}); err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	return flags
+	return startedFlags(t, "--insecure")
 }
 
 // cookiesSeenByIPService stands in for the address service and keeps the Cookie

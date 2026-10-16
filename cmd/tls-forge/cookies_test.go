@@ -473,12 +473,8 @@ func TestSaveSessionWritesTheWholeJar(t *testing.T) {
 	// its scope, and a session cookie without an expiry, as the server set it.
 	fakeClock(t)
 	server := cookieEcho(t)
-	fs := newFlagSet("fetch", newPrinter(io.Discard))
-	flags := addClientFlags(fs)
 	path := filepath.Join(t.TempDir(), "warm.json")
-	if err := parse(fs, []string{"--insecure", "--save-cookies", path}); err != nil {
-		t.Fatalf("parse: %v", err)
-	}
+	flags := startedFlags(t, "--insecure", "--save-cookies", path)
 	client, err := flags.client()
 	if err != nil {
 		t.Fatalf("client: %v", err)

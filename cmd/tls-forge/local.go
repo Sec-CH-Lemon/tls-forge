@@ -34,12 +34,10 @@ func (f clientFlags) wear(errOut *printer) {
 //
 // Left open rather than printed late. What fetch adds needs a client to ask,
 // and a run that fails before it has one should still have said what it was
-// wearing.
+// wearing. The profile is the one the run resolved, by the name it was asked
+// for.
 func (f clientFlags) wearOpen(errOut *printer) *identityReport {
-	if !f.chose("profile") {
-		*f.profile = defaultProfileName()
-	}
-	return openReport(errOut, *f.profile)
+	return openReport(errOut, *f.profile, f.run.profile)
 }
 
 // defaultProfileName is what a run wears when nobody names a profile: the
@@ -66,8 +64,8 @@ type identityReport struct {
 	open   bool
 }
 
-// openReport says which browser this run is pretending to be, and leaves the
-// closing rule to whoever asked.
+// openReport says which browser this run is pretending to be, p, which it was
+// asked for as name, and leaves the closing rule to whoever asked.
 //
 // Every time, on stderr, because that is the one thing this program does and
 // the one thing otherwise invisible: a run wearing a profile measured six
@@ -75,17 +73,8 @@ type identityReport struct {
 // because "which profile" is only half an answer when several can resolve to
 // one name, and the user-agent in full because it is the part a server reads
 // and the part a person can check at a glance.
-func openReport(errOut *printer, name string) *identityReport {
-	said := &identityReport{errOut: errOut}
-	p, err := profile.Get(name)
-	if err != nil {
-		// The client is about to fail with a message that says so properly, and
-		// two complaints about one mistake is one too many. Never opened, so
-		// nothing added to it later is printed either.
-		return said
-	}
-
-	said.open = true
+func openReport(errOut *printer, name string, p *profile.Profile) *identityReport {
+	said := &identityReport{errOut: errOut, open: true}
 	errOut.println(identityRule)
 	said.field("profile", p.Name+" · "+origin(p))
 	said.field("browser", browserOf(p))

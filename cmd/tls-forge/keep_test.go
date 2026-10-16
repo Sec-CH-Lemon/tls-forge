@@ -381,14 +381,3 @@ func TestKeepRequestReportsAFileItCannotWrite(t *testing.T) {
 		}
 	}
 }
-
-func TestProfileName(t *testing.T) {
-	// The name a profile resolves to, which a log read next month can still be
-	// held to. A name that resolves to nothing is all there is to say.
-	if got := profileName("chrome"); got == "chrome" || !strings.HasPrefix(got, "chrome_") {
-		t.Errorf("profileName(chrome) = %q, want the Chrome it resolves to", got)
-	}
-	if got := profileName("netscape_4"); got != "netscape_4" {
-		t.Errorf("profileName(netscape_4) = %q", got)
-	}
-}

@@ -486,12 +486,7 @@ func TestListStopsWhenItCannotKeepWhatItFetched(t *testing.T) {
 func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 	// One per proxy, not one per worker: the proxy is the identity, and two
 	// pages through one exit IP should share a jar.
-	fs := newFlagSet("fetch", newPrinter(os.Stdout))
-	flags := addClientFlags(fs)
-	if err := parse(fs, nil); err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-
+	flags := startedFlags(t)
 	p := newPool(flags, "")
 	defer p.close()
 
@@ -721,12 +716,7 @@ func TestListKeepsNoBodiesInMemory(t *testing.T) {
 	// what they need. Kept whole, 200 MB of pages measured 353 MB of resident
 	// memory against 117 MB once the bodies went.
 	server := pathServer(t)
-	fs := newFlagSet("fetch", newPrinter(io.Discard))
-	flags := addClientFlags(fs)
-	if err := parse(fs, nil); err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	clients := newPool(flags, "")
+	clients := newPool(startedFlags(t), "")
 	defer clients.close()
 
 	var sink strings.Builder
@@ -769,12 +759,7 @@ func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
 		_, _ = w.Write([]byte("page"))
 	}))
 	t.Cleanup(server.Close)
-	fs := newFlagSet("fetch", newPrinter(io.Discard))
-	flags := addClientFlags(fs)
-	if err := parse(fs, nil); err != nil {
-		t.Fatal(err)
-	}
-	clients := newPool(flags, "")
+	clients := newPool(startedFlags(t), "")
 	defer clients.close()
 
 	jobs := make([]job, 100)

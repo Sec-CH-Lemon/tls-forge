@@ -458,6 +458,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A run resolved its profile once for what it said and again for each client
+  it made. A list that goes several ways makes a client for each as it gets
+  to it, so a client made after `capture --install`, or after the file of a
+  `--profile PATH` changed, wore the new profile while the run, its log and
+  its kept requests said it wore the old one. `fetch`, `proxy` and `daemon`
+  resolve it once, before they start, and every client wears that one.
 - **The echo server bounds what a connection can hold, and for how long.** A
   handshake, a request or an HTTP/2 frame sent a byte at a time held its
   connection for as long as each byte came within 30 seconds of the last, an

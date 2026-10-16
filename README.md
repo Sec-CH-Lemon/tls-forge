@@ -253,7 +253,9 @@ When no profile is selected, the network commands (`fetch`, `proxy` and
 the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`
 family so it can detect drift instead of comparing a fresh local measurement
 with itself. Use `tls-forge profiles` to see the exact names available on the
-machine.
+machine. A command resolves its profile once, when it starts, and wears that
+one to the end: a client it makes later, for a proxy a list reaches last, does
+not pick up a profile installed, or a `--profile` file changed, meanwhile.
 
 ### `fetch`
 

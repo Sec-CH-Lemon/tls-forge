@@ -9,6 +9,16 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
+// resolved is the profile a name resolves to.
+func resolved(t *testing.T, name string) *profile.Profile {
+	t.Helper()
+	p, err := profile.Get(name)
+	if err != nil {
+		t.Fatalf("resolving %s: %v", name, err)
+	}
+	return p
+}
+
 // installed captures the stand-in browser into a profile directory of this
 // test's own, which is what having measured this machine looks like.
 func installed(t *testing.T) {
@@ -96,7 +106,7 @@ func TestTheListingAgreesWithWhatARunWears(t *testing.T) {
 func TestTheReportSaysWhatSomebodyNeedsToKnow(t *testing.T) {
 	keepProfilesIn(t)
 	said := &strings.Builder{}
-	openReport(newPrinter(said), "chrome_151_linux").close()
+	openReport(newPrinter(said), "chrome_151_linux", resolved(t, "chrome_151_linux")).close()
 
 	// Which profile, which browser, which version, which platform, where the
 	// file is, and the user-agent a server will actually read.
@@ -120,7 +130,7 @@ func TestTheReportSaysWhoseTCPIPARunHas(t *testing.T) {
 		elsewhere = "windows"
 	}
 	said := &strings.Builder{}
-	openReport(newPrinter(said), "chrome_151_"+elsewhere).close()
+	openReport(newPrinter(said), "chrome_151_"+elsewhere, resolved(t, "chrome_151_"+elsewhere)).close()
 	if !strings.Contains(said.String(), "tcp/ip") ||
 		!strings.Contains(said.String(), "the profile is "+platformLabel(elsewhere)+"'s") {
 		t.Errorf("the report does not say whose TCP/IP the run has:\n%s", said)
@@ -128,7 +138,7 @@ func TestTheReportSaysWhoseTCPIPARunHas(t *testing.T) {
 
 	// This machine's own: nothing to say.
 	said.Reset()
-	openReport(newPrinter(said), "chrome_151_"+profile.HostPlatform()).close()
+	openReport(newPrinter(said), "chrome_151_"+profile.HostPlatform(), resolved(t, "chrome_151_"+profile.HostPlatform())).close()
 	if strings.Contains(said.String(), "tcp/ip") {
 		t.Errorf("the report warned about a profile of this machine's platform:\n%s", said)
 	}
@@ -182,7 +192,7 @@ func TestTheReportNamesTheFileAProfileCameFrom(t *testing.T) {
 	// and one name can resolve to several files.
 	installed(t)
 	said := &strings.Builder{}
-	openReport(newPrinter(said), localName).close()
+	openReport(newPrinter(said), localName, resolved(t, localName)).close()
 
 	kept := filepath.Join(profile.Default.Dir(), localName, profile.HostPlatform()+".json")
 	if !strings.Contains(said.String(), kept) {
@@ -193,24 +203,10 @@ func TestTheReportNamesTheFileAProfileCameFrom(t *testing.T) {
 	}
 }
 
-func TestTheReportIsSilentForAProfileThatDoesNotResolve(t *testing.T) {
-	// The client is about to fail with a message that says so properly, and two
-	// complaints about one mistake is one too many.
-	said := &strings.Builder{}
-	identity := openReport(newPrinter(said), "no-such-profile")
-	// Nor does anything added afterwards turn up as a line with no report
-	// around it.
-	identity.field("exit-ip", "203.0.113.7")
-	identity.close()
-	if said.String() != "" {
-		t.Errorf("report = %q, want silence", said)
-	}
-}
-
 func TestTheReportStaysOpenForOneMoreLine(t *testing.T) {
 	keepProfilesIn(t)
 	said := &strings.Builder{}
-	identity := openReport(newPrinter(said), "chrome_151_linux")
+	identity := openReport(newPrinter(said), "chrome_151_linux", resolved(t, "chrome_151_linux"))
 	if strings.Count(said.String(), identityRule) != 1 {
 		t.Fatalf("the report was closed before anyone asked:\n%s", said)
 	}
@@ -249,7 +245,7 @@ func TestAProfileGivenAsAPathSaysSo(t *testing.T) {
 	}
 
 	said := &strings.Builder{}
-	openReport(newPrinter(said), elsewhere).close()
+	openReport(newPrinter(said), elsewhere, resolved(t, elsewhere)).close()
 	if !strings.Contains(said.String(), "read from the file named") {
 		t.Errorf("the report does not say where it came from:\n%s", said)
 	}

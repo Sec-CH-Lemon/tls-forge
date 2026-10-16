@@ -84,6 +84,20 @@ type clientFlags struct {
 	// log is what every client made with these flags writes down what it does
 	// to, or nil.
 	log *slog.Logger
+
+	// run is what the run settles once and its parts share.
+	run *runContext
+}
+
+// runContext is what a run settles once, before it starts, and every part of
+// it then shares: the clients it makes, whenever it makes them, and what it
+// says and writes about itself.
+type runContext struct {
+	// profile is the profile the run wears. Resolved once: a name is read off
+	// the disk each time it is looked up, so a client made late in a run, for
+	// a proxy the list reached last, would otherwise wear whatever a capture
+	// installed meanwhile, while the run said it wore what it began with.
+	profile *profile.Profile
 }
 
 // addScopedClientFlags keeps unsupported flags out of --help. Accepting
@@ -96,6 +110,7 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 		cookieSet:   new(string),
 		saveCookies: new(string),
 		chose:       fs.Changed,
+		run:         &runContext{},
 	}
 	if cookieInput {
 		// -b is curl's letter for handing a request a cookie.
@@ -171,13 +186,25 @@ func (f clientFlags) settle() (*profile.Profile, error) {
 	if *f.timeout <= 0 {
 		return nil, fmt.Errorf("%w: --timeout is %v, and has to be more than nothing", errUsage, *f.timeout)
 	}
+	worn, err := f.resolve()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errUsage, err)
+	}
+	return worn, nil
+}
+
+// resolve settles the profile the run wears, once, for everything that comes
+// after: the one named, else this machine's measured browser when there is
+// one, else the default that ships.
+func (f clientFlags) resolve() (*profile.Profile, error) {
 	if !f.chose("profile") {
 		*f.profile = defaultProfileName()
 	}
 	worn, err := profile.Get(*f.profile)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", errUsage, err)
+		return nil, err
 	}
+	f.run.profile = worn
 	return worn, nil
 }
 
@@ -351,7 +378,7 @@ func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 	extra ...tlsforge.Option,
 ) (*tlsforge.Client, error) {
 	opts := []tlsforge.Option{
-		tlsforge.WithProfile(*f.profile),
+		tlsforge.WithProfileValue(f.run.profile),
 		tlsforge.WithTimeout(*f.timeout),
 	}
 	if len(warmed) > 0 {
@@ -579,7 +606,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		}
 	}()
 	common.log = runLog.logger()
-	runLog.say(slog.LevelInfo, "run", runAttrs(about, "version", version, "profile", profileName(*common.profile),
+	runLog.say(slog.LevelInfo, "run", runAttrs(about, "version", version, "profile", worn.Name,
 		"output", *output, "wait_for", *waitFor, "wait_for_element", *waitForElement,
 		"reuse_connection", *again.reuse, "log_level", strings.ToLower(*logging.level))...)
 	trace, err := openTrace(*again.trace, "fetch", *common.proxy, about)
@@ -715,7 +742,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		retry:   *again.retry, repeat: *again.repeat,
 		keep: *output,
 		about: requestAbout{
-			method: *method, profile: profileName(*common.profile),
+			method: *method, profile: worn.Name,
 			requests: requests, runs: *again.repeat,
 		},
 		exits: exits, names: &resolver{},
@@ -903,15 +930,6 @@ func pagesWithout(count, requests int, what string) error {
 	return fmt.Errorf("fetch: %d of %d pages have no %s", count, requests, what)
 }
 
-// profileName is the profile a run wears, by the name it resolves to: "chrome"
-// is whichever Chrome is newest, and a log read next month should say which.
-func profileName(name string) string {
-	if p, err := profile.Get(name); err == nil {
-		return p.Name
-	}
-	return name
-}
-
 // sameWay is the proxy every request of a run goes through, when they all go
 // the same way: through one proxy, or through none.
 func sameWay(jobs []job, fallback string) (proxy string, same bool) {
@@ -1010,6 +1028,11 @@ func runDaemon(ctx context.Context, args []string, out, errOut *printer) error {
 		return err
 	}
 	if err := requireNoArgs(fs); err != nil {
+		return err
+	}
+	// Not settle: a profile there is none of ends the daemon as the client it
+	// cannot make does, with 1, which the packages that start it read as such.
+	if _, err := common.resolve(); err != nil {
 		return err
 	}
 
