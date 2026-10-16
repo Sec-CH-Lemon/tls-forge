@@ -244,7 +244,11 @@ func sessionFile(path string, set cookie.Set) ([]byte, error) {
 		return nil, fmt.Errorf("tlsforge: reading existing sessions from %s: %w", path, err)
 	}
 	file.Add(set)
-	return file.Encode(), nil
+	encoded, err := file.Encode()
+	if err != nil {
+		return nil, fmt.Errorf("tlsforge: writing the session to %s: %w", path, err)
+	}
+	return encoded, nil
 }
 
 // netscapeFile says a session is written to path as a Netscape cookie file: a

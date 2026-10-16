@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // The Netscape cookie file, better known as cookies.txt.
@@ -93,9 +92,10 @@ func loadNetscape(body string) (*File, error) {
 			HTTPOnly: httpOnly,
 		}
 		// Zero is how this format spells a session cookie, and a session cookie
-		// has no date rather than one in 1970.
-		if expires > 0 {
-			c.Expires = time.Unix(expires, 0).UTC()
+		// has no date rather than one in 1970. A negative one is a date in the
+		// past, and the cookie has expired.
+		if expires != 0 {
+			c.Expires = unixExpiry(expires)
 		}
 		set.Cookies = append(set.Cookies, c)
 	}

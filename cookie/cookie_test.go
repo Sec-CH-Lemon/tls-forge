@@ -146,11 +146,11 @@ func TestLoadABrowserExportWithAnRFC3339Expiry(t *testing.T) {
 }
 
 func TestEncodeLeavesOutAWarmingDateThatWasNeverSet(t *testing.T) {
-	data := (&File{Sets: []Set{{ID: "a"}}}).Encode()
+	data := mustEncode(t, &File{Sets: []Set{{ID: "a"}}})
 	if strings.Contains(string(data), "warmed") {
 		t.Errorf("a set that was never dated carries one:\n%s", data)
 	}
-	dated := (&File{Sets: []Set{{ID: "a", Warmed: time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)}}}).Encode()
+	dated := mustEncode(t, &File{Sets: []Set{{ID: "a", Warmed: time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)}}})
 	if !strings.Contains(string(dated), "2030-01-01") {
 		t.Errorf("a real warming date was dropped:\n%s", dated)
 	}
@@ -256,7 +256,7 @@ func TestEncodeLeavesOutAnExpiryThatWasNeverSet(t *testing.T) {
 		{Name: "session", Value: "x"},
 		{Name: "dated", Value: "y", Expires: time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)},
 	}}}}
-	data := file.Encode()
+	data := mustEncode(t, file)
 	if strings.Contains(string(data), "0001-01-01") {
 		t.Errorf("a session cookie was given a date:\n%s", data)
 	}
@@ -278,7 +278,7 @@ func TestEncodeLeavesOutAnExpiryThatWasNeverSet(t *testing.T) {
 }
 
 func TestEncodeIsValidJSON(t *testing.T) {
-	data := (&File{Sets: []Set{{ID: "a", Cookies: []Cookie{{Name: "n", Value: "v"}}}}}).Encode()
+	data := mustEncode(t, &File{Sets: []Set{{ID: "a", Cookies: []Cookie{{Name: "n", Value: "v"}}}}})
 	var any map[string]any
 	if err := json.Unmarshal(data, &any); err != nil {
 		t.Fatalf("what was written is not JSON: %v", err)
@@ -313,7 +313,7 @@ func TestAFileKeepsWhichCookiesAreTheirHostsAlone(t *testing.T) {
 		{Name: "host", Value: "1", Domain: "example.com", HostOnly: true, SameSite: "lax"},
 		{Name: "domain", Value: "2", Domain: "example.com", SameSite: "none"},
 	}}}}
-	data := file.Encode()
+	data := mustEncode(t, file)
 	if !strings.Contains(string(data), `"version": 2`) || !strings.Contains(string(data), `"host_only": true`) ||
 		!strings.Contains(string(data), `"same_site": "lax"`) {
 		t.Fatalf("the scope or the SameSite was not written:\n%s", data)
@@ -345,7 +345,7 @@ func TestAnOlderFileSaysItDidNotKeepScope(t *testing.T) {
 		t.Errorf("version 1: unscoped %v, cookie %+v", old.Unscoped(), old.Sets[0].Cookies[0])
 	}
 	// Written again, it is this version, and says nothing of the sort.
-	again, err := Load(old.Encode())
+	again, err := Load(mustEncode(t, old))
 	if err != nil || again.Unscoped() || again.Version != currentVersion {
 		t.Errorf("rewritten: %v, unscoped %v, version %d", err, again.Unscoped(), again.Version)
 	}
@@ -386,4 +386,71 @@ func TestABrowserExportKeepsScopeLifetimeAndSameSite(t *testing.T) {
 				got[i].Name, got[i].HostOnly, got[i].Expires, got[i].SameSite, want.hostOnly, want.session, want.sameSite)
 		}
 	}
+}
+
+func mustEncode(t *testing.T, f *File) []byte {
+	t.Helper()
+	data, err := f.Encode()
+	if err != nil {
+		t.Fatalf("Encode: %v", err)
+	}
+	return data
+}
+
+func TestEncodeRefusesADateItCannotWrite(t *testing.T) {
+	// It used to write an empty document for this, which a caller then wrote
+	// over a file of good sessions.
+	far := time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC)
+	for name, file := range map[string]*File{
+		"a cookie's expiry": {Sets: []Set{{ID: "a", Cookies: []Cookie{{Name: "n", Value: "v", Expires: far}}}}},
+		"a set's warming":   {Sets: []Set{{ID: "a", Warmed: far}}},
+	} {
+		data, err := file.Encode()
+		if err == nil || data != nil || !strings.Contains(err.Error(), "cookie:") {
+			t.Errorf("%s in the year 10000: %q, %v; want an error and nothing to write", name, data, err)
+		}
+	}
+}
+
+func TestADateFromAFileIsOneTheFormatCanWrite(t *testing.T) {
+	// Read in, a date beyond what RFC 3339 can write is the nearest one it can,
+	// and the file can be written back.
+	netscape, err := Load([]byte(strings.Join([]string{
+		"example.com\tFALSE\t/\tFALSE\t253402300800\tyear10000\t1",
+		"example.com\tFALSE\t/\tFALSE\t9223372036854775807\tlargest\t2",
+		"example.com\tFALSE\t/\tFALSE\t-9223372036854775808\tsmallest\t3",
+		"example.com\tFALSE\t/\tFALSE\t-1\tnegative\t4",
+		"example.com\tFALSE\t/\tFALSE\t253402300799\tlast\t5",
+	}, "\n")))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	for _, c := range netscape.Sets[0].Cookies {
+		want := map[string]time.Time{
+			"year10000": latestExpiry, "largest": latestExpiry, "smallest": earliestExpiry,
+			"negative": time.Unix(-1, 0).UTC(), "last": latestExpiry,
+		}[c.Name]
+		if !c.Expires.Equal(want) {
+			t.Errorf("%s: expires %v, want %v", c.Name, c.Expires, want)
+		}
+	}
+	// A negative date is in the past: the cookie has expired, not become a
+	// session cookie.
+	if live := netscape.Sets[0].Live(time.Now()); len(live.Cookies) != 3 {
+		t.Errorf("%d live cookies, want the three dated after now", len(live.Cookies))
+	}
+	mustEncode(t, netscape)
+
+	browser, err := Load([]byte(`[{"name":"far","value":"1","expirationDate":1e19},` +
+		`{"name":"before","value":"2","expirationDate":-1e19},` +
+		`{"name":"fraction","value":"3","expirationDate":1893553445.25}]`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	got := browser.Sets[0].Cookies
+	if !got[0].Expires.Equal(latestExpiry) || !got[1].Expires.Equal(earliestExpiry) ||
+		!got[2].Expires.Equal(time.Unix(1893553445, 250_000_000).UTC()) {
+		t.Errorf("browser export dates: %v, %v, %v", got[0].Expires, got[1].Expires, got[2].Expires)
+	}
+	mustEncode(t, browser)
 }

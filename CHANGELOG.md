@@ -297,6 +297,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- `cookie.File.Encode` returns `([]byte, error)`: it fails rather than write
+  less than it was given.
 - `cookie.Set.EncodeNetscape` writes a cookie's include-subdomains column from
   `HostOnly` rather than from a leading dot in `Domain`: a cookie is its
   domain's unless it says it is its host's alone, and a domain's cookie is
@@ -388,6 +390,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A file of sessions could be replaced by a single newline. A cookie dated
+  after the year 9999, which a Netscape file can say and a browser export
+  can write as a number, made the encoder write an empty document without an
+  error, and `--save-cookies` wrote it over the file. A date read from a file
+  is now kept within what the format can write, the latest or the earliest
+  it can say; `cookie.File.Encode` returns an error for a date it cannot hold,
+  and nothing is written when it does. A negative expiry in a Netscape file is
+  a date in the past and the cookie has expired, rather than a session cookie.
 - `--save-cookies` with a `.txt` file and a list through more than one proxy
   kept only the last proxy's session, each replacing the one before, while
   the count said every cookie was saved. Such a run is now refused before

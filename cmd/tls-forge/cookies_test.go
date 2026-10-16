@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/cookie"
 )
@@ -687,5 +688,25 @@ func TestNetscapeFile(t *testing.T) {
 		if got := netscapeFile(path); got != want {
 			t.Errorf("netscapeFile(%q) = %v, want %v", path, got, want)
 		}
+	}
+}
+
+func TestASessionThatCannotBeWrittenLeavesTheFileAsItWas(t *testing.T) {
+	// The encoder used to write an empty document for a date it could not hold,
+	// and the file of sessions it was added to was replaced with a newline.
+	path := filepath.Join(t.TempDir(), "warm.json")
+	good := `{"version":2,"sets":[{"id":"kept","cookies":[{"name":"s","value":"1"}]}]}` + "\n"
+	if err := os.WriteFile(path, []byte(good), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	set := cookie.Set{ID: "new", Cookies: []cookie.Cookie{
+		{Name: "far", Value: "1", Expires: time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC)},
+	}}
+	data, err := sessionFile(path, set)
+	if err == nil || data != nil || !strings.Contains(err.Error(), "writing the session to "+path) {
+		t.Fatalf("sessionFile = %q, %v; want an error and nothing to write", data, err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != good {
+		t.Errorf("the file of sessions was changed: %q", got)
 	}
 }

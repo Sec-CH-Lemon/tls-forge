@@ -110,11 +110,42 @@ func (b browserCookie) cookie() Cookie {
 		c.Expires = *b.Expires
 	case b.ExpirationDate != nil:
 		// Seconds since the epoch, with a fraction, which is how a browser
-		// writes an expiry.
-		seconds, fraction := int64(*b.ExpirationDate), *b.ExpirationDate-float64(int64(*b.ExpirationDate))
-		c.Expires = time.Unix(seconds, int64(fraction*float64(time.Second))).UTC()
+		// writes an expiry. Compared as a number before it becomes a time: a
+		// float beyond what an int64 holds converts to whatever the processor
+		// makes of it.
+		switch date := *b.ExpirationDate; {
+		case date >= float64(latestExpiry.Unix()):
+			c.Expires = latestExpiry
+		case date <= float64(earliestExpiry.Unix()):
+			c.Expires = earliestExpiry
+		default:
+			seconds := int64(date)
+			c.Expires = time.Unix(seconds, int64((date-float64(seconds))*float64(time.Second))).UTC()
+		}
 	}
 	return c
+}
+
+// The dates this format can write: RFC 3339 has four digits for a year. A date
+// read from a file beyond either is kept as the nearest of them, which loses
+// nothing a browser would keep: none keeps a cookie past 400 days, and one
+// that expired before the year 0 has expired.
+var (
+	latestExpiry   = time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+	earliestExpiry = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+)
+
+// unixExpiry is an expiry given in seconds since the epoch, within the dates
+// this format can write; compared as a number first, since time.Unix wraps a
+// count of seconds too large for it around into the past.
+func unixExpiry(seconds int64) time.Time {
+	switch {
+	case seconds >= latestExpiry.Unix():
+		return latestExpiry
+	case seconds <= earliestExpiry.Unix():
+		return earliestExpiry
+	}
+	return time.Unix(seconds, 0).UTC()
 }
 
 // sameSite is a SameSite attribute as this file spells it, from however it
@@ -314,13 +345,18 @@ func (f *File) Add(set Set) {
 // Encode writes the file back out, in this version of the format, which
 // reads the sets of an older one as that one did.
 //
-// No error to return: encoding/json fails on types this format does not have
-// and cannot grow without someone noticing, and a signature that promises a
-// failure nobody can produce is a branch no test can reach.
-func (f *File) Encode() []byte {
+// It fails rather than write less than it was given. A date this format cannot
+// hold, one after the year 9999 that a caller put in a Cookie, made it return
+// an empty document without a word, which a caller then wrote over a file of
+// good sessions: a caller writing the result over a file writes nothing when
+// this fails.
+func (f *File) Encode() ([]byte, error) {
 	f.Version = currentVersion
-	data, _ := json.MarshalIndent(f, "", "  ")
-	return append(data, '\n')
+	data, err := json.MarshalIndent(f, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("cookie: %w", err)
+	}
+	return append(data, '\n'), nil
 }
 
 // IDs are the sets in the file, in order.
