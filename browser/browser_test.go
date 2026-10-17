@@ -152,6 +152,92 @@ func TestFindSkipsBareNamesThatArePathsAndDirectories(t *testing.T) {
 	}
 }
 
+func TestExpandSaysWhereAPathUnderAWindowsFolderIs(t *testing.T) {
+	original := getenv
+	t.Cleanup(func() { getenv = original })
+	getenv = func(name string) string {
+		return map[string]string{"LOCALAPPDATA": `C:\Users\me\AppData\Local`, "HOMEDRIVE": "C:"}[name]
+	}
+	for _, tc := range []struct {
+		location, want string
+		ok             bool
+	}{
+		{`%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe`, `C:\Users\me\AppData\Local\Google\Chrome\Application\chrome.exe`, true},
+		{`%HOMEDRIVE%\%LOCALAPPDATA%`, `C:\C:\Users\me\AppData\Local`, true},
+		{"/opt/google/chrome/chrome", "/opt/google/chrome/chrome", true},
+		{"google-chrome", "google-chrome", true},
+		// Not set: nowhere, rather than \Chromium\… looked for where the run is.
+		{`%PROGRAMDATA%\Chromium\chrome.exe`, "", false},
+		{`%LOCALAPPDATA%\%NOT_SET%\chrome.exe`, "", false},
+		// Not a variable: a percent sign is a character of a name.
+		{"100% chrome", "100% chrome", true},
+	} {
+		got, ok := expand(tc.location)
+		if ok != tc.ok || (ok && got != tc.want) {
+			t.Errorf("expand(%q) = %q, %v; want %q, %v", tc.location, got, ok, tc.want, tc.ok)
+		}
+	}
+}
+
+func TestFindABrowserInstalledForTheUserAlone(t *testing.T) {
+	// The table's own %LOCALAPPDATA% entries, against a folder of fakes: each
+	// written where its entry says, whatever this machine's separator.
+	appData := filepath.Join(t.TempDir(), "appdata")
+	original := getenv
+	t.Cleanup(func() { getenv = original })
+	getenv = func(name string) string {
+		if name == "LOCALAPPDATA" {
+			return appData
+		}
+		return ""
+	}
+	for _, name := range []string{"chrome", "chromium", "brave"} {
+		var own []string
+		for _, location := range candidates[name] {
+			if strings.HasPrefix(location, "%LOCALAPPDATA%") {
+				own = append(own, location)
+			}
+		}
+		if len(own) != 1 {
+			t.Fatalf("%s has %d entries under %%LOCALAPPDATA%%", name, len(own))
+		}
+		path, _ := expand(own[0])
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("mkdir: %v", err)
+		}
+		if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0o755); err != nil {
+			t.Fatalf("writing the fake: %v", err)
+		}
+		f := finder{candidates: map[string][]string{name: own}, order: []string{name}}
+		found, err := f.find(name)
+		if err != nil || found.Path != path || found.Name != name {
+			t.Errorf("%s: found %+v, %v; want it at %s", name, found, err, path)
+		}
+	}
+
+	// On a machine that does not name the folder, nothing is under it: left
+	// as \Google\Chrome\…, which a Unix path takes for one file name, it would
+	// be looked for in the working directory, and found there.
+	if runtime.GOOS == "windows" {
+		return
+	}
+	getenv = func(string) string { return "" }
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile(`\Google\Chrome\Application\chrome.exe`, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("writing the decoy: %v", err)
+	}
+	var own string
+	for _, location := range candidates["chrome"] {
+		if strings.HasPrefix(location, `%LOCALAPPDATA%\Google\Chrome\`) {
+			own = location
+		}
+	}
+	f := finder{candidates: map[string][]string{"chrome": {own}}, order: []string{"chrome"}}
+	if found, err := f.find(""); own == "" || err == nil {
+		t.Errorf("found %+v under a folder nobody named", found)
+	}
+}
+
 func TestDefaultTablesAreConsistent(t *testing.T) {
 	// Every browser in the search order must have candidate locations, or the
 	// search silently skips it.

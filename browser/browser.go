@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 )
@@ -29,7 +30,10 @@ type Browser struct {
 	Path string
 }
 
-// candidates lists where each browser lives, most-preferred first.
+// candidates lists where each browser lives, most-preferred first. On Windows
+// a browser installed for everybody is under Program Files, either of them, and
+// one installed for the user alone under %LOCALAPPDATA%, which is expanded
+// where the search runs.
 var candidates = map[string][]string{
 	"chrome": {
 		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -38,23 +42,29 @@ var candidates = map[string][]string{
 		"google-chrome-stable",
 		`C:\Program Files\Google\Chrome\Application\chrome.exe`,
 		`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+		`%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe`,
 	},
 	"chromium": {
 		"/Applications/Chromium.app/Contents/MacOS/Chromium",
 		"/usr/bin/chromium",
 		"chromium",
 		"chromium-browser",
+		`%LOCALAPPDATA%\Chromium\Application\chrome.exe`,
 	},
 	"edge": {
 		"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
 		"/opt/microsoft/msedge/msedge",
 		"microsoft-edge",
 		`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
+		`C:\Program Files\Microsoft\Edge\Application\msedge.exe`,
 	},
 	"brave": {
 		"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
 		"/opt/brave.com/brave/brave",
 		"brave-browser",
+		`C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe`,
+		`C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe`,
+		`%LOCALAPPDATA%\BraveSoftware\Brave-Browser\Application\brave.exe`,
 	},
 }
 
@@ -111,6 +121,10 @@ func (f finder) find(name string) (*Browser, error) {
 }
 
 func resolve(location string) (string, bool) {
+	location, ok := expand(location)
+	if !ok {
+		return "", false
+	}
 	if strings.ContainsAny(location, `/\`) {
 		if info, err := os.Stat(location); err == nil && !info.IsDir() {
 			return location, true
@@ -119,6 +133,28 @@ func resolve(location string) (string, bool) {
 	}
 	path, err := exec.LookPath(location)
 	return path, err == nil
+}
+
+// windowsVariable is how Windows writes an environment variable into a path.
+var windowsVariable = regexp.MustCompile(`%[A-Za-z_][A-Za-z0-9_]*%`)
+
+// getenv is os.Getenv, named so a test can say what is set.
+var getenv = os.Getenv
+
+// expand is location with each %NAME% in it replaced by that environment
+// variable, and false when one is not set: a path under a folder this machine
+// does not name is nowhere, and left as written it would be looked for in the
+// working directory.
+func expand(location string) (string, bool) {
+	set := true
+	expanded := windowsVariable.ReplaceAllStringFunc(location, func(named string) string {
+		value := getenv(strings.Trim(named, "%"))
+		if value == "" {
+			set = false
+		}
+		return value
+	})
+	return expanded, set
 }
 
 // Options controls a launch.
@@ -147,6 +183,9 @@ func (b *Browser) Open(ctx context.Context, url string, opts Options) (close fun
 	}
 
 	args := []string{
+		// A profile of its own, which is also a browser of its own: given the
+		// profile a running browser has, the launch would be handed to that
+		// browser, and the flags below dropped along with it.
 		"--user-data-dir=" + userDataDir,
 		// The echo server's certificate is generated per run and signs nothing
 		// but itself. This flag is why the throwaway profile above is not
@@ -155,8 +194,8 @@ func (b *Browser) Open(ctx context.Context, url string, opts Options) (close fun
 		"--no-first-run",
 		"--no-default-browser-check",
 		"--disable-background-networking",
-		// Without this, the browser may reuse a running instance of itself and
-		// the flags above are silently dropped along with the whole launch.
+		// The What's New page Chrome opens after an update, in a tab of its
+		// own: a page of Google's loading beside the one being measured.
 		"--disable-features=ChromeWhatsNewUI",
 	}
 	if opts.Headless {

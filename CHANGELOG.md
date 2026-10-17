@@ -692,6 +692,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- `capture` finds Chrome, Chromium and Brave installed for one user on
+  Windows, under `%LOCALAPPDATA%`, and Edge and Brave under `Program Files`
+  as well as `Program Files (x86)`. A folder an unset variable names is no
+  place to look, rather than a path under the working directory.
 - A plain-http request to a host the client had reached over HTTP/2 failed
   with "http2: unsupported scheme", and an HTTPS request a plain one was
   redirected to on its own host failed with "protocol negotiated": tls-client
