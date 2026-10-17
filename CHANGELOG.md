@@ -677,6 +677,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- `THIRD-PARTY-NOTICES.txt` names `github.com/andybalholm/cascadia`, which
+  `--wait-for-element` linked into the binary without its notice. A check in
+  CI now makes the notices, the report's stylesheet, `gofmt`'s output and a
+  tidy `go.mod` again and holds each to what is committed
+  (`make generated-check`).
 - `--profile`'s help said its default was `chrome`, also on a machine where a
   run wears the browser measured there. It says what the default is: that
   browser when there is one, else `chrome`.

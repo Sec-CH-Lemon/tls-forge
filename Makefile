@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck docs-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck docs-check generated-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -70,6 +70,11 @@ docs-check:
 	node --test scripts/check-links.test.mjs
 	node scripts/check-links.mjs
 
+# A gate as well: what is generated or tidied, made again beside the checkout
+# and held to what is committed, the checkout left as it was.
+generated-check:
+	scripts/check-generated.sh
+
 # Cross-language contract test against the real Go daemon. Unit suites use a
 # deliberately hostile fake to cover every recovery branch; this one makes
 # sure all three implementations still agree on the bytes actually emitted.
@@ -87,7 +92,7 @@ release-test:
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
 # CI runs them as separate jobs.
-check: vet lint test cover node-test python-test python-typecheck docs-check wrapper-smoke release-test
+check: vet lint test cover node-test python-test python-typecheck docs-check generated-check wrapper-smoke release-test
 
 # Assemble everything a release publishes, without publishing any of it.
 #

@@ -66,6 +66,24 @@ jobs:
       - run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
       - run: govulncheck ./...
 
+  generated:
+    timeout-minutes: 15
+    # What is generated or tidied is made again and held to what is committed:
+    # Go formatted, go.mod and go.sum tidy and as their sums say, the report's
+    # stylesheet as its template makes it, and the third-party notices as the
+    # modules linked into the binary make them. A stale one would ship.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: scripts/check-generated.sh
+
   lint:
     timeout-minutes: 15
     runs-on: ubuntu-latest

@@ -1797,6 +1797,7 @@ make node-test    # 100% Node line/function/branch coverage gate
 make python-test  # 100% Python statement/branch coverage gate
 make python-typecheck # the Python package's types, mypy in strict mode
 make docs-check   # every relative link in the documentation leads somewhere
+make generated-check # gofmt, tidy modules, report.css and notices as made
 make wrapper-smoke # Node and Python against the real Go daemon
 make release-test # release packaging helper regressions
 make vet
