@@ -12,6 +12,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	tls "github.com/bogdanfinn/utls"
+	"github.com/igor-lemon/fhttp/http2/hpack"
 )
 
 func chromeHelloBytes(t *testing.T) []byte {
@@ -778,4 +779,46 @@ func TestPseudoNamesIgnoresUnknownLetters(t *testing.T) {
 	if want := []string{":method", ":path"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("pseudoNames = %v, want %v", got, want)
 	}
+}
+
+func TestAChromiumProfileWritesPathIntoHPACKAsChromeDoes(t *testing.T) {
+	path := hpack.HeaderField{Name: ":path", Value: "/a"}
+	for name, tc := range map[string]struct {
+		p      *Profile
+		chrome bool
+	}{
+		"a captured Chrome":          {mustGet(t, "chrome_155_macos"), true},
+		"Chrome from the catalogue":  {&Profile{Name: "chrome_133", Base: "chrome_133"}, true},
+		"Firefox from the catalogue": {&Profile{Name: "firefox_148", Base: "firefox_148"}, false},
+		"Chrome on an iPhone":        {&Profile{Name: "chrome_ios", Base: "safari_ios_18_0", UserAgent: "CriOS iPhone"}, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			built, err := tc.p.ClientProfile()
+			if err != nil {
+				t.Fatalf("ClientProfile: %v", err)
+			}
+			of := built.GetHeaderRepresentation()
+			if (of != nil) != tc.chrome {
+				t.Fatalf("writes headers as Chromium: %v", of != nil)
+			}
+			if of == nil {
+				return
+			}
+			if r := of(path); !r.WithoutIndexing || !r.FirstStaticName {
+				t.Errorf(":path written %+v", r)
+			}
+			if r := of(hpack.HeaderField{Name: ":authority", Value: "a"}); r != (hpack.Representation{}) {
+				t.Errorf(":authority written %+v", r)
+			}
+		})
+	}
+}
+
+func mustGet(t *testing.T, name string) *Profile {
+	t.Helper()
+	p, err := Get(name)
+	if err != nil {
+		t.Fatalf("Get(%s): %v", name, err)
+	}
+	return p
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	tls "github.com/bogdanfinn/utls"
 	"github.com/igor-lemon/fhttp/http2"
+	"github.com/igor-lemon/fhttp/http2/hpack"
 	"github.com/igor-lemon/tls-client/profiles"
 	"golang.org/x/net/http/httpguts"
 )
@@ -365,7 +366,7 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 		if !ok {
 			return profiles.ClientProfile{}, fmt.Errorf("profile %q: unknown base %q", p.Name, p.Base)
 		}
-		return base, nil
+		return p.writingHeaders(base), nil
 	}
 
 	// Built once here so a broken profile is reported when the client is
@@ -409,11 +410,32 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 		streamID = 1
 	}
 
-	return profiles.NewClientProfile(
+	return p.writingHeaders(profiles.NewClientProfile(
 		id, settings, order, p.HTTP2.PseudoHeaderOrder, p.HTTP2.ConnectionFlow,
 		priorities, headerPriority, streamID,
 		false, nil, nil, 0, nil, false,
-	), nil
+	)), nil
+}
+
+// writingHeaders is built, writing headers into HPACK as Chromium's encoder
+// does when p is a Chromium browser's, and as HPACK's default does otherwise.
+func (p *Profile) writingHeaders(built profiles.ClientProfile) profiles.ClientProfile {
+	if !p.chromium() {
+		return built
+	}
+	return built.WithHeaderRepresentation(chromeHeaderRepresentation)
+}
+
+// chromeHeaderRepresentation is how Chrome writes a header field into HPACK
+// where it is not found whole in a table, as measured on Chrome 155
+// (testdata/chrome155-http2-preamble.bin): :path without indexing, named by the
+// first static :path; every other field as HPACK's default writes it, as
+// Chrome wrote each of them.
+func chromeHeaderRepresentation(f hpack.HeaderField) hpack.Representation {
+	if f.Name == ":path" {
+		return hpack.Representation{WithoutIndexing: true, FirstStaticName: true}
+	}
+	return hpack.Representation{}
 }
 
 func (p *Profile) validatePseudoHeaderOrder() error {

@@ -192,13 +192,36 @@ func TestTheHelloHasChromesShapeColdAndResumed(t *testing.T) {
 	}
 }
 
+func TestAScriptsRequestWritesPathAsChromeDoes(t *testing.T) {
+	// fetch() writes :path into HPACK as a page's request does: without
+	// indexing, named by the static table's first :path.
+	server := startEcho(t)
+	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	res, err := client.Do(&Request{URL: server.URL() + "/api/all",
+		Browser: &BrowserContext{Kind: KindFetch, Initiator: server.URL() + "/"}})
+	if err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	var measured capture.Capture
+	if err := json.Unmarshal(res.Body, &measured); err != nil {
+		t.Fatalf("the echo server answered %q: %v", res.Body, err)
+	}
+	written := ""
+	for _, field := range fingerprint.HTTP2Fields(measured.HTTP2.Fingerprint()) {
+		if field.Name == "http2_hpack_path" {
+			written = field.Render()
+		}
+	}
+	if written != "without indexing, name static 4" {
+		t.Errorf(":path written %q", written)
+	}
+}
+
 func TestTheFirstRequestGoesOutInChromesFrames(t *testing.T) {
 	// Held to the frames Chrome 155 sent before its first request was whole,
 	// and to how it wrote each field: the same frames with the same flags,
-	// each field indexed or not and its name from the same table as Chrome's.
-	// How :path is written is not held here: tls-forge's transport indexes it
-	// and names it from the static table's second :path, where Chrome does
-	// neither (docs/support.md).
+	// each field indexed or not and its name from the same table as Chrome's,
+	// :path too: without indexing, named by the static table's first :path.
 	raw, err := os.ReadFile("testdata/chrome155-http2-preamble.bin")
 	if err != nil {
 		t.Fatalf("fixture: %v", err)
@@ -209,7 +232,8 @@ func TestTheFirstRequestGoesOutInChromesFrames(t *testing.T) {
 	chrome := fingerprint.HTTP2Fields(&fingerprint.HTTP2{Raw: raw})
 	sent := fingerprint.HTTP2Fields(measured.HTTP2.Fingerprint())
 	for i, field := range chrome {
-		if (field.Name == "http2_frames" || field.Name == "http2_hpack") && !field.Matches(sent[i]) {
+		if (field.Name == "http2_frames" || field.Name == "http2_hpack" || field.Name == "http2_hpack_path") &&
+			!field.Matches(sent[i]) {
 			t.Errorf("%s\nChrome: %s\nsent:   %s", field.Name, field.Render(), sent[i].Render())
 		}
 	}

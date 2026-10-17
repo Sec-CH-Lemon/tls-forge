@@ -137,11 +137,11 @@ address and token as the repository's secrets. Until then every release
 stops at the gate, and the drift check in `ci.yml` and `drift.yml` stays what
 it is: a measurement of the browser of the day.
 
-Run today against Google Chrome 155.0.8059.80 on macOS, the comparison finds
-one difference: tls-forge's transport writes `:path` in HPACK with indexing,
-where Chrome writes it without ([support](support.md)). The check fails until
-that is fixed. On the bench, the same Chrome is what both fixtures say,
-every scenario and every page.
+Run today against Google Chrome 155.0.8059.80 on macOS, headless, the
+comparison finds the user agent alone, `HeadlessChrome`, which a headed
+reference does not send: `:path` goes into HPACK as Chrome writes it, through
+tls-forge's fork of fhttp ([support](support.md)). On the bench, the same
+Chrome is what both fixtures say, every scenario and every page.
 
 The fixtures were measured on macOS, and only the macOS profile of
 `chrome_155` has the values of the client hints a server asks for. A build for

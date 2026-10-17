@@ -773,6 +773,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **`:path` goes into HPACK as Chrome writes it**, for a Chromium profile:
+  without indexing, named by the static table's first `:path`. The transport
+  indexed it and named it by the second, which `compare` reported and the
+  pinned check failed on; the fork of fhttp now says how each field is
+  written (`hpack.Representation`), and the profile says it.
 - `fetch` writes no URL's password. Its lines said the `url` asked for as it
   was given, password and all, and so did the line of each request with
   `-v`, the file kept of each request and both reports, against what the

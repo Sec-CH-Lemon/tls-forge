@@ -22,8 +22,8 @@ require (
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
-	github.com/igor-lemon/fhttp v0.6.10-0.20261017214052-a61392fc6180
-	github.com/igor-lemon/tls-client v1.15.2-0.20261017214337-52b75517f403
+	github.com/igor-lemon/fhttp v0.6.10-0.20261017215634-36254d33c12e
+	github.com/igor-lemon/tls-client v1.15.2-0.20261017215819-3524054280ee
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	golang.org/x/sys v0.48.0 // indirect

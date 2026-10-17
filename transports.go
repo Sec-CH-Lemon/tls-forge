@@ -87,7 +87,7 @@ func withHeaderPriority(p profiles.ClientProfile, priority http2.PriorityParam) 
 	return profiles.NewClientProfile(p.GetClientHelloId(), p.GetSettings(), p.GetSettingsOrder(),
 		p.GetPseudoHeaderOrder(), p.GetConnectionFlow(), p.GetPriorities(), &priority, p.GetStreamID(),
 		p.GetAllowHTTP(), p.GetHttp3Settings(), p.GetHttp3SettingsOrder(), p.GetHttp3PriorityParam(),
-		p.GetHttp3PseudoHeaderOrder(), p.GetHttp3SendGreaseFrames())
+		p.GetHttp3PseudoHeaderOrder(), p.GetHttp3SendGreaseFrames()).WithHeaderRepresentation(p.GetHeaderRepresentation())
 }
 
 // scriptHeaderPriority is the priority Chrome 155 puts on the HEADERS frame of

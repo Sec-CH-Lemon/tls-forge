@@ -73,7 +73,7 @@ its reference build to them the same way ([pinned](pinned.md)).
 | `SameSite` and partitioned cookies enforced when a request is sent | not modelled | `SameSite` is kept and written down; every cookie the jar holds for a URL goes to it |
 | The frames before the first request and their flags, acknowledgements aside; the records the ClientHello came in | checked | `tls-forge compare` reads the frames the echo server keeps; `TestTheFirstRequestGoesOutInChromesFrames` holds them to `testdata/chrome155-http2-preamble.bin` |
 | HPACK of the first request: each field indexed or not, its name from which table, each string Huffman-coded or not | checked | `tls-forge compare`; `TestTheFirstRequestGoesOutInChromesFrames` |
-| HPACK of `:path` | differs | Chrome writes it without indexing, its name from the static table's first `:path`; tls-forge's transport indexes it, with the name of the second. `tls-forge compare` reports it |
+| HPACK of `:path`: without indexing, its name from the static table's first `:path`, for a Chromium profile | checked | `TestTheFirstRequestGoesOutInChromesFrames` holds it to Chrome 155's (`testdata/chrome155-http2-preamble.bin`), and `tls-forge compare` to the browser; through tls-forge's fork of fhttp, whose transport took neither (`hpack.Representation`) |
 | HPACK of later requests on a connection, against the dynamic table the first left | not checked | only a connection's first request is measured |
 | Connections: one per try by default, one per URL with `--reuse-connection` | by design | neither is a browser's pool of connections per origin; this is a choice of the command line, not a claim |
 | HTTP/3 and QUIC | not supported | an `Alt-Svc` that offers HTTP/3 is ignored; requests go over HTTP/2 or HTTP/1.1 |

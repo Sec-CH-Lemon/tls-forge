@@ -10,12 +10,12 @@ github.com/cloudflare/circl v1.6.5 h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQ
 github.com/cloudflare/circl v1.6.5/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/igor-lemon/fhttp v0.6.10-0.20261017214052-a61392fc6180 h1:nBJxrllwcQneMwEYwgKOHhWR12HGw5rf9QYOux66MKE=
-github.com/igor-lemon/fhttp v0.6.10-0.20261017214052-a61392fc6180/go.mod h1:Mmt5MazHNRtkQc2KeClCPdmC5Ek5oqwl7qUK1oQqr4M=
+github.com/igor-lemon/fhttp v0.6.10-0.20261017215634-36254d33c12e h1:GZ1sMEtxzdiWxXsdMhFlFJjflbuion2BEYmnI+oGHeM=
+github.com/igor-lemon/fhttp v0.6.10-0.20261017215634-36254d33c12e/go.mod h1:Mmt5MazHNRtkQc2KeClCPdmC5Ek5oqwl7qUK1oQqr4M=
 github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261017214247-78a192584480 h1:r0sbhOgZ7gVBCMCB635RADxQppExRI54F7Ldm7OmrnU=
 github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261017214247-78a192584480/go.mod h1:UNIu/6PGLlYjhbHLy3JT9CjV5uewx3FeMm/3WvaUuPo=
-github.com/igor-lemon/tls-client v1.15.2-0.20261017214337-52b75517f403 h1:yLxW/iI9OKoqYqn59cWYj/wWKIEJOZEGC9QnoXRWjrI=
-github.com/igor-lemon/tls-client v1.15.2-0.20261017214337-52b75517f403/go.mod h1:Gqk/FxfzztQJhMG4QTZuvp6KubsvmD/XmR7vzL4o1G4=
+github.com/igor-lemon/tls-client v1.15.2-0.20261017215819-3524054280ee h1:RwdSdyFz+oc7lP77VzvyCMy3HSWxUWAR17OuEAiGDV0=
+github.com/igor-lemon/tls-client v1.15.2-0.20261017215819-3524054280ee/go.mod h1:qgY2mt0YKRrdsjtiC1qJ2ZmEZGee+r1Whz/hYI80XhI=
 github.com/igor-lemon/websocket v1.5.6-barnius.0.20261017214157-072d961e5121 h1:KLus4y4KzzSA09tZsRurDidSazq1Ulyh8evr8TSpmoI=
 github.com/igor-lemon/websocket v1.5.6-barnius.0.20261017214157-072d961e5121/go.mod h1:sqdslHMpfifQRagBcCqAVZF+/tPIP/glveWnHnEthyg=
 github.com/klauspost/compress v1.20.0 h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA=
