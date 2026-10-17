@@ -2,29 +2,22 @@ package tlsforge
 
 import (
 	"context"
-	"net"
 	"net/textproto"
-	"net/url"
 	"slices"
 	"strings"
 
 	fhttp "github.com/igor-lemon/fhttp"
-	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // layouts are the header blocks of one request, made before it is sent: as it
-// goes over HTTP/2, and as it goes over HTTP/1.1 where that differs. fhttp
-// writes whatever block a request has, over whichever protocol its connection
-// speaks, and which that is is known only once the connection's handshake is
-// over: ALPN is encrypted in TLS 1.3, and tls-client picks the protocol inside
-// its round tripper. The one place fhttp calls between the two is the trace's
-// GotConn. So a request wears its HTTP/2 block, and a connection that speaks
-// HTTP/1.1 changes it for the other there (wear), the only place anything
-// changes a request's headers once the transport has it. Choosing the block
-// anywhere else needs a transport that asks for one once it knows the
-// protocol, which fhttp is not.
+// goes over HTTP/2, and as it goes over HTTP/1.1 where that differs. Which
+// protocol a request goes over is known only once its connection's handshake
+// is over: ALPN is encrypted in TLS 1.3, and tls-client picks the protocol
+// inside its round tripper. So a request wears its HTTP/2 block, and the
+// transport asks it for the header to write once it knows (Request.HeaderFor,
+// of tls-forge's fork of fhttp), which over HTTP/1.1 is the other (wear).
 type layouts struct {
 	http2 fhttp.Header
 	// http1 is nil when the request goes the same over both.
@@ -130,30 +123,29 @@ func withAuthorization(block fhttp.Header, value string) fhttp.Header {
 	return out
 }
 
-// wear is req wearing l: the HTTP/2 block, which a connection that speaks
-// HTTP/1.1 changes for the HTTP/1.1 block when the request gets it. l goes on
+// wear is req wearing l: the HTTP/2 block, and over HTTP/1.1 the HTTP/1.1
+// block, which the transport asks for once it knows (HeaderFor). l goes on
 // req's context too, for a redirect's request to make its own from
 // (layoutsOn), since fhttp makes it with the first request's context. A
 // request that goes the same over both wears its one block, and nothing more.
-// Each wears a copy: l stays as it was made, for a request sent again for a
+// Each wears a copy, which the client and the transport add to (the jar's
+// Cookie, Host): l stays as it was made, for a request sent again for a
 // challenge to be made from (chain.laid).
 func (l *layouts) wear(req *fhttp.Request) *fhttp.Request {
-	// The request's own copy, which the hook changes in place: the request the
-	// transport writes is a copy of req (WithContext below, and fhttp's own)
-	// that shares the map, not the struct.
-	header := cloneHeaderLayout(l.http2)
-	req.Header = header
+	req.Header = cloneHeaderLayout(l.http2)
 	if l.http1 == nil {
 		return req
 	}
-	target := req.URL
-	got := func(info fhttptrace.GotConnInfo) {
-		if connectionUsesHTTP1(target, info.Conn) {
-			applyHeaderLayout(header, l.http1, l.managed)
+	req.HeaderFor = func(protocol string, header fhttp.Header) fhttp.Header {
+		if protocol != fhttp.ProtocolHTTP1 {
+			return nil
 		}
+		// The header as the client left it, what it added kept.
+		written := cloneHeaderLayout(header)
+		applyHeaderLayout(written, l.http1, l.managed)
+		return written
 	}
-	ctx := context.WithValue(req.Context(), layoutsKey{}, l)
-	return req.WithContext(fhttptrace.WithClientTrace(ctx, &fhttptrace.ClientTrace{GotConn: got}))
+	return req.WithContext(context.WithValue(req.Context(), layoutsKey{}, l))
 }
 
 // layoutsOn are the layouts req's context carries, nil for none.
@@ -376,19 +368,6 @@ func setHeader(header fhttp.Header, lower string, values []string) {
 		header[fhttp.HeaderOrderKey] = append(header[fhttp.HeaderOrderKey], lower)
 	}
 	header[wireName] = append([]string(nil), values...)
-}
-
-func connectionUsesHTTP1(target *url.URL, conn net.Conn) bool {
-	if target.Scheme == "http" {
-		return true
-	}
-	state, ok := conn.(connectionStater)
-	if !ok {
-		// An unknown TLS wrapper must not perturb HTTP/2, the core fingerprint.
-		return false
-	}
-	negotiated := state.ConnectionState().NegotiatedProtocol
-	return negotiated == "" || negotiated == "http/1.1"
 }
 
 func applyHeaderLayout(target, layout fhttp.Header, managed map[string]bool) {

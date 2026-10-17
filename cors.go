@@ -270,8 +270,8 @@ type preflightContextKey struct{}
 // cache; an answer that does not allow the request is an error, and the
 // request is not sent.
 //
-// base is the request's context before its own layouts were hung on it, so
-// that what the preflight's connection is told is the preflight's.
+// base is the request's context before its own layouts went on it, which
+// are not the preflight's.
 func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browserRequest, h hop,
 	log *requestLog) error {
 	shown := shownURL(inner)

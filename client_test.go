@@ -26,7 +26,6 @@ import (
 	"testing"
 	"time"
 
-	utls "github.com/bogdanfinn/utls"
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
 	"github.com/igor-lemon/tls-client/profiles"
@@ -740,37 +739,7 @@ func TestMeasuredHTTP1DoesNotChangeHTTP2(t *testing.T) {
 	}
 }
 
-type protocolConn struct {
-	net.Conn
-	protocol string
-}
-
-func (c protocolConn) ConnectionState() utls.ConnectionState {
-	return utls.ConnectionState{NegotiatedProtocol: c.protocol}
-}
-
 func TestProtocolLayoutEdgeCases(t *testing.T) {
-	plain, _ := neturl.Parse("http://example.test/")
-	secure, _ := neturl.Parse("https://example.test/")
-	if !connectionUsesHTTP1(plain, nil) {
-		t.Error("plain HTTP must use the HTTP/1 layout")
-	}
-	if connectionUsesHTTP1(secure, nil) {
-		t.Error("an unknown TLS connection must preserve the HTTP/2 layout")
-	}
-	for _, tc := range []struct {
-		protocol string
-		want     bool
-	}{
-		{"", true},
-		{"http/1.1", true},
-		{"h2", false},
-	} {
-		if got := connectionUsesHTTP1(secure, protocolConn{protocol: tc.protocol}); got != tc.want {
-			t.Errorf("connectionUsesHTTP1(%q) = %v, want %v", tc.protocol, got, tc.want)
-		}
-	}
-
 	layout := measuredHTTP1Layout(Header{
 		{Name: "host", Value: "first.test"},
 		{Name: "Host", Value: "last.test"},
@@ -854,6 +823,47 @@ func TestProtocolLayoutEdgeCases(t *testing.T) {
 	req.Host = "virtual.test"
 	if got := customHost.redirected(req).http1["Host"]; !reflect.DeepEqual(got, []string{"virtual.test"}) {
 		t.Errorf("relative redirect custom Host = %v", got)
+	}
+}
+
+func TestARequestIsWrittenOverHTTP1WithItsHTTP1Block(t *testing.T) {
+	// The transport asks for the header to write once it knows the protocol:
+	// over HTTP/2 the block worn, over HTTP/1.1 the other, laid over what the
+	// client added, as the jar's Cookie.
+	l := newLayouts(
+		fhttp.Header{"Accept": {"*/*"}, "Priority": {"u=0, i"}, "User-Agent": {"ua"},
+			fhttp.HeaderOrderKey: {"accept", "user-agent", "priority"}},
+		fhttp.Header{"Host": {"example.test"}, "Connection": {"keep-alive"}, "Accept": {"*/*"}, "User-Agent": {"ua"},
+			fhttp.HeaderOrderKey: {"host", "connection", "accept", "user-agent"}})
+	req, err := fhttp.NewRequest("GET", "https://example.test/", nil)
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	worn := l.wear(req)
+	worn.Header["Cookie"] = []string{"a=1"}
+	if written := worn.WrittenHeader(fhttp.ProtocolHTTP2); written["Priority"] == nil || written["Cookie"] == nil ||
+		written["Connection"] != nil {
+		t.Errorf("over HTTP/2: %v", written)
+	}
+	want := fhttp.Header{"Host": {"example.test"}, "Connection": {"keep-alive"}, "Accept": {"*/*"}, "User-Agent": {"ua"},
+		"Cookie": {"a=1"}, fhttp.HeaderOrderKey: {"host", "connection", "accept", "user-agent"}}
+	if written := worn.WrittenHeader(fhttp.ProtocolHTTP1); !reflect.DeepEqual(written, want) {
+		t.Errorf("over HTTP/1.1: %v, want %v", written, want)
+	}
+	// What it wears stays as it was, and so do the layouts it was made from.
+	if worn.Header["Connection"] != nil || worn.Header["Priority"] == nil || l.http2["Cookie"] != nil ||
+		layoutsOn(worn) != l {
+		t.Errorf("wears %v, made from %v", worn.Header, l.http2)
+	}
+
+	// One the same over both is written with its one block over each.
+	other, err := fhttp.NewRequest("GET", "https://example.test/", nil)
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	if same := newLayouts(fhttp.Header{"Accept": {"*/*"}}, nil).wear(other); same.HeaderFor != nil ||
+		layoutsOn(same) != nil || same.Header.Get("Accept") != "*/*" {
+		t.Errorf("the same over both: %v", same.Header)
 	}
 }
 

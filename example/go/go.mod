@@ -10,7 +10,7 @@ require (
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/bogdanfinn/utls v1.7.8-barnius // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
-	github.com/igor-lemon/fhttp v0.6.10-0.20261017220555-e76e42e99f66 // indirect
+	github.com/igor-lemon/fhttp v0.6.10-0.20261017230243-b77cd347b424 // indirect
 	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261017214247-78a192584480 // indirect
 	github.com/igor-lemon/tls-client v1.15.2-0.20261017215819-3524054280ee // indirect
 	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261017214157-072d961e5121 // indirect

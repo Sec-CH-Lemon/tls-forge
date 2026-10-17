@@ -292,11 +292,11 @@ func New(opts ...Option) (*Client, error) {
 		options = append(options, tls_client.WithDisableSessionTickets())
 	}
 	if cfg.followRedirects {
-		// Redirects are new requests. Their Context carries both layouts, but the
-		// GotConn hook must close over the new request rather than the first hop.
-		// For every profile and not only those with an HTTP/1.1 layout to
-		// prepare, so that the chain is bounded and traced the same way whichever
-		// one is worn.
+		// Redirects are new requests, which fhttp makes with the first's
+		// context, its layouts in it, and no HeaderFor: followRedirect dresses
+		// each. For every profile and not only those with an HTTP/1.1 layout
+		// to prepare, so that the chain is bounded and traced the same way
+		// whichever one is worn.
 		options = append(options, tls_client.WithCustomRedirectFunc(followRedirect))
 	}
 	for _, opt := range cfg.extra {
