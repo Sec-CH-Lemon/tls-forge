@@ -77,10 +77,25 @@ type asSent struct {
 	redirected bool
 	// fails is what the page's request failed with, said in its error.
 	fails string
-	// before is a URL got first, as the page the scenario ran in was, for the
-	// cookies it set: what it is sent is no part of the scenario.
+	// before is a URL navigated to first, typed, as the page the scenario ran
+	// in was, for the cookies it set and the client hints it asked for: what
+	// it is sent is no part of the scenario.
 	before string
+	// each is the context of each request the page asked, where they differ:
+	// a page another led to by a refresh.
+	each []BrowserContext
 }
+
+// notSent are the scenarios measured that a browser context does not send as
+// Chrome did, and why.
+var notSent = map[string]string{
+	"fetch-post-same-origin-headers": "the order of several headers a script set follows the renderer's hash table",
+	"ch-fetch-three":                 "the order of several client hints of a script's request follows the renderer's hash table",
+	"ch-fetch-all":                   "the order of several client hints of a script's request follows the renderer's hash table",
+}
+
+// asked is the URL of a scenario's page with its query.
+const allHints = "sec-ch-ua,sec-ch-ua-mobile,sec-ch-ua-platform,sec-ch-ua-arch,sec-ch-ua-bitness,sec-ch-ua-full-version,sec-ch-ua-full-version-list,sec-ch-ua-model,sec-ch-ua-platform-version,sec-ch-ua-wow64,sec-ch-ua-form-factors,sec-ch-dpr,sec-ch-viewport-width,sec-ch-viewport-height,sec-ch-device-memory,sec-ch-prefers-color-scheme,sec-ch-prefers-reduced-motion,sec-ch-prefers-reduced-transparency,dpr,viewport-width,device-memory,rtt,downlink,ect,save-data"
 
 // run is the page a scenario ran in.
 func run(scenario string) string { return "https://www.example.com/run/" + scenario }
@@ -251,6 +266,53 @@ var sentInContexts = map[string]asSent{
 		Initiator: run("redir-xhr-same-origin-to-cross")}, redirected: true},
 	"redir-xhr-post-cross-303": {browser: BrowserContext{Kind: KindXHR, Initiator: run("redir-xhr-post-cross-303")},
 		script: []string{"Content-Type"}, redirected: true},
+	// Client hints an origin asked for with Accept-CH.
+	"ch-nav-all": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("ch-nav-all") + "?accept=" + allHints},
+		before: run("ch-nav-all") + "?accept=" + allHints},
+	"ch-nav-some": {browser: BrowserContext{Kind: KindNavigation,
+		Initiator: run("ch-nav-some") + "?accept=Sec-CH-UA-Arch,%20Sec-CH-UA-Bitness,%20Sec-CH-UA-Model"},
+		before: run("ch-nav-some") + "?accept=Sec-CH-UA-Arch,%20Sec-CH-UA-Bitness,%20Sec-CH-UA-Model"},
+	"ch-nav-cross-site": {browser: BrowserContext{Kind: KindNavigation,
+		Initiator: run("ch-nav-cross-site") + "?accept=sec-ch-ua-arch"}, before: run("ch-nav-cross-site") + "?accept=sec-ch-ua-arch"},
+	"ch-nav-same-site": {browser: BrowserContext{Kind: KindNavigation,
+		Initiator: run("ch-nav-same-site") + "?accept=sec-ch-ua-arch"}, before: run("ch-nav-same-site") + "?accept=sec-ch-ua-arch"},
+	"ch-nav-cleared": {before: run("ch-nav-cleared") + "?accept=sec-ch-ua-arch", each: []BrowserContext{
+		{Kind: KindNavigation, Initiator: run("ch-nav-cleared") + "?accept=sec-ch-ua-arch"},
+		{Kind: KindNavigation, Initiator: "https://www.example.com/p/ch-clear?accept=&next=/p/ch-cleared-end"}}},
+	"ch-nav-replaced": {before: run("ch-nav-replaced") + "?accept=sec-ch-ua-arch", each: []BrowserContext{
+		{Kind: KindNavigation, Initiator: run("ch-nav-replaced") + "?accept=sec-ch-ua-arch"},
+		{Kind: KindNavigation,
+			Initiator: "https://www.example.com/p/ch-replace?accept=sec-ch-ua-bitness&next=/p/ch-replaced-end"}}},
+	"ch-nav-unasked": {before: run("ch-nav-unasked") + "?accept=sec-ch-ua-arch", each: []BrowserContext{
+		{Kind: KindNavigation, Initiator: run("ch-nav-unasked") + "?accept=sec-ch-ua-arch"},
+		{Kind: KindNavigation, Initiator: "https://www.example.com/p/ch-unasked?next=/p/ch-unasked-end"}}},
+	"ch-redirect-accept": {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-nav-all-redirect": {browser: BrowserContext{Kind: KindNavigation,
+		Initiator: run("ch-nav-all-redirect") + "?accept=" + allHints}, before: run("ch-nav-all-redirect") + "?accept=" + allHints,
+		redirected: true},
+	"ch-redirect-to-asker": {browser: BrowserContext{Kind: KindNavigation,
+		Initiator: run("ch-redirect-to-asker") + "?accept=sec-ch-ua-arch"},
+		before: run("ch-redirect-to-asker") + "?accept=sec-ch-ua-arch", redirected: true},
+	"ch-nav-from-other-site": {before: run("ch-nav-from-other-site") + "?accept=sec-ch-ua-arch", each: []BrowserContext{
+		{Kind: KindNavigation, Initiator: run("ch-nav-from-other-site") + "?accept=sec-ch-ua-arch"},
+		{Kind: KindNavigation, Initiator: "https://www.example.net/p/ch-away?next=https://www.example.com/p/ch-back"}}},
+	"ch-persist":   {browser: BrowserContext{Kind: KindNavigation}, before: "https://www.example.com/p/ch-persist-set?accept=sec-ch-ua-arch"},
+	"ch-form-post": {browser: BrowserContext{Kind: KindForm, Initiator: run("ch-form-post") + "?accept=sec-ch-ua-arch"}, form: true, before: run("ch-form-post") + "?accept=sec-ch-ua-arch"},
+	"ch-form-get":  {browser: BrowserContext{Kind: KindForm, Initiator: run("ch-form-get") + "?accept=sec-ch-ua-arch"}, before: run("ch-form-get") + "?accept=sec-ch-ua-arch"},
+	"ch-form-post-asks": {form: true, each: []BrowserContext{{Kind: KindForm, Initiator: run("ch-form-post-asks")},
+		{Kind: KindNavigation,
+			Initiator: "https://www.example.com/p/ch-form-post-asks?accept=sec-ch-ua-arch&next=/p/ch-form-post-asks-end"}}},
+	"ch-plain-asks": {each: []BrowserContext{{Kind: KindNavigation},
+		{Kind: KindNavigation, Initiator: "http://www.example.com/p/ch-plain-asks?accept=sec-ch-ua-arch&next=/p/ch-plain-asks-end"}}},
+	"ch-fetch-same-origin": {browser: BrowserContext{Kind: KindFetch, Initiator: run("ch-fetch-same-origin") + "?accept=sec-ch-ua-arch"}, before: run("ch-fetch-same-origin") + "?accept=sec-ch-ua-arch"},
+	"ch-fetch-cross-site":  {browser: BrowserContext{Kind: KindFetch, Initiator: run("ch-fetch-cross-site") + "?accept=sec-ch-ua-arch"}, before: run("ch-fetch-cross-site") + "?accept=sec-ch-ua-arch"},
+	"ch-fetch-post-json": {browser: BrowserContext{Kind: KindFetch, Initiator: run("ch-fetch-post-json") + "?accept=sec-ch-ua-arch"},
+		before: run("ch-fetch-post-json") + "?accept=sec-ch-ua-arch", script: []string{"Content-Type"}},
+	"ch-xhr-same-origin": {browser: BrowserContext{Kind: KindXHR, Initiator: run("ch-xhr-same-origin") + "?accept=sec-ch-ua-arch"}, before: run("ch-xhr-same-origin") + "?accept=sec-ch-ua-arch"},
+	"ch-fetch-asks": {each: []BrowserContext{{Kind: KindFetch, Initiator: run("ch-fetch-asks")},
+		{Kind: KindNavigation, Initiator: run("ch-fetch-asks")}}},
+	"ch-fetch-from-other-site": {browser: BrowserContext{Kind: KindFetch, Initiator: "https://www.example.net/run/ch-fetch-from-other-site"},
+		before: "https://www.example.com/p/ch-third-set?accept=sec-ch-ua-arch"},
 	"redir-fetch-same-origin-to-cross-and-on": {browser: BrowserContext{Kind: KindFetch,
 		Initiator: run("redir-fetch-same-origin-to-cross-and-on")}, redirected: true},
 	"redir-fetch-tainted-and-on": {browser: BrowserContext{Kind: KindFetch,
@@ -296,6 +358,22 @@ var sentAfter = map[string][]BrowserContext{
 	},
 }
 
+func TestEveryScenarioMeasuredIsSentOrSaysWhyNot(t *testing.T) {
+	for scenario := range loadChromeRequests(t).Scenarios {
+		_, sent := sentInContexts[scenario]
+		_, after := sentAfter[scenario]
+		_, why := notSent[scenario]
+		if sent == why && after == why || sent && after {
+			t.Errorf("%s: sent %v, after %v, not sent %v", scenario, sent, after, why)
+		}
+	}
+	for scenario := range notSent {
+		if _, ok := loadChromeRequests(t).Scenarios[scenario]; !ok {
+			t.Errorf("%s is not in the fixture", scenario)
+		}
+	}
+}
+
 func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 	measured := loadChromeRequests(t)
 	scenarios := slices.Sorted(maps.Keys(sentInContexts))
@@ -308,7 +386,11 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 		}
 		for proto, want := range map[string][]chromeRequest{"h2": measuredBoth.H2, "h1": measuredBoth.H1} {
 			t.Run(scenario+"/"+proto, func(t *testing.T) {
-				got := sendAsMeasured(t, proto, how, sentAfter[scenario], want)
+				contexts := sentAfter[scenario]
+				if how.each != nil {
+					contexts = how.each
+				}
+				got := sendAsMeasured(t, proto, how, contexts, want)
 				if len(got) != len(want) {
 					t.Fatalf("%s over %s: sent %d requests, Chrome %d", scenario, proto, len(got), len(want))
 				}
@@ -331,6 +413,12 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // two for ?cookie=1 and one of each SameSite for ?cookie=2.
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	if q.Has("accept") {
+		w.Header().Set("Accept-CH", q.Get("accept"))
+	}
+	if q.Has("critical") {
+		w.Header().Set("Critical-CH", q.Get("critical"))
+	}
 	allow := func() {
 		if origin := r.Header.Get("Origin"); origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -411,8 +499,8 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialingWith(plain))
 	skip := 0
 	if how.before != "" {
-		if _, err := client.Get(how.before); err != nil {
-			t.Fatalf("Get %s: %v", how.before, err)
+		if _, err := client.Do(&Request{URL: how.before, Browser: &BrowserContext{Kind: KindNavigation}}); err != nil {
+			t.Fatalf("Do %s: %v", how.before, err)
 		}
 		skip = 1
 	}
@@ -440,7 +528,7 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 		for _, name := range how.script {
 			req.Header = append(req.Header, profile.Field{Name: name, Value: measured.header(name)})
 		}
-		if how.form {
+		if how.form && measured.header("content-type") != "" {
 			req.Header = append(req.Header, profile.Field{Name: "content-type", Value: measured.header("content-type")})
 		}
 		_, err := client.Do(req)
@@ -462,7 +550,7 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 
 // diffRequest is how a request sent differs from what Chrome sent: nothing
 // when they are the same but for the user agent, which is the profile's and
-// was HeadlessChrome's.
+// was HeadlessChrome's, and the network's client hints.
 func diffRequest(want chromeRequest, got *keptRequest, proto string) string {
 	var diff []string
 	if got.method != want.Method || got.url != want.URL {
@@ -489,7 +577,12 @@ func diffRequest(want chromeRequest, got *keptRequest, proto string) string {
 		return strings.Join(diff, "\n")
 	}
 	for i, h := range want.Headers {
-		if strings.EqualFold(h[0], "user-agent") {
+		if slices.ContainsFunc([]string{"user-agent", "rtt", "downlink"}, func(name string) bool {
+			return strings.EqualFold(h[0], name)
+		}) {
+			// The user agent is the profile's, and was HeadlessChrome's;
+			// round-trip time and downlink are Chrome's estimates of the
+			// network, made anew all the time.
 			continue
 		}
 		if got.headers[i][1] != h[1] {

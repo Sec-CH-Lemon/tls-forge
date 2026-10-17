@@ -68,6 +68,14 @@ func (ch *chain) rule(u *url.URL, rule sendRule) {
 	ch.ruled = append(ch.ruled, u)
 }
 
+// remember keeps what the answer to a navigation from origin o asked for with
+// Accept-CH, and writes it down.
+func (ch *chain) remember(o origin, header fhttp.Header) {
+	if asked, said := ch.client.hints.remember(o, header); said && ch.log != nil {
+		ch.log.hintsAsked(o, asked)
+	}
+}
+
 func (ch *chain) release() {
 	for _, u := range ch.ruled {
 		ch.client.jar.release(u)
@@ -239,6 +247,11 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 	if dropped {
 		h.script = h.script.without(bodyHeaders...)
 	}
+	if !r.scripted() {
+		// A redirect a navigation was answered with may ask for hints too.
+		ch.remember(originOf(previous.URL), req.Response.Header)
+	}
+	h.hints = ch.client.hintsOf(r, h)
 	ch.urls = append(ch.urls, req.URL)
 	h.site = r.chainSite(ch.urls)
 	if policy := redirectPolicy(req.Response.Header); policy != "" {

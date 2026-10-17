@@ -119,6 +119,9 @@ type hop struct {
 	// hop before it went without, which Chrome sends after Sec-Fetch-*, there
 	// from then on.
 	lateOrigin bool
+	// hints are the client hints the hop carries beyond the three Chrome
+	// sends unasked, with the profile's values, in Chrome's order.
+	hints Header
 }
 
 // first is the first request of a chain: to target, as the page sends it.
@@ -390,25 +393,30 @@ func corsUnsafeByte(r rune) bool {
 	return r < 0x20 && r != '\t' || r == 0x7f || strings.ContainsRune("\"():<>?@[\\]{}", r)
 }
 
-// slotScript is where in a request of fetch() or an XHR the headers its
-// script gave go.
-const slotScript = "\x00script"
+// Slots that stand for several headers: where in a request of fetch() or an
+// XHR the headers its script gave go; where in a page's the client hints go,
+// the three Chrome sends unasked and those an origin asked for, in Chrome's
+// order (profile.ClientHintOrder); and where in a script's those asked for go.
+const (
+	slotScript     = "\x00script"
+	slotHints      = "\x00hints"
+	slotAskedHints = "\x00asked hints"
+)
 
 // The headers of each kind of request, in the order Chrome 155 sends them, as
 // measured (testdata/chrome155-requests.json). A request has a header of a
 // slot only when it has a value for it.
 var (
-	navigationOrder = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "upgrade-insecure-requests",
-		"user-agent", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer",
+	navigationOrder = []string{slotHints, "upgrade-insecure-requests", "user-agent", "accept", "sec-fetch-site",
+		"sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie",
+		"priority"}
+	formOrder = []string{"content-length", "cache-control", slotHints, "upgrade-insecure-requests", "content-type",
+		"user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer",
 		"accept-encoding", "accept-language", "cookie", "priority"}
-	formOrder = []string{"content-length", "cache-control", "sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform",
-		"upgrade-insecure-requests", "content-type", "user-agent", "origin", "accept", "sec-fetch-site",
-		"sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie", "priority"}
 	// redirectedOrder is a navigation's or a form's after a redirect.
 	redirectedOrder = []string{"content-length", "cache-control", "upgrade-insecure-requests", "content-type",
 		"user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest",
-		"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "referer", "accept-encoding", "accept-language",
-		"cookie", "priority"}
+		slotHints, "referer", "accept-encoding", "accept-language", "cookie", "priority"}
 )
 
 // order is a request's slots, in Chrome's order: a page's after a redirect
@@ -428,11 +436,13 @@ func (r *browserRequest) order(h hop) []string {
 // scriptOrder is a script's request's slots: its own headers where Chrome's
 // renderer keeps them, which is a hash table where each name has its place, a
 // lone Authorization before User-Agent and any other after sec-ch-ua, as
-// Content-Type and X-Foo were measured; and its Origin before Sec-Fetch-*, or
-// after them once a redirect gave it one.
+// Content-Type and X-Foo were measured; the client hints its page's origin
+// asked for first, as a lone sec-ch-ua-arch was measured, in Chrome's order
+// for a page where the table's would put several; and its Origin before
+// Sec-Fetch-*, or after them once a redirect gave it one.
 func scriptOrder(h hop) []string {
 	authorization := len(h.script) == 1 && strings.EqualFold(h.script[0].Name, "authorization")
-	out := []string{"content-length", "sec-ch-ua-platform"}
+	out := []string{"content-length", slotAskedHints, "sec-ch-ua-platform"}
 	if authorization {
 		out = append(out, slotScript)
 	}
@@ -458,16 +468,30 @@ func scriptOrder(h hop) []string {
 func (r *browserRequest) header(h hop, base Header) Header {
 	values := r.values(h, base)
 	var out Header
-	for _, name := range r.order(h) {
-		if name == slotScript {
+	for _, slot := range r.order(h) {
+		if slot == slotScript {
 			out = append(out, h.script...)
 			continue
 		}
-		if value, ok := values[name]; ok {
-			out = append(out, profile.Field{Name: name, Value: value})
+		for _, name := range slotNames(slot, h) {
+			if value, ok := values[name]; ok {
+				out = append(out, profile.Field{Name: name, Value: value})
+			}
 		}
 	}
 	return out
+}
+
+// slotNames are the header names a slot of a hop stands for: those of its
+// client hints in Chrome's order, or itself.
+func slotNames(slot string, h hop) []string {
+	switch slot {
+	case slotHints:
+		return profile.ClientHintOrder
+	case slotAskedHints:
+		return h.hints.Names()
+	}
+	return []string{slot}
 }
 
 // values are the request's header values by name, where it has one.
@@ -513,6 +537,9 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 	}
 	if script && r.credentials == credentialsAll && values["sec-fetch-site"] == "cross-site" {
 		values["sec-fetch-storage-access"] = "active"
+	}
+	for _, hint := range h.hints {
+		values[hint.Name] = hint.Value
 	}
 	if !trustworthy(to) {
 		// A page that is not potentially trustworthy is told neither the
@@ -590,9 +617,9 @@ func withoutCodings(value string, codings ...string) string {
 // script's headers in theirs.
 func (r *browserRequest) wireOrder(h hop) []string {
 	var out []string
-	for _, name := range r.order(h) {
-		if name != slotScript {
-			out = append(out, name)
+	for _, slot := range r.order(h) {
+		if slot != slotScript {
+			out = append(out, slotNames(slot, h)...)
 			continue
 		}
 		for _, f := range h.script {
@@ -658,7 +685,9 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 		switch wire, known := spelling[lower]; {
 		case known:
 			return wire
-		case strings.HasPrefix(lower, "sec-ch-"):
+		case strings.HasPrefix(lower, "sec-ch-") || slices.Contains(profile.ClientHintOrder, lower):
+			// Chrome writes every client hint in lower case, the device's
+			// under their old names too.
 			return lower
 		}
 		return textproto.CanonicalMIMEHeaderKey(lower)

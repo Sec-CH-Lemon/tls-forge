@@ -13,6 +13,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -337,6 +338,12 @@ func (r *requestLog) preflight(target string, status int, refused error) {
 		return
 	}
 	r.log.Info("preflight", "url", redact.URL(target), "status", status, "took", took)
+}
+
+// hintsAsked is what an origin asked for with Accept-CH: the client hints
+// its navigations carry from then on, none for an empty one.
+func (r *requestLog) hintsAsked(o origin, hints []string) {
+	r.log.Debug("client hints asked", "origin", o.String(), "hints", strings.Join(hints, ","))
 }
 
 // start says what is asked for.

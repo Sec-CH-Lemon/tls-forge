@@ -70,6 +70,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `ErrCORS` for a redirect Chrome would not follow: `fetch()` in `same-origin`
   mode to another origin, and to a URL with credentials in it. `fetch()` of
   such a URL is refused before anything is sent.
+- **A request in a browser context sends the client hints a server asked
+  for**, as Chrome 155 was measured sending them: what an origin asks for
+  with `Accept-CH` on the answer to a navigation, a form's or a redirect's,
+  is kept for the session, which clients made `Fresh` share, and replaced,
+  emptied or left as Chrome does; it goes with every navigation and form to
+  that origin, in Chrome's order and where Chrome puts it, and with its
+  pages' `fetch()` and XHR to it, and with nothing to another origin. A hint
+  the profile has no value for is not sent. The log says what each origin
+  asked for, as `client hints asked`.
   `Profile.Chromium` says which profiles take one.
 - **`fetch --html-decoding browser` reads a page as Chrome 155 decodes it**
   for `--wait-for` and `--wait-for-element`: by its byte order mark, its

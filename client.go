@@ -76,9 +76,11 @@ type Client struct {
 	// when one first does: see scriptClient.
 	scriptMu sync.Mutex
 	script   tls_client.HttpClient
-	// preflights is what CORS preflights allowed in the session: every
-	// client made Fresh from this one shares it.
+	// preflights is what CORS preflights allowed in the session, and hints
+	// the client hints each origin asked for: every client made Fresh from
+	// this one shares them.
 	preflights *preflightCache
+	hints      *hintStore
 	profile    *profile.Profile
 	// jar is nil when the client keeps no cookies.
 	jar     *keptJar
@@ -368,6 +370,7 @@ func New(opts ...Option) (*Client, error) {
 
 	client := &Client{inner: inner, options: built, clientProfile: clientProfile, profile: prof, jar: jar,
 		preflights:   newPreflightCache(),
+		hints:        newHintStore(),
 		headers:      headers,
 		http1Headers: http1Headers,
 		warm:         &warmSession{cookies: cfg.cookies, seeded: map[warmCookieKey]struct{}{}},
@@ -417,6 +420,7 @@ func (c *Client) Fresh() (*Client, error) {
 	}
 	return &Client{inner: inner, options: c.options, clientProfile: c.clientProfile, profile: c.profile, jar: c.jar,
 		preflights:   c.preflights,
+		hints:        c.hints,
 		headers:      c.headers,
 		http1Headers: c.http1Headers, warm: c.warm, maxBody: c.maxBody,
 		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
@@ -523,6 +527,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	switch {
 	case browser != nil:
 		first := browser.first(parsed)
+		first.hints = c.hintsOf(browser, first)
 		ch.last, ch.policy = first, browser.policy
 		if first.referrer != "" {
 			ch.referrer, _ = url.Parse(first.referrer)
@@ -583,6 +588,10 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	defer func() { _ = res.Body.Close() }()
 	if r != nil {
 		r.answered(res)
+	}
+	if browser != nil && !browser.scripted() {
+		// What the origin asked for, said on the answer to a navigation.
+		ch.remember(originOf(res.Request.URL), res.Header)
 	}
 	if browser != nil && ch.last.cors {
 		serialized := ch.last.serialized(browser)

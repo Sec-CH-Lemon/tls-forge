@@ -301,6 +301,32 @@ In a browser context each hop is worked out again from the hops before it:
   none across origins. Each of these is an error wrapping
   `tlsforge.ErrCORS`, with nothing more sent.
 
+### Client hints
+
+A server asks for client hints beyond the three Chrome sends with every
+request (`sec-ch-ua`, `sec-ch-ua-mobile`, `sec-ch-ua-platform`) with
+`Accept-CH`, and a request in a browser context sends them as Chrome 155 was
+measured sending them (`testdata/chrome155-requests.json`):
+
+- What an origin asks for on the answer to a navigation, a form's or a
+  redirect's, over a connection a page may trust, is kept for the session,
+  which every client made `Fresh` from one shares. A later `Accept-CH`
+  replaces it, an empty one asks for nothing, and an answer without one
+  leaves it as it was. The hints Chrome knows are kept, in any case; the rest
+  are passed over. A `fetch()` or an XHR asks for nothing.
+- Every navigation and form to that origin carries them with the three, in
+  Chrome's order (`profile.ClientHintOrder`) and where Chrome puts them: first
+  in a request, and after `Sec-Fetch-Dest` after a redirect. `fetch()` and an
+  XHR of a page of that origin carry them to it, first; Chrome's renderer puts
+  several where its hash table does, which is not modelled.
+- Another origin of the same site, another site, and a page of another site
+  asking that origin get none of them.
+- A hint the profile has no value for (`profile.Profile.ClientHints`) is not
+  sent: of the shipped profiles, `chrome_155_macos` has every one.
+- A request without a browser context neither keeps nor sends them, and a
+  navigation is not yet started again for the hints a `Critical-CH` says the
+  page needs.
+
 ## Responses and errors
 
 The response body is already decoded and read into memory, subject to the
@@ -427,7 +453,7 @@ response, err := client.Do(&tlsforge.Request{
 |---|---|
 | `slog.LevelInfo` | The client and its profile; a record for each request and each answer. |
 | `slog.LevelWarn` | A request that failed: the step it gave up in as `phase` (`prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect`), whether it was a timeout, and the error. A lookup that failed, a proxy that would not open a tunnel, with up to 1 KiB of what it said, a handshake with an HTTPS proxy that failed, and the redirect that is not followed, the twentieth. |
-| `slog.LevelDebug` | Every step: each lookup with the addresses found, each TCP dial, the `CONNECT` to a proxy and its answer with the tunnel's number, the connection by its two ends with what its handshake settled on and the server's certificate, a connection reused, the header fields as written, pseudo-headers included, the first byte, the answer's header fields, each redirect, and when a client is made, made `Fresh`, closes its idle connections and is closed. The profile's JA4, HTTP/2 preface and header order when a client is made. |
+| `slog.LevelDebug` | Every step: each lookup with the addresses found, each TCP dial, the `CONNECT` to a proxy and its answer with the tunnel's number, the connection by its two ends with what its handshake settled on and the server's certificate, a connection reused, the header fields as written, pseudo-headers included, the first byte, the answer's header fields, each redirect, what an origin asked for with `Accept-CH`, and when a client is made, made `Fresh`, closes its idle connections and is closed. The profile's JA4, HTTP/2 preface and header order when a client is made. |
 | `tlsforge.LevelTrace` | The ClientHello of every new connection, with its JA4, JA4_r, JA3, every list in it and the length of its GREASE ECH payload as `ech_payload_bytes`, and every certificate of the server's chain. |
 
 Every record carries `client`, the client's number in the process, and
