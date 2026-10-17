@@ -44,10 +44,9 @@ handshakes differ before the server sees any HTTP header.
 
 The handshake and the headers are not all that gives a client away, and
 tls-forge does not reproduce everything else. It does not run
-JavaScript, load a page's subresources, solve challenges or speak HTTP/3; the
-TCP/IP packets under every connection are this machine's operating system's;
-and a navigation does not yet start again for the client hints a server says
-it needs. Redirects are followed as Chrome follows them, and a form's POST,
+JavaScript, load a page's subresources, solve challenges or speak HTTP/3, and
+the TCP/IP packets under every connection are this machine's operating
+system's. Redirects are followed as Chrome follows them, and a form's POST,
 `fetch()` and an XHR go out as Chrome sends them, CORS and the client hints a
 server asked for and all, when a request says it is one
 ([GO.md](GO.md#browser-contexts)).
@@ -1065,6 +1064,7 @@ line about a frame, which cost a request on loopback about a tenth of its time.
 | `connected`, `reused connection`, `connection kept for the next request` | DEBUG | The connection by both its ends, the tunnel it goes through, the TLS version, cipher suite and ALPN, whether the session was resumed, the server name and certificate |
 | `client hello`, `certificate`, `handshake extras` | TRACE | The ClientHello that went out on each new connection: JA4, JA4_r, JA3, and every extension, cipher suite, version, group, key share and signature algorithm in order, and the length of its GREASE ECH payload as `ech_payload_bytes`, drawn for each connection; each certificate of the server's chain |
 | `client hints asked` | DEBUG | What an origin asked for with `Accept-CH` on the answer to a navigation in a browser context: the hints its requests carry from then on, none for an empty one |
+| `restarted for client hints` | INFO | A navigation started again where it began, as Chrome starts one, for the hints a `Critical-CH` said its page needs |
 | `request sent`, `first byte`, `response headers`, `redirect`, `redirect not followed` | DEBUG, WARN | The header fields as written, pseudo-headers included, in order; the answer's status, protocol and header fields; each redirect, and the twentieth, which is not followed |
 | `transport` | TRACE, WARN | What the HTTP/2 transport says: every frame it reads, the connections it opens and closes, and, as a warning, a server breaking the protocol or a cookie it will not keep |
 | `retry`, `page check`, `result`, `exit`, `cookies loaded`, `cookies saved`, `report` | INFO, WARN | Why a try is made again and after how long, what `--wait-for` and `--wait-for-element` found, how each request ended, where the run comes out, the session and the report |

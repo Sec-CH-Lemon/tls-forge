@@ -346,6 +346,12 @@ func (r *requestLog) hintsAsked(o origin, hints []string) {
 	r.log.Debug("client hints asked", "origin", o.String(), "hints", strings.Join(hints, ","))
 }
 
+// restarted is a navigation started again for the client hints its answer
+// from url said it needs.
+func (r *requestLog) restarted(url string, hints []string) {
+	r.log.Info("restarted for client hints", "url", redact.URL(url), "hints", strings.Join(hints, ","))
+}
+
 // start says what is asked for.
 func (r *requestLog) start(method, rawURL string, body int) {
 	attrs := []any{"method", method, "url", redact.URL(rawURL)}

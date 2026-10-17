@@ -496,22 +496,12 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		return nil, err
 	}
 	method := inner.Method
-	if req.Context != nil {
-		inner = inner.WithContext(req.Context)
-	}
-	if req.Trace != nil {
-		inner = inner.WithContext(req.Trace.attach(inner.Context()))
-	}
-	if r != nil {
-		inner = inner.WithContext(r.attach(inner.Context()))
-	}
-
 	// The URL fhttp already parsed, rather than a second parse of the same
 	// string: two parsers agreeing is not something to verify at runtime, and a
 	// second parse is a second chance to disagree about what the request is for.
 	parsed := inner.URL
 	transport := c.inner
-	if browser != nil && (browser.kind == KindFetch || browser.kind == KindXHR) {
+	if browser != nil && browser.scripted() {
 		if transport, err = c.scriptClient(); err != nil {
 			return nil, err
 		}
@@ -522,77 +512,17 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	c.seedWarmCookies(parsed)
 	c.seedCookies(parsed, req.Cookies)
 
-	ch := &chain{client: c, transport: transport, log: r, browser: browser, urls: []*url.URL{parsed}}
-	var http1 fhttp.Header
-	switch {
-	case browser != nil:
-		first := browser.first(parsed)
-		first.hints = c.hintsOf(browser, first)
-		ch.last, ch.policy = first, browser.policy
-		if first.referrer != "" {
-			ch.referrer, _ = url.Parse(first.referrer)
-		}
-		field := browser.header(first, c.headers)
-		order := browser.wireOrder(first)
-		inner.Header = browserLayout(field, order, parsed.Host)
-		http1 = browserHTTP1Layout(field, first.script, order, c.profile.HTTP1, c.http1Headers, parsed.Host)
-	default:
-		headers := c.headers.Merge(req.Header)
-		ch.given = headers.Values("referer")
-		inner.Header = legacyHeaderLayout(headers, parsed.Host)
-		switch {
-		case c.profile.HTTP1 != nil:
-			http1 = measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
-		case !headers.Has("user-agent"):
-			// The one field the two protocols cannot be told the same way: an
-			// HTTP/1.1 connection gets a layout of its own even where nothing
-			// else differs.
-			http1 = cloneHeaderLayout(inner.Header)
-		}
+	res, ch, err := c.send(req, inner, browser, transport, r, false)
+	if errors.Is(err, errCriticalHints) {
+		// Chrome starts the navigation again, once, where it began. The
+		// request was read once already, so it reads the same again.
+		inner, _, _ = c.parse(req)
+		res, ch, err = c.send(req, inner, browser, transport, r, true)
 	}
-	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
-		inner.Header[fhttp.PHeaderOrderKey] = order
-	}
-	quietUserAgent(inner.Header, http2UserAgent)
-	ch.base = inner.Context()
-	if http1 != nil {
-		quietUserAgent(http1, http1UserAgent)
-		layouts := &protocolLayouts{
-			http1:   http1,
-			http2:   cloneHeaderLayout(inner.Header),
-			managed: managedHeaderNames(inner.Header, http1),
-		}
-		inner = withProtocolLayouts(inner, layouts)
-	}
-	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
-
-	defer ch.release()
-	if browser != nil {
-		if browser.needsPreflight(ch.last) && !c.preflights.allows(browser, ch.last, inner.URL.String()) {
-			if err := c.preflight(ch.base, inner, browser, ch.last, transport, r); err != nil {
-				return nil, err
-			}
-		}
-		// By the URL the transport will ask the jar about: the request's own,
-		// which every WithContext above copied anew.
-		ch.rule(inner.URL, browser.cookies(ch.last))
-	}
-	if r != nil {
-		r.step("connect")
-	}
-	withPort(inner)
-	res, err := transport.Do(inner)
 	if err != nil {
-		return nil, transportError(err)
+		return nil, err
 	}
 	defer func() { _ = res.Body.Close() }()
-	if r != nil {
-		r.answered(res)
-	}
-	if browser != nil && !browser.scripted() {
-		// What the origin asked for, said on the answer to a navigation.
-		ch.remember(originOf(res.Request.URL), res.Header)
-	}
 	if browser != nil && ch.last.cors {
 		serialized := ch.last.serialized(browser)
 		if err := browser.corsCheck(res.Header, serialized); err != nil {
@@ -638,6 +568,107 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		}
 	}
 	return out, nil
+}
+
+// errCriticalHints is how a navigation ends whose answer names, in
+// Critical-CH, client hints its origin asked for that it did not carry:
+// Chrome starts it again for them, once.
+var errCriticalHints = errors.New("tlsforge: the page needs client hints it was not sent")
+
+// send sends inner, the request req asks for, as its browser context says,
+// and follows its redirects: the first request of a navigation started again
+// for its critical client hints when restarted. It returns the answer, the
+// chain that came to it, or why there is none.
+func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserRequest, transport tls_client.HttpClient,
+	r *requestLog, restarted bool) (*fhttp.Response, *chain, error) {
+	if req.Context != nil {
+		inner = inner.WithContext(req.Context)
+	}
+	if req.Trace != nil {
+		inner = inner.WithContext(req.Trace.attach(inner.Context()))
+	}
+	if r != nil {
+		inner = inner.WithContext(r.attach(inner.Context()))
+	}
+	parsed := inner.URL
+	ch := &chain{client: c, transport: transport, log: r, browser: browser, urls: []*url.URL{parsed},
+		restarted: restarted}
+	var http1 fhttp.Header
+	switch {
+	case browser != nil:
+		first := browser.first(parsed)
+		first.hints = c.hintsOf(browser, first)
+		first.restarted = restarted
+		ch.last, ch.policy = first, browser.policy
+		if first.referrer != "" {
+			ch.referrer, _ = url.Parse(first.referrer)
+		}
+		field := browser.header(first, c.headers)
+		order := browser.wireOrder(first)
+		inner.Header = browserLayout(field, order, parsed.Host)
+		http1 = browserHTTP1Layout(field, first.script, order, c.profile.HTTP1, c.http1Headers, parsed.Host)
+	default:
+		headers := c.headers.Merge(req.Header)
+		ch.given = headers.Values("referer")
+		inner.Header = legacyHeaderLayout(headers, parsed.Host)
+		switch {
+		case c.profile.HTTP1 != nil:
+			http1 = measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
+		case !headers.Has("user-agent"):
+			// The one field the two protocols cannot be told the same way: an
+			// HTTP/1.1 connection gets a layout of its own even where nothing
+			// else differs.
+			http1 = cloneHeaderLayout(inner.Header)
+		}
+	}
+	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
+		inner.Header[fhttp.PHeaderOrderKey] = order
+	}
+	quietUserAgent(inner.Header, http2UserAgent)
+	ch.base = inner.Context()
+	if http1 != nil {
+		quietUserAgent(http1, http1UserAgent)
+		layouts := &protocolLayouts{
+			http1:   http1,
+			http2:   cloneHeaderLayout(inner.Header),
+			managed: managedHeaderNames(inner.Header, http1),
+		}
+		inner = withProtocolLayouts(inner, layouts)
+	}
+	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
+
+	defer ch.release()
+	if browser != nil {
+		if browser.needsPreflight(ch.last) && !c.preflights.allows(browser, ch.last, inner.URL.String()) {
+			if err := c.preflight(ch.base, inner, browser, ch.last, transport, r); err != nil {
+				return nil, nil, err
+			}
+		}
+		// By the URL the transport will ask the jar about: the request's own,
+		// which every WithContext above copied anew.
+		ch.rule(inner.URL, browser.cookies(ch.last))
+	}
+	if r != nil {
+		r.step("connect")
+	}
+	withPort(inner)
+	res, err := transport.Do(inner)
+	if err != nil {
+		return nil, nil, transportError(err)
+	}
+	if r != nil {
+		r.answered(res)
+	}
+	if browser != nil && !browser.scripted() {
+		// What the origin asked for, said on the answer to a navigation.
+		ch.remember(originOf(res.Request.URL), res.Header)
+		if ch.restart(shownURL(res.Request), res.Header, ch.last) {
+			_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
+			_ = res.Body.Close()
+			return nil, nil, errCriticalHints
+		}
+	}
+	return res, ch, nil
 }
 
 // Validate reports why a request could not be sent as it is, without sending

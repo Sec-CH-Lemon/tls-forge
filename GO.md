@@ -323,9 +323,12 @@ measured sending them (`testdata/chrome155-requests.json`):
   asking that origin get none of them.
 - A hint the profile has no value for (`profile.Profile.ClientHints`) is not
   sent: of the shipped profiles, `chrome_155_macos` has every one.
-- A request without a browser context neither keeps nor sends them, and a
-  navigation is not yet started again for the hints a `Critical-CH` says the
-  page needs.
+- A navigation whose answer, or a redirect's on the way, names in
+  `Critical-CH` a hint its origin now asks for that it did not carry, and the
+  profile has a value of, starts again where it began, once, as Chrome's
+  does: its first request with the hints after `Accept`, and the cookies the
+  answers set. A form's POST and a script's request are not started again.
+- A request without a browser context neither keeps nor sends them.
 
 ## Responses and errors
 
@@ -451,7 +454,7 @@ response, err := client.Do(&tlsforge.Request{
 
 | Level | What is logged |
 |---|---|
-| `slog.LevelInfo` | The client and its profile; a record for each request and each answer. |
+| `slog.LevelInfo` | The client and its profile; a record for each request and each answer, and for a navigation started again for its critical client hints. |
 | `slog.LevelWarn` | A request that failed: the step it gave up in as `phase` (`prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect`), whether it was a timeout, and the error. A lookup that failed, a proxy that would not open a tunnel, with up to 1 KiB of what it said, a handshake with an HTTPS proxy that failed, and the redirect that is not followed, the twentieth. |
 | `slog.LevelDebug` | Every step: each lookup with the addresses found, each TCP dial, the `CONNECT` to a proxy and its answer with the tunnel's number, the connection by its two ends with what its handshake settled on and the server's certificate, a connection reused, the header fields as written, pseudo-headers included, the first byte, the answer's header fields, each redirect, what an origin asked for with `Accept-CH`, and when a client is made, made `Fresh`, closes its idle connections and is closed. The profile's JA4, HTTP/2 preface and header order when a client is made. |
 | `tlsforge.LevelTrace` | The ClientHello of every new connection, with its JA4, JA4_r, JA3, every list in it and the length of its GREASE ECH payload as `ech_payload_bytes`, and every certificate of the server's chain. |

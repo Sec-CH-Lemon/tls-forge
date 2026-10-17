@@ -122,6 +122,9 @@ type hop struct {
 	// hints are the client hints the hop carries beyond the three Chrome
 	// sends unasked, with the profile's values, in Chrome's order.
 	hints Header
+	// restarted is the first request of a navigation started again for its
+	// critical client hints, which Chrome sends after Accept.
+	restarted bool
 }
 
 // first is the first request of a chain: to target, as the page sends it.
@@ -413,6 +416,11 @@ var (
 	formOrder = []string{"content-length", "cache-control", slotHints, "upgrade-insecure-requests", "content-type",
 		"user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer",
 		"accept-encoding", "accept-language", "cookie", "priority"}
+	// restartedOrder is the first request of a navigation started again for
+	// its critical client hints.
+	restartedOrder = []string{"upgrade-insecure-requests", "user-agent", "accept", slotHints, "sec-fetch-site",
+		"sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie",
+		"priority"}
 	// redirectedOrder is a navigation's or a form's after a redirect.
 	redirectedOrder = []string{"content-length", "cache-control", "upgrade-insecure-requests", "content-type",
 		"user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest",
@@ -427,6 +435,8 @@ func (r *browserRequest) order(h hop) []string {
 		return scriptOrder(h)
 	case h.redirected:
 		return redirectedOrder
+	case h.restarted:
+		return restartedOrder
 	case r.posted:
 		return formOrder
 	}

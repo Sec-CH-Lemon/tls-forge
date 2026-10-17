@@ -39,7 +39,7 @@ declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
 feeds, plain text and bodies with no type.
 
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
-(arm64), headless and in English, sent on 2026-10-16 and 2026-10-17 for 123
+(arm64), headless and in English, sent on 2026-10-16 and 2026-10-17 for 133
 scenarios, over HTTP/2 and over HTTP/1.1: navigations typed and from pages
 under each referrer policy, to and from `http://localhost`, forms posted and
 sent by GET, `fetch()` and XHR of every mode and credentials, CORS
@@ -49,7 +49,7 @@ HTTP, under a `Referrer-Policy` a redirect set, through CORS with preflights
 again, to URLs with credentials, and the chain Chrome gives up on), and the
 client hints a server asked for with `Accept-CH` (every one, a few, emptied,
 replaced, on a redirect, from forms, `fetch()` and XHR, and to other
-origins). A local
+origins) and said it needs with `Critical-CH`. A local
 server answered www.example.com and api.example.com (one site) and
 www.example.net (another), mapped to 127.0.0.1, and localhost, and kept each
 request's headers in order with their values, the priority of its HTTP/2

@@ -175,3 +175,74 @@ func TestALogSaysWhatAnOriginAskedFor(t *testing.T) {
 		t.Errorf("%v", got)
 	}
 }
+
+// criticalPage asks for sec-ch-ua-arch and says it needs it; once it has it,
+// it asks for sec-ch-ua-bitness and says it needs that.
+func criticalPage(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Sec-CH-UA-Arch") == "" {
+		w.Header().Set("Accept-CH", "sec-ch-ua-arch")
+		w.Header().Set("Critical-CH", "sec-ch-ua-arch")
+		return
+	}
+	w.Header().Set("Accept-CH", "sec-ch-ua-bitness")
+	w.Header().Set("Critical-CH", "sec-ch-ua-bitness")
+}
+
+func TestANavigationStartsAgainForItsCriticalHintsOnce(t *testing.T) {
+	server := newRecorder(t, "h2", criticalPage)
+	book, log := newLogBook(slog.LevelDebug)
+	client := contextClient(t, server, WithLogger(log))
+	if _, err := client.Do(&Request{URL: "https://www.example.com/p?q=1",
+		Browser: &BrowserContext{Kind: KindNavigation}}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	got := server.requests()
+	if len(got) != 2 {
+		t.Fatalf("sent %d requests, want the navigation and it started again", len(got))
+	}
+	if _, ok := got[1].header("sec-ch-ua-arch"); !ok {
+		t.Errorf("started again without the hint: %v", got[1].headers)
+	}
+	restarted := book.one(t, "restarted for client hints")
+	if restarted.get("url") != "https://www.example.com/p?q=1" || restarted.get("hints") != "sec-ch-ua-arch" {
+		t.Errorf("%v", restarted)
+	}
+}
+
+func TestANavigationThatSentTheHintsGoesOn(t *testing.T) {
+	// The origin asked for the hint before, so the navigation carried it.
+	server := newRecorder(t, "h2", answeringAsMeasured)
+	client := contextClient(t, server)
+	typed := &BrowserContext{Kind: KindNavigation}
+	for _, url := range []string{"https://www.example.com/p/a?accept=sec-ch-ua-arch",
+		"https://www.example.com/p/b?accept=sec-ch-ua-arch&critical=sec-ch-ua-arch"} {
+		if _, err := client.Do(&Request{URL: url, Browser: typed}); err != nil {
+			t.Fatalf("Do: %v", err)
+		}
+	}
+	if got := server.requests(); len(got) != 2 {
+		t.Errorf("sent %d requests", len(got))
+	}
+}
+
+func TestOnlyANavigationInAContextWithTheValuesStartsAgain(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		profile string
+		browser *BrowserContext
+	}{
+		{"without a browser context", "chrome_155_macos", nil},
+		{"with a profile that has no values of hints", "chrome_155_windows", &BrowserContext{Kind: KindNavigation}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newRecorder(t, "h2", criticalPage)
+			client := newTestClient(t, WithProfile(tc.profile), server.dialing())
+			if _, err := client.Do(&Request{URL: "https://www.example.com/p", Browser: tc.browser}); err != nil {
+				t.Fatalf("Do: %v", err)
+			}
+			if got := server.requests(); len(got) != 1 {
+				t.Errorf("sent %d requests", len(got))
+			}
+		})
+	}
+}

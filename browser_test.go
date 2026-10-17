@@ -73,7 +73,8 @@ type asSent struct {
 	// sent its preflight alone.
 	refused *chromeRequest
 	// redirected is a scenario whose page asked once: every request after the
-	// first is a redirect Chrome followed, or a preflight it made for one.
+	// first is one Chrome made itself, a redirect it followed, a preflight it
+	// made for one, or the navigation started again for its client hints.
 	redirected bool
 	// fails is what the page's request failed with, said in its error.
 	fails string
@@ -296,7 +297,21 @@ var sentInContexts = map[string]asSent{
 	"ch-nav-from-other-site": {before: run("ch-nav-from-other-site") + "?accept=sec-ch-ua-arch", each: []BrowserContext{
 		{Kind: KindNavigation, Initiator: run("ch-nav-from-other-site") + "?accept=sec-ch-ua-arch"},
 		{Kind: KindNavigation, Initiator: "https://www.example.net/p/ch-away?next=https://www.example.com/p/ch-back"}}},
-	"ch-persist":   {browser: BrowserContext{Kind: KindNavigation}, before: "https://www.example.com/p/ch-persist-set?accept=sec-ch-ua-arch"},
+	"ch-persist": {browser: BrowserContext{Kind: KindNavigation}, before: "https://www.example.com/p/ch-persist-set?accept=sec-ch-ua-arch"},
+	// And Critical-CH: a navigation started again, once, where it began.
+	"ch-critical-typed":          {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-critical-unasked":        {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-critical-low":            {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-critical-redirect":       {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-critical-all":            {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-critical-cookie":         {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-critical-after-redirect": {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"ch-critical-from-page": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("ch-critical-from-page")},
+		redirected: true},
+	"ch-critical-form-post": {browser: BrowserContext{Kind: KindForm, Initiator: run("ch-critical-form-post")}, form: true,
+		redirected: true},
+	"ch-fetch-critical": {each: []BrowserContext{{Kind: KindFetch, Initiator: run("ch-fetch-critical")},
+		{Kind: KindFetch, Initiator: run("ch-fetch-critical")}}},
 	"ch-form-post": {browser: BrowserContext{Kind: KindForm, Initiator: run("ch-form-post") + "?accept=sec-ch-ua-arch"}, form: true, before: run("ch-form-post") + "?accept=sec-ch-ua-arch"},
 	"ch-form-get":  {browser: BrowserContext{Kind: KindForm, Initiator: run("ch-form-get") + "?accept=sec-ch-ua-arch"}, before: run("ch-form-get") + "?accept=sec-ch-ua-arch"},
 	"ch-form-post-asks": {form: true, each: []BrowserContext{{Kind: KindForm, Initiator: run("ch-form-post-asks")},

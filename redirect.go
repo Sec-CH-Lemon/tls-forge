@@ -52,6 +52,9 @@ type chain struct {
 	// to another origin: Authorization is gone, and Origin is "null".
 	given   []string
 	crossed bool
+	// restarted is a navigation started again for its critical client
+	// hints, which is not started again for them twice.
+	restarted bool
 	// ruled are the URLs the jar was told a rule for.
 	ruled []*url.URL
 }
@@ -74,6 +77,30 @@ func (ch *chain) remember(o origin, header fhttp.Header) {
 	if asked, said := ch.client.hints.remember(o, header); said && ch.log != nil {
 		ch.log.hintsAsked(o, asked)
 	}
+}
+
+// restart reports an answer, from u, to a navigation's GET that names in
+// Critical-CH a client hint its origin asks for, which the profile has a value
+// for and the request that got it did not carry, as Chrome starts the
+// navigation again for, once; and writes it down.
+func (ch *chain) restart(u *url.URL, header fhttp.Header, sent hop) bool {
+	if ch.restarted || sent.method != fhttp.MethodGet {
+		return false
+	}
+	critical := askedHints(header.Values("Critical-CH"))
+	var missing []string
+	for _, hint := range ch.client.hintsOf(ch.browser, sent) {
+		if slices.Contains(critical, hint.Name) && !sent.hints.Has(hint.Name) {
+			missing = append(missing, hint.Name)
+		}
+	}
+	if missing == nil {
+		return false
+	}
+	if ch.log != nil {
+		ch.log.restarted(u.Redacted(), missing)
+	}
+	return true
 }
 
 func (ch *chain) release() {
@@ -248,8 +275,12 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 		h.script = h.script.without(bodyHeaders...)
 	}
 	if !r.scripted() {
-		// A redirect a navigation was answered with may ask for hints too.
+		// A redirect a navigation was answered with may ask for hints too,
+		// and say it needs them.
 		ch.remember(originOf(previous.URL), req.Response.Header)
+		if ch.restart(shownURL(previous), req.Response.Header, last) {
+			return hop{}, errCriticalHints
+		}
 	}
 	h.hints = ch.client.hintsOf(r, h)
 	ch.urls = append(ch.urls, req.URL)

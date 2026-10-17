@@ -77,8 +77,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   emptied or left as Chrome does; it goes with every navigation and form to
   that origin, in Chrome's order and where Chrome puts it, and with its
   pages' `fetch()` and XHR to it, and with nothing to another origin. A hint
-  the profile has no value for is not sent. The log says what each origin
-  asked for, as `client hints asked`.
+  the profile has no value for is not sent. A navigation whose answer, or a
+  redirect's, names in `Critical-CH` a hint its origin asks for that it did
+  not carry starts again where it began, once, as Chrome's does, its first
+  request with the hints after `Accept`; a form's POST and a script's
+  request do not. The log says what each origin asked for, as `client hints
+  asked`, and each navigation started again, as `restarted for client
+  hints`.
   `Profile.Chromium` says which profiles take one.
 - **`fetch --html-decoding browser` reads a page as Chrome 155 decodes it**
   for `--wait-for` and `--wait-for-element`: by its byte order mark, its
