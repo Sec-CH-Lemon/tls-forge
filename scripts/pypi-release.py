@@ -176,9 +176,10 @@ def build(staging: Path, out: Path, sdist: bool = False) -> Path:
 def check(wheel: Path, tag: str) -> None:
     """Is what was built actually usable?
 
-    Three things go wrong quietly here and all three make a wheel that installs
-    and then does not work: the binary left out, the binary present but not
-    executable, and the licence notices missing from a redistribution.
+    Four things go wrong quietly here and all four make a wheel that installs
+    and then does not work, or may not be passed on: the binary left out, the
+    binary present but not executable, the licence notices missing from a
+    redistribution, and its metadata not saying the licence or naming them.
     """
     if tag not in wheel.name:
         raise SystemExit(f"{wheel.name} is not tagged {tag}")
@@ -200,6 +201,18 @@ def check(wheel: Path, tag: str) -> None:
             if not any(n.endswith(f".dist-info/licenses/{name}") or n.endswith(f"/{name}")
                        for n in names):
                 raise SystemExit(f"{wheel.name} does not carry {name}")
+
+        # The licence as PyPI and pip read it: an older backend writes the
+        # files and leaves them out of the metadata.
+        metadata = [n for n in names if n.endswith(".dist-info/METADATA")]
+        if len(metadata) != 1:
+            raise SystemExit(f"{wheel.name} carries {len(metadata)} METADATA files where one was expected")
+        headers = packed.read(metadata[0]).decode("utf-8").split("\n\n", 1)[0].splitlines()
+        if "License-Expression: Apache-2.0" not in headers:
+            raise SystemExit(f"{wheel.name} does not say License-Expression: Apache-2.0 in its metadata")
+        for name in LEGAL:
+            if f"License-File: {name}" not in headers:
+                raise SystemExit(f"{wheel.name} does not name {name} as a License-File in its metadata")
 
 
 if __name__ == "__main__":

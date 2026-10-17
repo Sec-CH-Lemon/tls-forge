@@ -1,5 +1,9 @@
 [build-system]
-requires = ["hatchling"]
+# 1.27 is the first hatchling to write `license` and `license-files` as the
+# metadata they stand for, License-Expression and a License-File for each
+# notice. Found with an isolated build of each: 1.26 builds and drops both,
+# 1.25 and older refuse license-files as a list. CI builds with 1.27 itself.
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]

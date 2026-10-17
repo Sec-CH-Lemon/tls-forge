@@ -329,6 +329,22 @@ jobs:
       - run: pip install build wheel
       - run: node scripts/release-build.mjs --version 0.0.0 --commit "$GITHUB_SHA" --out dist/set --python python
 
+      # The oldest hatchling pyproject.toml allows builds the distributions as
+      # well, and as scripts/pypi-release.py checks them, licence metadata and
+      # all: a floor nothing builds with goes stale without anyone seeing.
+      - name: the oldest hatchling allowed builds them too
+        run: |
+          floor=$(sed -n 's/^requires = \["hatchling>=\([0-9.]*\)"\]$/\1/p' python/pyproject.toml)
+          test -n "$floor"
+          echo "hatchling==$floor" > "$RUNNER_TEMP/floor.txt"
+          mkdir -p "$RUNNER_TEMP/bin"
+          for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
+            printf '#!/bin/sh\n' > "$RUNNER_TEMP/bin/tls-forge-$target"
+          done
+          printf 'MZ' > "$RUNNER_TEMP/bin/tls-forge-windows-amd64.exe"
+          PIP_CONSTRAINT="$RUNNER_TEMP/floor.txt" python scripts/pypi-release.py --version 0.0.0 \
+            --binaries "$RUNNER_TEMP/bin" --out "$RUNNER_TEMP/floor"
+
       # The set crosses to the native runners as it is: archives, npm tarballs
       # and wheels keep their binaries' modes inside them, which the artifact
       # transport would not keep on loose files.

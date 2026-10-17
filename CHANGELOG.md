@@ -699,6 +699,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   there already. A dry run, `gh workflow run release.yml`, builds and checks
   the set and asks each registry what it has, and publishes nothing.
   RELEASING.md says how.
+- **The Python package builds with hatchling 1.27 or later**, the first to
+  write its licence as the metadata PyPI and pip read: `License-Expression:
+  Apache-2.0` and a `License-File` for each notice. Hatchling 1.26 built it
+  and left both out, and 1.25 refused it. A wheel whose metadata does not
+  say both is not published, and CI builds with 1.27 itself.
 - The packaging is tested where it was only run: what each npm package and
   wheel carries and how it is stamped, the licence files in each, the
   binary's mode, every refusal, and the Homebrew formula's checksum for each

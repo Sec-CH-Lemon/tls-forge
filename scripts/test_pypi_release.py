@@ -106,9 +106,10 @@ class Backend:
                         info = zipfile.ZipInfo(f"tlsforge/bin/{binary.name}")
                         info.external_attr = (self.mode if self.mode is not None else binary.stat().st_mode & 0o777) << 16
                         wheel.writestr(info, binary.read_bytes())
-                    for name in self.legal if self.legal is not None else LEGAL:
-                        if (staging / name).exists():
-                            wheel.writestr(f"tls_forge-{version.group(1)}.dist-info/licenses/{name}", (staging / name).read_text())
+                    legal = [name for name in (self.legal if self.legal is not None else LEGAL) if (staging / name).exists()]
+                    for name in legal:
+                        wheel.writestr(f"tls_forge-{version.group(1)}.dist-info/licenses/{name}", (staging / name).read_text())
+                    wheel.writestr(f"tls_forge-{version.group(1)}.dist-info/METADATA", metadata(legal))
             return subprocess.CompletedProcess(args, 0)
         assert args[1:5] == ["-m", "wheel", "tags", "--remove"]
         built = Path(args[-1])
@@ -116,6 +117,14 @@ class Backend:
         retagged = built.name.replace("-any.whl", f"-{tag}.whl")
         built.rename(built.parent / retagged)
         return subprocess.CompletedProcess(args, 0, stdout=f"{retagged}\n")
+
+
+def metadata(legal: List[str], expression: str = "Apache-2.0", body: str = "") -> str:
+    """A wheel's METADATA as hatchling 1.27 and later write it."""
+    lines = ["Metadata-Version: 2.4", "Name: tls-forge", "Version: 1"]
+    lines += [f"License-Expression: {expression}"] if expression else ["License: Apache-2.0"]
+    lines += [f"License-File: {name}" for name in legal]
+    return "\n".join(lines) + "\n\n" + body
 
 
 def build_with(monkeypatch: pytest.MonkeyPatch, backend: Callable[..., subprocess.CompletedProcess]) -> None:
@@ -222,13 +231,16 @@ def test_a_wheel_whose_binary_lost_its_mode_or_notices_stops(
         run_main(release, binaries, tmp_path / "p", monkeypatch)
 
 
-def wheel(path: Path, entries: Dict[str, int]) -> Path:
-    """A wheel at path holding entries, each name with its mode."""
+def wheel(path: Path, entries: Dict[str, int], meta: Optional[List[str]] = None) -> Path:
+    """A wheel at path holding entries, each name with its mode, and METADATA
+    files with what meta says, one naming every notice unless told."""
     with zipfile.ZipFile(path, "w") as packed:
         for name, mode in entries.items():
             info = zipfile.ZipInfo(name)
             info.external_attr = mode << 16
             packed.writestr(info, name)
+        for n, text in enumerate(meta if meta is not None else [metadata(LEGAL)]):
+            packed.writestr(f"tls_forge-{n + 1}.dist-info/METADATA", text)
     return path
 
 
@@ -266,6 +278,27 @@ def test_a_wheel_is_checked_for_its_tag_its_one_binary_its_mode_and_its_notices(
     lookalike = {**without, "tlsforge/MY-THIRD-PARTY-NOTICES.txt": 0o644}
     with pytest.raises(SystemExit, match="does not carry THIRD-PARTY-NOTICES.txt"):
         release.check(wheel(tmp_path / f"like-{linux}.whl", {"tlsforge/bin/tls-forge": 0o755, **lookalike}), linux)
+
+
+def test_a_wheel_says_its_licence_and_names_its_notices_in_its_metadata(release: ModuleType, tmp_path: Path) -> None:
+    linux = TAGS[3]
+    files = {"tlsforge/bin/tls-forge": 0o755, **NOTICES}
+    for n, (meta, says) in enumerate([
+        ([], "carries 0 METADATA files where one was expected"),
+        ([metadata(LEGAL), metadata(LEGAL)], "carries 2 METADATA files where one was expected"),
+        # What hatchling 1.26 wrote: the licence as text, the files unnamed.
+        ([metadata([], expression="")], "does not say License-Expression: Apache-2.0 in its metadata"),
+        ([metadata(LEGAL, expression="MIT")], "does not say License-Expression: Apache-2.0 in its metadata"),
+        ([metadata(["LICENSE", "THIRD-PARTY-NOTICES.txt"])], "does not name NOTICE as a License-File in its metadata"),
+        # Fields count only in the headers, not in the description below them.
+        ([metadata(["LICENSE", "NOTICE"], body="License-File: THIRD-PARTY-NOTICES.txt\n")],
+         "does not name THIRD-PARTY-NOTICES.txt as a License-File in its metadata"),
+    ]):
+        with pytest.raises(SystemExit, match=says):
+            release.check(wheel(tmp_path / f"m{n}-{linux}.whl", files, meta), linux)
+    # A file of the package called METADATA is no metadata of the wheel's.
+    release.check(wheel(tmp_path / f"ok-{linux}.whl", {**files, "tlsforge/data/METADATA": 0o644},
+                        [metadata(LEGAL, body="A description.\n")]), linux)
 
 
 def test_the_script_runs_as_a_command(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
