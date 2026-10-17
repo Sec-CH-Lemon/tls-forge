@@ -53,7 +53,7 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 //   - /cors/... answers what CORS allows, a preflight allowed but for ?deny and
 //     kept as long as ?maxage says;
 //   - /auth/... asks for HTTP authentication (authPage), /digest/... for
-//     Digest authentication (digestPage);
+//     Digest authentication (DigestPage);
 //   - /run/ID is the scenario's run page;
 //   - anything else is a page, which goes on to ?next by a refresh.
 //
@@ -113,7 +113,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(path, "/auth/"):
 		authPage(w, r)
 	case strings.HasPrefix(path, "/digest/"):
-		digestPage(w, r)
+		DigestPage(w, r)
 	case strings.HasPrefix(path, "/run/"):
 		s.runPage(w, r, strings.TrimPrefix(path, "/run/"))
 	case path == "/favicon.ico":

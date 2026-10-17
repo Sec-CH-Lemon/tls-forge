@@ -3,6 +3,7 @@ package tlsforge
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -18,37 +19,142 @@ import (
 	tls_client "github.com/bogdanfinn/tls-client"
 )
 
-func TestABasicChallengeIsReadAsChromiumReadsIt(t *testing.T) {
+func TestAChallengeIsReadAsChromiumReadsIt(t *testing.T) {
 	for _, tc := range []struct {
-		name   string
-		fields []string
-		realm  string
-		ok     bool
+		name, field string
+		windows     bool
+		scheme      string
+		realm       string
+		ok          bool
 	}{
-		{"a realm", []string{`Basic realm="bench"`}, "bench", true},
-		{"a scheme in any case, a token for a value", []string{`bASIC realm=bench`}, "bench", true},
-		{"no parameters", []string{`Basic`}, "", true},
-		{"a tab after the scheme, spaces before it", []string{"  Basic\trealm=\"x\""}, "x", true},
-		{"escapes, and a parameter of no matter", []string{`Basic realm="a\"b\\", charset="UTF-8"`}, `a"b\`, true},
-		{"the last realm", []string{`Basic realm="x", REALM="y"`}, "y", true},
-		{"a comma in quotes, and empty parts", []string{`Basic realm="a,b",, ,`}, "a,b", true},
-		{"Latin-1", []string{"Basic realm=\"\xe9t\xe9\""}, "été", true},
-		{"a parameter with no value", []string{`Basic realm`}, "", false},
-		{"no name", []string{`Basic ="x"`}, "", false},
-		{"a quote that does not end", []string{`Basic realm="x`}, "", false},
-		{"an escape at the end", []string{`Basic realm="x\"`}, "", false},
-		{"more after the quote", []string{`Basic realm="x"y`}, "", false},
-		{"the first that can be read", []string{`Basic realm`, `Basic realm="b"`, `Basic realm="c"`}, "b", true},
-		{"a scheme tls-forge does not know, then Basic", []string{`Bearer realm="api"`, `Basic realm="x"`}, "x", true},
-		{"only a scheme tls-forge does not know", []string{`Bearer realm="api"`}, "", false},
-		{"Digest, which Chrome prefers", []string{`Basic realm="x"`, `Digest realm="x", nonce="n"`}, "", false},
-		{"NTLM", []string{`NTLM`, `Basic realm="x"`}, "", false},
-		{"Negotiate", []string{`negotiate`, `Basic realm="x"`}, "", false},
-		{"no challenge", nil, "", false},
+		{"a realm", `Basic realm="bench"`, false, "basic", "bench", true},
+		{"a scheme in any case, a token for a value", `bASIC realm=bench`, false, "basic", "bench", true},
+		{"no parameters", `Basic`, false, "basic", "", true},
+		{"a tab after the scheme, spaces before it", "  Basic\trealm=\"x\"", false, "basic", "x", true},
+		{"a tab before it", "\t Basic realm=x", false, "basic", "x", true},
+		{"escapes, and a parameter of no matter", `Basic realm="a\"b\\", charset="UTF-8"`, false, "basic", `a"b\`, true},
+		{"the last realm", `Basic realm="x", REALM="y"`, false, "basic", "y", true},
+		{"a comma in quotes, and empty parts", `Basic realm="a,b",, ,`, false, "basic", "a,b", true},
+		{"Latin-1", "Basic realm=\"\xe9t\xe9\"", false, "basic", "été", true},
+		{"a quote that does not end, read without it", `Basic realm="x`, false, "basic", "x", true},
+		{"an escape at the end, dropped", `Basic realm="x\"`, false, "basic", "x", true},
+		{"more after the quote, read as it is", `Basic realm="x"y`, false, "basic", `x"y`, true},
+		{"a quote alone", `Basic realm="`, false, "basic", "", true},
+		{"a parameter with no value", `Basic realm`, false, "basic", "", false},
+		{"a parameter with nothing after its =", `Basic realm=`, false, "basic", "", false},
+		{"no name", `Basic ="x"`, false, "basic", "", false},
+		{"a quote in a name", `Basic "realm"=x`, false, "basic", "", false},
+		{"Digest", `Digest realm="r", nonce="n"`, false, "digest", "r", true},
+		{"Digest it cannot read", `Digest realm="r"`, false, "digest", "r", false},
+		{"NTLM, a first challenge", `NTLM`, false, "ntlm", "", true},
+		{"NTLM with a token, which no first challenge has", `NTLM TlRMTVNTUAACAAAA`, false, "ntlm", "", false},
+		{"NTLM with padding alone", `ntlm ===`, false, "ntlm", "", true},
+		{"NTLM with spaces and tabs after it", "NTLM \t ", false, "ntlm", "", true},
+		{"NTLM with padding that is a token", `NTLM ====`, false, "ntlm", "", false},
+		{"Negotiate on Windows", `Negotiate`, true, "negotiate", "", true},
+		{"Negotiate with a token", `Negotiate YIIG`, true, "negotiate", "", false},
+		{"Negotiate elsewhere", `Negotiate`, false, "negotiate", "", false},
+		{"a scheme Chrome does not answer", `Bearer realm="api"`, true, "bearer", "", false},
+		{"nothing", ` `, true, "", "", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if realm, ok := basicChallenge(tc.fields); realm != tc.realm || ok != tc.ok {
-				t.Errorf("basicChallenge(%q) = %q, %v; want %q, %v", tc.fields, realm, ok, tc.realm, tc.ok)
+			c, ok := readChallenge(tc.field, tc.windows)
+			if c.scheme != tc.scheme || ok != tc.ok || ok && (c.realm != tc.realm || c.field != tc.field) {
+				t.Errorf("readChallenge(%q) = %+v, %v", tc.field, c, ok)
+			}
+		})
+	}
+}
+
+func TestAChallengesParametersAreReadAsChromiumReadsThem(t *testing.T) {
+	for _, tc := range []struct {
+		text     string
+		want     []authParam
+		readable bool
+	}{
+		{"", nil, true},
+		{` a = 1 ,	b="x,y" `, []authParam{{"a", "1"}, {"b", "x,y"}}, true},
+		{`a="1",, ,b=2`, []authParam{{"a", "1"}, {"b", "2"}}, true},
+		{`a b=1=2, c=d e`, []authParam{{"a b", "1=2"}, {"c", "d e"}}, true},
+		{`A=""`, []authParam{{"A", ""}}, true},
+		{`a="a\\b\"c"`, []authParam{{"a", `a\b"c`}}, true},
+		{`a="x\"`, []authParam{{"a", "x"}}, true},
+		{`a="x`, []authParam{{"a", "x"}}, true},
+		{`a="x"y`, []authParam{{"a", `x"y`}}, true},
+		{`a="x\", b=1`, []authParam{{"a", `x\", b=1`}}, true},
+		{`a="`, []authParam{{"a", ""}}, true},
+		{`a=1, b, c=2`, []authParam{{"a", "1"}}, false},
+		{`a=1, b=`, []authParam{{"a", "1"}}, false},
+		{`=1`, nil, false},
+		{`"a"=1`, nil, false},
+	} {
+		got, readable := authParams(tc.text)
+		if !slices.Equal(got, tc.want) || readable != tc.readable {
+			t.Errorf("authParams(%q) = %q, %v; want %q, %v", tc.text, got, readable, tc.want, tc.readable)
+		}
+	}
+}
+
+func TestTheBestChallengeIsTheOneChromePrefers(t *testing.T) {
+	mac := newTestClient(t, WithProfile("chrome_155_macos"))
+	windows := newTestClient(t, WithProfile("chrome_155_windows"))
+	digest := `Digest realm="r", nonce="n"`
+	for _, tc := range []struct {
+		name    string
+		fields  []string
+		mac     string
+		windows string
+	}{
+		{"Digest before Basic, wherever it is", []string{`Basic realm="r"`, digest}, digest, digest},
+		{"the first of equals", []string{digest + `, algorithm=MD5`, digest + `, algorithm=SHA-256`},
+			digest + `, algorithm=MD5`, digest + `, algorithm=MD5`},
+		{"Basic when Digest cannot be read", []string{`Digest realm="r"`, `Basic realm="r"`}, `Basic realm="r"`, `Basic realm="r"`},
+		{"NTLM before Digest", []string{digest, `NTLM`, `Basic realm="r"`}, `NTLM`, `NTLM`},
+		{"Negotiate before NTLM on Windows alone", []string{`NTLM`, `Negotiate`, digest}, `NTLM`, `Negotiate`},
+		{"Negotiate passed over elsewhere", []string{`Negotiate`, digest}, digest, `Negotiate`},
+		{"none Chrome answers", []string{`Bearer`, `Basic realm`}, "", ""},
+		{"no challenge", nil, "", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for client, want := range map[*Client]string{mac: tc.mac, windows: tc.windows} {
+				if best, ok := client.bestChallenge(tc.fields); ok != (want != "") || best.field != want {
+					t.Errorf("%s: %+v, %v; want %q", client.profile.Name, best, ok, want)
+				}
+			}
+		})
+	}
+}
+
+func TestWhatA401SaysOfAnAnswerIsReadAsChromiumReadsIt(t *testing.T) {
+	basic := keptBasic("r")
+	digest, _ := readChallenge(`Digest realm="r", nonce="1"`, false)
+	latin, _ := readChallenge("Digest realm=\"\xe9\", nonce=\"1\"", false)
+	for _, tc := range []struct {
+		name   string
+		sent   challenge
+		fields []string
+		said   verdict
+		field  string
+	}{
+		{"Basic again", basic, []string{`Basic realm="r"`}, turnedDown, `Basic realm="r"`},
+		{"Basic of another realm", basic, []string{`Basic realm="s"`}, otherRealm, `Basic realm="s"`},
+		{"the first Basic it can read", basic, []string{`Basic realm`, `Basic realm="s"`, `Basic realm="r"`}, otherRealm, `Basic realm="s"`},
+		{"no Basic it can read", basic, []string{`Basic realm`}, turnedDown, ""},
+		{"no challenge of the scheme", basic, []string{`Digest realm="r", nonce="2", stale=true`}, turnedDown, ""},
+		{"no challenge", digest, nil, turnedDown, ""},
+		{"Digest again", digest, []string{`Digest realm="r", nonce="2"`}, turnedDown, `Digest realm="r", nonce="2"`},
+		{"a nonce out of date", digest, []string{`Basic realm="r"`, `Digest realm="r", nonce="2", stale=true`}, outOfDate,
+			`Digest realm="r", nonce="2", stale=true`},
+		{"in any case, before the realm is looked at", digest, []string{`Digest stale=TRUE, realm="s"`}, outOfDate, `Digest stale=TRUE, realm="s"`},
+		{"not out of date", digest, []string{`Digest realm="r", stale=false`}, turnedDown, `Digest realm="r", stale=false`},
+		{"another realm", digest, []string{`Digest realm="s", nonce="2"`}, otherRealm, `Digest realm="s", nonce="2"`},
+		{"no realm", digest, []string{`Digest nonce="2"`}, otherRealm, `Digest nonce="2"`},
+		{"read up to what it cannot read", digest, []string{`Digest realm="r", x, stale=true`}, turnedDown, `Digest realm="r", x, stale=true`},
+		{"a realm in Latin-1", latin, []string{"Digest realm=\"\xe9\""}, turnedDown, "Digest realm=\"\xe9\""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if said, field := tc.sent.respond(tc.fields); said != tc.said || field != tc.field {
+				t.Errorf("respond(%q) = %s, %q; want %s, %q", tc.fields, says[said], field, says[tc.said], tc.field)
 			}
 		})
 	}
@@ -141,52 +247,100 @@ func TestAProtectionSpaceBeginsAtADirectory(t *testing.T) {
 	}
 }
 
+// keptBasic is a Basic challenge of realm, as the cache keeps one.
+func keptBasic(realm string) challenge {
+	return challenge{scheme: "basic", field: `Basic realm="` + realm + `"`, realm: realm}
+}
+
 func TestTheCacheKeepsWhatChromiumKeeps(t *testing.T) {
 	a := origin{"https", "a.test", "443"}
 	b := origin{"https", "b.test", "443"}
 	right, wrong := credentials{"u", "p"}, credentials{"u", "x"}
 	var c authCache
-	if _, _, ok := c.forPath(a, "/x"); ok {
+	if _, ok := c.forPath(a, "/x"); ok {
 		t.Fatal("an empty cache sends something")
 	}
-	c.keep(a, "r", right, "/d/e/page")
+	c.keep(a, keptBasic("r"), right, "/d/e/page")
 	for path, ok := range map[string]bool{"/d/e/other": true, "/d/e/f/g": true, "/d/e": false, "/d/x": false} {
-		if realm, cred, got := c.forPath(a, path); got != ok || got && (realm != "r" || cred != right) {
-			t.Errorf("forPath(%s) = %q, %v, %v", path, realm, cred, got)
+		if k, got := c.forPath(a, path); got != ok || got && (k.field != `Basic realm="r"` || k.credentials != right) {
+			t.Errorf("forPath(%s) = %+v, %v", path, k, got)
 		}
 	}
-	if _, _, ok := c.forPath(b, "/d/e/x"); ok {
+	if _, ok := c.forPath(b, "/d/e/x"); ok {
 		t.Error("sent to another origin")
 	}
 	// A directory above the one kept takes its place; one under it is in it
 	// already.
-	c.keep(a, "r", right, "/d/page")
-	c.keep(a, "r", right, "/d/e/f/page")
+	c.keep(a, keptBasic("r"), right, "/d/page")
+	c.keep(a, keptBasic("r"), right, "/d/e/f/page")
 	if paths := c.entries[0].paths; len(paths) != 1 || paths[0] != "/d/" {
 		t.Errorf("paths %v", paths)
 	}
 	// The closest directory above a path decides, and keeping replaces the
 	// credentials.
-	c.keep(a, "inner", wrong, "/d/e/page")
-	if realm, cred, _ := c.forPath(a, "/d/e/x"); realm != "inner" || cred != wrong {
-		t.Errorf("the closest is %q, %v", realm, cred)
+	c.keep(a, keptBasic("inner"), wrong, "/d/e/page")
+	if k, _ := c.forPath(a, "/d/e/x"); k.field != `Basic realm="inner"` || k.credentials != wrong {
+		t.Errorf("the closest is %+v", k)
 	}
-	c.keep(a, "inner", right, "/d/e/page")
-	if cred, ok := c.forRealm(a, "inner"); !ok || cred != right {
+	c.keep(a, keptBasic("inner"), right, "/d/e/page")
+	if cred, ok := c.forRealm(a, "inner", "basic"); !ok || cred != right {
 		t.Errorf("forRealm = %v, %v", cred, ok)
 	}
-	if _, ok := c.forRealm(a, "none"); ok {
-		t.Error("a realm never answered")
+	for _, realm := range [][2]string{{"none", "basic"}, {"inner", "digest"}} {
+		if _, ok := c.forRealm(a, realm[0], realm[1]); ok {
+			t.Errorf("%s in %s, never answered", realm[0], realm[1])
+		}
 	}
-	// Only the credentials turned down are forgotten.
-	c.drop(a, "inner", wrong)
-	c.drop(a, "nowhere", right)
-	if _, ok := c.forRealm(a, "inner"); !ok {
+	// Only the credentials turned down are forgotten, of their scheme.
+	c.drop(a, "inner", "basic", wrong)
+	c.drop(a, "nowhere", "basic", right)
+	c.drop(a, "inner", "digest", right)
+	if _, ok := c.forRealm(a, "inner", "basic"); !ok {
 		t.Error("newer credentials were forgotten")
 	}
-	c.drop(a, "inner", right)
-	if _, ok := c.forRealm(a, "inner"); ok {
+	c.drop(a, "inner", "basic", right)
+	if _, ok := c.forRealm(a, "inner", "basic"); ok {
 		t.Error("credentials turned down are kept")
+	}
+}
+
+func TestTheCacheCountsTheAnswersToAChallenge(t *testing.T) {
+	at := origin{"https", "a.test", "443"}
+	cred := credentials{"u", "p"}
+	first := challenge{scheme: "digest", field: `Digest realm="r", nonce="1"`, realm: "r"}
+	var c authCache
+	c.keep(at, first, cred, "/d/a")
+	// Each answer sent unasked counts on from the one a 401 was answered
+	// with, from wherever in the realm it is sent.
+	for want, path := range []string{"/d/b", "/d/c", "/d/e/f"} {
+		if k, ok := c.forPath(at, path); !ok || k.count != want+2 || k.field != first.field {
+			t.Errorf("forPath(%s) = %+v, %v", path, k, ok)
+		}
+	}
+	// A challenge answered again begins it again, kept in place of the one
+	// before, for each directory.
+	again := challenge{scheme: "digest", field: `Digest realm="r", nonce="2"`, realm: "r"}
+	c.keep(at, again, cred, "/e/a")
+	if k, _ := c.forPath(at, "/d/x"); k.count != 2 || k.field != again.field {
+		t.Errorf("after another answer %+v", k)
+	}
+	// A challenge that says the nonce is out of date takes its place, its
+	// count begun again too; and a realm or scheme with nothing kept takes
+	// nothing.
+	if !c.renew(at, "r", "digest", `Digest realm="r", nonce="3", stale=true`) {
+		t.Fatal("nothing kept to renew")
+	}
+	if k, _ := c.forPath(at, "/e/x"); k.count != 2 || k.field != `Digest realm="r", nonce="3", stale=true` {
+		t.Errorf("after a nonce out of date %+v", k)
+	}
+	if c.renew(at, "r", "basic", "Basic") || c.renew(at, "other", "digest", "Digest") ||
+		c.renew(origin{"https", "b.test", "443"}, "r", "digest", "Digest") {
+		t.Error("renewed what is not kept")
+	}
+	// A realm of another scheme is another entry.
+	c.keep(at, keptBasic("r"), cred, "/f/a")
+	if len(c.entries) != 2 {
+		t.Errorf("%d entries", len(c.entries))
 	}
 }
 
@@ -195,24 +349,26 @@ func TestTheCacheForgetsWhatChromiumForgets(t *testing.T) {
 	cred := credentials{"u", "p"}
 	var c authCache
 	for i := range maxAuthPaths + 1 {
-		c.keep(at, "r", cred, "/"+strconv.Itoa(i)+"/page")
+		c.keep(at, keptBasic("r"), cred, "/"+strconv.Itoa(i)+"/page")
 	}
 	if paths := c.entries[0].paths; len(paths) != maxAuthPaths || paths[0] != "/10/" || paths[len(paths)-1] != "/1/" {
 		t.Errorf("paths %v", paths)
 	}
-	// The least recently used realm goes: asking for one uses it.
+	// The least recently used realm goes: asking for one uses it, and so
+	// does renewing one.
 	c = authCache{}
 	for i := range maxAuthEntries {
-		c.keep(at, strconv.Itoa(i), cred, "/"+strconv.Itoa(i)+"/page")
+		c.keep(at, keptBasic(strconv.Itoa(i)), cred, "/"+strconv.Itoa(i)+"/page")
 	}
-	c.forRealm(at, "0")
+	c.forRealm(at, "0", "basic")
 	c.forPath(at, "/1/x")
-	c.keep(at, "new", cred, "/new/page")
+	c.renew(at, "2", "basic", `Basic realm="2"`)
+	c.keep(at, keptBasic("new"), cred, "/new/page")
 	if len(c.entries) != maxAuthEntries {
 		t.Fatalf("%d entries", len(c.entries))
 	}
-	for realm, kept := range map[string]bool{"0": true, "1": true, "2": false, "new": true} {
-		if _, ok := c.forRealm(at, realm); ok != kept {
+	for realm, kept := range map[string]bool{"0": true, "1": true, "2": true, "3": false, "new": true} {
+		if _, ok := c.forRealm(at, realm, "basic"); ok != kept {
 			t.Errorf("realm %s kept %v", realm, ok)
 		}
 	}
@@ -228,10 +384,11 @@ func TestTheCacheIsAskedAtOnce(t *testing.T) {
 			defer wg.Done()
 			realm := strconv.Itoa(i % 3)
 			for range 50 {
-				c.keep(at, realm, credentials{"u", realm}, "/"+realm+"/page")
+				c.keep(at, keptBasic(realm), credentials{"u", realm}, "/"+realm+"/page")
 				c.forPath(at, "/"+realm+"/x")
-				c.forRealm(at, realm)
-				c.drop(at, realm, credentials{"u", "?"})
+				c.forRealm(at, realm, "basic")
+				c.renew(at, realm, "basic", `Basic realm="`+realm+`"`)
+				c.drop(at, realm, "basic", credentials{"u", "?"})
 			}
 		}()
 	}
@@ -366,17 +523,19 @@ func TestCredentialsTurnedDownAreTriedOnceAndForgotten(t *testing.T) {
 	}
 }
 
-func TestA401ChromeWouldNotAnswerWithBasicIsLeftAsItIs(t *testing.T) {
+func TestA401ChromeWouldAnswerInAnotherSchemeIsLeftAsItIs(t *testing.T) {
 	for name, tc := range map[string]struct {
 		challenges []string
 		status     int
 		header     Header
+		profile    string
 	}{
-		"Digest offered too":             {[]string{`Digest realm="r", nonce="n"`, `Basic realm="r"`}, http.StatusUnauthorized, nil},
-		"NTLM offered too":               {[]string{`NTLM`, `Basic realm="r"`}, http.StatusUnauthorized, nil},
-		"no challenge":                   {nil, http.StatusUnauthorized, nil},
-		"a challenge that is no 401":     {[]string{`Basic realm="r"`}, http.StatusForbidden, nil},
-		"an Authorization of the caller": {[]string{`Basic realm="r"`}, http.StatusUnauthorized, NewHeader("Authorization", "Bearer mine")},
+		"NTLM offered too":                  {[]string{`NTLM`, `Digest realm="r", nonce="n"`, `Basic realm="r"`}, http.StatusUnauthorized, nil, "chrome_155_macos"},
+		"Negotiate offered too, on Windows": {[]string{`Negotiate`, `Basic realm="r"`}, http.StatusUnauthorized, nil, "chrome_155_windows"},
+		"a scheme Chrome does not know":     {[]string{`Bearer realm="r"`}, http.StatusUnauthorized, nil, "chrome_155_macos"},
+		"no challenge":                      {nil, http.StatusUnauthorized, nil, "chrome_155_macos"},
+		"a challenge that is no 401":        {[]string{`Basic realm="r"`}, http.StatusForbidden, nil, "chrome_155_macos"},
+		"an Authorization of the caller":    {[]string{`Basic realm="r"`}, http.StatusUnauthorized, NewHeader("Authorization", "Bearer mine"), "chrome_155_macos"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			server := newRecorder(t, "h2", func(w http.ResponseWriter, _ *http.Request) {
@@ -385,13 +544,14 @@ func TestA401ChromeWouldNotAnswerWithBasicIsLeftAsItIs(t *testing.T) {
 				}
 				w.WriteHeader(tc.status)
 			})
-			client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+			client := newTestClient(t, WithProfile(tc.profile), server.dialing())
 			res, err := client.Do(&Request{URL: authURL("u:p", "x"), Header: tc.header})
 			if err != nil || res.Status != tc.status {
 				t.Fatalf("Do: %v, %+v", err, res)
 			}
 			// Sent once, and never with the URL's credentials.
-			if got := authorizations(server.requests()); len(got) != 1 || strings.HasPrefix(got[0], "Basic") {
+			if got := authorizations(server.requests()); len(got) != 1 || strings.HasPrefix(got[0], "Basic") ||
+				strings.HasPrefix(got[0], "Digest") {
 				t.Errorf("Authorization sent %q", got)
 			}
 		})
@@ -636,5 +796,312 @@ func TestAURLsCredentialsLeaveHTTP1ItsLayout(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestAnAnswerSentUnaskedForAnotherRealmIsNoReasonToForgetItsOwn(t *testing.T) {
+	// /d/ and /e/ ask for the realm "one" but for /d/b and /e/a answered,
+	// which ask for "two", which nothing answers.
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		realm := "one"
+		if r.URL.Path == "/d/b" || r.URL.Path == "/e/a" && r.Header.Get("Authorization") != "" {
+			realm = "two"
+		}
+		if r.Header.Get("Authorization") != "Basic dTpw" || realm == "two" {
+			w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	for _, u := range []string{"https://u:p@www.example.com/d/a", "https://www.example.com/d/b", "https://www.example.com/d/c",
+		"https://u:p@www.example.com/e/a", "https://www.example.com/e/b"} {
+		if _, err := client.Get(u); err != nil {
+			t.Fatalf("Get %s: %v", u, err)
+		}
+	}
+	// What was kept for /d/ was sent unasked to /d/b, which asked for another
+	// realm, and is still sent to /d/c; what /e/a answered with, from its URL,
+	// was turned down for another realm, and nothing is kept for /e/.
+	want := []string{"", "Basic dTpw", "Basic dTpw", "Basic dTpw", "", "Basic dTpw", ""}
+	if got := authorizations(server.requests()); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("Authorization sent %q,\nwant %q", got, want)
+	}
+}
+
+func TestAChallengeKeptThatCannotBeReadIsSentNothingUnasked(t *testing.T) {
+	// /d/a says the nonce of an answer is out of date with a challenge that
+	// has no nonce, which is kept for the realm and cannot be answered.
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/d/a" {
+			return
+		}
+		challenge := `Digest realm="r", nonce="1", qop="auth"`
+		if r.Header.Get("Authorization") != "" {
+			challenge = `Digest realm="r", stale=true`
+		}
+		w.Header().Set("WWW-Authenticate", challenge)
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	for _, u := range []string{"https://u:p@www.example.com/d/a", "https://www.example.com/d/b"} {
+		if _, err := client.Get(u); err != nil {
+			t.Fatalf("Get %s: %v", u, err)
+		}
+	}
+	got := authorizations(server.requests())
+	if len(got) != 3 || !strings.HasPrefix(got[1], "Digest ") || got[0] != "" || got[2] != "" {
+		t.Errorf("Authorization sent %q", got)
+	}
+}
+
+func TestANonceOutOfDateIsAnsweredAgainOnlyWithWhatIsKept(t *testing.T) {
+	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	u, _ := url.Parse("https://www.example.com/d/a")
+	at := originOf(u)
+	answered, _ := readChallenge(`Digest realm="r", nonce="1", qop="auth"`, false)
+	stale := &fhttp.Response{StatusCode: http.StatusUnauthorized, Request: &fhttp.Request{Method: http.MethodGet, URL: u},
+		Header: fhttp.Header{"Www-Authenticate": {`Digest realm="r", nonce="2", qop="auth", stale=true`}}}
+	client.session.auth.draw = func() string { return "0123456789abcdef" }
+	for _, kept := range []bool{false, true} {
+		if kept {
+			client.session.auth.keep(at, answered, credentials{"u", "p"}, "/d/a")
+		}
+		// The URL's credentials answered the hop: with nothing kept for the
+		// realm, as Chromium has it, they do not answer it again.
+		ch := &chain{client: client, credentials: url.UserPassword("u", "p"), embedded: true,
+			sent: &sentAuth{challenge: answered, credentials: credentials{"u", "p"}, from: "url"}}
+		value, again, err := ch.challenged(stale)
+		if err != nil || again != kept || kept && !strings.Contains(value, `nonce="2"`) {
+			t.Errorf("kept %v: %q, %v, %v", kept, value, again, err)
+		}
+	}
+}
+
+func TestEachHopIsAnsweredAsOftenAsChromeAnswersOne(t *testing.T) {
+	// /a says 30 answers are out of date and takes the 31st, which is as
+	// many as Chrome sends one hop, then redirects to /b, which takes its
+	// first: the count begins again on each hop.
+	var mu sync.Mutex
+	answers := map[string]int{}
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if r.Header.Get("Authorization") == "" {
+			w.Header().Set("WWW-Authenticate", `Digest realm="r", nonce="0", qop="auth"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		answers[r.URL.Path]++
+		switch {
+		case r.URL.Path == "/a" && answers["/a"] <= 30:
+			w.Header().Set("WWW-Authenticate", `Digest realm="r", nonce="`+strconv.Itoa(answers["/a"])+`", qop="auth", stale=true`)
+			w.WriteHeader(http.StatusUnauthorized)
+		case r.URL.Path == "/a":
+			w.Header().Set("Location", "/x/b")
+			w.WriteHeader(http.StatusFound)
+		}
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	if res, err := client.Get("https://u:p@www.example.com/a"); err != nil || res.Status != http.StatusOK {
+		t.Fatalf("Get: %v, %+v", err, res)
+	}
+	if got := len(server.requests()); got != 34 {
+		t.Errorf("%d requests, want 34", got)
+	}
+}
+
+func TestADigestAnswerIsLoggedWithoutItsCredentials(t *testing.T) {
+	// The first nonce is out of date when answered, the second taken.
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		switch said := r.Header.Get("Authorization"); {
+		case said == "":
+			w.Header().Set("WWW-Authenticate", `Digest realm="bench", nonce="1", qop="auth"`)
+			w.WriteHeader(http.StatusUnauthorized)
+		case strings.Contains(said, `nonce="1"`):
+			w.Header().Set("WWW-Authenticate", `Digest realm="bench", nonce="2", qop="auth", stale=true`)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	})
+	book, log := newLogBook(slog.LevelDebug)
+	client := newTestClient(t, WithProfile("chrome_155_macos"), WithLogger(log), server.dialing())
+	for _, u := range []string{"https://u:secret5@www.example.com/x/a", "https://www.example.com/x/b"} {
+		if res, err := client.Get(u); err != nil || res.Status != http.StatusOK {
+			t.Fatalf("Get %s: %v, %+v", u, err, res)
+		}
+	}
+	// The first nonce out of date, both answered with the URL's credentials;
+	// then the second sent unasked, its second answer.
+	answered := book.with(t, "challenge answered")
+	if len(answered) != 2 || answered[0].get("scheme") != "digest" || answered[1].get("credentials") != "url" {
+		t.Errorf("answered %v", answered)
+	}
+	if refused := book.one(t, "answer refused"); refused.get("said") != "out of date" || refused.get("scheme") != "digest" ||
+		refused.get("realm") != "bench" {
+		t.Errorf("refused %v", refused)
+	}
+	if sent := book.one(t, "authorization sent"); sent.get("scheme") != "digest" || sent.get("nonce_count") != "2" {
+		t.Errorf("sent %v", sent)
+	}
+	if text := book.text(); strings.Contains(text, "secret5") || strings.Contains(text, "response=") {
+		t.Errorf("the credentials were logged: %s", text)
+	}
+}
+
+func TestAnAnswerSentUnaskedIsWorkedOutForItsOwnRequest(t *testing.T) {
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			w.Header().Set("WWW-Authenticate", `Digest realm="r", nonce="n", qop="auth"`)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	client.session.auth.draw = func() string { return "c" }
+	if _, err := client.Get("https://u:p@www.example.com/d/a"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if _, err := client.Do(&Request{Method: http.MethodPost, URL: "https://www.example.com/d/b?x=1", Body: []byte("a")}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	// Its method, its path and query, its count: the second answer.
+	h := md5Hash
+	response := hexDigest(h, hexDigest(h, "u:r:p")+":n:00000002:c:auth:"+hexDigest(h, "POST:/d/b?x=1"))
+	got := authorizations(server.requests())
+	if want := `Digest username="u", realm="r", nonce="n", uri="/d/b?x=1", response="` + response +
+		`", qop=auth, nc=00000002, cnonce="c"`; len(got) != 3 || got[2] != want {
+		t.Errorf("Authorization sent %q,\nwant the last %q", got, want)
+	}
+}
+
+func TestAHopAnsweredAsOftenAsChromeAnswersOneFailsAndLeavesItsConnection(t *testing.T) {
+	server := newRecorder(t, "h1", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/forever" {
+			w.Header().Set("WWW-Authenticate", `Digest realm="r", nonce="n", qop="auth", stale=true`)
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = io.WriteString(w, "<p>401</p>")
+		}
+	})
+	var dials atomic.Int32
+	client := newTestClient(t, WithProfile("chrome_155_macos"),
+		WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
+			dials.Add(1)
+			var d net.Dialer
+			return d.DialContext(ctx, network, server.addr)
+		})))
+	_, err := client.Get("https://u:p@www.example.com/forever")
+	if err == nil || err.Error() != "tlsforge: GET https://www.example.com/forever asked for authentication again after 31 answers, "+
+		"and Chrome answers it no more" {
+		t.Fatalf("Get: %v", err)
+	}
+	if res, err := client.Get("https://www.example.com/after"); err != nil || res.Status != http.StatusOK {
+		t.Fatalf("Get: %v, %+v", err, res)
+	}
+	// The last 401 was read to its end, so what came after went on its
+	// connection.
+	if got := len(server.requests()); got != 33 || dials.Load() != 1 {
+		t.Errorf("%d requests over %d connections", got, dials.Load())
+	}
+}
+
+func TestTheRealmsCredentialsAnswerTheNonceTheyMadeOutOfDate(t *testing.T) {
+	// /k/a asks for the realm "s" and takes u:p. /d/a asks for "r", and for
+	// "s" once it is answered; then says the answer of u:p of the nonce 1 is
+	// out of date, and takes u:p with the nonce 2.
+	answer := func(r *http.Request, realm, nonce, password string) string {
+		d := digest{realm: realm, nonce: nonce, qop: true}
+		return d.answer(credentials{"u", password}, realm, r.Method, r.URL.RequestURI(), 1, func() string { return "c" })
+	}
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		said := r.Header.Get("Authorization")
+		challenge := `Digest realm="s", nonce="1", qop="auth"`
+		switch {
+		case r.URL.Path == "/k/a" && said == answer(r, "s", "1", "p"), r.URL.Path == "/d/a" && said == answer(r, "s", "2", "p"):
+			return
+		case r.URL.Path == "/d/a" && said == "":
+			challenge = `Digest realm="r", nonce="1", qop="auth"`
+		case r.URL.Path == "/d/a" && said == answer(r, "s", "1", "p"):
+			challenge = `Digest realm="s", nonce="2", qop="auth", stale=true`
+		}
+		w.Header().Set("WWW-Authenticate", challenge)
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	client.session.auth.draw = func() string { return "c" }
+	if res, err := client.Get("https://u:p@www.example.com/k/a"); err != nil || res.Status != http.StatusOK {
+		t.Fatalf("Get: %v, %+v", err, res)
+	}
+	// The URL's credentials answer "r", which is answered with "s": what is
+	// kept for "s" answers, and answers the nonce it made out of date again,
+	// and not the URL's.
+	if res, err := client.Get("https://u:x@www.example.com/d/a"); err != nil || res.Status != http.StatusOK {
+		t.Fatalf("Get: %v, %+v", err, res)
+	}
+	if got := len(server.requests()); got != 6 {
+		t.Errorf("%d requests, want 6", got)
+	}
+}
+
+func TestARedirectedHopIsSentUnaskedAnAnswerOfItsOwnMethod(t *testing.T) {
+	for name, browser := range map[string]*BrowserContext{"without a context": nil, "a form": {Kind: KindForm,
+		Initiator: "https://www.example.com/run/x"}} {
+		t.Run(name, func(t *testing.T) {
+			server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.URL.Path == "/r":
+					w.Header().Set("Location", "/d/b")
+					w.WriteHeader(http.StatusTemporaryRedirect)
+				case r.Header.Get("Authorization") == "":
+					w.Header().Set("WWW-Authenticate", `Digest realm="r", nonce="n", qop="auth"`)
+					w.WriteHeader(http.StatusUnauthorized)
+				}
+			})
+			client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+			client.session.auth.draw = func() string { return "c" }
+			if _, err := client.Get("https://u:p@www.example.com/d/a"); err != nil {
+				t.Fatalf("Get: %v", err)
+			}
+			req := &Request{Method: http.MethodPost, URL: "https://www.example.com/r", Body: []byte("a"), Browser: browser,
+				Header: NewHeader("Content-Type", "application/x-www-form-urlencoded")}
+			if _, err := client.Do(req); err != nil {
+				t.Fatalf("Do: %v", err)
+			}
+			// The first hop of a POST is sent unasked an answer for it too.
+			req.URL = "https://www.example.com/d/c"
+			if _, err := client.Do(req); err != nil {
+				t.Fatalf("Do: %v", err)
+			}
+			// A 307 keeps the POST, which the answer of the hop is worked out
+			// for.
+			got := authorizations(server.requests())
+			h := md5Hash
+			hop := hexDigest(h, hexDigest(h, "u:r:p")+":n:00000002:c:auth:"+hexDigest(h, "POST:/d/b"))
+			first := hexDigest(h, hexDigest(h, "u:r:p")+":n:00000003:c:auth:"+hexDigest(h, "POST:/d/c"))
+			if len(got) != 5 || !strings.Contains(got[3], `response="`+hop+`"`) || !strings.Contains(got[4], `response="`+first+`"`) {
+				t.Errorf("Authorization sent %q, want the last two for POST", got)
+			}
+		})
+	}
+}
+
+func TestEachDigestAnswerDrawsAClientNonceOfItsOwn(t *testing.T) {
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			w.Header().Set("WWW-Authenticate", `Digest realm="r", nonce="n", qop="auth"`)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	for _, u := range []string{"https://u:p@www.example.com/d/a", "https://www.example.com/d/b"} {
+		if _, err := client.Get(u); err != nil {
+			t.Fatalf("Get %s: %v", u, err)
+		}
+	}
+	var drawn []string
+	for _, a := range authorizations(server.requests()) {
+		if found := chromeCnonce.FindStringSubmatch(a); found != nil {
+			drawn = append(drawn, found[1])
+		}
+	}
+	if len(drawn) != 2 || drawn[0] == drawn[1] {
+		t.Errorf("client nonces %q", drawn)
 	}
 }

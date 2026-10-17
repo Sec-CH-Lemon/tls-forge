@@ -557,7 +557,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		first := browser.first(parsed)
 		first.hints = c.hintsOf(browser, first)
 		first.restarted = restarted
-		first.authorization = ch.arrive(parsed, user, ch.authenticates(first))
+		first.authorization = ch.arrive(first.method, parsed, user, ch.authenticates(first))
 		ch.last, ch.policy = first, browser.policy
 		if first.referrer != "" {
 			ch.referrer, _ = url.Parse(first.referrer)
@@ -567,7 +567,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		headers := c.headers.Merge(req.Header)
 		ch.given, ch.own = headers.Values("referer"), headers.Has("authorization")
 		blocks = c.layoutsAsGiven(headers, req.Header, parsed.Host)
-		if value := ch.arrive(parsed, user, ch.authenticates(ch.last)); value != "" {
+		if value := ch.arrive(inner.Method, parsed, user, ch.authenticates(ch.last)); value != "" {
 			blocks = blocks.authorized(value)
 		}
 		ch.laid = blocks
@@ -597,12 +597,17 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		if r != nil {
 			r.answered(res)
 		}
-		value, ok := ch.challenged(res)
+		value, ok, failed := ch.challenged(res)
+		if failed != nil || ok {
+			_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
+			_ = res.Body.Close()
+		}
+		if failed != nil {
+			return nil, nil, failed
+		}
 		if !ok {
 			break
 		}
-		_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
-		_ = res.Body.Close()
 		retry := ch.again(res.Request, value)
 		if r != nil {
 			r.step("connect")

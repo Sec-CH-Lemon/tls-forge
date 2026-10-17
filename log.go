@@ -353,16 +353,27 @@ func (r *requestLog) restarted(url string, hints []string) {
 }
 
 // authorized is credentials the session keeps for a realm sent unasked to
-// url, which lies where they were answered with: never the credentials.
-func (r *requestLog) authorized(url, realm string) {
-	r.log.Debug("authorization sent", "url", url, "realm", realm)
+// url, which lies where they were answered with, in the scheme of the
+// challenge kept, and a Digest answer's nonce count: never the credentials.
+func (r *requestLog) authorized(url string, c challenge, count int) {
+	attrs := []any{"url", url, "realm", c.realm, "scheme", c.scheme}
+	if c.digest != nil {
+		attrs = append(attrs, "nonce_count", count)
+	}
+	r.log.Debug("authorization sent", attrs...)
 }
 
-// authenticated is a challenge of a realm from url answered with the
-// credentials of the request's URL or those kept for the realm: never the
+// authenticated is a challenge of a realm and scheme from url answered with
+// the credentials of the request's URL or those kept for the realm: never the
 // credentials.
-func (r *requestLog) authenticated(url, realm, from string) {
-	r.log.Info("challenge answered", "url", url, "realm", realm, "credentials", from)
+func (r *requestLog) authenticated(url string, c challenge, from string) {
+	r.log.Info("challenge answered", "url", url, "realm", c.realm, "scheme", c.scheme, "credentials", from)
+}
+
+// answeredAgain is what a 401 from url said of the answer to c it was sent:
+// turned down, its nonce out of date, or another realm.
+func (r *requestLog) answeredAgain(url string, c challenge, said verdict) {
+	r.log.Debug("answer refused", "url", url, "realm", c.realm, "scheme", c.scheme, "said", says[said])
 }
 
 // start says what is asked for.

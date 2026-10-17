@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"slices"
 	"strings"
@@ -64,11 +65,13 @@ type chain struct {
 	// credentials are what the URL of the latest hop carried, taken off it
 	// before it is sent, and embedded whether a challenge was answered with
 	// them; sent is the Authorization tls-forge gave the latest hop, nil for
-	// none; ours is the request the transport makes hops of carrying one,
-	// which it copies onto them.
+	// none, and restarts how many times it was sent again with one; ours is
+	// the request the transport makes hops of carrying one, which it copies
+	// onto them.
 	credentials *url.Userinfo
 	embedded    bool
 	sent        *sentAuth
+	restarts    int
 	ours        bool
 	// redirects are the redirects followed so far, those after a challenge
 	// answered too.
@@ -78,11 +81,13 @@ type chain struct {
 	laid *layouts
 }
 
-// sentAuth is the Authorization tls-forge gave a hop: the credentials, and the
-// realm they were for.
+// sentAuth is the Authorization tls-forge gave a hop: the challenge it
+// answered, the credentials, and where they were from: the URL, the realm, or
+// what was kept for the directory, sent unasked.
 type sentAuth struct {
-	realm       string
+	challenge   challenge
 	credentials credentials
+	from        string
 }
 
 type chainKey struct{}
@@ -145,43 +150,71 @@ func (ch *chain) authenticates(h hop) bool {
 	return !h.script.Has("authorization") && !h.cors && !ch.browser.cookies(h).none
 }
 
-// arrive begins the hop to u: user, the credentials its URL carried, are
-// kept, none sent; and it is the Authorization the session sends unasked to
-// where it goes, nothing for a URL that carries credentials, nor where
-// allowed says none goes.
-func (ch *chain) arrive(u *url.URL, user *url.Userinfo, allowed bool) string {
-	ch.credentials, ch.embedded, ch.sent = user, false, nil
+// arrive begins the hop to u, a request of method: user, the credentials its
+// URL carried, are kept, none sent; and it is the Authorization the session
+// sends unasked to where it goes, worked out from the challenge kept for the
+// directory, nothing for a URL that carries credentials, nor where allowed
+// says none goes.
+func (ch *chain) arrive(method string, u *url.URL, user *url.Userinfo, allowed bool) string {
+	ch.credentials, ch.embedded, ch.sent, ch.restarts = user, false, nil, 0
 	if _, carried := credentialsOf(user); carried || !allowed {
 		return ""
 	}
-	realm, cred, ok := ch.client.session.auth.forPath(originOf(u), requestPath(u))
+	cache := ch.client.session.auth
+	k, ok := cache.forPath(originOf(u), requestPath(u))
 	if !ok {
 		return ""
 	}
-	ch.sent = &sentAuth{realm: realm, credentials: cred}
-	if ch.log != nil {
-		ch.log.authorized(u.Redacted(), realm)
+	// A challenge kept as it said a nonce was out of date may not be read.
+	c, ok := ch.client.challengeOf(k.field)
+	if !ok {
+		return ""
 	}
-	return cred.basic()
+	ch.sent = &sentAuth{challenge: c, credentials: k.credentials, from: "path"}
+	if ch.log != nil {
+		ch.log.authorized(u.Redacted(), c, k.count)
+	}
+	return c.answer(k.credentials, method, u.RequestURI(), k.count, cache.draw)
 }
 
 // challenged is the Authorization to send res's request again with, when res
-// is a 401 Chrome answers: a Basic challenge, and no scheme Chrome prefers,
-// answered with the credentials of the request's URL if they were not sent
-// yet, or with those the session keeps for the realm. Credentials turned down
-// are forgotten first.
-func (ch *chain) challenged(res *fhttp.Response) (string, bool) {
+// is a 401 Chrome answers: in the scheme of the best challenge it offers,
+// Basic or Digest, with the credentials of the request's URL if they were not
+// sent yet, or with those the session keeps for the realm and scheme. What
+// the 401 says of an answer the hop was sent comes first: the credentials it
+// turns down are forgotten, and so are those it asks for another realm in
+// place of, unless they were sent unasked; and a challenge that says the
+// Digest nonce answered was out of date is kept in place of the one answered,
+// the URL's credentials free to answer it again. A hop answered
+// maxRestarts-1 times is answered no more: the request fails, as Chrome's
+// does.
+func (ch *chain) challenged(res *fhttp.Response) (string, bool, error) {
 	if res.StatusCode != fhttp.StatusUnauthorized || !ch.authenticates(ch.last) {
-		return "", false
+		return "", false, nil
 	}
-	realm, ok := basicChallenge(res.Header.Values("WWW-Authenticate"))
-	if !ok {
-		return "", false
-	}
+	fields := res.Header.Values("WWW-Authenticate")
 	u := shownURL(res.Request)
 	at, cache := originOf(u), ch.client.session.auth
-	if ch.sent != nil {
-		cache.drop(at, ch.sent.realm, ch.sent.credentials)
+	if sent := ch.sent; sent != nil {
+		said, field := sent.challenge.respond(fields)
+		if ch.log != nil {
+			ch.log.answeredAgain(u.Redacted(), sent.challenge, said)
+		}
+		switch {
+		case said == outOfDate && cache.renew(at, sent.challenge.realm, sent.challenge.scheme, field):
+			if sent.from == "url" {
+				// They answer the new nonce, as they did the one before.
+				ch.embedded = false
+			}
+		case said == otherRealm && sent.from == "path":
+			// What is kept for the realm sent unasked stays.
+		default:
+			cache.drop(at, sent.challenge.realm, sent.challenge.scheme, sent.credentials)
+		}
+	}
+	best, ok := ch.client.bestChallenge(fields)
+	if !ok || best.scheme != "basic" && best.scheme != "digest" {
+		return "", false, nil
 	}
 	cred, embedded := credentialsOf(ch.credentials)
 	from := "url"
@@ -189,17 +222,21 @@ func (ch *chain) challenged(res *fhttp.Response) (string, bool) {
 	case embedded && !ch.embedded:
 		ch.embedded = true
 	default:
-		if cred, ok = cache.forRealm(at, realm); !ok {
-			return "", false
+		if cred, ok = cache.forRealm(at, best.realm, best.scheme); !ok {
+			return "", false, nil
 		}
 		from = "realm"
 	}
-	cache.keep(at, realm, cred, requestPath(u))
-	ch.sent = &sentAuth{realm: realm, credentials: cred}
-	if ch.log != nil {
-		ch.log.authenticated(u.Redacted(), realm, from)
+	if ch.restarts++; ch.restarts == maxRestarts {
+		return "", false, fmt.Errorf("tlsforge: %s %s asked for authentication again after %d answers, and Chrome answers it no more",
+			res.Request.Method, u.Redacted(), maxRestarts-1)
 	}
-	return cred.basic(), true
+	cache.keep(at, best, cred, requestPath(u))
+	ch.sent = &sentAuth{challenge: best, credentials: cred, from: from}
+	if ch.log != nil {
+		ch.log.authenticated(u.Redacted(), best, from)
+	}
+	return best.answer(cred, res.Request.Method, res.Request.URL.RequestURI(), 1, cache.draw), true, nil
 }
 
 // again is res's request, the latest hop, sent again with Authorization said
@@ -326,7 +363,7 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 		hop = first.redirected(req)
 		hop.http1[fhttp.HeaderOrderKey] = hintsAfterDest(hop.http1[fhttp.HeaderOrderKey])
 	}
-	if value := ch.arrive(shownURL(req), user, ch.authenticates(ch.last)); value != "" {
+	if value := ch.arrive(req.Method, shownURL(req), user, ch.authenticates(ch.last)); value != "" {
 		hop = hop.authorized(value)
 	}
 	ch.laid = hop
@@ -373,7 +410,7 @@ func (ch *chain) followInContext(req, previous *fhttp.Request, crossed, dropped 
 	}
 	// Chrome sends credentials a Location names only when the server asks.
 	user := ch.redirected(req)
-	h.authorization = ch.arrive(shownURL(req), user, ch.authenticates(h))
+	h.authorization = ch.arrive(h.method, shownURL(req), user, ch.authenticates(h))
 	r := ch.browser
 	if r.needsPreflight(h) && !ch.client.session.preflights.allows(r, h, shownURL(req).String()) {
 		if err := ch.client.preflight(ch.base, req, r, h, ch.transport, ch.log); err != nil {

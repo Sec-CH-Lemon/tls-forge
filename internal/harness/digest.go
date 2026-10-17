@@ -110,12 +110,13 @@ const (
 	outOfDate
 )
 
-// digestPage answers a page under /digest/NAME/: 401 asking as the offer NAME
+// DigestPage answers a page under /digest/NAME/ as the bench does, which a
+// test of what a client sends answers with too: 401 asking as the offer NAME
 // says until it is answered with u:p, then a redirect to ?to, or a page that
 // goes on to ?next, each a path resolved against the page's origin and none of
 // its credentials, so that what follows is sent what the browser keeps for the
 // realm rather than what a URL carries.
-func digestPage(w http.ResponseWriter, r *http.Request) {
+func DigestPage(w http.ResponseWriter, r *http.Request) {
 	name, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/digest/"), "/")
 	offer, ok := digestOffers[name]
 	if !ok {

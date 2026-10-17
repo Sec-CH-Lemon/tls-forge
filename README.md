@@ -356,15 +356,18 @@ anything is fetched, and a `.json` keeps each session as a set of its own.
 ### A site behind HTTP authentication
 
 Credentials in a URL are sent as Chrome sends them: only once the server
-answers 401 with a Basic challenge, and then kept for the run, sent unasked to
-the directory they were answered in and those under it:
+answers 401 with a Basic or a Digest challenge, Digest when it offers both,
+and then kept for the run, sent unasked to the directory they were answered in
+and those under it:
 
 ```bash
 tls-forge fetch 'https://user:pass@intranet.example/reports/'
 ```
 
-A page that offers Digest, NTLM or Negotiate is left with its 401, as is one
-whose request has an `Authorization` given with `-H`
+Digest is answered with MD5 or SHA-256, as the page asks, and answered again
+when the page says its nonce is out of date. A page that offers NTLM, or
+Negotiate to a profile of Windows, is left with its 401, as is one whose
+request has an `Authorization` given with `-H`
 ([docs/support.md](docs/support.md)).
 
 ### Retrying and repeating

@@ -13,6 +13,21 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **A 401 that offers Digest is answered as Chrome 155 answers it**, with the
+  credentials in the URL, as RFC 7616 has it: MD5 and SHA-256, each with its
+  `-sess`, `qop=auth` or none, the opaque said back and a hashed username,
+  the parameters in Chrome's order and a client nonce drawn for each answer;
+  Digest before Basic, the first of two alike. What was answered with is kept
+  by origin, realm and scheme, and sent unasked to its directory with the
+  nonce count going on; a nonce the page says is out of date is answered
+  again, and a request that would be sent its 32nd answer fails, as Chrome
+  stops there. A challenge Chrome cannot read is passed over, and every
+  challenge's parameters, Basic's too, are read as Chromium reads them: a
+  quote that does not end a value is read past rather than turned down, and a
+  parameter with nothing after its `=` makes the challenge one it cannot
+  read. Measured on Chrome 155 (the `auth-digest-*` scenarios of
+  `testdata/chrome155-requests.json`) and held to it request for request,
+  each answer worked out again with the client nonce Chrome drew.
 - **The daemon applies a request's browser context**, and says so: `hello`
   answers `capabilities: ["browser_context"]`, and the Node.js package's
   `browserContext` and the Python package's `browser_context` now go out as
@@ -550,8 +565,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   in `internal/harness` measures). They went with the first request, as Go's
   transport sends them: over HTTP/1.1 in the HTTP/2 layout, with an empty
   `User-Agent: ` line for a profile with no headers; and `Response.URL`, the
-  `final_url` of `fetch`'s lines, said the password. A 401 that offers
-  Digest, NTLM or Negotiate is left unanswered.
+  `final_url` of `fetch`'s lines, said the password. A 401 that offers NTLM,
+  or Negotiate to a profile of Windows, is left unanswered: Chrome answers it
+  in that scheme.
 - **A Node.js response has exactly the fields it documents**: `status`,
   `url`, `body`, `content`, `headers` and `cookies`, in that order. It
   carried the rest of the daemon's answer as well, its `id` and

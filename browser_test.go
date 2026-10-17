@@ -8,11 +8,13 @@ import (
 	"maps"
 	"net/http"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -101,22 +103,7 @@ var notSent = map[string]string{
 	"fetch-post-same-origin-headers": "the order of several headers a script set follows the renderer's hash table",
 	"ch-fetch-three":                 "the order of several client hints of a script's request follows the renderer's hash table",
 	"ch-fetch-all":                   "the order of several client hints of a script's request follows the renderer's hash table",
-	"auth-nav-digest":                "Chrome answers a challenge that offers Digest with Digest, and tls-forge answers Basic alone",
 	"auth-digest-ntlm":               "Chrome answers NTLM, which it prefers to Digest and Basic, and tls-forge answers neither instead",
-}
-
-// The scenarios of the pages under /digest/, which ask for Digest or offer it
-// with another scheme: not sent while tls-forge reads no Digest challenge.
-func init() {
-	for _, scenario := range []string{"auth-digest", "auth-digest-after-basic", "auth-digest-auth-int",
-		"auth-digest-basic-kept", "auth-digest-empty-value", "auth-digest-form-post", "auth-digest-md5",
-		"auth-digest-md5-first", "auth-digest-md5-sess", "auth-digest-negotiate", "auth-digest-no-nonce",
-		"auth-digest-no-qop", "auth-digest-no-realm", "auth-digest-opaque", "auth-digest-other-dir",
-		"auth-digest-qop-list", "auth-digest-quoting", "auth-digest-redirect", "auth-digest-sha256",
-		"auth-digest-sha256-first", "auth-digest-sha256-sess", "auth-digest-stale", "auth-digest-stale-forever",
-		"auth-digest-stale-later", "auth-digest-unknown-algorithm", "auth-digest-unquoted", "auth-digest-userhash"} {
-		notSent[scenario] = "tls-forge does not read a Digest challenge yet"
-	}
 }
 
 // asked is the URL of a scenario's page with its query.
@@ -399,8 +386,26 @@ func init() {
 		"auth-xhr":                         {browser: BrowserContext{Kind: KindXHR, Initiator: run("auth-xhr")}, pages: []int{0}, credentials: []string{"u:p"}},
 		"auth-nav-later-same-dir":          {browser: typed, pages: []int{0, 2, 3}, credentials: []string{"u:p", "", ""}},
 		"auth-nav-later-other-dir":         {browser: typed, pages: []int{0, 2, 4}, credentials: []string{"u:p", "", ""}},
+		"auth-nav-digest":                  {browser: typed, pages: []int{0}, credentials: []string{"u:p"}},
+		"auth-digest":                      {browser: typed, pages: []int{0, 2, 3, 4}, credentials: []string{"u:p", "", "", ""}},
+		"auth-digest-stale":                {browser: typed, pages: []int{0, 3, 4}, credentials: []string{"u:p", "", ""}},
+		"auth-digest-stale-later":          {browser: typed, pages: []int{0, 2, 4, 5}, credentials: []string{"u:p", "", "", ""}},
+		"auth-digest-other-dir":            {browser: typed, pages: []int{0, 2, 4, 5}, credentials: []string{"u:p", "", "", ""}},
+		"auth-digest-form-post": {browser: BrowserContext{Kind: KindForm, Initiator: run("auth-digest-form-post")}, form: true,
+			pages: []int{0, 2}, credentials: []string{"u:p", ""}},
+		"auth-digest-redirect":   {browser: typed, pages: []int{0, 3}, credentials: []string{"u:p", ""}},
+		"auth-digest-basic-kept": {browser: typed, pages: []int{0, 2}, credentials: []string{"u:p", ""}},
+		"auth-digest-stale-forever": {browser: typed, pages: []int{0}, credentials: []string{"u:p"},
+			fails: "asked for authentication again after 31 answers"},
 	} {
 		sentInContexts[scenario] = how
+	}
+	// A page of each offer, answered, then one of its directory, sent unasked
+	// what was kept, then a page of no realm.
+	for _, offer := range []string{"md5", "md5-sess", "sha256", "sha256-sess", "no-qop", "auth-int", "qop-list", "opaque",
+		"userhash", "no-realm", "unknown-algorithm", "no-nonce", "empty-value", "after-basic", "md5-first",
+		"sha256-first", "negotiate", "quoting", "unquoted"} {
+		sentInContexts["auth-digest-"+offer] = asSent{browser: typed, pages: []int{0, 2, 3}, credentials: []string{"u:p", "", ""}}
 	}
 }
 
@@ -476,8 +481,9 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // ?noacao, saying Referrer-Policy as ?rp does, and a preflight of it allowed
 // and kept for none; under /chain/N a redirect to /chain/N+1; under /auth/ a
 // 401 with a Basic challenge, after a Digest one for ?offer=digest, until the
-// request says u:p, then a redirect to ?to or a page; and cookies, two for
-// ?cookie=1 and one of each SameSite for ?cookie=2.
+// request says u:p, then a redirect to ?to or a page; under /digest/ what the
+// bench answers (harness.DigestPage); and cookies, two for ?cookie=1 and one
+// of each SameSite for ?cookie=2.
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	if q.Has("accept") {
@@ -538,6 +544,9 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = io.WriteString(w, "<!doctype html><title>401</title><p>401</p>")
 		return
+	case strings.HasPrefix(path, "/digest/"):
+		harness.DigestPage(w, r)
+		return
 	case strings.HasPrefix(path, "/auth/") && q.Get("to") != "":
 		w.Header().Set("Location", q.Get("to"))
 		w.WriteHeader(http.StatusFound)
@@ -568,6 +577,10 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, `{"ok":true}`)
 }
 
+// chromeCnonce is the client nonce of a Digest answer of Chrome's: 16
+// hexadecimal digits in lower case.
+var chromeCnonce = regexp.MustCompile(`, cnonce="([0-9a-f]{16})"`)
+
 // sendAsMeasured sends what a scenario's page asked for, each request but the
 // preflights Chrome made itself, in its browser context, to a recorder
 // speaking proto, or plain HTTP when Chrome went over it, and is what the
@@ -577,6 +590,23 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 	server := newRecorder(t, proto, answeringAsMeasured)
 	plain := newRecorder(t, "http", answeringAsMeasured)
 	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialingWith(plain))
+	// The client nonces of Chrome's Digest answers, drawn again in the order
+	// it drew them: what an answer says, its response too, has to be Chrome's.
+	var drawn []string
+	for _, req := range want {
+		if found := chromeCnonce.FindStringSubmatch(req.header("authorization")); found != nil {
+			drawn = append(drawn, found[1])
+		}
+	}
+	client.session.auth.draw = func() string {
+		if len(drawn) == 0 {
+			t.Error("a client nonce was drawn that Chrome did not draw")
+			return ""
+		}
+		next := drawn[0]
+		drawn = drawn[1:]
+		return next
+	}
 	skip := 0
 	if how.before != "" {
 		if _, err := client.Do(&Request{URL: how.before, Browser: &BrowserContext{Kind: KindNavigation}}); err != nil {

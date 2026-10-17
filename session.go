@@ -28,7 +28,7 @@ type session struct {
 // cookies.
 func newSession(jar *keptJar, cookies []Cookie) *session {
 	return &session{jar: jar, warm: &warmSession{cookies: cookies, seeded: map[warmCookieKey]struct{}{}},
-		hints: newHintStore(), preflights: newPreflightCache(), auth: &authCache{}}
+		hints: newHintStore(), preflights: newPreflightCache(), auth: &authCache{draw: newCnonce}}
 }
 
 // warmSession is a session a client was handed, with which of its cookies have

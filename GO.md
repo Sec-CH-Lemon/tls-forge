@@ -345,25 +345,44 @@ The credentials in a URL are used as Chrome 155 was measured using them (the
 - Nothing is sent before the server asks. Go's transport sent
   `Authorization: Basic` with the first request, over HTTP/1.1 in the HTTP/2
   layout.
-- A 401 with a Basic challenge is answered once: the same request again, its
-  body too, with `Authorization` where Chrome's network stack adds it, after
-  `Content-Length` and `Cache-Control` and before every other header, after
-  `Host` and `Connection` over HTTP/1.1. A redirect to a URL with
-  credentials, or a relative one from a URL with them, is answered the same.
-- What was answered with is kept for the session, by origin and realm. It is
-  sent unasked to the directory it was answered in and those under it, and
-  answers a 401 of the realm anywhere else at the origin. A URL that carries
-  credentials is sent nothing unasked. Credentials turned down are tried
-  once and forgotten.
-- A 401 that offers Digest, NTLM or Negotiate is left as it is: Chrome
-  answers the scheme it prefers. So is one of a request with an
-  `Authorization` of its own, of a script's request CORS answers for, and of
-  one that carries no credentials (`Credentials: "omit"`).
+- A 401 is answered in the best scheme it offers that Chrome reads, Digest
+  before Basic wherever each is, the first of two alike: once with the URL's
+  credentials, then with what the session keeps for the realm and scheme.
+  The same request goes again, its body too, with `Authorization` where
+  Chrome's network stack adds it, after `Content-Length` and `Cache-Control`
+  and before every other header, after `Host` and `Connection` over
+  HTTP/1.1. A redirect to a URL with credentials, or a relative one from a
+  URL with them, is answered the same.
+- Digest is answered as RFC 7616 has it and Chrome does: MD5 and SHA-256,
+  each with its `-sess`; `qop=auth`, the one qop Chrome answers, or none, as
+  RFC 2069 has it; the opaque said back; the username hashed for
+  `userhash=true`; the parameters in Chrome's order, and a client nonce of
+  16 hexadecimal digits drawn for each answer. A challenge Chrome cannot
+  read, of an algorithm it does not know or with no nonce, is passed over as
+  Chrome passes it over. Every challenge's parameters are read as Chromium
+  reads them.
+- What was answered with is kept for the session, by origin, realm and
+  scheme. It is sent unasked to the directory it was answered in and those
+  under it, a Digest answer's nonce count going up by one each time, and
+  answers a 401 of the realm and scheme anywhere else at the origin. A URL
+  that carries credentials is sent nothing unasked. Credentials turned down
+  are tried once and forgotten. A 401 that says a Digest nonce is out of date
+  (`stale=true`) is answered again with the same credentials and its nonce,
+  and a request that would be sent its 32nd answer fails, as Chrome stops
+  there.
+- A 401 that offers NTLM, or Negotiate with a profile of Windows, is left as
+  it is: Chrome answers it in that scheme, which tls-forge does not. Elsewhere
+  Chrome passes Negotiate over, unless a policy names the site, and so does
+  tls-forge. A 401 is left as it is, too, for a request with an
+  `Authorization` of its own, for a script's request CORS answers for, and
+  for one that carries no credentials (`Credentials: "omit"`).
 - `Response.URL` carries no credentials.
 
-The log says `challenge answered`, with the realm and whether the credentials
-were the URL's or the realm's, and `authorization sent` for what is sent
-unasked: never the credentials.
+The log says `challenge answered`, with the realm, the scheme and whether the
+credentials were the URL's or the realm's; `authorization sent` for what is
+sent unasked, with its scheme and a Digest answer's nonce count; and `answer
+refused` for a 401 to an answer, which says whether it was turned down, out of
+date or another realm's: never the credentials.
 
 ### Client hints
 
