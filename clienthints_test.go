@@ -114,6 +114,10 @@ func TestAPagesHintsGoToItsOriginAlone(t *testing.T) {
 	if fresh.hints != client.hints {
 		t.Error("a fresh client keeps hints of its own")
 	}
+	// Another client is another identity, and knows nothing of them.
+	if other := contextClient(t, server); other.hints == client.hints || other.hints.of(originOf(page)) != nil {
+		t.Error("another client shares what was asked")
+	}
 }
 
 func TestAProfileWithoutAValueSendsNoHint(t *testing.T) {
