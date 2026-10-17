@@ -94,16 +94,26 @@ wrapper-smoke: build
 
 # Release helpers are outside the language SDKs, so keep their regression tests
 # in the repository-level gate rather than hiding them in one wrapper suite. The
-# scripts that build, check, hold and publish a release's set, and restore the
-# reference it is gated on, are a gate as well: every line, branch and
-# function of them covered, as in the SDKs.
+# scripts that package, build, check, hold and publish a release's set, and
+# restore the reference it is gated on, are a gate as well: every line, branch
+# and function of them covered, as in the SDKs. The Python one is measured by
+# coverage.py, its data kept out of the checkout.
 release-test:
 	node --test --experimental-test-coverage \
 		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
 		--test-coverage-include='scripts/release-*.mjs' --test-coverage-include='scripts/check-release-packages.mjs' \
-		--test-coverage-include='scripts/pinned-restore.mjs' --test-coverage-exclude='scripts/*.test.mjs' \
-		scripts/homebrew-formula.test.mjs scripts/release-set.test.mjs scripts/release-publish.test.mjs \
-		scripts/release-build.test.mjs scripts/check-release-packages.test.mjs scripts/pinned-restore.test.mjs
+		--test-coverage-include='scripts/pinned-restore.mjs' --test-coverage-include='scripts/npm-release.mjs' \
+		--test-coverage-include='scripts/homebrew-formula.mjs' --test-coverage-exclude='scripts/*.test.mjs' \
+		scripts/homebrew-formula.test.mjs scripts/npm-release.test.mjs scripts/release-set.test.mjs \
+		scripts/release-publish.test.mjs scripts/release-build.test.mjs scripts/check-release-packages.test.mjs \
+		scripts/pinned-restore.test.mjs
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(VENV)/bin/pip install -q -e 'python[test]'
+	@data=$$(mktemp) && \
+		PYTHONDONTWRITEBYTECODE=1 $(VENV)/bin/python -m coverage run --branch --data-file="$$data" \
+			--include=scripts/pypi-release.py -m pytest -q -p no:cacheprovider -W error scripts/test_pypi_release.py && \
+		$(VENV)/bin/python -m coverage report --data-file="$$data" --fail-under=100 --show-missing; \
+		status=$$?; rm -f "$$data"; exit $$status
 
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and

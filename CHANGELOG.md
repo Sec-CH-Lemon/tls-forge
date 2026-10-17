@@ -699,6 +699,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   there already. A dry run, `gh workflow run release.yml`, builds and checks
   the set and asks each registry what it has, and publishes nothing.
   RELEASING.md says how.
+- The packaging is tested where it was only run: what each npm package and
+  wheel carries and how it is stamped, the licence files in each, the
+  binary's mode, every refusal, and the Homebrew formula's checksum for each
+  archive, each script at 100% of its lines and branches in `make
+  release-test`.
 - **`make dist` builds a release's set into `dist/set`**, with
   `scripts/release-build.mjs`: every file a release publishes (the five
   archives, the six npm packages packed, the Python source distribution and

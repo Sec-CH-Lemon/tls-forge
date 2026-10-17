@@ -163,6 +163,11 @@ jobs:
           go build -o "$RUNNER_TEMP/tls-forge-test-daemon" ./testdata/fake-daemon
           cd node && TLSFORGE_TEST_DAEMON="$RUNNER_TEMP/tls-forge-test-daemon" node --test "test/*.test.js"
 
+      # The release scripts, the Python packaging among them, each at 100%.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: matrix.os == 'ubuntu-latest' && matrix.coverage
+        with:
+          python-version: '3.13'
       - name: test release scripts
         if: matrix.os == 'ubuntu-latest' && matrix.coverage
         run: |
