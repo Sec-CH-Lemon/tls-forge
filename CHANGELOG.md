@@ -220,7 +220,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `TypeError`s.
 - `--proxy-env NAME` takes the proxy from the environment variable `NAME`, for
   `fetch`, `proxy` and `daemon`, so that its password is not on the command
-  line. The variable is read only when it is named. A name that is empty, a
+  line. The variable is read only when it is named, and `--help` shows one
+  named, `--proxy-env TLSFORGE_PROXY`. A name that is empty, a
   variable that is not set or is empty, and `--proxy` given as well are usage
   errors, before anything is asked or written.
 - `daemon --proxy-stdin` takes the proxy from the first line of the daemon's

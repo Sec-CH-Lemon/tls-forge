@@ -148,7 +148,8 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 			"the newest Chrome shipped")
 	flags.proxy = fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port")
 	flags.proxyEnv = fs.String("proxy-env", "",
-		"name of an environment variable holding the proxy URL, which keeps its password off the command line")
+		"name of an environment variable holding the proxy URL, such as `TLSFORGE_PROXY`, which keeps its password "+
+			"off the command line; no variable is read unless named")
 	flags.timeout = fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout")
 	flags.insecure = fs.BoolP("insecure", "k", false, "skip certificate verification")
 	return flags

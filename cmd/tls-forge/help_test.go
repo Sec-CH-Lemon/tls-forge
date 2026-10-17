@@ -98,3 +98,20 @@ func TestTheProfileDefaultIsSaidAsItIs(t *testing.T) {
 		}
 	}
 }
+
+func TestTheProxyVariableIsNamedInTheHelp(t *testing.T) {
+	// A variable is read only when --proxy-env names it, and the help shows
+	// one being named rather than a type.
+	for _, command := range []string{"fetch", "proxy", "daemon"} {
+		_, stdout, _ := exec(t, command, "--help")
+		var line string
+		for _, l := range strings.Split(stdout, "\n") {
+			if strings.Contains(l, "--proxy-env") {
+				line = l
+			}
+		}
+		if !strings.Contains(line, "--proxy-env TLSFORGE_PROXY ") || !strings.Contains(line, "no variable is read unless named") {
+			t.Errorf("%s --help says of --proxy-env: %q", command, line)
+		}
+	}
+}

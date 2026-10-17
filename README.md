@@ -1028,7 +1028,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-k`, `--insecure` | Skip upstream certificate verification |
 | **Proxy** | |
 | `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
-| `--proxy-env <name>` | Read `--proxy` from this environment variable, which keeps its password off the command line; see [Commands](#commands) |
+| `--proxy-env <name>` | Read `--proxy` from this environment variable, such as `TLSFORGE_PROXY`, which keeps its password off the command line; no variable is read unless named. See [Through a proxy](#through-a-proxy) |
 | `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
 | `--no-exit-lookup` | Make no request to learn where requests come out: no address service before the run, no probe of a site, no name a proxy gave resolved. What a proxy says when it opens a tunnel is still read |
 | **Session** | |
@@ -1567,7 +1567,7 @@ Usage: `tls-forge proxy [flags]`
 |---|---|
 | `-p`, `--profile <name-or-path>` | Profile used for outbound requests; without one, the browser measured on this machine (`local`) when there is one, else `chrome` |
 | `-x`, `--proxy <url>` | Optional upstream proxy |
-| `--proxy-env <name>` | Read the upstream proxy from this environment variable instead |
+| `--proxy-env <name>` | Read the upstream proxy from this environment variable, such as `TLSFORGE_PROXY`, instead |
 | `-t`, `--timeout <duration>` | Outbound request timeout; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification on outbound connections |
 | `-a`, `--addr <host:port>` | Listen address; default `127.0.0.1:8080` |
@@ -1674,7 +1674,7 @@ Usage: `tls-forge daemon [flags]`
 | `--cookie-set <id>` | Select a set from the cookie file |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome` |
 | `-x`, `--proxy <url>` | Upstream proxy |
-| `--proxy-env <name>` | Read the upstream proxy from this environment variable instead |
+| `--proxy-env <name>` | Read the upstream proxy from this environment variable, such as `TLSFORGE_PROXY`, instead |
 | `--proxy-stdin` | Read the upstream proxy from the first line of standard input, the init line, as the Node.js and Python packages do; see [the protocol](docs/protocol.md#the-init-line) |
 | `-t`, `--timeout <duration>` | Transport request timeout; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification |
