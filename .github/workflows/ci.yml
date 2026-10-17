@@ -208,6 +208,13 @@ jobs:
         working-directory: python
       - run: python -m coverage report
         working-directory: python
+      # The package's types, as strictly as mypy checks them, and the refusals
+      # in tests/typing_contract.py. mypy needs Python 3.10, so one leg.
+      - name: type-check the package
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: |
+          pip install -e 'python[typecheck]'
+          cd python && python -m mypy
 
   examples:
     timeout-minutes: 20

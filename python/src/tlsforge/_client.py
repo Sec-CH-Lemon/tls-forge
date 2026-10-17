@@ -312,8 +312,10 @@ class Client:
         try:
             self._reap()
             self._sequence += 1
-            payload = {"id": self._sequence, "control": "hello"}
-            self._hello = _hello_of(self._exchange(payload["id"], _encode_request(payload), deadline))
+            asked = self._sequence
+            self._hello = _hello_of(
+                self._exchange(asked, _encode_request({"id": asked, "control": "hello"}), deadline)
+            )
         finally:
             self._lock.release()
         return self._hello

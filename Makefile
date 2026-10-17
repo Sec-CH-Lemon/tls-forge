@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -55,6 +55,15 @@ python-test:
 	cd python && ../$(VENV)/bin/python -m coverage run -m pytest -q
 	cd python && ../$(VENV)/bin/python -m coverage report
 
+# A gate too: the Python package's types, as strictly as mypy checks them,
+# since py.typed hands them to every caller's type checker, and
+# tests/typing_contract.py, whose refusals have to stay refusals. mypy needs
+# Python 3.10; the package itself runs on 3.9.
+python-typecheck:
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(VENV)/bin/pip install -q -e 'python[typecheck]'
+	cd python && ../$(VENV)/bin/python -m mypy
+
 # Cross-language contract test against the real Go daemon. Unit suites use a
 # deliberately hostile fake to cover every recovery branch; this one makes
 # sure all three implementations still agree on the bytes actually emitted.
@@ -72,7 +81,7 @@ release-test:
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
 # CI runs them as separate jobs.
-check: vet lint test cover node-test python-test wrapper-smoke release-test
+check: vet lint test cover node-test python-test python-typecheck wrapper-smoke release-test
 
 # Assemble everything a release publishes, without publishing any of it.
 #

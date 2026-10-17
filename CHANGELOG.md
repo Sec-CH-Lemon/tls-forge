@@ -177,6 +177,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `SessionReset`, in the Node.js and Python packages, for a request that was
   not sent because the session it was made in has gone, and
   `MAX_REQUEST_BYTES`, the most a request can be as the daemon reads it.
+- **The Python package's types are checked**, by mypy in strict mode, in CI
+  and with `make python-typecheck`: the package's annotations, which
+  `py.typed` hands to every caller's type checker, and
+  `python/tests/typing_contract.py`, whose refusals have to stay refusals.
 - **The Node.js package ships TypeScript types**, `index.d.ts`, for what it
   does at run time and no more: the client, its options, the request, the
   browser context, the response, `hello`, `resolveBinary`,

@@ -43,6 +43,8 @@ Changelog = "https://github.com/Sec-CH-Lemon/tls-forge/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "coverage>=7"]
+# Apart from test: mypy needs Python 3.10, and the package runs on 3.9.
+typecheck = ["mypy==2.4.0"]
 
 [tool.hatch.version]
 path = "src/tlsforge/__init__.py"
@@ -78,3 +80,12 @@ exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
 ]
+
+[tool.mypy]
+# The package's own annotations, which py.typed hands to every caller's type
+# checker, checked as strictly as mypy checks.
+files = ["src/tlsforge", "tests/typing_contract.py"]
+strict = true
+# The oldest mypy 2 reads; the package runs on 3.9, which CI tests it on.
+python_version = "3.10"
+warn_unreachable = true

@@ -337,16 +337,22 @@ silently selecting a different version.
 ## Development and typing
 
 The package includes `py.typed`, so its annotations are available to static
-type checkers.
+type checkers. `tlsforge.BrowserContext` types a `browser_context`, and
+`Response`, `Hello` and the errors are typed as they are at run time.
 
 From the repository root:
 
 ```bash
 make python-test
+make python-typecheck
 ```
 
 The suite uses a stand-in daemon and requires 100% statement and branch
-coverage. It does not need a Go build or network access.
+coverage. It does not need a Go build or network access. `make
+python-typecheck` runs mypy in strict mode over the package and over
+`tests/typing_contract.py`, a module that is never run: each of its
+`# type: ignore` comments is a call the annotations must refuse, and strict
+mode fails when one is not needed. mypy needs Python 3.10 or newer.
 
 The project is licensed under Apache-2.0; see
 [`LICENSE`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/LICENSE),
