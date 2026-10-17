@@ -280,14 +280,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	u := *inner.URL
 	ask := (&fhttp.Request{Method: fhttp.MethodOptions, URL: &u, Host: inner.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
 		ProtoMinor: 1}).WithContext(context.WithValue(base, preflightContextKey{}, true))
-	field := r.preflightHeader(h, c.headers)
-	ask.Header = browserLayout(field, preflightOrder, shown.Host)
-	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
-		ask.Header[fhttp.PHeaderOrderKey] = order
-	}
-	http1 := browserHTTP1Layout(field, nil, preflightOrder, c.profile.HTTP1, c.http1Headers, shown.Host)
-	ask = withProtocolLayouts(ask, &protocolLayouts{http1: http1, http2: cloneHeaderLayout(ask.Header),
-		managed: managedHeaderNames(ask.Header, http1)})
+	ask = c.browserLayouts(r.preflightHeader(h, c.headers), nil, preflightOrder, shown.Host).wear(ask)
 	withPort(ask)
 	if c.session.jar != nil {
 		c.session.jar.restrict(ask.URL, sendRule{none: true})

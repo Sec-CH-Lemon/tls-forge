@@ -182,9 +182,10 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 	}
 	// Only Chromium sends client hints, so no other browser's order changes.
 	req.Header[fhttp.HeaderOrderKey] = hintsAfterDest(req.Header[fhttp.HeaderOrderKey])
-	prepareRedirectLayout(req)
-	if layouts, _ := req.Context().Value(protocolLayoutsKey{}).(*protocolLayouts); layouts != nil {
-		layouts.http1[fhttp.HeaderOrderKey] = hintsAfterDest(layouts.http1[fhttp.HeaderOrderKey])
+	if first := layoutsOn(req); first != nil {
+		hop := first.redirected(req)
+		hop.http1[fhttp.HeaderOrderKey] = hintsAfterDest(hop.http1[fhttp.HeaderOrderKey])
+		*req = *hop.wear(req)
 	}
 }
 
@@ -305,16 +306,8 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 // dress gives req the headers of hop h in Chrome's order over each protocol,
 // and has the jar give it the cookies h carries.
 func (ch *chain) dress(req *fhttp.Request, h hop) {
-	r, host := ch.browser, shownURL(req).Host
-	field := r.header(h, ch.client.headers)
-	order := r.wireOrder(h)
-	req.Header = browserLayout(field, order, host)
-	if pseudo := ch.client.profile.HTTP2.PseudoHeaderOrder; len(pseudo) > 0 {
-		req.Header[fhttp.PHeaderOrderKey] = pseudo
-	}
-	http1 := browserHTTP1Layout(field, h.script, order, ch.client.profile.HTTP1, ch.client.http1Headers, host)
-	*req = *withProtocolLayouts(req, &protocolLayouts{http1: http1, http2: cloneHeaderLayout(req.Header),
-		managed: managedHeaderNames(req.Header, http1)})
+	r := ch.browser
+	*req = *ch.client.browserLayouts(r.header(h, ch.client.headers), h.script, r.wireOrder(h), shownURL(req).Host).wear(req)
 	ch.rule(req.URL, r.cookies(h))
 }
 

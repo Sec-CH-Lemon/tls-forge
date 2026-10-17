@@ -808,23 +808,15 @@ func TestProtocolLayoutEdgeCases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest: %v", err)
 	}
-	prepareRedirectLayout(req)
-	if req.Context().Value(protocolLayoutsKey{}) != nil {
-		t.Fatal("prepareRedirectLayout made layouts of none")
+	if layoutsOn(req) != nil {
+		t.Fatal("a request nothing was hung on carries layouts")
 	}
-	customHost := &protocolLayouts{
-		http1: fhttp.Header{
-			"Host":               {"old.test"},
-			fhttp.HeaderOrderKey: {"host"},
-		},
-		http2:   fhttp.Header{},
-		managed: map[string]bool{"host": true},
-	}
+	customHost := newLayouts(fhttp.Header{}, fhttp.Header{
+		"Host":               {"old.test"},
+		fhttp.HeaderOrderKey: {"host"},
+	}, nil)
 	req.Host = "virtual.test"
-	req = withProtocolLayouts(req, customHost)
-	prepareRedirectLayout(req)
-	prepared, _ := req.Context().Value(protocolLayoutsKey{}).(*protocolLayouts)
-	if got := prepared.http1["Host"]; !reflect.DeepEqual(got, []string{"virtual.test"}) {
+	if got := customHost.redirected(req).http1["Host"]; !reflect.DeepEqual(got, []string{"virtual.test"}) {
 		t.Errorf("relative redirect custom Host = %v", got)
 	}
 }
@@ -864,6 +856,39 @@ func TestRedirectChoosesTheLayoutOfTheNextConnection(t *testing.T) {
 		lower := strings.ToLower(line)
 		if strings.HasPrefix(lower, "authorization:") || strings.HasPrefix(lower, "cookie:") {
 			t.Errorf("cross-origin redirect leaked a credential: %q", line)
+		}
+	}
+}
+
+func TestARedirectOfARequestTheSameOverBothSendsItWhole(t *testing.T) {
+	// A profile that measured no HTTP/1.1 sends one block over both
+	// protocols, and so does its redirect to an HTTP/1.1 server: there is no
+	// other block to make the hop's from.
+	target, recorded := recordingHTTP1Server(t)
+	redirect := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", target)
+		w.WriteHeader(http.StatusFound)
+	}))
+	redirect.EnableHTTP2 = true
+	redirect.StartTLS()
+	t.Cleanup(redirect.Close)
+
+	p := profileWithMeasuredHTTP1(t)
+	p.HTTP1 = nil
+	client := newTestClient(t, WithProfileValue(p))
+	if _, err := client.Get(redirect.URL); err != nil {
+		t.Fatalf("redirect: %v", err)
+	}
+	lines := <-recorded
+	sent := map[string]bool{}
+	for _, line := range lines[1:] {
+		if name, _, ok := strings.Cut(line, ":"); ok {
+			sent[strings.ToLower(name)] = true
+		}
+	}
+	for _, field := range p.Headers {
+		if !sent[strings.ToLower(field.Name)] {
+			t.Errorf("the redirect over HTTP/1.1 went without %s: %v", field.Name, lines)
 		}
 	}
 }

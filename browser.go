@@ -2,7 +2,6 @@ package tlsforge
 
 import (
 	"fmt"
-	"net/textproto"
 	"net/url"
 	"slices"
 	"strings"
@@ -658,67 +657,4 @@ func (r *browserRequest) cookies(h hop) sendRule {
 		rule.none = true
 	}
 	return rule
-}
-
-// browserLayout is the HTTP/2 header block of a request in a browser context:
-// its headers in their order, the transport's own in their slots.
-func browserLayout(h Header, order []string, host string) fhttp.Header {
-	out := fhttp.Header{"Host": {host}}
-	for _, f := range h {
-		name := textproto.CanonicalMIMEHeaderKey(f.Name)
-		out[name] = append(out[name], f.Value)
-	}
-	out[fhttp.HeaderOrderKey] = append([]string{"host"}, order...)
-	return out
-}
-
-// browserHTTP1Layout is the same request over HTTP/1.1, as Chrome writes it:
-// Host and Connection first, no Priority, and each name spelt as the profile
-// measured it, a script's as the script gave it, a client hint in lower case,
-// and any other as HTTP spells it.
-func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP1, http1 Header, host string) fhttp.Header {
-	spelling := map[string]string{}
-	if measured != nil {
-		for _, wire := range measured.HeaderOrder {
-			spelling[strings.ToLower(wire)] = wire
-		}
-	}
-	for _, f := range script {
-		// As a script spelt it; in lower case, as NewHeader gives every name,
-		// as a script writes it, which is as HTTP spells it.
-		if f.Name != strings.ToLower(f.Name) {
-			spelling[strings.ToLower(f.Name)] = f.Name
-		}
-	}
-	spell := func(name string) string {
-		lower := strings.ToLower(name)
-		switch wire, known := spelling[lower]; {
-		case known:
-			return wire
-		case strings.HasPrefix(lower, "sec-ch-") || slices.Contains(profile.ClientHintOrder, lower):
-			// Chrome writes every client hint in lower case, the device's
-			// under their old names too.
-			return lower
-		}
-		return textproto.CanonicalMIMEHeaderKey(lower)
-	}
-	connection := http1.Get("connection")
-	if connection == "" {
-		connection = "keep-alive"
-	}
-	out := fhttp.Header{spell("host"): {host}, spell("connection"): {connection}}
-	wireOrder := []string{"host", "connection"}
-	for _, name := range order {
-		if name != "priority" {
-			wireOrder = append(wireOrder, name)
-		}
-	}
-	for _, f := range h {
-		if !strings.EqualFold(f.Name, "priority") {
-			name := spell(f.Name)
-			out[name] = append(out[name], f.Value)
-		}
-	}
-	out[fhttp.HeaderOrderKey] = wireOrder
-	return out
 }

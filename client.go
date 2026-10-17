@@ -36,17 +36,13 @@ import (
 	"io"
 	"log/slog"
 	"math"
-	"net"
-	"net/textproto"
 	"net/url"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	fhttp "github.com/bogdanfinn/fhttp"
 	"github.com/bogdanfinn/fhttp/cookiejar"
-	fhttptrace "github.com/bogdanfinn/fhttp/httptrace"
 	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/bogdanfinn/tls-client/profiles"
 	"golang.org/x/net/publicsuffix"
@@ -551,7 +547,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	parsed := inner.URL
 	ch := &chain{client: c, transport: transport, log: r, browser: browser, urls: []*url.URL{parsed},
 		restarted: restarted}
-	var http1 fhttp.Header
+	var blocks *layouts
 	switch {
 	case browser != nil:
 		first := browser.first(parsed)
@@ -561,38 +557,14 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		if first.referrer != "" {
 			ch.referrer, _ = url.Parse(first.referrer)
 		}
-		field := browser.header(first, c.headers)
-		order := browser.wireOrder(first)
-		inner.Header = browserLayout(field, order, parsed.Host)
-		http1 = browserHTTP1Layout(field, first.script, order, c.profile.HTTP1, c.http1Headers, parsed.Host)
+		blocks = c.browserLayouts(browser.header(first, c.headers), first.script, browser.wireOrder(first), parsed.Host)
 	default:
 		headers := c.headers.Merge(req.Header)
 		ch.given = headers.Values("referer")
-		inner.Header = legacyHeaderLayout(headers, parsed.Host)
-		switch {
-		case c.profile.HTTP1 != nil:
-			http1 = measuredHTTP1Layout(c.http1Headers.Merge(req.Header), c.profile.HTTP1, parsed.Host)
-		case !headers.Has("user-agent"):
-			// The one field the two protocols cannot be told the same way: an
-			// HTTP/1.1 connection gets a layout of its own even where nothing
-			// else differs.
-			http1 = cloneHeaderLayout(inner.Header)
-		}
+		blocks = c.layoutsAsGiven(headers, req.Header, parsed.Host)
 	}
-	if order := c.profile.HTTP2.PseudoHeaderOrder; len(order) > 0 {
-		inner.Header[fhttp.PHeaderOrderKey] = order
-	}
-	quietUserAgent(inner.Header, http2UserAgent)
 	ch.base = inner.Context()
-	if http1 != nil {
-		quietUserAgent(http1, http1UserAgent)
-		layouts := &protocolLayouts{
-			http1:   http1,
-			http2:   cloneHeaderLayout(inner.Header),
-			managed: managedHeaderNames(inner.Header, http1),
-		}
-		inner = withProtocolLayouts(inner, layouts)
-	}
+	inner = blocks.wear(inner)
 	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
 
 	defer ch.release()
@@ -680,130 +652,6 @@ func (c *Client) resolveBrowser(req *Request, method string, target *url.URL) (*
 	return req.Browser.resolve(method, target, req.Header, req.Body)
 }
 
-// legacyHeaderLayout is the compatibility path for profiles captured before
-// HTTP/1.1 was measured. Its canonical spelling is intentionally the old
-// behaviour: adding a schema field must not make an existing profile fail a
-// request it used to send.
-func legacyHeaderLayout(headers Header, host string) fhttp.Header {
-	out := fhttp.Header{}
-	order := []string{"host"}
-	seen := map[string]bool{"host": true}
-	out["Host"] = []string{host}
-	for _, field := range headers {
-		name := strings.ToLower(field.Name)
-		wireName := textproto.CanonicalMIMEHeaderKey(name)
-		if name == "host" {
-			out[wireName] = []string{field.Value}
-			continue
-		}
-		out[wireName] = append(out[wireName], field.Value)
-		if !seen[name] {
-			order = append(order, name)
-			seen[name] = true
-		}
-	}
-	out[fhttp.HeaderOrderKey] = order
-	return out
-}
-
-func measuredHTTP1Layout(headers Header, measured *profile.HTTP1, host string) fhttp.Header {
-	values := make(map[string][]string)
-	for _, field := range headers {
-		name := strings.ToLower(field.Name)
-		values[name] = append(values[name], field.Value)
-	}
-	if hosts := values["host"]; len(hosts) > 0 {
-		host = hosts[len(hosts)-1]
-	}
-
-	out := fhttp.Header{}
-	order := make([]string, 0, len(measured.HeaderOrder)+len(headers))
-	seen := make(map[string]bool)
-	for _, wireName := range measured.HeaderOrder {
-		name := strings.ToLower(wireName)
-		var fieldValues []string
-		if name == "host" {
-			fieldValues = []string{host}
-		} else {
-			fieldValues = values[name]
-		}
-		if len(fieldValues) == 0 {
-			continue
-		}
-		out[wireName] = append([]string(nil), fieldValues...)
-		order = append(order, name)
-		seen[name] = true
-	}
-	for _, field := range headers {
-		name := strings.ToLower(field.Name)
-		if seen[name] || name == "host" {
-			continue
-		}
-		wireName := textproto.CanonicalMIMEHeaderKey(name)
-		out[wireName] = append([]string(nil), values[name]...)
-		order = append(order, name)
-		seen[name] = true
-	}
-	out[fhttp.HeaderOrderKey] = order
-	return out
-}
-
-// quietUserAgent keeps the transport from naming itself. fhttp gives a request
-// that carries no User-Agent its own, "Go-http-client", which says what is
-// talking more plainly than any handshake could hide it; and a request can come
-// without one, from a profile out of the transport's catalogue, which knows a
-// handshake and no headers, or from a hand-written one.
-//
-// Each protocol is told it is named and empty in the one way its writer takes
-// as that: HTTP/2 by an empty value, which it leaves out, and HTTP/1.1 by the
-// field with no values at all, since an empty value is a line of its own there
-// and no values is no line. Neither reads the other's way: HTTP/2 passes over a
-// field with no values before it notices the name, and HTTP/1.1 writes
-// "User-Agent: " for an empty one.
-func quietUserAgent(header fhttp.Header, empty []string) {
-	for name := range header {
-		if strings.EqualFold(name, "user-agent") {
-			return
-		}
-	}
-	header["User-Agent"] = empty
-}
-
-// How each protocol's writer is told a request names no user agent.
-var (
-	http2UserAgent = []string{""}
-	http1UserAgent = []string{}
-)
-
-type protocolLayouts struct {
-	http1   fhttp.Header
-	http2   fhttp.Header
-	managed map[string]bool
-}
-
-type protocolLayoutsKey struct{}
-
-func managedHeaderNames(layouts ...fhttp.Header) map[string]bool {
-	out := make(map[string]bool)
-	for _, layout := range layouts {
-		for name := range layout {
-			out[strings.ToLower(name)] = true
-		}
-	}
-	return out
-}
-
-func withProtocolLayouts(req *fhttp.Request, layouts *protocolLayouts) *fhttp.Request {
-	ctx := context.WithValue(req.Context(), protocolLayoutsKey{}, layouts)
-	target := req
-	trace := &fhttptrace.ClientTrace{GotConn: func(info fhttptrace.GotConnInfo) {
-		if connectionUsesHTTP1(target.URL, info.Conn) {
-			applyHeaderLayout(target.Header, layouts.http1, layouts.managed)
-		}
-	}}
-	return req.WithContext(fhttptrace.WithClientTrace(ctx, trace))
-}
-
 // followRedirect is the policy for every redirect: where the chain stops, who
 // is told about the hop, and which header layout the next request wears.
 func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
@@ -829,170 +677,6 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	withPort(req)
 	ch, _ := req.Context().Value(chainKey{}).(*chain)
 	return ch.follow(req, via)
-}
-
-// prepareRedirectLayout gives a redirect's request of a request without a
-// browser context the HTTP/1.1 layout of the first, as the redirect left its
-// headers.
-func prepareRedirectLayout(req *fhttp.Request) {
-	layouts, _ := req.Context().Value(protocolLayoutsKey{}).(*protocolLayouts)
-	if layouts == nil {
-		return
-	}
-	// fhttp has already copied only the headers that are safe for this redirect.
-	// Replaying the first hop's complete HTTP/1 block here would undo that
-	// decision: on a cross-origin redirect it reintroduced Authorization, Cookie
-	// and the old Host after fhttp had deliberately removed them.
-	host := req.URL.Host
-	if req.Host != "" {
-		// fhttp sets Request.Host only when an explicitly overridden host is being
-		// preserved across a relative redirect. An absolute redirect never reaches
-		// this branch, so a source origin cannot lend its Host to another one.
-		host = req.Host
-	}
-	http1 := redirectHTTP1Layout(layouts.http1, layouts.http2, req.Header, host)
-	redirect := &protocolLayouts{
-		http1:   http1,
-		http2:   cloneHeaderLayout(req.Header),
-		managed: managedHeaderNames(req.Header, http1),
-	}
-	prepared := withProtocolLayouts(req, redirect)
-	*req = *prepared
-}
-
-// redirectHTTP1Layout keeps the measured spelling and HTTP/1-only fields from
-// the first layout while applying the redirect policy reflected in current.
-// original is the HTTP/2-shaped block before the first request was sent; it is
-// the baseline fhttp copies on every hop.
-func redirectHTTP1Layout(http1, original, current fhttp.Header, host string) fhttp.Header {
-	out := cloneHeaderLayout(http1)
-	before := headerValues(original)
-	now := headerValues(current)
-
-	beforeNames := make([]string, 0, len(before))
-	for name := range before {
-		beforeNames = append(beforeNames, name)
-	}
-	slices.Sort(beforeNames)
-	for _, name := range beforeNames {
-		if name == "host" {
-			continue
-		}
-		values := before[name]
-		redirected, kept := now[name]
-		if !kept {
-			deleteHeader(out, name)
-			continue
-		}
-		// An unchanged shared field keeps its HTTP/1-specific captured value.
-		// A changed field (Referer and adjusted explicit cookies are the usual
-		// examples) must use the value computed for this hop.
-		if !slices.Equal(redirected, values) {
-			setHeader(out, name, redirected)
-		}
-	}
-	nowNames := make([]string, 0, len(now))
-	for name := range now {
-		nowNames = append(nowNames, name)
-	}
-	slices.Sort(nowNames)
-	for _, name := range nowNames {
-		if name == "host" || headerLayoutKey(name) {
-			continue
-		}
-		if _, existed := before[name]; !existed {
-			setHeader(out, name, now[name])
-		}
-	}
-	setHeader(out, "host", []string{host})
-	return out
-}
-
-func cloneHeaderLayout(header fhttp.Header) fhttp.Header {
-	out := make(fhttp.Header, len(header))
-	for name, values := range header {
-		out[name] = copyValues(values)
-	}
-	return out
-}
-
-// copyValues copies a field's values, and keeps a field with none as one with
-// none rather than as nil: to fhttp a nil field is one that is not there, and an
-// HTTP/1.1 request without a User-Agent field is one fhttp gives its own.
-func copyValues(values []string) []string {
-	return append(make([]string, 0, len(values)), values...)
-}
-
-func headerValues(header fhttp.Header) map[string][]string {
-	out := make(map[string][]string, len(header))
-	for name, values := range header {
-		lower := strings.ToLower(name)
-		if headerLayoutKey(lower) {
-			continue
-		}
-		out[lower] = append(out[lower], values...)
-	}
-	return out
-}
-
-func headerLayoutKey(name string) bool {
-	return strings.EqualFold(name, fhttp.HeaderOrderKey) ||
-		strings.EqualFold(name, fhttp.PHeaderOrderKey)
-}
-
-func deleteHeader(header fhttp.Header, lower string) {
-	for name := range header {
-		if strings.EqualFold(name, lower) {
-			delete(header, name)
-		}
-	}
-	order := header[fhttp.HeaderOrderKey]
-	kept := order[:0]
-	for _, name := range order {
-		if !strings.EqualFold(name, lower) {
-			kept = append(kept, name)
-		}
-	}
-	header[fhttp.HeaderOrderKey] = kept
-}
-
-func setHeader(header fhttp.Header, lower string, values []string) {
-	wireName := ""
-	for name := range header {
-		if strings.EqualFold(name, lower) && !headerLayoutKey(name) {
-			wireName = name
-			break
-		}
-	}
-	if wireName == "" {
-		wireName = textproto.CanonicalMIMEHeaderKey(lower)
-		header[fhttp.HeaderOrderKey] = append(header[fhttp.HeaderOrderKey], lower)
-	}
-	header[wireName] = append([]string(nil), values...)
-}
-
-func connectionUsesHTTP1(target *url.URL, conn net.Conn) bool {
-	if target.Scheme == "http" {
-		return true
-	}
-	state, ok := conn.(connectionStater)
-	if !ok {
-		// An unknown TLS wrapper must not perturb HTTP/2, the core fingerprint.
-		return false
-	}
-	negotiated := state.ConnectionState().NegotiatedProtocol
-	return negotiated == "" || negotiated == "http/1.1"
-}
-
-func applyHeaderLayout(target, layout fhttp.Header, managed map[string]bool) {
-	for name := range target {
-		if managed[strings.ToLower(name)] {
-			delete(target, name)
-		}
-	}
-	for name, values := range layout {
-		target[name] = copyValues(values)
-	}
 }
 
 // CookiesFor returns what the jar would send to a URL, each cookie with its
