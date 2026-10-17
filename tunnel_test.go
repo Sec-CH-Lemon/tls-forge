@@ -3,11 +3,13 @@ package tlsforge
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +19,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	tls_client "github.com/bogdanfinn/tls-client"
 )
 
 // connectProxy stands in for an HTTP proxy: it opens a tunnel for every
@@ -382,4 +386,47 @@ func equalHeader(a, b Header) bool {
 		}
 	}
 	return true
+}
+
+func TestAnHTTPSProxyTheSystemDoesNotTrustIsRefused(t *testing.T) {
+	// Its certificate is checked against the system's roots, and skipping the
+	// sites' certificates, which newTestClient does, does not reach it: a
+	// proxy is who the password is given to.
+	server := startEcho(t)
+	via := startConnectProxy(t, true, exitAnswer)
+	client := newTestClient(t, WithProxy(via.url()))
+	_, err := client.Get(server.URL())
+	var refused *tls.CertificateVerificationError
+	if !errors.As(err, &refused) {
+		t.Fatalf("Get() = %v, want the proxy's certificate refused", err)
+	}
+	if strings.Contains(err.Error(), "s3cr3t") {
+		t.Errorf("the error says the proxy's password: %v", err)
+	}
+	if got := via.tunnels.Load(); got != 0 {
+		t.Errorf("%d tunnels were asked of a proxy that was not trusted", got)
+	}
+}
+
+func TestAProxyGivenAsATransportOptionIsTheTransportsToDial(t *testing.T) {
+	// Without WithProxy, tls-forge has no proxy to dial: the transport opens
+	// the tunnel its own way, and the log's proxy records and the exit header
+	// fields of the tunnel's answer go with tls-forge's dialer.
+	server := startEcho(t)
+	via := startConnectProxy(t, false, exitAnswer)
+	book, log := newLogBook(slog.LevelDebug)
+	client := newTestClient(t, WithLogger(log), WithTransportOption(tls_client.WithProxyUrl(via.server.URL)))
+	var seen recorded
+	if _, err := client.Do(&Request{URL: server.URL() + "/api/all", Trace: seen.trace()}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if got := via.tunnels.Load(); got != 1 {
+		t.Errorf("the proxy opened %d tunnels", got)
+	}
+	if len(seen.conns) != 1 || len(seen.conns[0].ProxyHeader) != 0 {
+		t.Errorf("the connection was reported as %+v", seen.conns)
+	}
+	if said := book.with(t, "proxy connect"); len(said) != 0 {
+		t.Errorf("tls-forge's dialer opened the tunnel: %v", said)
+	}
 }

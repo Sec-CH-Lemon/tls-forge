@@ -606,6 +606,25 @@ func TestALogOfAConnectionNoRequestDialled(t *testing.T) {
 	}
 }
 
+func TestAClientGivenATransportOptionDialsTheTransportsWay(t *testing.T) {
+	// The option may be a dialer or a proxy, so the transport dials, and what
+	// it dials apart from a request goes unlogged, as GO.md says; the
+	// requests themselves are logged as ever.
+	server := startEcho(t)
+	book, log := newLogBook(slog.LevelDebug)
+	client := newTestClient(t, WithLogger(log), WithTransportOption(tls_client.WithTimeoutSeconds(30)))
+	for range 2 {
+		if _, err := client.Get(server.URL() + "/api/all"); err != nil {
+			t.Fatalf("Get: %v", err)
+		}
+		client.CloseIdleConnections()
+	}
+	if background := book.with(t, "dialed", "background", "true"); len(background) != 0 {
+		t.Errorf("a background dial was logged: %v", background)
+	}
+	book.one(t, "connected", "request", "2")
+}
+
 func TestARequestLogsToItsOwnLogger(t *testing.T) {
 	server := startEcho(t)
 	clientBook, clientLog := newLogBook(slog.LevelDebug)

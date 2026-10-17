@@ -196,13 +196,15 @@ func WithLogger(log *slog.Logger) Option {
 // option the dependency has — a list that goes stale — or a hard stop for
 // callers who need one of them.
 //
-// One that sets the transport options (tls_client.WithTransportOptions)
-// replaces tls-forge's own along with them: six idle connections per host,
-// and leaving bodies to be decoded by tls-forge. The transport then decodes
-// gzip, deflate, br and zstd itself, the deflate it is sent as zlib only after
-// waiting out the request's deadline, and over HTTP/1.1 it takes
-// Content-Encoding off a body in any other coding, or in more than one,
-// without decoding it.
+// The options are given after tls-forge's own, so one that sets what
+// tls-forge sets replaces it, and what tls-forge did with it goes too: the
+// transport options (tls_client.WithTransportOptions) take six idle
+// connections per host and the decoding of bodies with them, a redirect
+// policy takes Chrome's, a cookie jar the client's, and a proxy given here
+// rather than with WithProxy is the transport's to dial, without tls-forge's
+// tunnel records and exit header fields. Any of them leaves a client without
+// a proxy dialing the transport's way, so that the connections HTTP/2 dials
+// apart from a request go unlogged. GO.md, «Transport options», says it all.
 func WithTransportOption(opts ...tls_client.HttpClientOption) Option {
 	return func(c *config) { c.extra = append(c.extra, opts...) }
 }

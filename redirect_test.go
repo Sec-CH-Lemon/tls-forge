@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	fhttp "github.com/bogdanfinn/fhttp"
+	tls_client "github.com/bogdanfinn/tls-client"
 )
 
 // header is the value of a kept request's header, by name in any case, and
@@ -29,6 +30,16 @@ func sent(t *testing.T, req *Request, opts ...Option) ([]*keptRequest, error) {
 	client := newTestClient(t, append([]Option{WithProfile("chrome_155_macos"), server.dialingWith(plain)}, opts...)...)
 	_, err := client.Do(req)
 	return server.requests(), err
+}
+
+func TestARedirectPolicyGivenAsATransportOptionReplacesChromes(t *testing.T) {
+	// Given after tls-forge's own, it is the one the transport keeps: the
+	// redirect is answered, not followed, as WithoutRedirects would have it.
+	got, err := sent(t, &Request{URL: "https://www.example.com/r/302/x?to=/p/y"},
+		WithTransportOption(tls_client.WithNotFollowRedirects()))
+	if err != nil || len(got) != 1 {
+		t.Fatalf("sent %d requests, %v", len(got), err)
+	}
 }
 
 func TestARedirectLeavesTheMethodAsTheFetchStandardDoes(t *testing.T) {

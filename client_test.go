@@ -347,6 +347,28 @@ func (d quotingDialer) DialContext(context.Context, string, string) (net.Conn, e
 	return nil, d.err
 }
 
+func TestATransportOptionIsGivenAfterTLSForgesOwn(t *testing.T) {
+	// So that one which sets what tls-forge sets replaces it, as GO.md says:
+	// here the cookie jar, which then keeps the cookie the site set, and the
+	// client's own none of it.
+	site := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.SetCookie(w, &http.Cookie{Name: "a", Value: "1"})
+	}))
+	t.Cleanup(site.Close)
+	theirs := tls_client.NewCookieJar()
+	client := newTestClient(t, WithTransportOption(tls_client.WithCookieJar(theirs)))
+	if _, err := client.Get(site.URL); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	at, _ := neturl.Parse(site.URL)
+	if got := theirs.Cookies(at); len(got) != 1 || got[0].Name != "a" {
+		t.Errorf("the option's jar holds %v", got)
+	}
+	if got, err := client.CookiesFor(site.URL); err != nil || len(got) != 0 {
+		t.Errorf("the client's own jar holds %v, %v", got, err)
+	}
+}
+
 func TestARequestsErrorSaysNothingOfItsProxysPassword(t *testing.T) {
 	// The error is printed by whoever gets it. What it wraps is underneath.
 	const through = "alice:s3cr3t@proxy.test:8080"

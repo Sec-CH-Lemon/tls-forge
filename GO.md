@@ -110,7 +110,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithInsecureSkipVerify()` | Disable upstream certificate verification. Intended for controlled local test endpoints. |
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
 | `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |
-| `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. |
+| `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. One that sets what tls-forge sets replaces it; see [Transport options](#transport-options). |
 | `WithLogger(logger)` | Write down what the client does, as it does it, to a `*slog.Logger`; see [Logging](#logging). |
 
 Example:
@@ -130,6 +130,38 @@ client, err := tlsforge.New(
 The extension-order options are explicit overrides. Normally the profile should
 choose: Chromium shuffles its extension order, while Firefox and Safari keep it
 stable.
+
+### Transport options
+
+`WithTransportOption` hands tls-client options to the transport after
+tls-forge's own. An option that sets what tls-forge already sets replaces it,
+and what tls-forge did with it goes too:
+
+- `tls_client.WithTransportOptions` replaces six idle connections per host and
+  the decoding of bodies by tls-forge. The transport then decodes gzip,
+  deflate, br and zstd itself. It reads deflate sent as zlib only after
+  waiting out the request's deadline, and over HTTP/1.1 it takes
+  Content-Encoding off a body in any other coding, or in more than one,
+  without decoding it.
+- `tls_client.WithNotFollowRedirects` and `tls_client.WithCustomRedirectFunc`
+  replace how redirects are followed: no longer as Chrome follows them
+  ([Redirects](#redirects)). `WithoutRedirects` is the way to keep them.
+- `tls_client.WithCookieJar` replaces the client's jar, and `Cookies`,
+  `AllCookies` and session files then see none of what the site sets.
+  `WithCookieJar` is the way to bring a jar of your own.
+- A proxy given as a transport option, without `WithProxy`, is the
+  transport's to dial. The log's `proxy` records and the exit header fields
+  of a tunnel's answer go with tls-forge's dialer. `WithProxy` is the way to
+  keep them.
+- Any transport option leaves a client without a proxy dialing the
+  transport's way, since the option may be a dialer: the connections HTTP/2
+  dials apart from a request then go unlogged ([Logging](#logging)).
+
+An HTTPS proxy's certificate is checked against the system's roots whatever
+the options. `WithInsecureSkipVerify` is for the sites and does not reach it,
+since the proxy is who the password is given to: a proxy whose certificate
+the system does not trust is refused, and asked for no tunnel. There is no
+option for other roots yet.
 
 ## Requests
 
