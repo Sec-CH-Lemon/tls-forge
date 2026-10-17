@@ -476,6 +476,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Security
 
+- **The echo server's certificate is a leaf, not a certificate authority.**
+  It was marked as one, with the right to sign certificates, and
+  `capture --manual` asks a person to accept it in their browser: accepting
+  it could vouch for whatever it signed. It is still signed by itself and
+  trusted as itself by whoever trusts it.
 - **A proxy's password is said nowhere.** A proxy URL that could not be read
   was quoted back whole, password and all, on standard error and in the run's
   log. The password of every URL is now taken out of everything that is

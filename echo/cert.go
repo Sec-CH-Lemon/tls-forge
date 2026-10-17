@@ -45,15 +45,18 @@ func selfSignedCert(hosts []string) (tls.Certificate, error) {
 		return tls.Certificate{}, fmt.Errorf("echo: serial: %w", err)
 	}
 
+	// A leaf, and no authority: manual mode asks a person to accept it in their
+	// browser, and accepting one that may sign certificates would vouch for
+	// whatever it signed. Signed by itself, it is still trusted as itself by
+	// whoever trusts it.
 	template := x509.Certificate{
 		SerialNumber:          serial,
 		Subject:               pkix.Name{CommonName: "tlsforge echo"},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().Add(24 * time.Hour),
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		KeyUsage:              x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
-		IsCA:                  true,
 	}
 	for _, h := range hosts {
 		if ip := net.ParseIP(h); ip != nil {

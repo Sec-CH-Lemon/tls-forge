@@ -107,8 +107,17 @@ func TestSelfSignedCertSubjectAndHosts(t *testing.T) {
 	if got, want := len(leaf.IPAddresses), 2; got != want {
 		t.Errorf("IP addresses = %v, want %d", leaf.IPAddresses, want)
 	}
-	if !leaf.IsCA {
-		t.Error("the certificate must be self-signed and therefore its own CA")
+	// A leaf: no authority, and nothing to sign others with.
+	if leaf.IsCA || leaf.KeyUsage&x509.KeyUsageCertSign != 0 || !leaf.BasicConstraintsValid {
+		t.Errorf("the certificate is a CA %v, with key usage %b", leaf.IsCA, leaf.KeyUsage)
+	}
+	// Still trusted as itself by whoever trusts it, for each of its names.
+	roots := x509.NewCertPool()
+	roots.AddCert(leaf)
+	for _, name := range []string{"localhost", "127.0.0.1", "::1"} {
+		if _, err := leaf.Verify(x509.VerifyOptions{Roots: roots, DNSName: name}); err != nil {
+			t.Errorf("trusted as itself for %s: %v", name, err)
+		}
 	}
 }
 
