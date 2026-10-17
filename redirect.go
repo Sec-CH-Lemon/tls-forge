@@ -57,6 +57,32 @@ type chain struct {
 	restarted bool
 	// ruled are the URLs the jar was told a rule for.
 	ruled []*url.URL
+
+	// own is a request without a browser context that has an Authorization
+	// of its own, which tls-forge neither adds to nor answers for.
+	own bool
+	// credentials are what the URL of the latest hop carried, taken off it
+	// before it is sent, and embedded whether a challenge was answered with
+	// them; sent is the Authorization tls-forge gave the latest hop, nil for
+	// none; ours is the request the transport makes hops of carrying one,
+	// which it copies onto them.
+	credentials *url.Userinfo
+	embedded    bool
+	sent        *sentAuth
+	ours        bool
+	// redirects are the redirects followed so far, those after a challenge
+	// answered too.
+	redirects int
+	// laid are the layouts the latest hop of a request without a browser
+	// context wears, which one sent again for a challenge is made from.
+	laid *layouts
+}
+
+// sentAuth is the Authorization tls-forge gave a hop: the credentials, and the
+// realm they were for.
+type sentAuth struct {
+	realm       string
+	credentials credentials
 }
 
 type chainKey struct{}
@@ -109,6 +135,114 @@ func (ch *chain) release() {
 	}
 }
 
+// authenticates reports whether HTTP authentication goes with a hop: not with
+// a request that has an Authorization of its own, nor, in a browser context,
+// with one CORS answers for or one that carries no credentials.
+func (ch *chain) authenticates(h hop) bool {
+	if ch.browser == nil {
+		return !ch.own
+	}
+	return !h.script.Has("authorization") && !h.cors && !ch.browser.cookies(h).none
+}
+
+// arrive begins the hop to u: user, the credentials its URL carried, are
+// kept, none sent; and it is the Authorization the session sends unasked to
+// where it goes, nothing for a URL that carries credentials, nor where
+// allowed says none goes.
+func (ch *chain) arrive(u *url.URL, user *url.Userinfo, allowed bool) string {
+	ch.credentials, ch.embedded, ch.sent = user, false, nil
+	if _, carried := credentialsOf(user); carried || !allowed {
+		return ""
+	}
+	realm, cred, ok := ch.client.session.auth.forPath(originOf(u), requestPath(u))
+	if !ok {
+		return ""
+	}
+	ch.sent = &sentAuth{realm: realm, credentials: cred}
+	if ch.log != nil {
+		ch.log.authorized(u.Redacted(), realm)
+	}
+	return cred.basic()
+}
+
+// challenged is the Authorization to send res's request again with, when res
+// is a 401 Chrome answers: a Basic challenge, and no scheme Chrome prefers,
+// answered with the credentials of the request's URL if they were not sent
+// yet, or with those the session keeps for the realm. Credentials turned down
+// are forgotten first.
+func (ch *chain) challenged(res *fhttp.Response) (string, bool) {
+	if res.StatusCode != fhttp.StatusUnauthorized || !ch.authenticates(ch.last) {
+		return "", false
+	}
+	realm, ok := basicChallenge(res.Header.Values("WWW-Authenticate"))
+	if !ok {
+		return "", false
+	}
+	u := shownURL(res.Request)
+	at, cache := originOf(u), ch.client.session.auth
+	if ch.sent != nil {
+		cache.drop(at, ch.sent.realm, ch.sent.credentials)
+	}
+	cred, embedded := credentialsOf(ch.credentials)
+	from := "url"
+	switch {
+	case embedded && !ch.embedded:
+		ch.embedded = true
+	default:
+		if cred, ok = cache.forRealm(at, realm); !ok {
+			return "", false
+		}
+		from = "realm"
+	}
+	cache.keep(at, realm, cred, requestPath(u))
+	ch.sent = &sentAuth{realm: realm, credentials: cred}
+	if ch.log != nil {
+		ch.log.authenticated(u.Redacted(), realm, from)
+	}
+	return cred.basic(), true
+}
+
+// again is res's request, the latest hop, sent again with Authorization said
+// as value: its body too, its headers as Chrome's network stack restarts it.
+func (ch *chain) again(sent *fhttp.Request, value string) *fhttp.Request {
+	u := *sent.URL
+	retry := (&fhttp.Request{Method: sent.Method, URL: &u, Host: sent.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
+		ProtoMinor: 1, ContentLength: sent.ContentLength, GetBody: sent.GetBody}).WithContext(ch.base)
+	if sent.GetBody != nil {
+		// GetBody of a request made from bytes, which cannot fail.
+		retry.Body, _ = sent.GetBody()
+	}
+	ch.ours = true
+	if ch.browser != nil {
+		h := ch.last
+		h.authorization = value
+		ch.dress(retry, h)
+	} else {
+		ch.laid = ch.laid.authorized(value)
+		retry = ch.laid.wear(retry)
+	}
+	return retry.WithContext(context.WithValue(retry.Context(), chainKey{}, ch))
+}
+
+// redirected are the credentials of the URL a redirect leads req to, taken
+// off it: its own, or, when its Location is relative, those of the URL it is
+// relative to, as resolving one keeps them.
+func (ch *chain) redirected(req *fhttp.Request) *url.Userinfo {
+	user := req.URL.User
+	req.URL.User = nil
+	if user == nil && relativeLocation(req.Response.Header.Get("Location")) {
+		user = ch.credentials
+	}
+	return user
+}
+
+// relativeLocation reports a Location that names neither a scheme nor a host,
+// read as the transport reads it.
+func relativeLocation(location string) bool {
+	u, err := url.Parse(location)
+	return err == nil && u.Scheme == "" && u.Host == ""
+}
+
 // follow makes req, the request a redirect leads to, the one Chrome sends.
 func (ch *chain) follow(req *fhttp.Request, via []*fhttp.Request) error {
 	previous := via[len(via)-1]
@@ -157,7 +291,7 @@ var bodyHeaders = []string{"content-type", "content-encoding", "content-language
 func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 	// Chrome follows a Location with credentials in it, and sends them only
 	// when the server asks; the transport would send them at once.
-	req.URL.User = nil
+	user := ch.redirected(req)
 	// fhttp keeps a Referer the request has, where net/http puts its own in
 	// its place: it is said again, so that neither way changes it.
 	if len(ch.given) > 0 {
@@ -182,11 +316,21 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 	}
 	// Only Chromium sends client hints, so no other browser's order changes.
 	req.Header[fhttp.HeaderOrderKey] = hintsAfterDest(req.Header[fhttp.HeaderOrderKey])
-	if first := layoutsOn(req); first != nil {
-		hop := first.redirected(req)
-		hop.http1[fhttp.HeaderOrderKey] = hintsAfterDest(hop.http1[fhttp.HeaderOrderKey])
-		*req = *hop.wear(req)
+	if ch.ours {
+		// The Authorization tls-forge gave the request the transport copied
+		// this one from: each hop has its own, or none.
+		deleteHeader(req.Header, "authorization")
 	}
+	hop := newLayouts(req.Header, nil)
+	if first := layoutsOn(req); first != nil {
+		hop = first.redirected(req)
+		hop.http1[fhttp.HeaderOrderKey] = hintsAfterDest(hop.http1[fhttp.HeaderOrderKey])
+	}
+	if value := ch.arrive(shownURL(req), user, ch.authenticates(ch.last)); value != "" {
+		hop = hop.authorized(value)
+	}
+	ch.laid = hop
+	*req = *hop.wear(req)
 }
 
 // clientHints are the hints Chrome sends of its own, which a redirect moves.
@@ -228,7 +372,8 @@ func (ch *chain) followInContext(req, previous *fhttp.Request, crossed, dropped 
 		return err
 	}
 	// Chrome sends credentials a Location names only when the server asks.
-	req.URL.User = nil
+	user := ch.redirected(req)
+	h.authorization = ch.arrive(shownURL(req), user, ch.authenticates(h))
 	r := ch.browser
 	if r.needsPreflight(h) && !ch.client.session.preflights.allows(r, h, shownURL(req).String()) {
 		if err := ch.client.preflight(ch.base, req, r, h, ch.transport, ch.log); err != nil {

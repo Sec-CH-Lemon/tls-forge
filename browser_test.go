@@ -85,6 +85,14 @@ type asSent struct {
 	// each is the context of each request the page asked, where they differ:
 	// a page another led to by a refresh.
 	each []BrowserContext
+	// pages are the requests of a scenario that its pages asked for, by their
+	// place among Chrome's, where Chrome made others itself between them: a
+	// challenge it answered, a redirect it followed. The first is sent in
+	// browser, and each after it as a navigation from the URL Chrome's
+	// requests before it ended on. credentials are what each page's URL
+	// carried, which no request shows.
+	pages       []int
+	credentials []string
 }
 
 // notSent are the scenarios measured that a browser context does not send as
@@ -93,22 +101,8 @@ var notSent = map[string]string{
 	"fetch-post-same-origin-headers": "the order of several headers a script set follows the renderer's hash table",
 	"ch-fetch-three":                 "the order of several client hints of a script's request follows the renderer's hash table",
 	"ch-fetch-all":                   "the order of several client hints of a script's request follows the renderer's hash table",
-	// Not yet: the credentials of a URL go with its first request, and no
-	// challenge is answered.
-	"auth-nav-typed":                   authNotYet,
-	"auth-nav-typed-other-dir":         authNotYet,
-	"auth-nav-wrong":                   authNotYet,
-	"auth-nav-digest":                  authNotYet,
-	"auth-nav-from-page":               authNotYet,
-	"auth-nav-redirect-to-credentials": authNotYet,
-	"auth-nav-redirect-after":          authNotYet,
-	"auth-form-post":                   authNotYet,
-	"auth-xhr":                         authNotYet,
-	"auth-nav-later-same-dir":          authNotYet,
-	"auth-nav-later-other-dir":         authNotYet,
+	"auth-nav-digest":                "Chrome answers a challenge that offers Digest with Digest, and tls-forge answers Basic alone",
 }
-
-const authNotYet = "a URL's credentials go with its first request, and no 401 is answered"
 
 // asked is the URL of a scenario's page with its query.
 const allHints = "sec-ch-ua,sec-ch-ua-mobile,sec-ch-ua-platform,sec-ch-ua-arch,sec-ch-ua-bitness,sec-ch-ua-full-version,sec-ch-ua-full-version-list,sec-ch-ua-model,sec-ch-ua-platform-version,sec-ch-ua-wow64,sec-ch-ua-form-factors,sec-ch-dpr,sec-ch-viewport-width,sec-ch-viewport-height,sec-ch-device-memory,sec-ch-prefers-color-scheme,sec-ch-prefers-reduced-motion,sec-ch-prefers-reduced-transparency,dpr,viewport-width,device-memory,rtt,downlink,ect,save-data"
@@ -375,6 +369,26 @@ var sentInContexts = map[string]asSent{
 		fails: "CORS: an XHR follows no redirect to a URL with credentials in it across origins"},
 }
 
+// The scenarios of HTTP authentication: what each page asked for, the URL it
+// asked with and the credentials in it, a page led on by the last one.
+func init() {
+	typed := BrowserContext{Kind: KindNavigation}
+	for scenario, how := range map[string]asSent{
+		"auth-nav-typed":                   {browser: typed, pages: []int{0, 2, 4}, credentials: []string{"u:p", "u:p", "u:p"}},
+		"auth-nav-typed-other-dir":         {browser: typed, pages: []int{0, 2, 4}, credentials: []string{"u:p", "u:p", "u:p"}},
+		"auth-nav-wrong":                   {browser: typed, pages: []int{0}, credentials: []string{"u:x"}},
+		"auth-nav-from-page":               {browser: BrowserContext{Kind: KindNavigation, Initiator: run("auth-nav-from-page")}, pages: []int{0, 2}, credentials: []string{"u:p", "u:p"}},
+		"auth-nav-redirect-to-credentials": {browser: typed, pages: []int{0, 3}, credentials: []string{"", "u:p"}},
+		"auth-nav-redirect-after":          {browser: typed, pages: []int{0, 4}, credentials: []string{"u:p", "u:p"}},
+		"auth-form-post":                   {browser: BrowserContext{Kind: KindForm, Initiator: run("auth-form-post")}, form: true, pages: []int{0, 2}, credentials: []string{"u:p", "u:p"}},
+		"auth-xhr":                         {browser: BrowserContext{Kind: KindXHR, Initiator: run("auth-xhr")}, pages: []int{0}, credentials: []string{"u:p"}},
+		"auth-nav-later-same-dir":          {browser: typed, pages: []int{0, 2, 3}, credentials: []string{"u:p", "", ""}},
+		"auth-nav-later-other-dir":         {browser: typed, pages: []int{0, 2, 4}, credentials: []string{"u:p", "", ""}},
+	} {
+		sentInContexts[scenario] = how
+	}
+}
+
 // sentAfter are scenarios whose page made a first fetch() of another kind,
 // to set cookies, before the one measured: the context of each call.
 var sentAfter = map[string][]BrowserContext{
@@ -420,6 +434,12 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 				if how.each != nil {
 					contexts = how.each
 				}
+				if how.pages != nil {
+					contexts = []BrowserContext{how.browser}
+					for _, at := range how.pages[1:] {
+						contexts = append(contexts, BrowserContext{Kind: KindNavigation, Initiator: want[at-1].URL})
+					}
+				}
 				got := sendAsMeasured(t, proto, how, contexts, want)
 				if len(got) != len(want) {
 					t.Fatalf("%s over %s: sent %d requests, Chrome %d", scenario, proto, len(got), len(want))
@@ -439,8 +459,10 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // preflight allowed but for ?deny, kept as long as ?maxage says; under
 // /r/STATUS/ a redirect of that status to ?to, which CORS allows but for
 // ?noacao, saying Referrer-Policy as ?rp does, and a preflight of it allowed
-// and kept for none; under /chain/N a redirect to /chain/N+1; and cookies,
-// two for ?cookie=1 and one of each SameSite for ?cookie=2.
+// and kept for none; under /chain/N a redirect to /chain/N+1; under /auth/ a
+// 401 with a Basic challenge, after a Digest one for ?offer=digest, until the
+// request says u:p, then a redirect to ?to or a page; and cookies, two for
+// ?cookie=1 and one of each SameSite for ?cookie=2.
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	if q.Has("accept") {
@@ -490,6 +512,19 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(path, "/chain/"):
 		n, _ := strconv.Atoi(strings.TrimPrefix(path, "/chain/"))
 		w.Header().Set("Location", "/chain/"+strconv.Itoa(n+1))
+		w.WriteHeader(http.StatusFound)
+		return
+	case strings.HasPrefix(path, "/auth/") && r.Header.Get("Authorization") != "Basic dTpw":
+		if q.Get("offer") == "digest" {
+			w.Header().Add("WWW-Authenticate", `Digest realm="bench", nonce="b3ec7d4c", qop="auth"`)
+		}
+		w.Header().Add("WWW-Authenticate", `Basic realm="bench"`)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = io.WriteString(w, "<!doctype html><title>401</title><p>401</p>")
+		return
+	case strings.HasPrefix(path, "/auth/") && q.Get("to") != "":
+		w.Header().Set("Location", q.Get("to"))
 		w.WriteHeader(http.StatusFound)
 		return
 	case !strings.HasPrefix(path, "/cors/"):
@@ -542,6 +577,16 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 	}
 	if how.redirected {
 		asked = asked[:1]
+	}
+	if how.pages != nil {
+		asked = nil
+		for i, at := range how.pages {
+			req := want[at]
+			if how.credentials[i] != "" {
+				req.URL = strings.Replace(req.URL, "://", "://"+how.credentials[i]+"@", 1)
+			}
+			asked = append(asked, req)
+		}
 	}
 	if how.refused != nil {
 		asked = append(asked, *how.refused)

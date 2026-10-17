@@ -540,6 +540,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **The credentials in a URL are sent as Chrome sends them**: only once a 401
+  asks with a Basic challenge, the request sent again with `Authorization`
+  where Chrome's network stack adds it, its body too; then kept for the
+  session by origin and realm, sent unasked to the directory they were
+  answered in and given to a 401 of the realm elsewhere at the origin; and
+  credentials turned down are tried once. Measured on Chrome 155 (the
+  `auth-*` scenarios of `testdata/chrome155-requests.json`, which the bench
+  in `internal/harness` measures). They went with the first request, as Go's
+  transport sends them: over HTTP/1.1 in the HTTP/2 layout, with an empty
+  `User-Agent: ` line for a profile with no headers; and `Response.URL`, the
+  `final_url` of `fetch`'s lines, said the password. A 401 that offers
+  Digest, NTLM or Negotiate is left unanswered.
 - **A Node.js response has exactly the fields it documents**: `status`,
   `url`, `body`, `content`, `headers` and `cookies`, in that order. It
   carried the rest of the daemon's answer as well, its `id` and

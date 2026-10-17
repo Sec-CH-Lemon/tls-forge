@@ -337,6 +337,34 @@ In a browser context each hop is worked out again from the hops before it:
   none across origins. Each of these is an error wrapping
   `tlsforge.ErrCORS`, with nothing more sent.
 
+### HTTP authentication
+
+The credentials in a URL are used as Chrome 155 was measured using them (the
+`auth-*` scenarios of `testdata/chrome155-requests.json`), by every request:
+
+- Nothing is sent before the server asks. Go's transport sent
+  `Authorization: Basic` with the first request, over HTTP/1.1 in the HTTP/2
+  layout.
+- A 401 with a Basic challenge is answered once: the same request again, its
+  body too, with `Authorization` where Chrome's network stack adds it, after
+  `Content-Length` and `Cache-Control` and before every other header, after
+  `Host` and `Connection` over HTTP/1.1. A redirect to a URL with
+  credentials, or a relative one from a URL with them, is answered the same.
+- What was answered with is kept for the session, by origin and realm. It is
+  sent unasked to the directory it was answered in and those under it, and
+  answers a 401 of the realm anywhere else at the origin. A URL that carries
+  credentials is sent nothing unasked. Credentials turned down are tried
+  once and forgotten.
+- A 401 that offers Digest, NTLM or Negotiate is left as it is: Chrome
+  answers the scheme it prefers. So is one of a request with an
+  `Authorization` of its own, of a script's request CORS answers for, and of
+  one that carries no credentials (`Credentials: "omit"`).
+- `Response.URL` carries no credentials.
+
+The log says `challenge answered`, with the realm and whether the credentials
+were the URL's or the realm's, and `authorization sent` for what is sent
+unasked: never the credentials.
+
 ### Client hints
 
 A server asks for client hints beyond the three Chrome sends with every

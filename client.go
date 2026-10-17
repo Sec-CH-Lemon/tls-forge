@@ -547,12 +547,17 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	parsed := inner.URL
 	ch := &chain{client: c, transport: transport, log: r, browser: browser, urls: []*url.URL{parsed},
 		restarted: restarted}
+	// A URL's credentials go only where a 401 asks for them; the transport
+	// would send them at once.
+	user := parsed.User
+	parsed.User = nil
 	var blocks *layouts
 	switch {
 	case browser != nil:
 		first := browser.first(parsed)
 		first.hints = c.hintsOf(browser, first)
 		first.restarted = restarted
+		first.authorization = ch.arrive(parsed, user, ch.authenticates(first))
 		ch.last, ch.policy = first, browser.policy
 		if first.referrer != "" {
 			ch.referrer, _ = url.Parse(first.referrer)
@@ -560,9 +565,14 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		blocks = c.browserLayouts(browser.header(first, c.headers), first.script, browser.wireOrder(first), parsed.Host)
 	default:
 		headers := c.headers.Merge(req.Header)
-		ch.given = headers.Values("referer")
+		ch.given, ch.own = headers.Values("referer"), headers.Has("authorization")
 		blocks = c.layoutsAsGiven(headers, req.Header, parsed.Host)
+		if value := ch.arrive(parsed, user, ch.authenticates(ch.last)); value != "" {
+			blocks = blocks.authorized(value)
+		}
+		ch.laid = blocks
 	}
+	ch.ours = ch.sent != nil
 	ch.base = inner.Context()
 	inner = blocks.wear(inner)
 	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
@@ -583,11 +593,25 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	}
 	withPort(inner)
 	res, err := transport.Do(inner)
+	for err == nil {
+		if r != nil {
+			r.answered(res)
+		}
+		value, ok := ch.challenged(res)
+		if !ok {
+			break
+		}
+		_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
+		_ = res.Body.Close()
+		retry := ch.again(res.Request, value)
+		if r != nil {
+			r.step("connect")
+		}
+		withPort(retry)
+		res, err = transport.Do(retry)
+	}
 	if err != nil {
 		return nil, nil, transportError(err)
-	}
-	if r != nil {
-		r.answered(res)
 	}
 	if browser != nil && !browser.scripted() {
 		// What the origin asked for, said on the answer to a navigation.
@@ -660,11 +684,14 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		return fhttp.ErrUseLastResponse
 	}
 	// The transport sets Response on every request it builds to follow a
-	// redirect, to the response that sent it there.
+	// redirect, to the response that sent it there. The count goes on across
+	// a challenge answered, which is no redirect, as Chrome's does.
 	r := requestLogOf(req.Context())
-	if len(via) >= maxRedirects {
+	ch, _ := req.Context().Value(chainKey{}).(*chain)
+	ch.redirects++
+	if ch.redirects >= maxRedirects {
 		if r != nil {
-			r.stopped(len(via), req.Response.StatusCode, shownURL(req).String())
+			r.stopped(ch.redirects, req.Response.StatusCode, shownURL(req).String())
 		}
 		return fmt.Errorf("the %dth redirect was not followed", maxRedirects)
 	}
@@ -672,10 +699,9 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		t.redirect(req.Response.StatusCode, shownURL(req).String())
 	}
 	if r != nil {
-		r.redirect(len(via), req.Response.StatusCode, shownURL(req).String(), req.Response.Header)
+		r.redirect(ch.redirects, req.Response.StatusCode, shownURL(req).String(), req.Response.Header)
 	}
 	withPort(req)
-	ch, _ := req.Context().Value(chainKey{}).(*chain)
 	return ch.follow(req, via)
 }
 

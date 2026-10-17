@@ -100,21 +100,52 @@ func (l *layouts) redirected(req *fhttp.Request) *layouts {
 	return newLayouts(req.Header, redirectHTTP1Layout(l.http1, l.http2, req.Header, host))
 }
 
+// authorized are l with Authorization said as value in both blocks, where
+// Chrome's network stack adds it: after the Content-Length and Cache-Control
+// that lead a request, Host and Connection leading HTTP/1.1's, and before
+// every other header. One tls-forge gave them before is replaced.
+func (l *layouts) authorized(value string) *layouts {
+	var http1 fhttp.Header
+	if l.http1 != nil {
+		http1 = withAuthorization(l.http1, value)
+	}
+	return newLayouts(withAuthorization(l.http2, value), http1)
+}
+
+// leadAuthorization are the names Chrome writes before Authorization.
+var leadAuthorization = []string{"host", "connection", "content-length", "cache-control"}
+
+// withAuthorization is a copy of block with Authorization said as value, in
+// its slot.
+func withAuthorization(block fhttp.Header, value string) fhttp.Header {
+	out := cloneHeaderLayout(block)
+	deleteHeader(out, "authorization")
+	order := out[fhttp.HeaderOrderKey]
+	at := 0
+	for at < len(order) && slices.Contains(leadAuthorization, strings.ToLower(order[at])) {
+		at++
+	}
+	out[fhttp.HeaderOrderKey] = slices.Insert(order, at, "authorization")
+	out["Authorization"] = []string{value}
+	return out
+}
+
 // wear is req wearing l: the HTTP/2 block, which a connection that speaks
 // HTTP/1.1 changes for the HTTP/1.1 block when the request gets it. l goes on
 // req's context too, for a redirect's request to make its own from
 // (layoutsOn), since fhttp makes it with the first request's context. A
 // request that goes the same over both wears its one block, and nothing more.
+// Each wears a copy: l stays as it was made, for a request sent again for a
+// challenge to be made from (chain.laid).
 func (l *layouts) wear(req *fhttp.Request) *fhttp.Request {
-	if l.http1 == nil {
-		req.Header = l.http2
-		return req
-	}
 	// The request's own copy, which the hook changes in place: the request the
 	// transport writes is a copy of req (WithContext below, and fhttp's own)
-	// that shares the map, not the struct. l.http2 stays as it was made.
+	// that shares the map, not the struct.
 	header := cloneHeaderLayout(l.http2)
 	req.Header = header
+	if l.http1 == nil {
+		return req
+	}
 	target := req.URL
 	got := func(info fhttptrace.GotConnInfo) {
 		if connectionUsesHTTP1(target, info.Conn) {

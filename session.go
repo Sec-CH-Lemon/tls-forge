@@ -10,8 +10,8 @@ import (
 )
 
 // session is what one identity keeps across its requests: its cookies, the
-// cookies it was warmed with, the client hints each origin asked it for, and
-// what CORS preflights allowed. Every client made Fresh from another shares
+// cookies it was warmed with, the client hints each origin asked it for, what
+// CORS preflights allowed, and the credentials it answered challenges with. Every client made Fresh from another shares
 // its session and has transports of its own (transports), and a request's
 // browser context is neither: it is what one page asks.
 type session struct {
@@ -21,13 +21,14 @@ type session struct {
 	hints *hintStore
 	// preflights is what CORS preflights allowed in the session.
 	preflights *preflightCache
+	auth       *authCache
 }
 
 // newSession is a session keeping cookies in jar, nil for none, warmed with
 // cookies.
 func newSession(jar *keptJar, cookies []Cookie) *session {
 	return &session{jar: jar, warm: &warmSession{cookies: cookies, seeded: map[warmCookieKey]struct{}{}},
-		hints: newHintStore(), preflights: newPreflightCache()}
+		hints: newHintStore(), preflights: newPreflightCache(), auth: &authCache{}}
 }
 
 // warmSession is a session a client was handed, with which of its cookies have

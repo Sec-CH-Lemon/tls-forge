@@ -124,6 +124,9 @@ type hop struct {
 	// restarted is the first request of a navigation started again for its
 	// critical client hints, which Chrome sends after Accept.
 	restarted bool
+	// authorization is the Authorization tls-forge gives the hop: a
+	// challenge answered, or what the session keeps for where it goes.
+	authorization string
 }
 
 // first is the first request of a chain: to target, as the page sends it.
@@ -407,23 +410,25 @@ const (
 
 // The headers of each kind of request, in the order Chrome 155 sends them, as
 // measured (testdata/chrome155-requests.json). A request has a header of a
-// slot only when it has a value for it.
+// slot only when it has a value for it. Authorization, which Chrome's network
+// stack adds, goes after the Content-Length and Cache-Control it adds and
+// before the rest.
 var (
-	navigationOrder = []string{slotHints, "upgrade-insecure-requests", "user-agent", "accept", "sec-fetch-site",
-		"sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie",
-		"priority"}
-	formOrder = []string{"content-length", "cache-control", slotHints, "upgrade-insecure-requests", "content-type",
-		"user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer",
-		"accept-encoding", "accept-language", "cookie", "priority"}
+	navigationOrder = []string{"authorization", slotHints, "upgrade-insecure-requests", "user-agent", "accept",
+		"sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding",
+		"accept-language", "cookie", "priority"}
+	formOrder = []string{"content-length", "cache-control", "authorization", slotHints, "upgrade-insecure-requests",
+		"content-type", "user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest",
+		"referer", "accept-encoding", "accept-language", "cookie", "priority"}
 	// restartedOrder is the first request of a navigation started again for
 	// its critical client hints.
-	restartedOrder = []string{"upgrade-insecure-requests", "user-agent", "accept", slotHints, "sec-fetch-site",
-		"sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie",
-		"priority"}
+	restartedOrder = []string{"authorization", "upgrade-insecure-requests", "user-agent", "accept", slotHints,
+		"sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding",
+		"accept-language", "cookie", "priority"}
 	// redirectedOrder is a navigation's or a form's after a redirect.
-	redirectedOrder = []string{"content-length", "cache-control", "upgrade-insecure-requests", "content-type",
-		"user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest",
-		slotHints, "referer", "accept-encoding", "accept-language", "cookie", "priority"}
+	redirectedOrder = []string{"content-length", "cache-control", "authorization", "upgrade-insecure-requests",
+		"content-type", "user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user",
+		"sec-fetch-dest", slotHints, "referer", "accept-encoding", "accept-language", "cookie", "priority"}
 )
 
 // order is a request's slots, in Chrome's order: a page's after a redirect
@@ -451,7 +456,7 @@ func (r *browserRequest) order(h hop) []string {
 // Sec-Fetch-*, or after them once a redirect gave it one.
 func scriptOrder(h hop) []string {
 	authorization := len(h.script) == 1 && strings.EqualFold(h.script[0].Name, "authorization")
-	out := []string{"content-length", slotAskedHints, "sec-ch-ua-platform"}
+	out := []string{"content-length", "authorization", slotAskedHints, "sec-ch-ua-platform"}
 	if authorization {
 		out = append(out, slotScript)
 	}
@@ -549,6 +554,9 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 	}
 	for _, hint := range h.hints {
 		values[hint.Name] = hint.Value
+	}
+	if h.authorization != "" {
+		values["authorization"] = h.authorization
 	}
 	if !trustworthy(to) {
 		// A page that is not potentially trustworthy is told neither the

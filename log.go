@@ -352,6 +352,19 @@ func (r *requestLog) restarted(url string, hints []string) {
 	r.log.Info("restarted for client hints", "url", redact.URL(url), "hints", strings.Join(hints, ","))
 }
 
+// authorized is credentials the session keeps for a realm sent unasked to
+// url, which lies where they were answered with: never the credentials.
+func (r *requestLog) authorized(url, realm string) {
+	r.log.Debug("authorization sent", "url", url, "realm", realm)
+}
+
+// authenticated is a challenge of a realm from url answered with the
+// credentials of the request's URL or those kept for the realm: never the
+// credentials.
+func (r *requestLog) authenticated(url, realm, from string) {
+	r.log.Info("challenge answered", "url", url, "realm", realm, "credentials", from)
+}
+
 // start says what is asked for.
 func (r *requestLog) start(method, rawURL string, body int) {
 	attrs := []any{"method", method, "url", redact.URL(rawURL)}
