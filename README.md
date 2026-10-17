@@ -21,6 +21,34 @@ It does not execute page JavaScript and does not solve managed challenges or
 CAPTCHAs. It addresses the TLS and HTTP fingerprint checks that happen before,
 or alongside, normal HTTP handling.
 
+## Quick start
+
+Install it, here with Homebrew ([Install](#install) has the other ways), and
+make one request:
+
+```bash
+brew tap Sec-CH-Lemon/tap
+brew trust --formula Sec-CH-Lemon/tap/tls-forge
+brew install tls-forge
+
+tls-forge fetch --print-body https://tls.browserleaks.com/json
+```
+
+What comes back is that site's account of the request, as JSON: the JA3 and
+JA4 of the handshake, the HTTP/2 fingerprint and the headers, as the newest
+Chrome shipped sends them on this platform. Standard error says which profile
+the request wore and where it came out. Without `--print-body` a terminal gets
+only the line saying how the request went, while a pipe or a file gets the
+page:
+
+```bash
+tls-forge fetch https://example.com/ > page.html
+```
+
+[A list of URLs](#a-list-of-urls), [a proxy and where a request came
+out](#where-a-request-came-out), [keeping every request](#keeping-every-request)
+and the [Go, Node.js and Python libraries](#language-libraries) come after.
+
 ## What is a TLS fingerprint?
 
 Before an HTTPS client can send `GET`, headers or a `User-Agent`, it sends a TLS
@@ -1630,6 +1658,33 @@ tls-forge version
 Usage: `tls-forge version`. This command has no flags. A source build without
 version linker flags reports `dev`.
 
+### Exit codes and the environment
+
+Every command ends with one of four codes:
+
+| Code | Meaning |
+|---|---|
+| `0` | It did what it was asked. `proxy`, `serve` and `daemon` end with it when they are told to stop |
+| `1` | It could not do all of it: a request that got no response, a page without what `--wait-for` or `--wait-for-element` asks for, a report, trace, log or session that could not be written |
+| `2` | What it was given cannot run, said before anything is done; `-h` and `--help` too |
+| `3` | `compare` measured, and the client and the browser differ |
+
+What tls-forge reads from its environment:
+
+| Variable | What it does |
+|---|---|
+| the one `--proxy-env` names | The proxy, for `fetch`, `proxy` and `daemon` |
+| `NO_COLOR` | Set to anything, turns colour off |
+| `TLSFORGE_PROFILES` | Where the profiles measured on this machine are kept, instead of the config directory |
+| `XDG_CONFIG_HOME`, `HOME`, `AppData` | Where the config directory is, as the platform has it: the proxy's authority and the measured profiles |
+| `GODEBUG=http2debug=2` | Adds each HTTP/2 header field the transport decoded to a run's log, its secret values left out; the frames are there at the `trace` level without it |
+| `TLSFORGE_BIN` | For the Node.js and Python packages, the binary to run |
+
+tls-forge reads no `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` or `NO_PROXY`, in
+either case. A run goes through the proxy `--proxy` gives, or the one in the
+variable `--proxy-env` names, and through none otherwise. Those variables are
+how another program, a browser or `curl`, is pointed at `tls-forge proxy`.
+
 ## Language libraries
 
 The root README intentionally contains only a working introduction for each
@@ -1710,6 +1765,29 @@ with tlsforge.Client(profile="chrome") as client:
 See the complete [Python SDK documentation](python/README.md).
 The runnable consumer project is in [`example/python/`](example/python/).
 
+## Troubleshooting
+
+- **A command exits 2 and says `bad usage`.** What it was given cannot run, and
+  nothing was done: the message names the flag or the value. `--help` lists
+  every flag.
+- **`fetch` prints nothing but a line on a terminal.** The page is the output,
+  and a terminal gets it only with `--print-body`. A pipe or a redirect gets it
+  without one.
+- **A program behind `tls-forge proxy` refuses its certificates.** The proxy
+  signs every site with its own authority, whose certificate path it prints on
+  start: the program has to trust that certificate.
+- **`capture` or `compare` finds no browser.** Name one with `--browser`, by
+  name or by the path of its executable, or open the page in one yourself with
+  `--manual`.
+- **A Node.js or Python request fails with `SessionReset`.** The transport the
+  session was in has gone, and its cookies with it. The request was not sent:
+  warm the session again, or keep it in a cookie file.
+- **A site still turns the requests away.** A fingerprint is not all a site
+  looks at: tls-forge runs no JavaScript, speaks no HTTP/3, and the TCP/IP
+  packets under each connection are this machine's operating system's.
+  [docs/support.md](docs/support.md) says what is reproduced and what is not,
+  and `tls-forge compare` holds this client to the browser on this machine.
+
 ## Development
 
 ```bash
@@ -1718,6 +1796,7 @@ make cover        # 100% Go statement coverage gate
 make node-test    # 100% Node line/function/branch coverage gate
 make python-test  # 100% Python statement/branch coverage gate
 make python-typecheck # the Python package's types, mypy in strict mode
+make docs-check   # every relative link in the documentation leads somewhere
 make wrapper-smoke # Node and Python against the real Go daemon
 make release-test # release packaging helper regressions
 make vet
@@ -1746,7 +1825,6 @@ Release and maintenance documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — user-visible changes;
 - [`RELEASING.md`](RELEASING.md) — release process;
-- [`docs/article.ru.md`](docs/article.ru.md) — Russian introduction to TLS fingerprinting and TLS Forge;
 - [`docs/profiles.md`](docs/profiles.md) — capture format and profile resolution;
 - [`docs/protocol.md`](docs/protocol.md) — JSON Lines daemon protocol;
 - [`docs/pinned.md`](docs/pinned.md) — the Google Chrome a release is held to, and the check;

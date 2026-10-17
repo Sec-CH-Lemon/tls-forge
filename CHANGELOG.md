@@ -945,6 +945,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   answer and a report that could not be written, the second line had no
   prefix at all. Errors the library returns to Go programs are unchanged.
 
+### Documentation
+
+- `RELEASING.md` says how a release is made, what it needs, and what to do
+  when one fails part of the way. `make docs-check` holds every relative link
+  of the documentation to the files git tracks, and every fragment to a
+  heading, as a clean checkout has them.
+- The README opens with a quick start, lists the exit codes and every
+  variable tls-forge reads in one place, says it reads no `HTTP_PROXY` or
+  `HTTPS_PROXY`, and ends with troubleshooting. The examples of `--repeat` and
+  `--trace` say what a run's later requests do: each goes out on a connection
+  of its own and resumes the first one's TLS session, and
+  `--reuse-connection` keeps the connection instead. They said the
+  connection was kept.
+- The release history is restored from the tags: 0.2.0, 0.2.1 and 0.2.2 are
+  listed with what each shipped, and 0.1.0 with what its tag held and the day
+  it was tagged.
 
 ## [0.2.2] - 2026-10-12
 

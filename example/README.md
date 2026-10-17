@@ -482,14 +482,17 @@ Each run is kept under its own number, and the count is of all of them:
 With `-v` there is a line for each run as well:
 
 ```
-  1/3  200      577 B     29ms       out/example.com-2026-08-16-091854-584-1.html
-  2/3  200      577 B     11ms       out/example.com-2026-08-16-091854-614-2.html
-  3/3  200      577 B     10ms       out/example.com-2026-08-16-091854-626-3.html
+  1/3  200      577 B     54ms       out/example.com-2026-10-17-043341-885-1.html
+  2/3  200      577 B     26ms       out/example.com-2026-10-17-043341-940-2.html
+  3/3  200      577 B     27ms       out/example.com-2026-10-17-043341-968-3.html
 ```
 
-The first run paid for a lookup, a dial and a handshake; the two after it found
-the connection open. One URL is asked for one run at a time, the way a page is
-reloaded; `-c 10` makes ten of them at once instead. For a list, `--repeat`
+The first run paid for a lookup, a dial and a whole handshake. Each run after
+it went out on a connection of its own, as every request does, and resumed the
+TLS session the first one left, as a browser coming back to a site does, which
+costs less. `--reuse-connection` sends a URL's runs over one connection
+instead. One URL is asked for one run at a time, the way a page is reloaded;
+`-c 10` makes ten of them at once instead. For a list, `--repeat`
 goes through the whole of it that many times, and every line of the output
 says which pass it was:
 
@@ -653,29 +656,41 @@ jq -r '.[] | select(.ph == "X") | "\(.name)\t\(.dur)"' run.json
 ```
 
 ```
-exit-ip	42618
-dns	14506
-connect	7468
-tls	15689
-send	97
-wait	18257
-receive	212
-send	93
-wait	13932
-receive	177
+exit-ip	38046
+dns	11727
+connect	7010
+tls	13238
+send	50
+wait	12171
+receive	47
+send	28
+wait	10536
+receive	30
+send	84
+wait	10773
+receive	238
 ```
+
+The runs after the first open their connections apart from the request, as
+HTTP/2 does, so the trace has no lookup, dial or handshake under them. The log
+of a run has those, with `background=true`.
 
 Which connection each run went out on:
 
 ```bash
-jq -r '.[] | select(.name == "send") | .args | "\(.reused) \(.alpn) \(.tls) \(.remote)"' run.json
+jq -r '.[] | select(.name == "send") | .args | "\(.reused) \(.resumed) \(.alpn) \(.tls) \(.remote)"' run.json
 ```
 
 ```
-false h2 TLS 1.3 104.20.23.154:443
-true h2 TLS 1.3 104.20.23.154:443
-true h2 TLS 1.3 104.20.23.154:443
+false false h2 TLS 1.3 104.20.23.154:443
+false true h2 TLS 1.3 104.20.23.154:443
+false true h2 TLS 1.3 104.20.23.154:443
 ```
+
+None of them reused a connection, and the second and the third resumed the
+first one's TLS session. With `--reuse-connection` the first column says `true`
+for those two and the second `false`: a connection already open has no
+handshake to resume.
 
 And whatever went wrong, which is what the file is usually opened for:
 

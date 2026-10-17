@@ -213,3 +213,20 @@ func TestAProxysPasswordIsWrittenNowhere(t *testing.T) {
 	}
 	nowhereSaid(t, dir, stdout, stderr)
 }
+
+func TestTheProxyVariablesOfOtherProgramsAreNotRead(t *testing.T) {
+	// HTTP_PROXY and its kin point other programs at a proxy, `tls-forge
+	// proxy` among them; a run goes through the proxy it is given, and only
+	// that one. Each names a proxy nothing answers at, in either case of name,
+	// and the request goes straight to the server.
+	server, asked := replying(t, 200)
+	dead := "http://" + deadAddr(t)
+	for _, name := range []string{"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"} {
+		t.Setenv(name, dead)
+	}
+	before := asked.Load()
+	code, _, stderr := exec(t, "fetch", "--no-exit-lookup", server.URL)
+	if code != 0 || asked.Load() != before+1 {
+		t.Errorf("exit code = %d, the server was asked %d times\n%s", code, asked.Load()-before, stderr)
+	}
+}

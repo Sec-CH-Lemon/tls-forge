@@ -145,6 +145,12 @@ jobs:
           node --check scripts/check-published-sdk.mjs
           make release-test
 
+      # In a clean checkout, which has only what git tracks: a link to a file
+      # kept out of git, or to a heading that is gone, is broken for everybody.
+      - name: every link in the documentation leads somewhere
+        if: matrix.os == 'ubuntu-latest' && matrix.coverage
+        run: make docs-check
+
       # npm test includes the 100% line/function/branch coverage gate.
       - run: npm test
         if: matrix.coverage
