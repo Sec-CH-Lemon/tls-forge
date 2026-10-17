@@ -606,6 +606,25 @@ func TestALogOfAConnectionNoRequestDialled(t *testing.T) {
 	}
 }
 
+func TestALogOfAScriptsConnectionNoRequestDialled(t *testing.T) {
+	// fetch() goes out on a transport of its own, which logs what it dials
+	// apart from a request as the page's does.
+	server := startEcho(t)
+	book, log := newLogBook(slog.LevelDebug)
+	client := newTestClient(t, WithLogger(log), WithProfile("chrome_155_macos"))
+	page := server.URL() + "/"
+	for range 2 {
+		if _, err := client.Do(&Request{URL: server.URL() + "/api/all", Browser: &BrowserContext{Kind: KindFetch, Initiator: page}}); err != nil {
+			t.Fatalf("Do: %v", err)
+		}
+		client.CloseIdleConnections()
+	}
+	dialed := book.one(t, "dialed", "background", "true")
+	if connected := book.one(t, "connected", "request", "2"); !strings.HasSuffix(connected.get("conn"), dialed.get("addr")) {
+		t.Errorf("the connection was said as %v, the dial as %v", connected, dialed)
+	}
+}
+
 func TestAClientGivenATransportOptionDialsTheTransportsWay(t *testing.T) {
 	// The option may be a dialer or a proxy, so the transport dials, and what
 	// it dials apart from a request goes unlogged, as GO.md says; the

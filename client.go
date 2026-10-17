@@ -41,13 +41,11 @@ import (
 	"net/url"
 	"slices"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	fhttp "github.com/bogdanfinn/fhttp"
 	"github.com/bogdanfinn/fhttp/cookiejar"
-	"github.com/bogdanfinn/fhttp/http2"
 	fhttptrace "github.com/bogdanfinn/fhttp/httptrace"
 	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/bogdanfinn/tls-client/profiles"
@@ -66,38 +64,19 @@ import (
 //
 // A Client is safe for concurrent use.
 type Client struct {
-	inner tls_client.HttpClient
-	// options are what inner was built with, but for how it dials, which is
-	// the client's own, and the client profile, which is clientProfile: Fresh
-	// builds another with them.
-	options       func(log *slog.Logger, built profiles.ClientProfile) []tls_client.HttpClientOption
-	clientProfile profiles.ClientProfile
-	// script is the transport requests of fetch() and an XHR go out on, made
-	// when one first does: see scriptClient.
-	scriptMu sync.Mutex
-	script   tls_client.HttpClient
-	// preflights is what CORS preflights allowed in the session, and hints
-	// the client hints each origin asked for: every client made Fresh from
-	// this one shares them.
-	preflights *preflightCache
-	hints      *hintStore
+	// transports are how its requests reach the network, its own; session
+	// is what its identity keeps across them, which every client made Fresh
+	// from this one shares.
+	transports *transports
+	session    *session
 	profile    *profile.Profile
-	// jar is nil when the client keeps no cookies.
-	jar     *keptJar
-	headers Header
+	headers    Header
 	// http1Headers begins with the shared profile headers, then applies values
 	// measured only on HTTP/1.1. It stays separate so Connection can never leak
 	// into HPACK merely because the same client also talks to an h1 origin.
 	http1Headers Header
 	closed       atomic.Bool
 	maxBody      int64
-	// warm is the session this client was handed, filed into the jar against
-	// each request's own URL.
-	//
-	// Not at construction: the jar files a cookie under the URL it is given, and
-	// a URL synthesised from a domain has no port, which a jar keyed by host and
-	// port then never matches. The request knows the URL exactly.
-	warm *warmSession
 
 	// id is the client's number in the process, and log what it writes down
 	// what it does to, with that number; nil writes nothing. logger is the one
@@ -110,21 +89,6 @@ type Client struct {
 	// proxy is the proxy every connection goes through, which what is logged
 	// is cleaned of.
 	proxy string
-}
-
-// warmSession is a session a client was handed, with which of its cookies have
-// been filed already. Every client made Fresh from one shares it, so a cookie
-// is filed once whichever of them asks first, and a value the server has since
-// replaced in the jar is not put back.
-type warmSession struct {
-	cookies []Cookie
-	mu      sync.Mutex
-	seeded  map[warmCookieKey]struct{}
-}
-
-type warmCookieKey struct {
-	index int
-	host  string
 }
 
 // DefaultMaxResponseBody bounds the decompressed body retained in memory.
@@ -353,11 +317,9 @@ func New(opts ...Option) (*Client, error) {
 	}
 
 	id, log := newClientLog(cfg.logger)
-	inner, err := newInnerClient(tls_client.NewNoopLogger(), built(log, clientProfile)...)
+	t, err := newTransports(built, clientProfile, log, cfg.proxy)
 	if err != nil {
-		// A proxy the transport cannot read is quoted back whole, password and
-		// all, by url.Parse and by the transport alike.
-		return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, cfg.proxy))
+		return nil, err
 	}
 
 	headers := Header(nil)
@@ -368,14 +330,13 @@ func New(opts ...Option) (*Client, error) {
 	http1Headers := profileHTTP1Headers(prof)
 	http1Headers = http1Headers.Merge(cfg.headers)
 
-	client := &Client{inner: inner, options: built, clientProfile: clientProfile, profile: prof, jar: jar,
-		preflights:   newPreflightCache(),
-		hints:        newHintStore(),
-		headers:      headers,
-		http1Headers: http1Headers,
-		warm:         &warmSession{cookies: cfg.cookies, seeded: map[warmCookieKey]struct{}{}},
-		maxBody:      cfg.maxResponseBody,
-		id:           id, log: log, logger: cfg.logger, proxy: cfg.proxy}
+	// The warmed cookies are filed into the jar against each request's own URL,
+	// not here: the jar files a cookie under the URL it is given, and a URL
+	// synthesised from a domain has no port, which a jar keyed by host and port
+	// then never matches. The request knows the URL exactly.
+	client := &Client{transports: t, session: newSession(jar, cfg.cookies), profile: prof, headers: headers,
+		http1Headers: http1Headers, maxBody: cfg.maxResponseBody,
+		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
 	if log != nil {
 		client.describe(cfg, shuffleExtensions, clientProfile)
 	}
@@ -411,18 +372,15 @@ func (c *Client) Fresh() (*Client, error) {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
 	id, log := newClientLog(c.logger)
-	inner, err := newInnerClient(tls_client.NewNoopLogger(), c.options(log, c.clientProfile)...)
+	t, err := c.transports.fresh(log)
 	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, c.proxy))
+		return nil, err
 	}
 	if log != nil {
 		log.Debug("fresh client", "from", c.id)
 	}
-	return &Client{inner: inner, options: c.options, clientProfile: c.clientProfile, profile: c.profile, jar: c.jar,
-		preflights:   c.preflights,
-		hints:        c.hints,
-		headers:      c.headers,
-		http1Headers: c.http1Headers, warm: c.warm, maxBody: c.maxBody,
+	return &Client{transports: t, session: c.session, profile: c.profile, headers: c.headers,
+		http1Headers: c.http1Headers, maxBody: c.maxBody,
 		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
 }
 
@@ -500,17 +458,17 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// string: two parsers agreeing is not something to verify at runtime, and a
 	// second parse is a second chance to disagree about what the request is for.
 	parsed := inner.URL
-	transport := c.inner
+	transport := c.transports.page
 	if browser != nil && browser.scripted() {
-		if transport, err = c.scriptClient(); err != nil {
+		if transport, err = c.transports.forScript(); err != nil {
 			return nil, err
 		}
 	}
 	// The warmed session, filed against this request's URL once. Re-seeding it on
 	// every request would overwrite a value the server had refreshed in the jar
 	// with the stale value loaded at construction.
-	c.seedWarmCookies(parsed)
-	c.seedCookies(parsed, req.Cookies)
+	c.session.seedWarm(parsed)
+	c.session.seed(parsed, req.Cookies)
 
 	res, ch, err := c.send(req, inner, browser, transport, r, false)
 	if errors.Is(err, errCriticalHints) {
@@ -561,9 +519,9 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		}
 		out.Header[lower] = values
 	}
-	if c.jar != nil {
+	if c.session.jar != nil {
 		// What the jar holds for the URL, whatever this request carried.
-		for _, cookie := range c.jar.inner.Cookies(cookieURL) {
+		for _, cookie := range c.session.jar.inner.Cookies(cookieURL) {
 			out.Cookies = append(out.Cookies, cookie.Name+"="+cookie.Value)
 		}
 	}
@@ -639,7 +597,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 
 	defer ch.release()
 	if browser != nil {
-		if browser.needsPreflight(ch.last) && !c.preflights.allows(browser, ch.last, inner.URL.String()) {
+		if browser.needsPreflight(ch.last) && !c.session.preflights.allows(browser, ch.last, inner.URL.String()) {
 			if err := c.preflight(ch.base, inner, browser, ch.last, transport, r); err != nil {
 				return nil, nil, err
 			}
@@ -1037,39 +995,6 @@ func applyHeaderLayout(target, layout fhttp.Header, managed map[string]bool) {
 	}
 }
 
-// seedWarmCookies files the part of a warmed session that belongs to this host
-// into the jar, once. A cookie with no domain belongs to whichever host is being
-// asked, so it is seeded once per distinct host; a domain cookie is seeded once
-// in total and the jar then applies its domain scope.
-func (c *Client) seedWarmCookies(u *url.URL) {
-	warm := c.warm
-	if len(warm.cookies) == 0 || c.jar == nil {
-		return
-	}
-
-	host := strings.ToLower(u.Hostname())
-	warm.mu.Lock()
-	defer warm.mu.Unlock()
-
-	ready := make([]Cookie, 0, len(warm.cookies))
-	for i, cookie := range warm.cookies {
-		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
-		if domain != "" && domain != host && (cookie.HostOnly || !strings.HasSuffix(host, "."+domain)) {
-			continue
-		}
-		key := warmCookieKey{index: i}
-		if domain == "" {
-			key.host = host
-		}
-		if _, seeded := warm.seeded[key]; seeded {
-			continue
-		}
-		warm.seeded[key] = struct{}{}
-		ready = append(ready, cookie)
-	}
-	c.seedCookies(u, ready)
-}
-
 // CookiesFor returns what the jar would send to a URL, each cookie with its
 // scope, its lifetime and its SameSite.
 func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
@@ -1077,10 +1002,7 @@ func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
 	if err != nil {
 		return nil, fmt.Errorf("tlsforge: %w", err)
 	}
-	if c.jar == nil {
-		return nil, nil
-	}
-	return c.jar.forURL(u), nil
+	return c.session.cookiesFor(u), nil
 }
 
 // Cookies returns the jar's cookies for a URL. It is CookiesFor by its older
@@ -1094,58 +1016,14 @@ func (c *Client) Cookies(rawURL string) ([]Cookie, error) { return c.CookiesFor(
 //
 // A cookie set through another client that shares the jar, given with
 // WithCookieJar, is listed by that client and not by this one.
-func (c *Client) AllCookies() []Cookie {
-	if c.jar == nil {
-		return nil
-	}
-	return c.jar.all()
-}
-
-// seedCookies files cookies in the jar against u, each as what it is: a
-// cookie its host's alone under that host and under no other, a domain's under
-// the domain, a session cookie without an expiry.
-func (c *Client) seedCookies(u *url.URL, cookies []Cookie) {
-	if len(cookies) == 0 || c.jar == nil {
-		return
-	}
-	host := strings.ToLower(u.Hostname())
-	jarCookies := make([]*fhttp.Cookie, 0, len(cookies))
-	for _, cookie := range cookies {
-		path := cookie.Path
-		if path == "" {
-			path = "/"
-		}
-		domain := strings.ToLower(strings.TrimPrefix(cookie.Domain, "."))
-		// RFC 6265 does not permit a Domain attribute on an IP address. A
-		// browser-exported cookie often spells the request IP there anyway; the
-		// matching value is the host-only cookie it represents.
-		if cookie.HostOnly || domain == "" || (net.ParseIP(domain) != nil && domain == host) {
-			if domain != "" && domain != host {
-				continue
-			}
-			domain = ""
-		}
-		jarCookies = append(jarCookies, &fhttp.Cookie{
-			Name:     cookie.Name,
-			Value:    cookie.Value,
-			Path:     path,
-			Domain:   domain,
-			Secure:   cookie.Secure,
-			HttpOnly: cookie.HTTPOnly,
-			Expires:  cookie.Expires,
-			SameSite: sameSiteMode(cookie.SameSite),
-		})
-	}
-	c.jar.SetCookies(u, jarCookies)
-}
+func (c *Client) AllCookies() []Cookie { return c.session.all() }
 
 // CloseIdleConnections closes the connections the client holds open between
 // requests, so that the next request opens one of its own: one that resumes
 // the TLS session of the last, when the profile's browser resumes and the site
 // issued a ticket, as a browser's new connection does. The client stays open.
 func (c *Client) CloseIdleConnections() {
-	c.inner.CloseIdleConnections()
-	c.closeScript()
+	c.transports.closeIdle()
 	if c.log != nil {
 		c.log.Debug("idle connections closed")
 	}
@@ -1154,58 +1032,12 @@ func (c *Client) CloseIdleConnections() {
 // Close releases the client's connections. A closed client must not be reused.
 func (c *Client) Close() error {
 	c.closed.Store(true)
-	c.inner.CloseIdleConnections()
-	c.closeScript()
+	c.transports.closeIdle()
 	if c.log != nil {
 		c.log.Debug("client closed")
 	}
 	return nil
 }
-
-// closeScript closes the idle connections of the transport of fetch() and an
-// XHR, when there is one.
-func (c *Client) closeScript() {
-	c.scriptMu.Lock()
-	defer c.scriptMu.Unlock()
-	if c.script != nil {
-		c.script.CloseIdleConnections()
-	}
-}
-
-// scriptClient is the transport a request of fetch() or an XHR goes out on,
-// made when one first does: the client's own, but for the priority on each
-// request's HEADERS frame, which Chrome gives such a request (weight 220)
-// where it gives a page its highest (256). The transport puts one priority on
-// every request it sends, so these go out on connections of their own, with
-// TLS sessions of their own.
-func (c *Client) scriptClient() (tls_client.HttpClient, error) {
-	c.scriptMu.Lock()
-	defer c.scriptMu.Unlock()
-	if c.script == nil {
-		built := withHeaderPriority(c.clientProfile, scriptHeaderPriority)
-		script, err := newInnerClient(tls_client.NewNoopLogger(), c.options(c.log, built)...)
-		if err != nil {
-			return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, c.proxy))
-		}
-		c.script = script
-	}
-	return c.script, nil
-}
-
-// withHeaderPriority is a client profile with another priority on the
-// HEADERS frame of every request.
-func withHeaderPriority(p profiles.ClientProfile, priority http2.PriorityParam) profiles.ClientProfile {
-	return profiles.NewClientProfile(p.GetClientHelloId(), p.GetSettings(), p.GetSettingsOrder(),
-		p.GetPseudoHeaderOrder(), p.GetConnectionFlow(), p.GetPriorities(), &priority, p.GetStreamID(),
-		p.GetAllowHTTP(), p.GetHttp3Settings(), p.GetHttp3SettingsOrder(), p.GetHttp3PriorityParam(),
-		p.GetHttp3PseudoHeaderOrder(), p.GetHttp3SendGreaseFrames())
-}
-
-// scriptHeaderPriority is the priority Chrome 155 puts on the HEADERS frame of
-// fetch(), an XHR and a CORS preflight: exclusive, on no stream (on a
-// connection of their own), weight 220 (219 on the wire), as measured in
-// testdata/chrome155-requests.json, where a page's is 256.
-var scriptHeaderPriority = http2.PriorityParam{Exclusive: true, Weight: 219}
 
 // Timeout is the default request deadline.
 const Timeout = 30 * time.Second

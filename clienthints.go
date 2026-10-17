@@ -83,7 +83,7 @@ func (c *Client) hintsOf(r *browserRequest, h hop) Header {
 	if r.scripted() && h.to != r.from {
 		return nil
 	}
-	return hintValues(c.hints.of(h.to), Header(c.profile.ClientHints))
+	return hintValues(c.session.hints.of(h.to), Header(c.profile.ClientHints))
 }
 
 // hintValues are the hints of names a profile has values for, as it says

@@ -207,7 +207,7 @@ func TestASessionComesBackWithEachCookiesScope(t *testing.T) {
 	// The bug this keeps away: a host's cookie written down and read back went
 	// to every subdomain, and a session cookie came back expiring in 9999.
 	first := newTestClient(t)
-	first.seedCookies(mustURL(t, "https://example.test/"), []Cookie{
+	first.session.seed(mustURL(t, "https://example.test/"), []Cookie{
 		{Name: "host", Value: "1"},
 		{Name: "domain", Value: "2", Domain: "example.test"},
 		{Name: "kept", Value: "3", Expires: time.Now().Add(time.Hour), SameSite: "lax"},
@@ -216,15 +216,15 @@ func TestASessionComesBackWithEachCookiesScope(t *testing.T) {
 
 	second := newTestClient(t, WithCookies(saved))
 	sub := mustURL(t, "https://sub.example.test/")
-	second.seedWarmCookies(sub)
+	second.session.seedWarm(sub)
 	names := map[string]bool{}
-	for _, c := range second.jar.Cookies(sub) {
+	for _, c := range second.session.jar.Cookies(sub) {
 		names[c.Name] = true
 	}
 	if names["host"] || names["kept"] || !names["domain"] {
 		t.Errorf("a subdomain was sent %v; want the domain's cookie alone", names)
 	}
-	second.seedWarmCookies(mustURL(t, "https://example.test/"))
+	second.session.seedWarm(mustURL(t, "https://example.test/"))
 	again := second.AllCookies()
 	if host := held(t, again, "host"); !host.HostOnly || !host.Expires.IsZero() {
 		t.Errorf("read back, the host's session cookie is %+v", host)
@@ -240,7 +240,7 @@ func TestASessionComesBackWithEachCookiesScope(t *testing.T) {
 func TestAHostsCookieIsNotFiledUnderAnother(t *testing.T) {
 	client := newTestClient(t)
 	u := mustURL(t, "https://example.test/")
-	client.seedCookies(u, []Cookie{
+	client.session.seed(u, []Cookie{
 		{Name: "theirs", Value: "1", Domain: "other.test", HostOnly: true},
 		{Name: "address", Value: "2", Domain: "192.0.2.1"},
 		{Name: "mine", Value: "3", Domain: ".Example.Test", HostOnly: true},
@@ -252,11 +252,21 @@ func TestAHostsCookieIsNotFiledUnderAnother(t *testing.T) {
 
 	// An address spelled as a Domain is that address's cookie alone.
 	ip := mustURL(t, "https://192.0.2.1/")
-	client.seedCookies(ip, []Cookie{{Name: "address", Value: "2", Domain: "192.0.2.1"}})
+	client.session.seed(ip, []Cookie{{Name: "address", Value: "2", Domain: "192.0.2.1"}})
 	for _, c := range client.AllCookies() {
 		if c.Name == "address" && (!c.HostOnly || c.Domain != "192.0.2.1") {
 			t.Errorf("an address cookie: %+v", c)
 		}
+	}
+}
+
+func TestASeededCookieWithNoPathIsTheWholeSites(t *testing.T) {
+	// As a browser export says it, a cookie with no path is the site's, not
+	// the path's the request was made to, which RFC 6265 would give it.
+	client := newTestClient(t)
+	client.session.seed(mustURL(t, "https://example.test/dir/page"), []Cookie{{Name: "a", Value: "1"}})
+	if sent, err := client.CookiesFor("https://example.test/other"); err != nil || len(sent) != 1 || sent[0].Path != "/" {
+		t.Errorf("CookiesFor = %+v, %v", sent, err)
 	}
 }
 
@@ -274,7 +284,7 @@ func TestAJarThatDoesNotSayWhereACookieIsFiledListsNone(t *testing.T) {
 	// still go where they go.
 	client := newTestClient(t, WithCookieJar(tls_client.NewCookieJar()))
 	u := mustURL(t, "https://example.test/")
-	client.seedCookies(u, []Cookie{{Name: "a", Value: "1"}})
+	client.session.seed(u, []Cookie{{Name: "a", Value: "1"}})
 	if all := client.AllCookies(); len(all) != 0 {
 		t.Errorf("AllCookies = %+v", all)
 	}

@@ -64,17 +64,17 @@ type chainKey struct{}
 // rule has the jar answer the transport, when it asks about u, with what the
 // hop carries; release forgets every one when the request is over.
 func (ch *chain) rule(u *url.URL, rule sendRule) {
-	if ch.client.jar == nil {
+	if ch.client.session.jar == nil {
 		return
 	}
-	ch.client.jar.restrict(u, rule)
+	ch.client.session.jar.restrict(u, rule)
 	ch.ruled = append(ch.ruled, u)
 }
 
 // remember keeps what the answer to a navigation from origin o asked for with
 // Accept-CH, and writes it down.
 func (ch *chain) remember(o origin, header fhttp.Header) {
-	if asked, said := ch.client.hints.remember(o, header); said && ch.log != nil {
+	if asked, said := ch.client.session.hints.remember(o, header); said && ch.log != nil {
 		ch.log.hintsAsked(o, asked)
 	}
 }
@@ -105,7 +105,7 @@ func (ch *chain) restart(u *url.URL, header fhttp.Header, sent hop) bool {
 
 func (ch *chain) release() {
 	for _, u := range ch.ruled {
-		ch.client.jar.release(u)
+		ch.client.session.jar.release(u)
 	}
 }
 
@@ -229,7 +229,7 @@ func (ch *chain) followInContext(req, previous *fhttp.Request, crossed, dropped 
 	// Chrome sends credentials a Location names only when the server asks.
 	req.URL.User = nil
 	r := ch.browser
-	if r.needsPreflight(h) && !ch.client.preflights.allows(r, h, shownURL(req).String()) {
+	if r.needsPreflight(h) && !ch.client.session.preflights.allows(r, h, shownURL(req).String()) {
 		if err := ch.client.preflight(ch.base, req, r, h, ch.transport, ch.log); err != nil {
 			return err
 		}

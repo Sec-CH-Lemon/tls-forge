@@ -289,9 +289,9 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	ask = withProtocolLayouts(ask, &protocolLayouts{http1: http1, http2: cloneHeaderLayout(ask.Header),
 		managed: managedHeaderNames(ask.Header, http1)})
 	withPort(ask)
-	if c.jar != nil {
-		c.jar.restrict(ask.URL, sendRule{none: true})
-		defer c.jar.release(ask.URL)
+	if c.session.jar != nil {
+		c.session.jar.restrict(ask.URL, sendRule{none: true})
+		defer c.session.jar.release(ask.URL)
 	}
 	res, err := transport.Do(ask)
 	if err != nil {
@@ -306,7 +306,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	if err != nil {
 		return corsError("the preflight of %s %s from %s refused it: %v", h.method, target, h.serialized(r), err)
 	}
-	c.preflights.keep(r, h, target, allowed)
+	c.session.preflights.keep(r, h, target, allowed)
 	return nil
 }
 

@@ -218,7 +218,7 @@ func TestDefaultJarEnforcesCookieScope(t *testing.T) {
 	defer func() { _ = client.Close() }()
 
 	source, _ := url.Parse("https://a.co.uk/private/start")
-	client.jar.SetCookies(source, []*fhttp.Cookie{
+	client.session.jar.SetCookies(source, []*fhttp.Cookie{
 		{Name: "auth", Value: "secret", Domain: "a.co.uk", Path: "/private", Secure: true},
 		{Name: "expired", Value: "old", Domain: "a.co.uk", Path: "/", Expires: time.Now().Add(-time.Hour)},
 	})
@@ -229,13 +229,13 @@ func TestDefaultJarEnforcesCookieScope(t *testing.T) {
 		"https://b.co.uk/private/start", // Public suffixes do not join unrelated sites.
 	} {
 		target, _ := url.Parse(rawURL)
-		if got := client.jar.Cookies(target); len(got) != 0 {
+		if got := client.session.jar.Cookies(target); len(got) != 0 {
 			t.Errorf("%s received %+v", rawURL, got)
 		}
 	}
 
 	target, _ := url.Parse("https://a.co.uk/private/page")
-	got := client.jar.Cookies(target)
+	got := client.session.jar.Cookies(target)
 	if len(got) != 1 || got[0].Name != "auth" {
 		t.Fatalf("same-site cookie = %+v", got)
 	}

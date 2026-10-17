@@ -83,7 +83,7 @@ func TestAPagesHintsGoToItsOriginAlone(t *testing.T) {
 	server := newRecorder(t, "h2", nil)
 	client := contextClient(t, server)
 	page := mustURL(t, "https://www.example.com/page")
-	client.hints.asked[originOf(page)] = []string{"sec-ch-ua-arch", "sec-ch-ua-bitness"}
+	client.session.hints.asked[originOf(page)] = []string{"sec-ch-ua-arch", "sec-ch-ua-bitness"}
 	for _, tc := range []struct {
 		kind   RequestKind
 		target string
@@ -111,11 +111,11 @@ func TestAPagesHintsGoToItsOriginAlone(t *testing.T) {
 		t.Fatalf("Fresh: %v", err)
 	}
 	t.Cleanup(func() { _ = fresh.Close() })
-	if fresh.hints != client.hints {
+	if fresh.session.hints != client.session.hints {
 		t.Error("a fresh client keeps hints of its own")
 	}
 	// Another client is another identity, and knows nothing of them.
-	if other := contextClient(t, server); other.hints == client.hints || other.hints.of(originOf(page)) != nil {
+	if other := contextClient(t, server); other.session.hints == client.session.hints || other.session.hints.of(originOf(page)) != nil {
 		t.Error("another client shares what was asked")
 	}
 }
@@ -143,7 +143,7 @@ func TestNoScriptsRequestAsksForHints(t *testing.T) {
 			t.Fatalf("Do: %v", err)
 		}
 	}
-	if asked := client.hints.of(originOf(mustURL(t, "https://www.example.com/"))); asked != nil {
+	if asked := client.session.hints.of(originOf(mustURL(t, "https://www.example.com/"))); asked != nil {
 		t.Errorf("asked for %v", asked)
 	}
 }

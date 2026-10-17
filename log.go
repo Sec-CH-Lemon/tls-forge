@@ -533,7 +533,7 @@ func (c *Client) describe(cfg config, shuffles bool, sends profiles.ClientProfil
 	attrs := []any{"profile", p.Name, "user_agent", p.UserAgent,
 		"timeout", cfg.timeout, "follow_redirects", cfg.followRedirects,
 		"session_resumption", !cfg.noResumption, "extension_order", order,
-		"verify_certificates", !cfg.insecureSkipVerify, "cookie_jar", c.jar != nil,
+		"verify_certificates", !cfg.insecureSkipVerify, "cookie_jar", c.session.jar != nil,
 		"warmed_cookies", len(cfg.cookies), "max_body", cfg.maxResponseBody}
 	if cfg.proxy != "" {
 		attrs = append(attrs, "proxy", redact.URL(cfg.proxy))

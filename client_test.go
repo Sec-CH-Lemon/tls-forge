@@ -540,12 +540,12 @@ func TestLastCookieJarOptionWins(t *testing.T) {
 	jar := tls_client.NewCookieJar()
 
 	without := newTestClient(t, WithCookieJar(jar), WithoutCookieJar())
-	if without.jar != nil {
+	if without.session.jar != nil {
 		t.Fatal("WithoutCookieJar did not override the earlier custom jar")
 	}
 
 	with := newTestClient(t, WithoutCookieJar(), WithCookieJar(jar))
-	if with.jar == nil || with.jar.inner != jar {
+	if with.session.jar == nil || with.session.jar.inner != jar {
 		t.Fatal("WithCookieJar did not override the earlier jarless option")
 	}
 }
