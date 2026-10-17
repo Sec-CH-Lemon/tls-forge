@@ -1357,16 +1357,19 @@ func (w *limitedWriter) Write(p []byte) (int, error) {
 func TestMainEntryPoint(t *testing.T) {
 	// The wiring between argv, the signal context and the exit code is the one
 	// part of the program that run() does not cover.
-	originalExit, originalArgs := exit, os.Args
-	t.Cleanup(func() { exit, os.Args = originalExit, originalArgs })
+	originalExit, originalArgs, originalOut, originalErr := exit, os.Args, mainOut, mainErr
+	t.Cleanup(func() { exit, os.Args, mainOut, mainErr = originalExit, originalArgs, originalOut, originalErr })
 
 	var code int
+	var stdout, stderr bytes.Buffer
 	exit = func(c int) { code = c }
+	mainOut, mainErr = &stdout, &stderr
 	os.Args = []string{"tls-forge", "version"}
 	main()
 
-	if code != 0 {
-		t.Errorf("exit code = %d, want 0", code)
+	// Said where main was told to say it, and not on the test's own output.
+	if code != 0 || stdout.String() != "tls-forge "+version+"\n" || stderr.Len() != 0 {
+		t.Errorf("exit code = %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 	}
 }
 

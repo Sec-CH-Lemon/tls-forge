@@ -109,6 +109,11 @@ var movedCommands = map[string]string{
 // one part of the program nothing checks.
 var exit = os.Exit
 
+// mainOut and mainErr are where main has a command write: the process's own
+// standard output and error, named so that a test reads what the program says
+// rather than having it said on the test's.
+var mainOut, mainErr io.Writer = os.Stdout, os.Stderr
+
 // stopSignals are what ask a command to stop: Ctrl-C, and SIGTERM, which is
 // what `kill`, a service manager and `docker stop` send. On Windows, where
 // nothing sends SIGTERM, the interrupt alone.
@@ -120,7 +125,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), stopSignals...)
 	defer stop()
 	releaseSignal(ctx, stop)
-	exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
+	exit(run(ctx, os.Args[1:], mainOut, mainErr))
 }
 
 // releaseSignal hands the signals back to the runtime after the first one.
@@ -291,8 +296,8 @@ func newFlagSet(name string, out io.Writer) *pflag.FlagSet {
 	return fs
 }
 
-// setUsage gives a command one usage block, so the seven of them cannot end up
-// describing themselves seven different ways. A command with groups shows its
+// setUsage gives a command one usage block, so that the commands cannot end up
+// describing themselves each a different way. A command with groups shows its
 // flags under what each is for, which a command with many of them needs for
 // one to be found.
 func setUsage(fs *pflag.FlagSet, out io.Writer, line string, groups ...flagGroup) {
