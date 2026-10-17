@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   statSync,
   unlinkSync,
@@ -810,6 +811,45 @@ test('no binary anywhere is an error that says what to do', (t) => {
     assert.match(err.message, /go install/);
     return true;
   });
+});
+
+test('a package linked into a project finds the binary that project installed', (t) => {
+  // A file: dependency, npm link and a monorepo leave this package in a
+  // checkout of its own, where no platform package is: the binary is the one
+  // the project being run installed, its own or hoisted to the monorepo's
+  // root, which is found from the working directory.
+  const previous = { bin: process.env.TLSFORGE_BIN, cwd: process.cwd() };
+  const scratch = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-linked-'));
+  delete process.env.TLSFORGE_BIN;
+  t.after(() => {
+    process.chdir(previous.cwd);
+    if (previous.bin === undefined) delete process.env.TLSFORGE_BIN;
+    else process.env.TLSFORGE_BIN = previous.bin;
+    rmSync(scratch, { recursive: true, force: true });
+  });
+  const install = (root) => {
+    const dir = path.join(root, 'node_modules', platformPackage);
+    mkdirSync(path.join(dir, 'bin'), { recursive: true });
+    writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: platformPackage, version: '0.0.0' }));
+    writeFileSync(path.join(dir, 'bin', exeName), '#!/bin/sh\n');
+    chmodSync(path.join(dir, 'bin', exeName), 0o755);
+    return path.join(dir, 'bin', exeName);
+  };
+  const project = (dir) => {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'package.json'), '{"name":"app","version":"0.0.0"}');
+    return dir;
+  };
+
+  const own = project(path.join(scratch, 'app'));
+  const ownBinary = install(own);
+  process.chdir(own);
+  assert.equal(realpathSync(resolveBinary()), realpathSync(ownBinary));
+
+  const monorepo = project(path.join(scratch, 'monorepo'));
+  const hoisted = install(monorepo);
+  process.chdir(project(path.join(monorepo, 'packages', 'app')));
+  assert.equal(realpathSync(resolveBinary()), realpathSync(hoisted));
 });
 
 test('the binary is found on PATH when nothing else has one', (t) => {
