@@ -13,20 +13,34 @@ NOTICE file with it.
 WHAT IS NOT COVERED BY THE GRANT
 --------------------------------
 
-Two files in this tree are recordings of another program's output rather than
-the author's work, and the Apache-2.0 grant above is not a claim over them:
+Some files in this tree are recordings of another program's output rather
+than the author's work, and the Apache-2.0 grant above is not a claim over
+them:
 
   testdata/chrome151-clienthello.bin
-      A TLS ClientHello as Google Chrome 151 put it on the wire, captured on the
-      author's own machine and kept as a test fixture. It is a protocol message
-      — a measurement of what a program sent — not a copy of that program.
+  testdata/chrome155-clienthello.bin
+  testdata/chrome155-clienthello-resumed.bin
+  testdata/chrome155-http2-preamble.bin
+      TLS ClientHellos, cold and resumed, and the start of an HTTP/2
+      connection, as Google Chrome 151 and 155 put them on the wire, captured
+      on the author's own machine and kept as test fixtures. They are
+      protocol messages — measurements of what a program sent — not copies of
+      that program.
 
-  profile/data/chrome_151/linux.json
-  profile/data/chrome_151/macos.json
-  profile/data/chrome_151/windows.json
-      The same ClientHello together with the HTTP/2 settings, header order and
-      user-agent string observed from the same browser, one file per platform.
-      The user-agent strings are Google's; the rest is measurement.
+  testdata/chrome155-requests.json
+  testdata/chrome155-decoding.json
+  testdata/chrome155-ech.json
+      What Google Chrome 155 was measured sending and doing, on the author's
+      own machine: the requests it made in each scenario, how it decoded each
+      body, and the lengths it drew. testdata/README.md says how each was
+      measured.
+
+  profile/data/chrome_151/ to profile/data/chrome_155/, each of
+  linux.json, macos.json and windows.json
+      A ClientHello together with the HTTP/2 settings, header order,
+      user-agent string and, where they were measured, client hints observed
+      from one version of the browser, one file per platform. The user-agent
+      strings are Google's; the rest is measurement.
 
 None of these files contains any part of Chrome, and nothing here is endorsed by
 or affiliated with Google. Everything else in the tree — the library, the echo

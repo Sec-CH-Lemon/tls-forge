@@ -4,13 +4,11 @@
 
 Security fixes are provided for the latest stable release of `tls-forge`.
 Older releases may be affected by issues that have already been fixed and are
-not supported. Until the first stable release is published, the repository's
-default branch is the supported version.
+not supported.
 
 | Version | Supported |
 |---|---|
 | Latest stable release | Yes |
-| Default branch before the first release | Yes |
 | Older releases and other branches | No |
 
 When a fix requires a release, it will be published through the normal release
