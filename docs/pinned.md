@@ -55,7 +55,8 @@ clean and relative, or one platform and machine twice is an error.
 
 ```bash
 go run ./internal/pinned --manifest reference/chrome.json \
-  --archive /path/to/archive --installed /path/to/installed [--out result.json]
+  --archive /path/to/archive --installed /path/to/installed \
+  [--out result.json] [--commit SHA] [--set DIGEST]
 ```
 
 In order, and stopping at the first that fails:
@@ -70,13 +71,18 @@ In order, and stopping at the first that fails:
    and the version exactly: Chrome for Testing, Chromium or another version
    is refused, by name.
 6. It compares the profile with the browser, launched as `launch` says,
-   exactly as `tls-forge compare` does, and writes the result, the commit
-   (`GITHUB_SHA`) and what it held to what to `--out`.
+   exactly as `tls-forge compare` does, and writes the result and what it
+   held to what to `--out`, with what the result is for: the commit a
+   release is built from (`--commit`, else `GITHUB_SHA`) and the identity
+   of the release's set (`--set`, the SHA-256 of its `manifest.json`). A
+   release takes a result only for its own commit and its own set.
 
 It exits 0 only when every field compared matches and nothing is left
 unchecked; 1 when anything does not hold, saying what; 2 when it is not told
-where the manifest, the archive and the installed browser are. A reference it
-cannot find or check is a failure, never a reason to measure another browser.
+where the manifest, the archive and the installed browser are, or is given a
+commit that is not 40 lower-case hex digits or a set that is not 64, before it
+measures anything. A reference it cannot find or check is a failure, never a
+reason to measure another browser.
 
 ## What is left
 

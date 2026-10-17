@@ -114,7 +114,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   installed browser to their SHA-256, the executable to its platform and
   machine, and `--version` to Google Chrome of exactly that version, refusing
   Chrome for Testing and Chromium by name, and then compares the profile with
-  it, launched as the manifest says. Nothing publishes on it yet.
+  it, launched as the manifest says. Its result names the commit and the
+  release set it is for (`--commit`, else `GITHUB_SHA`, and `--set`), so that
+  a release takes it only for what was measured. Nothing publishes on it yet.
 - **A client can ask the daemon what it is before relying on it.** A line
   with `"control": "hello"` is answered with the protocol the daemon speaks,
   2, and its `capabilities`, without a connection; a daemon older than that

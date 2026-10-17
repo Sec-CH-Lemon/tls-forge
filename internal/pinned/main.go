@@ -7,10 +7,12 @@
 // browser: that would hold the release to whatever happened to be at hand.
 //
 //	go run ./internal/pinned --manifest reference/chrome.json \
-//	    --archive DIR --installed DIR [--out result.json]
+//	    --archive DIR --installed DIR [--out result.json] \
+//	    [--commit SHA] [--set DIGEST]
 //
-// It is not part of what ships: a release workflow runs it, and docs/pinned.md
-// says how.
+// The result is for the commit and the release set it names, so that a
+// release takes it only for what it measured. It is not part of what ships: a
+// release workflow runs it, and docs/pinned.md says how.
 package main
 
 import (
@@ -22,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"time"
 
@@ -35,9 +38,11 @@ var exit = os.Exit
 func main() { exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr)) }
 
 // Result is what a run writes to --out: what it held to what, and the
-// comparison.
+// comparison. Commit and Set are what the result is for: the commit a release
+// is built from and the identity of its set, the SHA-256 of the set's manifest.
 type Result struct {
 	Commit     string               `json:"commit,omitempty"`
+	Set        string               `json:"set,omitempty"`
 	Reference  string               `json:"reference"`
 	Platform   string               `json:"platform"`
 	Arch       string               `json:"arch"`
@@ -54,6 +59,12 @@ var (
 	compare = tlsforge.CompareToBrowser
 )
 
+// What a commit and a set's identity are written as: lower-case hex, whole.
+var (
+	fullCommit = regexp.MustCompile(`^[0-9a-f]{40}$`)
+	setDigest  = regexp.MustCompile(`^[0-9a-f]{64}$`)
+)
+
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("pinned", flag.ContinueOnError)
 	flags.SetOutput(stderr)
@@ -62,11 +73,23 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	installed := flags.String("installed", "", "the directory the reference build is installed in")
 	out := flags.String("out", "", "where to write the result as JSON")
 	timeout := flags.Duration("timeout", 2*time.Minute, "how long the browser has to be measured")
+	commit := flags.String("commit", os.Getenv("GITHUB_SHA"), "the commit the release is built from (default $GITHUB_SHA)")
+	set := flags.String("set", "", "the release set's identity, the SHA-256 of its manifest")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 	if *manifestPath == "" || *archive == "" || *installed == "" || flags.NArg() > 0 {
 		_, _ = fmt.Fprintln(stderr, "pinned: --manifest, --archive and --installed are required, and nothing else")
+		return 2
+	}
+	// Said before anything is measured: a result for what it cannot name is
+	// one no release can take.
+	if *commit != "" && !fullCommit.MatchString(*commit) {
+		_, _ = fmt.Fprintf(stderr, "pinned: --commit %q is not a full commit in lower-case hex\n", *commit)
+		return 2
+	}
+	if *set != "" && !setDigest.MatchString(*set) {
+		_, _ = fmt.Fprintf(stderr, "pinned: --set %q is not a SHA-256 in lower-case hex\n", *set)
 		return 2
 	}
 
@@ -75,6 +98,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintf(stderr, "pinned: %v\n", err)
 		return 1
 	}
+	result.Commit, result.Set = *commit, *set
 	_, _ = fmt.Fprint(stdout, result.Comparison.String())
 	if *out != "" {
 		data, _ := json.MarshalIndent(result, "", "  ")
@@ -133,7 +157,7 @@ func hold(ctx context.Context, manifestPath, archive, installed string, timeout 
 		return nil, fmt.Errorf("comparing: %w", err)
 	}
 	return &Result{
-		Commit: os.Getenv("GITHUB_SHA"), Reference: manifest.Version, Platform: build.Platform, Arch: build.Arch,
-		OK: comparison.OK(), Comparison: comparison,
+		Reference: manifest.Version, Platform: build.Platform, Arch: build.Arch, OK: comparison.OK(),
+		Comparison: comparison,
 	}, nil
 }

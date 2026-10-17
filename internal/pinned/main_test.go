@@ -173,14 +173,19 @@ func failing(context.Context, tlsforge.MeasureOptions, ...tlsforge.Option) (*tls
 	return nil, errors.New("no browser came")
 }
 
+var (
+	aCommit = strings.Repeat("a", 40)
+	aSet    = strings.Repeat("c", 64)
+)
+
 func TestTheGatePassesTheReferenceThatMatches(t *testing.T) {
 	r := laidOut(t, nil)
 	var asked tlsforge.MeasureOptions
 	seams(t, "Google Chrome 155.0.8059.80\n", matching(&asked))
-	t.Setenv("GITHUB_SHA", "abc123")
+	t.Setenv("GITHUB_SHA", aCommit)
 	out := filepath.Join(t.TempDir(), "result.json")
 	var stdout, stderr bytes.Buffer
-	if code := run(context.Background(), r.args("--out", out, "--timeout", "7s"), &stdout, &stderr); code != 0 {
+	if code := run(context.Background(), r.args("--out", out, "--timeout", "7s", "--set", aSet), &stdout, &stderr); code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
 	// Launched as the manifest says, for as long as asked.
@@ -193,9 +198,77 @@ func TestTheGatePassesTheReferenceThatMatches(t *testing.T) {
 	}
 	var result Result
 	data, err := os.ReadFile(out)
-	if err != nil || json.Unmarshal(data, &result) != nil || !result.OK || result.Commit != "abc123" ||
+	if err != nil || json.Unmarshal(data, &result) != nil || !result.OK || result.Commit != aCommit || result.Set != aSet ||
 		result.Reference != "155.0.8059.80" || result.Platform != thisPlatform() || result.Arch != runtime.GOARCH {
 		t.Errorf("result: %s, %v", data, err)
+	}
+}
+
+func TestTheResultIsForTheCommitAndTheSetItNames(t *testing.T) {
+	r := laidOut(t, nil)
+	var asked tlsforge.MeasureOptions
+	seams(t, "Google Chrome 155.0.8059.80", matching(&asked))
+	read := func(t *testing.T, args ...string) map[string]any {
+		t.Helper()
+		out := filepath.Join(t.TempDir(), "result.json")
+		var stdout, stderr bytes.Buffer
+		if code := run(context.Background(), r.args(append(args, "--out", out)...), &stdout, &stderr); code != 0 {
+			t.Fatalf("exit %d: %s", code, stderr.String())
+		}
+		data, _ := os.ReadFile(out)
+		var result map[string]any
+		if err := json.Unmarshal(data, &result); err != nil {
+			t.Fatalf("result: %s, %v", data, err)
+		}
+		return result
+	}
+	// --commit says it over the workflow's, and the set is written as set.
+	t.Setenv("GITHUB_SHA", strings.Repeat("b", 40))
+	if result := read(t, "--commit", aCommit, "--set", aSet); result["commit"] != aCommit || result["set"] != aSet {
+		t.Errorf("commit %v and set %v, want --commit's and --set's", result["commit"], result["set"])
+	}
+	if result := read(t); result["commit"] != strings.Repeat("b", 40) {
+		t.Errorf("commit %v, want GITHUB_SHA", result["commit"])
+	}
+	// Without either, a result says neither, rather than empty ones.
+	t.Setenv("GITHUB_SHA", "")
+	if result := read(t); result["commit"] != nil || result["set"] != nil {
+		t.Errorf("a result for nothing named: %v", result)
+	}
+}
+
+func TestTheGateRefusesToNameWhatIsNoCommitOrSet(t *testing.T) {
+	r := laidOut(t, nil)
+	measuredAny := false
+	seams(t, "Google Chrome 155.0.8059.80", func(context.Context, tlsforge.MeasureOptions, ...tlsforge.Option) (*tlsforge.Comparison, error) {
+		measuredAny = true
+		return &tlsforge.Comparison{Browser: measured, Client: measured}, nil
+	})
+	for _, tc := range []struct {
+		name, env string
+		args      []string
+		want      string
+	}{
+		{name: "a short commit", args: []string{"--commit", "abc123"}, want: `--commit "abc123" is not a full commit`},
+		{name: "an upper-case commit", args: []string{"--commit", strings.Repeat("A", 40)}, want: "is not a full commit"},
+		{name: "a commit and more", args: []string{"--commit", aCommit + "\n"}, want: "is not a full commit"},
+		{name: "the workflow's, when it is none", env: "HEAD", want: `--commit "HEAD" is not a full commit`},
+		{name: "a short set", args: []string{"--commit", aCommit, "--set", "abc"}, want: `--set "abc" is not a SHA-256`},
+		{name: "a set as a commit", args: []string{"--commit", aCommit, "--set", aCommit}, want: "is not a SHA-256"},
+		{name: "a set and more", args: []string{"--commit", aCommit, "--set", aSet + "0"}, want: "is not a SHA-256"},
+		{name: "an upper-case set", args: []string{"--commit", aCommit, "--set", strings.Repeat("C", 64)}, want: "is not a SHA-256"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("GITHUB_SHA", tc.env)
+			var stdout, stderr bytes.Buffer
+			if code := run(context.Background(), r.args(tc.args...), &stdout, &stderr); code != 2 ||
+				!strings.Contains(stderr.String(), tc.want) {
+				t.Errorf("exit %d: %s, want %q", code, stderr.String(), tc.want)
+			}
+		})
+	}
+	if measuredAny {
+		t.Error("a browser was measured for a result no release could take")
 	}
 }
 
