@@ -32,12 +32,28 @@ func withoutBoundary(text string) string {
 	return boundary.ReplaceAllString(text, "----WebKitFormBoundary0000000000000000")
 }
 
+// digestDrawn are the parameters of a Digest answer Chrome draws for each:
+// its client nonce, and the response worked out with it.
+var digestDrawn = regexp.MustCompile(`\b(cnonce|response)="[^"]*"`)
+
+// comparable is a header's value as it is compared: without what Chrome draws
+// anew for each request, a multipart boundary, and the client nonce and
+// response of a Digest answer.
+func comparable(name, value string) string {
+	value = withoutBoundary(value)
+	if name == "authorization" && strings.HasPrefix(value, "Digest ") {
+		value = digestDrawn.ReplaceAllString(value, `$1=""`)
+	}
+	return value
+}
+
 // Compare is how what a browser asked for, got, differs from what the fixture
 // holds, want: nothing when they are the same. A scenario is the same when
 // every request is, in the same order, over each protocol: its method, URL and
 // body, its HTTP/2 priority (exclusive and weight: the stream it depends on is
 // the connection's business), the names of its headers in order, spelt alike,
-// and their values. A value the machine decides is compared by presence alone;
+// and their values, but for what Chrome draws for each (comparable). A value
+// the machine decides is compared by presence alone;
 // one the build decides is held to profile, the values the profile sends by
 // name, when there is one, and to the fixture's when there is not. With a
 // profile, every value the browser sends that a profile gives has to be one it
@@ -120,7 +136,7 @@ func compareRequest(want, got Request, profile map[string]string) []string {
 			if value != said {
 				diff = append(diff, fmt.Sprintf("%s: %q, the profile's %q", h[0], value, said))
 			}
-		case withoutBoundary(value) != withoutBoundary(h[1]):
+		case comparable(name, value) != comparable(name, h[1]):
 			diff = append(diff, fmt.Sprintf("%s: %q, the fixture's %q", h[0], value, h[1]))
 		}
 	}

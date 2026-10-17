@@ -47,6 +47,32 @@ func TestTheSameIsNoDifference(t *testing.T) {
 	}
 }
 
+func TestWhatChromeDrawsForEachRequestIsNoDifference(t *testing.T) {
+	digest := func(nonce, cnonce, response string) Request {
+		return Request{Method: "GET", URL: "https://www.example.com/auth/x", Headers: [][2]string{{"authorization",
+			`Digest username="u", realm="bench", nonce="` + nonce + `", uri="/auth/x", response="` + response +
+				`", qop=auth, nc=00000001, cnonce="` + cnonce + `"`}, {"x-other", `response="` + response + `"`}}}
+	}
+	measured := digest("b3ec7d4c", "e00b1861ac9940bc", "f2b8b49dfa7b77a4c73ca8c344b9f86c")
+	again := digest("b3ec7d4c", "4ea7e78b5ca12345", "a9fb8d19d2f7e12ce6f3aff2d7439188")
+	again.Headers[1] = measured.Headers[1]
+	if diff := Compare(one(measured), one(again), nil); diff != nil {
+		t.Errorf("Compare of another client nonce: %v", diff)
+	}
+	// The server's nonce is the server's, and a response elsewhere than in a
+	// Digest answer is a value like any other.
+	for _, other := range []Request{digest("other", "e00b1861ac9940bc", "f2b8b49dfa7b77a4c73ca8c344b9f86c"),
+		changed(measured, func(r *Request) { r.Headers[1][1] = `response="1"` })} {
+		if diff := Compare(one(measured), one(other), nil); len(diff) != 2 {
+			t.Errorf("Compare: %v", diff)
+		}
+	}
+	bearer := changed(measured, func(r *Request) { r.Headers[0][1] = `Bearer response="1"` })
+	if diff := Compare(one(bearer), one(changed(bearer, func(r *Request) { r.Headers[0][1] = `Bearer response="2"` })), nil); len(diff) != 2 {
+		t.Errorf("Compare of another scheme: %v", diff)
+	}
+}
+
 func TestWhatDiffersIsSaidByScenarioProtocolAndRequest(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
