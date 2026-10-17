@@ -18,8 +18,16 @@ const venvPython = process.platform === 'win32'
 
 try {
   await run('go', ['build', '-o', daemon, './testdata/fake-daemon'], { cwd: root });
-  await run(npmCommand(), ['ci', '--omit=optional'], {
-    cwd: path.join(root, 'example', 'node'),
+  for (const example of ['node', 'typescript']) {
+    await run(npmCommand(), ['ci', '--omit=optional'], {
+      cwd: path.join(root, 'example', example),
+      shell: process.platform === 'win32',
+    });
+  }
+  // The package's declarations, as a TypeScript program sees them: tsc fails
+  // on a type that is wrong, and on a refusal in contract.ts that is not.
+  await run(npmCommand(), ['run', 'check'], {
+    cwd: path.join(root, 'example', 'typescript'),
     shell: process.platform === 'win32',
   });
   await run(python, ['-m', 'venv', venv], { cwd: root });
@@ -54,6 +62,13 @@ try {
     shell: process.platform === 'win32',
   });
   expectSuccess('Node.js', nodeOutput);
+
+  const typescriptOutput = await run(npmCommand(), ['start', '--', 'https://ok/'], {
+    cwd: path.join(root, 'example', 'typescript'),
+    env,
+    shell: process.platform === 'win32',
+  });
+  expectSuccess('TypeScript', typescriptOutput);
 
   const pythonOutput = await run(venvPython, ['main.py', 'https://ok/'], {
     cwd: path.join(root, 'example', 'python'),

@@ -1,0 +1,19 @@
+{
+  "name": "tls-forge-typescript-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc",
+    "start": "node index.ts"
+  },
+  "dependencies": {
+    "tls-forge": "file:../../node"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}

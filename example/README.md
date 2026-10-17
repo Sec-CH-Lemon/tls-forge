@@ -11,6 +11,7 @@ examples work from anywhere without an account or a proxy.
 |---|---|
 | [`go/`](go/) | standalone Go module using the Go library |
 | [`node/`](node/) | standalone npm project using the Node.js package |
+| [`typescript/`](typescript/) | the same in TypeScript, type-checked against the package's types |
 | [`python/`](python/) | standalone Python project using the Python package |
 | [`urls.txt`](urls.txt) | a list, one URL per line |
 | [`urls.csv`](urls.csv) | a list as CSV |
@@ -56,6 +57,23 @@ npm start -- https://example.com/   # optional URL override
 On Windows, name the output `../../bin/tls-forge.exe`. The script also honours
 `TLSFORGE_BIN`, so an already installed or custom transport can be selected
 without building into `bin/`.
+
+### TypeScript
+
+The same program in TypeScript. `npm run check` type-checks it, and
+`contract.ts`, which is never run, against the package's declarations in
+strict mode: each `@ts-expect-error` there is a call the types must refuse.
+`npm start` runs `index.ts` as it is, with the types stripped, which needs
+Node.js 22.18 or newer:
+
+```bash
+cd example/typescript
+go build -o ../../bin/tls-forge ../../cmd/tls-forge
+npm install --omit=optional
+npm run check
+npm start
+npm start -- https://example.com/   # optional URL override
+```
 
 ### Python
 

@@ -1677,8 +1677,10 @@ try {
 }
 ```
 
-See the complete [Node.js SDK documentation](node/README.md).
-The runnable consumer project is in [`example/node/`](example/node/).
+See the complete [Node.js SDK documentation](node/README.md). The package
+ships its TypeScript types. The runnable consumer projects are in
+[`example/node/`](example/node/) and, in TypeScript,
+[`example/typescript/`](example/typescript/).
 
 ### Python
 

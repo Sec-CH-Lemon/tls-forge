@@ -174,6 +174,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `SessionReset`, in the Node.js and Python packages, for a request that was
   not sent because the session it was made in has gone, and
   `MAX_REQUEST_BYTES`, the most a request can be as the daemon reads it.
+- **The Node.js package ships TypeScript types**, `index.d.ts`, for what it
+  does at run time and no more: the client, its options, the request, the
+  browser context, the response, `hello`, `resolveBinary`,
+  `MAX_REQUEST_BYTES` and the error classes. A browser context's `kind`,
+  `referrerPolicy`, `mode` and `credentials` are the values the daemon takes.
+  `example/typescript/` is type-checked against them and run in CI.
 - **The Node.js package's errors are classes a caller can tell apart**, the
   Python package's by the same names: `TLSForgeError`, `BinaryNotFound`,
   `TransportError`, `SessionReset` (a `TransportError` now), `RequestFailed`,

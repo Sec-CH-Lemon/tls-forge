@@ -277,6 +277,32 @@ all. A request a page could not send, a key the protocol does not have, and a
 request CORS stops are rejected with the transport's error, and nothing more
 is sent.
 
+## TypeScript
+
+The package ships its types, `index.d.ts`. A TypeScript program needs
+`@types/node` beside them, as any Node.js program in TypeScript does. They
+declare what the package does at run time and no more: the client, its
+options, `Request`, `RequestOptions`, `BrowserContext`, `Response`, `Hello`,
+`resolveBinary`, `MAX_REQUEST_BYTES` and the error classes. A browser
+context's `kind`, `referrerPolicy`, `mode` and `credentials` are the values
+the daemon takes. [`example/typescript/`](../example/typescript/) is checked
+against them with TypeScript 5.9 in strict mode, refusals included, and run.
+
+```ts
+import { Client, SessionReset, type Response } from 'tls-forge';
+
+const client = new Client({ profile: 'chrome' });
+try {
+  const response: Response = await client.get('https://example.com/');
+  console.log(response.status, response.headers['content-type']);
+} catch (err) {
+  if (err instanceof SessionReset) console.log('warm the session again');
+  else throw err;
+} finally {
+  client.close();
+}
+```
+
 ## Binary resolution
 
 The exported `resolveBinary(explicit?)` function and `Client` use this order:
