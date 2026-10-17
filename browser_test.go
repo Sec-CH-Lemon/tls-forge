@@ -485,6 +485,12 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // bench answers (harness.DigestPage); and cookies, two for ?cookie=1 and one
 // of each SameSite for ?cookie=2.
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
+	// The whole request is read before it is answered. Go's HTTP/2 client
+	// stops sending a body once an answer above 299 comes, and over loopback
+	// a 401 could come between a POST's HEADERS and its DATA, which no answer
+	// over a network outruns: the body was sent, and recorded, or not, as the
+	// machine was loaded.
+	_, _ = io.Copy(io.Discard, r.Body)
 	q := r.URL.Query()
 	if q.Has("accept") {
 		w.Header().Set("Accept-CH", q.Get("accept"))
