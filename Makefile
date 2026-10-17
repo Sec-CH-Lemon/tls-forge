@@ -86,14 +86,16 @@ wrapper-smoke: build
 
 # Release helpers are outside the language SDKs, so keep their regression tests
 # in the repository-level gate rather than hiding them in one wrapper suite. The
-# scripts that make, hold and publish a release's set are a gate as well: every
-# line, branch and function of them covered, as in the SDKs.
+# scripts that build, check, hold and publish a release's set, and restore the
+# reference it is gated on, are a gate as well: every line, branch and
+# function of them covered, as in the SDKs.
 release-test:
 	node --test --experimental-test-coverage \
 		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
-		--test-coverage-include='scripts/release-*.mjs' --test-coverage-exclude='scripts/*.test.mjs' \
+		--test-coverage-include='scripts/release-*.mjs' --test-coverage-include='scripts/check-release-packages.mjs' \
+		--test-coverage-include='scripts/pinned-restore.mjs' --test-coverage-exclude='scripts/*.test.mjs' \
 		scripts/homebrew-formula.test.mjs scripts/release-set.test.mjs scripts/release-publish.test.mjs \
-		scripts/release-build.test.mjs
+		scripts/release-build.test.mjs scripts/check-release-packages.test.mjs scripts/pinned-restore.test.mjs
 
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and

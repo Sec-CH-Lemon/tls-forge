@@ -111,6 +111,17 @@ install -m 0755 tls-forge ~/.local/bin/tls-forge
 tls-forge version
 ```
 
+Each release after 0.2.2 carries `SHA256SUMS`, and GitHub keeps signed
+provenance for every file of it. Check an archive before extracting it:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS
+```
+
+```bash
+gh attestation verify tls-forge_X.Y.Z_linux_amd64.tar.gz --repo Sec-CH-Lemon/tls-forge
+```
+
 ### Homebrew
 
 On macOS or Linux:

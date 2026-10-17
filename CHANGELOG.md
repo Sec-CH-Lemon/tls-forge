@@ -108,6 +108,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   service. What a proxy says in its answer to `CONNECT`, or in the response,
   is still read; a request it said nothing of has no known exit, and the run
   says why. Without the flag a run makes these requests as before.
+- **A release carries `SHA256SUMS` and `manifest.json`, and signed
+  provenance for every file.** `sha256sum --check --ignore-missing
+  SHA256SUMS` checks a download, and `gh attestation verify FILE --repo
+  Sec-CH-Lemon/tls-forge` its provenance. The manifest binds every file, by
+  name, size and SHA-256, to the version and the commit it was built from.
 - **The check a release is held to against a pinned Google Chrome**,
   `go run ./internal/pinned` ([docs/pinned.md](docs/pinned.md)). It reads a
   manifest of the reference build, holds the archived installer and the
@@ -116,7 +121,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Chrome for Testing and Chromium by name, and then compares the profile with
   it, launched as the manifest says. Its result names the commit and the
   release set it is for (`--commit`, else `GITHUB_SHA`, and `--set`), so that
-  a release takes it only for what was measured. Nothing publishes on it yet.
+  a release takes it only for what was measured. Every release waits for it:
+  nothing is published until it has passed on each build the reference
+  names, and a release with no reference stops there.
 - **A client can ask the daemon what it is before relying on it.** A line
   with `"control": "hello"` is answered with the protocol the daemon speaks,
   2, and its `capabilities`, without a connection; a daemon older than that
@@ -677,6 +684,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   turned off for a client that has one, which the transport refused through
   such a proxy anyway. SOCKS proxies are unchanged.
 
+- **A release is built once, and every attempt publishes what was built.**
+  The release workflow builds the set, checks it on every platform, and
+  stores it in the tag's draft GitHub release before anything is published;
+  a release run again on its tag takes the set from the draft, however long
+  ago it was built, and never builds another. What npm, PyPI or the draft
+  already has is held to the set by digest: the same is passed over, and a
+  file that differs stops the release. It used to keep the build for two
+  days, as a workflow artifact, and to fail on a GitHub release that was
+  there already. A dry run, `gh workflow run release.yml`, builds and checks
+  the set and asks each registry what it has, and publishes nothing.
+  RELEASING.md says how.
 - **`make dist` builds a release's set into `dist/set`**, with
   `scripts/release-build.mjs`: every file a release publishes (the five
   archives, the six npm packages packed, the Python source distribution and

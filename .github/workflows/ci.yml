@@ -294,12 +294,14 @@ jobs:
 
   packaging:
     timeout-minutes: 25
-    # Does a release still assemble?
+    # Does a release still build?
     #
-    # The two packaging scripts run nowhere else, so without this the first tag
-    # would be the first time they were exercised — and a release that fails
-    # halfway has already published to whichever registry came first. Everything
-    # here is the release workflow's own path, minus the publishing.
+    # The release's own path, scripts/release-build.mjs, makes the set of
+    # 0.0.0 for this commit, every file a tag would publish with its
+    # SHA256SUMS and manifest.json; without this the first tag would be the
+    # first time the packaging ran, and a release that fails halfway has
+    # published to whichever registry came first. Storing and publishing are
+    # all that is left out.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -314,67 +316,48 @@ jobs:
         with:
           python-version: '3.13'
       - run: pip install build wheel
+      - run: node scripts/release-build.mjs --version 0.0.0 --commit "$GITHUB_SHA" --out dist/set --python python
 
-      - name: cross-compile
-        env:
-          CGO_ENABLED: '0'
-        run: |
-          mkdir -p dist/bin
-          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do
-            goos=${target%/*}; goarch=${target#*/}
-            output="dist/bin/tls-forge-$goos-$goarch"
-            [ "$goos" = windows ] && output="$output.exe"
-            GOOS=$goos GOARCH=$goarch go build -trimpath \
-              -ldflags "-s -w -X main.version=v0.0.0-ci" -o "$output" ./cmd/tls-forge
-          done
-
-      - run: node scripts/npm-release.mjs --version 0.0.0 --binaries dist/bin --out dist/npm
-      - run: python scripts/pypi-release.py --version 0.0.0 --binaries dist/bin --out dist/pypi
-
-      # Pack before testing: npm publishes tarballs, and only a packed install
-      # proves that files, executable modes and optional dependency metadata all
-      # survive the format users actually download.
-      - name: pack the npm packages
-        run: |
-          mkdir -p dist/npm-packages
-          for pkg in dist/npm/tls-forge-*; do
-            npm pack "$pkg" --pack-destination dist/npm-packages --ignore-scripts
-          done
-          npm pack dist/npm/tls-forge --pack-destination dist/npm-packages --ignore-scripts
-
-      # Hand the exact packed bytes to native runners. Tarballs and wheels keep
-      # executable modes internally even though the artifact transport does not
-      # preserve modes on loose files.
+      # The set crosses to the native runners as it is: archives, npm tarballs
+      # and wheels keep their binaries' modes inside them, which the artifact
+      # transport would not keep on loose files.
       - uses: actions/upload-artifact@v7
         with:
-          name: sdk-distributions
+          name: release-set
           if-no-files-found: error
           retention-days: 2
-          path: |
-            dist/npm-packages/*.tgz
-            dist/pypi/*
+          path: dist/set/
 
   package-smoke:
     timeout-minutes: 15
     needs: packaging
+    # The set's archive, npm package and wheel installed and run on every
+    # machine a runner is, and on the oldest Node.js and Python the packages
+    # support as well as the newest.
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - { os: ubuntu-latest, node: '20.12', python: '3.9' }
+          - { os: ubuntu-latest, node: '24', python: '3.13' }
+          - { os: ubuntu-24.04-arm, node: '24', python: '3.13' }
+          - { os: macos-latest, node: '24', python: '3.13' }
+          - { os: windows-latest, node: '24', python: '3.13' }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node }}
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python }}
       - uses: actions/download-artifact@v8
         with:
-          name: sdk-distributions
-          path: dist
-      - run: node scripts/check-release-packages.mjs --version 0.0.0 --dist dist --python python
+          name: release-set
+          path: set
+      - run: node scripts/release-set.mjs verify --dir set --version 0.0.0 --commit ${{ github.sha }}
+      - run: node scripts/check-release-packages.mjs --version 0.0.0 --set set --python python
 
   docker:
     timeout-minutes: 30

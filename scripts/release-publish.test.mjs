@@ -335,27 +335,44 @@ test('a dry run for PyPI copies nothing', async (t) => {
   assert.deepEqual(lines, ['pypi: 6 would be uploaded of 6']);
 });
 
-test('the tap gets a formula unless it has this one, and never over another of its version', () => {
+test('the tap gets a formula unless it has this one or a later one, and never over another of its version', () => {
+  const of = (version, sum = '1') => `url "https://github.com/o/r/releases/download/v${version}/a.tar.gz"\nsha256 "${sum}"\n`;
   const files = {
-    ours: 'url "https://github.com/o/r/releases/download/v1.2.3/a.tar.gz"\nsha256 "1"\n',
-    same: 'url "https://github.com/o/r/releases/download/v1.2.3/a.tar.gz"\nsha256 "1"\n',
-    older: 'url "https://github.com/o/r/releases/download/v1.2.2/a.tar.gz"\nsha256 "0"\n',
-    clash: 'url "https://github.com/o/r/releases/download/v1.2.3/a.tar.gz"\nsha256 "9"\n',
+    ours: of('1.2.3'),
+    same: of('1.2.3'),
+    older: of('1.2.2', '0'),
+    clash: of('1.2.3', '9'),
     odd: 'class TlsForge < Formula\nend\n',
     odder: 'class TlsForge < Formula\n  desc "x"\nend\n',
+    patch: of('1.2.4'),
+    minor: of('1.3.0'),
+    major: of('2.0.0'),
+    // By number, not by letter: 1.10.0 is after 1.9.9.
+    ten: of('1.10.0'),
+    nine: of('1.9.9'),
+    lowerMinor: of('1.1.9'),
+    lowerMajor: of('0.9.9'),
+    next: of('1.3.0-rc.1'),
+    padded: of('1.03.0'),
   };
   const read = (name) => {
     if (!Object.hasOwn(files, name)) throw new Error('ENOENT');
     return files[name];
   };
-  assert.equal(homebrew({ formula: 'ours', tap: 'none' }, { read }), true);
-  assert.equal(homebrew({ formula: 'ours', tap: 'same' }, { read }), false);
-  assert.equal(homebrew({ formula: 'ours', tap: 'older' }, { read }), true);
-  // A formula of no version that can be read is written over.
-  assert.equal(homebrew({ formula: 'ours', tap: 'odd' }, { read }), true);
-  assert.equal(homebrew({ formula: 'odd', tap: 'older' }, { read }), true);
+  assert.equal(homebrew({ formula: 'ours', tap: 'none' }, { read }), 'write');
+  assert.equal(homebrew({ formula: 'ours', tap: 'same' }, { read }), 'unchanged');
+  for (const tap of ['older', 'lowerMinor', 'lowerMajor']) assert.equal(homebrew({ formula: 'ours', tap }, { read }), 'write', tap);
+  // A release retried after a later one leaves the later one where it is.
+  for (const tap of ['patch', 'minor', 'major']) assert.equal(homebrew({ formula: 'ours', tap }, { read }), 'newer', tap);
+  assert.equal(homebrew({ formula: 'nine', tap: 'ten' }, { read }), 'newer');
+  assert.equal(homebrew({ formula: 'ten', tap: 'nine' }, { read }), 'write');
+  // A formula of no version, or of a pre-release, is not held against ours.
+  assert.equal(homebrew({ formula: 'ours', tap: 'odd' }, { read }), 'write');
+  assert.equal(homebrew({ formula: 'odd', tap: 'older' }, { read }), 'write');
+  assert.equal(homebrew({ formula: 'ours', tap: 'next' }, { read }), 'write');
+  assert.equal(homebrew({ formula: 'ours', tap: 'padded' }, { read }), 'write');
   // Two of no version are not two of one version.
-  assert.equal(homebrew({ formula: 'odder', tap: 'odd' }, { read }), true);
+  assert.equal(homebrew({ formula: 'odder', tap: 'odd' }, { read }), 'write');
   assert.throws(() => homebrew({ formula: 'ours', tap: 'clash' }, { read }), /the tap has another formula of 1\.2\.3/);
 });
 
@@ -423,8 +440,11 @@ test('the command says what it did, or why it did not', async (t) => {
   const dir = temporary(t, 'tls-forge-tap-');
   const formula = path.join(dir, 'tls-forge.rb');
   writeFileSync(formula, 'url "x/releases/download/v1.2.3/a"');
+  const later = path.join(dir, 'later.rb');
+  writeFileSync(later, 'url "x/releases/download/v1.2.4/a"');
   assert.equal((await runScript(['homebrew', '--formula', formula, '--tap', path.join(dir, 'none.rb')])).stdout, 'write\n');
   assert.equal((await runScript(['homebrew', '--formula', formula, '--tap', formula])).stdout, 'unchanged\n');
+  assert.equal((await runScript(['homebrew', '--formula', formula, '--tap', later])).stdout, 'newer\n');
   // What is no command, an inherited name included, is refused by name.
   for (const command of ['publish', 'toString', 'constructor', undefined]) {
     const usage = await runScript(command === undefined ? [] : [command]);

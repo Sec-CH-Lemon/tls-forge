@@ -1,209 +1,196 @@
 name: release
 
-# Publishing is driven by a tag, so the version has exactly one source. Nothing
-# here reads a version out of a committed file: the tag is it, and the packages
-# are stamped from it.
+# A release is a tag, and the tag is the version: nothing reads one out of a
+# committed file, and every package is stamped from it.
+#
+# The release's set, every file it publishes, is built once from the tag's
+# commit, checked on every platform, and stored in the tag's draft GitHub
+# release before anything is published. Every later attempt publishes that set
+# and never one built again: what a registry already has is held to the set by
+# digest, and a file that differs stops the release. Publishing waits for the
+# pinned gate, the profile held to the archived Google Chrome it was measured
+# on, for this commit and this set. RELEASING.md says how a release is made,
+# tried without publishing, and finished after a failure.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and check the set, ask each registry what it has, and store and publish nothing
+        type: boolean
+        default: true
+      version:
+        description: The version a dry run that is not on a tag builds
+        type: string
+        default: 0.0.0-dev.0
 
 permissions:
   contents: read
-  id-token: write
+
+# One attempt at a tag at a time: two would race to store its set.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-    timeout-minutes: 45
+  set:
+    timeout-minutes: 60
     runs-on: ubuntu-latest
+    permissions:
+      # The tag's draft release is the store of its set, and only a token that
+      # can write a repository's releases sees its drafts.
+      contents: write
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      npm_tag: ${{ steps.version.outputs.npm_tag }}
+      version: ${{ steps.what.outputs.version }}
+      tag: ${{ steps.what.outputs.tag }}
+      npm_tag: ${{ steps.what.outputs.npm_tag }}
+      dry_run: ${{ steps.what.outputs.dry_run }}
+      built: ${{ steps.where.outputs.build }}
+      identity: ${{ steps.identity.outputs.identity }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
-          cache: true
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
+
+      - name: what is released
+        id: what
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          ASKED: ${{ inputs.version }}
+        run: |
+          dry_run=false
+          [ "$DRY_RUN" = true ] && dry_run=true
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version=${GITHUB_REF_NAME#v}
+          elif [ "$dry_run" = true ]; then
+            version=$ASKED
+          else
+            echo "::error::a release runs on its tag, and $GITHUB_REF_NAME is a branch" >&2
+            exit 1
+          fi
+          # Pre-releases spelled the way npm and PyPI order alike: SemVer's -1
+          # would be a PyPI post-release.
+          release_version='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(a|alpha|b|beta|c|rc|pre|preview|dev)([.]?(0|[1-9][0-9]*))?)?$'
+          if [[ ! "$version" =~ $release_version ]]; then
+            echo "::error::$version is not a registry-compatible SemVer release version" >&2
+            exit 1
+          fi
+          npm_tag=latest
+          [[ "$version" == *-* ]] && npm_tag=next
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+            echo "npm_tag=$npm_tag"
+            echo "dry_run=$dry_run"
+          } >> "$GITHUB_OUTPUT"
+
+      # On a tag, the tag's set if it has one, else one built here; off a tag,
+      # a dry run always builds.
+      - name: where the set is
+        id: where
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.what.outputs.tag }}
+        run: |
+          state=none
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            state=$(node scripts/release-publish.mjs state --tag "$TAG" --repo "$GITHUB_REPOSITORY")
+          fi
+          echo "$TAG: $state"
+          case "$state" in
+            none) echo "build=true" >> "$GITHUB_OUTPUT" ;;
+            stored | published) echo "build=false" >> "$GITHUB_OUTPUT" ;;
+            unfinished)
+              echo "::error::the draft of $TAG holds part of a set and no manifest: storing it did not finish. Re-run the failed jobs of the run that built it while its artifact lasts; otherwise delete the draft, from which nothing was published, and run the release again." >&2
+              exit 1 ;;
+            *)
+              echo "::error::$TAG has no release, and npm or PyPI has its version: a set was published from and is gone. A version is never built twice; tag the next one." >&2
+              exit 1 ;;
+          esac
+
+      - uses: actions/setup-go@v7
+        if: steps.where.outputs.build == 'true'
+        with:
+          go-version-file: go.mod
+          cache: true
       - uses: actions/setup-python@v7
+        if: steps.where.outputs.build == 'true'
         with:
           python-version: '3.13'
 
-      - name: read the version from the tag
-        id: version
-        shell: bash
-        run: |
-          version=${GITHUB_REF_NAME#v}
-          # Restrict pre-releases to spellings that npm and PyPI classify the
-          # same way. In particular, SemVer's "-1" becomes a PyPI post-release.
-          release_version='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(a|alpha|b|beta|c|rc|pre|preview|dev)([.]?(0|[1-9][0-9]*))?)?$'
-          if [[ ! "$version" =~ $release_version ]]; then
-            echo "tag $GITHUB_REF_NAME is not a registry-compatible SemVer release tag" >&2
-            exit 1
-          fi
-
-          npm_tag=latest
-          [[ "$version" == *-* ]] && npm_tag=next
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "npm_tag=$npm_tag" >> "$GITHUB_OUTPUT"
-
-      # Nothing gets published that has not passed the same gates as a push.
-      # A release is the worst moment to find out a test was failing.
+      # Nothing is built that has not passed the gates a push to main passes:
+      # a release is the worst moment to find a test failing.
       - run: go vet ./...
-      - run: go test -race -timeout 5m ./...
+        if: steps.where.outputs.build == 'true'
+      - run: go test -race -timeout 8m ./...
+        if: steps.where.outputs.build == 'true'
       - run: make cover
+        if: steps.where.outputs.build == 'true'
       - run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+        if: steps.where.outputs.build == 'true'
       - run: govulncheck ./...
+        if: steps.where.outputs.build == 'true'
       - uses: golangci/golangci-lint-action@v9
+        if: steps.where.outputs.build == 'true'
         with:
           version: v2.13.2
       - run: npm test
+        if: steps.where.outputs.build == 'true'
         working-directory: node
       - run: pip install -e 'python[test]' build wheel
-      - run: python -m coverage run -m pytest -q
-        working-directory: python
-      - run: python -m coverage report
+        if: steps.where.outputs.build == 'true'
+      - run: python -m coverage run -m pytest -q && python -m coverage report
+        if: steps.where.outputs.build == 'true'
         working-directory: python
       - run: make wrapper-smoke
+        if: steps.where.outputs.build == 'true'
       - run: make release-test
+        if: steps.where.outputs.build == 'true'
       - run: node scripts/check-examples.mjs
+        if: steps.where.outputs.build == 'true'
+      # Go formatted and tidy, the stylesheet and the notices as their sources
+      # make them: a release would ship stale notices with every binary.
+      - run: make generated-check
+        if: steps.where.outputs.build == 'true'
 
-      # The published binaries carry every dependency inside them, and those
-      # licences require their notices to travel along. If the committed notices
-      # are stale, the release would ship the wrong ones.
-      - name: third-party notices are current
-        run: |
-          make notices
-          git diff --exit-code THIRD-PARTY-NOTICES.txt \
-            || { echo "THIRD-PARTY-NOTICES.txt is stale; run 'make notices' and commit"; exit 1; }
-
-      - name: cross-compile
+      - name: build the set
+        if: steps.where.outputs.build == 'true'
         env:
-          CGO_ENABLED: '0'
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          mkdir -p dist/bin
-          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do
-            goos=${target%/*}
-            goarch=${target#*/}
-            output="dist/bin/tls-forge-$goos-$goarch"
-            [ "$goos" = windows ] && output="$output.exe"
-            echo "building $output"
-            GOOS=$goos GOARCH=$goarch go build \
-              -trimpath -ldflags "-s -w -X main.version=v$VERSION" \
-              -o "$output" ./cmd/tls-forge
-          done
+          VERSION: ${{ steps.what.outputs.version }}
+        run: node scripts/release-build.mjs --version "$VERSION" --commit "$GITHUB_SHA" --out set --python python
 
-      # A binary that cannot run is not worth publishing, and this runner can at
-      # least run its own.
-      - name: the linux binary works
-        run: |
-          chmod +x dist/bin/tls-forge-linux-amd64
-          ./dist/bin/tls-forge-linux-amd64 version
-          ./dist/bin/tls-forge-linux-amd64 profiles > /dev/null
-
-      # Tarballs, not bare binaries. Whoever downloads a release asset gets the
-      # licence notices in the same archive as the thing they have to accompany;
-      # a loose binary next to a loose LICENSE relies on people picking up both.
-      - name: package the release archives
+      - name: take the set the tag has
+        if: steps.where.outputs.build == 'false'
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          mkdir -p dist/release
-          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do
-            goos=${target%/*}
-            goarch=${target#*/}
-            src="dist/bin/tls-forge-$goos-$goarch"
-            exe=tls-forge
-            if [ "$goos" = windows ]; then
-              src="$src.exe"
-              exe=tls-forge.exe
-            fi
-            staging=$(mktemp -d)
-            cp "$src" "$staging/$exe"
-            chmod +x "$staging/$exe"
-            cp LICENSE NOTICE THIRD-PARTY-NOTICES.txt README.md "$staging/"
-            tar -czf "dist/release/tls-forge_${VERSION}_${goos}_${goarch}.tar.gz" -C "$staging" .
-          done
-          ls -l dist/release
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.what.outputs.tag }}
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir set
 
-      - name: assemble the npm packages
-        run: node scripts/npm-release.mjs --version "${{ steps.version.outputs.version }}" --binaries dist/bin --out dist/npm
-
-      - name: pack the npm packages
-        run: |
-          mkdir -p dist/npm-packages
-          for pkg in dist/npm/tls-forge-*; do
-            npm pack "$pkg" --pack-destination dist/npm-packages --ignore-scripts
-          done
-          npm pack dist/npm/tls-forge --pack-destination dist/npm-packages --ignore-scripts
-
-      - name: the linux npm packages install and work
+      # Whole, as its manifest says, and built from this commit: a set of
+      # another commit is not this release's, whatever its name.
+      - name: the set is whole, and this commit's
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.what.outputs.version }}
+        run: node scripts/release-set.mjs verify --dir set --version "$VERSION" --commit "$GITHUB_SHA"
+      - name: its identity
+        id: identity
         run: |
-          main=$(realpath "dist/npm-packages/tls-forge-${VERSION}.tgz")
-          platform=$(realpath "dist/npm-packages/tls-forge-linux-x64-${VERSION}.tgz")
-          check=$(mktemp -d)
-          cd "$check"
-          npm init -y > /dev/null
-          npm install --ignore-scripts --no-package-lock --no-audit --no-fund \
-            "$main" "$platform"
-          node --input-type=module -e \
-            "import { Client } from 'tls-forge'; const client = new Client(); client.close();"
-          ./node_modules/tls-forge-linux-x64/bin/tls-forge version
+          identity=$(node scripts/release-set.mjs digest --dir set)
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
 
-      # One wheel per platform, each with its binary inside. The script refuses
-      # to produce a wheel that is missing the binary, has it without its exec
-      # bit, or lacks the licence notices — three ways to ship something that
-      # installs and then does not work.
-      - name: assemble the python distributions
-        run: python scripts/pypi-release.py --version "${{ steps.version.outputs.version }}" --binaries dist/bin --out dist/pypi
-
-      # Installed from the wheel and run, the way `the published image runs`
-      # does for Docker. The runner is linux/amd64, so that is the wheel it can
-      # prove; the rest are proved by the checks above and by their tags.
-      - name: the linux wheel installs and works
-        run: |
-          python -m venv /tmp/wheelcheck
-          /tmp/wheelcheck/bin/pip install --no-index \
-            dist/pypi/*manylinux2014_x86_64*.whl
-          /tmp/wheelcheck/bin/python -c "
-          import tlsforge, subprocess
-          binary = tlsforge.resolve_binary()
-          print(binary)
-          completed = subprocess.run([binary, 'version'], capture_output=True, text=True)
-          print(completed.stdout.strip())
-          assert completed.returncode == 0, completed.stderr
-          assert tlsforge.__version__ == '${{ steps.version.outputs.version }}', tlsforge.__version__
-          "
-
-      - name: generate the homebrew formula
-        run: |
-          node scripts/homebrew-formula.mjs \
-            --version "${{ steps.version.outputs.version }}" \
-            --archives dist/release > dist/tls-forge.rb
-          cat dist/tls-forge.rb
-
-      # Publish jobs receive only these already-tested files. In particular,
-      # npm packages cross the job boundary as tarballs: upload-artifact does
-      # not preserve executable modes on loose files, while a tarball does.
-      - name: save the release artifacts
-        uses: actions/upload-artifact@v7
+      # How the set crosses to this run's other jobs. The store that outlasts
+      # the run is the draft; this artifact is made again from it by any run
+      # after.
+      - uses: actions/upload-artifact@v7
         with:
-          name: release-artifacts
+          name: release-set
           if-no-files-found: error
-          retention-days: 2
-          path: |
-            dist/npm-packages/*.tgz
-            dist/pypi/*
-            dist/release/*
-            dist/tls-forge.rb
-            LICENSE
-            NOTICE
-            THIRD-PARTY-NOTICES.txt
+          retention-days: 7
+          path: set/
 
   go-platforms:
     timeout-minutes: 20
@@ -214,6 +201,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -224,43 +213,229 @@ jobs:
 
   package-smoke:
     timeout-minutes: 15
-    needs: [build, go-platforms]
+    needs: set
+    # The set's own archive, npm package and wheel, installed and run on every
+    # machine a runner is, and on the oldest Node.js and Python the packages
+    # support as well as the newest: exactly the files to be published.
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - { os: ubuntu-latest, node: '20.12', python: '3.9' }
+          - { os: ubuntu-latest, node: '24', python: '3.13' }
+          - { os: ubuntu-24.04-arm, node: '24', python: '3.13' }
+          - { os: macos-latest, node: '24', python: '3.13' }
+          - { os: windows-latest, node: '24', python: '3.13' }
     runs-on: ${{ matrix.os }}
-    permissions:
-      actions: read
-      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-set
+          path: set
+      - name: install and run what this machine gets
+        shell: bash
+        env:
+          VERSION: ${{ needs.set.outputs.version }}
+        run: |
+          node scripts/release-set.mjs verify --dir set --version "$VERSION" --commit "$GITHUB_SHA"
+          node scripts/check-release-packages.mjs --version "$VERSION" --set set --python python
+
+  store:
+    timeout-minutes: 15
+    needs: [set, go-platforms, package-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.13'
       - uses: actions/download-artifact@v8
         with:
-          name: release-artifacts
-      # Install and execute the exact tarballs and wheels that are about to be
-      # published on every supported OS. A tag does not trigger ci.yml's
-      # branch-filtered jobs, so the release must carry this gate itself.
-      - run: node scripts/check-release-packages.mjs --version "${{ needs.build.outputs.version }}" --dist dist --python python
+          name: release-set
+          path: set
+      - name: the set checked is the set to store
+        env:
+          VERSION: ${{ needs.set.outputs.version }}
+          IDENTITY: ${{ needs.set.outputs.identity }}
+        run: |
+          node scripts/release-set.mjs verify --dir set --version "$VERSION" --commit "$GITHUB_SHA"
+          test "$(node scripts/release-set.mjs digest --dir set)" = "$IDENTITY"
+
+      # Provenance for every file of the set, signed for this workflow, this
+      # commit and this run, once: by the run that built it. Whoever downloads
+      # one checks it with `gh attestation verify FILE --repo OWNER/NAME`.
+      - uses: actions/attest-build-provenance@v4
+        if: needs.set.outputs.built == 'true' && needs.set.outputs.dry_run == 'false'
+        with:
+          subject-checksums: set/SHA256SUMS
+
+      # The draft takes only what it lacks, never over what it has: a file
+      # there with another digest stops the release. Its manifest goes last,
+      # so that a draft holding one holds the whole set.
+      - name: store the set in the tag's draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.set.outputs.tag }}
+          DRY_RUN: ${{ needs.set.outputs.dry_run }}
+        run: |
+          dry=()
+          [ "$DRY_RUN" = true ] && dry=(--dry-run)
+          node scripts/release-publish.mjs github --dir set --tag "$TAG" --repo "$GITHUB_REPOSITORY" "${dry[@]}"
+
+  reference:
+    timeout-minutes: 5
+    needs: set
+    runs-on: ubuntu-latest
+    outputs:
+      gates: ${{ steps.gates.outputs.gates }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      # One gate for each build the reference names. No reference, or one that
+      # names no build, stops the release here: it is never published on the
+      # word of another browser.
+      - name: the builds of the reference
+        id: gates
+        run: |
+          gates=$(node scripts/release-set.mjs gates --reference reference/chrome.json)
+          echo "gates=$gates" >> "$GITHUB_OUTPUT"
+
+  pinned:
+    timeout-minutes: 30
+    needs: [set, reference, store]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.reference.outputs.gates) }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+    env:
+      RESULT: ${{ matrix.result }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-set
+          path: set
+
+      # A result the draft holds already passed, for this commit and this set:
+      # only a passed one is kept there, and the publishing jobs check it again.
+      - name: a result held already
+        id: held
+        shell: bash
+        run: |
+          if [ -f "set/$RESULT" ]; then echo "held=true"; else echo "held=false"; fi >> "$GITHUB_OUTPUT"
+
+      - name: restore the reference from the archive
+        if: steps.held.outputs.held == 'false'
+        shell: bash
+        env:
+          PINNED_ARCHIVE_URL: ${{ secrets.PINNED_ARCHIVE_URL }}
+          PINNED_ARCHIVE_TOKEN: ${{ secrets.PINNED_ARCHIVE_TOKEN }}
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+        run: >-
+          node scripts/pinned-restore.mjs --reference reference/chrome.json --platform "$PLATFORM" --arch "$ARCH"
+          --archive "$RUNNER_TEMP/archive" --installed "$RUNNER_TEMP/installed"
+
+      - name: hold the profile to the reference
+        if: steps.held.outputs.held == 'false'
+        shell: bash
+        env:
+          IDENTITY: ${{ needs.set.outputs.identity }}
+        run: |
+          gate=(go run ./internal/pinned --manifest reference/chrome.json --archive "$RUNNER_TEMP/archive"
+            --installed "$RUNNER_TEMP/installed" --commit "$GITHUB_SHA" --set "$IDENTITY" --out "set/$RESULT")
+          # A Linux runner has no display, and the reference runs as it was
+          # measured, which is with a window unless its launch says otherwise.
+          if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a "${gate[@]}"; else "${gate[@]}"; fi
+
+      - name: keep the result beside the set
+        if: steps.held.outputs.held == 'false' && needs.set.outputs.dry_run == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.set.outputs.tag }}
+        run: gh release upload "$TAG" "set/$RESULT" --repo "$GITHUB_REPOSITORY"
+
+      # For the publishing jobs, and to read when the gate failed.
+      - uses: actions/upload-artifact@v7
+        if: success() || failure()
+        with:
+          name: pinned-${{ matrix.platform }}-${{ matrix.arch }}
+          if-no-files-found: ignore
+          retention-days: 7
+          path: set/${{ matrix.result }}
+
+  # What a release would publish, asked of each registry and published nowhere.
+  plan:
+    timeout-minutes: 10
+    needs: [set, store]
+    if: needs.set.outputs.dry_run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-set
+          path: set
+      - name: what npm and PyPI would be given
+        env:
+          VERSION: ${{ needs.set.outputs.version }}
+          NPM_TAG: ${{ needs.set.outputs.npm_tag }}
+        run: |
+          node scripts/release-publish.mjs npm --dry-run --dir set --version "$VERSION" --tag "$NPM_TAG"
+          node scripts/release-publish.mjs pypi --dry-run --dir set --version "$VERSION" --out upload
 
   publish-npm:
     timeout-minutes: 15
-    needs: [build, package-smoke]
+    needs: [set, store, pinned]
+    if: needs.set.outputs.dry_run == 'false'
     runs-on: ubuntu-latest
     environment:
       name: release
       url: https://www.npmjs.com/package/tls-forge
     permissions:
-      actions: read
       contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -268,158 +443,173 @@ jobs:
           package-manager-cache: false
       - uses: actions/download-artifact@v8
         with:
-          name: release-artifacts
+          name: release-set
+          path: set
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: pinned-*
+          merge-multiple: true
+          path: set
+      - name: the set stored, gated for this commit and this set
+        env:
+          VERSION: ${{ needs.set.outputs.version }}
+          IDENTITY: ${{ needs.set.outputs.identity }}
+        run: |
+          node scripts/release-set.mjs verify --dir set --version "$VERSION" --commit "$GITHUB_SHA" --reference reference/chrome.json
+          test "$(node scripts/release-set.mjs digest --dir set)" = "$IDENTITY"
 
-      # The platform packages go first. The main package pins them by exact
-      # version, so publishing it first would leave a window in which installing
-      # it resolves nothing. NPM_TOKEN bootstraps packages that do not exist yet;
-      # after Trusted Publishing is configured npm prefers OIDC automatically
-      # and the secret can be deleted.
+      # The platform packages first, the one that pins them by exact version
+      # last; what npm has with the same integrity is passed over, and one it
+      # has with another stops the release. NPM_TOKEN creates packages that do
+      # not exist yet; once trusted publishing is configured for each, npm
+      # prefers OIDC and the secret can be deleted.
       - name: publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TAG: ${{ needs.build.outputs.npm_tag }}
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          publish_package() {
-            package_file=$1
-            package_name=$(basename "$package_file" "-${VERSION}.tgz")
-            local_integrity=$(node -e '
-              const { createHash } = require("node:crypto");
-              const { readFileSync } = require("node:fs");
-              process.stdout.write("sha512-" + createHash("sha512")
-                .update(readFileSync(process.argv[1])).digest("base64"));
-            ' "$package_file")
-            remote_integrity=$(npm view "${package_name}@${VERSION}" dist.integrity 2>/dev/null || true)
-
-            if [ -n "$remote_integrity" ]; then
-              if [ "$remote_integrity" != "$local_integrity" ]; then
-                echo "${package_name}@${VERSION} exists with different contents" >&2
-                return 1
-              fi
-              echo "${package_name}@${VERSION} is already published with the same integrity"
-            else
-              echo "publishing $package_file"
-              npm publish "$package_file" --access public --provenance \
-                --tag "$NPM_TAG"
-            fi
-
-          }
-
-          for pkg in dist/npm-packages/tls-forge-*.tgz; do
-            # The main package matches the same glob now that the platform
-            # packages are unscoped. It must remain last: its exact optional
-            # dependencies need to exist by the time somebody installs it.
-            [ "$pkg" = "dist/npm-packages/tls-forge-${VERSION}.tgz" ] && continue
-            publish_package "$pkg"
-          done
-          publish_package "dist/npm-packages/tls-forge-${VERSION}.tgz"
+          VERSION: ${{ needs.set.outputs.version }}
+          NPM_TAG: ${{ needs.set.outputs.npm_tag }}
+        run: node scripts/release-publish.mjs npm --dir set --version "$VERSION" --tag "$NPM_TAG"
 
   publish-pypi:
     timeout-minutes: 15
-    needs: [build, package-smoke]
+    needs: [set, store, pinned]
+    if: needs.set.outputs.dry_run == 'false'
     runs-on: ubuntu-latest
     environment:
       name: release
       url: https://pypi.org/project/tls-forge/
     permissions:
-      actions: read
+      contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
       - uses: actions/download-artifact@v8
         with:
-          name: release-artifacts
-
-      # PyPI verifies this job's short-lived OIDC token against the publisher
-      # configured on the project. No API token is created or stored, and the
-      # action publishes attestations for the uploaded files automatically.
-      - name: publish to pypi
-        uses: pypa/gh-action-pypi-publish@release/v1
+          name: release-set
+          path: set
+      - uses: actions/download-artifact@v8
         with:
-          packages-dir: dist/pypi
+          pattern: pinned-*
+          merge-multiple: true
+          path: set
+      - name: the set stored, gated for this commit and this set
+        env:
+          VERSION: ${{ needs.set.outputs.version }}
+          IDENTITY: ${{ needs.set.outputs.identity }}
+        run: |
+          node scripts/release-set.mjs verify --dir set --version "$VERSION" --commit "$GITHUB_SHA" --reference reference/chrome.json
+          test "$(node scripts/release-set.mjs digest --dir set)" = "$IDENTITY"
 
-  github-release:
-    timeout-minutes: 15
-    needs: [build, publish-npm, publish-pypi]
+      # PyPI refuses a file it has, so it is given only what it lacks, and a
+      # file it has with another digest stops the release.
+      - name: what PyPI lacks
+        id: lacks
+        env:
+          VERSION: ${{ needs.set.outputs.version }}
+        run: |
+          node scripts/release-publish.mjs pypi --dir set --version "$VERSION" --out upload
+          echo "count=$(find upload -type f | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      # PyPI checks this job's short-lived OIDC token against the publisher
+      # configured on the project, so no API token is stored, and the action
+      # publishes attestations for the files it uploads.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        if: steps.lacks.outputs.count != '0'
+        with:
+          packages-dir: upload
+
+  finish:
+    timeout-minutes: 10
+    needs: [set, publish-npm, publish-pypi]
     runs-on: ubuntu-latest
     permissions:
-      actions: read
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
       - uses: actions/download-artifact@v8
         with:
-          name: release-artifacts
-
-      # The release has to exist before the tap points at it: the formula
-      # carries the download URL and the checksum, and a tap that referenced a
-      # missing asset would break `brew install` for everyone.
-      - name: create the github release
+          name: release-set
+          path: set
+      # The draft is held to the set once more, and then published: the tap
+      # and the image point at its files.
+      - name: publish the draft
         env:
           GH_TOKEN: ${{ github.token }}
-          # This job downloads release artifacts without checking out the
-          # repository. Pass this to gh explicitly below so it never falls back
-          # to running git in the artifact-only workspace.
-          GH_REPO: ${{ github.repository }}
-          VERSION: ${{ needs.build.outputs.version }}
+          TAG: ${{ needs.set.outputs.tag }}
         run: |
-          prerelease=()
-          [[ "$VERSION" == *-* ]] && prerelease+=(--prerelease)
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "$GH_REPO" \
-            --verify-tag \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes \
-            "${prerelease[@]}" \
-            dist/release/* LICENSE NOTICE THIRD-PARTY-NOTICES.txt
+          node scripts/release-publish.mjs github --dir set --tag "$TAG" --repo "$GITHUB_REPOSITORY"
+          node scripts/release-publish.mjs finish --tag "$TAG" --repo "$GITHUB_REPOSITORY"
 
   homebrew:
     timeout-minutes: 15
-    needs: [build, github-release]
-    # A stable formula is a stable channel: release candidates must not replace
-    # what `brew install tls-forge` installs by default.
-    if: needs.build.outputs.npm_tag == 'latest'
+    needs: [set, finish]
+    # A stable formula is a stable channel: a release candidate must not
+    # replace what `brew install tls-forge` installs.
+    if: needs.set.outputs.npm_tag == 'latest'
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
     steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
       - uses: actions/download-artifact@v8
         with:
-          name: release-artifacts
-
+          name: release-set
+          path: set
       - name: update the homebrew tap
         env:
-          # A separate token: the workflow's own GITHUB_TOKEN cannot write to
-          # another repository. A stable release is incomplete without the
-          # formula, so a missing secret must fail visibly instead of producing
-          # a green release that `brew install` cannot install.
+          # A token of its own: the workflow's cannot write to another
+          # repository. A stable release is not whole without its formula, so
+          # a missing secret fails, rather than a green release brew cannot
+          # install.
           TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          VERSION: ${{ needs.build.outputs.version }}
+          VERSION: ${{ needs.set.outputs.version }}
+          IDENTITY: ${{ needs.set.outputs.identity }}
         run: |
+          test "$(node scripts/release-set.mjs digest --dir set)" = "$IDENTITY"
           if [ -z "${TAP_TOKEN:-}" ]; then
             echo "::error::HOMEBREW_TAP_TOKEN is not set; cannot publish Formula/tls-forge.rb"
             exit 1
           fi
-          git clone --depth 1 \
-            "https://x-access-token:${TAP_TOKEN}@github.com/Sec-CH-Lemon/homebrew-tap.git" tap
-          mkdir -p tap/Formula
-          cp dist/tls-forge.rb tap/Formula/tls-forge.rb
-          cd tap
+          tap="$RUNNER_TEMP/tap"
+          git clone --depth 1 "https://x-access-token:${TAP_TOKEN}@github.com/Sec-CH-Lemon/homebrew-tap.git" "$tap"
+          mkdir -p "$tap/Formula"
+          # This formula, one of a later version that a retried release must
+          # not take back, or another of this version, which stops it.
+          decision=$(node scripts/release-publish.mjs homebrew --formula set/tls-forge.rb --tap "$tap/Formula/tls-forge.rb")
+          echo "formula: $decision"
+          [ "$decision" = write ] || exit 0
+          cp set/tls-forge.rb "$tap/Formula/tls-forge.rb"
+          cd "$tap"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Formula/tls-forge.rb
-          git diff --cached --quiet && { echo "formula unchanged"; exit 0; }
           git commit -m "tls-forge $VERSION"
           git push
 
   image:
     timeout-minutes: 45
-    needs: github-release
+    needs: [set, finish]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write # push to ghcr.io
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       # Needed only by the check at the end: the runner is amd64, so running the
       # arm64 image to prove it works means emulating it. The build itself does
       # not use QEMU, it cross-compiles.
@@ -446,7 +636,23 @@ jobs:
           # v1.0.0-rc1 does not become what everyone pulls by default.
           flavor: latest=auto
 
+      # The version's image is built once, as its set is: a release run again
+      # after it was pushed leaves it as it is.
+      - name: the version's image, if the registry has it
+        id: had
+        env:
+          VERSION: ${{ needs.set.outputs.version }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:$VERSION"
+          if docker buildx imagetools inspect "$image" > /dev/null 2>&1; then
+            echo "$image is pushed already"
+            echo "had=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "had=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: docker/build-push-action@v7
+        if: steps.had.outputs.had == 'false'
         with:
           context: .
           # Cross-compiled rather than emulated: the builder stage is pinned to
@@ -460,8 +666,10 @@ jobs:
       # Pulled back from the registry and run. Pushing an image that cannot
       # start is worse than not pushing one, because it looks like a release.
       - name: the published image runs
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          image=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+          image=$(echo "$TAGS" | head -1)
           for platform in linux/amd64 linux/arm64; do
             echo "checking $platform"
             docker run --rm --platform "$platform" --pull always "$image" version

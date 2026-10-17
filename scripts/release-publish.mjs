@@ -16,8 +16,9 @@
 // or completes the draft or release there. npm publishes the packages it
 // lacks, the platform packages before the one that pins them. pypi copies to
 // DIR the distributions PyPI lacks, for the upload to take. finish publishes
-// the draft. homebrew says whether the tap's formula is to be written: not
-// when it is this one, and never over another of the same version. With
+// the draft. homebrew prints whether the tap's formula is to be written: write,
+// or unchanged when it is this one, or newer when the tap's is of a later
+// version, and never over another of the same version. With
 // --dry-run, a command asks what it would and says what it would do, and
 // changes nothing.
 
@@ -185,23 +186,28 @@ export async function pypi({ dir, version, out, dryRun = false }, { fetchJSON, l
   return upload;
 }
 
-// homebrew is whether the tap's formula is to be written with formula: not when
-// it is that formula, and never over another of the same version, which would
-// be another set's.
+// homebrew is what becomes of the tap's formula, given formula: write, or
+// unchanged when the tap has this one, or newer when it has one of a later
+// version, which a release retried after it must not take back. Another
+// formula of the same version would be another set's, and stops the release.
 export function homebrew({ formula, tap }, { read }) {
   const ours = read(formula);
   let theirs = null;
   try {
     theirs = read(tap);
   } catch {
-    return true;
+    return 'write';
   }
-  if (theirs === ours) return false;
+  if (theirs === ours) return 'unchanged';
   const versionOf = (text) => /\/releases\/download\/v([^/]+)\//.exec(text)?.[1];
   if (versionOf(theirs) !== undefined && versionOf(theirs) === versionOf(ours)) {
     throw new Error(`the tap has another formula of ${versionOf(ours)}; nothing is written over it`);
   }
-  return true;
+  // Only a release, never a pre-release, goes to the tap: X.Y.Z, by number.
+  const order = (text) => /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(versionOf(text) ?? '')?.slice(1).map(Number) ?? null;
+  const [a, b] = [order(theirs), order(ours)];
+  if (a !== null && b !== null && (a[0] - b[0] || a[1] - b[1] || a[2] - b[2]) > 0) return 'newer';
+  return 'write';
 }
 
 // options are the named arguments: --name value, and --dry-run on its own.
@@ -238,8 +244,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     if (!Object.hasOwn(commands, command)) throw new Error(`usage: release-publish.mjs ${Object.keys(commands).join('|')} ...`);
     const result = await commands[command](named, deps);
-    if (command === 'homebrew') console.log(result ? 'write' : 'unchanged');
-    if (command === 'state') console.log(result);
+    if (command === 'homebrew' || command === 'state') console.log(result);
   } catch (err) {
     console.error(err.message);
     process.exitCode = 1;

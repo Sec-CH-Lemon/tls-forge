@@ -84,17 +84,40 @@ commit that is not 40 lower-case hex digits or a set that is not 64, before it
 measures anything. A reference it cannot find or check is a failure, never a
 reason to measure another browser.
 
+## In a release
+
+The release workflow runs the check on every build `reference/chrome.json`
+names, each on a runner of its platform and machine, after the release's set
+is stored and before anything is published ([RELEASING.md](../RELEASING.md)):
+
+1. `scripts/release-set.mjs gates` reads the reference and names a gate for
+   each build. No reference, or one that names no build, stops the release.
+2. `scripts/pinned-restore.mjs` fetches the build's installer from the
+   private archive, at `PINNED_ARCHIVE_URL/<installer>`, with
+   `PINNED_ARCHIVE_TOKEN` as a bearer token when it is set. It holds the
+   installer to `installer_sha256` before anything opens it, and unpacks it
+   without installing it for the machine: a `.deb` by `dpkg-deb`, a `.dmg`
+   mounted and copied, an `.msi` by an administrative install, or an archive
+   of an installed browser by `tar`.
+3. The check runs with `--commit` and `--set`, under `xvfb-run` on Linux,
+   and its result is kept in the tag's draft as
+   `pinned-<platform>-<arch>.json`.
+4. Each publishing job verifies the set with every gate result: each passed,
+   for this commit and this set. A result for another commit or another set
+   counts for nothing.
+
+A result kept in the draft is not measured again when the release is run
+again; a gate that failed is.
+
 ## What is left
 
-The check, the manifest format and their tests exist. The archive does not:
-its installers have to be kept, by whoever releases, from the day a profile is
-measured, with the manifest committed beside the profiles as
-`reference/chrome.json`. A release workflow that restores the archive and
-installs the build, runs the check on every platform a profile ships for, and
-makes every publish job depend on it, binding the result to the commit and the
-artifacts being published, comes with the rest of the release work. Until
-then nothing publishes on this check, and the drift check in `ci.yml` and
-`drift.yml` stays what it is: a measurement of the browser of the day.
+The check, the manifest format, the restore and the release workflow that
+runs them exist. The archive does not: its installers have to be kept, by
+whoever releases, from the day a profile is measured, with the manifest
+committed beside the profiles as `reference/chrome.json` and the archive's
+address and token as the repository's secrets. Until then every release
+stops at the gate, and the drift check in `ci.yml` and `drift.yml` stays what
+it is: a measurement of the browser of the day.
 
 Run today against Google Chrome 155.0.8059.80 on macOS, the comparison finds
 one difference: tls-forge's transport writes `:path` in HPACK with indexing,
