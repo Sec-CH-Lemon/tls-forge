@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
-import { Client, MAX_REQUEST_BYTES, SessionReset, resolveBinary } from '../index.js';
+import { BinaryNotFound, Client, MAX_REQUEST_BYTES, SessionReset, resolveBinary } from '../index.js';
 import { builtBinary, exeName, platformPackage, platformPackageName } from '../binary.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -635,7 +635,7 @@ test('resolveBinary reads TLSFORGE_BIN', () => {
 });
 
 test('resolveBinary rejects a path that does not exist', () => {
-  assert.throws(() => resolveBinary('/definitely/not/here'), /no binary at/);
+  assert.throws(() => resolveBinary('/definitely/not/here'), (err) => err instanceof BinaryNotFound && /no binary at/.test(err.message));
 });
 
 test('resolveBinary rejects a directory', () => {
@@ -781,6 +781,7 @@ test('no binary anywhere is an error that says what to do', (t) => {
   assert.throws(() => resolveBinary(), (err) => {
     // The message has to name the package that was missing and both ways out,
     // or it tells someone their install is broken and leaves them there.
+    assert.ok(err instanceof BinaryNotFound);
     assert.match(err.message, /no binary for/);
     assert.ok(err.message.includes(platformPackage));
     assert.match(err.message, /TLSFORGE_BIN/);

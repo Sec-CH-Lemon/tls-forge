@@ -202,25 +202,28 @@ be released immediately rather than at process exit.
 
 ## Failures and recovery
 
-The SDK rejects promises with `Error` instances. The message identifies the
-failure category:
+The SDK throws and rejects with these classes, exported by the package and
+the ones the Python package raises. Each is an `Error` whose `name` is its
+class, and one that wraps another error keeps it as `cause`.
 
-- `tlsforge: request timed out` — the Node deadline passed;
-- `tlsforge: transport failed to start ...` — executable or spawn failure;
-- `tlsforge: transport exited ...` — the daemon died;
-- `tlsforge: write failed ...` — the daemon pipe closed during a write;
-- `tlsforge: bad response ...` — malformed or unexpected transport output;
-- a request error returned by the Go transport — DNS, proxy, TLS or connection
-  failure;
-- a `SessionReset` — the request was not sent, because the session it was made
-  in has gone;
-- an `Unsupported` — the request was not sent, because the transport does not
-  do what it needs: a `browserContext`, which a tls-forge older than this one
-  does not apply;
-- a `RangeError` — the request is longer than `MAX_REQUEST_BYTES`, 16 MiB as
-  the transport reads it: JSON, a binary body in base64, and the newline. It is
-  refused before it is queued, and the transport and its session are left as
-  they were.
+| Class | Meaning |
+|---|---|
+| `TLSForgeError` | The base of every class below. |
+| `BinaryNotFound` | No usable transport binary was found, or an explicit path was missing. Thrown by the constructor and `resolveBinary`. |
+| `RequestFailed` | The daemon ran, but the HTTP request failed: DNS, proxy, TLS or connection failure, or a request it would not make as asked. |
+| `Timeout` | The Node deadline passed: `tlsforge: request timed out`. |
+| `TransportError` | The daemon could not start, would not take its arguments or its proxy, exited, could not be written to, was closed, or returned invalid protocol data. |
+| `SessionReset` | A `TransportError`: the request was not sent, because the session it was made in has gone. |
+| `Unsupported` | The request was not sent, because the transport does not do what it needs: a `browserContext`, which a tls-forge older than this one does not apply. |
+
+A mistake in the call is none of these. It is a `TypeError`, for a request
+without a url, a body that is not a string, `Buffer` or `Uint8Array`, a
+request JSON cannot hold, an `onStderr` that is not a function, or a
+`cookieSet` without a `cookieFile`. It is a `RangeError` for a timeout that is
+not a positive finite number, and for a request longer than
+`MAX_REQUEST_BYTES`, 16 MiB as the transport reads it: JSON, a binary body in
+base64, and the newline. Such a request is refused before it is queued, and
+the transport and its session are left as they were.
 
 A timeout or a broken write stops the transport, and a transport can die. The
 session in it goes with it: its cookies, TLS sessions and connections. The

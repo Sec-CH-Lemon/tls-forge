@@ -99,7 +99,7 @@ test('the committed answers to hello read as they say', async () => {
 test('an answer to hello that says nothing it can is a bad response, asked again', async () => {
   for (const mode of ['bad', 'bad-capabilities', 'no-capabilities', 'low']) {
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
-      await assert.rejects(client.hello(), /^Error: tlsforge: bad response: hello must give a protocol from 2/);
+      await assert.rejects(client.hello(), /^TransportError: tlsforge: bad response: hello must give a protocol from 2/);
       await assert.rejects(client.hello(), /bad response/);
       assert.equal((await seen(client)).controls, 2, mode);
     });

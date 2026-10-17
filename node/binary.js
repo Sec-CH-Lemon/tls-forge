@@ -18,6 +18,8 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { BinaryNotFound } from './errors.js';
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
@@ -55,7 +57,7 @@ export function resolveBinary(explicit) {
   const candidate = explicit || process.env.TLSFORGE_BIN;
   if (candidate) {
     if (!isFile(candidate)) {
-      throw new Error(`tls-forge: no binary at ${candidate}`);
+      throw new BinaryNotFound(`tls-forge: no binary at ${candidate}`);
     }
     return candidate;
   }
@@ -68,7 +70,7 @@ export function resolveBinary(explicit) {
   const onPath = lookPath('tls-forge');
   if (onPath) return onPath;
 
-  throw new Error(
+  throw new BinaryNotFound(
     `tls-forge: no binary for ${process.platform}-${process.arch}.\n` +
       `  The platform package ${platformPackage} is not installed. If this was an\n` +
       '  install with --no-optional, re-run without it. Otherwise this platform has\n' +

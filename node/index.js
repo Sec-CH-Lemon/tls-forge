@@ -13,6 +13,7 @@
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import { resolveBinary } from './binary.js';
+import { RequestFailed, SessionReset, Timeout, TransportError, Unsupported } from './errors.js';
 
 /** @typedef {{status:number,url:string,body:string,content:Buffer,headers:Record<string,string[]>,cookies:string[]}} Response */
 
@@ -22,32 +23,6 @@ const DEFAULT_TIMEOUT_MS = 45_000;
 // newline included, in UTF-8. A longer one would end the transport, and the
 // session in it, so it is refused before it is queued.
 export const MAX_REQUEST_BYTES = 16 * 1024 * 1024;
-
-/**
- * A request that was not sent because the transport the client's session was
- * in has gone: its cookies, TLS sessions and connections went with it. Every
- * request waiting when that happens is rejected with this, and the next one
- * made is when none was waiting; requests after that start a new session in a
- * new transport. The client never promises the identity it had before.
- */
-export class SessionReset extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'SessionReset';
-  }
-}
-
-/**
- * A request this client's transport cannot make as asked: it does not do what
- * the request needs, as it says when asked with hello(), or it is older than
- * the question. The request was not sent.
- */
-export class Unsupported extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'Unsupported';
-  }
-}
 
 // What a transport is, as its answer to hello says. One older than control
 // lines answers it as a request with no url: protocol 1, nothing it can do.
@@ -190,7 +165,7 @@ export class Client {
       throw new TypeError('tlsforge: onStderr must be a function');
     }
     if (options.cookieSet && !options.cookieFile) {
-      throw new Error('tlsforge: cookieSet requires cookieFile');
+      throw new TypeError('tlsforge: cookieSet requires cookieFile');
     }
     this.#binary = resolveBinary(options.binary);
     this.#timeout = timeout;
@@ -247,7 +222,7 @@ export class Client {
   hello() {
     if (this.#closed) {
       return Promise.reject(
-        new Error('tlsforge: this client was closed and will not respawn; construct a new one'),
+        new TransportError('tlsforge: this client was closed and will not respawn; construct a new one'),
       );
     }
     this.#hello ??= this.#enqueue({ control: 'hello' }, true)
@@ -255,7 +230,7 @@ export class Client {
         try {
           return helloOf(response);
         } catch (err) {
-          throw new Error(`tlsforge: bad response: ${err.message}`);
+          throw new TransportError(`tlsforge: bad response: ${err.message}`, { cause: err });
         }
       })
       .catch((err) => {
@@ -279,10 +254,10 @@ export class Client {
    * @returns {Promise<Response>}
    */
   request(request) {
-    if (!request?.url) return Promise.reject(new Error('tlsforge: request needs a url'));
+    if (!request?.url) return Promise.reject(new TypeError('tlsforge: request needs a url'));
     if (this.#closed) {
       return Promise.reject(
-        new Error('tlsforge: this client was closed and will not respawn; construct a new one'),
+        new TransportError('tlsforge: this client was closed and will not respawn; construct a new one'),
       );
     }
     const { browserContext, ...asked } = request;
@@ -367,7 +342,7 @@ export class Client {
   close() {
     this.#closed = true;
     this.#kill();
-    this.#failAll(new Error('tlsforge: client closed'));
+    this.#failAll(new TransportError('tlsforge: client closed'));
   }
 
   // --- internals ---------------------------------------------------------
@@ -406,7 +381,9 @@ export class Client {
       child.removeAllListeners('exit');
       this.#process = null;
       this.#closeReaders();
-      this.#failAll(new Error(`tlsforge: transport failed to start (${this.#binary}): ${err.message}`));
+      this.#failAll(
+        new TransportError(`tlsforge: transport failed to start (${this.#binary}): ${err.message}`, { cause: err }),
+      );
     });
 
     // Writing to a pipe whose reader is gone raises EPIPE, and an EPIPE on a
@@ -422,14 +399,14 @@ export class Client {
         // A usage error: the transport would not take the arguments it was
         // started with, and every replacement would refuse them the same way.
         // No request reached it, so none of them is indeterminate.
-        this.#failAll(new Error(refusedArguments(this.#binary, this.#proxy !== undefined)));
+        this.#failAll(new TransportError(refusedArguments(this.#binary, this.#proxy !== undefined)));
         return;
       }
       // Only the request written to the dead transport is indeterminate. The
       // jobs still in the queue were never written, and are told the session
       // they were made in has gone.
       this.#lost = `it exited (code ${code})`;
-      this.#failInFlight(new Error(`tlsforge: transport exited (code ${code})`));
+      this.#failInFlight(new TransportError(`tlsforge: transport exited (code ${code})`));
       this.#pump();
     });
   }
@@ -454,7 +431,7 @@ export class Client {
       deadline: performance.now() + this.#timeout,
       resolve: (response) => {
         if (response.error == null) return;
-        unstarted(new Error(`tlsforge: the transport did not take its proxy: ${response.error}`));
+        unstarted(new TransportError(`tlsforge: the transport did not take its proxy: ${response.error}`));
       },
       reject: unstarted,
     };
@@ -532,7 +509,7 @@ export class Client {
       if (!job) return;
       this.#inFlight = null;
       clearTimeout(job.timer);
-      job.reject(new Error(`tlsforge: bad response: ${err.message}`));
+      job.reject(new TransportError(`tlsforge: bad response: ${err.message}`, { cause: err }));
       this.#pump();
       return;
     }
@@ -561,14 +538,14 @@ export class Client {
     } catch (err) {
       this.#inFlight = null;
       clearTimeout(job.timer);
-      job.reject(new Error(`tlsforge: bad response: ${err.message}`));
+      job.reject(new TransportError(`tlsforge: bad response: ${err.message}`, { cause: err }));
       this.#pump();
       return;
     }
 
     this.#inFlight = null;
     clearTimeout(job.timer);
-    if (response.error) job.reject(new Error(response.error));
+    if (response.error) job.reject(new RequestFailed(response.error));
     else job.resolve(response);
     this.#pump();
   }
@@ -611,7 +588,9 @@ export class Client {
         // spawn throws synchronously for a malformed argv rather than emitting
         // 'error'. Unhandled, the throw escapes request(), which returns a
         // promise everywhere else — so the caller's catch would miss it.
-        this.#failAll(new Error(`tlsforge: transport failed to start (${this.#binary}): ${err.message}`));
+        this.#failAll(
+          new TransportError(`tlsforge: transport failed to start (${this.#binary}): ${err.message}`, { cause: err }),
+        );
         return;
       }
     }
@@ -622,7 +601,7 @@ export class Client {
     // have used part of: that one's deadline came first, and ended it.
     job.timer = setTimeout(() => {
       this.#inFlight = null;
-      job.reject(new Error('tlsforge: request timed out'));
+      job.reject(new Timeout('tlsforge: request timed out'));
       // The process is still working on this request — its own deadline is
       // longer — so an answer is not merely possible, it is expected.
       // Restarting stops it at the source, dropping the reader stops one
@@ -638,11 +617,20 @@ export class Client {
       // reaching the pipe.
       this.#inFlight = null;
       clearTimeout(job.timer);
-      job.reject(new Error(`tlsforge: write failed: ${err.message}`));
+      job.reject(new TransportError(`tlsforge: write failed: ${err.message}`, { cause: err }));
       if (!job.init) this.#restart(`a request could not be written to it: ${err.message}`);
     });
   }
 }
 
 export { resolveBinary } from './binary.js';
+export {
+  BinaryNotFound,
+  RequestFailed,
+  SessionReset,
+  TLSForgeError,
+  Timeout,
+  TransportError,
+  Unsupported,
+} from './errors.js';
 export default Client;

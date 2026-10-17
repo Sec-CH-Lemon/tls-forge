@@ -126,12 +126,14 @@ for (const target of TARGETS) {
 // and its binary is not something a range should be allowed to produce.
 const mainDir = path.join(out, 'tls-forge');
 mkdirSync(mainDir, { recursive: true });
-for (const file of ['index.js', 'binary.js', 'README.md']) {
+const manifest = JSON.parse(readFileSync(path.join(root, 'node', 'package.json'), 'utf8'));
+// What the manifest says the package is, so that a module added to it cannot
+// be left out of the tarball; the legal files come from the repository root.
+for (const file of manifest.files.filter((name) => !LEGAL.includes(name))) {
   cpSync(path.join(root, 'node', file), path.join(mainDir, file));
 }
 copyLegal(mainDir);
 
-const manifest = JSON.parse(readFileSync(path.join(root, 'node', 'package.json'), 'utf8'));
 manifest.version = version;
 manifest.optionalDependencies = Object.fromEntries(
   TARGETS.map((t) => [`tls-forge-${t.packagePlatform ?? t.platform}-${t.arch}`, version]),

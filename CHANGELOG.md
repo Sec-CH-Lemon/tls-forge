@@ -174,6 +174,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `SessionReset`, in the Node.js and Python packages, for a request that was
   not sent because the session it was made in has gone, and
   `MAX_REQUEST_BYTES`, the most a request can be as the daemon reads it.
+- **The Node.js package's errors are classes a caller can tell apart**, the
+  Python package's by the same names: `TLSForgeError`, `BinaryNotFound`,
+  `TransportError`, `SessionReset` (a `TransportError` now), `RequestFailed`,
+  `Unsupported` and `Timeout`, each exported. Their messages are unchanged,
+  and one that wraps another error keeps it as `cause`. An error's `name` is
+  its class, so `String(err)` begins with it rather than with `Error`. A
+  mistake in the call is a `TypeError` or a `RangeError` and none of these: a
+  request without a url and a `cookieSet` without a `cookieFile` are now
+  `TypeError`s.
 - `--proxy-env NAME` takes the proxy from the environment variable `NAME`, for
   `fetch`, `proxy` and `daemon`, so that its password is not on the command
   line. The variable is read only when it is named. A name that is empty, a
