@@ -1026,6 +1026,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - The release history is restored from the tags: 0.2.0, 0.2.1 and 0.2.2 are
   listed with what each shipped, and 0.1.0 with what its tag held and the day
   it was tagged.
+- The README is in the order it is read: a quick start, how to install, what
+  a TLS fingerprint is, then recipes, one task each (a list of URLs, a proxy
+  given as `--proxy-env TLSFORGE_PROXY`, cookies kept across runs, retrying,
+  a page's requests, checking the page, and keeping, tracing, logging and
+  reporting a run), then the reference of every command and library,
+  troubleshooting, limitations and development. Every heading kept its name,
+  so a link to one still leads there.
 
 ## [0.2.2] - 2026-10-12
 

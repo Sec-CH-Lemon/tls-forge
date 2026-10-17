@@ -45,51 +45,9 @@ page:
 tls-forge fetch https://example.com/ > page.html
 ```
 
-[A list of URLs](#a-list-of-urls), [a proxy and where a request came
-out](#where-a-request-came-out), [keeping every request](#keeping-every-request)
+[A list of URLs](#a-list-of-urls), [a proxy](#through-a-proxy), [cookies across
+runs](#cookies-across-runs), [keeping every request](#keeping-every-request)
 and the [Go, Node.js and Python libraries](#language-libraries) come after.
-
-## What is a TLS fingerprint?
-
-Before an HTTPS client can send `GET`, headers or a `User-Agent`, it sends a TLS
-ClientHello. That message exposes choices made by its networking stack,
-including:
-
-- supported TLS versions and cipher suites;
-- extensions and their order;
-- supported groups, key shares and signature algorithms;
-- GREASE values and ALPN protocols;
-- session-resumption and application-settings behaviour.
-
-Servers can retain the complete structure or reduce it to identifiers such as
-JA3 and JA4. The negotiated HTTP protocol adds more signals: exact HTTP/1.1
-header casing and order, or HTTP/2 SETTINGS, window updates, pseudo-header
-order, normal header order and values.
-
-Changing only `User-Agent` is therefore insufficient. Node.js and Python
-normally use OpenSSL, Go uses `crypto/tls`, while Chrome uses BoringSSL. Their
-handshakes differ before the server sees any HTTP header.
-
-The handshake and the headers are not all that gives a client away, and
-tls-forge does not reproduce everything else. It does not run
-JavaScript, load a page's subresources, solve challenges or speak HTTP/3, and
-the TCP/IP packets under every connection are this machine's operating
-system's. Redirects are followed as Chrome follows them, and a form's POST,
-`fetch()` and an XHR go out as Chrome sends them, CORS and the client hints a
-server asked for and all, when a request says it is one
-([GO.md](GO.md#browser-contexts)).
-[docs/support.md](docs/support.md)
-lists what is reproduced, how each part is checked, and where it is known not
-to be.
-
-Cloudflare uses these signals in its bot-detection products. Cloudflare Bot
-Management exposes JA3 and JA4 fingerprints as request fields that can be used
-in WAF custom rules, Transform Rules and Workers; see Cloudflare's official
-[JA3/JA4 fingerprint documentation](https://developers.cloudflare.com/bots/additional-configurations/ja3-ja4-fingerprint/).
-
-The profiles in this project are measurements, not hand-written guesses.
-`tls-forge compare` measures a real browser and this client against the same
-local echo server and reports every difference it finds.
 
 ## Install
 
@@ -170,7 +128,7 @@ as you instead.
 `capture` and `compare` are intentionally not supported by the small release
 image because it does not contain a browser.
 
-## Build from source
+### Build from source
 
 Requirements:
 
@@ -231,7 +189,37 @@ Run all project checks before distributing a build:
 make check
 ```
 
-## Verify the fingerprint
+## What is a TLS fingerprint?
+
+Before an HTTPS client can send `GET`, headers or a `User-Agent`, it sends a TLS
+ClientHello. That message exposes choices made by its networking stack,
+including:
+
+- supported TLS versions and cipher suites;
+- extensions and their order;
+- supported groups, key shares and signature algorithms;
+- GREASE values and ALPN protocols;
+- session-resumption and application-settings behaviour.
+
+Servers can retain the complete structure or reduce it to identifiers such as
+JA3 and JA4. The negotiated HTTP protocol adds more signals: exact HTTP/1.1
+header casing and order, or HTTP/2 SETTINGS, window updates, pseudo-header
+order, normal header order and values.
+
+Changing only `User-Agent` is therefore insufficient. Node.js and Python
+normally use OpenSSL, Go uses `crypto/tls`, while Chrome uses BoringSSL. Their
+handshakes differ before the server sees any HTTP header.
+
+Cloudflare uses these signals in its bot-detection products. Cloudflare Bot
+Management exposes JA3 and JA4 fingerprints as request fields that can be used
+in WAF custom rules, Transform Rules and Workers; see Cloudflare's official
+[JA3/JA4 fingerprint documentation](https://developers.cloudflare.com/bots/additional-configurations/ja3-ja4-fingerprint/).
+
+The profiles in this project are measurements, not hand-written guesses.
+`tls-forge compare` measures a real browser and this client against the same
+local echo server and reports every difference it finds.
+
+### Verify the fingerprint
 
 If a Chromium-based browser is installed, start with:
 
@@ -243,429 +231,12 @@ The command measures the browser and the selected profile locally, then compares
 TLS, JA4, HTTP/2 settings, header order and header values. A matching result is
 stronger than checking only a JA3 or JA4 hash.
 
-## Commands
+## Recipes
 
-```text
-tls-forge <command> [flags]
-```
+Each of these is one thing to do with `fetch`, the flags it takes and what
+comes of them. [Reference](#reference) has every flag of every command.
 
-| Command | Purpose |
-|---|---|
-| [`fetch`](#fetch) | Make requests with a browser fingerprint: one URL, or a list of them, each optionally through its own proxy |
-| [`capture`](#capture) | Measure an installed browser and optionally save a reusable profile |
-| [`compare`](#compare) | Compare a profile with an installed browser |
-| [`profiles`](#profiles) | List available profiles |
-| [`proxy`](#proxy) | Re-send requests from another program using the selected fingerprint |
-| [`serve`](#serve) | Run the local TLS/HTTP fingerprint echo server |
-| [`daemon`](#daemon) | Expose the client as a JSON Lines transport |
-| [`version`](#version) | Print the build version |
-
-Run `tls-forge <command> --help` for generated command help. Durations use Go
-syntax such as `500ms`, `30s` or `2m`.
-
-A command that fails says why on standard error, on a line that begins with
-`tlsforge: ` once, whether the reason is the command's own or one the Go
-library gave it:
-
-```text
-tlsforge: Get "http://127.0.0.1:1/": dial tcp 127.0.0.1:1: connect: connection refused
-```
-
-A run that fails for more than one reason, such as a request that got no
-answer and then a report that could not be written, gives each reason a line
-of its own, and every one of them begins the same way.
-
-What a command says has the password of every URL in it taken out, on
-standard error, in a log, a trace, a report and the JSON lines, in what
-`daemon` answers and in what `proxy` reports and sends back with a 502: a
-proxy that could not be read is otherwise quoted back whole, by whatever
-tried to read it. A proxy's username is kept, since it tells two proxies
-apart.
-
-`fetch`, `proxy` and `daemon` take the proxy from an environment variable
-with `--proxy-env NAME`: on the command line, a password is one that `ps`
-shows to every user of the machine. The environment is not a secret either.
-It keeps the password from other users, and from nobody who can read the
-process itself, such as its owner and root. The variable is read only when it
-is named, and naming one that is not set or is empty, or giving `--proxy` as
-well, is a usage error before anything is asked. `daemon --proxy-stdin` takes
-the proxy from the first line of its input instead, which is read once, and
-the Node.js and Python packages start the daemon that way; see
-[the init line](docs/protocol.md#the-init-line).
-
-Ctrl-C, or SIGTERM as `kill`, a service manager and `docker stop` send it,
-stops a command in order. `fetch` cancels the requests in flight, which its
-report and lines say ended with `context canceled`, makes no others, and
-writes its report, its session and the end of its trace, and exits 1; a
-cookie a cancelled request's header fields set is in the session. `daemon`
-answers the request it is making with that error, and exits 0, as it does at
-the end of its input. A second signal ends a command where it stands, should
-the first leave it waiting on something that does not look, such as an output
-nobody reads. SIGKILL cannot be caught, and leaves what it leaves.
-
-When no profile is selected, the network commands (`fetch`, `proxy` and
-`daemon`) use a profile installed as `local`, if one exists, and otherwise
-the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`
-family so it can detect drift instead of comparing a fresh local measurement
-with itself. Use `tls-forge profiles` to see the exact names available on the
-machine. A command resolves its profile once, when it starts, and wears that
-one to the end: a client it makes later, for a proxy a list reaches last, does
-not pick up a profile installed, or a `--profile` file changed, meanwhile.
-
-### `fetch`
-
-Make requests and report how they went. One URL is answered with its page, and
-several URLs, or a list of them, with one JSON object for each request.
-
-```bash
-tls-forge fetch https://example.com/
-tls-forge fetch --print-body https://tls.browserleaks.com/json
-tls-forge fetch https://example.com/ > page.html
-tls-forge fetch -i -H "Accept-Language: en-US" https://example.com/
-tls-forge fetch -X POST -H "Content-Type: application/json" \
-  -d '{"hello":"world"}' https://example.com/api
-tls-forge fetch https://example.com/ https://example.org/
-tls-forge fetch --input example/urls.csv --concurrency 8 --output out/ > results.jsonl
-```
-
-Usage: `tls-forge fetch [flags] [url...]`
-
-`tls-forge fetch --help` lists the flags under the same headings as this table.
-
-| Flag or argument | Meaning |
-|---|---|
-| **What to fetch** | |
-| `[url...]` | One HTTP or HTTPS URL, or several |
-| `--input <file>` | Read the URLs from a file; a list piped to standard input is read when no URL is named |
-| `-u`, `--urls <a,b,c>` | Comma-separated URLs; highest input precedence |
-| `-F`, `--format <format>` | How the list is read: `auto`, `lines`, `json` or `csv`; default `auto` |
-| **The request** | |
-| `-X`, `--method <method>` | HTTP method, for every URL; default `GET` |
-| `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
-| `-d`, `--data <text>` | Request body, for every URL |
-| `--request-kind <kind>` | Send every request as Chrome sends this kind: `navigation`, `form`, `fetch` or `xhr`; see [Sending a request as a page would](#sending-a-request-as-a-page-would) |
-| `--initiator-url <url>` | The page a `--request-kind` request is sent from; a form, `fetch` and `xhr` need one, and a navigation without one is typed into the address bar |
-| **Fingerprint and transport** | |
-| `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
-| `-t`, `--timeout <duration>` | Request timeout; default `30s` |
-| `-k`, `--insecure` | Skip upstream certificate verification |
-| **Proxy** | |
-| `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
-| `--proxy-env <name>` | Read `--proxy` from this environment variable, which keeps its password off the command line; see [Commands](#commands) |
-| `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
-| `--no-exit-lookup` | Make no request to learn where requests come out: no address service before the run, no probe of a site, no name a proxy gave resolved. What a proxy says when it opens a tunnel is still read |
-| **Session** | |
-| `-b`, `--cookie name=value` | Seed one cookie; repeatable |
-| `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
-| `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random, once for each proxy the run goes through, when it starts, and the log and the trace say which |
-| `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format, which holds one session and is refused for a run through more than one proxy |
-| **Running** | |
-| `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given. In `compare`, `-c` is `--color` |
-| `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
-| `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
-| `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
-| `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |
-| `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
-| `--html-decoding <mode>` | How `--wait-for` and `--wait-for-element` read a body as text: `legacy`, the default, or `browser`, as Chrome 155 decodes the document; refused without either; see [Checking the page](#checking-the-page) |
-| **Output** | |
-| `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it, and a log of the run; see [Keeping every request](#keeping-every-request) |
-| `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
-| `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
-| `--json` | Write a JSON line for each request even when one URL is named |
-| `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
-| `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
-| `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
-| `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
-| **Report, trace and log** | |
-| `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
-| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; by default `json` for a `--report=PATH` ending in `.json`, and `html` otherwise |
-| `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
-| `--log <file>` | Write down everything the run does as it does it: every request, the connections it went out on and what came back; `-` is standard error, and a name ending in `.json`, `.jsonl` or `.ndjson` gets JSON lines. With `--output`, kept there as `run-<time>.log` unless this names another; see [Logging a run](#logging-a-run) |
-| `--log-level <level>` | How much the log says: `error`, `warn`, `info`, `debug`, or `trace`, which adds every TLS handshake, certificate and HTTP/2 frame; default `trace` |
-
-What comes out is decided by how the command was asked, not by how many URLs
-it ended up with:
-
-- one URL named on the command line is answered with its page, the way `curl`
-  answers;
-- several URLs, `--urls`, `--input` or a list on standard input are answered
-  with JSON Lines, one object for each request, and so is anything given
-  `--json`.
-
-A list that happens to hold one URL therefore still comes out as a line, and a
-script reading the output does not have to know how long the list was.
-
-On a terminal, `fetch` says how the run went rather than printing the page: a
-bar for how far it has got, a line for how long that has taken, and a row for
-each status code the answers came back with.
-
-```text
-  █████████████████████████████▓▓▓▒▒▒▒▒▒▒▒  40/40  100%
-  5s elapsed · 731 B
-
-  ✓ 200 OK                    29   73%
-  → 304 Not Modified           3    8%
-  ✗ 403 Forbidden              5   13%
-  ✗ 503 Service Unavailable    3    8%
-
-  Requests      40
-  Retries       0
-  Success rate  72.5%
-  Avg time      126ms
-```
-
-The bar is cut by how the answers went, and the rows are marked the same way:
-green and `✓` for a 2xx, yellow and `→` for a 3xx, red and `✗` for everything
-else, each with a shade of its own in the bar so that the three can be told
-apart without colour. A request that got no answer at all is counted in a last
-row, `no response`. Each row gives how many answers had that status and their
-share of those that have come back. While a run is going the second line also
-says roughly how long is left.
-
-When the run is over, four figures follow the rows: how many requests were
-made, how many further tries `--retry` spent on them, the share of the requests
-that ended with a 2xx, and the average time of one request. That time is
-measured from when a request is sent to its last answer, so a request that was
-tried again counts every try and the waits between them. A run that was stopped
-early says how far it got, as `12 of 40`.
-
-The count is redrawn in place while the run goes and stays on screen when it
-ends. It is redrawn and coloured only when standard error is a terminal, and
-`NO_COLOR` turns the colour off; anywhere else it is printed once, plainly, at
-the end. A run of one request is reported on one line instead, which ends with
-how many times it was tried again when it was:
-
-```text
-  ✓ 200 OK · 577 B · 54ms
-  ✓ 200 OK · 577 B · 1.1s · 2 retries
-```
-
-The body is the output, so it still goes wherever standard output was pointed:
-`tls-forge fetch URL > page.html` and `tls-forge fetch URL | jq .` need no flag.
-It is only a terminal that does not get it unless `--print-body` asks, because a page
-is thousands of lines nobody reads as they go past. With `--output` the body
-goes to its directory alone, and `--print-body` prints it as well. `-i` prints the
-status and headers whether or not the body is printed. JSON lines follow the
-same rule, each of them holding a whole page: a pipe and a redirect receive
-them, a terminal only with `--print-body`, and a run that printed none says so at
-the end. The count and everything else that is commentary go to standard
-error, so the lines stay machine-readable.
-
-Before the first request, `fetch` asks a public service which address it comes
-out of, through the same proxy and with the same profile. No cookie is sent
-with the question. The answer is the last line of the block on standard error
-that names the profile in use:
-
-```text
-  exit-ip     203.0.113.7 · PL
-```
-
-The same block says when the profile was measured on another platform than
-this machine's, whether it was asked for by name or chosen because no capture
-of that version exists for this machine. A profile changes the handshake and
-the headers, but the TCP/IP packets under them are always this machine's:
-
-```text
-  tcp/ip      this machine's, macOS: the profile is Windows's, and a server that reads TCP/IP can tell the two apart
-```
-
-Four services are asked, in this order: `www.cloudflare.com/cdn-cgi/trace`,
-`checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next one is asked
-as soon as the one before it fails, or has said nothing for its share of the
-wait, and the first to answer is believed; normally that is one request to the
-first. Amazon and ipify report the address without a country.
-
-This is at least one additional request to a third party on every run. The
-lookup waits at most five seconds in all, and when nobody answers the line says
-so instead of failing the fetch. A list whose entries name different proxies
-has no one address to report, and nobody is asked. `--no-exit-lookup` asks
-nobody, and the line says `not looked up · --no-exit-lookup`.
-
-Cookie files are treated as credentials and saved with mode `0600`. JSON files
-can retain multiple named sessions; Netscape `.txt` files contain one jar and
-are compatible with tools such as curl and wget. `--save-cookies` writes down
-every cookie the session holds, a redirect's host's as well as those of the
-URLs asked for, each as the server set it: its host's alone or its domain's, a
-session cookie without an expiry, and its `SameSite`, so a session read back
-with `--cookies` goes to the hosts it went to before and to no others. A
-cookie lives at most 400 days, as in Chrome. A JSON file written by a
-tls-forge older than this did not keep which cookies were their host's alone;
-read, each of its cookies goes to its domain's subdomains as well, as it did
-then, and the line that says where the session was warmed from says so too.
-A Netscape file holds one session, and a run through more than one proxy has
-one for each, so `--save-cookies` refuses a `.txt` for such a run before
-anything is fetched, and a `.json` keeps each session as a set of its own.
-
-#### Where a request came out
-
-The address asked about before the run is where every request made without a
-proxy comes out. Through a proxy it is not where any request came out: the
-question went on a connection of its own, and a proxy that hands every
-connection an address of its own gave the requests others. Asking again for
-each request would ask about another connection each time.
-
-Only the proxy knows, and some say so in their answer to the `CONNECT` that
-opens each tunnel. `fetch` opens the tunnel through an HTTP or HTTPS proxy
-itself and keeps that answer with the connection, so every request says where
-it came out, and no request is made to anybody to find out.
-
-Every URL, every repeat of it and every try goes out on a connection of its
-own, through a proxy on a tunnel of its own, so a proxy that hands every
-connection an address of its own gives each one. Once the run has been to a
-site, a new connection there resumes the TLS session the site handed out, as
-Chrome's does: the same handshake with `pre_shared_key` added last, and so a
-JA4 of one extension more. Each of the `--concurrency` workers keeps sessions
-of its own, so a site sees as many first contacts as there are workers that
-went to it. `--reuse-connection` keeps a URL's connection for its repeats and
-its tries instead, so that they come out where its first request did. A
-request's redirects, and what its site is asked over the same connection, go
-through its connection.
-
-Which fields say it, and what to ask when none does, is a table,
-[`cmd/tls-forge/exit-headers.json`](cmd/tls-forge/exit-headers.json), built
-into the binary. The file `--exit-headers` names, wherever it is, is laid over
-it when a run begins, as `mergeRight` lays one object over another, so the
-table is changed without building anything. The table built in covers:
-
-| Field | Sent by |
-|---|---|
-| `X-Exit-IP`, with the country in `X-Exit-Country` | Massive, NodeMaven, shellroute |
-| `X-Proxy-Exit-IP` | NodeMaven |
-| `X-ProxyMesh-IP` | ProxyMesh |
-| `X-BD-Outgoing-Ip`, and `ip=` in `X-BD-Dynamic-Egress-Info` | g3proxy |
-| `Node-Ip`, with `Node-Country` | SOAX, when the `CONNECT` asks with `Respond-With: ip,country`, which the file makes every `CONNECT` say |
-| `x-brd-ip`, and `brd_ip=` in `Proxy-Status` | Bright Data: the address on datacenter and ISP zones, a hash of it on residential and mobile ones |
-| `x-luminati-ip`, `x-hola-ip` | Bright Data and Luminati before it, no longer sent |
-| `X-NN-LLS` | NetNut, a long-session token that holds one exit, when the user name asks for one with `-nnid-0` |
-| `X-Scrapoxy-Proxyname` | Scrapoxy, the name of the proxy rather than its address |
-| `X-Crawlera-Slave`, in the response | Zyte Smart Proxy Manager |
-| `peer_ip=` in `x-brd-debug`, in the response | Bright Data Web Unlocker and SERP API, with `-debug-full` |
-
-Oxylabs, Decodo, IPRoyal, Webshare, Apify, Nimble, Evomi, DataImpulse, GeoNode,
-Infatica, Rayobyte, PacketStream, Proxy-Cheap, Live Proxies, Storm Proxies,
-Shifter, Proxy-Seller, ProxyEmpire, Froxy, MarsProxies, Proxyrack, Asocks,
-anyIP, Byteful, Thordata, Zyte API, Crawlbase, ScraperAPI, ScrapingBee and
-ScrapeOps document no such field: some send one on errors, and Byteful an ID
-of the request rather than of the exit. Nor do Kookeey, IPFoxy and the IPIDEA
-network, 922 S5, PIA S5, LunaProxy, PyProxy, IPIDEA and ABCProxy, which was
-taken down in January 2026: each of them says to read the address off a
-service that echoes it. Nor does an open-source forward proxy
-as it comes: Squid, Tinyproxy, 3proxy, Privoxy, mitmproxy, goproxy, Envoy,
-Caddy's forwardproxy, gost, glider, v2ray and Xray, sing-box, mihomo and Tor's
-HTTP tunnel all answer `CONNECT` without one. Envoy can be set up to add one
-with `response_headers_to_add` and `%UPSTREAM_LOCAL_ADDRESS%`, and a field of
-your own then reads it. A proxy in front of another, as Squid with a
-`cache_peer`, mitmproxy, gost, v2ray or mihomo are, answers `CONNECT` itself
-and drops whatever the proxy behind it said.
-
-A file laid over the table needs only what it changes. A field or a probe in it
-replaces the table's of the same key, which is a field's `header`, in any case,
-the answer it comes `in` and the `param` it reads, and a probe's `when` and
-`path`; one with `"off": true` takes the table's out; the rest are added. The file's are read before
-what is left of the table's, so where an answer holds both, the file's is
-believed. [`example/exit-headers.json`](example/exit-headers.json) does each of
-these:
-
-```json
-{
-  "fields": [
-    {"header": "X-Egress-IP", "value": "address", "country": "X-Egress-Country", "provider": "a proxy of one's own"},
-    {"header": "x-brd-ip", "provider": "Bright Data"},
-    {"header": "Node-Ip", "off": true}
-  ],
-  "probes": [
-    {"when": "cf-ray", "path": "/cdn-cgi/trace", "off": true}
-  ]
-}
-```
-
-It adds a field the table does not have, replaces Bright Data's with one that
-does not ask what a hash stands for, and takes out SOAX's field, with the
-`Respond-With` every `CONNECT` said for it, and the Cloudflare probe.
-
-`header` is the field, in any case. `value` is what it holds: `address`, an IP
-address with or without a port after it, `hash`, the proxy's own hash of the
-address, `name`, whatever else the proxy calls where the tunnel comes out, or
-left out for an address or a hash. `0.0.0.0` and `::` say nothing, and an IPv4
-address written as IPv6 is the IPv4 address. `param` is the parameter that
-holds it when the field is `name=value` pairs separated by semicolons, as
-`brd_ip` in `Proxy-Status`, in any of the items of a list of them separated
-by commas, which a `Proxy-Status` two proxies wrote is; a semicolon or a comma
-in quotes separates nothing. `country` and `country_param` are the field, and the parameter
-of it, that name the tunnel's country. `in` is `response` for a field a proxy
-that decrypts the traffic writes into the answer to the request; a site can
-write one there as well, so it is believed only when the answer to `CONNECT`
-said nothing. `ask` is header fields every `CONNECT` is to say, for a proxy
-that answers with the field only when asked; they go to every proxy, and to
-no site. `provider`, `source` and `note` are for whoever reads the file. A key
-the file does not know, a `header`, `country` or `when` that no header field
-can be called, an `ask` a `CONNECT` cannot say (one that frames it, such as
-`Content-Length`, or the credentials, which come from the proxy's URL), a
-`value` or `in` that is none of the ones above, two fields or two probes of
-one key, an empty file, or more after the table ends the run before it
-begins, so that a misspelled file is not silently ignored. A byte order mark
-before the table is passed over.
-
-When the proxy says nothing, or says only a name, the file can say what to
-ask, and only where nothing but the same exit can answer:
-
-- `probes` are asked of the site itself, over the very connection the request
-  went out on. The example asks a site behind Cloudflare, one whose response
-  came with `cf-ray`, for `/cdn-cgi/trace`, which every such site answers with
-  `ip=` and `loc=`: where the request came from, and so where it came out. The
-  answer is believed only when it came back over the same tunnel, which the
-  tunnel's number says; over another it would be another exit's.
-- `resolve`, on a field, turns a name the proxy gave into the address: it asks
-  `url` through the same proxy with a user name that says to go out through the
-  exit of that name. The example asks Bright Data's `brdtest.com/myip.json`
-  with `-ip-<hash>`, once for each hash.
-
-Both are a request more, to the site or to the proxy's own service, and only
-when a report is written or the requests are kept. A site behind Cloudflare
-sees a visitor ask for `/cdn-cgi/trace`, which a browser does not; take the
-probe out with `"off": true` if that matters more than the address. Nothing is asked
-of anybody else on a connection of its own: the answer would be another
-connection's. `--no-exit-lookup` makes neither, nor the lookup before the run:
-what the proxy said is all that is known, a name it gave is shown as the name,
-and a request it said nothing of came out somewhere nobody asked about. The
-fields the file has a `CONNECT` say with `ask` are still said, being no
-request of their own.
-
-```json
-{
-  "fields": [{"header": "x-brd-ip", "resolve": {"user": "{user}-ip-{value}",
-    "url": "https://brdtest.com/myip.json", "format": "json", "ip": "ip", "country": "country"}}],
-  "probes": [{"when": "cf-ray", "path": "/cdn-cgi/trace", "format": "lines", "ip": "ip", "country": "loc"}]
-}
-```
-
-`format` is `json`, an object, or `lines`, a `key=value` to a line, and `ip`
-and `country` the keys that hold the address and the country. An address found
-this way says how in the opened row of the report, in the log, as `by` in the
-JSON report and as `exit_by` in the traces.
-
-The value has to be what the field says before it is believed: a hash is
-letters and digits only, at least sixteen of them, and a name has nothing in
-it a terminal would take for an instruction. A proxy that will not say the
-address and names it instead, as Bright Data does with a hash, is taken at its
-word: the name is where the request came out, the same name being the same
-address, and it is shown as it is, since there is no telling the address from
-it. A proxy that says nothing, as most do, leaves where its requests came out
-unknown, and the [report](#reporting-a-run) says so rather than guess. The
-fields of the answer are in the report, in the log of every request kept with
-`--output` and in the trace, so whether a proxy says anything can be read off
-one run:
-
-```bash
-tls-forge fetch -o out/ --proxy http://user:pass@proxy.example:8080 https://example.com/
-grep -A5 "answer to CONNECT" out/*.log
-```
-
-A SOCKS proxy's answer has no header fields, and through one where a request
-came out is not known. Through an HTTP or HTTPS proxy HTTP/3 is off, as QUIC
-cannot go through it.
-
-#### A list of URLs
+### A list of URLs
 
 ```bash
 tls-forge fetch https://example.com/ https://example.org/
@@ -734,7 +305,55 @@ sometimes`, an unknown profile, a `--proxy` that is no proxy's URL, a
 `--timeout` of nothing, two sources of the list, and a list that does not read
 as one or holds an entry that is not a URL.
 
-#### Retrying and repeating
+### Through a proxy
+
+`--proxy` takes an HTTP, HTTPS or SOCKS proxy, with its credentials when it
+has any. On the command line a password is one that `ps` shows to every user
+of the machine, so `--proxy-env` reads the proxy from a variable it names
+instead:
+
+```bash
+read -rs TLSFORGE_PROXY    # paste http://user:pass@proxy.example:8080
+export TLSFORGE_PROXY
+tls-forge fetch --proxy-env TLSFORGE_PROXY https://tls.browserleaks.com/json
+```
+
+The variable is read because the flag names it, and for no other reason:
+tls-forge reads no `HTTP_PROXY`, `HTTPS_PROXY` or `ALL_PROXY`, which are how
+another program is pointed at [`tls-forge proxy`](#proxy). In a list, each
+entry may name a proxy of its own ([A list of URLs](#a-list-of-urls)), and
+[Where a request came out](#where-a-request-came-out) says how the address
+each request came out of is found.
+
+### Cookies across runs
+
+A run can begin with the cookies another left, and leave its own for the
+next:
+
+```bash
+tls-forge fetch --save-cookies session.json https://example.com/
+tls-forge fetch --cookies session.json --save-cookies session.json https://example.com/account
+```
+
+`--cookies` reads a file tls-forge saved, a browser's export or a Netscape
+`cookies.txt`, and `-b name=value` adds one cookie by hand.
+
+Cookie files are treated as credentials and saved with mode `0600`. JSON files
+can retain multiple named sessions; Netscape `.txt` files contain one jar and
+are compatible with tools such as curl and wget. `--save-cookies` writes down
+every cookie the session holds, a redirect's host's as well as those of the
+URLs asked for, each as the server set it: its host's alone or its domain's, a
+session cookie without an expiry, and its `SameSite`, so a session read back
+with `--cookies` goes to the hosts it went to before and to no others. A
+cookie lives at most 400 days, as in Chrome. A JSON file written by a
+tls-forge older than this did not keep which cookies were their host's alone;
+read, each of its cookies goes to its domain's subdomains as well, as it did
+then, and the line that says where the session was warmed from says so too.
+A Netscape file holds one session, and a run through more than one proxy has
+one for each, so `--save-cookies` refuses a `.txt` for such a run before
+anything is fetched, and a `.json` keeps each session as a set of its own.
+
+### Retrying and repeating
 
 ```bash
 tls-forge fetch --retry 3 https://example.com/
@@ -799,7 +418,7 @@ back through, by name.
   dead proxy    socks5://198.51.100.9:1080  (11 requests, none came back)
 ```
 
-#### Sending a request as a page would
+### Sending a request as a page would
 
 ```bash
 tls-forge fetch --request-kind navigation https://shop.example/item/7
@@ -834,7 +453,7 @@ without `--initiator-url`, a header a script cannot set (`Cookie`, `Origin`,
 Chromium one, or one with no headers of its own. The block the run begins
 with says what its requests are sent as.
 
-#### Checking the page
+### Checking the page
 
 ```bash
 tls-forge fetch --wait-for-element '#price' https://shop.example/item/7
@@ -907,7 +526,7 @@ markup, so `Tom &amp; Jerry` is what a page with an ampersand has, and a
 script's text is in it like any other. A selector that will not parse, or is
 only spaces, is a usage error too.
 
-#### Keeping every request
+### Keeping every request
 
 ```bash
 tls-forge fetch --repeat 20 --retry 2 -o out/ https://example.com/
@@ -986,36 +605,7 @@ one that holds it, the directory the command runs in or one that holds it
 which a run reads to add its session to the ones there), and one holding the
 file standard output or error is redirected to.
 
-#### Files a run reads and writes
-
-Before it reads the list, empties a directory or opens a file, a run checks
-every file its flags name together: what it reads (`--input`, `--cookies`,
-`--exit-headers`), what it writes (`--trace`, `--log`, `--report`,
-`--save-cookies`), and the files its standard output and error are
-redirected to. These are usage errors, with exit code 2 and the reason, before
-anything is emptied, opened, made or asked:
-
-- one file under two flags, when the run writes it for either: by the same
-  name, through a symbolic link, by a hard link, or, on macOS and Windows, by
-  a name that differs only in case. `--input urls.txt --trace urls.txt` would
-  have read the list and written the trace over it. Two flags that only read a
-  file may name it, and so may `--cookies` and `--save-cookies`, which start a
-  session from a file and save it back there;
-- a file the run writes that standard output or error is redirected to;
-- a file that is the `--output` directory, or that the directory or another
-  file would have to be made in;
-- a file the run writes that is a directory, is named with a trailing
-  separator, or would go in a directory that a file is in the way of.
-
-What is in a directory `--clear-output-dir` is about to empty counts as gone,
-since it will be by then. Every file a run writes goes in a directory made for
-it if there is none, and is created with mode `0600`. A report and a session
-are written beside their file and moved over it once whole, so one that fails
-half way, or a disk that fills, leaves the one before it as it was; a symbolic
-link where one goes is replaced rather than followed, and a device such as
-`/dev/null` is written to as it is.
-
-#### Tracing a run
+### Tracing a run
 
 ```bash
 tls-forge fetch --trace run.json https://example.com/
@@ -1070,7 +660,7 @@ values of headers whose names contain `token`, `secret`, `password` or `key`
 are written as `***`; cookie names, cookie attributes and the authorization
 scheme are kept. URLs are recorded in full, including their query strings.
 
-#### Logging a run
+### Logging a run
 
 ```bash
 tls-forge fetch -o out/ https://example.com/
@@ -1143,7 +733,7 @@ that is a usage error, as it is for every file a run reads or writes; see
 [Files a run reads and writes](#files-a-run-reads-and-writes). A log that
 cannot be written is said once the run is over, and the run exits 1.
 
-#### Reporting a run
+### Reporting a run
 
 ```bash
 tls-forge fetch --repeat 20 --retry 2 -o out/ --report https://example.com/
@@ -1325,7 +915,451 @@ how many rows it left out.
 Runnable CLI and SDK examples, with complete sample inputs and outputs, are in
 [`example/`](example/).
 
-### `capture`
+## Reference
+
+Every command with its flags, what each one prints and how it ends, and the
+libraries for Go, Node.js and Python.
+
+### Commands
+
+```text
+tls-forge <command> [flags]
+```
+
+| Command | Purpose |
+|---|---|
+| [`fetch`](#fetch) | Make requests with a browser fingerprint: one URL, or a list of them, each optionally through its own proxy |
+| [`capture`](#capture) | Measure an installed browser and optionally save a reusable profile |
+| [`compare`](#compare) | Compare a profile with an installed browser |
+| [`profiles`](#profiles) | List available profiles |
+| [`proxy`](#proxy) | Re-send requests from another program using the selected fingerprint |
+| [`serve`](#serve) | Run the local TLS/HTTP fingerprint echo server |
+| [`daemon`](#daemon) | Expose the client as a JSON Lines transport |
+| [`version`](#version) | Print the build version |
+
+Run `tls-forge <command> --help` for generated command help. Durations use Go
+syntax such as `500ms`, `30s` or `2m`.
+
+A command that fails says why on standard error, on a line that begins with
+`tlsforge: ` once, whether the reason is the command's own or one the Go
+library gave it:
+
+```text
+tlsforge: Get "http://127.0.0.1:1/": dial tcp 127.0.0.1:1: connect: connection refused
+```
+
+A run that fails for more than one reason, such as a request that got no
+answer and then a report that could not be written, gives each reason a line
+of its own, and every one of them begins the same way.
+
+What a command says has the password of every URL in it taken out, on
+standard error, in a log, a trace, a report and the JSON lines, in what
+`daemon` answers and in what `proxy` reports and sends back with a 502: a
+proxy that could not be read is otherwise quoted back whole, by whatever
+tried to read it. A proxy's username is kept, since it tells two proxies
+apart.
+
+`fetch`, `proxy` and `daemon` take the proxy from an environment variable
+with `--proxy-env NAME`: on the command line, a password is one that `ps`
+shows to every user of the machine. The environment is not a secret either.
+It keeps the password from other users, and from nobody who can read the
+process itself, such as its owner and root. The variable is read only when it
+is named, and naming one that is not set or is empty, or giving `--proxy` as
+well, is a usage error before anything is asked. `daemon --proxy-stdin` takes
+the proxy from the first line of its input instead, which is read once, and
+the Node.js and Python packages start the daemon that way; see
+[the init line](docs/protocol.md#the-init-line).
+
+Ctrl-C, or SIGTERM as `kill`, a service manager and `docker stop` send it,
+stops a command in order. `fetch` cancels the requests in flight, which its
+report and lines say ended with `context canceled`, makes no others, and
+writes its report, its session and the end of its trace, and exits 1; a
+cookie a cancelled request's header fields set is in the session. `daemon`
+answers the request it is making with that error, and exits 0, as it does at
+the end of its input. A second signal ends a command where it stands, should
+the first leave it waiting on something that does not look, such as an output
+nobody reads. SIGKILL cannot be caught, and leaves what it leaves.
+
+When no profile is selected, the network commands (`fetch`, `proxy` and
+`daemon`) use a profile installed as `local`, if one exists, and otherwise
+the latest bundled `chrome` profile. `compare` defaults to the bundled `chrome`
+family so it can detect drift instead of comparing a fresh local measurement
+with itself. Use `tls-forge profiles` to see the exact names available on the
+machine. A command resolves its profile once, when it starts, and wears that
+one to the end: a client it makes later, for a proxy a list reaches last, does
+not pick up a profile installed, or a `--profile` file changed, meanwhile.
+
+#### `fetch`
+
+Make requests and report how they went. One URL is answered with its page, and
+several URLs, or a list of them, with one JSON object for each request.
+
+```bash
+tls-forge fetch https://example.com/
+tls-forge fetch --print-body https://tls.browserleaks.com/json
+tls-forge fetch https://example.com/ > page.html
+tls-forge fetch -i -H "Accept-Language: en-US" https://example.com/
+tls-forge fetch -X POST -H "Content-Type: application/json" \
+  -d '{"hello":"world"}' https://example.com/api
+tls-forge fetch https://example.com/ https://example.org/
+tls-forge fetch --input example/urls.csv --concurrency 8 --output out/ > results.jsonl
+```
+
+Usage: `tls-forge fetch [flags] [url...]`
+
+`tls-forge fetch --help` lists the flags under the same headings as this table.
+
+| Flag or argument | Meaning |
+|---|---|
+| **What to fetch** | |
+| `[url...]` | One HTTP or HTTPS URL, or several |
+| `--input <file>` | Read the URLs from a file; a list piped to standard input is read when no URL is named |
+| `-u`, `--urls <a,b,c>` | Comma-separated URLs; highest input precedence |
+| `-F`, `--format <format>` | How the list is read: `auto`, `lines`, `json` or `csv`; default `auto` |
+| **The request** | |
+| `-X`, `--method <method>` | HTTP method, for every URL; default `GET` |
+| `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
+| `-d`, `--data <text>` | Request body, for every URL |
+| `--request-kind <kind>` | Send every request as Chrome sends this kind: `navigation`, `form`, `fetch` or `xhr`; see [Sending a request as a page would](#sending-a-request-as-a-page-would) |
+| `--initiator-url <url>` | The page a `--request-kind` request is sent from; a form, `fetch` and `xhr` need one, and a navigation without one is typed into the address bar |
+| **Fingerprint and transport** | |
+| `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
+| `-t`, `--timeout <duration>` | Request timeout; default `30s` |
+| `-k`, `--insecure` | Skip upstream certificate verification |
+| **Proxy** | |
+| `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
+| `--proxy-env <name>` | Read `--proxy` from this environment variable, which keeps its password off the command line; see [Commands](#commands) |
+| `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
+| `--no-exit-lookup` | Make no request to learn where requests come out: no address service before the run, no probe of a site, no name a proxy gave resolved. What a proxy says when it opens a tunnel is still read |
+| **Session** | |
+| `-b`, `--cookie name=value` | Seed one cookie; repeatable |
+| `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
+| `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random, once for each proxy the run goes through, when it starts, and the log and the trace say which |
+| `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format, which holds one session and is refused for a run through more than one proxy |
+| **Running** | |
+| `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given. In `compare`, `-c` is `--color` |
+| `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
+| `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
+| `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
+| `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |
+| `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
+| `--html-decoding <mode>` | How `--wait-for` and `--wait-for-element` read a body as text: `legacy`, the default, or `browser`, as Chrome 155 decodes the document; refused without either; see [Checking the page](#checking-the-page) |
+| **Output** | |
+| `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it, and a log of the run; see [Keeping every request](#keeping-every-request) |
+| `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
+| `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
+| `--json` | Write a JSON line for each request even when one URL is named |
+| `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |
+| `-v`, `--verbose` | Print a line when each request finishes, and one for each retry while requests are made one at a time |
+| `--progress <mode>` | Redraw the count while the run goes: `auto`, `always` or `never`; default `auto` |
+| `--color <mode>` | Colour the count by outcome: `auto`, `always` or `never`; default `auto` |
+| **Report, trace and log** | |
+| `-R`, `--report[=<path>]` | Write a report with every request in it, into the `--output` directory or the current one unless a path is given; see [Reporting a run](#reporting-a-run) |
+| `--report-format <format>` | What the report is written as: `html`, `json`, or `html,json` for both; by default `json` for a `--report=PATH` ending in `.json`, and `html` otherwise |
+| `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
+| `--log <file>` | Write down everything the run does as it does it: every request, the connections it went out on and what came back; `-` is standard error, and a name ending in `.json`, `.jsonl` or `.ndjson` gets JSON lines. With `--output`, kept there as `run-<time>.log` unless this names another; see [Logging a run](#logging-a-run) |
+| `--log-level <level>` | How much the log says: `error`, `warn`, `info`, `debug`, or `trace`, which adds every TLS handshake, certificate and HTTP/2 frame; default `trace` |
+
+What comes out is decided by how the command was asked, not by how many URLs
+it ended up with:
+
+- one URL named on the command line is answered with its page, the way `curl`
+  answers;
+- several URLs, `--urls`, `--input` or a list on standard input are answered
+  with JSON Lines, one object for each request, and so is anything given
+  `--json`.
+
+A list that happens to hold one URL therefore still comes out as a line, and a
+script reading the output does not have to know how long the list was.
+
+On a terminal, `fetch` says how the run went rather than printing the page: a
+bar for how far it has got, a line for how long that has taken, and a row for
+each status code the answers came back with.
+
+```text
+  █████████████████████████████▓▓▓▒▒▒▒▒▒▒▒  40/40  100%
+  5s elapsed · 731 B
+
+  ✓ 200 OK                    29   73%
+  → 304 Not Modified           3    8%
+  ✗ 403 Forbidden              5   13%
+  ✗ 503 Service Unavailable    3    8%
+
+  Requests      40
+  Retries       0
+  Success rate  72.5%
+  Avg time      126ms
+```
+
+The bar is cut by how the answers went, and the rows are marked the same way:
+green and `✓` for a 2xx, yellow and `→` for a 3xx, red and `✗` for everything
+else, each with a shade of its own in the bar so that the three can be told
+apart without colour. A request that got no answer at all is counted in a last
+row, `no response`. Each row gives how many answers had that status and their
+share of those that have come back. While a run is going the second line also
+says roughly how long is left.
+
+When the run is over, four figures follow the rows: how many requests were
+made, how many further tries `--retry` spent on them, the share of the requests
+that ended with a 2xx, and the average time of one request. That time is
+measured from when a request is sent to its last answer, so a request that was
+tried again counts every try and the waits between them. A run that was stopped
+early says how far it got, as `12 of 40`.
+
+The count is redrawn in place while the run goes and stays on screen when it
+ends. It is redrawn and coloured only when standard error is a terminal, and
+`NO_COLOR` turns the colour off; anywhere else it is printed once, plainly, at
+the end. A run of one request is reported on one line instead, which ends with
+how many times it was tried again when it was:
+
+```text
+  ✓ 200 OK · 577 B · 54ms
+  ✓ 200 OK · 577 B · 1.1s · 2 retries
+```
+
+The body is the output, so it still goes wherever standard output was pointed:
+`tls-forge fetch URL > page.html` and `tls-forge fetch URL | jq .` need no flag.
+It is only a terminal that does not get it unless `--print-body` asks, because a page
+is thousands of lines nobody reads as they go past. With `--output` the body
+goes to its directory alone, and `--print-body` prints it as well. `-i` prints the
+status and headers whether or not the body is printed. JSON lines follow the
+same rule, each of them holding a whole page: a pipe and a redirect receive
+them, a terminal only with `--print-body`, and a run that printed none says so at
+the end. The count and everything else that is commentary go to standard
+error, so the lines stay machine-readable.
+
+How a session is saved and read again is in [Cookies across
+runs](#cookies-across-runs).
+
+Before the first request, `fetch` asks a public service which address it comes
+out of, through the same proxy and with the same profile. No cookie is sent
+with the question. The answer is the last line of the block on standard error
+that names the profile in use:
+
+```text
+  exit-ip     203.0.113.7 · PL
+```
+
+The same block says when the profile was measured on another platform than
+this machine's, whether it was asked for by name or chosen because no capture
+of that version exists for this machine. A profile changes the handshake and
+the headers, but the TCP/IP packets under them are always this machine's:
+
+```text
+  tcp/ip      this machine's, macOS: the profile is Windows's, and a server that reads TCP/IP can tell the two apart
+```
+
+Four services are asked, in this order: `www.cloudflare.com/cdn-cgi/trace`,
+`checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next one is asked
+as soon as the one before it fails, or has said nothing for its share of the
+wait, and the first to answer is believed; normally that is one request to the
+first. Amazon and ipify report the address without a country.
+
+This is at least one additional request to a third party on every run. The
+lookup waits at most five seconds in all, and when nobody answers the line says
+so instead of failing the fetch. A list whose entries name different proxies
+has no one address to report, and nobody is asked. `--no-exit-lookup` asks
+nobody, and the line says `not looked up · --no-exit-lookup`.
+
+##### Where a request came out
+
+The address asked about before the run is where every request made without a
+proxy comes out. Through a proxy it is not where any request came out: the
+question went on a connection of its own, and a proxy that hands every
+connection an address of its own gave the requests others. Asking again for
+each request would ask about another connection each time.
+
+Only the proxy knows, and some say so in their answer to the `CONNECT` that
+opens each tunnel. `fetch` opens the tunnel through an HTTP or HTTPS proxy
+itself and keeps that answer with the connection, so every request says where
+it came out, and no request is made to anybody to find out.
+
+Every URL, every repeat of it and every try goes out on a connection of its
+own, through a proxy on a tunnel of its own, so a proxy that hands every
+connection an address of its own gives each one. Once the run has been to a
+site, a new connection there resumes the TLS session the site handed out, as
+Chrome's does: the same handshake with `pre_shared_key` added last, and so a
+JA4 of one extension more. Each of the `--concurrency` workers keeps sessions
+of its own, so a site sees as many first contacts as there are workers that
+went to it. `--reuse-connection` keeps a URL's connection for its repeats and
+its tries instead, so that they come out where its first request did. A
+request's redirects, and what its site is asked over the same connection, go
+through its connection.
+
+Which fields say it, and what to ask when none does, is a table,
+[`cmd/tls-forge/exit-headers.json`](cmd/tls-forge/exit-headers.json), built
+into the binary. The file `--exit-headers` names, wherever it is, is laid over
+it when a run begins, as `mergeRight` lays one object over another, so the
+table is changed without building anything. The table built in covers:
+
+| Field | Sent by |
+|---|---|
+| `X-Exit-IP`, with the country in `X-Exit-Country` | Massive, NodeMaven, shellroute |
+| `X-Proxy-Exit-IP` | NodeMaven |
+| `X-ProxyMesh-IP` | ProxyMesh |
+| `X-BD-Outgoing-Ip`, and `ip=` in `X-BD-Dynamic-Egress-Info` | g3proxy |
+| `Node-Ip`, with `Node-Country` | SOAX, when the `CONNECT` asks with `Respond-With: ip,country`, which the file makes every `CONNECT` say |
+| `x-brd-ip`, and `brd_ip=` in `Proxy-Status` | Bright Data: the address on datacenter and ISP zones, a hash of it on residential and mobile ones |
+| `x-luminati-ip`, `x-hola-ip` | Bright Data and Luminati before it, no longer sent |
+| `X-NN-LLS` | NetNut, a long-session token that holds one exit, when the user name asks for one with `-nnid-0` |
+| `X-Scrapoxy-Proxyname` | Scrapoxy, the name of the proxy rather than its address |
+| `X-Crawlera-Slave`, in the response | Zyte Smart Proxy Manager |
+| `peer_ip=` in `x-brd-debug`, in the response | Bright Data Web Unlocker and SERP API, with `-debug-full` |
+
+Oxylabs, Decodo, IPRoyal, Webshare, Apify, Nimble, Evomi, DataImpulse, GeoNode,
+Infatica, Rayobyte, PacketStream, Proxy-Cheap, Live Proxies, Storm Proxies,
+Shifter, Proxy-Seller, ProxyEmpire, Froxy, MarsProxies, Proxyrack, Asocks,
+anyIP, Byteful, Thordata, Zyte API, Crawlbase, ScraperAPI, ScrapingBee and
+ScrapeOps document no such field: some send one on errors, and Byteful an ID
+of the request rather than of the exit. Nor do Kookeey, IPFoxy and the IPIDEA
+network, 922 S5, PIA S5, LunaProxy, PyProxy, IPIDEA and ABCProxy, which was
+taken down in January 2026: each of them says to read the address off a
+service that echoes it. Nor does an open-source forward proxy
+as it comes: Squid, Tinyproxy, 3proxy, Privoxy, mitmproxy, goproxy, Envoy,
+Caddy's forwardproxy, gost, glider, v2ray and Xray, sing-box, mihomo and Tor's
+HTTP tunnel all answer `CONNECT` without one. Envoy can be set up to add one
+with `response_headers_to_add` and `%UPSTREAM_LOCAL_ADDRESS%`, and a field of
+your own then reads it. A proxy in front of another, as Squid with a
+`cache_peer`, mitmproxy, gost, v2ray or mihomo are, answers `CONNECT` itself
+and drops whatever the proxy behind it said.
+
+A file laid over the table needs only what it changes. A field or a probe in it
+replaces the table's of the same key, which is a field's `header`, in any case,
+the answer it comes `in` and the `param` it reads, and a probe's `when` and
+`path`; one with `"off": true` takes the table's out; the rest are added. The file's are read before
+what is left of the table's, so where an answer holds both, the file's is
+believed. [`example/exit-headers.json`](example/exit-headers.json) does each of
+these:
+
+```json
+{
+  "fields": [
+    {"header": "X-Egress-IP", "value": "address", "country": "X-Egress-Country", "provider": "a proxy of one's own"},
+    {"header": "x-brd-ip", "provider": "Bright Data"},
+    {"header": "Node-Ip", "off": true}
+  ],
+  "probes": [
+    {"when": "cf-ray", "path": "/cdn-cgi/trace", "off": true}
+  ]
+}
+```
+
+It adds a field the table does not have, replaces Bright Data's with one that
+does not ask what a hash stands for, and takes out SOAX's field, with the
+`Respond-With` every `CONNECT` said for it, and the Cloudflare probe.
+
+`header` is the field, in any case. `value` is what it holds: `address`, an IP
+address with or without a port after it, `hash`, the proxy's own hash of the
+address, `name`, whatever else the proxy calls where the tunnel comes out, or
+left out for an address or a hash. `0.0.0.0` and `::` say nothing, and an IPv4
+address written as IPv6 is the IPv4 address. `param` is the parameter that
+holds it when the field is `name=value` pairs separated by semicolons, as
+`brd_ip` in `Proxy-Status`, in any of the items of a list of them separated
+by commas, which a `Proxy-Status` two proxies wrote is; a semicolon or a comma
+in quotes separates nothing. `country` and `country_param` are the field, and the parameter
+of it, that name the tunnel's country. `in` is `response` for a field a proxy
+that decrypts the traffic writes into the answer to the request; a site can
+write one there as well, so it is believed only when the answer to `CONNECT`
+said nothing. `ask` is header fields every `CONNECT` is to say, for a proxy
+that answers with the field only when asked; they go to every proxy, and to
+no site. `provider`, `source` and `note` are for whoever reads the file. A key
+the file does not know, a `header`, `country` or `when` that no header field
+can be called, an `ask` a `CONNECT` cannot say (one that frames it, such as
+`Content-Length`, or the credentials, which come from the proxy's URL), a
+`value` or `in` that is none of the ones above, two fields or two probes of
+one key, an empty file, or more after the table ends the run before it
+begins, so that a misspelled file is not silently ignored. A byte order mark
+before the table is passed over.
+
+When the proxy says nothing, or says only a name, the file can say what to
+ask, and only where nothing but the same exit can answer:
+
+- `probes` are asked of the site itself, over the very connection the request
+  went out on. The example asks a site behind Cloudflare, one whose response
+  came with `cf-ray`, for `/cdn-cgi/trace`, which every such site answers with
+  `ip=` and `loc=`: where the request came from, and so where it came out. The
+  answer is believed only when it came back over the same tunnel, which the
+  tunnel's number says; over another it would be another exit's.
+- `resolve`, on a field, turns a name the proxy gave into the address: it asks
+  `url` through the same proxy with a user name that says to go out through the
+  exit of that name. The example asks Bright Data's `brdtest.com/myip.json`
+  with `-ip-<hash>`, once for each hash.
+
+Both are a request more, to the site or to the proxy's own service, and only
+when a report is written or the requests are kept. A site behind Cloudflare
+sees a visitor ask for `/cdn-cgi/trace`, which a browser does not; take the
+probe out with `"off": true` if that matters more than the address. Nothing is asked
+of anybody else on a connection of its own: the answer would be another
+connection's. `--no-exit-lookup` makes neither, nor the lookup before the run:
+what the proxy said is all that is known, a name it gave is shown as the name,
+and a request it said nothing of came out somewhere nobody asked about. The
+fields the file has a `CONNECT` say with `ask` are still said, being no
+request of their own.
+
+```json
+{
+  "fields": [{"header": "x-brd-ip", "resolve": {"user": "{user}-ip-{value}",
+    "url": "https://brdtest.com/myip.json", "format": "json", "ip": "ip", "country": "country"}}],
+  "probes": [{"when": "cf-ray", "path": "/cdn-cgi/trace", "format": "lines", "ip": "ip", "country": "loc"}]
+}
+```
+
+`format` is `json`, an object, or `lines`, a `key=value` to a line, and `ip`
+and `country` the keys that hold the address and the country. An address found
+this way says how in the opened row of the report, in the log, as `by` in the
+JSON report and as `exit_by` in the traces.
+
+The value has to be what the field says before it is believed: a hash is
+letters and digits only, at least sixteen of them, and a name has nothing in
+it a terminal would take for an instruction. A proxy that will not say the
+address and names it instead, as Bright Data does with a hash, is taken at its
+word: the name is where the request came out, the same name being the same
+address, and it is shown as it is, since there is no telling the address from
+it. A proxy that says nothing, as most do, leaves where its requests came out
+unknown, and the [report](#reporting-a-run) says so rather than guess. The
+fields of the answer are in the report, in the log of every request kept with
+`--output` and in the trace, so whether a proxy says anything can be read off
+one run:
+
+```bash
+tls-forge fetch -o out/ --proxy http://user:pass@proxy.example:8080 https://example.com/
+grep -A5 "answer to CONNECT" out/*.log
+```
+
+A SOCKS proxy's answer has no header fields, and through one where a request
+came out is not known. Through an HTTP or HTTPS proxy HTTP/3 is off, as QUIC
+cannot go through it.
+
+##### Files a run reads and writes
+
+Before it reads the list, empties a directory or opens a file, a run checks
+every file its flags name together: what it reads (`--input`, `--cookies`,
+`--exit-headers`), what it writes (`--trace`, `--log`, `--report`,
+`--save-cookies`), and the files its standard output and error are
+redirected to. These are usage errors, with exit code 2 and the reason, before
+anything is emptied, opened, made or asked:
+
+- one file under two flags, when the run writes it for either: by the same
+  name, through a symbolic link, by a hard link, or, on macOS and Windows, by
+  a name that differs only in case. `--input urls.txt --trace urls.txt` would
+  have read the list and written the trace over it. Two flags that only read a
+  file may name it, and so may `--cookies` and `--save-cookies`, which start a
+  session from a file and save it back there;
+- a file the run writes that standard output or error is redirected to;
+- a file that is the `--output` directory, or that the directory or another
+  file would have to be made in;
+- a file the run writes that is a directory, is named with a trailing
+  separator, or would go in a directory that a file is in the way of.
+
+What is in a directory `--clear-output-dir` is about to empty counts as gone,
+since it will be by then. Every file a run writes goes in a directory made for
+it if there is none, and is created with mode `0600`. A report and a session
+are written beside their file and moved over it once whole, so one that fails
+half way, or a disk that fills, leaves the one before it as it was; a symbolic
+link where one goes is replaced rather than followed, and a device such as
+`/dev/null` is written to as it is.
+
+#### `capture`
 
 Open an installed Chromium-based browser, record its TLS and HTTP behaviour and
 optionally save a reusable profile. HTTP/1.1 and HTTP/2 are measured as two
@@ -1365,7 +1399,7 @@ directory. Set `TLSFORGE_PROFILES` to choose another directory. Running
 `capture --install` again replaces the local machine profile after a browser
 update.
 
-#### Measuring a browser you open
+##### Measuring a browser you open
 
 `--manual` prints an address and waits for a browser to come to it, in three
 steps the page itself walks you through:
@@ -1403,7 +1437,7 @@ listener without the trip showing in what it sends, so its profile has no
 HTTP/1.1 section, and a request that goes out over HTTP/1.1 with it uses the
 same headers in canonical spelling.
 
-### `compare`
+#### `compare`
 
 Measure an installed browser and the selected client profile against the same
 local server, then print a field-by-field diff.
@@ -1481,7 +1515,7 @@ Exit codes are meaningful:
 | `1` | Comparison could not be completed |
 | `2` | Invalid arguments or help output |
 
-### `profiles`
+#### `profiles`
 
 List profiles from the local profile directory, profiles embedded in this
 binary and compatible profiles from the underlying transport catalogue.
@@ -1508,7 +1542,7 @@ say what is talking more plainly than any handshake could hide it. The run
 says so in its header. To wear Firefox or Safari whole, measure it with
 `capture --manual`.
 
-### `proxy`
+#### `proxy`
 
 Run an intercepting HTTP/HTTPS proxy. It terminates incoming TLS and creates a
 new outbound connection with the selected browser fingerprint. A normal
@@ -1569,7 +1603,7 @@ handshake in a tunnel has 10 seconds in all. A body has no such time, only the
 one of them ends. The generated leaf-certificate cache is limited to 1024
 hostnames.
 
-### `serve`
+#### `serve`
 
 Run the local HTTPS measurement server independently. `/` contains the browser
 capture page; `/api/all` returns the current connection's TLS and HTTP
@@ -1622,7 +1656,7 @@ others go on. A frame over 16 KiB, a header block that cannot be decoded, a
 setting out of range, or a window past 2^31-1 ends the connection with a
 `GOAWAY` that says why. Request trailers are read and dropped.
 
-### `daemon`
+#### `daemon`
 
 Run one long-lived client behind a JSON Lines protocol. This is the transport
 used by the Node.js and Python SDKs.
@@ -1658,7 +1692,7 @@ one ends the daemon, as described in [the protocol](docs/protocol.md).
 Requests are processed sequentially so one daemon remains one browser identity
 and one cookie jar.
 
-### `version`
+#### `version`
 
 Print the version stamped into the binary:
 
@@ -1669,7 +1703,7 @@ tls-forge version
 Usage: `tls-forge version`. This command has no flags. A source build without
 version linker flags reports `dev`.
 
-### Exit codes and the environment
+#### Exit codes and the environment
 
 Every command ends with one of four codes:
 
@@ -1696,13 +1730,13 @@ either case. A run goes through the proxy `--proxy` gives, or the one in the
 variable `--proxy-env` names, and through none otherwise. Those variables are
 how another program, a browser or `curl`, is pointed at `tls-forge proxy`.
 
-## Language libraries
+### Language libraries
 
 The root README intentionally contains only a working introduction for each
 SDK. Every language has its own detailed API document with all constructor and
 request options, response fields, lifecycle rules and failure behaviour.
 
-### Go
+#### Go
 
 ```bash
 go get github.com/Sec-CH-Lemon/tls-forge
@@ -1736,7 +1770,7 @@ func main() {
 See the complete [Go library documentation](GO.md).
 The runnable consumer project is in [`example/go/`](example/go/).
 
-### Node.js
+#### Node.js
 
 ```bash
 npm install tls-forge
@@ -1759,7 +1793,7 @@ ships its TypeScript types. The runnable consumer projects are in
 [`example/node/`](example/node/) and, in TypeScript,
 [`example/typescript/`](example/typescript/).
 
-### Python
+#### Python
 
 ```bash
 pip install tls-forge
@@ -1798,6 +1832,20 @@ The runnable consumer project is in [`example/python/`](example/python/).
   packets under each connection are this machine's operating system's.
   [docs/support.md](docs/support.md) says what is reproduced and what is not,
   and `tls-forge compare` holds this client to the browser on this machine.
+
+## Limitations
+
+The handshake and the headers are not all that gives a client away, and
+tls-forge does not reproduce everything else. It does not run
+JavaScript, load a page's subresources, solve challenges or speak HTTP/3, and
+the TCP/IP packets under every connection are this machine's operating
+system's. Redirects are followed as Chrome follows them, and a form's POST,
+`fetch()` and an XHR go out as Chrome sends them, CORS and the client hints a
+server asked for and all, when a request says it is one
+([GO.md](GO.md#browser-contexts)).
+[docs/support.md](docs/support.md)
+lists what is reproduced, how each part is checked, and where it is known not
+to be.
 
 ## Development
 
