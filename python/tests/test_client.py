@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import gc
 import json
 import os
@@ -25,6 +26,14 @@ def test_get_returns_the_transport_response(client):
     assert res.headers["content-type"] == ("application/json",)
     assert res.headers["set-cookie"] == ("a=1", "b=2")
     assert res.ok
+
+
+def test_a_response_has_the_fields_it_documents_and_no_other(client):
+    # A field a daemon newer than this package adds is passed over, not an error.
+    response = client().get("https://newer-fields/x")
+    assert [f.name for f in dataclasses.fields(response)] == ["status", "url", "body", "content", "headers", "cookies"]
+    assert response.status == 200 and response.url == "https://newer-fields/x"
+    assert not hasattr(response, "teleport")
 
 
 def test_headers_order_and_cookies_reach_the_transport(client):

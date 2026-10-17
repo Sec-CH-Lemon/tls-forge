@@ -250,6 +250,7 @@ var scenarios = map[string]func(request){
 	"legacy-headers": func(req request) {
 		emit(with(req, map[string]any{"headers": map[string]string{"content-type": "application/json"}}))
 	},
+	"newer-fields":  func(req request) { emit(with(req, map[string]any{"teleport": true})) },
 	"null-headers":  func(req request) { emit(with(req, map[string]any{"headers": nil})) },
 	"fixture":       func(req request) { emit(replay(req, "response.json")) },
 	"fixture-text":  func(req request) { emit(replay(req, "response-text.json")) },

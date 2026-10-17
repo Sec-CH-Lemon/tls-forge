@@ -143,13 +143,15 @@ received earlier in the session.
 
 ## Response
 
-Every successful request resolves to:
+Every successful request resolves to an object with exactly these fields, in
+this order:
 
 ```js
 {
   status: 200,
   url: 'https://example.com/final',
   body: '<html>...</html>',
+  content: <Buffer 3c 68 74 6d 6c 3e ...>,
   headers: {
     'content-type': ['text/html; charset=utf-8'],
     'set-cookie': ['a=1', 'b=2'],
@@ -157,6 +159,9 @@ Every successful request resolves to:
   cookies: ['a=1', 'b=2'],
 }
 ```
+
+What else the daemon's answer carries, such as its `id` and how its body was
+encoded, and any field a newer daemon adds, stays in the client.
 
 | Field | Meaning |
 |---|---|

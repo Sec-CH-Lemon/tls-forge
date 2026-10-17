@@ -138,6 +138,7 @@ const scenarios = {
   'bad-cookie-item': (request) => reply(request, { cookies: [7] }),
   'legacy-headers': (request) => reply(request, { headers: { 'content-type': 'application/json' } }),
   'null-headers': (request) => reply(request, { headers: null }),
+  'newer-fields': (request) => reply(request, { teleport: true }),
   // The committed wire format, replayed verbatim except for the id, which the
   // client matches on. See testdata/protocol/README.md.
   fixture: (request) => write({ ...fixture('response.json'), id: request.id }),

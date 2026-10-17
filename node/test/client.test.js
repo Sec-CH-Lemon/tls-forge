@@ -27,6 +27,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // wants the variable sets it.
 delete process.env.TLSFORGE_BIN;
 const fakeDaemon = path.join(here, 'fake-daemon.js');
+// Where the native fake, which stands in on Windows, finds the committed answers.
+process.env.TLSFORGE_PROTOCOL_FIXTURES = path.join(here, '..', '..', 'testdata', 'protocol');
 
 // The client builds its own argv, so the fake is injected as the BINARY: a
 // shell wrapper that ignores whatever flags it is handed and execs the fake
@@ -58,6 +60,26 @@ test('get returns the transport response', async () => {
   assert.deepEqual(res.headers['content-type'], ['application/json']);
   assert.deepEqual(res.headers['set-cookie'], ['a=1', 'b=2']);
   c.close();
+});
+
+test('a response has the fields it documents, and no other', async () => {
+  // What else the line carries, its id and its body's encoding among them,
+  // and a field a newer transport adds, stays in the client.
+  const c = fake();
+  try {
+    for (const host of ['ok', 'fixture', 'binary', 'newer-fields']) {
+      const res = await c.get(`https://${host}/`);
+      assert.deepEqual(Object.keys(res), ['status', 'url', 'body', 'content', 'headers', 'cookies'], host);
+      assert.ok(Number.isInteger(res.status) && typeof res.url === 'string' && typeof res.body === 'string', host);
+      assert.ok(Buffer.isBuffer(res.content), host);
+      for (const values of Object.values(res.headers)) {
+        assert.ok(Array.isArray(values) && values.every((value) => typeof value === 'string'), host);
+      }
+      assert.ok(Array.isArray(res.cookies) && res.cookies.every((cookie) => typeof cookie === 'string'), host);
+    }
+  } finally {
+    c.close();
+  }
 });
 
 test('headers, order and cookies reach the transport', async () => {

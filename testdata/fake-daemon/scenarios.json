@@ -22,6 +22,7 @@
     "bad-cookie-item": "a cookie a number",
     "legacy-headers": "a header a string, as protocol 1 sent them",
     "null-headers": "headers null",
+    "newer-fields": "the answer, with a field a daemon newer than the packages might add",
     "fixture": "testdata/protocol/response.json, with the request's id",
     "fixture-text": "testdata/protocol/response-text.json, with the request's id",
     "fixture-error": "testdata/protocol/response-error.json, with the request's id",

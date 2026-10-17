@@ -183,6 +183,7 @@ SCENARIOS: dict[str, Callable[[dict], None]] = {
     "bad-cookie-item": lambda request: emit(answer(request, cookies=[7])),
     "legacy-headers": lambda request: emit(answer(request, headers={"content-type": "application/json"})),
     "null-headers": lambda request: emit(answer(request, headers=None)),
+    "newer-fields": lambda request: emit(answer(request, teleport=True)),
     # The committed wire format, replayed verbatim except for the id, which the
     # client matches on. See testdata/protocol/README.md.
     "fixture": lambda request: emit({**fixture("response.json"), "id": request["id"]}),

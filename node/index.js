@@ -109,7 +109,10 @@ function normaliseResponse(response) {
     }
   }
 
-  return { ...response, status, url, body, content, headers, cookies: [...cookies] };
+  // The fields it documents, and no other: what else the line carries, its id
+  // and how its body was encoded among them, and what a newer transport adds,
+  // is the protocol's, not the caller's.
+  return { status, url, body, content, headers, cookies: [...cookies] };
 }
 
 export class Client {
@@ -533,8 +536,9 @@ export class Client {
       return;
     }
 
+    let page;
     try {
-      response = normaliseResponse(response);
+      page = normaliseResponse(response);
     } catch (err) {
       this.#inFlight = null;
       clearTimeout(job.timer);
@@ -546,7 +550,7 @@ export class Client {
     this.#inFlight = null;
     clearTimeout(job.timer);
     if (response.error) job.reject(new RequestFailed(response.error));
-    else job.resolve(response);
+    else job.resolve(page);
     this.#pump();
   }
 

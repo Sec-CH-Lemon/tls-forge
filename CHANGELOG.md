@@ -510,6 +510,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **A Node.js response has exactly the fields it documents**: `status`,
+  `url`, `body`, `content`, `headers` and `cookies`, in that order. It
+  carried the rest of the daemon's answer as well, its `id` and
+  `bodyEncoding` among them, and would have carried whatever a newer daemon
+  added. The Python package's `Response` always had only its own.
 - The three fake daemons the Node.js and Python suites run against answer
   one list of scenarios, `testdata/fake-daemon/scenarios.json`, each from a
   table it dispatches on and declares, and each suite holds its fake to the
