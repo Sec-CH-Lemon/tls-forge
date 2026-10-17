@@ -25,7 +25,7 @@ import time
 import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Literal, Mapping, Sequence, TypedDict
 
 from ._binary import resolve_binary
 from ._errors import RequestFailed, SessionReset, Timeout, TransportError, Unsupported
@@ -57,6 +57,69 @@ _CLOSED_IN_FLIGHT = "tlsforge: client closed"
 #: newline included, in UTF-8. A longer one would end the transport, and the
 #: session in it, so it is refused before it is sent.
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
+
+
+class _BrowserContextKind(TypedDict):
+    kind: Literal["navigation", "form", "fetch", "xhr"]
+    """What sends the request."""
+
+
+class BrowserContext(_BrowserContextKind, total=False):
+    """What in a browser a request stands for: it goes out as Chrome sends that
+    kind, CORS and all. See GO.md, «Browser contexts».
+
+    The keys are this package's names for the daemon's fields, which the client
+    sends as the daemon names them: ``referrer_policy`` is its
+    ``referrerPolicy``. A key there is none of is a TypeError.
+    """
+
+    initiator: str
+    """The URL of the page that sends it. A form, fetch() and an XHR need one;
+    a navigation without one is typed into the address bar."""
+    referrer_policy: Literal[
+        "no-referrer",
+        "no-referrer-when-downgrade",
+        "origin",
+        "origin-when-cross-origin",
+        "same-origin",
+        "strict-origin",
+        "strict-origin-when-cross-origin",
+        "unsafe-url",
+    ]
+    """That page's referrer policy; strict-origin-when-cross-origin when
+    omitted."""
+    mode: Literal["cors", "no-cors", "same-origin"]
+    """fetch()'s request mode; cors when omitted. Only for fetch()."""
+    credentials: Literal["same-origin", "include", "omit"]
+    """fetch()'s credentials mode; same-origin when omitted. An XHR takes
+    same-origin or include, which is withCredentials."""
+
+
+#: Each key of a browser context, and the daemon's name for it.
+_CONTEXT_FIELDS = {
+    "kind": "kind",
+    "initiator": "initiator",
+    "referrer_policy": "referrerPolicy",
+    "mode": "mode",
+    "credentials": "credentials",
+}
+
+
+def _wire_context(context: Mapping[str, Any]) -> dict[str, Any]:
+    """A browser context as the daemon names its fields.
+
+    One that is no mapping, or has a key there is none of, the daemon's own
+    spelling of one included, is a mistake in the call, said before anything
+    is asked.
+    """
+    if not isinstance(context, Mapping):
+        raise TypeError(f"tlsforge: browser_context must be a mapping, not {type(context).__name__}")
+    for key in context:
+        if key not in _CONTEXT_FIELDS:
+            raise TypeError(
+                f"tlsforge: browser_context has no key {key!r}; it takes {', '.join(_CONTEXT_FIELDS)}"
+            )
+    return {_CONTEXT_FIELDS[key]: value for key, value in context.items()}
 
 
 @dataclass(frozen=True)
@@ -204,7 +267,7 @@ class Client:
         headers: Mapping[str, str] | None = None,
         order: Sequence[str] | None = None,
         cookies: Iterable[str] | None = None,
-        browser_context: Mapping[str, Any] | None = None,
+        browser_context: BrowserContext | None = None,
     ) -> Response:
         """GET a URL."""
         return self.request(
@@ -220,7 +283,7 @@ class Client:
         headers: Mapping[str, str] | None = None,
         order: Sequence[str] | None = None,
         cookies: Iterable[str] | None = None,
-        browser_context: Mapping[str, Any] | None = None,
+        browser_context: BrowserContext | None = None,
     ) -> Response:
         """POST a body."""
         return self.request(
@@ -264,7 +327,7 @@ class Client:
         order: Sequence[str] | None = None,
         body: str | bytes | None = None,
         cookies: Iterable[str] | None = None,
-        browser_context: Mapping[str, Any] | None = None,
+        browser_context: BrowserContext | None = None,
     ) -> Response:
         """Make a request.
 
@@ -274,19 +337,23 @@ class Client:
         :param order: the order of the headers *you* send. Without it they go
             last, sorted.
         :param cookies: ``name=value`` pairs added to the jar before the request.
-        :param browser_context: the browser context the request is made in, sent
-            only to a transport that says, when asked with :meth:`hello`, that it
-            applies one.
+        :param browser_context: the browser context the request is made in, by
+            this package's names (:class:`BrowserContext`), sent only to a
+            transport that says, when asked with :meth:`hello`, that it applies
+            one.
         :raises RequestFailed: the request ran and failed — refused, DNS, TLS.
         :raises TransportError: the transport would not start, died, or spoke
             nonsense. The client stays usable.
         :raises Timeout: the deadline passed with no answer.
         :raises Unsupported: a browser context, to a transport that does not
             apply one; the request was not sent.
+        :raises TypeError: a browser context that is no mapping, or has a key
+            there is none of; nothing was asked.
         """
         if not url:
             raise ValueError("tlsforge: request needs a url")
-        if browser_context is not None:
+        context = None if browser_context is None else _wire_context(browser_context)
+        if context is not None:
             hello = self.hello()
             if "browser_context" not in hello.capabilities:
                 raise Unsupported(
@@ -305,7 +372,7 @@ class Client:
             )
         try:
             return self._request(
-                made_in, deadline, url, method, headers, order, body, cookies, browser_context
+                made_in, deadline, url, method, headers, order, body, cookies, context
             )
         finally:
             self._lock.release()
@@ -335,9 +402,10 @@ class Client:
         order: Sequence[str] | None,
         body: str | bytes | None,
         cookies: Iterable[str] | None,
-        browser_context: Mapping[str, Any] | None,
+        context: dict[str, Any] | None,
     ) -> Response:
-        """The request, made with the lock held."""
+        """The request, made with the lock held: its browser context, if any, as
+        the daemon names its fields."""
         self._reap()
         self._sequence += 1
         payload: dict[str, Any] = {"id": self._sequence, "method": method, "url": url}
@@ -356,8 +424,8 @@ class Client:
                 payload["body"] = body
         if cookies:
             payload["setCookie"] = list(cookies)
-        if browser_context is not None:
-            payload["browser"] = dict(browser_context)
+        if context is not None:
+            payload["browser"] = context
         line = _encode_request(payload)
         if self._untold or made_in != self._losses:
             # Told, and not sent: made in a session that has gone, it would

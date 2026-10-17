@@ -273,9 +273,10 @@ out as Chrome sends that: `kind` is `navigation`, `form`, `fetch` or `xhr`,
 `initiator` the page it is sent from, and `referrerPolicy`, `mode` and
 `credentials` are as in the Go library, whose
 [browser contexts](../GO.md#browser-contexts) say what each does, CORS and
-all. A request a page could not send, a key the protocol does not have, and a
-request CORS stops are rejected with the transport's error, and nothing more
-is sent.
+all. A `browserContext` that is no object, or has a key the protocol does not,
+is rejected with a `TypeError` before anything is asked, and `null` is none. A
+request a page could not send and a request CORS stops are rejected with the
+transport's error, a `RequestFailed`, and nothing more is sent.
 
 ## TypeScript
 

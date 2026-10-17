@@ -18,7 +18,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `browserContext` and the Python package's `browser_context` now go out as
   Chrome sends the kind they name, CORS and all. The `browser` object is read
   strictly: a key the protocol does not have is a bad request, and nothing is
-  sent.
+  sent. Each package names the keys in its own language's style, the Python
+  package's `referrer_policy` being the protocol's `referrerPolicy`, types
+  them (`BrowserContext` in both), and refuses a context that is no object or
+  has a key there is none of with a `TypeError`, before anything is asked.
 - **`fetch --request-kind` and `--initiator-url` send a run's requests as
   Chrome sends that kind**: `navigation`, `form`, `fetch` or `xhr`, from the
   page `--initiator-url` names, CORS and all. What a page could not send, and

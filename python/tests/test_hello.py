@@ -152,3 +152,51 @@ def test_a_browser_context_goes_to_a_transport_that_applies_one(client, monkeypa
     # Without one, nothing more is asked.
     answer = seen(c)
     assert answer["controls"] == 1 and answer["browser"] is None and "browser" not in answer["sent"]
+
+
+def test_a_browser_context_goes_by_this_packages_names_as_the_daemons(client, monkeypatch) -> None:
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context")
+    c = client()
+    context: tlsforge.BrowserContext = {
+        "kind": "fetch",
+        "initiator": "https://shop.example/item/7",
+        "referrer_policy": "origin",
+        "mode": "cors",
+        "credentials": "include",
+    }
+    sent = json.loads(c.get("https://ok/", browser_context=context).body)["browser"]
+    assert sent == {
+        "kind": "fetch",
+        "initiator": "https://shop.example/item/7",
+        "referrerPolicy": "origin",
+        "mode": "cors",
+        "credentials": "include",
+    }
+
+
+@pytest.mark.parametrize(
+    ("context", "says"),
+    [
+        ("fetch", r"^tlsforge: browser_context must be a mapping, not str$"),
+        (["kind", "fetch"], r"^tlsforge: browser_context must be a mapping, not list$"),
+        # The daemon's spelling of a key is not this package's.
+        (
+            {"kind": "fetch", "referrerPolicy": "origin"},
+            r"^tlsforge: browser_context has no key 'referrerPolicy'; it takes kind, initiator, "
+            r"referrer_policy, mode, credentials$",
+        ),
+        ({"kind": "fetch", "teleport": True}, r"^tlsforge: browser_context has no key 'teleport'"),
+    ],
+)
+def test_a_browser_context_that_is_no_mapping_or_has_a_key_there_is_none_of_is_a_mistake(
+    client, monkeypatch, context, says
+) -> None:
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context")
+    c = client()
+    with pytest.raises(TypeError, match=says) as refused:
+        c.get("https://ok/", browser_context=context)
+    assert not isinstance(refused.value, tlsforge.TLSForgeError)
+    # Said before anything was asked: the plain request after it is the first
+    # line the transport read.
+    answer = seen(c)
+    assert answer["controls"] == 0 and answer["requests"] == 1

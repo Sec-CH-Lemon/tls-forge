@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Client, Unsupported } from '../index.js';
+import { Client, TLSForgeError, Unsupported } from '../index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fakeDaemon = path.join(here, 'fake-daemon.js');
@@ -167,6 +167,44 @@ test('a browser context goes to a transport that applies one, and to no other', 
     const answer = await seen(client);
     assert.equal(answer.controls, 0);
     assert.equal(answer.browser, null);
+    assert.ok(!answer.sent.includes('browser'));
+  });
+});
+
+test('a browser context goes with every key as the protocol names it', async () => {
+  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context' }, async (client) => {
+    const context = {
+      kind: 'fetch',
+      initiator: 'https://shop.example/item/7',
+      referrerPolicy: 'origin',
+      mode: 'cors',
+      credentials: 'include',
+    };
+    const answer = JSON.parse((await client.get('https://ok/', { browserContext: context })).body);
+    assert.deepEqual(answer.browser, context);
+  });
+});
+
+test('a browser context that is no object, or has a key the protocol does not, is a mistake in the call', async () => {
+  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context' }, async (client) => {
+    for (const [context, says] of [
+      ['fetch', /^tlsforge: browserContext must be an object$/],
+      [['kind', 'fetch'], /^tlsforge: browserContext must be an object$/],
+      // The Python package's spelling of a key is not the protocol's.
+      [{ kind: 'fetch', referrer_policy: 'origin' },
+        /^tlsforge: browserContext has no key "referrer_policy"; it takes kind, initiator, referrerPolicy, mode, credentials$/],
+      [{ kind: 'fetch', teleport: true }, /^tlsforge: browserContext has no key "teleport"/],
+    ]) {
+      await assert.rejects(client.get('https://ok/', { browserContext: context }), (err) => {
+        assert.ok(err instanceof TypeError && !(err instanceof TLSForgeError), err.name);
+        assert.match(err.message, says);
+        return true;
+      });
+    }
+    // Said before anything was asked; and null is none, as it is to the daemon.
+    const answer = JSON.parse((await client.get('https://ok/', { browserContext: null })).body);
+    assert.equal(answer.controls, 0);
+    assert.equal(answer.requests, 1);
     assert.ok(!answer.sent.includes('browser'));
   });
 });

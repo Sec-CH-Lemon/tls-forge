@@ -223,13 +223,16 @@ response = client.post(
 ```
 
 `browser_context` says what in a browser the request stands for, and it goes
-out as Chrome sends that. Its keys are the protocol's: `kind` (`navigation`,
-`form`, `fetch` or `xhr`), `initiator` (the page it is sent from),
-`referrerPolicy`, `mode` and `credentials`, as in the Go library, whose
-[browser contexts](../GO.md#browser-contexts) say what each does, CORS and
-all. A request a page could not send, a key the protocol does not have, and a
-request CORS stops raise `RequestFailed` with the transport's reason, and
-nothing more is sent.
+out as Chrome sends that. Its keys, which `tlsforge.BrowserContext` types, are
+`kind` (`navigation`, `form`, `fetch` or `xhr`), `initiator` (the page it is
+sent from), `referrer_policy`, `mode` and `credentials`, as in the Go library,
+whose [browser contexts](../GO.md#browser-contexts) say what each does, CORS
+and all. The client sends them as the protocol names them, so
+`referrer_policy` goes as `referrerPolicy`. A `browser_context` that is no
+mapping, or has a key there is none of, the protocol's spelling of one
+included, raises `TypeError` before anything is asked. A request a page could
+not send and a request CORS stops raise `RequestFailed` with the transport's
+reason, and nothing more is sent.
 
 Invalid caller values such as an empty URL, non-positive timeout or non-callable
 `on_stderr` raise standard `ValueError` or `TypeError`, and so does a request

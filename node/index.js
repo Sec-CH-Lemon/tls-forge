@@ -42,6 +42,23 @@ function helloOf(response) {
   return { protocol, capabilities: [...capabilities] };
 }
 
+// The keys of a browser context, as the protocol names them.
+const CONTEXT_KEYS = ['kind', 'initiator', 'referrerPolicy', 'mode', 'credentials'];
+
+// contextProblem is why a browser context cannot be sent, or undefined: one
+// that is no object, or has a key the protocol does not, is a mistake in the
+// call, said before anything is asked.
+function contextProblem(context) {
+  if (typeof context !== 'object' || Array.isArray(context)) {
+    return 'tlsforge: browserContext must be an object';
+  }
+  const unknown = Object.keys(context).find((key) => !CONTEXT_KEYS.includes(key));
+  if (unknown !== undefined) {
+    return `tlsforge: browserContext has no key "${unknown}"; it takes ${CONTEXT_KEYS.join(', ')}`;
+  }
+  return undefined;
+}
+
 // refusedArguments is why a transport that exited at once with a usage error
 // failed. With a proxy, that is a tls-forge older than this package, which
 // does not know --proxy-stdin; it never got as far as making a request.
@@ -264,7 +281,10 @@ export class Client {
       );
     }
     const { browserContext, ...asked } = request;
-    if (browserContext === undefined) return this.#send(asked);
+    // null is none, as it is to the daemon.
+    if (browserContext == null) return this.#send(asked);
+    const refused = contextProblem(browserContext);
+    if (refused) return Promise.reject(new TypeError(refused));
     return this.hello().then(({ protocol, capabilities }) => {
       if (!capabilities.includes('browser_context')) {
         throw new Unsupported(

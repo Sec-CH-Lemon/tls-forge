@@ -5,7 +5,7 @@ import net from 'node:net';
 import { test } from 'node:test';
 import zlib from 'node:zlib';
 
-import { Client, MAX_REQUEST_BYTES } from '../index.js';
+import { Client, MAX_REQUEST_BYTES, RequestFailed } from '../index.js';
 
 const binary = process.env.TLSFORGE_REAL_BIN;
 
@@ -278,11 +278,16 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
     );
     assert.deepEqual(other.seen.map((hit) => hit.method), ['OPTIONS']);
 
-    // What the protocol does not have is refused, and nothing is sent.
+    // A context the daemon cannot send is refused, and nothing is sent; a key
+    // the protocol does not have is refused before it is asked.
     const before = page.seen.length;
     await assert.rejects(
+      client.get(`${base}/x`, { browserContext: { kind: 'websocket', initiator: from } }),
+      (err) => err instanceof RequestFailed && /kind "websocket" is not navigation, form, fetch or xhr/.test(err.message),
+    );
+    await assert.rejects(
       client.get(`${base}/x`, { browserContext: { kind: 'fetch', initiator: from, frame: 'top' } }),
-      /bad request: browser: json: unknown field "frame"/,
+      (err) => err instanceof TypeError && /browserContext has no key "frame"/.test(err.message),
     );
     assert.equal(page.seen.length, before);
   } finally {

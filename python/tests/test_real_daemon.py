@@ -404,8 +404,11 @@ def test_the_real_go_daemon_applies_a_browser_context_cors_and_all() -> None:
                 )
             assert [hit[0] for hit in other_seen] == ["OPTIONS"]
 
-            # What the protocol does not have is refused, and nothing is sent.
-            with pytest.raises(RequestFailed, match='bad request: browser: json: unknown field "frame"'):
+            # A context the daemon cannot send is refused, and nothing is sent;
+            # a key there is none of is refused before it is asked.
+            with pytest.raises(RequestFailed, match='kind "websocket" is not navigation, form, fetch or xhr'):
+                client.get(f"{base}/x", browser_context={"kind": "websocket", "initiator": initiator})
+            with pytest.raises(TypeError, match="browser_context has no key 'frame'"):
                 client.get(f"{base}/x", browser_context={"kind": "fetch", "initiator": initiator, "frame": "top"})
             assert len(page_seen) == 1
     finally:
