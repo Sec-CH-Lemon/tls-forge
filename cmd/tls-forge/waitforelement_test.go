@@ -193,14 +193,15 @@ func TestAPageWithoutWhatThePageHasInTheCount(t *testing.T) {
 	text := finding{MissingText: "In stock", looked: true}
 	both := finding{MissingElement: "#price", MissingText: "In stock", looked: true}
 	page := finding{looked: true}
-	p := newProgress(17)
-	for _, r := range []result{
+	made := []result{
 		{Status: 200}, {Status: 200}, {Status: 200, finding: text}, {Status: 200, finding: element},
 		{Status: 200, finding: both}, {Status: 200, finding: element}, {Status: 203, finding: element},
 		{Status: 503}, {Status: 403, finding: page}, {Status: 403}, {Status: 403, finding: text},
 		{Status: 403, finding: page}, {Status: 301, finding: text}, {Status: 301}, {Status: 301, finding: page},
 		{Status: 599, finding: text}, {Error: "refused"},
-	} {
+	}
+	p := newProgress(17)
+	for _, r := range made {
 		p.begin()
 		p.finish(r)
 	}
@@ -216,8 +217,9 @@ func TestAPageWithoutWhatThePageHasInTheCount(t *testing.T) {
 	if !slices.Equal(rows, want) {
 		t.Errorf("rows %q\nwant %q", rows, want)
 	}
-	// The pages: the two 200s, the 403s and the 301 that had what it has.
-	if rate := p.summary()[2]; rate[1] != "29.4%" {
+	// The pages: the two 200s, the 403s and the 301 that had what it has; the
+	// count and the summary agree on which those are.
+	if rate := summarise(made, 0).rows(17)[2]; rate[1] != "29.4%" {
 		t.Errorf("the success rate is %q", rate[1])
 	}
 	if line := verboseLine(result{Status: 403, finding: both, URL: "https://example.test/"}); !strings.HasSuffix(line,

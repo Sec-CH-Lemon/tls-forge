@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -252,6 +253,49 @@ func percent(part, total int) string {
 // proxyRows are the proxies a run went through, as rows of the figures it ends
 // with: how many, how many of them carried anything, and each one that did not.
 // None when the run used no proxy.
+// rows are what the run came to once it is over, as standard error says it
+// under the count: the requests it made, the tries beyond the first that those
+// took, the share that came back as the page and how long one took. planned is
+// how many requests it was to make.
+//
+// Under the count rather than in it, and only at the end. The count is what a
+// run looks like while it goes, redrawn five times a second; these are what is
+// read off it afterwards, and an average of three requests out of a hundred is
+// not a figure yet. From the same summary as the reports, the trace and the
+// log, so that none of them can come to another figure.
+func (s summary) rows(planned int) [][2]string {
+	made := strconv.Itoa(s.Total)
+	if s.Total < planned {
+		// A run that was stopped says how far it got, so that the figures under
+		// it are not read as being about all of it.
+		made += " of " + strconv.Itoa(planned)
+	}
+	return [][2]string{
+		{"Requests", made},
+		{"Retries", strconv.Itoa(s.Retries)},
+		{"Success rate", s.SuccessRate()},
+		// From when a request went out to its last answer, so a request that was
+		// tried again counts the tries and the waits between them.
+		{"Avg time", preciseDuration(s.Spent / time.Duration(max(s.Total, 1)))},
+	}
+}
+
+// facts are what the run came to as its trace and its log say it, by the
+// names they say it by.
+func (s summary) facts() traceArgs {
+	facts := traceArgs{
+		"requests": s.Total, "scraped": s.Succeeded, "not_2xx": s.Warned,
+		"no_response": s.Failed, "bytes": s.Bytes, "retries": s.Retries,
+	}
+	if s.WantedElement != "" {
+		facts["no_element"] = s.NoElement
+	}
+	if s.WantedText != "" {
+		facts["no_text"] = s.NoText
+	}
+	return facts
+}
+
 func (s summary) proxyRows() [][2]string {
 	if len(s.Proxies) == 0 {
 		return nil

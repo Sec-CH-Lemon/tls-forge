@@ -993,18 +993,8 @@ func (r *fetchRun) finish(records []result, failures int, failed error) error {
 	totals.Passes = *r.again.repeat
 	totals.WantedElement, totals.WantedText = r.check.wants()
 	totals.Decoding = r.check.readAs()
-	summed := traceArgs{
-		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
-		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,
-	}
-	if totals.WantedElement != "" {
-		summed["no_element"] = totals.NoElement
-	}
-	if totals.WantedText != "" {
-		summed["no_text"] = totals.NoText
-	}
-	r.lane.instant("summary", "run", summed)
-	r.log.say(slog.LevelInfo, "summary", runAttrs(summed, "took", totals.Elapsed)...)
+	r.lane.instant("summary", "run", totals.facts())
+	r.log.say(slog.LevelInfo, "summary", runAttrs(totals.facts(), "took", totals.Elapsed)...)
 
 	// Whatever the run came to, and most of all when it came to nothing: a
 	// request that failed is the one somebody opens a report about.
@@ -1031,7 +1021,7 @@ func (r *fetchRun) finish(records []result, failures int, failed error) error {
 	// Under the count, what is read off a run when it is over.
 	end := ending{saved: r.output, reports: reported, unprinted: r.unprinted}
 	if r.requests > 1 {
-		figures := r.counts.summary()
+		figures := totals.rows(r.requests)
 		if *r.again.repeat > 1 && len(r.jobs) > 1 {
 			// What turns the number back into a list.
 			figures[0][1] += fmt.Sprintf("  (%d passes over %d URLs)", *r.again.repeat, len(r.jobs))

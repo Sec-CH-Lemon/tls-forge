@@ -189,21 +189,17 @@ func TestProgressOfOneRequest(t *testing.T) {
 	}
 }
 
-func TestProgressSummary(t *testing.T) {
+func TestSummaryRows(t *testing.T) {
 	// What a run comes to once it is over: the requests it made, the tries
 	// beyond the first that those took, the share that came back as the page and
 	// how long one of them took.
-	p := newProgress(5)
-	for _, r := range []result{
+	made := []result{
 		{Status: 200, Attempts: 1, Millis: 100},
 		{Status: 204, Attempts: 3, Millis: 900},
 		// Answered, and not with the page, however many tries were spent on it.
 		{Status: 503, Attempts: 2, Millis: 400},
 		{Status: 301, Attempts: 1, Millis: 100},
 		{Error: "connection refused", Attempts: 2, Millis: 1000},
-	} {
-		p.begin()
-		p.finish(r)
 	}
 	want := [][2]string{
 		{"Requests", "5"},
@@ -214,36 +210,32 @@ func TestProgressSummary(t *testing.T) {
 		// nothing included.
 		{"Avg time", "500ms"},
 	}
-	if got := p.summary(); !slices.Equal(got, want) {
+	if got := summarise(made, 0).rows(5); !slices.Equal(got, want) {
 		t.Errorf("summary = %q, want %q", got, want)
 	}
 
 	// Stopped part of the way: the figures are about what was made, and the
 	// first of them says how much that was.
-	stopped := newProgress(10)
-	for range 3 {
-		stopped.begin()
-		stopped.finish(result{Status: 200, Attempts: 1, Millis: 50})
+	stopped := []result{
+		{Status: 200, Attempts: 1, Millis: 50}, {Status: 200, Attempts: 1, Millis: 50},
+		{Status: 200, Attempts: 1, Millis: 50},
 	}
 	want = [][2]string{
 		{"Requests", "3 of 10"}, {"Retries", "0"}, {"Success rate", "100.0%"}, {"Avg time", "50ms"},
 	}
-	if got := stopped.summary(); !slices.Equal(got, want) {
+	if got := summarise(stopped, 0).rows(10); !slices.Equal(got, want) {
 		t.Errorf("a run that was stopped: %q, want %q", got, want)
 	}
 
 	// A request that was never sent took no tries, which is not one fewer than
 	// none, and a run that made nothing has no rate and no average to divide.
-	unsent := newProgress(2)
-	unsent.begin()
-	unsent.finish(result{Error: "no such proxy"})
-	if got := unsent.summary()[1]; got != [2]string{"Retries", "0"} {
+	if got := summarise([]result{{Error: "no such proxy"}}, 0).rows(2)[1]; got != [2]string{"Retries", "0"} {
 		t.Errorf("a request that was never sent: %q", got)
 	}
 	want = [][2]string{
 		{"Requests", "0 of 2"}, {"Retries", "0"}, {"Success rate", "0.0%"}, {"Avg time", "0ms"},
 	}
-	if got := newProgress(2).summary(); !slices.Equal(got, want) {
+	if got := summarise(nil, 0).rows(2); !slices.Equal(got, want) {
 		t.Errorf("a run of nothing: %q, want %q", got, want)
 	}
 }

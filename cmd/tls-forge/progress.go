@@ -338,40 +338,6 @@ func (p *progress) single(at time.Time, rows []tally, paint palette) string {
 	return paint.of(row.how) + line + paint.reset
 }
 
-// summary is a finished run in four figures: how many requests it made, how
-// many more tries those took, how many came back as the page, and how long one
-// took.
-//
-// Under the count rather than in it, and only at the end. The count is what a
-// run looks like while it goes, redrawn five times a second; these are what is
-// read off it afterwards, and an average of three requests out of a hundred is
-// not a figure yet.
-func (p *progress) summary() [][2]string {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	made := strconv.Itoa(p.done)
-	if p.done < p.total {
-		// A run that was stopped says how far it got, so that the figures under
-		// it are not read as being about all of it.
-		made += " of " + strconv.Itoa(p.total)
-	}
-	pages := 0
-	for row, count := range p.answers {
-		if row.how == answered {
-			pages += count
-		}
-	}
-	return [][2]string{
-		{"Requests", made},
-		{"Retries", strconv.Itoa(p.retries)},
-		{"Success rate", percent(pages, p.done)},
-		// From when a request went out to its last answer, so a request that was
-		// tried again counts the tries and the waits between them.
-		{"Avg time", preciseDuration(p.spent / time.Duration(max(p.done, 1)))},
-	}
-}
-
 // counted is a number of things, in the singular when there is one.
 func counted(n int, one, many string) string {
 	if n == 1 {

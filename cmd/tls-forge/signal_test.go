@@ -166,6 +166,11 @@ func TestFetchStopsOnSIGTERMWithWhatItHas(t *testing.T) {
 			if events := traceFile(t, trace); events[len(events)-1].Phase != phaseEnd {
 				t.Errorf("the trace does not end the run: %+v", events[len(events)-1])
 			}
+			// A list stopped part of the way says how far it got.
+			made := fmt.Sprintf("Requests %d of %d", slices.Index(tc.paths, tc.held)+1, len(tc.paths))
+			if said := strings.Join(strings.Fields(stderr.String()), " "); len(tc.paths) > 1 && !strings.Contains(said, made) {
+				t.Errorf("stderr does not say %q:\n%s", made, stderr.String())
+			}
 			doc := decoded(t, []byte(reportOf(t, report)))
 			last := doc.Requests[len(doc.Requests)-1]
 			if len(doc.Requests) != slices.Index(tc.paths, tc.held)+1 || !strings.HasSuffix(last.URL, tc.held) ||
