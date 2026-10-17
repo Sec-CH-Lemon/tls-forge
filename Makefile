@@ -85,9 +85,14 @@ wrapper-smoke: build
 	cd python && TLSFORGE_REAL_BIN=$(abspath $(BIN)) ../$(VENV)/bin/python -m pytest -q tests/test_real_daemon.py
 
 # Release helpers are outside the language SDKs, so keep their regression tests
-# in the repository-level gate rather than hiding them in one wrapper suite.
+# in the repository-level gate rather than hiding them in one wrapper suite. The
+# scripts that make, hold and publish a release's set are a gate as well: every
+# line, branch and function of them covered, as in the SDKs.
 release-test:
-	node --test scripts/homebrew-formula.test.mjs
+	node --test --experimental-test-coverage \
+		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
+		--test-coverage-include='scripts/release-*.mjs' --test-coverage-exclude='scripts/*.test.mjs' \
+		scripts/homebrew-formula.test.mjs scripts/release-set.test.mjs
 
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
