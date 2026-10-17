@@ -71,6 +71,16 @@ func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
 		{name: "a page that goes on", method: "GET", target: "/p/x?next=/p/y&cookie=1", header: origin, status: 200, cookies: 2,
 			body: `<!doctype html><meta http-equiv="refresh" content="0;url=/p/y"><title>page</title><p>page</p>`},
 		{name: "a page", method: "GET", target: "/p/x", status: 200, body: "<!doctype html><title>page</title><p>page</p>"},
+		{name: "authentication asked for", method: "GET", target: "/auth/x/a?next=/p/y", status: 401,
+			want: map[string]string{"WWW-Authenticate": `Basic realm="bench"`, "Content-Type": "text/html; charset=utf-8"},
+			body: "<p>401</p>"},
+		{name: "authentication with other credentials", method: "GET", target: "/auth/x/a", header: []string{"Authorization", "Basic dTp4"},
+			status: 401, want: map[string]string{"WWW-Authenticate": `Basic realm="bench"`}},
+		{name: "authenticated, a page that goes on", method: "GET", target: "/auth/x/a?next=/p/y", header: []string{"Authorization", "Basic dTpw"},
+			status: 200, want: map[string]string{"WWW-Authenticate": ""},
+			body: `<!doctype html><meta http-equiv="refresh" content="0;url=/p/y"><title>page</title><p>page</p>`},
+		{name: "authenticated, a redirect", method: "GET", target: "/auth/x/a?to=/auth/x/b", header: []string{"Authorization", "Basic dTpw"},
+			status: 302, want: map[string]string{"Location": "/auth/x/b"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w := served(s, tc.method, tc.target, tc.header...)
@@ -95,6 +105,11 @@ func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
 	w := served(s, http.MethodOptions, "/cors/x?cookie=1")
 	if _, asked := w.Header()["Accept-Ch"]; asked || len(w.Header().Values("Set-Cookie")) != 0 {
 		t.Errorf("headers %v", w.Header())
+	}
+	// Digest is offered before Basic when asked, each in a field of its own.
+	w = served(s, http.MethodGet, "/auth/x/a?offer=digest")
+	if got := w.Header().Values("WWW-Authenticate"); len(got) != 2 || !strings.HasPrefix(got[0], "Digest realm=\"bench\", nonce=") || got[1] != `Basic realm="bench"` {
+		t.Errorf("challenges %v", got)
 	}
 	// Cookies of every SameSite are the four, and in order.
 	w = served(s, http.MethodGet, "/p/x?cookie=2")

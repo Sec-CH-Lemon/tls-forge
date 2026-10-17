@@ -52,6 +52,7 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 //   - /chain/N redirects to /chain/N+1;
 //   - /cors/... answers what CORS allows, a preflight allowed but for ?deny and
 //     kept as long as ?maxage says;
+//   - /auth/... asks for HTTP authentication (authPage);
 //   - /run/ID is the scenario's run page;
 //   - anything else is a page, which goes on to ?next by a refresh.
 //
@@ -108,6 +109,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		setCookies(w, r)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
+	case strings.HasPrefix(path, "/auth/"):
+		authPage(w, r)
 	case strings.HasPrefix(path, "/run/"):
 		s.runPage(w, r, strings.TrimPrefix(path, "/run/"))
 	case path == "/favicon.ico":
@@ -115,13 +118,45 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	default:
 		setCookies(w, r)
 		allow(w, r)
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		refresh := ""
-		if next := q.Get("next"); next != "" {
-			refresh = `<meta http-equiv="refresh" content="0;url=` + next + `">`
-		}
-		_, _ = w.Write([]byte("<!doctype html>" + refresh + "<title>page</title><p>page</p>"))
+		page(w, q.Get("next"))
 	}
+}
+
+// page writes a page, which goes on to next by a refresh when there is one.
+func page(w http.ResponseWriter, next string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	refresh := ""
+	if next != "" {
+		refresh = `<meta http-equiv="refresh" content="0;url=` + next + `">`
+	}
+	_, _ = w.Write([]byte("<!doctype html>" + refresh + "<title>page</title><p>page</p>"))
+}
+
+// benchAuthorization is what a page under /auth/ takes: u:p, Basic, as {U}
+// has them in its URL.
+const benchAuthorization = "Basic dTpw"
+
+// authPage answers a page under /auth/: 401 with a Basic challenge, after a
+// Digest one for ?offer=digest, until the request says benchAuthorization;
+// then a redirect to ?to, or a page that goes on to ?next.
+func authPage(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	if r.Header.Get("Authorization") != benchAuthorization {
+		if q.Get("offer") == "digest" {
+			w.Header().Add("WWW-Authenticate", `Digest realm="bench", nonce="b3ec7d4c", qop="auth"`)
+		}
+		w.Header().Add("WWW-Authenticate", `Basic realm="bench"`)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte("<!doctype html><title>401</title><p>401</p>"))
+		return
+	}
+	if to := q.Get("to"); to != "" {
+		w.Header().Set("Location", to)
+		w.WriteHeader(http.StatusFound)
+		return
+	}
+	page(w, q.Get("next"))
 }
 
 // runPage is the page scenario id runs in: its body, and its script, which

@@ -1,8 +1,5905 @@
 {
  "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
  "measured": "2026-10-16, 2026-10-17",
- "how": "A local server answered three origins, www.example.com and api.example.com (one site) and www.example.net (another), mapped to 127.0.0.1 with --host-resolver-rules, and localhost, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP; it kept every request as the bytes said it, headers in order with their values, and HTTP/2 the priority of its HEADERS frame (exclusive, stream it depends on, weight as on the wire). Each scenario ran in a fresh profile: a URL opened from the command line, or a page whose script navigated, submitted a form, called fetch() or sent an XHR. The pages that ran them, and the requests that set cookies for them, are left out, as are the port numbers.",
+ "how": "A local server answered three origins, www.example.com and api.example.com (one site) and www.example.net (another), mapped to 127.0.0.1 with --host-resolver-rules, and localhost, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP; it kept every request as the bytes said it, headers in order with their values, and HTTP/2 the priority of its HEADERS frame (exclusive, stream it depends on, weight as on the wire). Each scenario ran in a fresh profile: a URL opened from the command line, or a page whose script navigated, submitted a form, called fetch() or sent an XHR. A page under /auth/ answered 401, with a Basic challenge of the realm \"bench\" (after a Digest one where the scenario says so), until it was sent u:p. The pages that ran them, and the requests that set cookies for them, are left out, as are the port numbers.",
  "scenarios": {
+  "auth-form-post": {
+   "note": "a form posted to a URL of the same origin with credentials, a page that answers 401 until it is sent them",
+   "h2": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/auth/auth-form-post/post?next=/p/auth-form-post-end",
+     "headers": [
+      [
+       ":method",
+       "POST"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-form-post/post?next=/p/auth-form-post-end"
+      ],
+      [
+       "content-length",
+       "9"
+      ],
+      [
+       "cache-control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "content-type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "origin",
+       "https://www.example.com"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/auth-form-post"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ],
+     "body": "a=1&b=x+y"
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/auth/auth-form-post/post?next=/p/auth-form-post-end",
+     "headers": [
+      [
+       ":method",
+       "POST"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-form-post/post?next=/p/auth-form-post-end"
+      ],
+      [
+       "content-length",
+       "9"
+      ],
+      [
+       "cache-control",
+       "max-age=0"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "content-type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "origin",
+       "https://www.example.com"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/auth-form-post"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ],
+     "body": "a=1&b=x+y"
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-form-post-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-form-post-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-form-post/post?next=/p/auth-form-post-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/auth/auth-form-post/post?next=/p/auth-form-post-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/auth-form-post"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/auth/auth-form-post/post?next=/p/auth-form-post-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/auth-form-post"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-form-post-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-form-post/post?next=/p/auth-form-post-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-digest": {
+   "note": "a URL with credentials given on the command line, a page that offers Digest and then Basic",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-digest/a?offer=digest",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-digest/a?offer=digest"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-digest/a?offer=digest",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-digest/a?offer=digest"
+      ],
+      [
+       "authorization",
+       "Digest username=\"u\", realm=\"bench\", nonce=\"b3ec7d4c\", uri=\"/auth/auth-nav-digest/a?offer=digest\", response=\"f2b8b49dfa7b77a4c73ca8c344b9f86c\", qop=auth, nc=00000001, cnonce=\"e00b1861ac9940bc\""
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-digest/a?offer=digest",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-digest/a?offer=digest",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Digest username=\"u\", realm=\"bench\", nonce=\"b3ec7d4c\", uri=\"/auth/auth-nav-digest/a?offer=digest\", response=\"87003819f68049b92d12dd68ebbde3de\", qop=auth, nc=00000001, cnonce=\"8d2de2d6b4bc4425\""
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-from-page": {
+   "note": "location.href to a URL of the same origin with credentials, a page that answers 401 until it is sent them",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/auth-nav-from-page"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/auth-nav-from-page"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-from-page-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-nav-from-page-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/auth-nav-from-page"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/auth-nav-from-page"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-from-page-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-from-page/a?next=/p/auth-nav-from-page-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-later-other-dir": {
+   "note": "the same, then a page of another directory, of the same realm, by a URL without them",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-later-other-dir/a?next=https://www.example.com/auth/auth-nav-later-other-dir-other/b%3Fnext%3D/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-later-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-later-other-dir-other/b?next=/p/auth-nav-later-other-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-later-same-dir": {
+   "note": "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then one of its directory by a URL without them",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-same-dir/b?next=/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-later-same-dir/b?next=/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-later-same-dir/b?next=/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-later-same-dir/b?next=/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-later-same-dir/a?next=https://www.example.com/auth/auth-nav-later-same-dir/b%3Fnext%3D/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-later-same-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-later-same-dir/b?next=/p/auth-nav-later-same-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-redirect-after": {
+   "note": "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then 302 to a page of its directory",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/a?to=/auth/auth-nav-redirect-after/b%3Fnext%3D/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-redirect-after/a?to=/auth/auth-nav-redirect-after/b%3Fnext%3D/p/auth-nav-redirect-after-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/a?to=/auth/auth-nav-redirect-after/b%3Fnext%3D/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-redirect-after/a?to=/auth/auth-nav-redirect-after/b%3Fnext%3D/p/auth-nav-redirect-after-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end"
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-nav-redirect-after-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/a?to=/auth/auth-nav-redirect-after/b%3Fnext%3D/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/a?to=/auth/auth-nav-redirect-after/b%3Fnext%3D/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-redirect-after-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-redirect-after/b?next=/p/auth-nav-redirect-after-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-redirect-to-credentials": {
+   "note": "a command-line navigation, 302 to a URL with credentials, a page that answers 401 until it is sent them",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/auth-nav-redirect-to-credentials?to=https://u:p@www.example.com/auth/auth-nav-redirect-to-credentials/a%3Fnext%3D/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/302/auth-nav-redirect-to-credentials?to=https://u:p@www.example.com/auth/auth-nav-redirect-to-credentials/a%3Fnext%3D/p/auth-nav-redirect-to-credentials-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end"
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-nav-redirect-to-credentials-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/auth-nav-redirect-to-credentials?to=https://u:p@www.example.com/auth/auth-nav-redirect-to-credentials/a%3Fnext%3D/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-redirect-to-credentials-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-redirect-to-credentials/a?next=/p/auth-nav-redirect-to-credentials-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-typed": {
+   "note": "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then a page of its directory and one outside it",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-typed-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-nav-typed-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-typed-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-typed/b?next=/p/auth-nav-typed-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-typed-other-dir": {
+   "note": "the same, then a page of another directory, of the same realm",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-typed-other-dir/a?next=/auth/auth-nav-typed-other-dir-other/b%3Fnext%3D/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/auth-nav-typed-other-dir-end",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/auth/auth-nav-typed-other-dir-other/b?next=/p/auth-nav-typed-other-dir-end"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-nav-wrong": {
+   "note": "a URL with credentials the page does not take, given on the command line",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-wrong/a",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-wrong/a"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-wrong/a",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-nav-wrong/a"
+      ],
+      [
+       "authorization",
+       "Basic dTp4"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "none"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-user",
+       "?1"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-wrong/a",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-nav-wrong/a",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTp4"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "none"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-User",
+       "?1"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "auth-xhr": {
+   "note": "XHR GET of a URL of the same origin with credentials, a page that answers 401 until it is sent them",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-xhr/x",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-xhr/x"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/auth-xhr"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-xhr/x",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/auth/auth-xhr/x"
+      ],
+      [
+       "authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/auth-xhr"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-xhr/x",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/auth-xhr"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/auth/auth-xhr/x",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Authorization",
+       "Basic dTpw"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/auth-xhr"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
   "ch-critical-after-redirect": {
    "note": "a typed navigation, 302 to a page that asks for a hint and says it is critical",
    "h2": [

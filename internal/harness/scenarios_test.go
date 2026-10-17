@@ -30,7 +30,7 @@ func TestTheCatalogueHasEveryScenarioTheFixtureHas(t *testing.T) {
 }
 
 // placeholder is one of the catalogue's that fill would have filled in.
-var placeholder = regexp.MustCompile(`\{(A|S|X|C|H|L|ID)\}`)
+var placeholder = regexp.MustCompile(`\{(A|S|X|C|U|W|H|L|ID)\}`)
 
 func TestEveryScenarioIsPlannedWithEveryPlaceFilledIn(t *testing.T) {
 	o := origins(8443, 8080)
@@ -60,7 +60,8 @@ func TestAScenarioRunsOnItsPageUnlessToldOtherwise(t *testing.T) {
 	if p != (plan{start: "http://localhost:8080/run/y", wait: "/p/y", pre: "https://www.example.net:8443/p/set", settle: time.Second}) {
 		t.Errorf("planned %+v", p)
 	}
-	if got := origins(1, 2); got["C"] != "https://u:p@www.example.net:1" || got["H"] != "http://www.example.com:2" || len(got) != 6 {
+	if got := origins(1, 2); got["C"] != "https://u:p@www.example.net:1" || got["U"] != "https://u:p@www.example.com:1" ||
+		got["W"] != "https://u:x@www.example.com:1" || got["H"] != "http://www.example.com:2" || len(got) != 8 {
 		t.Errorf("origins %v", got)
 	}
 }

@@ -93,7 +93,22 @@ var notSent = map[string]string{
 	"fetch-post-same-origin-headers": "the order of several headers a script set follows the renderer's hash table",
 	"ch-fetch-three":                 "the order of several client hints of a script's request follows the renderer's hash table",
 	"ch-fetch-all":                   "the order of several client hints of a script's request follows the renderer's hash table",
+	// Not yet: the credentials of a URL go with its first request, and no
+	// challenge is answered.
+	"auth-nav-typed":                   authNotYet,
+	"auth-nav-typed-other-dir":         authNotYet,
+	"auth-nav-wrong":                   authNotYet,
+	"auth-nav-digest":                  authNotYet,
+	"auth-nav-from-page":               authNotYet,
+	"auth-nav-redirect-to-credentials": authNotYet,
+	"auth-nav-redirect-after":          authNotYet,
+	"auth-form-post":                   authNotYet,
+	"auth-xhr":                         authNotYet,
+	"auth-nav-later-same-dir":          authNotYet,
+	"auth-nav-later-other-dir":         authNotYet,
 }
+
+const authNotYet = "a URL's credentials go with its first request, and no 401 is answered"
 
 // asked is the URL of a scenario's page with its query.
 const allHints = "sec-ch-ua,sec-ch-ua-mobile,sec-ch-ua-platform,sec-ch-ua-arch,sec-ch-ua-bitness,sec-ch-ua-full-version,sec-ch-ua-full-version-list,sec-ch-ua-model,sec-ch-ua-platform-version,sec-ch-ua-wow64,sec-ch-ua-form-factors,sec-ch-dpr,sec-ch-viewport-width,sec-ch-viewport-height,sec-ch-device-memory,sec-ch-prefers-color-scheme,sec-ch-prefers-reduced-motion,sec-ch-prefers-reduced-transparency,dpr,viewport-width,device-memory,rtt,downlink,ect,save-data"

@@ -40,9 +40,10 @@ const submit = "document.getElementById('f').submit();"
 
 // catalogue is every scenario measured, by its name in the fixture. In its
 // URLs {A} is https://www.example.com and {S} https://api.example.com, one
-// site, {X} https://www.example.net, another, {C} {X} with credentials, all on
-// the port of the protocol measured; {H} is http://www.example.com and {L}
-// http://localhost, on the plain port; and {ID} the scenario's name.
+// site, {X} https://www.example.net, another, {C} {X} with credentials, {U}
+// {A} with the ones the pages under /auth/ take, u:p, and {W} {A} with others,
+// all on the port of the protocol measured; {H} is http://www.example.com and
+// {L} http://localhost, on the plain port; and {ID} the scenario's name.
 var catalogue = map[string]scenario{
 	// Navigations.
 	"nav-direct":                     {note: "a URL given on the command line", start: "{A}/p/nav-direct", wait: "/p/nav-direct"},
@@ -199,6 +200,20 @@ var catalogue = map[string]scenario{
 	"ch-plain-asks":              {note: "a typed navigation to a plain-http page that asks for a hint and moves on", start: "{H}/p/ch-plain-asks?accept=sec-ch-ua-arch&next=/p/ch-plain-asks-end", wait: "/p/ch-plain-asks-end"},
 	"ch-redirect-to-asker":       {note: "a page of an origin that asked, then a navigation from another site redirected to it", start: "{A}/run/{ID}?accept=sec-ch-ua-arch", script: "location.href='{X}/r/302/ch-redirect-to-asker?to={A}/p/ch-redirect-to-asker-end';", wait: "/p/ch-redirect-to-asker-end"},
 	"redir-fetch-cross-site-302": {note: "fetch() of another site, 302 to a third origin", script: "fetch('{X}/r/302/redir-fetch-cross-site-302?to={S}/cors/fetch-after-cross').then(done);"},
+
+	// HTTP authentication: a page under /auth/ answers 401 with a Basic
+	// challenge, of the realm "bench", until it is sent u:p.
+	"auth-nav-typed":                   {note: "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then a page of its directory and one outside it", start: "{U}/auth/{ID}/a?next=/auth/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-nav-typed-other-dir":         {note: "the same, then a page of another directory, of the same realm", start: "{U}/auth/{ID}/a?next=/auth/{ID}-other/b%3Fnext%3D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-nav-wrong":                   {note: "a URL with credentials the page does not take, given on the command line", start: "{W}/auth/{ID}/a", wait: "/never", settle: 3000 * time.Millisecond},
+	"auth-nav-digest":                  {note: "a URL with credentials given on the command line, a page that offers Digest and then Basic", start: "{U}/auth/{ID}/a?offer=digest", wait: "/never", settle: 3000 * time.Millisecond},
+	"auth-nav-from-page":               {note: "location.href to a URL of the same origin with credentials, a page that answers 401 until it is sent them", script: "location.href='{U}/auth/{ID}/a?next=/p/{ID}-end';", wait: "/p/{ID}-end"},
+	"auth-nav-redirect-to-credentials": {note: "a command-line navigation, 302 to a URL with credentials, a page that answers 401 until it is sent them", start: "{A}/r/302/{ID}?to={U}/auth/{ID}/a%3Fnext%3D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-nav-redirect-after":          {note: "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then 302 to a page of its directory", start: "{U}/auth/{ID}/a?to=/auth/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-form-post":                   {note: "a form posted to a URL of the same origin with credentials, a page that answers 401 until it is sent them", html: formHTML("post", "{U}/auth/{ID}/post?next=/p/{ID}-end", ""), script: submit, wait: "/p/{ID}-end"},
+	"auth-xhr":                         {note: "XHR GET of a URL of the same origin with credentials, a page that answers 401 until it is sent them", script: "const x=new XMLHttpRequest();x.open('GET','{U}/auth/{ID}/x');x.onloadend=done;x.send();"},
+	"auth-nav-later-same-dir":          {note: "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then one of its directory by a URL without them", start: "{U}/auth/{ID}/a?next={A}/auth/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
+	"auth-nav-later-other-dir":         {note: "the same, then a page of another directory, of the same realm, by a URL without them", start: "{U}/auth/{ID}/a?next={A}/auth/{ID}-other/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
 }
 
 // origins are the origins of a run whose TLS origins are on port, plain HTTP
@@ -210,6 +225,8 @@ func origins(port, plain int) map[string]string {
 		"S": "https://api.example.com:" + tls,
 		"X": "https://www.example.net:" + tls,
 		"C": "https://u:p@www.example.net:" + tls,
+		"U": "https://u:p@www.example.com:" + tls,
+		"W": "https://u:x@www.example.com:" + tls,
 		"H": "http://www.example.com:" + http,
 		"L": "http://localhost:" + http,
 	}
