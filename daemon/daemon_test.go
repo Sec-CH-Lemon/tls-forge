@@ -711,6 +711,25 @@ func TestHelloSaysWhatTheDaemonIsWithoutAConnection(t *testing.T) {
 	}
 }
 
+func TestAFieldTheProtocolDoesNotHaveIsPassedOver(t *testing.T) {
+	// The Node.js package of 0.2 and before put a caller's whole request on
+	// the line, so a field it does not name has always been sent, and passed
+	// over: refusing it now would fail a request that worked. Where it falls
+	// in the line does not cost the id.
+	client := &fakeClient{}
+	for _, line := range []string{
+		`{"timeout":5000,"frame":{"top":true},"id":11,"url":"https://example.com/"}`,
+		`{"id":11,"url":"https://example.com/","Browser ":{"kind":7},"json":[1,2]}`,
+	} {
+		client.got = nil
+		got := handle(context.Background(), line, client)
+		if got.ID != 11 || got.Error != "" || client.got == nil || client.got.URL != "https://example.com/" ||
+			client.got.Browser != nil {
+			t.Errorf("%s: %+v, sent %+v", line, got, client.got)
+		}
+	}
+}
+
 func TestABrowserContextIsApplied(t *testing.T) {
 	client := &fakeClient{}
 	got := handle(context.Background(), `{"id":7,"url":"https://example.com/","browser":{"kind":"fetch",`+

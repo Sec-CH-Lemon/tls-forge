@@ -42,14 +42,15 @@
   "protocols": {
     "": "hello is answered with protocol 2, and TLSFORGE_TEST_CAPABILITIES as capabilities",
     "1": "as a daemon older than control lines: bad request: no url",
+    "bad": "protocol a string",
+    "bad-capabilities": "a capability a number",
+    "bool": "protocol true",
+    "exit": "exits with code 3",
     "fixture": "testdata/protocol/response-hello.json, with the line's id",
     "fixture-old": "testdata/protocol/response-hello-old.json, with the line's id",
-    "bad": "protocol a string",
-    "bool": "protocol true",
-    "bad-capabilities": "a capability a number",
-    "no-capabilities": "capabilities a string",
     "low": "protocol 1, said outright",
-    "silent": "no answer",
-    "exit": "exits with code 3"
+    "newer": "protocol 7, which a daemon newer than the packages speaks, with browser_context and a capability nobody knows yet",
+    "no-capabilities": "capabilities a string",
+    "silent": "no answer"
   }
 }

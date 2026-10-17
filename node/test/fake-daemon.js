@@ -178,6 +178,7 @@ const protocols = {
   'bad-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: [7] })),
   'no-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: 'all' })),
   low: (request) => write(blank(request, { protocol: 1 })),
+  newer: (request) => write(blank(request, { protocol: 7, capabilities: ['browser_context', 'teleport'] })),
   silent: () => {},
   exit: () => process.exit(3),
 };

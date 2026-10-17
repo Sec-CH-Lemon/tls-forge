@@ -268,7 +268,10 @@ var protocols = map[string]func(request){
 	"no-capabilities": func(req request) {
 		emit(blank(req, map[string]any{"protocol": 2, "capabilities": "all"}))
 	},
-	"low":    func(req request) { emit(blank(req, map[string]any{"protocol": 1})) },
+	"low": func(req request) { emit(blank(req, map[string]any{"protocol": 1})) },
+	"newer": func(req request) {
+		emit(blank(req, map[string]any{"protocol": 7, "capabilities": []string{"browser_context", "teleport"}}))
+	},
 	"silent": func(request) {},
 	"exit":   func(request) { os.Exit(3) },
 }

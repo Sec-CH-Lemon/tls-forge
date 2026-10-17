@@ -149,6 +149,12 @@ the base64 it claims to be, comes back the same way with `error` set.
 The daemon does not exit on a bad request. A daemon that died on a malformed URL
 would take the session's cookie jar with it.
 
+A field of a request line the protocol does not have is passed over, as it
+always has been: the Node.js package of 0.2 and before put a caller's whole
+request object on the line, so a field it does not name was sent, and
+refusing it now would fail a request that worked. What a field added since
+says is behind a capability, and read strictly there: `browser` below.
+
 ## Asking what a daemon is
 
 A line with `control` instead of `url` is a question for the daemon, answered

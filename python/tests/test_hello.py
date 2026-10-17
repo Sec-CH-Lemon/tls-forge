@@ -55,6 +55,16 @@ def test_an_answer_that_says_nothing_it_can_is_a_bad_response(client, monkeypatc
     assert seen(c)["controls"] == 2
 
 
+def test_a_transport_newer_than_this_package_is_read_for_what_it_says_it_can_do(client, monkeypatch) -> None:
+    # A protocol after 2, and a capability no package knows yet, are no reason
+    # to refuse what both know.
+    monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", "newer")
+    c = client()
+    assert c.hello() == tlsforge.Hello(7, ("browser_context", "teleport"))
+    context = {"kind": "fetch", "initiator": "https://example.com/"}
+    assert json.loads(c.get("https://ok/", browser_context=context).body)["browser"] == context
+
+
 def test_a_transport_that_does_not_answer_is_asked_again(client, monkeypatch) -> None:
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", "silent")
     c = client(timeout=0.3)

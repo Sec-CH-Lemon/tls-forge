@@ -223,6 +223,7 @@ PROTOCOLS: dict[str, Callable[[dict], None]] = {
     "bad-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities=[7])),
     "no-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities="all")),
     "low": lambda request: emit(_blank(request, protocol=1)),
+    "newer": lambda request: emit(_blank(request, protocol=7, capabilities=["browser_context", "teleport"])),
     "silent": lambda _request: None,
     "exit": _exit,
 }

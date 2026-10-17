@@ -68,6 +68,17 @@ test('a transport says the protocol it speaks and what it can do, once', async (
   });
 });
 
+test('a transport newer than this package is read for what it says it can do', async () => {
+  // A protocol after 2, and a capability no package knows yet, are no reason
+  // to refuse what both know.
+  await withTransport({ TLSFORGE_TEST_PROTOCOL: 'newer' }, async (client) => {
+    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport'] });
+    const context = { kind: 'fetch', initiator: 'https://example.com/' };
+    const answer = JSON.parse((await client.get('https://ok/', { browserContext: context })).body);
+    assert.deepEqual(answer.browser, context);
+  });
+});
+
 test('a transport older than the question speaks protocol 1', async () => {
   await withTransport({ TLSFORGE_TEST_PROTOCOL: '1' }, async (client) => {
     assert.deepEqual(await client.hello(), { protocol: 1, capabilities: [] });
