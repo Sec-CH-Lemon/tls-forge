@@ -310,7 +310,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--cookie-set <id>` | Select a set from a multi-session JSON file; otherwise one is chosen at random, once for each proxy the run goes through, when it starts, and the log and the trace say which |
 | `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format, which holds one session and is refused for a run through more than one proxy |
 | **Running** | |
-| `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given |
+| `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given. In `compare`, `-c` is `--color` |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
 | `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
 | `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
@@ -1416,7 +1416,7 @@ Usage: `tls-forge compare [flags]`
 | `-b`, `--browser <name-or-path>` | Browser to measure; auto-detected when omitted |
 | `--headless` | Run the browser without a window |
 | `-j`, `--json` | Print both captures and the comparison as JSON |
-| `-c`, `--color <mode>` | `auto`, `always` or `never`; default `auto` |
+| `-c`, `--color <mode>` | `auto`, `always` or `never`; default `auto`. In `fetch`, `-c` is `--concurrency`; the long names say the same in both |
 | `-f`, `--full` | Do not trim matching values; differences are always printed in full |
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
 | `--browser-arg <argument>` | Append a browser process argument; repeatable |
