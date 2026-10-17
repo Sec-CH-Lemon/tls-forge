@@ -28,6 +28,7 @@ import (
 
 	fhttp "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
+	"github.com/bogdanfinn/tls-client/profiles"
 	utls "github.com/bogdanfinn/utls"
 	"golang.org/x/net/proxy"
 
@@ -366,6 +367,38 @@ func TestATransportOptionIsGivenAfterTLSForgesOwn(t *testing.T) {
 	}
 	if got, err := client.CookiesFor(site.URL); err != nil || len(got) != 0 {
 		t.Errorf("the client's own jar holds %v, %v", got, err)
+	}
+}
+
+func TestAClientProfileGivenAsATransportOptionOrdersThePseudoHeaders(t *testing.T) {
+	// The transport orders them as its client profile does, so a client
+	// profile given as an option replaces the profile's order with the rest
+	// of what it sets; the headers each request carries stay the profile's.
+	server := startEcho(t)
+	client := newTestClient(t, WithProfile("chrome_155_macos"),
+		WithTransportOption(tls_client.WithClientProfile(profiles.Firefox_148)))
+	measured := measure(t, client, server)
+	if got, want := measured.HTTP2.PseudoHeaderOrder, []string{"m", "p", "a", "s"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("pseudo header order = %v, want Firefox's %v", got, want)
+	}
+	if !strings.Contains(measured.UserAgent(), "Chrome/") {
+		t.Errorf("user-agent = %q, want the profile's", measured.UserAgent())
+	}
+
+	// fetch() goes out on a transport of its own, built with the option too:
+	// Firefox's HEADERS priority in place of the one Chrome gives a script.
+	res, err := client.Do(&Request{URL: server.URL() + "/api/all",
+		Browser: &BrowserContext{Kind: KindFetch, Initiator: server.URL() + "/"}})
+	if err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	var fetched capture.Capture
+	if err := json.Unmarshal(res.Body, &fetched); err != nil {
+		t.Fatalf("decoding: %v", err)
+	}
+	if p := fetched.HTTP2.HeaderPriority; p == nil || p.Weight != 41 || p.Exclusive ||
+		!reflect.DeepEqual(fetched.HTTP2.PseudoHeaderOrder, []string{"m", "p", "a", "s"}) {
+		t.Errorf("fetch() went out with priority %+v and pseudo-headers %v", p, fetched.HTTP2.PseudoHeaderOrder)
 	}
 }
 
@@ -814,7 +847,7 @@ func TestProtocolLayoutEdgeCases(t *testing.T) {
 	customHost := newLayouts(fhttp.Header{}, fhttp.Header{
 		"Host":               {"old.test"},
 		fhttp.HeaderOrderKey: {"host"},
-	}, nil)
+	})
 	req.Host = "virtual.test"
 	if got := customHost.redirected(req).http1["Host"]; !reflect.DeepEqual(got, []string{"virtual.test"}) {
 		t.Errorf("relative redirect custom Host = %v", got)

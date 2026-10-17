@@ -732,6 +732,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- A client profile given as a transport option
+  (`WithTransportOption(tls_client.WithClientProfile(...))`) orders the
+  HTTP/2 pseudo-headers too, as GO.md says an option that sets what tls-forge
+  sets does. Every request carried the tls-forge profile's order, so its
+  handshake was one browser's and its pseudo-headers another's.
 - `THIRD-PARTY-NOTICES.txt` names `github.com/andybalholm/cascadia`, which
   `--wait-for-element` linked into the binary without its notice. A check in
   CI now makes the notices, the report's stylesheet, `gofmt`'s output and a

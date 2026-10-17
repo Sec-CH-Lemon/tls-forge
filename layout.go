@@ -37,14 +37,12 @@ type layouts struct {
 
 type layoutsKey struct{}
 
-// newLayouts are the layouts of the blocks http2, given the pseudo-header
-// order pseudo when there is one, and http1, nil for none; each tells its
-// protocol's writer that the request names no user agent where it names none
-// (quietUserAgent).
-func newLayouts(http2, http1 fhttp.Header, pseudo []string) *layouts {
-	if len(pseudo) > 0 {
-		http2[fhttp.PHeaderOrderKey] = pseudo
-	}
+// newLayouts are the layouts of the blocks http2 and http1, nil for none; each
+// tells its protocol's writer that the request names no user agent where it
+// names none (quietUserAgent). The pseudo-headers are the transport's to
+// order, as its client profile says: the profile's, or the one a transport
+// option gave.
+func newLayouts(http2, http1 fhttp.Header) *layouts {
 	quietUserAgent(http2, http2UserAgent)
 	l := &layouts{http2: http2}
 	if http1 != nil {
@@ -71,7 +69,7 @@ func (c *Client) layoutsAsGiven(headers, given Header, host string) *layouts {
 		// else differs.
 		http1 = cloneHeaderLayout(http2)
 	}
-	return newLayouts(http2, http1, c.profile.HTTP2.PseudoHeaderOrder)
+	return newLayouts(http2, http1)
 }
 
 // browserLayouts are the layouts of a request in a browser context: field, its
@@ -79,8 +77,7 @@ func (c *Client) layoutsAsGiven(headers, given Header, host string) *layouts {
 // script being those a script set.
 func (c *Client) browserLayouts(field, script Header, order []string, host string) *layouts {
 	return newLayouts(browserLayout(field, order, host),
-		browserHTTP1Layout(field, script, order, c.profile.HTTP1, c.http1Headers, host),
-		c.profile.HTTP2.PseudoHeaderOrder)
+		browserHTTP1Layout(field, script, order, c.profile.HTTP1, c.http1Headers, host))
 }
 
 // redirected are the layouts of req, a redirect's request, made from l, the
@@ -100,7 +97,7 @@ func (l *layouts) redirected(req *fhttp.Request) *layouts {
 		// another origin, so a source origin cannot lend its Host to another.
 		host = req.Host
 	}
-	return newLayouts(req.Header, redirectHTTP1Layout(l.http1, l.http2, req.Header, host), nil)
+	return newLayouts(req.Header, redirectHTTP1Layout(l.http1, l.http2, req.Header, host))
 }
 
 // wear is req wearing l: the HTTP/2 block, which a connection that speaks
