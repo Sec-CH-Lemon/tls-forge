@@ -92,7 +92,7 @@ release-test:
 	node --test --experimental-test-coverage \
 		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
 		--test-coverage-include='scripts/release-*.mjs' --test-coverage-exclude='scripts/*.test.mjs' \
-		scripts/homebrew-formula.test.mjs scripts/release-set.test.mjs
+		scripts/homebrew-formula.test.mjs scripts/release-set.test.mjs scripts/release-publish.test.mjs
 
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
