@@ -92,11 +92,10 @@ type Session struct {
 	// session records is the first.
 	requests int
 
-	// navigation and reported are guarded by the Server's mutex, not this
-	// session's. They describe how the server files this session among the
-	// others, which is not a question a session can answer about itself.
+	// navigation is guarded by the Server's mutex, not this session's. It
+	// describes how the server files this session among the others, which is
+	// not a question a session can answer about itself.
 	navigation      bool
-	reported        bool
 	navigationToken string
 }
 
@@ -496,8 +495,11 @@ func latest[T any](list []T, most int) []T {
 	return list
 }
 
-// Panics returns what has been recovered from connection handlers, which should
-// be nothing.
+// Panics is a diagnostic: what has been recovered from connection handlers,
+// the latest of them, which should be nothing. A handler that panics costs its
+// connection and not the process, and is kept here rather than swallowed, so
+// that a program or a test running the server can ask afterwards whether one
+// did. Each call hands back a copy.
 func (s *Server) Panics() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -679,17 +681,14 @@ func (s *Server) captureSession(token string, fallback *Session) (*Session, erro
 		if !ok {
 			return nil, fmt.Errorf("echo: unknown navigation %q", token)
 		}
-		target.reported = true
 		return target, nil
 	}
 	if fallback.navigation {
-		fallback.reported = true
 		return fallback, nil
 	}
 	s.nextNavigation++
 	fallback.navigationToken = strconv.FormatUint(s.nextNavigation, 36)
 	fallback.navigation = true
-	fallback.reported = true
 	s.file(fallback)
 	return fallback, nil
 }

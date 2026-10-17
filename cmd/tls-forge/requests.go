@@ -473,13 +473,10 @@ func runJobs(ctx context.Context, jobs []job, b runner, records *[]result,
 // the same URL at once would be asking a different question, about what a
 // server does under a burst.
 func (b runner) dispatch(ctx context.Context, jobs []job, queue chan<- job) {
-	occurrences := make(map[string]int)
 	handed := 0
 	for pass := 1; pass <= b.repeat; pass++ {
 		for entry, j := range jobs {
 			j.entry = entry
-			occurrences[j.URL]++
-			j.occurrence = occurrences[j.URL]
 			j.run = pass
 			handed++
 			j.id = handed
