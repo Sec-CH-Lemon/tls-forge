@@ -677,6 +677,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- `--profile`'s help said its default was `chrome`, also on a machine where a
+  run wears the browser measured there. It says what the default is: that
+  browser when there is one, else `chrome`.
 - **A Docker image built from a developer's checkout carries none of what
   that checkout has lying around.** The build was given a profile measured
   from the machine's own browser, which is compiled into the binary, along

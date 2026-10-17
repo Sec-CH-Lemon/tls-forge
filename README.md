@@ -307,7 +307,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--request-kind <kind>` | Send every request as Chrome sends this kind: `navigation`, `form`, `fetch` or `xhr`; see [Sending a request as a page would](#sending-a-request-as-a-page-would) |
 | `--initiator-url <url>` | The page a `--request-kind` request is sent from; a form, `fetch` and `xhr` need one, and a navigation without one is typed into the address bar |
 | **Fingerprint and transport** | |
-| `-p`, `--profile <name-or-path>` | Profile to impersonate |
+| `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
 | `-t`, `--timeout <duration>` | Request timeout; default `30s` |
 | `-k`, `--insecure` | Skip upstream certificate verification |
 | **Proxy** | |
@@ -1492,7 +1492,7 @@ Usage: `tls-forge proxy [flags]`
 
 | Flag | Meaning |
 |---|---|
-| `-p`, `--profile <name-or-path>` | Profile used for outbound requests |
+| `-p`, `--profile <name-or-path>` | Profile used for outbound requests; without one, the browser measured on this machine (`local`) when there is one, else `chrome` |
 | `-x`, `--proxy <url>` | Optional upstream proxy |
 | `--proxy-env <name>` | Read the upstream proxy from this environment variable instead |
 | `-t`, `--timeout <duration>` | Outbound request timeout; default `30s` |
@@ -1599,7 +1599,7 @@ Usage: `tls-forge daemon [flags]`
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
 | `--cookies <file>` | Load a warmed session |
 | `--cookie-set <id>` | Select a set from the cookie file |
-| `-p`, `--profile <name-or-path>` | Profile to impersonate |
+| `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome` |
 | `-x`, `--proxy <url>` | Upstream proxy |
 | `--proxy-env <name>` | Read the upstream proxy from this environment variable instead |
 | `--proxy-stdin` | Read the upstream proxy from the first line of standard input, the init line, as the Node.js and Python packages do; see [the protocol](docs/protocol.md#the-init-line) |

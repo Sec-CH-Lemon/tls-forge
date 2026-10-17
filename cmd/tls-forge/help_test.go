@@ -79,3 +79,22 @@ func TestFetchHelpShowsEveryFlagUnderAGroup(t *testing.T) {
 		t.Errorf("fetch --help shows %q, the groups name %q\n%s", shown, grouped, stdout)
 	}
 }
+
+func TestTheProfileDefaultIsSaidAsItIs(t *testing.T) {
+	// The browser measured on this machine when there is one, which no fixed
+	// default would say: a help naming chrome there names what the run does
+	// not wear.
+	for _, command := range []string{"fetch", "proxy", "daemon"} {
+		_, stdout, _ := exec(t, command, "--help")
+		var line string
+		for _, l := range strings.Split(stdout, "\n") {
+			if strings.Contains(l, "--profile") {
+				line = l
+			}
+		}
+		if !strings.Contains(line, "the browser measured on this machine when there is one, else chrome") ||
+			strings.Contains(line, "(default") {
+			t.Errorf("%s --help says of --profile: %q", command, line)
+		}
+	}
+}

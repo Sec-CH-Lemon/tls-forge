@@ -140,7 +140,12 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 		flags.saveCookies = fs.String("save-cookies", "",
 			"write the session this run ends with here; .txt writes a cookies.txt")
 	}
-	flags.profile = fs.StringP("profile", "p", tlsforge.DefaultProfile, "profile to impersonate")
+	// No default for pflag to print: it is the browser measured on this machine
+	// when there is one, which resolve finds, and a help that said chrome there
+	// would say what the run does not wear.
+	flags.profile = fs.StringP("profile", "p", "",
+		"profile to impersonate; without one, the browser measured on this machine when there is one, else chrome, "+
+			"the newest Chrome shipped")
 	flags.proxy = fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port")
 	flags.proxyEnv = fs.String("proxy-env", "",
 		"name of an environment variable holding the proxy URL, which keeps its password off the command line")
