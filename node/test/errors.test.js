@@ -99,9 +99,9 @@ async function withEnv(env, body) {
 const FAILURES = [
   { name: 'a request the far end failed', ask: (c) => c.get('https://error/'), kind: RequestFailed,
     says: /^upstream refused$/ },
-  { name: 'no answer in time', ask: (c) => c.get('https://silent/'), kind: Timeout,
+  { name: 'no answer in time', options: { timeout: 300 }, ask: (c) => c.get('https://silent/'), kind: Timeout,
     says: /^tlsforge: request timed out$/ },
-  { name: 'a request made in a session that went',
+  { name: 'a request made in a session that went', options: { timeout: 300 },
     ask: async (c) => {
       await assert.rejects(() => c.get('https://silent/'), Timeout);
       return c.get('https://ok/');
@@ -123,7 +123,7 @@ const FAILURES = [
     options: { proxy: 'http://proxy.test:8080' }, ask: (c) => c.get('https://ok/'), kind: TransportError,
     says: /^tlsforge: the transport did not take its proxy: / },
   { name: 'an init line that cannot be written', env: { TLSFORGE_TEST_INIT: 'deaf' },
-    options: { proxy: `http://proxy.test:8080/${'x'.repeat(1 << 20)}`, timeout: 5_000 },
+    options: { proxy: `http://proxy.test:8080/${'x'.repeat(1 << 20)}` },
     ask: (c) => c.get('https://ok/'), kind: TransportError, says: /^tlsforge: write failed: /, cause: Error },
   { name: 'a browser context the transport does not apply',
     ask: (c) => c.request({ url: 'https://ok/', browserContext: { kind: 'fetch', initiator: 'https://a.test/' } }),
@@ -157,7 +157,9 @@ for (const failure of FAILURES) {
   test(`${failure.name}: ${failure.kind.name}`, async () => {
     await withEnv(failure.env ?? {}, async () => {
       const binary = failure.binary?.() ?? wrapper;
-      const client = new Client({ binary, timeout: 300, ...failure.options });
+      // Time for a cold start (a binary just built has taken over half a
+      // second to answer on macOS); a case about the deadline sets its own.
+      const client = new Client({ binary, timeout: 5_000, ...failure.options });
       failure.before?.(binary);
       try {
         await assert.rejects(() => failure.ask(client), (err) => {
