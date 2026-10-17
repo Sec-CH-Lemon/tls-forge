@@ -293,11 +293,6 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the home directory, the directory the command runs in, any directory that
   holds one of those, one with a git repository in it, one holding a file the
   run reads, and one holding the file its output is redirected to.
-- A registry-facing end-to-end workflow installs an exact released version of
-  the Go, npm and PyPI distributions on Linux, macOS and Windows, makes requests
-  through every SDK, runs the published amd64 and arm64 container images, and
-  installs and tests the current stable Homebrew formula. It is a separate,
-  manually dispatched check for any chosen version.
 - **`fetch` takes a list.** Several URLs on the command line, `--urls a,b,c`,
   `--input FILE` in lines, JSON or CSV, or a list piped to standard input are
   fetched `--concurrency` at a time, four by default, and answered with JSON
@@ -519,12 +514,6 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   is.
 - The address the service answers with must parse as an IP address before it
   is shown; anything else is reported as not looked up.
-- Builds use Go 1.26.9 and `golang.org/x/net` 0.60.0, which fix nine advisories
-  that `govulncheck` reports as reachable from this code: HTTP/2 HPACK, flow
-  control and trailer handling, HTTP/1.1 `CONNECT` and MIME header parsing,
-  malformed ECH extensions in `crypto/tls`, and escaping contexts in
-  `html/template`, which renders the report. Go 1.26.9 is now the minimum
-  toolchain.
 
 ### Changed
 
@@ -685,10 +674,6 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   spoken to over HTTP/1.1, one connection to it for each tunnel, and HTTP/3 is
   turned off for a client that has one, which the transport refused through
   such a proxy anyway. SOCKS proxies are unchanged.
-- Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and
-  uTLS 1.7.8, including upstream fixes for HTTP/2 flow control, ALPN transport
-  reuse and per-connection signature GREASE. Runtime cryptography and
-  compression dependencies are current as well.
 
 ### Fixed
 
@@ -956,27 +941,53 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   when a run failed for two reasons at once, such as a request that got no
   answer and a report that could not be written, the second line had no
   prefix at all. Errors the library returns to Go programs are unchanged.
+
+
+## [0.2.2] - 2026-10-12
+
+### Added
+
+- Profiles of Chrome 154 and Chrome 155, for Linux, macOS and Windows.
+  `chrome` names Chrome 155 from this release.
+
+### Security
+
+- Builds use Go 1.26.9 and `golang.org/x/net` 0.60.0, which fix nine advisories
+  that `govulncheck` reports as reachable from this code: HTTP/2 HPACK, flow
+  control and trailer handling, HTTP/1.1 `CONNECT` and MIME header parsing,
+  malformed ECH extensions in `crypto/tls`, and escaping contexts in
+  `html/template`, which renders the `batch` report. Go 1.26.9 is now the
+  minimum toolchain.
+
+## [0.2.1] - 2026-09-21
+
+### Fixed
+
+- The release workflow has the `id-token: write` permission, which
+  publishing to npm and PyPI with provenance asks for. The code is 0.2.0's.
+
+## [0.2.0] - 2026-09-21
+
+### Added
+
+- A registry-facing end-to-end workflow installs an exact released version of
+  the Go, npm and PyPI distributions on Linux, macOS and Windows, makes requests
+  through every SDK, runs the published amd64 and arm64 container images, and
+  installs and tests the current stable Homebrew formula. It is a separate,
+  manually dispatched check for any chosen version.
+- A profile of Chrome 153, for Linux, macOS and Windows. `chrome` names
+  Chrome 153 from this release.
+
+### Fixed
+
 - Stable releases fail visibly when the Homebrew tap credential is absent,
   instead of silently succeeding without publishing a formula. The published
   E2E check now diagnoses a missing tap formula directly.
 - Generated Homebrew formulae let Homebrew infer the stable version from their
   release URLs instead of repeating it in a redundant `version` stanza rejected
   by `brew audit`.
-- Captured Chrome 152 profiles reproduce the new `trust_anchors` ClientHello
-  extension. The measured IDs are validated and reordered once per process,
-  matching Chrome's process-stable hash-set order instead of replaying one
-  capture forever; malformed and unknown extensions are still rejected.
-- npm publishing is safe to resume after a partial registry upload: an existing
-  tarball is skipped only when its SHA-512 integrity matches exactly. npm's
-  required `latest` tag is left in place during prereleases and the first stable
-  publish will replace it.
-- The Windows npm binary package is named `tls-forge-windows-x64`; its manifest
-  still uses npm's required `win32` OS selector. This avoids a false positive in
-  npm's package-name spam detector without changing platform selection.
-- GitHub Release creation names its repository explicitly, so the artifact-only
-  job no longer tries to discover it through an absent local `.git` directory.
 
-## [0.1.0] - 2026-08-28
+## [0.1.0] - 2026-09-08
 
 ### Added
 
@@ -1037,6 +1048,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Captured Chrome 152 profiles reproduce the new `trust_anchors` ClientHello
+  extension. The measured IDs are validated and reordered once per process,
+  matching Chrome's process-stable hash-set order instead of replaying one
+  capture forever; malformed and unknown extensions are still rejected.
+- npm publishing is safe to resume after a partial registry upload: an existing
+  tarball is skipped only when its SHA-512 integrity matches exactly. npm's
+  required `latest` tag is left in place during prereleases and the first stable
+  publish will replace it.
+- The Windows npm binary package is named `tls-forge-windows-x64`; its manifest
+  still uses npm's required `win32` OS selector. This avoids a false positive in
+  npm's package-name spam detector without changing platform selection.
+- GitHub Release creation names its repository explicitly, so the artifact-only
+  job no longer tries to discover it through an absent local `.git` directory.
 - **A second browser measured by one echo server was handed the first
   browser's fingerprint.** The server pinned the first connection that fetched
   the capture page and filed every later report against it, so the second
@@ -1093,6 +1117,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- Updated the Go transport stack to `tls-client` 1.16.0, `fhttp` 0.6.9 and
+  uTLS 1.7.8, including upstream fixes for HTTP/2 flow control, ALPN transport
+  reuse and per-connection signature GREASE. Runtime cryptography and
+  compression dependencies are current as well.
 - `npm test` runs every `test/*.test.js` rather than one named file, so a new
   test file cannot be added and silently never run.
 
