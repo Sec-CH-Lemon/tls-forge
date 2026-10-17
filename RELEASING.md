@@ -109,6 +109,11 @@ is the SHA-256 of its `manifest.json`.
 - Immutable releases turned on in the repository's settings is recommended:
   once the draft is published, its files and its tag can no longer change.
 
+Every action the workflows use is pinned to the commit of a release, with the
+release named beside it, so that what runs is what was read. Dependabot
+proposes the week's updates as one pull request, which is reviewed like any
+other change: what each action's new commit changes is part of it.
+
 ## A dry run
 
 ```bash

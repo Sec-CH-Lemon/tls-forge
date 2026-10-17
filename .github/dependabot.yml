@@ -1,9 +1,19 @@
-# The Docker bases are pinned by digest, which goes stale as each tag gets its
-# security updates: Dependabot proposes the next one, weekly, as a pull request
-# to review like any other change.
+# What is pinned by digest goes stale as what it names gets its fixes, and
+# Dependabot proposes the next one, weekly, as a pull request to review like
+# any other change: the Docker bases, pinned by digest, and every action the
+# workflows use, pinned by the commit of a release, with the release named
+# beside it.
 version: 2
 updates:
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # One pull request for the week's action updates, read as one change.
+      actions:
+        patterns: ['*']

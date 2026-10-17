@@ -684,6 +684,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   turned off for a client that has one, which the transport refused through
   such a proxy anyway. SOCKS proxies are unchanged.
 
+- Every action the workflows use is pinned to the commit of a release, with
+  the release named beside it, and Dependabot proposes their updates weekly,
+  as it does the Docker bases. They were named by tags and a branch, which
+  move.
 - **A release is built once, and every attempt publishes what was built.**
   The release workflow builds the set, checks it on every platform, and
   stores it in the tag's draft GitHub release before anything is published;

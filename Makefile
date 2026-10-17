@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck docs-check generated-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck docs-check generated-check workflows-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -75,6 +75,14 @@ docs-check:
 generated-check:
 	scripts/check-generated.sh
 
+# A gate as well: every action a workflow uses is pinned to the commit of a
+# release, with the release named beside it, as Dependabot keeps it.
+workflows-check:
+	node --test --experimental-test-coverage \
+		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
+		--test-coverage-include='scripts/check-actions.mjs' scripts/check-actions.test.mjs
+	node scripts/check-actions.mjs
+
 # Cross-language contract test against the real Go daemon. Unit suites use a
 # deliberately hostile fake to cover every recovery branch; this one makes
 # sure all three implementations still agree on the bytes actually emitted.
@@ -100,7 +108,7 @@ release-test:
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
 # CI runs them as separate jobs.
-check: vet lint test cover node-test python-test python-typecheck docs-check generated-check wrapper-smoke release-test
+check: vet lint test cover node-test python-test python-typecheck docs-check generated-check workflows-check wrapper-smoke release-test
 
 # Assemble everything a release publishes, without publishing any of it.
 #
