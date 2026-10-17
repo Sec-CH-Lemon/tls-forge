@@ -347,7 +347,83 @@ type attemptTrace struct {
 	step     string
 	category string
 	since    int64
-	about    traceArgs
+	facts    stepFacts
+}
+
+// stepFacts is what a step of a try says beyond its name and how long it
+// took, gathered as the client reports it. One record, which the trace writes
+// out as the step's args and a report reads the step's note and the request as
+// written from, so that neither can say a fact under a name the other does not
+// know.
+type stepFacts struct {
+	// host is what a lookup looked up.
+	host string
+	// addrs are the addresses a lookup found, which may be none, or those a
+	// dial tried; said says the lookup ended or the dial began, which is when
+	// there are any to say.
+	addrs []string
+	said  bool
+	// network is what a dial went over, addr the address that answered, and
+	// failed why each of the others did not.
+	network string
+	addr    string
+	failed  []string
+	// conn is the connection a handshake made, or a request went out on.
+	conn *tlsforge.ConnInfo
+	// written is the request as it went out, without the values a session is
+	// worth, and wrote says it went.
+	written []string
+	wrote   bool
+	// status is what the step ended with: the status of a redirect, or of the
+	// answer the try ended with. unfinished says the try ended in the middle
+	// of it, and err why it failed.
+	status     int
+	unfinished bool
+	err        string
+}
+
+// args are the facts as the trace says them, each under its name and only
+// once it is a fact.
+func (f stepFacts) args() traceArgs {
+	args := traceArgs{}
+	if f.conn != nil {
+		args = connArgs(*f.conn)
+	}
+	if f.host != "" {
+		args["host"] = f.host
+	}
+	if f.said {
+		args["addrs"] = f.addrs
+	}
+	if f.network != "" {
+		args["network"] = f.network
+	}
+	if f.addr != "" {
+		args["addr"] = f.addr
+	}
+	if len(f.failed) > 0 {
+		args["failed"] = f.failed
+	}
+	if f.wrote {
+		args["headers"] = f.written
+	}
+	if f.status != 0 {
+		args["status"] = f.status
+	}
+	if f.unfinished {
+		args["unfinished"] = true
+	}
+	if f.err != "" {
+		args["error"] = f.err
+	}
+	return args
+}
+
+// fail says why the step failed, when there is a why.
+func (f *stepFacts) fail(err error, proxy string) {
+	if err != nil {
+		f.err = redactError(err, proxy)
+	}
 }
 
 // hooks is what the client is given to report through.
@@ -388,34 +464,25 @@ func (a *attemptTrace) when(do func(at int64)) {
 	do(a.at())
 }
 
-// begin starts a step at a moment already taken.
-func (a *attemptTrace) begin(step, category string, at int64, about traceArgs) {
-	a.step, a.category, a.since, a.about = step, category, at, about
+// begin starts a step at a moment already taken, with nothing yet to say of
+// it.
+func (a *attemptTrace) begin(step, category string, at int64) {
+	a.step, a.category, a.since, a.facts = step, category, at, stepFacts{}
 }
 
-// finish ends the step in progress, if there is one, and draws it.
-func (a *attemptTrace) finish(at int64, more traceArgs) {
+// finish ends the step in progress, if there is one, and draws it with what
+// there is to say of it.
+func (a *attemptTrace) finish(at int64) {
 	if a.step == "" {
 		return
 	}
-	for key, value := range more {
-		a.about[key] = value
-	}
 	if a.lane != nil {
-		a.lane.span(a.step, a.category, a.since, at, a.about)
+		a.lane.span(a.step, a.category, a.since, at, a.facts.args())
 	}
 	if a.log != nil {
-		a.log.keep(a.step, micros(a.since-a.opened), micros(at-a.since), a.about)
+		a.log.keep(a.step, micros(a.since-a.opened), micros(at-a.since), a.facts)
 	}
 	a.step = ""
-}
-
-// failing adds why, when there is a why.
-func (a *attemptTrace) failing(about traceArgs, err error) traceArgs {
-	if err != nil {
-		about["error"] = redactError(err, a.proxy)
-	}
-	return about
 }
 
 // handshake is the name of the step between a dial and a connection that can
@@ -430,15 +497,18 @@ func (a *attemptTrace) handshake() string {
 
 func (a *attemptTrace) dnsStart(host string) {
 	a.when(func(at int64) {
-		a.finish(at, nil)
-		a.begin("dns", "net", at, traceArgs{"host": host})
+		a.finish(at)
+		a.begin("dns", "net", at)
+		a.facts.host = host
 	})
 }
 
 func (a *attemptTrace) dnsDone(addrs []string, err error) {
 	a.when(func(at int64) {
 		if a.step == "dns" {
-			a.finish(at, a.failing(traceArgs{"addrs": addrs}, err))
+			a.facts.addrs, a.facts.said = addrs, true
+			a.facts.fail(err, a.proxy)
+			a.finish(at)
 		}
 	})
 }
@@ -448,11 +518,12 @@ func (a *attemptTrace) connectStart(network, addr string) {
 		// A host with two addresses is dialled twice, and the second dial can
 		// begin before the first has given up. One step for all of them.
 		if a.step == "connect" {
-			a.about["addrs"] = append(a.about["addrs"].([]string), addr)
+			a.facts.addrs = append(a.facts.addrs, addr)
 			return
 		}
-		a.finish(at, nil)
-		a.begin("connect", "net", at, traceArgs{"network": network, "addrs": []string{addr}})
+		a.finish(at)
+		a.begin("connect", "net", at)
+		a.facts.network, a.facts.addrs, a.facts.said = network, []string{addr}, true
 	})
 }
 
@@ -465,13 +536,13 @@ func (a *attemptTrace) connectDone(_, addr string, err error) {
 		if err != nil {
 			// Not the end of the step: another address may still answer. If none
 			// does, the try ends and takes the step with it.
-			failed, _ := a.about["failed"].([]string)
-			a.about["failed"] = append(failed, redactError(err, a.proxy))
+			a.facts.failed = append(a.facts.failed, redactError(err, a.proxy))
 			return
 		}
-		a.finish(at, traceArgs{"addr": addr})
+		a.facts.addr = addr
+		a.finish(at)
 		if a.secure {
-			a.begin(a.handshake(), "net", at, traceArgs{})
+			a.begin(a.handshake(), "net", at)
 		}
 	})
 }
@@ -484,12 +555,12 @@ func (a *attemptTrace) gotConn(conn tlsforge.ConnInfo) {
 		// What the handshake settled on belongs to the handshake when there was
 		// one. It is said again on the request, because a connection that was
 		// already open had no handshake to say it on.
-		var settled traceArgs
 		if a.step == a.handshake() {
-			settled = connArgs(conn)
+			a.facts.conn = &conn
 		}
-		a.finish(at, settled)
-		a.begin("send", "http", at, connArgs(conn))
+		a.finish(at)
+		a.begin("send", "http", at)
+		a.facts.conn = &conn
 	})
 }
 
@@ -498,8 +569,10 @@ func (a *attemptTrace) wroteRequest(sent tlsforge.Header, err error) {
 		if a.step != "send" {
 			return
 		}
-		a.finish(at, a.failing(traceArgs{"headers": safeHeaders(sent)}, err))
-		a.begin("wait", "http", at, traceArgs{})
+		a.facts.written, a.facts.wrote = safeHeaders(sent), true
+		a.facts.fail(err, a.proxy)
+		a.finish(at)
+		a.begin("wait", "http", at)
 	})
 }
 
@@ -510,14 +583,15 @@ func (a *attemptTrace) firstByte() {
 		if a.step != "wait" && a.step != "send" {
 			return
 		}
-		a.finish(at, nil)
-		a.begin("receive", "http", at, traceArgs{})
+		a.finish(at)
+		a.begin("receive", "http", at)
 	})
 }
 
 func (a *attemptTrace) redirect(status int, location string) {
 	a.when(func(at int64) {
-		a.finish(at, traceArgs{"status": status})
+		a.facts.status = status
+		a.finish(at)
 		if a.lane != nil {
 			a.lane.t.emit(traceEvent{Phase: phaseInstant, TID: a.lane.tid, TS: at, Cat: "http",
 				Name: "redirect", Scope: "t",
@@ -542,12 +616,13 @@ func (a *attemptTrace) end(res *tlsforge.Response, err error) {
 	// A step that was still going when the try failed is where it failed, and
 	// is drawn as far as it got: a request that timed out waiting for its first
 	// byte shows the wait, which is the answer to what went wrong.
-	cut := traceArgs{"unfinished": true}
 	if err == nil {
-		cut = traceArgs{"status": res.Status}
+		a.facts.status = res.Status
+	} else {
+		a.facts.unfinished = true
 	}
 	at := a.at()
-	a.finish(at, cut)
+	a.finish(at)
 	a.over = true
 	if a.lane != nil {
 		a.lane.t.emit(traceEvent{Phase: phaseEnd, TID: a.lane.tid, TS: a.lane.t.at(),

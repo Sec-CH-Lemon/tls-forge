@@ -204,21 +204,22 @@ func TestTheReportAndTheTraceTellATryTheSameWay(t *testing.T) {
 func TestNoteOnAStep(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
-		about traceArgs
+		facts stepFacts
 		want  string
 	}{
-		{"dns", traceArgs{"host": "example.test"}, "example.test"},
-		{"connect", traceArgs{"addrs": []string{"192.0.2.1:443"}}, "192.0.2.1:443"},
+		{"dns", stepFacts{host: "example.test"}, "example.test"},
+		{"connect", stepFacts{addrs: []string{"192.0.2.1:443"}, said: true}, "192.0.2.1:443"},
 		// A handshake that did not get as far as settling on anything.
-		{"tls", traceArgs{"unfinished": true}, ""},
-		{"proxy+tls", traceArgs{"tls": "TLS 1.2", "cipher": "ECDHE", "alpn": "http/1.1"}, "TLS 1.2 · ECDHE · http/1.1"},
+		{"tls", stepFacts{unfinished: true}, ""},
+		{"proxy+tls", stepFacts{conn: &tlsforge.ConnInfo{TLSVersion: "TLS 1.2", CipherSuite: "ECDHE", ALPN: "http/1.1"}},
+			"TLS 1.2 · ECDHE · http/1.1"},
 		// A connection that was made for this request says so where it was made.
-		{"send", traceArgs{"reused": false, "remote": "192.0.2.1:443"}, ""},
-		{"wait", traceArgs{"status": 301}, ""},
-		{"receive", traceArgs{"error": "connection reset"}, "connection reset"},
+		{"send", stepFacts{conn: &tlsforge.ConnInfo{RemoteAddr: "192.0.2.1:443"}}, ""},
+		{"wait", stepFacts{status: 301}, ""},
+		{"receive", stepFacts{err: "connection reset"}, "connection reset"},
 	} {
-		if got := noteOn(tc.name, tc.about); got != tc.want {
-			t.Errorf("noteOn(%s, %v) = %q, want %q", tc.name, tc.about, got, tc.want)
+		if got := tc.facts.note(tc.name); got != tc.want {
+			t.Errorf("%s noted as %q, want %q", tc.name, got, tc.want)
 		}
 	}
 }

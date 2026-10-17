@@ -29,7 +29,7 @@ func drivenTries(t *testing.T) ([]traceEvent, []*try) {
 	a := lane.attempt("GET", "https://example.test/start?token=s3cr3t", 1, 1, "http://user:pw@proxy.test:8080", proxied)
 	hooks := a.hooks()
 	hooks.DNSStart("example.test")
-	hooks.DNSDone(nil, nil)
+	hooks.DNSDone([]string{"2001:db8::1", "192.0.2.1"}, nil)
 	hooks.ConnectStart("tcp", "[2001:db8::1]:443")
 	hooks.ConnectStart("tcp", "192.0.2.1:443")
 	hooks.ConnectDone("tcp", "[2001:db8::1]:443", errors.New("no route to host"))
@@ -54,10 +54,19 @@ func drivenTries(t *testing.T) ([]traceEvent, []*try) {
 	hooks.DNSDone(nil, errors.New("no such host"))
 	b.end(nil, errors.New("lookup failed"))
 
+	// Cut short: the try ended while it waited for its answer, on a
+	// connection already open, the step it was in kept as where it stopped.
+	cut := &try{}
+	c := lane.attempt("POST", "http://example.test/form", 2, 1, "", cut)
+	hooks = c.hooks()
+	hooks.GotConn(tlsforge.ConnInfo{RemoteAddr: "192.0.2.1:80", Reused: true})
+	hooks.WroteRequest(tlsforge.Header{{Name: "content-type", Value: "text/plain"}}, nil)
+	c.end(nil, errors.New("deadline exceeded"))
+
 	if err := trace.close(nil); err != nil {
 		t.Fatalf("close: %v", err)
 	}
-	return parseTrace(t, file.Bytes()), []*try{proxied, lost}
+	return parseTrace(t, file.Bytes()), []*try{proxied, lost, cut}
 }
 
 // eventLines are the events of a trace, but for its metadata, as lines of
@@ -100,41 +109,48 @@ func TestEveryStepIsTracedAndKeptAsItWas(t *testing.T) {
 	// a viewer of the trace and the report read.
 	events, tries := drivenTries(t)
 	wantEvents := []string{
-		"B run fetch {…}",
+		`B run fetch {…}`,
 		`B request GET https://example.test/start?token=s3cr3t {"attempt":1,"proxy":"http://user@proxy.test:8080","run":1,"url":"https://example.test/start?token=s3cr3t"}`,
-		`X net dns {"addrs":null,"host":"example.test"}`,
+		`X net dns {"addrs":["2001:db8::1","192.0.2.1"],"host":"example.test"}`,
 		`X net connect {"addr":"192.0.2.1:443","addrs":["[2001:db8::1]:443","192.0.2.1:443"],"failed":["no route to host"],"network":"tcp"}`,
 		`X net proxy+tls {"alpn":"h2","cipher":"TLS_AES_128_GCM_SHA256","proxy_answer":["x-exit-ip: 203.0.113.1"],"remote":"192.0.2.1:443","resumed":true,"reused":false,"tls":"TLS 1.3"}`,
 		`X http send {"alpn":"h2","cipher":"TLS_AES_128_GCM_SHA256","headers":[":method: GET","cookie: session=***"],"proxy_answer":["x-exit-ip: 203.0.113.1"],"remote":"192.0.2.1:443","resumed":true,"reused":false,"tls":"TLS 1.3"}`,
-		"X http wait null",
+		`X http wait null`,
 		`X http receive {"status":302}`,
 		`i http redirect {"location":"http://example.test/next?token=s3cr3t","status":302}`,
 		`X http send {"error":"broken pipe","headers":["user-agent: x"],"remote":"192.0.2.1:80","reused":true}`,
-		"X http wait null",
+		`X http wait null`,
 		`X http receive {"status":200}`,
 		`E   {"bytes":4,"final_url":"http://example.test/next","headers":["Content-Type: text/html"],"status":200}`,
 		`B request GET https://nowhere.test/ {"attempt":2,"run":1,"url":"https://nowhere.test/"}`,
 		`X net dns {"addrs":null,"error":"no such host","host":"nowhere.test"}`,
 		`E   {"error":"lookup failed"}`,
-		"E   null",
+		`B request POST http://example.test/form {"attempt":1,"run":2,"url":"http://example.test/form"}`,
+		`X http send {"headers":["content-type: text/plain"],"remote":"192.0.2.1:80","reused":true}`,
+		`X http wait {"unfinished":true}`,
+		`E   {"error":"deadline exceeded"}`,
+		`E   null`,
 	}
 	if got := eventLines(t, events); !slices.Equal(got, wantEvents) {
 		t.Errorf("the trace says\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(wantEvents, "\n"))
 	}
 	wantSteps := []string{
-		"dns | example.test |  | false",
-		"connect | 192.0.2.1:443 · failed: no route to host |  | false",
-		"proxy+tls | TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2 · session resumed |  | false",
+		`dns | example.test → 2001:db8::1, 192.0.2.1 |  | false`,
+		`connect | 192.0.2.1:443 · failed: no route to host |  | false`,
+		`proxy+tls | TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2 · session resumed |  | false`,
 		`send |  | :method: GET\ncookie: session=*** | false`,
-		"wait |  |  | false",
-		"receive |  |  | false",
-		"redirect | 302 → http://example.test/next?token=s3cr3t |  | false",
-		"send | on the connection already open to 192.0.2.1:80 · broken pipe | user-agent: x | false",
-		"wait |  |  | false",
-		"receive |  |  | false",
+		`wait |  |  | false`,
+		`receive |  |  | false`,
+		`redirect | 302 → http://example.test/next?token=s3cr3t |  | false`,
+		`send | on the connection already open to 192.0.2.1:80 · broken pipe | user-agent: x | false`,
+		`wait |  |  | false`,
+		`receive |  |  | false`,
 		`end 200 ""`,
-		"dns | nowhere.test · no such host |  | false",
+		`dns | nowhere.test · no such host |  | false`,
 		`end 0 "lookup failed"`,
+		`send | on the connection already open to 192.0.2.1:80 | content-type: text/plain | false`,
+		`wait |  |  | true`,
+		`end 0 "deadline exceeded"`,
 	}
 	if got := stepLines(tries); !slices.Equal(got, wantSteps) {
 		t.Errorf("the record says\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(wantSteps, "\n"))

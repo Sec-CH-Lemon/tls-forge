@@ -67,14 +67,12 @@ type step struct {
 const redirectStep = "redirect"
 
 // keep writes down a step that has ended.
-func (t *try) keep(name string, from, took time.Duration, about traceArgs) {
-	cut, _ := about["unfinished"].(bool)
+func (t *try) keep(name string, from, took time.Duration, facts stepFacts) {
 	// Only the sending of a request has any, and they are already what a trace
 	// is given: without the values a session is worth.
-	written, _ := about["headers"].([]string)
 	t.Steps = append(t.Steps, step{
-		Name: name, From: from, Took: took, Note: noteOn(name, about),
-		Written: strings.Join(written, "\n"), Cut: cut,
+		Name: name, From: from, Took: took, Note: facts.note(name),
+		Written: strings.Join(facts.written, "\n"), Cut: facts.unfinished,
 	})
 }
 
@@ -99,13 +97,13 @@ func (t *try) ended(took time.Duration, res *tlsforge.Response, err error, proxy
 	}
 }
 
-// noteOn is what a step has to say for itself, out of what the trace is told
-// about it.
+// note is what a step has to say for itself, out of what the trace is told of
+// it.
 //
-// The same facts under the same names, read back here rather than gathered a
-// second time, so that a report cannot say something about a step that the
-// trace of the same run does not.
-func noteOn(name string, about traceArgs) string {
+// The same facts, read here rather than gathered a second time, so that a
+// report cannot say something of a step that the trace of the same run does
+// not.
+func (f stepFacts) note(name string) string {
 	var parts []string
 	say := func(text string) {
 		if text != "" {
@@ -114,37 +112,31 @@ func noteOn(name string, about traceArgs) string {
 	}
 	switch name {
 	case "dns":
-		host, _ := about["host"].(string)
-		if addrs, _ := about["addrs"].([]string); len(addrs) > 0 {
-			host += " → " + strings.Join(addrs, ", ")
+		host := f.host
+		if len(f.addrs) > 0 {
+			host += " → " + strings.Join(f.addrs, ", ")
 		}
 		say(host)
 	case "connect":
-		if addr, answered := about["addr"].(string); answered {
-			say(addr)
+		if f.addr != "" {
+			say(f.addr)
 		} else {
 			// None of them answered, so all of them are what was tried.
-			addrs, _ := about["addrs"].([]string)
-			say(strings.Join(addrs, ", "))
+			say(strings.Join(f.addrs, ", "))
 		}
-		if failed, _ := about["failed"].([]string); len(failed) > 0 {
-			say("failed: " + strings.Join(failed, "; "))
+		if len(f.failed) > 0 {
+			say("failed: " + strings.Join(f.failed, "; "))
 		}
 	case "tls", "proxy+tls":
-		version, _ := about["tls"].(string)
-		cipher, _ := about["cipher"].(string)
-		alpn, _ := about["alpn"].(string)
-		resumed, _ := about["resumed"].(bool)
-		say(handshakeNote(version, cipher, alpn, resumed))
+		if f.conn != nil {
+			say(handshakeNote(f.conn.TLSVersion, f.conn.CipherSuite, f.conn.ALPN, f.conn.Resumed))
+		}
 	case "send":
-		if reused, _ := about["reused"].(bool); reused {
-			remote, _ := about["remote"].(string)
-			say("on the connection already open to " + remote)
+		if f.conn != nil && f.conn.Reused {
+			say("on the connection already open to " + f.conn.RemoteAddr)
 		}
 	}
-	if why, failed := about["error"].(string); failed {
-		say(why)
-	}
+	say(f.err)
 	return strings.Join(parts, " · ")
 }
 
