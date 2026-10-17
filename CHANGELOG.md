@@ -132,7 +132,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   release set it is for (`--commit`, else `GITHUB_SHA`, and `--set`), so that
   a release takes it only for what was measured. Every release waits for it:
   nothing is published until it has passed on each build the reference
-  names, and a release with no reference stops there.
+  names, and a release with no reference stops there. It measures the
+  reference on the bench too, every scenario of a page and every page whose
+  decoding is asked about, and holds it to the fixtures tls-forge is tested
+  against (`--requests`, `--decoding`), the values the build decides to the
+  profile's.
 - **A client can ask the daemon what it is before relying on it.** A line
   with `"control": "hello"` is answered with the protocol the daemon speaks,
   2, and its `capabilities`, without a connection; a daemon older than that

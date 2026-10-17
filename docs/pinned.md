@@ -56,12 +56,16 @@ clean and relative, or one platform and machine twice is an error.
 ```bash
 go run ./internal/pinned --manifest reference/chrome.json \
   --archive /path/to/archive --installed /path/to/installed \
-  [--out result.json] [--commit SHA] [--set DIGEST]
+  [--out result.json] [--commit SHA] [--set DIGEST] \
+  [--requests FILE] [--decoding FILE] [--scenario-timeout 45m]
 ```
 
 In order, and stopping at the first that fails:
 
-1. It reads the manifest and takes the build for the machine it runs on.
+1. It reads the manifest and takes the build for the machine it runs on, and
+   reads the fixtures of what a page does, `--requests` and `--decoding`,
+   `testdata/chrome155-requests.json` and `testdata/chrome155-decoding.json`
+   unless said.
 2. It hashes the installer in `--archive` and holds it to `installer_sha256`.
 3. It hashes the browser installed in `--installed` and holds it to
    `binary_sha256`.
@@ -76,9 +80,23 @@ In order, and stopping at the first that fails:
    release is built from (`--commit`, else `GITHUB_SHA`) and the identity
    of the release's set (`--set`, the SHA-256 of its `manifest.json`). A
    release takes a result only for its own commit and its own set.
+7. It measures the browser on the bench in `internal/harness`, headless as
+   the fixtures were measured, every scenario of a page over HTTP/2 and over
+   HTTP/1.1 and every page whose decoding is asked about, within
+   `--scenario-timeout`, and holds it to the fixtures tls-forge is tested
+   against: every request in order, its method, URL, body, HTTP/2 priority,
+   the names of its headers in order and spelling and their values, and what
+   it made of each page. A value the machine decides (the user agent, the
+   window, the memory, the network, the system's version and processor) is
+   compared by its presence; one the build decides (`sec-ch-ua`, its
+   platform, its full version and form factor) is held to the profile's, and
+   each of either has to be one the profile has, or tls-forge would not send
+   it. What differs goes to `--out` as `scenarios`, and the result does not
+   pass.
 
-It exits 0 only when every field compared matches and nothing is left
-unchecked; 1 when anything does not hold, saying what; 2 when it is not told
+It exits 0 only when every field compared matches, nothing is left
+unchecked and the browser is what the fixtures say; 1 when anything does not
+hold, saying what; 2 when it is not told
 where the manifest, the archive and the installed browser are, or is given a
 commit that is not 40 lower-case hex digits or a set that is not 64, before it
 measures anything. A reference it cannot find or check is a failure, never a
@@ -122,4 +140,11 @@ it is: a measurement of the browser of the day.
 Run today against Google Chrome 155.0.8059.80 on macOS, the comparison finds
 one difference: tls-forge's transport writes `:path` in HPACK with indexing,
 where Chrome writes it without ([support](support.md)). The check fails until
-that is fixed.
+that is fixed. On the bench, the same Chrome is what both fixtures say,
+every scenario and every page.
+
+The fixtures were measured on macOS, and only the macOS profile of
+`chrome_155` has the values of the client hints a server asks for. A build for
+Linux or Windows is held to its own platform's profile, which has none, so its
+check fails on the scenarios that ask for them until that profile is measured
+with them.

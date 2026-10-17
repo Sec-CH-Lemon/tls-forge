@@ -71,10 +71,11 @@ is the SHA-256 of its `manifest.json`.
 4. **reference** reads `reference/chrome.json` and **pinned** runs the
    pinned gate for each build it names, on a runner of that platform
    ([docs/pinned.md](docs/pinned.md)). It restores the archived Google Chrome
-   from the private archive, holds the profile to it, and keeps the result,
-   bound to this commit and this set, in the draft beside the set. No
-   reference, a reference it cannot restore or check, or a profile that does
-   not match stops the release.
+   from the private archive, holds the profile to it, measures it on the
+   bench in `internal/harness` against the fixtures of what a page does, and
+   keeps the result, bound to this commit and this set, in the draft beside
+   the set. No reference, a reference it cannot restore or check, a profile
+   that does not match, or a scenario or page that differs stops the release.
 5. **publish-npm** and **publish-pypi**, in the `release` environment, verify
    the set again with every gate result, and publish what each registry
    lacks. npm gets the platform packages first and the main package last,

@@ -2,13 +2,16 @@
 // release is measured against: it checks that the archived installer and the
 // installed browser are the build the manifest names, that the browser says it
 // is that build, and then compares the manifest's profile with it, launched as
-// the manifest says. It exits 0 only when all of that holds. A reference it
+// the manifest says. Then it measures the browser on the bench in
+// internal/harness, every scenario of a page and every page whose decoding is
+// asked about, and holds it to the fixtures tls-forge is tested against, and
+// to the profile. It exits 0 only when all of that holds. A reference it
 // cannot find or check is a failure, never a reason to measure another
 // browser: that would hold the release to whatever happened to be at hand.
 //
 //	go run ./internal/pinned --manifest reference/chrome.json \
 //	    --archive DIR --installed DIR [--out result.json] \
-//	    [--commit SHA] [--set DIGEST]
+//	    [--commit SHA] [--set DIGEST] [--requests FILE] [--decoding FILE]
 //
 // The result is for the commit and the release set it names, so that a
 // release takes it only for what it measured. It is not part of what ships: a
@@ -26,10 +29,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/reference"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // exit is os.Exit, which a test of main replaces.
@@ -37,9 +44,10 @@ var exit = os.Exit
 
 func main() { exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr)) }
 
-// Result is what a run writes to --out: what it held to what, and the
-// comparison. Commit and Set are what the result is for: the commit a release
-// is built from and the identity of its set, the SHA-256 of the set's manifest.
+// Result is what a run writes to --out: what it held to what, the comparison,
+// and how the browser differs from the fixtures of what a page does. Commit
+// and Set are what the result is for: the commit a release is built from and
+// the identity of its set, the SHA-256 of the set's manifest.
 type Result struct {
 	Commit     string               `json:"commit,omitempty"`
 	Set        string               `json:"set,omitempty"`
@@ -48,6 +56,7 @@ type Result struct {
 	Arch       string               `json:"arch"`
 	OK         bool                 `json:"ok"`
 	Comparison *tlsforge.Comparison `json:"comparison"`
+	Scenarios  []string             `json:"scenarios"`
 }
 
 // The seams the tests reach through.
@@ -56,8 +65,20 @@ var (
 	versionOf    = func(ctx context.Context, binary string) ([]byte, error) {
 		return exec.CommandContext(ctx, binary, "--version").Output()
 	}
-	compare = tlsforge.CompareToBrowser
+	compare         = tlsforge.CompareToBrowser
+	measureRequests = harness.Measure
+	measureDecoding = harness.MeasureDecoding
+	profileOf       = profile.Get
 )
+
+// options are what a run holds the reference to, and how long it gives it.
+type options struct {
+	manifest, archive, installed string
+	timeout                      time.Duration
+	requests, decoding           string
+	scenarios                    time.Duration
+	progress                     io.Writer
+}
 
 // What a commit and a set's identity are written as: lower-case hex, whole.
 var (
@@ -75,6 +96,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	timeout := flags.Duration("timeout", 2*time.Minute, "how long the browser has to be measured")
 	commit := flags.String("commit", os.Getenv("GITHUB_SHA"), "the commit the release is built from (default $GITHUB_SHA)")
 	set := flags.String("set", "", "the release set's identity, the SHA-256 of its manifest")
+	requests := flags.String("requests", "testdata/chrome155-requests.json", "the fixture of what Chrome asks for")
+	decoding := flags.String("decoding", "testdata/chrome155-decoding.json", "the fixture of how Chrome decodes a page")
+	scenarios := flags.Duration("scenario-timeout", 45*time.Minute, "how long the scenarios and pages have to be measured")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -93,13 +117,17 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	result, err := hold(ctx, *manifestPath, *archive, *installed, *timeout)
+	result, err := hold(ctx, options{manifest: *manifestPath, archive: *archive, installed: *installed, timeout: *timeout,
+		requests: *requests, decoding: *decoding, scenarios: *scenarios, progress: stderr})
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "pinned: %v\n", err)
 		return 1
 	}
 	result.Commit, result.Set = *commit, *set
 	_, _ = fmt.Fprint(stdout, result.Comparison.String())
+	for _, d := range result.Scenarios {
+		_, _ = fmt.Fprintln(stdout, d)
+	}
 	if *out != "" {
 		data, _ := json.MarshalIndent(result, "", "  ")
 		if err := os.WriteFile(*out, append(data, '\n'), 0o644); err != nil {
@@ -108,16 +136,34 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 	}
 	if !result.OK {
-		_, _ = fmt.Fprintf(stderr, "pinned: %s does not match Google Chrome %s\n", result.Comparison.Client.Profile,
+		_, _ = fmt.Fprintf(stderr, "pinned: %s does not match Google Chrome %s", result.Comparison.Client.Profile,
 			result.Reference)
+		if n := len(result.Scenarios); n > 0 {
+			word := "differences"
+			if n == 1 {
+				word = "difference"
+			}
+			_, _ = fmt.Fprintf(stderr, ": %d %s in what a page does", n, word)
+		}
+		_, _ = fmt.Fprintln(stderr)
 		return 1
 	}
 	return 0
 }
 
-// hold checks the reference is what the manifest says, and compares with it.
-func hold(ctx context.Context, manifestPath, archive, installed string, timeout time.Duration) (*Result, error) {
-	data, err := os.ReadFile(manifestPath)
+// hold checks the reference is what the manifest says, compares with it, and
+// holds it to the fixtures of what a page does.
+func hold(ctx context.Context, o options) (*Result, error) {
+	data, err := os.ReadFile(o.manifest)
+	if err != nil {
+		return nil, err
+	}
+	// The fixtures first: nothing is measured that could not be held to them.
+	requests, err := harness.LoadRequests(o.requests)
+	if err != nil {
+		return nil, err
+	}
+	decoding, err := harness.LoadDecoding(o.decoding)
 	if err != nil {
 		return nil, err
 	}
@@ -133,10 +179,10 @@ func hold(ctx context.Context, manifestPath, archive, installed string, timeout 
 	if err != nil {
 		return nil, err
 	}
-	if err := reference.VerifyFile(filepath.Join(archive, build.Installer), build.InstallerSHA256); err != nil {
+	if err := reference.VerifyFile(filepath.Join(o.archive, build.Installer), build.InstallerSHA256); err != nil {
 		return nil, err
 	}
-	binary := filepath.Join(installed, filepath.FromSlash(build.Binary))
+	binary := filepath.Join(o.installed, filepath.FromSlash(build.Binary))
 	if err := reference.VerifyFile(binary, build.BinarySHA256); err != nil {
 		return nil, err
 	}
@@ -151,13 +197,44 @@ func hold(ctx context.Context, manifestPath, archive, installed string, timeout 
 		return nil, err
 	}
 	comparison, err := compare(ctx, tlsforge.MeasureOptions{
-		Browser: binary, Headless: manifest.Launch.Headless, BrowserArgs: manifest.Launch.Args, Timeout: timeout,
+		Browser: binary, Headless: manifest.Launch.Headless, BrowserArgs: manifest.Launch.Args, Timeout: o.timeout,
 	}, tlsforge.WithProfile(manifest.Profile))
 	if err != nil {
 		return nil, fmt.Errorf("comparing: %w", err)
 	}
+	worn, err := profileOf(manifest.Profile)
+	if err != nil {
+		return nil, err
+	}
+	// On the bench as the fixtures were measured, headless whatever launch
+	// says: what the browser asks for in each scenario, how it decodes each
+	// page.
+	ctx, cancel := context.WithTimeout(ctx, o.scenarios)
+	defer cancel()
+	b := harness.Chrome{Path: binary}
+	got, err := measureRequests(ctx, b, nil, o.progress)
+	if err != nil {
+		return nil, fmt.Errorf("measuring the scenarios: %w", err)
+	}
+	pages, err := measureDecoding(ctx, b, decoding.Cases, o.progress)
+	if err != nil {
+		return nil, fmt.Errorf("measuring the decodings: %w", err)
+	}
+	// Said as a list, empty too.
+	differences := append([]string{}, harness.Compare(requests.Scenarios, got, valuesOf(worn))...)
+	differences = append(differences, harness.CompareDecoding(decoding.Cases, pages)...)
 	return &Result{
-		Reference: manifest.Version, Platform: build.Platform, Arch: build.Arch, OK: comparison.OK(),
-		Comparison: comparison,
+		Reference: manifest.Version, Platform: build.Platform, Arch: build.Arch,
+		OK: comparison.OK() && len(differences) == 0, Comparison: comparison, Scenarios: differences,
 	}, nil
+}
+
+// valuesOf are the values p sends, by the name of the header: its user agent,
+// its headers' and its client hints'.
+func valuesOf(p *profile.Profile) map[string]string {
+	values := map[string]string{"user-agent": p.UserAgent}
+	for _, f := range append(slices.Clone(p.Headers), p.ClientHints...) {
+		values[strings.ToLower(f.Name)] = f.Value
+	}
+	return values
 }

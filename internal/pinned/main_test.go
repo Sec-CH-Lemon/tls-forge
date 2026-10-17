@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -63,10 +66,24 @@ func TestBrowserHelper(t *testing.T) {
 }
 
 // layout is a reference laid out as a release keeps one: an archive with
-// the installer, the build installed, and a manifest naming both.
+// the installer, the build installed, and a manifest naming both; and the
+// fixtures of what a page does it is held to.
 type layout struct {
 	manifest, archive, installed, binary string
+	requests, decoding                   string
 }
+
+// scenario is the one scenario the test fixture holds: what a page asks for,
+// in nothing a machine or a profile decides.
+var scenario = harness.MeasuredScenario{Note: "a page",
+	H2: []harness.Request{{Method: "GET", URL: "https://www.example.com/p/x", Headers: [][2]string{{":method", "GET"}, {"accept", "*/*"}}}},
+	H1: []harness.Request{{Method: "GET", URL: "https://www.example.com/p/x", Headers: [][2]string{{"Host", "www.example.com"}, {"Accept", "*/*"}}}},
+}
+
+// page is the one page the test fixture of decodings holds.
+var page = harness.DecodingCase{Name: "page", Body: []byte("<p>a</p>"), Word: []byte("a"), Encoding: "UTF-8", Text: ptr("a")}
+
+func ptr(s string) *string { return &s }
 
 func hashOf(t *testing.T, name string) string {
 	t.Helper()
@@ -92,7 +109,14 @@ func laidOut(t *testing.T, change func(m map[string]any)) layout {
 	t.Helper()
 	root := t.TempDir()
 	r := layout{manifest: filepath.Join(root, "chrome.json"), archive: filepath.Join(root, "archive"),
-		installed: filepath.Join(root, "installed")}
+		installed: filepath.Join(root, "installed"), requests: filepath.Join(root, "requests.json"),
+		decoding: filepath.Join(root, "decoding.json")}
+	if err := (&harness.RequestsFixture{Scenarios: map[string]harness.MeasuredScenario{"x": scenario}}).Write(r.requests); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if err := (&harness.DecodingFixture{Cases: []harness.DecodingCase{page}}).Write(r.decoding); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
 	r.binary = filepath.Join(r.installed, "opt", "chrome", "chrome")
 	for _, dir := range []string{r.archive, filepath.Dir(r.binary)} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -138,19 +162,28 @@ func firstBuild(field string, value any) func(m map[string]any) {
 }
 
 func (r layout) args(more ...string) []string {
-	return append([]string{"--manifest", r.manifest, "--archive", r.archive, "--installed", r.installed}, more...)
+	return append([]string{"--manifest", r.manifest, "--archive", r.archive, "--installed", r.installed,
+		"--requests", r.requests, "--decoding", r.decoding}, more...)
 }
 
 type comparer = func(context.Context, tlsforge.MeasureOptions, ...tlsforge.Option) (*tlsforge.Comparison, error)
 
 // seams sets, for one test, what the browser says it is and what the
-// comparison gives.
+// comparison gives; and on the bench, the browser is what the fixtures say.
 func seams(t *testing.T, said string, compared comparer) {
 	t.Helper()
-	oldVersion, oldCompare := versionOf, compare
+	oldVersion, oldCompare, oldRequests, oldDecoding := versionOf, compare, measureRequests, measureDecoding
 	versionOf = func(context.Context, string) ([]byte, error) { return []byte(said), nil }
 	compare = compared
-	t.Cleanup(func() { versionOf, compare = oldVersion, oldCompare })
+	measureRequests = func(context.Context, harness.Browser, []string, io.Writer) (map[string]harness.MeasuredScenario, error) {
+		return map[string]harness.MeasuredScenario{"x": scenario}, nil
+	}
+	measureDecoding = func(_ context.Context, _ harness.Browser, cases []harness.DecodingCase, _ io.Writer) ([]harness.DecodingCase, error) {
+		return cases, nil
+	}
+	t.Cleanup(func() {
+		versionOf, compare, measureRequests, measureDecoding = oldVersion, oldCompare, oldRequests, oldDecoding
+	})
 }
 
 var measured = &capture.Capture{Profile: "chrome", TLS: capture.TLS{JA4: "t13d1517h2_8daaf6152771_cb7bf5808d99"}}
@@ -428,5 +461,132 @@ func TestMainEntryPoint(t *testing.T) {
 	main()
 	if code != 2 {
 		t.Errorf("exit code %d, want 2", code)
+	}
+}
+
+func TestTheGateHoldsTheReferenceToWhatAPageDoes(t *testing.T) {
+	r := laidOut(t, nil)
+	var asked tlsforge.MeasureOptions
+	seams(t, "Google Chrome 155.0.8059.80", matching(&asked))
+	var measuredWith harness.Browser
+	var deadline time.Time
+	measureRequests = func(ctx context.Context, b harness.Browser, only []string, _ io.Writer) (map[string]harness.MeasuredScenario, error) {
+		measuredWith, deadline = b, func() time.Time { d, _ := ctx.Deadline(); return d }()
+		if only != nil {
+			t.Errorf("measured %v, not every scenario", only)
+		}
+		changed := scenario
+		changed.H2 = []harness.Request{{Method: "GET", URL: "https://www.example.com/p/x", Headers: [][2]string{{":method", "GET"}, {"accept", "text/html"}}}}
+		return map[string]harness.MeasuredScenario{"x": changed}, nil
+	}
+	measureDecoding = func(_ context.Context, _ harness.Browser, cases []harness.DecodingCase, _ io.Writer) ([]harness.DecodingCase, error) {
+		out := slices.Clone(cases)
+		out[0].Encoding = "windows-1252"
+		return out, nil
+	}
+	out := filepath.Join(t.TempDir(), "result.json")
+	start := time.Now()
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), r.args("--out", out, "--scenario-timeout", "3m"), &stdout, &stderr); code != 1 {
+		t.Fatalf("exit %d: %s", code, stderr.String())
+	}
+	if measuredWith != (harness.Chrome{Path: r.binary}) || deadline.Sub(start) < 2*time.Minute || deadline.Sub(start) > 4*time.Minute {
+		t.Errorf("measured %v, by %v", measuredWith, deadline.Sub(start))
+	}
+	if !strings.Contains(stdout.String(), `x over h2, request 1: accept: "text/html", the fixture's "*/*"`) ||
+		!strings.Contains(stdout.String(), `page: the browser read "a" as "windows-1252"`) {
+		t.Errorf("stdout: %s", stdout.String())
+	}
+	if !strings.HasSuffix(stderr.String(), "pinned: chrome does not match Google Chrome 155.0.8059.80: 2 differences in what a page does\n") {
+		t.Errorf("stderr: %s", stderr.String())
+	}
+	var result Result
+	data, _ := os.ReadFile(out)
+	if err := json.Unmarshal(data, &result); err != nil || result.OK || len(result.Scenarios) != 2 {
+		t.Errorf("result: %s, %v", data, err)
+	}
+}
+
+func TestOneDifferenceIsSaidAsOne(t *testing.T) {
+	r := laidOut(t, nil)
+	var asked tlsforge.MeasureOptions
+	seams(t, "Google Chrome 155.0.8059.80", matching(&asked))
+	measureDecoding = func(_ context.Context, _ harness.Browser, cases []harness.DecodingCase, _ io.Writer) ([]harness.DecodingCase, error) {
+		out := slices.Clone(cases)
+		out[0].Text = nil
+		return out, nil
+	}
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), r.args(), &stdout, &stderr); code != 1 ||
+		!strings.HasSuffix(stderr.String(), ": 1 difference in what a page does\n") {
+		t.Errorf("exit %d: %s", code, stderr.String())
+	}
+}
+
+func TestAResultWithNoDifferenceSaysSo(t *testing.T) {
+	r := laidOut(t, nil)
+	var asked tlsforge.MeasureOptions
+	seams(t, "Google Chrome 155.0.8059.80", matching(&asked))
+	out := filepath.Join(t.TempDir(), "result.json")
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), r.args("--out", out), &stdout, &stderr); code != 0 {
+		t.Fatalf("exit %d: %s", code, stderr.String())
+	}
+	data, _ := os.ReadFile(out)
+	if !bytes.Contains(data, []byte(`"scenarios": []`)) || !bytes.Contains(data, []byte(`"ok": true`)) {
+		t.Errorf("result: %s", data)
+	}
+}
+
+func TestTheGateNeedsItsFixturesAndTheirMeasurements(t *testing.T) {
+	failing := errors.New("no browser came")
+	for _, tc := range []struct {
+		name   string
+		change func(r *layout)
+		seam   func()
+		want   string
+	}{
+		{"no fixture of requests", func(r *layout) { r.requests = filepath.Join(filepath.Dir(r.requests), "none.json") }, nil, "none.json"},
+		{"no fixture of decodings", func(r *layout) { r.decoding = filepath.Join(filepath.Dir(r.decoding), "none.json") }, nil, "none.json"},
+		{"scenarios not measured", nil, func() {
+			measureRequests = func(context.Context, harness.Browser, []string, io.Writer) (map[string]harness.MeasuredScenario, error) {
+				return nil, failing
+			}
+		}, "measuring the scenarios: no browser came"},
+		{"pages not measured", nil, func() {
+			measureDecoding = func(context.Context, harness.Browser, []harness.DecodingCase, io.Writer) ([]harness.DecodingCase, error) {
+				return nil, failing
+			}
+		}, "measuring the decodings: no browser came"},
+		{"a profile there is none of", nil, func() {
+			profileOf = func(string) (*profile.Profile, error) { return nil, errors.New(`no profile "chrome"`) }
+		}, `no profile "chrome"`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := laidOut(t, nil)
+			if tc.change != nil {
+				tc.change(&r)
+			}
+			var asked tlsforge.MeasureOptions
+			seams(t, "Google Chrome 155.0.8059.80", matching(&asked))
+			oldProfile := profileOf
+			t.Cleanup(func() { profileOf = oldProfile })
+			if tc.seam != nil {
+				tc.seam()
+			}
+			var stdout, stderr bytes.Buffer
+			if code := run(context.Background(), r.args(), &stdout, &stderr); code != 1 || !strings.Contains(stderr.String(), tc.want) {
+				t.Errorf("exit %d: %s, want %q", code, stderr.String(), tc.want)
+			}
+		})
+	}
+}
+
+func TestAProfileSaysWhatItSendsByName(t *testing.T) {
+	p := &profile.Profile{UserAgent: "Mozilla", Headers: []profile.Field{{Name: "Sec-CH-UA", Value: "a"}, {Name: "accept", Value: "*/*"}},
+		ClientHints: []profile.Field{{Name: "sec-ch-ua-arch", Value: `"arm"`}}}
+	if got := valuesOf(p); len(got) != 4 || got["user-agent"] != "Mozilla" || got["sec-ch-ua"] != "a" || got["sec-ch-ua-arch"] != `"arm"` ||
+		got["accept"] != "*/*" {
+		t.Errorf("valuesOf: %v", got)
 	}
 }

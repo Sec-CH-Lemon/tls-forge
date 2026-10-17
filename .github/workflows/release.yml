@@ -322,7 +322,9 @@ jobs:
           echo "gates=$gates" >> "$GITHUB_OUTPUT"
 
   pinned:
-    timeout-minutes: 30
+    # The comparison, then every scenario and page on the bench: about twenty
+    # minutes on a Mac, with a launch of the browser for each.
+    timeout-minutes: 75
     needs: [set, reference, store]
     strategy:
       fail-fast: false
