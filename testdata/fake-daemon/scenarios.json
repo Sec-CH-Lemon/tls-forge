@@ -1,5 +1,5 @@
 {
-  "note": "What every fake daemon answers: node/test/fake-daemon.js, python/tests/fake_daemon.py, and testdata/fake-daemon/main.go, which both suites run on Windows. A request asks for a scenario by its URL's host; a control line is answered as TLSFORGE_TEST_PROTOCOL says. Each fake answers the control line \"scenarios\" with the names it has, read from the table it dispatches on, and each suite holds its fake to this file: a scenario added to one fake and not the others fails there. A host no fake knows is answered with an error naming it.",
+  "note": "What every fake daemon answers: node/test/fake-daemon.js, python/tests/fake_daemon.py, and testdata/fake-daemon/main.go, which both suites run on Windows. A request asks for a scenario by its URL's host; a control line is answered as TLSFORGE_TEST_PROTOCOL says; and a fake started with --proxy-stdin reads its init line first, and answers it as TLSFORGE_TEST_INIT says. Each fake answers the control line \"scenarios\" with the names it has, read from the table it dispatches on, and each suite holds its fake to this file: a scenario added to one fake and not the others fails there. A host no fake knows is answered with an error naming it.",
   "requests": {
     "ok": "200, its body saying what reached the fake",
     "error": "the request failed: an error and an id, no other field",
@@ -51,6 +51,14 @@
     "low": "protocol 1, said outright",
     "newer": "protocol 7, which a daemon newer than the packages speaks, with browser_context and a capability nobody knows yet",
     "no-capabilities": "capabilities a string",
+    "silent": "no answer"
+  },
+  "inits": {
+    "": "the init line answered without an error, and requests from then on",
+    "deaf": "closes its input before it reads the init line, and stays for 30 s",
+    "exit": "exits with code 3",
+    "garbage": "a line that is not JSON",
+    "refuse": "an error naming the proxy without its password, then exits with code 1",
     "silent": "no answer"
   }
 }

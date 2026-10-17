@@ -233,13 +233,15 @@ tried to read it. A proxy's username is kept, since it tells two proxies
 apart.
 
 `fetch`, `proxy` and `daemon` take the proxy from an environment variable
-with `--proxy-env NAME`, and the Node.js and Python packages start the
-daemon that way: on the command line, a password is one that `ps` shows to
-every user of the machine. The environment is not a secret either. It keeps
-the password from other users, and from nobody who can read the process
-itself, such as its owner and root. The variable is read only when it is
-named, and naming one that is not set or is empty, or giving `--proxy` as
-well, is a usage error before anything is asked.
+with `--proxy-env NAME`: on the command line, a password is one that `ps`
+shows to every user of the machine. The environment is not a secret either.
+It keeps the password from other users, and from nobody who can read the
+process itself, such as its owner and root. The variable is read only when it
+is named, and naming one that is not set or is empty, or giving `--proxy` as
+well, is a usage error before anything is asked. `daemon --proxy-stdin` takes
+the proxy from the first line of its input instead, which is read once, and
+the Node.js and Python packages start the daemon that way; see
+[the init line](docs/protocol.md#the-init-line).
 
 Ctrl-C, or SIGTERM as `kill`, a service manager and `docker stop` send it,
 stops a command in order. `fetch` cancels the requests in flight, which its
@@ -1588,7 +1590,8 @@ Usage: `tls-forge daemon [flags]`
 | `--cookie-set <id>` | Select a set from the cookie file |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate |
 | `-x`, `--proxy <url>` | Upstream proxy |
-| `--proxy-env <name>` | Read the upstream proxy from this environment variable instead, as the Node.js and Python packages do |
+| `--proxy-env <name>` | Read the upstream proxy from this environment variable instead |
+| `--proxy-stdin` | Read the upstream proxy from the first line of standard input, the init line, as the Node.js and Python packages do; see [the protocol](docs/protocol.md#the-init-line) |
 | `-t`, `--timeout <duration>` | Transport request timeout; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification |
 

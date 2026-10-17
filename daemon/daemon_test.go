@@ -761,3 +761,101 @@ func TestABrowserContextIsApplied(t *testing.T) {
 		}
 	}
 }
+
+func TestReadInit(t *testing.T) {
+	// The proxy, the id, and the input after it, blank lines before it aside;
+	// the last line need not end in a newline.
+	for _, input := range []string{
+		`{"id":3,"control":"init","proxy":"http://u:p@h:1"}` + "\n" + `{"id":4,"url":"x"}` + "\n",
+		"\n  \n" + `{"id":3,"control":"init","proxy":"http://u:p@h:1"}` + "\n" + `{"id":4,"url":"x"}` + "\n",
+		`{"id":3,"control":"init","proxy":"http://u:p@h:1"}`,
+	} {
+		init, rest, err := ReadInit(strings.NewReader(input))
+		if err != nil || init.ID != 3 || init.Proxy != "http://u:p@h:1" {
+			t.Fatalf("%q: %+v, %v", input, init, err)
+		}
+		after, _ := io.ReadAll(rest)
+		if want := strings.TrimPrefix(strings.SplitAfterN(input, "}", 2)[1], "\n"); string(after) != want {
+			t.Errorf("%q: the input after it is %q, want %q", input, after, want)
+		}
+	}
+	// A line longer than the reader's buffer, not than a request line may be.
+	long := `{"id":9,"control":"init","proxy":"http://h:1/` + strings.Repeat("a", 3*initialLineBuffer) + `"}` + "\n"
+	if init, _, err := ReadInit(strings.NewReader(long)); err != nil || init.ID != 9 {
+		t.Errorf("a long init line: %+v, %v", init, err)
+	}
+	for _, tc := range []struct {
+		name  string
+		input io.Reader
+		id    uint64
+		says  string
+	}{
+		{"a request", strings.NewReader(`{"id":5,"url":"https://example.com/"}`), 5, "is its init line"},
+		{"hello", strings.NewReader(`{"id":5,"control":"hello"}`), 5, "is its init line"},
+		{"a url", strings.NewReader(`{"id":5,"control":"init","proxy":"http://h:1","url":"x"}`), 5, "is its init line"},
+		{"no proxy", strings.NewReader(`{"id":5,"control":"init"}`), 5, "the init line names no proxy"},
+		{"no JSON", strings.NewReader(`{"id":5,` + "\n"), 0, "bad request: unexpected end of JSON input"},
+		{"the wrong shape", strings.NewReader(`{"id":5,"proxy":7}` + "\n"), 5, "bad request: json: cannot unmarshal"},
+		{"nothing", strings.NewReader(""), 0, "the input ended before the init line"},
+		{"a broken input", iotest.ErrReader(errors.New("gone")), 0, "reading the init line: gone"},
+		{"a line too long", io.MultiReader(strings.NewReader(`{"id":5,"proxy":"`),
+			strings.NewReader(strings.Repeat("a", maxLineBuffer))), 0, "longer than 16777216 bytes"},
+	} {
+		init, _, err := ReadInit(tc.input)
+		if err == nil || init.ID != tc.id || !strings.Contains(err.Error(), tc.says) {
+			t.Errorf("%s: %+v, %v, want %q", tc.name, init, err, tc.says)
+		}
+	}
+}
+
+func TestAnInitLineIsReadUpToItsLimitItsNewlineIncluded(t *testing.T) {
+	// As Serve reads a request line, to the byte: a last line without a
+	// newline is counted as one with it. size is that count.
+	line := func(head string, size int, newline string) string {
+		return head + strings.Repeat("x", size-len(head)-len(`"}`)-1) + `"}` + newline
+	}
+	for _, tc := range []struct {
+		size    int
+		newline string
+		read    bool
+	}{
+		{maxLineBuffer - 1, "\n", true}, {maxLineBuffer, "\n", true}, {maxLineBuffer + 1, "\n", false},
+		{maxLineBuffer, "", true}, {maxLineBuffer + 1, "", false},
+	} {
+		init := line(`{"id":1,"control":"init","proxy":"http://h:1/`, tc.size, tc.newline)
+		_, _, err := ReadInit(strings.NewReader(init))
+		if read := err == nil; read != tc.read ||
+			(!read && (!errors.Is(err, bufio.ErrTooLong) || !strings.Contains(err.Error(), "its newline included"))) {
+			t.Errorf("an init line of %d bytes (newline %q): %v", tc.size, tc.newline, err)
+		}
+		var out strings.Builder
+		err = Serve(strings.NewReader(line(`{"id":1,"url":"https://example.com","body":"`, tc.size, tc.newline)),
+			&out, &fakeClient{})
+		if read := strings.Contains(out.String(), `"status":200`); read != tc.read {
+			t.Errorf("a request line of %d bytes (newline %q): %v, %q", tc.size, tc.newline, err, out.String())
+		}
+	}
+}
+
+func TestAnInitLineIsAnswered(t *testing.T) {
+	var out bytes.Buffer
+	if err := AnswerInit(&out, 3, nil); err != nil {
+		t.Fatalf("AnswerInit: %v", err)
+	}
+	if got := out.String(); got != `{"id":3,"status":0,"url":"","body":"","headers":null,"cookies":null}`+"\n" {
+		t.Errorf("ready: %s", got)
+	}
+	out.Reset()
+	_ = AnswerInit(&out, 4, errors.New(`the proxy "http://alice:secret@h:1" refused`))
+	if got := out.String(); !strings.Contains(got, `"id":4`) || !strings.Contains(got, "alice") ||
+		strings.Contains(got, "secret") {
+		t.Errorf("failed: %s", got)
+	}
+	// An init line among requests is no init line.
+	client := &fakeClient{}
+	got := handle(context.Background(), `{"id":5,"control":"init","proxy":"http://h:1"}`, client)
+	if got.ID != 5 || !strings.Contains(got.Error, "init is the first line of a daemon started with --proxy-stdin") ||
+		client.got != nil {
+		t.Errorf("%+v", got)
+	}
+}

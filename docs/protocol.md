@@ -12,16 +12,51 @@ request begins could be any distance away, and is not looked for. A client
 measures a request before it sends it, as the Node.js and Python packages do
 (`MAX_REQUEST_BYTES`), since the session ends with the daemon.
 
-```bash
-TLSFORGE_PROXY=http://user:pass@host:8080 tls-forge daemon --profile chrome --proxy-env=TLSFORGE_PROXY
+An `error` field says nothing of the password of any URL it quotes.
+
+## The init line
+
+A daemon started with `--proxy-stdin` takes its proxy from the first line of
+its input, the init line, and from nowhere else:
+
+```json
+{"id": 1, "control": "init", "proxy": "http://user:pass@host:8080"}
 ```
 
-The Node.js and Python packages pass a proxy that way, in the daemon's own
-environment and named by `--proxy-env`, rather than with `--proxy`: a command
-line is what `ps` shows every user of the machine. A daemon older than
-`--proxy-env` refuses the flag with exit code 2 before it reads a request, and
-the packages say it is older than they are. An `error` field says nothing of
-the password of any URL it quotes.
+It reads that line before it makes the client that goes through the proxy,
+and answers it before it reads another: without an `error` when it takes
+requests from then on, or with one, after which it ends with exit code 1.
+Blank lines before it are passed over. Each of these is such an error, and
+nothing is sent:
+
+- a first line that is not an init line, a request among them, or an init
+  line that also names a `url`;
+- an init line with no `proxy`, or with one that is not a proxy URL tls-forge
+  can use;
+- an input that ends first, or a first line longer than a request line may
+  be;
+- anything else that keeps the daemon from starting, such as a `--cookies`
+  file there is none of.
+
+A profile there is none of ends the daemon with exit code 1 before it reads
+its input, and the init line goes unanswered. An init line later in the input
+is a bad request: answered with why, and passed over. `--proxy-stdin` with
+`--proxy` or `--proxy-env` is a usage error, exit code 2, before the input is
+read.
+
+The Node.js and Python packages start the daemon this way when a client has a
+proxy. A command line is what `ps` shows every user of the machine. The
+environment, which `--proxy-env NAME` reads, is what the process's owner and
+root can read for as long as it runs. The input is read once, and is gone.
+
+A daemon older than `--proxy-stdin` refuses the flag with exit code 2 before
+it reads a request, and the packages say it is older than they are. Until the
+init line is answered without an `error` there is no session. An `error`, no
+answer within the client's timeout, a line that is not an answer, a write that
+fails and a daemon that ends each stop the daemon and fail every request
+waiting, with why and without the password, and none is a session that went.
+The next request starts another daemon, told its proxy first, as is every
+daemon a client starts again.
 
 ## Request
 
@@ -170,7 +205,9 @@ that a client has to ask about before relying on it:
 `capabilities`, a list of names, is absent while there are none; a client reads
 its absence as none. A daemon older than control lines, protocol 1, answers
 `hello` as a request with no url, `"error": "bad request: no url"`, and makes no
-connection either: a client reads that as protocol 1 and no capabilities. Any
+connection either: a client reads that as protocol 1 and no capabilities.
+`init` is [the init line](#the-init-line), which only the first line of a
+daemon started with `--proxy-stdin` is, and is refused anywhere else. Any
 other `control` is refused, as is a control line that carries a `url`.
 
 A request that needs a capability is sent only to a daemon that says it has it.
@@ -240,6 +277,9 @@ matter:
 * a monotonic id that is **never reset**, not even across a restart — an id must
   never name two different requests, or a late answer from the process you
   killed can match the request that replaced it
+* with a proxy, `--proxy-stdin` and the init line before anything else, to
+  every process started: until it is answered without an `error`, whatever
+  goes wrong stops the process and fails what waits, and no session is lost
 * drop any response whose id is not the one in flight
 * a line that is not parseable JSON, or is JSON but not an object, fails the
   in-flight request immediately; ids keep a later valid response from being

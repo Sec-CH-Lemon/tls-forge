@@ -140,10 +140,10 @@ async function tunnelling(user, password) {
   return { proxy, tunnels, url: `http://${user}:${password}@127.0.0.1:${proxy.address().port}` };
 }
 
-test('the real Go daemon goes through the proxy its environment names', { skip: !binary }, async () => {
-  // The URL, password and all, reaches the daemon in its environment, named on
-  // its command line by --proxy-env: a daemon that did not read it would go
-  // to the site directly, and the proxy would see no tunnel.
+test('the real Go daemon goes through the proxy its input names', { skip: !binary }, async () => {
+  // The URL, password and all, reaches the daemon on the first line of its
+  // input, the init line --proxy-stdin asks for: a daemon that did not read it
+  // would go to the site directly, and the proxy would see no tunnel.
   let asked = 0;
   const origin = await listen(http.createServer((_request, response) => {
     asked += 1;
@@ -188,15 +188,17 @@ test('a proxy the real Go daemon turns down says why without its password', { sk
   await new Promise((resolve) => origin.close(resolve));
 
   // What the daemon itself says of the one it cannot read, as the client
-  // starts it: its last words, read here to the end.
-  const started = spawnSync(binary, ['daemon', '--proxy-env=TLSFORGE_PROXY'], {
-    env: { ...process.env, TLSFORGE_PROXY: 'http://alice:s3cret-never-shown@[bad' },
-    input: '',
+  // starts it: its answer to the init line and its last words, read here to
+  // the end.
+  const started = spawnSync(binary, ['daemon', '--proxy-stdin'], {
+    input: JSON.stringify({ id: 1, control: 'init', proxy: 'http://alice:s3cret-never-shown@[bad' }) + '\n',
     encoding: 'utf8',
   });
   assert.equal(started.status, 1, started.stderr);
   assert.match(started.stderr, /\[redacted\]@\[bad/);
-  assert.ok(!started.stderr.includes('s3cret-never-shown'), started.stderr);
+  assert.equal(JSON.parse(started.stdout).id, 1);
+  assert.match(JSON.parse(started.stdout).error, /\[redacted\]@\[bad/);
+  assert.ok(!(started.stderr + started.stdout).includes('s3cret-never-shown'), started.stderr);
 });
 
 test('the real Go daemon reads a request as long as the limit, and keeps its session past one longer', { skip: !binary }, async () => {

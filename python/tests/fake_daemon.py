@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -56,6 +57,8 @@ def answer(request: dict, **extra: object) -> dict:
             {
                 "argv": sys.argv[1:],
                 "env": {"TLSFORGE_PROXY": os.environ.get("TLSFORGE_PROXY")},
+                # The proxy the init line named.
+                "proxy": SEEN.get("proxy"),
                 # Which process answered, and how much of a body reached it: a
                 # request refused before it was sent must leave both as they were.
                 "pid": os.getpid(),
@@ -234,7 +237,12 @@ def control(request: dict) -> None:
     suite that holds it to scenarios.json, and hello as TLSFORGE_TEST_PROTOCOL
     says."""
     if request["control"] == "scenarios":
-        emit({"id": request["id"], "requests": sorted(SCENARIOS), "protocols": sorted(PROTOCOLS)})
+        emit({
+            "id": request["id"],
+            "requests": sorted(SCENARIOS),
+            "protocols": sorted(PROTOCOLS),
+            "inits": sorted(INITS),
+        })
         return
     mode = os.environ.get("TLSFORGE_TEST_PROTOCOL", "")
     if mode not in PROTOCOLS:
@@ -245,18 +253,58 @@ def control(request: dict) -> None:
 
 def refuses() -> bool:
     """Whether to refuse to start, with code 2, as pflag does: as a tls-forge
-    older than the client, which does not know --proxy-env, or whatever it is
+    older than the client, which does not know --proxy-stdin, or whatever it is
     started with."""
     refuse = os.environ.get("TLSFORGE_TEST_REFUSE")
-    return refuse == "always" or (
-        refuse == "proxy-env" and any(arg.startswith("--proxy-env") for arg in sys.argv)
-    )
+    return refuse == "always" or (refuse == "proxy-stdin" and "--proxy-stdin" in sys.argv)
+
+
+def _refuse_init(request: dict) -> None:
+    said = re.sub(r":[^:@/]*@", ":***@", request.get("proxy") or "", count=1)
+    emit(_blank(request, error=f"the init line's proxy {said} is no proxy"))
+    sys.exit(1)
+
+
+def _deaf_to_init(_request: dict) -> None:
+    # Closes its input before anything has read from it, and stays: the
+    # client's write of the init line finds a pipe nobody can read. The
+    # descriptor itself, since closing sys.stdin leaves it open.
+    os.close(0)
+    time.sleep(30)
+
+
+#: What the init line is answered with, by TLSFORGE_TEST_INIT, for a fake
+#: started with --proxy-stdin, which reads it first: without an error when it
+#: says nothing. "deaf" is the one acted on before the line is read.
+INITS: dict[str, Callable[[dict], None]] = {
+    "": lambda request: emit(_blank(request)),
+    "refuse": _refuse_init,
+    "silent": lambda _request: None,
+    "exit": _exit,
+    "garbage": lambda _request: raw("not json at all\n"),
+    "deaf": _deaf_to_init,
+}
+
+
+def init(request: dict) -> None:
+    """Answer the init line as TLSFORGE_TEST_INIT says, keeping the proxy it
+    names."""
+    SEEN["proxy"] = request.get("proxy")
+    mode = os.environ.get("TLSFORGE_TEST_INIT", "")
+    if mode not in INITS:
+        emit(_blank(request, error=f'unknown init mode "{mode}"'))
+        return
+    INITS[mode](request)
 
 
 def main() -> None:
     if refuses():
-        sys.stderr.write("tlsforge: bad usage: unknown flag: --proxy-env\n")
+        sys.stderr.write("tlsforge: bad usage: unknown flag: --proxy-stdin\n")
         sys.exit(2)
+    initialised = "--proxy-stdin" not in sys.argv
+    if not initialised and os.environ.get("TLSFORGE_TEST_INIT") == "deaf":
+        INITS["deaf"]({})
+        return
     deaf_for = os.environ.get("TLSFORGE_TEST_DEAF_FOR")
     if deaf_for:
         # Reads nothing, for as long as it is told, and then is gone: a write
@@ -270,6 +318,13 @@ def main() -> None:
             emit({"id": 0, "error": "bad request"})
             continue
 
+        if not initialised:
+            if request.get("control") != "init":
+                emit(_blank(request, error="the first line is not the init line"))
+                sys.exit(1)
+            initialised = True
+            init(request)
+            continue
         if "control" in request:
             SEEN["controls"] += 1
             control(request)

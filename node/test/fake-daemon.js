@@ -12,22 +12,57 @@
 // every fake answers the same ones: see that file.
 
 import readline from 'node:readline';
-import { readFileSync } from 'node:fs';
+import { closeSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-// A tls-forge older than the client, which does not know --proxy-env and
+// A tls-forge older than the client, which does not know --proxy-stdin and
 // refuses to start as pflag does, with code 2; or one that refuses whatever it
 // is started with.
 const refuse = process.env.TLSFORGE_TEST_REFUSE;
-if (refuse === 'always' || (refuse === 'proxy-env' && process.argv.some((arg) => arg.startsWith('--proxy-env')))) {
-  process.stderr.write('tlsforge: bad usage: unknown flag: --proxy-env\n');
+const proxyStdin = process.argv.includes('--proxy-stdin');
+if (refuse === 'always' || (refuse === 'proxy-stdin' && proxyStdin)) {
+  process.stderr.write('tlsforge: bad usage: unknown flag: --proxy-stdin\n');
   process.exit(2);
 }
 
-const reader = readline.createInterface({ input: process.stdin });
+// What the init line is answered with, by TLSFORGE_TEST_INIT, for a fake
+// started with --proxy-stdin, which reads it first: without an error when it
+// says nothing. "deaf" is the one acted on before the line is read.
+const initMode = process.env.TLSFORGE_TEST_INIT ?? '';
+const inits = {
+  '': (request) => write(blank(request)),
+  refuse: (request) => {
+    const said = String(request.proxy ?? '').replace(/:[^:@/]*@/, ':***@');
+    write(blank(request, { error: `the init line's proxy ${said} is no proxy` }));
+    process.exit(1);
+  },
+  silent: () => {},
+  exit: () => process.exit(3),
+  garbage: () => raw('not json at all\n'),
+  // Closes its input before anything has read from it, and stays: the
+  // client's write of the init line finds a pipe nobody can read. Closed
+  // under no handle, since closing one a live handle holds takes the process
+  // down with a signal.
+  deaf: () => {
+    closeSync(0);
+    setTimeout(() => {}, 30_000);
+  },
+};
+
+// The proxy the init line named, and whether it has been read.
+let proxy = null;
+let initialised = !proxyStdin;
+function init(request) {
+  initialised = true;
+  proxy = request.proxy ?? null;
+  (inits[initMode] ?? ((request) => write(blank(request, { error: `unknown init mode "${initMode}"` }))))(request);
+}
+
+// What reads the input: none for a fake deaf to its init line.
+let reader = null;
 
 // How many control lines and requests this process has read: what a client
 // sent, which a test of what it did not send reads back.
@@ -49,6 +84,8 @@ function answer(request, extra = {}) {
     body: JSON.stringify({
       argv: process.argv.slice(2),
       env: { TLSFORGE_PROXY: process.env.TLSFORGE_PROXY ?? null },
+      // The proxy the init line named, and the line it was: the first.
+      proxy,
       // Which process answered, and how much of a body reached it: a
       // request refused before it was sent must leave both as they were.
       pid: process.pid,
@@ -183,7 +220,7 @@ const protocols = {
   exit: () => process.exit(3),
 };
 
-reader.on('line', (line) => {
+function onLine(line) {
   let request;
   try {
     request = JSON.parse(line);
@@ -191,12 +228,25 @@ reader.on('line', (line) => {
     raw('{"id":0,"error":"bad request"}\n');
     return;
   }
+  if (!initialised) {
+    if (request.control !== 'init') {
+      write({ ...blank(request), error: 'the first line is not the init line' });
+      process.exit(1);
+    }
+    init(request);
+    return;
+  }
 
   if (request.control !== undefined) {
     controls += 1;
     // What this fake answers, for the suite that holds it to scenarios.json.
     if (request.control === 'scenarios') {
-      write({ id: request.id, requests: Object.keys(scenarios).sort(), protocols: Object.keys(protocols).sort() });
+      write({
+        id: request.id,
+        requests: Object.keys(scenarios).sort(),
+        protocols: Object.keys(protocols).sort(),
+        inits: Object.keys(inits).sort(),
+      });
       return;
     }
     const mode = process.env.TLSFORGE_TEST_PROTOCOL ?? '';
@@ -207,4 +257,11 @@ reader.on('line', (line) => {
   requests += 1;
   const behaviour = new URL(request.url).host;
   (scenarios[behaviour] ?? ((request) => write({ id: request.id, error: `unknown scenario "${behaviour}"` })))(request);
-});
+}
+
+if (proxyStdin && initMode === 'deaf') {
+  inits.deaf();
+} else {
+  reader = readline.createInterface({ input: process.stdin });
+  reader.on('line', onLine);
+}

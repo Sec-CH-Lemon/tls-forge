@@ -92,6 +92,9 @@ type Request struct {
 	// predates the field sends the request as though it had none, so a client
 	// asks first, with hello, for browser_context.
 	Browser json.RawMessage `json:"browser,omitempty"`
+
+	// Proxy is the proxy an init line names: see ReadInit.
+	Proxy string `json:"proxy,omitempty"`
 }
 
 // BrowserContext is a request's browser context as a line carries it: the
@@ -314,6 +317,84 @@ func ServeContext(ctx context.Context, in io.Reader, out io.Writer, client Clien
 	}
 }
 
+// Init is what the init line says: the first line of a daemon that takes its
+// proxy on its input, read before the client that goes through it is made,
+// as {"id":1,"control":"init","proxy":"http://user:pass@host:port"}. A
+// command line is what ps shows every user of the machine, and the
+// environment is what the process's owner can read while it runs; the input
+// is read once, and gone.
+type Init struct {
+	ID    uint64
+	Proxy string
+}
+
+// ReadInit reads the init line from in, and is the input after it, where the
+// requests are. A line that is no init line, or that names no proxy, is an
+// error, with the line's id when it has one; so is an input that ends first.
+func ReadInit(in io.Reader) (Init, io.Reader, error) {
+	reader := bufio.NewReaderSize(in, initialLineBuffer)
+	for {
+		line, err := readLine(reader)
+		if err != nil {
+			return Init{}, reader, err
+		}
+		if line = bytes.TrimSpace(line); len(line) == 0 {
+			continue
+		}
+		var said Request
+		if err := json.Unmarshal(line, &said); err != nil {
+			return Init{ID: said.ID}, reader, fmt.Errorf("bad request: %w", err)
+		}
+		init := Init{ID: said.ID, Proxy: said.Proxy}
+		switch {
+		case said.Control != "init" || said.URL != "":
+			return init, reader, errors.New("bad request: the first line of a daemon started with --proxy-stdin " +
+				`is its init line, {"id":1,"control":"init","proxy":"<url>"}, and nothing is sent before it`)
+		case said.Proxy == "":
+			return init, reader, errors.New("bad request: the init line names no proxy")
+		}
+		return init, reader, nil
+	}
+}
+
+// readLine is a line of in: one longer than a request line may be is an
+// error, as it is to Serve, which counts a last line without a newline as one
+// with it.
+func readLine(in *bufio.Reader) ([]byte, error) {
+	var line []byte
+	for {
+		part, err := in.ReadSlice('\n')
+		line = append(line, part...)
+		size := len(line)
+		if !bytes.HasSuffix(line, []byte("\n")) {
+			size++
+		}
+		switch {
+		case size > maxLineBuffer:
+			return nil, fmt.Errorf("daemon: a request line is longer than %d bytes, its newline included: %w",
+				maxLineBuffer, bufio.ErrTooLong)
+		case errors.Is(err, bufio.ErrBufferFull):
+			continue
+		case errors.Is(err, io.EOF) && len(line) == 0:
+			return nil, errors.New("daemon: the input ended before the init line")
+		case err != nil && !errors.Is(err, io.EOF):
+			return nil, fmt.Errorf("daemon: reading the init line: %w", err)
+		}
+		return line, nil
+	}
+}
+
+// AnswerInit writes the answer to the init line to out: none of an error, the
+// daemon being ready for requests, or the error, without the password of the
+// proxy or of any URL it quotes.
+func AnswerInit(out io.Writer, id uint64, err error) error {
+	answer := Response{ID: id}
+	if err != nil {
+		answer = failed(id, err)
+	}
+	return json.NewEncoder(out).Encode(answer)
+}
+
 // release gives a write waiting on out a deadline in the past, when out takes
 // one, once ctx is done and the answer to the request in flight has had
 // answerGrace to be written; until stop, which is ServeContext returning.
@@ -427,6 +508,9 @@ func control(req Request) Response {
 	switch req.Control {
 	case "hello":
 		return Response{ID: req.ID, Protocol: Protocol, Capabilities: append([]string(nil), capabilities...)}
+	case "init":
+		return Response{ID: req.ID, Error: "bad request: init is the first line of a daemon started with " +
+			"--proxy-stdin, and no other"}
 	default:
 		return Response{ID: req.ID, Error: fmt.Sprintf("bad request: unknown control %q", req.Control)}
 	}

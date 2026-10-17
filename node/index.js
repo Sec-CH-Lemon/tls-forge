@@ -18,13 +18,6 @@ import { resolveBinary } from './binary.js';
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 
-// The environment variable a proxy's URL reaches the transport in. Its command
-// line names the variable, with --proxy-env, rather than carrying the URL:
-// `ps` shows a command line, password and all, to every user of the machine,
-// and a process's environment only to its owner. Set in the child's own
-// environment, never in this process's.
-const PROXY_VARIABLE = 'TLSFORGE_PROXY';
-
 // The most a request can be as the transport reads it: one line of JSON, its
 // newline included, in UTF-8. A longer one would end the transport, and the
 // session in it, so it is refused before it is queued.
@@ -76,13 +69,14 @@ function helloOf(response) {
 
 // refusedArguments is why a transport that exited at once with a usage error
 // failed. With a proxy, that is a tls-forge older than this package, which
-// does not know --proxy-env; it never got as far as making a request.
+// does not know --proxy-stdin; it never got as far as making a request.
 function refusedArguments(binary, proxied) {
   const said = `tlsforge: the transport at ${binary} refused its arguments (code 2)`;
   if (!proxied) return said;
   return (
-    `${said}: a tls-forge older than this package does not know --proxy-env, which keeps ` +
-    'the proxy\'s password off its command line; use the tls-forge this package came with'
+    `${said}: a tls-forge older than this package does not know --proxy-stdin, which keeps ` +
+    'the proxy\'s password off its command line and out of its environment; use the tls-forge this ' +
+    'package came with'
   );
 }
 
@@ -204,7 +198,10 @@ export class Client {
 
     const args = ['daemon'];
     if (options.profile) args.push('--profile', options.profile);
-    if (options.proxy) args.push(`--proxy-env=${PROXY_VARIABLE}`);
+    // The proxy goes on the transport's input, in the first line it reads:
+    // `ps` shows a command line, password and all, to every user of the
+    // machine, and the environment is the process's owner's to read.
+    if (options.proxy) args.push('--proxy-stdin');
     this.#proxy = options.proxy || undefined;
     if (options.insecure) args.push('--insecure');
     if (options.cookieFile) args.push('--cookies', options.cookieFile);
@@ -382,11 +379,7 @@ export class Client {
     // request's page resolves another request's promise.
     this.#closeReaders();
 
-    // A copy of this process's environment, with the proxy in it: a client's
-    // proxy reaches its own process and no other, and this process's
-    // environment is left as it was.
-    const env = this.#proxy === undefined ? process.env : { ...process.env, [PROXY_VARIABLE]: this.#proxy };
-    const child = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'], env });
+    const child = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'] });
     this.#process = child;
     this.#reader = readline.createInterface({ input: child.stdout });
     this.#reader.on('line', (line) => this.#onLine(line));
@@ -439,6 +432,32 @@ export class Client {
       this.#failInFlight(new Error(`tlsforge: transport exited (code ${code})`));
       this.#pump();
     });
+  }
+
+  // initJob is the line a transport started with a proxy is told it in,
+  // first. Until it is answered without an error there is no session: an
+  // error, the deadline, a garbled line, a failed write or an exit stops the
+  // transport, loses no session, and fails every request waiting with why.
+  #initJob() {
+    const id = ++this.#sequence;
+    const unstarted = (err) => {
+      this.#kill();
+      // No session started, so none was lost.
+      this.#lost = null;
+      this.#failAll(err);
+    };
+    return {
+      id,
+      init: true,
+      control: true,
+      line: JSON.stringify({ id, control: 'init', proxy: this.#proxy }) + '\n',
+      deadline: performance.now() + this.#timeout,
+      resolve: (response) => {
+        if (response.error == null) return;
+        unstarted(new Error(`tlsforge: the transport did not take its proxy: ${response.error}`));
+      },
+      reject: unstarted,
+    };
   }
 
   #closeReaders() {
@@ -587,6 +606,7 @@ export class Client {
     if (!this.#process) {
       try {
         this.#start();
+        if (this.#proxy !== undefined) this.#queue.unshift(this.#initJob());
       } catch (err) {
         // spawn throws synchronously for a malformed argv rather than emitting
         // 'error'. Unhandled, the throw escapes request(), which returns a
@@ -607,8 +627,9 @@ export class Client {
       // longer — so an answer is not merely possible, it is expected.
       // Restarting stops it at the source, dropping the reader stops one
       // already written, and the id means that even if both of those failed the
-      // stale line is discarded instead of handed to whoever asks next.
-      this.#restart('a request timed out, and it was stopped');
+      // stale line is discarded instead of handed to whoever asks next. An
+      // init line that timed out stopped a transport that had no session.
+      if (!job.init) this.#restart('a request timed out, and it was stopped');
     }, job.deadline - performance.now());
 
     this.#process.stdin.write(job.line, (err) => {
@@ -618,7 +639,7 @@ export class Client {
       this.#inFlight = null;
       clearTimeout(job.timer);
       job.reject(new Error(`tlsforge: write failed: ${err.message}`));
-      this.#restart(`a request could not be written to it: ${err.message}`);
+      if (!job.init) this.#restart(`a request could not be written to it: ${err.message}`);
     });
   }
 }

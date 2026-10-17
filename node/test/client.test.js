@@ -85,7 +85,7 @@ test('client options become daemon arguments', async () => {
   const c = fake({ profile: 'firefox', proxy: 'http://proxy:8080', insecure: true, timeout: 20_001 });
   const argv = JSON.parse((await c.get('https://ok/x')).body).argv;
   assert.deepEqual(argv, [
-    'daemon', '--profile', 'firefox', '--proxy-env=TLSFORGE_PROXY', '--insecure', '--timeout', '36s',
+    'daemon', '--profile', 'firefox', '--proxy-stdin', '--insecure', '--timeout', '36s',
   ]);
   c.close();
 });
@@ -108,10 +108,11 @@ async function withEnv(values, body) {
   }
 }
 
-test("a proxy reaches its own process in its environment, and nowhere else", async () => {
-  // Off the command line, which `ps` shows every user of the machine, and in
-  // the environment of the client's own process: two clients do not get each
-  // other's, and this process's environment is left as it was.
+test("a proxy reaches its own process on its input, and nowhere else", async () => {
+  // Off the command line, which `ps` shows every user of the machine, and out
+  // of the environment, which the process's owner can read: on the first line
+  // of the client's own process. Two clients do not get each other's, and
+  // this process's environment is left as it was.
   await withEnv({ TLSFORGE_PROXY: undefined }, async () => {
     const one = fake({ proxy: 'http://alice:s3cret-one@proxy.test:8080' });
     const two = fake({ proxy: 'socks5://bob:s3cret-two@proxy.test:1080' });
@@ -123,8 +124,9 @@ test("a proxy reaches its own process in its environment, and nowhere else", asy
       for (const [response, proxy] of [[first, 'http://alice:s3cret-one@proxy.test:8080'],
         [second, 'socks5://bob:s3cret-two@proxy.test:1080']]) {
         const echoed = JSON.parse(response.body);
-        assert.equal(echoed.env.TLSFORGE_PROXY, proxy);
-        assert.ok(echoed.argv.includes('--proxy-env=TLSFORGE_PROXY'));
+        assert.equal(echoed.proxy, proxy);
+        assert.equal(echoed.env.TLSFORGE_PROXY, null);
+        assert.ok(echoed.argv.includes('--proxy-stdin'));
         assert.ok(!echoed.argv.join(' ').includes('s3cret'), echoed.argv.join(' '));
       }
       const echoed = JSON.parse(third.body);
@@ -149,7 +151,7 @@ test("a variable this process has is not a proxy unless the client names one", a
       const inherited = JSON.parse((await plain.get('https://ok/x')).body);
       assert.ok(!inherited.argv.some((arg) => arg.startsWith('--proxy')));
       const own = JSON.parse((await proxied.get('https://ok/x')).body);
-      assert.equal(own.env.TLSFORGE_PROXY, 'http://mine.test:8080');
+      assert.equal(own.proxy, 'http://mine.test:8080');
       assert.equal(process.env.TLSFORGE_PROXY, 'http://someone:else@elsewhere.test:3128');
     } finally {
       plain.close();
@@ -159,10 +161,10 @@ test("a variable this process has is not a proxy unless the client names one", a
 });
 
 test('a transport older than the client is said to be, for every request waiting', async () => {
-  await withEnv({ TLSFORGE_TEST_REFUSE: 'proxy-env' }, async () => {
+  await withEnv({ TLSFORGE_TEST_REFUSE: 'proxy-stdin' }, async () => {
     const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080' });
     try {
-      const older = /refused its arguments \(code 2\): a tls-forge older than this package does not know --proxy-env/;
+      const older = /refused its arguments \(code 2\): a tls-forge older than this package does not know --proxy-stdin/;
       const [first, second] = await Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]);
       assert.equal(first.status, 'rejected');
       assert.match(first.reason.message, older);
@@ -175,6 +177,74 @@ test('a transport older than the client is said to be, for every request waiting
       c.close();
     }
   });
+});
+
+test('a transport that will not take its proxy starts no session, and says why', async () => {
+  // Refused, unanswered, garbled or gone before it answers the init line:
+  // every request waiting fails with why, without the password, and none is
+  // told a session went. The transport is stopped, so the next request starts
+  // another, which is told the proxy first: one kept would take it unasked.
+  for (const [mode, says] of [
+    ['refuse', /^tlsforge: the transport did not take its proxy: the init line's proxy http:\/\/alice:\*\*\*@proxy\.test:8080 is no proxy$/],
+    ['exit', /^tlsforge: transport exited \(code 3\)$/],
+    ['silent', /^tlsforge: request timed out$/],
+    ['garbage', /^tlsforge: bad response: /],
+  ]) {
+    await withEnv({ TLSFORGE_TEST_INIT: mode }, async () => {
+      const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080', timeout: 300 });
+      try {
+        const [first, second] = await Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]);
+        const third = await Promise.allSettled([c.get('https://ok/c')]);
+        for (const outcome of [first, second, ...third]) {
+          assert.equal(outcome.status, 'rejected', mode);
+          assert.match(outcome.reason.message, says);
+          assert.ok(!outcome.reason.message.includes('s3cret'), mode);
+          assert.ok(!(outcome.reason instanceof SessionReset), mode);
+        }
+        process.env.TLSFORGE_TEST_INIT = '';
+        const again = JSON.parse((await c.get('https://ok/c')).body);
+        assert.equal(again.proxy, 'http://alice:s3cret@proxy.test:8080');
+      } finally {
+        c.close();
+      }
+    });
+  }
+});
+
+test('an init line that cannot be written starts no session', async () => {
+  // Longer than a pipe holds, to a transport that closed its input unread:
+  // the write fails, and there was no session to lose.
+  const proxy = `http://alice:s3cret@proxy.test:8080/${'x'.repeat(1 << 20)}`;
+  await withEnv({ TLSFORGE_TEST_INIT: 'deaf' }, async () => {
+    const c = fake({ proxy, timeout: 5_000 });
+    try {
+      const [first, second] = await Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]);
+      for (const outcome of [first, second]) {
+        assert.equal(outcome.status, 'rejected');
+        assert.match(outcome.reason.message, /^tlsforge: write failed: /);
+        assert.ok(!(outcome.reason instanceof SessionReset));
+      }
+      process.env.TLSFORGE_TEST_INIT = '';
+      assert.equal(JSON.parse((await c.get('https://ok/c')).body).proxy, proxy);
+    } finally {
+      c.close();
+    }
+  });
+});
+
+test('a transport started again is told its proxy again, first', async () => {
+  const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080', timeout: 300 });
+  try {
+    const first = JSON.parse((await c.get('https://ok/a')).body);
+    await assert.rejects(() => c.get('https://silent/x'), /timed out/);
+    await assert.rejects(() => c.get('https://ok/b'), SessionReset);
+    const after = JSON.parse((await c.get('https://ok/c')).body);
+    assert.notEqual(after.pid, first.pid);
+    assert.equal(after.proxy, 'http://alice:s3cret@proxy.test:8080');
+    assert.deepEqual(await c.hello(), { protocol: 2, capabilities: [] });
+  } finally {
+    c.close();
+  }
 });
 
 test('a transport that refuses its arguments without a proxy says only that', async () => {

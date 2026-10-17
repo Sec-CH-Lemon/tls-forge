@@ -118,15 +118,16 @@ def test_the_options_become_the_transport_argv(client, tmp_path):
     ):
         assert argv[argv.index(flag) + 1] == value
     assert "--insecure" in argv
-    # The proxy by the name of the variable it is in, and never the URL.
-    assert "--proxy-env=TLSFORGE_PROXY" in argv
+    # The proxy on the transport's input, and never the URL on its command line.
+    assert "--proxy-stdin" in argv
     assert not any("pass" in arg for arg in argv)
 
 
-def test_a_proxy_reaches_its_own_process_in_its_environment(client, monkeypatch):
-    # Off the command line, which `ps` shows every user of the machine, and in
-    # the environment of the client's own process: two clients do not get each
-    # other's, and this process's environment is left as it was.
+def test_a_proxy_reaches_its_own_process_on_its_input(client, monkeypatch):
+    # Off the command line, which `ps` shows every user of the machine, and out
+    # of the environment, which the process's owner can read: on the first line
+    # of the client's own process. Two clients do not get each other's, and
+    # this process's environment is left as it was.
     monkeypatch.delenv("TLSFORGE_PROXY", raising=False)
     one = client(proxy="http://alice:s3cret-one@proxy.test:8080").get("https://ok/x").json()
     two = client(proxy="socks5://bob:s3cret-two@proxy.test:1080").get("https://ok/x").json()
@@ -135,8 +136,9 @@ def test_a_proxy_reaches_its_own_process_in_its_environment(client, monkeypatch)
         (one, "http://alice:s3cret-one@proxy.test:8080"),
         (two, "socks5://bob:s3cret-two@proxy.test:1080"),
     ):
-        assert echoed["env"]["TLSFORGE_PROXY"] == proxy
-        assert "--proxy-env=TLSFORGE_PROXY" in echoed["argv"]
+        assert echoed["proxy"] == proxy
+        assert echoed["env"]["TLSFORGE_PROXY"] is None
+        assert "--proxy-stdin" in echoed["argv"]
         assert "s3cret" not in " ".join(echoed["argv"])
     assert plain["env"]["TLSFORGE_PROXY"] is None
     assert not any(arg.startswith("--proxy") for arg in plain["argv"])
@@ -150,16 +152,16 @@ def test_a_variable_this_process_has_is_not_a_proxy_unless_named(client, monkeyp
     inherited = client().get("https://ok/x").json()
     assert not any(arg.startswith("--proxy") for arg in inherited["argv"])
     own = client(proxy="http://mine.test:8080").get("https://ok/x").json()
-    assert own["env"]["TLSFORGE_PROXY"] == "http://mine.test:8080"
+    assert own["proxy"] == "http://mine.test:8080"
     assert os.environ["TLSFORGE_PROXY"] == "http://someone:else@elsewhere.test:3128"
 
 
 def test_a_transport_older_than_the_client_is_said_to_be(client, monkeypatch):
-    monkeypatch.setenv("TLSFORGE_TEST_REFUSE", "proxy-env")
+    monkeypatch.setenv("TLSFORGE_TEST_REFUSE", "proxy-stdin")
     c = client(proxy="http://alice:s3cret@proxy.test:8080")
     older = (
         r"refused its arguments \(code 2\): a tls-forge older than this package "
-        r"does not know --proxy-env"
+        r"does not know --proxy-stdin"
     )
     with pytest.raises(tlsforge.TransportError, match=older) as refused:
         c.get("https://ok/a")
@@ -167,6 +169,71 @@ def test_a_transport_older_than_the_client_is_said_to_be(client, monkeypatch):
     # Asked again, it is asked of a new process, which says the same.
     with pytest.raises(tlsforge.TransportError, match=older):
         c.get("https://ok/b")
+
+
+@pytest.mark.parametrize(
+    ("mode", "error", "says"),
+    [
+        ("refuse", tlsforge.TransportError,
+         r"^tlsforge: the transport did not take its proxy: the init line's proxy "
+         r"http://alice:\*\*\*@proxy\.test:8080 is no proxy$"),
+        ("exit", tlsforge.TransportError, r"^tlsforge: transport exited \(code 3\)$"),
+        ("silent", tlsforge.Timeout, r"^tlsforge: request timed out"),
+        ("garbage", tlsforge.TransportError, r"^tlsforge: bad response: "),
+    ],
+)
+def test_a_transport_that_will_not_take_its_proxy_starts_no_session(client, monkeypatch, mode, error, says):
+    # Refused, unanswered, garbled or gone before it answers the init line:
+    # the request fails with why, without the password, and the next is not
+    # told a session went. The transport is stopped, so the next request
+    # starts another, told the proxy first: one kept would take it unasked.
+    monkeypatch.setenv("TLSFORGE_TEST_INIT", mode)
+    c = client(proxy="http://alice:s3cret@proxy.test:8080", timeout=0.5)
+    for url in ("https://ok/a", "https://ok/b"):
+        with pytest.raises(error, match=says) as failed:
+            c.get(url)
+        assert "s3cret" not in str(failed.value)
+        assert not isinstance(failed.value, tlsforge.SessionReset)
+        assert c._process is None
+    monkeypatch.setenv("TLSFORGE_TEST_INIT", "")
+    assert c.get("https://ok/b").json()["proxy"] == "http://alice:s3cret@proxy.test:8080"
+
+
+#: A proxy longer than a pipe holds, so that its init line waits on a
+#: transport that does not read it.
+_LONG_PROXY = "http://alice:s3cret@proxy.test:8080/" + "x" * (1 << 20)
+
+
+@pytest.mark.parametrize(
+    ("knob", "value", "error", "says"),
+    [
+        # Unread until the deadline: the write is given up on.
+        ("TLSFORGE_TEST_DEAF_FOR", "10", tlsforge.Timeout, r"^tlsforge: request timed out after 0.5s$"),
+        # Its input closed unread: the write fails.
+        ("TLSFORGE_TEST_INIT", "deaf", tlsforge.TransportError, r"^tlsforge: write failed: "),
+    ],
+)
+def test_an_init_line_the_transport_does_not_take_starts_no_session(client, monkeypatch, knob, value, error, says):
+    monkeypatch.setenv(knob, value)
+    c = client(proxy=_LONG_PROXY, timeout=0.5)
+    with pytest.raises(error, match=says) as failed:
+        c.get("https://ok/a")
+    assert "s3cret" not in str(failed.value)
+    assert c._process is None
+    monkeypatch.delenv(knob)
+    assert c.get("https://ok/b").json()["proxy"] == _LONG_PROXY
+
+
+def test_a_transport_started_again_is_told_its_proxy_again_first(client):
+    c = client(proxy="http://alice:s3cret@proxy.test:8080", timeout=0.5)
+    first = c.get("https://ok/a").json()
+    with pytest.raises(tlsforge.Timeout):
+        c.get("https://silent/x")
+    with pytest.raises(tlsforge.SessionReset):
+        c.get("https://ok/b")
+    after = c.get("https://ok/c").json()
+    assert after["pid"] != first["pid"] and after["proxy"] == "http://alice:s3cret@proxy.test:8080"
+    assert c.hello() == tlsforge.Hello(2, ())
 
 
 def test_a_transport_that_refuses_its_arguments_without_a_proxy_says_only_that(client, monkeypatch):
@@ -513,6 +580,11 @@ def test_a_write_the_transport_does_not_read_ends_at_the_deadline(client, monkey
     assert time.monotonic() - started < 2
     assert one._process is None
     assert _settled(baseline)
+    # The transport stopped had the session in it.
+    monkeypatch.delenv("TLSFORGE_TEST_DEAF_FOR")
+    with pytest.raises(tlsforge.SessionReset, match="a request timed out, and it was stopped"):
+        one.get("https://ok/after")
+    assert one.get("https://ok/again").status == 200
 
 
 def test_a_transport_that_dies_during_a_write_fails_it_at_once(client, monkeypatch):

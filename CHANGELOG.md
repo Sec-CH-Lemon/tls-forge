@@ -179,6 +179,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   line. The variable is read only when it is named. A name that is empty, a
   variable that is not set or is empty, and `--proxy` given as well are usage
   errors, before anything is asked or written.
+- `daemon --proxy-stdin` takes the proxy from the first line of the daemon's
+  input, its init line, `{"id":1,"control":"init","proxy":"…"}`. It is read
+  once, before the client that goes through the proxy is made, and answered
+  before any request is read: without an `error` when the daemon takes
+  requests, or with one, after which the daemon ends with exit code 1 having
+  sent nothing. An `init` line anywhere else is a bad request, and
+  `--proxy-stdin` with `--proxy` or `--proxy-env` is a usage error.
+  `daemon.ReadInit` and `daemon.AnswerInit` read and answer the init line for
+  a Go program that serves the protocol itself. See
+  [the init line](docs/protocol.md#the-init-line).
 - `Response.Encoding` says which codings a body was decoded from, and the
   `response` record of the log says it as `decoded_from`.
 - `Client.AllCookies` lists every cookie a client holds, for every host, and
@@ -457,12 +467,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   name and lose its secret, as a request's record does.
 - **The Node.js and Python packages no longer put a proxy's URL on the
   daemon's command line**, where `ps` showed its password to every user of
-  the machine. It goes in the daemon's own environment, named with
-  `--proxy-env`, and nowhere else: not in the calling process's environment,
-  and not in another client's daemon. A `tls-forge` older than `--proxy-env`
-  refuses the flag, and the packages say it is older than they are, before any
-  request. A daemon that refuses its arguments fails every request waiting on
-  it rather than being started again for each.
+  the machine. Nor do they put it in the daemon's environment, which its
+  owner and root can read while it runs. It goes on the first line of the
+  daemon's input, the init line `--proxy-stdin` asks for, and nowhere else:
+  not in the calling process's environment, and not in another client's
+  daemon. A `tls-forge` older than `--proxy-stdin` refuses the flag, and the
+  packages say it is older than they are, before any request. A daemon that
+  refuses its arguments fails every request waiting on it rather than being
+  started again for each. Until the init line is answered without an error
+  there is no session: a daemon that refuses it, does not answer it in time,
+  answers it with a line that is not an answer, cannot be written to or ends
+  first is stopped, the requests waiting fail with why and without the
+  password, and the next request is not told a session went.
 - A page `--output` keeps is written with mode `0600`, as the log, the trace
   and the report are. It was `0644`, readable by everyone on the machine, and
   a page can be one that only a session could open.

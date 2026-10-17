@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -32,6 +33,7 @@ type request struct {
 	Body         *string           `json:"body"`
 	BodyEncoding string            `json:"bodyEncoding"`
 	Control      *string           `json:"control"`
+	Proxy        *string           `json:"proxy"`
 	Browser      json.RawMessage   `json:"browser"`
 
 	// sent are the names of the fields the line had.
@@ -43,6 +45,10 @@ var outputMu sync.Mutex
 // How many control lines and requests this process has read: what a client
 // sent, which a test of what it did not send reads back.
 var controls, requests int
+
+// proxy is the proxy the init line named, for a fake started with
+// --proxy-stdin, and nil until then.
+var proxy any
 
 func main() {
 	// A copy named where.exe is used by the Node resolver tests. Keeping this in
@@ -61,15 +67,18 @@ func main() {
 		return
 	}
 
-	// A tls-forge older than the client, which does not know --proxy-env and
+	// A tls-forge older than the client, which does not know --proxy-stdin and
 	// refuses to start as pflag does, with code 2; or one that refuses whatever
 	// it is started with.
-	if refuse := os.Getenv("TLSFORGE_TEST_REFUSE"); refuse == "always" ||
-		(refuse == "proxy-env" && slices.ContainsFunc(os.Args, func(arg string) bool {
-			return strings.HasPrefix(arg, "--proxy-env")
-		})) {
-		_, _ = fmt.Fprintln(os.Stderr, "tlsforge: bad usage: unknown flag: --proxy-env")
+	proxyStdin := slices.Contains(os.Args[1:], "--proxy-stdin")
+	if refuse := os.Getenv("TLSFORGE_TEST_REFUSE"); refuse == "always" || (refuse == "proxy-stdin" && proxyStdin) {
+		_, _ = fmt.Fprintln(os.Stderr, "tlsforge: bad usage: unknown flag: --proxy-stdin")
 		os.Exit(2)
+	}
+
+	if proxyStdin && os.Getenv("TLSFORGE_TEST_INIT") == "deaf" {
+		inits["deaf"](request{})
+		return
 	}
 
 	// Reads nothing, for as long as it is told, and then is gone: a write
@@ -83,6 +92,7 @@ func main() {
 	// As much as the daemon reads, and more: a client's refusal of a longer
 	// request is what is under test, not this fake's.
 	scanner.Buffer(make([]byte, 64*1024), 32*1024*1024)
+	initialised := !proxyStdin
 	for scanner.Scan() {
 		var req request
 		var fields map[string]json.RawMessage
@@ -92,6 +102,15 @@ func main() {
 		}
 		_ = json.Unmarshal(scanner.Bytes(), &fields)
 		req.sent = slices.Sorted(maps.Keys(fields))
+		if !initialised {
+			if req.Control == nil || *req.Control != "init" {
+				emit(blank(req, map[string]any{"error": "the first line is not the init line"}))
+				os.Exit(1)
+			}
+			initialised = true
+			initLine(req)
+			continue
+		}
 		if req.Control != nil {
 			controls++
 			control(req)
@@ -107,6 +126,52 @@ func main() {
 		}
 		scenario(req)
 	}
+}
+
+// password is the password of a proxy URL, as the init line's answer leaves
+// it out.
+var password = regexp.MustCompile(`:[^:@/]*@`)
+
+// inits are what the init line is answered with, by TLSFORGE_TEST_INIT, for
+// a fake started with --proxy-stdin, which reads it first: without an error
+// when it says nothing. "deaf" is the one acted on before the line is read.
+var inits = map[string]func(request){
+	"": func(req request) { emit(blank(req, nil)) },
+	"refuse": func(req request) {
+		said := ""
+		if req.Proxy != nil {
+			said = *req.Proxy
+		}
+		if at := password.FindStringIndex(said); at != nil {
+			said = said[:at[0]] + ":***@" + said[at[1]:]
+		}
+		emit(blank(req, map[string]any{"error": fmt.Sprintf("the init line's proxy %s is no proxy", said)}))
+		os.Exit(1)
+	},
+	"silent":  func(request) {},
+	"exit":    func(request) { os.Exit(3) },
+	"garbage": func(request) { raw("not json at all\n") },
+	// Closes its input before anything has read from it, and stays: the
+	// client's write of the init line finds a pipe nobody can read.
+	"deaf": func(request) {
+		_ = os.Stdin.Close()
+		time.Sleep(30 * time.Second)
+	},
+}
+
+// initLine answers the init line as TLSFORGE_TEST_INIT says, keeping the
+// proxy it names.
+func initLine(req request) {
+	if req.Proxy != nil {
+		proxy = *req.Proxy
+	}
+	mode := os.Getenv("TLSFORGE_TEST_INIT")
+	answerInit, known := inits[mode]
+	if !known {
+		emit(blank(req, map[string]any{"error": fmt.Sprintf("unknown init mode %q", mode)}))
+		return
+	}
+	answerInit(req)
 }
 
 // with is answer laid over with extra.
@@ -283,7 +348,7 @@ func control(req request) {
 	if *req.Control == "scenarios" {
 		emit(map[string]any{
 			"id": req.ID, "requests": slices.Sorted(maps.Keys(scenarios)),
-			"protocols": slices.Sorted(maps.Keys(protocols)),
+			"protocols": slices.Sorted(maps.Keys(protocols)), "inits": slices.Sorted(maps.Keys(inits)),
 		})
 		return
 	}
@@ -310,10 +375,9 @@ func answer(req request) map[string]any {
 		cookies = []string{}
 	}
 
-	proxy, set := os.LookupEnv("TLSFORGE_PROXY")
 	env := map[string]any{"TLSFORGE_PROXY": nil}
-	if set {
-		env["TLSFORGE_PROXY"] = proxy
+	if inherited, set := os.LookupEnv("TLSFORGE_PROXY"); set {
+		env["TLSFORGE_PROXY"] = inherited
 	}
 	// In characters, as the Python and Node fakes count a string: a body of
 	// "я" is one long, not two.
@@ -324,7 +388,7 @@ func answer(req request) map[string]any {
 	var browser any
 	_ = json.Unmarshal(req.Browser, &browser)
 	body, _ := json.Marshal(map[string]any{
-		"argv": os.Args[1:], "env": env, "pid": os.Getpid(), "bodyLength": bodyLength,
+		"argv": os.Args[1:], "env": env, "proxy": proxy, "pid": os.Getpid(), "bodyLength": bodyLength,
 		"method": req.Method, "headers": headers,
 		"order": order, "cookies": cookies, "body": req.Body,
 		"browser": browser, "sent": req.sent, "controls": controls, "requests": requests,

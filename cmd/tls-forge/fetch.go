@@ -160,7 +160,7 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 //
 // It is all the daemon checks before it starts. The packages that start it
 // read its exit code 2 as arguments it does not understand, which from them
-// is only --proxy-env, from a tls-forge older than they are; a proxy or a
+// is only --proxy-stdin, from a tls-forge older than they are; a proxy or a
 // profile that cannot be used ends it with 1, as the client it cannot make.
 func (f clientFlags) proxyFromEnv() (string, error) {
 	given := "--proxy " + redactProxy(*f.proxy)
@@ -1119,8 +1119,14 @@ func describeExit(found egress, err error, proxy string) string {
 func runDaemon(ctx context.Context, args []string, out, errOut *printer) error {
 	fs := newFlagSet("daemon", out)
 	common := addDaemonFlags(fs)
+	proxyStdin := fs.Bool("proxy-stdin", false, "take the proxy URL from the first line of standard input, "+
+		"an init line, which keeps it off the command line and out of the environment")
 	if err := parse(fs, args); err != nil {
 		return err
+	}
+	if *proxyStdin && (fs.Changed("proxy") || fs.Changed("proxy-env")) {
+		return fmt.Errorf("%w: --proxy-stdin takes the proxy from the input: give neither --proxy nor "+
+			"--proxy-env with it", errUsage)
 	}
 	if _, err := common.proxyFromEnv(); err != nil {
 		return err
@@ -1133,16 +1139,23 @@ func runDaemon(ctx context.Context, args []string, out, errOut *printer) error {
 	if _, err := common.resolve(); err != nil {
 		return err
 	}
-	if err := common.warmup(*common.proxy); err != nil {
+	input, init, err := daemonProxy(*proxyStdin, common, out)
+	if err != nil {
+		return err
+	}
+	if err := init.failed(common.warmup(*common.proxy)); err != nil {
 		return err
 	}
 
 	common.wear(errOut)
 	client, err := common.client()
-	if err != nil {
+	if err := init.failed(err); err != nil {
 		return err
 	}
 	defer func() { _ = client.Close() }()
+	if err := init.ready(); err != nil {
+		return err
+	}
 
 	// stdin is read directly rather than through the writer the command was
 	// given: the protocol is a pipe, and tests substitute it through daemonInput.
@@ -1150,11 +1163,60 @@ func runDaemon(ctx context.Context, args []string, out, errOut *printer) error {
 	// Until ctx is done, which a signal does: the request in flight is
 	// cancelled and answered, and the daemon ends as it does at the end of its
 	// input, since being told to stop is how a daemon is meant to end.
-	err = daemon.ServeContext(ctx, daemonInput, out, client)
+	err = daemon.ServeContext(ctx, input, out, client)
 	if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
 		return nil
 	}
 	return err
+}
+
+// daemonProxy is where a daemon reads its requests from, and the init line
+// it answers before it reads them. With --proxy-stdin the proxy is the init
+// line's, the first of the input, read before the client that goes through
+// it is made; without it, the input is all requests, and there is no init
+// line to answer.
+//
+// What goes wrong with an init line ends the daemon with 1, never 2: the
+// packages that start it read 2 as arguments a tls-forge older than they are
+// did not understand.
+func daemonProxy(fromInput bool, common clientFlags, out *printer) (io.Reader, *initLine, error) {
+	if !fromInput {
+		return daemonInput, nil, nil
+	}
+	said, input, err := daemon.ReadInit(daemonInput)
+	init := &initLine{out: out, id: said.ID}
+	if err != nil {
+		return nil, nil, init.failed(err)
+	}
+	*common.proxy = said.Proxy
+	if why := proxyProblem(said.Proxy); why != "" {
+		return nil, nil, init.failed(fmt.Errorf("daemon: the init line's proxy %s %s", redactProxy(said.Proxy), why))
+	}
+	return input, init, nil
+}
+
+// initLine is the init line a daemon was given, which it answers once: with
+// why it cannot take requests, which ends it, or that it can. Nil for a
+// daemon given none, which answers nothing.
+type initLine struct {
+	out *printer
+	id  uint64
+}
+
+// failed answers err, when there is one, and is it.
+func (l *initLine) failed(err error) error {
+	if err != nil && l != nil {
+		_ = daemon.AnswerInit(l.out, l.id, err)
+	}
+	return err
+}
+
+// ready answers that the daemon takes requests now.
+func (l *initLine) ready() error {
+	if l == nil {
+		return nil
+	}
+	return daemon.AnswerInit(l.out, l.id, nil)
 }
 
 // daemonInput is os.Stdin, named so a test can supply a script instead.

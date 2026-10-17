@@ -58,14 +58,6 @@ _CLOSED_IN_FLIGHT = "tlsforge: client closed"
 #: session in it, so it is refused before it is sent.
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 
-#: The environment variable a proxy's URL reaches the transport in.
-#:
-#: Its command line names the variable, with ``--proxy-env``, rather than
-#: carrying the URL: ``ps`` shows a command line, password and all, to every
-#: user of the machine, and a process's environment only to its owner. Set in
-#: the child's own environment, never in this process's.
-_PROXY_VARIABLE = "TLSFORGE_PROXY"
-
 
 @dataclass(frozen=True)
 class Response:
@@ -399,8 +391,36 @@ class Client:
 
     def _exchange(self, request_id: int, line: str, deadline: float) -> dict[str, Any]:
         """Send one request and wait, until the deadline, for the answer with that id."""
+        if self._process is None and self._proxy is not None:
+            self._init(deadline)
         self._write(line, deadline)
+        return self._answer(request_id, deadline)
 
+    def _init(self, deadline: float) -> None:
+        """Start a transport and tell it its proxy, on the first line of its
+        input. Until it answers that it takes requests there is no session:
+        whatever keeps it from saying so stops it, and loses none, and the
+        next request starts another, told its proxy first."""
+        self._sequence += 1
+        init_id = self._sequence
+        ready = False
+        try:
+            line = _encode_request({"id": init_id, "control": "init", "proxy": self._proxy})
+            self._write(line, deadline, session=False)
+            error = self._answer(init_id, deadline, session=False).get("error")
+            if error is not None:
+                raise TransportError(f"tlsforge: the transport did not take its proxy: {error}")
+            ready = True
+        finally:
+            if not ready:
+                # Refused, timed out, garbled, gone, or the caller interrupted
+                # it: a transport half started is not one to send a request to.
+                self._stop()
+
+    def _answer(self, request_id: int, deadline: float, session: bool = True) -> dict[str, Any]:
+        """Wait, until the deadline, for the answer with request_id: in a
+        session, which a transport that ends loses, unless it is the init line,
+        before any."""
         while True:
             try:
                 line = self._lines.get(timeout=max(0.0, deadline - time.monotonic()))
@@ -410,7 +430,8 @@ class Client:
                 # is expected. Stopping it at the source is what keeps the
                 # answer from arriving in the middle of the next request.
                 self._stop()
-                self._lose("a request timed out, and it was stopped")
+                if session:
+                    self._lose("a request timed out, and it was stopped")
                 raise Timeout(f"tlsforge: request timed out after {self._timeout}s") from None
 
             if line is _EOF:
@@ -423,7 +444,8 @@ class Client:
                     raise TransportError(_CLOSED_IN_FLIGHT)
                 if stopped.returncode == 2:
                     raise TransportError(_refused_arguments(self._binary, self._proxy is not None))
-                self._lose(f"it exited (code {stopped.returncode})")
+                if session:
+                    self._lose(f"it exited (code {stopped.returncode})")
                 raise TransportError(f"tlsforge: transport exited (code {stopped.returncode})")
 
             response = _decode(line)
@@ -441,14 +463,9 @@ class Client:
 
     def _start(self) -> None:
         """Start a process, with the state lock held."""
-        # A copy of this process's environment, with the proxy in it: a client's
-        # proxy reaches its own process and no other, and this process's
-        # environment is left as it was.
-        env = None if self._proxy is None else {**os.environ, _PROXY_VARIABLE: self._proxy}
         try:
             process = subprocess.Popen(  # noqa: S603 - the argv is this package's own
                 [self._binary, *self._args],
-                env=env,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -478,8 +495,10 @@ class Client:
         _pump(process.stdout, self._lines, _EOF)
         _pump(process.stderr, None, None, self._on_stderr)
 
-    def _write(self, line: str, deadline: float) -> None:
-        """Write a request to the process, giving up on it at the deadline.
+    def _write(self, line: str, deadline: float, session: bool = True) -> None:
+        """Write a request to the process, giving up on it at the deadline: in a
+        session, which a write that fails loses, unless it is the init line,
+        before any.
 
         On a thread of its own. A write blocks for as long as the pipe is full,
         which is for as long as the process does not read it, and a deadline
@@ -514,7 +533,8 @@ class Client:
             # Still writing at the deadline: the process has stopped reading,
             # and is stopped, which ends the write.
             self._stop()
-            self._lose("a request timed out, and it was stopped")
+            if session:
+                self._lose("a request timed out, and it was stopped")
             raise Timeout(f"tlsforge: request timed out after {self._timeout}s")
         with self._state:
             if self._writer is writer:
@@ -525,7 +545,8 @@ class Client:
                 raise TransportError(_CLOSED_IN_FLIGHT) from failed[0]
             # The process can die between starting it and the bytes landing.
             self._stop()
-            self._lose(f"a request could not be written to it: {failed[0]}")
+            if session:
+                self._lose(f"a request could not be written to it: {failed[0]}")
             raise TransportError(f"tlsforge: write failed: {failed[0]}") from failed[0]
 
     def _lose(self, why: str) -> None:
@@ -570,14 +591,15 @@ def _refused_arguments(binary: str, proxied: bool) -> str:
     """Why a transport that exited at once with a usage error failed.
 
     With a proxy, that is a tls-forge older than this package, which does not
-    know ``--proxy-env``; it never got as far as making a request.
+    know ``--proxy-stdin``; it never got as far as making a request.
     """
     said = f"tlsforge: the transport at {binary} refused its arguments (code 2)"
     if not proxied:
         return said
     return (
-        f"{said}: a tls-forge older than this package does not know --proxy-env, which keeps "
-        "the proxy's password off its command line; use the tls-forge this package came with"
+        f"{said}: a tls-forge older than this package does not know --proxy-stdin, which keeps "
+        "the proxy's password off its command line and out of its environment; use the tls-forge "
+        "this package came with"
     )
 
 
@@ -599,8 +621,10 @@ def _build_args(
         if value:
             args += [flag, os.fspath(value) if isinstance(value, (str, Path, os.PathLike)) else value]
     if proxy:
-        # The variable's name, and never the URL: see _PROXY_VARIABLE.
-        args.append(f"--proxy-env={_PROXY_VARIABLE}")
+        # The proxy goes on the transport's input, in the first line it reads:
+        # ``ps`` shows a command line, password and all, to every user of the
+        # machine, and the environment is the process's owner's to read.
+        args.append("--proxy-stdin")
     if insecure:
         args.append("--insecure")
     args += ["--timeout", f"{math.ceil(transport_timeout)}s"]

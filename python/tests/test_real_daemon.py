@@ -223,10 +223,10 @@ def _serving(server: socketserver.BaseServer) -> threading.Thread:
     return thread
 
 
-def test_the_real_go_daemon_goes_through_the_proxy_its_environment_names() -> None:
-    """The URL, password and all, reaches the daemon in its environment, named
-    on its command line by --proxy-env: a daemon that did not read it would go
-    to the site directly, and the proxy would see no tunnel."""
+def test_the_real_go_daemon_goes_through_the_proxy_its_input_names() -> None:
+    """The URL, password and all, reaches the daemon on the first line of its
+    input, the init line --proxy-stdin asks for: a daemon that did not read it
+    would go to the site directly, and the proxy would see no tunnel."""
     binary = os.environ.get("TLSFORGE_REAL_BIN")
     if not binary:
         pytest.skip("run through make wrapper-smoke")
@@ -276,11 +276,11 @@ def test_a_proxy_the_real_go_daemon_turns_down_says_why_without_its_password() -
             thread.join(timeout=2)
 
     # What the daemon itself says of the one it cannot read, as the client
-    # starts it: its last words, read here to the end.
+    # starts it: its answer to the init line and its last words, read here to
+    # the end.
     started = subprocess.run(
-        [binary, "daemon", "--proxy-env=TLSFORGE_PROXY"],
-        env={**os.environ, "TLSFORGE_PROXY": f"http://alice:{secret}@[bad"},
-        input="",
+        [binary, "daemon", "--proxy-stdin"],
+        input=json.dumps({"id": 1, "control": "init", "proxy": f"http://alice:{secret}@[bad"}) + "\n",
         capture_output=True,
         text=True,
         timeout=30,
@@ -288,7 +288,9 @@ def test_a_proxy_the_real_go_daemon_turns_down_says_why_without_its_password() -
     )
     assert started.returncode == 1, started.stderr
     assert "[redacted]@[bad" in started.stderr
-    assert secret not in started.stderr
+    answer = json.loads(started.stdout)
+    assert answer["id"] == 1 and "[redacted]@[bad" in answer["error"]
+    assert secret not in started.stderr + started.stdout
 
 
 class _SessionHandler(BaseHTTPRequestHandler):
