@@ -1,0 +1,472 @@
+package harness
+
+import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"math/big"
+	"net"
+	"net/http"
+	"slices"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/hpack"
+)
+
+// Entry is a request as the bytes said it.
+type Entry struct {
+	// Proto is h2 or http/1.1.
+	Proto string
+	// Conn numbers the connection it came on, in the order they were made,
+	// and Stream is its HTTP/2 stream.
+	Conn   int
+	Stream uint32
+	Method string
+	// Target is the URL asked for: the scheme, the authority as sent, the
+	// path and query.
+	Target string
+	// Headers are the fields in the order sent, each name spelt as sent:
+	// HTTP/2's pseudo-headers first.
+	Headers [][2]string
+	Body    string
+	// Priority is an HTTP/2 HEADERS frame's priority: exclusive, the stream it
+	// depends on, the weight as on the wire. Nil without one.
+	Priority *[3]uint32
+}
+
+// Server keeps every request made of it, over HTTP/2 and HTTP/1.1 on TLS and
+// over plain HTTP, and answers as the scenarios need: their pages, redirects,
+// CORS and cookies. It listens on the loopback address.
+type Server struct {
+	// H2, H1 and Plain are its ports: TLS that offers HTTP/2 and HTTP/1.1,
+	// TLS that offers HTTP/1.1 alone, and plain HTTP.
+	H2, H1, Plain int
+
+	catalogue map[string]scenario
+	listeners []net.Listener
+	// The connections whose bytes are read along the way reach two servers:
+	// one that speaks HTTP/1.1, one that speaks HTTP/2 by prior knowledge.
+	http1, http2 *chanListener
+	h1, h2       *http.Server
+	tls          *tls.Config
+	done         sync.WaitGroup
+
+	mu      sync.Mutex
+	entries []*Entry
+	trouble []error
+	conns   int
+	open    map[net.Conn]struct{}
+	closed  bool
+}
+
+// The seams the tests reach through.
+var (
+	newKey            = func() (*ecdsa.PrivateKey, error) { return ecdsa.GenerateKey(elliptic.P256(), rand.Reader) }
+	createCertificate = x509.CreateCertificate
+	listen            = net.Listen
+)
+
+// StartServer starts a Server answering the scenarios of the catalogue.
+func StartServer() (*Server, error) { return startServer(catalogue) }
+
+func startServer(scenarios map[string]scenario) (*Server, error) {
+	cert, err := certificate()
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{},
+		http1: &chanListener{conns: make(chan net.Conn), done: make(chan struct{})},
+		http2: &chanListener{conns: make(chan net.Conn), done: make(chan struct{})},
+		tls:   &tls.Config{Certificates: []tls.Certificate{cert}}}
+	var prior http.Protocols
+	prior.SetUnencryptedHTTP2(true)
+	s.h1 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute}
+	s.h2 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior}
+	for range 3 {
+		ln, err := listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			_ = s.Close()
+			return nil, fmt.Errorf("harness: %w", err)
+		}
+		s.listeners = append(s.listeners, ln)
+	}
+	ports := make([]int, 3)
+	for i, ln := range s.listeners {
+		ports[i] = ln.Addr().(*net.TCPAddr).Port
+	}
+	s.H2, s.H1, s.Plain = ports[0], ports[1], ports[2]
+	s.done.Add(5)
+	for server, ln := range map[*http.Server]*chanListener{s.h1: s.http1, s.h2: s.http2} {
+		go func() {
+			defer s.done.Done()
+			_ = server.Serve(ln)
+		}()
+	}
+	go s.accept(s.listeners[0], []string{"h2", "http/1.1"})
+	go s.accept(s.listeners[1], []string{"http/1.1"})
+	go s.accept(s.listeners[2], nil)
+	return s, nil
+}
+
+// certificate is the server's, for every name the scenarios use: their
+// browser takes it on trust.
+func certificate() (tls.Certificate, error) {
+	key, err := newKey()
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("harness: %w", err)
+	}
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "example.com"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(24 * time.Hour),
+		DNSNames:    []string{"example.com", "*.example.com", "example.net", "*.example.net", "localhost"},
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+		KeyUsage:    x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := createCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("harness: %w", err)
+	}
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}, nil
+}
+
+// accept serves what comes to ln: over TLS offering protos, or plain HTTP
+// when there are none.
+func (s *Server) accept(ln net.Listener, protos []string) {
+	defer s.done.Done()
+	for {
+		raw, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		if !s.track(raw) {
+			_ = raw.Close()
+			return
+		}
+		s.done.Add(1)
+		go func() {
+			defer s.done.Done()
+			s.serveConn(raw, protos)
+		}()
+	}
+}
+
+// track keeps conn to be closed with the server, unless it is closed already.
+func (s *Server) track(conn net.Conn) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return false
+	}
+	s.open[conn] = struct{}{}
+	return true
+}
+
+func (s *Server) serveConn(raw net.Conn, protos []string) {
+	defer func() {
+		s.mu.Lock()
+		delete(s.open, raw)
+		s.mu.Unlock()
+	}()
+	if protos == nil {
+		parser := &h1parser{s: s, conn: s.nextConn(), scheme: "http"}
+		s.http1.hand(&teeConn{Conn: raw, parse: parser.write})
+		return
+	}
+	config := s.tls.Clone()
+	config.NextProtos = protos
+	conn := tls.Server(raw, config)
+	if err := conn.Handshake(); err != nil {
+		_ = conn.Close()
+		return
+	}
+	if conn.ConnectionState().NegotiatedProtocol == "h2" {
+		parser := &h2parser{s: s, conn: s.nextConn(), dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}}
+		s.http2.hand(&teeConn{Conn: conn, parse: parser.write})
+		return
+	}
+	parser := &h1parser{s: s, conn: s.nextConn(), scheme: "https"}
+	s.http1.hand(&teeConn{Conn: conn, parse: parser.write})
+}
+
+func (s *Server) nextConn() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.conns++
+	return s.conns
+}
+
+// record keeps e, which is the server's to change from then on.
+func (s *Server) record(e *Entry) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.entries = append(s.entries, e)
+}
+
+func (s *Server) addBody(e *Entry, b []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e.Body += string(b)
+}
+
+func (s *Server) troubled(err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.trouble = append(s.trouble, err)
+}
+
+// Requests are what was asked of the server since it started or was reset, in
+// the order asked, and what it could not read of them.
+func (s *Server) Requests() ([]Entry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]Entry, len(s.entries))
+	for i, e := range s.entries {
+		out[i] = *e
+		out[i].Headers = slices.Clone(e.Headers)
+	}
+	return out, errors.Join(s.trouble...)
+}
+
+// Reset forgets every request made so far, and the trouble reading them.
+func (s *Server) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.entries, s.trouble = nil, nil
+}
+
+// Close stops the server and ends every connection it has.
+func (s *Server) Close() error {
+	s.mu.Lock()
+	s.closed = true
+	for conn := range s.open {
+		_ = conn.Close()
+	}
+	s.mu.Unlock()
+	for _, ln := range s.listeners {
+		_ = ln.Close()
+	}
+	s.http1.close()
+	s.http2.close()
+	_ = s.h1.Close()
+	_ = s.h2.Close()
+	s.done.Wait()
+	return nil
+}
+
+// teeConn hands what is read of a connection to parse as well.
+type teeConn struct {
+	net.Conn
+	parse func([]byte)
+}
+
+func (c *teeConn) Read(p []byte) (int, error) {
+	n, err := c.Conn.Read(p)
+	if n > 0 {
+		c.parse(p[:n])
+	}
+	return n, err
+}
+
+// chanListener is how connections whose bytes are read along the way reach the
+// HTTP/1.1 server.
+type chanListener struct {
+	conns chan net.Conn
+	done  chan struct{}
+	once  sync.Once
+}
+
+func (l *chanListener) Accept() (net.Conn, error) {
+	select {
+	case conn := <-l.conns:
+		return conn, nil
+	case <-l.done:
+		return nil, net.ErrClosed
+	}
+}
+
+func (l *chanListener) hand(conn net.Conn) {
+	select {
+	case l.conns <- conn:
+	case <-l.done:
+		_ = conn.Close()
+	}
+}
+
+func (l *chanListener) close()         { l.once.Do(func() { close(l.done) }) }
+func (l *chanListener) Close() error   { return nil }
+func (l *chanListener) Addr() net.Addr { return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)} }
+
+// h2parser reads requests out of an HTTP/2 connection's bytes as the client
+// wrote them: their frames, header blocks and bodies.
+type h2parser struct {
+	s         *Server
+	conn      int
+	buf       []byte
+	preface   bool
+	dec       *hpack.Decoder
+	block     []byte
+	stream    uint32
+	endStream bool
+	priority  *[3]uint32
+	open      map[uint32]*Entry
+}
+
+func (p *h2parser) write(b []byte) {
+	p.buf = append(p.buf, b...)
+	if !p.preface {
+		if len(p.buf) < len(http2.ClientPreface) {
+			return
+		}
+		p.buf, p.preface = p.buf[len(http2.ClientPreface):], true
+	}
+	for len(p.buf) >= 9 {
+		length := int(p.buf[0])<<16 | int(p.buf[1])<<8 | int(p.buf[2])
+		if len(p.buf) < 9+length {
+			return
+		}
+		typ, flags := http2.FrameType(p.buf[3]), http2.Flags(p.buf[4])
+		stream := binary.BigEndian.Uint32(p.buf[5:9]) & 0x7fffffff
+		payload := slices.Clone(p.buf[9 : 9+length])
+		p.buf = p.buf[9+length:]
+		p.frame(typ, flags, stream, payload)
+	}
+}
+
+// unpadded is a frame's payload without its padding, or false when the
+// padding says more than there is.
+func unpadded(flags http2.Flags, payload []byte) ([]byte, bool) {
+	if !flags.Has(http2.FlagDataPadded) {
+		return payload, true
+	}
+	if len(payload) == 0 || int(payload[0]) > len(payload)-1 {
+		return nil, false
+	}
+	return payload[1 : len(payload)-int(payload[0])], true
+}
+
+func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, payload []byte) {
+	switch typ {
+	case http2.FrameData:
+		payload, ok := unpadded(flags, payload)
+		if e := p.open[stream]; e != nil && ok {
+			p.s.addBody(e, payload)
+		}
+	case http2.FrameHeaders:
+		payload, ok := unpadded(flags, payload)
+		if !ok {
+			p.s.troubled(fmt.Errorf("harness: a HEADERS frame padded past its end on stream %d", stream))
+			return
+		}
+		p.priority = nil
+		if flags.Has(http2.FlagHeadersPriority) {
+			if len(payload) < 5 {
+				p.s.troubled(fmt.Errorf("harness: a HEADERS frame too short for its priority on stream %d", stream))
+				return
+			}
+			dependency := binary.BigEndian.Uint32(payload[0:4])
+			p.priority = &[3]uint32{dependency >> 31, dependency & 0x7fffffff, uint32(payload[4])}
+			payload = payload[5:]
+		}
+		p.block, p.stream, p.endStream = append(p.block[:0], payload...), stream, flags.Has(http2.FlagHeadersEndStream)
+		if flags.Has(http2.FlagHeadersEndHeaders) {
+			p.decode()
+		}
+	case http2.FrameContinuation:
+		p.block = append(p.block, payload...)
+		if flags.Has(http2.FlagContinuationEndHeaders) {
+			p.decode()
+		}
+	}
+}
+
+func (p *h2parser) decode() {
+	fields, err := p.dec.DecodeFull(p.block)
+	if err != nil {
+		p.s.troubled(fmt.Errorf("harness: the header block of stream %d: %w", p.stream, err))
+		return
+	}
+	e := &Entry{Proto: "h2", Conn: p.conn, Stream: p.stream, Priority: p.priority}
+	var scheme, authority, path string
+	for _, f := range fields {
+		e.Headers = append(e.Headers, [2]string{f.Name, f.Value})
+		switch f.Name {
+		case ":method":
+			e.Method = f.Value
+		case ":scheme":
+			scheme = f.Value
+		case ":authority":
+			authority = f.Value
+		case ":path":
+			path = f.Value
+		}
+	}
+	e.Target = scheme + "://" + authority + path
+	p.s.record(e)
+	if !p.endStream {
+		p.open[p.stream] = e
+	}
+}
+
+// h1parser reads requests out of an HTTP/1.1 connection's bytes: the request
+// line, the header lines and a body of the length they say.
+type h1parser struct {
+	s      *Server
+	conn   int
+	scheme string
+	buf    []byte
+	left   int
+	cur    *Entry
+}
+
+func (p *h1parser) write(b []byte) {
+	p.buf = append(p.buf, b...)
+	for {
+		if p.left > 0 {
+			take := min(p.left, len(p.buf))
+			p.s.addBody(p.cur, p.buf[:take])
+			p.buf, p.left = p.buf[take:], p.left-take
+			if p.left > 0 {
+				return
+			}
+			continue
+		}
+		end := bytes.Index(p.buf, []byte("\r\n\r\n"))
+		if end < 0 {
+			return
+		}
+		lines := strings.Split(string(p.buf[:end]), "\r\n")
+		p.buf = p.buf[end+4:]
+		parts := strings.SplitN(lines[0], " ", 3)
+		if len(parts) < 3 {
+			p.s.troubled(fmt.Errorf("harness: a request line that is not one: %q", lines[0]))
+			continue
+		}
+		e := &Entry{Proto: "http/1.1", Conn: p.conn, Method: parts[0]}
+		host := ""
+		for _, line := range lines[1:] {
+			name, value, _ := strings.Cut(line, ":")
+			value = strings.TrimLeft(value, " \t")
+			e.Headers = append(e.Headers, [2]string{name, value})
+			if strings.EqualFold(name, "host") {
+				host = value
+			}
+			if strings.EqualFold(name, "content-length") {
+				p.left, _ = strconv.Atoi(value)
+			}
+		}
+		e.Target = p.scheme + "://" + host + parts[1]
+		p.s.record(e)
+		p.cur = e
+	}
+}

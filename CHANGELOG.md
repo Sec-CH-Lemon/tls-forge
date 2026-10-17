@@ -113,6 +113,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   SHA256SUMS` checks a download, and `gh attestation verify FILE --repo
   Sec-CH-Lemon/tls-forge` its provenance. The manifest binds every file, by
   name, size and SHA-256, to the version and the commit it was built from.
+- **The bench the Chrome fixtures were measured on is in the repository**,
+  `internal/harness`: a server that keeps every request as the bytes said it,
+  over HTTP/2, over HTTP/1.1 alone and over plain HTTP, the 133 scenarios of
+  `testdata/chrome155-requests.json` and the pages of
+  `testdata/chrome155-decoding.json`. `go run ./internal/harness/measure
+  --browser PATH` measures a browser again and writes the fixtures, or with
+  `--check` holds the browser to them. Google Chrome 155.0.8059.80 on macOS,
+  measured again, is what both fixtures say. The bench was in a scratch
+  directory, and nothing could measure the fixtures again.
 - **The check a release is held to against a pinned Google Chrome**,
   `go run ./internal/pinned` ([docs/pinned.md](docs/pinned.md)). It reads a
   manifest of the reference build, holds the archived installer and the

@@ -1,0 +1,104 @@
+package harness
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"slices"
+	"strings"
+	"testing"
+)
+
+// served is what the server answers req with.
+func served(s *Server, method, target string, header ...string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, target, nil)
+	for i := 0; i < len(header); i += 2 {
+		req.Header.Set(header[i], header[i+1])
+	}
+	w := httptest.NewRecorder()
+	s.serve(w, req)
+	return w
+}
+
+func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
+	s := &Server{catalogue: map[string]scenario{
+		"x":         {html: `<a href="{X}/p/x">x</a>`, script: "fetch('{S}/cors/{ID}').then(done);"},
+		"referrer":  {referrer: "no-referrer"},
+		"localhost": {script: "location.href='{H}/p/x';"},
+	}, Plain: 4000}
+	origin := []string{"Origin", "https://www.example.com"}
+	for _, tc := range []struct {
+		name, method, target string
+		header               []string
+		status               int
+		want                 map[string]string
+		cookies              int
+		body                 string
+	}{
+		{name: "hints asked for, an empty one too", method: "GET", target: "/p/x?accept=sec-ch-ua-arch&critical=",
+			status: 200, want: map[string]string{"Accept-CH": "sec-ch-ua-arch", "Critical-CH": ""}},
+		{name: "done", method: "GET", target: "/done/x", header: origin, status: 204,
+			want: map[string]string{"Access-Control-Allow-Origin": "https://www.example.com", "Access-Control-Allow-Credentials": "true"}},
+		{name: "a redirect", method: "GET", target: "/r/307/x?to=/p/y&cookie=2&rp=no-referrer", header: origin, status: 307,
+			want:    map[string]string{"Location": "/p/y", "Referrer-Policy": "no-referrer", "Access-Control-Allow-Origin": "https://www.example.com"},
+			cookies: 4},
+		{name: "a redirect CORS does not allow", method: "GET", target: "/r/302/x?to=/p/y&noacao=1", header: origin, status: 302,
+			want: map[string]string{"Location": "/p/y", "Access-Control-Allow-Origin": ""}},
+		{name: "a redirect's preflight", method: "OPTIONS", target: "/r/307/x?to=/p/y&cookie=1",
+			header: append(slices.Clone(origin), "Access-Control-Request-Headers", "x-foo"), status: 204,
+			want: map[string]string{"Access-Control-Allow-Headers": "x-foo", "Access-Control-Max-Age": "0",
+				"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE", "Location": ""}},
+		{name: "a redirect of no status", method: "GET", target: "/r/abc/x?to=/", status: 400},
+		{name: "a redirect of a status that is none", method: "GET", target: "/r/200/x?to=/", status: 400},
+		{name: "a chain", method: "GET", target: "/chain/3", status: 302, want: map[string]string{"Location": "/chain/4"}},
+		{name: "a chain of no link", method: "GET", target: "/chain/x", status: 400},
+		{name: "a CORS answer", method: "GET", target: "/cors/x?cookie=1", header: origin, status: 200,
+			want:    map[string]string{"Content-Type": "application/json", "Access-Control-Allow-Origin": "https://www.example.com"},
+			cookies: 2, body: `{"ok":true}`},
+		{name: "a preflight allowed", method: "OPTIONS", target: "/cors/x?maxage=600", header: origin, status: 204,
+			want: map[string]string{"Access-Control-Max-Age": "600", "Access-Control-Allow-Headers": ""}},
+		{name: "a preflight refused", method: "OPTIONS", target: "/cors/x?deny=1", header: origin, status: 403,
+			want: map[string]string{"Access-Control-Allow-Origin": ""}},
+		{name: "a run page", method: "GET", target: "https://www.example.com:443/run/x?cookie=1", status: 200, cookies: 2,
+			want: map[string]string{"Content-Type": "text/html; charset=utf-8"},
+			body: "<!doctype html><html><head><title>run</title></head><body><a href=\"https://www.example.net:443/p/x\">x</a><script>\n" +
+				"const done=()=>fetch('/done/x');\nfetch('https://api.example.com:443/cors/x').then(done);\n</script></body></html>"},
+		{name: "a run page with its referrer policy", method: "GET", target: "/run/referrer", status: 200,
+			body: `<!doctype html><html><head><meta name="referrer" content="no-referrer"><title>run</title></head>`},
+		{name: "a run page with no port asked on", method: "GET", target: "http://localhost/run/localhost", status: 200,
+			body: "location.href='http://www.example.com:4000/p/x';"},
+		{name: "no such scenario", method: "GET", target: "/run/nothing", status: 404},
+		{name: "a favicon", method: "GET", target: "/favicon.ico", status: 404},
+		{name: "a page that goes on", method: "GET", target: "/p/x?next=/p/y&cookie=1", header: origin, status: 200, cookies: 2,
+			body: `<!doctype html><meta http-equiv="refresh" content="0;url=/p/y"><title>page</title><p>page</p>`},
+		{name: "a page", method: "GET", target: "/p/x", status: 200, body: "<!doctype html><title>page</title><p>page</p>"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := served(s, tc.method, tc.target, tc.header...)
+			if w.Code != tc.status {
+				t.Fatalf("status %d, want %d", w.Code, tc.status)
+			}
+			for name, want := range tc.want {
+				if got := w.Header().Get(name); got != want {
+					t.Errorf("%s: %q, want %q", name, got, want)
+				}
+			}
+			if got := len(w.Header().Values("Set-Cookie")); got != tc.cookies {
+				t.Errorf("%d cookies, want %d", got, tc.cookies)
+			}
+			if !strings.Contains(w.Body.String(), tc.body) {
+				t.Errorf("body %q, want %q in it", w.Body.String(), tc.body)
+			}
+		})
+	}
+	// Hints are not asked for unless said, and cookies are not set on a
+	// preflight.
+	w := served(s, http.MethodOptions, "/cors/x?cookie=1")
+	if _, asked := w.Header()["Accept-Ch"]; asked || len(w.Header().Values("Set-Cookie")) != 0 {
+		t.Errorf("headers %v", w.Header())
+	}
+	// Cookies of every SameSite are the four, and in order.
+	w = served(s, http.MethodGet, "/p/x?cookie=2")
+	if got := w.Header().Values("Set-Cookie"); len(got) != 4 || !strings.HasPrefix(got[3], "d=4") || !strings.Contains(got[2], "SameSite=Strict") {
+		t.Errorf("cookies %v", got)
+	}
+}
