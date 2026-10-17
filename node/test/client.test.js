@@ -53,6 +53,45 @@ function fake(options = {}) {
   return new Client({ binary: wrapper, ...options });
 }
 
+// COLD_START is a deadline with time in it for a transport to start and
+// answer, however slowly this machine starts one: a binary just built has
+// taken over half a second to answer on macOS, and a loaded machine is slower.
+const COLD_START = 5_000;
+
+// pastDeadline makes ask with setTimeout in the test's hands, and lets every
+// deadline it set pass at once. A client has one timeout, for starting a
+// transport as for any request: one short enough to wait out would be too
+// short for a start the test makes after it, and on the test's clock it can
+// be COLD_START and cost nothing. Nothing is in flight when ask is made: the
+// test's clearTimeout does not clear a deadline set on the real clock, which
+// would pass later. The real clock is back for what follows.
+function pastDeadline(t, ask) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    const asked = ask();
+    t.mock.timers.runAll();
+    return asked;
+  } finally {
+    t.mock.timers.reset();
+  }
+}
+
+// untimed waits for ask with setTimeout in the test's hands, for a test that
+// times a deadline and must not time a start with it: the deadline ask sets
+// passes only after COLD_START, and the interval that passes it holds the
+// event loop open meanwhile, as a running deadline would. Nothing is in flight
+// when ask is made, as for pastDeadline.
+async function untimed(t, ask) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const late = setInterval(() => t.mock.timers.runAll(), COLD_START);
+  try {
+    return await ask();
+  } finally {
+    clearInterval(late);
+    t.mock.timers.reset();
+  }
+}
+
 test('get returns the transport response', async () => {
   const c = fake();
   const res = await c.get('https://ok/page');
@@ -202,7 +241,7 @@ test('a transport older than the client is said to be, for every request waiting
   });
 });
 
-test('a transport that will not take its proxy starts no session, and says why', async () => {
+test('a transport that will not take its proxy starts no session, and says why', async (t) => {
   // Refused, unanswered, garbled or gone before it answers the init line:
   // every request waiting fails with why, without the password, and none is
   // told a session went. The transport is stopped, so the next request starts
@@ -214,10 +253,12 @@ test('a transport that will not take its proxy starts no session, and says why',
     ['garbage', /^tlsforge: bad response: /],
   ]) {
     await withEnv({ TLSFORGE_TEST_INIT: mode }, async () => {
-      const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080', timeout: 300 });
+      const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080', timeout: COLD_START });
+      // Unanswered, the init line is ended by its deadline, which passes at once.
+      const settle = (ask) => (mode === 'silent' ? pastDeadline(t, ask) : ask());
       try {
-        const [first, second] = await Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]);
-        const third = await Promise.allSettled([c.get('https://ok/c')]);
+        const [first, second] = await settle(() => Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]));
+        const third = await settle(() => Promise.allSettled([c.get('https://ok/c')]));
         for (const outcome of [first, second, ...third]) {
           assert.equal(outcome.status, 'rejected', mode);
           assert.match(outcome.reason.message, says);
@@ -255,11 +296,11 @@ test('an init line that cannot be written starts no session', async () => {
   });
 });
 
-test('a transport started again is told its proxy again, first', async () => {
-  const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080', timeout: 300 });
+test('a transport started again is told its proxy again, first', async (t) => {
+  const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080', timeout: COLD_START });
   try {
     const first = JSON.parse((await c.get('https://ok/a')).body);
-    await assert.rejects(() => c.get('https://silent/x'), /timed out/);
+    await assert.rejects(() => pastDeadline(t, () => c.get('https://silent/x')), /timed out/);
     await assert.rejects(() => c.get('https://ok/b'), SessionReset);
     const after = JSON.parse((await c.get('https://ok/c')).body);
     assert.notEqual(after.pid, first.pid);
@@ -351,11 +392,11 @@ test('an answer for a different id is ignored, not mistaken for this one', async
   c.close();
 });
 
-test('a request that is never answered times out and the client stays usable', async () => {
+test('a request that is never answered times out and the client stays usable', async (t) => {
   // Stopped, the transport took the session with it: the next request is told,
   // unsent, and the one after starts a new session.
-  const c = fake({ timeout: 150 });
-  await assert.rejects(() => c.get('https://silent/x'), /timed out/);
+  const c = fake({ timeout: COLD_START });
+  await assert.rejects(() => pastDeadline(t, () => c.get('https://silent/x')), /timed out/);
   await assert.rejects(() => c.get('https://ok/after'), (err) => {
     assert.ok(err instanceof SessionReset);
     assert.match(err.message, /has gone \(a request timed out, and it was stopped\)/);
@@ -366,12 +407,14 @@ test('a request that is never answered times out and the client stays usable', a
   c.close();
 });
 
-test("a request's deadline counts from the call, the time it waited included", async () => {
+test("a request's deadline counts from the call, the time it waited included", async (t) => {
   // The request in front of it is answered late, in time; what is left of the
   // second's deadline is what it has once it is sent. Counted from being sent,
-  // it would have had the whole deadline again.
+  // it would have had the whole deadline again. The transport is started
+  // first: how long that takes is no part of what is timed.
   const c = fake({ timeout: 600 });
   try {
+    await untimed(t, () => c.get('https://ok/started'));
     const started = performance.now();
     const first = c.get('https://slow/a');
     const second = c.get('https://silent/b');

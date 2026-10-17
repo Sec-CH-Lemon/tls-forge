@@ -52,6 +52,29 @@ async function seen(client) {
   return JSON.parse((await client.get('https://ok/')).body);
 }
 
+// COLD_START is a deadline with time in it for a transport to start and
+// answer, however slowly this machine starts one: a binary just built has
+// taken over half a second to answer on macOS, and a loaded machine is slower.
+const COLD_START = 5_000;
+
+// pastDeadline makes ask with setTimeout in the test's hands, and lets every
+// deadline it set pass at once. A client has one timeout, for starting a
+// transport as for any request: one short enough to wait out would be too
+// short for a start the test makes after it, and on the test's clock it can
+// be COLD_START and cost nothing. Nothing is in flight when ask is made: the
+// test's clearTimeout does not clear a deadline set on the real clock, which
+// would pass later. The real clock is back for what follows.
+function pastDeadline(t, ask) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    const asked = ask();
+    t.mock.timers.runAll();
+    return asked;
+  } finally {
+    t.mock.timers.reset();
+  }
+}
+
 test('a transport says the protocol it speaks and what it can do, once', async () => {
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'one,two' }, async (client) => {
     const first = await client.hello();
@@ -106,27 +129,27 @@ test('an answer to hello that says nothing it can is a bad response, asked again
   }
 });
 
-test('a transport that does not answer hello has said nothing, and is asked again', async () => {
+test('a transport that does not answer hello has said nothing, and is asked again', async (t) => {
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'silent' }, async (client) => {
-    await assert.rejects(client.hello(), /request timed out/);
+    await assert.rejects(pastDeadline(t, () => client.hello()), /request timed out/);
     // A question was made in no session: it is asked of the next transport,
     // and the next request is the one told its session has gone.
-    await assert.rejects(client.hello(), /request timed out/);
+    await assert.rejects(pastDeadline(t, () => client.hello()), /request timed out/);
     await assert.rejects(client.get('https://ok/'), (err) => err.name === 'SessionReset');
     assert.equal((await seen(client)).controls, 0);
-  }, { timeout: 300 });
+  }, { timeout: COLD_START });
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'exit' }, async (client) => {
     await assert.rejects(client.hello(), /transport exited \(code 3\)/);
   });
 });
 
-test('a question asked after a session went leaves the next request to be told', async () => {
+test('a question asked after a session went leaves the next request to be told', async (t) => {
   await withTransport({}, async (client) => {
-    await assert.rejects(client.get('https://silent/'), /request timed out/);
+    await assert.rejects(pastDeadline(t, () => client.get('https://silent/')), /request timed out/);
     assert.deepEqual(await client.hello(), { protocol: 2, capabilities: [] });
     await assert.rejects(client.get('https://ok/'), (err) => err.name === 'SessionReset');
     assert.equal((await seen(client)).requests, 1);
-  }, { timeout: 300 });
+  }, { timeout: COLD_START });
 });
 
 test('a closed client asks nothing', async () => {
