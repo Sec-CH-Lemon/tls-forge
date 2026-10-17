@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 )
 
 // cookieEcho reports what it was sent and sets one of its own.

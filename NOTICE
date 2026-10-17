@@ -56,7 +56,7 @@ it — including inside the binaries published in the npm packages. Their licenc
 are reproduced in full in THIRD-PARTY-NOTICES.txt, which must travel with any
 distributed copy for the same reason this file must.
 
-One of them is worth naming here. github.com/bogdanfinn/fhttp ships no licence
-file of its own; its sources carry the Go Authors' copyright header and it is a
-fork of the Go standard library's net/http, so the Go licence is the one that
-applies. It is reproduced in THIRD-PARTY-NOTICES.txt rather than left as a gap.
+One of them is worth naming here. github.com/igor-lemon/fhttp, tls-forge's fork
+of github.com/bogdanfinn/fhttp, is a fork of the Go standard library's net/http,
+and carries the Go licence that bogdanfinn/fhttp's sources name and it ships
+none of.

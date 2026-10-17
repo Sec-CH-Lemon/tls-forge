@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bogdanfinn/fhttp/http2"
+	"github.com/igor-lemon/fhttp/http2"
 	"github.com/spf13/pflag"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"

@@ -47,19 +47,11 @@ go list -deps -f '{{if .Module}}{{.Module.Path}}{{"\t"}}{{.Module.Version}}{{"\t
           ;;
       esac
     done
-    if [ -n "$licence" ]; then
-      cat "$dir/$licence"
-    else
-      # fhttp is the one module that ships no licence file. Its sources carry
-      # the Go Authors' copyright header and it is a fork of net/http, so the
-      # Go licence is the one that applies; it is reproduced here rather than
-      # left as a gap.
-      echo "This module ships no licence file. Its sources carry the header"
-      echo "\"Copyright 2009 The Go Authors. All rights reserved. Use of this source"
-      echo "code is governed by a BSD-style license\", and the module is a fork of"
-      echo "the Go standard library's net/http. The Go licence therefore applies:"
-      echo
-      go_licence=$(go env GOROOT)/LICENSE
-      [ -f "$go_licence" ] && cat "$go_licence"
+    if [ -z "$licence" ]; then
+      # A module linked in without a licence is a question for a person, not
+      # a gap to fill with a guess.
+      echo "notices: $path $version ships no licence file" >&2
+      exit 1
     fi
+    cat "$dir/$licence"
   done

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 )
 
 // session is what one identity keeps across its requests: its cookies, the

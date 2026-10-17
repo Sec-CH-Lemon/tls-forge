@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
-	http2 "github.com/bogdanfinn/fhttp/http2"
-	tls_client "github.com/bogdanfinn/tls-client"
-	"github.com/bogdanfinn/tls-client/profiles"
+	http2 "github.com/igor-lemon/fhttp/http2"
+	tls_client "github.com/igor-lemon/tls-client"
+	"github.com/igor-lemon/tls-client/profiles"
 )
 
 // transports are how a client's requests reach the network: the transport a

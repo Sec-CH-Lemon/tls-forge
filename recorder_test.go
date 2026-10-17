@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	tls_client "github.com/bogdanfinn/tls-client"
+	tls_client "github.com/igor-lemon/tls-client"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 )

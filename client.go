@@ -41,10 +41,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	fhttp "github.com/bogdanfinn/fhttp"
-	"github.com/bogdanfinn/fhttp/cookiejar"
-	tls_client "github.com/bogdanfinn/tls-client"
-	"github.com/bogdanfinn/tls-client/profiles"
+	fhttp "github.com/igor-lemon/fhttp"
+	"github.com/igor-lemon/fhttp/cookiejar"
+	tls_client "github.com/igor-lemon/tls-client"
+	"github.com/igor-lemon/tls-client/profiles"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"

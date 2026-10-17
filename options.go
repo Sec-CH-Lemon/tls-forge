@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"time"
 
-	fhttp "github.com/bogdanfinn/fhttp"
-	tls_client "github.com/bogdanfinn/tls-client"
+	fhttp "github.com/igor-lemon/fhttp"
+	tls_client "github.com/igor-lemon/tls-client"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )

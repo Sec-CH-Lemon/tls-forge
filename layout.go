@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	fhttp "github.com/bogdanfinn/fhttp"
-	fhttptrace "github.com/bogdanfinn/fhttp/httptrace"
+	fhttp "github.com/igor-lemon/fhttp"
+	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )

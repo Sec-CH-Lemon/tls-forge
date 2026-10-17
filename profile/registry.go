@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bogdanfinn/tls-client/profiles"
+	"github.com/igor-lemon/tls-client/profiles"
 )
 
 // Profiles measured against a real browser and committed. Each one was produced

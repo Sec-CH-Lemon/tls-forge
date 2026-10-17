@@ -5,8 +5,6 @@ go 1.26.9
 require (
 	github.com/andybalholm/brotli v1.2.3
 	github.com/andybalholm/cascadia v1.3.3
-	github.com/bogdanfinn/fhttp v0.6.9
-	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/bogdanfinn/utls v1.7.8-barnius
 	github.com/klauspost/compress v1.20.0
 	github.com/spf13/pflag v1.0.10
@@ -16,11 +14,16 @@ require (
 )
 
 require (
+	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261017214247-78a192584480 // indirect
+	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261017214157-072d961e5121 // indirect
+)
+
+require (
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
-	github.com/bogdanfinn/quic-go-utls v1.0.10-utls // indirect
-	github.com/bogdanfinn/websocket v1.5.6-barnius // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
+	github.com/igor-lemon/fhttp v0.6.10-0.20261017214052-a61392fc6180
+	github.com/igor-lemon/tls-client v1.15.2-0.20261017214337-52b75517f403
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	golang.org/x/sys v0.48.0 // indirect

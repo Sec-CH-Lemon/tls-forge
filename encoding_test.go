@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/andybalholm/brotli"
-	tls_client "github.com/bogdanfinn/tls-client"
+	tls_client "github.com/igor-lemon/tls-client"
 	"github.com/klauspost/compress/zstd"
 )
 

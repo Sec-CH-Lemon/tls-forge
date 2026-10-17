@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	fhttp "github.com/bogdanfinn/fhttp"
-	tls_client "github.com/bogdanfinn/tls-client"
+	fhttp "github.com/igor-lemon/fhttp"
+	tls_client "github.com/igor-lemon/tls-client"
 )
 
 // toHosts answers /to/... with a redirect to the rest of the path made a URL

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )

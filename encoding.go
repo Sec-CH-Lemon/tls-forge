@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/andybalholm/brotli"
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 	"github.com/klauspost/compress/zstd"
 )
 

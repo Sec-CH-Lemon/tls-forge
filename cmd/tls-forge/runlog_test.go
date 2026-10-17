@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bogdanfinn/fhttp/http2"
+	"github.com/igor-lemon/fhttp/http2"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )

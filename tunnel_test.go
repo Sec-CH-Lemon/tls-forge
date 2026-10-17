@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	tls_client "github.com/bogdanfinn/tls-client"
+	tls_client "github.com/igor-lemon/tls-client"
 )
 
 // connectProxy stands in for an HTTP proxy: it opens a tunnel for every

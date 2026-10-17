@@ -6,8 +6,8 @@ import (
 	"net/http/httptrace"
 	"sync"
 
-	fhttptrace "github.com/bogdanfinn/fhttp/httptrace"
 	utls "github.com/bogdanfinn/utls"
+	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )

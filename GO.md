@@ -133,6 +133,13 @@ stable.
 
 ### Transport options
 
+tls-forge builds on its own forks of fhttp and tls-client, with those of
+quic-go-utls and websocket that name the same fhttp:
+`github.com/igor-lemon/fhttp` and `github.com/igor-lemon/tls-client`, each
+the `tls-forge` branch of a fork of bogdanfinn's, whose `LEMON.md` says what
+it changes. An option is written with `tls_client` imported from there, and a
+jar given to `WithCookieJar` is an `fhttp.CookieJar` of that fhttp.
+
 `WithTransportOption` hands tls-client options to the transport after
 tls-forge's own. An option that sets what tls-forge already sets replaces it,
 and what tls-forge did with it goes too:

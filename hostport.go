@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 )
 
 // tls-client files its connections, and the protocol each speaks, by the

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 )
 
 func TestTheHintsAnAcceptCHNames(t *testing.T) {

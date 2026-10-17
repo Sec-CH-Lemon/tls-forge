@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	fhttp "github.com/bogdanfinn/fhttp"
-	tls_client "github.com/bogdanfinn/tls-client"
+	fhttp "github.com/igor-lemon/fhttp"
+	tls_client "github.com/igor-lemon/tls-client"
 )
 
 // header is the value of a kept request's header, by name in any case, and

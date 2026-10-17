@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	fhttp "github.com/bogdanfinn/fhttp"
-	tls_client "github.com/bogdanfinn/tls-client"
+	fhttp "github.com/igor-lemon/fhttp"
+	tls_client "github.com/igor-lemon/tls-client"
 )
 
 // How a redirect is followed, as Chrome 155 was measured following one

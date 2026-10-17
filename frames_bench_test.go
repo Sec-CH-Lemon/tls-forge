@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bogdanfinn/fhttp/http2"
+	"github.com/igor-lemon/fhttp/http2"
 
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
 )

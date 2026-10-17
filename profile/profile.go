@@ -21,9 +21,9 @@ import (
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
-	"github.com/bogdanfinn/fhttp/http2"
-	"github.com/bogdanfinn/tls-client/profiles"
 	tls "github.com/bogdanfinn/utls"
+	"github.com/igor-lemon/fhttp/http2"
+	"github.com/igor-lemon/tls-client/profiles"
 	"golang.org/x/net/http/httpguts"
 )
 

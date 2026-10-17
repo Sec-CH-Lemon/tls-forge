@@ -555,6 +555,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **tls-forge builds on its own forks of fhttp and tls-client**, with those of
+  quic-go-utls and websocket, which name the same fhttp, so that what the
+  transport writes can be changed where Chrome writes otherwise:
+  `github.com/igor-lemon/fhttp`, `github.com/igor-lemon/tls-client`,
+  `github.com/igor-lemon/quic-go-utls` and `github.com/igor-lemon/websocket`,
+  each the `tls-forge` branch of a fork of bogdanfinn's at the version used
+  before (tls-client at the commit the checksum database holds as v1.16.0,
+  whose tag was moved). For Go only, and only a path: an option given to
+  `WithTransportOption` imports `tls_client` from
+  `github.com/igor-lemon/tls-client`, a jar given to `WithCookieJar` is one of
+  `github.com/igor-lemon/fhttp`, and `profile.Profile.ClientProfile` returns
+  that tls-client's `profiles.ClientProfile`. Nothing on the wire changes.
 - **The credentials in a URL are sent as Chrome sends them**: only once a 401
   asks with a Basic challenge, the request sent again with `Authorization`
   where Chrome's network stack adds it, its body too; then kept for the

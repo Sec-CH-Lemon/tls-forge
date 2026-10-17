@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 )

@@ -153,7 +153,7 @@ silently wearing a shipped or catalogue identity under the requested name.
 1. profiles registered at runtime
 2. profiles in this machine's user profile directory
 3. profiles shipped in `profile/data/<version>/<platform>.json`
-4. an exact name from the [tls-client](https://github.com/bogdanfinn/tls-client) catalogue
+4. an exact name from the catalogue of [tls-client](https://github.com/igor-lemon/tls-client/tree/tls-forge), tls-forge's fork of bogdanfinn/tls-client
 5. a **family name** — `chrome`, for example — meaning the newest measured member
    of that family
 

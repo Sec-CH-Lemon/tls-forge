@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	fhttp "github.com/bogdanfinn/fhttp"
+	fhttp "github.com/igor-lemon/fhttp"
 )
 
 // corsRequest is fetch() from a page of www.example.com in cors mode, with
