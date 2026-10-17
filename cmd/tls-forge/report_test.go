@@ -1077,11 +1077,9 @@ func TestReportStylesheetCoversTheTemplate(t *testing.T) {
 	}
 
 	var missing []string
+	styled := stylesheetClasses(reportCSS)
 	for name := range classes {
-		// Tailwind escapes the characters CSS reserves, so `bg-good/12` is
-		// written `.bg-good\/12` and `min-w-[72rem]` `.min-w-\[72rem\]`.
-		selector := "." + regexp.MustCompile(`([/.:\[\]%()])`).ReplaceAllString(name, `\$1`)
-		if !strings.Contains(reportCSS, selector) {
+		if !styled[name] {
 			missing = append(missing, name)
 		}
 	}
@@ -1089,6 +1087,40 @@ func TestReportStylesheetCoversTheTemplate(t *testing.T) {
 	if len(missing) > 0 {
 		t.Errorf("the stylesheet is stale; run `make report-css`.\nmissing: %s",
 			strings.Join(missing, " "))
+	}
+}
+
+// cssClass is a class in a selector: a dot, then name characters or the
+// escapes Tailwind writes for those CSS reserves, `\/`, `\[`, `\:` and the like.
+var cssClass = regexp.MustCompile(`\.((?:[A-Za-z0-9_-]|\\.)+)`)
+
+// stylesheetClasses are the classes a stylesheet has rules for, each as a
+// template writes it: `.bg-good\/12` is bg-good/12. Every one, so that a class
+// is styled when it is one of them, and not when a longer one begins with it:
+// .bg-good-strong is no rule for bg-good.
+func stylesheetClasses(css string) map[string]bool {
+	unescape := regexp.MustCompile(`\\(.)`)
+	classes := map[string]bool{}
+	for _, found := range cssClass.FindAllStringSubmatch(css, -1) {
+		classes[unescape.ReplaceAllString(found[1], "$1")] = true
+	}
+	return classes
+}
+
+func TestStylesheetClassesAreReadWhole(t *testing.T) {
+	styled := stylesheetClasses(`.bg-good\/12{color:red}.min-w-\[72rem\]{min-width:72rem}` +
+		`.md\:flex{display:flex}.hover\:bg-ink:hover{color:#000}.step-dns,.bg-good-strong>span{x:y}`)
+	for _, name := range []string{"bg-good/12", "min-w-[72rem]", "md:flex", "hover:bg-ink", "step-dns",
+		"bg-good-strong"} {
+		if !styled[name] {
+			t.Errorf("%s is not read as a class", name)
+		}
+	}
+	// A class a longer one begins with has no rule of its own.
+	for _, name := range []string{"bg-good", "min-w", "md", "hover", "step"} {
+		if styled[name] {
+			t.Errorf("%s is read as a class", name)
+		}
 	}
 }
 

@@ -620,8 +620,9 @@ func TestStylesheetHasAShadeForEveryStep(t *testing.T) {
 	// The classes are written into the document by this program rather than by
 	// the template, where the check that the stylesheet covers the template
 	// cannot see them.
+	styled := stylesheetClasses(reportCSS)
 	for name, class := range stepShades {
-		if !strings.Contains(reportCSS, "."+class+"{") {
+		if !styled[class] {
 			t.Errorf("the stylesheet has no %s for the step %q; run `make report-css`", class, name)
 		}
 	}
