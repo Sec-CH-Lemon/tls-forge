@@ -20,6 +20,8 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/proctree"
 )
 
 // Browser is a launchable browser found on this machine.
@@ -205,15 +207,15 @@ func (b *Browser) Open(ctx context.Context, url string, opts Options) (close fun
 	args = append(args, url)
 
 	cmd := exec.CommandContext(ctx, b.Path, args...)
-	ownGroup(cmd)
-	cmd.Cancel = func() error { return killTree(cmd.Process) }
+	proctree.Own(cmd)
+	cmd.Cancel = func() error { return proctree.Kill(cmd.Process) }
 	if err := cmd.Start(); err != nil {
 		_ = os.RemoveAll(userDataDir)
 		return nil, fmt.Errorf("browser: launching %s: %w", b.Path, err)
 	}
 
 	return func() {
-		_ = killTree(cmd.Process)
+		_ = proctree.Kill(cmd.Process)
 		_ = cmd.Wait()
 		// Best effort: the directory is under the system temp root, so a
 		// failure here leaves the OS to reclaim it.
