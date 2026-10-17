@@ -2,11 +2,8 @@ package tlsforge
 
 import (
 	"context"
-	"errors"
-	"log/slog"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -578,110 +575,93 @@ func TestCredentialsSayWhichCookiesFetchSends(t *testing.T) {
 	}
 }
 
-func TestScriptsGoOutOnATransportOfTheirOwn(t *testing.T) {
-	var count atomic.Int32
-	server := newRecorder(t, "h2", func(w http.ResponseWriter, _ *http.Request) {
-		count.Add(1)
+func TestScriptsGoOutOnThePagesConnectionsWithAPriorityOfTheirOwn(t *testing.T) {
+	// Chrome sends a page's requests and its scripts' on one connection, each
+	// HEADERS frame with its own priority, and so does a client, at once too.
+	const held = 8
+	var arrived atomic.Int32
+	all := make(chan struct{})
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/held" {
+			// Every request held is in flight on the connection at once.
+			if arrived.Add(1) == held {
+				close(all)
+			}
+			select {
+			case <-all:
+			case <-time.After(5 * time.Second):
+			}
+		}
 		_, _ = w.Write([]byte("ok"))
 	})
-	client := contextClient(t, server)
+	var dials atomic.Int32
+	client := newTestClient(t, WithProfile("chrome_155_macos"),
+		WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
+			dials.Add(1)
+			var d net.Dialer
+			return d.DialContext(ctx, network, server.addr)
+		})))
 	page := "https://www.example.com/page"
 	fetch := &Request{URL: page, Browser: &BrowserContext{Kind: KindFetch, Initiator: page}}
-	navigation := &Request{URL: page, Browser: &BrowserContext{Kind: KindNavigation}}
-	for _, req := range []*Request{fetch, navigation, fetch, {URL: page}} {
+	for _, req := range []*Request{
+		{URL: page, Browser: &BrowserContext{Kind: KindNavigation}},
+		fetch,
+		{URL: page, Browser: &BrowserContext{Kind: KindXHR, Initiator: page}},
+		{URL: page},
+	} {
 		if _, err := client.Do(req); err != nil {
 			t.Fatalf("Do: %v", err)
 		}
 	}
+	errs := make(chan error, held)
+	for i := range held {
+		kind := KindNavigation
+		if i%2 == 0 {
+			kind = KindFetch
+		}
+		go func() {
+			_, err := client.Do(&Request{URL: "https://www.example.com/held",
+				Browser: &BrowserContext{Kind: kind, Initiator: page}})
+			errs <- err
+		}()
+	}
+	for range held {
+		if err := <-errs; err != nil {
+			t.Fatalf("Do: %v", err)
+		}
+	}
 	got := server.requests()
-	if len(got) != 4 || got[0].priority[2] != 219 || got[1].priority[2] != 255 || got[2].priority[2] != 219 ||
-		got[3].priority[2] != 255 {
-		t.Fatalf("priorities: %+v", got)
+	if len(got) != 4+held || dials.Load() != 1 {
+		t.Fatalf("%d requests over %d connections", len(got), dials.Load())
 	}
-	script := client.transports.script
-	if _, err := client.Do(fetch); err != nil || client.transports.script != script {
-		t.Errorf("a second transport for scripts: %v", err)
+	scripts := 0
+	for i, r := range got {
+		want := uint32(255)
+		if mode, _ := r.header("sec-fetch-mode"); mode == "cors" {
+			want = 219
+			scripts++
+		}
+		if r.priority == nil || r.priority[2] != want {
+			t.Errorf("request %d, %s: priority %v, want weight %d", i, r.url, r.priority, want)
+		}
 	}
+	if scripts != 2+held/2 {
+		t.Errorf("%d requests of scripts", scripts)
+	}
+
+	// Closing idle connections closes the scripts' with the page's, and the
+	// next request opens one; a fresh client opens its own.
 	client.CloseIdleConnections()
+	if _, err := client.Do(fetch); err != nil || dials.Load() != 2 {
+		t.Errorf("after closing: %v, %d connections", err, dials.Load())
+	}
 	fresh, err := client.Fresh()
 	if err != nil {
 		t.Fatalf("Fresh: %v", err)
 	}
 	defer func() { _ = fresh.Close() }()
-	if fresh.transports.script != nil {
-		t.Error("a fresh client shares the transport for scripts")
-	}
-	if _, err := fresh.Do(fetch); err != nil || fresh.transports.script == nil || fresh.transports.script == client.transports.script {
-		t.Errorf("the fresh client's own: %v", err)
-	}
-	if err := client.Close(); err != nil {
-		t.Errorf("Close: %v", err)
-	}
-
-	// A transport that cannot be made is said, and nothing is sent.
-	other := contextClient(t, server)
-	original := newInnerClient
-	t.Cleanup(func() { newInnerClient = original })
-	newInnerClient = func(tls_client.Logger, ...tls_client.HttpClientOption) (tls_client.HttpClient, error) {
-		return nil, errors.New("no transport")
-	}
-	before := count.Load()
-	if _, err := other.Do(fetch); err == nil || err.Error() != "tlsforge: no transport" || count.Load() != before {
-		t.Errorf("%v, %d requests", err, count.Load()-before)
-	}
-	// Closing a client that never made one is closing it.
-	if err := other.Close(); err != nil || other.transports.script != nil {
-		t.Errorf("Close: %v", err)
-	}
-}
-
-func TestAScriptTransportThatCannotBeMadeSaysNoPassword(t *testing.T) {
-	// The proxy is never dialled: the transport fails first, quoting it whole
-	// as tls-client does one it cannot read.
-	proxy := "http://alice:hunter2@proxy-a.test:8080"
-	book, log := newLogBook(slog.LevelDebug)
-	client := newTestClient(t, WithProfile("chrome_155_macos"), WithProxy(proxy), WithLogger(log))
-	original := newInnerClient
-	t.Cleanup(func() { newInnerClient = original })
-	newInnerClient = func(tls_client.Logger, ...tls_client.HttpClientOption) (tls_client.HttpClient, error) {
-		return nil, errors.New("invalid url `" + proxy + "`")
-	}
-	page := "https://www.example.com/page"
-	_, err := client.Do(&Request{URL: page, Browser: &BrowserContext{Kind: KindFetch, Initiator: page}})
-	if err == nil || strings.Contains(err.Error(), "hunter2") || !strings.Contains(err.Error(), "proxy-a.test") {
-		t.Errorf("Do: %v", err)
-	}
-	if failed := book.one(t, "request failed"); strings.Contains(book.text(), "hunter2") ||
-		!strings.Contains(failed.get("error"), "proxy-a.test") {
-		t.Errorf("logged %s", book.text())
-	}
-}
-
-func TestClosingIdleConnectionsClosesTheScriptsToo(t *testing.T) {
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) }))
-	defer server.Close()
-	var dials atomic.Int32
-	client := newTestClient(t, WithProfile("chrome_155_macos"), WithInsecureSkipVerify(),
-		WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
-			dials.Add(1)
-			var d net.Dialer
-			return d.DialContext(ctx, network, server.Listener.Addr().String())
-		})))
-	page := "https://www.example.com/page"
-	fetch := &Request{URL: page, Browser: &BrowserContext{Kind: KindFetch, Initiator: page}}
-	for range 2 {
-		if _, err := client.Do(fetch); err != nil {
-			t.Fatalf("Do: %v", err)
-		}
-	}
-	if dials.Load() != 1 {
-		t.Fatalf("%d connections for two requests, one kept between them", dials.Load())
-	}
-	// The script's connection is closed with the page's, and the next opens
-	// one of its own.
-	client.CloseIdleConnections()
-	if _, err := client.Do(fetch); err != nil || dials.Load() != 2 {
-		t.Errorf("Do: %v, %d connections", err, dials.Load())
+	if _, err := fresh.Do(fetch); err != nil || dials.Load() != 3 {
+		t.Errorf("a fresh client: %v, %d connections", err, dials.Load())
 	}
 }
 

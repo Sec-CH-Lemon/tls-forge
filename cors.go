@@ -12,7 +12,6 @@ import (
 	"time"
 
 	fhttp "github.com/igor-lemon/fhttp"
-	tls_client "github.com/igor-lemon/tls-client"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
@@ -274,7 +273,7 @@ type preflightContextKey struct{}
 // base is the request's context before its own layouts were hung on it, so
 // that what the preflight's connection is told is the preflight's.
 func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browserRequest, h hop,
-	transport tls_client.HttpClient, log *requestLog) error {
+	log *requestLog) error {
 	shown := shownURL(inner)
 	target := shown.String()
 	u := *inner.URL
@@ -286,7 +285,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 		c.session.jar.restrict(ask.URL, sendRule{none: true})
 		defer c.session.jar.release(ask.URL)
 	}
-	res, err := transport.Do(ask)
+	res, err := c.transports.inner.Do(ask)
 	if err != nil {
 		return transportError(err)
 	}

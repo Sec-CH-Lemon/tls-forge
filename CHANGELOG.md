@@ -65,8 +65,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `Sec-Fetch-Mode`, `Sec-Fetch-Dest` and `Sec-Fetch-User`, `Origin` and
   `Referer` as the Fetch and Referrer Policy standards have them (but that a
   downgrade is from https to anything else, `http://localhost` included, as
-  in Chrome), the HTTP/2 `HEADERS` weight Chrome gives `fetch()` (220, on
-  connections of their own), no client hints, `Sec-Fetch-*`, Brotli or zstd
+  in Chrome), the HTTP/2 `HEADERS` weight Chrome gives `fetch()` (220) on
+  the connections a page's requests use, no client hints, `Sec-Fetch-*`,
+  Brotli or zstd
   to a page that is not potentially trustworthy, and only the cookies
   SameSite and the credentials mode let
   through, a form's POST carrying for two minutes those that named none. What

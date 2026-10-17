@@ -385,8 +385,11 @@ func TestAClientProfileGivenAsATransportOptionOrdersThePseudoHeaders(t *testing.
 		t.Errorf("user-agent = %q, want the profile's", measured.UserAgent())
 	}
 
-	// fetch() goes out on a transport of its own, built with the option too:
-	// Firefox's HEADERS priority in place of the one Chrome gives a script.
+	// fetch() goes out on the transport the option built, Firefox's order,
+	// with the priority its browser context gives it, Chrome's for a script,
+	// in place of the option's for the transport's other requests. On a
+	// connection of its own, the first of which the server keeps.
+	client.CloseIdleConnections()
 	res, err := client.Do(&Request{URL: server.URL() + "/api/all",
 		Browser: &BrowserContext{Kind: KindFetch, Initiator: server.URL() + "/"}})
 	if err != nil {
@@ -396,7 +399,7 @@ func TestAClientProfileGivenAsATransportOptionOrdersThePseudoHeaders(t *testing.
 	if err := json.Unmarshal(res.Body, &fetched); err != nil {
 		t.Fatalf("decoding: %v", err)
 	}
-	if p := fetched.HTTP2.HeaderPriority; p == nil || p.Weight != 41 || p.Exclusive ||
+	if p := fetched.HTTP2.HeaderPriority; p == nil || p.Weight != 219 || !p.Exclusive ||
 		!reflect.DeepEqual(fetched.HTTP2.PseudoHeaderOrder, []string{"m", "p", "a", "s"}) {
 		t.Errorf("fetch() went out with priority %+v and pseudo-headers %v", p, fetched.HTTP2.PseudoHeaderOrder)
 	}

@@ -10,8 +10,8 @@ github.com/cloudflare/circl v1.6.5 h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQ
 github.com/cloudflare/circl v1.6.5/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/igor-lemon/fhttp v0.6.10-0.20261017215634-36254d33c12e h1:GZ1sMEtxzdiWxXsdMhFlFJjflbuion2BEYmnI+oGHeM=
-github.com/igor-lemon/fhttp v0.6.10-0.20261017215634-36254d33c12e/go.mod h1:Mmt5MazHNRtkQc2KeClCPdmC5Ek5oqwl7qUK1oQqr4M=
+github.com/igor-lemon/fhttp v0.6.10-0.20261017220555-e76e42e99f66 h1:QibBvUKSC7A3FEa0qqcFF73XInSWtO26d/R42GU1QcI=
+github.com/igor-lemon/fhttp v0.6.10-0.20261017220555-e76e42e99f66/go.mod h1:Mmt5MazHNRtkQc2KeClCPdmC5Ek5oqwl7qUK1oQqr4M=
 github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261017214247-78a192584480 h1:r0sbhOgZ7gVBCMCB635RADxQppExRI54F7Ldm7OmrnU=
 github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261017214247-78a192584480/go.mod h1:UNIu/6PGLlYjhbHLy3JT9CjV5uewx3FeMm/3WvaUuPo=
 github.com/igor-lemon/tls-client v1.15.2-0.20261017215819-3524054280ee h1:RwdSdyFz+oc7lP77VzvyCMy3HSWxUWAR17OuEAiGDV0=

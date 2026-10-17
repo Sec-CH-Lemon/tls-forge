@@ -43,8 +43,8 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 	"github.com/igor-lemon/fhttp/cookiejar"
+	http2 "github.com/igor-lemon/fhttp/http2"
 	tls_client "github.com/igor-lemon/tls-client"
-	"github.com/igor-lemon/tls-client/profiles"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
@@ -306,14 +306,14 @@ func New(opts ...Option) (*Client, error) {
 	}
 	// How it dials comes last but for the caller's own, and is made for each
 	// client, so that every one logs its connections as itself.
-	built := func(log *slog.Logger, profile profiles.ClientProfile) []tls_client.HttpClientOption {
-		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(profile)}, options...)
+	built := func(log *slog.Logger) []tls_client.HttpClientOption {
+		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(clientProfile)}, options...)
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, log)...)
 		return append(out, cfg.extra...)
 	}
 
 	id, log := newClientLog(cfg.logger)
-	t, err := newTransports(built, clientProfile, log, cfg.proxy)
+	t, err := newTransports(built, log, cfg.proxy)
 	if err != nil {
 		return nil, err
 	}
@@ -454,24 +454,18 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// string: two parsers agreeing is not something to verify at runtime, and a
 	// second parse is a second chance to disagree about what the request is for.
 	parsed := inner.URL
-	transport := c.transports.page
-	if browser != nil && browser.scripted() {
-		if transport, err = c.transports.forScript(); err != nil {
-			return nil, err
-		}
-	}
 	// The warmed session, filed against this request's URL once. Re-seeding it on
 	// every request would overwrite a value the server had refreshed in the jar
 	// with the stale value loaded at construction.
 	c.session.seedWarm(parsed)
 	c.session.seed(parsed, req.Cookies)
 
-	res, ch, err := c.send(req, inner, browser, transport, r, false)
+	res, ch, err := c.send(req, inner, browser, r, false)
 	if errors.Is(err, errCriticalHints) {
 		// Chrome starts the navigation again, once, where it began. The
 		// request was read once already, so it reads the same again.
 		inner, _, _ = c.parse(req)
-		res, ch, err = c.send(req, inner, browser, transport, r, true)
+		res, ch, err = c.send(req, inner, browser, r, true)
 	}
 	if err != nil {
 		return nil, err
@@ -533,8 +527,8 @@ var errCriticalHints = errors.New("tlsforge: the page needs client hints it was 
 // and follows its redirects: the first request of a navigation started again
 // for its critical client hints when restarted. It returns the answer, the
 // chain that came to it, or why there is none.
-func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserRequest, transport tls_client.HttpClient,
-	r *requestLog, restarted bool) (*fhttp.Response, *chain, error) {
+func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserRequest, r *requestLog,
+	restarted bool) (*fhttp.Response, *chain, error) {
 	if req.Context != nil {
 		inner = inner.WithContext(req.Context)
 	}
@@ -545,8 +539,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		inner = inner.WithContext(r.attach(inner.Context()))
 	}
 	parsed := inner.URL
-	ch := &chain{client: c, transport: transport, log: r, browser: browser, urls: []*url.URL{parsed},
-		restarted: restarted}
+	ch := &chain{client: c, log: r, browser: browser, urls: []*url.URL{parsed}, restarted: restarted}
 	// A URL's credentials go only where a 401 asks for them; the transport
 	// would send them at once.
 	user := parsed.User
@@ -573,6 +566,12 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		ch.laid = blocks
 	}
 	ch.ours = ch.sent != nil
+	if browser != nil && browser.scripted() {
+		// On the connections a page's requests go out on, as Chrome sends
+		// them, with a priority of their own: the preflight, the hops of its
+		// redirects and its answer to a 401 too.
+		inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), scriptHeaderPriority))
+	}
 	ch.base = inner.Context()
 	inner = blocks.wear(inner)
 	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
@@ -580,7 +579,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	defer ch.release()
 	if browser != nil {
 		if browser.needsPreflight(ch.last) && !c.session.preflights.allows(browser, ch.last, inner.URL.String()) {
-			if err := c.preflight(ch.base, inner, browser, ch.last, transport, r); err != nil {
+			if err := c.preflight(ch.base, inner, browser, ch.last, r); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -592,7 +591,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		r.step("connect")
 	}
 	withPort(inner)
-	res, err := transport.Do(inner)
+	res, err := c.transports.inner.Do(inner)
 	for err == nil {
 		if r != nil {
 			r.answered(res)
@@ -613,7 +612,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 			r.step("connect")
 		}
 		withPort(retry)
-		res, err = transport.Do(retry)
+		res, err = c.transports.inner.Do(retry)
 	}
 	if err != nil {
 		return nil, nil, transportError(err)

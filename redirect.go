@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	fhttp "github.com/igor-lemon/fhttp"
-	tls_client "github.com/igor-lemon/tls-client"
 )
 
 // How a redirect is followed, as Chrome 155 was measured following one
@@ -30,9 +29,8 @@ const maxRedirects = 20
 // chain is what a request carries from hop to hop of its redirects, kept in
 // its context for followRedirect.
 type chain struct {
-	client    *Client
-	transport tls_client.HttpClient
-	log       *requestLog
+	client *Client
+	log    *requestLog
 	// base is the request's context before its layouts were hung on it, which
 	// a hop's preflight is made in.
 	base context.Context
@@ -413,7 +411,7 @@ func (ch *chain) followInContext(req, previous *fhttp.Request, crossed, dropped 
 	h.authorization = ch.arrive(h.method, shownURL(req), user, ch.authenticates(h))
 	r := ch.browser
 	if r.needsPreflight(h) && !ch.client.session.preflights.allows(r, h, shownURL(req).String()) {
-		if err := ch.client.preflight(ch.base, req, r, h, ch.transport, ch.log); err != nil {
+		if err := ch.client.preflight(ch.base, req, r, h, ch.log); err != nil {
 			return err
 		}
 	}

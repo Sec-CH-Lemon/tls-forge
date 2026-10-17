@@ -154,9 +154,9 @@ and what tls-forge did with it goes too:
   replace how redirects are followed: no longer as Chrome follows them
   ([Redirects](#redirects)). `WithoutRedirects` is the way to keep them.
 - `tls_client.WithClientProfile` replaces the handshake and the HTTP/2
-  settings, priorities and pseudo-header order of every transport, the
-  HEADERS weight of `fetch()` and XHR included. The headers each request
-  carries stay the profile's.
+  settings, priorities and pseudo-header order of the transport. The headers
+  each request carries stay the profile's, and so does the HEADERS weight a
+  browser context gives `fetch()` and an XHR.
 - `tls_client.WithCookieJar` replaces the client's jar, and `Cookies`,
   `AllCookies` and session files then see none of what the site sets.
   `WithCookieJar` is the way to bring a jar of your own.
@@ -291,10 +291,12 @@ that does not is an error wrapping `ErrCORS`, and is not returned. What comes
 back is returned whole: a page would see only the headers CORS exposes, and
 nothing of a `no-cors` answer.
 
-`fetch()` and an XHR go out on connections of their own: Chrome gives their
-HTTP/2 `HEADERS` frame weight 220 where it gives a page 256, and the transport
-puts one weight on every request it sends. They resume TLS sessions among
-themselves, not with a client's other requests.
+`fetch()` and an XHR go out on the connections the client's other requests
+use, each HTTP/2 `HEADERS` frame with the weight Chrome gives it: 220 for a
+script's request, its preflight, its redirects and its answer to a 401, 256
+for a page's. The Fetch standard keeps the connections of requests that carry
+no credentials, a preflight's among them, apart from the others; tls-forge
+does not.
 
 What a context does not do yet: the order of several headers a script set
 (Chrome's renderer keeps them in a hash table where each name has its place,

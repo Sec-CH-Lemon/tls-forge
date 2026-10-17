@@ -606,23 +606,24 @@ func TestALogOfAConnectionNoRequestDialled(t *testing.T) {
 	}
 }
 
-func TestALogOfAScriptsConnectionNoRequestDialled(t *testing.T) {
-	// fetch() goes out on a transport of its own, which logs what it dials
-	// apart from a request as the page's does.
+func TestAFreshClientLogsWhatItDialsApartFromARequestAsItself(t *testing.T) {
+	// A fresh client's transports are its own, and so is the log they say
+	// their connections in.
 	server := startEcho(t)
 	book, log := newLogBook(slog.LevelDebug)
-	client := newTestClient(t, WithLogger(log), WithProfile("chrome_155_macos"))
-	page := server.URL() + "/"
+	client := newTestClient(t, WithLogger(log))
+	fresh, err := client.Fresh()
+	if err != nil {
+		t.Fatalf("Fresh: %v", err)
+	}
+	defer func() { _ = fresh.Close() }()
 	for range 2 {
-		if _, err := client.Do(&Request{URL: server.URL() + "/api/all", Browser: &BrowserContext{Kind: KindFetch, Initiator: page}}); err != nil {
-			t.Fatalf("Do: %v", err)
+		if _, err := fresh.Get(server.URL() + "/api/all"); err != nil {
+			t.Fatalf("Get: %v", err)
 		}
-		client.CloseIdleConnections()
+		fresh.CloseIdleConnections()
 	}
-	dialed := book.one(t, "dialed", "background", "true")
-	if connected := book.one(t, "connected", "request", "2"); !strings.HasSuffix(connected.get("conn"), dialed.get("addr")) {
-		t.Errorf("the connection was said as %v, the dial as %v", connected, dialed)
-	}
+	book.one(t, "dialed", "background", "true", "client", book.one(t, "fresh client").get("client"))
 }
 
 func TestAClientGivenATransportOptionDialsTheTransportsWay(t *testing.T) {
