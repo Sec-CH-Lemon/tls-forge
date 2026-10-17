@@ -822,6 +822,21 @@ func TestATraceThatCannotBeWrittenFailsTheRunWithoutStoppingIt(t *testing.T) {
 		checkShape(t, parseTrace(t, file.Bytes()))
 	})
 
+	t.Run("the log says so", func(t *testing.T) {
+		// The log is closed after the trace, so its end says how the run
+		// ended, the trace's failure included.
+		file := &brokenFile{closeErr: errors.New("close failed")}
+		traceInto(t, file)
+		log := filepath.Join(t.TempDir(), "run.jsonl")
+
+		code, _, stderr := exec(t, "fetch", "--trace", "anywhere", "--log", log, server.URL)
+		ended := recordsOf(logRecords(t, log), "run ended")
+		if code != 1 || len(ended) != 1 || ended[0].get("level") != "WARN" ||
+			!strings.Contains(ended[0].get("error"), "fetch: writing the trace: close failed") {
+			t.Errorf("exit code = %d, the end was said as %v\n%s", code, ended, stderr)
+		}
+	})
+
 	t.Run("a run that failed as well", func(t *testing.T) {
 		file := &brokenFile{writeErr: errors.New("no space left on device")}
 		traceInto(t, file)

@@ -450,6 +450,69 @@ func asClientCookies(cookies []cookie.Cookie) []tlsforge.Cookie {
 }
 
 func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr error) {
+	plan, err := planFetch(ctx, args, out, errOut)
+	if err != nil {
+		return err
+	}
+	run := &fetchRun{fetchPlan: plan, out: out, errOut: errOut}
+	defer run.close(&runErr)
+	if err := run.open(ctx); err != nil {
+		return err
+	}
+	records, failures, failed := run.execute(ctx)
+	return run.finish(records, failures, failed)
+}
+
+// fetchPlan is a fetch as its flags and its list ask for it, every part of it
+// checked: what the run is to do, settled before anything is cleared, opened,
+// written or asked of anybody. planFetch makes it.
+type fetchPlan struct {
+	common clientFlags
+	worn   *profile.Profile
+
+	// The request, which is the same for every URL it is made to, and what in
+	// a browser it is sent as.
+	method, data              string
+	headers                   headerFlag
+	requestKind, initiatorURL string
+	browser                   *tlsforge.BrowserContext
+
+	// The list, the identities it goes as, how many requests it comes to and
+	// how many are made at once.
+	jobs     []job
+	ways     []string
+	requests int
+	workers  int
+
+	// What comes out, and where it goes.
+	asJSON, showHeaders                   bool
+	output                                string
+	clearOutputDir                        bool
+	again                                 runFlags
+	check                                 *pageCheck
+	waitFor, waitForElement, htmlDecoding string
+	watch                                 watchFlags
+	wantProgress                          bool
+	paint                                 palette
+	reporting                             reportFlags
+	formats                               []string
+	logging                               logFlags
+	logLevel                              slog.Level
+	exits                                 exitTable
+	noExitLookup                          bool
+
+	// When the run began, the files it reads and writes, and what its log and
+	// its trace say of it first.
+	started time.Time
+	files   fetchFiles
+	about   traceArgs
+}
+
+// planFetch reads fetch's flags and its list into a plan, and refuses one it
+// cannot carry out: with a usage error, exit code 2, before anything is
+// cleared, opened, written or asked. It reads what the run reads, the list and
+// the cookie file among them, and writes nothing.
+func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetchPlan, error) {
 	fs := newFlagSet("fetch", out)
 	common := addClientFlags(fs)
 
@@ -505,57 +568,57 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			"name resolved; what the proxy says when it opens a connection is still read")
 	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]", fetchFlagGroups...)
 	if err := parse(fs, args); err != nil {
-		return err
+		return nil, err
 	}
 	worn, err := common.settle()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if *workers < 1 {
-		return fmt.Errorf("%w: --concurrency must be at least 1", errUsage)
+		return nil, fmt.Errorf("%w: --concurrency must be at least 1", errUsage)
 	}
 	if *clearOutputDir && *output == "" {
-		return fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
+		return nil, fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
 	}
 	check, err := newPageCheck(*waitForElement, *waitFor, *htmlDecoding)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	browser, err := browserContextOf(*requestKind, *initiatorURL, fs.Changed("initiator-url"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// It reads nothing on its own, and a run that seemed to read its pages as
 	// Chrome does, printed or kept, would not have.
 	if check == nil && fs.Changed("html-decoding") {
-		return fmt.Errorf("%w: --html-decoding says how --wait-for and --wait-for-element read a body: give one of them",
+		return nil, fmt.Errorf("%w: --html-decoding says how --wait-for and --wait-for-element read a body: give one of them",
 			errUsage)
 	}
 	// A HEAD gets no body, and every answer to it would be without what the
 	// page has, whatever came back.
 	if check != nil && strings.EqualFold(*method, "HEAD") {
-		return fmt.Errorf("%w: --wait-for and --wait-for-element look into the body, and -X HEAD gets none", errUsage)
+		return nil, fmt.Errorf("%w: --wait-for and --wait-for-element look into the body, and -X HEAD gets none", errUsage)
 	}
 	if err := again.check(); err != nil {
-		return err
+		return nil, err
 	}
 	// Checked before the list is read, so a misspelling costs a message rather
 	// than a run that turns out to have nowhere to report itself.
 	wantProgress, paint, err := watch.settle(errOut)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	formats, err := reporting.formats()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	logLevel, err := logging.levelOf()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	exits, err := loadExitTable(*exitHeaders)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	common.asked = askedBy(exits.Fields)
 
@@ -573,7 +636,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 		output:  *output, cleared: *clearOutputDir,
 	}
 	if err := files.plan(out.w, errOut.w).check(); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Nothing named a URL, and standard input is somebody at a keyboard rather
@@ -582,12 +645,12 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	named := *inline != "" || *input != "" || fs.NArg() == 0
 	if fs.NArg() == 0 && *inline == "" && *input == "" && isTerminalReader(listInput) {
 		fs.Usage()
-		return fmt.Errorf("%w: fetch needs a URL, or a list of them: "+
+		return nil, fmt.Errorf("%w: fetch needs a URL, or a list of them: "+
 			"--input FILE, --urls a,b,c, or one piped to standard input", errUsage)
 	}
 	jobs, err := readJobs(ctx, *inline, *input, *format, fs.Args(), listInput)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// The whole list is checked before anything is fetched, so a typo costs a
 	// message rather than half a scrape.
@@ -597,17 +660,17 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 			// --report was given nothing: it was meant to be the report's path.
 			err = fmt.Errorf("%w; a report's path is given as --report=PATH", err)
 		}
-		return err
+		return nil, err
 	}
 	// What a browser would not send, or this profile cannot send as one, for
 	// any URL of the list, before anything is warmed, cleared or sent.
 	if err := checkBrowser(common.run.profile, jobs, *method, headers, *data, browser); err != nil {
-		return err
+		return nil, err
 	}
 	// Every pass over the list is counted before the first one is made, and a
 	// count that does not fit in an int is a mistake rather than a long run.
 	if *again.repeat > math.MaxInt/len(jobs) {
-		return fmt.Errorf("%w: --repeat %d is too many passes over %d URLs",
+		return nil, fmt.Errorf("%w: --repeat %d is too many passes over %d URLs",
 			errUsage, *again.repeat, len(jobs))
 	}
 	// A Netscape cookie file holds one session, and a run through more than one
@@ -615,7 +678,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// before, and the count would say they were all kept. Refused before
 	// anything is fetched or written, rather than found out afterwards.
 	if _, single := sameWay(jobs, *common.proxy); !single && netscapeFile(*common.saveCookies) {
-		return fmt.Errorf("%w: --save-cookies %s is a Netscape cookie file, which holds one session, and this "+
+		return nil, fmt.Errorf("%w: --save-cookies %s is a Netscape cookie file, which holds one session, and this "+
 			"run has one for each proxy it goes through: name a .json file, which keeps each as a set of its own",
 			errUsage, *common.saveCookies)
 	}
@@ -623,7 +686,7 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// cleared, opened or asked, from the cookie file as it is now.
 	ways := waysOf(jobs, *common.proxy)
 	if err := common.warmup(ways...); err != nil {
-		return err
+		return nil, err
 	}
 	requests := len(jobs) * *again.repeat
 
@@ -652,57 +715,91 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if *common.proxy != "" {
 		about["proxy"] = redactProxy(*common.proxy)
 	}
+	return &fetchPlan{
+		common: common, worn: worn,
+		method: *method, data: *data, headers: headers,
+		requestKind: *requestKind, initiatorURL: *initiatorURL, browser: browser,
+		jobs: jobs, ways: ways, requests: requests, workers: *workers,
+		asJSON: asJSON, showHeaders: *showHeaders, output: *output, clearOutputDir: *clearOutputDir,
+		again: again, check: check,
+		waitFor: *waitFor, waitForElement: *waitForElement, htmlDecoding: *htmlDecoding,
+		watch: watch, wantProgress: wantProgress, paint: paint,
+		reporting: reporting, formats: formats, logging: logging, logLevel: logLevel,
+		exits: exits, noExitLookup: *noExitLookup,
+		started: started, files: files, about: about,
+	}, nil
+}
+
+// fetchRun is a fetch being made: its plan, what it opened to give an account
+// of itself, and how far it has got. open opens it, execute makes its
+// requests, finish says what came of them, and close ends what open opened.
+type fetchRun struct {
+	*fetchPlan
+	out, errOut *printer
+
+	log      *runLog
+	trace    *tracer
+	lane     *traceLane
+	identity *identityReport
+	clients  *pool
+
+	// The way the run goes when it goes one, where it comes out there and what
+	// asking said, and what was asked before the run, for the report.
+	way       string
+	oneWay    bool
+	found     egress
+	lookupErr error
+	before    *probe
+
+	// The count, the status line redrawn beside the output when somebody is
+	// watching, the pages when a page is the answer, and whether the lines
+	// went unprinted.
+	counts    *progress
+	line      *statusLine
+	pages     *pageOutput
+	unprinted bool
+}
+
+// open does what a run does before its first request: empties the output
+// directory when asked, opens the log and the trace, says what the run is
+// wearing, makes the client of a run that goes one way and asks where it comes
+// out, and makes the output directory. What it opened, close ends, on every
+// way out.
+func (r *fetchRun) open(ctx context.Context) error {
 	// Emptied once everything the run reads before it starts has been read, and
 	// before anything is written: the trace may be opened in it.
-	if *clearOutputDir {
-		cleared, err := clearOutput(*output, files.reads(), streamFiles(out.w, errOut.w))
+	if r.clearOutputDir {
+		cleared, err := clearOutput(r.output, r.files.reads(), streamFiles(r.out.w, r.errOut.w))
 		if err != nil {
 			return err
 		}
-		errOut.printf("cleared %s: %s removed\n", *output, counted(cleared, "entry", "entries"))
+		r.errOut.printf("cleared %s: %s removed\n", r.output, counted(cleared, "entry", "entries"))
 	}
 	// Once the directory is emptied, so that the log in it is this run's, and
 	// before anything is asked of anybody, so that it has all of it.
-	runLog, err := openRunLog(*logging.path, logLevel, *output, started, errOut)
-	if err != nil {
+	var err error
+	if r.log, err = openRunLog(*r.logging.path, r.logLevel, r.output, r.started, r.errOut); err != nil {
 		return err
 	}
-	// Registered before the trace's, so that it runs after it: the log says
-	// how the run ended, the trace's failure included.
-	defer func() {
-		if err := runLog.close(runErr); err != nil {
-			runErr = errors.Join(runErr, err)
-		}
-	}()
-	common.log = runLog.logger()
-	runLog.say(slog.LevelInfo, "run", runAttrs(about, "version", version, "profile", worn.Name,
-		"output", *output, "wait_for", *waitFor, "wait_for_element", *waitForElement, "html_decoding", *htmlDecoding,
-		"request_kind", *requestKind, "initiator_url", safeURL(*initiatorURL),
-		"reuse_connection", *again.reuse, "log_level", strings.ToLower(*logging.level))...)
-	trace, err := openTrace(*again.trace, "fetch", *common.proxy, started, about)
-	if err != nil {
+	r.common.log = r.log.logger()
+	r.log.say(slog.LevelInfo, "run", runAttrs(r.about, "version", version, "profile", r.worn.Name,
+		"output", r.output, "wait_for", r.waitFor, "wait_for_element", r.waitForElement, "html_decoding", r.htmlDecoding,
+		"request_kind", r.requestKind, "initiator_url", safeURL(r.initiatorURL),
+		"reuse_connection", *r.again.reuse, "log_level", strings.ToLower(*r.logging.level))...)
+	if r.trace, err = openTrace(*r.again.trace, "fetch", *r.common.proxy, r.started, r.about); err != nil {
 		return err
 	}
-	// Registered first so that it runs last: saving the session is a step of the
-	// run, and belongs in the trace of it.
-	defer func() {
-		if err := trace.close(runErr); err != nil {
-			runErr = errors.Join(runErr, err)
-		}
-	}()
-	lane := trace.main()
+	r.lane = r.trace.main()
 
 	// Left open, because the address the requests come out of is the report's
 	// last line, and nobody is asked for it until the cookies and the proxy have
 	// made a client: a run that cannot be made has no address to report. Closed
 	// on every way out, so a run that stops before then still ends it.
-	identity := common.wearOpen(errOut)
-	defer identity.close()
-	identity.field("sent as", describeContext(browser))
-	lane.wearing(worn)
+	r.identity = r.common.wearOpen(r.errOut)
+	r.identity.field("sent as", describeContext(r.browser))
+	r.lane.wearing(r.worn)
 
-	clients := newPool(common, *common.proxy)
-	defer clients.close()
+	r.clients = newPool(r.common, *r.common.proxy)
 
 	// A run that goes one way is one identity, and is treated as one: its client
 	// is made now, so that a proxy or a session that cannot be used is the
@@ -710,167 +807,192 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// asked once and said before the first request. A list with a proxy for
 	// each URL is as many identities as it has proxies. Their clients are made
 	// as the list reaches them, and nobody is asked where any of them comes out.
-	way, oneWay := sameWay(jobs, *common.proxy)
-	var found egress
-	var lookupErr error
+	r.way, r.oneWay = sameWay(r.jobs, *r.common.proxy)
 	var from string
-	if oneWay {
-		client, err := common.clientVia(way)
+	if r.oneWay {
+		client, err := r.common.clientVia(r.way)
 		if err != nil {
 			return err
 		}
-		clients.hold(way, client)
-		from = common.run.sessions[way].from
+		r.clients.hold(r.way, client)
+		from = r.common.run.sessions[r.way].from
 
 		// With the profile and through the proxy the requests are about to use,
 		// so the answer is for that identity. Not with its cookies: the session
 		// is for the site being fetched, not for whoever is asked about the
 		// address.
-		asked := lane.mark()
-		if *noExitLookup {
-			lookupErr = errNotAsked
+		asked := r.lane.mark()
+		if r.noExitLookup {
+			r.lookupErr = errNotAsked
 		} else {
-			found, lookupErr = lookupExit(ctx, common, way)
+			r.found, r.lookupErr = lookupExit(ctx, r.common, r.way)
 		}
-		lane.since(asked, "exit-ip", "net", exitArgs(way, found, lookupErr))
-		identity.field("exit-ip", describeExit(found, lookupErr, way))
-		runLog.say(slog.LevelInfo, "exit", runAttrs(nil, "proxy", redactProxy(way),
-			"said", describeExit(found, lookupErr, way))...)
+		r.lane.since(asked, "exit-ip", "net", exitArgs(r.way, r.found, r.lookupErr))
+		r.identity.field("exit-ip", describeExit(r.found, r.lookupErr, r.way))
+		r.log.say(slog.LevelInfo, "exit", runAttrs(nil, "proxy", redactProxy(r.way),
+			"said", describeExit(r.found, r.lookupErr, r.way))...)
 	}
-	identity.close()
+	r.identity.close()
 	if from != "" {
-		errOut.printf("warmed from %s\n", from)
+		r.errOut.printf("warmed from %s\n", from)
 	}
 	// Each identity's session, as it was chosen when the run began: what a
 	// run that went several ways can be read back from, set by set.
-	for _, way := range ways {
-		if session := common.run.sessions[way]; session.from != "" {
-			lane.instant("cookies loaded", "cookies", traceArgs{"proxy": redactProxy(way), "from": session.from})
-			runLog.say(slog.LevelInfo, "cookies loaded", "proxy", redactProxy(way), "from", session.from)
+	for _, way := range r.ways {
+		if session := r.common.run.sessions[way]; session.from != "" {
+			r.lane.instant("cookies loaded", "cookies", traceArgs{"proxy": redactProxy(way), "from": session.from})
+			r.log.say(slog.LevelInfo, "cookies loaded", "proxy", redactProxy(way), "from", session.from)
 		}
 	}
 
 	// What was asked before the run, for the report to say. It answers for the
 	// requests made without a proxy, and for none made through one.
-	var before *probe
-	if oneWay {
-		before = &probe{Proxy: redactProxy(way), Exit: found}
-		if lookupErr != nil {
-			before.Error = redactError(lookupErr, way)
+	if r.oneWay {
+		r.before = &probe{Proxy: redactProxy(r.way), Exit: r.found}
+		if r.lookupErr != nil {
+			r.before.Error = redactError(r.lookupErr, r.way)
 		}
 	}
 
 	// Made rather than required, as a report's is: a run that has fetched a list
 	// should not fail at the end for want of a directory.
-	if *output != "" {
-		if err := os.MkdirAll(*output, 0o755); err != nil {
+	if r.output != "" {
+		if err := os.MkdirAll(r.output, 0o755); err != nil {
 			return fmt.Errorf("fetch: %w", err)
 		}
 	}
+	return nil
+}
 
-	counts := newProgress(requests)
+// close ends what open opened, in the order a run ends: the clients, the line
+// of what it wore, then the trace, and last the log, which says how the run
+// ended, the trace's failure included.
+func (r *fetchRun) close(runErr *error) {
+	if r.clients != nil {
+		r.clients.close()
+	}
+	if r.identity != nil {
+		r.identity.close()
+	}
+	if err := r.trace.close(*runErr); err != nil {
+		*runErr = errors.Join(*runErr, err)
+	}
+	if err := r.log.close(*runErr); err != nil {
+		*runErr = errors.Join(*runErr, err)
+	}
+}
+
+// execute makes the run's requests, its output going where the plan says, and
+// is what each came to, how many got no response, and why the run stopped
+// short, if it did.
+func (r *fetchRun) execute(ctx context.Context) (records []result, failures int, failed error) {
+	r.counts = newProgress(r.requests)
 	// One request at a time, so how many are running is never news.
-	counts.solo = *workers == 1
+	r.counts.solo = r.workers == 1
 
 	// Where the output goes, and whether the status is redrawn beside it.
-	var line *statusLine
-	var pages *pageOutput
 	var lines *linesOutput
-	unprinted := false
-	if asJSON {
+	if r.asJSON {
 		// Standard output, unless that is a screen and nobody asked for the lines
 		// there: each one holds a whole page, and a run being watched is watched
 		// for whether it is working.
-		sink := io.Writer(out)
-		if !watch.wanted(out, false) {
+		sink := io.Writer(r.out)
+		if !r.watch.wanted(r.out, false) {
 			sink = io.Discard
-			unprinted = true
+			r.unprinted = true
 		}
-		if wantProgress {
+		if r.wantProgress {
 			// The status line owns the sink from here: it erases itself before
 			// every result and draws again after, so the two streams can share a
 			// terminal without overwriting one another.
-			line = newStatusLine(errOut, sink, counts, paint)
-			sink = line
+			r.line = newStatusLine(r.errOut, sink, r.counts, r.paint)
+			sink = r.line
 		}
-		lines = &linesOutput{encoder: json.NewEncoder(sink), headers: *showHeaders}
+		lines = &linesOutput{encoder: json.NewEncoder(sink), headers: r.showHeaders}
 	} else {
-		show := &showing{out: out, headers: *showHeaders, body: watch.wanted(out, *output != "")}
+		show := &showing{out: r.out, headers: r.showHeaders, body: r.watch.wanted(r.out, r.output != "")}
 		// Redrawn as the run goes when somebody is watching, unless pages are
 		// being printed on the same screen: then they are what is being watched,
 		// and a status redrawn between them would land on the end of each.
-		pagesOnScreen := show.body && onScreen(out)
-		if wantProgress && !pagesOnScreen {
-			line = newStatusLine(errOut, out, counts, paint)
-			show.out = line
+		pagesOnScreen := show.body && onScreen(r.out)
+		if r.wantProgress && !pagesOnScreen {
+			r.line = newStatusLine(r.errOut, r.out, r.counts, r.paint)
+			show.out = r.line
 		}
-		pages = &pageOutput{show: show, runs: requests}
+		r.pages = &pageOutput{show: show, runs: r.requests}
 	}
-	if line != nil {
-		runLog.shareStderr(line)
+	if r.line != nil {
+		r.log.shareStderr(r.line)
 	}
 	// Where a run talks while it runs. Several workers write here, so it is one
 	// lock whether or not there is a status line to work around.
-	notes := &stderrLog{out: errOut, line: line, on: *watch.verbose}
+	notes := &stderrLog{out: r.errOut, line: r.line, on: *r.watch.verbose}
 	with := runner{
-		check:   check,
-		clients: clients, workers: *workers,
-		request: tlsforge.Request{Method: *method, Header: tlsforge.Header(headers), Body: []byte(*data),
-			Browser: browser},
-		retry: *again.retry, repeat: *again.repeat,
-		keep: *output,
+		check:   r.check,
+		clients: r.clients, workers: r.workers,
+		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: []byte(r.data),
+			Browser: r.browser},
+		retry: *r.again.retry, repeat: *r.again.repeat,
+		keep: r.output,
 		about: requestAbout{
-			method: *method, profile: worn.Name, run: common.run.id,
-			requests: requests, runs: *again.repeat,
+			method: r.method, profile: r.worn.Name, run: r.common.run.id,
+			requests: r.requests, runs: *r.again.repeat,
 		},
-		exits: exits, names: &resolver{}, noLookup: *noExitLookup,
-		counts: counts, trace: trace, log: runLog.logger(),
+		exits: r.exits, names: &resolver{}, noLookup: r.noExitLookup,
+		counts: r.counts, trace: r.trace, log: r.log.logger(),
 		// Every try is written down for a report, and for the log and the trace
 		// each request is kept with.
-		detailed: len(formats) > 0 || *output != "",
+		detailed: len(r.formats) > 0 || r.output != "",
 	}
-	if *again.reuse {
-		with.held = newHeldClients(*again.repeat)
+	if *r.again.reuse {
+		with.held = newHeldClients(*r.again.repeat)
 	}
 	switch {
-	case !oneWay:
+	case !r.oneWay:
 		with.directError = "not asked, as the run went more than one way"
-	case way == "":
-		with.direct, with.directError = found, before.Error
+	case r.way == "":
+		with.direct, with.directError = r.found, r.before.Error
 	}
-	if asJSON {
+	if r.asJSON {
 		lines.say, with.out = notes.say, lines
 	} else {
-		pages.say, with.out = notes.say, pages
+		r.pages.say, with.out = notes.say, r.pages
 	}
-	if *workers == 1 {
+	if r.workers == 1 {
 		// A try that is made again is said to somebody who asked to hear about
 		// every request, while there is only the one request it can be about.
 		with.note = notes.say
 	}
 
-	records := make([]result, 0, len(jobs))
-	failures, failed := runJobs(ctx, jobs, with, &records)
+	records = make([]result, 0, len(r.jobs))
+	failures, failed = runJobs(ctx, r.jobs, with, &records)
+	return records, failures, failed
+}
 
+// finish says what the run came to, on standard error, in its log and its
+// trace, and in its reports, writes down the sessions it ends with, and is the
+// error the command ends with: every reason it failed, none lost behind
+// another.
+func (r *fetchRun) finish(records []result, failures int, failed error) error {
 	// The count, left where it ended: redrawn for the last time when it was being
 	// redrawn, and said once when it was not.
-	if line != nil {
-		runLog.closeStatus(line)
+	if r.line != nil {
+		r.log.closeStatus(r.line)
 	} else {
-		if pages != nil && pages.show.midLine && onScreen(out) {
+		if r.pages != nil && r.pages.show.midLine && onScreen(r.out) {
 			// A page rarely ends with a newline, and the count would start on
 			// the end of its last line.
-			errOut.println()
+			r.errOut.println()
 		}
-		for _, row := range counts.frame(now(), paint) {
-			errOut.println(row)
+		for _, row := range r.counts.frame(now(), r.paint) {
+			r.errOut.println(row)
 		}
 	}
 
-	totals := summarise(records, now().Sub(counts.started))
-	totals.Passes = *again.repeat
-	totals.WantedElement, totals.WantedText = check.wants()
-	totals.Decoding = check.readAs()
+	totals := summarise(records, now().Sub(r.counts.started))
+	totals.Passes = *r.again.repeat
+	totals.WantedElement, totals.WantedText = r.check.wants()
+	totals.Decoding = r.check.readAs()
 	summed := traceArgs{
 		"requests": totals.Total, "scraped": totals.Succeeded, "not_2xx": totals.Warned,
 		"no_response": totals.Failed, "bytes": totals.Bytes, "retries": totals.Retries,
@@ -881,21 +1003,21 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	if totals.WantedText != "" {
 		summed["no_text"] = totals.NoText
 	}
-	lane.instant("summary", "run", summed)
-	runLog.say(slog.LevelInfo, "summary", runAttrs(summed, "took", totals.Elapsed)...)
+	r.lane.instant("summary", "run", summed)
+	r.log.say(slog.LevelInfo, "summary", runAttrs(summed, "took", totals.Elapsed)...)
 
 	// Whatever the run came to, and most of all when it came to nothing: a
 	// request that failed is the one somebody opens a report about.
 	var reported []string
 	var reportErr error
-	if len(formats) > 0 {
+	if len(r.formats) > 0 {
 		var written []reportFile
-		written, reportErr = writeReports(files.reports,
-			reportInput{command: "fetch", records: records, summary: totals, before: before,
-				method: *method, trace: *again.trace,
-				run: common.run.id, started: started, profile: worn.Name})
+		written, reportErr = writeReports(r.files.reports,
+			reportInput{command: "fetch", records: records, summary: totals, before: r.before,
+				method: r.method, trace: *r.again.trace,
+				run: r.common.run.id, started: r.started, profile: r.worn.Name})
 		for _, file := range written {
-			runLog.say(slog.LevelInfo, "report", "file", file.path, "format", file.format)
+			r.log.say(slog.LevelInfo, "report", "file", file.path, "format", file.format)
 			name := file.path
 			// Only the page stops at what a browser can open. The document has
 			// every request.
@@ -907,20 +1029,20 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	}
 
 	// Under the count, what is read off a run when it is over.
-	end := ending{saved: *output, reports: reported, unprinted: unprinted}
-	if requests > 1 {
-		figures := counts.summary()
-		if *again.repeat > 1 && len(jobs) > 1 {
+	end := ending{saved: r.output, reports: reported, unprinted: r.unprinted}
+	if r.requests > 1 {
+		figures := r.counts.summary()
+		if *r.again.repeat > 1 && len(r.jobs) > 1 {
 			// What turns the number back into a list.
-			figures[0][1] += fmt.Sprintf("  (%d passes over %d URLs)", *again.repeat, len(jobs))
+			figures[0][1] += fmt.Sprintf("  (%d passes over %d URLs)", *r.again.repeat, len(r.jobs))
 		}
-		errOut.println()
-		errOut.printf("%s", aligned(append(append(figures, totals.proxyRows()...), end.rows()...)))
+		r.errOut.println()
+		r.errOut.printf("%s", aligned(append(append(figures, totals.proxyRows()...), end.rows()...)))
 	} else {
 		// One request has said all of it on its one line, and has only files to
 		// name.
 		for _, said := range end.lines() {
-			errOut.println("  " + said)
+			r.errOut.println("  " + said)
 		}
 	}
 
@@ -928,31 +1050,31 @@ func runFetch(ctx context.Context, args []string, out, errOut *printer) (runErr 
 	// with rather than the one it started from. One set for each client, which
 	// is one for each proxy: a jar is an identity, and two exits' sessions in
 	// one set would describe a browser that was two people.
-	saved, saveErr := clients.saveSessions(common, records)
+	saved, saveErr := r.clients.saveSessions(r.common, records)
 	if saved > 0 {
-		errOut.printf("saved %d cookies to %s\n", saved, *common.saveCookies)
-		runLog.say(slog.LevelInfo, "cookies saved", "file", *common.saveCookies, "cookies", saved)
-		lane.instant("cookies saved", "cookies",
-			traceArgs{"file": *common.saveCookies, "cookies": saved})
+		r.errOut.printf("saved %d cookies to %s\n", saved, *r.common.saveCookies)
+		r.log.say(slog.LevelInfo, "cookies saved", "file", *r.common.saveCookies, "cookies", saved)
+		r.lane.instant("cookies saved", "cookies",
+			traceArgs{"file": *r.common.saveCookies, "cookies": saved})
 	}
 
 	if failed == nil && failures > 0 {
-		if requests == 1 {
+		if r.requests == 1 {
 			// One request is the whole of what was asked for, and its failure is
 			// the command's.
 			failed = errors.New(records[0].Error)
 		} else {
 			// Non-zero: a request made ten times that came back nine is not one
 			// that worked, and a shell loop needs to be able to tell.
-			failed = fmt.Errorf("fetch: %d of %d requests got no response", failures, requests)
+			failed = fmt.Errorf("fetch: %d of %d requests got no response", failures, r.requests)
 		}
 	}
 	// A page without what the page has is not the page, and a run that asked
 	// for it fails for it as for a request that got nothing: a line for each
 	// thing, saying how many were without it.
 	failed = errors.Join(failed,
-		pagesWithout(totals.NoElement, requests, "element matching "+totals.WantedElement),
-		pagesWithout(totals.NoText, requests, "text matching "+totals.ShownText()))
+		pagesWithout(totals.NoElement, r.requests, "element matching "+totals.WantedElement),
+		pagesWithout(totals.NoText, r.requests, "text matching "+totals.ShownText()))
 	// All of them, so that the reason the fetch failed is not lost behind a
 	// report or a session that could not be written.
 	return errors.Join(failed, reportErr, saveErr)
