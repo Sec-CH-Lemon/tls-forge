@@ -745,6 +745,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- `fetch` writes no URL's password. Its lines said the `url` asked for as it
+  was given, password and all, and so did the line of each request with
+  `-v`, the file kept of each request and both reports, against what the
+  README says of every URL: each now says the username alone, as the log and
+  the trace did. The request still goes out with the URL as given.
 - A client profile given as a transport option
   (`WithTransportOption(tls_client.WithClientProfile(...))`) orders the
   HTTP/2 pseudo-headers too, as GO.md says an option that sets what tls-forge

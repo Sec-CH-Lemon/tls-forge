@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"os"
 	"runtime"
 	"sort"
@@ -24,6 +25,8 @@ import (
 // Lines rather than a JSON array so the output can be read as it is produced,
 // and appended to across runs.
 type result struct {
+	// URL is the URL asked for without its password, which every output that
+	// says it says so; the request goes out with the job's own.
 	URL      string `json:"url"`
 	Proxy    string `json:"proxy,omitempty"`
 	Status   int    `json:"status,omitempty"`
@@ -93,6 +96,22 @@ func (r result) MarshalJSON() ([]byte, error) {
 	out := plain(r)
 	out.Proxy = redactProxy(out.Proxy)
 	return json.Marshal(out)
+}
+
+// redirected reports an answer from another URL than the one asked for, as the
+// library says that URL: without the credentials it was asked with.
+func (r result) redirected() bool {
+	return r.FinalURL != "" && r.FinalURL != bareURL(r.URL)
+}
+
+// bareURL is a URL without its credentials, as it is when it can be read.
+func bareURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.User == nil {
+		return raw
+	}
+	u.User = nil
+	return u.String()
 }
 
 // redactProxy strips the password from a proxy URL for display.
@@ -499,7 +518,7 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 ) (result, *tlsforge.Response, error) {
 	started := now()
 	proxy := b.clients.resolveProxy(j.Proxy)
-	r := result{URL: j.URL, Proxy: proxy, Started: started, ID: j.id}
+	r := result{URL: safeURL(j.URL), Proxy: proxy, Started: started, ID: j.id}
 	// Every record of the request says which it is, and which time it was made
 	// when it was made more than once.
 	log = withLog(log, "req", j.id)

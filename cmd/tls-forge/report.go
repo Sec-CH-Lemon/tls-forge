@@ -414,7 +414,7 @@ type fact struct {
 func (r reportRow) Facts() []fact {
 	var facts []fact
 	// Where it ended up, when that is somewhere other than where it was sent.
-	if r.FinalURL != "" && r.FinalURL != r.URL {
+	if r.redirected() {
 		facts = append(facts, fact{Label: "Final URL", Value: r.FinalURL, Code: true})
 	}
 	// The page is named and not linked: opened in a browser, it would load

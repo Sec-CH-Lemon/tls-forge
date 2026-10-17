@@ -230,3 +230,73 @@ func TestTheProxyVariablesOfOtherProgramsAreNotRead(t *testing.T) {
 		t.Errorf("exit code = %d, the server was asked %d times\n%s", code, asked.Load()-before, stderr)
 	}
 }
+
+func TestAURLsPasswordIsWrittenNowhere(t *testing.T) {
+	// The credentials of the URLs asked for, answered on a 401: the lines,
+	// the line of each request, the status line, every file kept of every
+	// request, both reports, the log and the trace say the username alone.
+	authorized := "Basic " + base64.StdEncoding.EncodeToString([]byte("u:"+secret))
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Header.Get("Authorization") != authorized:
+			w.Header().Set("WWW-Authenticate", `Basic realm="run"`)
+			w.WriteHeader(http.StatusUnauthorized)
+		case r.URL.Path == "/r":
+			http.Redirect(w, r, "/a", http.StatusFound)
+		default:
+			_, _ = fmt.Fprint(w, "the page")
+		}
+	}))
+	t.Cleanup(server.Close)
+	asked := strings.Replace(server.URL, "https://", "https://u:"+secret+"@", 1)
+	for name, tc := range map[string]struct {
+		args []string
+		says string
+	}{
+		"lines":       {[]string{"--json", asked + "/a", asked + "/r"}, `"url":"https://u@`},
+		"status line": {[]string{"-i", "--print-body", asked + "/r"}, "200 " + server.URL + "/a\n"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			code, stdout, stderr := exec(t, append([]string{"fetch", "-k", "--no-exit-lookup", "-v",
+				"-o", filepath.Join(dir, "out"), "--log", filepath.Join(dir, "run.jsonl"),
+				"--trace", filepath.Join(dir, "trace.json"), "--report=" + filepath.Join(dir, "report"),
+				"--report-format", "html,json"}, tc.args...)...)
+			if code != 0 || !strings.Contains(stdout, tc.says) {
+				t.Errorf("exit code = %d, want 0 and %q said\n%s\n%s", code, tc.says, stdout, stderr)
+			}
+			nowhereSaid(t, dir, stdout, stderr)
+			// The final URL is said of a request redirected, and of no other:
+			// not of one whose URL had credentials that the answer's has not.
+			logs, _ := filepath.Glob(filepath.Join(dir, "out", "*.log"))
+			finals := 0
+			for _, kept := range logs {
+				if data, _ := os.ReadFile(kept); strings.Contains(string(data), "final URL") {
+					finals++
+				}
+			}
+			report, _ := os.ReadFile(filepath.Join(dir, "report.html"))
+			if finals != 1 || strings.Count(string(report), "Final URL") != 1 {
+				t.Errorf("final URL said in %d kept requests and %d times in the report", finals, strings.Count(string(report), "Final URL"))
+			}
+		})
+	}
+}
+
+func TestAnAnswerCameFromAnotherURLWhateverCredentialsItWasAskedWith(t *testing.T) {
+	for _, tc := range []struct {
+		url, final string
+		want       bool
+	}{
+		{"https://h/a", "", false},
+		{"https://h/a", "https://h/a", false},
+		{"https://u@h/a", "https://h/a", false},
+		{"https://u@h/a", "https://h/b", true},
+		{"https://h/a", "https://h/b", true},
+		{"%zz", "https://h/a", true},
+	} {
+		if got := (result{URL: tc.url, FinalURL: tc.final}).redirected(); got != tc.want {
+			t.Errorf("%s answered from %q: redirected %v", tc.url, tc.final, got)
+		}
+	}
+}

@@ -149,7 +149,7 @@ func requestLog(r result, j job, about requestAbout) string {
 		[2]string{"outcome", outcomeOf(r.Status, r.Bytes, r.Error, r.finding)},
 		[2]string{"tries", strconv.Itoa(max(r.Attempts, len(r.Tries)))},
 	)
-	if r.FinalURL != "" && r.FinalURL != r.URL {
+	if r.redirected() {
 		facts = append(facts, [2]string{"final URL", r.FinalURL})
 	}
 	if r.File != "" {
