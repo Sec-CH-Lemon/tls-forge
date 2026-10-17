@@ -53,11 +53,15 @@ func TestEveryScenarioIsPlannedWithEveryPlaceFilledIn(t *testing.T) {
 
 func TestAScenarioRunsOnItsPageUnlessToldOtherwise(t *testing.T) {
 	o := origins(8443, 8080)
-	if p := (scenario{}).planned("x", o); p != (plan{start: "https://www.example.com:8443/run/x", wait: "/done/x"}) {
+	if p := (scenario{}).planned("x", o); p != (plan{start: "https://www.example.com:8443/run/x", wait: "/done/x", times: 1}) {
 		t.Errorf("planned %+v", p)
 	}
 	p := scenario{start: "{L}/run/{ID}", wait: "/p/{ID}", pre: "{X}/p/set", settle: time.Second}.planned("y", o)
-	if p != (plan{start: "http://localhost:8080/run/y", wait: "/p/y", pre: "https://www.example.net:8443/p/set", settle: time.Second}) {
+	if p != (plan{start: "http://localhost:8080/run/y", wait: "/p/y", pre: "https://www.example.net:8443/p/set", times: 1,
+		settle: time.Second}) {
+		t.Errorf("planned %+v", p)
+	}
+	if p := (scenario{wait: "/p/{ID}", times: 3}).planned("z", o); p.wait != "/p/z" || p.times != 3 {
 		t.Errorf("planned %+v", p)
 	}
 	if got := origins(1, 2); got["C"] != "https://u:p@www.example.net:1" || got["U"] != "https://u:p@www.example.com:1" ||
@@ -72,6 +76,27 @@ func TestAFormIsWrittenWithItsEncodingWhenItHasOne(t *testing.T) {
 	}
 	if got := formHTML("get", "/b", "text/plain"); !strings.Contains(got, `method=get action="/b" enctype="text/plain">`) {
 		t.Errorf("formHTML %q", got)
+	}
+}
+
+func TestAPageThatIsNeverTakenEndsAtTheThirtySecondRequest(t *testing.T) {
+	fixture, err := LoadRequests(requestsFixture)
+	if err != nil {
+		t.Fatalf("LoadRequests: %v", err)
+	}
+	// Every request is for the page waited for, so the scenario is over once
+	// it has been asked for as often as Chrome asks for it.
+	stale := fixture.Scenarios["auth-digest-stale-forever"]
+	p := catalogue["auth-digest-stale-forever"].planned("auth-digest-stale-forever", origins(1, 2))
+	for _, requests := range [][]Request{stale.H2, stale.H1} {
+		if len(requests) != p.times || p.times != 32 {
+			t.Errorf("waits for %d, the fixture has %d", p.times, len(requests))
+		}
+		for _, r := range requests {
+			if pathOf(r.URL) != p.wait {
+				t.Errorf("%s, not %s", r.URL, p.wait)
+			}
+		}
 	}
 }
 

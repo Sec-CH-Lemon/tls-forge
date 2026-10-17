@@ -52,7 +52,8 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 //   - /chain/N redirects to /chain/N+1;
 //   - /cors/... answers what CORS allows, a preflight allowed but for ?deny and
 //     kept as long as ?maxage says;
-//   - /auth/... asks for HTTP authentication (authPage);
+//   - /auth/... asks for HTTP authentication (authPage), /digest/... for
+//     Digest authentication (digestPage);
 //   - /run/ID is the scenario's run page;
 //   - anything else is a page, which goes on to ?next by a refresh.
 //
@@ -111,6 +112,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	case strings.HasPrefix(path, "/auth/"):
 		authPage(w, r)
+	case strings.HasPrefix(path, "/digest/"):
+		digestPage(w, r)
 	case strings.HasPrefix(path, "/run/"):
 		s.runPage(w, r, strings.TrimPrefix(path, "/run/"))
 	case path == "/favicon.ico":
@@ -132,9 +135,13 @@ func page(w http.ResponseWriter, next string) {
 	_, _ = w.Write([]byte("<!doctype html>" + refresh + "<title>page</title><p>page</p>"))
 }
 
-// benchAuthorization is what a page under /auth/ takes: u:p, Basic, as {U}
-// has them in its URL.
-const benchAuthorization = "Basic dTpw"
+// benchUser and benchPassword are the credentials the pages under /auth/ and
+// /digest/ take, as {U} has them in its URL; benchAuthorization is them in
+// Basic.
+const (
+	benchUser, benchPassword = "u", "p"
+	benchAuthorization       = "Basic dTpw"
+)
 
 // authPage answers a page under /auth/: 401 with a Basic challenge, after a
 // Digest one for ?offer=digest, until the request says benchAuthorization;

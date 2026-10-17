@@ -18,10 +18,11 @@ type scenario struct {
 	referrer string
 	// start is the URL opened, the run page /run/ID of the origin {A} unless
 	// said; wait is the path whose request ends the scenario, /done/ID unless
-	// said; pre is a URL opened first, in the same profile, for what it
-	// leaves; settle, for a scenario that waits for nothing, how long it is
-	// left to run.
+	// said, once it has been asked for times times, or once; pre is a URL
+	// opened first, in the same profile, for what it leaves; settle, for a
+	// scenario that waits for nothing, how long it is left to run.
 	start, wait, pre string
+	times            int
 	settle           time.Duration
 }
 
@@ -214,6 +215,60 @@ var catalogue = map[string]scenario{
 	"auth-xhr":                         {note: "XHR GET of a URL of the same origin with credentials, a page that answers 401 until it is sent them", script: "const x=new XMLHttpRequest();x.open('GET','{U}/auth/{ID}/x');x.onloadend=done;x.send();"},
 	"auth-nav-later-same-dir":          {note: "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then one of its directory by a URL without them", start: "{U}/auth/{ID}/a?next={A}/auth/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
 	"auth-nav-later-other-dir":         {note: "the same, then a page of another directory, of the same realm, by a URL without them", start: "{U}/auth/{ID}/a?next={A}/auth/{ID}-other/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
+
+	// Digest authentication: a page under /digest/OFFER/ asks for it as the
+	// offer says (digestOffers), of the realm "bench", until it is answered
+	// with u:p; then it goes on to a page of its origin by a URL without
+	// credentials, which is sent what Chrome keeps for the realm.
+	"auth-digest": {note: "a URL with credentials given on the command line, a page that asks for Digest alone, qop=auth and no algorithm, until it is answered with them, then two pages of its directory by URLs without them",
+		start: "{U}/digest/auth/{ID}/a?next=/digest/auth/{ID}/b%3Fnext%3D/digest/auth/{ID}/c%253Fnext%253D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-digest-md5":               digestThen("md5", "Digest with algorithm=MD5"),
+	"auth-digest-md5-sess":          digestThen("md5-sess", "Digest with algorithm=MD5-sess"),
+	"auth-digest-sha256":            digestThen("sha256", "Digest with algorithm=SHA-256"),
+	"auth-digest-sha256-sess":       digestThen("sha256-sess", "Digest with algorithm=SHA-256-sess"),
+	"auth-digest-no-qop":            digestThen("no-qop", "Digest with no qop, as RFC 2069 has it"),
+	"auth-digest-auth-int":          digestThen("auth-int", "Digest with qop=auth-int alone"),
+	"auth-digest-qop-list":          digestThen("qop-list", `Digest with qop="auth-int,auth"`),
+	"auth-digest-opaque":            digestThen("opaque", "Digest with an opaque"),
+	"auth-digest-userhash":          digestThen("userhash", "Digest with algorithm=SHA-256 and userhash=true"),
+	"auth-digest-no-realm":          digestThen("no-realm", "Digest with no realm"),
+	"auth-digest-unknown-algorithm": digestThen("unknown-algorithm", "Digest with algorithm=SHA-512-256, then Basic"),
+	"auth-digest-no-nonce":          digestThen("no-nonce", "Digest with no nonce, then Basic"),
+	"auth-digest-empty-value":       digestThen("empty-value", "Digest with a parameter of no value, then Basic"),
+	"auth-digest-after-basic":       digestThen("after-basic", "Basic, then Digest"),
+	"auth-digest-md5-first":         digestThen("md5-first", "Digest with algorithm=MD5, then Digest with algorithm=SHA-256"),
+	"auth-digest-sha256-first":      digestThen("sha256-first", "Digest with algorithm=SHA-256, then Digest with algorithm=MD5"),
+	"auth-digest-stale":             digestThen("stale", "Digest whose first nonce is out of date when answered, asked for again with another and stale=true"),
+	"auth-digest-quoting":           digestThen("quoting", "Digest with names and values in other cases, a token for a value, escapes, a parameter said twice and others of no matter"),
+	"auth-digest-unquoted":          digestThen("unquoted", `Digest with tokens for values, one with "=" in it, and a quote that does not end`),
+	"auth-digest-stale-later": {note: "a URL with credentials given on the command line, a page that asks for Digest until it is answered with them, then two pages of its directory by URLs without them, the first answered with a nonce count of 2 that the page says is out of date",
+		start: "{U}/digest/stale-later/{ID}/a?next=/digest/stale-later/{ID}/b%3Fnext%3D/digest/stale-later/{ID}/c%253Fnext%253D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-digest-other-dir": {note: "a URL with credentials given on the command line, a page that asks for Digest until it is answered with them, then a page of another directory of the realm by a URL without them, then one of the first directory",
+		start: "{U}/digest/auth/{ID}/a?next=/digest/auth/{ID}-other/b%3Fnext%3D/digest/auth/{ID}/c%253Fnext%253D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-digest-form-post": {note: "a form posted to a URL of the same origin with credentials, a page that asks for Digest until it is answered with them",
+		html: formHTML("post", "{U}/digest/auth/{ID}/post?next=/p/{ID}-end", ""), script: submit, wait: "/p/{ID}-end"},
+	"auth-digest-redirect": {note: "a URL with credentials given on the command line, a page that asks for Digest until it is answered with them, then 302 to a page of its directory by a URL without them",
+		start: "{U}/digest/auth/{ID}/a?to=/digest/auth/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/p/{ID}-end"},
+	"auth-digest-basic-kept": {note: "a URL with credentials given on the command line, a page that asks for Basic until it is answered with them, then a page of another directory that asks for Digest of the same realm, by a URL without them",
+		start: "{U}/auth/{ID}/a?next={A}/digest/auth/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
+	"auth-digest-ntlm": {note: "a URL with credentials given on the command line, a page that offers NTLM, then Digest, then Basic",
+		start: "{U}/digest/ntlm/{ID}/a?next=/digest/ntlm/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
+	"auth-digest-negotiate": digestThen("negotiate", "Negotiate, then Digest, then Basic"),
+	// Ended at the 32nd request, and a little after: Chrome then shows an
+	// error page, which it reloads a second later, a navigation of its own
+	// that the fixture leaves out.
+	"auth-digest-stale-forever": {note: "a URL with credentials given on the command line, a page every Digest answer to which it says is out of date: 32 requests, the 32nd answer not sent (net::ERR_TOO_MANY_RETRIES); the error page then reloaded the URL, and that reload is left out",
+		start: "{U}/digest/stale-forever/{ID}/a", wait: "/digest/stale-forever/{ID}/a", times: 32},
+}
+
+// digestThen is the scenario of a Digest offer: a URL with credentials given
+// on the command line, of a page under /digest/OFFER/ that asks as asked says
+// until it is answered with them, then a page of its directory by a URL
+// without them.
+func digestThen(offer, asked string) scenario {
+	return scenario{note: "a URL with credentials given on the command line, a page that asks for " + asked +
+		", until it is answered with them, then a page of its directory by a URL without them",
+		start: "{U}/digest/" + offer + "/{ID}/a?next=/digest/" + offer + "/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/p/{ID}-end"}
 }
 
 // origins are the origins of a run whose TLS origins are on port, plain HTTP
@@ -243,6 +298,7 @@ func fill(text, id string, o map[string]string) string {
 // plan is what a run of a scenario opens and waits for.
 type plan struct {
 	start, wait, pre string
+	times            int
 	settle           time.Duration
 }
 
@@ -255,5 +311,6 @@ func (s scenario) planned(id string, o map[string]string) plan {
 	if wait == "" {
 		wait = "/done/{ID}"
 	}
-	return plan{start: fill(start, id, o), wait: fill(wait, id, o), pre: fill(s.pre, id, o), settle: s.settle}
+	return plan{start: fill(start, id, o), wait: fill(wait, id, o), pre: fill(s.pre, id, o), times: max(s.times, 1),
+		settle: s.settle}
 }

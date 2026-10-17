@@ -142,7 +142,7 @@ func (s *Server) run(ctx context.Context, b Browser, id string, sc scenario, o m
 		if err != nil {
 			return nil, err
 		}
-		visited := s.until(ctx, pathOf(p.pre), 0, t)
+		visited := s.until(ctx, pathOf(p.pre), 1, 0, t)
 		if visited {
 			visited = sleep(ctx, t.persist)
 		}
@@ -156,7 +156,7 @@ func (s *Server) run(ctx context.Context, b Browser, id string, sc scenario, o m
 	if err != nil {
 		return nil, err
 	}
-	finished := s.until(ctx, p.wait, p.settle, t)
+	finished := s.until(ctx, p.wait, p.times, p.settle, t)
 	stop()
 	entries, trouble := s.Requests()
 	if trouble != nil {
@@ -180,16 +180,22 @@ func sleep(ctx context.Context, d time.Duration) bool {
 	}
 }
 
-// until waits for the page at path to be asked for, then a little longer for
-// what follows it, and says whether it was; a scenario that settles is
-// waited for that long instead.
-func (s *Server) until(ctx context.Context, path string, settle time.Duration, t timing) bool {
+// until waits for the page at path to be asked for times times, then a
+// little longer for what follows, and says whether it was; a scenario that
+// settles is waited for that long instead.
+func (s *Server) until(ctx context.Context, path string, times int, settle time.Duration, t timing) bool {
 	if settle > 0 {
 		return sleep(ctx, settle)
 	}
 	for deadline := time.Now().Add(t.limit); time.Now().Before(deadline); {
 		entries, _ := s.Requests()
-		if slices.ContainsFunc(entries, func(e Entry) bool { return pathOf(e.Target) == path }) {
+		asked := 0
+		for _, e := range entries {
+			if pathOf(e.Target) == path {
+				asked++
+			}
+		}
+		if asked >= times {
 			return sleep(ctx, t.after)
 		}
 		if !sleep(ctx, t.poll) {

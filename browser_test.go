@@ -102,6 +102,21 @@ var notSent = map[string]string{
 	"ch-fetch-three":                 "the order of several client hints of a script's request follows the renderer's hash table",
 	"ch-fetch-all":                   "the order of several client hints of a script's request follows the renderer's hash table",
 	"auth-nav-digest":                "Chrome answers a challenge that offers Digest with Digest, and tls-forge answers Basic alone",
+	"auth-digest-ntlm":               "Chrome answers NTLM, which it prefers to Digest and Basic, and tls-forge answers neither instead",
+}
+
+// The scenarios of the pages under /digest/, which ask for Digest or offer it
+// with another scheme: not sent while tls-forge reads no Digest challenge.
+func init() {
+	for _, scenario := range []string{"auth-digest", "auth-digest-after-basic", "auth-digest-auth-int",
+		"auth-digest-basic-kept", "auth-digest-empty-value", "auth-digest-form-post", "auth-digest-md5",
+		"auth-digest-md5-first", "auth-digest-md5-sess", "auth-digest-negotiate", "auth-digest-no-nonce",
+		"auth-digest-no-qop", "auth-digest-no-realm", "auth-digest-opaque", "auth-digest-other-dir",
+		"auth-digest-qop-list", "auth-digest-quoting", "auth-digest-redirect", "auth-digest-sha256",
+		"auth-digest-sha256-first", "auth-digest-sha256-sess", "auth-digest-stale", "auth-digest-stale-forever",
+		"auth-digest-stale-later", "auth-digest-unknown-algorithm", "auth-digest-unquoted", "auth-digest-userhash"} {
+		notSent[scenario] = "tls-forge does not read a Digest challenge yet"
+	}
 }
 
 // asked is the URL of a scenario's page with its query.

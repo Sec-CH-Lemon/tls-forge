@@ -192,6 +192,21 @@ func TestAFirstVisitIsMadeInTheProfileTheScenarioRunsIn(t *testing.T) {
 	}
 }
 
+func TestAScenarioWaitsForItsPageToBeAskedForAsOftenAsItSays(t *testing.T) {
+	again := func(string) []string { return []string{"/p/again", "/p/again"} }
+	thrice := map[string]scenario{"thrice": {note: "thrice", start: "{A}/p/again", wait: "/p/again", times: 3}}
+	got, err := measure(context.Background(), &fake{then: again}, thrice, nil, quick, nil)
+	if err != nil || len(got["thrice"].H2) != 3 {
+		t.Errorf("measure: %+v, %v", got, err)
+	}
+	// Asked for once less, it is not over.
+	four := map[string]scenario{"four": {start: "{A}/p/again", wait: "/p/again", times: 4}}
+	if _, err := measure(context.Background(), &fake{then: again}, four, nil, quick, nil); err == nil ||
+		!strings.Contains(err.Error(), "/p/again was not asked for within") {
+		t.Errorf("measure: %v", err)
+	}
+}
+
 func TestAScenarioThatSettlesIsLeftThatLong(t *testing.T) {
 	scenarios := map[string]scenario{"settles": {note: "settles", start: "{A}/p/settles", wait: "/never", settle: 30 * time.Millisecond}}
 	got, err := measure(context.Background(), &fake{}, scenarios, nil, quick, nil)

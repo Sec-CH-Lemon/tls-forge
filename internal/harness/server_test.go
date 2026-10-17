@@ -223,6 +223,18 @@ func TestCloseEndsWhatIsOpenAndTakesNoMore(t *testing.T) {
 		t.Fatalf("dial: %v", err)
 	}
 	defer func() { _ = idle.Close() }()
+	// Once the server holds it: closed before, it would be none of Close's.
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(time.Millisecond) {
+		s.mu.Lock()
+		held := len(s.open)
+		s.mu.Unlock()
+		if held == 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the server never took the connection")
+		}
+	}
 	done := make(chan struct{})
 	go func() {
 		_ = s.Close()
