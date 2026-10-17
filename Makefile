@@ -129,8 +129,10 @@ docker:
 # Build the image and prove the binary inside it runs. A Dockerfile that no
 # longer builds is easy to miss, since nothing else in the repository needs it.
 docker-check: docker
+	scripts/check-docker-context.sh
 	docker run --rm $(IMAGE):latest version
 	docker run --rm $(IMAGE):latest profiles > /dev/null
+	scripts/check-docker-image.sh $(IMAGE):latest
 
 # The npm packages ship a compiled binary with every dependency linked into it,
 # and those licences require their notices to travel along. Regenerate whenever

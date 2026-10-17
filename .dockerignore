@@ -1,15 +1,43 @@
 # Everything the build does not need. Keeping the context small is not only
 # about speed: a stray coverage file or a local build of the binary would land
-# in the image layer above.
+# in the image layer above, and a profile measured on this machine would be
+# compiled into the binary everybody pulls. scripts/check-docker-context.sh
+# holds this to a dirty checkout, and to every file git tracks.
 .git
 .github
+.claude
 bin
 dist
 docs
-node/node_modules
+tmp
+# `go build ./cmd/tls-forge` from the root drops the binary there. The root
+# alone: cmd/tls-forge is the source of it.
+tls-forge
+
+# Dependencies and environments, wherever a package or an example keeps them.
+**/node_modules
 node/vendor
+**/.venv*
+**/__pycache__
+**/*.egg-info
+**/.pytest_cache
+**/.mypy_cache
+**/.coverage
+python/src/tlsforge/bin
+
+# A profile measured from the browser on this machine: everything under
+# profile/data is compiled into the binary.
+profile/data/local
+
+# What running the tool and its tests leaves behind: a report written beside
+# the run is named after the moment it began.
 coverage.out
 coverage.html
+report-*.html
+report-*.json
+
+# Editors and OS
 .idea
 .vscode
-.DS_Store
+**/.DS_Store
+**/*.swp

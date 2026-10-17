@@ -123,6 +123,11 @@ docker run --rm -v "$PWD:/work" ghcr.io/sec-ch-lemon/tls-forge \
   fetch --input /work/urls.csv --output /work/out > results.jsonl
 ```
 
+The image runs as the user `tlsforge`, not as root, in `/work`, which that
+user can write to. A directory mounted there has to be writable by that user
+for a command to write into it; `--user "$(id -u):$(id -g)"` runs the command
+as you instead.
+
 `capture` and `compare` are intentionally not supported by the small release
 image because it does not contain a browser.
 
@@ -174,6 +179,12 @@ To build the container image:
 docker build -t tls-forge .
 docker run --rm tls-forge version
 ```
+
+`make docker-check` builds it and checks what the build was given and what the
+image does: no local binary, environment, dependency, run output or profile
+measured on this machine in the build, and an image that runs as `tlsforge`,
+writes where it works and stops in order when stopped. Its two bases are pinned
+by digest, and Dependabot proposes the next ones.
 
 Run all project checks before distributing a build:
 

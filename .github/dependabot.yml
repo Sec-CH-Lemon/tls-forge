@@ -1,0 +1,9 @@
+# The Docker bases are pinned by digest, which goes stale as each tag gets its
+# security updates: Dependabot proposes the next one, weekly, as a pull request
+# to review like any other change.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

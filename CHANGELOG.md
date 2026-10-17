@@ -692,6 +692,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A Docker image built from a developer's checkout carries none of what
+  that checkout has lying around.** The build was given a profile measured
+  from the machine's own browser, which is compiled into the binary, along
+  with virtualenvs, `node_modules`, a binary built in the root, `tmp/`,
+  reports and agent worktrees. Release images, built from clean checkouts,
+  were not affected. The image's working directory is made writable by its
+  user explicitly, and its two bases are pinned by digest.
 - `capture` finds Chrome, Chromium and Brave installed for one user on
   Windows, under `%LOCALAPPDATA%`, and Edge and Brave under `Program Files`
   as well as `Program Files (x86)`. A folder an unset variable names is no

@@ -14,6 +14,10 @@
 coverage.out
 coverage.html
 
+# A report written beside a run, named after the moment it began.
+/report-*.html
+/report-*.json
+
 # Node
 node_modules/
 npm-debug.log*
