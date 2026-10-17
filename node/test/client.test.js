@@ -80,7 +80,9 @@ function pastDeadline(t, ask) {
 // times a deadline and must not time a start with it: the deadline ask sets
 // passes only after COLD_START, and the interval that passes it holds the
 // event loop open meanwhile, as a running deadline would. Nothing is in flight
-// when ask is made, as for pastDeadline.
+// when ask is made, as for pastDeadline. Every deadline still set once ask is
+// answered passes then, as it would later on the real clock: putting the
+// test's clock away would drop it unseen.
 async function untimed(t, ask) {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const late = setInterval(() => t.mock.timers.runAll(), COLD_START);
@@ -88,6 +90,7 @@ async function untimed(t, ask) {
     return await ask();
   } finally {
     clearInterval(late);
+    t.mock.timers.runAll();
     t.mock.timers.reset();
   }
 }
@@ -427,6 +430,48 @@ test("a request's deadline counts from the call, the time it waited included", a
   }
 });
 
+test('a request leaves no deadline set, however it ends', async (t) => {
+  // A deadline left set when its request ended would pass later, under
+  // whatever request is in flight then, and stop the transport, the session
+  // in it and that request with it. Each ending is waited for untimed, which
+  // then lets every deadline still set pass: the next request finds the
+  // transport it found before. The client has a proxy, so that a start's
+  // init line is among the endings; a write that fails is the dead pipe's.
+  const c = fake({ proxy: 'http://proxy.test:8080', timeout: COLD_START });
+  // transport is the process that answers the next request, or why none did.
+  const transport = () => c.get('https://ok/next').then(
+    (res) => JSON.parse(res.body).pid,
+    (err) => `${err.name}: ${err.message}`,
+  );
+  try {
+    const started = JSON.parse((await untimed(t, () => c.get('https://ok/start'))).body).pid;
+    assert.equal(await transport(), started, 'a start');
+    for (const [ending, ask, says] of [
+      ['an answer', () => c.get('https://ok/x'), /^answered$/],
+      ['a failure', () => c.get('https://error/x'), /^upstream refused$/],
+      ['an answer of the wrong shape', () => c.get('https://bad-status/x'), /^tlsforge: bad response: field "status"/],
+      ['a line that is not JSON', () => c.get('https://garbage/x'), /^tlsforge: bad response: /],
+      ['an answer to hello', () => c.hello(), /^answered$/],
+    ]) {
+      const outcome = await untimed(t, () => ask().then(() => 'answered', (err) => err.message));
+      assert.match(outcome, says, ending);
+      assert.equal(await transport(), started, ending);
+    }
+    // An exit takes the transport, and the session in it, which the next
+    // request is told; the one after starts another, which the deadline of
+    // the request the exit ended does not stop.
+    const next = await untimed(t, async () => {
+      await assert.rejects(() => c.get('https://exit/x'), /transport exited \(code 3\)/);
+      await assert.rejects(() => c.get('https://ok/told'), SessionReset);
+      return transport();
+    });
+    assert.ok(Number.isInteger(next), String(next));
+    assert.equal(await transport(), next, 'an exit');
+  } finally {
+    c.close();
+  }
+});
+
 test('a transport that exits rejects the request in flight', async () => {
   const c = fake();
   await assert.rejects(() => c.get('https://exit/x'), /exited|closed/);
@@ -628,26 +673,43 @@ test('a closed client refuses to respawn', async () => {
 });
 
 test('an idle client does not keep a Node program alive without close()', async () => {
+  // The child says when its last answer came, and only what follows is timed:
+  // how long Node and the transport took to start is no part of it. Its
+  // requests, its proxy's init line among them, end in every way a running
+  // transport ends one, and in an exit, and their deadline is far past the
+  // wait: one an ending left set would hold the child beyond it.
   const moduleURL = new URL('../index.js', import.meta.url).href;
   const script = `
     import { Client } from ${JSON.stringify(moduleURL)};
-    const client = new Client({ binary: ${JSON.stringify(wrapper)}, timeout: 2000 });
+    const client = new Client({
+      binary: ${JSON.stringify(wrapper)}, proxy: 'http://proxy.test:8080', timeout: 60_000,
+    });
+    await client.hello();
     await client.get('https://ok/x');
+    for (const host of ['error', 'bad-status', 'garbage', 'exit']) {
+      await client.get('https://' + host + '/x').catch(() => {});
+    }
+    process.stdout.write('answered\\n');
   `;
   await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ['--input-type=module', '--eval', script], {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stderr = '';
+    let timer;
     child.stderr.on('data', (chunk) => { stderr += chunk; });
-    const timer = setTimeout(() => {
-      child.kill();
-      reject(new Error('child stayed alive without close()'));
-    }, 3_000);
-    child.on('exit', (code) => {
+    // From its answer, an exit takes milliseconds, under load too.
+    child.stdout.once('data', () => {
+      timer = setTimeout(() => {
+        child.kill();
+        reject(new Error('child stayed alive after its answer without close()'));
+      }, 2_000);
+    });
+    // Closed, its output has all been read: an answer not seen by then never came.
+    child.on('close', (code) => {
       clearTimeout(timer);
-      if (code === 0) resolve();
-      else reject(new Error(`child exited ${code}: ${stderr}`));
+      if (code === 0 && timer !== undefined) resolve();
+      else reject(new Error(`child exited ${code} ${timer === undefined ? 'unanswered' : 'answered'}: ${stderr}`));
     });
   });
 });
@@ -790,21 +852,29 @@ test('the platform package name follows npm platform and arch', () => {
   assert.equal(exeName, process.platform === 'win32' ? 'tls-forge.exe' : 'tls-forge');
 });
 
-test('a write into a dead pipe fails that request and restarts', async () => {
+test('a write into a dead pipe fails that request and restarts', async (t) => {
   // The process is still alive but has stopped reading, so the write reaches a
   // pipe with no reader. That is the gap the write callback exists for: the
   // liveness check passed, and the pipe died before the bytes landed.
   const binary = configuredDaemon ? wrapper : path.join(here, 'deaf-daemon.sh');
-  const c = new Client({ binary, timeout: 5_000 });
-  await c.get('https://deaf/first');
-
-  const second = c.get('https://deaf/second');
-  const waiting = c.get('https://deaf/third');
-  await assert.rejects(() => second, /write failed/);
-  // The transport is stopped, and the session in it lost: the request that
-  // waited behind is told so, unsent.
-  await assert.rejects(() => waiting, (err) => err instanceof SessionReset && /could not be written/.test(err.message));
-  c.close();
+  const c = new Client({ binary, timeout: COLD_START });
+  try {
+    await c.get('https://deaf/first');
+    // Untimed, and every deadline still set passes after: the failed
+    // request's has gone with it, or it would stop the transport again.
+    await untimed(t, async () => {
+      const second = c.get('https://deaf/second');
+      const waiting = c.get('https://deaf/third');
+      await assert.rejects(() => second, /write failed/);
+      // The transport is stopped, and the session in it lost: the request that
+      // waited behind is told so, unsent.
+      await assert.rejects(() => waiting, (err) => err instanceof SessionReset && /could not be written/.test(err.message));
+    });
+    // So the lost session is told of once, and the next request starts another.
+    assert.equal((await c.get('https://deaf/again')).status, 200);
+  } finally {
+    c.close();
+  }
 });
 
 test('a transport that cannot be spawned fails the request, not the process', async () => {
