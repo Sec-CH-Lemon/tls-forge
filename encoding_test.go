@@ -313,9 +313,10 @@ func TestTheLimitIsCountedOnWhatABodyDecodesTo(t *testing.T) {
 			t.Errorf("%s: error = %v, want ErrResponseTooLarge", path, err)
 		}
 	}
-	res, err := client.Get(server.url + "/exact")
-	if err != nil || len(res.Body) != limit {
-		t.Errorf("a body that decodes to exactly the limit: %v, %d bytes", err, len(res.Body))
+	if res, err := client.Get(server.url + "/exact"); err != nil {
+		t.Errorf("a body that decodes to exactly the limit: %v", err)
+	} else if len(res.Body) != limit {
+		t.Errorf("a body that decodes to exactly the limit: %d bytes", len(res.Body))
 	}
 
 	// Not decoded, the limit is counted on what came.
