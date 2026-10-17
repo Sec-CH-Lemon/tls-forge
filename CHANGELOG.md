@@ -677,6 +677,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   turned off for a client that has one, which the transport refused through
   such a proxy anyway. SOCKS proxies are unchanged.
 
+- **`make dist` builds a release's set into `dist/set`**, with
+  `scripts/release-build.mjs`: every file a release publishes (the five
+  archives, the six npm packages packed, the Python source distribution and
+  five wheels, the Homebrew formula and the licence files), with
+  `SHA256SUMS` and a `manifest.json` that binds them, by digest, to the
+  version and the commit. The set is verified once built. It wrote
+  `dist/npm` and `dist/pypi`, unpacked and with no checksums.
+
 ### Fixed
 
 - `THIRD-PARTY-NOTICES.txt` names `github.com/andybalholm/cascadia`, which

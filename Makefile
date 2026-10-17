@@ -92,7 +92,8 @@ release-test:
 	node --test --experimental-test-coverage \
 		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
 		--test-coverage-include='scripts/release-*.mjs' --test-coverage-exclude='scripts/*.test.mjs' \
-		scripts/homebrew-formula.test.mjs scripts/release-set.test.mjs scripts/release-publish.test.mjs
+		scripts/homebrew-formula.test.mjs scripts/release-set.test.mjs scripts/release-publish.test.mjs \
+		scripts/release-build.test.mjs
 
 # Everything CI runs. `test` and `cover` both run the suite — once under the
 # race detector, once instrumented — because they catch different things, and
@@ -101,27 +102,19 @@ check: vet lint test cover node-test python-test python-typecheck docs-check gen
 
 # Assemble everything a release publishes, without publishing any of it.
 #
-# The same path the tag takes, so the packaging can be looked at before a
-# version number is spent: a published version cannot be taken back on npm, on
-# PyPI or in a git tag someone has already fetched. See RELEASING.md.
+# scripts/release-build.mjs builds a release's set and verifies it, so the
+# packaging can be looked at before a version number is spent: a published
+# version cannot be taken back on npm, on PyPI or in a git tag someone has
+# already fetched. The set's manifest names HEAD, whatever the working tree
+# holds. See RELEASING.md.
 RELEASE_VERSION ?= 0.0.0
 dist:
 	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
 	@$(VENV)/bin/pip install -q build wheel
 	rm -rf dist
-	@mkdir -p dist/bin
-	@for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64; do \
-		goos=$${target%/*}; goarch=$${target#*/}; \
-		out="dist/bin/tls-forge-$$goos-$$goarch"; \
-		[ "$$goos" = windows ] && out="$$out.exe"; \
-		echo "building $$out"; \
-		CGO_ENABLED=0 GOOS=$$goos GOARCH=$$goarch $(GO) build -trimpath \
-			-ldflags "-s -w -X main.version=v$(RELEASE_VERSION)" -o "$$out" ./cmd/tls-forge \
-			|| exit 1; \
-	done
-	node scripts/npm-release.mjs --version $(RELEASE_VERSION) --binaries dist/bin --out dist/npm
-	$(VENV)/bin/python scripts/pypi-release.py --version $(RELEASE_VERSION) --binaries dist/bin --out dist/pypi
-	@echo "\nnothing published. dist/npm and dist/pypi hold what a tag would have sent."
+	node scripts/release-build.mjs --version $(RELEASE_VERSION) --commit "$$(git rev-parse HEAD)" \
+		--out dist/set --python $(VENV)/bin/python
+	@echo "\nnothing published. dist/set holds what a tag would build, with its SHA256SUMS and manifest.json."
 
 # Measure the browser on this machine. The profile is named after the browser
 # it came from, so it lands in profile/data/ ready to commit.
