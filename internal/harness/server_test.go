@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"io"
 	"net"
@@ -116,6 +118,89 @@ func TestTheServerKeepsEachRequestAsItWasSentOverEachProtocol(t *testing.T) {
 				t.Errorf("stream %d, headers %v", e.Stream, headerNames(e))
 			}
 		})
+	}
+}
+
+func TestEachRequestSaysWhetherItsConnectionResumedATLSSession(t *testing.T) {
+	s := started(t, catalogue)
+	for _, tc := range []struct {
+		name, proto string
+		port        int
+	}{{"HTTP/2", "h2", s.H2}, {"HTTP/1.1", "http/1.1", s.H1}} {
+		t.Run(tc.name, func(t *testing.T) {
+			s.Reset()
+			// A client that keeps its sessions: its second connection resumes
+			// what the first was given, though another clone of the server's
+			// TLS answers it.
+			c := client()
+			c.Transport.(*http.Transport).TLSClientConfig.ClientSessionCache = tls.NewLRUClientSessionCache(4)
+			for range 2 {
+				res, err := c.Get("https://www.example.com:" + strconv.Itoa(tc.port) + "/p/x")
+				if err != nil {
+					t.Fatalf("Get: %v", err)
+				}
+				_, _ = io.Copy(io.Discard, res.Body)
+				_ = res.Body.Close()
+				c.CloseIdleConnections()
+			}
+			entries := requests(t, s)
+			if len(entries) != 2 || entries[0].Proto != tc.proto || entries[0].Resumed || !entries[1].Resumed ||
+				entries[0].Conn == entries[1].Conn {
+				t.Errorf("kept %+v", entries)
+			}
+		})
+	}
+	// Plain HTTP resumes nothing.
+	s.Reset()
+	get(t, http.MethodGet, "http://www.example.com:"+strconv.Itoa(s.Plain)+"/p/x", nil)
+	if e := requests(t, s)[0]; e.Resumed || e.Conn == 0 {
+		t.Errorf("kept %+v", e)
+	}
+}
+
+func TestTheServerSaysItsKeyAsChromeIsToldToTakeOne(t *testing.T) {
+	s := started(t, catalogue)
+	conn, err := tls.Dial("tcp", "127.0.0.1:"+strconv.Itoa(s.H1), &tls.Config{InsecureSkipVerify: true}) //nolint:gosec // the bench's own
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	sum := sha256.Sum256(conn.ConnectionState().PeerCertificates[0].RawSubjectPublicKeyInfo)
+	if want := base64.StdEncoding.EncodeToString(sum[:]); s.spki != want {
+		t.Errorf("spki %q, the certificate's %q", s.spki, want)
+	}
+}
+
+func TestAnAnswerThatSaysCloseEndsItsConnection(t *testing.T) {
+	s := started(t, catalogue)
+	// Over HTTP/2 the server says GOAWAY, and the next request goes on
+	// another connection.
+	c := client()
+	h2 := "https://www.example.com:" + strconv.Itoa(s.H2)
+	for _, path := range []string{"/p/x?close=1", "/p/y", "/p/z"} {
+		res, err := c.Get(h2 + path)
+		if err != nil {
+			t.Fatalf("Get: %v", err)
+		}
+		_, _ = io.Copy(io.Discard, res.Body)
+		_ = res.Body.Close()
+		if res.ProtoMajor != 2 {
+			t.Fatalf("over %s", res.Proto)
+		}
+	}
+	if e := requests(t, s); len(e) != 3 || e[0].Conn == e[1].Conn || e[1].Conn != e[2].Conn {
+		t.Errorf("kept %+v", e)
+	}
+	// Over HTTP/1.1 it closes the connection once it has answered.
+	conn, err := tls.Dial("tcp", "127.0.0.1:"+strconv.Itoa(s.H1), &tls.Config{InsecureSkipVerify: true}) //nolint:gosec // the bench's own
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	_, _ = io.WriteString(conn, "GET /p/x?close=1 HTTP/1.1\r\nHost: www.example.com\r\n\r\n")
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if answer, err := io.ReadAll(conn); err != nil || !strings.Contains(string(answer), "Connection: close") {
+		t.Errorf("read %q, %v", answer, err)
 	}
 }
 
@@ -306,13 +391,20 @@ func TestAServerThatCannotStartSaysWhy(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		break_ func()
+		// says is how the error begins, when it is not failing.
+		says string
 	}{
-		{"no key", func() { newKey = func() (*ecdsa.PrivateKey, error) { return nil, failing } }},
+		{"no key", func() { newKey = func() (*ecdsa.PrivateKey, error) { return nil, failing } }, ""},
 		{"no certificate", func() {
 			createCertificate = func(io.Reader, *x509.Certificate, *x509.Certificate, any, any) ([]byte, error) {
 				return nil, failing
 			}
-		}},
+		}, ""},
+		{"a certificate that cannot be read", func() {
+			createCertificate = func(io.Reader, *x509.Certificate, *x509.Certificate, any, any) ([]byte, error) {
+				return []byte("no certificate"), nil
+			}
+		}, "harness: x509: "},
 		{"no port", func() {
 			calls := 0
 			listen = func(network, addr string) (net.Listener, error) {
@@ -322,13 +414,14 @@ func TestAServerThatCannotStartSaysWhy(t *testing.T) {
 				}
 				return nil, failing
 			}
-		}},
+		}, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			oldKey, oldCreate, oldListen := newKey, createCertificate, listen
 			t.Cleanup(func() { newKey, createCertificate, listen = oldKey, oldCreate, oldListen })
 			tc.break_()
-			if _, err := startServer(catalogue); !errors.Is(err, failing) {
+			_, err := startServer(catalogue)
+			if tc.says == "" && !errors.Is(err, failing) || tc.says != "" && (err == nil || !strings.HasPrefix(err.Error(), tc.says)) {
 				t.Errorf("startServer: %v", err)
 			}
 		})

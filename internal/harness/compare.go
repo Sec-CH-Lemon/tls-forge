@@ -5,6 +5,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -50,9 +51,10 @@ func comparable(name, value string) string {
 // Compare is how what a browser asked for, got, differs from what the fixture
 // holds, want: nothing when they are the same. A scenario is the same when
 // every request is, in the same order, over each protocol: its method, URL and
-// body, its HTTP/2 priority (exclusive and weight: the stream it depends on is
-// the connection's business), the names of its headers in order, spelt alike,
-// and their values, but for what Chrome draws for each (comparable). A value
+// body, the connection it came on and whether that one resumed a TLS session,
+// its HTTP/2 priority (exclusive and weight: the stream it depends on is the
+// connection's business), the names of its headers in order, spelt alike, and
+// their values, but for what Chrome draws for each (comparable). A value
 // the machine decides is compared by presence alone;
 // one the build decides is held to profile, the values the profile sends by
 // name, when there is one, and to the fixture's when there is not. With a
@@ -103,6 +105,16 @@ func compareScenario(where string, want, got []Request, profile map[string]strin
 	return diff
 }
 
+// connection says which connection a request came on, and whether that one
+// resumed a TLS session.
+func connection(r Request) string {
+	said := "connection " + strconv.Itoa(r.Conn)
+	if r.Resumed {
+		said += ", resumed"
+	}
+	return said
+}
+
 func compareRequest(want, got Request, profile map[string]string) []string {
 	var diff []string
 	if got.Method != want.Method || got.URL != want.URL {
@@ -110,6 +122,9 @@ func compareRequest(want, got Request, profile map[string]string) []string {
 	}
 	if withoutBoundary(got.Body) != withoutBoundary(want.Body) {
 		diff = append(diff, fmt.Sprintf("body %q, the fixture's %q", got.Body, want.Body))
+	}
+	if got.Conn != want.Conn || got.Resumed != want.Resumed {
+		diff = append(diff, fmt.Sprintf("%s, the fixture's %s", connection(got), connection(want)))
 	}
 	if (len(got.Priority) == 3) != (len(want.Priority) == 3) ||
 		len(want.Priority) == 3 && (got.Priority[0] != want.Priority[0] || got.Priority[2] != want.Priority[2]) {

@@ -137,7 +137,7 @@ func DigestPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound)
 		return
 	}
-	page(w, onOrigin(r, q.Get("next")))
+	page(w, onOrigin(r, q.Get("next")), "")
 }
 
 // onOrigin is ref, a path, as a URL of the origin r was asked of, which it

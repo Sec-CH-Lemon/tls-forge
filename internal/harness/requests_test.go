@@ -36,7 +36,19 @@ type fake struct {
 	// each open was stopped.
 	quiet   map[int]bool
 	stopped []time.Time
+	// trusted are the keys it was told to take as a site's, in order.
+	trusted []string
 }
+
+func (f *fake) trusting(spki string) Browser {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.trusted = append(f.trusted, spki)
+	return f
+}
+
+// untrusting is a browser that cannot be told to take a key as a site's.
+type untrusting struct{ Browser }
 
 func (f *fake) Open(_ context.Context, page, dir string) (func(), error) {
 	f.mu.Lock()
@@ -324,7 +336,7 @@ func TestKeptLeavesOutTheScenesAndThePorts(t *testing.T) {
 		{Method: "GET", Target: "https://www.example.com:1111/done/x"},
 		{Method: "GET", Target: "http://www.example.com:2222/p/y"},
 	}
-	got := s.kept(entries)
+	got := s.kept(entries, false)
 	want := []Request{
 		{Method: "POST", URL: "https://www.example.com/p/x", Body: "b", Priority: []uint32{1, 0, 219},
 			Headers: [][2]string{{"origin", "https://www.example.com"}, {"referer", "http://localhost/a:11112"}, {"date", "10:30:00"}}},
@@ -339,30 +351,120 @@ func TestKeptLeavesOutTheScenesAndThePorts(t *testing.T) {
 			t.Errorf("request %d: %+v, want %+v", i, got[i], want[i])
 		}
 	}
-	if got := s.kept(nil); got == nil || len(got) != 0 {
+	if got := s.kept(nil, false); got == nil || len(got) != 0 {
 		t.Errorf("kept of nothing: %#v", got)
+	}
+	for _, r := range got {
+		if r.Conn != 0 || r.Resumed {
+			t.Errorf("%s says a connection: %d, %v", r.URL, r.Conn, r.Resumed)
+		}
 	}
 	if pathOf("http://a/%zz") != "" || pathOf("https://a/b?c") != "/b" {
 		t.Error("pathOf")
 	}
 }
 
+func TestAScenarioOfConnectionsKeepsItsPageAndNumbersItsConnectionsByFirstUse(t *testing.T) {
+	s := &Server{H2: 1111, H1: 2222, Plain: 3333}
+	entries := []Entry{
+		{Method: "GET", Target: "https://www.example.com:1111/p/lobby?next=/run/x", Conn: 3},
+		{Method: "GET", Target: "https://www.example.com:1111/run/x", Conn: 5, Resumed: true},
+		{Method: "GET", Target: "https://www.example.com:1111/favicon.ico", Conn: 4},
+		{Method: "GET", Target: "https://www.example.com:1111/p/omit", Conn: 9},
+		{Method: "GET", Target: "https://www.example.net:1111/cors/x", Conn: 5, Resumed: true},
+		{Method: "GET", Target: "https://www.example.net:1111/cors/y", Conn: 7},
+		{Method: "GET", Target: "https://www.example.com:1111/p/omit-again", Conn: 9},
+		{Method: "GET", Target: "https://www.example.com:1111/done/x", Conn: 8},
+	}
+	type kept struct {
+		url     string
+		conn    int
+		resumed bool
+	}
+	want := []kept{
+		{"https://www.example.com/run/x", 1, true},
+		{"https://www.example.com/p/omit", 2, false},
+		{"https://www.example.net/cors/x", 1, true},
+		{"https://www.example.net/cors/y", 3, false},
+		{"https://www.example.com/p/omit-again", 2, false},
+	}
+	got := s.kept(entries, true)
+	if len(got) != len(want) {
+		t.Fatalf("kept %+v", got)
+	}
+	for i, w := range want {
+		if g := got[i]; g.URL != w.url || g.Conn != w.conn || g.Resumed != w.resumed {
+			t.Errorf("request %d: %s on %d, resumed %v; want %+v", i, g.URL, g.Conn, g.Resumed, w)
+		}
+	}
+	// Without its run page, a scenario of connections keeps all it has.
+	if got := s.kept(entries[2:4], true); len(got) != 1 || got[0].Conn != 1 || got[0].URL != "https://www.example.com/p/omit" {
+		t.Errorf("kept %+v", got)
+	}
+}
+
+func TestAScenarioOfConnectionsIsMeasuredTakingTheServersKeyAsASites(t *testing.T) {
+	scenarios := map[string]scenario{
+		"c": {note: "c", start: "{A}/p/lobby?next=/run/{ID}", connections: true},
+		"r": {note: "r", start: "{A}/p/r", wait: "/p/r"},
+	}
+	lobby := func(page string) []string {
+		if !strings.Contains(page, "/p/lobby") {
+			return nil
+		}
+		return []string{"/run/c", "/p/c", "/done/c"}
+	}
+	b := &fake{then: lobby}
+	got, err := measure(context.Background(), b, scenarios, nil, quick, nil)
+	if err != nil {
+		t.Fatalf("measure: %v", err)
+	}
+	// Over each protocol, the scenario of connections and no other.
+	if len(b.trusted) != 2 || b.trusted[0] != b.trusted[1] || len(b.trusted[0]) != 44 {
+		t.Errorf("trusted %q", b.trusted)
+	}
+	for _, requests := range [][]Request{got["c"].H2, got["c"].H1} {
+		// The fake asks each on a connection of its own.
+		if len(requests) != 2 || requests[0].URL != "https://www.example.com/run/c" || requests[0].Conn != 1 ||
+			requests[1].Conn != 2 {
+			t.Errorf("kept %+v", requests)
+		}
+	}
+	if r := got["r"].H2; len(r) != 1 || r[0].Conn != 0 {
+		t.Errorf("kept %+v", r)
+	}
+	// A browser that cannot be told to is measured as it is.
+	got, err = measure(context.Background(), untrusting{&fake{then: lobby}}, scenarios, []string{"c"}, quick, nil)
+	if err != nil || len(got["c"].H1) != 2 {
+		t.Errorf("measure: %+v, %v", got, err)
+	}
+	// MeasureConnections is measure of the catalogue of connections.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := MeasureConnections(ctx, &fake{fail: "/"}, []string{"conn-fetch"}, nil); err == nil ||
+		!strings.Contains(err.Error(), "conn-fetch over h2: the fake would not open") {
+		t.Errorf("MeasureConnections: %v", err)
+	}
+}
+
 func TestAFixtureOfRequestsIsWrittenAsItIsKept(t *testing.T) {
-	committed, err := os.ReadFile(requestsFixture)
-	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	}
-	fixture, err := LoadRequests(requestsFixture)
-	if err != nil {
-		t.Fatalf("LoadRequests: %v", err)
-	}
 	out := filepath.Join(t.TempDir(), "requests.json")
-	if err := fixture.Write(out); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
-	written, _ := os.ReadFile(out)
-	if !bytes.Equal(written, committed) {
-		t.Error("the fixture read and written again is not the fixture")
+	var fixture *RequestsFixture
+	for _, path := range []string{requestsFixture, connectionsFixture} {
+		committed, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("ReadFile: %v", err)
+		}
+		if fixture, err = LoadRequests(path); err != nil {
+			t.Fatalf("LoadRequests: %v", err)
+		}
+		if err := fixture.Write(out); err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+		written, _ := os.ReadFile(out)
+		if !bytes.Equal(written, committed) {
+			t.Errorf("%s read and written again is not the fixture", path)
+		}
 	}
 	if _, err := LoadRequests(filepath.Join(t.TempDir(), "none.json")); !os.IsNotExist(err) {
 		t.Errorf("LoadRequests of nothing: %v", err)

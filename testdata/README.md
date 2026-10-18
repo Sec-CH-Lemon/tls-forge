@@ -38,6 +38,25 @@ held to: byte order marks, charsets in the `Content-Type`, `<meta>` and XML
 declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
 feeds, plain text and bodies with no type.
 
+`chrome155-connections.json` is which connection Google Chrome 155.0.8059.80
+on macOS 27.0.1 (arm64), headless and in English, sent each request on, for 22
+scenarios over HTTP/2 and over HTTP/1.1, measured on 2026-10-17 and found the
+same in a second run that day: a page, then its `fetch()` and XHR of each
+credentials mode to its own origin, another origin of its site and another
+site, in cors and no-cors mode, CORS preflights, a navigation, redirects to
+another site, and connections the server ended after an answer. Each request
+is kept as in `chrome155-requests.json`, with the connection it came on,
+numbered from the page's in the order requests first came on them, and whether
+that connection resumed a TLS session. Chrome took the local server's
+certificate as a site's, by its key (`--ignore-certificate-errors-spki-list`),
+and opened each page from another, two seconds after that one had loaded: it
+closes its idle connections whenever its certificate verifier is told
+something new, several times as it starts. Chrome kept the
+requests that carried no credentials, every preflight among them, on
+connections of their own, which resumed only TLS sessions of their own, and
+over HTTP/2 sent a request with credentials to another name on the page's
+connection.
+
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
 (arm64), headless and in English, sent on 2026-10-16 and 2026-10-17 for 172
 scenarios, over HTTP/2 and over HTTP/1.1: navigations typed and from pages

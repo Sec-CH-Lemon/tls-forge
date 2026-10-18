@@ -24,6 +24,10 @@ type scenario struct {
 	start, wait, pre string
 	times            int
 	settle           time.Duration
+	// connections is a scenario of connections: run in a browser that takes
+	// the bench's certificate as a site's, it keeps its run page and says
+	// which connection each request came on.
+	connections bool
 }
 
 // form is a form of two fields, its method, action and encoding filled in.

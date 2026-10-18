@@ -10,22 +10,46 @@ import (
 )
 
 const (
-	requestsFixture = "../../testdata/chrome155-requests.json"
-	decodingFixture = "../../testdata/chrome155-decoding.json"
+	requestsFixture    = "../../testdata/chrome155-requests.json"
+	connectionsFixture = "../../testdata/chrome155-connections.json"
+	decodingFixture    = "../../testdata/chrome155-decoding.json"
 )
 
 func TestTheCatalogueHasEveryScenarioTheFixtureHas(t *testing.T) {
-	fixture, err := LoadRequests(requestsFixture)
-	if err != nil {
-		t.Fatalf("LoadRequests: %v", err)
+	for path, scenarios := range map[string]map[string]scenario{requestsFixture: catalogue, connectionsFixture: connectionCatalogue} {
+		fixture, err := LoadRequests(path)
+		if err != nil {
+			t.Fatalf("LoadRequests: %v", err)
+		}
+		if got, want := slices.Sorted(maps.Keys(scenarios)), slices.Sorted(maps.Keys(fixture.Scenarios)); !slices.Equal(got, want) {
+			t.Fatalf("the catalogue has %v,\n%s %v", got, path, want)
+		}
+		for id, sc := range scenarios {
+			if sc.note != fixture.Scenarios[id].Note {
+				t.Errorf("%s: the catalogue says %q, %s %q", id, sc.note, path, fixture.Scenarios[id].Note)
+			}
+		}
 	}
-	if got, want := slices.Sorted(maps.Keys(catalogue)), slices.Sorted(maps.Keys(fixture.Scenarios)); !slices.Equal(got, want) {
-		t.Fatalf("the catalogue has %v,\nthe fixture %v", got, want)
+}
+
+func TestEveryScenarioOfConnectionsStartsAtTheLobbyAndNoOtherDoes(t *testing.T) {
+	for id, sc := range connectionCatalogue {
+		if !sc.connections || sc.start != lobby || sc.pre != "" || sc.settle != 0 {
+			t.Errorf("%s: %+v", id, sc)
+		}
+		if _, ok := catalogue[id]; ok {
+			t.Errorf("%s is a scenario of requests too", id)
+		}
 	}
 	for id, sc := range catalogue {
-		if sc.note != fixture.Scenarios[id].Note {
-			t.Errorf("%s: the catalogue says %q, the fixture %q", id, sc.note, fixture.Scenarios[id].Note)
+		if sc.connections {
+			t.Errorf("%s is a scenario of connections", id)
 		}
+	}
+	// The run page comes two seconds after the lobby has loaded.
+	if p := connectionCatalogue["conn-fetch"].planned("conn-fetch", origins(8443, 8080)); p.start !=
+		"https://www.example.com:8443/p/lobby?after=2&next=/run/conn-fetch" || p.wait != "/done/conn-fetch" {
+		t.Errorf("planned %+v", p)
 	}
 }
 
@@ -34,7 +58,9 @@ var placeholder = regexp.MustCompile(`\{(A|S|X|C|U|W|H|L|ID)\}`)
 
 func TestEveryScenarioIsPlannedWithEveryPlaceFilledIn(t *testing.T) {
 	o := origins(8443, 8080)
-	for id, sc := range catalogue {
+	every := maps.Clone(catalogue)
+	maps.Copy(every, connectionCatalogue)
+	for id, sc := range every {
 		p := sc.planned(id, o)
 		for _, text := range []string{p.start, p.wait, p.pre, fill(sc.html, id, o), fill(sc.script, id, o)} {
 			if placeholder.MatchString(text) {

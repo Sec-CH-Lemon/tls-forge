@@ -23,20 +23,23 @@ were taken with Google Chrome 155.0.8059 on macOS, against local servers.
 A behaviour that has not been through these steps is not claimed, however
 plausible it looks.
 
-The two fixtures of what a page does, `testdata/chrome155-requests.json` and
-`testdata/chrome155-decoding.json`, were measured on the bench in
-`internal/harness`: a server that keeps every request as the bytes said it,
-over HTTP/2, over HTTP/1.1 alone and over plain HTTP, each scenario's page and
-script, and each page whose decoding is asked about. It measures a browser
-again, and writes the fixtures, or with `--check` holds the browser to them:
+The three fixtures of what a page does, `testdata/chrome155-requests.json`,
+`testdata/chrome155-connections.json` and `testdata/chrome155-decoding.json`,
+were measured on the bench in `internal/harness`: a server that keeps every
+request as the bytes said it, and the connection it came on, over HTTP/2, over
+HTTP/1.1 alone and over plain HTTP, each scenario's page and script, and each
+page whose decoding is asked about. It measures a browser again, and writes
+the fixtures, or with `--check` holds the browser to them:
 
 ```bash
 go run ./internal/harness/measure --browser "/path/to/Google Chrome" --check
 ```
 
 Google Chrome 155.0.8059.80 on macOS, measured again on 2026-10-17, is what
-both fixtures say, scenario for scenario and page for page. A release holds
-its reference build to them the same way ([pinned](pinned.md)).
+the fixtures of requests and decodings say, scenario for scenario and page for
+page, and measured twice that day, what the fixture of connections says. A
+release holds its reference build to the first two the same way
+([pinned](pinned.md)).
 
 ## The matrix
 

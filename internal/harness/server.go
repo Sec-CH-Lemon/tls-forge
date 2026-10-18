@@ -5,9 +5,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -29,10 +31,12 @@ type Entry struct {
 	// Proto is h2 or http/1.1.
 	Proto string
 	// Conn numbers the connection it came on, in the order they were made,
-	// and Stream is its HTTP/2 stream.
-	Conn   int
-	Stream uint32
-	Method string
+	// Resumed says that connection resumed a TLS session, and Stream is its
+	// HTTP/2 stream.
+	Conn    int
+	Resumed bool
+	Stream  uint32
+	Method  string
 	// Target is the URL asked for: the scheme, the authority as sent, the
 	// path and query.
 	Target string
@@ -60,7 +64,10 @@ type Server struct {
 	http1, http2 *chanListener
 	h1, h2       *http.Server
 	tls          *tls.Config
-	done         sync.WaitGroup
+	// spki is its key as Chrome's --ignore-certificate-errors-spki-list
+	// names one: the SHA-256 of its SubjectPublicKeyInfo, in base64.
+	spki string
+	done sync.WaitGroup
 
 	mu      sync.Mutex
 	entries []*Entry
@@ -85,10 +92,17 @@ func startServer(scenarios map[string]scenario) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	spki := sha256.Sum256(cert.Leaf.RawSubjectPublicKeyInfo)
 	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{},
 		http1: &chanListener{conns: make(chan net.Conn), done: make(chan struct{})},
 		http2: &chanListener{conns: make(chan net.Conn), done: make(chan struct{})},
-		tls:   &tls.Config{Certificates: []tls.Certificate{cert}}}
+		tls:   &tls.Config{Certificates: []tls.Certificate{cert}},
+		spki:  base64.StdEncoding.EncodeToString(spki[:])}
+	// Each connection's TLS is a clone of this, which would draw keys of its
+	// own for the session tickets it gives, and resume no other's sessions.
+	var ticketKey [32]byte
+	_, _ = rand.Read(ticketKey[:])
+	s.tls.SetSessionTicketKeys([][32]byte{ticketKey})
 	var prior http.Protocols
 	prior.SetUnencryptedHTTP2(true)
 	s.h1 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute}
@@ -137,7 +151,11 @@ func certificate() (tls.Certificate, error) {
 	if err != nil {
 		return tls.Certificate{}, fmt.Errorf("harness: %w", err)
 	}
-	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}, nil
+	leaf, err := x509.ParseCertificate(der)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("harness: %w", err)
+	}
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key, Leaf: leaf}, nil
 }
 
 // accept serves what comes to ln: over TLS offering protos, or plain HTTP
@@ -190,12 +208,14 @@ func (s *Server) serveConn(raw net.Conn, protos []string) {
 		_ = conn.Close()
 		return
 	}
-	if conn.ConnectionState().NegotiatedProtocol == "h2" {
-		parser := &h2parser{s: s, conn: s.nextConn(), dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}}
+	state := conn.ConnectionState()
+	if state.NegotiatedProtocol == "h2" {
+		parser := &h2parser{s: s, conn: s.nextConn(), resumed: state.DidResume, dec: hpack.NewDecoder(4096, nil),
+			open: map[uint32]*Entry{}}
 		s.http2.hand(&teeConn{Conn: conn, parse: parser.write})
 		return
 	}
-	parser := &h1parser{s: s, conn: s.nextConn(), scheme: "https"}
+	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https"}
 	s.http1.hand(&teeConn{Conn: conn, parse: parser.write})
 }
 
@@ -312,6 +332,7 @@ func (l *chanListener) Addr() net.Addr { return &net.TCPAddr{IP: net.IPv4(127, 0
 type h2parser struct {
 	s         *Server
 	conn      int
+	resumed   bool
 	buf       []byte
 	preface   bool
 	dec       *hpack.Decoder
@@ -396,7 +417,7 @@ func (p *h2parser) decode() {
 		p.s.troubled(fmt.Errorf("harness: the header block of stream %d: %w", p.stream, err))
 		return
 	}
-	e := &Entry{Proto: "h2", Conn: p.conn, Stream: p.stream, Priority: p.priority}
+	e := &Entry{Proto: "h2", Conn: p.conn, Resumed: p.resumed, Stream: p.stream, Priority: p.priority}
 	var scheme, authority, path string
 	for _, f := range fields {
 		e.Headers = append(e.Headers, [2]string{f.Name, f.Value})
@@ -421,12 +442,13 @@ func (p *h2parser) decode() {
 // h1parser reads requests out of an HTTP/1.1 connection's bytes: the request
 // line, the header lines and a body of the length they say.
 type h1parser struct {
-	s      *Server
-	conn   int
-	scheme string
-	buf    []byte
-	left   int
-	cur    *Entry
+	s       *Server
+	conn    int
+	resumed bool
+	scheme  string
+	buf     []byte
+	left    int
+	cur     *Entry
 }
 
 func (p *h1parser) write(b []byte) {
@@ -452,7 +474,7 @@ func (p *h1parser) write(b []byte) {
 			p.s.troubled(fmt.Errorf("harness: a request line that is not one: %q", lines[0]))
 			continue
 		}
-		e := &Entry{Proto: "http/1.1", Conn: p.conn, Method: parts[0]}
+		e := &Entry{Proto: "http/1.1", Conn: p.conn, Resumed: p.resumed, Method: parts[0]}
 		host := ""
 		for _, line := range lines[1:] {
 			name, value, _ := strings.Cut(line, ":")

@@ -1,7 +1,8 @@
 // Package harness is the bench the Chrome fixtures were measured on, kept with
 // the code they are held to: testdata/chrome155-requests.json, what Chrome sent
 // for each scenario of a page (navigations, forms, fetch(), XHR, CORS,
-// redirects, client hints), and testdata/chrome155-decoding.json, how it
+// redirects, client hints), testdata/chrome155-connections.json, which
+// connection it sent each on, and testdata/chrome155-decoding.json, how it
 // decoded each page.
 //
 // Measuring is opening each scenario's page in a fresh headless Google Chrome
@@ -9,8 +10,8 @@
 // HTTP/2, over HTTP/1.1 alone and over plain HTTP; and opening each page whose
 // decoding is asked about with --dump-dom. internal/harness/measure measures a
 // browser again, to write the fixtures or to hold it to them; the pinned gate
-// holds the reference Google Chrome of a release to them with Compare and
-// CompareDecoding.
+// holds the reference Google Chrome of a release to the fixtures of requests
+// and decodings with Compare and CompareDecoding.
 package harness
 
 import (
@@ -26,6 +27,14 @@ type Browser interface {
 	// DumpDOM opens url at the top level in a fresh profile and is the
 	// document as the browser serialized it once it had loaded.
 	DumpDOM(ctx context.Context, url string) ([]byte, error)
+}
+
+// trusting is a Browser that can take a server's certificate as a site's, one
+// a public authority vouched for: what a scenario of connections is measured
+// with, since Chrome sends a request over an HTTP/2 connection to another name
+// only on a certificate it takes so.
+type trusting interface {
+	trusting(spki string) Browser
 }
 
 // timing is how long the bench waits for what, which a test makes short.

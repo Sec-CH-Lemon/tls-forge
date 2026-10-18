@@ -1,15 +1,18 @@
 // Command measure measures a browser on the bench in internal/harness: what it
-// asks for in each scenario, and how it decodes each page. It writes what it
-// measured into the fixtures, or with --check holds the browser to them.
+// asks for in each scenario, which connection it asks on, and how it decodes
+// each page. It writes what it measured into the fixtures, or with --check
+// holds the browser to them.
 //
-//	go run ./internal/harness/measure --browser PATH \
-//	    [--requests FILE] [--decoding FILE] [--only ID,...] [--check]
+//	go run ./internal/harness/measure --browser PATH [--requests FILE] \
+//	    [--connections FILE] [--decoding FILE] [--only ID,...] [--check]
 //
-// --requests and --decoding name the fixtures, testdata/chrome155-requests.json
-// and testdata/chrome155-decoding.json unless said; an empty one is not
-// measured. --only measures those scenarios alone. Writing replaces what the
-// fixture says of each scenario measured, and of every page, and says which
-// browser it was and when.
+// --requests, --connections and --decoding name the fixtures,
+// testdata/chrome155-requests.json, testdata/chrome155-connections.json and
+// testdata/chrome155-decoding.json unless said; an empty one is not measured.
+// --only measures those scenarios alone, of requests and of connections, and
+// each fixture of them measured has to have every one. Writing replaces what
+// the fixture says of each scenario measured, and of every page, and says
+// which browser it was and when.
 package main
 
 import (
@@ -56,13 +59,15 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags.SetOutput(stderr)
 	path := flags.String("browser", "", "the browser to measure: a path, or a name browser.Find knows")
 	requests := flags.String("requests", "testdata/chrome155-requests.json", "the fixture of requests; empty, none")
+	connections := flags.String("connections", "testdata/chrome155-connections.json",
+		"the fixture of connections; empty, none")
 	decoding := flags.String("decoding", "testdata/chrome155-decoding.json", "the fixture of decodings; empty, none")
 	only := flags.String("only", "", "the scenarios to measure, by name, comma-separated; every one unless said")
 	check := flags.Bool("check", false, "hold the browser to the fixtures rather than write them")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
-	if *path == "" || flags.NArg() > 0 || *requests == "" && *decoding == "" {
+	if *path == "" || flags.NArg() > 0 || *requests == "" && *connections == "" && *decoding == "" {
 		_, _ = fmt.Fprintln(stderr, "measure: --browser is needed, a fixture to measure for, and nothing else")
 		return 2
 	}
@@ -77,8 +82,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	about := said + ", --headless=new --lang=en-US, " + machine()
 	var diff []string
-	if *requests != "" {
-		found, err := measureRequests(ctx, b, *requests, names, about, *check, stderr)
+	for _, fixture := range []struct {
+		path    string
+		measure measurer
+	}{{*requests, harness.Measure}, {*connections, harness.MeasureConnections}} {
+		if fixture.path == "" {
+			continue
+		}
+		found, err := measureRequests(ctx, b, fixture.measure, fixture.path, names, about, *check, stderr)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
 			return 1
@@ -106,15 +117,20 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// measureRequests measures the scenarios named, or every one, and holds them
-// to the fixture at path, or writes them into it.
-func measureRequests(ctx context.Context, b harness.Browser, path string, names []string, about string, check bool,
-	progress io.Writer) ([]string, error) {
+// measurer measures the scenarios of a fixture of requests: harness.Measure,
+// or harness.MeasureConnections.
+type measurer func(ctx context.Context, b harness.Browser, only []string,
+	progress io.Writer) (map[string]harness.MeasuredScenario, error)
+
+// measureRequests measures the scenarios named, or every one, with measure,
+// and holds them to the fixture at path, or writes them into it.
+func measureRequests(ctx context.Context, b harness.Browser, measure measurer, path string, names []string, about string,
+	check bool, progress io.Writer) ([]string, error) {
 	fixture, err := harness.LoadRequests(path)
 	if err != nil {
 		return nil, err
 	}
-	got, err := harness.Measure(ctx, b, names, progress)
+	got, err := measure(ctx, b, names, progress)
 	if err != nil {
 		return nil, err
 	}

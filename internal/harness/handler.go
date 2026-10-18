@@ -45,6 +45,8 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 // serve answers as the scenarios need:
 //
 //   - ?accept= and ?critical= are said as Accept-CH and Critical-CH, empty too;
+//   - ?close ends the connection once answered, as Connection: close says,
+//     which over HTTP/2 the server says with GOAWAY;
 //   - /done/ID is a scenario's page saying it is done;
 //   - /r/STATUS/... redirects to ?to with STATUS, CORS allowing it but for
 //     ?noacao, saying Referrer-Policy as ?rp does, and a preflight of it is
@@ -55,7 +57,8 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 //   - /auth/... asks for HTTP authentication (authPage), /digest/... for
 //     Digest authentication (DigestPage);
 //   - /run/ID is the scenario's run page;
-//   - anything else is a page, which goes on to ?next by a refresh.
+//   - anything else is a page, which goes on to ?next by a refresh, ?after
+//     seconds after it has loaded.
 //
 // ?cookie sets cookies, but on a preflight.
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +68,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.Has("critical") {
 		w.Header().Set("Critical-CH", q.Get("critical"))
+	}
+	if q.Has("close") {
+		w.Header().Set("Connection", "close")
 	}
 	switch {
 	case strings.HasPrefix(path, "/done/"):
@@ -121,16 +127,20 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	default:
 		setCookies(w, r)
 		allow(w, r)
-		page(w, q.Get("next"))
+		page(w, q.Get("next"), q.Get("after"))
 	}
 }
 
-// page writes a page, which goes on to next by a refresh when there is one.
-func page(w http.ResponseWriter, next string) {
+// page writes a page, which goes on to next by a refresh when there is one,
+// after seconds after it has loaded, or at once when that says nothing.
+func page(w http.ResponseWriter, next, after string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	refresh := ""
+	if after == "" {
+		after = "0"
+	}
 	if next != "" {
-		refresh = `<meta http-equiv="refresh" content="0;url=` + next + `">`
+		refresh = `<meta http-equiv="refresh" content="` + after + `;url=` + next + `">`
 	}
 	_, _ = w.Write([]byte("<!doctype html>" + refresh + "<title>page</title><p>page</p>"))
 }
@@ -163,7 +173,7 @@ func authPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound)
 		return
 	}
-	page(w, q.Get("next"))
+	page(w, q.Get("next"), "")
 }
 
 // runPage is the page scenario id runs in: its body, and its script, which

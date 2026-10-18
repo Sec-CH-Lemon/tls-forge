@@ -82,6 +82,8 @@ func TestWhatDiffersIsSaidByScenarioProtocolAndRequest(t *testing.T) {
 		{"the method", func(r *Request) { r.Method = "PUT" }, "x over h2, request 1: PUT https://www.example.net/cors/x, the fixture POST"},
 		{"the URL", func(r *Request) { r.URL += "?y" }, "/cors/x?y, the fixture POST https://www.example.net/cors/x"},
 		{"the body", func(r *Request) { r.Body = "[]" }, `body "[]", the fixture's "{}"`},
+		{"the connection", func(r *Request) { r.Conn = 2 }, "connection 2, the fixture's connection 0"},
+		{"a resumed one", func(r *Request) { r.Resumed = true }, "connection 0, resumed, the fixture's connection 0"},
 		{"exclusive", func(r *Request) { r.Priority[0] = 0 }, "priority [0 0 219], the fixture's [1 0 219]"},
 		{"the weight", func(r *Request) { r.Priority[2] = 255 }, "priority [1 0 255]"},
 		{"no priority", func(r *Request) { r.Priority = nil }, "priority [], the fixture's [1 0 219]"},

@@ -18,11 +18,24 @@ var create = os.Create
 // the loopback address, and its certificate taken on trust.
 type Chrome struct {
 	Path string
+	// trusted is the key of the server whose certificate it takes as a
+	// site's (trusting), or nothing.
+	trusted string
 }
 
-// flags are the browser's arguments for a profile in dir.
-func flags(dir string) []string {
-	return []string{
+// trusting is c taking the certificate of the server whose key is spki, as
+// --ignore-certificate-errors-spki-list names one, as a site's: one a public
+// authority vouched for, with no error. Chrome sends a request over an HTTP/2
+// connection to another name only when the certificate is one it takes so.
+func (c Chrome) trusting(spki string) Browser {
+	c.trusted = spki
+	return c
+}
+
+// flags are the browser's arguments for a profile in dir, taking the key
+// trusted, when there is one, as a site's.
+func flags(dir, trusted string) []string {
+	out := []string{
 		"--headless=new",
 		"--ignore-certificate-errors",
 		"--host-resolver-rules=MAP *.example.com 127.0.0.1, MAP *.example.net 127.0.0.1",
@@ -36,12 +49,16 @@ func flags(dir string) []string {
 		"--lang=en-US",
 		"--accept-lang=en-US",
 	}
+	if trusted != "" {
+		out = append(out, "--ignore-certificate-errors-spki-list="+trusted)
+	}
+	return out
 }
 
 // Open runs the browser at url until stop is called, or ctx is done, and
 // either ends every process it started.
 func (c Chrome) Open(ctx context.Context, url, dir string) (func(), error) {
-	cmd := exec.CommandContext(ctx, c.Path, append(flags(dir), url)...)
+	cmd := exec.CommandContext(ctx, c.Path, append(flags(dir, c.trusted), url)...)
 	proctree.Own(cmd)
 	cmd.Cancel = func() error { return proctree.Kill(cmd.Process) }
 	if err := cmd.Start(); err != nil {
@@ -69,7 +86,7 @@ func (c Chrome) DumpDOM(ctx context.Context, url string) ([]byte, error) {
 	}
 	defer func() { _ = out.Close() }()
 	profile := filepath.Join(dir, "profile")
-	cmd := exec.CommandContext(ctx, c.Path, append(flags(profile), "--dump-dom", url)...)
+	cmd := exec.CommandContext(ctx, c.Path, append(flags(profile, c.trusted), "--dump-dom", url)...)
 	proctree.Own(cmd)
 	cmd.Cancel = func() error { return proctree.Kill(cmd.Process) }
 	cmd.Stdout = out

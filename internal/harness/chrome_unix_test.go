@@ -80,11 +80,12 @@ func TestChromeIsRunAsTheFixturesWereMeasuredAndEndedWhole(t *testing.T) {
 		t.Fatalf("Open: %v", err)
 	}
 	args := strings.Split(strings.TrimSpace(written(t, s.args)), "\n")
-	want := append(flags(dir), "https://www.example.com:1/run/x")
+	want := append(flags(dir, ""), "https://www.example.com:1/run/x")
 	if !slices.Equal(args, want) {
 		t.Errorf("run with %q,\nwant %q", args, want)
 	}
-	if !slices.Contains(args, "--headless=new") || !slices.Contains(args, "--user-data-dir="+dir) || !slices.Contains(args, "--lang=en-US") {
+	if !slices.Contains(args, "--headless=new") || !slices.Contains(args, "--user-data-dir="+dir) || !slices.Contains(args, "--lang=en-US") ||
+		slices.ContainsFunc(args, func(a string) bool { return strings.HasPrefix(a, "--ignore-certificate-errors-spki-list") }) {
 		t.Errorf("run with %q", args)
 	}
 	// Once it has started a process of its own, it is stopped.
@@ -109,6 +110,31 @@ func TestChromeIsRunAsTheFixturesWereMeasuredAndEndedWhole(t *testing.T) {
 	if _, err := (Chrome{Path: filepath.Join(t.TempDir(), "none")}).Open(context.Background(), "x", t.TempDir()); err == nil ||
 		!strings.HasPrefix(err.Error(), "harness: launching ") {
 		t.Errorf("Open of no browser: %v", err)
+	}
+}
+
+func TestChromeTrustingAServerTakesItsCertificateAsASites(t *testing.T) {
+	s := standIn(t, "", 0)
+	dir := t.TempDir()
+	chrome := Chrome{Path: s.path}
+	stop, err := chrome.trusting("a2V5").Open(context.Background(), "https://www.example.com:1/run/x", dir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	args := strings.Split(strings.TrimSpace(written(t, s.args)), "\n")
+	want := append(flags(dir, ""), "--ignore-certificate-errors-spki-list=a2V5", "https://www.example.com:1/run/x")
+	if !slices.Equal(args, want) {
+		t.Errorf("run with %q,\nwant %q", args, want)
+	}
+	stop()
+	// The browser it was told by is as it was.
+	if chrome.trusted != "" {
+		t.Errorf("trusted %q", chrome.trusted)
+	}
+	dumping := standIn(t, "<p>x</p>", 0)
+	if _, err := (Chrome{Path: dumping.path}).trusting("a2V5").DumpDOM(context.Background(), "http://127.0.0.1:1/a"); err != nil ||
+		!strings.Contains(written(t, dumping.args), "--ignore-certificate-errors-spki-list=a2V5\n--dump-dom\n") {
+		t.Errorf("DumpDOM: %v, run with %q", err, written(t, dumping.args))
 	}
 }
 

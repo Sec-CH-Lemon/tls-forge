@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,7 +32,9 @@ var client = &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
 }}
 
 // fake is a browser that asks for the page it opens, and dumps each page as
-// dump says; it fails what fail says.
+// dump says; it fails what fail says. A page that goes on to a run page, as a
+// scenario of connections starts at one, it follows there, and the run page
+// says it is done.
 type fake struct {
 	dump      func(body []byte) string
 	failOpen  bool
@@ -45,8 +48,16 @@ func (f *fake) Open(_ context.Context, page, _ string) (func(), error) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		if res, err := client.Get(page); err == nil {
-			_ = res.Body.Close()
+		asked := []string{page}
+		if u, err := url.Parse(page); err == nil && strings.HasPrefix(u.Query().Get("next"), "/run/") {
+			run := u.Query().Get("next")
+			origin := u.Scheme + "://" + u.Host
+			asked = append(asked, origin+run, origin+"/done/"+strings.TrimPrefix(run, "/run/"))
+		}
+		for _, page := range asked {
+			if res, err := client.Get(page); err == nil {
+				_ = res.Body.Close()
+			}
 		}
 	}()
 	return func() { <-done }, nil
@@ -103,7 +114,8 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	requests, decoding := fixtures(t, map[string]harness.MeasuredScenario{"kept": {Note: "kept"}}, cases)
 	b := &fake{dump: func(body []byte) string { return "<title>UTF-8|" + string(body[3:4]) + "</title>" }}
 	opening(t, b, "Fake Chrome 1.2.3.4")
-	code, _, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--decoding", decoding, "--only", "nav-direct")
+	code, _, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
+		"--only", "nav-direct")
 	if code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr)
 	}
@@ -126,14 +138,15 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 		t.Errorf("wrote %+v", wroteDecoding)
 	}
 	// Measured again, the browser is what they say.
-	code, stdout, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--decoding", decoding, "--only", "nav-direct", "--check")
+	code, stdout, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
+		"--only", "nav-direct", "--check")
 	if code != 0 || stdout != "the browser is what the fixtures say\n" {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
 	// A browser that decodes otherwise, and asks for what the fixture does
 	// not have, is not.
 	b.dump = func([]byte) string { return "<title>windows-1252|b</title>" }
-	code, stdout, stderr = measured(t, "--browser", "chrome", "--requests", requests, "--decoding", decoding,
+	code, stdout, stderr = measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
 		"--only", "nav-direct,redir-nav-direct-301", "--check")
 	if code != 1 || !strings.Contains(stdout, "redir-nav-direct-301 was measured, and the fixture has no such scenario\n") ||
 		!strings.Contains(stdout, `a: the browser read "b" as "windows-1252"`) || !strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
@@ -142,9 +155,33 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	// And without --only, every scenario is measured: here, one the fake
 	// will not open.
 	b.failOpen = true
-	if code, _, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--decoding", ""); code != 1 ||
+	if code, _, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", ""); code != 1 ||
 		!strings.Contains(stderr, "the fake would not open") {
 		t.Errorf("exit %d: %s", code, stderr)
+	}
+}
+
+func TestTheCommandMeasuresWhichConnectionEachRequestCameOn(t *testing.T) {
+	requests, _ := fixtures(t, map[string]harness.MeasuredScenario{"kept": {Note: "kept"}}, nil)
+	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
+	code, _, stderr := measured(t, "--browser", "chrome", "--requests", "", "--connections", requests, "--decoding", "",
+		"--only", "conn-fetch")
+	if code != 0 || !strings.Contains(stderr, "h1 conn-fetch: 1 requests") {
+		t.Fatalf("exit %d: %s", code, stderr)
+	}
+	wrote, err := harness.LoadRequests(requests)
+	if err != nil {
+		t.Fatalf("LoadRequests: %v", err)
+	}
+	// The run page alone: the fake asked for nothing more.
+	if got := wrote.Scenarios["conn-fetch"].H2; len(got) != 1 || got[0].URL != "https://www.example.com/run/conn-fetch" ||
+		got[0].Conn != 1 || wrote.Scenarios["kept"].Note != "kept" || wrote.Measured != "2026-10-16, 2026-10-17" {
+		t.Errorf("wrote %+v", wrote)
+	}
+	code, stdout, stderr := measured(t, "--browser", "chrome", "--requests", "", "--connections", requests, "--decoding", "",
+		"--only", "conn-fetch", "--check")
+	if code != 0 || stdout != "the browser is what the fixtures say\n" {
+		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
 }
 
@@ -157,11 +194,15 @@ func TestTheCommandSaysWhyItMeasuredNothing(t *testing.T) {
 		args []string
 		says string
 	}{
-		{"no fixture of requests", &fake{}, []string{"--requests", missing, "--decoding", ""}, "none.json"},
-		{"no fixture of decodings", &fake{}, []string{"--requests", "", "--decoding", missing}, "none.json"},
-		{"a page it cannot dump", &fake{failDumps: true}, []string{"--requests", "", "--decoding", decoding}, ""},
-		{"a scenario that is none", &fake{}, []string{"--requests", requests, "--decoding", "", "--only", "nothing"},
+		{"no fixture of requests", &fake{}, []string{"--requests", missing, "--decoding", "", "--connections", ""}, "none.json"},
+		{"no fixture of decodings", &fake{}, []string{"--requests", "", "--decoding", missing, "--connections", ""}, "none.json"},
+		{"no fixture of connections", &fake{}, []string{"--requests", "", "--decoding", "", "--connections", missing}, "none.json"},
+		{"a page it cannot dump", &fake{failDumps: true}, []string{"--requests", "", "--decoding", decoding, "--connections", ""}, ""},
+		{"a scenario that is none", &fake{}, []string{"--requests", requests, "--decoding", "", "--connections", "", "--only", "nothing"},
 			"there is no scenario nothing"},
+		{"a scenario of connections, with the fixture of requests", &fake{},
+			[]string{"--requests", requests, "--decoding", "", "--connections", requests, "--only", "conn-fetch"},
+			"there is no scenario conn-fetch"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			opening(t, tc.b, "Fake")
@@ -195,8 +236,8 @@ func TestTheCommandSaysWhyItCouldNotWrite(t *testing.T) {
 	requests, decoding := fixtures(t, map[string]harness.MeasuredScenario{}, []harness.DecodingCase{{Name: "a", ContentType: &text}})
 	opening(t, &fake{dump: func([]byte) string { return "<p>a</p>" }}, "Fake")
 	for _, args := range [][]string{
-		{"--requests", requests, "--decoding", "", "--only", "nav-direct"},
-		{"--requests", "", "--decoding", decoding},
+		{"--requests", requests, "--decoding", "", "--connections", "", "--only", "nav-direct"},
+		{"--requests", "", "--decoding", decoding, "--connections", ""},
 	} {
 		path := args[1]
 		if path == "" {
@@ -217,7 +258,7 @@ func TestTheCommandNeedsABrowserAndAFixture(t *testing.T) {
 		{},
 		{"--requests", "a.json"},
 		{"--browser", "chrome", "extra"},
-		{"--browser", "chrome", "--requests", "", "--decoding", ""},
+		{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", ""},
 		{"--no-such-flag"},
 	} {
 		if code, _, _ := measured(t, args...); code != 2 {

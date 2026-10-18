@@ -138,6 +138,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `--check` holds the browser to them. Google Chrome 155.0.8059.80 on macOS,
   measured again, is what both fixtures say. The bench was in a scratch
   directory, and nothing could measure the fixtures again.
+- **Which connection Chrome sends each request on is measured**, in
+  `testdata/chrome155-connections.json`: 22 scenarios of a page and its
+  `fetch()` and XHR of each credentials mode, to its own origin, another of
+  its site and another site, with preflights, a navigation, redirects and
+  connections the server ends, over HTTP/2 and HTTP/1.1, each request with
+  the connection it came on and whether that one resumed a TLS session.
+  `measure --connections` names the fixture. Chrome takes the bench's
+  certificate as a site's for them, by its key, since it pools HTTP/2
+  connections across names only on a certificate without errors, and opens
+  each page from another, two seconds after that one has loaded, since it
+  closes its idle connections whenever its certificate verifier is told
+  something new, which it is as it starts.
+  Google Chrome 155.0.8059.80 on macOS, measured twice, did the same both
+  times.
 - **The check a release is held to against a pinned Google Chrome**,
   `go run ./internal/pinned` ([docs/pinned.md](docs/pinned.md)). It reads a
   manifest of the reference build, holds the archived installer and the

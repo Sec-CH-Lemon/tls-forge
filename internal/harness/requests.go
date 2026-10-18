@@ -16,8 +16,9 @@ import (
 	"time"
 )
 
-// RequestsFixture is what testdata/chrome155-requests.json holds: what a
-// browser asked for in each scenario.
+// RequestsFixture is what testdata/chrome155-requests.json holds, what a
+// browser asked for in each scenario, and testdata/chrome155-connections.json,
+// which connection it asked on.
 type RequestsFixture struct {
 	// Browser says which browser was measured, how it was run and where.
 	Browser string `json:"browser"`
@@ -38,8 +39,13 @@ type MeasuredScenario struct {
 // Request is a request as the fixture keeps it: no port in its URL or in any
 // of its values, since they change every run.
 type Request struct {
-	Method  string      `json:"method"`
-	URL     string      `json:"url"`
+	Method string `json:"method"`
+	URL    string `json:"url"`
+	// Conn numbers the connection it came on among its scenario's, in the
+	// order requests first came on them, and Resumed says that connection
+	// resumed a TLS session: in a fixture of connections alone.
+	Conn    int         `json:"conn,omitempty"`
+	Resumed bool        `json:"resumed,omitempty"`
 	Headers [][2]string `json:"headers"`
 	// Priority is an HTTP/2 HEADERS frame's: exclusive, the stream it depends
 	// on, the weight as on the wire.
@@ -104,13 +110,17 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 		port := map[string]int{"h2": s.H2, "h1": s.H1}[proto]
 		o := origins(port, s.Plain)
 		for _, id := range ids {
-			entries, err := s.run(ctx, b, id, scenarios[id], o, t)
+			sc, browser := scenarios[id], b
+			if trusts, ok := b.(trusting); ok && sc.connections {
+				browser = trusts.trusting(s.spki)
+			}
+			entries, err := s.run(ctx, browser, id, sc, o, t)
 			if err != nil {
 				return nil, fmt.Errorf("harness: %s over %s: %w", id, proto, err)
 			}
 			got := out[id]
-			got.Note = scenarios[id].note
-			requests := s.kept(entries)
+			got.Note = sc.note
+			requests := s.kept(entries, sc.connections)
 			if proto == "h2" {
 				got.H2 = requests
 			} else {
@@ -220,8 +230,10 @@ var port = regexp.MustCompile(`:([0-9]+)`)
 // kept are the requests of a scenario as the fixture keeps them: the run page
 // and whatever came before it left out, since they set the scene, and so is
 // the run page saying it is done, and any favicon; no port of the server's is
-// in a URL or a value.
-func (s *Server) kept(entries []Entry) []Request {
+// in a URL or a value. A scenario of connections keeps its run page, the page
+// whose connections it measures, and says which connection each request came
+// on and whether that one resumed a TLS session.
+func (s *Server) kept(entries []Entry, connections bool) []Request {
 	ours := map[string]bool{strconv.Itoa(s.H2): true, strconv.Itoa(s.H1): true, strconv.Itoa(s.Plain): true}
 	bare := func(text string) string {
 		return port.ReplaceAllStringFunc(text, func(found string) string {
@@ -232,14 +244,24 @@ func (s *Server) kept(entries []Entry) []Request {
 		})
 	}
 	if run := slices.IndexFunc(entries, func(e Entry) bool { return strings.HasPrefix(pathOf(e.Target), "/run/") }); run >= 0 {
-		entries = entries[run+1:]
+		if !connections {
+			run++
+		}
+		entries = entries[run:]
 	}
 	out := []Request{}
+	numbered := map[int]int{}
 	for _, e := range entries {
 		if path := pathOf(e.Target); strings.HasPrefix(path, "/done/") || path == "/favicon.ico" {
 			continue
 		}
 		r := Request{Method: e.Method, URL: bare(e.Target), Body: e.Body}
+		if connections {
+			if numbered[e.Conn] == 0 {
+				numbered[e.Conn] = len(numbered) + 1
+			}
+			r.Conn, r.Resumed = numbered[e.Conn], e.Resumed
+		}
 		for _, h := range e.Headers {
 			r.Headers = append(r.Headers, [2]string{h[0], bare(h[1])})
 		}
