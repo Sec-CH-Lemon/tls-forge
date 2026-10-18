@@ -163,6 +163,8 @@ var sentInContexts = map[string]asSent{
 	"form-post-multipart":  {browser: BrowserContext{Kind: KindForm, Initiator: run("form-post-multipart")}, form: true},
 	"form-post-text":       {browser: BrowserContext{Kind: KindForm, Initiator: run("form-post-text")}, form: true},
 	"form-get-same-origin": {browser: BrowserContext{Kind: KindForm, Initiator: run("form-get-same-origin")}},
+	"form-get-same-origin-cookies": {browser: BrowserContext{Kind: KindForm,
+		Initiator: run("form-get-same-origin-cookies") + "?cookie=1"}, cookies: setByRun},
 	"form-post-cross-site-samesite": {browser: BrowserContext{Kind: KindForm, Initiator: run("form-post-cross-site-samesite")},
 		form: true, cookies: setOnEveryKind("www.example.net")},
 	"fetch-get-same-origin": {browser: BrowserContext{Kind: KindFetch, Initiator: run("fetch-get-same-origin")}},
@@ -184,7 +186,9 @@ var sentInContexts = map[string]asSent{
 		Initiator: run("fetch-get-cross-site-no-cors"), Mode: "no-cors"}},
 	"fetch-get-same-origin-cookies": {browser: BrowserContext{Kind: KindFetch,
 		Initiator: run("fetch-get-same-origin-cookies") + "?cookie=1"}, cookies: setByRun},
-	"xhr-get-same-origin":  {browser: BrowserContext{Kind: KindXHR, Initiator: run("xhr-get-same-origin")}},
+	"xhr-get-same-origin": {browser: BrowserContext{Kind: KindXHR, Initiator: run("xhr-get-same-origin")}},
+	"xhr-get-same-origin-cookies": {browser: BrowserContext{Kind: KindXHR,
+		Initiator: run("xhr-get-same-origin-cookies") + "?cookie=1"}, cookies: setByRun},
 	"xhr-post-same-origin": {browser: BrowserContext{Kind: KindXHR, Initiator: run("xhr-post-same-origin")}, script: []string{"Content-Type"}},
 	// CORS: what goes to another origin in cors mode, a preflight first where
 	// one is asked for.
@@ -254,6 +258,8 @@ var sentInContexts = map[string]asSent{
 		form: true, redirected: true},
 	"redir-fetch-same-origin-302": {browser: BrowserContext{Kind: KindFetch,
 		Initiator: run("redir-fetch-same-origin-302")}, redirected: true},
+	"redir-fetch-same-origin-302-cookies": {browser: BrowserContext{Kind: KindFetch,
+		Initiator: run("redir-fetch-same-origin-302-cookies") + "?cookie=1"}, cookies: setByRun, redirected: true},
 	"redir-fetch-post-307": {browser: BrowserContext{Kind: KindFetch, Initiator: run("redir-fetch-post-307")},
 		script: []string{"Content-Type"}, redirected: true},
 	"redir-fetch-cross-site-302": {browser: BrowserContext{Kind: KindFetch,

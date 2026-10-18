@@ -58,11 +58,12 @@ over HTTP/2 sent a request with credentials to another name on the page's
 connection.
 
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
-(arm64), headless and in English, sent on 2026-10-16 and 2026-10-17 for 172
-scenarios, over HTTP/2 and over HTTP/1.1: navigations typed and from pages
-under each referrer policy, to and from `http://localhost`, forms posted and
-sent by GET, `fetch()` and XHR of every mode and credentials, CORS
-preflights allowed, refused and cached, SameSite cookies, redirects (of
+(arm64), headless and in English, sent on 2026-10-16, 2026-10-17 and
+2026-10-18 for 175 scenarios, over HTTP/2 and over HTTP/1.1: navigations
+typed and from pages under each referrer policy, to and from
+`http://localhost`, forms posted and sent by GET, `fetch()` and XHR of every
+mode and credentials, CORS preflights allowed, refused and cached, cookies on
+each kind of request and SameSite's, redirects (of
 every status, typed and from pages, through another site and back, to plain
 HTTP, under a `Referrer-Policy` a redirect set, through CORS with preflights
 again, to URLs with credentials, and the chain Chrome gives up on), the

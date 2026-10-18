@@ -70,6 +70,7 @@ var catalogue = map[string]scenario{
 	"form-post-same-site":           {note: "a form posted to another origin of the same site", html: formHTML("post", "{S}/p/form-post-same-site", ""), script: submit, wait: "/p/form-post-same-site"},
 	"form-post-cross-site":          {note: "a form posted to another site", html: formHTML("post", "{X}/p/form-post-cross-site", ""), script: submit, wait: "/p/form-post-cross-site"},
 	"form-get-same-origin":          {note: "a form sent with GET to the same origin", html: formHTML("get", "{A}/p/form-get-same-origin", ""), script: submit, wait: "/p/form-get-same-origin"},
+	"form-get-same-origin-cookies":  {note: "a form sent with GET to the same origin, with cookies", start: "{A}/run/{ID}?cookie=1", html: formHTML("get", "{A}/p/form-get-same-origin-cookies", ""), script: submit, wait: "/p/form-get-same-origin-cookies"},
 	"form-post-multipart":           {note: "a multipart form posted to the same origin", html: formHTML("post", "{A}/p/form-post-multipart", "multipart/form-data"), script: submit, wait: "/p/form-post-multipart"},
 	"form-post-text":                {note: "a text/plain form posted to the same origin", html: formHTML("post", "{A}/p/form-post-text", "text/plain"), script: submit, wait: "/p/form-post-text"},
 
@@ -93,10 +94,11 @@ var catalogue = map[string]scenario{
 	"fetch-get-same-origin-cookies":          {note: "fetch() of the same origin with cookies", start: "{A}/run/{ID}?cookie=1", script: "fetch('{A}/p/fetch-get-same-origin-cookies').then(done);"},
 
 	// XMLHttpRequest.
-	"xhr-get-same-origin":      {note: "XHR GET of the same origin", script: "const x=new XMLHttpRequest();x.open('GET','{A}/p/xhr-get-same-origin');x.onloadend=done;x.send();"},
-	"xhr-post-same-origin":     {note: "XHR POST of a string to the same origin", script: "const x=new XMLHttpRequest();x.open('POST','{A}/p/xhr-post-same-origin');x.onloadend=done;x.send('a=1');"},
-	"xhr-get-cross-site":       {note: "XHR GET of another site, CORS simple", script: "const x=new XMLHttpRequest();x.open('GET','{X}/cors/xhr-get-cross-site');x.onloadend=done;x.send();"},
-	"xhr-post-cross-site-json": {note: "XHR POST of JSON to another site: preflight", script: "const x=new XMLHttpRequest();x.open('POST','{X}/cors/xhr-post-cross-site-json?maxage=0');x.setRequestHeader('Content-Type','application/json');x.onloadend=done;x.send('{}');"},
+	"xhr-get-same-origin":         {note: "XHR GET of the same origin", script: "const x=new XMLHttpRequest();x.open('GET','{A}/p/xhr-get-same-origin');x.onloadend=done;x.send();"},
+	"xhr-get-same-origin-cookies": {note: "XHR GET of the same origin with cookies", start: "{A}/run/{ID}?cookie=1", script: "const x=new XMLHttpRequest();x.open('GET','{A}/p/xhr-get-same-origin-cookies');x.onloadend=done;x.send();"},
+	"xhr-post-same-origin":        {note: "XHR POST of a string to the same origin", script: "const x=new XMLHttpRequest();x.open('POST','{A}/p/xhr-post-same-origin');x.onloadend=done;x.send('a=1');"},
+	"xhr-get-cross-site":          {note: "XHR GET of another site, CORS simple", script: "const x=new XMLHttpRequest();x.open('GET','{X}/cors/xhr-get-cross-site');x.onloadend=done;x.send();"},
+	"xhr-post-cross-site-json":    {note: "XHR POST of JSON to another site: preflight", script: "const x=new XMLHttpRequest();x.open('POST','{X}/cors/xhr-post-cross-site-json?maxage=0');x.setRequestHeader('Content-Type','application/json');x.onloadend=done;x.send('{}');"},
 
 	// Several headers set by script, and SameSite.
 	"fetch-post-same-origin-headers": {note: "fetch() POST with X-B, X-A, Accept and Content-Type set, in that order", script: "fetch('{A}/p/fetch-post-same-origin-headers',{method:'POST',headers:[['X-B','1'],['X-A','2'],['Accept','application/json'],['Content-Type','text/plain']],body:'x'}).then(done);"},
@@ -134,6 +136,7 @@ var catalogue = map[string]scenario{
 
 	// Redirects of fetch().
 	"redir-fetch-same-origin-302":                  {note: "fetch() of the same origin, 302 to the same origin", script: "fetch('{A}/r/302/redir-fetch-same-origin-302?to=/p/fetch-after-302').then(done);"},
+	"redir-fetch-same-origin-302-cookies":          {note: "fetch() of the same origin, 302 to the same origin, with cookies", start: "{A}/run/{ID}?cookie=1", script: "fetch('{A}/r/302/redir-fetch-same-origin-302-cookies?to=/p/fetch-after-302-cookies').then(done);"},
 	"redir-fetch-post-307":                         {note: "fetch() POST of JSON, 307 to the same origin", script: "fetch('{A}/r/307/redir-fetch-post-307?to=/p/fetch-after-307',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(done);"},
 	"redir-fetch-cors-redirect-refused":            {note: "fetch() of another site whose redirect says nothing of CORS", script: "fetch('{X}/r/302/redir-fetch-cors-redirect-refused?noacao=1&to={X}/cors/after-refused').catch(()=>0).then(done);"},
 	"redir-fetch-preflighted-307":                  {note: "fetch() POST of JSON to another site, preflighted, 307 to a third origin", script: "fetch('{X}/r/307/redir-fetch-preflighted-307?to={S}/cors/after-307?maxage=0',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>0).then(done);"},

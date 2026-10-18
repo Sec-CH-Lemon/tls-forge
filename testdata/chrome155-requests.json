@@ -1,6 +1,6 @@
 {
  "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
- "measured": "2026-10-16, 2026-10-17",
+ "measured": "2026-10-16, 2026-10-17, 2026-10-18",
  "how": "A local server answered three origins, www.example.com and api.example.com (one site) and www.example.net (another), mapped to 127.0.0.1 with --host-resolver-rules, and localhost, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP; it kept every request as the bytes said it, headers in order with their values, and HTTP/2 the priority of its HEADERS frame (exclusive, stream it depends on, weight as on the wire). Each scenario ran in a fresh profile: a URL opened from the command line, or a page whose script navigated, submitted a form, called fetch() or sent an XHR. A page under /auth/ answered 401, with a Basic challenge of the realm \"bench\" (after a Digest one where the scenario says so), until it was sent u:p; a page under /digest/ asked for Digest authentication of that realm as its offer said, checking each answer as RFC 7616 has a server check one, until it was answered with u:p, and then went on by a URL without credentials. The pages that ran them, and the requests that set cookies for them, are left out, as are the port numbers.",
  "scenarios": {
   "auth-digest": {
@@ -39994,6 +39994,166 @@
     }
    ]
   },
+  "form-get-same-origin-cookies": {
+   "note": "a form sent with GET to the same origin, with cookies",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/form-get-same-origin-cookies?a=1&b=x+y",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/form-get-same-origin-cookies?a=1&b=x+y"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/form-get-same-origin-cookies?cookie=1"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "cookie",
+       "a=1"
+      ],
+      [
+       "cookie",
+       "b=2"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/form-get-same-origin-cookies?a=1&b=x+y",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/form-get-same-origin-cookies?cookie=1"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "Cookie",
+       "a=1; b=2"
+      ]
+     ]
+    }
+   ]
+  },
   "form-post-cross-site": {
    "note": "a form posted to another site",
    "h2": [
@@ -47816,6 +47976,303 @@
       [
        "Accept-Language",
        "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "redir-fetch-same-origin-302-cookies": {
+   "note": "fetch() of the same origin, 302 to the same origin, with cookies",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/redir-fetch-same-origin-302-cookies?to=/p/fetch-after-302-cookies",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/302/redir-fetch-same-origin-302-cookies?to=/p/fetch-after-302-cookies"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/redir-fetch-same-origin-302-cookies?cookie=1"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "cookie",
+       "a=1"
+      ],
+      [
+       "cookie",
+       "b=2"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/fetch-after-302-cookies",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/fetch-after-302-cookies"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/redir-fetch-same-origin-302-cookies?cookie=1"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "cookie",
+       "a=1"
+      ],
+      [
+       "cookie",
+       "b=2"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/redir-fetch-same-origin-302-cookies?to=/p/fetch-after-302-cookies",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/redir-fetch-same-origin-302-cookies?cookie=1"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "Cookie",
+       "a=1; b=2"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/fetch-after-302-cookies",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/redir-fetch-same-origin-302-cookies?cookie=1"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "Cookie",
+       "a=1; b=2"
       ]
      ]
     }
@@ -61752,6 +62209,158 @@
       [
        "Accept-Language",
        "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "xhr-get-same-origin-cookies": {
+   "note": "XHR GET of the same origin with cookies",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/xhr-get-same-origin-cookies",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/xhr-get-same-origin-cookies"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/xhr-get-same-origin-cookies?cookie=1"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "cookie",
+       "a=1"
+      ],
+      [
+       "cookie",
+       "b=2"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/xhr-get-same-origin-cookies",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/xhr-get-same-origin-cookies?cookie=1"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "Cookie",
+       "a=1; b=2"
       ]
      ]
     }
