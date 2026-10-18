@@ -8,7 +8,36 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
-func TestTrustAnchorPayloadOrderIsStableWithinAProcess(t *testing.T) {
+func TestATrustAnchorListInByteOrderGoesOutAsCaptured(t *testing.T) {
+	// A browser that sorts its IDs sends them so every time: nothing drawn.
+	drawn := false
+	cache := newTrustAnchorPayloads(func(int, func(int, int)) { drawn = true })
+	for _, captured := range [][]byte{
+		{0, 6, 1, 1, 1, 2, 1, 3},
+		// By the IDs' bytes, as Chromium sorts them: the shorter ID last, where
+		// the length each record leads with would have put it first.
+		{0, 7, 3, 0x82, 0xdf, 0x13, 2, 0xd6, 0x79},
+		{0, 4, 1, 1, 1, 1},
+		{0, 0},
+	} {
+		got, err := cache.payload(captured)
+		if err != nil || !bytes.Equal(got, captured) {
+			t.Errorf("payload(%x) = %x, %v; want it as captured", captured, got, err)
+		}
+		if len(got) > 3 {
+			// The caller's own copy.
+			got[3] ^= 0xff
+			if again, _ := cache.payload(captured); !bytes.Equal(again, captured) {
+				t.Errorf("payload(%x) after a caller changed its copy = %x", captured, again)
+			}
+		}
+	}
+	if drawn {
+		t.Error("an order was drawn for a list in byte order")
+	}
+}
+
+func TestAnyOtherTrustAnchorListIsDrawnOncePerProcess(t *testing.T) {
 	reverse := func(n int, swap func(int, int)) {
 		for left, right := 0, n-1; left < right; left, right = left+1, right-1 {
 			swap(left, right)
@@ -16,7 +45,8 @@ func TestTrustAnchorPayloadOrderIsStableWithinAProcess(t *testing.T) {
 	}
 	cache := newTrustAnchorPayloads(reverse)
 
-	first, err := cache.payload([]byte{0, 6, 1, 1, 1, 2, 1, 3})
+	// Out of byte order, as a Chrome before 154 sent them: an order is drawn.
+	first, err := cache.payload([]byte{0, 6, 1, 2, 1, 1, 1, 3})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,10 +55,10 @@ func TestTrustAnchorPayloadOrderIsStableWithinAProcess(t *testing.T) {
 		t.Fatalf("first payload = %x, want %x", first, want)
 	}
 
-	// The second capture contains the same set in a different order. It must
-	// reuse the process order, and callers must not receive the cached slice.
+	// Another capture of the set in another order gets the order this process
+	// drew for it, and callers do not receive the cached slice.
 	first[3] = 0xff
-	second, err := cache.payload([]byte{0, 6, 1, 2, 1, 1, 1, 3})
+	second, err := cache.payload([]byte{0, 6, 1, 3, 1, 1, 1, 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,12 +66,12 @@ func TestTrustAnchorPayloadOrderIsStableWithinAProcess(t *testing.T) {
 		t.Fatalf("second payload = %x, want cached order %x", second, want)
 	}
 
-	empty, err := cache.payload([]byte{0, 0})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(empty, []byte{0, 0}) {
-		t.Errorf("empty payload = %x", empty)
+	// In the order of their records but not of their IDs' bytes is out of
+	// byte order too.
+	drawn := false
+	other := newTrustAnchorPayloads(func(int, func(int, int)) { drawn = true })
+	if _, err := other.payload([]byte{0, 7, 2, 0xd6, 0x79, 3, 0x82, 0xdf, 0x13}); err != nil || !drawn {
+		t.Errorf("a shorter ID first drew no order: %v", err)
 	}
 }
 

@@ -5,14 +5,20 @@ import (
 	"encoding/binary"
 	"fmt"
 	rand "math/rand/v2"
+	"slices"
 	"sort"
 	"sync"
 )
 
-// Chrome keeps trust-anchor IDs in a hash set: their order is stable for one
-// browser process but changes between processes. A captured order therefore
-// cannot be replayed forever. Cache one shuffled order per ID set so every
-// client in this process agrees, while the next process starts with a new one.
+// Chrome 154 and later send their trust-anchor IDs sorted by their bytes, as
+// Chromium's EncodeTlsRequestedTrustAnchorIDList sorts them: every capture of
+// 154 and 155, three platforms each, holds them so, and so did five fresh
+// processes of Chrome 155.0.8059.80, headed and headless. An older Chrome kept
+// them in a hash set, their order stable for one process and drawn anew for
+// the next: the captures of 152 and of 153 on three machines hold three orders
+// each. So a capture in byte order goes out as it is, and any other in one
+// order drawn for its ID set, which every client in this process agrees on
+// while the next process draws its own.
 var processTrustAnchors = newTrustAnchorPayloads(rand.Shuffle)
 
 type trustAnchorPayloads struct {
@@ -29,6 +35,10 @@ func (c *trustAnchorPayloads) payload(captured []byte) ([]byte, error) {
 	records, err := splitTrustAnchors(captured)
 	if err != nil {
 		return nil, err
+	}
+	if inByteOrder(records) {
+		// The browser sorts them, so they went out so every time.
+		return append([]byte(nil), captured...), nil
 	}
 
 	// Each record includes its uint8 length, so their concatenation is an
@@ -47,6 +57,13 @@ func (c *trustAnchorPayloads) payload(captured []byte) ([]byte, error) {
 	payload := joinTrustAnchors(records)
 	c.bySet[key] = payload
 	return append([]byte(nil), payload...), nil
+}
+
+// inByteOrder reports records whose IDs are sorted by their bytes. Chromium
+// sorts the IDs themselves, so the length each record leads with takes no part:
+// a shorter ID sorts by its bytes, not ahead of every longer one.
+func inByteOrder(records [][]byte) bool {
+	return slices.IsSortedFunc(records, func(a, b []byte) int { return bytes.Compare(a[1:], b[1:]) })
 }
 
 func splitTrustAnchors(payload []byte) ([][]byte, error) {

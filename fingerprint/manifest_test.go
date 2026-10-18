@@ -187,6 +187,91 @@ func TestTrustAnchorsAreRelativeOIDs(t *testing.T) {
 	}
 }
 
+func TestTrustAnchorsAreInByteOrderWhenTheirIDsAre(t *testing.T) {
+	if !mustParse(t, fixture(t, "chrome155-clienthello.bin")).trustAnchorsInByteOrder() {
+		t.Error("Chrome 155's trust anchors are not in byte order")
+	}
+	short, long := []byte{0xd6, 0x79}, []byte{0x82, 0xdf, 0x13}
+	for _, tc := range []struct {
+		name string
+		body []byte
+		want bool
+	}{
+		{"none", nil, true},
+		{"one", anchors(short), true},
+		// By the IDs' bytes: the shorter sorts after, where the length each
+		// record leads with would have put it first.
+		{"a longer ID first, by its bytes", anchors(long, short), true},
+		{"a shorter ID first", anchors(short, long), false},
+		{"the same ID twice", anchors(short, short), true},
+		{"a prefix first", anchors([]byte{1}, []byte{1, 0}), true},
+		{"a prefix last", anchors([]byte{1, 0}, []byte{1}), false},
+		{"a list that runs past its end", []byte{0, 9, 1, 1}, true},
+		{"in order up to a broken ID", []byte{0, 5, 1, 1, 1, 2, 9}, true},
+		{"out of order before a broken ID", []byte{0, 5, 1, 2, 1, 1, 9}, false},
+	} {
+		b := newHello().withCiphers(0x1301)
+		if tc.body != nil {
+			b = b.withExtension(ExtTrustAnchors, tc.body)
+		}
+		if got := mustParse(t, b.records()).trustAnchorsInByteOrder(); got != tc.want {
+			t.Errorf("%s: %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+func TestTheTrustAnchorsOfAChromeBefore154AreComparedAsASet(t *testing.T) {
+	// A Chrome before 154 drew their order for each process, so an order out
+	// of byte order matches any other of the same IDs; one in byte order, as
+	// Chrome 154 and later send them, is held to it.
+	inOrder := builderOf(t, fixture(t, cold))
+	data := extensionOf(inOrder, ExtTrustAnchors)
+	// The first ID last, or the last first: two orders out of byte order. The
+	// first, 44947.2.1, is six bytes with its length, the last, 11129.9.15, five.
+	firstLast := append(append(slices.Clone(data[:2]), data[8:]...), data[2:8]...)
+	lastFirst := append(append(slices.Clone(data[:2]), data[len(data)-5:]...), data[2:len(data)-5]...)
+	hello := func(body []byte) *ClientHello {
+		b := builderOf(t, fixture(t, cold))
+		b.set(ExtTrustAnchors, body)
+		return mustParse(t, b.records())
+	}
+	reported := func(reference, candidate *ClientHello) bool {
+		return slices.ContainsFunc(CompareTLS(reference, candidate).Differences,
+			func(d Difference) bool { return d.Field == "trust_anchors" })
+	}
+	sorted, older, other := hello(data), hello(firstLast), hello(lastFirst)
+	if reported(older, other) || reported(older, sorted) {
+		t.Error("an older Chrome's trust anchors were held to their order")
+	}
+	if !reported(sorted, older) {
+		t.Error("trust anchors out of Chrome 155's byte order matched it")
+	}
+	// Two IDs swapped, 44947.2.1 and 44947.2.6, six bytes each with their
+	// lengths: the JA4 and the set are Chrome's, and the order is the one
+	// difference.
+	swapped := hello(slices.Concat(data[:2], data[8:14], data[2:8], data[14:]))
+	if swapped.JA4() != sorted.JA4() || swapped.JA4Raw() != sorted.JA4Raw() {
+		t.Errorf("two IDs swapped changed the JA4: %s, want %s", swapped.JA4Raw(), sorted.JA4Raw())
+	}
+	if got, want := slices.Sorted(slices.Values(swapped.TrustAnchors())),
+		slices.Sorted(slices.Values(sorted.TrustAnchors())); !reflect.DeepEqual(got, want) {
+		t.Errorf("two IDs swapped changed the set: %v, want %v", got, want)
+	}
+	if got := CompareTLS(sorted, swapped).Differences; len(got) != 1 || got[0].Field != "trust_anchors" {
+		t.Errorf("two IDs swapped: differences %v, want trust_anchors alone", got)
+	}
+	// Said in the order sent where it is compared, and sorted where it is not.
+	for _, tc := range []struct {
+		hello *ClientHello
+		set   bool
+	}{{sorted, false}, {older, true}} {
+		field := TLSFields(tc.hello)[slices.IndexFunc(TLSFields(tc.hello), func(f Field) bool { return f.Name == "trust_anchors" })]
+		if field.Set != tc.set {
+			t.Errorf("trust_anchors of %v compared as a set: %v", field.Values[:2], field.Set)
+		}
+	}
+}
+
 func TestPreSharedKeyIsReadWithoutItsKeys(t *testing.T) {
 	got, ok := mustParse(t, fixture(t, "chrome155-clienthello-resumed.bin")).PreSharedKey()
 	if !ok || got.Identities != 1 || !reflect.DeepEqual(got.Binders, []int{32}) {

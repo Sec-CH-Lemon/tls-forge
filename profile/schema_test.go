@@ -11,7 +11,83 @@ import (
 	"testing"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	tls "github.com/bogdanfinn/utls"
 )
+
+func TestEveryShippedProfileSendsItsTrustAnchorsAsItsChromeDid(t *testing.T) {
+	// Chrome 154 and 155 sent their IDs sorted by their bytes on all three
+	// platforms, and go out as captured; 152 and 153 drew their order for each
+	// process, one order on each machine, and go out in the order this process
+	// draws, the same every time; 151 sent none.
+	paths, err := fs.Glob(embedded, "data/*/*.json")
+	if err != nil || len(paths) == 0 {
+		t.Fatalf("shipped profiles: %v, %v", paths, err)
+	}
+	for _, path := range paths {
+		data, err := embedded.ReadFile(path)
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		p, err := Load(data)
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		captured := trustAnchorsCaptured(t, p)
+		sent := trustAnchorsSent(t, p)
+		version, _ := Split(p.Name)
+		switch version {
+		case "chrome_151":
+			if captured != nil || sent != nil {
+				t.Errorf("%s sends trust anchors: %x", path, sent)
+			}
+		case "chrome_152", "chrome_153":
+			records, err := splitTrustAnchors(captured)
+			if err != nil || inByteOrder(records) {
+				t.Errorf("%s: captured in byte order, or not read: %v", path, err)
+			}
+			if again := trustAnchorsSent(t, p); !bytes.Equal(sent, again) {
+				t.Errorf("%s drew another order: %x, then %x", path, sent, again)
+			}
+			if got, want := sortedTrustAnchors(t, sent), sortedTrustAnchors(t, captured); !slices.Equal(got, want) {
+				t.Errorf("%s sends other IDs: %v, captured %v", path, got, want)
+			}
+		case "chrome_154", "chrome_155":
+			records, err := splitTrustAnchors(sent)
+			if err != nil || !inByteOrder(records) || !bytes.Equal(sent, captured) {
+				t.Errorf("%s: sent %x, captured %x, %v", path, sent, captured, err)
+			}
+		default:
+			// A browser measured later says here how it orders them.
+			t.Errorf("%s: how %s orders its trust anchors is not known here", path, version)
+		}
+	}
+}
+
+// trustAnchorsCaptured is the trust_anchors payload of p's captured hello, nil
+// for none.
+func trustAnchorsCaptured(t *testing.T, p *Profile) []byte {
+	t.Helper()
+	spec, err := (&tls.Fingerprinter{AllowBluntMimicry: true}).RawClientHello(p.ClientHello)
+	if err != nil {
+		t.Fatalf("%s: %v", p.Name, err)
+	}
+	return trustAnchorsIn(*spec)
+}
+
+// sortedTrustAnchors are payload's records sorted, as one set.
+func sortedTrustAnchors(t *testing.T, payload []byte) []string {
+	t.Helper()
+	records, err := splitTrustAnchors(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := make([]string, len(records))
+	for i, record := range records {
+		out[i] = fmt.Sprintf("%x", record)
+	}
+	slices.Sort(out)
+	return out
+}
 
 func TestEveryShippedProfileIsReadAndWornAsItShips(t *testing.T) {
 	// Each in the current schema, read strictly; built into a handshake and a

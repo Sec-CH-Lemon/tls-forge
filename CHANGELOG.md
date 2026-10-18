@@ -868,6 +868,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The trust anchors of Chrome 154 and later go out in Chrome's order**,
+  sorted by their bytes, as Chromium sorts them, and `compare` holds them to
+  it. Every capture of Chrome 154 and 155, on three platforms, holds them so;
+  tls-forge drew an order for them once for each process, as an older Chrome
+  did, so it sent Chrome's IDs in an order of its own, and `compare`, which
+  held them to their set, saw nothing. A profile captured from a Chrome before
+  154, whose order was drawn for each process (the captures of 152 and 153
+  hold three orders each), is still drawn so and compared as a set.
 - **A request whose credentials are kept to its page's origin carries none
   back there after a redirect took it elsewhere**, in no-cors mode as in
   cors mode, as Chrome 155 sends it (`redir-fetch-no-cors-back-cookies` in

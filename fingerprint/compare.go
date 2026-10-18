@@ -71,8 +71,9 @@ type Field struct {
 	Name   string
 	Values []string
 
-	// Set compares membership rather than sequence. True only where the browser
-	// itself varies the order, which is the extension list and nothing else.
+	// Set compares membership rather than sequence: where the browser itself
+	// varies the order, as the extension list, or the trust anchors of a
+	// Chrome before 154, which drew their order for each process.
 	Set bool
 
 	// Scalar is a single value rather than a list, so a mismatch has no
@@ -176,7 +177,7 @@ func TLSFields(hello *ClientHello) []Field {
 		{Name: "ec_point_formats", Values: decimalStrings(hello.ECPointFormats())},
 		{Name: "psk_key_exchange_modes", Values: decimalStrings(hello.PSKKeyExchangeModes())},
 		{Name: "compress_certificate", Values: decimalStrings16(hello.CertCompressionAlgorithms())},
-		{Name: "trust_anchors", Values: hello.TrustAnchors(), Set: true},
+		{Name: "trust_anchors", Values: hello.TrustAnchors(), Set: !hello.trustAnchorsInByteOrder()},
 		scalar("ech_grease", ech),
 		{Name: "ech_payload_length", Values: []string{echPayload}, Scalar: true, Varies: drawn},
 		scalar("pre_shared_key", pskShape(hello)),

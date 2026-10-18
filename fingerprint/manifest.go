@@ -307,7 +307,8 @@ var manifest = []Rule{
 	{"tls", "ec_point_formats", inOrder},
 	{"tls", "psk_key_exchange_modes", inOrder},
 	{"tls", "compress_certificate", inOrder},
-	{"tls", "trust_anchors", "as a set: the browser draws their order for each process"},
+	{"tls", "trust_anchors", "in order when the browser sends them sorted by their bytes, as Chrome 154 " +
+		"and later do; as a set when it does not, as an older Chrome drew their order for each process"},
 	{"tls", "ech_grease", "exactly: the cipher suite and the key's length; " +
 		"not the config id, key or payload, drawn for each connection"},
 	{"tls", "ech_payload_length", "shown, not compared: " + drawn},

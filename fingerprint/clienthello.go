@@ -11,6 +11,7 @@
 package fingerprint
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -389,8 +390,9 @@ func (c *ClientHello) KeyShares() []KeyShare {
 
 // TrustAnchors returns the IDs of trust_anchors in the order sent, each as the
 // relative object identifier it is, dotted (44947.2.1), or in hex when it is
-// not one. Chrome draws their order once for each process it runs, so the
-// order says which process sent them and the IDs which root store.
+// not one. Chrome 154 and later send them sorted by their bytes; an older
+// Chrome drew their order once for each process it ran. The IDs say which root
+// store sent them.
 func (c *ClientHello) TrustAnchors() []string {
 	body, ok := c.vectorBody(ExtTrustAnchors, uint16Prefixed)
 	if !ok {
@@ -405,6 +407,28 @@ func (c *ClientHello) TrustAnchors() []string {
 		out = append(out, relativeOID(id))
 	}
 	return out
+}
+
+// trustAnchorsInByteOrder reports trust_anchors' IDs sorted by their bytes, as
+// Chrome 154 and later send them, the length each leads with aside; so too when
+// there are none, or when a malformed one ends what can be read.
+func (c *ClientHello) trustAnchorsInByteOrder() bool {
+	body, ok := c.vectorBody(ExtTrustAnchors, uint16Prefixed)
+	if !ok {
+		return true
+	}
+	var previous cryptobyte.String
+	for !body.Empty() {
+		var id cryptobyte.String
+		if !body.ReadUint8LengthPrefixed(&id) {
+			return true
+		}
+		if bytes.Compare(previous, id) > 0 {
+			return false
+		}
+		previous = id
+	}
+	return true
 }
 
 // relativeOID reads a relative object identifier: arcs in base 128, the high

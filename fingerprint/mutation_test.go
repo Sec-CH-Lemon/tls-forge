@@ -104,6 +104,12 @@ var tlsChanges = []change{
 		data[len(data)-1] = 14
 		b.set(ExtTrustAnchors, data)
 	}},
+	{"the first trust anchor last", cold, "trust_anchors", func(_ *testing.T, b *helloBuilder) {
+		data := extensionOf(b, ExtTrustAnchors)
+		// The first ID, 44947.2.1, is six bytes with its length: the same IDs,
+		// out of the byte order Chrome 155 sends them in.
+		b.set(ExtTrustAnchors, append(append(slices.Clone(data[:2]), data[8:]...), data[2:8]...))
+	}},
 	{"ChaCha20-Poly1305 for ECH", cold, "ech_grease", func(_ *testing.T, b *helloBuilder) {
 		b.set(ExtEncryptedClientHello, echBody(1, 3, 176))
 	}},
@@ -116,16 +122,11 @@ var tlsChanges = []change{
 }
 
 func TestWhatChromeChangesItselfIsNotADifference(t *testing.T) {
-	// Every connection draws these anew, or every process does; the browser
-	// would not match itself if the comparison saw them.
+	// Every connection draws these anew; the browser would not match itself
+	// if the comparison saw them.
 	for _, c := range []change{
 		{"another ECH payload length", cold, "", func(_ *testing.T, b *helloBuilder) {
 			b.set(ExtEncryptedClientHello, echBody(1, 1, 240))
-		}},
-		{"the trust anchors in another order", cold, "", func(_ *testing.T, b *helloBuilder) {
-			data := extensionOf(b, ExtTrustAnchors)
-			// The first ID, 44947.2.1, is six bytes with its length: put it last.
-			b.set(ExtTrustAnchors, append(append(slices.Clone(data[:2]), data[8:]...), data[2:8]...))
 		}},
 		{"other GREASE values", cold, "", func(_ *testing.T, b *helloBuilder) {
 			b.ciphers[0] = 0x1a1a

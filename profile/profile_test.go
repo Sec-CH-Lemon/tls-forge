@@ -142,35 +142,52 @@ func TestSpecRejectsBluntMimicry(t *testing.T) {
 }
 
 func TestSpecAllowsMeasuredTrustAnchors(t *testing.T) {
-	captured := []byte{0, 4, 1, 0xaa, 1, 0xbb}
-	raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, captured)
-	spec, err := (&Profile{Name: "chrome_152", ClientHello: raw}).Spec()
-	if err != nil {
-		t.Fatalf("Spec: %v", err)
-	}
-	var trustAnchors *tls.GenericExtension
-	for _, extension := range spec.Extensions {
-		if generic, ok := extension.(*tls.GenericExtension); ok &&
-			generic.Id == fingerprint.ExtTrustAnchors {
-			trustAnchors = generic
+	// In byte order, as Chrome 154 and later send them: as captured. Out of
+	// it, as an older Chrome sent them: the captured IDs, in the order this
+	// process drew for them.
+	for _, captured := range [][]byte{{0, 4, 1, 0xaa, 1, 0xbb}, {0, 4, 1, 0xbb, 1, 0xaa}} {
+		raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, captured)
+		sent := trustAnchorsSent(t, &Profile{Name: "chrome_152", ClientHello: raw})
+		if sent == nil {
+			t.Fatal("trust_anchors did not survive into the spec")
+		}
+		want, err := splitTrustAnchors(captured)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if inByteOrder(want) && !bytes.Equal(sent, captured) {
+			t.Errorf("trust_anchors = %x, want them as captured, %x", sent, captured)
+		}
+		got, err := splitTrustAnchors(sent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sort.Slice(want, func(i, j int) bool { return bytes.Compare(want[i], want[j]) < 0 })
+		sort.Slice(got, func(i, j int) bool { return bytes.Compare(got[i], got[j]) < 0 })
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("trust_anchors = %x, want the captured IDs %x", got, want)
 		}
 	}
-	if trustAnchors == nil {
-		t.Fatal("trust_anchors did not survive into the spec")
-	}
-	want, err := splitTrustAnchors(captured)
+}
+
+// trustAnchorsSent is the trust_anchors payload of p's spec, nil for none.
+func trustAnchorsSent(t *testing.T, p *Profile) []byte {
+	t.Helper()
+	spec, err := p.Spec()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("%s: Spec: %v", p.Name, err)
 	}
-	got, err := splitTrustAnchors(trustAnchors.Data)
-	if err != nil {
-		t.Fatal(err)
+	return trustAnchorsIn(spec)
+}
+
+// trustAnchorsIn is the trust_anchors payload of spec, nil for none.
+func trustAnchorsIn(spec tls.ClientHelloSpec) []byte {
+	for _, extension := range spec.Extensions {
+		if generic, ok := extension.(*tls.GenericExtension); ok && generic.Id == fingerprint.ExtTrustAnchors {
+			return generic.Data
+		}
 	}
-	sort.Slice(want, func(i, j int) bool { return bytes.Compare(want[i], want[j]) < 0 })
-	sort.Slice(got, func(i, j int) bool { return bytes.Compare(got[i], got[j]) < 0 })
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("trust_anchors = %x, want the captured IDs %x", got, want)
-	}
+	return nil
 }
 
 func TestSpecFromBase(t *testing.T) {
