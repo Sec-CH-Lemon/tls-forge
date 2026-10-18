@@ -11,6 +11,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"net/netip"
 	"net/url"
 	"sort"
 	"strings"
@@ -93,8 +94,10 @@ type connectDialer struct {
 // that will not parse, by the transport, which knows what to say about them: a
 // SOCKS proxy answers with no header fields to keep. Without a proxy, by a
 // dialer of this package's, which logs the dials the transport makes for no
-// request in particular; unless the caller gave the transport options of its
-// own (own is false), one of which may be a dialer or a proxy of its own.
+// request in particular, and a request to a name goes out on an HTTP/2
+// connection to another that fits it, as Chrome sends one; unless the caller
+// gave the transport options of its own (own is false), one of which may be a
+// dialer or a proxy of its own, whose names are not to be looked up here.
 func dialOptions(proxyURL string, own bool, log *slog.Logger) []tls_client.HttpClientOption {
 	if proxyURL == "" {
 		if !own {
@@ -106,6 +109,7 @@ func dialOptions(proxyURL string, own bool, log *slog.Logger) []tls_client.HttpC
 			) (proxy.ContextDialer, error) {
 				return newDirectDialer(timeout, local, log), nil
 			}),
+			tls_client.WithConnectionCoalescing(lookupNames),
 		}
 	}
 	u, err := url.Parse(proxyURL)
@@ -124,6 +128,14 @@ func dialOptions(proxyURL string, own bool, log *slog.Logger) []tls_client.HttpC
 		// from the machine's own address.
 		tls_client.WithDisableHttp3(),
 	}
+}
+
+// lookupNames finds the addresses of host as a directDialer does, with the
+// machine's resolver, which says what it does to the trace of the request it
+// is for: Chrome looks a name up before it sends a request over an HTTP/2
+// connection to another, at an address the name has, on its certificate.
+func lookupNames(ctx context.Context, host string) ([]netip.Addr, error) {
+	return net.DefaultResolver.LookupNetIP(ctx, "ip", host)
 }
 
 // directDialer dials a site with nothing between, as the transport's own

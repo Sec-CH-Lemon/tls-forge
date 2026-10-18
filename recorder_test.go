@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"strings"
 	"sync"
@@ -104,6 +105,49 @@ func (r *recorder) dialing() Option {
 		return d.DialContext(ctx, network, r.addr)
 	}))
 }
+
+// trusting is dialing, and has the client take the recorder's certificate as
+// a site's, as Chrome took the bench's (--ignore-certificate-errors-spki-list),
+// and find every name it looks up at the recorder's address, where the
+// recorder answers on whatever port a URL names: what an HTTP/2 connection
+// takes to carry a request to another name. The transport options are the
+// client's own, and the roots.
+func (r *recorder) trusting(t *testing.T) Option {
+	t.Helper()
+	leaf, err := x509.ParseCertificate(recorderCertificate(t).Certificate[0])
+	if err != nil {
+		t.Fatalf("certificate: %v", err)
+	}
+	roots := x509.NewCertPool()
+	roots.AddCert(leaf)
+	at := netip.MustParseAddrPort(r.addr).Addr()
+	return WithTransportOption(
+		tls_client.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
+			var d net.Dialer
+			conn, err := d.DialContext(ctx, network, r.addr)
+			if err != nil {
+				return nil, err
+			}
+			_, port, _ := net.SplitHostPort(addr)
+			named, _ := strconv.Atoi(port)
+			return &answeredAt{Conn: conn, at: &net.TCPAddr{IP: at.AsSlice(), Port: named}}, nil
+		}),
+		tls_client.WithTransportOptions(&tls_client.TransportOptions{MaxIdleConnsPerHost: 6, DisableCompression: true,
+			RootCAs: roots}),
+		tls_client.WithConnectionCoalescing(func(context.Context, string) ([]netip.Addr, error) {
+			return []netip.Addr{at}, nil
+		}),
+	)
+}
+
+// answeredAt is a connection to the recorder, from the address and port the
+// client dialed.
+type answeredAt struct {
+	net.Conn
+	at net.Addr
+}
+
+func (c *answeredAt) RemoteAddr() net.Addr { return c.at }
 
 // dialingWith routes the connections the client opens to port 80 to plain,
 // a recorder in the clear, and the rest to r, and has plain keep what it is

@@ -74,12 +74,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   that carries no credentials, every CORS preflight among them, goes out on
   connections of its own, which resume only TLS sessions of their own, as
   Chrome keeps them apart (`testdata/chrome155-connections.json`), on those
-  of the page's top-level site; unlike Chrome, tls-forge opens a connection
-  for each name where Chrome sends a request over an HTTP/2 connection of its
-  kind it holds to the same address, follows a redirect on the connections
-  of the first hop's site, where Chrome sends a navigation's hop to another
-  site on that site's, and follows a redirect that leaves a request without
-  credentials on the connections the request went out on. What
+  of the page's top-level site; unlike Chrome, tls-forge follows a redirect
+  on the connections of the first hop's site, where Chrome sends a
+  navigation's hop to another site on that site's, and follows a redirect
+  that leaves a request without credentials on the connections the request
+  went out on. What
   a page cannot send is refused before anything is sent. A request without
   one goes out as before.
 - **Redirects are followed as Chrome 155 follows them**, measured
@@ -603,6 +602,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   of its URL's site, as a navigation typed in. A client keeps the connections
   of the last 64 sites it sent requests to; one more drops the site used
   longest ago, closing its idle connections and forgetting its TLS sessions.
+- **A request to another name goes out on an HTTP/2 connection the client
+  holds to the same address**, as Chrome 155 sends one
+  (`testdata/chrome155-connections.json`): one of its kind, for requests with
+  credentials or without, and of its top-level site, whose certificate was
+  verified and is good for the name, at an address the name is found at and
+  on its port. A page's `fetch()` of another site serving from that address
+  goes out on the page's own connection, and so does a navigation to another
+  name of the page's site. The name is looked up first, as Chrome does,
+  and a request no connection fits dials as before. None is shared through a
+  proxy, with `WithInsecureSkipVerify`, or when `WithTransportOption` may say
+  how to dial; HTTP/1.1 connections never are. The forks of fhttp and
+  tls-client give tls-client's `WithConnectionCoalescing`.
 - **tls-forge builds on its own forks of fhttp and tls-client**, with those of
   quic-go-utls and websocket, which name the same fhttp, so that what the
   transport writes can be changed where Chrome writes otherwise:

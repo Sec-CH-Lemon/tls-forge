@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -353,6 +354,22 @@ func TestConnectDialerSettings(t *testing.T) {
 	}
 }
 
+func TestANameIsLookedUpAsADirectDialerLooksItUp(t *testing.T) {
+	// The machine's resolver, which gives an address back as it was asked
+	// for it, an IPv4 one written as IPv6.
+	got, err := lookupNames(context.Background(), "127.0.0.1")
+	if err != nil || len(got) != 1 || got[0].Unmap() != netip.MustParseAddr("127.0.0.1") {
+		t.Errorf("127.0.0.1 is found at %v, %v", got, err)
+	}
+	// IPv6 as well as IPv4, as a dialer of TCP looks for both.
+	if got, err := lookupNames(context.Background(), "::1"); err != nil || len(got) != 1 || got[0] != netip.IPv6Loopback() {
+		t.Errorf("::1 is found at %v, %v", got, err)
+	}
+	if _, err := lookupNames(context.Background(), "nowhere.invalid"); err == nil {
+		t.Error("nowhere.invalid is found")
+	}
+}
+
 func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 	// A SOCKS proxy, and a URL that does not parse, are the transport's: it
 	// knows what to say about them.
@@ -365,9 +382,10 @@ func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 	if got := dialOptions("http://proxy.test:8080", true, nil); len(got) != 2 {
 		t.Errorf("an HTTP proxy is given %d options", len(got))
 	}
-	// No proxy is dialled here, unless the caller has options of its own for
-	// the transport, which may say how to dial.
-	if got := dialOptions("", true, nil); len(got) != 1 {
+	// No proxy is dialled here, and names are looked up for HTTP/2 to carry
+	// requests to others, unless the caller has options of its own for the
+	// transport, which may say how to dial.
+	if got := dialOptions("", true, nil); len(got) != 2 {
 		t.Errorf("a client without a proxy is given %d options", len(got))
 	}
 	if got := dialOptions("", false, nil); len(got) != 0 {

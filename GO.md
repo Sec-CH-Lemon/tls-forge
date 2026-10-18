@@ -166,7 +166,11 @@ and what tls-forge did with it goes too:
   keep them.
 - Any transport option leaves a client without a proxy dialing the
   transport's way, since the option may be a dialer: the connections HTTP/2
-  dials apart from a request then go unlogged ([Logging](#logging)).
+  dials apart from a request then go unlogged ([Logging](#logging)), and no
+  HTTP/2 connection carries a request to another name, whose name would be
+  looked up where the dialer may not look it up.
+  `tls_client.WithConnectionCoalescing`, given a lookup of the dialer's, is
+  the way to have them do so ([Browser contexts](#browser-contexts)).
 
 An HTTPS proxy's certificate is checked against the system's roots whatever
 the options. `WithInsecureSkipVerify` is for the sites and does not reach it,
@@ -322,17 +326,29 @@ later opens connections of its own again. `CloseIdleConnections` and `Close`
 close the idle connections of every site, and a client made `Fresh` keeps
 none of this client's.
 
-Three things Chrome does with its connections tls-forge does not. Chrome sends
-a request to another name over an HTTP/2 connection of its kind it holds to
-the same address, when the certificate is good for that name: a page's
-`fetch()` of another site that serves from the same address goes out on the
-page's own connection, where tls-forge opens one for each name. Chrome sends
+Among those, a request to another name goes out on an HTTP/2 connection the
+client holds to an address the name is found at, on the port the request is
+for, when the connection's certificate was verified and is good for that
+name, as Chrome 155 sends one: a page's `fetch()` of `api.example.com` or
+`www.example.net`, with credentials or without, goes out on a connection of
+its kind it holds to `www.example.com`, when both names are at that address
+under that certificate, and so does a navigation to `api.example.com`, of the
+page's site. The name is looked up first, as Chrome looks it up, with the
+machine's resolver; when no connection fits, the request dials one as before.
+None is shared through a proxy, whose address is all a connection knows, nor
+with `WithInsecureSkipVerify`, which verifies no certificate (Chrome shares
+none whose certificate has an error), nor when transport options of the
+caller's may say how to dial ([Transport options](#transport-options)).
+HTTP/1.1 connections are not shared, as Chrome shares none.
+
+Two things Chrome does with its connections tls-forge does not. Chrome sends
 a navigation's redirect to another site on that site's connections, where
 tls-forge follows every redirect on the connections of the site of the first
-hop. And a redirect that leaves a request without credentials, `fetch()` of
-the page's origin redirected to another, Chrome follows on the connections of
-requests that carry none, where tls-forge follows it on the connections the
-request went out on.
+hop, and over HTTP/2 on one of them its certificate is good for. And a
+redirect that leaves a request without credentials, `fetch()` of the page's
+origin redirected to another, Chrome follows on the connections of requests
+that carry none, where tls-forge follows it on the connections the request
+went out on.
 
 What a context does not do yet: the order of several headers a script set
 (Chrome's renderer keeps them in a hash table where each name has its place,

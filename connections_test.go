@@ -59,28 +59,15 @@ var askedOnConnections = map[string]map[int]BrowserContext{
 // client sends on other connections than Chrome did: the connections it sends
 // them on, as onConnections says them, and why.
 var apartFromChrome = map[string]struct{ sent, why string }{
-	"conn-fetch-same-site-include/h2":               {"1* 2", pooled},
-	"conn-fetch-cross-site-include/h2":              {"1* 2", pooled},
-	"conn-xhr-cross-site-credentials/h2":            {"1* 2", pooled},
-	"conn-fetch-cross-site-both/h2":                 {"1* 2 3 3 2", pooled},
-	"conn-fetch-cross-site-then-same-site/h2":       {"1* 2 3", pooled},
-	"conn-fetch-omit-then-cross-site/h2":            {"1* 2 3", pooled},
-	"conn-nav-same-site/h2":                         {"1* 2", pooled},
-	"conn-preflight-include/h2":                     {"1* 2 3", pooled},
-	"conn-preflight-include-after-cors/h2":          {"1* 2 2 3", pooled},
-	"conn-redirect-include-to-cross-site/h2":        {"1* 2 1* 3", pooled},
-	"conn-redirect-to-cross-site/h2":                {"1* 2 1* 3", uncredentialed},
+	"conn-redirect-to-cross-site/h2":                {"1* 2 1* 1*", uncredentialed},
 	"conn-redirect-to-cross-site/h1":                {"1* 2 1* 3", uncredentialed},
-	"conn-nav-cross-site-after-include/h2":          {"1* 2 3", pooled},
-	"conn-nav-redirect-cross-site-after-include/h2": {"1* 2 1* 2", pooled + ". " + redirected},
+	"conn-nav-redirect-cross-site/h2":               {"1* 1* 1*", redirected},
+	"conn-nav-redirect-cross-site-after-include/h2": {"1* 1* 1* 1*", redirected},
 	"conn-nav-redirect-cross-site-after-include/h1": {"1* 2 1* 2", redirected},
 }
 
 // Why a client's requests go out on other connections than Chrome's.
 const (
-	pooled = "Chrome sends a request to another name over an HTTP/2 connection it holds to the same address for " +
-		"requests of its kind, with credentials or without, under a certificate good for the name; the client opens " +
-		"a connection for each name"
 	uncredentialed = "Chrome follows a redirect that leaves a request without credentials on the connections of " +
 		"requests that carry none; the client follows it on the connections the request went out on"
 	redirected = "Chrome sends a navigation's redirect to another site on the connections of that site's, as it " +
@@ -175,7 +162,11 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 func sendOnConnections(t *testing.T, proto, id string, asked map[int]BrowserContext, want []harness.Request) []*keptRequest {
 	t.Helper()
 	server := newRecorder(t, proto, answeringAsMeasured)
-	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	client, err := New(WithProfile("chrome_155_macos"), server.trusting(t))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
 	lobby := "https://www.example.com/p/lobby?after=2&next=/run/" + id
 	if _, err := client.Do(&Request{URL: lobby, Browser: &BrowserContext{Kind: KindNavigation}}); err != nil {
 		t.Fatalf("Do %s: %v", lobby, err)
