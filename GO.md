@@ -202,7 +202,7 @@ response, err := client.Do(&tlsforge.Request{
 | `Context` | Cancels this request. `nil` means `context.Background()`. |
 | `Method` | HTTP method. An empty value means `GET`. |
 | `URL` | Required absolute request URL. |
-| `Header` | Ordered headers layered over the profile. Existing names keep their original position; new names are appended. |
+| `Header` | Ordered headers layered over the profile. Existing names keep their original position; new names are appended, but `Cookie`, which goes where Chrome sends the cookies when the profile is a Chromium browser's: right after `Accept-Language`. |
 | `Body` | Raw request bytes. |
 | `Cookies` | Cookies added to the jar before this request. |
 | `Trace` | Optional hooks told each step the request takes on the wire; see [Tracing a request](#tracing-a-request). |

@@ -795,6 +795,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A request without a browser context sends its cookies where Chrome 155
+  does**, with a Chromium profile: right after `Accept-Language`, over
+  HTTP/2 one field for each cookie, right before `priority`, and over
+  HTTP/1.1 one line, on a redirect's hops too; a `Cookie` the request is
+  given goes there as well. The transport wrote them after every header the
+  profile names, which over HTTP/2 put them after `priority`. In a browser
+  context they went there already, as every kind of request Chrome was
+  measured sending cookies with shows (`testdata/chrome155-requests.json`).
 - **`:path` goes into HPACK as Chrome writes it**, for a Chromium profile:
   without indexing, named by the static table's first `:path`. The transport
   indexed it and named it by the second, which `compare` reported and the

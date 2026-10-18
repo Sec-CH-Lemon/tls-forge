@@ -49,7 +49,10 @@ func newLayouts(http2, http1 fhttp.Header) *layouts {
 // headers, the profile's with the request's own (given) laid over them, in
 // the profile's order over HTTP/2; over HTTP/1.1 in the order and spelling the
 // profile measured, with its HTTP/1.1 values, or as over HTTP/2 when it
-// measured none and the request names no user agent.
+// measured none and the request names no user agent. A Chromium profile's
+// layouts name the Cookie where Chrome writes it (cookieSlot); only Chromium
+// was measured, so another browser's Cookie goes where the transport puts a
+// name its order does not have: last.
 func (c *Client) layoutsAsGiven(headers, given Header, host string) *layouts {
 	http2 := legacyHeaderLayout(headers, host)
 	var http1 fhttp.Header
@@ -62,7 +65,34 @@ func (c *Client) layoutsAsGiven(headers, given Header, host string) *layouts {
 		// else differs.
 		http1 = cloneHeaderLayout(http2)
 	}
+	if c.profile.Chromium() {
+		cookieSlot(http2)
+		cookieSlot(http1)
+	}
 	return newLayouts(http2, http1)
+}
+
+// cookieSlot names the Cookie in block's order where Chrome writes it: right
+// after Accept-Language, the last header its network stack adds before the
+// cookies, and so before the Priority its HTTP/2 writer adds after them all,
+// as every request with cookies was measured (testdata/chrome155-requests.json);
+// last when block has no Accept-Language. The transport adds the jar's Cookie
+// once a request is laid out, and writes a name its order does not have after
+// every name it does: after Priority. A Cookie the request was given goes in
+// the same slot. A request the same over both protocols has no HTTP/1.1
+// block: nil is left as it is.
+func cookieSlot(block fhttp.Header) {
+	if block == nil {
+		return
+	}
+	order := slices.DeleteFunc(block[fhttp.HeaderOrderKey], func(name string) bool {
+		return strings.EqualFold(name, "cookie")
+	})
+	at := len(order)
+	if i := slices.IndexFunc(order, func(name string) bool { return strings.EqualFold(name, "accept-language") }); i >= 0 {
+		at = i + 1
+	}
+	block[fhttp.HeaderOrderKey] = slices.Insert(order, at, "cookie")
 }
 
 // browserLayouts are the layouts of a request in a browser context: field, its
@@ -279,7 +309,14 @@ func redirectHTTP1Layout(http1, original, current fhttp.Header, host string) fht
 		}
 		values := before[name]
 		redirected, kept := now[name]
-		if !kept {
+		switch {
+		case !kept && name == "cookie":
+			// A Cookie the request was given, which fhttp does not send on
+			// to another host: its slot stays for the jar's, as it does in
+			// the order fhttp copies onto the hop over HTTP/2.
+			deleteFields(out, name)
+			continue
+		case !kept:
 			deleteHeader(out, name)
 			continue
 		}
@@ -340,11 +377,7 @@ func headerLayoutKey(name string) bool {
 }
 
 func deleteHeader(header fhttp.Header, lower string) {
-	for name := range header {
-		if strings.EqualFold(name, lower) {
-			delete(header, name)
-		}
-	}
+	deleteFields(header, lower)
 	order := header[fhttp.HeaderOrderKey]
 	kept := order[:0]
 	for _, name := range order {
@@ -353,6 +386,15 @@ func deleteHeader(header fhttp.Header, lower string) {
 		}
 	}
 	header[fhttp.HeaderOrderKey] = kept
+}
+
+// deleteFields removes a header's fields, its name left in the order.
+func deleteFields(header fhttp.Header, lower string) {
+	for name := range header {
+		if strings.EqualFold(name, lower) {
+			delete(header, name)
+		}
+	}
 }
 
 func setHeader(header fhttp.Header, lower string, values []string) {
