@@ -168,12 +168,26 @@ func TestADumpThatFailsIsNoDump(t *testing.T) {
 		!strings.HasPrefix(err.Error(), "harness: launching ") {
 		t.Errorf("DumpDOM of no browser: %v", err)
 	}
-	// One that does not end before its context does is ended with it.
+	// One that does not end before its context does is ended with it. The
+	// context ends once the stand-in has started its process, however long a
+	// busy machine takes to start it.
 	hanging := standIn(t, "hang", 0)
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if _, err := (Chrome{Path: hanging.path}).DumpDOM(ctx, "x"); err == nil || !strings.Contains(err.Error(), "killed") {
-		t.Errorf("DumpDOM past its context: %v", err)
+	dumped := make(chan error, 1)
+	go func() {
+		_, err := (Chrome{Path: hanging.path}).DumpDOM(ctx, "x")
+		dumped <- err
+	}()
+	written(t, hanging.child)
+	cancel()
+	select {
+	case err := <-dumped:
+		if err == nil || !strings.Contains(err.Error(), "killed") {
+			t.Errorf("DumpDOM past its context: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("DumpDOM did not end with its context")
 	}
 	if !gone(t, hanging.child) {
 		t.Error("what the hanging browser started outlived its context")
