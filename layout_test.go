@@ -3,6 +3,8 @@ package tlsforge
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -281,6 +283,44 @@ func TestARequestWithoutAContextSendsItsCookiesAsChromeDid(t *testing.T) {
 	}
 }
 
+func TestARequestWithoutAContextGoesToEachURLAsChromeTypedIt(t *testing.T) {
+	// A navigation typed into the address bar goes to https, and to http on
+	// the machine itself (localhost, a name under .localhost, 127.0.0.1 and
+	// [::1]), with every header the profile has; to any other http URL
+	// without the client hints and Sec-Fetch-*, offering neither Brotli nor
+	// zstd; and each hop of its redirects as its own URL is, what was withheld
+	// from one going back on at the next.
+	measured := loadChromeRequests(t)
+	for _, scenario := range []string{"nav-direct", "nav-direct-plain", "nav-direct-localhost", "nav-direct-dot-localhost",
+		"nav-direct-ipv4", "nav-direct-ipv6", "redir-nav-direct-301", "redir-nav-direct-302", "redir-nav-direct-303",
+		"redir-nav-direct-307", "redir-nav-direct-308", "redir-nav-direct-cross-site", "redir-nav-direct-downgrade",
+		"redir-nav-direct-upgrade", "redir-nav-direct-to-localhost", "redir-nav-direct-plain-to-localhost"} {
+		both := measured.Scenarios[scenario]
+		for proto, want := range map[string][]chromeRequest{"h2": both.H2, "h1": both.H1} {
+			t.Run(scenario+"/"+proto, func(t *testing.T) {
+				if len(want) == 0 {
+					t.Fatal("not in the fixture")
+				}
+				server := newRecorder(t, proto, answeringAsMeasured)
+				plain := newRecorder(t, "http", answeringAsMeasured)
+				client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialingWith(plain))
+				if _, err := client.Do(&Request{URL: want[0].URL}); err != nil {
+					t.Fatalf("Do: %v", err)
+				}
+				got := server.requests()
+				if len(got) != len(want) {
+					t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
+				}
+				for i := range want {
+					if diff := diffRequest(want[i], got[i], proto); diff != "" {
+						t.Errorf("request %d:\n%s", i+1, diff)
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestARedirectToAnotherHostSendsTheJarsCookieInTheSlot(t *testing.T) {
 	// A Cookie given for www.example.com, which fhttp does not send on to
 	// api.example.com, and the jar's for the domain, which it does: the hop's
@@ -494,6 +534,329 @@ func TestACookieAPageCannotSetIsRefusedOverBothProtocols(t *testing.T) {
 		}
 		if got := server.requests(); len(got) != 0 {
 			t.Errorf("%s: %d requests sent", proto, len(got))
+		}
+	}
+}
+
+// trustedOnly are the headers chrome_155_macos sends only to a URL that is
+// potentially trustworthy.
+var trustedOnly = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-fetch-site", "sec-fetch-mode",
+	"sec-fetch-user", "sec-fetch-dest"}
+
+func TestAProfileWithholdsItsClientHintsSecFetchAndBrotliFromAURLThatIsNotTrustworthy(t *testing.T) {
+	chrome, err := profile.Get("chrome_155_macos")
+	if err != nil {
+		t.Fatalf("profile.Get: %v", err)
+	}
+	w := withheldOf(chrome, nil)
+	if w == nil || !slices.Equal(w.names, trustedOnly) || !w.encoding {
+		t.Fatalf("withheldOf(chrome_155_macos) = %+v", w)
+	}
+	// What the client was given is its own, in any case.
+	if got := withheldOf(chrome, NewHeader("Sec-CH-UA", "x", "Accept-Encoding", "gzip")); got == nil ||
+		!slices.Equal(got.names, trustedOnly[1:]) || got.encoding {
+		t.Errorf("the client given sec-ch-ua and accept-encoding: %+v", got)
+	}
+	// And so is what a request was given.
+	if got := w.without(NewHeader("sec-fetch-site", "cross-site")); got == nil ||
+		!slices.Equal(got.names, slices.Delete(slices.Clone(trustedOnly), 3, 4)) || !got.encoding {
+		t.Errorf("a request given sec-fetch-site: %+v", got)
+	}
+	if got := w.without(NewHeader("accept-encoding", "br")); got == nil || !slices.Equal(got.names, trustedOnly) ||
+		got.encoding {
+		t.Errorf("a request given accept-encoding: %+v", got)
+	}
+	// Everything given leaves nothing withheld, and nothing given changes
+	// nothing.
+	everything := NewHeader("accept-encoding", "br")
+	for _, name := range trustedOnly {
+		everything.Add(name, "x")
+	}
+	if got := w.without(everything); got != nil {
+		t.Errorf("a request given everything: %+v", got)
+	}
+	if got := withheldOf(chrome, everything); got != nil {
+		t.Errorf("a client given everything: %+v", got)
+	}
+	if w.without(nil) != w {
+		t.Error("a request given nothing made a copy")
+	}
+	if got := (*withholding)(nil).without(NewHeader("x-foo", "1")); got != nil {
+		t.Errorf("nothing withheld: %+v", got)
+	}
+
+	// What only the HTTP/1.1 capture has counts too, once.
+	http1 := chrome.Clone()
+	http1.Headers = []profile.Field{{Name: "user-agent", Value: chrome.UserAgent}}
+	http1.HTTP1 = &profile.HTTP1{Headers: []profile.Field{{Name: "Sec-Fetch-Dest", Value: "document"},
+		{Name: "sec-fetch-dest", Value: "document"}}}
+	if got := withheldOf(http1, nil); got == nil || !slices.Equal(got.names, []string{"sec-fetch-dest"}) || got.encoding {
+		t.Errorf("Sec-Fetch-Dest in the HTTP/1.1 capture alone: %+v", got)
+	}
+	// A profile with none of them withholds nothing; another browser's was
+	// not measured.
+	if got := withheldOf(&profile.Profile{Name: "chrome_133", Base: "chrome_133"}, nil); got != nil {
+		t.Errorf("a catalogue profile: %+v", got)
+	}
+	firefox := chrome.Clone()
+	firefox.Name, firefox.UserAgent = "firefox_148", "Mozilla/5.0 (Macintosh; rv:148.0) Gecko/20100101 Firefox/148.0"
+	firefox.PerConnection = nil
+	if got := withheldOf(firefox, nil); got != nil {
+		t.Errorf("another browser's profile: %+v", got)
+	}
+}
+
+func TestWhatIsWithheldIsTakenOutOfABlockItsSlotsLeft(t *testing.T) {
+	order := []string{"host", "sec-ch-ua", "user-agent", "Sec-Fetch-Site", "accept-encoding"}
+	block := fhttp.Header{"Host": {"h"}, "sec-ch-ua": {"a"}, "User-Agent": {"u"}, "Sec-Fetch-Site": {"none"},
+		"Accept-Encoding": {"gzip, deflate, br, zstd"}, fhttp.HeaderOrderKey: order}
+	(&withholding{names: []string{"sec-ch-ua", "sec-fetch-site"}, encoding: true}).from(block)
+	want := fhttp.Header{"Host": {"h"}, "User-Agent": {"u"}, "Accept-Encoding": {"gzip, deflate"},
+		fhttp.HeaderOrderKey: order}
+	if !reflect.DeepEqual(block, want) {
+		t.Errorf("block %v, want %v", block, want)
+	}
+	for _, c := range []struct {
+		offered, want []string
+	}{
+		{[]string{"gzip, br", "zstd;q=0.5, deflate;q=0.1"}, []string{"gzip, deflate;q=0.1"}},
+		{[]string{"identity"}, []string{"identity"}},
+		// Nothing else offered is no Accept-Encoding, not an empty one.
+		{[]string{"br, zstd"}, nil},
+	} {
+		block := fhttp.Header{"accept-encoding": c.offered}
+		(&withholding{encoding: true}).from(block)
+		if got, ok := block["accept-encoding"]; !slices.Equal(got, c.want) || ok != (c.want != nil) {
+			t.Errorf("%q: %q (%v), want %q", c.offered, got, ok, c.want)
+		}
+	}
+	// Without the encoding, Accept-Encoding is as it was.
+	kept := fhttp.Header{"Accept-Encoding": {"br"}, "Sec-Ch-Ua": {"a"}}
+	(&withholding{names: []string{"sec-ch-ua"}}).from(kept)
+	if !reflect.DeepEqual(kept, fhttp.Header{"Accept-Encoding": {"br"}}) {
+		t.Errorf("kept %v", kept)
+	}
+}
+
+func TestARequestToAURLThatIsNotTrustworthyIsWrittenWithoutWhatIsWithheld(t *testing.T) {
+	http2 := fhttp.Header{"Sec-Ch-Ua": {"a"}, "Accept-Encoding": {"gzip, br"}, "User-Agent": {"u"},
+		fhttp.HeaderOrderKey: {"sec-ch-ua", "user-agent", "accept-encoding"}}
+	withheld := &withholding{names: []string{"sec-ch-ua"}, encoding: true}
+	plain, _ := url.Parse("http://www.example.com/")
+	for _, c := range []struct {
+		name  string
+		http1 fhttp.Header
+	}{
+		{"the same over both", nil},
+		{"with an HTTP/1.1 block", fhttp.Header{"Connection": {"keep-alive"}, "sec-ch-ua": {"a"}, "Accept-Encoding": {"gzip, br"},
+			"User-Agent": {"u"}, fhttp.HeaderOrderKey: {"connection", "sec-ch-ua", "user-agent", "accept-encoding"}}},
+	} {
+		l := newLayouts(cloneHeaderLayout(http2), cloneHeaderLayout(c.http1))
+		if c.http1 == nil {
+			l = newLayouts(cloneHeaderLayout(http2), nil)
+		}
+		l.withheld = withheld
+		req := l.wear(&fhttp.Request{URL: plain, Header: fhttp.Header{}})
+		// What it wears stays whole, for a redirect's request to be made
+		// from: a hop to a URL that is trustworthy gets it all.
+		if req.Header.Get("Sec-Ch-Ua") != "a" || req.Header.Get("Accept-Encoding") != "gzip, br" {
+			t.Errorf("%s: wears %v", c.name, req.Header)
+		}
+		for _, protocol := range []string{fhttp.ProtocolHTTP1, fhttp.ProtocolHTTP2} {
+			written := req.WrittenHeader(protocol)
+			if _, ok := fieldOf(written, "sec-ch-ua"); ok || written.Get("Accept-Encoding") != "gzip" ||
+				written.Get("User-Agent") != "u" {
+				t.Errorf("%s: written over %s as %v", c.name, protocol, written)
+			}
+		}
+		if written := req.WrittenHeader(fhttp.ProtocolHTTP1); (written.Get("Connection") != "") != (c.http1 != nil) {
+			t.Errorf("%s: over HTTP/1.1, not its block: %v", c.name, written)
+		}
+		// The layouts go on the context only for an HTTP/1.1 block of their
+		// own to be made from; the chain says what is withheld.
+		if (layoutsOn(req) != nil) != (c.http1 != nil) {
+			t.Errorf("%s: layouts on the context: %v", c.name, layoutsOn(req))
+		}
+		// To a URL that is potentially trustworthy nothing is withheld.
+		for _, raw := range []string{"https://www.example.com/", "http://localhost/", "http://127.0.0.1:8080/", "http://[::1]/",
+			"http://app.localhost/"} {
+			u, _ := url.Parse(raw)
+			req := l.wear(&fhttp.Request{URL: u, Header: fhttp.Header{}})
+			if c.http1 == nil && req.HeaderFor != nil {
+				t.Errorf("%s: %s wears more than its block", c.name, raw)
+			}
+			written := req.WrittenHeader(fhttp.ProtocolHTTP1)
+			if hints, _ := fieldOf(written, "sec-ch-ua"); !slices.Equal(hints, []string{"a"}) ||
+				written.Get("Accept-Encoding") != "gzip, br" {
+				t.Errorf("%s: %s written as %v", c.name, raw, written)
+			}
+		}
+	}
+}
+
+func TestWhatTheClientOrTheRequestWasGivenGoesToPlainHTTPAsGiven(t *testing.T) {
+	server := newRecorder(t, "h2", nil)
+	plain := newRecorder(t, "http", nil)
+	client := newTestClient(t, WithProfile("chrome_155_macos"), WithHeaders(NewHeader("sec-ch-ua", `"Mine";v="1"`)),
+		server.dialingWith(plain))
+	fresh, err := client.Fresh()
+	if err != nil {
+		t.Fatalf("Fresh: %v", err)
+	}
+	t.Cleanup(func() { _ = fresh.Close() })
+	for _, c := range []*Client{client, fresh} {
+		if _, err := c.Do(&Request{URL: "http://www.example.com/",
+			Header: NewHeader("Sec-Fetch-Site", "cross-site", "Accept-Encoding", "br")}); err != nil {
+			t.Fatalf("Do: %v", err)
+		}
+	}
+	got := server.requests()
+	if len(got) != 2 {
+		t.Fatalf("sent %d requests", len(got))
+	}
+	for i, r := range got {
+		for name, want := range map[string]string{"sec-ch-ua": `"Mine";v="1"`, "sec-fetch-site": "cross-site", "accept-encoding": "br"} {
+			if value, ok := r.header(name); !ok || value != want {
+				t.Errorf("request %d: %s %q (%v), want it as given, %q", i+1, name, value, ok, want)
+			}
+		}
+		for _, name := range []string{"sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest"} {
+			if value, ok := r.header(name); ok {
+				t.Errorf("request %d: the profile's %s went to plain HTTP: %q", i+1, name, value)
+			}
+		}
+	}
+}
+
+func TestAProfileThatMeasuredNoHTTP11WithholdsOnEveryHopAsItsURLIs(t *testing.T) {
+	// chrome_151 on Linux measured no HTTP/1.1: its requests go the same over
+	// both protocols, and the chain says what of them is withheld.
+	linux, err := profile.Get("chrome_151_linux")
+	if err != nil || linux.HTTP1 != nil {
+		t.Fatalf("chrome_151_linux: %v, HTTP/1.1 measured: %v", err, linux.HTTP1 != nil)
+	}
+	server := newRecorder(t, "h2", nil)
+	plain := newRecorder(t, "http", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://www.example.com/up", http.StatusFound)
+	})
+	client := newTestClient(t, WithProfile("chrome_151_linux"), server.dialingWith(plain))
+	if _, err := client.Do(&Request{URL: "http://www.example.com/plain"}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	got := server.requests()
+	if len(got) != 2 {
+		t.Fatalf("sent %d requests", len(got))
+	}
+	assertTrusted(t, got[0], false)
+	assertTrusted(t, got[1], true)
+}
+
+func TestEachHopOfARedirectIsWrittenWithWhatIsWithheldOrWithoutAsItsURLIs(t *testing.T) {
+	// https, then plain http, then https again: the hop in the middle without
+	// the client hints, Sec-Fetch-* and Brotli, the last with them, the client
+	// hints after Sec-Fetch-Dest as Chrome writes a hop's.
+	server := newRecorder(t, "h2", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/first" {
+			http.Redirect(w, r, "http://www.example.com/middle", http.StatusFound)
+		}
+	})
+	plain := newRecorder(t, "http", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://www.example.com/last", http.StatusFound)
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialingWith(plain))
+	if _, err := client.Do(&Request{URL: "https://www.example.com/first"}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	got := server.requests()
+	if len(got) != 3 {
+		t.Fatalf("sent %d requests", len(got))
+	}
+	assertTrusted(t, got[0], true)
+	assertTrusted(t, got[1], false)
+	assertTrusted(t, got[2], true)
+	upgraded := loadChromeRequests(t).Scenarios["redir-nav-direct-upgrade"].H2[1]
+	var names, want []string
+	for _, h := range got[2].headers {
+		names = append(names, h[0])
+	}
+	for _, h := range upgraded.Headers {
+		want = append(want, h[0])
+	}
+	if !slices.Equal(names, want) {
+		t.Errorf("the last hop's headers %v, Chrome's after an upgrade %v", names, want)
+	}
+}
+
+func TestAnAnswerToA401FromPlainHTTPIsWrittenWithoutWhatIsWithheld(t *testing.T) {
+	server := newRecorder(t, "h2", nil)
+	plain := newRecorder(t, "http", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			w.Header().Set("WWW-Authenticate", `Basic realm="r"`)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	})
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialingWith(plain))
+	if _, err := client.Do(&Request{URL: "http://u:p@www.example.com/a"}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	got := server.requests()
+	if len(got) != 2 {
+		t.Fatalf("sent %d requests", len(got))
+	}
+	for _, r := range got {
+		assertTrusted(t, r, false)
+	}
+	if value, _ := got[1].header("authorization"); value != "Basic dTpw" {
+		t.Errorf("the answer's Authorization %q", value)
+	}
+}
+
+// fieldOf is the values of the field name in block, in whatever case it is
+// spelt there, and whether it is there.
+func fieldOf(block fhttp.Header, name string) ([]string, bool) {
+	for key, values := range block {
+		if strings.EqualFold(key, name) {
+			return values, true
+		}
+	}
+	return nil, false
+}
+
+// assertTrusted holds r to what chrome_155_macos sends a URL that is
+// potentially trustworthy, or to what it sends any other.
+func assertTrusted(t *testing.T, r *keptRequest, trusted bool) {
+	t.Helper()
+	for _, name := range trustedOnly {
+		if _, ok := r.header(name); ok != trusted {
+			t.Errorf("%s: %s there: %v", r.url, name, ok)
+		}
+	}
+	encoding := "gzip, deflate"
+	if trusted {
+		encoding = "gzip, deflate, br, zstd"
+	}
+	if value, _ := r.header("accept-encoding"); value != encoding {
+		t.Errorf("%s: Accept-Encoding %q, want %q", r.url, value, encoding)
+	}
+}
+
+func TestARefererGivenWithoutAContextGoesAsGivenBesideATypedNavigation(t *testing.T) {
+	// A request without a browser context is a navigation typed in, and a
+	// header given is the caller's: a Referer goes as given, though Chrome
+	// sends none with Sec-Fetch-Site: none. A navigation from a page is a
+	// browser context with its Initiator, which refuses a Referer given.
+	server := newRecorder(t, "h2", nil)
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	if _, err := client.Do(&Request{URL: "https://www.example.com/", Header: NewHeader("Referer", "https://www.example.net/page")}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	got := server.requests()
+	if len(got) != 1 {
+		t.Fatalf("sent %d requests", len(got))
+	}
+	for name, want := range map[string]string{"referer": "https://www.example.net/page", "sec-fetch-site": "none", "sec-fetch-user": "?1"} {
+		if value, _ := got[0].header(name); value != want {
+			t.Errorf("%s %q, want %q", name, value, want)
 		}
 	}
 }

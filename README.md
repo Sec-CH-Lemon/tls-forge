@@ -446,24 +446,28 @@ tls-forge fetch --request-kind fetch --initiator-url https://shop.example/item/7
 ```
 
 Without `--request-kind` a request goes out as a navigation typed into the
-address bar, with the profile's headers and whatever `-H` adds: what the
-first request of a visit is. A page sends others, and Chrome sends each kind
-its own way. `--request-kind` says which this is, and `--initiator-url` the
-page it is sent from, and every request of the run goes out as Chrome 155 was
-measured sending that kind ([GO.md](GO.md#browser-contexts) has the rules):
-a form's POST with `Cache-Control`, `Origin` and the form's `Content-Type`;
-`fetch()` and an XHR with `Accept: */*` and `Sec-Fetch-Mode: cors`;
-`Referer` and `Sec-Fetch-Site` as the page stands to the URL; and only the
-cookies SameSite lets through. A `fetch` or `xhr` to another origin that CORS
-asks about goes after a preflight, an `OPTIONS`, and not at all when the
-preflight does not allow it: that URL fails, said with `CORS:`, and is not
-tried again. A `fetch` or `xhr` to another origin carries no cookies, and
-goes out, its preflight with it, on connections of its own, as Chrome keeps
-those of requests without credentials apart. Its redirects are followed as Chrome follows a page's, each hop
-worked out again ([GO.md](GO.md#redirects)), and one Chrome would not follow
-fails the same way. The client hints an origin asked for with `Accept-CH` go
-with every request of the run to it, as Chrome sends them
-([GO.md](GO.md#client-hints)).
+address bar, with the profile's headers and whatever `-H` adds: what the first
+request of a visit is. To plain http on another machine it goes as Chrome sends
+it there, without the client hints and `Sec-Fetch-*` and offering neither
+Brotli nor zstd, and each hop of a redirect as its own URL is; `-H` adds what
+it is given all the same, a `Referer` too, though a navigation from a page gets
+its `Referer` from `--request-kind navigation --initiator-url`. A page sends
+others, and Chrome sends each kind its own way. `--request-kind` says which
+this is, and `--initiator-url` the page it is sent from, and every request of
+the run goes out as Chrome 155 was measured sending that kind
+([GO.md](GO.md#browser-contexts) has the rules): a form's POST with
+`Cache-Control`, `Origin` and the form's `Content-Type`; `fetch()` and an XHR
+with `Accept: */*` and `Sec-Fetch-Mode: cors`; `Referer` and `Sec-Fetch-Site`
+as the page stands to the URL; and only the cookies SameSite lets through. A
+`fetch` or `xhr` to another origin that CORS asks about goes after a preflight,
+an `OPTIONS`, and not at all when the preflight does not allow it: that URL
+fails, said with `CORS:`, and is not tried again. A `fetch` or `xhr` to another
+origin carries no cookies, and goes out, its preflight with it, on connections
+of its own, as Chrome keeps those of requests without credentials apart. Its
+redirects are followed as Chrome follows a page's, each hop worked out again
+([GO.md](GO.md#redirects)), and one Chrome would not follow fails the same way.
+The client hints an origin asked for with `Accept-CH` go with every request of
+the run to it, as Chrome sends them ([GO.md](GO.md#client-hints)).
 
 What a page could not send is refused, with exit code 2, before anything is
 sent or written: a navigation with `-H` or `-d`, a form, `fetch` or `xhr`

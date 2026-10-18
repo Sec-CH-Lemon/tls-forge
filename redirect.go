@@ -447,6 +447,9 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 		hop = first.redirected(req)
 		hop.http1[fhttp.HeaderOrderKey] = hintsAfterDest(hop.http1[fhttp.HeaderOrderKey])
 	}
+	// What goes only to a potentially trustworthy URL is the chain's: the
+	// hop is written with it or without, as its own URL is.
+	hop.withheld = ch.laid.withheld
 	if value := ch.arrive(req.Method, shownURL(req), user, ch.authenticates(ch.last)); value != "" {
 		hop = hop.authorized(value)
 	}

@@ -74,6 +74,11 @@ type Client struct {
 	closed       atomic.Bool
 	maxBody      int64
 
+	// withheld is what of the profile's headers a request without a browser
+	// context sends only to a URL that is potentially trustworthy, less what
+	// the client was given; nil for none.
+	withheld *withholding
+
 	// id is the client's number in the process, and log what it writes down
 	// what it does to, with that number; nil writes nothing. logger is the one
 	// it was given, which a client made Fresh numbers itself in, and requests
@@ -335,7 +340,7 @@ func New(opts ...Option) (*Client, error) {
 	// synthesised from a domain has no port, which a jar keyed by host and port
 	// then never matches. The request knows the URL exactly.
 	client := &Client{transports: t, session: newSession(jar, cfg.cookies), profile: prof, headers: headers,
-		http1Headers: http1Headers, maxBody: cfg.maxResponseBody,
+		http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody,
 		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
 	if log != nil {
 		client.describe(cfg, shuffleExtensions, clientProfile)
@@ -380,7 +385,7 @@ func (c *Client) Fresh() (*Client, error) {
 		log.Debug("fresh client", "from", c.id)
 	}
 	return &Client{transports: t, session: c.session, profile: c.profile, headers: c.headers,
-		http1Headers: c.http1Headers, maxBody: c.maxBody,
+		http1Headers: c.http1Headers, withheld: c.withheld, maxBody: c.maxBody,
 		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
 }
 

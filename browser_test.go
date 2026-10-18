@@ -156,6 +156,14 @@ var sentInContexts = map[string]asSent{
 		cookies: setOnEveryKind("www.example.net")},
 	"nav-same-site-samesite": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("nav-same-site-samesite")},
 		cookies: setOnEveryKind("api.example.com")},
+	// Typed to plain http, and to http on the machine itself, which is
+	// potentially trustworthy as https is.
+	"nav-direct-plain":         {browser: BrowserContext{Kind: KindNavigation}},
+	"nav-direct-localhost":     {browser: BrowserContext{Kind: KindNavigation}},
+	"nav-direct-dot-localhost": {browser: BrowserContext{Kind: KindNavigation}},
+	"nav-direct-ipv4":          {browser: BrowserContext{Kind: KindNavigation}},
+	"nav-direct-ipv6":          {browser: BrowserContext{Kind: KindNavigation}},
+
 	"form-post-same-origin": {browser: BrowserContext{Kind: KindForm, Initiator: run("form-post-same-origin")}, form: true},
 	"form-post-same-origin-cookies": {browser: BrowserContext{Kind: KindForm,
 		Initiator: run("form-post-same-origin-cookies") + "?cookie=1"}, form: true, cookies: setByRun},
@@ -222,6 +230,10 @@ var sentInContexts = map[string]asSent{
 	"redir-nav-direct-308":                  {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
 	"redir-nav-direct-cookie":               {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
 	"redir-nav-direct-cross-site":           {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"redir-nav-direct-downgrade":            {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"redir-nav-direct-upgrade":              {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"redir-nav-direct-to-localhost":         {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
+	"redir-nav-direct-plain-to-localhost":   {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
 	"redir-nav-direct-through-another-site": {browser: BrowserContext{Kind: KindNavigation}, redirected: true},
 	"redir-nav-chain": {browser: BrowserContext{Kind: KindNavigation}, redirected: true,
 		fails: "the 20th redirect was not followed"},

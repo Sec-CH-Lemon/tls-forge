@@ -131,6 +131,26 @@ func TestTheServerKeepsEachRequestAsItWasSentOverEachProtocol(t *testing.T) {
 	}
 }
 
+func TestPlainHTTPIsServedAtTheIPv6LoopbackAddressTooOnItsPort(t *testing.T) {
+	// A URL naming [::1] is kept as one naming 127.0.0.1 is: its port left
+	// out, as the server's.
+	s := started(t, catalogue)
+	url := "http://[::1]:" + strconv.Itoa(s.Plain) + "/p/a"
+	res, err := (&http.Client{Timeout: 10 * time.Second}).Get(url)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
+	}
+	_ = res.Body.Close()
+	entries := requests(t, s)
+	if len(entries) != 1 || entries[0].Target != url || entries[0].Proto != "http/1.1" {
+		t.Fatalf("kept %+v", entries)
+	}
+	if got := s.kept(entries, false); len(got) != 1 || got[0].URL != "http://[::1]/p/a" ||
+		!slices.Contains(got[0].Headers, [2]string{"Host", "[::1]"}) {
+		t.Errorf("kept as %+v", got)
+	}
+}
+
 func TestEachRequestSaysWhetherItsConnectionResumedATLSSession(t *testing.T) {
 	s := started(t, catalogue)
 	for _, tc := range []struct {
@@ -480,6 +500,14 @@ func TestAServerThatCannotStartSaysWhy(t *testing.T) {
 					return net.Listen(network, addr)
 				}
 				return nil, failing
+			}
+		}, ""},
+		{"no plain port at the IPv6 loopback address", func() {
+			listen = func(network, addr string) (net.Listener, error) {
+				if strings.HasPrefix(addr, "[::1]:") {
+					return nil, failing
+				}
+				return net.Listen(network, addr)
 			}
 		}, ""},
 	} {

@@ -27,6 +27,10 @@ type layouts struct {
 	// between stays: never the Cookie, to which fhttp's client adds the jar's
 	// cookies (newLayouts).
 	managed map[string]bool
+	// withheld is what of the blocks goes only to a URL that is potentially
+	// trustworthy, which wear leaves out of what is written to any other; nil
+	// for nothing.
+	withheld *withholding
 }
 
 type layoutsKey struct{}
@@ -77,7 +81,93 @@ func (c *Client) layoutsAsGiven(headers, given Header, host string) *layouts {
 		cookieSlot(http2)
 		cookieSlot(http1)
 	}
-	return newLayouts(http2, http1)
+	l := newLayouts(http2, http1)
+	l.withheld = c.withheld.without(given)
+	return l
+}
+
+// withholding is what of a request without a browser context goes only to a
+// URL that is potentially trustworthy (trustworthy): https, or http to the
+// machine itself. Chrome tells no other its client hints or where its requests
+// come from (Sec-Fetch-*), and offers it neither Brotli nor zstd, a navigation
+// typed or redirected there as any other (testdata/chrome155-requests.json:
+// nav-direct-plain, and the hops of the redir-nav-direct-* scenarios between
+// plain http, https and http://localhost). Only the profile's is withheld: a
+// field the client or the request was given goes as given.
+type withholding struct {
+	// names are the lower-case names of the client hints and Sec-Fetch-*.
+	names []string
+	// encoding is whether the Accept-Encoding is the profile's.
+	encoding bool
+}
+
+// withheldOf is what of prof's headers, over either protocol, goes only to a
+// potentially trustworthy URL, but what given names; nil for nothing. Only
+// Chromium was measured: another browser's profile withholds nothing.
+func withheldOf(prof *profile.Profile, given Header) *withholding {
+	if !prof.Chromium() {
+		return nil
+	}
+	fields := append(Header(nil), prof.Headers...)
+	if prof.HTTP1 != nil {
+		fields = append(fields, prof.HTTP1.Headers...)
+	}
+	w := &withholding{}
+	for _, f := range fields {
+		name := strings.ToLower(f.Name)
+		switch {
+		case given.Has(name) || slices.Contains(w.names, name):
+		case strings.HasPrefix(name, "sec-ch-") || strings.HasPrefix(name, "sec-fetch-"):
+			w.names = append(w.names, name)
+		case name == "accept-encoding":
+			w.encoding = true
+		}
+	}
+	if len(w.names) == 0 && !w.encoding {
+		return nil
+	}
+	return w
+}
+
+// without is w less what given names, a request's own headers; nil for
+// nothing.
+func (w *withholding) without(given Header) *withholding {
+	if w == nil || len(given) == 0 {
+		return w
+	}
+	out := &withholding{encoding: w.encoding && !given.Has("accept-encoding")}
+	for _, name := range w.names {
+		if !given.Has(name) {
+			out.names = append(out.names, name)
+		}
+	}
+	if len(out.names) == 0 && !out.encoding {
+		return nil
+	}
+	return out
+}
+
+// from takes what w withholds out of header, a block to be written to a URL
+// that is not potentially trustworthy: the fields it names, their slots left in
+// the order, and Brotli and zstd out of the Accept-Encoding, which goes when
+// it offers nothing else.
+func (w *withholding) from(header fhttp.Header) {
+	for _, name := range w.names {
+		deleteFields(header, name)
+	}
+	if !w.encoding {
+		return
+	}
+	for name, values := range header {
+		if !strings.EqualFold(name, "accept-encoding") {
+			continue
+		}
+		if offered := withoutCodings(strings.Join(values, ", "), "br", "zstd"); offered != "" {
+			header[name] = []string{offered}
+		} else {
+			delete(header, name)
+		}
+	}
 }
 
 // cookieSlot names the Cookie in block's order where Chrome writes it: right
@@ -164,7 +254,9 @@ func (l *layouts) authorized(value string) *layouts {
 	if l.http1 != nil {
 		http1 = withAuthorization(l.http1, value)
 	}
-	return newLayouts(withAuthorization(l.http2, value), http1)
+	out := newLayouts(withAuthorization(l.http2, value), http1)
+	out.withheld = l.withheld
+	return out
 }
 
 // leadAuthorization are the names Chrome writes before Authorization.
@@ -186,27 +278,43 @@ func withAuthorization(block fhttp.Header, value string) fhttp.Header {
 }
 
 // wear is req wearing l: the HTTP/2 block, and over HTTP/1.1 the HTTP/1.1
-// block, which the transport asks for once it knows (HeaderFor). l goes on
-// req's context too, for a redirect's request to make its own from
+// block, which the transport asks for once it knows (HeaderFor). To a URL that
+// is not potentially trustworthy either is written without what l withholds,
+// while the block req wears stays whole: fhttp makes a redirect's request with
+// a copy of it, and a hop to a URL that is gets what was withheld back. l goes
+// on req's context too, for a redirect's request to make its own from
 // (layoutsOn), since fhttp makes it with the first request's context. A
-// request that goes the same over both wears its one block, and nothing more.
-// Each wears a copy, which the client and the transport add to (the jar's
-// Cookie, Host): l stays as it was made, for a request sent again for a
-// challenge to be made from (chain.laid).
+// request that goes the same over both wears its one block, and nothing more
+// where it withholds nothing. Each wears a copy, which the client and the
+// transport add to (the jar's Cookie, Host): l stays as it was made, for a
+// request sent again for a challenge to be made from (chain.laid).
 func (l *layouts) wear(req *fhttp.Request) *fhttp.Request {
 	req.Header = cloneHeaderLayout(l.http2)
-	if l.http1 == nil {
+	withheld := l.withheld
+	if withheld != nil && trustworthy(originOf(req.URL)) {
+		withheld = nil
+	}
+	if l.http1 == nil && withheld == nil {
 		return req
 	}
 	req.HeaderFor = func(protocol string, header fhttp.Header) fhttp.Header {
-		if protocol != fhttp.ProtocolHTTP1 {
+		http1 := protocol == fhttp.ProtocolHTTP1 && l.http1 != nil
+		if !http1 && withheld == nil {
 			return nil
 		}
 		// The header as the client left it, what it added kept: the Cookie
 		// it wrote the jar's cookies into, after the request's own.
 		written := cloneHeaderLayout(header)
-		applyHeaderLayout(written, l.http1, l.managed)
+		if http1 {
+			applyHeaderLayout(written, l.http1, l.managed)
+		}
+		if withheld != nil {
+			withheld.from(written)
+		}
 		return written
+	}
+	if l.http1 == nil {
+		return req
 	}
 	return req.WithContext(context.WithValue(req.Context(), layoutsKey{}, l))
 }

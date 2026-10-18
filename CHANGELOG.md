@@ -868,6 +868,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A request without a browser context goes to plain http as Chrome sends it
+  there**, with a Chromium profile: without the client hints and `Sec-Fetch-*`,
+  and offering neither Brotli nor zstd. tls-forge sent every header of the
+  profile to any URL, seven Chrome sends only to a potentially trustworthy one,
+  and an `Accept-Encoding` it does not offer another. Each hop of a redirect
+  goes as its own URL is, from https to plain http without them and from plain
+  http to https with them, where every hop went with the first request's
+  headers. `localhost`, a name under `.localhost`, `127.0.0.1` and `[::1]` are
+  potentially trustworthy, as https is, and get them all. Measured on Chrome
+  155 (the `nav-direct-*` and `redir-nav-direct-*` scenarios of
+  `testdata/chrome155-requests.json`), and held to it request for request. A
+  header the client or the request was given goes as given, as before.
 - **The trust anchors of Chrome 154 and later go out in Chrome's order**,
   sorted by their bytes, as Chromium sorts them, and `compare` holds them to
   it. Every capture of Chrome 154 and 155, on three platforms, holds them so;

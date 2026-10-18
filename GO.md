@@ -230,6 +230,20 @@ values to the jar instead, where they go on every later request they belong
 to and give way to a value the server sets, as a browser's do; a name in both
 would go twice.
 
+A request without a browser context goes to an http URL that is not on the
+machine itself as Chrome sends a navigation there: without the profile's
+client hints and `Sec-Fetch-*`, offering neither Brotli nor zstd.
+`localhost`, a name under `.localhost`, `127.0.0.1` and `[::1]` are
+potentially trustworthy, as https is, and get every header of the profile;
+each hop of a redirect goes as its own URL is, measured on Chrome 155 (the
+`nav-direct-*` and `redir-nav-direct-*` scenarios of
+`testdata/chrome155-requests.json`). What `Header` or `WithHeaders` gives goes
+as given, to any URL: a `Referer` too, though Chrome sends none beside a typed
+navigation's `Sec-Fetch-Site: none`. A navigation from a page is a
+[browser context](#browser-contexts) with its `Initiator`, which works its
+`Referer` out and refuses one given. Only Chromium was measured: another
+browser's profile sends every header it names.
+
 ## Browser contexts
 
 A request on its own goes out as a navigation typed into the address bar: the

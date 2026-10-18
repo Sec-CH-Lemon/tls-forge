@@ -56,10 +56,12 @@ type Entry struct {
 
 // Server keeps every request made of it, over HTTP/2 and HTTP/1.1 on TLS and
 // over plain HTTP, and answers as the scenarios need: their pages, redirects,
-// CORS and cookies. It listens on the loopback address.
+// CORS and cookies. It listens on the loopback address, and serves plain HTTP
+// on the IPv6 one as well.
 type Server struct {
 	// H2, H1 and Plain are its ports: TLS that offers HTTP/2 and HTTP/1.1,
-	// TLS that offers HTTP/1.1 alone, and plain HTTP.
+	// TLS that offers HTTP/1.1 alone, and plain HTTP, at 127.0.0.1 and at
+	// [::1].
 	H2, H1, Plain int
 	// Tables are the ports of TLS that offers HTTP/2 alone, by the size of
 	// the HPACK table its SETTINGS let a client have, for each size a scenario
@@ -153,12 +155,20 @@ func startServer(scenarios map[string]scenario) (*Server, error) {
 		ports[i] = ln.Addr().(*net.TCPAddr).Port
 	}
 	s.H2, s.H1, s.Plain = ports[0], ports[1], ports[2]
+	// Plain HTTP at the IPv6 loopback address too, on the same port, so that
+	// a URL naming [::1] is kept as one naming 127.0.0.1 is.
+	ln, err := listen("tcp", net.JoinHostPort("::1", strconv.Itoa(s.Plain)))
+	if err != nil {
+		_ = s.Close()
+		return nil, fmt.Errorf("harness: %w", err)
+	}
+	s.listeners = append(s.listeners, ln)
 	servers := map[*http.Server]*chanListener{s.h1: s.http1, s.h2: s.http2}
 	for i, size := range tables {
 		s.Tables[size] = ports[3+i]
 		servers[s.tables[size].server] = s.tables[size].ln
 	}
-	s.done.Add(2*len(servers) + 1)
+	s.done.Add(2*len(servers) + 2)
 	for server, ln := range servers {
 		go func() {
 			defer s.done.Done()
@@ -168,6 +178,7 @@ func startServer(scenarios map[string]scenario) (*Server, error) {
 	go s.accept(s.listeners[0], []string{"h2", "http/1.1"}, nil)
 	go s.accept(s.listeners[1], []string{"http/1.1"}, nil)
 	go s.accept(s.listeners[2], nil, nil)
+	go s.accept(ln, nil, nil)
 	for i, size := range tables {
 		go s.accept(s.listeners[3+i], []string{"h2"}, s.tables[size])
 	}

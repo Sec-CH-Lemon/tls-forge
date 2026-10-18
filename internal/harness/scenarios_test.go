@@ -54,7 +54,7 @@ func TestEveryScenarioOfConnectionsStartsAtTheLobbyAndNoOtherDoes(t *testing.T) 
 }
 
 // placeholder is one of the catalogue's that fill would have filled in.
-var placeholder = regexp.MustCompile(`\{(A|S|X|C|U|W|H|L|ID)\}`)
+var placeholder = regexp.MustCompile(`\{(A|S|X|C|U|W|H|L|D|4|6|ID)\}`)
 
 func TestEveryScenarioIsPlannedWithEveryPlaceFilledIn(t *testing.T) {
 	o := origins(8443, 8080)
@@ -91,7 +91,9 @@ func TestAScenarioRunsOnItsPageUnlessToldOtherwise(t *testing.T) {
 		t.Errorf("planned %+v", p)
 	}
 	if got := origins(1, 2); got["C"] != "https://u:p@www.example.net:1" || got["U"] != "https://u:p@www.example.com:1" ||
-		got["W"] != "https://u:x@www.example.com:1" || got["H"] != "http://www.example.com:2" || len(got) != 8 {
+		got["W"] != "https://u:x@www.example.com:1" || got["H"] != "http://www.example.com:2" ||
+		got["D"] != "http://app.localhost:2" || got["4"] != "http://127.0.0.1:2" || got["6"] != "http://[::1]:2" ||
+		len(got) != 11 {
 		t.Errorf("origins %v", got)
 	}
 }

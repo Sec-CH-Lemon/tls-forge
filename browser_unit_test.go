@@ -62,6 +62,16 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 			"a navigation has no credentials mode"},
 		{"a navigation with a header", BrowserContext{Kind: KindNavigation}, "", page, NewHeader("X-Foo", "1"), "",
 			"a navigation sends the headers the browser gives it, not x-foo"},
+		// A Referer is the browser's to work out, from the page and its
+		// policy, whatever the kind.
+		{"a navigation given a Referer", BrowserContext{Kind: KindNavigation, Initiator: other}, "", page,
+			NewHeader("Referer", other), "", "a navigation sends the headers the browser gives it, not referer"},
+		{"a form given a Referer", BrowserContext{Kind: KindForm, Initiator: page}, "POST", page,
+			NewHeader("Content-Type", formEncoded, "Referer", other), "a=1", "a form sends the headers the browser gives it, not referer"},
+		{"fetch() given a Referer", BrowserContext{Kind: KindFetch, Initiator: page}, "", page, NewHeader("Referer", other), "",
+			"fetch() cannot set referer: the browser sets it"},
+		{"an XHR given a Referer", BrowserContext{Kind: KindXHR, Initiator: page}, "", page, NewHeader("Referer", other), "",
+			"an XHR cannot set referer: the browser sets it"},
 		{"a form from no page", BrowserContext{Kind: KindForm}, "POST", page, nil, "a=1",
 			"a form is submitted from a page: name it as the initiator"},
 		{"a form put", BrowserContext{Kind: KindForm, Initiator: page}, "PUT", page, nil, "",

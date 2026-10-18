@@ -52,12 +52,19 @@ const submit = "document.getElementById('f').submit();"
 // URLs {A} is https://www.example.com and {S} https://api.example.com, one
 // site, {X} https://www.example.net, another, {C} {X} with credentials, {U}
 // {A} with the ones the pages under /auth/ take, u:p, and {W} {A} with others,
-// all on the port of the protocol measured; {H} is http://www.example.com and
-// {L} http://localhost, on the plain port; and {ID} the scenario's name.
+// all on the port of the protocol measured; {H} is http://www.example.com,
+// {L} http://localhost, {D} http://app.localhost, a name under .localhost,
+// {4} http://127.0.0.1 and {6} http://[::1], on the plain port; and {ID} the
+// scenario's name.
 var catalogue = map[string]scenario{
 	// Navigations.
 	"nav-direct":                     {note: "a URL given on the command line", start: "{A}/p/nav-direct", wait: "/p/nav-direct"},
 	"nav-direct-cookies":             {note: "the same, a second launch after a visit that set cookies", pre: "{A}/p/set?cookie=1", start: "{A}/p/nav-direct-cookies", wait: "/p/nav-direct-cookies"},
+	"nav-direct-plain":               {note: "a URL given on the command line, plain http", start: "{H}/p/nav-direct-plain", wait: "/p/nav-direct-plain"},
+	"nav-direct-localhost":           {note: "a URL given on the command line, http://localhost", start: "{L}/p/nav-direct-localhost", wait: "/p/nav-direct-localhost"},
+	"nav-direct-dot-localhost":       {note: "a URL given on the command line, http to a name under .localhost", start: "{D}/p/nav-direct-dot-localhost", wait: "/p/nav-direct-dot-localhost"},
+	"nav-direct-ipv4":                {note: "a URL given on the command line, http to 127.0.0.1", start: "{4}/p/nav-direct-ipv4", wait: "/p/nav-direct-ipv4"},
+	"nav-direct-ipv6":                {note: "a URL given on the command line, http to [::1]", start: "{6}/p/nav-direct-ipv6", wait: "/p/nav-direct-ipv6"},
 	"nav-same-origin":                {note: "location.href to a page of the same origin", script: "location.href='{A}/p/nav-same-origin';", wait: "/p/nav-same-origin"},
 	"nav-same-origin-cookies":        {note: "the same, with cookies the run page set", start: "{A}/run/{ID}?cookie=1", script: "location.href='{A}/p/nav-same-origin-cookies';", wait: "/p/nav-same-origin-cookies"},
 	"nav-same-site":                  {note: "location.href to another origin of the same site", script: "location.href='{S}/p/nav-same-site';", wait: "/p/nav-same-site"},
@@ -130,6 +137,14 @@ var catalogue = map[string]scenario{
 	// in the same moment.
 	"redir-nav-chain": {note: "a command-line navigation into a chain of 302s that does not end: twenty requests, the twentieth redirect not followed (net::ERR_TOO_MANY_REDIRECTS); the error page then reloaded the last URL, and that reload is left out",
 		start: "{A}/chain/0", wait: "/chain/19"},
+
+	// Redirects of a typed navigation between plain http, https and
+	// http://localhost, where what goes only to a potentially trustworthy URL
+	// comes and goes.
+	"redir-nav-direct-downgrade":          {note: "a command-line navigation, 302 from https to http", start: "{A}/r/302/redir-nav-direct-downgrade?to={H}/p/after-direct-down", wait: "/p/after-direct-down"},
+	"redir-nav-direct-upgrade":            {note: "a command-line navigation, 302 from http to https", start: "{H}/r/302/redir-nav-direct-upgrade?to={A}/p/after-direct-up", wait: "/p/after-direct-up"},
+	"redir-nav-direct-to-localhost":       {note: "a command-line navigation, 302 from https to http://localhost", start: "{A}/r/302/redir-nav-direct-to-localhost?to={L}/p/after-direct-localhost", wait: "/p/after-direct-localhost"},
+	"redir-nav-direct-plain-to-localhost": {note: "a command-line navigation, 302 from http to http://localhost", start: "{H}/r/302/redir-nav-direct-plain-to-localhost?to={L}/p/after-plain-localhost", wait: "/p/after-plain-localhost"},
 
 	// Redirects of a form's POST.
 	"redir-form-301":            {note: "a form POST, 301 to the same origin", html: formHTML("post", "{A}/r/301/redir-form-301?to=/p/form-after-301", ""), script: submit, wait: "/p/form-after-301"},
@@ -307,6 +322,9 @@ func origins(port, plain int) map[string]string {
 		"W": "https://u:x@www.example.com:" + tls,
 		"H": "http://www.example.com:" + http,
 		"L": "http://localhost:" + http,
+		"D": "http://app.localhost:" + http,
+		"4": "http://127.0.0.1:" + http,
+		"6": "http://[::1]:" + http,
 	}
 }
 
