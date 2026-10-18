@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -223,6 +224,33 @@ func TestAPreflightARedirectNeedsCanRefuseIt(t *testing.T) {
 	if strings.Join(asked, ", ") != "POST https://www.example.com/r/307/x?to=https://www.example.net/cors/after?deny=1, "+
 		"OPTIONS https://www.example.net/cors/after?deny=1" {
 		t.Errorf("sent %v", asked)
+	}
+}
+
+func TestTheRedirectsPreflightGoesOutWithoutCredentials(t *testing.T) {
+	// The page has a connection with credentials to www.example.net, from a
+	// fetch() that carried them; the preflight its redirect there needs goes
+	// out on one of the connections of requests that carry none, as every
+	// preflight does.
+	server := newRecorder(t, "h2", answeringAsMeasured)
+	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	page := "https://www.example.com/page"
+	if _, err := client.Do(&Request{URL: "https://www.example.net/cors/first", Browser: &BrowserContext{Kind: KindFetch,
+		Initiator: page, Credentials: credentialsAll}}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if _, err := client.Do(&Request{Method: "POST", URL: "https://www.example.com/r/307/x?to=https://www.example.net/cors/after",
+		Body: []byte("{}"), Header: NewHeader("Content-Type", "application/json"),
+		Browser: &BrowserContext{Kind: KindFetch, Initiator: page}}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	got := server.requests()
+	if len(got) != 4 || got[2].method != "OPTIONS" || got[2].conn == got[0].conn || got[2].conn == got[1].conn {
+		var sent []string
+		for _, req := range got {
+			sent = append(sent, fmt.Sprintf("%s %s on %d", req.method, req.url, req.conn))
+		}
+		t.Errorf("sent %q", sent)
 	}
 }
 

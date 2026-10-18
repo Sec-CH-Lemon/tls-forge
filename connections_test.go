@@ -71,10 +71,9 @@ var apartFromChrome = map[string]struct{ sent, why string }{
 	"conn-redirect-include-to-cross-site/h2":        {"1* 2 1* 3", pooled},
 	"conn-redirect-to-cross-site/h2":                {"1* 2 1* 3", uncredentialed},
 	"conn-redirect-to-cross-site/h1":                {"1* 2 1* 3", uncredentialed},
-	"conn-nav-cross-site-after-include/h2":          {"1* 2 2", pooled + ". " + partitioned},
-	"conn-nav-cross-site-after-include/h1":          {"1* 2 2", partitioned},
-	"conn-nav-redirect-cross-site-after-include/h2": {"1* 2 1* 2", pooled + ". " + partitioned},
-	"conn-nav-redirect-cross-site-after-include/h1": {"1* 2 1* 2", partitioned},
+	"conn-nav-cross-site-after-include/h2":          {"1* 2 3", pooled},
+	"conn-nav-redirect-cross-site-after-include/h2": {"1* 2 1* 2", pooled + ". " + redirected},
+	"conn-nav-redirect-cross-site-after-include/h1": {"1* 2 1* 2", redirected},
 }
 
 // Why a client's requests go out on other connections than Chrome's.
@@ -84,9 +83,8 @@ const (
 		"a connection for each name"
 	uncredentialed = "Chrome follows a redirect that leaves a request without credentials on the connections of " +
 		"requests that carry none; the client follows it on the connections the request went out on"
-	partitioned = "Chrome keeps the connections and TLS sessions of each top-level site apart: a page loaded at the " +
-		"top of another site, a redirect's hop to one too, goes out on connections of that site's; the client keys " +
-		"connections by credentials alone"
+	redirected = "Chrome sends a navigation's redirect to another site on the connections of that site's, as it " +
+		"keeps each top-level site's apart; the client follows a redirect on the connections of the first hop's site"
 )
 
 // onConnections says which connection each request came on, numbered from

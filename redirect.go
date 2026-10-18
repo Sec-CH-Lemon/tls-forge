@@ -32,8 +32,10 @@ type chain struct {
 	client *Client
 	log    *requestLog
 	// base is the request's context before its layouts were hung on it, which
-	// a hop's preflight is made in.
+	// a hop's preflight is made in; site are the connections of its first
+	// hop's top-level site, which every hop and preflight goes out on.
 	base context.Context
+	site *site
 	// bodyless is a chain whose body a redirect has dropped, and every hop
 	// after it goes without one, whatever its status.
 	bodyless bool
@@ -411,7 +413,7 @@ func (ch *chain) followInContext(req, previous *fhttp.Request, crossed, dropped 
 	h.authorization = ch.arrive(h.method, shownURL(req), user, ch.authenticates(h))
 	r := ch.browser
 	if r.needsPreflight(h) && !ch.client.session.preflights.allows(r, h, shownURL(req).String()) {
-		if err := ch.client.preflight(ch.base, req, r, h, ch.log); err != nil {
+		if err := ch.client.preflight(ch.base, req, r, h, ch.site.bare, ch.log); err != nil {
 			return err
 		}
 	}

@@ -296,25 +296,43 @@ that does not is an error wrapping `ErrCORS`, and is not returned. What comes
 back is returned whole: a page would see only the headers CORS exposes, and
 nothing of a `no-cors` answer.
 
-`fetch()` and an XHR go out on the connections the client's other requests
-use, each HTTP/2 `HEADERS` frame with the weight Chrome gives it: 220 for a
-script's request, its preflight, its redirects and its answer to a 401, 256
-for a page's. A request that carries no credentials goes out on connections of
-its own, which resume only TLS sessions of their own, as Chrome 155 sends one
-(`testdata/chrome155-connections.json`): `fetch()` with credentials omitted,
-one kept to its page's origin that goes to another, in cors or no-cors mode,
-an XHR without `withCredentials` to another origin, and every CORS preflight,
-that of a request with credentials too. Its redirects follow it there.
+`fetch()` and an XHR go out on the connections of their page's site, which
+its own requests use too, each HTTP/2 `HEADERS` frame with the weight Chrome
+gives it: 220 for a script's request, its preflight, its redirects and its
+answer to a 401, 256 for a page's. A request that carries no credentials goes
+out on connections of its own, which resume only TLS sessions of their own, as
+Chrome 155 sends one (`testdata/chrome155-connections.json`): `fetch()` with
+credentials omitted, one kept to its page's origin that goes to another, in
+cors or no-cors mode, an XHR without `withCredentials` to another origin, and
+every CORS preflight, that of a request with credentials too. Its redirects
+follow it there.
 
-Two things Chrome does with its connections tls-forge does not. Chrome sends
-a request with credentials to another name over an HTTP/2 connection it holds
-to the same address, when the certificate is good for that name: a page's
+Connections, and the TLS sessions they resume, are kept apart for each
+top-level site too, as Chrome keeps them: a navigation or a form loads a page
+of a site, and goes out on that site's connections, and what a page's scripts
+send goes out on the page's. A navigation from a page of `www.example.com` to
+`www.example.net` opens a connection of its own even when a `fetch()` of the
+page holds one to that host, and resumes none of its TLS sessions. A request
+without a browser context goes out as a navigation typed in, on the
+connections of its URL's site. A client keeps the connections of the 64 sites
+it sent requests to last: a request to one more drops the site used longest
+ago, whose idle connections are closed and whose TLS sessions are forgotten;
+what is in flight on them ends as it would have, and a request to that site
+later opens connections of its own again. `CloseIdleConnections` and `Close`
+close the idle connections of every site, and a client made `Fresh` keeps
+none of this client's.
+
+Three things Chrome does with its connections tls-forge does not. Chrome sends
+a request to another name over an HTTP/2 connection of its kind it holds to
+the same address, when the certificate is good for that name: a page's
 `fetch()` of another site that serves from the same address goes out on the
-page's own connection, where tls-forge opens one for each name. And a
-redirect that leaves a request without credentials, `fetch()` of the page's
-origin redirected to another, Chrome follows on the connections of requests
-that carry none, where tls-forge follows it on the connections the request
-went out on.
+page's own connection, where tls-forge opens one for each name. Chrome sends
+a navigation's redirect to another site on that site's connections, where
+tls-forge follows every redirect on the connections of the site of the first
+hop. And a redirect that leaves a request without credentials, `fetch()` of
+the page's origin redirected to another, Chrome follows on the connections of
+requests that carry none, where tls-forge follows it on the connections the
+request went out on.
 
 What a context does not do yet: the order of several headers a script set
 (Chrome's renderer keeps them in a hash table where each name has its place,
@@ -682,7 +700,8 @@ One `Client` represents one browser identity:
 - one TLS/HTTP profile;
 - one cookie jar;
 - one proxy and exit IP;
-- one reusable connection pool.
+- one pool of connections, kept apart for each top-level site and by
+  credentials, as Chrome keeps them ([Browser contexts](#browser-contexts)).
 
 The Go client is safe for concurrent use. For multiple identities, create a
 pool of clients, normally one per proxy, instead of sharing one jar across

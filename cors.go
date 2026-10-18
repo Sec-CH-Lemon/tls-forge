@@ -12,6 +12,7 @@ import (
 	"time"
 
 	fhttp "github.com/igor-lemon/fhttp"
+	tls_client "github.com/igor-lemon/tls-client"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
@@ -265,15 +266,15 @@ func (c *preflightCache) keep(r *browserRequest, h hop, target string, a allowan
 type preflightContextKey struct{}
 
 // preflight asks, before a request in cors mode, whether it may be sent: an
-// OPTIONS of the same URL with Chrome's headers and no credentials, on the
-// connections of requests that carry none, where Chrome sends it whatever the
-// request carries. What it allows is kept in the session's cache; an answer
+// OPTIONS of the same URL with Chrome's headers and no credentials, on bare,
+// the connections of the page's site for requests that carry none, where
+// Chrome sends it whatever the request carries. What it allows is kept in the session's cache; an answer
 // that does not allow the request is an error, and the request is not sent.
 //
 // base is the request's context before its own layouts went on it, which
 // are not the preflight's.
 func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browserRequest, h hop,
-	log *requestLog) error {
+	bare tls_client.HttpClient, log *requestLog) error {
 	shown := shownURL(inner)
 	target := shown.String()
 	u := *inner.URL
@@ -285,7 +286,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 		c.session.jar.restrict(ask.URL, sendRule{none: true})
 		defer c.session.jar.release(ask.URL)
 	}
-	res, err := c.transports.carrying(false).Do(ask)
+	res, err := bare.Do(ask)
 	if err != nil {
 		return transportError(err)
 	}

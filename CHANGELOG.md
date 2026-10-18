@@ -73,13 +73,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   through, a form's POST carrying for two minutes those that named none. One
   that carries no credentials, every CORS preflight among them, goes out on
   connections of its own, which resume only TLS sessions of their own, as
-  Chrome keeps them apart (`testdata/chrome155-connections.json`); unlike
-  Chrome, tls-forge opens a connection for each name where Chrome sends a
-  request over an HTTP/2 connection of its kind it holds to the same
-  address, keeps connections apart by credentials alone where Chrome keeps
-  those of each top-level site apart too, and follows a redirect that
-  leaves a request without credentials on the connections the request went
-  out on. What
+  Chrome keeps them apart (`testdata/chrome155-connections.json`), on those
+  of the page's top-level site; unlike Chrome, tls-forge opens a connection
+  for each name where Chrome sends a request over an HTTP/2 connection of its
+  kind it holds to the same address, follows a redirect on the connections
+  of the first hop's site, where Chrome sends a navigation's hop to another
+  site on that site's, and follows a redirect that leaves a request without
+  credentials on the connections the request went out on. What
   a page cannot send is refused before anything is sent. A request without
   one goes out as before.
 - **Redirects are followed as Chrome 155 follows them**, measured
@@ -595,6 +595,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **Connections, and the TLS sessions they resume, are kept apart for each
+  top-level site**, as Chrome 155 keeps them
+  (`testdata/chrome155-connections.json`): a navigation or a form goes out on
+  the connections of the site of the page it loads, and what a page's scripts
+  send on the page's. A request without a browser context goes out on those
+  of its URL's site, as a navigation typed in. A client keeps the connections
+  of the last 64 sites it sent requests to; one more drops the site used
+  longest ago, closing its idle connections and forgetting its TLS sessions.
 - **tls-forge builds on its own forks of fhttp and tls-client**, with those of
   quic-go-utls and websocket, which name the same fhttp, so that what the
   transport writes can be changed where Chrome writes otherwise:

@@ -575,9 +575,15 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), scriptHeaderPriority))
 	}
 	// A request that carries no credentials goes out on connections of its
-	// own, as Chrome sends one; its redirects follow it there, and so would
-	// its answer to a 401, which only a request with credentials gets.
-	transport := c.transports.carrying(browser == nil || !browser.cookies(ch.last).none)
+	// own, as Chrome sends one, and each top-level site has its own; its
+	// redirects follow it there, and so would its answer to a 401, which only
+	// a request with credentials gets.
+	s, err := c.transports.siteOf(topSite(browser, parsed))
+	if err != nil {
+		return nil, nil, err
+	}
+	ch.site = s
+	transport := s.carrying(browser == nil || !browser.cookies(ch.last).none)
 	ch.base = inner.Context()
 	inner = blocks.wear(inner)
 	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
@@ -585,7 +591,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	defer ch.release()
 	if browser != nil {
 		if browser.needsPreflight(ch.last) && !c.session.preflights.allows(browser, ch.last, inner.URL.String()) {
-			if err := c.preflight(ch.base, inner, browser, ch.last, r); err != nil {
+			if err := c.preflight(ch.base, inner, browser, ch.last, s.bare, r); err != nil {
 				return nil, nil, err
 			}
 		}
