@@ -54,12 +54,15 @@ type Request struct {
 }
 
 // LoadRequests reads a fixture of requests.
-func LoadRequests(path string) (*RequestsFixture, error) {
+func LoadRequests(path string) (*RequestsFixture, error) { return load[RequestsFixture](path) }
+
+// load reads a fixture of type T.
+func load[T any](path string) (*T, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var f RequestsFixture
+	var f T
 	if err := json.Unmarshal(data, &f); err != nil {
 		return nil, fmt.Errorf("harness: %s: %w", path, err)
 	}
@@ -91,14 +94,9 @@ func Measure(ctx context.Context, b Browser, only []string, progress io.Writer) 
 
 func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only []string, t timing,
 	progress io.Writer) (map[string]MeasuredScenario, error) {
-	for _, id := range only {
-		if _, ok := scenarios[id]; !ok {
-			return nil, fmt.Errorf("harness: there is no scenario %s", id)
-		}
-	}
-	ids := slices.Sorted(maps.Keys(scenarios))
-	if len(only) > 0 {
-		ids = slices.Sorted(slices.Values(only))
+	ids, err := selected(scenarios, only)
+	if err != nil {
+		return nil, err
 	}
 	s, err := startServer(scenarios)
 	if err != nil {
@@ -133,6 +131,20 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 		}
 	}
 	return out, nil
+}
+
+// selected are the names of the scenarios named in only, or of every one,
+// sorted; a name of none is refused.
+func selected(scenarios map[string]scenario, only []string) ([]string, error) {
+	for _, id := range only {
+		if _, ok := scenarios[id]; !ok {
+			return nil, fmt.Errorf("harness: there is no scenario %s", id)
+		}
+	}
+	if len(only) > 0 {
+		return slices.Sorted(slices.Values(only)), nil
+	}
+	return slices.Sorted(maps.Keys(scenarios)), nil
 }
 
 // run runs one scenario in a profile of its own, and is what was asked of the
@@ -227,6 +239,20 @@ func pathOf(raw string) string {
 // port is a port in a URL or a value.
 var port = regexp.MustCompile(`:([0-9]+)`)
 
+// bare is text without any port of the server's: they change every run.
+func (s *Server) bare(text string) string {
+	ours := map[string]bool{strconv.Itoa(s.H2): true, strconv.Itoa(s.H1): true, strconv.Itoa(s.Plain): true}
+	for _, table := range s.Tables {
+		ours[strconv.Itoa(table)] = true
+	}
+	return port.ReplaceAllStringFunc(text, func(found string) string {
+		if ours[found[1:]] {
+			return ""
+		}
+		return found
+	})
+}
+
 // kept are the requests of a scenario as the fixture keeps them: the run page
 // and whatever came before it left out, since they set the scene, and so is
 // the run page saying it is done, and any favicon; no port of the server's is
@@ -234,15 +260,6 @@ var port = regexp.MustCompile(`:([0-9]+)`)
 // whose connections it measures, and says which connection each request came
 // on and whether that one resumed a TLS session.
 func (s *Server) kept(entries []Entry, connections bool) []Request {
-	ours := map[string]bool{strconv.Itoa(s.H2): true, strconv.Itoa(s.H1): true, strconv.Itoa(s.Plain): true}
-	bare := func(text string) string {
-		return port.ReplaceAllStringFunc(text, func(found string) string {
-			if ours[found[1:]] {
-				return ""
-			}
-			return found
-		})
-	}
 	if run := slices.IndexFunc(entries, func(e Entry) bool { return strings.HasPrefix(pathOf(e.Target), "/run/") }); run >= 0 {
 		if !connections {
 			run++
@@ -255,7 +272,7 @@ func (s *Server) kept(entries []Entry, connections bool) []Request {
 		if path := pathOf(e.Target); strings.HasPrefix(path, "/done/") || path == "/favicon.ico" {
 			continue
 		}
-		r := Request{Method: e.Method, URL: bare(e.Target), Body: e.Body}
+		r := Request{Method: e.Method, URL: s.bare(e.Target), Body: e.Body}
 		if connections {
 			if numbered[e.Conn] == 0 {
 				numbered[e.Conn] = len(numbered) + 1
@@ -263,7 +280,7 @@ func (s *Server) kept(entries []Entry, connections bool) []Request {
 			r.Conn, r.Resumed = numbered[e.Conn], e.Resumed
 		}
 		for _, h := range e.Headers {
-			r.Headers = append(r.Headers, [2]string{h[0], bare(h[1])})
+			r.Headers = append(r.Headers, [2]string{h[0], s.bare(h[1])})
 		}
 		if e.Priority != nil {
 			r.Priority = e.Priority[:]

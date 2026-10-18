@@ -28,6 +28,11 @@ type scenario struct {
 	// the bench's certificate as a site's, it keeps its run page and says
 	// which connection each request came on.
 	connections bool
+	// table is the size of the HPACK table the server's SETTINGS let the
+	// browser have, for a scenario that asks for one; quiet gives the run
+	// page an icon of its own, so that the browser asks for no /favicon.ico.
+	table uint32
+	quiet bool
 }
 
 // form is a form of two fields, its method, action and encoding filled in.

@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"net"
 	"net/http"
@@ -47,6 +48,9 @@ type Entry struct {
 	// Priority is an HTTP/2 HEADERS frame's priority: exclusive, the stream it
 	// depends on, the weight as on the wire. Nil without one.
 	Priority *[3]uint32
+	// Block is an HTTP/2 request's header block as the client wrote it into
+	// HPACK: its fragments joined, without padding or priority.
+	Block []byte
 }
 
 // Server keeps every request made of it, over HTTP/2 and HTTP/1.1 on TLS and
@@ -56,6 +60,12 @@ type Server struct {
 	// H2, H1 and Plain are its ports: TLS that offers HTTP/2 and HTTP/1.1,
 	// TLS that offers HTTP/1.1 alone, and plain HTTP.
 	H2, H1, Plain int
+	// Tables are the ports of TLS that offers HTTP/2 alone, by the size of
+	// the HPACK table its SETTINGS let a client have, for each size a scenario
+	// asks for. What each sends a connection waits until the client's first
+	// header block has come, as across a network: the client writes it before
+	// it hears the size.
+	Tables map[uint32]int
 
 	catalogue map[string]scenario
 	listeners []net.Listener
@@ -63,6 +73,7 @@ type Server struct {
 	// one that speaks HTTP/1.1, one that speaks HTTP/2 by prior knowledge.
 	http1, http2 *chanListener
 	h1, h2       *http.Server
+	tables       map[uint32]*tableServer
 	tls          *tls.Config
 	// spki is its key as Chrome's --ignore-certificate-errors-spki-list
 	// names one: the SHA-256 of its SubjectPublicKeyInfo, in base64.
@@ -87,17 +98,26 @@ var (
 // StartServer starts a Server answering the scenarios of the catalogue.
 func StartServer() (*Server, error) { return startServer(catalogue) }
 
+// tableServer is an HTTP/2 server whose SETTINGS let a client's HPACK table be
+// size bytes, fed the connections whose bytes are read along the way.
+type tableServer struct {
+	size   uint32
+	ln     *chanListener
+	server *http.Server
+}
+
 func startServer(scenarios map[string]scenario) (*Server, error) {
 	cert, err := certificate()
 	if err != nil {
 		return nil, err
 	}
 	spki := sha256.Sum256(cert.Leaf.RawSubjectPublicKeyInfo)
-	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{},
-		http1: &chanListener{conns: make(chan net.Conn), done: make(chan struct{})},
-		http2: &chanListener{conns: make(chan net.Conn), done: make(chan struct{})},
-		tls:   &tls.Config{Certificates: []tls.Certificate{cert}},
-		spki:  base64.StdEncoding.EncodeToString(spki[:])}
+	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{}, Tables: map[uint32]int{},
+		http1:  newChanListener(),
+		http2:  newChanListener(),
+		tables: map[uint32]*tableServer{},
+		tls:    &tls.Config{Certificates: []tls.Certificate{cert}},
+		spki:   base64.StdEncoding.EncodeToString(spki[:])}
 	// Each connection's TLS is a clone of this, which would draw keys of its
 	// own for the session tickets it gives, and resume no other's sessions.
 	var ticketKey [32]byte
@@ -107,7 +127,15 @@ func startServer(scenarios map[string]scenario) (*Server, error) {
 	prior.SetUnencryptedHTTP2(true)
 	s.h1 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute}
 	s.h2 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior}
-	for range 3 {
+	for _, sc := range scenarios {
+		if sc.table != 0 && s.tables[sc.table] == nil {
+			s.tables[sc.table] = &tableServer{size: sc.table, ln: newChanListener(),
+				server: &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior,
+					HTTP2: &http.HTTP2Config{MaxDecoderHeaderTableSize: int(sc.table)}}}
+		}
+	}
+	tables := slices.Sorted(maps.Keys(s.tables))
+	for range 3 + len(tables) {
 		ln, err := listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			_ = s.Close()
@@ -115,21 +143,29 @@ func startServer(scenarios map[string]scenario) (*Server, error) {
 		}
 		s.listeners = append(s.listeners, ln)
 	}
-	ports := make([]int, 3)
+	ports := make([]int, len(s.listeners))
 	for i, ln := range s.listeners {
 		ports[i] = ln.Addr().(*net.TCPAddr).Port
 	}
 	s.H2, s.H1, s.Plain = ports[0], ports[1], ports[2]
-	s.done.Add(5)
-	for server, ln := range map[*http.Server]*chanListener{s.h1: s.http1, s.h2: s.http2} {
+	servers := map[*http.Server]*chanListener{s.h1: s.http1, s.h2: s.http2}
+	for i, size := range tables {
+		s.Tables[size] = ports[3+i]
+		servers[s.tables[size].server] = s.tables[size].ln
+	}
+	s.done.Add(2*len(servers) + 1)
+	for server, ln := range servers {
 		go func() {
 			defer s.done.Done()
 			_ = server.Serve(ln)
 		}()
 	}
-	go s.accept(s.listeners[0], []string{"h2", "http/1.1"})
-	go s.accept(s.listeners[1], []string{"http/1.1"})
-	go s.accept(s.listeners[2], nil)
+	go s.accept(s.listeners[0], []string{"h2", "http/1.1"}, nil)
+	go s.accept(s.listeners[1], []string{"http/1.1"}, nil)
+	go s.accept(s.listeners[2], nil, nil)
+	for i, size := range tables {
+		go s.accept(s.listeners[3+i], []string{"h2"}, s.tables[size])
+	}
 	return s, nil
 }
 
@@ -159,8 +195,8 @@ func certificate() (tls.Certificate, error) {
 }
 
 // accept serves what comes to ln: over TLS offering protos, or plain HTTP
-// when there are none.
-func (s *Server) accept(ln net.Listener, protos []string) {
+// when there are none; HTTP/2 by table, when there is one.
+func (s *Server) accept(ln net.Listener, protos []string, table *tableServer) {
 	defer s.done.Done()
 	for {
 		raw, err := ln.Accept()
@@ -174,7 +210,7 @@ func (s *Server) accept(ln net.Listener, protos []string) {
 		s.done.Add(1)
 		go func() {
 			defer s.done.Done()
-			s.serveConn(raw, protos)
+			s.serveConn(raw, protos, table)
 		}()
 	}
 }
@@ -190,7 +226,7 @@ func (s *Server) track(conn net.Conn) bool {
 	return true
 }
 
-func (s *Server) serveConn(raw net.Conn, protos []string) {
+func (s *Server) serveConn(raw net.Conn, protos []string, table *tableServer) {
 	defer func() {
 		s.mu.Lock()
 		delete(s.open, raw)
@@ -198,7 +234,7 @@ func (s *Server) serveConn(raw net.Conn, protos []string) {
 	}()
 	if protos == nil {
 		parser := &h1parser{s: s, conn: s.nextConn(), scheme: "http"}
-		s.http1.hand(&teeConn{Conn: raw, parse: parser.write})
+		s.http1.hand(newTeeConn(raw, parser.write, nil))
 		return
 	}
 	config := s.tls.Clone()
@@ -212,11 +248,17 @@ func (s *Server) serveConn(raw net.Conn, protos []string) {
 	if state.NegotiatedProtocol == "h2" {
 		parser := &h2parser{s: s, conn: s.nextConn(), resumed: state.DidResume, dec: hpack.NewDecoder(4096, nil),
 			open: map[uint32]*Entry{}}
-		s.http2.hand(&teeConn{Conn: conn, parse: parser.write})
+		if table == nil {
+			s.http2.hand(newTeeConn(conn, parser.write, nil))
+			return
+		}
+		parser.dec.SetAllowedMaxDynamicTableSize(table.size)
+		parser.first = make(chan struct{})
+		table.ln.hand(newTeeConn(conn, parser.write, parser.first))
 		return
 	}
 	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https"}
-	s.http1.hand(&teeConn{Conn: conn, parse: parser.write})
+	s.http1.hand(newTeeConn(conn, parser.write, nil))
 }
 
 func (s *Server) nextConn() int {
@@ -254,6 +296,7 @@ func (s *Server) Requests() ([]Entry, error) {
 	for i, e := range s.entries {
 		out[i] = *e
 		out[i].Headers = slices.Clone(e.Headers)
+		out[i].Block = slices.Clone(e.Block)
 	}
 	return out, errors.Join(s.trouble...)
 }
@@ -280,14 +323,26 @@ func (s *Server) Close() error {
 	s.http2.close()
 	_ = s.h1.Close()
 	_ = s.h2.Close()
+	for _, table := range s.tables {
+		table.ln.close()
+		_ = table.server.Close()
+	}
 	s.done.Wait()
 	return nil
 }
 
-// teeConn hands what is read of a connection to parse as well.
+// teeConn hands what is read of a connection to parse as well. Given held, it
+// writes nothing until held is closed, or it is.
 type teeConn struct {
 	net.Conn
-	parse func([]byte)
+	parse  func([]byte)
+	held   <-chan struct{}
+	closed chan struct{}
+	once   sync.Once
+}
+
+func newTeeConn(conn net.Conn, parse func([]byte), held <-chan struct{}) *teeConn {
+	return &teeConn{Conn: conn, parse: parse, held: held, closed: make(chan struct{})}
 }
 
 func (c *teeConn) Read(p []byte) (int, error) {
@@ -298,12 +353,32 @@ func (c *teeConn) Read(p []byte) (int, error) {
 	return n, err
 }
 
+func (c *teeConn) Write(p []byte) (int, error) {
+	if c.held != nil {
+		select {
+		case <-c.held:
+		case <-c.closed:
+			return 0, net.ErrClosed
+		}
+	}
+	return c.Conn.Write(p)
+}
+
+func (c *teeConn) Close() error {
+	c.once.Do(func() { close(c.closed) })
+	return c.Conn.Close()
+}
+
 // chanListener is how connections whose bytes are read along the way reach the
 // HTTP/1.1 server.
 type chanListener struct {
 	conns chan net.Conn
 	done  chan struct{}
 	once  sync.Once
+}
+
+func newChanListener() *chanListener {
+	return &chanListener{conns: make(chan net.Conn), done: make(chan struct{})}
 }
 
 func (l *chanListener) Accept() (net.Conn, error) {
@@ -328,7 +403,8 @@ func (l *chanListener) Close() error   { return nil }
 func (l *chanListener) Addr() net.Addr { return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)} }
 
 // h2parser reads requests out of an HTTP/2 connection's bytes as the client
-// wrote them: their frames, header blocks and bodies.
+// wrote them: their frames, header blocks and bodies. It closes first, when
+// there is one, once the first header block has come.
 type h2parser struct {
 	s         *Server
 	conn      int
@@ -341,6 +417,7 @@ type h2parser struct {
 	endStream bool
 	priority  *[3]uint32
 	open      map[uint32]*Entry
+	first     chan struct{}
 }
 
 func (p *h2parser) write(b []byte) {
@@ -412,12 +489,17 @@ func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, 
 }
 
 func (p *h2parser) decode() {
+	if p.first != nil {
+		close(p.first)
+		p.first = nil
+	}
 	fields, err := p.dec.DecodeFull(p.block)
 	if err != nil {
 		p.s.troubled(fmt.Errorf("harness: the header block of stream %d: %w", p.stream, err))
 		return
 	}
-	e := &Entry{Proto: "h2", Conn: p.conn, Resumed: p.resumed, Stream: p.stream, Priority: p.priority}
+	e := &Entry{Proto: "h2", Conn: p.conn, Resumed: p.resumed, Stream: p.stream, Priority: p.priority,
+		Block: slices.Clone(p.block)}
 	var scheme, authority, path string
 	for _, f := range fields {
 		e.Headers = append(e.Headers, [2]string{f.Name, f.Value})

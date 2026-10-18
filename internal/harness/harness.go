@@ -2,8 +2,9 @@
 // the code they are held to: testdata/chrome155-requests.json, what Chrome sent
 // for each scenario of a page (navigations, forms, fetch(), XHR, CORS,
 // redirects, client hints), testdata/chrome155-connections.json, which
-// connection it sent each on, and testdata/chrome155-decoding.json, how it
-// decoded each page.
+// connection it sent each on, testdata/chrome155-hpack.json, how it wrote the
+// header blocks of each connection into HPACK, and
+// testdata/chrome155-decoding.json, how it decoded each page.
 //
 // Measuring is opening each scenario's page in a fresh headless Google Chrome
 // against a local server that keeps every request as the bytes said it, over

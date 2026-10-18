@@ -197,6 +197,15 @@ func (r Representation) String() string {
 	return r.describe(true)
 }
 
+// Named is a representation as a person reads it, after its field's name; a
+// size update, of no field, alone.
+func (r Representation) Named() string {
+	if r.Kind == "size update" {
+		return r.String()
+	}
+	return r.Field + ": " + r.String()
+}
+
 func (r Representation) describe(withValue bool) string {
 	switch r.Kind {
 	case "size update":
@@ -228,6 +237,48 @@ func tableIndex(i uint64) string {
 // bytes, field by field: first how each was written, then, decoding the
 // block, which field each is.
 func Representations(block []byte, tableSize uint32) ([]Representation, error) {
+	return representations(block, hpack.NewDecoder(tableSize, nil))
+}
+
+// initialTableSize is the dynamic table every client writes its first header
+// block against: SETTINGS_HEADER_TABLE_SIZE's initial value (RFC 9113, section
+// 6.5.2), which no client has heard the server change yet.
+const initialTableSize = 4096
+
+// HeaderBlocks reads the header blocks a client wrote on one connection, in
+// the order it wrote them: each against the dynamic table the blocks before it
+// left (RFC 7541, section 2.3.2), which it keeps as the server's decoder does.
+// After a block it cannot read it is out of step with the client's table, and
+// reads no more.
+type HeaderBlocks struct {
+	decoder *hpack.Decoder
+	broken  error
+}
+
+// NewHeaderBlocks reads the header blocks of a connection whose server let the
+// client's dynamic table be tableSize bytes: the client writes its first
+// against a table of 4096, and may say another size, up to tableSize, at the
+// start of any block.
+func NewHeaderBlocks(tableSize uint32) *HeaderBlocks {
+	decoder := hpack.NewDecoder(initialTableSize, nil)
+	decoder.SetAllowedMaxDynamicTableSize(tableSize)
+	return &HeaderBlocks{decoder: decoder}
+}
+
+// Next reads the connection's next header block, as Representations reads
+// one: how each field was written, then which field each is.
+func (h *HeaderBlocks) Next(block []byte) ([]Representation, error) {
+	if h.broken != nil {
+		return nil, fmt.Errorf("fingerprint: after a header block that did not read: %w", h.broken)
+	}
+	out, err := representations(block, h.decoder)
+	h.broken = err
+	return out, err
+}
+
+// representations reads a header block with decoder, which holds the table
+// the blocks before it left.
+func representations(block []byte, decoder *hpack.Decoder) ([]Representation, error) {
 	var out []Representation
 	for p := block; len(p) > 0; {
 		var r Representation
@@ -258,7 +309,7 @@ func Representations(block []byte, tableSize uint32) ([]Representation, error) {
 	// Huffman code, an index no table has. It reads the representations the
 	// walk did, by the same bits, and gives a field for each but a size
 	// update.
-	fields, err := hpack.NewDecoder(tableSize, nil).DecodeFull(block)
+	fields, err := decoder.DecodeFull(block)
 	if err != nil {
 		return nil, fmt.Errorf("fingerprint: header block: %w", err)
 	}

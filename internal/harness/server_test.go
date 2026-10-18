@@ -113,6 +113,16 @@ func TestTheServerKeepsEachRequestAsItWasSentOverEachProtocol(t *testing.T) {
 			if !slices.Contains(headerNames(e), map[string]string{"h2": "x-foo", "http/1.1": "X-Foo"}[tc.proto]) {
 				t.Errorf("headers %v", headerNames(e))
 			}
+			// HTTP/2's header block is kept as the client wrote it, and is
+			// what was read of it.
+			if tc.proto == "h2" {
+				fields, err := hpack.NewDecoder(4096, nil).DecodeFull(e.Block)
+				if err != nil || len(fields) != len(e.Headers) || fields[0].Name != e.Headers[0][0] {
+					t.Errorf("the block %x reads %v, %v", e.Block, fields, err)
+				}
+			} else if e.Block != nil {
+				t.Errorf("an HTTP/1.1 request with a block %x", e.Block)
+			}
 			// The pseudo-headers lead, in the order the client wrote them.
 			if tc.proto == "h2" && (e.Stream%2 != 1 || !slices.Equal(headerNames(e)[:4], []string{":authority", ":method", ":path", ":scheme"})) {
 				t.Errorf("stream %d, headers %v", e.Stream, headerNames(e))
@@ -218,11 +228,12 @@ func TestStartServerAnswersTheCatalogue(t *testing.T) {
 
 func TestRequestsAreCopiesAndResetForgetsThem(t *testing.T) {
 	s := started(t, catalogue)
-	get(t, http.MethodGet, "http://www.example.com:"+strconv.Itoa(s.Plain)+"/p/x", nil)
+	get(t, http.MethodGet, "https://www.example.com:"+strconv.Itoa(s.H2)+"/p/x", nil)
 	first := requests(t, s)
 	first[0].Headers[0][1] = "changed"
-	if requests(t, s)[0].Headers[0][1] == "changed" {
-		t.Error("a copy shared the server's headers")
+	first[0].Block[0] = 0
+	if again := requests(t, s)[0]; again.Headers[0][1] == "changed" || again.Block[0] == 0 {
+		t.Error("a copy shared the server's headers or block")
 	}
 	s.Reset()
 	if got := requests(t, s); len(got) != 0 {
@@ -359,7 +370,7 @@ func TestAConnectionThatArrivesAsTheServerClosesIsClosedToo(t *testing.T) {
 	s.closed = true
 	s.mu.Unlock()
 	s.done.Add(1)
-	s.accept(&oneConnListener{conn: ours}, nil)
+	s.accept(&oneConnListener{conn: ours}, nil, nil)
 	if _, err := ours.Write([]byte("x")); err == nil {
 		t.Error("the connection was left open")
 	}

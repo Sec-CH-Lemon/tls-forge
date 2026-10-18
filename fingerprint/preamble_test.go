@@ -188,7 +188,137 @@ func TestHeaderBlocksThatDoNotRead(t *testing.T) {
 	if _, err := Representations([]byte{0x3f, 0xe2, 0x1f}, 4096); err == nil {
 		t.Error("a size update past the table was read")
 	}
+	if _, err := Representations([]byte{0x3f, 0xe2, 0x1f}, 4097); err != nil {
+		t.Errorf("a size update to the table it is written for: %v", err)
+	}
 	if got, err := Representations(nil, 4096); err != nil || got != nil {
 		t.Errorf("an empty block: %v, %v", got, err)
+	}
+}
+
+// blocksOf is the header blocks an encoder wrote for each list of fields, one
+// after another, against one dynamic table; a size of 0 sets none.
+func blocksOf(t *testing.T, sizes []uint32, lists ...[]hpack.HeaderField) [][]byte {
+	t.Helper()
+	var buf bytes.Buffer
+	enc := hpack.NewEncoder(&buf)
+	enc.SetMaxDynamicTableSizeLimit(1 << 20)
+	var out [][]byte
+	for i, fields := range lists {
+		buf.Reset()
+		if i < len(sizes) && sizes[i] != 0 {
+			enc.SetMaxDynamicTableSize(sizes[i])
+		}
+		for _, f := range fields {
+			if err := enc.WriteField(f); err != nil {
+				t.Fatal(err)
+			}
+		}
+		out = append(out, append([]byte(nil), buf.Bytes()...))
+	}
+	return out
+}
+
+func TestTheBlocksOfAConnectionAreReadAgainstOneTable(t *testing.T) {
+	// The second block finds the first's fields in the dynamic table, the
+	// newest first, and a name there for a new value.
+	first := []hpack.HeaderField{{Name: ":method", Value: "GET"}, {Name: "x-a", Value: "1"}, {Name: "x-b", Value: "2"}}
+	second := []hpack.HeaderField{{Name: "x-b", Value: "2"}, {Name: "x-a", Value: "1"}, {Name: "x-a", Value: "3"}}
+	blocks := blocksOf(t, nil, first, second)
+	reader := NewHeaderBlocks(4096)
+	var said [][]string
+	for _, block := range blocks {
+		got, err := reader.Next(block)
+		if err != nil {
+			t.Fatalf("Next: %v", err)
+		}
+		var named []string
+		for _, r := range got {
+			named = append(named, r.Named())
+		}
+		said = append(said, named)
+	}
+	want := [][]string{
+		{":method: indexed static 2", "x-a: with indexing, new name, value plain", "x-b: with indexing, new name, value plain"},
+		{"x-b: indexed dynamic 62", "x-a: indexed dynamic 63", "x-a: with indexing, name dynamic 63, value plain"},
+	}
+	if !reflect.DeepEqual(said, want) {
+		t.Errorf("got\n%q\nwant\n%q", said, want)
+	}
+	// Each block alone is not: the second names entries no fresh table has.
+	if _, err := Representations(blocks[1], 4096); err == nil {
+		t.Error("the second block was read without the first")
+	}
+}
+
+func TestTheBlocksOfAConnectionFollowItsTablesSize(t *testing.T) {
+	// The first block is written against 4096 bytes whatever the server
+	// allows, which a later block may change to what it allows, and no more.
+	// Two entries of 935 bytes each fit 4096 but not 1024.
+	big := []hpack.HeaderField{{Name: "x-a", Value: strings.Repeat("a", 900)}, {Name: "x-b", Value: strings.Repeat("b", 900)}}
+	again := []hpack.HeaderField{{Name: "x-a", Value: strings.Repeat("a", 900)}}
+	for _, tc := range []struct {
+		name    string
+		allowed uint32
+		sizes   []uint32
+		want    []string
+	}{
+		{"a smaller table: the oldest entry goes", 1024, []uint32{0, 1024},
+			[]string{"size update 1024", "x-a: with indexing, new name, value huffman"}},
+		{"a bigger one", 65536, []uint32{0, 65536},
+			[]string{"size update 65536", "x-a: indexed dynamic 63"}},
+		{"the first block before the server is heard", 1024, nil,
+			[]string{"x-a: indexed dynamic 63"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			blocks := blocksOf(t, tc.sizes, big, again)
+			reader := NewHeaderBlocks(tc.allowed)
+			if _, err := reader.Next(blocks[0]); err != nil {
+				t.Fatalf("the first block: %v", err)
+			}
+			got, err := reader.Next(blocks[1])
+			if err != nil {
+				t.Fatalf("the second block: %v", err)
+			}
+			var said []string
+			for _, r := range got {
+				said = append(said, r.Named())
+			}
+			if !reflect.DeepEqual(said, tc.want) {
+				t.Errorf("got %q, want %q", said, tc.want)
+			}
+		})
+	}
+	// A size past what the server allowed does not read.
+	blocks := blocksOf(t, []uint32{8192}, big)
+	if _, err := NewHeaderBlocks(4096).Next(blocks[0]); err == nil {
+		t.Error("a table larger than the server allowed was read")
+	}
+}
+
+func TestAfterABlockThatDoesNotReadNoneDoes(t *testing.T) {
+	// Out of step with the client's table, whatever comes after is not read,
+	// and says why.
+	for _, broken := range [][]byte{{0xc0}, {0xff}} {
+		reader := NewHeaderBlocks(4096)
+		if _, err := reader.Next(broken); err == nil {
+			t.Fatalf("%x was read", broken)
+		}
+		got, err := reader.Next([]byte{0x82})
+		if err == nil || got != nil || !strings.Contains(err.Error(), "after a header block that did not read") {
+			t.Errorf("after %x: %v, %v", broken, got, err)
+		}
+	}
+}
+
+func TestARepresentationIsSaidAfterItsFieldsName(t *testing.T) {
+	for r, want := range map[Representation]string{
+		{Field: "x-a", Kind: "indexed", Index: 62}: "x-a: indexed dynamic 62",
+		{Kind: "size update", Index: 65536}:        "size update 65536",
+		{Field: "x-a", Kind: "with indexing"}:      "x-a: with indexing, new name, value plain",
+	} {
+		if got := r.Named(); got != want {
+			t.Errorf("%+v: %q, want %q", r, got, want)
+		}
 	}
 }

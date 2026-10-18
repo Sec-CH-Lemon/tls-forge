@@ -159,6 +159,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   something new, which it is as it starts.
   Google Chrome 155.0.8059.80 on macOS, measured twice, did the same both
   times.
+- **How Chrome writes the requests after a connection's first into HPACK is
+  measured**, in `testdata/chrome155-hpack.json`: 9 scenarios of a page and
+  what its script asked for on the page's connection, `fetch()` once and the
+  same URL again, a navigation, cookies set and carried, PUT, DELETE, PATCH
+  and POST, a CORS preflight on another origin's connection, a cookie larger
+  than the dynamic table, and servers whose SETTINGS allow a table of 65536
+  and of 1024 bytes: every header block of every connection, each field as it
+  was written against the table the blocks before it left. The bench keeps
+  each request's header block as the client wrote it. `measure --hpack` names
+  the fixture. A scenario whose requests to one origin went on more than one
+  connection is run again, at most five times: Chrome opens a spare
+  connection beside a navigation's, and now and then sends the page's later
+  requests on it. Google Chrome 155.0.8059.80 on macOS, measured twice, did
+  the same both times.
 - **The check a release is held to against a pinned Google Chrome**,
   `go run ./internal/pinned` ([docs/pinned.md](docs/pinned.md)). It reads a
   manifest of the reference build, holds the archived installer and the

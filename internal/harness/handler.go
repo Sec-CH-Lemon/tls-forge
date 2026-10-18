@@ -9,8 +9,12 @@ import (
 )
 
 // setCookies sets the cookies a request asks for with ?cookie: two, one of
-// them SameSite=None, for any value, and one of each SameSite for 2.
+// them SameSite=None, for any value, and one of each SameSite for 2; and with
+// ?big=N one whose value is N bytes.
 func setCookies(w http.ResponseWriter, r *http.Request) {
+	if n, err := strconv.Atoi(r.URL.Query().Get("big")); err == nil && n > 0 {
+		w.Header().Add("Set-Cookie", "big="+strings.Repeat("x", n)+"; Max-Age=3600; Path=/")
+	}
 	set := r.URL.Query().Get("cookie")
 	if set == "" {
 		return
@@ -127,22 +131,30 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	default:
 		setCookies(w, r)
 		allow(w, r)
-		page(w, q.Get("next"), q.Get("after"))
+		page(w, q.Get("next"), q.Get("after"), q.Has("quiet"))
 	}
 }
 
+// quietIcon is an icon a page names of its own, so that the browser asks for
+// no /favicon.ico once it has loaded.
+const quietIcon = `<link rel="icon" href="data:,">`
+
 // page writes a page, which goes on to next by a refresh when there is one,
-// after seconds after it has loaded, or at once when that says nothing.
-func page(w http.ResponseWriter, next, after string) {
+// after seconds after it has loaded, or at once when that says nothing, and
+// names an icon of its own when quiet.
+func page(w http.ResponseWriter, next, after string, quiet bool) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	refresh := ""
+	head := ""
+	if quiet {
+		head = quietIcon
+	}
 	if after == "" {
 		after = "0"
 	}
 	if next != "" {
-		refresh = `<meta http-equiv="refresh" content="` + after + `;url=` + next + `">`
+		head += `<meta http-equiv="refresh" content="` + after + `;url=` + next + `">`
 	}
-	_, _ = w.Write([]byte("<!doctype html>" + refresh + "<title>page</title><p>page</p>"))
+	_, _ = w.Write([]byte("<!doctype html>" + head + "<title>page</title><p>page</p>"))
 }
 
 // benchUser and benchPassword are the credentials the pages under /auth/ and
@@ -173,7 +185,7 @@ func authPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound)
 		return
 	}
-	page(w, q.Get("next"), "")
+	page(w, q.Get("next"), "", false)
 }
 
 // runPage is the page scenario id runs in: its body, and its script, which
@@ -192,6 +204,9 @@ func (s *Server) runPage(w http.ResponseWriter, r *http.Request, id string) {
 	head := ""
 	if sc.referrer != "" {
 		head = `<meta name="referrer" content="` + sc.referrer + `">`
+	}
+	if sc.quiet {
+		head += quietIcon
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = fmt.Fprintf(w, "<!doctype html><html><head>%s<title>run</title></head><body>%s<script>\nconst done=()=>fetch('/done/%s');\n%s\n</script></body></html>",

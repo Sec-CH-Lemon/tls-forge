@@ -23,13 +23,15 @@ were taken with Google Chrome 155.0.8059 on macOS, against local servers.
 A behaviour that has not been through these steps is not claimed, however
 plausible it looks.
 
-The three fixtures of what a page does, `testdata/chrome155-requests.json`,
-`testdata/chrome155-connections.json` and `testdata/chrome155-decoding.json`,
-were measured on the bench in `internal/harness`: a server that keeps every
-request as the bytes said it, and the connection it came on, over HTTP/2, over
-HTTP/1.1 alone and over plain HTTP, each scenario's page and script, and each
-page whose decoding is asked about. It measures a browser again, and writes
-the fixtures, or with `--check` holds the browser to them:
+The four fixtures of what a page does, `testdata/chrome155-requests.json`,
+`testdata/chrome155-connections.json`, `testdata/chrome155-hpack.json` and
+`testdata/chrome155-decoding.json`, were measured on the bench in
+`internal/harness`: a server that keeps every request as the bytes said it,
+its header block as the client wrote it into HPACK, and the connection it came
+on, over HTTP/2, over HTTP/1.1 alone and over plain HTTP, each scenario's page
+and script, and each page whose decoding is asked about. It measures a
+browser again, and writes the fixtures, or with `--check` holds the browser to
+them:
 
 ```bash
 go run ./internal/harness/measure --browser "/path/to/Google Chrome" --check
@@ -37,9 +39,10 @@ go run ./internal/harness/measure --browser "/path/to/Google Chrome" --check
 
 Google Chrome 155.0.8059.80 on macOS, measured again on 2026-10-17, is what
 the fixtures of requests and decodings say, scenario for scenario and page for
-page, and measured twice that day, what the fixture of connections says. A
-release holds its reference build to the first two the same way
-([pinned](pinned.md)).
+page, and measured twice that day, what the fixture of connections says, as
+it is what the fixture of header blocks says, measured twice on 2026-10-18. A
+release holds its reference build to the fixtures of requests and decodings
+the same way ([pinned](pinned.md)).
 
 ## The matrix
 
@@ -80,7 +83,7 @@ release holds its reference build to the first two the same way
 | The frames before the first request and their flags, acknowledgements aside; the records the ClientHello came in | checked | `tls-forge compare` reads the frames the echo server keeps; `TestTheFirstRequestGoesOutInChromesFrames` holds them to `testdata/chrome155-http2-preamble.bin` |
 | HPACK of the first request: each field indexed or not, its name from which table, each string Huffman-coded or not | checked | `tls-forge compare`; `TestTheFirstRequestGoesOutInChromesFrames` |
 | HPACK of `:path`: without indexing, its name from the static table's first `:path`, for a Chromium profile | checked | `TestTheFirstRequestGoesOutInChromesFrames` holds it to Chrome 155's (`testdata/chrome155-http2-preamble.bin`), and `tls-forge compare` to the browser; through tls-forge's fork of fhttp, whose transport took neither (`hpack.Representation`) |
-| HPACK of later requests on a connection, against the dynamic table the first left | not checked | only a connection's first request is measured |
+| HPACK of later requests on a connection, against the dynamic table the ones before them left | differs | measured on Chrome 155 (`testdata/chrome155-hpack.json`): a page and its `fetch()`, the same URL again, a navigation, cookies set and carried, PUT, DELETE, PATCH and POST, a CORS preflight, a cookie larger than the table, and servers allowing 65536 and 1024 bytes. Chrome writes a `:method` other than GET and POST without indexing, named by the static table's first `:method`; tls-forge's transport with indexing, named by the second, which moves every dynamic index after it. Chrome writes a field larger than the table with incremental indexing, which empties the table; the transport without, keeping it. Chrome takes as large a table as the server's SETTINGS allow, and says so at the start of the next header block; the transport keeps 4096 bytes |
 | Connections: one per try by default, one per URL with `--reuse-connection` | by design | neither is a browser's pool of connections per origin; this is a choice of the command line, not a claim |
 | HTTP/3 and QUIC | not supported | an `Alt-Svc` that offers HTTP/3 is ignored; requests go over HTTP/2 or HTTP/1.1 |
 | TCP/IP: TTL, window, options of the first packets | not controlled | they are this machine's operating system's, whatever the profile; the run header says so when the profile's platform is another (`tcp/ip`) |

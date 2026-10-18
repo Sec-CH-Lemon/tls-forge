@@ -57,6 +57,25 @@ connections of their own, which resumed only TLS sessions of their own, and
 over HTTP/2 sent a request with credentials to another name on the page's
 connection.
 
+`chrome155-hpack.json` is how Google Chrome 155.0.8059.80 on macOS 27.0.1
+(arm64), headless and in English, wrote the header block of each request into
+HPACK, for 9 scenarios over HTTP/2, measured on 2026-10-18 and found the same
+in a second run that day: a page, then what its script asked for, `fetch()`
+once and the same URL again, a navigation, cookies its answer set, PUT,
+DELETE, PATCH and POST, a CORS preflight, a cookie larger than the dynamic
+table, and servers whose SETTINGS let the table be 65536 and 1024 bytes. Each
+connection's requests are kept in the order written, each field as it was
+written (RFC 7541, section 6): indexed or a literal with or without indexing,
+its name from the static or the dynamic table by its index or written out,
+each string Huffman-coded or not, against the table the blocks before it on
+that connection left. A local server answered www.example.com and
+api.example.com on ports of five digits, taking the certificate on trust by
+`--ignore-certificate-errors` alone; each page named an icon of its own, so
+that no `/favicon.ico` came between. A run whose requests to one origin went
+on more than one connection, as Chrome does now and then with a spare one it
+opens beside a navigation's, was run again. The ports and the values are left
+out.
+
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
 (arm64), headless and in English, sent on 2026-10-16, 2026-10-17 and
 2026-10-18 for 175 scenarios, over HTTP/2 and over HTTP/1.1: navigations

@@ -8,7 +8,6 @@ import (
 	"html"
 	"io"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -100,17 +99,7 @@ func (c *DecodingCase) UnmarshalJSON(data []byte) error {
 }
 
 // LoadDecoding reads a fixture of decodings.
-func LoadDecoding(path string) (*DecodingFixture, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var f DecodingFixture
-	if err := json.Unmarshal(data, &f); err != nil {
-		return nil, fmt.Errorf("harness: %s: %w", path, err)
-	}
-	return &f, nil
-}
+func LoadDecoding(path string) (*DecodingFixture, error) { return load[DecodingFixture](path) }
 
 // Write writes the fixture to path as it is kept.
 func (f *DecodingFixture) Write(path string) error { return writeJSON(path, f) }
