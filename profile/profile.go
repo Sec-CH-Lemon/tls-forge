@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 
@@ -418,24 +419,34 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 }
 
 // writingHeaders is built, writing headers into HPACK as Chromium's encoder
-// does when p is a Chromium browser's, and as HPACK's default does otherwise.
+// does when p is a Chromium browser's, against a table as large as a server
+// allows, and as HPACK's default does otherwise.
 func (p *Profile) writingHeaders(built profiles.ClientProfile) profiles.ClientProfile {
 	if !p.chromium() {
 		return built
 	}
-	return built.WithHeaderRepresentation(chromeHeaderRepresentation)
+	return built.WithHeaderRepresentation(chromeHeaderRepresentation).
+		WithMaxEncoderHeaderTableSize(chromeEncoderTableSize)
 }
+
+// chromeEncoderTableSize is the largest HPACK table Chrome writes headers
+// against: whatever a server's SETTINGS_HEADER_TABLE_SIZE allows, measured on
+// Chrome 155 up to 2147483647 (testdata/chrome155-hpack.json), said in a
+// Dynamic Table Size Update at the start of the next header block.
+const chromeEncoderTableSize = math.MaxUint32
 
 // chromeHeaderRepresentation is how Chrome writes a header field into HPACK
 // where it is not found whole in a table, as measured on Chrome 155
-// (testdata/chrome155-http2-preamble.bin): :path without indexing, named by the
-// first static :path; every other field as HPACK's default writes it, as
-// Chrome wrote each of them.
+// (testdata/chrome155-http2-preamble.bin, testdata/chrome155-hpack.json) and as
+// Chromium's encoder has it: a pseudo-header but :authority without indexing,
+// named by the first static entry of its name (:path /a by 4, :method PUT by
+// 2); every other field with incremental indexing, even one larger than the
+// table, which then empties it.
 func chromeHeaderRepresentation(f hpack.HeaderField) hpack.Representation {
-	if f.Name == ":path" {
+	if strings.HasPrefix(f.Name, ":") && f.Name != ":authority" {
 		return hpack.Representation{WithoutIndexing: true, FirstStaticName: true}
 	}
-	return hpack.Representation{}
+	return hpack.Representation{IndexTooLarge: true}
 }
 
 func (p *Profile) validatePseudoHeaderOrder() error {

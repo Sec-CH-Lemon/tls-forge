@@ -817,6 +817,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   profile names, which over HTTP/2 put them after `priority`. In a browser
   context they went there already, as every kind of request Chrome was
   measured sending cookies with shows (`testdata/chrome155-requests.json`).
+- **A connection's later requests go into HPACK as Chrome writes them**, for
+  a Chromium profile, measured on Chrome 155: a `:method` other than GET and
+  POST without indexing, named by the static table's first `:method`, as
+  `:path` already was; a field larger than the dynamic table, such as a
+  cookie of 4 KiB, with incremental indexing, which empties the table, so that
+  the requests after it are written whole; and the table as large as a
+  server's SETTINGS let it be, said at the start of the next header block.
+  The transport indexed such a `:method` and named it by the static table's
+  second, which moved every dynamic index after it, wrote a large field
+  without indexing, and kept the table at 4096 bytes. Through tls-forge's
+  forks of fhttp (`hpack.Representation.IndexTooLarge`,
+  `http2.Transport.MaxEncoderHeaderTableSize`) and tls-client
+  (`ClientProfile.WithMaxEncoderHeaderTableSize`).
 - **`:path` goes into HPACK as Chrome writes it**, for a Chromium profile:
   without indexing, named by the static table's first `:path`. The transport
   indexed it and named it by the second, which `compare` reported and the

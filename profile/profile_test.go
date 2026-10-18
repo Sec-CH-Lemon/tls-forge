@@ -3,6 +3,7 @@ package profile
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
 	"os"
 	"reflect"
 	"sort"
@@ -781,8 +782,27 @@ func TestPseudoNamesIgnoresUnknownLetters(t *testing.T) {
 	}
 }
 
-func TestAChromiumProfileWritesPathIntoHPACKAsChromeDoes(t *testing.T) {
-	path := hpack.HeaderField{Name: ":path", Value: "/a"}
+func TestAChromiumProfileWritesHeadersIntoHPACKAsChromeDoes(t *testing.T) {
+	// As Chrome 155 wrote them (testdata/chrome155-hpack.json): a
+	// pseudo-header but :authority without indexing, named by the first
+	// static entry of its name; any other field with incremental indexing,
+	// one too large for the table too; against a table as large as a server
+	// allows.
+	pseudo := hpack.Representation{WithoutIndexing: true, FirstStaticName: true}
+	indexed := hpack.Representation{IndexTooLarge: true}
+	fields := []struct {
+		field hpack.HeaderField
+		want  hpack.Representation
+	}{
+		{hpack.HeaderField{Name: ":path", Value: "/a"}, pseudo},
+		{hpack.HeaderField{Name: ":method", Value: "PUT"}, pseudo},
+		{hpack.HeaderField{Name: ":scheme", Value: "wss"}, pseudo},
+		{hpack.HeaderField{Name: ":protocol", Value: "websocket"}, pseudo},
+		{hpack.HeaderField{Name: ":authority", Value: "a"}, indexed},
+		{hpack.HeaderField{Name: "cookie", Value: strings.Repeat("a", 5000)}, indexed},
+		{hpack.HeaderField{Name: "x-a", Value: "1"}, indexed},
+		{hpack.HeaderField{Name: "authority", Value: "a"}, indexed},
+	}
 	for name, tc := range map[string]struct {
 		p      *Profile
 		chrome bool
@@ -801,14 +821,16 @@ func TestAChromiumProfileWritesPathIntoHPACKAsChromeDoes(t *testing.T) {
 			if (of != nil) != tc.chrome {
 				t.Fatalf("writes headers as Chromium: %v", of != nil)
 			}
+			if limit, want := built.GetMaxEncoderHeaderTableSize(), map[bool]uint32{true: math.MaxUint32}[tc.chrome]; limit != want {
+				t.Errorf("a table of at most %d bytes, want %d", limit, want)
+			}
 			if of == nil {
 				return
 			}
-			if r := of(path); !r.WithoutIndexing || !r.FirstStaticName {
-				t.Errorf(":path written %+v", r)
-			}
-			if r := of(hpack.HeaderField{Name: ":authority", Value: "a"}); r != (hpack.Representation{}) {
-				t.Errorf(":authority written %+v", r)
+			for _, f := range fields {
+				if r := of(f.field); r != f.want {
+					t.Errorf("%s written %+v, want %+v", f.field.Name, r, f.want)
+				}
 			}
 		})
 	}
