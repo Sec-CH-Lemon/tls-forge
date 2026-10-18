@@ -597,6 +597,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **A request a server answers 421 (Misdirected Request) is sent again,
+  once**, as Chrome 155 sends it (`testdata/chrome155-connections.json`, and
+  three scenarios of `testdata/chrome155-requests.json`): its body and header
+  fields as they went, on a connection of its host's own, never one shared
+  with another name, which the host's later requests go out on too. Over
+  HTTP/1.1 the connection the 421 came on is closed and the request goes out
+  on another; over HTTP/2 a connection the host has of its own carries it.
+  Each hop of a redirect and each CORS preflight is sent again for a 421 of
+  its own, a 401 answered between or not, and a second 421 is the answer.
+  The cookies a 421 sets are not kept when the request is sent again for it,
+  as Chrome hands such a 421 to nothing. The log says `restarted for a 421`. The 421 was the answer, which
+  a request to another name sharing a connection made possible where a
+  connection for each name never had one. Through tls-forge's fork of fhttp
+  (`http2.WithCoalescing`, `WithResponseCookies`).
 - **Connections, and the TLS sessions they resume, are kept apart for each
   top-level site**, as Chrome 155 keeps them
   (`testdata/chrome155-connections.json`): a navigation or a form goes out on

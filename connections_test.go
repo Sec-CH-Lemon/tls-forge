@@ -21,8 +21,10 @@ func script(kind RequestKind, credentials, mode string) BrowserContext {
 // askedOnConnections are the requests each scenario of
 // testdata/chrome155-connections.json had its run page ask for, by their
 // place among the requests Chrome sent, each in its context: the rest after
-// the run page, preflights and the hops of redirects, Chrome made itself, as
-// the client makes them.
+// the run page, preflights, the hops of redirects and a request sent again
+// for a 421, Chrome made itself, as the client makes them. A scenario whose
+// requests had other places over HTTP/2 than over HTTP/1.1 is named with the
+// protocol after a slash.
 var askedOnConnections = map[string]map[int]BrowserContext{
 	"conn-fetch":                                 {1: script(KindFetch, "", "")},
 	"conn-fetch-omit":                            {1: script(KindFetch, credentialsNone, "")},
@@ -53,24 +55,17 @@ var askedOnConnections = map[string]map[int]BrowserContext{
 	"conn-redirect-to-cross-site":                {1: script(KindFetch, "", ""), 2: script(KindFetch, "", "")},
 	"conn-redirect-include-to-cross-site":        {1: script(KindFetch, "", ""), 2: script(KindFetch, credentialsAll, "")},
 	"conn-resume":                                {1: script(KindFetch, "", ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, credentialsNone, ""), 4: script(KindFetch, credentialsNone, "")},
+	"conn-misdirected-pooled":                    {1: script(KindFetch, credentialsAll, "")},
+	"conn-misdirected-pooled-again/h2":           {1: script(KindFetch, credentialsAll, ""), 3: script(KindFetch, credentialsAll, "")},
+	"conn-misdirected-pooled-again/h1":           {1: script(KindFetch, credentialsAll, ""), 2: script(KindFetch, credentialsAll, "")},
+	"conn-misdirected-first":                     {1: script(KindFetch, "", "")},
+	"conn-misdirected-always":                    {1: script(KindFetch, "", ""), 3: script(KindFetch, "", "")},
+	"conn-misdirected-post":                      {1: script(KindFetch, "", "")},
+	"conn-misdirected-nav":                       {1: {Kind: KindNavigation}},
+	"conn-misdirected-redirect":                  {1: script(KindFetch, credentialsAll, "")},
+	"conn-misdirected-preflight/h2":              {1: script(KindFetch, credentialsNone, ""), 4: script(KindFetch, credentialsAll, "")},
+	"conn-misdirected-preflight/h1":              {1: script(KindFetch, credentialsNone, ""), 3: script(KindFetch, credentialsAll, "")},
 }
-
-// notSentOnConnections are the scenarios measured that the client does not
-// send as Chrome did, and why.
-var notSentOnConnections = map[string]string{
-	"conn-misdirected-pooled":       misdirected,
-	"conn-misdirected-pooled-again": misdirected,
-	"conn-misdirected-first":        misdirected,
-	"conn-misdirected-always":       misdirected,
-	"conn-misdirected-post":         misdirected,
-	"conn-misdirected-nav":          misdirected,
-	"conn-misdirected-redirect":     misdirected,
-	"conn-misdirected-preflight":    misdirected,
-}
-
-// misdirected is why: a 421 is the answer.
-const misdirected = "Chrome sends a request a server answered 421 (Misdirected Request) again, once, on a connection " +
-	"of its host's own; the client's answer is the 421"
 
 // apartFromChrome are the scenarios, by name and protocol, whose requests the
 // client sends on other connections than Chrome did: the connections it sends
@@ -124,14 +119,15 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 		t.Fatalf("LoadRequests: %v", err)
 	}
 	for _, id := range slices.Sorted(maps.Keys(fixture.Scenarios)) {
-		asked, ok := askedOnConnections[id]
-		if _, why := notSentOnConnections[id]; why || !ok {
-			if why == ok {
-				t.Errorf("%s is measured: sent %v, not sent %v", id, ok, why)
-			}
-			continue
-		}
 		for proto, want := range map[string][]harness.Request{"h2": fixture.Scenarios[id].H2, "h1": fixture.Scenarios[id].H1} {
+			asked, ok := askedOnConnections[id+"/"+proto]
+			if !ok {
+				asked, ok = askedOnConnections[id]
+			}
+			if !ok {
+				t.Errorf("%s over %s is measured, and not sent", id, proto)
+				continue
+			}
 			t.Run(id+"/"+proto, func(t *testing.T) {
 				got := sendOnConnections(t, proto, id, asked, want)
 				var sentAs, chromeAs []string
@@ -161,14 +157,10 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 			})
 		}
 	}
-	for id := range askedOnConnections {
-		if _, ok := fixture.Scenarios[id]; !ok {
-			t.Errorf("%s is sent, and not measured", id)
-		}
-	}
-	for id := range notSentOnConnections {
-		if _, ok := fixture.Scenarios[id]; !ok {
-			t.Errorf("%s is not sent, and not measured", id)
+	for which := range askedOnConnections {
+		id, proto, apart := strings.Cut(which, "/")
+		if _, ok := fixture.Scenarios[id]; !ok || apart && proto != "h2" && proto != "h1" {
+			t.Errorf("%s is sent, and not measured", which)
 		}
 	}
 	for which := range apartFromChrome {

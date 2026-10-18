@@ -89,10 +89,11 @@ type asSent struct {
 	each []BrowserContext
 	// pages are the requests of a scenario that its pages asked for, by their
 	// place among Chrome's, where Chrome made others itself between them: a
-	// challenge it answered, a redirect it followed. The first is sent in
-	// browser, and each after it as a navigation from the URL Chrome's
-	// requests before it ended on. credentials are what each page's URL
-	// carried, which no request shows.
+	// challenge it answered, a redirect it followed, a request it sent again
+	// for a 421. The first is sent in browser, and each after it as a
+	// navigation from the URL Chrome's requests before it ended on, unless
+	// each says otherwise. credentials are what each page's URL carried,
+	// which no request shows.
 	pages       []int
 	credentials []string
 }
@@ -104,11 +105,6 @@ var notSent = map[string]string{
 	"ch-fetch-three":                 "the order of several client hints of a script's request follows the renderer's hash table",
 	"ch-fetch-all":                   "the order of several client hints of a script's request follows the renderer's hash table",
 	"auth-digest-ntlm":               "Chrome answers NTLM, which it prefers to Digest and Basic, and tls-forge answers neither instead",
-
-	// A 421 is the answer.
-	"nav-misdirected-401-misdirected": misdirected,
-	"nav-401-misdirected":             misdirected,
-	"fetch-misdirected-cookie":        misdirected,
 }
 
 // asked is the URL of a scenario's page with its query.
@@ -408,7 +404,11 @@ func init() {
 		"auth-digest-basic-kept": {browser: typed, pages: []int{0, 2}, credentials: []string{"u:p", ""}},
 		"auth-digest-stale-forever": {browser: typed, pages: []int{0}, credentials: []string{"u:p"},
 			fails: "asked for authentication again after 31 answers"},
-		"auth-nav-cross-site-samesite": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("auth-nav-cross-site-samesite")}, pages: []int{0, 2}, credentials: []string{"u:p", "u:p"}, cookies: setOnEveryKind("www.example.net")},
+		"auth-nav-cross-site-samesite":    {browser: BrowserContext{Kind: KindNavigation, Initiator: run("auth-nav-cross-site-samesite")}, pages: []int{0, 2}, credentials: []string{"u:p", "u:p"}, cookies: setOnEveryKind("www.example.net")},
+		"nav-misdirected-401-misdirected": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("nav-misdirected-401-misdirected")}, pages: []int{0}, credentials: []string{"u:p"}},
+		"nav-401-misdirected":             {browser: BrowserContext{Kind: KindNavigation, Initiator: run("nav-401-misdirected")}, pages: []int{0}, credentials: []string{"u:p"}},
+		"fetch-misdirected-cookie": {each: []BrowserContext{{Kind: KindFetch, Initiator: run("fetch-misdirected-cookie")},
+			{Kind: KindFetch, Initiator: run("fetch-misdirected-cookie")}}, pages: []int{0, 2}, credentials: []string{"", ""}},
 	} {
 		sentInContexts[scenario] = how
 	}
@@ -466,7 +466,7 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 				if how.each != nil {
 					contexts = how.each
 				}
-				if how.pages != nil {
+				if how.pages != nil && how.each == nil {
 					contexts = []BrowserContext{how.browser}
 					for _, at := range how.pages[1:] {
 						contexts = append(contexts, BrowserContext{Kind: KindNavigation, Initiator: want[at-1].URL})
@@ -494,9 +494,11 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // and kept for none; under /chain/N a redirect to /chain/N+1; under /auth/ a
 // 401 with a Basic challenge, after a Digest one for ?offer=digest, until the
 // request says u:p, then a redirect to ?to or a page; under /digest/ what the
-// bench answers (harness.DigestPage); cookies, two for ?cookie=1 and one of
-// each SameSite for ?cookie=2; and for ?close, the connection ended once
-// answered, as Connection: close says (GOAWAY over HTTP/2).
+// bench answers (harness.DigestPage); under /misdirected/ what the bench
+// answers (harness.Misdirection), and otherwise what /cors/ answers; cookies,
+// two for ?cookie=1 and one of each SameSite for ?cookie=2; and for ?close,
+// the connection ended once answered, as Connection: close says (GOAWAY over
+// HTTP/2).
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	// The whole request is read before it is answered. Go's HTTP/2 client
 	// stops sending a body once an answer above 299 comes, and over loopback
@@ -529,6 +531,10 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 		for _, cookie := range cookies {
 			w.Header().Add("Set-Cookie", cookie)
 		}
+	}
+	misdirect := strings.HasPrefix(r.URL.Path, "/misdirected/")
+	if misdirect && misdirected(w, r) {
+		return
 	}
 	switch path := r.URL.Path; {
 	case strings.HasPrefix(path, "/r/"):
@@ -573,7 +579,7 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Location", q.Get("to"))
 		w.WriteHeader(http.StatusFound)
 		return
-	case !strings.HasPrefix(path, "/cors/"):
+	case !strings.HasPrefix(path, "/cors/") && !misdirect:
 		allow()
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = io.WriteString(w, "<!doctype html><title>page</title>")

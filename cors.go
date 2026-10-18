@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"slices"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	fhttp "github.com/igor-lemon/fhttp"
+	http2 "github.com/igor-lemon/fhttp/http2"
 	tls_client "github.com/igor-lemon/tls-client"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -278,8 +280,9 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	shown := shownURL(inner)
 	target := shown.String()
 	u := *inner.URL
+	var conn net.Conn
 	ask := (&fhttp.Request{Method: fhttp.MethodOptions, URL: &u, Host: inner.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
-		ProtoMinor: 1}).WithContext(context.WithValue(base, preflightContextKey{}, true))
+		ProtoMinor: 1}).WithContext(keepingConn(context.WithValue(base, preflightContextKey{}, true), &conn))
 	ask = c.browserLayouts(r.preflightHeader(h, c.headers), nil, preflightOrder, shown.Host).wear(ask)
 	withPort(ask)
 	if c.session.jar != nil {
@@ -287,6 +290,18 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 		defer c.session.jar.release(ask.URL)
 	}
 	res, err := bare.Do(ask)
+	if err == nil && res.StatusCode == fhttp.StatusMisdirectedRequest {
+		// Asked once more, as Chrome asks again, on a connection of its
+		// host's own.
+		letGo(res, conn)
+		if log != nil {
+			log.misdirected(target)
+		}
+		again := ask.Clone(http2.WithCoalescing(ask.Context(), false))
+		// The URL the jar was told about, which Clone copies.
+		again.URL = ask.URL
+		res, err = bare.Do(again)
+	}
 	if err != nil {
 		return transportError(err)
 	}

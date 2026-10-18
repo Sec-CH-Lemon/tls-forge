@@ -25,6 +25,8 @@ import (
 	tls_client "github.com/igor-lemon/tls-client"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 )
 
 // keptRequest is a request as a recorder kept it: the method, the URL with no
@@ -57,6 +59,28 @@ type recorder struct {
 	into *recorder
 	// closed are the connections its server has closed.
 	closed map[int64]bool
+	// misdirection answers under /misdirected/ as the bench does.
+	misdirection harness.Misdirection
+}
+
+// recorderKey and servedNameKey are where the context of a request a
+// recorder answers keeps the recorder, and the server name the TLS of the
+// connection it came on asked for, empty in the clear.
+type (
+	recorderKey   struct{}
+	servedNameKey struct{}
+)
+
+// served is ctx for a connection the recorder hands its servers.
+func (r *recorder) served(ctx context.Context, conn net.Conn) context.Context {
+	return context.WithValue(context.WithValue(ctx, recorderKey{}, r), servedNameKey{}, conn.(*teeConn).name)
+}
+
+// misdirected answers req as the bench does under /misdirected/, and reports
+// whether it did: a 421, or a 401 (harness.Misdirection).
+func misdirected(w http.ResponseWriter, req *http.Request) bool {
+	r := req.Context().Value(recorderKey{}).(*recorder)
+	return r.misdirection.Answers(w, req, req.Context().Value(servedNameKey{}).(string))
 }
 
 func (r *recorder) keep(req *keptRequest) {
@@ -184,12 +208,12 @@ func newRecorder(t *testing.T, proto string, handler http.HandlerFunc) *recorder
 	// Two servers fed the connections the recorder has read the TLS of: one
 	// that speaks HTTP/1.1, one HTTP/2 by prior knowledge.
 	h1 := &chanListener{ch: make(chan net.Conn), done: make(chan struct{}), addr: ln.Addr()}
-	server := &http.Server{Handler: handler}
+	server := &http.Server{Handler: handler, ConnContext: r.served}
 	go func() { _ = server.Serve(h1) }()
 	var prior http.Protocols
 	prior.SetUnencryptedHTTP2(true)
 	h2 := &chanListener{ch: make(chan net.Conn), done: make(chan struct{}), addr: ln.Addr()}
-	h2Server := &http.Server{Handler: handler, Protocols: &prior}
+	h2Server := &http.Server{Handler: handler, Protocols: &prior, ConnContext: r.served}
 	go func() { _ = h2Server.Serve(h2) }()
 	certificate := recorderCertificate(t)
 	protos := []string{"h2", "http/1.1"}
@@ -237,11 +261,11 @@ func (r *recorder) serve(raw net.Conn, proto string, cfg *tls.Config, h1, h2 *ch
 	if state.NegotiatedProtocol == "h2" {
 		p := &h2Recorder{keep: r.keep, conn: taken.Add(1), resumed: state.DidResume, dec: hpack.NewDecoder(4096, nil),
 			open: map[uint32]*keptRequest{}}
-		h2.give(&teeConn{Conn: tc, parse: p.write, closed: func() { r.close(p.conn) }})
+		h2.give(&teeConn{Conn: tc, name: state.ServerName, parse: p.write, closed: func() { r.close(p.conn) }})
 		return
 	}
 	p := &h1Recorder{keep: r.keep, scheme: "https", conn: taken.Add(1), resumed: state.DidResume}
-	h1.give(&teeConn{Conn: tc, parse: p.write, closed: func() { r.close(p.conn) }})
+	h1.give(&teeConn{Conn: tc, name: state.ServerName, parse: p.write, closed: func() { r.close(p.conn) }})
 }
 
 // chanListener hands the HTTP/1.1 server the connections it is given.
@@ -271,9 +295,11 @@ func (l *chanListener) Close() error   { return nil }
 func (l *chanListener) Addr() net.Addr { return l.addr }
 
 // teeConn hands what is read from it to parse, as it is read, and says when
-// it is closed.
+// it is closed; name is the server name its TLS asked for, empty in the
+// clear.
 type teeConn struct {
 	net.Conn
+	name   string
 	parse  func([]byte)
 	closed func()
 }

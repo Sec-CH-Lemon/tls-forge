@@ -341,6 +341,17 @@ none whose certificate has an error), nor when transport options of the
 caller's may say how to dial ([Transport options](#transport-options)).
 HTTP/1.1 connections are not shared, as Chrome shares none.
 
+A request a server answers 421 (Misdirected Request) is sent again, once, as
+Chrome 155 sends it: its body and header fields as they went, on a
+connection of its host's own, which the host's later requests go out on too.
+Over HTTP/2 that is a connection the client holds for the host, the same one
+when the 421 came on it; over HTTP/1.1 the connection the 421 came on is
+closed, and the request goes out on another. Each hop of a redirect and each
+CORS preflight is sent again for a 421 of its own, a 401 answered between or
+not, and a second 421 is the answer, or a preflight that did not allow the
+request. The cookies a 421 sets are not kept when the request is sent again
+for it: Chrome hands such a 421 to nothing, the page included.
+
 Two things Chrome does with its connections tls-forge does not. Chrome sends
 a navigation's redirect to another site on that site's connections, where
 tls-forge follows every redirect on the connections of the site of the first
@@ -598,7 +609,7 @@ response, err := client.Do(&tlsforge.Request{
 
 | Level | What is logged |
 |---|---|
-| `slog.LevelInfo` | The client and its profile; a record for each request and each answer, and for a navigation started again for its critical client hints. |
+| `slog.LevelInfo` | The client and its profile; a record for each request and each answer, for a navigation started again for its critical client hints, and for a request sent again for a 421. |
 | `slog.LevelWarn` | A request that failed: the step it gave up in as `phase` (`prepare`, `dns`, `connect`, `proxy`, `tls`, `send`, `wait`, `receive`, `body` or `redirect`), whether it was a timeout, and the error. A lookup that failed, a proxy that would not open a tunnel, with up to 1 KiB of what it said, a handshake with an HTTPS proxy that failed, and the redirect that is not followed, the twentieth. |
 | `slog.LevelDebug` | Every step: each lookup with the addresses found, each TCP dial, the `CONNECT` to a proxy and its answer with the tunnel's number, the connection by its two ends with what its handshake settled on and the server's certificate, a connection reused, the header fields as written, pseudo-headers included, the first byte, the answer's header fields, each redirect, what an origin asked for with `Accept-CH`, and when a client is made, made `Fresh`, closes its idle connections and is closed. The profile's JA4, HTTP/2 preface and header order when a client is made. |
 | `tlsforge.LevelTrace` | The ClientHello of every new connection, with its JA4, JA4_r, JA3, every list in it and the length of its GREASE ECH payload as `ech_payload_bytes`, and every certificate of the server's chain. |

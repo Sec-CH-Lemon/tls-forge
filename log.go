@@ -346,6 +346,14 @@ func (r *requestLog) hintsAsked(o origin, hints []string) {
 	r.log.Debug("client hints asked", "origin", o.String(), "hints", strings.Join(hints, ","))
 }
 
+// misdirected is a request to url a server answered 421 (Misdirected
+// Request), sent again on a connection of its host's own, as Chrome sends it:
+// its steps start again.
+func (r *requestLog) misdirected(url string) {
+	took := r.step("connect")
+	r.log.Info("restarted for a 421", "url", redact.URL(url), "took", took)
+}
+
 // restarted is a navigation started again for the client hints its answer
 // from url said it needs.
 func (r *requestLog) restarted(url string, hints []string) {

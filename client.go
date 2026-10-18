@@ -586,7 +586,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	transport := s.carrying(browser == nil || !browser.cookies(ch.last).none)
 	ch.base = inner.Context()
 	inner = blocks.wear(inner)
-	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
+	inner = inner.WithContext(ch.in(inner.Context()))
 
 	defer ch.release()
 	if browser != nil {
@@ -607,6 +607,13 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	for err == nil {
 		if r != nil {
 			r.answered(res)
+		}
+		if ch.misdirected(res) {
+			if r != nil {
+				r.misdirected(shownURL(res.Request).String())
+			}
+			res, err = transport.Do(ch.remade(res.Request))
+			continue
 		}
 		value, ok, failed := ch.challenged(res)
 		if failed != nil || ok {
@@ -718,6 +725,12 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		r.redirect(ch.redirects, req.Response.StatusCode, shownURL(req).String(), req.Response.Header)
 	}
 	withPort(req)
+	// A hop goes out as one of its own, which Chrome sends with IP pooling on
+	// whatever the hop before it was sent with: the transport makes it with
+	// the context of the request it was given, a hop sent again for a 421.
+	// Before it is dressed, since the URL the jar is told about is the copy
+	// WithContext makes.
+	*req = *req.WithContext(http2.WithCoalescing(req.Context(), true))
 	return ch.follow(req, via)
 }
 

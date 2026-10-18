@@ -3,11 +3,14 @@ package tlsforge
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/url"
 	"slices"
 	"strings"
 
 	fhttp "github.com/igor-lemon/fhttp"
+	http2 "github.com/igor-lemon/fhttp/http2"
+	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 )
 
 // How a redirect is followed, as Chrome 155 was measured following one
@@ -79,6 +82,11 @@ type chain struct {
 	// laid are the layouts the latest hop of a request without a browser
 	// context wears, which one sent again for a challenge is made from.
 	laid *layouts
+	// resent is the latest hop sent again for a 421 (Misdirected Request),
+	// which Chrome does once a hop; conn is the connection the latest request
+	// of the chain went out on.
+	resent bool
+	conn   net.Conn
 }
 
 // sentAuth is the Authorization tls-forge gave a hop: the challenge it
@@ -91,6 +99,32 @@ type sentAuth struct {
 }
 
 type chainKey struct{}
+
+// in is ctx for a request of the chain: the chain in it, the connection the
+// request goes out on kept, and the jar given the cookies of each answer but
+// a 421 its hop is sent again for; once its hop was sent again for a 421, it
+// goes out on no connection shared with another host, as Chrome sends what is
+// left of a hop with IP pooling off.
+func (ch *chain) in(ctx context.Context) context.Context {
+	ctx = keepingConn(context.WithValue(ctx, chainKey{}, ch), &ch.conn)
+	ctx = fhttp.WithResponseCookies(ctx, ch.keeps)
+	return http2.WithCoalescing(ctx, !ch.resent)
+}
+
+// keeps reports whether the jar keeps the cookies res sets: not those of a
+// 421 its hop is sent again for, which Chrome's network stack never hands
+// over.
+func (ch *chain) keeps(res *fhttp.Response) bool {
+	return res.StatusCode != fhttp.StatusMisdirectedRequest || ch.resent
+}
+
+// keepingConn is ctx with a hook that keeps in conn the connection a request
+// made with it goes out on.
+func keepingConn(ctx context.Context, conn *net.Conn) context.Context {
+	return fhttptrace.WithClientTrace(ctx, &fhttptrace.ClientTrace{
+		GotConn: func(info fhttptrace.GotConnInfo) { *conn = info.Conn },
+	})
+}
 
 // rule has the jar answer the transport, when it asks about u, with what the
 // hop carries; release forgets every one when the request is over.
@@ -156,7 +190,7 @@ func (ch *chain) authenticates(h hop) bool {
 // directory, nothing for a URL that carries credentials, nor where allowed
 // says none goes.
 func (ch *chain) arrive(method string, u *url.URL, user *url.Userinfo, allowed bool) string {
-	ch.credentials, ch.embedded, ch.sent, ch.restarts = user, false, nil, 0
+	ch.credentials, ch.embedded, ch.sent, ch.restarts, ch.resent = user, false, nil, 0, false
 	if _, carried := credentialsOf(user); carried || !allowed {
 		return ""
 	}
@@ -240,26 +274,55 @@ func (ch *chain) challenged(res *fhttp.Response) (string, bool, error) {
 }
 
 // again is res's request, the latest hop, sent again with Authorization said
-// as value: its body too, its headers as Chrome's network stack restarts it,
-// and its cookies. Its context goes on before it is dressed, the jar told
-// about the URL it is sent with, which every WithContext copies anew.
+// as value: its body too, its headers as Chrome's network stack restarts it.
 func (ch *chain) again(sent *fhttp.Request, value string) *fhttp.Request {
+	ch.ours = true
+	if ch.browser != nil {
+		ch.last.authorization = value
+	} else {
+		ch.laid = ch.laid.authorized(value)
+	}
+	return ch.remade(sent)
+}
+
+// misdirected reports a 421 (Misdirected Request) Chrome sends its request
+// again for: the first of its hop's, as HttpNetworkTransaction sends one
+// again once, the rest of the hop with IP pooling off. Such an answer is let
+// go of as Chrome lets go of it: its body unread, and over HTTP/1.1 the
+// connection it came on closed, where a body read to its end would leave it to
+// the next request.
+func (ch *chain) misdirected(res *fhttp.Response) bool {
+	if res.StatusCode != fhttp.StatusMisdirectedRequest || ch.resent {
+		return false
+	}
+	letGo(res, ch.conn)
+	ch.resent = true
+	return true
+}
+
+// letGo lets go of a 421 a request is sent again for, which came on conn.
+func letGo(res *fhttp.Response, conn net.Conn) {
+	_ = res.Body.Close()
+	if res.ProtoMajor < 2 {
+		_ = conn.Close()
+	}
+}
+
+// remade is sent, the latest hop, made again to be sent as it is laid out
+// now: its body too. Its context goes on before it is dressed, the jar told
+// about the URL it is sent with, which every WithContext copies anew.
+func (ch *chain) remade(sent *fhttp.Request) *fhttp.Request {
 	u := *sent.URL
 	retry := (&fhttp.Request{Method: sent.Method, URL: &u, Host: sent.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
-		ProtoMinor: 1, ContentLength: sent.ContentLength, GetBody: sent.GetBody}).WithContext(
-		context.WithValue(ch.base, chainKey{}, ch))
+		ProtoMinor: 1, ContentLength: sent.ContentLength, GetBody: sent.GetBody}).WithContext(ch.in(ch.base))
 	if sent.GetBody != nil {
 		// GetBody of a request made from bytes, which cannot fail.
 		retry.Body, _ = sent.GetBody()
 	}
-	ch.ours = true
 	if ch.browser != nil {
-		h := ch.last
-		h.authorization = value
-		ch.dress(retry, h)
+		ch.dress(retry, ch.last)
 		return retry
 	}
-	ch.laid = ch.laid.authorized(value)
 	return ch.laid.wear(retry)
 }
 
