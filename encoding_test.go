@@ -7,16 +7,19 @@ import (
 	"compress/zlib"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/andybalholm/brotli"
+	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
 	"github.com/klauspost/compress/zstd"
 )
@@ -468,6 +471,45 @@ func TestZlibHeader(t *testing.T) {
 	} {
 		if got := zlibHeader(tc.cmf, tc.flg); got != tc.want {
 			t.Errorf("zlibHeader(%#02x, %#02x) = %v, want %v", tc.cmf, tc.flg, got, tc.want)
+		}
+	}
+}
+
+// askedSizes is a body that keeps how much each read of it asked for.
+type askedSizes struct {
+	io.Reader
+	asked []int
+}
+
+func (a *askedSizes) Read(p []byte) (int, error) {
+	a.asked = append(a.asked, len(p))
+	return a.Reader.Read(p)
+}
+
+func TestABodyIsReadAtMostEightKiBAtATime(t *testing.T) {
+	// As Chrome's network service takes a body from its HTTP/2 stream: what a
+	// read frees of a window past half of it, which the transport tells the
+	// server of, is at most 8 KiB more (testdata/chrome155-flow.json). Plain
+	// and compressed alike.
+	var gz bytes.Buffer
+	w := gzip.NewWriter(&gz)
+	_, _ = w.Write(bytes.Repeat(page, 100))
+	_ = w.Close()
+	for _, c := range []struct {
+		name string
+		body []byte
+		head fhttp.Header
+	}{
+		{"plain", make([]byte, 1<<20), fhttp.Header{}},
+		{"gzip", gz.Bytes(), fhttp.Header{"Content-Encoding": {"gzip"}}},
+	} {
+		body := &askedSizes{Reader: bytes.NewReader(c.body)}
+		res := &fhttp.Response{StatusCode: http.StatusOK, Body: io.NopCloser(body), Header: c.head}
+		if _, _, err := readBody(res, http.MethodGet, 2<<20); err != nil {
+			t.Fatalf("%s: readBody: %v", c.name, err)
+		}
+		if len(body.asked) == 0 || slices.Max(body.asked) > 8192 {
+			t.Errorf("%s: reads asked for %v", c.name, body.asked)
 		}
 	}
 }

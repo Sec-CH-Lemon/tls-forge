@@ -138,7 +138,7 @@ func hasBody(method string, status int) bool {
 // Chrome does not know either: Chrome passes such a body through undecoded
 // rather than decode part of it.
 func readBody(res *fhttp.Response, method string, limit int64) ([]byte, string, error) {
-	body := bufio.NewReader(res.Body)
+	body := bufio.NewReaderSize(chromeReads{res.Body}, chromeReadSize)
 	codings := codingsOf(res.Header)
 	if _, err := body.Peek(1); len(codings) == 0 || !hasBody(method, res.StatusCode) ||
 		res.StatusCode == fhttp.StatusPartialContent || err != nil || !knownCodings(codings) {
@@ -190,6 +190,23 @@ func knownCodings(codings []string) bool {
 
 // readAtMost reads a body whole, unless it is longer than limit, which it says
 // with ErrResponseTooLarge once limit and one more byte have come.
+// chromeReadSize is the most a read takes of a body at a time, as Chrome's
+// network service takes a response's body from its HTTP/2 stream in pieces of
+// at most 8 KiB: what is freed of a window past half of it, which the
+// transport tells the server of as Chrome does, is at most that much more, as
+// Chrome's WINDOW_UPDATEs were measured (testdata/chrome155-flow.json).
+const chromeReadSize = 8 << 10
+
+// chromeReads is a body read chromeReadSize at a time at most.
+type chromeReads struct{ io.Reader }
+
+func (r chromeReads) Read(p []byte) (int, error) {
+	if len(p) > chromeReadSize {
+		p = p[:chromeReadSize]
+	}
+	return r.Reader.Read(p)
+}
+
 func readAtMost(r io.Reader, limit int64) ([]byte, error) {
 	read, err := io.ReadAll(io.LimitReader(r, limit+1))
 	if err != nil {

@@ -23,15 +23,16 @@ were taken with Google Chrome 155.0.8059 on macOS, against local servers.
 A behaviour that has not been through these steps is not claimed, however
 plausible it looks.
 
-The four fixtures of what a page does, `testdata/chrome155-requests.json`,
-`testdata/chrome155-connections.json`, `testdata/chrome155-hpack.json` and
-`testdata/chrome155-decoding.json`, were measured on the bench in
-`internal/harness`: a server that keeps every request as the bytes said it,
-its header block as the client wrote it into HPACK, and the connection it came
-on, over HTTP/2, over HTTP/1.1 alone and over plain HTTP, each scenario's page
-and script, and each page whose decoding is asked about. It measures a
-browser again, and writes the fixtures, or with `--check` holds the browser to
-them:
+The five fixtures of what a page does, `testdata/chrome155-requests.json`,
+`testdata/chrome155-connections.json`, `testdata/chrome155-hpack.json`,
+`testdata/chrome155-decoding.json` and `testdata/chrome155-flow.json`, were
+measured on the bench in `internal/harness`: a server that keeps every request
+as the bytes said it, its header block as the client wrote it into HPACK, and
+the connection it came on, over HTTP/2, over HTTP/1.1 alone and over plain
+HTTP, each scenario's page and script, and each page whose decoding is asked
+about; and one that sends an answer in the parts a scenario names and keeps
+every WINDOW_UPDATE the browser sends while it reads it. It measures a browser
+again, and writes the fixtures, or with `--check` holds the browser to them:
 
 ```bash
 go run ./internal/harness/measure --browser "/path/to/Google Chrome" --check
@@ -41,7 +42,8 @@ Google Chrome 155.0.8059.80 on macOS, measured again on 2026-10-17, is what
 the fixtures of requests and decodings say, scenario for scenario and page for
 page, and measured twice that day, and again on 2026-10-18 with the scenarios
 added then, what the fixture of connections says, as it is what the fixture of
-header blocks says, measured twice on 2026-10-18. A
+header blocks says, measured twice on 2026-10-18, and what the fixture of
+window updates says, measured twice that day. A
 release holds its reference build to the fixtures of requests and decodings
 the same way ([pinned](pinned.md)).
 
@@ -56,6 +58,7 @@ the same way ([pinned](pinned.md)).
 | GREASE `encrypted_client_hello` payload length drawn on every connection, from 144, 176, 208 and 240 bytes, each as likely; cipher suite, key and config id fresh too | checked | measured on Chrome 155 over 301 connections (`testdata/chrome155-ech.json`); `TestHelloAfterHelloDrawsItsOwnECH` over 256 hellos and `TestEveryConnectionDrawsItsECHLengthColdOrResumed` over cold and resumed connections. Only Chromium was measured: a profile of another browser keeps the length it was captured with |
 | ClientHello of a resumed connection (`pre_shared_key` last, one identity, a 32-byte binder) | checked | held to `testdata/chrome155-clienthello-resumed.bin`, field by field |
 | 0-RTT early data, and using a session ticket once | not checked | |
+| WINDOW_UPDATEs while a body is read, for a Chromium profile: what is read of a window told once more than half of it is untold, 3 MiB of a stream's 6 MiB and 7.5 MiB of the connection's 15 MiB, or at the first read more than five seconds after the last told or the stream or connection began, however little; the connection's first; none for a stream the server ended; whatever window the server itself advertised; a body read 8 KiB at a time, so that an update says at most that much past half | checked | measured on Chrome 155 (`testdata/chrome155-flow.json`): 300 KiB, 4 MiB and 20 MiB from servers whose own windows are 64 KiB, 1 MiB and 16 MiB, parts four and six seconds apart, and a page's `fetch()` six seconds on; `TestWindowUpdatesGoAsChromeSentThem` sends each to the bench's server and holds which window each update is of, in which part of the answer, and how much it says, past half or past what was untold by a read of Chrome's at most, to Chrome's; through tls-forge's forks of fhttp and tls-client (`http2.Transport.WindowUpdateDelay`), whose transport told a stream of every 16 KiB read while the server's own window was under 1 MiB, as the RFC's 65535 is, and gave the connection back less than half its window at a time |
 | HTTP/2 SETTINGS, connection WINDOW_UPDATE, PRIORITY frames, priority on HEADERS, pseudo-header order (the Akamai fingerprint) and the pseudo-headers' values but `:path` and `:authority` | checked | `tls-forge compare`; `TestCompareHTTP2` changes each field once and holds the comparison to finding it |
 | Header order and values of a top-level navigation (GET, no body), HTTP/2 and HTTP/1.1, including HTTP/1.1 spelling and the request's method and version | checked | `tls-forge compare`; `TestCompareHTTP1` as `TestCompareHTTP2` |
 | The cookies of a request, with a browser context and without: right after `Accept-Language`, over HTTP/2 one field for each cookie, right before `priority`, over HTTP/1.1 one `Cookie` line, on a redirect's hops too; a `Cookie` a request without a context is given goes there as well | checked | measured on Chrome 155 over HTTP/2 and HTTP/1.1 (`testdata/chrome155-requests.json`): a navigation typed and from a page, a form's GET and POST, `fetch()` and an XHR, the navigation started again for client hints, and redirect hops, all with cookies; `TestABrowserContextSendsWhatChromeSent` holds each field, its place and its value to Chrome's, and `TestARequestWithoutAContextSendsItsCookiesAsChromeDid` a request without a context, the jar's cookies and its own `Cookie` alike. Only Chromium was measured: a profile of another browser sends them after every header it names |

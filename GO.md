@@ -154,9 +154,12 @@ and what tls-forge did with it goes too:
   replace how redirects are followed: no longer as Chrome follows them
   ([Redirects](#redirects)). `WithoutRedirects` is the way to keep them.
 - `tls_client.WithClientProfile` replaces the handshake and the HTTP/2
-  settings, priorities and pseudo-header order of the transport. The headers
-  each request carries stay the profile's, and so does the HEADERS weight a
-  browser context gives `fetch()` and an XHR.
+  settings, priorities and pseudo-header order of the transport, and how it
+  writes HPACK and tells a server of its windows: as Chrome does in a profile
+  `profile.Profile.ClientProfile` builds for a Chromium browser, as the
+  transport does in one of tls-client's catalogue. The headers each request
+  carries stay the profile's, and so does the HEADERS weight a browser context
+  gives `fetch()` and an XHR.
 - `tls_client.WithCookieJar` replaces the client's jar, and `Cookies`,
   `AllCookies` and session files then see none of what the site sets.
   `WithCookieJar` is the way to bring a jar of your own.

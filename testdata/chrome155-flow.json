@@ -1,0 +1,204 @@
+{
+ "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-18",
+ "how": "A local server answered www.example.com, mapped to 127.0.0.1 with --host-resolver-rules, over HTTPS with HTTP/2 alone, advertising the SETTINGS_INITIAL_WINDOW_SIZE each scenario names. It sent each answer's body in DATA frames of 16 KiB as fast as the browser's windows let it, in the parts and with the pauses the scenario names, and kept every WINDOW_UPDATE the browser sent on the answer's connection after the first, which said the connection's window as it began: which window it is of, its increment, and the part of the answers being sent when it came. Each scenario ran in a fresh profile, a URL opened from the command line, and for flow-again the fetch() its page made.",
+ "scenarios": {
+  "flow-again": {
+   "note": "a page of 2000 bytes, then a fetch() of 3000 its script makes six seconds later",
+   "window": 65535,
+   "size": 2000,
+   "end_pause": 300,
+   "again": 3000,
+   "again_after": 6000,
+   "updates": [
+    {
+     "window": "connection",
+     "increment": 3000,
+     "part": 2
+    }
+   ]
+  },
+  "flow-connection": {
+   "note": "20 MiB, more than the connection's window, as fast as the windows let it",
+   "window": 65535,
+   "size": 20971520,
+   "end_pause": 2000,
+   "updates": [
+    {
+     "window": "first",
+     "increment": 3153038,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3146646,
+     "part": 0
+    },
+    {
+     "window": "connection",
+     "increment": 7871648,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3152984,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3146601,
+     "part": 0
+    },
+    {
+     "window": "connection",
+     "increment": 7872458,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3153011,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3146709,
+     "part": 0
+    }
+   ]
+  },
+  "flow-connection-1m": {
+   "note": "flow-connection from a server whose own window is 1 MiB",
+   "window": 1048576,
+   "size": 20971520,
+   "end_pause": 2000,
+   "updates": [
+    {
+     "window": "first",
+     "increment": 3153839,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3145818,
+     "part": 0
+    },
+    {
+     "window": "connection",
+     "increment": 7864338,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3153911,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3145746,
+     "part": 0
+    },
+    {
+     "window": "connection",
+     "increment": 7872413,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3145773,
+     "part": 0
+    },
+    {
+     "window": "first",
+     "increment": 3153848,
+     "part": 0
+    }
+   ]
+  },
+  "flow-half": {
+   "note": "4 MiB, 3.5 MiB and a pause, then the rest",
+   "window": 65535,
+   "size": 4194304,
+   "part": 3670016,
+   "pause": 500,
+   "end_pause": 500,
+   "updates": [
+    {
+     "window": "first",
+     "increment": 3146961,
+     "part": 0
+    }
+   ]
+  },
+  "flow-half-16m": {
+   "note": "flow-half from a server whose own window is 16 MiB",
+   "window": 16777216,
+   "size": 4194304,
+   "part": 3670016,
+   "pause": 500,
+   "end_pause": 500,
+   "updates": [
+    {
+     "window": "first",
+     "increment": 3153821,
+     "part": 0
+    }
+   ]
+  },
+  "flow-pause-4s": {
+   "note": "three parts of 64 KiB, four seconds apart",
+   "window": 65535,
+   "size": 196608,
+   "part": 65536,
+   "pause": 4000,
+   "end_pause": 300,
+   "updates": [
+    {
+     "window": "connection",
+     "increment": 131108,
+     "part": 2
+    },
+    {
+     "window": "first",
+     "increment": 131108,
+     "part": 2
+    }
+   ]
+  },
+  "flow-pause-6s": {
+   "note": "three parts of 64 KiB, six seconds apart",
+   "window": 65535,
+   "size": 196608,
+   "part": 65536,
+   "pause": 6000,
+   "end_pause": 300,
+   "updates": [
+    {
+     "window": "connection",
+     "increment": 65572,
+     "part": 1
+    },
+    {
+     "window": "first",
+     "increment": 65572,
+     "part": 1
+    },
+    {
+     "window": "connection",
+     "increment": 65509,
+     "part": 2
+    },
+    {
+     "window": "first",
+     "increment": 65509,
+     "part": 2
+    }
+   ]
+  },
+  "flow-small": {
+   "note": "300 KiB in one part, the stream ended on its last frame",
+   "window": 65535,
+   "size": 307200,
+   "updates": []
+  }
+ }
+}

@@ -868,6 +868,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **WINDOW_UPDATEs go as Chrome sends them while a body is read**, with a
+  Chromium profile: what is read of a window is told once more than half of it
+  is untold, 3 MiB of a stream's 6 MiB and 7.5 MiB of the connection's 15 MiB,
+  or at the first read more than five seconds after the last, however little; a
+  stream the server ended is told nothing more; and the server's own window
+  changes none of it. The transport told a stream of every 16 KiB read while
+  the server's own window was under 1 MiB, as the RFC's 65535 is, eleven
+  updates for a body of 300 KiB where Chrome sends none, and gave the
+  connection back less than half its window at a time, which Chrome never does.
+  Bodies are read 8 KiB at a time, as Chrome reads them, so that an update says
+  at most that much past half. Measured on Chrome 155
+  (`testdata/chrome155-flow.json`) and held to it, through tls-forge's forks of
+  fhttp (`http2.Transport.WindowUpdateDelay`) and tls-client
+  (`ClientProfile.WithWindowUpdateDelay`).
 - **A request without a browser context goes to plain http as Chrome sends it
   there**, with a Chromium profile: without the client hints and `Sec-Fetch-*`,
   and offering neither Brotli nor zstd. tls-forge sent every header of the

@@ -1,18 +1,20 @@
 // Command measure measures a browser on the bench in internal/harness: what it
 // asks for in each scenario, which connection it asks on, how it decodes each
-// page, and how it writes the header blocks of each connection into HPACK. It
-// writes what it measured into the fixtures, or with --check holds the browser
-// to them.
+// page, how it writes the header blocks of each connection into HPACK, and the
+// WINDOW_UPDATEs it sends while it reads an answer. It writes what it measured
+// into the fixtures, or with --check holds the browser to them.
 //
 //	go run ./internal/harness/measure --browser PATH [--requests FILE] \
-//	    [--connections FILE] [--decoding FILE] [--hpack FILE] [--only ID,...] [--check]
+//	    [--connections FILE] [--decoding FILE] [--hpack FILE] [--flow FILE] \
+//	    [--only ID,...] [--check]
 //
-// --requests, --connections, --decoding and --hpack name the fixtures,
+// --requests, --connections, --decoding, --hpack and --flow name the fixtures,
 // testdata/chrome155-requests.json, testdata/chrome155-connections.json,
-// testdata/chrome155-decoding.json and testdata/chrome155-hpack.json unless
-// said; an empty one is not measured. --only measures those scenarios alone,
-// of requests, of connections and of header blocks, and each fixture of them
-// measured has to have every one. Writing replaces what the fixture says of
+// testdata/chrome155-decoding.json, testdata/chrome155-hpack.json and
+// testdata/chrome155-flow.json unless said; an empty one is not measured.
+// --only measures those scenarios alone, of requests, of connections, of
+// header blocks and of window updates, and each fixture of them measured has
+// to have every one. Writing replaces what the fixture says of
 // each scenario measured, and of every page, and says which browser it was and
 // when.
 package main
@@ -65,12 +67,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		"the fixture of connections; empty, none")
 	decoding := flags.String("decoding", "testdata/chrome155-decoding.json", "the fixture of decodings; empty, none")
 	hpack := flags.String("hpack", "testdata/chrome155-hpack.json", "the fixture of header blocks; empty, none")
+	flow := flags.String("flow", "testdata/chrome155-flow.json", "the fixture of window updates; empty, none")
 	only := flags.String("only", "", "the scenarios to measure, by name, comma-separated; every one unless said")
 	check := flags.Bool("check", false, "hold the browser to the fixtures rather than write them")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
-	if *path == "" || flags.NArg() > 0 || *requests == "" && *connections == "" && *decoding == "" && *hpack == "" {
+	if *path == "" || flags.NArg() > 0 || *requests == "" && *connections == "" && *decoding == "" && *hpack == "" &&
+		*flow == "" {
 		_, _ = fmt.Fprintln(stderr, "measure: --browser is needed, a fixture to measure for, and nothing else")
 		return 2
 	}
@@ -109,6 +113,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if *hpack != "" {
 		found, err := measureHeaderBlocks(ctx, b, *hpack, names, about, *check, stderr)
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+			return 1
+		}
+		diff = append(diff, found...)
+	}
+	if *flow != "" {
+		found, err := measureWindowUpdates(ctx, b, *flow, names, about, *check, stderr)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
 			return 1
@@ -156,6 +168,40 @@ func measureRequests(ctx context.Context, b harness.Browser, measure measurer, p
 			}
 		}
 		return harness.Compare(want, got, nil), nil
+	}
+	for name, scenario := range got {
+		fixture.Scenarios[name] = scenario
+	}
+	fixture.Browser, fixture.Measured = about, dated(fixture.Measured, today())
+	return nil, fixture.Write(path)
+}
+
+// measureWindowUpdates measures the WINDOW_UPDATE scenarios named, or every
+// one, and holds them to the fixture at path, or writes them into it.
+func measureWindowUpdates(ctx context.Context, b harness.Browser, path string, names []string, about string, check bool,
+	progress io.Writer) ([]string, error) {
+	fixture, err := harness.LoadFlow(path)
+	if err != nil {
+		return nil, err
+	}
+	got, err := harness.MeasureFlow(ctx, b, names, progress)
+	if err != nil {
+		return nil, err
+	}
+	if check {
+		want := fixture.Scenarios
+		if names != nil {
+			want = map[string]harness.FlowScenario{}
+			for _, name := range names {
+				if scenario, ok := fixture.Scenarios[name]; ok {
+					want[name] = scenario
+				}
+			}
+		}
+		return harness.CompareFlow(want, got), nil
+	}
+	if fixture.Scenarios == nil {
+		fixture.Scenarios = map[string]harness.FlowScenario{}
 	}
 	for name, scenario := range got {
 		fixture.Scenarios[name] = scenario

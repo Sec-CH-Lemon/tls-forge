@@ -120,7 +120,7 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	b := &fake{dump: func(body []byte) string { return "<title>UTF-8|" + string(body[3:4]) + "</title>" }}
 	opening(t, b, "Fake Chrome 1.2.3.4")
 	code, _, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
-		"--hpack", "", "--only", "nav-direct")
+		"--hpack", "", "--flow", "", "--only", "nav-direct")
 	if code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr)
 	}
@@ -144,7 +144,7 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	}
 	// Measured again, the browser is what they say.
 	code, stdout, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
-		"--hpack", "", "--only", "nav-direct", "--check")
+		"--hpack", "", "--flow", "", "--only", "nav-direct", "--check")
 	if code != 0 || stdout != "the browser is what the fixtures say\n" {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
@@ -152,7 +152,7 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	// not have, is not.
 	b.dump = func([]byte) string { return "<title>windows-1252|b</title>" }
 	code, stdout, stderr = measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
-		"--hpack", "", "--only", "nav-direct,redir-nav-direct-301", "--check")
+		"--hpack", "", "--flow", "", "--only", "nav-direct,redir-nav-direct-301", "--check")
 	if code != 1 || !strings.Contains(stdout, "redir-nav-direct-301 was measured, and the fixture has no such scenario\n") ||
 		!strings.Contains(stdout, `a: the browser read "b" as "windows-1252"`) || !strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
@@ -170,7 +170,7 @@ func TestTheCommandMeasuresWhichConnectionEachRequestCameOn(t *testing.T) {
 	requests, _ := fixtures(t, map[string]harness.MeasuredScenario{"kept": {Note: "kept"}}, nil)
 	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
 	code, _, stderr := measured(t, "--browser", "chrome", "--requests", "", "--connections", requests, "--decoding", "",
-		"--hpack", "", "--only", "conn-fetch")
+		"--hpack", "", "--flow", "", "--only", "conn-fetch")
 	if code != 0 || !strings.Contains(stderr, "h1 conn-fetch: 1 requests") {
 		t.Fatalf("exit %d: %s", code, stderr)
 	}
@@ -184,7 +184,7 @@ func TestTheCommandMeasuresWhichConnectionEachRequestCameOn(t *testing.T) {
 		t.Errorf("wrote %+v", wrote)
 	}
 	code, stdout, stderr := measured(t, "--browser", "chrome", "--requests", "", "--connections", requests, "--decoding", "",
-		"--hpack", "", "--only", "conn-fetch", "--check")
+		"--hpack", "", "--flow", "", "--only", "conn-fetch", "--check")
 	if code != 0 || stdout != "the browser is what the fixtures say\n" {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
@@ -263,7 +263,7 @@ func TestTheCommandNeedsABrowserAndAFixture(t *testing.T) {
 		{},
 		{"--requests", "a.json"},
 		{"--browser", "chrome", "extra"},
-		{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", ""},
+		{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", ""},
 		{"--no-such-flag"},
 	} {
 		if code, _, _ := measured(t, args...); code != 2 {
@@ -382,7 +382,7 @@ func TestTheCommandWritesTheHeaderBlocksAndThenHoldsTheBrowserToThem(t *testing.
 	hpack := blocks(t, map[string]harness.HPACKScenario{"kept": {Note: "kept"}})
 	b := &fake{}
 	opening(t, b, "Fake Chrome 1.2.3.4")
-	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", ""}
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--flow", ""}
 	code, _, stderr := measured(t, append(none, "--hpack", hpack, "--only", "hpack-fetch")...)
 	if code != 0 || !strings.Contains(stderr, "h2 hpack-fetch: 1 connections") {
 		t.Fatalf("exit %d: %s", code, stderr)
@@ -429,7 +429,7 @@ func TestTheCommandWritesTheHeaderBlocksAndThenHoldsTheBrowserToThem(t *testing.
 }
 
 func TestTheCommandSaysWhyItMeasuredNoHeaderBlocks(t *testing.T) {
-	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", ""}
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--flow", ""}
 	missing := filepath.Join(t.TempDir(), "none.json")
 	opening(t, &fake{}, "Fake")
 	if code, _, stderr := measured(t, append(none, "--hpack", missing)...); code != 1 || !strings.Contains(stderr, "none.json") {
@@ -447,6 +447,82 @@ func TestTheCommandSaysWhyItMeasuredNoHeaderBlocks(t *testing.T) {
 			t.Fatalf("Chmod: %v", err)
 		}
 		if code, _, stderr := measured(t, append(none, "--hpack", hpack, "--only", "hpack-fetch")...); code != 1 ||
+			!strings.Contains(stderr, "permission denied") {
+			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
+		}
+	}
+}
+
+func flows(t *testing.T, scenarios map[string]harness.FlowScenario) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "flow.json")
+	if err := (&harness.FlowFixture{Browser: "old", Measured: "2026-10-16", How: "how", Scenarios: scenarios}).Write(path); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	return path
+}
+
+func TestTheCommandWritesTheWindowUpdatesAndThenHoldsTheBrowserToThem(t *testing.T) {
+	flow := flows(t, map[string]harness.FlowScenario{"kept": {FlowShape: harness.FlowShape{Note: "kept"}}})
+	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", ""}
+	code, _, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small")...)
+	if code != 0 || !strings.Contains(stderr, "h2 flow-small: ") {
+		t.Fatalf("exit %d: %s", code, stderr)
+	}
+	wrote, err := harness.LoadFlow(flow)
+	if err != nil {
+		t.Fatalf("LoadFlow: %v", err)
+	}
+	small := wrote.Scenarios["flow-small"]
+	if wrote.Browser != "Fake Chrome 1.2.3.4, --headless=new --lang=en-US, Testing 1 (arm64)" || wrote.Measured != "2026-10-16, 2026-10-17" ||
+		wrote.How != "how" || len(wrote.Scenarios) != 2 || wrote.Scenarios["kept"].Note != "kept" || small.Size != 300<<10 {
+		t.Errorf("wrote %+v", wrote)
+	}
+	// A fixture that says otherwise is not the browser, nor one without the
+	// scenario.
+	small.Updates = append(small.Updates, harness.FlowUpdate{Window: "first", Increment: 1, Part: 9})
+	flow = flows(t, map[string]harness.FlowScenario{"flow-small": small})
+	code, stdout, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small,flow-half", "--check")...)
+	if code != 1 || !strings.Contains(stdout, "flow-small: ") ||
+		!strings.Contains(stdout, "flow-half was measured, and the fixture has no such scenario\n") ||
+		!strings.Contains(stderr, "differences from the fixtures") {
+		t.Errorf("exit %d: %s%s", code, stdout, stderr)
+	}
+	// Held to the whole fixture, every scenario is measured.
+	flow = flows(t, map[string]harness.FlowScenario{})
+	if code, stdout, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small", "--check")...); code != 1 ||
+		stdout != "flow-small was measured, and the fixture has no such scenario\n" {
+		t.Errorf("exit %d: %s%s", code, stdout, stderr)
+	}
+	// A fixture that is not one's scenarios are made.
+	empty := filepath.Join(t.TempDir(), "empty.json")
+	_ = os.WriteFile(empty, []byte("{}"), 0o644)
+	if code, _, stderr := measured(t, append(none, "--flow", empty, "--only", "flow-small")...); code != 0 {
+		t.Errorf("exit %d: %s", code, stderr)
+	}
+	if wrote, err := harness.LoadFlow(empty); err != nil || len(wrote.Scenarios) != 1 {
+		t.Errorf("made %+v, %v", wrote, err)
+	}
+}
+
+func TestTheCommandSaysWhyItMeasuredNoWindowUpdates(t *testing.T) {
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", ""}
+	opening(t, &fake{}, "Fake")
+	if code, _, stderr := measured(t, append(none, "--flow", filepath.Join(t.TempDir(), "none.json"))...); code != 1 ||
+		!strings.Contains(stderr, "none.json") {
+		t.Errorf("no fixture: exit %d, %s", code, stderr)
+	}
+	flow := flows(t, map[string]harness.FlowScenario{})
+	if code, _, stderr := measured(t, append(none, "--flow", flow, "--only", "nothing")...); code != 1 ||
+		!strings.Contains(stderr, "there is no scenario nothing") {
+		t.Errorf("a scenario that is none: exit %d, %s", code, stderr)
+	}
+	if os.Geteuid() != 0 {
+		if err := os.Chmod(flow, 0o444); err != nil {
+			t.Fatalf("Chmod: %v", err)
+		}
+		if code, _, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small")...); code != 1 ||
 			!strings.Contains(stderr, "permission denied") {
 			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
 		}

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
@@ -799,7 +800,7 @@ func TestPseudoNamesIgnoresUnknownLetters(t *testing.T) {
 	}
 }
 
-func TestAChromiumProfileWritesHeadersIntoHPACKAsChromeDoes(t *testing.T) {
+func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 	// As Chrome 155 wrote them (testdata/chrome155-hpack.json): a
 	// pseudo-header but :authority without indexing, named by the first
 	// static entry of its name; any other field with incremental indexing,
@@ -840,6 +841,11 @@ func TestAChromiumProfileWritesHeadersIntoHPACKAsChromeDoes(t *testing.T) {
 			}
 			if limit, want := built.GetMaxEncoderHeaderTableSize(), map[bool]uint32{true: math.MaxUint32}[tc.chrome]; limit != want {
 				t.Errorf("a table of at most %d bytes, want %d", limit, want)
+			}
+			// And tells a server of its windows as Chrome does: a little
+			// after five seconds.
+			if delay, want := built.GetWindowUpdateDelay(), map[bool]time.Duration{true: 5 * time.Second}[tc.chrome]; delay != want {
+				t.Errorf("waits %s to tell of a little of a window, want %s", delay, want)
 			}
 			if of == nil {
 				return

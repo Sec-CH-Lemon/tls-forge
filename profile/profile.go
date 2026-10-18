@@ -20,6 +20,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	tls "github.com/bogdanfinn/utls"
@@ -367,7 +368,7 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 		if !ok {
 			return profiles.ClientProfile{}, fmt.Errorf("profile %q: unknown base %q", p.Name, p.Base)
 		}
-		return p.writingHeaders(base), nil
+		return p.chromeTransport(base), nil
 	}
 
 	// Built once here so a broken profile is reported when the client is
@@ -411,23 +412,34 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 		streamID = 1
 	}
 
-	return p.writingHeaders(profiles.NewClientProfile(
+	return p.chromeTransport(profiles.NewClientProfile(
 		id, settings, order, p.HTTP2.PseudoHeaderOrder, p.HTTP2.ConnectionFlow,
 		priorities, headerPriority, streamID,
 		false, nil, nil, 0, nil, false,
 	)), nil
 }
 
-// writingHeaders is built, writing headers into HPACK as Chromium's encoder
-// does when p is a Chromium browser's, against a table as large as a server
-// allows, and as HPACK's default does otherwise.
-func (p *Profile) writingHeaders(built profiles.ClientProfile) profiles.ClientProfile {
+// chromeTransport is built, when p is a Chromium browser's, writing headers
+// into HPACK as Chromium's encoder does, against a table as large as a server
+// allows, and telling a server of the window its reader frees as Chromium's
+// network stack does; as the transport does otherwise.
+func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientProfile {
 	if !p.chromium() {
 		return built
 	}
 	return built.WithHeaderRepresentation(chromeHeaderRepresentation).
-		WithMaxEncoderHeaderTableSize(chromeEncoderTableSize)
+		WithMaxEncoderHeaderTableSize(chromeEncoderTableSize).
+		WithWindowUpdateDelay(chromeWindowUpdateDelay)
 }
+
+// chromeWindowUpdateDelay is how long Chrome waits to tell a server of a
+// little of a window its reader freed: what is untold goes once it is more
+// than half of the window, 3 MiB of a stream's 6 MiB and 7.5 MiB of the
+// connection's 15 MiB, or at the first byte freed more than five seconds
+// after it last told the server, however little; whatever window the server
+// advertised (Chromium's kDefaultTimeToBufferSmallWindowUpdates; measured on
+// Chrome 155, testdata/chrome155-flow.json).
+const chromeWindowUpdateDelay = 5 * time.Second
 
 // chromeEncoderTableSize is the largest HPACK table Chrome writes headers
 // against: whatever a server's SETTINGS_HEADER_TABLE_SIZE allows, measured on
