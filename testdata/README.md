@@ -39,14 +39,16 @@ declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
 feeds, plain text and bodies with no type.
 
 `chrome155-connections.json` is which connection Google Chrome 155.0.8059.80
-on macOS 27.0.1 (arm64), headless and in English, sent each request on, for 37
-scenarios over HTTP/2 and over HTTP/1.1, 22 measured on 2026-10-17 and 15 on
+on macOS 27.0.1 (arm64), headless and in English, sent each request on, for 47
+scenarios over HTTP/2 and over HTTP/1.1, 22 measured on 2026-10-17 and 25 on
 2026-10-18, each found the same in a second run that day, and the first 29
 again on 2026-10-18: a page, then its
 `fetch()` and XHR of each credentials mode to its own origin, another origin
 of its site and another site, in cors and no-cors mode, to two names in turn,
 CORS preflights, navigations to its origin, another origin of its site and
-another site, redirects to another site, of `fetch()` and of a navigation,
+another site, redirects of a navigation, a form, `fetch()` in cors and
+no-cors mode and an XHR, to another origin of its site, to another site and
+back, a 307 `POST` with a preflight and without one,
 connections the server ended after an answer, and requests it answered 421
 (Misdirected Request), over a connection whose TLS asked for another name,
 or the first time or every time over one of their own. Each request
@@ -60,7 +62,10 @@ something new, several times as it starts. Chrome kept the
 requests that carried no credentials, every preflight among them, on
 connections of their own, which resumed only TLS sessions of their own, and
 the connections and TLS sessions of each top-level site apart: a navigation to
-another site, and a redirect's hop to one, went out on that site's. Over
+another site, and a navigation's or a form's redirect hop to one, went out on
+that site's, and a hop back on the page's. A redirect hop that left a request
+without credentials went out on the connections of those that carry none,
+and stayed on them back at the page's origin. Over
 HTTP/2 it sent a request to another name on a connection of its kind to the
 same address: the page's, for one with credentials. A request answered 421 it
 sent again, once, on a connection of its host's own, which the host's later

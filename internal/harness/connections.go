@@ -92,6 +92,30 @@ var connectionCatalogue = map[string]scenario{
 	"conn-redirect-include-to-cross-site": onConnections("a page, fetch() of another site, then fetch() of its origin with credentials include, 302 to that site",
 		"fetch('{X}/cors/{ID}-1').then(()=>fetch('{A}/r/302/{ID}?to={X}/cors/{ID}-2',{credentials:'include'})).then(done);"),
 
+	// Redirects whose hops go to another site, or leave a request without
+	// credentials, or come back: a navigation's and a form's, a script's in
+	// each mode, a 307 POST.
+	"conn-nav-redirect-there-and-back": {note: "a page, then location.href to its origin, 302 to another site, 302 back to its origin", start: lobby,
+		script: "location.href='{A}/r/302/{ID}?to={X}/r/302/{ID}-back?to={A}/p/{ID}-end';", wait: "/p/{ID}-end", connections: true},
+	"conn-form-redirect-cross-site": {note: "a page, then a form posted to its origin, 302 to another site", start: lobby,
+		html: formHTML("post", "{A}/r/302/{ID}?to={X}/p/{ID}-end", ""), script: submit, wait: "/p/{ID}-end", connections: true},
+	"conn-form-307-cross-site": {note: "a page, then a form posted to its origin, 307 to another site", start: lobby,
+		html: formHTML("post", "{A}/r/307/{ID}?to={X}/p/{ID}-end", ""), script: submit, wait: "/p/{ID}-end", connections: true},
+	"conn-redirect-there-and-back": onConnections("a page, then fetch() of its origin, 302 to another site, 302 back to its origin",
+		"fetch('{A}/r/302/{ID}?to={X}/r/302/{ID}-back?to={A}/cors/{ID}-end').then(done);"),
+	"conn-redirect-to-same-site": onConnections("a page, then fetch() of its origin, 302 to another origin of its site",
+		"fetch('{A}/r/302/{ID}?to={S}/cors/{ID}-end').then(done);"),
+	"conn-redirect-post-to-cross-site": onConnections("a page, then fetch() POST of a string to its origin, 307 to another site",
+		"fetch('{A}/r/307/{ID}?to={X}/cors/{ID}-end',{method:'POST',body:'a=1'}).then(done);"),
+	"conn-redirect-preflight-to-cross-site": onConnections("a page, then fetch() POST of JSON to its origin, 307 to another site: the preflight, then the request",
+		"fetch('{A}/r/307/{ID}?to={X}/cors/{ID}-end?maxage=0',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(done);"),
+	"conn-xhr-redirect-to-cross-site": onConnections("a page, then an XHR of its origin, 302 to another site",
+		"const x=new XMLHttpRequest();x.open('GET','{A}/r/302/{ID}?to={X}/cors/{ID}-end');x.onloadend=done;x.send();"),
+	"conn-redirect-no-cors-to-cross-site": onConnections("a page, then fetch() of its origin in no-cors mode, 302 to another site",
+		"fetch('{A}/r/302/{ID}?to={X}/p/{ID}-end',{mode:'no-cors'}).then(done);"),
+	"conn-redirect-no-cors-back": onConnections("a page, then fetch() of another site in no-cors mode, 302 to its origin",
+		"fetch('{X}/r/302/{ID}?to={A}/p/{ID}-end',{mode:'no-cors'}).then(done);"),
+
 	// Requests answered 421 (Misdirected Request) at /misdirected/: over a
 	// connection whose TLS asked for another name, the first time on one of
 	// their own, or every time.

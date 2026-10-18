@@ -76,9 +76,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Chrome keeps them apart (`testdata/chrome155-connections.json`), on those
   of the page's top-level site; unlike Chrome, tls-forge follows a redirect
   on the connections of the first hop's site, where Chrome sends a
-  navigation's hop to another site on that site's, and follows a redirect
-  that leaves a request without credentials on the connections the request
-  went out on. What
+  navigation's or a form's hop to another site on that site's, and follows a
+  redirect that leaves a request without credentials on the connections the
+  request went out on. What
   a page cannot send is refused before anything is sent. A request without
   one goes out as before.
 - **Redirects are followed as Chrome 155 follows them**, measured
@@ -147,11 +147,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   measured again, is what both fixtures say. The bench was in a scratch
   directory, and nothing could measure the fixtures again.
 - **Which connection Chrome sends each request on is measured**, in
-  `testdata/chrome155-connections.json`: 37 scenarios of a page and its
+  `testdata/chrome155-connections.json`: 47 scenarios of a page and its
   `fetch()` and XHR of each credentials mode, to its own origin, another of
   its site and another site, to two names in turn, with preflights,
   navigations to its origin, another of its site and another site,
-  redirects of `fetch()` and of a navigation, connections the server
+  redirects of a navigation, a form, `fetch()` in cors and no-cors mode and
+  an XHR, to another origin of its site, to another site and back, a 307
+  `POST` with a preflight and without one, connections the server
   ends, and requests it answers 421 (Misdirected Request): over a
   connection to another name, and the first time or every time over one of
   their own, a POST, a navigation, a redirect's hop and a preflight among

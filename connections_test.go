@@ -54,6 +54,16 @@ var askedOnConnections = map[string]map[int]BrowserContext{
 	"conn-preflight-include-after-cors":          {1: script(KindFetch, "", ""), 3: script(KindFetch, credentialsAll, "")},
 	"conn-redirect-to-cross-site":                {1: script(KindFetch, "", ""), 2: script(KindFetch, "", "")},
 	"conn-redirect-include-to-cross-site":        {1: script(KindFetch, "", ""), 2: script(KindFetch, credentialsAll, "")},
+	"conn-nav-redirect-there-and-back":           {1: {Kind: KindNavigation}},
+	"conn-form-redirect-cross-site":              {1: {Kind: KindForm}},
+	"conn-form-307-cross-site":                   {1: {Kind: KindForm}},
+	"conn-redirect-there-and-back":               {1: script(KindFetch, "", "")},
+	"conn-redirect-to-same-site":                 {1: script(KindFetch, "", "")},
+	"conn-redirect-post-to-cross-site":           {1: script(KindFetch, "", "")},
+	"conn-redirect-preflight-to-cross-site":      {1: script(KindFetch, "", "")},
+	"conn-xhr-redirect-to-cross-site":            {1: script(KindXHR, "", "")},
+	"conn-redirect-no-cors-to-cross-site":        {1: script(KindFetch, "", modeNoCORS)},
+	"conn-redirect-no-cors-back":                 {1: script(KindFetch, "", modeNoCORS)},
 	"conn-resume":                                {1: script(KindFetch, "", ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, credentialsNone, ""), 4: script(KindFetch, credentialsNone, "")},
 	"conn-misdirected-pooled":                    {1: script(KindFetch, credentialsAll, "")},
 	"conn-misdirected-pooled-again/h2":           {1: script(KindFetch, credentialsAll, ""), 3: script(KindFetch, credentialsAll, "")},
@@ -73,17 +83,29 @@ var askedOnConnections = map[string]map[int]BrowserContext{
 var apartFromChrome = map[string]struct{ sent, why string }{
 	"conn-redirect-to-cross-site/h2":                {"1* 2 1* 1*", uncredentialed},
 	"conn-redirect-to-cross-site/h1":                {"1* 2 1* 3", uncredentialed},
+	"conn-redirect-there-and-back/h2":               {"1* 1* 1* 1*", uncredentialed},
+	"conn-redirect-there-and-back/h1":               {"1* 1* 2 1*", uncredentialed},
+	"conn-redirect-to-same-site/h2":                 {"1* 1* 1*", uncredentialed},
+	"conn-redirect-post-to-cross-site/h2":           {"1* 1* 1*", uncredentialed},
+	"conn-redirect-preflight-to-cross-site/h2":      {"1* 1* 2 1*", uncredentialed},
+	"conn-redirect-preflight-to-cross-site/h1":      {"1* 1* 2 3", uncredentialed},
+	"conn-xhr-redirect-to-cross-site/h2":            {"1* 1* 1*", uncredentialed},
+	"conn-redirect-no-cors-to-cross-site/h2":        {"1* 1* 1*", uncredentialed},
 	"conn-nav-redirect-cross-site/h2":               {"1* 1* 1*", redirected},
 	"conn-nav-redirect-cross-site-after-include/h2": {"1* 1* 1* 1*", redirected},
 	"conn-nav-redirect-cross-site-after-include/h1": {"1* 2 1* 2", redirected},
+	"conn-nav-redirect-there-and-back/h2":           {"1* 1* 1* 1*", redirected},
+	"conn-form-redirect-cross-site/h2":              {"1* 1* 1*", redirected},
+	"conn-form-307-cross-site/h2":                   {"1* 1* 1*", redirected},
 }
 
 // Why a client's requests go out on other connections than Chrome's.
 const (
 	uncredentialed = "Chrome follows a redirect that leaves a request without credentials on the connections of " +
 		"requests that carry none; the client follows it on the connections the request went out on"
-	redirected = "Chrome sends a navigation's redirect to another site on the connections of that site's, as it " +
-		"keeps each top-level site's apart; the client follows a redirect on the connections of the first hop's site"
+	redirected = "Chrome sends a navigation's or a form's redirect to another site on the connections of that " +
+		"site's, as it keeps each top-level site's apart; the client follows a redirect on the connections of the " +
+		"first hop's site"
 )
 
 // onConnections says which connection each request came on, numbered from
