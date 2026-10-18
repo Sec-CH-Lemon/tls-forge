@@ -24,51 +24,69 @@ func script(kind RequestKind, credentials, mode string) BrowserContext {
 // the run page, preflights and the hops of redirects, Chrome made itself, as
 // the client makes them.
 var askedOnConnections = map[string]map[int]BrowserContext{
-	"conn-fetch":                          {1: script(KindFetch, "", "")},
-	"conn-fetch-omit":                     {1: script(KindFetch, credentialsNone, "")},
-	"conn-fetch-include":                  {1: script(KindFetch, credentialsAll, "")},
-	"conn-xhr":                            {1: script(KindXHR, "", "")},
-	"conn-xhr-credentials":                {1: script(KindXHR, credentialsAll, "")},
-	"conn-omit-and-not":                   {1: script(KindFetch, credentialsNone, ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, credentialsNone, "")},
-	"conn-nav-after-omit":                 {1: script(KindFetch, credentialsNone, ""), 2: {Kind: KindNavigation}},
-	"conn-fetch-same-site":                {1: script(KindFetch, "", "")},
-	"conn-fetch-same-site-include":        {1: script(KindFetch, credentialsAll, "")},
-	"conn-fetch-same-site-no-cors":        {1: script(KindFetch, "", modeNoCORS)},
-	"conn-fetch-cross-site":               {1: script(KindFetch, "", "")},
-	"conn-fetch-cross-site-include":       {1: script(KindFetch, credentialsAll, "")},
-	"conn-fetch-cross-site-no-cors":       {1: script(KindFetch, "", modeNoCORS)},
-	"conn-xhr-cross-site":                 {1: script(KindXHR, "", "")},
-	"conn-xhr-cross-site-credentials":     {1: script(KindXHR, credentialsAll, "")},
-	"conn-fetch-cross-site-both":          {1: script(KindFetch, credentialsAll, ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, "", modeNoCORS), 4: script(KindFetch, credentialsAll, "")},
-	"conn-preflight":                      {2: script(KindFetch, "", "")},
-	"conn-preflight-include":              {2: script(KindFetch, credentialsAll, "")},
-	"conn-preflight-include-after-cors":   {1: script(KindFetch, "", ""), 3: script(KindFetch, credentialsAll, "")},
-	"conn-redirect-to-cross-site":         {1: script(KindFetch, "", ""), 2: script(KindFetch, "", "")},
-	"conn-redirect-include-to-cross-site": {1: script(KindFetch, "", ""), 2: script(KindFetch, credentialsAll, "")},
-	"conn-resume":                         {1: script(KindFetch, "", ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, credentialsNone, ""), 4: script(KindFetch, credentialsNone, "")},
+	"conn-fetch":                                 {1: script(KindFetch, "", "")},
+	"conn-fetch-omit":                            {1: script(KindFetch, credentialsNone, "")},
+	"conn-fetch-include":                         {1: script(KindFetch, credentialsAll, "")},
+	"conn-xhr":                                   {1: script(KindXHR, "", "")},
+	"conn-xhr-credentials":                       {1: script(KindXHR, credentialsAll, "")},
+	"conn-omit-and-not":                          {1: script(KindFetch, credentialsNone, ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, credentialsNone, "")},
+	"conn-nav-after-omit":                        {1: script(KindFetch, credentialsNone, ""), 2: {Kind: KindNavigation}},
+	"conn-nav-same-site":                         {1: {Kind: KindNavigation}},
+	"conn-nav-cross-site":                        {1: {Kind: KindNavigation}},
+	"conn-nav-cross-site-after-include":          {1: script(KindFetch, credentialsAll, ""), 2: {Kind: KindNavigation}},
+	"conn-nav-redirect-cross-site":               {1: {Kind: KindNavigation}},
+	"conn-nav-redirect-cross-site-after-include": {1: script(KindFetch, credentialsAll, ""), 2: {Kind: KindNavigation}},
+	"conn-fetch-same-site":                       {1: script(KindFetch, "", "")},
+	"conn-fetch-same-site-include":               {1: script(KindFetch, credentialsAll, "")},
+	"conn-fetch-same-site-no-cors":               {1: script(KindFetch, "", modeNoCORS)},
+	"conn-fetch-cross-site":                      {1: script(KindFetch, "", "")},
+	"conn-fetch-cross-site-include":              {1: script(KindFetch, credentialsAll, "")},
+	"conn-fetch-cross-site-no-cors":              {1: script(KindFetch, "", modeNoCORS)},
+	"conn-xhr-cross-site":                        {1: script(KindXHR, "", "")},
+	"conn-xhr-cross-site-credentials":            {1: script(KindXHR, credentialsAll, "")},
+	"conn-fetch-cross-site-both":                 {1: script(KindFetch, credentialsAll, ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, "", modeNoCORS), 4: script(KindFetch, credentialsAll, "")},
+	"conn-fetch-cross-site-then-same-site":       {1: script(KindFetch, "", ""), 2: script(KindFetch, "", "")},
+	"conn-fetch-omit-then-cross-site":            {1: script(KindFetch, credentialsNone, ""), 2: script(KindFetch, "", "")},
+	"conn-preflight":                             {2: script(KindFetch, "", "")},
+	"conn-preflight-include":                     {2: script(KindFetch, credentialsAll, "")},
+	"conn-preflight-include-after-cors":          {1: script(KindFetch, "", ""), 3: script(KindFetch, credentialsAll, "")},
+	"conn-redirect-to-cross-site":                {1: script(KindFetch, "", ""), 2: script(KindFetch, "", "")},
+	"conn-redirect-include-to-cross-site":        {1: script(KindFetch, "", ""), 2: script(KindFetch, credentialsAll, "")},
+	"conn-resume":                                {1: script(KindFetch, "", ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, credentialsNone, ""), 4: script(KindFetch, credentialsNone, "")},
 }
 
 // apartFromChrome are the scenarios, by name and protocol, whose requests the
 // client sends on other connections than Chrome did: the connections it sends
 // them on, as onConnections says them, and why.
 var apartFromChrome = map[string]struct{ sent, why string }{
-	"conn-fetch-same-site-include/h2":        {"1* 2", pooled},
-	"conn-fetch-cross-site-include/h2":       {"1* 2", pooled},
-	"conn-xhr-cross-site-credentials/h2":     {"1* 2", pooled},
-	"conn-fetch-cross-site-both/h2":          {"1* 2 3 3 2", pooled},
-	"conn-preflight-include/h2":              {"1* 2 3", pooled},
-	"conn-preflight-include-after-cors/h2":   {"1* 2 2 3", pooled},
-	"conn-redirect-include-to-cross-site/h2": {"1* 2 1* 3", pooled},
-	"conn-redirect-to-cross-site/h2":         {"1* 2 1* 3", uncredentialed},
-	"conn-redirect-to-cross-site/h1":         {"1* 2 1* 3", uncredentialed},
+	"conn-fetch-same-site-include/h2":               {"1* 2", pooled},
+	"conn-fetch-cross-site-include/h2":              {"1* 2", pooled},
+	"conn-xhr-cross-site-credentials/h2":            {"1* 2", pooled},
+	"conn-fetch-cross-site-both/h2":                 {"1* 2 3 3 2", pooled},
+	"conn-fetch-cross-site-then-same-site/h2":       {"1* 2 3", pooled},
+	"conn-fetch-omit-then-cross-site/h2":            {"1* 2 3", pooled},
+	"conn-nav-same-site/h2":                         {"1* 2", pooled},
+	"conn-preflight-include/h2":                     {"1* 2 3", pooled},
+	"conn-preflight-include-after-cors/h2":          {"1* 2 2 3", pooled},
+	"conn-redirect-include-to-cross-site/h2":        {"1* 2 1* 3", pooled},
+	"conn-redirect-to-cross-site/h2":                {"1* 2 1* 3", uncredentialed},
+	"conn-redirect-to-cross-site/h1":                {"1* 2 1* 3", uncredentialed},
+	"conn-nav-cross-site-after-include/h2":          {"1* 2 2", pooled + ". " + partitioned},
+	"conn-nav-cross-site-after-include/h1":          {"1* 2 2", partitioned},
+	"conn-nav-redirect-cross-site-after-include/h2": {"1* 2 1* 2", pooled + ". " + partitioned},
+	"conn-nav-redirect-cross-site-after-include/h1": {"1* 2 1* 2", partitioned},
 }
 
 // Why a client's requests go out on other connections than Chrome's.
 const (
-	pooled = "Chrome sends a request with credentials to another name over the HTTP/2 connection it holds to the same " +
-		"address, under a certificate for that name; the client opens a connection for each name"
+	pooled = "Chrome sends a request to another name over an HTTP/2 connection it holds to the same address for " +
+		"requests of its kind, with credentials or without, under a certificate good for the name; the client opens " +
+		"a connection for each name"
 	uncredentialed = "Chrome follows a redirect that leaves a request without credentials on the connections of " +
 		"requests that carry none; the client follows it on the connections the request went out on"
+	partitioned = "Chrome keeps the connections and TLS sessions of each top-level site apart: a page loaded at the " +
+		"top of another site, a redirect's hop to one too, goes out on connections of that site's; the client keys " +
+		"connections by credentials alone"
 )
 
 // onConnections says which connection each request came on, numbered from

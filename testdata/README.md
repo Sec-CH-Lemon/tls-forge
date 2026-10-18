@@ -39,12 +39,15 @@ declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
 feeds, plain text and bodies with no type.
 
 `chrome155-connections.json` is which connection Google Chrome 155.0.8059.80
-on macOS 27.0.1 (arm64), headless and in English, sent each request on, for 22
-scenarios over HTTP/2 and over HTTP/1.1, measured on 2026-10-17 and found the
-same in a second run that day: a page, then its `fetch()` and XHR of each
-credentials mode to its own origin, another origin of its site and another
-site, in cors and no-cors mode, CORS preflights, a navigation, redirects to
-another site, and connections the server ended after an answer. Each request
+on macOS 27.0.1 (arm64), headless and in English, sent each request on, for 29
+scenarios over HTTP/2 and over HTTP/1.1, 22 measured on 2026-10-17 and 7 on
+2026-10-18, each found the same in a second run that day, and all of them
+again on 2026-10-18: a page, then its
+`fetch()` and XHR of each credentials mode to its own origin, another origin
+of its site and another site, in cors and no-cors mode, to two names in turn,
+CORS preflights, navigations to its origin, another origin of its site and
+another site, redirects to another site, of `fetch()` and of a navigation,
+and connections the server ended after an answer. Each request
 is kept as in `chrome155-requests.json`, with the connection it came on,
 numbered from the page's in the order requests first came on them, and whether
 that connection resumed a TLS session. Chrome took the local server's
@@ -54,8 +57,10 @@ closes its idle connections whenever its certificate verifier is told
 something new, several times as it starts. Chrome kept the
 requests that carried no credentials, every preflight among them, on
 connections of their own, which resumed only TLS sessions of their own, and
-over HTTP/2 sent a request with credentials to another name on the page's
-connection.
+the connections and TLS sessions of each top-level site apart: a navigation to
+another site, and a redirect's hop to one, went out on that site's. Over
+HTTP/2 it sent a request to another name on a connection of its kind to the
+same address: the page's, for one with credentials.
 
 `chrome155-hpack.json` is how Google Chrome 155.0.8059.80 on macOS 27.0.1
 (arm64), headless and in English, wrote the header block of each request into

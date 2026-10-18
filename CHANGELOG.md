@@ -75,9 +75,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   connections of its own, which resume only TLS sessions of their own, as
   Chrome keeps them apart (`testdata/chrome155-connections.json`); unlike
   Chrome, tls-forge opens a connection for each name where Chrome sends a
-  request with credentials over an HTTP/2 connection it holds to the same
-  address, and follows a redirect that leaves a request without credentials
-  on the connections the request went out on. What
+  request over an HTTP/2 connection of its kind it holds to the same
+  address, keeps connections apart by credentials alone where Chrome keeps
+  those of each top-level site apart too, and follows a redirect that
+  leaves a request without credentials on the connections the request went
+  out on. What
   a page cannot send is refused before anything is sent. A request without
   one goes out as before.
 - **Redirects are followed as Chrome 155 follows them**, measured
@@ -146,10 +148,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   measured again, is what both fixtures say. The bench was in a scratch
   directory, and nothing could measure the fixtures again.
 - **Which connection Chrome sends each request on is measured**, in
-  `testdata/chrome155-connections.json`: 22 scenarios of a page and its
+  `testdata/chrome155-connections.json`: 29 scenarios of a page and its
   `fetch()` and XHR of each credentials mode, to its own origin, another of
-  its site and another site, with preflights, a navigation, redirects and
-  connections the server ends, over HTTP/2 and HTTP/1.1, each request with
+  its site and another site, to two names in turn, with preflights,
+  navigations to its origin, another of its site and another site,
+  redirects of `fetch()` and of a navigation, and connections the server
+  ends, over HTTP/2 and HTTP/1.1, each request with
   the connection it came on and whether that one resumed a TLS session.
   `measure --connections` names the fixture. Chrome takes the bench's
   certificate as a site's for them, by its key, since it pools HTTP/2

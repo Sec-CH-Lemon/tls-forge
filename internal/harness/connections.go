@@ -42,6 +42,18 @@ var connectionCatalogue = map[string]scenario{
 	"conn-nav-after-omit": {note: "a page, fetch() of its origin with credentials omit, then location.href to its origin", start: lobby,
 		script: "fetch('{A}/p/{ID}-fetch',{credentials:'omit'}).then(()=>{location.href='{A}/p/{ID}-end';});", wait: "/p/{ID}-end",
 		connections: true},
+	"conn-nav-same-site": {note: "a page, then location.href to another origin of its site", start: lobby,
+		script: "location.href='{S}/p/{ID}-end';", wait: "/p/{ID}-end", connections: true},
+	"conn-nav-cross-site": {note: "a page, then location.href to another site", start: lobby,
+		script: "location.href='{X}/p/{ID}-end';", wait: "/p/{ID}-end", connections: true},
+	"conn-nav-cross-site-after-include": {note: "a page, fetch() of another site with credentials include, then location.href there", start: lobby,
+		script: "fetch('{X}/cors/{ID}-1',{credentials:'include'}).then(()=>{location.href='{X}/p/{ID}-end';});", wait: "/p/{ID}-end",
+		connections: true},
+	"conn-nav-redirect-cross-site": {note: "a page, then location.href to its origin, 302 to another site", start: lobby,
+		script: "location.href='{A}/r/302/{ID}?to={X}/p/{ID}-end';", wait: "/p/{ID}-end", connections: true},
+	"conn-nav-redirect-cross-site-after-include": {note: "a page, fetch() of another site with credentials include, then location.href to its origin, 302 to that site", start: lobby,
+		script: "fetch('{X}/cors/{ID}-1',{credentials:'include'}).then(()=>{location.href='{A}/r/302/{ID}?to={X}/p/{ID}-end';});", wait: "/p/{ID}-end",
+		connections: true},
 
 	// Another origin of the page's site, and another site: in cors mode a
 	// request kept to its own origin carries no credentials there, nor does
@@ -57,6 +69,13 @@ var connectionCatalogue = map[string]scenario{
 		"const x=new XMLHttpRequest();x.open('GET','{X}/cors/{ID}');x.withCredentials=true;x.onloadend=done;x.send();"),
 	"conn-fetch-cross-site-both": onConnections("a page, then fetch() of another site with credentials include, one with credentials same-origin, one in no-cors mode, and one with credentials include again",
 		"fetch('{X}/cors/{ID}-1',{credentials:'include'}).then(()=>fetch('{X}/cors/{ID}-2')).then(()=>fetch('{X}/p/{ID}-3',{mode:'no-cors'})).then(()=>fetch('{X}/cors/{ID}-4',{credentials:'include'})).then(done);"),
+
+	// Requests that carry no credentials to a second name, after one to a
+	// first.
+	"conn-fetch-cross-site-then-same-site": onConnections("a page, fetch() of another site, then fetch() of another origin of its site, neither with credentials",
+		"fetch('{X}/cors/{ID}-1').then(()=>fetch('{S}/cors/{ID}-2')).then(done);"),
+	"conn-fetch-omit-then-cross-site": onConnections("a page, fetch() of its origin with credentials omit, then fetch() of another site",
+		"fetch('{A}/p/{ID}-1',{credentials:'omit'}).then(()=>fetch('{X}/cors/{ID}-2')).then(done);"),
 
 	// CORS preflights, which carry no credentials.
 	"conn-preflight": onConnections("a page, then fetch() POST of JSON to another site: the preflight, then the request",
