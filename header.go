@@ -75,8 +75,9 @@ func (h *Header) Set(name, value string) {
 }
 
 // Add appends another value for a header. Unlike Set it deliberately keeps an
-// existing value; repeated Cookie, Via and X-Forwarded-For fields are distinct
-// fields on the wire and must not be collapsed by the proxy.
+// existing value; repeated Via and X-Forwarded-For fields are distinct fields
+// on the wire, and the cookies of repeated Cookie fields all go, in the one
+// Cookie a request sends, so the proxy must not drop any of them.
 func (h *Header) Add(name, value string) {
 	*h = append(*h, profile.Field{Name: strings.ToLower(name), Value: value})
 }

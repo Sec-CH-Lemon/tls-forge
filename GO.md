@@ -212,9 +212,14 @@ response, err := client.Do(&tlsforge.Request{
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 transport deadline. A request ends when either limit is reached.
 
-Do not construct a `Cookie` header manually unless replacing the jar's complete
-output is intentional. `Request.Cookies` adds values to the jar, preserving
-cookies received earlier in the session.
+A `Cookie` in `Header` goes with the jar's cookies, as `net/http` adds a jar's
+to a request's own: every cookie it names first, then those the jar holds for
+the URL, in one `Cookie` over HTTP/1.1 and a field for each cookie over HTTP/2,
+on the answer to a 401 and on a redirect to its host or one under it too; a
+redirect to any other host carries the jar's alone. `Request.Cookies` adds
+values to the jar instead, where they go on every later request they belong
+to and give way to a value the server sets, as a browser's do; a name in both
+would go twice.
 
 ## Browser contexts
 

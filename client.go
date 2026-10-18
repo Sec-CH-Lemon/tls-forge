@@ -106,15 +106,18 @@ type Request struct {
 	Method string
 	URL    string
 	// Header is layered over the profile's headers, keeping the profile's order
-	// for names it already has.
+	// for names it already has. A Cookie in it goes with the jar's cookies, as
+	// net/http adds a jar's to a request's own: every cookie it names first,
+	// then those the jar holds for the URL, over HTTP/1.1 and HTTP/2 alike.
 	Header Header
 	Body   []byte
 	// Cookies are added to the jar before the request.
 	//
-	// Through the jar rather than through a Cookie header on purpose: setting
-	// the header by hand REPLACES whatever the jar holds, so cookies the server
-	// set earlier in the session would silently vanish from this request — which
-	// no real browser would ever do.
+	// Through the jar rather than through a Cookie header on purpose: a cookie
+	// in the jar goes on every request it belongs to and gives way to the value
+	// the server sets next, as a browser's does, while one in the header goes
+	// with this request alone, beside the jar's, so a name in both goes twice —
+	// which no real browser would ever do.
 	Cookies []Cookie
 	// Trace, when set, is told each step this request takes on the wire.
 	//

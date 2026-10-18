@@ -227,9 +227,10 @@ func TestPostSendsABody(t *testing.T) {
 }
 
 func TestCookiesGoThroughTheJar(t *testing.T) {
-	// Through the jar rather than through a Cookie header: setting the header by
-	// hand REPLACES whatever the jar holds, so cookies the server set earlier in
-	// the session would silently vanish — which no real browser would do.
+	// Through the jar rather than through a Cookie header: a cookie in the jar
+	// goes on every request it belongs to and gives way to the value the server
+	// sets next, while one in the header goes with one request alone, beside
+	// the jar's.
 	server := startEcho(t)
 	client := newTestClient(t)
 

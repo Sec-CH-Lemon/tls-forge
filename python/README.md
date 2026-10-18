@@ -133,9 +133,12 @@ response = client.request(
 | `body` | `str | bytes | None` | Request body. `bytes` is sent as base64 so it arrives intact; `None` omits the field. |
 | `cookies` | `Iterable[str] | None` | `name=value` pairs added to the daemon's jar before the request. |
 
-Do not manually set the `cookie` header unless replacing the jar's complete
-output is intentional. `cookies` preserves values received earlier in the
-session.
+A `cookie` header goes with the jar's cookies: every cookie it names first,
+then those the jar holds for the URL, over HTTP/1.1 and HTTP/2 alike, and on a
+redirect to its host or one under it; a redirect to any other host carries the
+jar's alone. `cookies` adds values to the jar instead, where they go on every
+later request they belong to and give way to a value the server sets; a name
+in both would go twice.
 
 ## Response
 

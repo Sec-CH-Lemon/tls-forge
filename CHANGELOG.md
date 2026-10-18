@@ -809,6 +809,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A request's own `Cookie` goes with the jar's cookies over HTTP/1.1 too**,
+  as `net/http` adds a jar's: every cookie it names first, then those the jar
+  holds for the URL, the same over HTTP/1.1 and HTTP/2, on the answer to a 401
+  and on a redirect to its host or one under it (a redirect to another host
+  carries the jar's alone, as before). Over HTTP/1.1, where a request has a
+  layout of its own (a profile that measured HTTP/1.1, as every shipped one
+  but `chrome_151` on Linux and Windows did, or a bare catalogue name), its own
+  replaced the jar's. Several `Cookie` fields now go as one, every cookie in
+  them before the jar's, where the transport kept only the first once it added
+  the jar's; a stray `;` leaves no empty cookie, and a `Cookie` with none in it
+  is no `Cookie`. GO.md, both libraries' READMEs and `Request.Cookies` said a
+  `Cookie` of one's own replaced the jar's.
 - **A request without a browser context sends its cookies where Chrome 155
   does**, with a Chromium profile: right after `Accept-Language`, over
   HTTP/2 one field for each cookie, right before `priority`, and over
