@@ -104,6 +104,11 @@ var notSent = map[string]string{
 	"ch-fetch-three":                 "the order of several client hints of a script's request follows the renderer's hash table",
 	"ch-fetch-all":                   "the order of several client hints of a script's request follows the renderer's hash table",
 	"auth-digest-ntlm":               "Chrome answers NTLM, which it prefers to Digest and Basic, and tls-forge answers neither instead",
+
+	// A 421 is the answer.
+	"nav-misdirected-401-misdirected": misdirected,
+	"nav-401-misdirected":             misdirected,
+	"fetch-misdirected-cookie":        misdirected,
 }
 
 // asked is the URL of a scenario's page with its query.

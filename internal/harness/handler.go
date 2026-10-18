@@ -58,6 +58,8 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 //   - /chain/N redirects to /chain/N+1;
 //   - /cors/... answers what CORS allows, a preflight allowed but for ?deny and
 //     kept as long as ?maxage says;
+//   - /misdirected/... is answered as Misdirection answers, a 421
+//     (Misdirected Request) or a 401, and otherwise as /cors/... is;
 //   - /auth/... asks for HTTP authentication (authPage), /digest/... for
 //     Digest authentication (DigestPage);
 //   - /run/ID is the scenario's run page;
@@ -75,6 +77,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.Has("close") {
 		w.Header().Set("Connection", "close")
+	}
+	if strings.HasPrefix(path, "/misdirected/") && s.misdirection.Answers(w, r, servedNameOf(r)) {
+		return
 	}
 	switch {
 	case strings.HasPrefix(path, "/done/"):
@@ -107,7 +112,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Location", "/chain/"+strconv.Itoa(n+1))
 		w.WriteHeader(http.StatusFound)
-	case strings.HasPrefix(path, "/cors/"):
+	case strings.HasPrefix(path, "/cors/"), strings.HasPrefix(path, "/misdirected/"):
 		if r.Method == http.MethodOptions {
 			if q.Get("deny") != "" {
 				w.WriteHeader(http.StatusForbidden)

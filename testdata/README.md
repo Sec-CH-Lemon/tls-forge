@@ -39,15 +39,17 @@ declarations wherever Chrome stops looking for them, `@charset`, JSON, XML,
 feeds, plain text and bodies with no type.
 
 `chrome155-connections.json` is which connection Google Chrome 155.0.8059.80
-on macOS 27.0.1 (arm64), headless and in English, sent each request on, for 29
-scenarios over HTTP/2 and over HTTP/1.1, 22 measured on 2026-10-17 and 7 on
-2026-10-18, each found the same in a second run that day, and all of them
+on macOS 27.0.1 (arm64), headless and in English, sent each request on, for 37
+scenarios over HTTP/2 and over HTTP/1.1, 22 measured on 2026-10-17 and 15 on
+2026-10-18, each found the same in a second run that day, and the first 29
 again on 2026-10-18: a page, then its
 `fetch()` and XHR of each credentials mode to its own origin, another origin
 of its site and another site, in cors and no-cors mode, to two names in turn,
 CORS preflights, navigations to its origin, another origin of its site and
 another site, redirects to another site, of `fetch()` and of a navigation,
-and connections the server ended after an answer. Each request
+connections the server ended after an answer, and requests it answered 421
+(Misdirected Request), over a connection whose TLS asked for another name,
+or the first time or every time over one of their own. Each request
 is kept as in `chrome155-requests.json`, with the connection it came on,
 numbered from the page's in the order requests first came on them, and whether
 that connection resumed a TLS session. Chrome took the local server's
@@ -60,7 +62,9 @@ connections of their own, which resumed only TLS sessions of their own, and
 the connections and TLS sessions of each top-level site apart: a navigation to
 another site, and a redirect's hop to one, went out on that site's. Over
 HTTP/2 it sent a request to another name on a connection of its kind to the
-same address: the page's, for one with credentials.
+same address: the page's, for one with credentials. A request answered 421 it
+sent again, once, on a connection of its host's own, which the host's later
+requests took too: over HTTP/1.1 another, the one the 421 came on closed.
 
 `chrome155-hpack.json` is how Google Chrome 155.0.8059.80 on macOS 27.0.1
 (arm64), headless and in English, wrote the header block of each request into
@@ -83,7 +87,7 @@ out.
 
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
 (arm64), headless and in English, sent on 2026-10-16, 2026-10-17 and
-2026-10-18 for 176 scenarios, over HTTP/2 and over HTTP/1.1: navigations
+2026-10-18 for 179 scenarios, over HTTP/2 and over HTTP/1.1: navigations
 typed and from pages under each referrer policy, to and from
 `http://localhost`, forms posted and sent by GET, `fetch()` and XHR of every
 mode and credentials, CORS preflights allowed, refused and cached, cookies on
@@ -98,7 +102,9 @@ the credentials in a URL (Basic, from a page of another site with cookies of
 each SameSite too, and Digest of every algorithm and `qop`
 Chrome knows, with an opaque, a hashed username, a nonce out of date once,
 later and every time, challenges it cannot read, several at once, NTLM and
-Negotiate offered before it, and the realm's later pages). A local
+Negotiate offered before it, and the realm's later pages), and requests
+answered 421 (Misdirected Request), with a 401 answered between and setting
+a cookie. A local
 server answered www.example.com and api.example.com (one site) and
 www.example.net (another), mapped to 127.0.0.1, and localhost, and kept each
 request's headers in order with their values, the priority of its HTTP/2

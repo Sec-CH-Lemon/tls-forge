@@ -229,6 +229,15 @@ var catalogue = map[string]scenario{
 	"auth-nav-later-same-dir":          {note: "a URL with credentials given on the command line, a page that answers 401 until it is sent them, then one of its directory by a URL without them", start: "{U}/auth/{ID}/a?next={A}/auth/{ID}/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
 	"auth-nav-later-other-dir":         {note: "the same, then a page of another directory, of the same realm, by a URL without them", start: "{U}/auth/{ID}/a?next={A}/auth/{ID}-other/b%3Fnext%3D/p/{ID}-end", wait: "/never", settle: 4000 * time.Millisecond},
 
+	// A 421 (Misdirected Request) under /misdirected/, as Misdirection
+	// answers: once with a 401 answered between, and once with a cookie.
+	"nav-misdirected-401-misdirected": {note: "location.href to a URL of the same origin with credentials, a page that answers 421 the first time, then 401 until it is sent them, and 421 the first time it is sent them",
+		script: "location.href='{U}/misdirected/{ID}?first=1&auth=1&authfirst=1';", wait: "/misdirected/{ID}", times: 3},
+	"nav-401-misdirected": {note: "location.href to a URL of the same origin with credentials, a page that answers 401 until it is sent them, and 421 the first time it is sent them",
+		script: "location.href='{U}/misdirected/{ID}?auth=1&authfirst=1';", wait: "/misdirected/{ID}", times: 3},
+	"fetch-misdirected-cookie": {note: "fetch() of the same origin, answered 421 the first time with a cookie, then fetch() of the same origin",
+		script: "fetch('{A}/misdirected/{ID}?first=1&mcookie=1').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
+
 	// Digest authentication: a page under /digest/OFFER/ asks for it as the
 	// offer says (digestOffers), of the realm "bench", until it is answered
 	// with u:p; then it goes on to a page of its origin by a URL without

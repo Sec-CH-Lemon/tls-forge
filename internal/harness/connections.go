@@ -92,6 +92,26 @@ var connectionCatalogue = map[string]scenario{
 	"conn-redirect-include-to-cross-site": onConnections("a page, fetch() of another site, then fetch() of its origin with credentials include, 302 to that site",
 		"fetch('{X}/cors/{ID}-1').then(()=>fetch('{A}/r/302/{ID}?to={X}/cors/{ID}-2',{credentials:'include'})).then(done);"),
 
+	// Requests answered 421 (Misdirected Request) at /misdirected/: over a
+	// connection whose TLS asked for another name, the first time on one of
+	// their own, or every time.
+	"conn-misdirected-pooled": onConnections("a page, then fetch() of another origin of its site with credentials include, answered 421 over a connection to another name",
+		"fetch('{S}/misdirected/{ID}',{credentials:'include'}).then(done);"),
+	"conn-misdirected-pooled-again": onConnections("a page, fetch() of another origin of its site with credentials include, answered 421 over a connection to another name, then another such fetch()",
+		"fetch('{S}/misdirected/{ID}-1',{credentials:'include'}).then(()=>fetch('{S}/misdirected/{ID}-2',{credentials:'include'})).then(done);"),
+	"conn-misdirected-first": onConnections("a page, then fetch() of its origin, answered 421 the first time",
+		"fetch('{A}/misdirected/{ID}?first=1').then(done);"),
+	"conn-misdirected-always": onConnections("a page, fetch() of its origin, answered 421 every time, then fetch() of its origin",
+		"fetch('{A}/misdirected/{ID}-1?always=1').then(()=>fetch('{A}/p/{ID}-2')).then(done);"),
+	"conn-misdirected-post": onConnections("a page, then fetch() POST of a string to its origin, answered 421 the first time",
+		"fetch('{A}/misdirected/{ID}?first=1',{method:'POST',body:'a=1'}).then(done);"),
+	"conn-misdirected-nav": {note: "a page, then location.href to another origin of its site, answered 421 over a connection to another name", start: lobby,
+		script: "location.href='{S}/misdirected/{ID}';", wait: "/misdirected/{ID}", connections: true},
+	"conn-misdirected-redirect": onConnections("a page, then fetch() of its origin with credentials include, 302 to another origin of its site, answered 421 over a connection to another name",
+		"fetch('{A}/r/302/{ID}?to={S}/misdirected/{ID}',{credentials:'include'}).then(done);"),
+	"conn-misdirected-preflight": onConnections("a page, fetch() of its origin with credentials omit, then fetch() POST of JSON to another origin of its site with credentials include: the preflight and the request each answered 421 over a connection to another name",
+		"fetch('{A}/p/{ID}-1',{credentials:'omit'}).then(()=>fetch('{S}/misdirected/{ID}-2?maxage=0',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'include'})).then(done);"),
+
 	// TLS sessions: ?close ends a connection once answered, and a pause lets
 	// the next request see it ended.
 	"conn-resume": onConnections("a page, fetch() of its origin whose connection then ends, another, fetch() of its origin with credentials omit whose connection then ends, and another omit",

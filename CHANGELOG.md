@@ -139,7 +139,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   name, size and SHA-256, to the version and the commit it was built from.
 - **The bench the Chrome fixtures were measured on is in the repository**,
   `internal/harness`: a server that keeps every request as the bytes said it,
-  over HTTP/2, over HTTP/1.1 alone and over plain HTTP, the 176 scenarios of
+  over HTTP/2, over HTTP/1.1 alone and over plain HTTP, the 179 scenarios of
   `testdata/chrome155-requests.json` and the pages of
   `testdata/chrome155-decoding.json`. `go run ./internal/harness/measure
   --browser PATH` measures a browser again and writes the fixtures, or with
@@ -147,12 +147,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   measured again, is what both fixtures say. The bench was in a scratch
   directory, and nothing could measure the fixtures again.
 - **Which connection Chrome sends each request on is measured**, in
-  `testdata/chrome155-connections.json`: 29 scenarios of a page and its
+  `testdata/chrome155-connections.json`: 37 scenarios of a page and its
   `fetch()` and XHR of each credentials mode, to its own origin, another of
   its site and another site, to two names in turn, with preflights,
   navigations to its origin, another of its site and another site,
-  redirects of `fetch()` and of a navigation, and connections the server
-  ends, over HTTP/2 and HTTP/1.1, each request with
+  redirects of `fetch()` and of a navigation, connections the server
+  ends, and requests it answers 421 (Misdirected Request): over a
+  connection to another name, and the first time or every time over one of
+  their own, a POST, a navigation, a redirect's hop and a preflight among
+  them, over HTTP/2 and HTTP/1.1, each request with
   the connection it came on and whether that one resumed a TLS session.
   `measure --connections` names the fixture. Chrome takes the bench's
   certificate as a site's for them, by its key, since it pools HTTP/2

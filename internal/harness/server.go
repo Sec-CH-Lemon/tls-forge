@@ -2,6 +2,7 @@ package harness
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -80,6 +81,9 @@ type Server struct {
 	spki string
 	done sync.WaitGroup
 
+	// misdirection answers under /misdirected/.
+	misdirection Misdirection
+
 	mu      sync.Mutex
 	entries []*Entry
 	trouble []error
@@ -125,13 +129,14 @@ func startServer(scenarios map[string]scenario) (*Server, error) {
 	s.tls.SetSessionTicketKeys([][32]byte{ticketKey})
 	var prior http.Protocols
 	prior.SetUnencryptedHTTP2(true)
-	s.h1 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute}
-	s.h2 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior}
+	s.h1 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, ConnContext: servedName}
+	s.h2 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior,
+		ConnContext: servedName}
 	for _, sc := range scenarios {
 		if sc.table != 0 && s.tables[sc.table] == nil {
 			s.tables[sc.table] = &tableServer{size: sc.table, ln: newChanListener(),
 				server: &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior,
-					HTTP2: &http.HTTP2Config{MaxDecoderHeaderTableSize: int(sc.table)}}}
+					HTTP2: &http.HTTP2Config{MaxDecoderHeaderTableSize: int(sc.table)}, ConnContext: servedName}}
 		}
 	}
 	tables := slices.Sorted(maps.Keys(s.tables))
@@ -234,7 +239,7 @@ func (s *Server) serveConn(raw net.Conn, protos []string, table *tableServer) {
 	}()
 	if protos == nil {
 		parser := &h1parser{s: s, conn: s.nextConn(), scheme: "http"}
-		s.http1.hand(newTeeConn(raw, parser.write, nil))
+		s.http1.hand(newTeeConn(raw, "", parser.write, nil))
 		return
 	}
 	config := s.tls.Clone()
@@ -249,16 +254,33 @@ func (s *Server) serveConn(raw net.Conn, protos []string, table *tableServer) {
 		parser := &h2parser{s: s, conn: s.nextConn(), resumed: state.DidResume, dec: hpack.NewDecoder(4096, nil),
 			open: map[uint32]*Entry{}}
 		if table == nil {
-			s.http2.hand(newTeeConn(conn, parser.write, nil))
+			s.http2.hand(newTeeConn(conn, state.ServerName, parser.write, nil))
 			return
 		}
 		parser.dec.SetAllowedMaxDynamicTableSize(table.size)
 		parser.first = make(chan struct{})
-		table.ln.hand(newTeeConn(conn, parser.write, parser.first))
+		table.ln.hand(newTeeConn(conn, state.ServerName, parser.write, parser.first))
 		return
 	}
 	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https"}
-	s.http1.hand(newTeeConn(conn, parser.write, nil))
+	s.http1.hand(newTeeConn(conn, state.ServerName, parser.write, nil))
+}
+
+// nameKey is where a request's context keeps the server name the TLS of its
+// connection asked for, empty in the clear.
+type nameKey struct{}
+
+// servedName is ctx for a connection the bench hands its servers, with the
+// server name its TLS asked for: what a request on it is answered by.
+func servedName(ctx context.Context, conn net.Conn) context.Context {
+	return context.WithValue(ctx, nameKey{}, conn.(*teeConn).name)
+}
+
+// servedNameOf is the server name the TLS of the connection r came on asked
+// for, empty in the clear and for a request that came on none of the bench's.
+func servedNameOf(r *http.Request) string {
+	name, _ := r.Context().Value(nameKey{}).(string)
+	return name
 }
 
 func (s *Server) nextConn() int {
@@ -301,8 +323,10 @@ func (s *Server) Requests() ([]Entry, error) {
 	return out, errors.Join(s.trouble...)
 }
 
-// Reset forgets every request made so far, and the trouble reading them.
+// Reset forgets every request made so far, the trouble reading them, and
+// which URLs were asked for under /misdirected/.
 func (s *Server) Reset() {
+	s.misdirection.Forget()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.entries, s.trouble = nil, nil
@@ -332,17 +356,19 @@ func (s *Server) Close() error {
 }
 
 // teeConn hands what is read of a connection to parse as well. Given held, it
-// writes nothing until held is closed, or it is.
+// writes nothing until held is closed, or it is. name is the server name its
+// TLS asked for, empty in the clear.
 type teeConn struct {
 	net.Conn
+	name   string
 	parse  func([]byte)
 	held   <-chan struct{}
 	closed chan struct{}
 	once   sync.Once
 }
 
-func newTeeConn(conn net.Conn, parse func([]byte), held <-chan struct{}) *teeConn {
-	return &teeConn{Conn: conn, parse: parse, held: held, closed: make(chan struct{})}
+func newTeeConn(conn net.Conn, name string, parse func([]byte), held <-chan struct{}) *teeConn {
+	return &teeConn{Conn: conn, name: name, parse: parse, held: held, closed: make(chan struct{})}
 }
 
 func (c *teeConn) Read(p []byte) (int, error) {

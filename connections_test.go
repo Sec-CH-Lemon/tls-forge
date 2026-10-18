@@ -55,6 +55,23 @@ var askedOnConnections = map[string]map[int]BrowserContext{
 	"conn-resume":                                {1: script(KindFetch, "", ""), 2: script(KindFetch, "", ""), 3: script(KindFetch, credentialsNone, ""), 4: script(KindFetch, credentialsNone, "")},
 }
 
+// notSentOnConnections are the scenarios measured that the client does not
+// send as Chrome did, and why.
+var notSentOnConnections = map[string]string{
+	"conn-misdirected-pooled":       misdirected,
+	"conn-misdirected-pooled-again": misdirected,
+	"conn-misdirected-first":        misdirected,
+	"conn-misdirected-always":       misdirected,
+	"conn-misdirected-post":         misdirected,
+	"conn-misdirected-nav":          misdirected,
+	"conn-misdirected-redirect":     misdirected,
+	"conn-misdirected-preflight":    misdirected,
+}
+
+// misdirected is why: a 421 is the answer.
+const misdirected = "Chrome sends a request a server answered 421 (Misdirected Request) again, once, on a connection " +
+	"of its host's own; the client's answer is the 421"
+
 // apartFromChrome are the scenarios, by name and protocol, whose requests the
 // client sends on other connections than Chrome did: the connections it sends
 // them on, as onConnections says them, and why.
@@ -108,8 +125,10 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 	}
 	for _, id := range slices.Sorted(maps.Keys(fixture.Scenarios)) {
 		asked, ok := askedOnConnections[id]
-		if !ok {
-			t.Errorf("%s is measured, and not sent", id)
+		if _, why := notSentOnConnections[id]; why || !ok {
+			if why == ok {
+				t.Errorf("%s is measured: sent %v, not sent %v", id, ok, why)
+			}
 			continue
 		}
 		for proto, want := range map[string][]harness.Request{"h2": fixture.Scenarios[id].H2, "h1": fixture.Scenarios[id].H1} {
@@ -145,6 +164,11 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 	for id := range askedOnConnections {
 		if _, ok := fixture.Scenarios[id]; !ok {
 			t.Errorf("%s is sent, and not measured", id)
+		}
+	}
+	for id := range notSentOnConnections {
+		if _, ok := fixture.Scenarios[id]; !ok {
+			t.Errorf("%s is not sent, and not measured", id)
 		}
 	}
 	for which := range apartFromChrome {

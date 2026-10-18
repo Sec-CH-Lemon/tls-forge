@@ -58,6 +58,24 @@ func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
 			want: map[string]string{"Access-Control-Max-Age": "600", "Access-Control-Allow-Headers": ""}},
 		{name: "a preflight refused", method: "OPTIONS", target: "/cors/x?deny=1", header: origin, status: 403,
 			want: map[string]string{"Access-Control-Allow-Origin": ""}},
+		{name: "misdirected every time", method: "GET", target: "/misdirected/x?always=1&cookie=1", header: origin,
+			status: 421, body: "misdirected",
+			want: map[string]string{"Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "https://www.example.com"}},
+		{name: "not misdirected, in the clear", method: "GET", target: "/misdirected/x?cookie=1", header: origin, status: 200,
+			want:    map[string]string{"Content-Type": "application/json", "Access-Control-Allow-Origin": "https://www.example.com"},
+			cookies: 2, body: `{"ok":true}`},
+		{name: "a preflight of what is not misdirected", method: "OPTIONS", target: "/misdirected/x?maxage=0", header: origin,
+			status: 204, want: map[string]string{"Access-Control-Max-Age": "0"}},
+		{name: "misdirected, with a cookie", method: "GET", target: "/misdirected/x?always=1&mcookie=1", status: 421, cookies: 1,
+			body: "misdirected"},
+		{name: "not misdirected, asking for credentials", method: "GET", target: "/misdirected/x?auth=1", header: origin,
+			status: 401, body: "<p>401</p>",
+			want: map[string]string{"WWW-Authenticate": `Basic realm="bench"`, "Content-Type": "text/html; charset=utf-8",
+				"Access-Control-Allow-Origin": "https://www.example.com"}},
+		{name: "not misdirected, and given them", method: "GET", target: "/misdirected/x?auth=1",
+			header: []string{"Authorization", "Basic dTpw"}, status: 200, body: `{"ok":true}`},
+		{name: "a page asked as if misdirected", method: "GET", target: "/p/x?always=1&auth=1", status: 200,
+			body: "<title>page</title>"},
 		{name: "a run page", method: "GET", target: "https://www.example.com:443/run/x?cookie=1", status: 200, cookies: 2,
 			want: map[string]string{"Content-Type": "text/html; charset=utf-8"},
 			body: "<!doctype html><html><head><title>run</title></head><body><a href=\"https://www.example.net:443/p/x\">x</a><script>\n" +
@@ -115,6 +133,42 @@ func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
 	w = served(s, http.MethodGet, "/auth/x/a?offer=digest")
 	if got := w.Header().Values("WWW-Authenticate"); len(got) != 2 || !strings.HasPrefix(got[0], "Digest realm=\"bench\", nonce=") || got[1] != `Basic realm="bench"` {
 		t.Errorf("challenges %v", got)
+	}
+	// Misdirected the first time a URL is asked for, by host and request URI,
+	// since the server started or was reset.
+	for i, want := range []int{421, 200, 421, 421, 200} {
+		target := "/misdirected/x?first=1"
+		switch i {
+		case 2:
+			target = "/misdirected/y?first=1"
+		case 3:
+			s.Reset()
+		}
+		if w := served(s, http.MethodGet, target); w.Code != want {
+			t.Errorf("%s, the %d. time: %d, want %d", target, i+1, w.Code, want)
+		}
+	}
+	// A 421 says so, and nothing more.
+	if body := served(s, http.MethodGet, "/misdirected/x?always=1").Body.String(); body != "misdirected" {
+		t.Errorf("a 421 said %q", body)
+	}
+	// A 421 the first time, a 401 until it is sent u:p, and a 421 the first
+	// time it is: as asked for one after the other, and with each alone.
+	basic := []string{"Authorization", "Basic dTpw"}
+	for _, tc := range []struct {
+		target string
+		header [][]string
+		want   []int
+	}{
+		{"/misdirected/a?first=1&auth=1&authfirst=1", [][]string{nil, nil, basic, basic}, []int{421, 401, 421, 200}},
+		{"/misdirected/b?auth=1&authfirst=1", [][]string{nil, basic, basic}, []int{401, 421, 200}},
+		{"/misdirected/c?authfirst=1", [][]string{nil, nil, basic, basic}, []int{200, 200, 421, 200}},
+	} {
+		for i, header := range tc.header {
+			if w := served(s, http.MethodGet, tc.target, header...); w.Code != tc.want[i] {
+				t.Errorf("%s, the %d. time: %d, want %d", tc.target, i+1, w.Code, tc.want[i])
+			}
+		}
 	}
 	// Cookies of every SameSite are the four, and in order.
 	w = served(s, http.MethodGet, "/p/x?cookie=2")

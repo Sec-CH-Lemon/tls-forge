@@ -386,7 +386,7 @@ func TestAConnectionHeldWritesOnlyOnceLetGo(t *testing.T) {
 	for _, letGo := range []bool{true, false} {
 		ours, theirs := net.Pipe()
 		held := make(chan struct{})
-		conn := newTeeConn(ours, func([]byte) {}, held)
+		conn := newTeeConn(ours, "", func([]byte) {}, held)
 		wrote := make(chan error, 1)
 		go func() {
 			_, err := conn.Write([]byte("x"))

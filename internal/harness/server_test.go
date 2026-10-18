@@ -214,6 +214,62 @@ func TestAnAnswerThatSaysCloseEndsItsConnection(t *testing.T) {
 	}
 }
 
+func TestARequestForANameItsConnectionWasNotMadeForIsMisdirected(t *testing.T) {
+	s := started(t, map[string]scenario{"t": {table: 1024}})
+	h1 := strconv.Itoa(s.H1)
+	// Over HTTP/1.1, each request on a connection of its own whose TLS asked
+	// for the name given.
+	for _, tc := range []struct {
+		name, host string
+		status     string
+	}{
+		{"www.example.com", "api.example.com:" + h1, "421"},
+		{"www.example.com", "www.example.com:" + h1, "200"},
+		{"www.example.com", "WWW.Example.COM:" + h1, "200"},
+		{"www.example.com", "www.example.com", "200"},
+		{"www.example.com", "api.example.com", "421"},
+	} {
+		conn, err := tls.Dial("tcp", "127.0.0.1:"+h1, &tls.Config{ServerName: tc.name, InsecureSkipVerify: true}) //nolint:gosec // the bench's own
+		if err != nil {
+			t.Fatalf("Dial: %v", err)
+		}
+		_, _ = io.WriteString(conn, "GET /misdirected/x HTTP/1.1\r\nHost: "+tc.host+"\r\n\r\n")
+		_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		line, _ := bufio.NewReader(conn).ReadString('\n')
+		_ = conn.Close()
+		if !strings.HasPrefix(line, "HTTP/1.1 "+tc.status) {
+			t.Errorf("%s over a connection to %s: %q", tc.host, tc.name, line)
+		}
+	}
+	// Over HTTP/2, on the port that offers it and on one with a table of its
+	// own, a connection whose TLS asked for www.example.com carrying a request
+	// for another name.
+	for _, port := range []int{s.H2, s.Tables[1024]} {
+		h2 := strconv.Itoa(port)
+		tr := &http.Transport{ForceAttemptHTTP2: true, DialTLSContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			d := &tls.Dialer{Config: &tls.Config{ServerName: "www.example.com", NextProtos: []string{"h2"}, InsecureSkipVerify: true}} //nolint:gosec // the bench's own
+			return d.DialContext(ctx, network, "127.0.0.1:"+h2)
+		}}
+		for host, want := range map[string]int{"www.example.com": http.StatusOK, "api.example.com": http.StatusMisdirectedRequest} {
+			req, _ := http.NewRequest(http.MethodGet, "https://"+host+":"+h2+"/misdirected/x", nil)
+			res, err := tr.RoundTrip(req)
+			if err != nil {
+				t.Fatalf("RoundTrip: %v", err)
+			}
+			_ = res.Body.Close()
+			if res.StatusCode != want || res.ProtoMajor != 2 {
+				t.Errorf("%s over a connection to www.example.com on %s: %d over %s, want %d", host, h2, res.StatusCode,
+					res.Proto, want)
+			}
+		}
+		tr.CloseIdleConnections()
+	}
+	// In the clear, never.
+	if res, _ := get(t, http.MethodGet, "http://api.example.com:"+strconv.Itoa(s.Plain)+"/misdirected/x", nil); res.StatusCode != http.StatusOK {
+		t.Errorf("in the clear: %d", res.StatusCode)
+	}
+}
+
 func TestStartServerAnswersTheCatalogue(t *testing.T) {
 	s, err := StartServer()
 	if err != nil {
