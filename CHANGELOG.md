@@ -602,6 +602,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   of its URL's site, as a navigation typed in. A client keeps the connections
   of the last 64 sites it sent requests to; one more drops the site used
   longest ago, closing its idle connections and forgetting its TLS sessions.
+  `fetch`'s exit probe asks a site over that site's connections, so after a
+  redirect from another site, or for a script's request from a page of
+  another site, it goes through another tunnel than the request, and its
+  answer is not believed.
 - **A request to another name goes out on an HTTP/2 connection the client
   holds to the same address**, as Chrome 155 sends one
   (`testdata/chrome155-connections.json`): one of its kind, for requests with

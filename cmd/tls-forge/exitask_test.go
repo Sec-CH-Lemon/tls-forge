@@ -35,6 +35,10 @@ func cloudflareSite(t *testing.T) *httptest.Server {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
+		if r.URL.Path == "/hop" {
+			http.Redirect(w, r, r.URL.Query().Get("to"), http.StatusFound)
+			return
+		}
 		if r.URL.Path == "/cdn-cgi/trace" {
 			mu.Lock()
 			n := numbers[r.RemoteAddr]
@@ -97,6 +101,26 @@ func TestASiteSaysWhereARequestCameFromOverTheSameConnection(t *testing.T) {
 	doc = decoded(t, []byte(reportOf(t, report)))
 	if got := doc.Requests[0]; got.Exit != nil || got.ExitError != "the proxy did not say" {
 		t.Errorf("an answer over another connection was believed: %+v, %q", got.Exit, got.ExitError)
+	}
+}
+
+func TestASiteARedirectWentToIsNotBelievedOverAnotherSitesConnections(t *testing.T) {
+	// A redirect from 127.0.0.1 to localhost, another site: the hop goes out
+	// on the connections of the first hop's site, and the site is asked over
+	// those of its own, as a request with no browser context is, through
+	// another tunnel. What it says is not believed.
+	site := cloudflareSite(t)
+	via := startProxy(t)
+	report := filepath.Join(t.TempDir(), "run.json")
+	other := strings.Replace(site.URL, "127.0.0.1", "localhost", 1)
+	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
+		"--report-format", "json", site.URL+"/hop?to="+other+"/page")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	doc := decoded(t, []byte(reportOf(t, report)))
+	if got := doc.Requests[0]; got.Exit != nil || got.ExitError != "the proxy did not say" {
+		t.Errorf("an answer over another site's connections was believed: %+v, %q", got.Exit, got.ExitError)
 	}
 }
 
