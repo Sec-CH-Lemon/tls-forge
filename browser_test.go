@@ -403,6 +403,7 @@ func init() {
 		"auth-digest-basic-kept": {browser: typed, pages: []int{0, 2}, credentials: []string{"u:p", ""}},
 		"auth-digest-stale-forever": {browser: typed, pages: []int{0}, credentials: []string{"u:p"},
 			fails: "asked for authentication again after 31 answers"},
+		"auth-nav-cross-site-samesite": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("auth-nav-cross-site-samesite")}, pages: []int{0, 2}, credentials: []string{"u:p", "u:p"}, cookies: setOnEveryKind("www.example.net")},
 	} {
 		sentInContexts[scenario] = how
 	}

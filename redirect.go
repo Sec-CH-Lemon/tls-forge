@@ -240,11 +240,14 @@ func (ch *chain) challenged(res *fhttp.Response) (string, bool, error) {
 }
 
 // again is res's request, the latest hop, sent again with Authorization said
-// as value: its body too, its headers as Chrome's network stack restarts it.
+// as value: its body too, its headers as Chrome's network stack restarts it,
+// and its cookies. Its context goes on before it is dressed, the jar told
+// about the URL it is sent with, which every WithContext copies anew.
 func (ch *chain) again(sent *fhttp.Request, value string) *fhttp.Request {
 	u := *sent.URL
 	retry := (&fhttp.Request{Method: sent.Method, URL: &u, Host: sent.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
-		ProtoMinor: 1, ContentLength: sent.ContentLength, GetBody: sent.GetBody}).WithContext(ch.base)
+		ProtoMinor: 1, ContentLength: sent.ContentLength, GetBody: sent.GetBody}).WithContext(
+		context.WithValue(ch.base, chainKey{}, ch))
 	if sent.GetBody != nil {
 		// GetBody of a request made from bytes, which cannot fail.
 		retry.Body, _ = sent.GetBody()
@@ -254,11 +257,10 @@ func (ch *chain) again(sent *fhttp.Request, value string) *fhttp.Request {
 		h := ch.last
 		h.authorization = value
 		ch.dress(retry, h)
-	} else {
-		ch.laid = ch.laid.authorized(value)
-		retry = ch.laid.wear(retry)
+		return retry
 	}
-	return retry.WithContext(context.WithValue(retry.Context(), chainKey{}, ch))
+	ch.laid = ch.laid.authorized(value)
+	return ch.laid.wear(retry)
 }
 
 // redirected are the credentials of the URL a redirect leads req to, taken

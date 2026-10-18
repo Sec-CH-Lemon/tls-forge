@@ -83,7 +83,7 @@ out.
 
 `chrome155-requests.json` is what Google Chrome 155.0.8059.80 on macOS 27.0.1
 (arm64), headless and in English, sent on 2026-10-16, 2026-10-17 and
-2026-10-18 for 175 scenarios, over HTTP/2 and over HTTP/1.1: navigations
+2026-10-18 for 176 scenarios, over HTTP/2 and over HTTP/1.1: navigations
 typed and from pages under each referrer policy, to and from
 `http://localhost`, forms posted and sent by GET, `fetch()` and XHR of every
 mode and credentials, CORS preflights allowed, refused and cached, cookies on
@@ -94,7 +94,8 @@ again, to URLs with credentials, and the chain Chrome gives up on), the
 client hints a server asked for with `Accept-CH` (every one, a few, emptied,
 replaced, on a redirect, from forms, `fetch()` and XHR, and to other
 origins) and said it needs with `Critical-CH`, and HTTP authentication with
-the credentials in a URL (Basic, and Digest of every algorithm and `qop`
+the credentials in a URL (Basic, from a page of another site with cookies of
+each SameSite too, and Digest of every algorithm and `qop`
 Chrome knows, with an opaque, a hashed username, a nonce out of date once,
 later and every time, challenges it cannot read, several at once, NTLM and
 Negotiate offered before it, and the realm's later pages). A local
