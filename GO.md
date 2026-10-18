@@ -164,6 +164,11 @@ and what tls-forge did with it goes too:
   transport's to dial. The log's `proxy` records and the exit header fields
   of a tunnel's answer go with tls-forge's dialer. `WithProxy` is the way to
   keep them.
+- `tls_client.WithTransportWrapper` replaces how tls-forge sends each hop of
+  a redirect on the connections of its own top-level site and credentials
+  ([Redirects](#redirects)): every hop then goes out on the connections of
+  the request's first. The wrapper is handed each transport's round tripper,
+  and sees every request.
 - Any transport option leaves a client without a proxy dialing the
   transport's way, since the option may be a dialer: the connections HTTP/2
   dials apart from a request then go unlogged ([Logging](#logging)), and no
@@ -309,13 +314,18 @@ out on connections of its own, which resume only TLS sessions of their own, as
 Chrome 155 sends one (`testdata/chrome155-connections.json`): `fetch()` with
 credentials omitted, one kept to its page's origin that goes to another, in
 cors or no-cors mode, an XHR without `withCredentials` to another origin, and
-every CORS preflight, that of a request with credentials too. Its redirects
-follow it there.
+every CORS preflight, that of a request with credentials too. A hop of a
+redirect that leaves a request without credentials, as one kept to its page's
+origin that a redirect takes to another does, goes on there, and stays on
+them, back at the page's origin too.
 
 Connections, and the TLS sessions they resume, are kept apart for each
 top-level site too, as Chrome keeps them: a navigation or a form loads a page
 of a site, and goes out on that site's connections, and what a page's scripts
-send goes out on the page's. A navigation from a page of `www.example.com` to
+send goes out on the page's. So does each hop of a redirect: a navigation's
+or a form's hop to another site goes out on that site's connections, though
+a connection of the first site's could carry it, and one back on the first
+site's, while a script's hops stay on its page's. A navigation from a page of `www.example.com` to
 `www.example.net` opens a connection of its own even when a `fetch()` of the
 page holds one to that host, and resumes none of its TLS sessions. A request
 without a browser context goes out as a navigation typed in, on the
@@ -389,6 +399,10 @@ A redirect is followed as Chrome 155 was measured following one
 - Nineteen redirects are followed. The twentieth is not, and the request
   fails with `the 20th redirect was not followed`: on a chain that does not
   end, Chrome made twenty requests.
+- Each hop goes out on the connections of its own top-level site, as Chrome
+  155 was measured sending them (`testdata/chrome155-connections.json`): a
+  hop to another site on that site's, and one back on the first's. A request
+  without a context is a navigation typed in, whose site is its hop's.
 
 In a browser context each hop is worked out again from the hops before it:
 
@@ -402,6 +416,11 @@ In a browser context each hop is worked out again from the hops before it:
 - `Origin` says `null` once the request has gone across origins: for a
   request CORS answers, from an origin that is not the page's. A script's
   request that a redirect gives an `Origin` sends it after `Sec-Fetch-*`.
+- A script's hops go out on the connections of its page's site, and a hop
+  that leaves the request without credentials on those of requests that
+  carry none: it stays on them, back at the page's origin too, as Chrome
+  sends it. The preflight a hop needs goes out on those, and the answer to
+  a 401 or a 421 of a hop on the connections the hop went out on.
 - CORS has to allow a redirect itself, and a hop that needs a preflight is
   asked about again at the URL it goes to, with its own `Sec-Fetch-Site`.
   `fetch()` in `same-origin` mode follows no redirect to another origin.

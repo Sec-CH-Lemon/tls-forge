@@ -1203,9 +1203,12 @@ JA4 of one extension more. Each of the `--concurrency` workers keeps sessions
 of its own, so a site sees as many first contacts as there are workers that
 went to it. `--reuse-connection` keeps a URL's connection for its repeats and
 its tries instead, so that they come out where its first request did. A
-request's redirects go through its connection, and so does what its site is
-asked over the same connection, but after a redirect to another site or for a
-script's request from a page of another site (below).
+request's redirects go through its connection, but for a hop Chrome sends on
+another: one to another site goes through a connection of that site's, and
+one that leaves a script's request without credentials through one of those
+that carry none. What the site a request ended at is asked over the same
+connection goes through its last hop's, but for a script's request from a
+page of another origin (below).
 
 Which fields say it, and what to ask when none does, is a table,
 [`cmd/tls-forge/exit-headers.json`](cmd/tls-forge/exit-headers.json), built
@@ -1302,10 +1305,13 @@ ask, and only where nothing but the same exit can answer:
   answer is believed only when it came back over the same tunnel, which the
   tunnel's number says; over another it would be another exit's. A probe goes
   out on the connections of the site it asks, as a request with no browser
-  context does ([GO.md](GO.md#browser-contexts)), and a request redirected
-  there from another site, or a script's request from a page of another site,
-  went out on those of the first site: its probe goes through another tunnel,
-  and is not believed.
+  context does ([GO.md](GO.md#browser-contexts)), which a request redirected
+  there from another site went out on too. A script's request
+  (`--request-kind fetch` or `xhr`) from a page of another site went out on
+  the connections of the page's site, which is not the probed URL's, and one
+  from a page of another origin of the URL's site on those of requests that
+  carry no credentials, as such a request carries none: its probe goes
+  through another tunnel, and is not believed.
 - `resolve`, on a field, turns a name the proxy gave into the address: it asks
   `url` through the same proxy with a user name that says to go out through the
   exit of that name. The example asks Bright Data's `brdtest.com/myip.json`

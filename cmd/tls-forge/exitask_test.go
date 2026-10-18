@@ -22,7 +22,8 @@ import (
 // cloudflareSite answers as a site behind Cloudflare does: every response with
 // cf-ray, and /cdn-cgi/trace with the address the connection came from. That
 // address is made up, one for each connection the site is asked over, so that
-// an answer can be told to have come over the same one or not.
+// an answer can be told to have come over the same one or not. A page of any
+// origin may read what it answers.
 func cloudflareSite(t *testing.T) *httptest.Server {
 	t.Helper()
 	var mu sync.Mutex
@@ -30,6 +31,9 @@ func cloudflareSite(t *testing.T) *httptest.Server {
 	var busy atomic.Bool
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cf-Ray", "8f1c0d9e2b4a7f8e-AMS")
+		if origin := r.Header.Get("Origin"); origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		// Turned away the first time, for a request to be tried again.
 		if r.URL.Query().Has("busy-once") && busy.CompareAndSwap(false, true) {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -104,11 +108,12 @@ func TestASiteSaysWhereARequestCameFromOverTheSameConnection(t *testing.T) {
 	}
 }
 
-func TestASiteARedirectWentToIsNotBelievedOverAnotherSitesConnections(t *testing.T) {
+func TestASiteARedirectWentToIsAskedOverTheConnectionOfTheHop(t *testing.T) {
 	// A redirect from 127.0.0.1 to localhost, another site: the hop goes out
-	// on the connections of the first hop's site, and the site is asked over
-	// those of its own, as a request with no browser context is, through
-	// another tunnel. What it says is not believed.
+	// on the connections of localhost's site, as Chrome sends it, on a
+	// tunnel of its own, the site's second connection; and the site is asked
+	// over those, as a request with no browser context is: through the same
+	// tunnel. What it says is believed.
 	site := cloudflareSite(t)
 	via := startProxy(t)
 	report := filepath.Join(t.TempDir(), "run.json")
@@ -119,8 +124,44 @@ func TestASiteARedirectWentToIsNotBelievedOverAnotherSitesConnections(t *testing
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	doc := decoded(t, []byte(reportOf(t, report)))
-	if got := doc.Requests[0]; got.Exit != nil || got.ExitError != "the proxy did not say" {
-		t.Errorf("an answer over another site's connections was believed: %+v, %q", got.Exit, got.ExitError)
+	want := documentExit{IP: "198.51.100.2", Country: "NL", By: "Cloudflare /cdn-cgi/trace, on the same connection"}
+	if got := doc.Requests[0].Exit; got == nil || *got != want {
+		t.Errorf("the request came out of %+v, want %+v", got, want)
+	}
+}
+
+func TestAScriptsRequestFromAPageOfAnotherOriginIsNotBelieved(t *testing.T) {
+	// fetch() from the site's own page carries credentials, and goes out on
+	// the connections the site is asked over: believed. From a page of
+	// another origin of its site it carries none, and goes out on the
+	// connections of requests that carry none; from a page of another site,
+	// on that site's. Either way the site is asked through another tunnel,
+	// and what it says is not believed.
+	site := cloudflareSite(t)
+	via := startProxy(t)
+	report := filepath.Join(t.TempDir(), "run.json")
+	for _, tc := range []struct {
+		page     string
+		believed bool
+	}{
+		{site.URL + "/page", true},
+		{"https://127.0.0.1:1/page", false},
+		{strings.Replace(site.URL, "127.0.0.1", "localhost", 1) + "/page", false},
+	} {
+		code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--profile",
+			"chrome_155_macos", "--request-kind", "fetch", "--initiator-url", tc.page, "--report="+report,
+			"--report-format", "json", site.URL+"/page")
+		if code != 0 {
+			t.Fatalf("from %s: exit code = %d\n%s", tc.page, code, stderr)
+		}
+		got := decoded(t, []byte(reportOf(t, report))).Requests[0]
+		switch {
+		case tc.believed && (got.Exit == nil || got.Exit.By != "Cloudflare /cdn-cgi/trace, on the same connection"):
+			t.Errorf("from %s: came out of %+v, %q", tc.page, got.Exit, got.ExitError)
+		case !tc.believed && (got.Exit != nil || got.ExitError != "the proxy did not say"):
+			t.Errorf("from %s: an answer over other connections was believed: %+v, %q", tc.page, got.Exit,
+				got.ExitError)
+		}
 	}
 }
 

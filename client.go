@@ -307,12 +307,13 @@ func New(opts ...Option) (*Client, error) {
 			return nil, fmt.Errorf("tlsforge: nil transport option")
 		}
 	}
-	// How it dials comes last but for the caller's own, and is made for each
-	// client, so that every one logs its connections as itself.
-	built := func(log *slog.Logger) []tls_client.HttpClientOption {
+	// How it dials comes last but for what each transport is given of its own
+	// and the caller's own, and is made for each client, so that every one
+	// logs its connections as itself.
+	built := func(log *slog.Logger, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(clientProfile)}, options...)
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, log)...)
-		return append(out, cfg.extra...)
+		return append(append(out, own...), cfg.extra...)
 	}
 
 	id, log := newClientLog(cfg.logger)
@@ -575,15 +576,14 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), scriptHeaderPriority))
 	}
 	// A request that carries no credentials goes out on connections of its
-	// own, as Chrome sends one, and each top-level site has its own; its
-	// redirects follow it there, and so would its answer to a 401, which only
-	// a request with credentials gets.
-	s, err := c.transports.siteOf(topSite(browser, parsed))
-	if err != nil {
+	// own, as Chrome sends one, and each top-level site has its own; each hop
+	// of its redirects goes out on those of its own site and credentials, and
+	// its answer to a 401 or a 421 on those of the hop it answers, whichever
+	// client follows them: the first hop's.
+	if err := ch.goOn(parsed); err != nil {
 		return nil, nil, err
 	}
-	ch.site = s
-	transport := s.carrying(browser == nil || !browser.cookies(ch.last).none)
+	transport := ch.on
 	ch.base = inner.Context()
 	inner = blocks.wear(inner)
 	inner = inner.WithContext(ch.in(inner.Context()))
@@ -591,7 +591,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	defer ch.release()
 	if browser != nil {
 		if browser.needsPreflight(ch.last) && !c.session.preflights.allows(browser, ch.last, inner.URL.String()) {
-			if err := c.preflight(ch.base, inner, browser, ch.last, s.bare, r); err != nil {
+			if err := c.preflight(ch.base, inner, browser, ch.last, ch.site.bare, r); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -731,7 +731,10 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	// Before it is dressed, since the URL the jar is told about is the copy
 	// WithContext makes.
 	*req = *req.WithContext(http2.WithCoalescing(req.Context(), true))
-	return ch.follow(req, via)
+	if err := ch.follow(req, via); err != nil {
+		return err
+	}
+	return ch.goOn(req.URL)
 }
 
 // CookiesFor returns what the jar would send to a URL, each cookie with its

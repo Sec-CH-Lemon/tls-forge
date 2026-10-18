@@ -35,10 +35,13 @@ type chain struct {
 	client *Client
 	log    *requestLog
 	// base is the request's context before its layouts were hung on it, which
-	// a hop's preflight is made in; site are the connections of its first
-	// hop's top-level site, which every hop and preflight goes out on.
+	// a hop's preflight is made in; site are the connections of the latest
+	// hop's top-level site, which its preflight goes out on, and on the pool
+	// of them of its kind, with credentials or without, the hop goes out, and
+	// its answer to a 401 or a 421.
 	base context.Context
 	site *site
+	on   pool
 	// bodyless is a chain whose body a redirect has dropped, and every hop
 	// after it goes without one, whatever its status.
 	bodyless bool
@@ -124,6 +127,22 @@ func keepingConn(ctx context.Context, conn *net.Conn) context.Context {
 	return fhttptrace.WithClientTrace(ctx, &fhttptrace.ClientTrace{
 		GotConn: func(info fhttptrace.GotConnInfo) { *conn = info.Conn },
 	})
+}
+
+// goOn has the latest hop, to u, go out on the connections of its own
+// top-level site, and on those of them of its kind, with credentials or
+// without, as Chrome sends each hop of a redirect
+// (testdata/chrome155-connections.json): a navigation's or a form's to another
+// site on that site's, and back on the first's; one that leaves a request
+// without credentials on those of requests that carry none, which it stays
+// on. A script's hops go out on its page's site's.
+func (ch *chain) goOn(u *url.URL) error {
+	s, err := ch.client.transports.siteOf(topSite(ch.browser, u))
+	if err != nil {
+		return err
+	}
+	ch.site, ch.on = s, s.carrying(ch.browser == nil || !ch.browser.cookies(ch.last).none)
+	return nil
 }
 
 // rule has the jar answer the transport, when it asks about u, with what the

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
+	fhttp "github.com/igor-lemon/fhttp"
 	http2 "github.com/igor-lemon/fhttp/http2"
 	tls_client "github.com/igor-lemon/tls-client"
 )
@@ -20,8 +21,9 @@ import (
 // session (session).
 type transports struct {
 	// build is what transports are built with, for the log they write to: the
-	// client's options, but for how they dial, which is each client's own.
-	build func(log *slog.Logger) []tls_client.HttpClientOption
+	// client's options, but for how they dial, which is each client's own,
+	// with own given before the caller's.
+	build func(log *slog.Logger, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
 	log   *slog.Logger
 	// proxy is what an error building them is cleaned of.
 	proxy string
@@ -42,14 +44,44 @@ type transports struct {
 // site are the connections of one top-level site.
 type site struct {
 	name  string
-	inner tls_client.HttpClient
+	inner pool
 	// bare is where a request that carries no credentials goes out: a CORS
 	// preflight, fetch() with credentials omitted, or one kept to its own
 	// origin going to another. Chrome sends those on connections of their
 	// own, which resume only TLS sessions of their own, as the Fetch
 	// standard keys a connection by whether its request carries credentials.
 	// Built as inner is, with the same jar.
-	bare tls_client.HttpClient
+	bare pool
+}
+
+// pool is one kind of a site's connections: the client of the transport's they
+// are, and the round tripper it built, which sends each hop of a redirect that
+// goes out on them, whichever client follows it.
+type pool struct {
+	tls_client.HttpClient
+	trip fhttp.RoundTripper
+}
+
+// hopper is how a client of the transport's sends a request, which is its own
+// round tripper's but for the requests of a chain: each of those is sent by
+// that of the pool its hop goes out on (chain.on), as Chrome sends a hop of a
+// redirect on the connections of its own top-level site and credentials,
+// whichever the hop before went out on. A preflight, of no chain, is sent by
+// the client's own.
+type hopper struct{ own fhttp.RoundTripper }
+
+func (h hopper) RoundTrip(req *fhttp.Request) (*fhttp.Response, error) {
+	if ch, ok := req.Context().Value(chainKey{}).(*chain); ok {
+		return ch.on.trip.RoundTrip(req)
+	}
+	return h.own.RoundTrip(req)
+}
+
+// wrap is what the pool's client sends by (tls-client's
+// WithTransportWrapper): trip, the round tripper it built, kept, in a hopper.
+func (p *pool) wrap(trip fhttp.RoundTripper) fhttp.RoundTripper {
+	p.trip = trip
+	return hopper{trip}
 }
 
 // maxSites is how many top-level sites a client keeps the connections and
@@ -58,8 +90,8 @@ type site struct {
 const maxSites = 64
 
 // newTransports builds transports with build, logging to log.
-func newTransports(build func(*slog.Logger) []tls_client.HttpClientOption, log *slog.Logger,
-	proxy string) (*transports, error) {
+func newTransports(build func(*slog.Logger, ...tls_client.HttpClientOption) []tls_client.HttpClientOption,
+	log *slog.Logger, proxy string) (*transports, error) {
 	t := &transports{build: build, log: log, proxy: proxy}
 	spare, err := t.newSite("")
 	if err != nil {
@@ -71,15 +103,16 @@ func newTransports(build func(*slog.Logger) []tls_client.HttpClientOption, log *
 
 // newSite builds the connections of the site named.
 func (t *transports) newSite(name string) (*site, error) {
-	var built [2]tls_client.HttpClient
+	var built [2]pool
 	for i := range built {
-		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(t.log)...)
+		p := &built[i]
+		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(t.log, tls_client.WithTransportWrapper(p.wrap))...)
 		if err != nil {
 			// A proxy the transport cannot read is quoted back whole, password
 			// and all, by url.Parse and by the transport alike.
 			return nil, fmt.Errorf("tlsforge: %w", redact.Err(err, t.proxy))
 		}
-		built[i] = inner
+		p.HttpClient = inner
 	}
 	return &site{name: name, inner: built[0], bare: built[1]}, nil
 }
@@ -118,9 +151,9 @@ func (t *transports) siteOf(name string) (*site, error) {
 	return s, nil
 }
 
-// carrying is the site's transport of a request that carries credentials, or
-// of one that carries none.
-func (s *site) carrying(credentials bool) tls_client.HttpClient {
+// carrying is the site's pool of a request that carries credentials, or of one
+// that carries none.
+func (s *site) carrying(credentials bool) pool {
 	if credentials {
 		return s.inner
 	}
@@ -131,9 +164,8 @@ func (s *site) carrying(credentials bool) tls_client.HttpClient {
 // which Chrome keys its connections by: a script's request, and its
 // preflight, are its page's; a navigation's and a form's are the site of the
 // page they load, and so are a request's with no browser context, which goes
-// out as a navigation typed in. Each hop of a redirect goes out on the
-// connections of the first hop's site, where Chrome sends a navigation's hop
-// to another site on that site's.
+// out as a navigation typed in. So is each hop of a redirect: a navigation's
+// hop to another site goes out on that site's, and one back on the first's.
 func topSite(browser *browserRequest, target *url.URL) string {
 	if browser != nil && browser.scripted() {
 		return browser.from.site()

@@ -74,11 +74,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   that carries no credentials, every CORS preflight among them, goes out on
   connections of its own, which resume only TLS sessions of their own, as
   Chrome keeps them apart (`testdata/chrome155-connections.json`), on those
-  of the page's top-level site; unlike Chrome, tls-forge follows a redirect
-  on the connections of the first hop's site, where Chrome sends a
-  navigation's or a form's hop to another site on that site's, and follows a
-  redirect that leaves a request without credentials on the connections the
-  request went out on. What
+  of the page's top-level site, and each hop of a redirect on those of its
+  own site and credentials. What
   a page cannot send is refused before anything is sent. A request without
   one goes out as before.
 - **Redirects are followed as Chrome 155 follows them**, measured
@@ -599,6 +596,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **Each hop of a redirect goes out on the connections of its own top-level
+  site and credentials**, as Chrome 155 sends it
+  (`testdata/chrome155-connections.json`): a navigation's or a form's hop to
+  another site, and a request's without a browser context, on that site's
+  connections, though one of the first site's could carry it, and a hop
+  back on the first's; a hop that leaves a request without credentials on
+  the connections of requests that carry none, which it stays on, back at
+  the page's origin too. A hop's preflight goes out on its page's site's,
+  and its answer to a 401 or a 421 on the connections the hop went out on.
+  Every hop went out on the connections of the first. Through tls-forge's
+  fork of tls-client, whose `WithTransportWrapper` hands tls-forge the round
+  tripper of each transport; one given with `WithTransportOption` replaces
+  tls-forge's, and every hop then goes out on the connections of the
+  request's first.
 - **A request a server answers 421 (Misdirected Request) is sent again,
   once**, as Chrome 155 sends it (`testdata/chrome155-connections.json`, and
   three scenarios of `testdata/chrome155-requests.json`): its body and header
@@ -621,10 +632,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   of its URL's site, as a navigation typed in. A client keeps the connections
   of the last 64 sites it sent requests to; one more drops the site used
   longest ago, closing its idle connections and forgetting its TLS sessions.
-  `fetch`'s exit probe asks a site over that site's connections, so after a
-  redirect from another site, or for a script's request from a page of
-  another site, it goes through another tunnel than the request, and its
-  answer is not believed.
+  `fetch`'s exit probe asks a site over that site's connections, which a
+  request redirected there from another site went out on too. For a
+  script's request from a page of another site, whose connections are the
+  page's site's and not the probed URL's, or from a page of another origin
+  of the URL's site, which carries no credentials there, it goes through
+  another tunnel than the request, and its answer is not believed.
 - **A request to another name goes out on an HTTP/2 connection the client
   holds to the same address**, as Chrome 155 sends one
   (`testdata/chrome155-connections.json`): one of its kind, for requests with

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 
+	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 
@@ -43,7 +45,9 @@ func idlers(t *testing.T, proxy string, refuse func(n int) error) (*transports, 
 		built = append(built, c)
 		return c, nil
 	}
-	tr, err := newTransports(func(*slog.Logger) []tls_client.HttpClientOption { return nil }, nil, proxy)
+	tr, err := newTransports(func(*slog.Logger, ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
+		return nil
+	}, nil, proxy)
 	if err != nil {
 		t.Fatalf("newTransports: %v", err)
 	}
@@ -64,7 +68,7 @@ func at(t *testing.T, tr *transports, name string, credentials bool) tls_client.
 	if err != nil {
 		t.Fatalf("site %s: %v", name, err)
 	}
-	return s.carrying(credentials)
+	return s.carrying(credentials).HttpClient
 }
 
 func TestASiteKeepsItsConnectionsAndAnotherHasItsOwn(t *testing.T) {
@@ -225,7 +229,7 @@ func TestARequestGoesOutOnTheConnectionsOfThePageAtTheTop(t *testing.T) {
 }
 
 func TestARequestToASiteWhoseConnectionsCannotBeBuiltFails(t *testing.T) {
-	server := newRecorder(t, "h2", nil)
+	server := newRecorder(t, "h2", answeringAsMeasured)
 	client := newTestClient(t, server.dialing())
 	if _, err := client.Get("https://www.example.com/"); err != nil {
 		t.Fatalf("Get: %v", err)
@@ -238,9 +242,101 @@ func TestARequestToASiteWhoseConnectionsCannotBeBuiltFails(t *testing.T) {
 	if _, err := client.Get("https://www.example.net/"); err == nil || err.Error() != "tlsforge: no transport" {
 		t.Errorf("another site: %v", err)
 	}
+	// Nor is a redirect followed there, whose hop would go out on them.
+	hop := "https://www.example.net/p/after"
+	if _, err := client.Get("https://www.example.com/r/302/x?to=" + hop); err == nil ||
+		err.Error() != `tlsforge: Get "`+hop+`": tlsforge: no transport` {
+		t.Errorf("a redirect to another site: %v", err)
+	}
 	// Those of a site it has go on as they were: www.example.com's are
 	// api.example.com's.
 	if _, err := client.Get("https://api.example.com/"); err != nil {
 		t.Errorf("the same site: %v", err)
+	}
+}
+
+// onWhich are the connections the requests a recorder kept came on, said as
+// onConnections says them.
+func onWhich(kept []*keptRequest) string {
+	var conns []int64
+	var resumed []bool
+	for _, r := range kept {
+		conns, resumed = append(conns, r.conn), append(resumed, r.resumed)
+	}
+	return onConnections(conns, resumed)
+}
+
+// hopsAndAfter sends a request without a browser context that a redirect
+// takes to another site, then one to that site and one to the first, and the
+// first site's fetch() of its own origin with credentials omitted; and is the
+// connections the recorder kept them on.
+func hopsAndAfter(t *testing.T, proto string, opts ...Option) string {
+	t.Helper()
+	server := newRecorder(t, proto, answeringAsMeasured)
+	client, err := New(append([]Option{WithProfile("chrome_155_macos"), server.trusting(t)}, opts...)...)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	for _, u := range []string{"https://www.example.com/r/302/x?to=https://www.example.net/p/hop",
+		"https://www.example.net/p/there", "https://www.example.com/p/back"} {
+		if _, err := client.Get(u); err != nil {
+			t.Fatalf("Get %s: %v", u, err)
+		}
+	}
+	omitted := &BrowserContext{Kind: KindFetch, Initiator: "https://www.example.com/p/back", Credentials: credentialsNone}
+	if _, err := client.Do(&Request{URL: "https://www.example.com/p/omit", Browser: omitted}); err != nil {
+		t.Fatalf("fetch(): %v", err)
+	}
+	return onWhich(server.requests())
+}
+
+func TestEachHopOfARedirectGoesOutOnTheConnectionsOfItsOwnSite(t *testing.T) {
+	// As a navigation typed in: the hop to another site on that site's
+	// connections, as Chrome sends it, though over HTTP/2 the first's could
+	// carry it; a request there later goes out on the hop's, one to the first
+	// site on the first hop's, and the fetch() on one apart.
+	for _, proto := range []string{"h2", "h1"} {
+		if got := hopsAndAfter(t, proto); got != "1 2 2 1 3" {
+			t.Errorf("over %s: sent on %s", proto, got)
+		}
+	}
+}
+
+// seeing is a round tripper's wrapper of the caller's, which keeps the URL of
+// every request it is handed.
+type seeing struct {
+	mu   sync.Mutex
+	seen []string
+}
+
+func (s *seeing) wrap(rt fhttp.RoundTripper) fhttp.RoundTripper { return seen{s, rt} }
+
+type seen struct {
+	s  *seeing
+	rt fhttp.RoundTripper
+}
+
+func (w seen) RoundTrip(req *fhttp.Request) (*fhttp.Response, error) {
+	w.s.mu.Lock()
+	w.s.seen = append(w.s.seen, req.URL.Path)
+	w.s.mu.Unlock()
+	return w.rt.RoundTrip(req)
+}
+
+func TestARoundTrippersWrapperOfTheCallersSendsEachHopWhereTheFirstWent(t *testing.T) {
+	// tls-client's WithTransportWrapper replaces tls-forge's, which sends each
+	// hop on the connections of its own site: every hop then goes out on the
+	// first's, over HTTP/2 on its connection, and the wrapper sees each. A
+	// request that carries no credentials still goes out on connections
+	// apart.
+	for proto, want := range map[string]string{"h2": "1 1 2 1 3", "h1": "1 2 3 1 4"} {
+		var s seeing
+		if got := hopsAndAfter(t, proto, WithTransportOption(tls_client.WithTransportWrapper(s.wrap))); got != want {
+			t.Errorf("over %s: sent on %s, want %s", proto, got, want)
+		}
+		if want := []string{"/r/302/x", "/p/hop", "/p/there", "/p/back", "/p/omit"}; !slices.Equal(s.seen, want) {
+			t.Errorf("over %s: the wrapper saw %q", proto, s.seen)
+		}
 	}
 }

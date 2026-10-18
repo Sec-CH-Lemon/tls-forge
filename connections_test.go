@@ -79,34 +79,10 @@ var askedOnConnections = map[string]map[int]BrowserContext{
 
 // apartFromChrome are the scenarios, by name and protocol, whose requests the
 // client sends on other connections than Chrome did: the connections it sends
-// them on, as onConnections says them, and why.
-var apartFromChrome = map[string]struct{ sent, why string }{
-	"conn-redirect-to-cross-site/h2":                {"1* 2 1* 1*", uncredentialed},
-	"conn-redirect-to-cross-site/h1":                {"1* 2 1* 3", uncredentialed},
-	"conn-redirect-there-and-back/h2":               {"1* 1* 1* 1*", uncredentialed},
-	"conn-redirect-there-and-back/h1":               {"1* 1* 2 1*", uncredentialed},
-	"conn-redirect-to-same-site/h2":                 {"1* 1* 1*", uncredentialed},
-	"conn-redirect-post-to-cross-site/h2":           {"1* 1* 1*", uncredentialed},
-	"conn-redirect-preflight-to-cross-site/h2":      {"1* 1* 2 1*", uncredentialed},
-	"conn-redirect-preflight-to-cross-site/h1":      {"1* 1* 2 3", uncredentialed},
-	"conn-xhr-redirect-to-cross-site/h2":            {"1* 1* 1*", uncredentialed},
-	"conn-redirect-no-cors-to-cross-site/h2":        {"1* 1* 1*", uncredentialed},
-	"conn-nav-redirect-cross-site/h2":               {"1* 1* 1*", redirected},
-	"conn-nav-redirect-cross-site-after-include/h2": {"1* 1* 1* 1*", redirected},
-	"conn-nav-redirect-cross-site-after-include/h1": {"1* 2 1* 2", redirected},
-	"conn-nav-redirect-there-and-back/h2":           {"1* 1* 1* 1*", redirected},
-	"conn-form-redirect-cross-site/h2":              {"1* 1* 1*", redirected},
-	"conn-form-307-cross-site/h2":                   {"1* 1* 1*", redirected},
-}
-
-// Why a client's requests go out on other connections than Chrome's.
-const (
-	uncredentialed = "Chrome follows a redirect that leaves a request without credentials on the connections of " +
-		"requests that carry none; the client follows it on the connections the request went out on"
-	redirected = "Chrome sends a navigation's or a form's redirect to another site on the connections of that " +
-		"site's, as it keeps each top-level site's apart; the client follows a redirect on the connections of the " +
-		"first hop's site"
-)
+// them on, as onConnections says them, and why. None is, now that each hop of
+// a redirect goes out on the connections of its own top-level site and
+// credentials.
+var apartFromChrome = map[string]struct{ sent, why string }{}
 
 // onConnections says which connection each request came on, numbered from
 // the first, in the order requests first came on them, and with a * where
