@@ -649,7 +649,10 @@ func (r *browserRequest) wireOrder(h hop) []string {
 // cookies are which of its cookies a request carries on a hop. SameSite goes
 // by the page and the hop's URL alone, as Chrome's does: a redirect through
 // another site does not make a request cross-site, as measured. A request
-// kept to its own origin carries none once CORS answers for it.
+// kept to its own origin carries none from the first hop that leaves the
+// page's origin on, back at it too: what it got is no longer the page's own
+// (cors, or opaque in no-cors mode), as Chrome sends it. Its Sec-Fetch-Site
+// says the same: same-origin while every URL of the chain was the page's.
 func (r *browserRequest) cookies(h hop) sendRule {
 	rule := sendRule{
 		topLevel: r.kind == KindNavigation || r.kind == KindForm,
@@ -661,7 +664,7 @@ func (r *browserRequest) cookies(h hop) sendRule {
 	switch {
 	case r.credentials == credentialsNone:
 		rule.none = true
-	case r.credentials == credentialsSame && (r.from != h.to || h.cors):
+	case r.credentials == credentialsSame && h.site != "same-origin":
 		rule.none = true
 	}
 	return rule

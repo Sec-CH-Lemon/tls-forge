@@ -139,7 +139,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   name, size and SHA-256, to the version and the commit it was built from.
 - **The bench the Chrome fixtures were measured on is in the repository**,
   `internal/harness`: a server that keeps every request as the bytes said it,
-  over HTTP/2, over HTTP/1.1 alone and over plain HTTP, the 179 scenarios of
+  over HTTP/2, over HTTP/1.1 alone and over plain HTTP, the 180 scenarios of
   `testdata/chrome155-requests.json` and the pages of
   `testdata/chrome155-decoding.json`. `go run ./internal/harness/measure
   --browser PATH` measures a browser again and writes the fixtures, or with
@@ -855,6 +855,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A request whose credentials are kept to its page's origin carries none
+  back there after a redirect took it elsewhere**, in no-cors mode as in
+  cors mode, as Chrome 155 sends it (`redir-fetch-no-cors-back-cookies` in
+  `testdata/chrome155-requests.json`, and `conn-redirect-no-cors-back` in
+  `testdata/chrome155-connections.json`): a no-cors `fetch()` of another site
+  redirected to the page's origin carried the page's cookies there. From
+  the first hop that leaves the page's origin, what it gets is no longer the
+  page's own, and it carries no credentials again.
 - **The request that answers a 401 in a browser context carries the cookies
   the request did**, as Chrome 155 sends it (`auth-nav-cross-site-samesite`
   in `testdata/chrome155-requests.json`): a navigation to another site that

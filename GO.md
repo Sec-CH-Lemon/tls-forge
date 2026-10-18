@@ -281,8 +281,9 @@ The cookies go as Chrome sends them. To another site, a navigation carries
 cookies of `SameSite=None` and `Lax`, and those that named none; a form's POST
 carries `None`, and those that named none only for two minutes after they were
 set; `fetch()` and an XHR carry `None` alone, and none at all under
-credentials `omit`, or under `same-origin` to another origin. To its own site
-a request carries every cookie the jar holds for it.
+credentials `omit`, or under `same-origin` to another origin and, once a
+redirect has taken them to one, back at the page's own. To its own site a
+request carries every cookie the jar holds for it.
 
 A request CORS answers, `fetch()` or an XHR in `cors` mode to another origin,
 goes as Chrome sends it. One with a method or a header CORS asks about goes

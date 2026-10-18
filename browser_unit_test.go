@@ -491,6 +491,28 @@ func TestTheCookiesARequestInAContextCarries(t *testing.T) {
 			t.Errorf("%s: %+v, want %+v", tc.name, got, tc.want)
 		}
 	}
+	// A hop of a chain that has left the page's origin, back at it.
+	noCORS := browserRequest{kind: KindFetch, method: "GET", initiator: page, from: originOf(page),
+		credentials: credentialsSame, mode: modeNoCORS}
+	back := hop{to: originOf(page), site: "cross-site", method: "GET", redirected: true}
+	within := back
+	within.site = "same-origin"
+	included := noCORS
+	included.credentials = credentialsAll
+	for _, tc := range []struct {
+		name    string
+		request browserRequest
+		hop     hop
+		want    sendRule
+	}{
+		{"fetch() in no-cors mode keeping them to its origin, back at it", noCORS, back, sendRule{none: true, safe: true}},
+		{"the same, redirected within its origin", noCORS, within, sendRule{safe: true}},
+		{"fetch() in no-cors mode including them, back at its origin", included, back, sendRule{safe: true}},
+	} {
+		if got := tc.request.cookies(tc.hop); got != tc.want {
+			t.Errorf("%s: %+v, want %+v", tc.name, got, tc.want)
+		}
+	}
 }
 
 func TestACookieSetAgainKeepsWhenItWasFirstSet(t *testing.T) {
