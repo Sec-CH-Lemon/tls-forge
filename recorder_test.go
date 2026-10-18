@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -28,13 +29,19 @@ import (
 // keptRequest is a request as a recorder kept it: the method, the URL with no
 // port, the headers in order as the bytes said them, the priority of the
 // HTTP/2 HEADERS frame (exclusive, the stream it depends on, the weight on
-// the wire), and the body.
+// the wire), and the body; the connection it came on, numbered as every
+// recorder took them, and whether that one resumed a TLS session.
 type keptRequest struct {
 	method, url string
 	headers     [][2]string
 	priority    *[3]uint32
 	body        string
+	conn        int64
+	resumed     bool
 }
+
+// taken numbers the connections every recorder takes, in the order taken.
+var taken atomic.Int64
 
 // recorder is a server that keeps every request as the bytes said it, over
 // HTTP/2 or HTTP/1.1 behind TLS, or HTTP/1.1 in the clear, and answers each
@@ -47,6 +54,8 @@ type recorder struct {
 	handler http.Handler
 	// into is a recorder this one keeps what it is sent in instead.
 	into *recorder
+	// closed are the connections its server has closed.
+	closed map[int64]bool
 }
 
 func (r *recorder) keep(req *keptRequest) {
@@ -65,6 +74,27 @@ func (r *recorder) requests() []*keptRequest {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return append([]*keptRequest(nil), r.got...)
+}
+
+// close notes that the server closed connection conn.
+func (r *recorder) close(conn int64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.closed[conn] = true
+}
+
+// waitClosed waits until the server has closed connection conn.
+func (r *recorder) waitClosed(t *testing.T, conn int64) {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+		r.mu.Lock()
+		closed := r.closed[conn]
+		r.mu.Unlock()
+		if closed {
+			return
+		}
+	}
+	t.Fatalf("connection %d was never closed", conn)
 }
 
 // dialing routes every connection the client opens to the recorder.
@@ -106,7 +136,7 @@ func newRecorder(t *testing.T, proto string, handler http.HandlerFunc) *recorder
 	if err != nil {
 		t.Fatalf("Listen: %v", err)
 	}
-	r := &recorder{addr: ln.Addr().String(), handler: handler}
+	r := &recorder{addr: ln.Addr().String(), handler: handler, closed: map[int64]bool{}}
 	// Two servers fed the connections the recorder has read the TLS of: one
 	// that speaks HTTP/1.1, one HTTP/2 by prior knowledge.
 	h1 := &chanListener{ch: make(chan net.Conn), done: make(chan struct{}), addr: ln.Addr()}
@@ -150,8 +180,8 @@ func newRecorder(t *testing.T, proto string, handler http.HandlerFunc) *recorder
 
 func (r *recorder) serve(raw net.Conn, proto string, cfg *tls.Config, h1, h2 *chanListener) {
 	if proto == "http" {
-		p := &h1Recorder{keep: r.keep, scheme: "http"}
-		h1.give(&teeConn{raw, p.write})
+		p := &h1Recorder{keep: r.keep, scheme: "http", conn: taken.Add(1)}
+		h1.give(&teeConn{Conn: raw, parse: p.write, closed: func() { r.close(p.conn) }})
 		return
 	}
 	tc := tls.Server(raw, cfg)
@@ -159,13 +189,15 @@ func (r *recorder) serve(raw net.Conn, proto string, cfg *tls.Config, h1, h2 *ch
 		_ = tc.Close()
 		return
 	}
-	if tc.ConnectionState().NegotiatedProtocol == "h2" {
-		p := &h2Recorder{keep: r.keep, dec: hpack.NewDecoder(4096, nil), open: map[uint32]*keptRequest{}}
-		h2.give(&teeConn{tc, p.write})
+	state := tc.ConnectionState()
+	if state.NegotiatedProtocol == "h2" {
+		p := &h2Recorder{keep: r.keep, conn: taken.Add(1), resumed: state.DidResume, dec: hpack.NewDecoder(4096, nil),
+			open: map[uint32]*keptRequest{}}
+		h2.give(&teeConn{Conn: tc, parse: p.write, closed: func() { r.close(p.conn) }})
 		return
 	}
-	p := &h1Recorder{keep: r.keep, scheme: "https"}
-	h1.give(&teeConn{tc, p.write})
+	p := &h1Recorder{keep: r.keep, scheme: "https", conn: taken.Add(1), resumed: state.DidResume}
+	h1.give(&teeConn{Conn: tc, parse: p.write, closed: func() { r.close(p.conn) }})
 }
 
 // chanListener hands the HTTP/1.1 server the connections it is given.
@@ -194,10 +226,17 @@ func (l *chanListener) Accept() (net.Conn, error) {
 func (l *chanListener) Close() error   { return nil }
 func (l *chanListener) Addr() net.Addr { return l.addr }
 
-// teeConn hands what is read from it to parse, as it is read.
+// teeConn hands what is read from it to parse, as it is read, and says when
+// it is closed.
 type teeConn struct {
 	net.Conn
-	parse func([]byte)
+	parse  func([]byte)
+	closed func()
+}
+
+func (c *teeConn) Close() error {
+	c.closed()
+	return c.Conn.Close()
 }
 
 func (c *teeConn) Read(p []byte) (int, error) {
@@ -211,6 +250,8 @@ func (c *teeConn) Read(p []byte) (int, error) {
 // h2Recorder reads the frames a client sends and keeps each request.
 type h2Recorder struct {
 	keep      func(*keptRequest)
+	conn      int64
+	resumed   bool
 	mu        sync.Mutex
 	buf       []byte
 	preface   bool
@@ -275,7 +316,7 @@ func (p *h2Recorder) decode() {
 	if err != nil {
 		return
 	}
-	req := &keptRequest{priority: p.priority}
+	req := &keptRequest{priority: p.priority, conn: p.conn, resumed: p.resumed}
 	var scheme, authority, path string
 	for _, f := range fields {
 		req.headers = append(req.headers, [2]string{f.Name, f.Value})
@@ -299,12 +340,14 @@ func (p *h2Recorder) decode() {
 
 // h1Recorder reads the requests a client sends over HTTP/1.1 and keeps each.
 type h1Recorder struct {
-	keep   func(*keptRequest)
-	scheme string
-	mu     sync.Mutex
-	buf    []byte
-	left   int
-	cur    *keptRequest
+	keep    func(*keptRequest)
+	scheme  string
+	conn    int64
+	resumed bool
+	mu      sync.Mutex
+	buf     []byte
+	left    int
+	cur     *keptRequest
 }
 
 func (p *h1Recorder) write(b []byte) {
@@ -328,7 +371,7 @@ func (p *h1Recorder) write(b []byte) {
 		lines := strings.Split(string(p.buf[:end]), "\r\n")
 		p.buf = p.buf[end+4:]
 		parts := strings.SplitN(lines[0], " ", 3)
-		req := &keptRequest{method: parts[0]}
+		req := &keptRequest{method: parts[0], conn: p.conn, resumed: p.resumed}
 		host := ""
 		for _, line := range lines[1:] {
 			name, value, _ := strings.Cut(line, ":")

@@ -457,7 +457,9 @@ a form's POST with `Cache-Control`, `Origin` and the form's `Content-Type`;
 cookies SameSite lets through. A `fetch` or `xhr` to another origin that CORS
 asks about goes after a preflight, an `OPTIONS`, and not at all when the
 preflight does not allow it: that URL fails, said with `CORS:`, and is not
-tried again. Its redirects are followed as Chrome follows a page's, each hop
+tried again. A `fetch` or `xhr` to another origin carries no cookies, and
+goes out, its preflight with it, on connections of its own, as Chrome keeps
+those of requests without credentials apart. Its redirects are followed as Chrome follows a page's, each hop
 worked out again ([GO.md](GO.md#redirects)), and one Chrome would not follow
 fails the same way. The client hints an origin asked for with `Accept-CH` go
 with every request of the run to it, as Chrome sends them

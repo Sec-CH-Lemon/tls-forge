@@ -183,6 +183,18 @@ func TestAFreshClientThatCannotBeMade(t *testing.T) {
 	if _, err := open.Fresh(); err == nil || err.Error() != "tlsforge: no transport" {
 		t.Errorf("a fresh client the transport would not build: %v", err)
 	}
+	// Nor one whose transport of requests that carry no credentials would
+	// not build.
+	built := 0
+	newInnerClient = func(logger tls_client.Logger, options ...tls_client.HttpClientOption) (tls_client.HttpClient, error) {
+		if built++; built == 2 {
+			return nil, errors.New("no transport for requests without credentials")
+		}
+		return original(logger, options...)
+	}
+	if _, err := New(); err == nil || err.Error() != "tlsforge: no transport for requests without credentials" {
+		t.Errorf("a client the second transport would not build: %v", err)
+	}
 }
 
 func TestFreshClientsAtOnce(t *testing.T) {

@@ -294,9 +294,22 @@ nothing of a `no-cors` answer.
 `fetch()` and an XHR go out on the connections the client's other requests
 use, each HTTP/2 `HEADERS` frame with the weight Chrome gives it: 220 for a
 script's request, its preflight, its redirects and its answer to a 401, 256
-for a page's. The Fetch standard keeps the connections of requests that carry
-no credentials, a preflight's among them, apart from the others; tls-forge
-does not.
+for a page's. A request that carries no credentials goes out on connections of
+its own, which resume only TLS sessions of their own, as Chrome 155 sends one
+(`testdata/chrome155-connections.json`): `fetch()` with credentials omitted,
+one kept to its page's origin that goes to another, in cors or no-cors mode,
+an XHR without `withCredentials` to another origin, and every CORS preflight,
+that of a request with credentials too. Its redirects follow it there.
+
+Two things Chrome does with its connections tls-forge does not. Chrome sends
+a request with credentials to another name over an HTTP/2 connection it holds
+to the same address, when the certificate is good for that name: a page's
+`fetch()` of another site that serves from the same address goes out on the
+page's own connection, where tls-forge opens one for each name. And a
+redirect that leaves a request without credentials, `fetch()` of the page's
+origin redirected to another, Chrome follows on the connections of requests
+that carry none, where tls-forge follows it on the connections the request
+went out on.
 
 What a context does not do yet: the order of several headers a script set
 (Chrome's renderer keeps them in a hash table where each name has its place,

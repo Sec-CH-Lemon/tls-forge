@@ -665,6 +665,52 @@ func TestScriptsGoOutOnThePagesConnectionsWithAPriorityOfTheirOwn(t *testing.T) 
 	}
 }
 
+func TestARequestThatCarriesNoCredentialsGoesOutOnConnectionsOfItsOwn(t *testing.T) {
+	// As Chrome sends one (testdata/chrome155-connections.json, held request
+	// for request by TestRequestsGoOutOnTheConnectionsChromeSentThemOn), with
+	// a script's priority still; closing idle connections closes these too,
+	// and a fresh client has its own.
+	server := newRecorder(t, "h2", nil)
+	var dials atomic.Int32
+	client := newTestClient(t, WithProfile("chrome_155_macos"),
+		WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
+			dials.Add(1)
+			var d net.Dialer
+			return d.DialContext(ctx, network, server.addr)
+		})))
+	page := "https://www.example.com/page"
+	omit := &Request{URL: page, Browser: &BrowserContext{Kind: KindFetch, Initiator: page, Credentials: "omit"}}
+	same := &Request{URL: page, Browser: &BrowserContext{Kind: KindFetch, Initiator: page}}
+	for _, req := range []*Request{{URL: page}, omit, same, omit} {
+		if _, err := client.Do(req); err != nil {
+			t.Fatalf("Do: %v", err)
+		}
+	}
+	got := server.requests()
+	if dials.Load() != 2 || len(got) != 4 || got[0].conn != got[2].conn || got[1].conn != got[3].conn || got[0].conn == got[1].conn {
+		t.Fatalf("%d connections: %+v", dials.Load(), got)
+	}
+	for _, r := range got[1:] {
+		if r.priority == nil || r.priority[2] != 219 {
+			t.Errorf("%s: priority %v", r.url, r.priority)
+		}
+	}
+	client.CloseIdleConnections()
+	for i, req := range []*Request{omit, same} {
+		if _, err := client.Do(req); err != nil || dials.Load() != int32(3+i) {
+			t.Errorf("after closing: %v, %d connections", err, dials.Load())
+		}
+	}
+	fresh, err := client.Fresh()
+	if err != nil {
+		t.Fatalf("Fresh: %v", err)
+	}
+	defer func() { _ = fresh.Close() }()
+	if _, err := fresh.Do(omit); err != nil || dials.Load() != 5 {
+		t.Errorf("a fresh client: %v, %d connections", err, dials.Load())
+	}
+}
+
 func TestValidateRefusesWhatDoRefusesAndSendsNothing(t *testing.T) {
 	server := newRecorder(t, "h2", nil)
 	client := contextClient(t, server)

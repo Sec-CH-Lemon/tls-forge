@@ -70,7 +70,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Brotli or zstd
   to a page that is not potentially trustworthy, and only the cookies
   SameSite and the credentials mode let
-  through, a form's POST carrying for two minutes those that named none. What
+  through, a form's POST carrying for two minutes those that named none. One
+  that carries no credentials, every CORS preflight among them, goes out on
+  connections of its own, which resume only TLS sessions of their own, as
+  Chrome keeps them apart (`testdata/chrome155-connections.json`); unlike
+  Chrome, tls-forge opens a connection for each name where Chrome sends a
+  request with credentials over an HTTP/2 connection it holds to the same
+  address, and follows a redirect that leaves a request without credentials
+  on the connections the request went out on. What
   a page cannot send is refused before anything is sent. A request without
   one goes out as before.
 - **Redirects are followed as Chrome 155 follows them**, measured

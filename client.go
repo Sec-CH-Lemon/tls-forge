@@ -567,11 +567,14 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	}
 	ch.ours = ch.sent != nil
 	if browser != nil && browser.scripted() {
-		// On the connections a page's requests go out on, as Chrome sends
-		// them, with a priority of their own: the preflight, the hops of its
-		// redirects and its answer to a 401 too.
+		// With a priority of their own, as Chrome sends them: the preflight,
+		// the hops of its redirects and its answer to a 401 too.
 		inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), scriptHeaderPriority))
 	}
+	// A request that carries no credentials goes out on connections of its
+	// own, as Chrome sends one; its redirects follow it there, and so would
+	// its answer to a 401, which only a request with credentials gets.
+	transport := c.transports.carrying(browser == nil || !browser.cookies(ch.last).none)
 	ch.base = inner.Context()
 	inner = blocks.wear(inner)
 	inner = inner.WithContext(context.WithValue(inner.Context(), chainKey{}, ch))
@@ -591,7 +594,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		r.step("connect")
 	}
 	withPort(inner)
-	res, err := c.transports.inner.Do(inner)
+	res, err := transport.Do(inner)
 	for err == nil {
 		if r != nil {
 			r.answered(res)
@@ -612,7 +615,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 			r.step("connect")
 		}
 		withPort(retry)
-		res, err = c.transports.inner.Do(retry)
+		res, err = transport.Do(retry)
 	}
 	if err != nil {
 		return nil, nil, transportError(err)

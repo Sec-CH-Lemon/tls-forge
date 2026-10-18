@@ -482,8 +482,9 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // and kept for none; under /chain/N a redirect to /chain/N+1; under /auth/ a
 // 401 with a Basic challenge, after a Digest one for ?offer=digest, until the
 // request says u:p, then a redirect to ?to or a page; under /digest/ what the
-// bench answers (harness.DigestPage); and cookies, two for ?cookie=1 and one
-// of each SameSite for ?cookie=2.
+// bench answers (harness.DigestPage); cookies, two for ?cookie=1 and one of
+// each SameSite for ?cookie=2; and for ?close, the connection ended once
+// answered, as Connection: close says (GOAWAY over HTTP/2).
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	// The whole request is read before it is answered. Go's HTTP/2 client
 	// stops sending a body once an answer above 299 comes, and over loopback
@@ -497,6 +498,9 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.Has("critical") {
 		w.Header().Set("Critical-CH", q.Get("critical"))
+	}
+	if q.Has("close") {
+		w.Header().Set("Connection", "close")
 	}
 	allow := func() {
 		if origin := r.Header.Get("Origin"); origin != "" {
