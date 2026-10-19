@@ -889,6 +889,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A header block of more than one frame goes out in one write, as
+  Chrome's**: its HEADERS and CONTINUATION frames reach TLS together, so
+  that a record of 16,384 bytes carries the HEADERS frame and the start of
+  the next, whatever the profile. The transport wrote the HEADERS frame,
+  larger than its buffer of 4 KiB, on its own and the CONTINUATION after it,
+  a record each, where Chrome's large request headers fill their records.
+  Measured on Chrome 155 (`hpack-records-big-header` in
+  `testdata/chrome155-hpack.json`) and held to it, through tls-forge's fork
+  of fhttp.
 - **A request's body goes out in DATA frames and TLS records as Chrome's**,
   with a Chromium profile: DATA frames of at most 16,375 bytes, each filling
   a TLS record of 16,384 with its frame header, and TLS records as large as

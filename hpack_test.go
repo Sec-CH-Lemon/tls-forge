@@ -97,10 +97,9 @@ var hpackAsked = map[string][]hpackAsk{
 }
 
 // hpackDiffers are the scenarios of testdata/chrome155-hpack.json tls-forge
-// does not write as Chrome did, and why.
-var hpackDiffers = map[string]string{
-	"hpack-records-big-header": "the transport writes a block's HEADERS frame, larger than its buffer, on its own and the CONTINUATION after it, a record each, where Chrome writes the block at once",
-}
+// does not write as Chrome did, and why: none, kept for a difference measured
+// later.
+var hpackDiffers = map[string]string{}
 
 // headlessChrome is the profile of the Chrome the HPACK fixture was measured
 // on: chrome_155_macos, with the user agent HeadlessChrome said, so that each
