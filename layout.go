@@ -31,6 +31,11 @@ type layouts struct {
 	// trustworthy, which wear leaves out of what is written to any other; nil
 	// for nothing.
 	withheld *withholding
+	// asked, for a page's request in a browser context, is the HTTP/2 block
+	// to write in place of http2 once its connection is known, when the
+	// connection's ALPS asks for client hints the request does not carry
+	// (chain.alpsBlock): nil for none, and nil when it is nil.
+	asked func() fhttp.Header
 }
 
 type layoutsKey struct{}
@@ -287,26 +292,37 @@ func withAuthorization(block fhttp.Header, value string) fhttp.Header {
 // request that goes the same over both wears its one block, and nothing more
 // where it withholds nothing. Each wears a copy, which the client and the
 // transport add to (the jar's Cookie, Host): l stays as it was made, for a
-// request sent again for a challenge to be made from (chain.laid).
+// request sent again for a challenge to be made from (chain.laid). Over HTTP/2
+// a page's request is written with the block its connection's ALPS asks for,
+// where it asks for one (asked).
 func (l *layouts) wear(req *fhttp.Request) *fhttp.Request {
 	req.Header = cloneHeaderLayout(l.http2)
 	withheld := l.withheld
 	if withheld != nil && trustworthy(originOf(req.URL)) {
 		withheld = nil
 	}
-	if l.http1 == nil && withheld == nil {
+	if l.http1 == nil && withheld == nil && l.asked == nil {
 		return req
 	}
 	req.HeaderFor = func(protocol string, header fhttp.Header) fhttp.Header {
 		http1 := protocol == fhttp.ProtocolHTTP1 && l.http1 != nil
-		if !http1 && withheld == nil {
+		var asked fhttp.Header
+		if protocol == fhttp.ProtocolHTTP2 && l.asked != nil {
+			asked = l.asked()
+		}
+		if !http1 && withheld == nil && asked == nil {
 			return nil
 		}
 		// The header as the client left it, what it added kept: the Cookie
 		// it wrote the jar's cookies into, after the request's own.
 		written := cloneHeaderLayout(header)
-		if http1 {
+		switch {
+		case http1:
 			applyHeaderLayout(written, l.http1, l.managed)
+		case asked != nil:
+			// Neither block has a Cookie of its own: the one written is the
+			// client's.
+			applyHeaderLayout(written, asked, managedHeaderNames(l.http2, asked))
 		}
 		if withheld != nil {
 			withheld.from(written)

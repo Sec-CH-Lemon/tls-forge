@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 
 	fhttp "github.com/igor-lemon/fhttp"
 	http2 "github.com/igor-lemon/fhttp/http2"
@@ -90,6 +91,11 @@ type chain struct {
 	// of the chain went out on.
 	resent bool
 	conn   net.Conn
+	// taken are the client hints the ALPS of the connection the latest page's
+	// request went out on gave it (alpsBlock), which the latest hop carries
+	// from then on (took); mu guards them.
+	mu    sync.Mutex
+	taken Header
 }
 
 // sentAuth is the Authorization tls-forge gave a hop: the challenge it
@@ -172,8 +178,9 @@ func (ch *chain) remember(o origin, header fhttp.Header) {
 
 // restart reports an answer, from u, to a navigation's GET that names in
 // Critical-CH a client hint its origin asks for, which the profile has a value
-// for and the request that got it did not carry, as Chrome starts the
-// navigation again for, once; and writes it down.
+// for and the request that got it did not carry, its connection's ALPS having
+// given it none, as Chrome starts the navigation again for, once; and writes
+// it down.
 func (ch *chain) restart(u *url.URL, header fhttp.Header, sent hop) bool {
 	if ch.restarted || sent.method != fhttp.MethodGet {
 		return false
@@ -181,7 +188,7 @@ func (ch *chain) restart(u *url.URL, header fhttp.Header, sent hop) bool {
 	critical := askedHints(header.Values("Critical-CH"))
 	var missing []string
 	for _, hint := range ch.client.hintsOf(ch.browser, sent) {
-		if slices.Contains(critical, hint.Name) && !sent.hints.Has(hint.Name) {
+		if slices.Contains(critical, hint.Name) && !sent.hints.Has(hint.Name) && !sent.alps.Has(hint.Name) {
 			missing = append(missing, hint.Name)
 		}
 	}
@@ -398,6 +405,7 @@ func (ch *chain) follow(req *fhttp.Request, via []*fhttp.Request) error {
 		ch.followAsIs(req, crossed)
 		return nil
 	}
+	ch.took()
 	return ch.followInContext(req, previous, crossed, dropped)
 }
 
@@ -604,9 +612,52 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 // dress gives req the headers of hop h in Chrome's order over each protocol,
 // and has the jar give it the cookies h carries.
 func (ch *chain) dress(req *fhttp.Request, h hop) {
+	*req = *ch.layoutsOf(h, shownURL(req).Host).wear(req)
+	ch.rule(req.URL, ch.browser.cookies(h))
+}
+
+// layoutsOf are the layouts of hop h of the chain's request in its browser
+// context, to host: those of a page's request asked, over HTTP/2, for the
+// block with the client hints its connection's ALPS asks for (alpsBlock).
+func (ch *chain) layoutsOf(h hop, host string) *layouts {
+	r, c := ch.browser, ch.client
+	l := c.browserLayouts(r.header(h, c.headers), h.script, r.wireOrder(h), host)
+	if !r.scripted() {
+		l.asked = func() fhttp.Header { return ch.alpsBlock(h, host) }
+	}
+	return l
+}
+
+// alpsBlock is the HTTP/2 block of hop h, to host, with the client hints the
+// ALPS of the connection it goes out on asks its origin for that it does not
+// carry, as Chrome starts a page's request again with them; nil when there are
+// none. The chain keeps them for the hop (took), and the log says them.
+func (ch *chain) alpsBlock(h hop, host string) fhttp.Header {
+	more := ch.client.alpsHints(ch.conn, h)
+	ch.mu.Lock()
+	ch.taken = more
+	ch.mu.Unlock()
+	if more == nil {
+		return nil
+	}
+	if ch.log != nil {
+		ch.log.alpsHints(h.to, more.Names())
+	}
+	h.alps = append(slices.Clone(h.alps), more...)
 	r := ch.browser
-	*req = *ch.client.browserLayouts(r.header(h, ch.client.headers), h.script, r.wireOrder(h), shownURL(req).Host).wear(req)
-	ch.rule(req.URL, r.cookies(h))
+	return newLayouts(browserLayout(r.header(h, ch.client.headers), r.wireOrder(h), host), nil).http2
+}
+
+// took has the latest hop carry the client hints its connection's ALPS gave
+// it, once its request has gone (alpsBlock): sent again, for a 401 or a 421,
+// it carries them wherever it goes, as Chrome's request, started again with
+// them, does; and Critical-CH asks for them in vain.
+func (ch *chain) took() {
+	ch.mu.Lock()
+	more := ch.taken
+	ch.taken = nil
+	ch.mu.Unlock()
+	ch.last.alps = append(ch.last.alps, more...)
 }
 
 // mayFollow is why Chrome would not let a page's request follow a redirect to

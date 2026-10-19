@@ -889,6 +889,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A page's request carries the client hints its connection's ALPS asks
+  for, as Chrome's does**: a navigation, a form and each hop of a redirect in
+  a browser context, over a connection whose server gave an `ACCEPT_CH` frame
+  for its origin in ALPS, go with the hints it names that they do not carry,
+  after `Accept`, those they carry in their place, as Chrome 155 starts such
+  a request again; `fetch()` and XHR carry none, and nothing is kept for the
+  origin. Measured on Chrome 155 (the 13 `alps-accept-ch*` scenarios of
+  `testdata/chrome155-alps.json` it did not refuse) and held to it. The log
+  says them (`client hints asked over ALPS`). Until now no request carried
+  them.
 - **An HTTP/1.1 request goes out in TLS records as Chrome's**, with a
   Chromium profile: its head at once, whatever its size, so that only TLS's
   16,384 bytes cut it, and a body held in memory in the same write when the

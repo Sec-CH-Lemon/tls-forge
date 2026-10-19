@@ -124,6 +124,12 @@ type hop struct {
 	// restarted is the first request of a navigation started again for its
 	// critical client hints, which Chrome sends after Accept.
 	restarted bool
+	// alps are the client hints the ALPS of the connection a page's hop went
+	// out on asked its origin for that it did not carry, with the profile's
+	// values, in Chrome's order: the hop goes again with them after Accept
+	// (alpsOrder), and is sent so again for a 401 or a 421, as Chrome's
+	// request, started again with them, is.
+	alps Header
 	// authorization is the Authorization tls-forge gives the hop: a
 	// challenge answered, or what the session keeps for where it goes.
 	authorization string
@@ -409,11 +415,13 @@ func corsUnsafeByte(r rune) bool {
 // Slots that stand for several headers: where in a request of fetch() or an
 // XHR the headers its script gave go; where in a page's the client hints go,
 // the three Chrome sends unasked and those an origin asked for, in Chrome's
-// order (profile.ClientHintOrder); and where in a script's those asked for go.
+// order (profile.ClientHintOrder); where in a script's those asked for go; and
+// where in a page's those a connection's ALPS asked for that it did not carry.
 const (
 	slotScript     = "\x00script"
 	slotHints      = "\x00hints"
 	slotAskedHints = "\x00asked hints"
+	slotALPSHints  = "\x00ALPS hints"
 )
 
 // The headers of each kind of request, in the order Chrome 155 sends them, as
@@ -440,19 +448,45 @@ var (
 )
 
 // order is a request's slots, in Chrome's order: a page's after a redirect
-// has its client hints after Sec-Fetch-Dest.
+// has its client hints after Sec-Fetch-Dest, and one a connection's ALPS asked
+// hints of those after Accept (alpsOrder).
 func (r *browserRequest) order(h hop) []string {
-	switch {
-	case r.scripted():
+	if r.scripted() {
 		return scriptOrder(h)
-	case h.redirected:
-		return redirectedOrder
-	case h.restarted:
-		return restartedOrder
-	case r.posted:
-		return formOrder
 	}
-	return navigationOrder
+	order := navigationOrder
+	switch {
+	case h.redirected:
+		order = redirectedOrder
+	case h.restarted:
+		order = restartedOrder
+	case r.posted:
+		order = formOrder
+	}
+	if len(h.alps) > 0 {
+		return alpsOrder(order, h.redirected)
+	}
+	return order
+}
+
+// alpsOrder is order, a page's request's, for one Chrome starts again with the
+// client hints a connection's ALPS asked for (slotALPSHints), as it was
+// measured doing it (testdata/chrome155-alps.json): they go after the headers
+// its browser gives the request, which end with Accept, or with the client
+// hints that follow Accept; and a request after a redirect, whose hints its
+// browser gave last and its network stack's Sec-Fetch-* follow, has its hints
+// after Accept too, those asked after them.
+func alpsOrder(order []string, redirected bool) []string {
+	out := slices.Clone(order)
+	if redirected {
+		out = slices.DeleteFunc(out, func(slot string) bool { return slot == slotHints })
+		out = slices.Insert(out, slices.Index(out, "accept")+1, slotHints)
+	}
+	at := slices.Index(out, "accept") + 1
+	if out[at] == slotHints {
+		at++
+	}
+	return slices.Insert(out, at, slotALPSHints)
 }
 
 // scriptOrder is a script's request's slots: its own headers where Chrome's
@@ -505,13 +539,19 @@ func (r *browserRequest) header(h hop, base Header) Header {
 }
 
 // slotNames are the header names a slot of a hop stands for: those of its
-// client hints in Chrome's order, or itself.
+// client hints in Chrome's order, those a connection's ALPS asked for aside,
+// which have a slot of their own; or itself.
 func slotNames(slot string, h hop) []string {
 	switch slot {
 	case slotHints:
+		if len(h.alps) > 0 {
+			return slices.DeleteFunc(slices.Clone(profile.ClientHintOrder), h.alps.Has)
+		}
 		return profile.ClientHintOrder
 	case slotAskedHints:
 		return h.hints.Names()
+	case slotALPSHints:
+		return h.alps.Names()
 	}
 	return []string{slot}
 }
@@ -563,7 +603,7 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 		// page's does not, though Sec-Fetch-Site says cross-site.
 		values["sec-fetch-storage-access"] = "active"
 	}
-	for _, hint := range h.hints {
+	for _, hint := range slices.Concat(h.hints, h.alps) {
 		values[hint.Name] = hint.Value
 	}
 	if h.authorization != "" {

@@ -62,18 +62,8 @@ func alpsAskedOf(scenario string) alpsPage {
 // its handshake aside (flightApart), and those whose ALPS Chrome refused
 // (differs).
 var alpsDiffer = map[string]string{
-	"alps-settings":                      alpsSettingsApart,
-	"alps-settings-flags":                alpsSettingsApart,
-	"alps-accept-ch":                     alpsHintsApart,
-	"alps-accept-ch-link":                alpsHintsApart,
-	"alps-accept-ch-form":                alpsHintsApart,
-	"alps-accept-ch-redirect":            alpsHintsApart,
-	"alps-accept-ch-asked":               alpsHintsApart,
-	"alps-accept-ch-two-entries":         alpsHintsApart,
-	"alps-accept-ch-other-origin":        alpsHintsApart,
-	"alps-accept-ch-two-frames":          alpsHintsApart,
-	"alps-accept-ch-malformed-then-good": alpsHintsApart,
-	"alps-accept-ch-good-then-malformed": alpsHintsApart,
+	"alps-settings":       alpsSettingsApart,
+	"alps-settings-flags": alpsSettingsApart,
 }
 
 const (
@@ -82,9 +72,6 @@ const (
 	// first SETTINGS frame, not from ALPS, and opens no block with a size
 	// update.
 	alpsSettingsApart = "the transport does not take ALPS's SETTINGS: no size update in the first request"
-	// alpsHintsApart is why a page's request over a connection whose ALPS
-	// asked for client hints differs: it does not carry them.
-	alpsHintsApart = "the client hints ALPS asks for are not sent"
 	// alpsRefused is why tls-forge answers what Chrome refuses: the transport
 	// does not read ALPS, where Chrome ends the connection with GOAWAY and the
 	// request fails.

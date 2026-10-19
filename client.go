@@ -566,7 +566,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 		if first.referrer != "" {
 			ch.referrer, _ = url.Parse(first.referrer)
 		}
-		blocks = c.browserLayouts(browser.header(first, c.headers), first.script, browser.wireOrder(first), parsed.Host)
+		blocks = ch.layoutsOf(first, parsed.Host)
 	default:
 		headers := c.headers.Merge(req.Header)
 		ch.given, ch.own = headers.Values("referer"), headers.Has("authorization")
@@ -612,6 +612,7 @@ func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserReques
 	withPort(inner)
 	res, err := transport.Do(inner)
 	for err == nil {
+		ch.took()
 		if r != nil {
 			r.answered(res)
 		}

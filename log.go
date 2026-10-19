@@ -346,6 +346,12 @@ func (r *requestLog) hintsAsked(o origin, hints []string) {
 	r.log.Debug("client hints asked", "origin", o.String(), "hints", strings.Join(hints, ","))
 }
 
+// alpsHints are the client hints the ALPS of a connection asked origin o for
+// that a page's request to it did not carry, which it goes with.
+func (r *requestLog) alpsHints(o origin, hints []string) {
+	r.log.Debug("client hints asked over ALPS", "origin", o.String(), "hints", strings.Join(hints, ","))
+}
+
 // misdirected is a request to url a server answered 421 (Misdirected
 // Request), sent again on a connection of its host's own, as Chrome sends it:
 // its steps start again.
