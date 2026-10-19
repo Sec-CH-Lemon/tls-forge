@@ -245,6 +245,9 @@ func (s *Server) bare(text string) string {
 	for _, settled := range s.Settled {
 		ours[strconv.Itoa(settled)] = true
 	}
+	for _, alps := range s.ALPS {
+		ours[strconv.Itoa(alps)] = true
+	}
 	return port.ReplaceAllStringFunc(text, func(found string) string {
 		if ours[found[1:]] {
 			return ""

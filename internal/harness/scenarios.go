@@ -36,6 +36,9 @@ type scenario struct {
 	// request's DATA frames and TLS records (HPACK).
 	table, frame   uint32
 	quiet, records bool
+	// alps names what the bench's ALPS server gives the browser for h2
+	// (alpsVariants), for a scenario of ALPS.
+	alps string
 }
 
 // settings are what the server of the scenario says in its SETTINGS where it

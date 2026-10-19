@@ -1,25 +1,27 @@
 // Command measure measures a browser on the bench in internal/harness: what it
 // asks for in each scenario, which connection it asks on, how it decodes each
 // page, how it writes the header blocks of each connection into HPACK, how its
-// TLS records carry its requests over HTTP/1.1, the WINDOW_UPDATEs it sends
-// while it reads an answer, and the order it draws for the extensions of each
-// ClientHello. It writes what it measured into the fixtures, or with --check
-// holds the browser to them.
+// TLS records carry its requests over HTTP/1.1, what it makes of a server that
+// gives it ALPS, the WINDOW_UPDATEs it sends while it reads an answer, and the
+// order it draws for the extensions of each ClientHello. It writes what it
+// measured into the fixtures, or with --check holds the browser to them.
 //
 //	go run ./internal/harness/measure --browser PATH [--requests FILE] \
 //	    [--connections FILE] [--decoding FILE] [--hpack FILE] [--records FILE] \
-//	    [--flow FILE] [--urls FILE] [--hellos FILE] [--only ID,...] [--check]
+//	    [--alps FILE] [--flow FILE] [--urls FILE] [--hellos FILE] \
+//	    [--only ID,...] [--check]
 //
-// --requests, --connections, --decoding, --hpack, --records, --flow, --urls
-// and --hellos name the fixtures, testdata/chrome155-requests.json,
+// --requests, --connections, --decoding, --hpack, --records, --alps, --flow,
+// --urls and --hellos name the fixtures, testdata/chrome155-requests.json,
 // testdata/chrome155-connections.json, testdata/chrome155-decoding.json,
 // testdata/chrome155-hpack.json, testdata/chrome155-records.json,
-// testdata/chrome155-flow.json, testdata/chrome155-urls.json and
-// testdata/chrome155-hellos.json unless said; an empty one is not measured.
-// The hellos are drawn afresh: --check holds each launch to every order being
-// as likely as any other. --only measures those scenarios alone, of requests,
-// of connections, of header blocks, of records and of window updates, and
-// each fixture of them measured has to have every one. Writing replaces what the fixture says of
+// testdata/chrome155-alps.json, testdata/chrome155-flow.json,
+// testdata/chrome155-urls.json and testdata/chrome155-hellos.json unless said;
+// an empty one is not measured. The hellos are drawn afresh: --check holds
+// each launch to every order being as likely as any other. --only measures
+// those scenarios alone, of requests, of connections, of header blocks, of
+// records, of ALPS and of window updates, and each fixture of them measured
+// has to have every one. Writing replaces what the fixture says of
 // each scenario measured, and of every page, and says which browser it was and
 // when.
 package main
@@ -79,6 +81,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	hpack := flags.String("hpack", "testdata/chrome155-hpack.json", "the fixture of header blocks; empty, none")
 	records := flags.String("records", "testdata/chrome155-records.json",
 		"the fixture of TLS records over HTTP/1.1; empty, none")
+	alps := flags.String("alps", "testdata/chrome155-alps.json", "the fixture of ALPS; empty, none")
 	flow := flags.String("flow", "testdata/chrome155-flow.json", "the fixture of window updates; empty, none")
 	urls := flags.String("urls", "testdata/chrome155-urls.json", "the fixture of URLs; empty, none")
 	hellos := flags.String("hellos", "testdata/chrome155-hellos.json", "the fixture of ClientHello orders; empty, none")
@@ -88,7 +91,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if *path == "" || flags.NArg() > 0 || *requests == "" && *connections == "" && *decoding == "" && *hpack == "" &&
-		*records == "" && *flow == "" && *urls == "" && *hellos == "" {
+		*records == "" && *alps == "" && *flow == "" && *urls == "" && *hellos == "" {
 		_, _ = fmt.Fprintln(stderr, "measure: --browser is needed, a fixture to measure for, and nothing else")
 		return 2
 	}
@@ -135,6 +138,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if *records != "" {
 		found, err := measureTLSRecords(ctx, b, *records, names, about, *check, stderr)
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+			return 1
+		}
+		diff = append(diff, found...)
+	}
+	if *alps != "" {
+		found, err := measureALPSFixture(ctx, b, *alps, names, about, *check, stderr)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
 			return 1
@@ -389,6 +400,40 @@ func measureTLSRecords(ctx context.Context, b harness.Browser, path string, name
 	}
 	if fixture.Scenarios == nil {
 		fixture.Scenarios = map[string]harness.RecordsScenario{}
+	}
+	for name, scenario := range got {
+		fixture.Scenarios[name] = scenario
+	}
+	fixture.Browser, fixture.Measured = about, dated(fixture.Measured, today())
+	return nil, fixture.Write(path)
+}
+
+// measureALPSFixture measures the scenarios of ALPS named, or every one, and
+// holds them to the fixture at path, or writes them into it.
+func measureALPSFixture(ctx context.Context, b harness.Browser, path string, names []string, about string, check bool,
+	progress io.Writer) ([]string, error) {
+	fixture, err := harness.LoadALPS(path)
+	if err != nil {
+		return nil, err
+	}
+	got, err := harness.MeasureALPS(ctx, b, names, progress)
+	if err != nil {
+		return nil, err
+	}
+	if check {
+		want := fixture.Scenarios
+		if names != nil {
+			want = map[string]harness.ALPSScenario{}
+			for _, name := range names {
+				if scenario, ok := fixture.Scenarios[name]; ok {
+					want[name] = scenario
+				}
+			}
+		}
+		return harness.CompareALPS(want, got), nil
+	}
+	if fixture.Scenarios == nil {
+		fixture.Scenarios = map[string]harness.ALPSScenario{}
 	}
 	for name, scenario := range got {
 		fixture.Scenarios[name] = scenario

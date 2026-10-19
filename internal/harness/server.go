@@ -84,6 +84,9 @@ type Server struct {
 	// sends a connection waits until the client's first header block has
 	// come, as across a network: the client writes it before it hears them.
 	Settled map[H2Settings]int
+	// ALPS are the ports of the bench's ALPS server, by the variant of what
+	// it gives (alpsVariants), for each a scenario names.
+	ALPS map[string]int
 
 	catalogue map[string]scenario
 	listeners []net.Listener
@@ -92,6 +95,7 @@ type Server struct {
 	http1, http2 *chanListener
 	h1, h2       *http.Server
 	settled      map[H2Settings]*settledServer
+	alps         map[string]*alpsServer
 	tls          *tls.Config
 	// spki is its key as Chrome's --ignore-certificate-errors-spki-list
 	// names one: the SHA-256 of its SubjectPublicKeyInfo, in base64.
@@ -108,11 +112,14 @@ type Server struct {
 	entries []*Entry
 	// hellos are the ClientHellos read since the server started or was reset
 	// (hellos.go).
-	hellos  []sentHello
-	trouble []error
-	conns   int
-	open    map[net.Conn]struct{}
-	closed  bool
+	hellos []sentHello
+	// alpsSeen are the handshakes of the ALPS server since the server
+	// started or was reset (alps.go).
+	alpsSeen []*ALPSHandshake
+	trouble  []error
+	conns    int
+	open     map[net.Conn]struct{}
+	closed   bool
 }
 
 // The seams the tests reach through.
@@ -145,10 +152,11 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 		return nil, err
 	}
 	spki := sha256.Sum256(cert.Leaf.RawSubjectPublicKeyInfo)
-	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{}, Settled: map[H2Settings]int{},
+	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{}, Settled: map[H2Settings]int{}, ALPS: map[string]int{},
 		http1:   newChanListener(),
 		http2:   newChanListener(),
 		settled: map[H2Settings]*settledServer{},
+		alps:    map[string]*alpsServer{},
 		tls:     &tls.Config{Certificates: []tls.Certificate{cert}},
 		spki:    base64.StdEncoding.EncodeToString(spki[:])}
 	s.tls.GetConfigForClient = s.hello
@@ -165,8 +173,12 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	s.h1 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, ConnContext: servedName}
 	s.h2 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior,
 		ConnContext: servedName}
+	keys := []H2Settings{}
 	for _, sc := range scenarios {
-		if key := sc.settings(); key != (H2Settings{}) && s.settled[key] == nil {
+		keys = append(keys, sc.settings(), H2Settings{Table: alpsVariants[sc.alps].table})
+	}
+	for _, key := range keys {
+		if key != (H2Settings{}) && s.settled[key] == nil {
 			s.settled[key] = &settledServer{settings: key, ln: newChanListener(),
 				server: &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior,
 					HTTP2:       &http.HTTP2Config{MaxDecoderHeaderTableSize: int(key.Table), MaxReadFrameSize: int(key.Frame)},
@@ -197,12 +209,27 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 		return nil, fmt.Errorf("harness: %w", err)
 	}
 	s.listeners = append(s.listeners, ln)
+	names := alpsNames(scenarios)
+	for _, name := range names {
+		ln, err := listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			_ = s.Close()
+			return nil, fmt.Errorf("harness: %w", err)
+		}
+		s.listeners = append(s.listeners, ln)
+		port := ln.Addr().(*net.TCPAddr).Port
+		srv := &alpsServer{cert: cert, protos: []string{"h2", "http/1.1"}, settings: map[string][]byte{}}
+		if give := alpsVariants[name].settings; give != nil {
+			srv.settings["h2"] = give(originOf(port))
+		}
+		s.ALPS[name], s.alps[name] = port, srv
+	}
 	servers := map[*http.Server]*chanListener{s.h1: s.http1, s.h2: s.http2}
 	for i, key := range settled {
 		s.Settled[key] = ports[3+i]
 		servers[s.settled[key].server] = s.settled[key].ln
 	}
-	s.done.Add(2*len(servers) + 2)
+	s.done.Add(2*len(servers) + 2 + len(names))
 	for server, ln := range servers {
 		go func() {
 			defer s.done.Done()
@@ -215,6 +242,9 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	go s.accept(ln, nil, nil)
 	for i, key := range settled {
 		go s.accept(s.listeners[3+i], []string{"h2"}, s.settled[key])
+	}
+	for i, name := range names {
+		go s.acceptALPS(s.listeners[4+len(settled)+i], name)
 	}
 	return s, nil
 }
@@ -262,6 +292,75 @@ func (s *Server) accept(ln net.Listener, protos []string, settled *settledServer
 			defer s.done.Done()
 			s.serveConn(raw, protos, settled)
 		}()
+	}
+}
+
+// acceptALPS serves what comes to ln with the bench's ALPS server of the
+// variant named name.
+func (s *Server) acceptALPS(ln net.Listener, name string) {
+	defer s.done.Done()
+	for {
+		raw, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		if !s.track(raw) {
+			_ = raw.Close()
+			return
+		}
+		s.done.Add(1)
+		go func() {
+			defer s.done.Done()
+			s.serveALPS(raw, name)
+		}()
+	}
+}
+
+// serveALPS shakes hands on raw as the bench's ALPS server of the variant
+// named name, keeps the handshake, and reads and answers what follows over
+// HTTP/2, from a server whose table is as large as the variant says, or over
+// HTTP/1.1.
+func (s *Server) serveALPS(raw net.Conn, name string) {
+	defer func() {
+		s.mu.Lock()
+		delete(s.open, raw)
+		s.mu.Unlock()
+	}()
+	conn, seen, err := s.alps[name].handshake(raw)
+	if err != nil {
+		_ = raw.Close()
+		return
+	}
+	seen.Conn = s.nextConn()
+	s.mu.Lock()
+	s.alpsSeen = append(s.alpsSeen, seen)
+	s.mu.Unlock()
+	if seen.ALPN != "h2" {
+		parser := &h1parser{s: s, conn: seen.Conn, scheme: "https"}
+		s.http1.hand(newTeeConn(conn, "", parser.write, nil))
+		return
+	}
+	parser := &h2parser{s: s, conn: seen.Conn, dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}, alps: seen}
+	table := alpsVariants[name].table
+	if table == 0 {
+		s.http2.hand(newTeeConn(conn, "", parser.write, nil))
+		return
+	}
+	parser.dec.SetAllowedMaxDynamicTableSize(table)
+	parser.first = make(chan struct{})
+	s.settled[H2Settings{Table: table}].ln.hand(newTeeConn(conn, "", parser.write, parser.first))
+}
+
+// keepConnection keeps of an ALPS handshake the first SETTINGS its client
+// sent, and the error of a GOAWAY.
+func (s *Server) keepConnection(h *ALPSHandshake, settings []string, goAway string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if settings != nil && h.Settings == nil {
+		h.Settings = settings
+	}
+	if goAway != "" {
+		h.GoAway = goAway
 	}
 }
 
@@ -391,7 +490,7 @@ func (s *Server) Reset() {
 	s.misdirection.Forget()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.entries, s.trouble, s.hellos = nil, nil, nil
+	s.entries, s.trouble, s.hellos, s.alpsSeen = nil, nil, nil, nil
 }
 
 // Close stops the server and ends every connection it has.
@@ -515,6 +614,9 @@ type h2parser struct {
 	records *clientRecords
 	read    int
 	first   chan struct{}
+	// alps is the handshake of the bench's ALPS server the connection made,
+	// which keeps its first SETTINGS and its GOAWAY.
+	alps *ALPSHandshake
 }
 
 func (p *h2parser) write(b []byte) {
@@ -585,6 +687,15 @@ func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, 
 		p.block, p.stream, p.endStream = append(p.block[:0], payload...), stream, flags.Has(http2.FlagHeadersEndStream)
 		if flags.Has(http2.FlagHeadersEndHeaders) {
 			p.decode()
+		}
+	case http2.FrameSettings:
+		if p.alps != nil && !flags.Has(http2.FlagSettingsAck) {
+			p.s.keepConnection(p.alps, settingsOf(payload), "")
+		}
+	case http2.FrameGoAway:
+		if p.alps != nil && len(payload) >= 8 {
+			p.s.keepConnection(p.alps, nil, http2.ErrCode(binary.BigEndian.Uint32(payload[4:8])).String()+": "+
+				string(payload[8:]))
 		}
 	case http2.FrameContinuation:
 		span.kind = 'C'

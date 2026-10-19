@@ -122,7 +122,7 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	b := &fake{dump: func(body []byte) string { return "<title>UTF-8|" + string(body[3:4]) + "</title>" }}
 	opening(t, b, "Fake Chrome 1.2.3.4")
 	code, _, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
-		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--only", "nav-direct")
+		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", "", "--only", "nav-direct")
 	if code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr)
 	}
@@ -146,7 +146,7 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	}
 	// Measured again, the browser is what they say.
 	code, stdout, stderr := measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
-		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--only", "nav-direct", "--check")
+		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", "", "--only", "nav-direct", "--check")
 	if code != 0 || stdout != "the browser is what the fixtures say\n" {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
@@ -154,7 +154,7 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	// not have, is not.
 	b.dump = func([]byte) string { return "<title>windows-1252|b</title>" }
 	code, stdout, stderr = measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
-		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--only", "nav-direct,redir-nav-direct-301", "--check")
+		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", "", "--only", "nav-direct,redir-nav-direct-301", "--check")
 	if code != 1 || !strings.Contains(stdout, "redir-nav-direct-301 was measured, and the fixture has no such scenario\n") ||
 		!strings.Contains(stdout, `a: the browser read "b" as "windows-1252"`) || !strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
@@ -172,7 +172,7 @@ func TestTheCommandMeasuresWhichConnectionEachRequestCameOn(t *testing.T) {
 	requests, _ := fixtures(t, map[string]harness.MeasuredScenario{"kept": {Note: "kept"}}, nil)
 	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
 	code, _, stderr := measured(t, "--browser", "chrome", "--requests", "", "--connections", requests, "--decoding", "",
-		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--only", "conn-fetch")
+		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", "", "--only", "conn-fetch")
 	if code != 0 || !strings.Contains(stderr, "h1 conn-fetch: 1 requests") {
 		t.Fatalf("exit %d: %s", code, stderr)
 	}
@@ -186,7 +186,7 @@ func TestTheCommandMeasuresWhichConnectionEachRequestCameOn(t *testing.T) {
 		t.Errorf("wrote %+v", wrote)
 	}
 	code, stdout, stderr := measured(t, "--browser", "chrome", "--requests", "", "--connections", requests, "--decoding", "",
-		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--only", "conn-fetch", "--check")
+		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", "", "--only", "conn-fetch", "--check")
 	if code != 0 || stdout != "the browser is what the fixtures say\n" {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
@@ -265,7 +265,7 @@ func TestTheCommandNeedsABrowserAndAFixture(t *testing.T) {
 		{},
 		{"--requests", "a.json"},
 		{"--browser", "chrome", "extra"},
-		{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", ""},
+		{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", ""},
 		{"--no-such-flag"},
 	} {
 		if code, _, _ := measured(t, args...); code != 2 {
@@ -384,7 +384,7 @@ func TestTheCommandWritesTheHeaderBlocksAndThenHoldsTheBrowserToThem(t *testing.
 	hpack := blocks(t, map[string]harness.HPACKScenario{"kept": {Note: "kept"}})
 	b := &fake{}
 	opening(t, b, "Fake Chrome 1.2.3.4")
-	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--flow", "", "--urls", "", "--hellos", "", "--records", ""}
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", ""}
 	code, _, stderr := measured(t, append(none, "--hpack", hpack, "--only", "hpack-fetch")...)
 	if code != 0 || !strings.Contains(stderr, "h2 hpack-fetch: 1 connections") {
 		t.Fatalf("exit %d: %s", code, stderr)
@@ -431,7 +431,7 @@ func TestTheCommandWritesTheHeaderBlocksAndThenHoldsTheBrowserToThem(t *testing.
 }
 
 func TestTheCommandSaysWhyItMeasuredNoHeaderBlocks(t *testing.T) {
-	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--flow", "", "--urls", "", "--hellos", "", "--records", ""}
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--flow", "", "--urls", "", "--hellos", "", "--records", "", "--alps", ""}
 	missing := filepath.Join(t.TempDir(), "none.json")
 	opening(t, &fake{}, "Fake")
 	if code, _, stderr := measured(t, append(none, "--hpack", missing)...); code != 1 || !strings.Contains(stderr, "none.json") {
@@ -470,7 +470,7 @@ func TestTheCommandWritesTheRecordsAndThenHoldsTheBrowserToThem(t *testing.T) {
 	records := recordsFile(t, map[string]harness.RecordsScenario{"kept": {Note: "kept"}})
 	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
 	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
-		"--urls", "", "--hellos", ""}
+		"--urls", "", "--hellos", "", "--alps", ""}
 	code, _, stderr := measured(t, append(none, "--records", records, "--only", "h1-records-header")...)
 	if code != 0 || !strings.Contains(stderr, "h1 h1-records-header: 2 requests") {
 		t.Fatalf("exit %d: %s", code, stderr)
@@ -512,7 +512,7 @@ func TestTheCommandWritesTheRecordsAndThenHoldsTheBrowserToThem(t *testing.T) {
 
 func TestTheCommandSaysWhyItMeasuredNoRecords(t *testing.T) {
 	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
-		"--urls", "", "--hellos", ""}
+		"--urls", "", "--hellos", "", "--alps", ""}
 	missing := filepath.Join(t.TempDir(), "none.json")
 	opening(t, &fake{}, "Fake")
 	if code, _, stderr := measured(t, append(none, "--records", missing)...); code != 1 || !strings.Contains(stderr, "none.json") {
@@ -536,6 +536,86 @@ func TestTheCommandSaysWhyItMeasuredNoRecords(t *testing.T) {
 	}
 }
 
+// alpsFile is a fixture of ALPS holding scenarios, in a directory of its own.
+func alpsFile(t *testing.T, scenarios map[string]harness.ALPSScenario) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "alps.json")
+	if err := (&harness.ALPSFixture{Browser: "old", Measured: "2026-10-16", How: "how", Scenarios: scenarios}).Write(path); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	return path
+}
+
+func TestTheCommandWritesTheALPSAndThenHoldsTheBrowserToIt(t *testing.T) {
+	alps := alpsFile(t, map[string]harness.ALPSScenario{"kept": {Note: "kept"}})
+	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
+		"--urls", "", "--hellos", "", "--records", ""}
+	code, _, stderr := measured(t, append(none, "--alps", alps, "--only", "alps-none")...)
+	if code != 0 || !strings.Contains(stderr, "alps alps-none: 1 connections") {
+		t.Fatalf("exit %d: %s", code, stderr)
+	}
+	wrote, err := harness.LoadALPS(alps)
+	if err != nil {
+		t.Fatalf("LoadALPS: %v", err)
+	}
+	got := wrote.Scenarios["alps-none"]
+	if wrote.Browser != "Fake Chrome 1.2.3.4, --headless=new --lang=en-US, Testing 1 (arm64)" || wrote.Measured != "2026-10-16, 2026-10-17" ||
+		wrote.How != "how" || len(wrote.Scenarios) != 2 || wrote.Scenarios["kept"].Note != "kept" || len(got.Handshakes) != 1 ||
+		len(got.Connections) != 1 || got.Connections[0][1].URL != "https://www.example.com/done/alps-none" {
+		t.Errorf("wrote %+v", wrote)
+	}
+	// Measured again, the browser is what it says.
+	code, stdout, stderr := measured(t, append(none, "--alps", alps, "--only", "alps-none", "--check")...)
+	if code != 0 || stdout != "the browser is what the fixtures say\n" {
+		t.Errorf("exit %d: %s%s", code, stdout, stderr)
+	}
+	// A fixture that says otherwise is not, nor one without the scenario.
+	got.Handshakes = nil
+	alps = alpsFile(t, map[string]harness.ALPSScenario{"alps-none": got})
+	code, stdout, stderr = measured(t, append(none, "--alps", alps, "--only", "alps-none,alps-empty", "--check")...)
+	if code != 1 || stdout != "alps-none: 1 handshakes, want 0\n"+
+		"alps-empty was measured, and the fixture has no such scenario\n" ||
+		!strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
+		t.Errorf("exit %d: %s%s", code, stdout, stderr)
+	}
+	// A fixture that is not one's scenarios are made.
+	empty := filepath.Join(t.TempDir(), "empty.json")
+	_ = os.WriteFile(empty, []byte("{}"), 0o644)
+	if code, _, stderr := measured(t, append(none, "--alps", empty, "--only", "alps-none")...); code != 0 {
+		t.Errorf("exit %d: %s", code, stderr)
+	}
+	if wrote, err := harness.LoadALPS(empty); err != nil || len(wrote.Scenarios) != 1 {
+		t.Errorf("made %+v, %v", wrote, err)
+	}
+}
+
+func TestTheCommandSaysWhyItMeasuredNoALPS(t *testing.T) {
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
+		"--urls", "", "--hellos", "", "--records", ""}
+	missing := filepath.Join(t.TempDir(), "none.json")
+	opening(t, &fake{}, "Fake")
+	if code, _, stderr := measured(t, append(none, "--alps", missing)...); code != 1 || !strings.Contains(stderr, "none.json") {
+		t.Errorf("no fixture: exit %d, %s", code, stderr)
+	}
+	opening(t, &fake{failOpen: true}, "Fake")
+	alps := alpsFile(t, map[string]harness.ALPSScenario{})
+	if code, _, stderr := measured(t, append(none, "--alps", alps, "--only", "alps-none")...); code != 1 ||
+		!strings.Contains(stderr, "the fake would not open") {
+		t.Errorf("a browser that does not open: exit %d, %s", code, stderr)
+	}
+	if os.Geteuid() != 0 {
+		opening(t, &fake{}, "Fake")
+		if err := os.Chmod(alps, 0o444); err != nil {
+			t.Fatalf("Chmod: %v", err)
+		}
+		if code, _, stderr := measured(t, append(none, "--alps", alps, "--only", "alps-none")...); code != 1 ||
+			!strings.Contains(stderr, "permission denied") {
+			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
+		}
+	}
+}
+
 func flows(t *testing.T, scenarios map[string]harness.FlowScenario) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "flow.json")
@@ -548,7 +628,7 @@ func flows(t *testing.T, scenarios map[string]harness.FlowScenario) string {
 func TestTheCommandWritesTheWindowUpdatesAndThenHoldsTheBrowserToThem(t *testing.T) {
 	flow := flows(t, map[string]harness.FlowScenario{"kept": {FlowShape: harness.FlowShape{Note: "kept"}}})
 	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
-	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--urls", "", "--hellos", "", "--records", ""}
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--urls", "", "--hellos", "", "--records", "", "--alps", ""}
 	code, _, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small")...)
 	if code != 0 || !strings.Contains(stderr, "h2 flow-small: ") {
 		t.Fatalf("exit %d: %s", code, stderr)
@@ -590,7 +670,7 @@ func TestTheCommandWritesTheWindowUpdatesAndThenHoldsTheBrowserToThem(t *testing
 }
 
 func TestTheCommandSaysWhyItMeasuredNoWindowUpdates(t *testing.T) {
-	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--urls", "", "--hellos", "", "--records", ""}
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--urls", "", "--hellos", "", "--records", "", "--alps", ""}
 	opening(t, &fake{}, "Fake")
 	if code, _, stderr := measured(t, append(none, "--flow", filepath.Join(t.TempDir(), "none.json"))...); code != 1 ||
 		!strings.Contains(stderr, "none.json") {
@@ -642,7 +722,7 @@ func TestTheCommandWritesTheURLsAndThenHoldsTheBrowserToThem(t *testing.T) {
 	asked := urlsMeasured(t, map[string]harness.URLCase{"url-host-upper": upper}, nil)
 	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
 	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
-		"--hellos", "", "--records", ""}
+		"--hellos", "", "--records", "", "--alps", ""}
 	urls := urlFixture(t, map[string]harness.URLCase{"kept": {Note: "kept"}})
 	code, _, stderr := measured(t, append(none, "--urls", urls, "--only", "url-host-upper")...)
 	if code != 0 || !strings.Contains(stderr, "h2 measured") || strings.Join(*asked, ",") != "url-host-upper" {
@@ -689,7 +769,7 @@ func TestTheCommandWritesTheURLsAndThenHoldsTheBrowserToThem(t *testing.T) {
 
 func TestTheCommandSaysWhyItMeasuredNoURLs(t *testing.T) {
 	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
-		"--hellos", "", "--records", ""}
+		"--hellos", "", "--records", "", "--alps", ""}
 	opening(t, &fake{}, "Fake")
 	urlsMeasured(t, map[string]harness.URLCase{}, nil)
 	if code, _, stderr := measured(t, append(none, "--urls", filepath.Join(t.TempDir(), "none.json"))...); code != 1 ||
@@ -751,7 +831,7 @@ func TestTheCommandWritesTheHellosAndThenHoldsTheBrowserToThem(t *testing.T) {
 	}
 	same := slices.Repeat([]string{"2570,1,2,3,6682"}, 100)
 	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
-		"--urls", "", "--records", ""}
+		"--urls", "", "--records", "", "--alps", ""}
 	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
 	hellosMeasured(t, [][]string{every, every}, nil)
 	hellos := helloFixture(t, nil)
@@ -779,7 +859,7 @@ func TestTheCommandWritesTheHellosAndThenHoldsTheBrowserToThem(t *testing.T) {
 
 func TestTheCommandSaysWhyItMeasuredNoHellos(t *testing.T) {
 	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
-		"--urls", "", "--records", ""}
+		"--urls", "", "--records", "", "--alps", ""}
 	opening(t, &fake{}, "Fake")
 	good := [][]string{{"2570,1,2,6682"}}
 	for _, tc := range []struct {
