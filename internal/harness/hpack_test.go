@@ -244,7 +244,7 @@ func TestWrittenReadsEachConnectionAgainstItsOwnTable(t *testing.T) {
 		{Proto: "h2", Conn: 3, Method: "GET", Target: "https://www.example.com:4444/c", Block: two[0]},
 		{Proto: "h2", Conn: 1, Method: "GET", Target: "https://www.example.com:1111/d", Block: one[1]},
 	}
-	got, err := s.Written(entries, 1024)
+	got, err := s.Written(entries, 1024, false)
 	if err != nil {
 		t.Fatalf("Written: %v", err)
 	}
@@ -258,29 +258,29 @@ func TestWrittenReadsEachConnectionAgainstItsOwnTable(t *testing.T) {
 	}
 	// A table as large as the server allowed is read, and one larger is not.
 	bigger := []Entry{{Proto: "h2", Conn: 1, Method: "GET", Target: "https://a/", Block: []byte{0x3f, 0xe1, 0xff, 0x03}}}
-	if got, err := s.Written(bigger, 65536); err != nil || got[0][0].Fields[0] != "size update 65536" {
+	if got, err := s.Written(bigger, 65536, false); err != nil || got[0][0].Fields[0] != "size update 65536" {
 		t.Errorf("a table the server allowed: %v, %v", got, err)
 	}
-	if _, err := s.Written(bigger, 0); err == nil {
+	if _, err := s.Written(bigger, 0, false); err == nil {
 		t.Error("a table larger than the server allowed was read")
 	}
 	// A block that does not read is said, by its request and connection.
 	entries[3].Block, entries[3].Frames = []byte{0xff}, nil
-	if _, err := s.Written(entries, 0); err == nil || err.Error() !=
+	if _, err := s.Written(entries, 0, false); err == nil || err.Error() !=
 		"harness: GET https://www.example.com/d on connection 1: fingerprint: an HPACK integer cut short" {
 		t.Errorf("an unreadable block: %v", err)
 	}
 	// A block of one frame says nothing of it; one of more says each.
 	entries[3].Block = one[1]
 	entries[0].Frames, entries[3].Frames = []int{9}, []int{16374, 3}
-	if got, err := s.Written(entries, 1024); err != nil || got[0][0].Frames != nil || !slices.Equal(got[0][1].Frames, []int{16374, 3}) {
+	if got, err := s.Written(entries, 1024, false); err != nil || got[0][0].Frames != nil || !slices.Equal(got[0][1].Frames, []int{16374, 3}) {
 		t.Errorf("frames: %+v, %v", got, err)
 	}
 	// A request with no field written has none, not nil, as JSON says it.
-	if got, err := s.Written([]Entry{{Proto: "h2", Conn: 1}}, 0); err != nil || got[0][0].Fields == nil {
+	if got, err := s.Written([]Entry{{Proto: "h2", Conn: 1}}, 0, false); err != nil || got[0][0].Fields == nil {
 		t.Errorf("an empty block: %#v, %v", got, err)
 	}
-	if got, err := s.Written(nil, 0); err != nil || got != nil {
+	if got, err := s.Written(nil, 0, false); err != nil || got != nil {
 		t.Errorf("nothing: %v, %v", got, err)
 	}
 }
@@ -314,6 +314,10 @@ func TestEveryDifferenceInHowRequestsWentIntoHPACKIsSaid(t *testing.T) {
 			[]string{"connection 2, request 1, GET https://b/1:\n  written [\"z: indexed static 3\"]\n  want    []"}},
 		{"in frames of its own", [][]WrittenRequest{want.Connections[0], {{Method: "GET", URL: "https://b/1", Frames: []int{16374, 9}}}},
 			[]string{"connection 2, request 1, GET https://b/1: frames [16374 9], want []"}},
+		{"in records of its own", [][]WrittenRequest{want.Connections[0], {{Method: "GET", URL: "https://b/1", Records: []string{"H"}}}},
+			[]string{"connection 2, request 1, GET https://b/1: DATA frames [] and records [H], want [] and []"}},
+		{"with DATA of its own", [][]WrittenRequest{want.Connections[0], {{Method: "GET", URL: "https://b/1", Data: []int{3}}}},
+			[]string{"connection 2, request 1, GET https://b/1: DATA frames [3] and records [], want [] and []"}},
 	} {
 		if diff := DiffHPACK(want, HPACKScenario{Connections: tc.got}); !slices.Equal(diff, tc.diff) {
 			t.Errorf("%s: %q, want %q", tc.name, diff, tc.diff)

@@ -64,6 +64,14 @@ var hpackAsked = map[string][]hpackAsk{
 	"hpack-big-cookie": {typed("/run/hpack-big-cookie?big=4080"), fetched("GET", "/p/hpack-big-1"), fetched("GET", "/p/hpack-big-2"), fetched("GET", "/done/hpack-big-cookie")},
 	"hpack-table-64k":  {typed("/run/hpack-table-64k"), fetched("GET", "/p/hpack-table-64k"), fetched("GET", "/done/hpack-table-64k")},
 	"hpack-table-1k":   {typed("/run/hpack-table-1k"), fetched("GET", "/p/hpack-table-1k"), fetched("GET", "/done/hpack-table-1k")},
+	"hpack-records-header": {typed("/run/hpack-records-header"),
+		fetched("GET", "/p/hpack-records-header", "x-foo", strings.Repeat("a", 8000)), fetched("GET", "/done/hpack-records-header")},
+	"hpack-records-post-1k": {typed("/run/hpack-records-post-1k"),
+		fetched("POST", "/p/hpack-records-post-1k", "content-type", "text/plain;charset=UTF-8").withBody(strings.Repeat("a", 1000)),
+		fetched("GET", "/done/hpack-records-post-1k")},
+	"hpack-records-post-64k": {typed("/run/hpack-records-post-64k"),
+		fetched("POST", "/p/hpack-records-post-64k", "content-type", "text/plain;charset=UTF-8").withBody(strings.Repeat("a", 65536)),
+		fetched("GET", "/done/hpack-records-post-64k")},
 	"hpack-big-header": {typed("/run/hpack-big-header"),
 		fetched("GET", "/p/hpack-big-header", "x-foo", strings.Repeat("a", 30000)), fetched("GET", "/done/hpack-big-header")},
 	"hpack-bigger-header": {typed("/run/hpack-bigger-header"),
@@ -82,6 +90,8 @@ var hpackDiffers = map[string]string{
 	"hpack-bigger-header":     "the transport writes a header block in frames as large as the server lets it, where Chrome's carry 16,374 bytes at most",
 	"hpack-big-header-16k":    "the transport's HEADERS frame carries 16,384 bytes of the block and its five of priority, past what the server lets it send",
 	"hpack-bigger-header-16k": "the transport's HEADERS frame carries 16,384 bytes of the block and its five of priority, past what the server lets it send",
+	"hpack-records-header":    "TLS cuts the first writes of a connection into records of 1,186 bytes and more, where Chrome's records are as large as its writes",
+	"hpack-records-post-64k":  "the transport writes DATA frames as large as the server lets it, where Chrome's carry 16,375 bytes, a record each",
 }
 
 // headlessChrome is the profile of the Chrome the HPACK fixture was measured
@@ -170,7 +180,7 @@ func TestLaterRequestsGoIntoHPACKAsChromeWroteThem(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Requests: %v", err)
 			}
-			got, err := server.Written(entries, want.Table)
+			got, err := server.Written(entries, want.Table, want.Records)
 			if err != nil {
 				t.Fatalf("Written: %v", err)
 			}

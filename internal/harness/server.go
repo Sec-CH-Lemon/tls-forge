@@ -60,6 +60,14 @@ type Entry struct {
 	// and of the CONTINUATION frames after it, as on the wire: priority and
 	// padding included.
 	Frames []int
+	// Data are the payload lengths of an HTTP/2 request's DATA frames, as on
+	// the wire, and Records how the TLS records of its connection carried its
+	// frames, HEADERS to the last DATA (clientRecords.layout).
+	Data    []int
+	Records []string
+	// spans are its frames in what the client sent, which records carried.
+	spans   []frameSpan
+	records *clientRecords
 }
 
 // Server keeps every request made of it, over HTTP/2 and HTTP/1.1 on TLS and
@@ -281,7 +289,8 @@ func (s *Server) serveConn(raw net.Conn, protos []string, settled *settledServer
 	}
 	config := s.tls.Clone()
 	config.NextProtos = protos
-	conn := tls.Server(raw, config)
+	records := &clientRecords{}
+	conn := tls.Server(&recordingConn{Conn: raw, records: records}, config)
 	if err := conn.Handshake(); err != nil {
 		_ = conn.Close()
 		return
@@ -289,7 +298,7 @@ func (s *Server) serveConn(raw net.Conn, protos []string, settled *settledServer
 	state := conn.ConnectionState()
 	if state.NegotiatedProtocol == "h2" {
 		parser := &h2parser{s: s, conn: s.nextConn(), resumed: state.DidResume, sni: state.ServerName,
-			dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}}
+			dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}, records: records}
 		if settled == nil {
 			s.http2.hand(newTeeConn(conn, state.ServerName, parser.write, nil))
 			return
@@ -342,6 +351,14 @@ func (s *Server) addBody(e *Entry, b []byte) {
 	e.Body += string(b)
 }
 
+// addData keeps of e a DATA frame of it, span.
+func (s *Server) addData(e *Entry, span frameSpan) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e.Data = append(e.Data, span.length)
+	e.spans = append(e.spans, span)
+}
+
 func (s *Server) troubled(err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -358,6 +375,11 @@ func (s *Server) Requests() ([]Entry, error) {
 		out[i] = *e
 		out[i].Headers = slices.Clone(e.Headers)
 		out[i].Block = slices.Clone(e.Block)
+		out[i].Data = slices.Clone(e.Data)
+		out[i].spans = slices.Clone(e.spans)
+		if e.records != nil {
+			out[i].Records = e.records.layout(e.spans)
+		}
 	}
 	return out, errors.Join(s.trouble...)
 }
@@ -482,14 +504,21 @@ type h2parser struct {
 	stream    uint32
 	endStream bool
 	priority  *[3]uint32
-	// frames are the payload lengths of the frames of the header block read.
+	// frames are the payload lengths of the frames of the header block read,
+	// and spans where they are in the stream.
 	frames []int
+	spans  []frameSpan
 	open   map[uint32]*Entry
-	first  chan struct{}
+	// records are the TLS records of the connection, and read how much of
+	// what they carried has been read.
+	records *clientRecords
+	read    int
+	first   chan struct{}
 }
 
 func (p *h2parser) write(b []byte) {
 	p.buf = append(p.buf, b...)
+	p.read += len(b)
 	if !p.preface {
 		if len(p.buf) < len(http2.ClientPreface) {
 			return
@@ -504,8 +533,9 @@ func (p *h2parser) write(b []byte) {
 		typ, flags := http2.FrameType(p.buf[3]), http2.Flags(p.buf[4])
 		stream := binary.BigEndian.Uint32(p.buf[5:9]) & 0x7fffffff
 		payload := slices.Clone(p.buf[9 : 9+length])
+		start := p.read - len(p.buf)
 		p.buf = p.buf[9+length:]
-		p.frame(typ, flags, stream, payload)
+		p.frame(typ, flags, stream, payload, start)
 	}
 }
 
@@ -521,15 +551,21 @@ func unpadded(flags http2.Flags, payload []byte) ([]byte, bool) {
 	return payload[1 : len(payload)-int(payload[0])], true
 }
 
-func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, payload []byte) {
+// frame is one frame of the connection, whose bytes begin at start of the
+// stream.
+func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, payload []byte, start int) {
+	span := frameSpan{length: len(payload), start: start, end: start + 9 + len(payload)}
 	switch typ {
 	case http2.FrameData:
+		span.kind = 'D'
 		payload, ok := unpadded(flags, payload)
 		if e := p.open[stream]; e != nil && ok {
 			p.s.addBody(e, payload)
+			p.s.addData(e, span)
 		}
 	case http2.FrameHeaders:
-		p.frames = []int{len(payload)}
+		span.kind = 'H'
+		p.frames, p.spans = []int{len(payload)}, []frameSpan{span}
 		payload, ok := unpadded(flags, payload)
 		if !ok {
 			p.s.troubled(fmt.Errorf("harness: a HEADERS frame padded past its end on stream %d", stream))
@@ -550,7 +586,8 @@ func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, 
 			p.decode()
 		}
 	case http2.FrameContinuation:
-		p.frames = append(p.frames, len(payload))
+		span.kind = 'C'
+		p.frames, p.spans = append(p.frames, len(payload)), append(p.spans, span)
 		p.block = append(p.block, payload...)
 		if flags.Has(http2.FlagContinuationEndHeaders) {
 			p.decode()
@@ -569,7 +606,7 @@ func (p *h2parser) decode() {
 		return
 	}
 	e := &Entry{Proto: "h2", Conn: p.conn, Resumed: p.resumed, SNI: p.sni, Stream: p.stream, Priority: p.priority,
-		Block: slices.Clone(p.block), Frames: slices.Clone(p.frames)}
+		Block: slices.Clone(p.block), Frames: slices.Clone(p.frames), spans: slices.Clone(p.spans), records: p.records}
 	var scheme, authority, path string
 	for _, f := range fields {
 		e.Headers = append(e.Headers, [2]string{f.Name, f.Value})

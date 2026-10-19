@@ -32,9 +32,10 @@ type scenario struct {
 	// table is the size of the HPACK table the server's SETTINGS let the
 	// browser have, and frame the largest frame they let it send, for a
 	// scenario that asks for one; quiet gives the run page an icon of its
-	// own, so that the browser asks for no /favicon.ico.
-	table, frame uint32
-	quiet        bool
+	// own, so that the browser asks for no /favicon.ico; records keeps each
+	// request's DATA frames and TLS records (HPACK).
+	table, frame   uint32
+	quiet, records bool
 }
 
 // settings are what the server of the scenario says in its SETTINGS where it
