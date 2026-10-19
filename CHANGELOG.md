@@ -905,6 +905,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A request to a server that changes its protocol between connections is
+  answered**: a connection dialed for a request that spoke another protocol
+  than its transport (HTTP/1.1 where the address had spoken HTTP/2, or the
+  other way round), as a load balancer over servers that differ can make it,
+  failed the request with `the server negotiated a protocol the cached
+  transport does not speak`, and one whose transport was dropped as it
+  dialed built another transport and failed its request with `protocol
+  negotiated`. Now such a connection is let go of, and the request goes
+  again, nothing of it having been sent, on a transport set up for what the
+  server speaks now, three times at most: a handshake more than Chrome, which
+  takes the connection. The transports an address has and the protocols
+  they speak stay in step. Through tls-forge's fork of tls-client.
 - **A connection whose handshake the server never answers holds up only the
   request it is dialed for, and no longer than that request's deadline**: an
   HTTP/2 connection after a client's first to a host was dialed with no
