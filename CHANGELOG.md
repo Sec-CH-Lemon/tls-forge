@@ -13,6 +13,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`profile.Profile.ClientProfileShuffled(shuffle)`** is the transport's
+  profile with the order of the TLS extensions drawn for every connection, as
+  Chrome draws it, or the capture's; `ClientProfile` draws when the browser
+  does. **`profile.Profile.BareBase`** says a profile is a bare entry of the
+  transport's catalogue.
 - **`tlsforge.CanonicalURL`** is a URL as tls-forge sends a request for it,
   which is as Chrome does, or why it sends none.
 
@@ -884,6 +889,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The TLS extension order is drawn as Chrome draws it**: every order of
+  the extensions that move as likely as any other, GREASE, padding and
+  `pre_shared_key` where the capture has them. The transport's shuffle,
+  which tls-forge used, passes over a swap with GREASE, and kept every
+  extension in the place the profile's capture has it about twice as often
+  as Chrome does: a site that knows the shipped profiles could tell it in a
+  few dozen connections. A profile now draws the order itself
+  (`profile.Profile.ClientProfileShuffled`); a bare entry of the transport's
+  catalogue is still the transport's. Measured on Chrome 155 (two launches
+  of 200 ClientHellos, `testdata/chrome155-hellos.json`) and held to a rule
+  decided before measuring.
 - **A page over https sends nothing to plain http on another machine**, as
   Chrome blocks it as mixed content: `fetch()` and an XHR, in any mode, with
   any credentials and by any method, nor a redirect of one there; a form,

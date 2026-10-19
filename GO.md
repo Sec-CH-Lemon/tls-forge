@@ -109,7 +109,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithoutSessionResumption()` | Keep no TLS session to resume, so that every connection is the cold handshake of a first contact. Without it a profile whose browser resumes does as the browser does; see below. |
 | `WithInsecureSkipVerify()` | Disable upstream certificate verification. Intended for controlled local test endpoints. |
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
-| `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |
+| `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling, every order of the extensions that move as likely as any other, as Chrome draws one. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |
 | `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. One that sets what tls-forge sets replaces it; see [Transport options](#transport-options). |
 | `WithLogger(logger)` | Write down what the client does, as it does it, to a `*slog.Logger`; see [Logging](#logging). |
 
@@ -129,7 +129,11 @@ client, err := tlsforge.New(
 
 The extension-order options are explicit overrides. Normally the profile should
 choose: Chromium shuffles its extension order, while Firefox and Safari keep it
-stable.
+stable. A profile draws the order for every connection as Chrome 155 was
+measured drawing it (`testdata/chrome155-hellos.json`): every order of the
+extensions that move as likely as any other, GREASE, padding and
+`pre_shared_key` where the capture has them. A bare entry of the transport's
+catalogue is the transport's, which draws its own.
 
 ### Transport options
 

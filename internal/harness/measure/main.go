@@ -1,17 +1,21 @@
 // Command measure measures a browser on the bench in internal/harness: what it
 // asks for in each scenario, which connection it asks on, how it decodes each
-// page, how it writes the header blocks of each connection into HPACK, and the
-// WINDOW_UPDATEs it sends while it reads an answer. It writes what it measured
-// into the fixtures, or with --check holds the browser to them.
+// page, how it writes the header blocks of each connection into HPACK, the
+// WINDOW_UPDATEs it sends while it reads an answer, and the order it draws for
+// the extensions of each ClientHello. It writes what it measured into the
+// fixtures, or with --check holds the browser to them.
 //
 //	go run ./internal/harness/measure --browser PATH [--requests FILE] \
 //	    [--connections FILE] [--decoding FILE] [--hpack FILE] [--flow FILE] \
-//	    [--only ID,...] [--check]
+//	    [--urls FILE] [--hellos FILE] [--only ID,...] [--check]
 //
-// --requests, --connections, --decoding, --hpack and --flow name the fixtures,
-// testdata/chrome155-requests.json, testdata/chrome155-connections.json,
-// testdata/chrome155-decoding.json, testdata/chrome155-hpack.json and
-// testdata/chrome155-flow.json unless said; an empty one is not measured.
+// --requests, --connections, --decoding, --hpack, --flow, --urls and --hellos
+// name the fixtures, testdata/chrome155-requests.json,
+// testdata/chrome155-connections.json, testdata/chrome155-decoding.json,
+// testdata/chrome155-hpack.json, testdata/chrome155-flow.json,
+// testdata/chrome155-urls.json and testdata/chrome155-hellos.json unless
+// said; an empty one is not measured. The hellos are drawn afresh: --check
+// holds each launch to every order being as likely as any other.
 // --only measures those scenarios alone, of requests, of connections, of
 // header blocks and of window updates, and each fixture of them measured has
 // to have every one. Writing replaces what the fixture says of
@@ -59,6 +63,8 @@ var (
 	// urlCases measures URL cases, each of which is waited out for seconds
 	// over each protocol.
 	urlCases = harness.MeasureURLs
+	// helloOrders measures the hellos, which launches the browser twice.
+	helloOrders = harness.MeasureHellos
 )
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -72,13 +78,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	hpack := flags.String("hpack", "testdata/chrome155-hpack.json", "the fixture of header blocks; empty, none")
 	flow := flags.String("flow", "testdata/chrome155-flow.json", "the fixture of window updates; empty, none")
 	urls := flags.String("urls", "testdata/chrome155-urls.json", "the fixture of URLs; empty, none")
+	hellos := flags.String("hellos", "testdata/chrome155-hellos.json", "the fixture of ClientHello orders; empty, none")
 	only := flags.String("only", "", "the scenarios to measure, by name, comma-separated; every one unless said")
 	check := flags.Bool("check", false, "hold the browser to the fixtures rather than write them")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 	if *path == "" || flags.NArg() > 0 || *requests == "" && *connections == "" && *decoding == "" && *hpack == "" &&
-		*flow == "" && *urls == "" {
+		*flow == "" && *urls == "" && *hellos == "" {
 		_, _ = fmt.Fprintln(stderr, "measure: --browser is needed, a fixture to measure for, and nothing else")
 		return 2
 	}
@@ -133,6 +140,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if *urls != "" {
 		found, err := measureURLs(ctx, b, *urls, names, about, *check, stderr)
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+			return 1
+		}
+		diff = append(diff, found...)
+	}
+	if *hellos != "" {
+		found, err := measureHellos(ctx, b, *hellos, about, *check, stderr)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
 			return 1
@@ -220,6 +235,53 @@ func measureURLs(ctx context.Context, b harness.Browser, path string, names []st
 	}
 	fixture.Browser, fixture.Measured = about, dated(fixture.Measured, today())
 	return nil, fixture.Write(path)
+}
+
+// measureHellos measures the order of the extensions of the first ClientHello
+// to each name, launch by launch, and writes them into the fixture at path;
+// or holds each launch to every order being as likely as any other, against
+// the fixture's first order, which no launch measured now holds.
+func measureHellos(ctx context.Context, b harness.Browser, path string, about string, check bool,
+	progress io.Writer) ([]string, error) {
+	fixture, err := harness.LoadHellos(path)
+	if err != nil {
+		return nil, err
+	}
+	var reference []uint16
+	if check {
+		if len(fixture.Launches) == 0 || len(fixture.Launches[0]) == 0 {
+			return nil, fmt.Errorf("%s holds no ClientHello to hold the browser against", path)
+		}
+		if reference, err = harness.ParseOrder(fixture.Launches[0][0]); err != nil {
+			return nil, err
+		}
+	}
+	got, err := helloOrders(ctx, b, progress)
+	if err != nil {
+		return nil, err
+	}
+	if !check {
+		fixture.Launches = got
+		fixture.Browser, fixture.Measured = about, dated(fixture.Measured, today())
+		return nil, fixture.Write(path)
+	}
+	var diff []string
+	for i, launch := range got {
+		orders := make([][]uint16, len(launch))
+		for j, order := range launch {
+			if orders[j], err = harness.ParseOrder(order); err != nil {
+				return nil, err
+			}
+		}
+		stats, err := harness.OrderStatsOf(orders, reference)
+		if err != nil {
+			return nil, err
+		}
+		for _, problem := range stats.Problems() {
+			diff = append(diff, fmt.Sprintf("hellos, launch %d: %s", i+1, problem))
+		}
+	}
+	return diff, nil
 }
 
 // measureWindowUpdates measures the WINDOW_UPDATE scenarios named, or every

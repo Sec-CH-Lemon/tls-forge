@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	rand "math/rand/v2"
 	"slices"
 	"strings"
 	"time"
@@ -332,6 +333,44 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 	return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: %w", p.Name, ErrNoHandshake)
 }
 
+// extensionShuffle draws an order of n things, as rand.Shuffle does: a test
+// makes it its own.
+var extensionShuffle = rand.Shuffle
+
+// shuffledSpec is the spec of a connection with the extensions that move in
+// an order drawn for it (shuffleExtensions).
+func (p *Profile) shuffledSpec() (tls.ClientHelloSpec, error) {
+	spec, err := p.Spec()
+	if err == nil {
+		shuffleExtensions(spec.Extensions, extensionShuffle)
+	}
+	return spec, err
+}
+
+// shuffleExtensions puts the extensions that move in the order shuffle draws,
+// every order as likely as any other, and leaves GREASE, padding and
+// pre_shared_key where they are: as BoringSSL draws a permutation of every
+// extension it knows for each connection (ssl_setup_extension_permutation),
+// and writes those a hello has in it. Measured on Chrome 155: two launches of
+// 200 hellos, each held to every order being as likely as any other
+// (testdata/chrome155-hellos.json). The transport's own shuffle passes over a
+// swap with any extension that stays, which kept every other in the place the
+// capture has it about twice as often as Chrome does.
+func shuffleExtensions(extensions []tls.TLSExtension, shuffle func(int, func(int, int))) {
+	var moving []int
+	for i, extension := range extensions {
+		switch extension.(type) {
+		case *tls.UtlsGREASEExtension, *tls.UtlsPaddingExtension, tls.PreSharedKeyExtension:
+		default:
+			moving = append(moving, i)
+		}
+	}
+	shuffle(len(moving), func(i, j int) {
+		a, b := moving[i], moving[j]
+		extensions[a], extensions[b] = extensions[b], extensions[a]
+	})
+}
+
 // withResumption gives a spec that offers psk_key_exchange_modes the
 // pre_shared_key it resumes a session with, as its last extension: where a
 // browser puts it, after the GREASE extension Chrome ends its list with, and
@@ -356,14 +395,25 @@ func withResumption(spec tls.ClientHelloSpec) tls.ClientHelloSpec {
 	return spec
 }
 
-// ClientProfile converts to the form the transport consumes.
+// ClientProfile converts to the form the transport consumes, the order of the
+// TLS extensions drawn for every connection when the browser draws one
+// (ShufflesExtensions).
 func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
+	return p.ClientProfileShuffled(p.ShufflesExtensions())
+}
+
+// ClientProfileShuffled is ClientProfile with the order of the extensions of
+// every connection's ClientHello drawn for it when shuffle is true, every
+// order of those that move as likely as any other, as Chromium draws one
+// (shuffleExtensions), and the capture's when it is false. A bare base is the
+// transport's own, and so is drawing its order (BareBase).
+func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error) {
 	if err := p.validateHTTP1(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
 	// A profile that only names a base IS that base. Rebuilding it from parts
 	// would be a second, drifting copy of settings this library does not own.
-	if p.isBareBase() {
+	if p.BareBase() {
 		base, ok := profiles.MappedTLSClients[p.Base]
 		if !ok {
 			return profiles.ClientProfile{}, fmt.Errorf("profile %q: unknown base %q", p.Name, p.Base)
@@ -380,10 +430,14 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 	if err := p.validatePseudoHeaderOrder(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
+	factory := p.Spec
+	if shuffle {
+		factory = p.shuffledSpec
+	}
 	id := tls.ClientHelloID{
 		Client:      p.Name,
 		Version:     "0",
-		SpecFactory: p.Spec,
+		SpecFactory: factory,
 	}
 
 	settings := make(map[http2.SettingID]uint32, len(p.HTTP2.Settings))
@@ -505,7 +559,9 @@ func (p *Profile) validateHTTP1() error {
 	return nil
 }
 
-func (p *Profile) isBareBase() bool {
+// BareBase reports a profile that only names a base of the transport's
+// catalogue, and is that base: no handshake and no HTTP/2 settings of its own.
+func (p *Profile) BareBase() bool {
 	return p.Base != "" && len(p.ClientHello) == 0 && len(p.HTTP2.Settings) == 0
 }
 
@@ -578,7 +634,7 @@ func Load(data []byte) (*Profile, error) {
 			}
 		}
 	}
-	if !p.isBareBase() {
+	if !p.BareBase() {
 		if err := p.validatePseudoHeaderOrder(); err != nil {
 			return nil, err
 		}

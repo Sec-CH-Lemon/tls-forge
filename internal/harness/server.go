@@ -94,6 +94,9 @@ type Server struct {
 
 	mu      sync.Mutex
 	entries []*Entry
+	// hellos are the ClientHellos read since the server started or was reset
+	// (hellos.go).
+	hellos  []sentHello
 	trouble []error
 	conns   int
 	open    map[net.Conn]struct{}
@@ -130,6 +133,7 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 		tables: map[uint32]*tableServer{},
 		tls:    &tls.Config{Certificates: []tls.Certificate{cert}},
 		spki:   base64.StdEncoding.EncodeToString(spki[:])}
+	s.tls.GetConfigForClient = s.hello
 	// Each connection's TLS is a clone of this, which would draw keys of its
 	// own for the session tickets it gives, and resume no other's sessions.
 	for _, opt := range opts {
@@ -343,13 +347,13 @@ func (s *Server) Requests() ([]Entry, error) {
 	return out, errors.Join(s.trouble...)
 }
 
-// Reset forgets every request made so far, the trouble reading them, and
-// which URLs were asked for under /misdirected/.
+// Reset forgets every request made so far, the trouble reading them, the
+// ClientHellos read, and which URLs were asked for under /misdirected/.
 func (s *Server) Reset() {
 	s.misdirection.Forget()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.entries, s.trouble = nil, nil
+	s.entries, s.trouble, s.hellos = nil, nil, nil
 }
 
 // Close stops the server and ends every connection it has.

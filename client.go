@@ -220,7 +220,15 @@ func New(opts ...Option) (*Client, error) {
 		}
 	}
 	prof = prof.Clone()
-	clientProfile, err := prof.ClientProfile()
+	shuffleExtensions := prof.ShufflesExtensions()
+	if cfg.shuffleExtensions != nil {
+		shuffleExtensions = *cfg.shuffleExtensions
+	}
+	// Chrome draws the order of its TLS extensions for every connection, so
+	// a client that always sends one order is told from Chrome even with its
+	// exact extensions; the profile draws it, every order as likely as any
+	// other, as Chrome does.
+	clientProfile, err := prof.ClientProfileShuffled(shuffleExtensions)
 	if err != nil {
 		return nil, err
 	}
@@ -274,16 +282,7 @@ func New(opts ...Option) (*Client, error) {
 			DisableCompression: true,
 		}),
 	}
-	shuffleExtensions := prof.ShufflesExtensions()
-	if cfg.shuffleExtensions != nil {
-		shuffleExtensions = *cfg.shuffleExtensions
-	}
-	if shuffleExtensions {
-		// Chrome randomises its extension order on every connection, so a client
-		// that always sends the same order is distinguishable from Chrome even
-		// with Chrome's exact extension set. Measured against a real browser:
-		// three consecutive connections produced three different JA3 hashes and
-		// one JA4. GREASE and padding stay put, as they do in Chrome.
+	if transportShuffles(prof, shuffleExtensions) {
 		options = append(options, tls_client.WithRandomTLSExtensionOrder())
 	}
 	if !cfg.followRedirects {
@@ -709,6 +708,15 @@ func (c *Client) resolveBrowser(req *Request, method string, target *url.URL) (*
 		return nil, errContext("needs the profile's headers, and profile %q has none to send", c.profile.Name)
 	}
 	return req.Browser.resolve(method, target, req.Header, req.Body)
+}
+
+// transportShuffles reports whether the transport draws the order of a
+// client's TLS extensions: for a bare base of its catalogue, whose handshake
+// is its own, when shuffle says. A profile with a handshake of its own draws
+// it itself (profile.ClientProfileShuffled), and the transport's draw, which
+// passes over a swap with GREASE, would be a second one.
+func transportShuffles(prof *profile.Profile, shuffle bool) bool {
+	return shuffle && prof.BareBase()
 }
 
 // followRedirect is the policy for every redirect: where the chain stops, who

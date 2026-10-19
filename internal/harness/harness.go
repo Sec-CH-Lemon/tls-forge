@@ -5,9 +5,11 @@
 // connection it sent each on, testdata/chrome155-hpack.json, how it wrote the
 // header blocks of each connection into HPACK, testdata/chrome155-decoding.json,
 // how it decoded each page, testdata/chrome155-flow.json, the WINDOW_UPDATEs
-// it sent while it read an answer (flow.go), and testdata/chrome155-urls.json,
+// it sent while it read an answer (flow.go), testdata/chrome155-urls.json,
 // the server name, authority and target it sent for each URL a page or a
-// Location gave it, or that it sent nothing (urls.go).
+// Location gave it, or that it sent nothing (urls.go), and
+// testdata/chrome155-hellos.json, the order of the extensions of the first
+// ClientHello it sent to each of many names (hellos.go).
 //
 // Measuring is opening each scenario's page in a fresh headless Google Chrome
 // against a local server that keeps every request as the bytes said it, over

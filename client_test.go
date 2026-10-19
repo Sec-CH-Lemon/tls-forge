@@ -139,6 +139,39 @@ func TestExtensionOrderIsShuffledLikeChrome(t *testing.T) {
 	}
 }
 
+func TestTheTransportDrawsTheOrderOfABareBaseAlone(t *testing.T) {
+	// A profile with a handshake of its own draws its order itself, every
+	// order as likely as any other; a second draw by the transport would
+	// leave it so, but is no part of it.
+	captured, err := profile.Get("chrome_155_macos")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	bare := &profile.Profile{Name: "firefox_148", Base: "firefox_148"}
+	for _, tc := range []struct {
+		p              *profile.Profile
+		shuffle, wants bool
+	}{{captured, true, false}, {captured, false, false}, {bare, true, true}, {bare, false, false}} {
+		if got := transportShuffles(tc.p, tc.shuffle); got != tc.wants {
+			t.Errorf("%s, shuffle %v: the transport draws %v", tc.p.Name, tc.shuffle, got)
+		}
+	}
+	// A bare base of a browser that keeps its order draws one when told to.
+	server := startEcho(t)
+	for _, tc := range []struct {
+		opts []Option
+		many bool
+	}{{nil, false}, {[]Option{WithRandomExtensionOrder()}, true}} {
+		seen := map[string]bool{}
+		for range 6 {
+			seen[measure(t, newTestClient(t, append(tc.opts, WithProfile("firefox_148"))...), server).TLS.JA3Hash] = true
+		}
+		if many := len(seen) > 1; many != tc.many {
+			t.Errorf("firefox_148 %d options: %d JA3 hashes in 6 connections", len(tc.opts), len(seen))
+		}
+	}
+}
+
 func TestFixedExtensionOrder(t *testing.T) {
 	// Firefox and Safari send a stable order, and against those a shuffling
 	// client is the anomaly.
