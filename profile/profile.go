@@ -475,9 +475,10 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 
 // chromeTransport is built, when p is a Chromium browser's, writing headers
 // into HPACK as Chromium's encoder does, against a table as large as a server
-// allows, in frames and TLS records as large as Chromium's, and telling a
-// server of the window its reader frees as Chromium's network stack does; as
-// the transport does otherwise.
+// allows, in frames and TLS records as large as Chromium's, writing an
+// HTTP/1.1 request as Chromium writes one, and telling a server of the window
+// its reader frees as Chromium's network stack does; as the transport does
+// otherwise.
 func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientProfile {
 	if !p.chromium() {
 		return built
@@ -487,8 +488,16 @@ func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientP
 		WithMaxHeaderFramePayload(chromeHeaderFramePayload).
 		WithMaxDataFramePayload(chromeDataFramePayload).
 		WithDynamicRecordSizingDisabled(true).
+		WithMaxMergedHeadAndBody(chromeMergedHeadAndBody).
 		WithWindowUpdateDelay(chromeWindowUpdateDelay)
 }
+
+// chromeMergedHeadAndBody is how many bytes an HTTP/1.1 request's head and a
+// body held in memory may be together for Chrome to write them at once, its
+// head going at once whatever its size: HttpStreamParser's
+// kMaxMergedHeaderAndBodySize (measured on Chrome 155,
+// testdata/chrome155-records.json).
+const chromeMergedHeadAndBody = 1400
 
 // chromeDataFramePayload is the most a DATA frame of Chrome's request bodies
 // carries: 16,375 bytes, which with the frame's header fill a TLS record of

@@ -210,7 +210,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261019093434-7747d6a2829c
+github.com/igor-lemon/fhttp v0.6.10-0.20261019101947-208f5ab1dc6e
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -242,7 +242,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019094059-8a3987c07ffc
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019102616-aa1f6308b37f
 --------------------------------------------------------------------------------
 
 MIT License
@@ -268,7 +268,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261019094123-7b7ac1d8618b
+github.com/igor-lemon/tls-client v1.15.2-0.20261019102708-c045a20d12e6
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn
@@ -299,7 +299,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
-github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019094048-1402225b2549
+github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019102614-303341be9752
 --------------------------------------------------------------------------------
 
 Copyright (c) 2013 The Gorilla WebSocket Authors. All rights reserved.

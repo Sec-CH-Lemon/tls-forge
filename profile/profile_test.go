@@ -848,7 +848,7 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 				t.Errorf("waits %s to tell of a little of a window, want %s", delay, want)
 			}
 			// And cuts header blocks and bodies into frames, and writes TLS
-			// records, as Chrome does.
+			// records and HTTP/1.1 requests, as Chrome does.
 			if payload, want := built.GetMaxHeaderFramePayload(), map[bool]uint32{true: 16374}[tc.chrome]; payload != want {
 				t.Errorf("header frames of at most %d bytes, want %d", payload, want)
 			}
@@ -857,6 +857,9 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 			}
 			if disabled := built.GetDynamicRecordSizingDisabled(); disabled != tc.chrome {
 				t.Errorf("TLS records as large as its writes: %v", disabled)
+			}
+			if merged, want := built.GetMaxMergedHeadAndBody(), map[bool]int{true: 1400}[tc.chrome]; merged != want {
+				t.Errorf("an HTTP/1.1 head and body merged up to %d bytes, want %d", merged, want)
 			}
 			if of == nil {
 				return

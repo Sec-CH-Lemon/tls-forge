@@ -889,6 +889,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **An HTTP/1.1 request goes out in TLS records as Chrome's**, with a
+  Chromium profile: its head at once, whatever its size, so that only TLS's
+  16,384 bytes cut it, and a body held in memory in the same write when the
+  two are no more than 1,400 bytes together, Chrome's limit; any other body
+  after the head, as before. The transport cut a head larger than its 4 KiB
+  buffer into pieces of 4,096 bytes, a record each, where Chrome's large
+  headers, URLs and cookies fill records of 16,384, and wrote every body
+  after its head, where Chrome's small bodies share the head's record.
+  Measured on Chrome 155 (the 14 scenarios of
+  `testdata/chrome155-records.json`) and held to it, through tls-forge's
+  forks of fhttp (`http.Transport.MaxMergedHeadAndBody`) and tls-client
+  (`ClientProfile.WithMaxMergedHeadAndBody`).
 - **A header block of more than one frame goes out in one write, as
   Chrome's**: its HEADERS and CONTINUATION frames reach TLS together, so
   that a record of 16,384 bytes carries the HEADERS frame and the start of

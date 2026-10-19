@@ -14,16 +14,16 @@ require (
 )
 
 require (
-	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019094059-8a3987c07ffc // indirect
-	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019094048-1402225b2549 // indirect
+	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019102616-aa1f6308b37f // indirect
+	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019102614-303341be9752 // indirect
 )
 
 require (
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
-	github.com/igor-lemon/fhttp v0.6.10-0.20261019093434-7747d6a2829c
-	github.com/igor-lemon/tls-client v1.15.2-0.20261019094123-7b7ac1d8618b
+	github.com/igor-lemon/fhttp v0.6.10-0.20261019101947-208f5ab1dc6e
+	github.com/igor-lemon/tls-client v1.15.2-0.20261019102708-c045a20d12e6
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	golang.org/x/sys v0.48.0 // indirect

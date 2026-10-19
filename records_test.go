@@ -58,23 +58,9 @@ var recordsAsked = map[string][]hpackAsk{
 }
 
 // recordsDiffer are the scenarios of testdata/chrome155-records.json whose
-// requests tls-forge's records do not carry as Chrome's did, and why.
-var recordsDiffer = map[string]string{
-	"h1-records-header":        headInPieces,
-	"h1-records-big-header":    headInPieces,
-	"h1-records-bigger-header": headInPieces,
-	"h1-records-long-url":      headInPieces,
-	"h1-records-cookie-4k":     headInPieces,
-	"h1-records-cookie-16k":    headInPieces,
-	"h1-records-post-100":      bodyApart,
-	"h1-records-post-at-1400":  bodyApart,
-	"h1-records-form":          bodyApart,
-}
-
-const (
-	headInPieces = "the transport writes a head larger than its 4 KiB buffer in pieces of the buffer's size, where Chrome writes it at once"
-	bodyApart    = "the transport writes a body held in memory after its head, where Chrome writes the two at once up to 1,400 bytes"
-)
+// requests tls-forge's records do not carry as Chrome's did, and why: none,
+// kept for a difference measured later.
+var recordsDiffer = map[string]string{}
 
 func TestRequestsGoIntoTLSRecordsOverHTTP1AsChromeWroteThem(t *testing.T) {
 	// Each scenario's page sent as Chrome's was asked to, to the bench's own
