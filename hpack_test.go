@@ -72,6 +72,19 @@ var hpackAsked = map[string][]hpackAsk{
 	"hpack-records-post-64k": {typed("/run/hpack-records-post-64k"),
 		fetched("POST", "/p/hpack-records-post-64k", "content-type", "text/plain;charset=UTF-8").withBody(strings.Repeat("a", 65536)),
 		fetched("GET", "/done/hpack-records-post-64k")},
+	"hpack-records-long-url": {typed("/run/hpack-records-long-url"),
+		fetched("GET", "/p/hpack-records-long-url?"+strings.Repeat("a", 8000)), fetched("GET", "/done/hpack-records-long-url")},
+	"hpack-records-big-header": {typed("/run/hpack-records-big-header"),
+		fetched("GET", "/p/hpack-records-big-header", "x-foo", strings.Repeat("a", 30000)), fetched("GET", "/done/hpack-records-big-header")},
+	"hpack-records-cookie-2k": {typed("/run/hpack-records-cookie-2k?big=2044"),
+		fetched("GET", "/p/hpack-records-cookie-2k"), fetched("GET", "/done/hpack-records-cookie-2k")},
+	"hpack-records-cookie-4k": {typed("/run/hpack-records-cookie-4k?big=4092"),
+		fetched("GET", "/p/hpack-records-cookie-4k"), fetched("GET", "/done/hpack-records-cookie-4k")},
+	"hpack-records-cookie-16k": {typed("/run/hpack-records-cookie-16k?big=4091&bigs=4"),
+		fetched("GET", "/p/hpack-records-cookie-16k"), fetched("GET", "/done/hpack-records-cookie-16k")},
+	"hpack-records-post-16k": {typed("/run/hpack-records-post-16k"),
+		fetched("POST", "/p/hpack-records-post-16k", "content-type", "text/plain;charset=UTF-8").withBody(strings.Repeat("a", 16376)),
+		fetched("GET", "/done/hpack-records-post-16k")},
 	"hpack-big-header": {typed("/run/hpack-big-header"),
 		fetched("GET", "/p/hpack-big-header", "x-foo", strings.Repeat("a", 30000)), fetched("GET", "/done/hpack-big-header")},
 	"hpack-bigger-header": {typed("/run/hpack-bigger-header"),
@@ -84,9 +97,10 @@ var hpackAsked = map[string][]hpackAsk{
 }
 
 // hpackDiffers are the scenarios of testdata/chrome155-hpack.json tls-forge
-// does not write as Chrome did, and why: none, kept for a difference measured
-// later.
-var hpackDiffers = map[string]string{}
+// does not write as Chrome did, and why.
+var hpackDiffers = map[string]string{
+	"hpack-records-big-header": "the transport writes a block's HEADERS frame, larger than its buffer, on its own and the CONTINUATION after it, a record each, where Chrome writes the block at once",
+}
 
 // headlessChrome is the profile of the Chrome the HPACK fixture was measured
 // on: chrome_155_macos, with the user agent HeadlessChrome said, so that each

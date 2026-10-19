@@ -323,6 +323,31 @@ func TestEveryDifferenceInHowRequestsWentIntoHPACKIsSaid(t *testing.T) {
 			t.Errorf("%s: %q, want %q", tc.name, diff, tc.diff)
 		}
 	}
+	// A block is cut alike when it has as many frames, each but the last as
+	// long: the last is what is left of it, a byte longer or shorter with the
+	// bench's port.
+	framed := func(frames ...int) HPACKScenario {
+		return HPACKScenario{Connections: [][]WrittenRequest{{{Method: "GET", URL: "https://c/1", Frames: frames}}}}
+	}
+	for _, tc := range []struct {
+		name string
+		got  []int
+		same bool
+	}{
+		{"the same", []int{16374, 16374, 9}, true},
+		{"what is left a byte longer", []int{16374, 16374, 10}, true},
+		{"a full frame shorter", []int{16374, 16373, 10}, false},
+		{"a frame more", []int{16374, 16374, 5, 4}, false},
+		{"a frame fewer", []int{16374, 16383}, false},
+		{"in one frame", nil, false},
+	} {
+		if diff := DiffHPACK(framed(16374, 16374, 9), framed(tc.got...)); (diff == nil) != tc.same {
+			t.Errorf("%s: %q", tc.name, diff)
+		}
+	}
+	if diff := DiffHPACK(framed(), framed()); diff != nil {
+		t.Errorf("a block of one frame: %q", diff)
+	}
 	other := HPACKScenario{Connections: want.Connections[:1]}
 	got := CompareHPACK(map[string]HPACKScenario{"a": want, "b": want, "c": want},
 		map[string]HPACKScenario{"a": want, "c": other, "d": want})
@@ -361,11 +386,16 @@ func TestTheHPACKScenariosAreServedFromTheirTables(t *testing.T) {
 	if _, body := get(t, http.MethodGet, strings.TrimSuffix(quiet, "?quiet"), nil); strings.Contains(body, "icon") {
 		t.Errorf("not quiet: %s", body)
 	}
-	// ?big=N sets a cookie of N bytes, and nothing that is not a size does.
+	// ?big=N sets a cookie of N bytes, and nothing that is not a size does;
+	// ?bigs=K K of them, and a K that is not a count one.
 	for big, want := range map[string][]string{
-		"10": {"big=xxxxxxxxxx; Max-Age=3600; Path=/"},
-		"0":  nil,
-		"x":  nil,
+		"10":       {"big=xxxxxxxxxx; Max-Age=3600; Path=/"},
+		"0":        nil,
+		"x":        nil,
+		"3&bigs=2": {"big1=xxx; Max-Age=3600; Path=/", "big2=xxx; Max-Age=3600; Path=/"},
+		"3&bigs=0": {"big=xxx; Max-Age=3600; Path=/"},
+		"3&bigs=x": {"big=xxx; Max-Age=3600; Path=/"},
+		"0&bigs=2": nil,
 	} {
 		res, _ := get(t, http.MethodGet, "https://www.example.com:"+strconv.Itoa(s.H2)+"/p/a?big="+big, nil)
 		if got := res.Header.Values("Set-Cookie"); !slices.Equal(got, want) {

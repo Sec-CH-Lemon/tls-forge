@@ -10,11 +10,21 @@ import (
 )
 
 // setCookies sets the cookies a request asks for with ?cookie: two, one of
-// them SameSite=None, for any value, and one of each SameSite for 2; and with
-// ?big=N one whose value is N bytes.
+// them SameSite=None, for any value, and one of each SameSite for 2; with
+// ?big=N one whose value is N bytes, and with ?bigs=K too K of them, big1 to
+// bigK.
 func setCookies(w http.ResponseWriter, r *http.Request) {
 	if n, err := strconv.Atoi(r.URL.Query().Get("big")); err == nil && n > 0 {
-		w.Header().Add("Set-Cookie", "big="+strings.Repeat("x", n)+"; Max-Age=3600; Path=/")
+		names := []string{"big"}
+		if k, err := strconv.Atoi(r.URL.Query().Get("bigs")); err == nil && k > 0 {
+			names = nil
+			for i := range k {
+				names = append(names, "big"+strconv.Itoa(i+1))
+			}
+		}
+		for _, name := range names {
+			w.Header().Add("Set-Cookie", name+"="+strings.Repeat("x", n)+"; Max-Age=3600; Path=/")
+		}
 	}
 	set := r.URL.Query().Get("cookie")
 	if set == "" {

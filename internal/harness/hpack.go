@@ -92,6 +92,18 @@ var hpackCatalogue = map[string]scenario{
 		script: "fetch('{A}/p/hpack-records-post-1k',{method:'POST',body:'a'.repeat(1000)}).then(done);", records: true, quiet: true},
 	"hpack-records-post-64k": {note: "a page, then fetch() POST of 65,536 letters to its origin",
 		script: "fetch('{A}/p/hpack-records-post-64k',{method:'POST',body:'a'.repeat(65536)}).then(done);", records: true, quiet: true},
+	"hpack-records-long-url": {note: "a page, then fetch() of a URL of its origin whose query is 8,000 letters, a :path of about 8 KB",
+		script: "fetch('{A}/p/hpack-records-long-url?'+'a'.repeat(8000)).then(done);", records: true, quiet: true},
+	"hpack-records-big-header": {note: "a page, then fetch() of its origin with an X-Foo of 30,000 letters, a header block in a HEADERS and a CONTINUATION frame",
+		script: "fetch('{A}/p/hpack-records-big-header',{headers:{'X-Foo':'a'.repeat(30000)}}).then(done);", records: true, quiet: true},
+	"hpack-records-cookie-2k": {note: "a page whose answer set a cookie of 2,048 bytes with its name, then fetch() of its origin, which carries it",
+		start: "{A}/run/{ID}?big=2044", script: "fetch('{A}/p/hpack-records-cookie-2k').then(done);", records: true, quiet: true},
+	"hpack-records-cookie-4k": {note: "a page whose answer set a cookie of 4,096 bytes with its name, then fetch() of its origin, which carries it",
+		start: "{A}/run/{ID}?big=4092", script: "fetch('{A}/p/hpack-records-cookie-4k').then(done);", records: true, quiet: true},
+	"hpack-records-cookie-16k": {note: "a page whose answer set four cookies of 4,096 bytes with their names, 16 KiB, then fetch() of its origin, which carries them",
+		start: "{A}/run/{ID}?big=4091&bigs=4", script: "fetch('{A}/p/hpack-records-cookie-16k').then(done);", records: true, quiet: true},
+	"hpack-records-post-16k": {note: "a page, then fetch() POST of 16,376 letters to its origin, a DATA frame's 16,375 and one more",
+		script: "fetch('{A}/p/hpack-records-post-16k',{method:'POST',body:'a'.repeat(16376)}).then(done);", records: true, quiet: true},
 	"hpack-big-header": {note: "a page, then fetch() of its origin with an X-Foo of 30,000 letters, a header block of more than one frame",
 		script: "fetch('{A}/p/hpack-big-header',{headers:{'X-Foo':'a'.repeat(30000)}}).then(done);", quiet: true},
 	"hpack-bigger-header": {note: "a page, then fetch() of its origin with an X-Foo of 60,000 letters",
@@ -252,7 +264,7 @@ func DiffHPACK(want, got HPACKScenario) []string {
 			case !slices.Equal(g.Fields, w.Fields):
 				out = append(out, fmt.Sprintf("connection %d, request %d, %s %s:\n  written %q\n  want    %q", c+1, r+1,
 					w.Method, w.URL, g.Fields, w.Fields))
-			case !slices.Equal(g.Frames, w.Frames):
+			case !sameCut(g.Frames, w.Frames):
 				out = append(out, fmt.Sprintf("connection %d, request %d, %s %s: frames %v, want %v", c+1, r+1,
 					w.Method, w.URL, g.Frames, w.Frames))
 			case !slices.Equal(g.Data, w.Data) || !slices.Equal(g.Records, w.Records):
@@ -262,6 +274,14 @@ func DiffHPACK(want, got HPACKScenario) []string {
 		}
 	}
 	return out
+}
+
+// sameCut says two header blocks went into frames alike: as many frames, each
+// but the last as long. The last carries what is left of the block, whose
+// length the bench's port changes by a byte from run to run (its digits
+// Huffman-code to 5 or 6 bits); the fields say what the block is.
+func sameCut(a, b []int) bool {
+	return len(a) == len(b) && (len(a) == 0 || slices.Equal(a[:len(a)-1], b[:len(b)-1]))
 }
 
 // CompareHPACK is how what a browser wrote, got, differs from what the fixture
