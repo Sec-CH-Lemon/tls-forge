@@ -68,16 +68,23 @@ func TestAHeaderBlockAtAFramesLimitReachesAStrictServerWhole(t *testing.T) {
 			_, at, _ := net.SplitHostPort(addr)
 			return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", at))
 		}))
-	for _, tc := range []struct {
+	type wearing struct {
 		name    string
 		profile Option
 		// limit is the most a frame carries, and priority the HEADERS
 		// frame's.
 		limit, priority int
-	}{
-		{"a Chromium profile: Chrome's 16,374", WithProfileValue(headlessChrome(t)), 16374, 5},
-		{"another browser's from the catalogue: the server's 16,384", WithProfile("firefox_148"), 16384, 5},
-	} {
+	}
+	var each []wearing
+	for _, name := range chromePlatforms {
+		p, err := profile.Get(name)
+		if err != nil {
+			t.Fatalf("profile: %v", err)
+		}
+		each = append(each, wearing{name + ": Chrome's 16,374", WithProfileValue(headless(p)), 16374, 5})
+	}
+	each = append(each, wearing{"another browser's from the catalogue: the server's 16,384", WithProfile("firefox_148"), 16384, 5})
+	for _, tc := range each {
 		t.Run(tc.name, func(t *testing.T) {
 			server.Reset()
 			// A frame the server refuses ends the connection, and the request

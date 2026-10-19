@@ -258,29 +258,31 @@ func TestARequestWithoutAContextSendsItsCookiesAsChromeDid(t *testing.T) {
 		{"nav-direct-cookies", "its own", Request{Header: NewHeader("cookie", "a=1; b=2")}},
 		{"redir-nav-direct-cookie", "set by the redirect", Request{}},
 	}
-	for _, c := range cases {
-		both := measured.Scenarios[c.scenario]
-		for proto, want := range map[string][]chromeRequest{"h2": both.H2, "h1": both.H1} {
-			t.Run(fmt.Sprintf("%s/%s/%s", c.scenario, c.how, proto), func(t *testing.T) {
-				server := newRecorder(t, proto, answeringAsMeasured)
-				client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
-				req := c.req
-				req.URL = want[0].URL
-				if _, err := client.Do(&req); err != nil {
-					t.Fatalf("Do: %v", err)
-				}
-				got := server.requests()
-				if len(got) != len(want) {
-					t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
-				}
-				for i := range want {
-					if diff := diffRequest(want[i], got[i], proto); diff != "" {
-						t.Errorf("request %d:\n%s", i+1, diff)
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
+		for _, c := range cases {
+			both := measured.Scenarios[c.scenario]
+			for proto, want := range map[string][]chromeRequest{"h2": both.H2, "h1": both.H1} {
+				t.Run(fmt.Sprintf("%s/%s/%s", c.scenario, c.how, proto), func(t *testing.T) {
+					server := newRecorder(t, proto, answeringAsMeasured)
+					client := newTestClient(t, WithProfileValue(p), server.dialing())
+					req := c.req
+					req.URL = want[0].URL
+					if _, err := client.Do(&req); err != nil {
+						t.Fatalf("Do: %v", err)
 					}
-				}
-			})
+					got := server.requests()
+					if len(got) != len(want) {
+						t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
+					}
+					for i := range want {
+						if diff := diffRequest(want[i], got[i], proto, p); diff != "" {
+							t.Errorf("request %d:\n%s", i+1, diff)
+						}
+					}
+				})
+			}
 		}
-	}
+	})
 }
 
 func TestARequestWithoutAContextGoesToEachURLAsChromeTypedIt(t *testing.T) {
@@ -291,34 +293,36 @@ func TestARequestWithoutAContextGoesToEachURLAsChromeTypedIt(t *testing.T) {
 	// zstd; and each hop of its redirects as its own URL is, what was withheld
 	// from one going back on at the next.
 	measured := loadChromeRequests(t)
-	for _, scenario := range []string{"nav-direct", "nav-direct-plain", "nav-direct-localhost", "nav-direct-dot-localhost",
-		"nav-direct-ipv4", "nav-direct-ipv6", "redir-nav-direct-301", "redir-nav-direct-302", "redir-nav-direct-303",
-		"redir-nav-direct-307", "redir-nav-direct-308", "redir-nav-direct-cross-site", "redir-nav-direct-downgrade",
-		"redir-nav-direct-upgrade", "redir-nav-direct-to-localhost", "redir-nav-direct-plain-to-localhost"} {
-		both := measured.Scenarios[scenario]
-		for proto, want := range map[string][]chromeRequest{"h2": both.H2, "h1": both.H1} {
-			t.Run(scenario+"/"+proto, func(t *testing.T) {
-				if len(want) == 0 {
-					t.Fatal("not in the fixture")
-				}
-				server := newRecorder(t, proto, answeringAsMeasured)
-				plain := newRecorder(t, "http", answeringAsMeasured)
-				client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialingWith(plain))
-				if _, err := client.Do(&Request{URL: want[0].URL}); err != nil {
-					t.Fatalf("Do: %v", err)
-				}
-				got := server.requests()
-				if len(got) != len(want) {
-					t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
-				}
-				for i := range want {
-					if diff := diffRequest(want[i], got[i], proto); diff != "" {
-						t.Errorf("request %d:\n%s", i+1, diff)
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
+		for _, scenario := range []string{"nav-direct", "nav-direct-plain", "nav-direct-localhost", "nav-direct-dot-localhost",
+			"nav-direct-ipv4", "nav-direct-ipv6", "redir-nav-direct-301", "redir-nav-direct-302", "redir-nav-direct-303",
+			"redir-nav-direct-307", "redir-nav-direct-308", "redir-nav-direct-cross-site", "redir-nav-direct-downgrade",
+			"redir-nav-direct-upgrade", "redir-nav-direct-to-localhost", "redir-nav-direct-plain-to-localhost"} {
+			both := measured.Scenarios[scenario]
+			for proto, want := range map[string][]chromeRequest{"h2": both.H2, "h1": both.H1} {
+				t.Run(scenario+"/"+proto, func(t *testing.T) {
+					if len(want) == 0 {
+						t.Fatal("not in the fixture")
 					}
-				}
-			})
+					server := newRecorder(t, proto, answeringAsMeasured)
+					plain := newRecorder(t, "http", answeringAsMeasured)
+					client := newTestClient(t, WithProfileValue(p), server.dialingWith(plain))
+					if _, err := client.Do(&Request{URL: want[0].URL}); err != nil {
+						t.Fatalf("Do: %v", err)
+					}
+					got := server.requests()
+					if len(got) != len(want) {
+						t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
+					}
+					for i := range want {
+						if diff := diffRequest(want[i], got[i], proto, p); diff != "" {
+							t.Errorf("request %d:\n%s", i+1, diff)
+						}
+					}
+				})
+			}
 		}
-	}
+	})
 }
 
 func TestARedirectToAnotherHostSendsTheJarsCookieInTheSlot(t *testing.T) {

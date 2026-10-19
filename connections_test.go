@@ -116,6 +116,24 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadRequests: %v", err)
 	}
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) { sentOnConnections(t, p, fixture) })
+	for which := range askedOnConnections {
+		id, proto, apart := strings.Cut(which, "/")
+		if _, ok := fixture.Scenarios[id]; !ok || apart && proto != "h2" && proto != "h1" {
+			t.Errorf("%s is sent, and not measured", which)
+		}
+	}
+	for which := range apartFromChrome {
+		id, proto, _ := strings.Cut(which, "/")
+		if _, ok := fixture.Scenarios[id]; !ok || proto != "h2" && proto != "h1" {
+			t.Errorf("%s is no scenario measured", which)
+		}
+	}
+}
+
+// sentOnConnections sends every scenario of the connections' fixture wearing
+// p, and holds the connections each request went on to Chrome's.
+func sentOnConnections(t *testing.T, p *profile.Profile, fixture *harness.RequestsFixture) {
 	for _, id := range slices.Sorted(maps.Keys(fixture.Scenarios)) {
 		for proto, want := range map[string][]harness.Request{"h2": fixture.Scenarios[id].H2, "h1": fixture.Scenarios[id].H1} {
 			asked, ok := askedOnConnections[id+"/"+proto]
@@ -127,7 +145,7 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 				continue
 			}
 			t.Run(id+"/"+proto, func(t *testing.T) {
-				got := sendOnConnections(t, proto, id, asked, want)
+				got := sendOnConnections(t, p, proto, id, asked, want)
 				var sentAs, chromeAs []string
 				var conns []int64
 				var resumed []bool
@@ -155,28 +173,17 @@ func TestRequestsGoOutOnTheConnectionsChromeSentThemOn(t *testing.T) {
 			})
 		}
 	}
-	for which := range askedOnConnections {
-		id, proto, apart := strings.Cut(which, "/")
-		if _, ok := fixture.Scenarios[id]; !ok || apart && proto != "h2" && proto != "h1" {
-			t.Errorf("%s is sent, and not measured", which)
-		}
-	}
-	for which := range apartFromChrome {
-		id, proto, _ := strings.Cut(which, "/")
-		if _, ok := fixture.Scenarios[id]; !ok || proto != "h2" && proto != "h1" {
-			t.Errorf("%s is no scenario measured", which)
-		}
-	}
 }
 
 // sendOnConnections sends what the run page of scenario id asked for, each
 // request in its context, to a recorder speaking proto, after the page it was
 // opened from and Chrome's closing every idle connection, and is what the
 // recorder kept from the run page on: preflights and redirects too.
-func sendOnConnections(t *testing.T, proto, id string, asked map[int]BrowserContext, want []harness.Request) []*keptRequest {
+func sendOnConnections(t *testing.T, p *profile.Profile, proto, id string, asked map[int]BrowserContext,
+	want []harness.Request) []*keptRequest {
 	t.Helper()
 	server := newRecorder(t, proto, answeringAsMeasured)
-	client, err := New(WithProfile("chrome_155_macos"), server.trusting(t))
+	client, err := New(WithProfileValue(p), server.trusting(t))
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

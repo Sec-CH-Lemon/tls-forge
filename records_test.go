@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"net"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -82,9 +83,76 @@ func TestRequestsGoIntoTLSRecordsOverHTTP1AsChromeWroteThem(t *testing.T) {
 	if len(port) != 5 {
 		t.Fatalf("the bench listens on %s; Chrome was measured on ports of five digits", port)
 	}
-	chrome := headlessChrome(t)
+	macOS := headlessChrome(t)
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
+		carriedAsChromeCarriedThem(t, headless(p), macOS, server, fixture, port)
+	})
+}
+
+// mergedHeadAndBody is how many bytes an HTTP/1.1 request's head and a body
+// held in memory may be together for Chrome to write them at once:
+// HttpStreamParser's kMaxMergedHeaderAndBodySize (h1-records-post-at-1400 and
+// -1401).
+const mergedHeadAndBody = 1400
+
+// recordsWearing is a scenario of the records fixture as Chrome writes it
+// wearing chrome, the fixture's Chrome being macOS: every head as much longer
+// as chrome's user agent and platform are than macOS's (the last part of one
+// a record cuts), and a body held in memory in its head's write when the two
+// are no more than mergedHeadAndBody bytes together, as Chrome's rule says.
+// For macOS it is the fixture.
+func recordsWearing(want harness.RecordsScenario, chrome, macOS *profile.Profile) harness.RecordsScenario {
+	delta := 0
+	for _, name := range []string{"user-agent", "sec-ch-ua-platform"} {
+		mine, _ := ownValue(chrome, name)
+		theirs, _ := ownValue(macOS, name)
+		delta += len(mine) - len(theirs)
+	}
+	out := harness.RecordsScenario{Note: want.Note}
+	for _, r := range want.Requests {
+		records := slices.Clone(r.Records)
+		// The last part of the head: a head alone, or with its body.
+		for i := len(records) - 1; i >= 0; i-- {
+			head, rest, _ := strings.Cut(records[i], "+")
+			if size, err := strconv.Atoi(head[1:]); err == nil && (head[0] == 'R' || head[0] == 'r') {
+				records[i] = head[:1] + strconv.Itoa(size+delta)
+				if rest != "" {
+					records[i] += "+" + rest
+				}
+				break
+			}
+		}
+		// A head and its body, together or apart, as their sum says.
+		head, body := 0, 0
+		switch {
+		case len(records) == 1 && strings.Contains(records[0], "+B"):
+			h, b, _ := strings.Cut(records[0], "+B")
+			head, _ = strconv.Atoi(h[1:])
+			body, _ = strconv.Atoi(b)
+		case len(records) == 2 && records[0][0] == 'R' && records[1][0] == 'B':
+			head, _ = strconv.Atoi(records[0][1:])
+			body, _ = strconv.Atoi(records[1][1:])
+		}
+		switch {
+		case body == 0:
+		case head+body <= mergedHeadAndBody:
+			records = []string{"R" + strconv.Itoa(head) + "+B" + strconv.Itoa(body)}
+		default:
+			records = []string{"R" + strconv.Itoa(head), "B" + strconv.Itoa(body)}
+		}
+		r.Records = records
+		out.Requests = append(out.Requests, r)
+	}
+	return out
+}
+
+// carriedAsChromeCarriedThem sends every scenario of the records fixture
+// wearing chrome, and holds every request's records to Chrome's as Chrome
+// writes them wearing it (recordsWearing).
+func carriedAsChromeCarriedThem(t *testing.T, chrome, macOS *profile.Profile, server *harness.Server,
+	fixture *harness.RecordsFixture, port string) {
 	for _, scenario := range slices.Sorted(maps.Keys(recordsAsked)) {
-		want := fixture.Scenarios[scenario]
+		want := recordsWearing(fixture.Scenarios[scenario], chrome, macOS)
 		t.Run(scenario, func(t *testing.T) {
 			server.Reset()
 			client := newTestClient(t, WithProfileValue(chrome), WithTransportOption(tls_client.WithDialContext(
@@ -135,5 +203,37 @@ func TestEveryRecordsScenarioMeasuredIsSent(t *testing.T) {
 		if _, ok := recordsAsked[scenario]; !ok {
 			t.Errorf("%s differs, and is not sent", scenario)
 		}
+	}
+}
+
+func TestRecordsWearingFollowsChromesRule(t *testing.T) {
+	// As long as macOS's, a scenario is the fixture's; a head 10 bytes longer
+	// takes a head and body across the 1,400 bytes they are merged up to, and
+	// one 10 bytes shorter brings them back; a head cut into records grows in
+	// its last part, and a body of more than a record never joins its head.
+	macOS := &profile.Profile{Headers: []profile.Field{{Name: "user-agent", Value: "UA"},
+		{Name: "sec-ch-ua-platform", Value: `"macOS"`}}}
+	longer := &profile.Profile{Headers: []profile.Field{{Name: "user-agent", Value: "UA and more"},
+		{Name: "sec-ch-ua-platform", Value: `"macOS!"`}}}
+	scenario := func(records ...[]string) harness.RecordsScenario {
+		out := harness.RecordsScenario{Note: "n"}
+		for _, r := range records {
+			out.Requests = append(out.Requests, harness.RecordedRequest{Method: "POST", URL: "u", Records: r})
+		}
+		return out
+	}
+	want := scenario([]string{"R700"}, []string{"R695+B705"}, []string{"R690", "B720"}, []string{"r16384", "r100"},
+		[]string{"R689", "b16384", "b1"}, []string{"R686", "B1000"})
+	if got := recordsWearing(want, macOS, macOS); !reflect.DeepEqual(got, want) {
+		t.Errorf("as long as macOS's: %+v", got)
+	}
+	if got := recordsWearing(want, longer, macOS); !reflect.DeepEqual(got, scenario([]string{"R710"},
+		[]string{"R705", "B705"}, []string{"R700", "B720"}, []string{"r16384", "r110"}, []string{"R699", "b16384", "b1"},
+		[]string{"R696", "B1000"})) {
+		t.Errorf("10 bytes longer: %+v", got)
+	}
+	if got := recordsWearing(want, macOS, longer); !reflect.DeepEqual(got.Requests[2].Records, []string{"R680+B720"}) ||
+		!reflect.DeepEqual(got.Requests[1].Records, []string{"R685+B705"}) {
+		t.Errorf("10 bytes shorter: %+v", got)
 	}
 }

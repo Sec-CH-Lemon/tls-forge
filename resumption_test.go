@@ -10,6 +10,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // startEchoWithTickets is the echo server issuing session tickets, as a site
@@ -73,7 +74,14 @@ func measuredOn(t *testing.T, client *Client, server *echo.Server) (*capture.Cap
 
 func TestAClientResumesAsChromeDoes(t *testing.T) {
 	server := startEchoWithTickets(t)
-	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) { resumesAsChromeDoes(t, p, server) })
+}
+
+// resumesAsChromeDoes holds a client wearing p to Chrome 155's hellos, the
+// cold and the resumed, which its own capture is alike (TestTheHelloHasChromes
+// ShapeColdAndResumed).
+func resumesAsChromeDoes(t *testing.T, p *profile.Profile, server *echo.Server) {
+	client := newTestClient(t, WithProfileValue(p))
 
 	// The first connection is the capture: Chrome's first contact, cold.
 	first, conn := measuredOn(t, client, server)
@@ -168,28 +176,42 @@ func TestTheHelloHasChromesShapeColdAndResumed(t *testing.T) {
 	// Held to Chrome 155's own hellos field by field, the shape of what is
 	// drawn for each connection included: where GREASE goes, how long each key
 	// is, ECH's cipher suite and key, pre_shared_key's identities and binders.
-	// Only the ECH payload's length may differ, which Chrome draws too.
+	// Only the ECH payload's length may differ, which Chrome draws too. On
+	// every platform: BoringSSL's hello is one on each, as each profile's own
+	// capture, held to the cold one first, shows; the resumed one was measured
+	// on macOS alone.
 	server := startEchoWithTickets(t)
-	client := newTestClient(t, WithProfile("chrome_155_macos"))
-	for _, name := range []string{"chrome155-clienthello.bin", "chrome155-clienthello-resumed.bin"} {
-		measured, _ := measuredOn(t, client, server)
-		client.CloseIdleConnections()
-		raw, err := os.ReadFile("testdata/" + name)
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
+		chromes := map[string]*fingerprint.ClientHello{}
+		for _, name := range []string{"chrome155-clienthello.bin", "chrome155-clienthello-resumed.bin"} {
+			raw, err := os.ReadFile("testdata/" + name)
+			if err != nil {
+				t.Fatalf("fixture: %v", err)
+			}
+			if chromes[name], err = fingerprint.ParseClientHello(raw); err != nil {
+				t.Fatalf("fixture: %v", err)
+			}
+		}
+		own, err := fingerprint.ParseClientHello(p.ClientHello)
 		if err != nil {
-			t.Fatalf("fixture: %v", err)
+			t.Fatalf("%s's capture: %v", p.Name, err)
 		}
-		chrome, err := fingerprint.ParseClientHello(raw)
-		if err != nil {
-			t.Fatalf("fixture: %v", err)
+		if report := fingerprint.CompareTLS(chromes["chrome155-clienthello.bin"], own); !report.OK() {
+			t.Fatalf("%s's capture, held to Chrome 155's on macOS:\n%s", p.Name, report)
 		}
-		sent, err := measured.Hello()
-		if err != nil {
-			t.Fatalf("the hello sent: %v", err)
+		client := newTestClient(t, WithProfileValue(p))
+		for _, name := range []string{"chrome155-clienthello.bin", "chrome155-clienthello-resumed.bin"} {
+			measured, _ := measuredOn(t, client, server)
+			client.CloseIdleConnections()
+			sent, err := measured.Hello()
+			if err != nil {
+				t.Fatalf("the hello sent: %v", err)
+			}
+			if report := fingerprint.CompareTLS(chromes[name], sent); !report.OK() {
+				t.Errorf("held to %s:\n%s", name, report)
+			}
 		}
-		if report := fingerprint.CompareTLS(chrome, sent); !report.OK() {
-			t.Errorf("held to %s:\n%s", name, report)
-		}
-	}
+	})
 }
 
 func TestAScriptsRequestWritesPathAsChromeDoes(t *testing.T) {
@@ -222,19 +244,28 @@ func TestTheFirstRequestGoesOutInChromesFrames(t *testing.T) {
 	// and to how it wrote each field: the same frames with the same flags,
 	// each field indexed or not and its name from the same table as Chrome's,
 	// :path too: without indexing, named by the static table's first :path.
+	// On every platform, a value the platform decides coded as Chrome codes
+	// the profile's (codedWearing).
 	raw, err := os.ReadFile("testdata/chrome155-http2-preamble.bin")
 	if err != nil {
 		t.Fatalf("fixture: %v", err)
 	}
 	server := startEcho(t)
-	client := newTestClient(t, WithProfile("chrome_155_macos"))
-	measured, _ := measuredOn(t, client, server)
-	chrome := fingerprint.HTTP2Fields(&fingerprint.HTTP2{Raw: raw})
-	sent := fingerprint.HTTP2Fields(measured.HTTP2.Fingerprint())
-	for i, field := range chrome {
-		if (field.Name == "http2_frames" || field.Name == "http2_hpack" || field.Name == "http2_hpack_path") &&
-			!field.Matches(sent[i]) {
-			t.Errorf("%s\nChrome: %s\nsent:   %s", field.Name, field.Render(), sent[i].Render())
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
+		client := newTestClient(t, WithProfileValue(p))
+		measured, _ := measuredOn(t, client, server)
+		chrome := fingerprint.HTTP2Fields(&fingerprint.HTTP2{Raw: raw})
+		sent := fingerprint.HTTP2Fields(measured.HTTP2.Fingerprint())
+		for i, field := range chrome {
+			if field.Name == "http2_hpack" {
+				for j, value := range field.Values {
+					field.Values[j] = codedWearing(value, p)
+				}
+			}
+			if (field.Name == "http2_frames" || field.Name == "http2_hpack" || field.Name == "http2_hpack_path") &&
+				!field.Matches(sent[i]) {
+				t.Errorf("%s\nChrome: %s\nsent:   %s", field.Name, field.Render(), sent[i].Render())
+			}
 		}
-	}
+	})
 }

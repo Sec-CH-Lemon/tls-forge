@@ -587,6 +587,12 @@ func TestEveryScenarioMeasuredIsSentOrSaysWhyNot(t *testing.T) {
 }
 
 func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) { sendsWhatChromeSent(t, p) })
+}
+
+// sendsWhatChromeSent sends every scenario of the fixture wearing p, as a page
+// asked, and holds each request to Chrome's.
+func sendsWhatChromeSent(t *testing.T, p *profile.Profile) {
 	measured := loadChromeRequests(t)
 	scenarios := slices.Sorted(maps.Keys(sentInContexts))
 	scenarios = append(scenarios, slices.Sorted(maps.Keys(sentAfter))...)
@@ -598,6 +604,8 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 		}
 		for proto, want := range map[string][]chromeRequest{"h2": measuredBoth.H2, "h1": measuredBoth.H1} {
 			t.Run(scenario+"/"+proto, func(t *testing.T) {
+				skipWithoutHints(t, p, measuredBoth.H2, measuredBoth.H1)
+				skipApart(t, p, scenario)
 				contexts := sentAfter[scenario]
 				if how.each != nil {
 					contexts = how.each
@@ -608,12 +616,12 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 						contexts = append(contexts, BrowserContext{Kind: KindNavigation, Initiator: want[at-1].URL})
 					}
 				}
-				got := sendAsMeasured(t, proto, how, contexts, want)
+				got := sendAsMeasured(t, p, proto, how, contexts, want)
 				if len(got) != len(want) {
 					t.Fatalf("%s over %s: sent %d requests, Chrome %d", scenario, proto, len(got), len(want))
 				}
 				for i := range want {
-					if diff := diffRequest(want[i], got[i], proto); diff != "" {
+					if diff := diffRequest(want[i], got[i], proto, p); diff != "" {
 						t.Errorf("%s over %s (%s), request %d:\n%s", scenario, proto, measuredBoth.Note, i+1, diff)
 					}
 				}
@@ -768,11 +776,12 @@ var chromeCnonce = regexp.MustCompile(`, cnonce="([0-9a-f]{16})"`)
 // preflights Chrome made itself, in its browser context, to a recorder
 // speaking proto, or plain HTTP when Chrome went over it, and is what the
 // recorder kept: preflights and all.
-func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserContext, want []chromeRequest) []*keptRequest {
+func sendAsMeasured(t *testing.T, p *profile.Profile, proto string, how asSent, contexts []BrowserContext,
+	want []chromeRequest) []*keptRequest {
 	t.Helper()
 	server := newRecorder(t, proto, answeringAsMeasured)
 	plain := newRecorder(t, "http", answeringAsMeasured)
-	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialingWith(plain))
+	client := newTestClient(t, WithProfileValue(p), server.dialingWith(plain))
 	// The client nonces of Chrome's Digest answers, drawn again in the order
 	// it drew them: what an answer says, its response too, has to be Chrome's.
 	var drawn []string
@@ -866,10 +875,11 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 	return server.requests()[skip:]
 }
 
-// diffRequest is how a request sent differs from what Chrome sent: nothing
-// when they are the same but for the user agent, which is the profile's and
-// was HeadlessChrome's, and the network's client hints.
-func diffRequest(want chromeRequest, got *keptRequest, proto string) string {
+// diffRequest is how a request sent wearing p differs from what Chrome sent:
+// nothing when they are the same but for the user agent, which is the
+// profile's and was HeadlessChrome's, and the network's client hints; what the
+// platform decides is held to p's (platformDecided).
+func diffRequest(want chromeRequest, got *keptRequest, proto string, p *profile.Profile) string {
 	var diff []string
 	if got.method != want.Method || got.url != want.URL {
 		diff = append(diff, fmt.Sprintf("sent %s %s, Chrome %s %s", got.method, got.url, want.Method, want.URL))
@@ -903,8 +913,14 @@ func diffRequest(want chromeRequest, got *keptRequest, proto string) string {
 			// network, made anew all the time.
 			continue
 		}
-		if got.headers[i][1] != h[1] {
-			diff = append(diff, fmt.Sprintf("%s: %q, Chrome's %q", h[0], got.headers[i][1], h[1]))
+		// What the platform and the machine decide is the profile's: Chrome's
+		// was on macOS.
+		value := h[1]
+		if own, ok := ownValue(p, h[0]); ok && platformDecided(h[0]) {
+			value = own
+		}
+		if got.headers[i][1] != value {
+			diff = append(diff, fmt.Sprintf("%s: %q, Chrome's %q", h[0], got.headers[i][1], value))
 		}
 	}
 	return strings.Join(diff, "\n")

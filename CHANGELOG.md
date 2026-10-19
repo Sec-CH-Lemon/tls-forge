@@ -28,6 +28,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   version decides, `sec-ch-ua` and its kind and the length they give an
   HTTP/1.1 head, to what the browser sends itself.
 
+- **Every replay of what Chrome was measured to do runs wearing the Linux and
+  Windows profiles too**, not the macOS one alone: requests and their
+  connections, HPACK, HTTP/1.1 records, ALPS, WINDOW_UPDATEs, URLs, False
+  Start, the first request's frames and the ClientHello, cold and resumed.
+  What the platform decides, `sec-ch-ua-platform` and the client hints, is
+  held to each profile's own values, written as Chrome writes them; the
+  scenarios that need client hints, which only the macOS profile has, are
+  left out for the other two, and so is a 401 offering Negotiate on Windows
+  ([docs/support.md](docs/support.md#platforms)).
+
 - **`compare` checks that every key is a key**: a field `keys` says of each
   key of `key_share` and of the GREASE ECH key whether it is a public key of
   its kind, as the browser's always is (X25519: below 2^255−19, top bit clear,

@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 
@@ -139,6 +140,12 @@ func TestEveryURLGoesOutAsChromeSentIt(t *testing.T) {
 		t.Fatalf("StartURLServer: %v", err)
 	}
 	t.Cleanup(func() { _ = server.Close() })
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) { urlsAsChromeSentThem(t, p, server, fixture) })
+}
+
+// urlsAsChromeSentThem sends every URL of the fixture wearing p, one after
+// another, over each protocol, and holds what the server read to Chrome's.
+func urlsAsChromeSentThem(t *testing.T, p *profile.Profile, server *harness.URLServer, fixture *harness.URLsFixture) {
 	for _, proto := range []string{"h2", "h1"} {
 		for _, id := range slices.Sorted(maps.Keys(fixture.Cases)) {
 			t.Run(proto+"/"+id, func(t *testing.T) {
@@ -147,7 +154,7 @@ func TestEveryURLGoesOutAsChromeSentIt(t *testing.T) {
 					want = fixture.Cases[id].H1
 				}
 				server.Reset()
-				client := newTestClient(t, WithProfile("chrome_155_macos"),
+				client := newTestClient(t, WithProfileValue(p),
 					WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
 						var d net.Dialer
 						return d.DialContext(ctx, network, server.Addr(addr, proto))

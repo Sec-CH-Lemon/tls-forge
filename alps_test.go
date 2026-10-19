@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 
@@ -75,10 +76,18 @@ func TestALPSIsTakenAsChromeTookIt(t *testing.T) {
 	if len(strconv.Itoa(server.Plain)) != 5 {
 		t.Fatalf("the bench listens on %d; Chrome was measured on ports of five digits", server.Plain)
 	}
-	chrome := headlessChrome(t)
+	headlessChrome(t)
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) { takenAsChromeTookIt(t, headless(p), server, fixture) })
+}
+
+// takenAsChromeTookIt sends every scenario of the ALPS fixture wearing chrome,
+// and holds what the bench's server made of it to what it made of Chrome.
+func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.Server, fixture *harness.ALPSFixture) {
 	for _, scenario := range slices.Sorted(maps.Keys(fixture.Scenarios)) {
 		want, page := fixture.Scenarios[scenario], alpsAskedOf(scenario)
+		want.Connections = writtenWearing(want.Connections, chrome)
 		t.Run(scenario, func(t *testing.T) {
+			skipWithoutHintsWritten(t, chrome, want.Connections)
 			port := strconv.Itoa(server.ALPS[page.variant])
 			if len(port) != 5 {
 				t.Fatalf("the bench listens on %s; Chrome was measured on ports of five digits", port)

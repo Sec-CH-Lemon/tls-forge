@@ -103,19 +103,17 @@ var hpackDiffers = map[string]string{}
 
 // headlessChrome is the profile of the Chrome the HPACK fixture was measured
 // on: chrome_155_macos, with the user agent HeadlessChrome said, so that each
-// field is as long as Chrome's and the table empties as Chrome's did.
+// field is as long as Chrome's and the table empties as Chrome's did. It is
+// headless(chrome_155_macos), held to the user agent the fixture has.
 func headlessChrome(t *testing.T) *profile.Profile {
 	t.Helper()
 	p, err := profile.Get("chrome_155_macos")
 	if err != nil {
 		t.Fatalf("profile: %v", err)
 	}
-	p = p.Clone()
-	p.UserAgent = loadChromeRequests(t).Scenarios["nav-direct"].H2[0].header("user-agent")
-	for i, h := range p.Headers {
-		if h.Name == "user-agent" {
-			p.Headers[i].Value = p.UserAgent
-		}
+	p = headless(p)
+	if said := loadChromeRequests(t).Scenarios["nav-direct"].H2[0].header("user-agent"); p.UserAgent != said {
+		t.Fatalf("headless %q, Chrome's %q", p.UserAgent, said)
 	}
 	return p
 }
@@ -144,9 +142,40 @@ func TestLaterRequestsGoIntoHPACKAsChromeWroteThem(t *testing.T) {
 		t.Fatalf("StartHPACKServer: %v", err)
 	}
 	t.Cleanup(func() { _ = server.Close() })
-	chrome := headlessChrome(t)
+	headlessChrome(t)
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) { writtenAsChromeWroteThem(t, headless(p), server, fixture) })
+}
+
+// asWrittenWearing is a scenario of the HPACK fixture as Chrome writes it
+// wearing p, each field as codedWearing says. For headless(chrome_155_macos)
+// it is the fixture.
+func asWrittenWearing(want harness.HPACKScenario, p *profile.Profile) harness.HPACKScenario {
+	want.Connections = writtenWearing(want.Connections, p)
+	return want
+}
+
+// writtenWearing is asWrittenWearing of the header blocks of connections.
+func writtenWearing(connections [][]harness.WrittenRequest, p *profile.Profile) [][]harness.WrittenRequest {
+	out := make([][]harness.WrittenRequest, len(connections))
+	for i, conn := range connections {
+		out[i] = slices.Clone(conn)
+		for j := range conn {
+			fields := slices.Clone(conn[j].Fields)
+			for k, field := range fields {
+				fields[k] = codedWearing(field, p)
+			}
+			out[i][j].Fields = fields
+		}
+	}
+	return out
+}
+
+// writtenAsChromeWroteThem sends every scenario of the HPACK fixture wearing
+// chrome, and holds every header block to Chrome's, as Chrome writes it
+// wearing chrome (asWrittenWearing).
+func writtenAsChromeWroteThem(t *testing.T, chrome *profile.Profile, server *harness.Server, fixture *harness.HPACKFixture) {
 	for _, scenario := range slices.Sorted(maps.Keys(hpackAsked)) {
-		want := fixture.Scenarios[scenario]
+		want := asWrittenWearing(fixture.Scenarios[scenario], chrome)
 		t.Run(scenario, func(t *testing.T) {
 			// The bench's ports have five digits, as Chrome's had, and as
 			// every system's own ports have: each field naming one is as

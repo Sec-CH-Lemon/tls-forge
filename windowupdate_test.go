@@ -27,10 +27,12 @@ func TestWindowUpdatesGoAsChromeSentThem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadFlow: %v", err)
 	}
-	chrome, err := profile.Get("chrome_155_macos")
-	if err != nil {
-		t.Fatalf("profile.Get: %v", err)
-	}
+	onEveryPlatform(t, func(t *testing.T, chrome *profile.Profile) { flowsAsChromes(t, chrome, fixture) })
+}
+
+// flowsAsChromes sends every scenario of the flow fixture wearing chrome, the
+// scenarios side by side, and holds the WINDOW_UPDATEs to Chrome's.
+func flowsAsChromes(t *testing.T, chrome *profile.Profile, fixture *harness.FlowFixture) {
 	for id, want := range fixture.Scenarios {
 		t.Run(id, func(t *testing.T) {
 			t.Parallel()
@@ -48,7 +50,7 @@ func TestWindowUpdatesGoAsChromeSentThem(t *testing.T) {
 				t.Fatalf("ClientProfile: %v", err)
 			}
 			delay := time.Duration(scale * float64(built.GetWindowUpdateDelay()))
-			client := newTestClient(t, WithProfile("chrome_155_macos"),
+			client := newTestClient(t, WithProfileValue(chrome),
 				WithTransportOption(tls_client.WithClientProfile(built.WithWindowUpdateDelay(delay))),
 				WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
 					_, port, _ := net.SplitHostPort(addr)

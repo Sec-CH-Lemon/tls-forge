@@ -866,10 +866,12 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 		p      *Profile
 		chrome bool
 	}{
-		"a captured Chrome":          {mustGet(t, "chrome_155_macos"), true},
-		"Chrome from the catalogue":  {&Profile{Name: "chrome_133", Base: "chrome_133"}, true},
-		"Firefox from the catalogue": {&Profile{Name: "firefox_148", Base: "firefox_148"}, false},
-		"Chrome on an iPhone":        {&Profile{Name: "chrome_ios", Base: "safari_ios_18_0", UserAgent: "CriOS iPhone"}, false},
+		"a captured Chrome on macOS":   {mustGet(t, "chrome_155_macos"), true},
+		"a captured Chrome on Linux":   {mustGet(t, "chrome_155_linux"), true},
+		"a captured Chrome on Windows": {mustGet(t, "chrome_155_windows"), true},
+		"Chrome from the catalogue":    {&Profile{Name: "chrome_133", Base: "chrome_133"}, true},
+		"Firefox from the catalogue":   {&Profile{Name: "firefox_148", Base: "firefox_148"}, false},
+		"Chrome on an iPhone":          {&Profile{Name: "chrome_ios", Base: "safari_ios_18_0", UserAgent: "CriOS iPhone"}, false},
 	} {
 		t.Run(name, func(t *testing.T) {
 			built, err := tc.p.ClientProfile()

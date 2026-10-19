@@ -138,6 +138,27 @@ the three describes, it is another platform's, and the run header says so.
 Android and iOS browsers, Firefox and Safari can be measured with
 `tls-forge capture --manual`; nothing about them ships.
 
+The measurements behind the rows above were taken on macOS, and every test
+that sends a measured scenario through tls-forge (requests and their
+connections, HPACK, HTTP/1.1 records, ALPS, WINDOW_UPDATEs, URLs, False Start,
+the first request's frames, the ClientHello) sends it wearing
+`chrome_155_linux` and `chrome_155_windows` as well as `chrome_155_macos`.
+What Chrome's network stack does, the same code on every platform, is held to
+the measurement; what the platform decides, `sec-ch-ua-platform` and the
+client hints a server asks for, is held to the profile's own values, written
+as Chrome writes them: HPACK codes a value shorter when it can, so `"Windows"`
+goes Huffman-coded and `"macOS"` does not, and an HTTP/1.1 request's head is
+as long as the profile's values make it, which decides whether a body goes in
+the head's write, as it does when the two are no more than 1,400 bytes. Each
+profile's own ClientHello, captured on its platform, is alike the one measured
+on macOS under every rule `compare` has, and the hellos tls-forge sends
+wearing it, cold and resumed, are held to the macOS measurements. Left out,
+and said so by the tests: the scenarios in which Chrome sent a client hint a
+server asked for, whose values only the macOS profile has, and on Windows a
+401 offering Negotiate, which Chrome there answers through SSPI and tls-forge
+does not. Chrome itself on Linux and Windows is measured against the same
+fixtures by the weekly drift check (`.github/workflows/drift.yml`).
+
 ## Checking a machine of your own
 
 ```bash

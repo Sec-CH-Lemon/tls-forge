@@ -10,18 +10,20 @@ import (
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 
-// falseStartClient is a client wearing profile that takes the bench's
-// certificate on trust and dials the port of url on the loopback address.
-func falseStartClient(t *testing.T, profile, page string) *Client {
+// falseStartClient is a client wearing what wearing says that takes the
+// bench's certificate on trust and dials the port of url on the loopback
+// address.
+func falseStartClient(t *testing.T, wearing Option, page string) *Client {
 	t.Helper()
 	u, err := url.Parse(page)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return newTestClient(t, WithProfile(profile), WithInsecureSkipVerify(),
+	return newTestClient(t, wearing, WithInsecureSkipVerify(),
 		WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
 			return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", u.Port()))
 		})))
@@ -39,25 +41,29 @@ func TestTLS12ConnectionsFalseStartAsChromesDid(t *testing.T) {
 	if !slices.Equal(slices.Sorted(maps.Keys(fixture.Scenarios)), slices.Sorted(maps.Keys(harness.FalseStartShapes()))) {
 		t.Fatalf("the fixture has %v", slices.Sorted(maps.Keys(fixture.Scenarios)))
 	}
-	server, err := harness.StartFalseStartServer(300 * time.Millisecond)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = server.Close() }()
-	for _, id := range slices.Sorted(maps.Keys(fixture.Scenarios)) {
-		server.Reset()
-		res, err := falseStartClient(t, "chrome_155_macos", server.URL(id)).Do(&Request{URL: server.URL(id)})
-		if err != nil || res.Status != 200 {
-			t.Fatalf("%s: %v", id, err)
-		}
-		got, err := server.Scenario(id)
+	// Each platform side by side, with servers of its own.
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
+		t.Parallel()
+		server, err := harness.StartFalseStartServer(300 * time.Millisecond)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := harness.DiffFalseStart(fixture.Scenarios[id], got); diff != nil {
-			t.Errorf("%s: %v", id, diff)
+		t.Cleanup(func() { _ = server.Close() })
+		for _, id := range slices.Sorted(maps.Keys(fixture.Scenarios)) {
+			server.Reset()
+			res, err := falseStartClient(t, WithProfileValue(p), server.URL(id)).Do(&Request{URL: server.URL(id)})
+			if err != nil || res.Status != 200 {
+				t.Fatalf("%s: %v", id, err)
+			}
+			got, err := server.Scenario(id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := harness.DiffFalseStart(fixture.Scenarios[id], got); diff != nil {
+				t.Errorf("%s: %v", id, diff)
+			}
 		}
-	}
+	})
 }
 
 func TestAProfileOfAnotherBrowserWaitsForTheServersFinished(t *testing.T) {
@@ -68,7 +74,7 @@ func TestAProfileOfAnotherBrowserWaitsForTheServersFinished(t *testing.T) {
 	}
 	defer func() { _ = server.Close() }()
 	const id = "fs-h1-ecdhe-ecdsa-aes128gcm"
-	if _, err := falseStartClient(t, "firefox_148", server.URL(id)).Do(&Request{URL: server.URL(id)}); err != nil {
+	if _, err := falseStartClient(t, WithProfile("firefox_148"), server.URL(id)).Do(&Request{URL: server.URL(id)}); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := server.Scenario(id); err != nil || got.Early {

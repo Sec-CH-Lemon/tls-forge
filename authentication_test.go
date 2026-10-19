@@ -17,6 +17,8 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
+
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 func TestAChallengeIsReadAsChromiumReadsIt(t *testing.T) {
@@ -431,25 +433,27 @@ func TestAURLsCredentialsGoOnlyWhereA401AsksForThem(t *testing.T) {
 	// profile's headers say, is what Chrome sent for one: the challenge
 	// answered with the request sent again, Authorization in its place.
 	measured := loadChromeRequests(t).Scenarios["auth-nav-typed"]
-	for proto, want := range map[string][]chromeRequest{"h2": measured.H2[:2], "h1": measured.H1[:2]} {
-		t.Run(proto, func(t *testing.T) {
-			server := newRecorder(t, proto, answeringAsMeasured)
-			client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
-			res, err := client.Get(authURL("u:p", "auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"))
-			if err != nil || res.Status != http.StatusOK || strings.Contains(res.URL, "u:p") {
-				t.Fatalf("Get: %v, %+v", err, res)
-			}
-			got := server.requests()
-			if len(got) != len(want) {
-				t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
-			}
-			for i := range want {
-				if diff := diffRequest(want[i], got[i], proto); diff != "" {
-					t.Errorf("request %d:\n%s", i+1, diff)
+	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
+		for proto, want := range map[string][]chromeRequest{"h2": measured.H2[:2], "h1": measured.H1[:2]} {
+			t.Run(proto, func(t *testing.T) {
+				server := newRecorder(t, proto, answeringAsMeasured)
+				client := newTestClient(t, WithProfileValue(p), server.dialing())
+				res, err := client.Get(authURL("u:p", "auth-nav-typed/a?next=/auth/auth-nav-typed/b%3Fnext%3D/p/auth-nav-typed-end"))
+				if err != nil || res.Status != http.StatusOK || strings.Contains(res.URL, "u:p") {
+					t.Fatalf("Get: %v, %+v", err, res)
 				}
-			}
-		})
-	}
+				got := server.requests()
+				if len(got) != len(want) {
+					t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
+				}
+				for i := range want {
+					if diff := diffRequest(want[i], got[i], proto, p); diff != "" {
+						t.Errorf("request %d:\n%s", i+1, diff)
+					}
+				}
+			})
+		}
+	})
 }
 
 func TestWhatTheSessionKeepsIsSentWhereChromeSendsIt(t *testing.T) {
