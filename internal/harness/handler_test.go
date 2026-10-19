@@ -65,6 +65,10 @@ func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
 			want: map[string]string{"Set-Cookie": "p=1; Max-Age=3600; Path=/; SameSite=None; Secure"}, cookies: 1},
 		{name: "a page's cookie named", method: "GET", target: "/p/x?keep=k", status: 200,
 			want: map[string]string{"Set-Cookie": "k=1; Max-Age=3600; Path=/; SameSite=None; Secure"}, cookies: 1},
+		{name: "cookies given, one said twice", method: "GET", target: "/p/x?sc=a%3D1%3B+Secure&sc=b%3D2&sc=b%3D2", status: 200,
+			want: map[string]string{"Set-Cookie": "a=1; Secure"}, cookies: 3},
+		{name: "a preflight sets none of the cookies given", method: "OPTIONS", target: "/cors/x?sc=a%3D1", header: origin,
+			status: 204},
 		{name: "misdirected every time", method: "GET", target: "/misdirected/x?always=1&cookie=1", header: origin,
 			status: 421, body: "misdirected",
 			want: map[string]string{"Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "https://www.example.com"}},
@@ -87,6 +91,8 @@ func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
 			want: map[string]string{"Content-Type": "text/html; charset=utf-8"},
 			body: "<!doctype html><html><head><title>run</title></head><body><a href=\"https://www.example.net:443/p/x\">x</a><script>\n" +
 				"const done=()=>fetch('/done/x');\nfetch('https://api.example.com:443/cors/x').then(done);\n</script></body></html>"},
+		{name: "a run page over plain HTTP, its run's TLS port said", method: "GET", target: "http://www.example.com:4000/run/x?tls=8443",
+			status: 200, body: "fetch('https://api.example.com:8443/cors/x')"},
 		{name: "a run page with its referrer policy", method: "GET", target: "/run/referrer", status: 200,
 			body: `<!doctype html><html><head><meta name="referrer" content="no-referrer"><title>run</title></head>`},
 		{name: "a run page with no port asked on", method: "GET", target: "http://localhost/run/localhost", status: 200,
@@ -135,6 +141,11 @@ func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
 	w := served(s, http.MethodOptions, "/cors/x?cookie=1")
 	if _, asked := w.Header()["Accept-Ch"]; asked || len(w.Header().Values("Set-Cookie")) != 0 {
 		t.Errorf("headers %v", w.Header())
+	}
+	// A cookie named comes first, then those given, as given and in order.
+	w = served(s, http.MethodGet, "/p/x?sc=b%3D2&keep=k&sc=a%3D1%3B+Path%3D%2Fx")
+	if got := w.Header().Values("Set-Cookie"); !slices.Equal(got, []string{"k=1; Max-Age=3600; Path=/; SameSite=None; Secure", "b=2", "a=1; Path=/x"}) {
+		t.Errorf("cookies %q", got)
 	}
 	// Digest is offered before Basic when asked, each in a field of its own.
 	w = served(s, http.MethodGet, "/auth/x/a?offer=digest")

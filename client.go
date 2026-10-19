@@ -523,7 +523,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	}
 	if c.session.jar != nil {
 		// What the jar holds for the URL, whatever this request carried.
-		for _, cookie := range c.session.jar.inner.Cookies(cookieURL) {
+		for _, cookie := range c.session.jar.inner.Cookies(jarURL(cookieURL)) {
 			out.Cookies = append(out.Cookies, cookie.Name+"="+cookie.Value)
 		}
 	}

@@ -468,6 +468,32 @@ func init() {
 // sentAfter are scenarios whose page made a first fetch() of another kind,
 // to set cookies, before the one measured: the context of each call.
 var sentAfter = map[string][]BrowserContext{
+	"set-cookie-prefixes": {
+		{Kind: KindFetch, Initiator: run("set-cookie-prefixes")},
+		{Kind: KindFetch, Initiator: run("set-cookie-prefixes")},
+	},
+	"set-cookie-domain": {
+		{Kind: KindFetch, Initiator: run("set-cookie-domain")},
+		{Kind: KindFetch, Initiator: run("set-cookie-domain")},
+		{Kind: KindFetch, Initiator: run("set-cookie-domain"), Credentials: "include"},
+	},
+	"set-cookie-size": {
+		{Kind: KindFetch, Initiator: run("set-cookie-size")},
+		{Kind: KindFetch, Initiator: run("set-cookie-size")},
+	},
+	"set-cookie-insecure-origin": {
+		{Kind: KindFetch, Initiator: "http://www.example.com/run/set-cookie-insecure-origin", ReferrerPolicy: "origin"},
+		{Kind: KindNavigation, Initiator: "http://www.example.com/run/set-cookie-insecure-origin", ReferrerPolicy: "origin"},
+	},
+	"set-cookie-insecure-localhost": {
+		{Kind: KindFetch, Initiator: "http://localhost/run/set-cookie-insecure-localhost"},
+		{Kind: KindFetch, Initiator: "http://localhost/run/set-cookie-insecure-localhost"},
+	},
+	"set-cookie-leave-secure-alone": {
+		{Kind: KindFetch, Initiator: run("set-cookie-leave-secure-alone")},
+		{Kind: KindNavigation, Initiator: run("set-cookie-leave-secure-alone")},
+		{Kind: KindNavigation, Initiator: "http://www.example.com/p/set-cookie-leave-secure-alone-plain"},
+	},
 	"set-cookie-samesite-fetch-same-site": {
 		{Kind: KindFetch, Initiator: run("set-cookie-samesite-fetch-same-site"), Credentials: "include"},
 		{Kind: KindFetch, Initiator: run("set-cookie-samesite-fetch-same-site"), Credentials: "include"},
@@ -553,8 +579,9 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // bench answers (harness.DigestPage); under /misdirected/ what the bench
 // answers (harness.Misdirection), and otherwise what /cors/ answers, CORS
 // refusing it for ?noacao; cookies, two for ?cookie=1 and one of each SameSite
-// for ?cookie=2, one named by ?keep on any answer but a preflight's and one
-// named by ?pfkeep on a preflight's; and for ?close,
+// for ?cookie=2, one named by ?keep on any answer but a preflight's, one
+// named by ?pfkeep on a preflight's, and each ?sc on any answer but a
+// preflight's; and for ?close,
 // the connection ended once answered, as Connection: close says (GOAWAY over
 // HTTP/2).
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
@@ -586,6 +613,11 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	}
 	if keep != "" {
 		w.Header().Add("Set-Cookie", keep+"=1; Max-Age=3600; Path=/; SameSite=None; Secure")
+	}
+	if r.Method != http.MethodOptions {
+		for _, value := range q["sc"] {
+			w.Header().Add("Set-Cookie", value)
+		}
 	}
 	if set := q.Get("cookie"); set != "" && r.Method != http.MethodOptions {
 		cookies := []string{"a=1; Max-Age=3600; Path=/", "b=2; Max-Age=3600; Path=/; SameSite=None; Secure",

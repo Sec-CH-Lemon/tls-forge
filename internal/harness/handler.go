@@ -69,7 +69,9 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 // ?cookie sets cookies, but on a preflight. ?keep=NAME sets a cookie of that
 // name on any answer but a preflight's, and ?pfkeep=NAME on a preflight's
 // alone: what a later request carries says which answers' cookies a browser
-// kept. Under /cors/, ?noacao is an answer CORS refuses.
+// kept; ?sc=VALUE, said again for more, sets a Set-Cookie of each value on
+// any answer but a preflight's. Under /cors/, ?noacao is an answer CORS
+// refuses.
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	q, path := r.URL.Query(), r.URL.Path
 	if q.Has("accept") {
@@ -87,6 +89,11 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if keep != "" {
 		w.Header().Add("Set-Cookie", keep+"=1; Max-Age=3600; Path=/; SameSite=None; Secure")
+	}
+	if r.Method != http.MethodOptions {
+		for _, value := range q["sc"] {
+			w.Header().Add("Set-Cookie", value)
+		}
 	}
 	if strings.HasPrefix(path, "/misdirected/") && s.misdirection.Answers(w, r, servedNameOf(r)) {
 		return
@@ -218,8 +225,12 @@ func (s *Server) runPage(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 	setCookies(w, r)
-	// The origins the page's script reaches are on the port it was asked on.
+	// The origins the page's script reaches are on the port it was asked on,
+	// or, for a page over plain HTTP, the TLS port its run says in ?tls.
 	_, port, _ := net.SplitHostPort(r.Host)
+	if tls := r.URL.Query().Get("tls"); tls != "" {
+		port = tls
+	}
 	tlsPort, _ := strconv.Atoi(port)
 	o := origins(tlsPort, s.Plain)
 	head := ""

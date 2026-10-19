@@ -2,6 +2,7 @@ package harness
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +34,12 @@ type scenario struct {
 	// page an icon of its own, so that the browser asks for no /favicon.ico.
 	table uint32
 	quiet bool
+}
+
+// setting is the query that has the bench set a cookie of each value (?sc).
+func setting(values ...string) string {
+	q := url.Values{"sc": values}
+	return "?" + q.Encode()
 }
 
 // form is a form of two fields, its method, action and encoding filled in.
@@ -278,6 +285,35 @@ var catalogue = map[string]scenario{
 		script: "fetch('{X}/r/302/{ID}?to={A}/cors/{ID}?cookie=2',{credentials:'include'}).then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 	"set-cookie-samesite-nav-redirect-back": {note: "a navigation to another site, 302 back to the page's origin whose answer sets a cookie of each SameSite, then a page of its own origin",
 		script: "location.href='{X}/r/302/{ID}?to={A}/p/{ID}?cookie=2%26after=0%26next={A}/p/{ID}-after';", wait: "/p/{ID}-after"},
+	// Which of the cookies an answer sets (?sc) are kept: a later request
+	// says.
+	"set-cookie-prefixes": {note: "fetch() of the same origin whose answer sets cookies of each prefix, valid and not, and of SameSite=None without Secure, then another",
+		script: "fetch('{A}/p/{ID}" + setting("good=1; Path=/", "__Secure-ok=1; Secure; Path=/", "__Secure-bad=1; Path=/",
+			"__Host-ok=1; Secure; Path=/", "__Host-path=1; Secure; Path=/p", "__Host-domain=1; Secure; Path=/; Domain=www.example.com",
+			"__secure-lower=1; Path=/", "__HOST-upper=1; Path=/", "none-bad=1; SameSite=None; Path=/",
+			"none-ok=1; SameSite=None; Secure; Path=/", "__Http-x=1; Secure; Path=/", "__Host-Http-y=1; Secure; HttpOnly; Path=/") +
+			"').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
+	"set-cookie-insecure-origin": {note: "a page over plain http whose fetch() of its origin sets a cookie, Secure and not, then a navigation to the name over https",
+		start: "{H}/run/{ID}?tls={P}", referrer: "origin",
+		script: "fetch('{H}/p/{ID}" + setting("plain=1; Path=/", "sec=1; Secure; Path=/", "__Secure-x=1; Secure; Path=/",
+			"none=1; SameSite=None; Secure; Path=/") + "').then(()=>{location.href='{A}/p/{ID}-after';});",
+		wait: "/p/{ID}-after"},
+	"set-cookie-insecure-localhost": {note: "a page of http://localhost whose fetch() of its origin sets a cookie, Secure and not, then another",
+		start: "{L}/run/{ID}",
+		script: "fetch('{L}/p/{ID}" + setting("plain=1; Path=/", "sec=1; Secure; Path=/", "__Secure-x=1; Secure; Path=/",
+			"__Host-y=1; Secure; Path=/") + "').then(()=>fetch('{L}/p/{ID}-after')).then(done);"},
+	"set-cookie-leave-secure-alone": {note: "fetch() setting a Secure cookie, a navigation to the name over plain http that sets one of the name without Secure, then its page over https",
+		script: "fetch('{A}/p/{ID}" + setting("s=1; Secure; Path=/") + "').then(()=>{location.href='{H}/p/{ID}-plain" +
+			setting("s=2; Path=/", "t=2; Path=/") + "&after=0&next={A}/p/{ID}-after';});",
+		wait: "/p/{ID}-after"},
+	"set-cookie-domain": {note: "fetch() of the same origin whose answer sets cookies of each kind of Domain, then fetch() of the origin and of another of its site",
+		script: "fetch('{A}/p/{ID}" + setting("d1=1; Domain=example.com; Path=/", "d2=1; Domain=com; Path=/",
+			"d3=1; Domain=example.net; Path=/", "d4=1; Domain=.www.example.com; Path=/", "d5=1; Domain=WWW.EXAMPLE.COM; Path=/",
+			"d6=1; Domain=xample.com; Path=/", "d7=1; Domain=www.example.com.; Path=/") +
+			"').then(()=>fetch('{A}/p/{ID}-after')).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
+	"set-cookie-size": {note: "fetch() of the same origin whose answer sets cookies at and past 4096 bytes of name and value, and one whose Path is past 1024 bytes, then another",
+		script: "fetch('{A}/p/{ID}" + setting("n="+strings.Repeat("x", 4095)+"; Path=/", "m="+strings.Repeat("x", 4096)+"; Path=/",
+			"long=1; Path=/"+strings.Repeat("p", 1100), "short=1; Path=/") + "').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 	"fetch-misdirected-cookie": {note: "fetch() of the same origin, answered 421 the first time with a cookie, then fetch() of the same origin",
 		script: "fetch('{A}/misdirected/{ID}?first=1&mcookie=1').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 

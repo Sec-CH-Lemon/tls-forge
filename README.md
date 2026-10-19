@@ -343,7 +343,10 @@ tls-forge fetch --cookies session.json --save-cookies session.json https://examp
 ```
 
 `--cookies` reads a file tls-forge saved, a browser's export or a Netscape
-`cookies.txt`, and `-b name=value` adds one cookie by hand.
+`cookies.txt`, and `-b name=value` adds one cookie by hand. Those are filed
+as they are; a server's cookies are kept as Chrome keeps them, a prefix's
+rules, `SameSite=None` only with `Secure`, `Secure` only from https or the
+machine itself, and at most 4096 bytes ([GO.md](GO.md#cookies-and-sessions)).
 
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and

@@ -114,7 +114,9 @@ func (s *session) seed(u *url.URL, cookies []Cookie) {
 			SameSite: sameSiteMode(cookie.SameSite),
 		})
 	}
-	s.jar.SetCookies(u, jarCookies)
+	// As given: a server's Set-Cookie is held to what Chrome takes of it, the
+	// caller's own cookies are not.
+	s.jar.file(u, jarCookies)
 }
 
 // cookiesFor is what the jar would send to u, nothing when there is none.

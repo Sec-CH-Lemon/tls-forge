@@ -404,3 +404,158 @@ func TestAScriptsAnswerFromAnotherSiteSetsSameSiteNoneAlone(t *testing.T) {
 		}
 	}
 }
+
+func TestAServersCookieIsHeldToWhatChromeTakes(t *testing.T) {
+	// What Chrome was measured to file of a server's Set-Cookie (the
+	// set-cookie-prefixes, -insecure-*, -size scenarios), one cookie at a
+	// time, beside a valid one that is filed whatever its neighbour is.
+	big := func(n int) string { return strings.Repeat("x", n) }
+	for _, tc := range []struct {
+		from   string
+		cookie fhttp.Cookie
+		filed  bool
+		path   string
+	}{
+		{"https://www.example.com/a", fhttp.Cookie{Name: "plain", Value: "1"}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Secure-ok", Value: "1", Secure: true}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Secure-bad", Value: "1"}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__secure-lower", Value: "1"}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Host-ok", Value: "1", Secure: true, Path: "/"}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__HOST-upper", Value: "1", Path: "/"}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Host-path", Value: "1", Secure: true, Path: "/p"}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Host-nopath", Value: "1", Secure: true}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Host-domain", Value: "1", Secure: true, Path: "/", Domain: "www.example.com"}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Http-x", Value: "1", Secure: true}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Http-y", Value: "1", Secure: true, HttpOnly: true}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Http-z", Value: "1", HttpOnly: true}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Host-Http-y", Value: "1", Secure: true, HttpOnly: true, Path: "/"}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "__Host-Http-z", Value: "1", Secure: true, Path: "/"}, false, ""},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "none-ok", Value: "1", Secure: true, SameSite: fhttp.SameSiteNoneMode}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "none-bad", Value: "1", SameSite: fhttp.SameSiteNoneMode}, false, ""},
+		{"http://www.example.com/a", fhttp.Cookie{Name: "sec", Value: "1", Secure: true}, false, ""},
+		{"http://www.example.com/a", fhttp.Cookie{Name: "__Secure-x", Value: "1", Secure: true}, false, ""},
+		{"http://localhost/a", fhttp.Cookie{Name: "sec", Value: "1", Secure: true}, true, "/"},
+		{"http://127.0.0.1/a", fhttp.Cookie{Name: "__Host-y", Value: "1", Secure: true, Path: "/"}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "n", Value: big(4095)}, true, "/"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "m", Value: big(4096)}, false, ""},
+		{"https://www.example.com/a/b", fhttp.Cookie{Name: "long", Value: "1", Path: "/" + big(1100)}, true, "/a"},
+		{"https://www.example.com/a", fhttp.Cookie{Name: "wide", Value: "1", Domain: big(1100) + ".example.com"}, true, "/"},
+	} {
+		jar := newTestJar()
+		u := mustURL(t, tc.from)
+		cookie := tc.cookie
+		jar.SetCookies(u, []*fhttp.Cookie{&cookie, {Name: "neighbour", Value: "1"}})
+		var filed, path string
+		var neighbour bool
+		for _, c := range jar.all() {
+			switch c.Name {
+			case cookie.Name:
+				filed, path = c.Name, c.Path
+			case "neighbour":
+				neighbour = true
+			}
+		}
+		if (filed != "") != tc.filed || filed != "" && path != tc.path || !neighbour {
+			t.Errorf("%s from %s: filed %v at %q, its neighbour %v; want %v at %q", cookie.Name, tc.from, filed != "", path,
+				neighbour, tc.filed, tc.path)
+		}
+	}
+}
+
+func TestACookieFromAnOriginThatIsNotSecureLeavesASecureOneAlone(t *testing.T) {
+	// RFC 6265bis 5.7: one without Secure from plain http does not replace
+	// or shadow a Secure cookie of its name whose domain matches its either
+	// way and whose path its own is within; from https it does.
+	secure := mustURL(t, "https://www.example.com/")
+	plain := mustURL(t, "http://www.example.com/")
+	held := func(jar *keptJar) []string {
+		var out []string
+		for _, c := range jar.all() {
+			out = append(out, c.Name+"="+c.Value+" "+c.Domain+c.Path)
+		}
+		slices.Sort(out)
+		return out
+	}
+	for _, tc := range []struct {
+		name string
+		from *url.URL
+		set  fhttp.Cookie
+		want []string
+	}{
+		{"the same, from http", plain, fhttp.Cookie{Name: "s", Value: "2", Path: "/"}, []string{"s=1 www.example.com/"}},
+		{"under its path, from http", plain, fhttp.Cookie{Name: "s", Value: "2", Path: "/sub"}, []string{"s=1 www.example.com/"}},
+		{"its domain's, from http", plain, fhttp.Cookie{Name: "s", Value: "2", Path: "/", Domain: "example.com"},
+			[]string{"s=1 www.example.com/"}},
+		{"another name, from http", plain, fhttp.Cookie{Name: "t", Value: "2", Path: "/"},
+			[]string{"s=1 www.example.com/", "t=2 www.example.com/"}},
+		{"the same, from https", secure, fhttp.Cookie{Name: "s", Value: "2", Path: "/"}, []string{"s=2 www.example.com/"}},
+	} {
+		jar := newTestJar()
+		jar.SetCookies(secure, []*fhttp.Cookie{{Name: "s", Value: "1", Path: "/", Secure: true}})
+		set := tc.set
+		jar.SetCookies(tc.from, []*fhttp.Cookie{&set})
+		if got := held(jar); !slices.Equal(got, tc.want) {
+			t.Errorf("%s: holds %v, want %v", tc.name, got, tc.want)
+		}
+	}
+	// What its path and domain are within, or under, decides.
+	for _, tc := range []struct {
+		name          string
+		secure, plain fhttp.Cookie
+		want          []string
+		// from is where the Secure cookie is set, the https origin unless said.
+		from string
+	}{
+		{"a wider path", fhttp.Cookie{Name: "s", Value: "1", Path: "/sub", Secure: true}, fhttp.Cookie{Name: "s", Value: "2", Path: "/"},
+			[]string{"s=1 www.example.com/sub", "s=2 www.example.com/"}, ""},
+		{"a path that only begins so", fhttp.Cookie{Name: "s", Value: "1", Path: "/sub", Secure: true},
+			fhttp.Cookie{Name: "s", Value: "2", Path: "/subx"}, []string{"s=1 www.example.com/sub", "s=2 www.example.com/subx"}, ""},
+		{"under a directory", fhttp.Cookie{Name: "s", Value: "1", Path: "/dir/", Secure: true},
+			fhttp.Cookie{Name: "s", Value: "2", Path: "/dir/x"}, []string{"s=1 www.example.com/dir/"}, ""},
+		{"under the domain's", fhttp.Cookie{Name: "s", Value: "1", Path: "/", Domain: "example.com", Secure: true},
+			fhttp.Cookie{Name: "s", Value: "2", Path: "/"}, []string{"s=1 example.com/"}, ""},
+		{"one without Secure", fhttp.Cookie{Name: "s", Value: "1", Path: "/"}, fhttp.Cookie{Name: "s", Value: "2", Path: "/"},
+			[]string{"s=2 www.example.com/"}, ""},
+		{"another host's", fhttp.Cookie{Name: "s", Value: "1", Path: "/", Secure: true}, fhttp.Cookie{Name: "s", Value: "2", Path: "/"},
+			[]string{"s=1 api.example.com/", "s=2 www.example.com/"}, "https://api.example.com/"},
+	} {
+		jar := newTestJar()
+		first, then := tc.secure, tc.plain
+		from := secure
+		if tc.from != "" {
+			from = mustURL(t, tc.from)
+		}
+		jar.SetCookies(from, []*fhttp.Cookie{&first})
+		jar.SetCookies(plain, []*fhttp.Cookie{&then})
+		if got := held(jar); !slices.Equal(got, tc.want) {
+			t.Errorf("%s: holds %v, want %v", tc.name, got, tc.want)
+		}
+	}
+	// One the jar no longer holds shadows nothing, though the wrapper filed it.
+	jar := newTestJar()
+	jar.SetCookies(secure, []*fhttp.Cookie{{Name: "s", Value: "1", Path: "/", Secure: true}, {Name: "other", Value: "1", Path: "/"}})
+	jar.inner.SetCookies(secure, []*fhttp.Cookie{{Name: "s", Value: "1", Path: "/", Secure: true, MaxAge: -1}})
+	jar.SetCookies(plain, []*fhttp.Cookie{{Name: "s", Value: "2", Path: "/"}})
+	if got := held(jar); !slices.Equal(got, []string{"other=1 www.example.com/", "s=2 www.example.com/"}) {
+		t.Errorf("after the Secure one went: holds %v", got)
+	}
+	// One the jar refuses itself is no question of shadowing.
+	jar = newTestJar()
+	jar.SetCookies(plain, []*fhttp.Cookie{{Name: "s", Value: "2", Domain: "example.net"}})
+	if got := held(jar); len(got) != 0 {
+		t.Errorf("another site's: holds %v", got)
+	}
+}
+
+func TestTheJarIsAskedAsHTTPSForTheMachineItself(t *testing.T) {
+	for raw, want := range map[string]string{
+		"http://localhost:8080/a?q": "https://localhost:8080/a?q",
+		"http://127.0.0.1/":         "https://127.0.0.1/",
+		"http://www.example.com/":   "http://www.example.com/",
+		"https://localhost/":        "https://localhost/",
+	} {
+		if got := jarURL(mustURL(t, raw)).String(); got != want {
+			t.Errorf("jarURL(%s) = %s, want %s", raw, got, want)
+		}
+	}
+}

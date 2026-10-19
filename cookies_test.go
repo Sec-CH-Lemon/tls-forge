@@ -366,3 +366,46 @@ func TestAnAnswerToARequestWithoutCredentialsKeepsNoCookie(t *testing.T) {
 		t.Errorf("the session holds %+v, %v", held, err)
 	}
 }
+
+func TestTheCallersOwnCookiesAreFiledAsGiven(t *testing.T) {
+	// A server's Set-Cookie is held to what Chrome takes of it; the cookies
+	// the caller gives are the caller's, filed as they are: a __Host- one
+	// without Secure, and SameSite=None without Secure, go.
+	var carried atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		carried.Store(r.Header.Get("Cookie"))
+	}))
+	t.Cleanup(server.Close)
+	client := newTestClient(t)
+	if _, err := client.Do(&Request{URL: server.URL + "/", Cookies: []Cookie{{Name: "__Host-given", Value: "1"},
+		{Name: "none", Value: "1", SameSite: "none"}}}); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if got := carried.Load(); got != "__Host-given=1; none=1" {
+		t.Errorf("carried %v", got)
+	}
+}
+
+func TestSecureCookiesGoToPlainHTTPOnTheMachineItself(t *testing.T) {
+	// Chrome deems http on the machine itself a secure origin: a Secure cookie
+	// set from it is kept, and goes back to it.
+	var carried atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		carried.Store(r.Header.Get("Cookie"))
+		if r.URL.Path == "/set" {
+			w.Header().Set("Set-Cookie", "sec=1; Secure; Path=/")
+		}
+	}))
+	t.Cleanup(server.Close)
+	client := newTestClient(t)
+	res, err := client.Get(server.URL + "/set")
+	if err != nil || !slices.Equal(res.Cookies, []string{"sec=1"}) {
+		t.Fatalf("Get: %v, %v", res, err)
+	}
+	if _, err := client.Get(server.URL + "/"); err != nil || carried.Load() != "sec=1" {
+		t.Errorf("carried %v, %v", carried.Load(), err)
+	}
+	if held, err := client.CookiesFor(server.URL + "/"); err != nil || len(held) != 1 || !held[0].Secure {
+		t.Errorf("CookiesFor: %+v, %v", held, err)
+	}
+}

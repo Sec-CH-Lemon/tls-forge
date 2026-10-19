@@ -740,6 +740,17 @@ The default jar uses the public suffix list and applies normal domain, path,
 secure and expiry rules. A cookie lives at most 400 days, as in Chrome: a later
 `Expires` or a longer `Max-Age` is cut to that.
 
+A server's `Set-Cookie` is held to what Chrome takes of it, measured on
+Chrome 155: a prefix's rules, in any case (`__Secure-` with `Secure`,
+`__Host-` with `Secure`, `Path=/` and no `Domain`, `__Http-` with `Secure`
+and `HttpOnly`, `__Host-Http-` with all of those); `SameSite=None` only with
+`Secure`; `Secure` only from https or plain http to the machine itself, which
+Chrome deems secure and sends `Secure` cookies to; a cookie without `Secure`
+from plain http leaves a `Secure` one of its name alone; at most 4096 bytes of
+name and value, and a `Path` or `Domain` longer than 1024 bytes passed over.
+The cookies you give (`WithCookies`, `Request.Cookies`, a session read with
+`--cookies`) are yours, and are filed as they are.
+
 ```go
 client, err := tlsforge.New(tlsforge.WithCookies([]tlsforge.Cookie{
 	{
@@ -760,10 +771,10 @@ client, err := tlsforge.New(tlsforge.WithCookies([]tlsforge.Cookie{
 | `Domain` | Parent or host domain. Empty means the request host. |
 | `HostOnly` | The cookie goes to the host of `Domain` alone, as one set without a `Domain` attribute does, and not to its subdomains. Seeded, it is filed for that host only. |
 | `Path` | Cookie path. Empty defaults to `/` when seeded. |
-| `Secure` | Send only over HTTPS. |
+| `Secure` | Send only over HTTPS, or plain HTTP to the machine itself, which Chrome deems secure. |
 | `HTTPOnly` | Preserve the HttpOnly attribute in exported session data. |
 | `Expires` | Expiration time; zero represents a session cookie. |
-| `SameSite` | `strict`, `lax`, `none`, or empty when the server named none. Kept and written down; not enforced when a request is sent. |
+| `SameSite` | `strict`, `lax`, `none`, or empty when the server named none. Kept, written down, and held to as Chrome holds a request in a browser context to it, sent and set; a request without one is a navigation typed into the address bar, which carries every SameSite. |
 
 `client.CookiesFor(url)` returns the cookies the jar would send to a URL, read
 as a request reads it (a port Chrome sends nothing to is no refusal here), and

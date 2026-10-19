@@ -884,6 +884,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A server's cookies are held to what Chrome takes of them**, with a
+  browser context and without: a prefix's rules in any case (`__Secure-`,
+  `__Host-`, `__Http-`, `__Host-Http-`), `SameSite=None` only with `Secure`,
+  `Secure` only from https or plain http to the machine itself, a `Secure`
+  cookie left alone by one of its name from plain http, at most 4096 bytes of
+  name and value, and a `Path` or `Domain` past 1024 bytes passed over. A
+  `Secure` cookie goes to plain http on the machine itself, as Chrome deems it
+  secure. tls-forge kept every cookie the transport's jar took, and sent the
+  invalid ones back. Measured on Chrome 155 (the six `set-cookie-*`
+  validation scenarios of `testdata/chrome155-requests.json`) and held to it
+  request for request. The cookies the caller gives are filed as they are.
 - **A script's answer from another site keeps its `SameSite=None` cookies
   alone**, as Chrome's: the answer to `fetch()` or an XHR of another site
   than its page's set cookies of `SameSite=Strict`, `Lax` and of none

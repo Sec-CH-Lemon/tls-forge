@@ -40,10 +40,12 @@ type keptJar struct {
 // domain and path replaces the first.
 type cookieKey struct{ name, domain, path string }
 
-// cookieFacts are what the jar does not say of a cookie.
+// cookieFacts are what the jar does not say of a cookie, and whether it is
+// Secure, which a cookie set from an origin that is not secure leaves alone.
 type cookieFacts struct {
 	hostOnly   bool
 	persistent bool
+	secure     bool
 	sameSite   fhttp.SameSite
 	// created is when the cookie was first set: one set again over it keeps
 	// the first's, as RFC 6265 has a browser keep it.
@@ -65,24 +67,46 @@ func newKeptJar(inner fhttp.CookieJar) *keptJar {
 	return &keptJar{inner: inner, kept: map[cookieKey]cookieFacts{}}
 }
 
-// SetCookies files the cookies in the jar, each cut to Chrome's lifetime, and
-// keeps what the jar will not say of them. Of an answer to a request in a
-// browser context, whose rule u is ruled by, it files those the request may
-// set (sendRule.keeps).
+// SetCookies files the cookies an answer from u sets that Chrome would keep:
+// those a server may set (accepts), and of an answer to a request in a
+// browser context, whose rule u is ruled by, those the request may set
+// (sendRule.keeps). Each is filed as file files it.
 func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 	var rule sendRule
 	if ruled, ok := j.rules.Load(u); ok {
 		rule = ruled.(sendRule)
 	}
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	kept := make([]*fhttp.Cookie, 0, len(cookies))
+	for _, c := range cookies {
+		if c == nil {
+			continue
+		}
+		if c = withinLimits(c); rule.keeps(c) && j.accepts(u, c) {
+			kept = append(kept, c)
+		}
+	}
+	j.fileLocked(u, kept)
+}
+
+// file files cookies the caller gave in the jar as they are, not held to
+// what a server may set: each cut to Chrome's lifetime, with what the jar
+// will not say of it kept.
+func (j *keptJar) file(u *url.URL, cookies []*fhttp.Cookie) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.fileLocked(u, cookies)
+}
+
+func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 	now := time.Now()
 	capped := make([]*fhttp.Cookie, 0, len(cookies))
 	for _, c := range cookies {
-		if c != nil && rule.keeps(c) {
+		if c != nil {
 			capped = append(capped, capLifetime(c, now))
 		}
 	}
-	j.mu.Lock()
-	defer j.mu.Unlock()
 	j.inner.SetCookies(u, capped)
 	for _, c := range capped {
 		key, hostOnly, filed := jarKeyOf(u, c)
@@ -98,6 +122,7 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 			j.kept[key] = cookieFacts{
 				hostOnly:   hostOnly,
 				persistent: c.MaxAge > 0 || !c.Expires.IsZero(),
+				secure:     c.Secure,
 				sameSite:   c.SameSite,
 				created:    created,
 			}
@@ -108,7 +133,7 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 // Cookies is the jar's own answer, what goes to a URL, less what a request in
 // a browser context does not carry, when u is that request's.
 func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
-	held := j.inner.Cookies(u)
+	held := j.inner.Cookies(jarURL(u))
 	ruled, ok := j.rules.Load(u)
 	if !ok {
 		return held
@@ -184,9 +209,107 @@ func (rule sendRule) keeps(c *fhttp.Cookie) bool {
 	return !rule.crossSite || rule.topLevel || c.SameSite == fhttp.SameSiteNoneMode
 }
 
+// maxCookieSize is the most a cookie's name and value may be together, and
+// maxAttributeSize the most an attribute's value may be, in bytes: Chrome
+// refuses a larger cookie, and passes over a larger attribute
+// (kMaxCookieNamePlusValueSize, kMaxCookieAttributeValueSize; measured: the
+// set-cookie-size scenario).
+const (
+	maxCookieSize    = 4096
+	maxAttributeSize = 1024
+)
+
+// withinLimits is c without a Path or a Domain longer than Chrome reads, as a
+// copy: the cookie is filed under the default path, or as its host's.
+func withinLimits(c *fhttp.Cookie) *fhttp.Cookie {
+	if len(c.Path) <= maxAttributeSize && len(c.Domain) <= maxAttributeSize {
+		return c
+	}
+	out := *c
+	if len(out.Path) > maxAttributeSize {
+		out.Path = ""
+	}
+	if len(out.Domain) > maxAttributeSize {
+		out.Domain = ""
+	}
+	return &out
+}
+
+// accepts reports a cookie an answer from u sets that Chrome files, as it
+// was measured to (the set-cookie-prefixes, -insecure-origin,
+// -insecure-localhost, -leave-secure-alone and -size scenarios): at most
+// maxCookieSize bytes of name and value; Secure from a secure origin alone
+// (https, or the machine itself), and so SameSite=None; a prefix, in any
+// case, kept: __Secure- Secure, __Host- Secure with Path=/ and no Domain,
+// __Http- Secure and HttpOnly, __Host-Http- all of those; and none without
+// Secure, from an origin that is not secure, of the name of a Secure cookie
+// it would shadow. The jar itself refuses a Domain that is a public suffix,
+// another site's, or ends in a dot. j.mu is held.
+func (j *keptJar) accepts(u *url.URL, c *fhttp.Cookie) bool {
+	secure := trustworthy(originOf(u))
+	name := strings.ToLower(c.Name)
+	switch {
+	case len(c.Name)+len(c.Value) > maxCookieSize:
+		return false
+	case c.Secure && !secure, c.SameSite == fhttp.SameSiteNoneMode && !c.Secure:
+		return false
+	case strings.HasPrefix(name, "__secure-") && !c.Secure:
+		return false
+	case strings.HasPrefix(name, "__host-") && (!c.Secure || c.Domain != "" || c.Path != "/"):
+		return false
+	case (strings.HasPrefix(name, "__http-") || strings.HasPrefix(name, "__host-http-")) && (!c.Secure || !c.HttpOnly):
+		return false
+	}
+	return c.Secure || secure || !j.shadowsSecure(u, c)
+}
+
+// shadowsSecure reports a cookie of the name of a Secure cookie the jar
+// holds whose domain domain-matches its, or is domain-matched by it, and
+// whose path its own is within: which a cookie without Secure set from an
+// origin that is not secure leaves alone (RFC 6265bis 5.7). j.mu is held.
+func (j *keptJar) shadowsSecure(u *url.URL, c *fhttp.Cookie) bool {
+	// One the jar refuses has no domain to match, and shadows nothing.
+	key, _, _ := jarKeyOf(u, c)
+	for held, facts := range j.kept {
+		if held.name != c.Name || !facts.secure || !domainMatches(held.domain, key.domain) || !pathWithin(key.path, held.path) {
+			continue
+		}
+		// What the wrapper filed may since have gone from the jar.
+		for _, still := range j.inner.Cookies(&url.URL{Scheme: "https", Host: held.domain, Path: held.path}) {
+			if still.Name == c.Name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// domainMatches reports two domains of which one is the other or under it.
+func domainMatches(a, b string) bool {
+	return a == b || strings.HasSuffix(a, "."+b) || strings.HasSuffix(b, "."+a)
+}
+
+// pathWithin reports a path that path-matches another, as RFC 6265 has it:
+// the same, or under it.
+func pathWithin(path, under string) bool {
+	return path == under || strings.HasPrefix(path, under) && (strings.HasSuffix(under, "/") || path[len(under)] == '/')
+}
+
+// jarURL is the URL the transport's jar is asked about for u: one over https
+// for plain http to the machine itself, which Chrome deems a secure origin and
+// sends Secure cookies to (measured: set-cookie-insecure-localhost).
+func jarURL(u *url.URL) *url.URL {
+	if u.Scheme != "http" || !trustworthy(originOf(u)) {
+		return u
+	}
+	https := *u
+	https.Scheme = "https"
+	return &https
+}
+
 // forURL is what goes to a URL, with what the jar does not say of each cookie.
 func (j *keptJar) forURL(u *url.URL) []Cookie {
-	held := j.inner.Cookies(u)
+	held := j.inner.Cookies(jarURL(u))
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	out := make([]Cookie, 0, len(held))
