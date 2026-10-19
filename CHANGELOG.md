@@ -915,6 +915,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A Chromium profile false starts on a TLS 1.2 server, as Chrome does**: on
+  a connection's first, full TLS 1.2 handshake with an ECDHE key exchange, an
+  AEAD cipher suite and a protocol negotiated by ALPN, the request goes right
+  after the client's Finished, before the server's; without ALPN, with a CBC
+  suite or an RSA key exchange the client waits, as Chrome 155 was measured
+  to (`testdata/chrome155-falsestart.json`). Chromium sets
+  `SSL_MODE_ENABLE_FALSE_START` for every connection; tls-forge waited for
+  the server's Finished, a round trip more, which a TLS 1.2 server could
+  tell on every connection. The first read of the connection then reads the
+  server's Finished and checks it. Another browser's profile waits as before.
 - **Captured profiles generate a valid X25519 public key for GREASE ECH**:
   uTLS's fingerprinter filled `enc` with random bytes, bypassing its normal
   HPKE sender key generation. `Profile.Spec` now leaves that key unset so

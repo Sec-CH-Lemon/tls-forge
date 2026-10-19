@@ -1,0 +1,61 @@
+{
+ "browser": "Google Chrome 155.0.8059.85, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-19",
+ "how": "For each scenario a TLS 1.2 server of Go's crypto/tls (MaxVersion 1.2, the one cipher suite and the ALPN protocols the scenario names) at a port of its own, behind a relay that passes every record on and keeps when the client's first record of application data came on each connection, and holds back what the server sends after the client's ChangeCipherSpec (its session ticket, ChangeCipherSpec and Finished) for a second. The page typed in a fresh profile; proto is the protocol of the request as the server read it, early whether the earliest request's first record came before the relay let the server's flight go. internal/harness/falsestart.go, measure --false-start.",
+ "scenarios": {
+  "fs-h1-ecdhe-ecdsa-aes128gcm": {
+   "note": "ECDHE, AES-128-GCM, http/1.1",
+   "suite": "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+   "protocols": [
+    "http/1.1"
+   ],
+   "proto": "HTTP/1.1",
+   "early": true
+  },
+  "fs-h1-ecdhe-rsa-aes128cbc": {
+   "note": "ECDHE, AES-128-CBC, http/1.1",
+   "suite": "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+   "protocols": [
+    "http/1.1"
+   ],
+   "proto": "HTTP/1.1",
+   "early": false
+  },
+  "fs-h1-rsa-aes128gcm": {
+   "note": "an RSA key exchange, AES-128-GCM, http/1.1",
+   "suite": "TLS_RSA_WITH_AES_128_GCM_SHA256",
+   "protocols": [
+    "http/1.1"
+   ],
+   "proto": "HTTP/1.1",
+   "early": false
+  },
+  "fs-h2-ecdhe-ecdsa-aes128gcm": {
+   "note": "ECDHE, AES-128-GCM, h2",
+   "suite": "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+   "protocols": [
+    "h2",
+    "http/1.1"
+   ],
+   "proto": "HTTP/2.0",
+   "early": true
+  },
+  "fs-h2-ecdhe-rsa-chacha20": {
+   "note": "ECDHE, ChaCha20-Poly1305, h2",
+   "suite": "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+   "protocols": [
+    "h2",
+    "http/1.1"
+   ],
+   "proto": "HTTP/2.0",
+   "early": true
+  },
+  "fs-noalpn-ecdhe-ecdsa-aes128gcm": {
+   "note": "ECDHE, AES-128-GCM, and no protocol taken by ALPN",
+   "suite": "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+   "protocols": null,
+   "proto": "HTTP/1.1",
+   "early": false
+  }
+ }
+}

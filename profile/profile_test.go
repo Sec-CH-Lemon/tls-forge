@@ -865,6 +865,11 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 			if strict := built.GetStrictMaxConcurrentStreams(); strict != tc.chrome {
 				t.Errorf("waits for a stream: %v", strict)
 			}
+			// And sends its request before a TLS 1.2 server's Finished, as
+			// Chrome does.
+			if early := built.GetFalseStart(); early != tc.chrome {
+				t.Errorf("false starts: %v", early)
+			}
 			if of == nil {
 				return
 			}
