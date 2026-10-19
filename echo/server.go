@@ -16,6 +16,7 @@ package echo
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -27,6 +28,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
@@ -92,6 +94,13 @@ type Session struct {
 	// session records is the first.
 	requests int
 
+	// connections are the hellos of the other connections the page of this
+	// navigation opened, and resumed the one that resumed a session: what a
+	// browser a person opens draws for every connection, and how it resumes
+	// (helloSaid).
+	connections []*fingerprint.ClientHello
+	resumed     *fingerprint.ClientHello
+
 	// navigation is guarded by the Server's mutex, not this session's. It
 	// describes how the server files this session among the others, which is
 	// not a question a session can answer about itself.
@@ -121,6 +130,12 @@ func (s *Session) Capture(source string) *capture.Capture {
 		http1.HeaderNames = append([]string(nil), s.http1.HeaderNames...)
 		http1.Headers = append([]capture.HeaderField(nil), s.http1.Headers...)
 		out.HTTP1 = &http1
+	}
+	for _, hello := range s.connections {
+		out.Connections = append(out.Connections, append([]byte(nil), hello.Raw...))
+	}
+	if s.resumed != nil {
+		out.ResumedClientHello = append([]byte(nil), s.resumed.Raw...)
 	}
 	return out
 }
@@ -195,6 +210,12 @@ type Server struct {
 	manual       bool
 	trusted      map[string]bool
 	trustedOrder []string
+	// ticketed is the configuration a connection is handed while ticketsUntil
+	// (Unix nanoseconds, 0 for never) has not passed: tickets, with keys of
+	// its own, since a configuration that has them off issues none whatever
+	// the one handed out says.
+	ticketed     *tls.Config
+	ticketsUntil atomic.Int64
 
 	closeOnce sync.Once
 	closed    chan struct{}
@@ -326,6 +347,13 @@ func Start(opts ...Option) (*Server, error) {
 		navigationByID:   map[string]*Session{},
 		manual:           cfg.manual,
 		trusted:          map[string]bool{},
+	}
+	if s.manual {
+		if err := s.offerTickets(); err != nil {
+			_ = listener.Close()
+			_ = captureListener.Close()
+			return nil, err
+		}
 	}
 	s.wg.Add(2)
 	go s.accept(false)
@@ -715,12 +743,13 @@ func (s *Server) complete(sess *Session) {
 // route answers a request. The endpoint set is intentionally four items long.
 func (s *Server) route(sess *Session, req *request) (status, contentType string, body []byte) {
 	path := req.path
-	navigationToken := ""
+	navigationToken, step := "", ""
 	http1Done := false
 	if i := strings.IndexByte(path, '?'); i >= 0 {
 		if query, err := url.ParseQuery(path[i+1:]); err == nil {
 			navigationToken = query.Get("navigation")
 			http1Done = query.Get("http1") == "done"
+			step = query.Get("step")
 		}
 		path = path[:i]
 	}
@@ -747,15 +776,27 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		if !http1Done {
 			http1Navigation = s.CaptureURL() + "/?navigation=" + url.QueryEscape(token)
 		}
+		hellos := 0
+		if s.manual {
+			hellos = manualHellos
+		}
 		page := strings.ReplaceAll(capturePage, navigationPlaceholder, token)
 		page = strings.Replace(page, http1NavigationPlaceholder, http1Navigation, 1)
+		page = strings.Replace(page, hellosPlaceholder, strconv.Itoa(hellos), 1)
 		return "200", "text/html; charset=utf-8", []byte(page)
+
+	case "/hello":
+		if !s.manual {
+			return "404", "text/plain; charset=utf-8", []byte("not found\n")
+		}
+		return s.helloSaid(sess, navigationToken, step)
 
 	case "/api/all":
 		return jsonResponse(sess.Capture(capture.SourceBrowser))
 
 	case "/collect":
 		req.last = false
+		s.ticketsUntil.Store(0)
 		var nav capture.Navigator
 		if err := json.Unmarshal(req.body, &nav); err != nil {
 			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
@@ -773,7 +814,12 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		target.navigator = &nav
 		target.mu.Unlock()
 		req.completes = target
-		return jsonResponse(target.Capture(capture.SourceBrowser))
+		// The page shows what it reported. The other connections' hellos are
+		// the command's, and with them the answer would be larger than any
+		// this server sends: the page would never hear back.
+		said := target.Capture(capture.SourceBrowser)
+		said.Connections, said.ResumedClientHello = nil, nil
+		return jsonResponse(said)
 
 	default:
 		// Chrome asks for /favicon.ico unprompted. Answering it politely keeps
@@ -781,6 +827,61 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		// since it is not the navigation.
 		return "404", "text/plain; charset=utf-8", []byte("not found\n")
 	}
+}
+
+// manualHellos is how many connections the page of a manual capture opens
+// after its navigation, to say its hello on each, before one more is given a
+// ticket and another resumes it: enough that of four lengths a browser draws
+// one of, each shows but on one page in a thousand.
+const manualHellos = 24
+
+// maxHellos is the most hellos a navigation keeps of the connections its page
+// opened: a page that went on opening them would otherwise grow it for good.
+const maxHellos = 64
+
+// ticketsOpenFor is how long the connections a page opens are given tickets
+// once it asks: long enough for the two that use them, and no longer, since a
+// ticket given to a later visit to measure would make that one a resumed one.
+const ticketsOpenFor = 10 * time.Second
+
+// helloSaid files the hello of a connection the page of a manual capture
+// opened with the page's navigation, and the connection ends, as every answer
+// outside a measurement ends its own. Only a connection's first request
+// carries its hello, a resumed one is filed only as the one the page says
+// resumes, and a navigation keeps at most maxHellos. step=tickets has the
+// connections opened after it given a ticket, for ticketsOpenFor at most, and
+// step=resumed, on the one that should resume one, stops it.
+func (s *Server) helloSaid(sess *Session, token, step string) (status, contentType string, body []byte) {
+	if token == "" {
+		_, contentType, body := jsonResponse(map[string]string{"error": "echo: a hello for no navigation"})
+		return "400", contentType, body
+	}
+	target, err := s.captureSession(token, sess)
+	if err != nil {
+		_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
+		return "400", contentType, body
+	}
+	switch step {
+	case "tickets":
+		s.ticketsUntil.Store(time.Now().Add(ticketsOpenFor).UnixNano())
+	case "resumed":
+		s.ticketsUntil.Store(0)
+	}
+	sess.mu.Lock()
+	hello, first := sess.hello, sess.requests == 1
+	sess.mu.Unlock()
+	if hello != nil && first {
+		_, resumed := hello.Extension(fingerprint.ExtPreSharedKey)
+		target.mu.Lock()
+		switch {
+		case resumed && step == "resumed":
+			target.resumed = hello
+		case !resumed && len(target.connections) < maxHellos:
+			target.connections = append(target.connections, hello)
+		}
+		target.mu.Unlock()
+	}
+	return "200", "text/plain; charset=utf-8", []byte("ok\n")
 }
 
 func jsonResponse(v any) (status, contentType string, body []byte) {
@@ -805,3 +906,28 @@ func isClosed(err error) bool {
 		strings.Contains(msg, "broken pipe") ||
 		strings.Contains(msg, "use of closed")
 }
+
+// offerTickets lets a page of a manual capture be given a ticket on the
+// connections it opens while ticketsUntil has not passed, so that the
+// browser's next hello resumes a session: tickets on with keys of their own
+// in the configuration handed out (ticketKeys reads the original's otherwise,
+// which has them off), and every other connection as it was.
+func (s *Server) offerTickets() error {
+	var key [32]byte
+	if _, err := readRandom(key[:]); err != nil {
+		return fmt.Errorf("echo: a session ticket key: %w", err)
+	}
+	s.ticketed = s.tlsConfig.Clone()
+	s.ticketed.SessionTicketsDisabled = false
+	s.ticketed.SetSessionTicketKeys([][32]byte{key})
+	s.tlsConfig.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		if until := s.ticketsUntil.Load(); until != 0 && time.Now().UnixNano() < until {
+			return s.ticketed, nil
+		}
+		return nil, nil
+	}
+	return nil
+}
+
+// readRandom is rand.Read, which a test makes fail.
+var readRandom = rand.Read

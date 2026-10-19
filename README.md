@@ -1466,6 +1466,17 @@ steps the page itself walks you through:
 3. Open the address again in a new tab, typed or pasted. That visit is the one
    measured, and the command ends with it.
 
+After the visit measured, its page opens 26 more connections to the server,
+which ends each after its answer: their ClientHellos show what the browser
+draws anew for every connection, the order of its extensions and the length of
+its GREASE ECH payload, and the profile draws what was measured rather than
+what the browser's name suggests. One of them is given a session ticket and
+the next resumes it, and `capture` says whether the browser resumes as
+tls-forge does. What a profile cannot say, an extension in some hellos only or
+a resumption otherwise than tls-forge's, is said in the summary and kept in the
+profile's notes. Measured on Chrome 155: its order drawn, a payload of 144,
+176, 208 or 240 bytes, and resumed as tls-forge resumes.
+
 The visit after the warning is not measured, because what a browser sends once
 a person says yes to a certificate can be a reload of the refused page, which
 is not what it sends when somebody opens an address. The visit measured has to

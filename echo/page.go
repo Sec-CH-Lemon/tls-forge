@@ -2,6 +2,7 @@ package echo
 
 const navigationPlaceholder = "__TLS_FORGE_NAVIGATION__"
 const http1NavigationPlaceholder = "__TLS_FORGE_HTTP1_NAVIGATION__"
+const hellosPlaceholder = "__TLS_FORGE_HELLOS__"
 
 // capturePage is served at "/". It has one job beyond being readable: report
 // what the HTTP layer cannot.
@@ -83,6 +84,25 @@ const capturePage = `<!doctype html>
     device_memory: navigator.deviceMemory || 0,
     hardware_concurrency: navigator.hardwareConcurrency || 0,
   };
+
+  // A browser a person opens says its hello again on each of as many
+  // connections, every one of which the server ends, then on one given a
+  // ticket and on one that resumes it: what it draws for every connection,
+  // and how it resumes. A browser tls-forge launched keeps its connection, and
+  // is asked for none.
+  const hellos = __TLS_FORGE_HELLOS__;
+  if (hellos > 0) {
+    status.textContent = 'measuring its connections…';
+    const hello = '/hello?navigation=__TLS_FORGE_NAVIGATION__';
+    const say = (what) => fetch(hello + what, { cache: 'no-store' })
+      .then((res) => res.arrayBuffer()).catch(() => null);
+    for (let i = 0; i < hellos; i++) {
+      await say('&i=' + i);
+    }
+    await say('&step=tickets');
+    await say('&i=' + hellos);
+    await say('&step=resumed');
+  }
 
   let capture;
   try {

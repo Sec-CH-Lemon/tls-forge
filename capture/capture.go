@@ -40,6 +40,14 @@ type Capture struct {
 	HTTP2     *HTTP2     `json:"http2,omitempty"`
 	HTTP1     *HTTP1     `json:"http1,omitempty"`
 	Navigator *Navigator `json:"navigator,omitempty"`
+
+	// Connections are the ClientHellos of the other connections the page
+	// opened after the navigation, one each, as they arrived, oldest first:
+	// what a browser draws anew for every connection shows across them.
+	// ResumedClientHello is the hello of one that resumed a session another
+	// was given. A browser a person opens gives them (echo.WithManual).
+	Connections        [][]byte `json:"connections,omitempty"`
+	ResumedClientHello []byte   `json:"resumed_client_hello,omitempty"`
 }
 
 // HTTP1 is what an HTTP/1.1 client sent.

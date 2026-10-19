@@ -1,24 +1,29 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
-// visitAsAPersonSaying does at the address what a person is told to: opens
-// it, which only says what to do next; opens it again, as if in a new tab; and
-// lets the page report back navigator, the JSON /collect takes: what a
-// browser's script says of it.
-func visitAsAPersonSaying(address, profileName, navigator string) error {
+// visitAsAPersonConnecting does at the address what a person is told to:
+// opens it, which only says what to do next; opens it again, as if in a new
+// tab; and lets the page report back navigator, the JSON /collect takes, what
+// a browser's script says of it. When connects says so, the page first opens
+// the connections it asks for, as a browser's does: each once the server has
+// ended the one before, then one given a ticket and one that resumes it.
+func visitAsAPersonConnecting(address, profileName, navigator string, connects bool) error {
 	client, err := tlsforge.New(tlsforge.WithProfile(profileName), tlsforge.WithInsecureSkipVerify(),
 		tlsforge.WithoutRedirects())
 	if err != nil {
@@ -38,6 +43,33 @@ func visitAsAPersonSaying(address, profileName, navigator string) error {
 	start := strings.Index(page.Text(), marker)
 	if start < 0 {
 		return fmt.Errorf("the second visit was not measured:\n%s", page.Text())
+	}
+	if connects {
+		said := func(marker, end string) string {
+			at := strings.Index(page.Text(), marker) + len(marker)
+			return page.Text()[at : at+strings.Index(page.Text()[at:], end)]
+		}
+		hellos, err := strconv.Atoi(said("const hellos = ", ";"))
+		if err != nil {
+			return err
+		}
+		hello := strings.TrimSuffix(address, "/") + said("const hello = '", "'")
+		say := func(what string) error {
+			client.CloseIdleConnections()
+			_, err := client.Do(&tlsforge.Request{URL: hello + what})
+			return err
+		}
+		for i := range hellos {
+			if err := say("&i=" + strconv.Itoa(i)); err != nil {
+				return err
+			}
+		}
+		for _, what := range []string{"&step=tickets", "&i=" + strconv.Itoa(hellos), "&step=resumed"} {
+			if err := say(what); err != nil {
+				return err
+			}
+		}
+		client.CloseIdleConnections()
 	}
 	start += len(marker)
 	end := strings.IndexByte(page.Text()[start:], '\'')
@@ -59,10 +91,17 @@ func aPersonVisits(t *testing.T, profileName string) <-chan error {
 // aPersonVisitsSaying is aPersonVisits whose page reports navigator.
 func aPersonVisitsSaying(t *testing.T, profileName, navigator string) <-chan error {
 	t.Helper()
+	return aPersonVisitsConnecting(t, profileName, navigator, false)
+}
+
+// aPersonVisitsConnecting is aPersonVisitsSaying whose page opens the
+// connections it asks for when connects says so.
+func aPersonVisitsConnecting(t *testing.T, profileName, navigator string, connects bool) <-chan error {
+	t.Helper()
 	visited := make(chan error, 1)
 	previous := visitorReady
 	visitorReady = func(address string) {
-		go func() { visited <- visitAsAPersonSaying(address, profileName, navigator) }()
+		go func() { visited <- visitAsAPersonConnecting(address, profileName, navigator, connects) }()
 	}
 	t.Cleanup(func() { visitorReady = previous })
 	return visited
@@ -383,4 +422,145 @@ func TestAProfileIsFiledUnderTheBrowsersPlatform(t *testing.T) {
 			t.Errorf("%s: saved %q at %s: %v", tc.platform, name, path, err)
 		}
 	}
+}
+
+func TestCaptureManualMeasuresWhatTheBrowserDrawsForEachConnection(t *testing.T) {
+	// The page's connections say what the browser draws for each, and how it
+	// resumes: the profile draws what was measured. The person wears Chrome's
+	// profile, which tls-forge draws as Chrome does, and resumes as it does.
+	visited := aPersonVisitsConnecting(t, "chrome", `{}`, true)
+	dir := t.TempDir()
+	code, stdout, stderr := exec(t, "capture", "--manual", "--save", dir, "--timeout", "60s")
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	if code != 0 || !strings.Contains(stdout, "per connection   the order of its extensions drawn for each, a GREASE ECH payload of ") ||
+		!strings.Contains(stdout, " bytes (27 hellos)") ||
+		!strings.Contains(stdout, "resumed          as tls-forge resumes: the hello it sent cold, and pre_shared_key last") ||
+		strings.Contains(stdout, "not every time") {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	version, platform := theVisitorsPlatform(t)
+	data, err := os.ReadFile(filepath.Join(dir, version, platform+".json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := profile.Load(data)
+	if err != nil || saved.PerConnection == nil || !saved.PerConnection.ShufflesExtensions ||
+		len(saved.PerConnection.ECHPayloadLengths) != 4 || strings.Contains(saved.Notes, "not in every hello") ||
+		strings.Contains(saved.Notes, "resumed otherwise") {
+		t.Errorf("saved %+v, %q, %v", saved.PerConnection, saved.Notes, err)
+	}
+}
+
+func TestWhatWasDrawnAndHowItResumedAreSaid(t *testing.T) {
+	for _, tc := range []struct {
+		drawn *profile.Drawn
+		err   error
+		want  string
+	}{
+		{nil, errors.New("broken"), "not measured: broken"},
+		{nil, nil, "not measured: too few connections"},
+		{&profile.Drawn{Hellos: 20}, nil, "its extensions in one order (20 hellos)"},
+		{&profile.Drawn{Hellos: 20, ECH: []int{208}}, nil, "its extensions in one order, a GREASE ECH payload of 208 bytes every time (20 hellos)"},
+		{&profile.Drawn{Hellos: 27, Order: true, ECH: []int{144, 240}}, nil,
+			"the order of its extensions drawn for each, a GREASE ECH payload of 144, 240 bytes (27 hellos)"},
+	} {
+		if got := drawnSaid(tc.drawn, tc.err); got != tc.want {
+			t.Errorf("%+v, %v: %q", tc.drawn, tc.err, got)
+		}
+	}
+	for _, tc := range []struct {
+		r    profile.Resumption
+		err  error
+		want string
+	}{
+		{profile.Resumption{}, errors.New("broken"), "not read: broken"},
+		{profile.Resumption{}, nil, "it resumed none of the sessions it was given"},
+		{profile.Resumption{Measured: true, Identities: 1}, nil, "as tls-forge resumes: the hello it sent cold, and pre_shared_key last"},
+		{profile.Resumption{Measured: true, Added: []uint16{42}, Missing: []uint16{0, 16}, NotLast: true}, nil,
+			"otherwise than tls-forge resumes: adds " + fingerprint.ExtensionName(42) + ", lacks server_name, alpn, " +
+				"pre_shared_key not last, offers 0 tickets"},
+		{profile.Resumption{Measured: true, Identities: 2}, nil, "otherwise than tls-forge resumes: offers 2 tickets"},
+	} {
+		if got := resumptionSaid(tc.r, tc.err); got != tc.want {
+			t.Errorf("%+v, %v: %q", tc.r, tc.err, got)
+		}
+	}
+}
+
+func TestAProfileNotesWhatItCannotSay(t *testing.T) {
+	// An extension some hellos carry and others do not, and a resumption
+	// otherwise than tls-forge's, are said beside the profile; a capture
+	// whose page opened too few connections is said to be one.
+	measured, err := tlsforge.MeasureSelf(context.Background(), tlsforge.WithProfile("chrome"))
+	if err != nil {
+		t.Fatalf("MeasureSelf: %v", err)
+	}
+	for range 20 {
+		measured.Connections = append(measured.Connections, measured.RawClientHello)
+	}
+	measured.Connections[4] = withRawExtension(t, measured.RawClientHello, 42)
+	measured.ResumedClientHello = withRawExtension(t, measured.RawClientHello, 42)
+	_, path, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_155", measured, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := profile.Load(data)
+	early := fingerprint.ExtensionName(42)
+	if err != nil || !strings.Contains(saved.Notes, "; not in every hello: "+early) ||
+		!strings.Contains(saved.Notes, "; resumed otherwise than tls-forge resumes: adds "+early) {
+		t.Errorf("notes %q, %v", saved.Notes, err)
+	}
+	var out bytes.Buffer
+	printCapture(newPrinter(&out), measured)
+	if !strings.Contains(out.String(), "not every time   "+early+": in some of its hellos only") {
+		t.Errorf("summary:\n%s", out.String())
+	}
+	// Without the connections a page opens, nothing of them is said.
+	plain := *measured
+	plain.Connections, plain.ResumedClientHello = nil, nil
+	out.Reset()
+	printCapture(newPrinter(&out), &plain)
+	if strings.Contains(out.String(), "per connection") || strings.Contains(out.String(), "resumed") {
+		t.Errorf("summary of a launched browser's:\n%s", out.String())
+	}
+	measured.Connections = measured.Connections[:2]
+	out.Reset()
+	printCapture(newPrinter(&out), measured)
+	if !strings.Contains(out.String(), "per connection   not measured: too few connections") {
+		t.Errorf("summary:\n%s", out.String())
+	}
+}
+
+// withRawExtension is raw, a ClientHello's record, with an empty extension of
+// type typ after its others.
+func withRawExtension(t *testing.T, raw []byte, typ uint16) []byte {
+	t.Helper()
+	out := append([]byte(nil), raw...)
+	read := func(at, n int) int {
+		v := 0
+		for _, b := range out[at : at+n] {
+			v = v<<8 | int(b)
+		}
+		return v
+	}
+	put := func(at, n, v int) {
+		for i := range n {
+			out[at+n-1-i] = byte(v >> (8 * i))
+		}
+	}
+	at := 5 + 4 + 2 + 32
+	at += 1 + read(at, 1)
+	at += 2 + read(at, 2)
+	at += 1 + read(at, 1)
+	out = append(out, byte(typ>>8), byte(typ), 0, 0)
+	put(at, 2, read(at, 2)+4)
+	put(5+1, 3, read(5+1, 3)+4)
+	put(3, 2, read(3, 2)+4)
+	return out
 }

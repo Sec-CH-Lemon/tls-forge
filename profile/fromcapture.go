@@ -132,6 +132,14 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 			p.PerConnection = chromiumPerConnection()
 		}
 	}
+	// Measured, it is what was measured.
+	drawn, err := DrawnOf(c)
+	if err != nil {
+		return nil, err
+	}
+	if drawn != nil {
+		p.PerConnection = drawn.perConnection()
+	}
 	return p, nil
 }
 

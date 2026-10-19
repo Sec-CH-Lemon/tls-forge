@@ -2,9 +2,11 @@ package echo
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
 const visitorAgent = "Mozilla/5.0 (Test) Visitor/1.0"
@@ -299,5 +302,144 @@ func TestCollectIsAnsweredBeforeTheCaptureIsHandedOver(t *testing.T) {
 		}
 		_ = ours.Close()
 		_ = theirs.Close()
+	}
+}
+
+// pageSays is what the page says after marker, up to the end of a word.
+func pageSays(t *testing.T, page, marker string) string {
+	t.Helper()
+	start := strings.Index(page, marker)
+	if start < 0 {
+		t.Fatalf("the page says no %q:\n%s", marker, page)
+	}
+	start += len(marker)
+	end := strings.IndexAny(page[start:], "';")
+	return page[start : start+end]
+}
+
+func TestManualPageSaysItsHelloOnConnectionsOfItsOwn(t *testing.T) {
+	// After the visit measured, the page opens as many connections as it says,
+	// the server ending each after its answer, then one given a ticket and one
+	// that resumes it: their hellos are the navigation's, the resumed one
+	// apart, and none of a connection that carried another request.
+	server := startServer(t, WithManual(true))
+	transport := http2Transport(&tls.Config{InsecureSkipVerify: true, ClientSessionCache: tls.NewLRUClientSessionCache(8)})
+	client := &http.Client{Transport: transport}
+	openPage(t, client, server.URL()+"/")
+	_, page := openPage(t, client, server.URL()+"/")
+	hellos, err := strconv.Atoi(pageSays(t, page, "const hellos = "))
+	if err != nil || hellos != manualHellos {
+		t.Fatalf("the page asks for %d hellos, %v", hellos, err)
+	}
+	address := server.URL() + pageSays(t, page, "const hello = '")
+	// Each on a connection of its own, as a browser opens one once the server
+	// says it is going away: Go's transport may pick the old one up first.
+	say := func(what string) int {
+		status, _ := get(t, client, address+what)
+		transport.CloseIdleConnections()
+		return status
+	}
+	// On the measured visit's connection, which carried it: no hello filed.
+	if status := say("&i=x"); status != 200 {
+		t.Fatalf("a hello on the visit's connection: %d", status)
+	}
+	for i := range hellos {
+		say("&i=" + strconv.Itoa(i))
+	}
+	say("&step=tickets")
+	say("&i=" + strconv.Itoa(hellos))
+	say("&step=resumed")
+	if server.ticketsUntil.Load() != 0 {
+		t.Error("tickets are still given after the page resumed one")
+	}
+	measured := collect(t, client, server, page)
+	if len(measured.Connections) != hellos+2 || measured.ResumedClientHello == nil {
+		t.Fatalf("%d hellos, resumed %d bytes", len(measured.Connections), len(measured.ResumedClientHello))
+	}
+	for i, raw := range append(measured.Connections, measured.ResumedClientHello) {
+		hello, err := fingerprint.ParseClientHello(raw)
+		if err != nil {
+			t.Fatalf("hello %d: %v", i, err)
+		}
+		if _, resumed := hello.Extension(fingerprint.ExtPreSharedKey); resumed != (i == hellos+2) {
+			t.Errorf("hello %d resumed: %v", i, resumed)
+		}
+	}
+}
+
+func TestManualHellosAreKeptWithinBounds(t *testing.T) {
+	server := startServer(t, WithManual(true))
+	transport := http2Transport(&tls.Config{InsecureSkipVerify: true, ClientSessionCache: tls.NewLRUClientSessionCache(8)})
+	client := &http.Client{Transport: transport}
+	openPage(t, client, server.URL()+"/")
+	_, page := openPage(t, client, server.URL()+"/")
+	address := server.URL() + pageSays(t, page, "const hello = '")
+	say := func(what string) {
+		get(t, client, address+what)
+		transport.CloseIdleConnections()
+	}
+	// No more than maxHellos, and a resumed hello the page does not say
+	// resumes is none of them.
+	for i := 0; i < maxHellos+3; i++ {
+		say("&i=" + strconv.Itoa(i))
+	}
+	say("&step=tickets")
+	say("&i=ticket")
+	say("&i=resumes")
+	t.Cleanup(func() { t.Logf("panics: %q", server.Panics()) })
+	measured := collect(t, client, server, page)
+	if len(measured.Connections) != maxHellos || measured.ResumedClientHello != nil {
+		t.Fatalf("%d hellos, resumed %d bytes", len(measured.Connections), len(measured.ResumedClientHello))
+	}
+	// The report closed the tickets the page opened.
+	if server.ticketsUntil.Load() != 0 {
+		t.Error("tickets are still given after the report")
+	}
+	// A hello for no navigation, or one the server does not know, is refused;
+	// a server that is no manual one has no such page.
+	for _, path := range []string{"/hello", "/hello?navigation=nope"} {
+		if status, _ := get(t, client, server.URL()+path); status != 400 {
+			t.Errorf("%s: %d", path, status)
+		}
+	}
+	if status, _ := get(t, http2Client(), startServer(t).URL()+"/hello?navigation=1"); status != 404 {
+		t.Errorf("a launched browser's server: %d", status)
+	}
+	if page := string(launchedPage(t)); !strings.Contains(page, "const hellos = 0;") {
+		t.Errorf("a launched browser is asked for hellos:\n%s", page)
+	}
+}
+
+// launchedPage is the capture page a server for a launched browser serves.
+func launchedPage(t *testing.T) []byte {
+	t.Helper()
+	server := startServer(t)
+	_, page := get(t, http2Client(), server.URL()+"/?http1=done")
+	return page
+}
+
+func TestManualTicketsAreGivenWhileTheyAreOpen(t *testing.T) {
+	server := startServer(t, WithManual(true))
+	given := func() bool {
+		config, err := server.tlsConfig.GetConfigForClient(&tls.ClientHelloInfo{})
+		return err == nil && config == server.ticketed
+	}
+	if given() {
+		t.Error("tickets given before a page asked")
+	}
+	server.ticketsUntil.Store(time.Now().Add(time.Minute).UnixNano())
+	if !given() || server.ticketed.SessionTicketsDisabled {
+		t.Error("tickets not given while open")
+	}
+	server.ticketsUntil.Store(time.Now().Add(-time.Second).UnixNano())
+	if given() {
+		t.Error("tickets given once their time passed")
+	}
+	// A key it cannot draw is a server it cannot start.
+	old := readRandom
+	readRandom = func([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
+	defer func() { readRandom = old }()
+	if _, err := Start(WithManual(true)); err == nil || !strings.Contains(err.Error(), "a session ticket key") {
+		t.Errorf("Start: %v", err)
 	}
 }

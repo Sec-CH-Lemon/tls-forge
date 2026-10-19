@@ -382,7 +382,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Chrome's), and filed under the platform its user agent says
   (`safari_18/ios.json`); `--install` keeps it under that name, but not under
   the name of a profile tls-forge ships, which it would then answer for,
-  unless `--name` says so; it is measured over HTTP/2 alone. `compare --manual`
+  unless `--name` says so; it is measured over HTTP/2 alone. The page then
+  opens 26 connections more, each ended after its answer, and one given a
+  ticket and one that resumes it: the profile draws for every connection what
+  those hellos show the browser drew (the order of its extensions, the length
+  of its GREASE ECH payload) rather than what its name suggests, and the
+  summary says how the browser resumes against tls-forge; what a profile
+  cannot say goes in its notes. The capture keeps them as `connections` and
+  `resumed_client_hello`. `compare --manual`
   holds a profile to such a browser over TLS and HTTP/2. The library has
   `MeasureVisitorAt`, `CompareVisitorAt` and `echo.WithManual`.
 - `fetch --wait-for-element SELECTOR` counts an answer as the page when its

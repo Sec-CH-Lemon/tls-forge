@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 func runCompare(ctx context.Context, args []string, out, errOut *printer) error {
@@ -179,5 +182,78 @@ func printCapture(out *printer, measured *capture.Capture) {
 		field("architecture", strings.TrimSpace(nav.Architecture+" "+nav.Bitness))
 		field("languages", strings.Join(nav.Languages, ", "))
 	}
+	// What a browser a person opened drew for each of the connections its page
+	// opened, and how it resumed, which a profile cannot say all of.
+	if len(measured.Connections) > 0 {
+		drawn, err := profile.DrawnOf(measured)
+		field("per connection", drawnSaid(drawn, err))
+		if drawn != nil && len(drawn.Sometimes) > 0 {
+			field("not every time", extensionsNamed(drawn.Sometimes)+
+				": in some of its hellos only; the profile sends what the measured one did")
+		}
+		field("resumed", resumptionSaid(profile.ResumptionOf(measured)))
+	}
 	out.println(line)
+}
+
+// drawnSaid says what a browser drew for each connection, measured, or that
+// it was not.
+func drawnSaid(d *profile.Drawn, err error) string {
+	switch {
+	case err != nil:
+		return "not measured: " + err.Error()
+	case d == nil:
+		return "not measured: too few connections"
+	}
+	said := "its extensions in one order"
+	if d.Order {
+		said = "the order of its extensions drawn for each"
+	}
+	lengths := make([]string, len(d.ECH))
+	for i, length := range d.ECH {
+		lengths[i] = strconv.Itoa(length)
+	}
+	switch len(lengths) {
+	case 0:
+	case 1:
+		said += ", a GREASE ECH payload of " + lengths[0] + " bytes every time"
+	default:
+		said += ", a GREASE ECH payload of " + strings.Join(lengths, ", ") + " bytes"
+	}
+	return fmt.Sprintf("%s (%d hellos)", said, d.Hellos)
+}
+
+// resumptionSaid says how a browser resumed a session, against tls-forge.
+func resumptionSaid(r profile.Resumption, err error) string {
+	switch {
+	case err != nil:
+		return "not read: " + err.Error()
+	case !r.Measured:
+		return "it resumed none of the sessions it was given"
+	case r.AsTLSForge():
+		return "as tls-forge resumes: the hello it sent cold, and pre_shared_key last"
+	}
+	var otherwise []string
+	if len(r.Added) > 0 {
+		otherwise = append(otherwise, "adds "+extensionsNamed(r.Added))
+	}
+	if len(r.Missing) > 0 {
+		otherwise = append(otherwise, "lacks "+extensionsNamed(r.Missing))
+	}
+	if r.NotLast {
+		otherwise = append(otherwise, "pre_shared_key not last")
+	}
+	if r.Identities != 1 {
+		otherwise = append(otherwise, fmt.Sprintf("offers %d tickets", r.Identities))
+	}
+	return "otherwise than tls-forge resumes: " + strings.Join(otherwise, ", ")
+}
+
+// extensionsNamed names extensions, as a ClientHello's are named.
+func extensionsNamed(types []uint16) string {
+	names := make([]string, len(types))
+	for i, t := range types {
+		names[i] = fingerprint.ExtensionName(t)
+	}
+	return strings.Join(names, ", ")
 }

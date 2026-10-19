@@ -151,6 +151,13 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool) 
 		return "", "", err
 	}
 	built.Notes = fmt.Sprintf("captured %s from %s", now().UTC().Format(time.RFC3339), built.UserAgent)
+	// What the measurement saw that a profile cannot say, said beside it.
+	if drawn, _ := profile.DrawnOf(measured); drawn != nil && len(drawn.Sometimes) > 0 {
+		built.Notes += "; not in every hello: " + extensionsNamed(drawn.Sometimes)
+	}
+	if r, err := profile.ResumptionOf(measured); err == nil && r.Measured && !r.AsTLSForge() {
+		built.Notes += "; resumed " + resumptionSaid(r, nil)
+	}
 
 	path = where
 	if info, err := os.Stat(where); err == nil && info.IsDir() {
