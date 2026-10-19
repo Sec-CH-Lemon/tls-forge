@@ -604,7 +604,6 @@ func sendsWhatChromeSent(t *testing.T, p *profile.Profile) {
 		}
 		for proto, want := range map[string][]chromeRequest{"h2": measuredBoth.H2, "h1": measuredBoth.H1} {
 			t.Run(scenario+"/"+proto, func(t *testing.T) {
-				skipWithoutHints(t, p, measuredBoth.H2, measuredBoth.H1)
 				skipApart(t, p, scenario)
 				contexts := sentAfter[scenario]
 				if how.each != nil {

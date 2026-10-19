@@ -43,10 +43,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   connections, HPACK, HTTP/1.1 records, ALPS, WINDOW_UPDATEs, URLs, False
   Start, the first request's frames and the ClientHello, cold and resumed.
   What the platform decides, `sec-ch-ua-platform` and the client hints, is
-  held to each profile's own values, written as Chrome writes them; the
-  scenarios that need client hints, which only the macOS profile has, are
-  left out for the other two, and so is a 401 offering Negotiate on Windows
-  ([docs/support.md](docs/support.md#platforms)).
+  held to each profile's own values, written as Chrome writes them; a 401
+  offering Negotiate is left out on Windows, where Chrome answers it through
+  SSPI ([docs/support.md](docs/support.md#platforms)).
+
+- **The Linux and Windows profiles of Chrome 155 have every client hint**, as
+  Chrome sent them a page that asked for each, captured on GitHub's runners
+  (Chrome 155.0.8059.84 on Ubuntu 24.04, 155.0.8059.85 on Windows Server
+  2025): the user agent's (`sec-ch-ua-platform-version` is `""` on Linux and
+  `"19.0.0"` on Windows), the device's, the network's and the preferences'. A
+  server that asks for them is sent them, as by the macOS profile; before, only
+  the macOS profile had any. The rest of both profiles is as it was: the
+  captures matched them field for field.
 
 - **`compare` checks that every key is a key**: a field `keys` says of each
   key of `key_share` and of the GREASE ECH key whether it is a public key of

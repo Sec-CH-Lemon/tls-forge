@@ -7,7 +7,6 @@ import (
 
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -32,15 +31,10 @@ func onEveryPlatform(t *testing.T, replay func(t *testing.T, p *profile.Profile)
 	}
 }
 
-// defaultHints are the client hints Chrome sends unasked, which a profile's
-// headers say.
-var defaultHints = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"}
-
 // askedHint says a field is a client hint a browser sends only when a server
 // asks for it.
 func askedHint(name string) bool {
-	name = strings.ToLower(name)
-	return slices.Contains(profile.ClientHintOrder, name) && !slices.Contains(defaultHints, name)
+	return slices.Contains(profile.AskedClientHints(), strings.ToLower(name))
 }
 
 // platformDecided says a field's value is the platform's or the machine's, not
@@ -83,46 +77,6 @@ func codedWearing(field string, p *profile.Profile) string {
 		}
 	}
 	return field
-}
-
-// skipWithoutHints skips a replay whose Chrome sent a client hint a server
-// asked for, when p has no client hints: it can send none, nor start a page
-// again for a critical one. Chrome on Linux and on Windows would send them;
-// their values are measured on macOS alone so far.
-func skipWithoutHints(t *testing.T, p *profile.Profile, requests ...[]chromeRequest) {
-	t.Helper()
-	if len(p.ClientHints) > 0 {
-		return
-	}
-	for _, list := range requests {
-		for _, r := range list {
-			for _, h := range r.Headers {
-				if askedHint(h[0]) {
-					t.Skipf("%s has no client hints, and Chrome sent %s here: their values are measured on macOS alone",
-						p.Name, h[0])
-				}
-			}
-		}
-	}
-}
-
-// skipWithoutHintsWritten is skipWithoutHints for the header blocks the bench
-// read of Chrome's connections.
-func skipWithoutHintsWritten(t *testing.T, p *profile.Profile, connections [][]harness.WrittenRequest) {
-	t.Helper()
-	if len(p.ClientHints) > 0 {
-		return
-	}
-	for _, conn := range connections {
-		for _, r := range conn {
-			for _, field := range r.Fields {
-				if name, _, _ := strings.Cut(field, ": "); askedHint(name) {
-					t.Skipf("%s has no client hints, and Chrome sent %s here: their values are measured on macOS alone",
-						p.Name, name)
-				}
-			}
-		}
-	}
 }
 
 // headless is p with the user agent of a headless Chrome of its platform, the
@@ -168,45 +122,6 @@ func TestEveryScenarioApartOnAPlatformIsMeasured(t *testing.T) {
 			if _, ok := measured.Scenarios[scenario]; !ok {
 				t.Errorf("%s: %s is not in the fixture", platform, scenario)
 			}
-		}
-	}
-}
-
-func TestOnlyAProfileWithoutClientHintsLeavesOutWhatNeedsThem(t *testing.T) {
-	// A scenario in which Chrome sent a hint a server asked for is left out
-	// for a profile with no client hints, and only then: one sent unasked,
-	// or a profile that has them, runs it.
-	asked := []chromeRequest{{Headers: [][2]string{{"sec-ch-ua", "x"}, {"sec-ch-ua-arch", `"arm"`}}}}
-	unasked := []chromeRequest{{Headers: [][2]string{{"sec-ch-ua-platform", `"macOS"`}}}}
-	written := [][]harness.WrittenRequest{{{Fields: []string{"sec-ch-ua-arch: literal with incremental indexing, new name, value plain"}}}}
-	plainWritten := [][]harness.WrittenRequest{{{Fields: []string{"sec-ch-ua-platform: literal with incremental indexing, name static 1, value plain"}}}}
-	with, err := profile.Get("chrome_155_macos")
-	if err != nil {
-		t.Fatalf("profile: %v", err)
-	}
-	without, err := profile.Get("chrome_155_linux")
-	if err != nil || len(without.ClientHints) > 0 || len(with.ClientHints) == 0 {
-		t.Fatalf("profile: %v; the test wants a profile with client hints and one without", err)
-	}
-	for _, tc := range []struct {
-		name string
-		skip func(t *testing.T)
-		runs bool
-	}{
-		{"asked, a profile without hints", func(t *testing.T) { skipWithoutHints(t, without, asked) }, false},
-		{"asked, a profile with hints", func(t *testing.T) { skipWithoutHints(t, with, asked) }, true},
-		{"unasked, a profile without hints", func(t *testing.T) { skipWithoutHints(t, without, unasked) }, true},
-		{"written asked, a profile without hints", func(t *testing.T) { skipWithoutHintsWritten(t, without, written) }, false},
-		{"written asked, a profile with hints", func(t *testing.T) { skipWithoutHintsWritten(t, with, written) }, true},
-		{"written unasked, a profile without hints", func(t *testing.T) { skipWithoutHintsWritten(t, without, plainWritten) }, true},
-	} {
-		ran := false
-		t.Run(tc.name, func(t *testing.T) {
-			tc.skip(t)
-			ran = true
-		})
-		if ran != tc.runs {
-			t.Errorf("%s: ran %v", tc.name, ran)
 		}
 	}
 }

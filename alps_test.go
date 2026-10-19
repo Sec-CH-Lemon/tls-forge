@@ -87,7 +87,6 @@ func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.
 		want, page := fixture.Scenarios[scenario], alpsAskedOf(scenario)
 		want.Connections = writtenWearing(want.Connections, chrome)
 		t.Run(scenario, func(t *testing.T) {
-			skipWithoutHintsWritten(t, chrome, want.Connections)
 			port := strconv.Itoa(server.ALPS[page.variant])
 			if len(port) != 5 {
 				t.Fatalf("the bench listens on %s; Chrome was measured on ports of five digits", port)

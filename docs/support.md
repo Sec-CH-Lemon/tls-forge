@@ -104,7 +104,7 @@ the same way ([pinned](pinned.md)).
 | Client hints asked for with `Accept-CH`, in a browser context: kept per origin for the session from the answers to navigations, forms and their redirects, emptied and replaced as Chrome does, and carried by navigations and forms to that origin, in Chrome's order and slots, and by its pages' `fetch()` and XHR to it; none to another origin or from a page of another site | checked | measured on Chrome 155 (`testdata/chrome155-requests.json`): every hint asked at once, a few in capitals, an origin of the same site and of another, emptied, replaced and left as it was, a redirect asking and redirected to, forms, `fetch()` and XHR, a page of another site, and plain HTTP; `TestABrowserContextSendsWhatChromeSent` sends its client hint scenarios, `rtt` and `downlink` held to being there, as Chrome estimates them anew |
 | The order of several client hints on a `fetch()` or an XHR | not modelled | Chrome's renderer puts each where its hash table does, which changes with the set of names; tls-forge sends them first, in Chrome's order for a page, which is where one `sec-ch-ua-arch` goes |
 | A navigation started again for the client hints a `Critical-CH` says the page needs: once, where it began, when an answer or a redirect's names a hint its origin now asks for that it did not carry, the hints after `Accept` in its first request; never a form's POST or a script's request | checked | measured on Chrome 155: typed and from a page, a redirect saying it and a redirect before it, every hint, cookies set by the first answer, a hint not asked for, one sent unasked, a form's POST and `fetch()`; `TestABrowserContextSendsWhatChromeSent` holds the requests and their count to Chrome's |
-| Client hints of a profile other than `chrome_155_macos` | differs | none were measured for it, so it sends the three Chrome sends unasked and no other |
+| Client hints of a profile of a Chrome before 155 | differs | none were measured for them, so they send the three Chrome sends unasked and no other; Chrome 155's on macOS, Linux and Windows have every one, as the browser sent them when asked |
 | Response bodies decoded from gzip, x-gzip, deflate (zlib or raw), br and zstd, in the reverse of the order applied; a coding Chrome does not know passed through; a zstd window over 8 MiB refused | checked | `TestABodyIsDecodedFromEveryCodingChromeAccepts` and the tests beside it, over HTTP/1.1 and HTTP/2, through the proxy, `fetch` and both SDKs |
 | A saved session keeps each cookie's scope (its host's alone or its domain's), a session cookie without an expiry, and `SameSite`; a cookie lives at most 400 days | checked | `TestASessionComesBackWithEachCookiesScope` and the jar tests beside it |
 | The text a page check reads with `--html-decoding browser`: the encoding Chrome decodes a document of its type in, by its byte order mark, its `Content-Type`, then in HTML an XML declaration and over it a `<meta>` before the page leaves its head and is a kilobyte in, in XML its declaration, in CSS an `@charset`, else UTF-8 for XML and JSON and windows-1252; XML read only to the first byte its encoding has nothing for | checked | measured on Chrome 155 with 174 bodies (`testdata/chrome155-decoding.json`); `TestBrowserDecodingIsChromes` reads each and holds the reading to Chrome's. `legacy`, the default, reads UTF-8 as UTF-8 whatever a page names |
@@ -152,12 +152,13 @@ as long as the profile's values make it, which decides whether a body goes in
 the head's write, as it does when the two are no more than 1,400 bytes. Each
 profile's own ClientHello, captured on its platform, is alike the one measured
 on macOS under every rule `compare` has, and the hellos tls-forge sends
-wearing it, cold and resumed, are held to the macOS measurements. Left out,
-and said so by the tests: the scenarios in which Chrome sent a client hint a
-server asked for, whose values only the macOS profile has, and on Windows a
-401 offering Negotiate, which Chrome there answers through SSPI and tls-forge
-does not. Chrome itself on Linux and Windows is measured against the same
-fixtures by the weekly drift check (`.github/workflows/drift.yml`).
+wearing it, cold and resumed, are held to the macOS measurements. Each
+profile's client hints are what Chrome on its platform sent a page that asked
+for every one: macOS's measured on a Mac, Linux's and Windows's on GitHub's
+runners (`capture.yml`). Left out, and said so by the tests: on Windows a 401
+offering Negotiate, which Chrome there answers through SSPI and tls-forge does
+not. Chrome itself on Linux and Windows is measured against the same fixtures
+by the weekly drift check (`.github/workflows/drift.yml`).
 
 ## Checking a machine of your own
 

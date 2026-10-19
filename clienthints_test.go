@@ -236,7 +236,7 @@ func TestOnlyANavigationInAContextWithTheValuesStartsAgain(t *testing.T) {
 		browser *BrowserContext
 	}{
 		{"without a browser context", "chrome_155_macos", nil},
-		{"with a profile that has no values of hints", "chrome_155_windows", &BrowserContext{Kind: KindNavigation}},
+		{"with a profile that has no values of hints", "chrome_154_macos", &BrowserContext{Kind: KindNavigation}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := newRecorder(t, "h2", criticalPage)

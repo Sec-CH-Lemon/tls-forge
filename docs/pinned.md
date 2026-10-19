@@ -146,8 +146,8 @@ reference does not send: `:path` goes into HPACK as Chrome writes it, through
 tls-forge's fork of fhttp ([support](support.md)). On the bench, the same
 Chrome is what both fixtures say, every scenario and every page.
 
-The fixtures were measured on macOS, and only the macOS profile of
-`chrome_155` has the values of the client hints a server asks for. A build for
-Linux or Windows is held to its own platform's profile, which has none, so its
-check fails on the scenarios that ask for them until that profile is measured
-with them.
+The fixtures were measured on macOS. Every profile of `chrome_155` has the
+values of the client hints a server asks for, as Chrome sent them on its
+platform (Linux's and Windows's on GitHub's runners), so a build for Linux or
+Windows is held to its own platform's values in the scenarios that ask for
+them.
