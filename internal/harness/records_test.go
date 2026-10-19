@@ -3,6 +3,8 @@ package harness
 import (
 	"net"
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -43,6 +45,9 @@ func TestTheRecordsOfAConnectionAreKeptByWhatTheyCarried(t *testing.T) {
 		{"one across two", []frameSpan{{'H', 30, 0, 39}}, []string{"h", "h"}},
 		{"a CONTINUATION after", []frameSpan{{'H', 21, 0, 30}, {'C', 0, 30, 39}}, []string{"H", "C"}},
 		{"others' frames between", []frameSpan{{'D', 91, 39, 139}}, []string{"D91"}},
+		{"an HTTP/1.1 head and its body in one", []frameSpan{{'R', 20, 0, 20}, {'B', 10, 20, 30}}, []string{"R20+B10"}},
+		{"a head across two, a body after", []frameSpan{{'R', 39, 0, 39}, {'B', 100, 39, 139}}, []string{"r30", "r9", "B100"}},
+		{"a body across two", []frameSpan{{'R', 30, 0, 30}, {'B', 109, 30, 139}}, []string{"R30", "b9", "b100"}},
 		{"none", nil, nil},
 	} {
 		if got := r.layout(tc.spans); !slices.Equal(got, tc.want) {
@@ -108,6 +113,33 @@ func TestARequestsFramesAreKeptWithTheRecordsThatCarriedThem(t *testing.T) {
 	q := parser(s)
 	q.write(stream)
 	if entries := requests(t, s); len(entries) != 1 || entries[0].Records != nil || !slices.Equal(entries[0].Data, []int{3}) {
+		t.Errorf("kept %+v", entries)
+	}
+}
+
+func TestAnHTTP1RequestsHeadAndBodyAreKeptWithTheRecordsThatCarriedThem(t *testing.T) {
+	s := started(t, catalogue)
+	records := &clientRecords{}
+	first := "POST /p HTTP/1.1\r\nHost: www.example.com\r\nContent-Length: 3\r\n\r\nabc"
+	second := "GET /q HTTP/1.1\r\nHost: www.example.com\r\n\r\n"
+	// The client's Finished, then the first request but the last byte of
+	// its body in a record, and that byte and the second request in
+	// another, read a byte at a time.
+	records.read(record(23, 36))
+	records.read(record(23, len(first)-1))
+	records.read(record(23, 1+len(second)))
+	p := &h1parser{s: s, conn: s.nextConn(), scheme: "https", records: records}
+	for _, b := range []byte(first + second) {
+		p.write([]byte{b})
+	}
+	// In the clear, nothing carried them.
+	clear := &h1parser{s: s, conn: s.nextConn(), scheme: "http"}
+	clear.write([]byte(second))
+	entries := requests(t, s)
+	head := strings.Index(first, "\r\n\r\n") + 4
+	if len(entries) != 3 || entries[0].Body != "abc" ||
+		!slices.Equal(entries[0].Records, []string{"R" + strconv.Itoa(head) + "+b2", "b1"}) ||
+		!slices.Equal(entries[1].Records, []string{"R" + strconv.Itoa(len(second))}) || entries[2].Records != nil {
 		t.Errorf("kept %+v", entries)
 	}
 }

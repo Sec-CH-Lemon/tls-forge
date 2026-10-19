@@ -49,9 +49,10 @@ func (r *clientRecords) read(b []byte) {
 	}
 }
 
-// frameSpan is a frame of a request in the stream a client sent: its kind,
-// H for HEADERS, C for CONTINUATION, D for DATA, its payload's length, and
-// where its bytes begin and end.
+// frameSpan is a part of a request in the stream a client sent: its kind,
+// over HTTP/2 H for HEADERS, C for CONTINUATION, D for DATA, over HTTP/1.1 R
+// for the head (the request line and the header lines) and B for the body;
+// its length, a frame's payload; and where its bytes begin and end.
 type frameSpan struct {
 	kind       byte
 	length     int
@@ -59,11 +60,14 @@ type frameSpan struct {
 }
 
 // layout is how the records carried spans: for each record that carried any
-// byte of them, in the order they came, the frames of spans in it, a DATA
-// frame with its payload's length, in capitals when the record carried the
-// whole frame and in small letters when a part of it, joined by "+". Other
-// frames a record carried, such as a SETTINGS acknowledgement, are left out,
-// and so is a header block's length, which the ports in it change.
+// byte of them, in the order they came, the spans in it, in capitals when the
+// record carried the whole span and in small letters when a part of it,
+// joined by "+": a DATA frame with its payload's length, and an HTTP/1.1 head
+// or body with the bytes of it the record carried. Other frames a record
+// carried, such as a SETTINGS acknowledgement, are left out, and so is a
+// header block's length, which the ports in it change as their digits
+// Huffman-code to 5 or 6 bits; an HTTP/1.1 head has them as they are, as
+// many as Chrome's.
 func (r *clientRecords) layout(spans []frameSpan) []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -76,10 +80,15 @@ func (r *clientRecords) layout(spans []frameSpan) []string {
 				continue
 			}
 			token := string(f.kind)
-			if f.kind == 'D' {
+			partial := f.start < start || f.end > end
+			carried := strconv.Itoa(min(f.end, end) - max(f.start, start))
+			switch f.kind {
+			case 'D':
 				token += strconv.Itoa(f.length)
+			case 'B', 'R':
+				token += carried
 			}
-			if f.start < start || f.end > end {
+			if partial {
 				token = strings.ToLower(token)
 			}
 			parts = append(parts, token)

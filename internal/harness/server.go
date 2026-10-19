@@ -310,7 +310,8 @@ func (s *Server) serveConn(raw net.Conn, protos []string, settled *settledServer
 		settled.ln.hand(newTeeConn(conn, state.ServerName, parser.write, parser.first))
 		return
 	}
-	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https", sni: state.ServerName}
+	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https", sni: state.ServerName,
+		records: records}
 	s.http1.hand(newTeeConn(conn, state.ServerName, parser.write, nil))
 }
 
@@ -629,7 +630,9 @@ func (p *h2parser) decode() {
 }
 
 // h1parser reads requests out of an HTTP/1.1 connection's bytes: the request
-// line, the header lines and a body of the length they say.
+// line, the header lines and a body of the length they say. Over TLS records
+// are the records that carried them, and at is where buf begins in what the
+// client sent.
 type h1parser struct {
 	s       *Server
 	conn    int
@@ -639,6 +642,8 @@ type h1parser struct {
 	buf     []byte
 	left    int
 	cur     *Entry
+	records *clientRecords
+	at      int
 }
 
 func (p *h1parser) write(b []byte) {
@@ -647,7 +652,7 @@ func (p *h1parser) write(b []byte) {
 		if p.left > 0 {
 			take := min(p.left, len(p.buf))
 			p.s.addBody(p.cur, p.buf[:take])
-			p.buf, p.left = p.buf[take:], p.left-take
+			p.buf, p.left, p.at = p.buf[take:], p.left-take, p.at+take
 			if p.left > 0 {
 				return
 			}
@@ -659,6 +664,8 @@ func (p *h1parser) write(b []byte) {
 		}
 		lines := strings.Split(string(p.buf[:end]), "\r\n")
 		p.buf = p.buf[end+4:]
+		head := frameSpan{kind: 'R', length: end + 4, start: p.at, end: p.at + end + 4}
+		p.at = head.end
 		parts := strings.SplitN(lines[0], " ", 3)
 		if len(parts) < 3 {
 			p.s.troubled(fmt.Errorf("harness: a request line that is not one: %q", lines[0]))
@@ -678,6 +685,12 @@ func (p *h1parser) write(b []byte) {
 			}
 		}
 		e.Target = p.scheme + "://" + host + parts[1]
+		if p.records != nil {
+			e.records, e.spans = p.records, []frameSpan{head}
+			if p.left > 0 {
+				e.spans = append(e.spans, frameSpan{kind: 'B', length: p.left, start: head.end, end: head.end + p.left})
+			}
+		}
 		p.s.record(e)
 		p.cur = e
 	}

@@ -1,0 +1,385 @@
+{
+ "browser": "Google Chrome 155.0.8059.85, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-19",
+ "how": "A local server answered www.example.com, mapped to 127.0.0.1 with --host-resolver-rules, over HTTPS offering HTTP/1.1 alone (TLS 1.3), on ports of five digits, its certificate taken on trust by --ignore-certificate-errors alone, and read every TLS record the browser sent on the raw connection, type and length, before TLS took it: of each record of application data after the browser's Finished, how many bytes of each request's head (the request line and the header lines) and of its body it carried. Each scenario ran in a fresh profile: a URL opened from the command line, a page whose script called fetch() or submitted a form, each page naming an icon of its own so that no /favicon.ico came between.",
+ "scenarios": {
+  "h1-records-big-header": {
+   "note": "a page, then fetch() of its origin with an X-Foo of 30,000 letters, a head of more than a record",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-big-header",
+     "records": [
+      "R718"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/h1-records-big-header",
+     "records": [
+      "r16384",
+      "r14215"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-big-header",
+     "records": [
+      "R593"
+     ]
+    }
+   ]
+  },
+  "h1-records-bigger-header": {
+   "note": "a page, then fetch() of its origin with an X-Foo of 60,000 letters, a head of four records",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-bigger-header",
+     "records": [
+      "R721"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/h1-records-bigger-header",
+     "records": [
+      "r16384",
+      "r16384",
+      "r16384",
+      "r11453"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-bigger-header",
+     "records": [
+      "R599"
+     ]
+    }
+   ]
+  },
+  "h1-records-cookie-16k": {
+   "note": "a page whose answer set four cookies of 4,096 bytes with their names, 16 KiB, then fetch() of its origin, which carries them",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-cookie-16k?big=4091&bigs=4",
+     "records": [
+      "R734"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/h1-records-cookie-16k",
+     "records": [
+      "r16384",
+      "r622"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-cookie-16k",
+     "records": [
+      "r16384",
+      "r625"
+     ]
+    }
+   ]
+  },
+  "h1-records-cookie-2k": {
+   "note": "a page whose answer set a cookie of 2,048 bytes with its name, then fetch() of its origin, which carries it",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-cookie-2k?big=2044",
+     "records": [
+      "R726"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/h1-records-cookie-2k",
+     "records": [
+      "R2655"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-cookie-2k",
+     "records": [
+      "R2658"
+     ]
+    }
+   ]
+  },
+  "h1-records-cookie-4k": {
+   "note": "a page whose answer set a cookie of 4,096 bytes with its name, then fetch() of its origin, which carries it",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-cookie-4k?big=4092",
+     "records": [
+      "R726"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/h1-records-cookie-4k",
+     "records": [
+      "R4703"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-cookie-4k",
+     "records": [
+      "R4706"
+     ]
+    }
+   ]
+  },
+  "h1-records-form": {
+   "note": "a form posted to the same origin, a body of 9 bytes",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-form",
+     "records": [
+      "R712"
+     ]
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/p/h1-records-form?quiet",
+     "body": 9,
+     "records": [
+      "R897+B9"
+     ]
+    }
+   ]
+  },
+  "h1-records-header": {
+   "note": "a page, then fetch() of its origin with an X-Foo of 8,000 letters, a head of about 9 KB",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-header",
+     "records": [
+      "R714"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/h1-records-header",
+     "records": [
+      "R8591"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-header",
+     "records": [
+      "R585"
+     ]
+    }
+   ]
+  },
+  "h1-records-long-url": {
+   "note": "a page, then fetch() of a URL of its origin whose query is 8,000 letters",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-long-url",
+     "records": [
+      "R716"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/h1-records-long-url?aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "records": [
+      "R8587"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-long-url",
+     "records": [
+      "R589"
+     ]
+    }
+   ]
+  },
+  "h1-records-post-100": {
+   "note": "a page, then fetch() POST of 100 letters to its origin",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-post-100",
+     "records": [
+      "R716"
+     ]
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/p/h1-records-post-100",
+     "body": 100,
+     "records": [
+      "R687+B100"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-post-100",
+     "records": [
+      "R589"
+     ]
+    }
+   ]
+  },
+  "h1-records-post-16k": {
+   "note": "a page, then fetch() POST of 16,385 letters to its origin, a record's 16,384 and one more",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-post-16k",
+     "records": [
+      "R716"
+     ]
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/p/h1-records-post-16k",
+     "body": 16385,
+     "records": [
+      "R689",
+      "b16384",
+      "b1"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-post-16k",
+     "records": [
+      "R589"
+     ]
+    }
+   ]
+  },
+  "h1-records-post-1k": {
+   "note": "a page, then fetch() POST of 1,000 letters to its origin",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-post-1k",
+     "records": [
+      "R715"
+     ]
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/p/h1-records-post-1k",
+     "body": 1000,
+     "records": [
+      "R686",
+      "B1000"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-post-1k",
+     "records": [
+      "R587"
+     ]
+    }
+   ]
+  },
+  "h1-records-post-64k": {
+   "note": "a page, then fetch() POST of 65,536 letters to its origin",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-post-64k",
+     "records": [
+      "R716"
+     ]
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/p/h1-records-post-64k",
+     "body": 65536,
+     "records": [
+      "R689",
+      "b16384",
+      "b16384",
+      "b16384",
+      "b16384"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-post-64k",
+     "records": [
+      "R589"
+     ]
+    }
+   ]
+  },
+  "h1-records-post-at-1400": {
+   "note": "a page, then fetch() POST of 705 letters to its origin, its head and body 1,400 bytes",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-post-at-1400",
+     "records": [
+      "R720"
+     ]
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/p/h1-records-post-at-1400",
+     "body": 705,
+     "records": [
+      "R695+B705"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-post-at-1400",
+     "records": [
+      "R597"
+     ]
+    }
+   ]
+  },
+  "h1-records-post-at-1401": {
+   "note": "a page, then fetch() POST of 706 letters to its origin, its head and body 1,401 bytes",
+   "requests": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/run/h1-records-post-at-1401",
+     "records": [
+      "R720"
+     ]
+    },
+    {
+     "method": "POST",
+     "url": "https://www.example.com/p/h1-records-post-at-1401",
+     "body": 706,
+     "records": [
+      "R695",
+      "B706"
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/done/h1-records-post-at-1401",
+     "records": [
+      "R597"
+     ]
+    }
+   ]
+  }
+ }
+}
