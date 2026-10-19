@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -70,6 +71,11 @@ func collect(t *testing.T, client *http.Client, server *Server, page string) *ca
 		t.Fatalf("POST /collect: %v", err)
 	}
 	res.Body.Close()
+	// Finished without the HTTP/1.1 visit, which a capture waits for.
+	token := page[start+len(marker) : start+end]
+	if status, _ := get(t, client, server.URL()+"/skip?navigation="+token); status != 200 {
+		t.Fatalf("finishing: %d", status)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	session, err := server.Await(ctx)
@@ -92,8 +98,9 @@ func TestManualFirstVisitOnlyShowsWhatToDoNext(t *testing.T) {
 	// and is the one measured: over HTTP/2 alone, with no trip to the HTTP/1.1
 	// listener.
 	_, page = openPage(t, client, server.URL()+"/")
-	if strings.Contains(page, server.CaptureURL()) {
-		t.Error("a visiting browser was sent to the HTTP/1.1 listener")
+	if !strings.Contains(page, "const http1Navigation = '';") ||
+		!strings.Contains(page, "const http1Address = '"+server.CaptureURL()+"/';") {
+		t.Error("a visiting browser was sent to the HTTP/1.1 listener, or not given its address to open")
 	}
 	measured := collect(t, client, server, page)
 	if len(server.Sessions()) < 2 {
@@ -165,7 +172,7 @@ func TestManualVisitorsAreToldApart(t *testing.T) {
 	if !strings.Contains(page, "accepted the certificate") {
 		t.Errorf("another browser's first visit was shown:\n%s", page)
 	}
-	if got := visitorOf(&Session{remote: "pipe"}, &request{headers: map[string]string{"user-agent": "x"}}); got != "pipe\nx" {
+	if got := visitorOf(&Session{remote: "pipe"}, map[string]string{"user-agent": "x"}); got != "pipe\nx" {
 		t.Errorf("visitorOf an address with no port = %q", got)
 	}
 }
@@ -441,5 +448,137 @@ func TestManualTicketsAreGivenWhileTheyAreOpen(t *testing.T) {
 	defer func() { readRandom = old }()
 	if _, err := Start(WithManual(true)); err == nil || !strings.Contains(err.Error(), "a session ticket key") {
 		t.Errorf("Start: %v", err)
+	}
+}
+
+// report posts what the page's script would, and the capture waits for the
+// HTTP/1.1 visit or a finish without it; the token the page was served with.
+func report(t *testing.T, client *http.Client, server *Server, page string) string {
+	t.Helper()
+	const marker = "/collect?navigation="
+	start := strings.Index(page, marker)
+	end := strings.IndexByte(page[start:], '\'')
+	// From the browser's page, whose user agent it is.
+	req, err := http.NewRequest("POST", server.URL()+page[start:start+end],
+		strings.NewReader(`{"user_agent":"`+visitorAgent+`"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("User-Agent", visitorAgent)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("POST /collect: %v", err)
+	}
+	res.Body.Close()
+	return page[start+len(marker) : start+end]
+}
+
+// waiting says the server holds no capture for a while.
+func waiting(t *testing.T, server *Server) bool {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	_, err := server.Await(ctx)
+	return err != nil
+}
+
+func TestManualHTTP1VisitJoinsTheNavigationAndCompletesIt(t *testing.T) {
+	server := startServer(t, WithManual(true))
+	client, h1 := http2Client(), http1Client()
+	// Before the browser's HTTP/2 visit, there is nothing to join: its first
+	// visit here only gets it past the certificate, and the next is told.
+	if _, page := openPage(t, h1, server.CaptureURL()+"/"); !strings.Contains(page, "accepted the certificate") ||
+		!strings.Contains(page, server.CaptureURL()+"/") {
+		t.Fatalf("the first HTTP/1.1 visit:\n%s", page)
+	}
+	if _, page := openPage(t, h1, server.CaptureURL()+"/"); !strings.Contains(page, "not been measured over HTTP/2 yet") {
+		t.Fatalf("an HTTP/1.1 visit before the HTTP/2 one:\n%s", page)
+	}
+	openPage(t, client, server.URL()+"/")
+	_, page := openPage(t, client, server.URL()+"/")
+	report(t, client, server, page)
+	if !waiting(t, server) {
+		t.Fatal("the capture did not wait for the HTTP/1.1 visit")
+	}
+	// A reload is not the visit measured; the next typed one is, and completes.
+	if _, page := openPage(t, h1, server.CaptureURL()+"/", [2]string{"Cache-Control", "max-age=0"}); !strings.Contains(page, "it was a reload") {
+		t.Fatalf("a reload over HTTP/1.1:\n%s", page)
+	}
+	if _, page := openPage(t, h1, server.CaptureURL()+"/"); !strings.Contains(page, "measured, over HTTP/1.1 too") {
+		t.Fatalf("the HTTP/1.1 visit:\n%s", page)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	session, err := server.Await(ctx)
+	if err != nil {
+		t.Fatalf("Await: %v", err)
+	}
+	measured := session.Capture(capture.SourceBrowser)
+	if measured.HTTP2 == nil || measured.HTTP1 == nil || measured.HTTP1.Proto != "HTTP/1.1" {
+		t.Fatalf("measured %+v", measured)
+	}
+	// Joined once: another visit there has nothing to join.
+	if _, page := openPage(t, h1, server.CaptureURL()+"/"); !strings.Contains(page, "not been measured over HTTP/2 yet") {
+		t.Errorf("a second HTTP/1.1 visit:\n%s", page)
+	}
+	// A browser trusted at the main listener has a first visit of its own at
+	// this one: a browser may keep a certificate it took for one port alone.
+	other := [2]string{"User-Agent", "Mozilla/5.0 (Test) Other/2.0"}
+	openPage(t, client, server.URL()+"/", other)
+	if _, page := openPage(t, h1, server.CaptureURL()+"/", other); !strings.Contains(page, "accepted the certificate") {
+		t.Errorf("another browser's first HTTP/1.1 visit:\n%s", page)
+	}
+	// The library's own measurement of itself is answered there as before.
+	if status, body := get(t, h1, server.CaptureURL()+"/api/all"); status != 200 || !strings.Contains(string(body), `"http1"`) {
+		t.Errorf("/api/all over HTTP/1.1: %d %s", status, body)
+	}
+}
+
+func TestManualCaptureFinishesWithoutHTTP1(t *testing.T) {
+	server := startServer(t, WithManual(true))
+	client, h1 := http2Client(), http1Client()
+	openPage(t, client, server.URL()+"/")
+	_, page := openPage(t, client, server.URL()+"/")
+	if !strings.Contains(page, `href="/skip?navigation=`) {
+		t.Fatalf("the page has no way to finish:\n%s", page)
+	}
+	token := report(t, client, server, page)
+	if status, body := get(t, client, server.URL()+"/skip?navigation="+token); status != 200 ||
+		!strings.Contains(string(body), "measured, over HTTP/2 alone") {
+		t.Fatalf("finishing: %d %s", status, body)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	session, err := server.Await(ctx)
+	if err != nil || session.Capture(capture.SourceBrowser).HTTP1 != nil {
+		t.Fatalf("Await: %v", err)
+	}
+	// Nothing waits any more for an HTTP/1.1 visit to join.
+	openPage(t, h1, server.CaptureURL()+"/")
+	if _, page := openPage(t, h1, server.CaptureURL()+"/"); !strings.Contains(page, "not been measured over HTTP/2 yet") {
+		t.Errorf("an HTTP/1.1 visit after finishing:\n%s", page)
+	}
+	// A finish for no navigation, or one the server does not know, is refused,
+	// and a launched browser's server has no such page.
+	for _, path := range []string{"/skip", "/skip?navigation=nope"} {
+		if status, _ := get(t, client, server.URL()+path); status != 400 {
+			t.Errorf("%s: %d", path, status)
+		}
+	}
+	if status, _ := get(t, http2Client(), startServer(t).URL()+"/skip?navigation=1"); status != 404 {
+		t.Errorf("a launched browser's server: %d", status)
+	}
+}
+
+func TestManualCapturesWaitingAreKeptWithinBounds(t *testing.T) {
+	limited(t, func(l *limits) { l.kept = 2 })
+	server := startServer(t, WithManual(true))
+	for _, visitor := range []string{"a", "b", "a", "c"} {
+		server.awaitHTTP1(visitor, &Session{})
+	}
+	if len(server.awaiting) != 2 || server.awaiting["a"] == nil || server.awaiting["c"] == nil ||
+		!slices.Equal(server.awaitingOrder, []string{"a", "c"}) {
+		t.Errorf("waiting %v, in order %v", server.awaiting, server.awaitingOrder)
 	}
 }

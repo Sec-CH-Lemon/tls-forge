@@ -121,6 +121,9 @@ func (s *Server) serveCaptureHTTP1(conn net.Conn, sess *Session) error {
 		return writeCaptureHTTP1Response(conn, status, contentType, "", body)
 	}
 
+	if s.manual {
+		return s.manualHTTP1(conn, sess, req)
+	}
 	parsed, err := url.ParseRequestURI(req.Path)
 	if err != nil {
 		return unread(conn, refuse("400", "malformed request target %q", req.Path))

@@ -1457,14 +1457,19 @@ update.
 
 ##### Measuring a browser you open
 
-`--manual` prints an address and waits for a browser to come to it, in three
+`--manual` prints an address and waits for a browser to come to it, in four
 steps the page itself walks you through:
 
 1. Open the address in the browser to measure, typed or pasted.
 2. It warns about the certificate, made for this run: accept it. The page then
    asks for one more visit.
 3. Open the address again in a new tab, typed or pasted. That visit is the one
-   measured, and the command ends with it.
+   measured.
+4. The page then gives a second address, at a listener that offers HTTP/1.1
+   alone: open it the same way, typed into a new tab, and again if the
+   browser warns about the certificate there too, as Firefox does for another
+   port. That visit measures the browser over HTTP/1.1, and the command ends
+   with it; or finish without it on the page.
 
 After the visit measured, its page opens 26 more connections to the server,
 which ends each after its answer: their ClientHellos show what the browser
@@ -1510,11 +1515,12 @@ it is kept as `brave_155`; one that names no brand but Chromium's, as
 tls-forge ships, `chrome_155_macos`: read before the shipped ones, it would
 answer for that one from then on, and for `--profile chrome` too. Give it a
 name of its own with `--name`, which is also how to replace a shipped one on
-purpose. A browser that opens the page is
-measured over HTTP/2 alone: it cannot be sent to a second, HTTP/1.1-only
-listener without the trip showing in what it sends, so its profile has no
-HTTP/1.1 section, and a request that goes out over HTTP/1.1 with it uses the
-same headers in canonical spelling.
+purpose. Measured over HTTP/1.1 by its own visit,
+typed as the first was rather than sent there by the page, which would show in
+what it sends, the profile has the browser's HTTP/1.1 as it spelt it; finished
+without that visit, it has none, and a request that goes out over HTTP/1.1
+with it uses the same headers in canonical spelling. `compare --manual` holds
+a profile to the browser over HTTP/1.1 too when it was measured so.
 
 #### `compare`
 

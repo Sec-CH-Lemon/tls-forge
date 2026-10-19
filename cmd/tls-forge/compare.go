@@ -65,8 +65,8 @@ func runCompare(ctx context.Context, args []string, out, errOut *printer) error 
 		}
 	} else {
 		printComparison(out, result, pal, *full)
-		if *visits.manual {
-			out.println("HTTP/1.1 is not measured from a browser you open, and is not compared.")
+		if *visits.manual && result.Browser.HTTP1 == nil {
+			out.println("HTTP/1.1 was not measured from the browser you opened, and is not compared.")
 		}
 	}
 

@@ -413,7 +413,11 @@ func CompareVisitorAt(ctx context.Context, server *echo.Server, opts ...Option) 
 	if err != nil {
 		return nil, err
 	}
-	clientCapture.HTTP1 = nil
+	// HTTP/1.1 is compared when the browser was measured over it too, by a
+	// visit of its own, and the person may have finished without one.
+	if browserCapture.HTTP1 == nil {
+		clientCapture.HTTP1 = nil
+	}
 	return compared(browserCapture, clientCapture, ModeManual)
 }
 

@@ -730,9 +730,16 @@ func TestMeasureBrowserPassesExtraFlagsToTheBrowser(t *testing.T) {
 }
 
 // visitAsAPerson does at a manual server what a person does: opens the page,
-// which only says what to do next; opens it again, as if in a new tab; and lets
-// the page report back.
+// which only says what to do next; opens it again, as if in a new tab; lets
+// the page report back; and finishes without the HTTP/1.1 visit.
 func visitAsAPerson(server *echo.Server, profileName string) error {
+	return visitAsAPersonOver(server, profileName, false)
+}
+
+// visitAsAPersonOver is visitAsAPerson that, when http1 says so, then opens
+// the HTTP/1.1 address the page gives, twice, the first visit there only
+// saying what to do next.
+func visitAsAPersonOver(server *echo.Server, profileName string, http1 bool) error {
 	client, err := New(WithProfile(profileName), WithInsecureSkipVerify(), WithoutRedirects())
 	if err != nil {
 		return err
@@ -754,12 +761,24 @@ func visitAsAPerson(server *echo.Server, profileName string) error {
 	}
 	start += len(marker)
 	end := strings.IndexByte(page.Text()[start:], '\'')
-	_, err = client.Do(&Request{
-		Method: "POST", URL: server.URL() + page.Text()[start:start+end],
+	collect := page.Text()[start : start+end]
+	if _, err := client.Do(&Request{
+		Method: "POST", URL: server.URL() + collect,
 		Body:   []byte(`{"user_agent":"a person's browser"}`),
 		Header: NewHeader("content-type", "application/json"),
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	if !http1 {
+		_, err := client.Do(&Request{URL: server.URL() + "/skip?navigation=" + strings.TrimPrefix(collect, "/collect?navigation=")})
+		return err
+	}
+	for range 2 {
+		if _, err := client.Do(&Request{URL: server.CaptureURL() + "/", Header: opened}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func manualServer(t *testing.T) *echo.Server {
@@ -825,13 +844,31 @@ func TestCompareVisitorAt(t *testing.T) {
 		if err := <-visited; err != nil {
 			t.Fatalf("visiting: %v", err)
 		}
-		// HTTP/1.1 is not measured from the browser, and so not held against
-		// the client either.
+		// HTTP/1.1 was not measured from the browser, and so is not held
+		// against the client either.
 		if result.OK() != tc.same || result.Client.HTTP1 != nil || len(result.HTTP1.Differences) != 0 ||
 			result.Measured.Mode != ModeManual {
 			t.Errorf("%s: same %v, client HTTP/1.1 %+v, differences %+v", tc.profile, result.OK(),
 				result.Client.HTTP1, result.HTTP1.Differences)
 		}
+	}
+	// Measured over HTTP/1.1 by a visit of its own, the browser is held to
+	// the client over HTTP/1.1 too.
+	server := manualServer(t)
+	visited := make(chan error, 1)
+	go func() { visited <- visitAsAPersonOver(server, DefaultProfile, true) }()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	result, err := CompareVisitorAt(ctx, server, WithProfile(DefaultProfile))
+	if err != nil {
+		t.Fatalf("CompareVisitorAt: %v", err)
+	}
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	if !result.OK() || result.Browser.HTTP1 == nil || result.Client.HTTP1 == nil || len(result.HTTP1.Differences) != 0 {
+		t.Errorf("over HTTP/1.1 too: same %v, browser %v, client %v, differences %+v", result.OK(),
+			result.Browser.HTTP1 != nil, result.Client.HTTP1 != nil, result.HTTP1.Differences)
 	}
 }
 

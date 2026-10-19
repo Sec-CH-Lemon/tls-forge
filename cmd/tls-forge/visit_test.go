@@ -17,13 +17,25 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
-// visitAsAPersonConnecting does at the address what a person is told to:
-// opens it, which only says what to do next; opens it again, as if in a new
-// tab; and lets the page report back navigator, the JSON /collect takes, what
-// a browser's script says of it. When connects says so, the page first opens
-// the connections it asks for, as a browser's does: each once the server has
-// ended the one before, then one given a ticket and one that resumes it.
-func visitAsAPersonConnecting(address, profileName, navigator string, connects bool) error {
+// aPerson is what the stand-in person at a browser does at its page: what
+// its script reports back (navigator, the JSON /collect takes: what a
+// browser's script says of it), whether it first opens the connections the
+// page asks for, and whether it then makes the HTTP/1.1 visit or finishes
+// without it.
+type aPerson struct {
+	navigator string
+	connects  bool
+	http1     bool
+}
+
+// visitAsAPerson does at the address what a person is told to: opens it,
+// which only says what to do next; opens it again, as if in a new tab; and
+// lets the page report back. When connects says so, the page first opens the
+// connections it asks for, as a browser's does: each once the server has ended
+// the one before, then one given a ticket and one that resumes it. Then it
+// opens the HTTP/1.1 address the page gives, twice, the first visit there only
+// saying what to do next; or, without http1, finishes without it.
+func visitAsAPerson(address, profileName string, p aPerson) error {
 	client, err := tlsforge.New(tlsforge.WithProfile(profileName), tlsforge.WithInsecureSkipVerify(),
 		tlsforge.WithoutRedirects())
 	if err != nil {
@@ -44,16 +56,17 @@ func visitAsAPersonConnecting(address, profileName, navigator string, connects b
 	if start < 0 {
 		return fmt.Errorf("the second visit was not measured:\n%s", page.Text())
 	}
-	if connects {
-		said := func(marker, end string) string {
-			at := strings.Index(page.Text(), marker) + len(marker)
-			return page.Text()[at : at+strings.Index(page.Text()[at:], end)]
-		}
+	said := func(marker, end string) string {
+		at := strings.Index(page.Text(), marker) + len(marker)
+		return page.Text()[at : at+strings.Index(page.Text()[at:], end)]
+	}
+	origin := strings.TrimSuffix(address, "/")
+	if p.connects {
 		hellos, err := strconv.Atoi(said("const hellos = ", ";"))
 		if err != nil {
 			return err
 		}
-		hello := strings.TrimSuffix(address, "/") + said("const hello = '", "'")
+		hello := origin + said("const hello = '", "'")
 		say := func(what string) error {
 			client.CloseIdleConnections()
 			_, err := client.Do(&tlsforge.Request{URL: hello + what})
@@ -71,37 +84,41 @@ func visitAsAPersonConnecting(address, profileName, navigator string, connects b
 		}
 		client.CloseIdleConnections()
 	}
-	start += len(marker)
-	end := strings.IndexByte(page.Text()[start:], '\'')
-	_, err = client.Do(&tlsforge.Request{
-		Method: "POST", URL: strings.TrimSuffix(address, "/") + page.Text()[start:start+end],
-		Body:   []byte(navigator),
+	collect := said(marker, "'")
+	if _, err := client.Do(&tlsforge.Request{
+		Method: "POST", URL: origin + collect, Body: []byte(p.navigator),
 		Header: tlsforge.NewHeader("content-type", "application/json"),
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	if !p.http1 {
+		_, err := client.Do(&tlsforge.Request{URL: origin + "/skip?navigation=" + strings.TrimPrefix(collect, "/collect?navigation=")})
+		return err
+	}
+	http1 := said("const http1Address = '", "'")
+	for range 2 {
+		if _, err := client.Do(&tlsforge.Request{URL: http1, Header: opened}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // aPersonVisits is a person at the browser the next manual measurement waits
-// for, wearing a profile; what came of the visit arrives on the channel.
+// for, wearing a profile, reporting nothing of note and finishing without
+// HTTP/1.1; what came of the visit arrives on the channel.
 func aPersonVisits(t *testing.T, profileName string) <-chan error {
 	t.Helper()
-	return aPersonVisitsSaying(t, profileName, `{}`)
+	return aPersonVisitsAs(t, profileName, aPerson{navigator: `{}`})
 }
 
-// aPersonVisitsSaying is aPersonVisits whose page reports navigator.
-func aPersonVisitsSaying(t *testing.T, profileName, navigator string) <-chan error {
-	t.Helper()
-	return aPersonVisitsConnecting(t, profileName, navigator, false)
-}
-
-// aPersonVisitsConnecting is aPersonVisitsSaying whose page opens the
-// connections it asks for when connects says so.
-func aPersonVisitsConnecting(t *testing.T, profileName, navigator string, connects bool) <-chan error {
+// aPersonVisitsAs is aPersonVisits doing what p says.
+func aPersonVisitsAs(t *testing.T, profileName string, p aPerson) <-chan error {
 	t.Helper()
 	visited := make(chan error, 1)
 	previous := visitorReady
 	visitorReady = func(address string) {
-		go func() { visited <- visitAsAPersonConnecting(address, profileName, navigator, connects) }()
+		go func() { visited <- visitAsAPerson(address, profileName, p) }()
 	}
 	t.Cleanup(func() { visitorReady = previous })
 	return visited
@@ -158,8 +175,8 @@ func TestCaptureManualInstallsUnderTheBrowsersName(t *testing.T) {
 	// opened is another one, which its own name then finds. A Chromium browser
 	// is named by its brands: Brave's user agent is Chrome's.
 	dir := keepProfilesIn(t)
-	visited := aPersonVisitsSaying(t, "chrome",
-		`{"brands": [{"brand": "Brave", "version": "155"}, {"brand": "Chromium", "version": "155"}]}`)
+	visited := aPersonVisitsAs(t, "chrome", aPerson{
+		navigator: `{"brands": [{"brand": "Brave", "version": "155"}, {"brand": "Chromium", "version": "155"}]}`})
 	code, stdout, stderr := exec(t, "capture", "--manual", "--install", "--timeout", "30s")
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
@@ -230,14 +247,23 @@ func TestCompareManual(t *testing.T) {
 		if err := <-visited; err != nil {
 			t.Fatalf("visiting: %v", err)
 		}
-		if code != tc.code || !strings.Contains(stdout, "HTTP/1.1 is not measured from a browser you open") ||
-			!strings.Contains(stderr, "waiting for a browser at") {
+		if code != tc.code || !strings.Contains(stdout, "HTTP/1.1 was not measured from the browser you opened") ||
+			!strings.Contains(stderr, "waiting for a browser at") || !strings.Contains(stderr, "4. Its page then gives a second address, https://localhost:") {
 			t.Errorf("%s: exit code = %d\n%s\n%s", tc.profile, code, stdout, stderr)
 		}
 	}
+	// Measured over HTTP/1.1 too, it is compared over HTTP/1.1 too.
+	visited := aPersonVisitsAs(t, "chrome", aPerson{navigator: `{}`, http1: true})
+	code, stdout, stderr := exec(t, "compare", "--manual", "--color", "never", "--profile", "chrome", "--full")
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	if code != 0 || strings.Contains(stdout, "HTTP/1.1 was not measured") || !strings.Contains(stdout, "http1_header_order") {
+		t.Errorf("over HTTP/1.1 too: exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
 	// As JSON, without a word in front of the document.
-	visited := aPersonVisits(t, "chrome")
-	code, stdout, _ := exec(t, "compare", "--manual", "--json")
+	visited = aPersonVisits(t, "chrome")
+	code, stdout, _ = exec(t, "compare", "--manual", "--json")
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
 	}
@@ -428,7 +454,7 @@ func TestCaptureManualMeasuresWhatTheBrowserDrawsForEachConnection(t *testing.T)
 	// The page's connections say what the browser draws for each, and how it
 	// resumes: the profile draws what was measured. The person wears Chrome's
 	// profile, which tls-forge draws as Chrome does, and resumes as it does.
-	visited := aPersonVisitsConnecting(t, "chrome", `{}`, true)
+	visited := aPersonVisitsAs(t, "chrome", aPerson{navigator: `{}`, connects: true})
 	dir := t.TempDir()
 	code, stdout, stderr := exec(t, "capture", "--manual", "--save", dir, "--timeout", "60s")
 	if err := <-visited; err != nil {
@@ -563,4 +589,30 @@ func withRawExtension(t *testing.T, raw []byte, typ uint16) []byte {
 	put(5+1, 3, read(5+1, 3)+4)
 	put(3, 2, read(3, 2)+4)
 	return out
+}
+
+func TestCaptureManualMeasuresHTTP1ByAVisitOfItsOwn(t *testing.T) {
+	// The page's second address, opened as the first was, gives the profile
+	// the browser's HTTP/1.1 as it sent it: spelt as Chrome spells it.
+	visited := aPersonVisitsAs(t, "chrome", aPerson{navigator: `{}`, http1: true})
+	dir := t.TempDir()
+	code, stdout, stderr := exec(t, "capture", "--manual", "--save", dir, "--timeout", "30s")
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	if code != 0 || !strings.Contains(stdout, "HTTP/1.1 order") {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	version, platform := theVisitorsPlatform(t)
+	data, err := os.ReadFile(filepath.Join(dir, version, platform+".json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := profile.Load(data)
+	if err != nil || saved.HTTP1 == nil || len(saved.HTTP1.HeaderOrder) == 0 {
+		t.Fatalf("saved %+v, %v", saved.HTTP1, err)
+	}
+	if _, err := saved.ClientProfile(); err != nil {
+		t.Errorf("the saved profile cannot be used: %v", err)
+	}
 }

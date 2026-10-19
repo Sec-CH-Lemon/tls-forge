@@ -133,6 +133,9 @@ func openForVisitors(v visitFlags, component string, errOut *printer) (*echo.Ser
 	errOut.println("  1. Open that address in the browser to measure: type or paste it.")
 	errOut.println("  2. It warns about the certificate, made for this run: accept it.")
 	errOut.println("  3. Open the address again in a new tab, typed or pasted: that visit is measured.")
+	errOut.printf("  4. Its page then gives a second address, %s, for HTTP/1.1: open it the same way,\n",
+		server.CaptureURL()+"/")
+	errOut.println("     again if the browser warns about the certificate there too; or finish without it on the page.")
 	if !listenerIsLoopback(server.Addr()) && *v.host == "localhost" {
 		errOut.println("A phone cannot open localhost: give --host a name it reaches this machine by" + aNameLike() + ".")
 	}

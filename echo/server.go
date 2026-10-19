@@ -210,6 +210,11 @@ type Server struct {
 	manual       bool
 	trusted      map[string]bool
 	trustedOrder []string
+	// awaiting are the navigations of visitors that reported back, waiting
+	// for their HTTP/1.1 visit (manualHTTP1) or to be finished without one
+	// (/skip), by visitor; awaitingOrder is them oldest first.
+	awaiting      map[string]*Session
+	awaitingOrder []string
 	// ticketed is the configuration a connection is handed while ticketsUntil
 	// (Unix nanoseconds, 0 for never) has not passed: tickets, with keys of
 	// its own, since a configuration that has them off issues none whatever
@@ -347,6 +352,7 @@ func Start(opts ...Option) (*Server, error) {
 		navigationByID:   map[string]*Session{},
 		manual:           cfg.manual,
 		trusted:          map[string]bool{},
+		awaiting:         map[string]*Session{},
 	}
 	if s.manual {
 		if err := s.offerTickets(); err != nil {
@@ -780,9 +786,14 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		if s.manual {
 			hellos = manualHellos
 		}
+		http1Address := ""
+		if s.manual {
+			http1Address = s.CaptureURL() + "/"
+		}
 		page := strings.ReplaceAll(capturePage, navigationPlaceholder, token)
 		page = strings.Replace(page, http1NavigationPlaceholder, http1Navigation, 1)
 		page = strings.Replace(page, hellosPlaceholder, strconv.Itoa(hellos), 1)
+		page = strings.Replace(page, http1AddressPlaceholder, http1Address, 1)
 		return "200", "text/html; charset=utf-8", []byte(page)
 
 	case "/hello":
@@ -790,6 +801,12 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 			return "404", "text/plain; charset=utf-8", []byte("not found\n")
 		}
 		return s.helloSaid(sess, navigationToken, step)
+
+	case "/skip":
+		if !s.manual {
+			return "404", "text/plain; charset=utf-8", []byte("not found\n")
+		}
+		return s.skipHTTP1(sess, req, navigationToken)
 
 	case "/api/all":
 		return jsonResponse(sess.Capture(capture.SourceBrowser))
@@ -813,7 +830,13 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		target.mu.Lock()
 		target.navigator = &nav
 		target.mu.Unlock()
-		req.completes = target
+		// A browser a person opens is measured over HTTP/1.1 next, by a visit
+		// of its own, or finished without one: the capture waits for either.
+		if s.manual {
+			s.awaitHTTP1(visitorOf(sess, req.headers), target)
+		} else {
+			req.completes = target
+		}
 		// The page shows what it reported. The other connections' hellos are
 		// the command's, and with them the answer would be larger than any
 		// this server sends: the page would never hear back.
@@ -827,6 +850,29 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		// since it is not the navigation.
 		return "404", "text/plain; charset=utf-8", []byte("not found\n")
 	}
+}
+
+// skipHTTP1 finishes the capture of a navigation without its HTTP/1.1 visit:
+// a link on its page, for a person who will not make that one.
+func (s *Server) skipHTTP1(sess *Session, req *request, token string) (status, contentType string, body []byte) {
+	if token == "" {
+		_, contentType, body := jsonResponse(map[string]string{"error": "echo: a finish for no navigation"})
+		return "400", contentType, body
+	}
+	target, err := s.captureSession(token, sess)
+	if err != nil {
+		_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
+		return "400", contentType, body
+	}
+	s.mu.Lock()
+	for visitor, waiting := range s.awaiting {
+		if waiting == target {
+			delete(s.awaiting, visitor)
+		}
+	}
+	s.mu.Unlock()
+	req.completes = target
+	return "200", "text/html; charset=utf-8", donePage("over HTTP/2 alone")
 }
 
 // manualHellos is how many connections the page of a manual capture opens

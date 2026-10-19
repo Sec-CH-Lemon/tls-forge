@@ -3,6 +3,7 @@ package echo
 const navigationPlaceholder = "__TLS_FORGE_NAVIGATION__"
 const http1NavigationPlaceholder = "__TLS_FORGE_HTTP1_NAVIGATION__"
 const hellosPlaceholder = "__TLS_FORGE_HELLOS__"
+const http1AddressPlaceholder = "__TLS_FORGE_HTTP1_ADDRESS__"
 
 // capturePage is served at "/". It has one job beyond being readable: report
 // what the HTTP layer cannot.
@@ -44,6 +45,12 @@ const capturePage = `<!doctype html>
   <h1>tls-forge capture</h1>
   <p class="sub" id="status">measuring this browser…</p>
   <table id="out"></table>
+  <div id="http1" hidden>
+    <p>One more step, for HTTP/1.1: open this address in a new tab, typed or pasted. If the
+    browser warns about its certificate, accept it, then open the address once more in a new tab.</p>
+    <p><code id="http1-address"></code></p>
+    <p class="sub">Or <a id="skip" href="/skip?navigation=__TLS_FORGE_NAVIGATION__">finish without HTTP/1.1</a>.</p>
+  </div>
   <p class="sub">Full detail: <a href="/api/all">/api/all</a></p>
 </main>
 <script>
@@ -132,6 +139,15 @@ const capturePage = `<!doctype html>
     .map(([k, v]) => '<tr><th>' + k + '</th><td>' + (v || '—')
       .replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td></tr>')
     .join('');
+  // A browser a person opens is measured over HTTP/1.1 by a visit of its own,
+  // typed as this one was, at the listener that offers HTTP/1.1 alone.
+  const http1Address = '__TLS_FORGE_HTTP1_ADDRESS__';
+  if (http1Address) {
+    status.innerHTML = '<span class="status">captured over HTTP/2.</span>';
+    document.getElementById('http1-address').textContent = http1Address;
+    document.getElementById('http1').hidden = false;
+    return;
+  }
   status.innerHTML = '<span class="status">captured.</span> ' +
     'You can close this tab — the command line has the result.';
 })();
