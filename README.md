@@ -1517,6 +1517,13 @@ not compared. An extension no rule describes, sent by both with different
 contents, is listed under `not checked`: it is neither a match nor a
 difference, and the command exits `3`.
 
+Captured profiles generate the GREASE ECH `enc` as a fresh X25519 public key
+through uTLS's HPKE sender setup, rather than filling it with arbitrary bytes.
+The payload is random, with the lengths above. This is GREASE ECH; it does not
+establish successful ECH encryption or hide the server name. Regression tests
+check the generated keys' encoding, curve and subgroup from server-captured
+ClientHello bytes, independently of JA3/JA4 and the structural comparison.
+
 Over HTTP/2 the comparison covers the SETTINGS in order, the connection's
 WINDOW_UPDATE, PRIORITY frames and the priority on HEADERS, the pseudo-header
 order and values, and every other field with its value, in order. It also

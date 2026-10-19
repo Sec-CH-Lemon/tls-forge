@@ -295,6 +295,12 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 		for _, extension := range spec.Extensions {
 			switch extension := extension.(type) {
 			case *tls.GREASEEncryptedClientHelloExtension:
+				// uTLS's fingerprinter fills EncapsulatedKey with arbitrary
+				// random bytes. A non-empty value bypasses its init's HPKE
+				// X25519 key generation, unlike BoringSSL's GREASE ECH.
+				// Leave it unset so uTLS generates and serializes a fresh
+				// X25519 public key when it builds this connection's hello.
+				extension.EncapsulatedKey = nil
 				// The fingerprinter keeps the one length the capture drew,
 				// and a length that never changes marks this client apart
 				// from the browser, which draws one on every connection.

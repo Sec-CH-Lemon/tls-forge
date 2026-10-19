@@ -1,0 +1,12 @@
+{
+  "source": "User-reported M_TF.json ECH enc; full original JSON was not supplied",
+  "extension_id": 65037,
+  "enc": "63e70ff6d234f8a456244d2878d3b7f98e71a4bd8022af25436db22fcc00fea5",
+  "expected": {
+    "original": "bit 255 set",
+    "after_rfc7748_masking": "main Curve25519, order 4*l",
+    "l_times_u": 1,
+    "two_l_times_u": 0,
+    "four_l_times": "infinity"
+  }
+}

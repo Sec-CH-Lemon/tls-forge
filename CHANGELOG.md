@@ -905,6 +905,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **Captured profiles generate a valid X25519 public key for GREASE ECH**:
+  uTLS's fingerprinter filled `enc` with random bytes, bypassing its normal
+  HPKE sender key generation. `Profile.Spec` now leaves that key unset so
+  uTLS generates it. Payload bytes and length selection keep their existing
+  behavior. Wire-level regressions check encoding, curve membership and the
+  prime-order subgroup on cold and resumed connections, including both
+  X25519 components of `key_share`.
 - **`--clear-output-dir` knows a directory by what it is, not by how it is
   named**: the home directory, the directory the command runs in, one that
   holds either, and one holding a file the run reads are refused whatever
