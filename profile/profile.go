@@ -475,9 +475,9 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 
 // chromeTransport is built, when p is a Chromium browser's, writing headers
 // into HPACK as Chromium's encoder does, against a table as large as a server
-// allows, in frames as large as Chromium's, and telling a server of the window
-// its reader frees as Chromium's network stack does; as the transport does
-// otherwise.
+// allows, in frames and TLS records as large as Chromium's, and telling a
+// server of the window its reader frees as Chromium's network stack does; as
+// the transport does otherwise.
 func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientProfile {
 	if !p.chromium() {
 		return built
@@ -485,8 +485,17 @@ func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientP
 	return built.WithHeaderRepresentation(chromeHeaderRepresentation).
 		WithMaxEncoderHeaderTableSize(chromeEncoderTableSize).
 		WithMaxHeaderFramePayload(chromeHeaderFramePayload).
+		WithMaxDataFramePayload(chromeDataFramePayload).
+		WithDynamicRecordSizingDisabled(true).
 		WithWindowUpdateDelay(chromeWindowUpdateDelay)
 }
+
+// chromeDataFramePayload is the most a DATA frame of Chrome's request bodies
+// carries: 16,375 bytes, which with the frame's header fill a TLS record of
+// 16,384, each frame a record of its own; Chrome's records are as large as
+// its writes from a connection's first byte (measured on Chrome 155,
+// testdata/chrome155-hpack.json).
+const chromeDataFramePayload = 16375
 
 // chromeHeaderFramePayload is the most a frame of Chrome's header blocks
 // carries: 16,374 bytes of payload, a HEADERS frame's priority included, 16,383

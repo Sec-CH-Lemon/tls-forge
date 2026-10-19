@@ -84,11 +84,9 @@ var hpackAsked = map[string][]hpackAsk{
 }
 
 // hpackDiffers are the scenarios of testdata/chrome155-hpack.json tls-forge
-// does not write as Chrome did, and why.
-var hpackDiffers = map[string]string{
-	"hpack-records-header":   "TLS cuts the first writes of a connection into records of 1,186 bytes and more, where Chrome's records are as large as its writes",
-	"hpack-records-post-64k": "the transport writes DATA frames as large as the server lets it, where Chrome's carry 16,375 bytes, a record each",
-}
+// does not write as Chrome did, and why: none, kept for a difference measured
+// later.
+var hpackDiffers = map[string]string{}
 
 // headlessChrome is the profile of the Chrome the HPACK fixture was measured
 // on: chrome_155_macos, with the user agent HeadlessChrome said, so that each

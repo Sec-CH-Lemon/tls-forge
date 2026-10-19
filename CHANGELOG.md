@@ -889,6 +889,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A request's body goes out in DATA frames and TLS records as Chrome's**,
+  with a Chromium profile: DATA frames of at most 16,375 bytes, each filling
+  a TLS record of 16,384 with its frame header, and TLS records as large as
+  what is written from a connection's first byte. The transport wrote DATA
+  frames as large as the server allowed, a 64 KiB body in one against a
+  server allowing 1 MiB, and Go's TLS cut the first writes of a connection
+  into records of 1,186 bytes that grew until 128 KB were sent, so a header
+  block of 5 KB went in two records where Chrome's went in one. Measured on
+  Chrome 155 (the `hpack-records-*` scenarios of
+  `testdata/chrome155-hpack.json`) and held to it, through tls-forge's forks
+  of fhttp (`http2.Transport.MaxDataFramePayload`) and tls-client
+  (`ClientProfile.WithMaxDataFramePayload`,
+  `ClientProfile.WithDynamicRecordSizingDisabled`).
 - **A header block too large for one frame goes out as Chrome cuts it**, and
   no longer past what the server allows: in HEADERS and CONTINUATION frames
   of at most 16,374 bytes of payload each, the HEADERS frame's five of
