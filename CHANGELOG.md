@@ -14,10 +14,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 ### Added
 
 - **The weekly drift check holds Chrome Stable and Beta to every fixture of
-  the bench**: the `behaviour` job of `drift.yml` measures every fixture again
-  on macOS with `measure --check --newer`, a difference measured twice before
-  it counts, and files an issue for each channel and major, commented on only
-  when what differs changes. Before, only the shipped profile was compared
+  the bench, on macOS, Linux and Windows**: the `behaviour` job of `drift.yml`
+  installs each from Google on each platform a profile is shipped for and
+  measures every fixture again with `measure --check --newer`
+  (`--browser-arg=--no-sandbox` on Linux and Windows), a difference measured
+  twice before it counts, and files an issue for each platform, channel and
+  major, commented on only when what differs changes. Run by hand, it files
+  nothing unless asked (`-f file=true`), and `-f profile=false` or
+  `-f behaviour=false` leaves either half out. Before, only the shipped profile was compared
   with Chrome; the behaviour tls-forge is held to was measured once. The
   bench's `measure` exits 3 when a browser differs from the fixtures, 1 when
   it could not measure; `--newer` (with `--check`) holds what a build's

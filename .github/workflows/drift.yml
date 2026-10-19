@@ -19,15 +19,31 @@ name: drift
 # already happened once here, with Chrome for Testing.
 #
 # The behaviour job asks the larger half of the same question: does a real
-# Chrome, Stable and Beta, still do everything the bench's fixtures say, which
-# tls-forge is held to? It files an issue when it does not; a change of
-# behaviour wants code, and no measurement can propose that.
+# Chrome, Stable and Beta, on macOS, Linux and Windows, still do everything the
+# bench's fixtures say, which tls-forge is held to? It files an issue when it
+# does not; a change of behaviour wants code, and no measurement can propose
+# that.
 on:
   schedule:
     # Mondays, early. Chrome's stable rollouts start midweek, so a Monday run
     # sees a settled picture rather than the first hour of one.
     - cron: '17 6 * * 1'
+  # By hand, each half on its own, and a behaviour that differs filed only when
+  # asked: a run to see what a change does should not open issues for it.
   workflow_dispatch:
+    inputs:
+      profile:
+        description: Compare the shipped profile with Chrome Stable, and propose one when it drifted
+        type: boolean
+        default: true
+      behaviour:
+        description: Hold Chrome Stable and Beta to every fixture of the bench, on macOS, Linux and Windows
+        type: boolean
+        default: true
+      file:
+        description: File an issue for each behaviour that differs, as a scheduled run does
+        type: boolean
+        default: false
 
 permissions:
   contents: write        # push the branch the pull request is for
@@ -36,6 +52,7 @@ permissions:
 
 jobs:
   check:
+    if: github.event_name == 'schedule' || inputs.profile
     timeout-minutes: 30
     runs-on: ubuntu-latest
     outputs:
@@ -338,28 +355,37 @@ jobs:
   # kind of redirect, how its header blocks go into HPACK, its TLS records,
   # what it makes of ALPS, its WINDOW_UPDATEs, how it reads a URL and a page's
   # charset, the order it draws for its extensions, False Start. Each was
-  # measured on one build, and tls-forge is held to that; a later build may do
-  # any of it otherwise without a version number saying so. So every fixture
-  # is measured again, on Stable, which people run, and on Beta, which they
-  # will run in a few weeks.
+  # measured on one build, on macOS, and tls-forge is held to that; a later
+  # build may do any of it otherwise without a version number saying so, and
+  # Chrome on Linux and on Windows may do some of it otherwise already: its
+  # network stack is one code, but not all of it (Windows answers NTLM and
+  # Negotiate through SSPI, for one). So every fixture is measured again on
+  # each platform a profile is shipped for, on Stable, which people run, and
+  # on Beta, which they will run in a few weeks.
   #
-  # --newer: what a build's version decides, sec-ch-ua and its kind and the
-  # length they give an HTTP/1.1 head, is held to what the browser sends
-  # itself. Those are the profile's, which the check above deals with; here
-  # they would make every request of a new major a difference. On macOS, the
-  # platform the fixtures were measured on.
+  # --newer: what a build's version and platform decide, sec-ch-ua and its
+  # kind and the length they give an HTTP/1.1 head, is held to what the
+  # browser sends itself. Those are the profile's, which the check above deals
+  # with; here they would make every request a difference.
   #
   # A difference is measured again before it is filed: a bench run on a shared
   # runner can be slow where Chrome's own timers are not, and a difference
-  # that does not repeat is not reported. One issue for each channel and
-  # major, commented on when what differs changes and not otherwise.
+  # that does not repeat is not reported. One issue for each platform, channel
+  # and major, commented on when what differs changes and not otherwise.
   behaviour:
-    timeout-minutes: 150
-    runs-on: macos-latest
+    if: github.event_name == 'schedule' || inputs.behaviour
+    timeout-minutes: 180
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
         channel: [stable, beta]
+    defaults:
+      run:
+        shell: bash
+    env:
+      CHANNEL: ${{ matrix.channel }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -368,14 +394,15 @@ jobs:
           cache: true
 
       # From Google, not the image's, whose Chrome is whatever build the image
-      # was made with, and only Stable. hdiutil attaches the image on macOS 14
-      # and 15; on macOS 27 it says no mountable file system, and diskutil
-      # image attach, which an older macOS does not have, does it (tried
-      # 2026-10-19). Either mounts it under /Volumes.
-      - name: install Google Chrome ${{ matrix.channel }}
-        id: chrome
-        env:
-          CHANNEL: ${{ matrix.channel }}
+      # was made with, and only Stable. Each step says where the browser is
+      # (CHROME) and what it says it is (CHROME_VERSION).
+      #
+      # hdiutil attaches the image on macOS 14 and 15; on macOS 27 it says no
+      # mountable file system, and diskutil image attach, which an older macOS
+      # does not have, does it (tried 2026-10-19). Either mounts it under
+      # /Volumes.
+      - name: install Google Chrome (macOS)
+        if: runner.os == 'macOS'
         run: |
           case $CHANNEL in
             stable) url=https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg
@@ -391,27 +418,76 @@ jobs:
           ditto "$mount/$app.app" "$RUNNER_TEMP/$app.app"
           hdiutil detach "$mount" || diskutil eject "$mount"
           binary="$RUNNER_TEMP/$app.app/Contents/MacOS/$app"
-          version=$("$binary" --version)
-          echo "$version"
-          {
-            echo "binary=$binary"
-            echo "version=$version"
-            echo "major=$(printf '%s' "$version" | grep -oE '[0-9]+' | head -n 1)"
-          } >> "$GITHUB_OUTPUT"
+          { echo "CHROME=$binary"; echo "CHROME_VERSION=$("$binary" --version)"; } >> "$GITHUB_ENV"
+
+      - name: install Google Chrome (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          case $CHANNEL in
+            stable) package=google-chrome-stable dir=chrome ;;
+            beta) package=google-chrome-beta dir=chrome-beta ;;
+            *) echo "no channel $CHANNEL"; exit 1 ;;
+          esac
+          curl -sSfL -o "$RUNNER_TEMP/chrome.deb" "https://dl.google.com/linux/direct/${package}_current_amd64.deb"
+          sudo apt-get update
+          sudo apt-get install -y "$RUNNER_TEMP/chrome.deb"
+          binary=/opt/google/$dir/chrome
+          { echo "CHROME=$binary"; echo "CHROME_VERSION=$("$binary" --version)"; } >> "$GITHUB_ENV"
+
+      # `chrome.exe --version` starts the browser rather than saying what it
+      # is (the capture workflow sat seven minutes on it): the version is the
+      # file's.
+      - name: install Google Chrome (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          switch ($env:CHANNEL) {
+            'stable' { $url = 'https://dl.google.com/tag/s/dl/chrome/install/googlechromestandaloneenterprise64.msi'; $dir = 'Chrome' }
+            'beta' { $url = 'https://dl.google.com/tag/s/dl/chrome/install/beta/googlechromebetastandaloneenterprise64.msi'; $dir = 'Chrome Beta' }
+            default { throw "no channel $env:CHANNEL" }
+          }
+          $msi = Join-Path $env:RUNNER_TEMP 'chrome.msi'
+          Invoke-WebRequest -UseBasicParsing -OutFile $msi -Uri $url
+          $installed = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/i', $msi, '/quiet', '/norestart'
+          "msiexec exited $($installed.ExitCode)"
+          $binary = "C:\Program Files\Google\$dir\Application\chrome.exe"
+          if (-not (Test-Path -LiteralPath $binary)) {
+            Get-ChildItem 'C:\Program Files\Google' -Recurse -Filter chrome.exe -ErrorAction SilentlyContinue | ForEach-Object FullName
+            throw "no Google Chrome at $binary"
+          }
+          $info = (Get-Item -LiteralPath $binary).VersionInfo
+          "CHROME=$binary" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CHROME_VERSION=$($info.ProductName) $($info.ProductVersion)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: which Chrome
+        id: chrome
+        run: |
+          [ -f "$CHROME" ] || { echo "no Google Chrome at $CHROME"; exit 1; }
+          major=$(printf '%s' "$CHROME_VERSION" | grep -oE '[0-9]+' | head -n 1)
+          [ -n "$major" ] || { echo "no version in '$CHROME_VERSION'"; exit 1; }
+          echo "$CHROME_VERSION at $CHROME"
+          { echo "version=$CHROME_VERSION"; echo "major=$major"; } >> "$GITHUB_OUTPUT"
 
       # measure exits 0 when the browser is what the fixtures say, 3 when it is
       # not, and anything else when it could not measure: that is no drift, and
       # fails the job rather than filing one.
+      #
+      # --no-sandbox on Linux and Windows, as the capture workflow says why:
+      # without it Chrome starts, loads no page and says nothing. It is process
+      # isolation, neither TLS nor a header.
       - name: hold it to the fixtures
         id: check
-        env:
-          BROWSER: ${{ steps.chrome.outputs.binary }}
         run: |
-          go build -o "$RUNNER_TEMP/measure" ./internal/harness/measure
+          go build -o "$RUNNER_TEMP/bin/" ./internal/harness/measure
+          measure="$RUNNER_TEMP/bin/measure"
+          if [ -f "$measure.exe" ]; then measure="$measure.exe"; fi
+          args=()
+          if [ "$RUNNER_OS" != macOS ]; then args=(--browser-arg=--no-sandbox); fi
           verdict=matches
           for run in 1 2; do
             set +e
-            "$RUNNER_TEMP/measure" --browser "$BROWSER" --check --newer > differences.txt 2> measure.log
+            "$measure" --browser "$CHROME" "${args[@]}" --check --newer > differences.txt 2> measure.log
             code=$?
             set -e
             tail -n 40 measure.log
@@ -425,41 +501,43 @@ jobs:
           if [ "$verdict" = differs ]; then cat differences.txt; fi
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: steps.check.outputs.verdict == 'differs'
+        if: always() && steps.check.outputs.verdict != ''
         with:
-          name: behaviour-${{ matrix.channel }}
+          name: behaviour-${{ runner.os }}-${{ matrix.channel }}
           path: |
             differences.txt
             measure.log
 
       - name: file it
-        if: steps.check.outputs.verdict == 'differs'
+        if: >-
+          steps.check.outputs.verdict == 'differs' &&
+          (github.event_name == 'schedule' || inputs.file)
         env:
           GH_TOKEN: ${{ github.token }}
-          CHANNEL: ${{ matrix.channel }}
           VERSION: ${{ steps.chrome.outputs.version }}
           MAJOR: ${{ steps.chrome.outputs.major }}
           REVIEWER: ${{ vars.PROFILE_REVIEWER }}
         run: |
-          title="Chrome $CHANNEL $MAJOR does not do what the fixtures say"
-          digest=$(shasum -a 256 differences.txt | cut -d ' ' -f 1)
+          title="Chrome $CHANNEL $MAJOR on $RUNNER_OS does not do what the fixtures say"
+          # git is on every runner, and its digest of a file is the file's.
+          digest=$(git hash-object differences.txt)
           {
             echo "The weekly check measured every fixture of the bench on $VERSION ($CHANNEL,"
-            # shellcheck disable=SC2016 # The backticks are Markdown, not shell expansion.
-            echo 'macOS) with `measure --check --newer`, twice, and it differed from them both'
-            echo "times: something tls-forge is held to, Chrome may now do otherwise. The run:"
+            echo "$RUNNER_OS) with \`measure --check --newer\`, twice, and it differed from them both"
+            echo "times: something tls-forge is held to, Chrome may now do otherwise, or does"
+            echo "otherwise on $RUNNER_OS than on macOS, where the fixtures were measured. The run:"
             echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID, whose"
             echo "artifact has every difference and the measurement's log."
             echo
-            echo "What a build's version decides, sec-ch-ua and the length it gives an"
-            echo "HTTP/1.1 head, is held to what the browser sends itself; the profile check"
+            echo "What a build's version and platform decide, sec-ch-ua and the length it gives"
+            echo "an HTTP/1.1 head, is held to what the browser sends itself; the profile check"
             echo "deals with it. A records scenario on the 1,400 bytes a head and a body are"
             echo "merged up to moves with the head, and is said here when it crosses them."
             echo
             echo "To look into one: \`go run ./internal/harness/measure --browser PATH --check"
-            echo "--newer --only ID\`, with every other fixture given as empty. When Chrome does"
-            echo "something new, measure the fixture again (without --check) and hold"
-            echo "tls-forge to it."
+            echo "--newer --only ID\`, with every other fixture given as empty, and"
+            echo "\`--browser-arg=--no-sandbox\` on Linux and Windows. When Chrome does something"
+            echo "new, measure the fixture again (without --check) and hold tls-forge to it."
             echo
             echo '<details><summary>what differs</summary>'
             echo
@@ -489,13 +567,13 @@ jobs:
       - name: summary
         if: always()
         env:
-          CHANNEL: ${{ matrix.channel }}
           VERSION: ${{ steps.chrome.outputs.version }}
           VERDICT: ${{ steps.check.outputs.verdict }}
         run: |
           {
             echo "| | |"
             echo "|---|---|"
+            echo "| platform | $RUNNER_OS |"
             echo "| channel | $CHANNEL |"
             echo "| browser | ${VERSION:-not installed} |"
             echo "| behaviour | ${VERDICT:-the check could not run} |"
