@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -62,8 +61,8 @@ type Result struct {
 // The seams the tests reach through.
 var (
 	goos, goarch = runtime.GOOS, runtime.GOARCH
-	versionOf    = func(ctx context.Context, binary string) ([]byte, error) {
-		return exec.CommandContext(ctx, binary, "--version").Output()
+	versionOf    = func(ctx context.Context, binary string) (string, error) {
+		return harness.Chrome{Path: binary}.Version(ctx)
 	}
 	compare         = tlsforge.CompareToBrowser
 	measureRequests = harness.Measure
@@ -191,9 +190,9 @@ func hold(ctx context.Context, o options) (*Result, error) {
 	}
 	said, err := versionOf(ctx, binary)
 	if err != nil {
-		return nil, fmt.Errorf("asking %s its version: %w", binary, err)
+		return nil, err
 	}
-	if err := manifest.CheckIdentity(string(said)); err != nil {
+	if err := manifest.CheckIdentity(said); err != nil {
 		return nil, err
 	}
 	comparison, err := compare(ctx, tlsforge.MeasureOptions{
@@ -207,11 +206,12 @@ func hold(ctx context.Context, o options) (*Result, error) {
 		return nil, err
 	}
 	// On the bench as the fixtures were measured, headless whatever launch
-	// says: what the browser asks for in each scenario, how it decodes each
-	// page.
+	// says, given its arguments, which are for the machine (--no-sandbox on a
+	// hosted runner): what the browser asks for in each scenario, how it
+	// decodes each page.
 	ctx, cancel := context.WithTimeout(ctx, o.scenarios)
 	defer cancel()
-	b := harness.Chrome{Path: binary}
+	b := harness.Chrome{Path: binary, Args: manifest.Launch.Args}
 	got, err := measureRequests(ctx, b, nil, o.progress)
 	if err != nil {
 		return nil, fmt.Errorf("measuring the scenarios: %w", err)

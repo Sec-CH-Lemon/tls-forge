@@ -1970,6 +1970,10 @@ drift.yml`, or hold the browser on your machine to the fixtures:
 go run ./internal/harness/measure --browser PATH --check --newer
 ```
 
+Where Chrome's sandbox cannot start, as on a hosted runner's Linux or Windows,
+add `--browser-arg=--no-sandbox`: without it Chrome loads no page and says
+nothing.
+
 Release and maintenance documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — user-visible changes;

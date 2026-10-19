@@ -926,6 +926,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench's `measure` and the pinned gate run Chrome on Windows and on a
+  hosted runner**: both asked the browser `--version`, which `chrome.exe`
+  takes as a page to open, so they waited on a browser for good; on Windows
+  they now read the product name and version the executable holds, with
+  PowerShell. `measure --browser-arg` gives Chrome an argument after the
+  bench's own, again for more, as `--no-sandbox` where its sandbox cannot
+  start, and the fixture it writes says it; the pinned gate gives the bench
+  the reference's `launch` arguments, which before reached `compare` alone.
+
 - **A Chromium profile false starts on a TLS 1.2 server, as Chrome does**: on
   a connection's first, full TLS 1.2 handshake with an ECDHE key exchange, an
   AEAD cipher suite and a protocol negotiated by ALPN, the request goes right

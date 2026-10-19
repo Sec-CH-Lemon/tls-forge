@@ -90,14 +90,20 @@ func (f *fake) DumpDOM(_ context.Context, page string) ([]byte, error) {
 	return []byte(f.dump(body)), nil
 }
 
-// opening has the command measure b, which says it is said.
-func opening(t *testing.T, b harness.Browser, said string) {
+// opening has the command measure b, which says it is said, and keeps the
+// arguments the command gave it.
+func opening(t *testing.T, b harness.Browser, said string) *[]string {
 	t.Helper()
 	oldOpen, oldMachine, oldToday := open, machine, today
-	open = func(context.Context, string) (harness.Browser, string, error) { return b, said, nil }
+	given := new([]string)
+	open = func(_ context.Context, _ string, args []string) (harness.Browser, string, error) {
+		*given = args
+		return b, said, nil
+	}
 	machine = func() string { return "Testing 1 (arm64)" }
 	today = func() string { return "2026-10-17" }
 	t.Cleanup(func() { open, machine, today = oldOpen, oldMachine, oldToday })
+	return given
 }
 
 // fixtures are a fixture of requests holding scenarios, and one of decodings
@@ -233,7 +239,7 @@ func TestTheCommandSaysWhyItMeasuredNothing(t *testing.T) {
 		})
 	}
 	oldOpen := open
-	open = func(context.Context, string) (harness.Browser, string, error) {
+	open = func(context.Context, string, []string) (harness.Browser, string, error) {
 		return nil, "", errors.New("no browser here")
 	}
 	t.Cleanup(func() { open = oldOpen })
@@ -351,16 +357,52 @@ func TestTheBrowserIsFoundAndAskedWhatItIs(t *testing.T) {
 		return path
 	}
 	path := write("chrome", "echo 'Google Chrome 155.0.8059.80 '\n")
-	b, said, err := open(context.Background(), path)
-	if err != nil || said != "Google Chrome 155.0.8059.80" || b.(harness.Chrome).Path != path {
+	b, said, err := open(context.Background(), path, []string{"--no-sandbox"})
+	if err != nil || said != "Google Chrome 155.0.8059.80" ||
+		!reflect.DeepEqual(b, harness.Chrome{Path: path, Args: []string{"--no-sandbox"}}) {
 		t.Errorf("open: %v, %q, %v", b, said, err)
 	}
 	failing := write("failing", "exit 3\n")
-	if _, _, err := open(context.Background(), failing); err == nil || !strings.Contains(err.Error(), "asking "+failing+" its version") {
+	if _, _, err := open(context.Background(), failing, nil); err == nil || !strings.Contains(err.Error(), "asking "+failing+" its version") {
 		t.Errorf("open of a browser that will not say: %v", err)
 	}
-	if _, _, err := open(context.Background(), filepath.Join(dir, "none")); err == nil {
+	if _, _, err := open(context.Background(), filepath.Join(dir, "none"), nil); err == nil {
 		t.Error("open of no browser")
+	}
+}
+
+func TestTheBrowserIsGivenTheArgumentsForTheMachine(t *testing.T) {
+	// Each --browser-arg, in order, after the bench's own, and the fixture
+	// says how the browser was run; none, none.
+	text := "x"
+	for _, tc := range []struct {
+		args  []string
+		given []string
+		how   string
+	}{
+		{nil, nil, "--headless=new --lang=en-US"},
+		{[]string{"--browser-arg=--no-sandbox", "--browser-arg", "--x=a b"}, []string{"--no-sandbox", "--x=a b"},
+			"--headless=new --lang=en-US --no-sandbox --x=a b"},
+	} {
+		requests, _ := fixtures(t, map[string]harness.MeasuredScenario{}, []harness.DecodingCase{{Name: "a", ContentType: &text}})
+		given := opening(t, &fake{}, "Fake Chrome 1.2.3.4")
+		args := append([]string{"--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", "",
+			"--hpack", "", "--records", "", "--alps", "", "--flow", "", "--urls", "", "--hellos", "", "--false-start", "",
+			"--only", "nav-direct"}, tc.args...)
+		if code, _, stderr := measured(t, args...); code != 0 {
+			t.Fatalf("exit %d: %s", code, stderr)
+		}
+		wrote, err := harness.LoadRequests(requests)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(*given, tc.given) || wrote.Browser != "Fake Chrome 1.2.3.4, "+tc.how+", Testing 1 (arm64)" {
+			t.Errorf("%q: given %q, the fixture says %q", tc.args, *given, wrote.Browser)
+		}
+	}
+	var some arguments
+	if some.String() != "" || some.Set("--a") != nil || some.Set("--b") != nil || some.String() != "--a --b" {
+		t.Errorf("arguments: %q", some)
 	}
 }
 

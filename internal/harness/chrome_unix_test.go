@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -201,5 +202,88 @@ func TestADumpThatFailsIsNoDump(t *testing.T) {
 	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "none"))
 	if _, err := (Chrome{Path: failing.path}).DumpDOM(context.Background(), "x"); err == nil {
 		t.Error("dumped with nowhere to keep a profile")
+	}
+}
+
+func TestChromeIsGivenItsArgumentsAfterTheBenchsOwn(t *testing.T) {
+	// So that they win; trusting a server keeps them, and a dump has them too.
+	s := standIn(t, "", 0)
+	dir := t.TempDir()
+	chrome := Chrome{Path: s.path, Args: []string{"--no-sandbox", "--x=a b"}}
+	stop, err := chrome.trusting("a2V5").Open(context.Background(), "https://www.example.com:1/run/x", dir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	args := strings.Split(strings.TrimSpace(written(t, s.args)), "\n")
+	want := append(flags(dir, "", ""), "--ignore-certificate-errors-spki-list=a2V5", "--no-sandbox", "--x=a b",
+		"https://www.example.com:1/run/x")
+	if !slices.Equal(args, want) {
+		t.Errorf("run with %q,\nwant %q", args, want)
+	}
+	stop()
+	dumping := standIn(t, "<p>x</p>", 0)
+	if _, err := (Chrome{Path: dumping.path, Args: chrome.Args}).DumpDOM(context.Background(), "http://127.0.0.1:1/a"); err != nil ||
+		!strings.HasSuffix(written(t, dumping.args), "--no-sandbox\n--x=a b\n--dump-dom\nhttp://127.0.0.1:1/a\n") {
+		t.Errorf("DumpDOM: %v, run with %q", err, written(t, dumping.args))
+	}
+	if told := chrome.defaultPorts(1, 2).(Chrome); !slices.Equal(told.Args, chrome.Args) {
+		t.Errorf("told the ports, its arguments are %q", told.Args)
+	}
+}
+
+// saying is a program at a path of its own that runs body, a shell script.
+func saying(t *testing.T, body string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "chrome")
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body), 0o755); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	return path
+}
+
+func TestChromeSaysItsVersion(t *testing.T) {
+	path := saying(t, `[ "$1" = --version ] && echo 'Google Chrome 155.0.8059.85 '`+"\n")
+	if said, err := (Chrome{Path: path}).Version(context.Background()); err != nil || said != "Google Chrome 155.0.8059.85" {
+		t.Errorf("Version: %q, %v", said, err)
+	}
+	failing := saying(t, "exit 3\n")
+	var exit *exec.ExitError
+	if _, err := (Chrome{Path: failing}).Version(context.Background()); !errors.As(err, &exit) ||
+		err.Error() != "harness: asking "+failing+" its version: exit status 3" {
+		t.Errorf("Version of a browser that fails: %v", err)
+	}
+	silent := saying(t, "echo ' '\n")
+	if _, err := (Chrome{Path: silent}).Version(context.Background()); err == nil ||
+		err.Error() != "harness: asking "+silent+" its version: it says none" {
+		t.Errorf("Version of a browser that says nothing: %v", err)
+	}
+}
+
+func TestChromeOnWindowsSaysTheVersionItsFileHolds(t *testing.T) {
+	// chrome.exe --version starts the browser: PowerShell reads its file's
+	// product name and version instead, given the path in the environment.
+	oldGOOS, oldCommand := goos, command
+	t.Cleanup(func() { goos, command = oldGOOS, oldCommand })
+	goos = "windows"
+	var asked []string
+	powershell := saying(t, `printf 'Google Chrome %s\n' "$TLSFORGE_BROWSER"`+"\n")
+	command = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		asked = append([]string{name}, args...)
+		return exec.CommandContext(ctx, powershell)
+	}
+	path := `C:\Program Files\Google\Chrome\Application\chrome.exe`
+	said, err := (Chrome{Path: path}).Version(context.Background())
+	if err != nil || said != "Google Chrome "+path {
+		t.Errorf("Version: %q, %v", said, err)
+	}
+	want := []string{"powershell", "-NoProfile", "-NonInteractive", "-Command",
+		"$v = (Get-Item -LiteralPath $env:TLSFORGE_BROWSER -ErrorAction Stop).VersionInfo; $v.ProductName + ' ' + $v.ProductVersion"}
+	if !slices.Equal(asked, want) {
+		t.Errorf("asked %q", asked)
+	}
+	// A file that holds no version is no answer.
+	powershell = saying(t, "echo ' '\n")
+	if _, err := (Chrome{Path: path}).Version(context.Background()); err == nil || !strings.HasSuffix(err.Error(), "it says none") {
+		t.Errorf("Version of a file with none: %v", err)
 	}
 }

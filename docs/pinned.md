@@ -73,7 +73,9 @@ In order, and stopping at the first that fails:
    and holds its platform and machine to the build's.
 5. It asks the browser `--version`, and holds the answer to `Google Chrome`
    and the version exactly: Chrome for Testing, Chromium or another version
-   is refused, by name.
+   is refused, by name. On Windows, where `chrome.exe --version` starts the
+   browser instead, it reads the product name and version the executable
+   holds, with PowerShell.
 6. It compares the profile with the browser, launched as `launch` says,
    exactly as `tls-forge compare` does, and writes the result and what it
    held to what to `--out`, with what the result is for: the commit a
@@ -81,7 +83,8 @@ In order, and stopping at the first that fails:
    of the release's set (`--set`, the SHA-256 of its `manifest.json`). A
    release takes a result only for its own commit and its own set.
 7. It measures the browser on the bench in `internal/harness`, headless as
-   the fixtures were measured, every scenario of a page over HTTP/2 and over
+   the fixtures were measured, with `launch`'s arguments, which are for the
+   machine (`--no-sandbox` on a hosted runner), every scenario of a page over HTTP/2 and over
    HTTP/1.1 and every page whose decoding is asked about, within
    `--scenario-timeout`, and holds it to the fixtures tls-forge is tested
    against: every request in order, its method, URL, body, HTTP/2 priority,

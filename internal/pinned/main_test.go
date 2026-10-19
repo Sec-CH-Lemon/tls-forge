@@ -12,6 +12,7 @@ import (
 	neturl "net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -173,7 +174,7 @@ type comparer = func(context.Context, tlsforge.MeasureOptions, ...tlsforge.Optio
 func seams(t *testing.T, said string, compared comparer) {
 	t.Helper()
 	oldVersion, oldCompare, oldRequests, oldDecoding := versionOf, compare, measureRequests, measureDecoding
-	versionOf = func(context.Context, string) ([]byte, error) { return []byte(said), nil }
+	versionOf = func(context.Context, string) (string, error) { return said, nil }
 	compare = compared
 	measureRequests = func(context.Context, harness.Browser, []string, io.Writer) (map[string]harness.MeasuredScenario, error) {
 		return map[string]harness.MeasuredScenario{"x": scenario}, nil
@@ -490,7 +491,8 @@ func TestTheGateHoldsTheReferenceToWhatAPageDoes(t *testing.T) {
 	if code := run(context.Background(), r.args("--out", out, "--scenario-timeout", "3m"), &stdout, &stderr); code != 1 {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
-	if measuredWith != (harness.Chrome{Path: r.binary}) || deadline.Sub(start) < 2*time.Minute || deadline.Sub(start) > 4*time.Minute {
+	if !reflect.DeepEqual(measuredWith, harness.Chrome{Path: r.binary, Args: []string{"--no-sandbox"}}) ||
+		deadline.Sub(start) < 2*time.Minute || deadline.Sub(start) > 4*time.Minute {
 		t.Errorf("measured %v, by %v", measuredWith, deadline.Sub(start))
 	}
 	if !strings.Contains(stdout.String(), `x over h2, request 1: accept: "text/html", the fixture's "*/*"`) ||

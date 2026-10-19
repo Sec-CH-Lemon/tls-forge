@@ -10,7 +10,8 @@
 //	go run ./internal/harness/measure --browser PATH [--requests FILE] \
 //	    [--connections FILE] [--decoding FILE] [--hpack FILE] [--records FILE] \
 //	    [--alps FILE] [--flow FILE] [--urls FILE] [--hellos FILE] \
-//	    [--false-start FILE] [--only ID,...] [--check [--newer]]
+//	    [--false-start FILE] [--only ID,...] [--browser-arg ARG]... \
+//	    [--check [--newer]]
 //
 // --requests, --connections, --decoding, --hpack, --records, --alps, --flow,
 // --urls, --hellos and --false-start name the fixtures,
@@ -26,7 +27,10 @@
 // fixture of them measured has to have every one. --newer holds a newer build
 // of the browser than the fixtures': what its version decides, the values of
 // sec-ch-ua and its kind and the length they give an HTTP/1.1 head, is held
-// to what it sends itself rather than to the fixtures'. It exits 0 when the
+// to what it sends itself rather than to the fixtures'. --browser-arg gives
+// the browser an argument after the bench's own, for the machine: a hosted
+// runner's Linux and Windows need --no-sandbox, without which Chrome loads no
+// page and says nothing. It exits 0 when the
 // browser is what the fixtures say, 3 when it is not, 2 for what it is given
 // that it cannot run with, and 1 when it could not measure. Writing replaces what the fixture says of
 // each scenario measured, and of every page, and says which browser it was and
@@ -55,17 +59,19 @@ func main() { exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
 
 // The seams the tests reach through.
 var (
-	// open is the browser at path, and what it says it is.
-	open = func(ctx context.Context, path string) (harness.Browser, string, error) {
+	// open is the browser at path, given args after the bench's own, and what
+	// it says it is.
+	open = func(ctx context.Context, path string, args []string) (harness.Browser, string, error) {
 		found, err := browser.Find(path)
 		if err != nil {
 			return nil, "", err
 		}
-		said, err := exec.CommandContext(ctx, found.Path, "--version").Output()
+		chrome := harness.Chrome{Path: found.Path, Args: args}
+		said, err := chrome.Version(ctx)
 		if err != nil {
-			return nil, "", fmt.Errorf("asking %s its version: %w", found.Path, err)
+			return nil, "", err
 		}
-		return harness.Chrome{Path: found.Path}, strings.TrimSpace(string(said)), nil
+		return chrome, said, nil
 	}
 	// machine says what this machine is, as the fixtures do.
 	machine = func() string { return describe(runtime.GOOS, runtime.GOARCH, exec.Command, os.ReadFile) }
@@ -98,6 +104,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	check := flags.Bool("check", false, "hold the browser to the fixtures rather than write them")
 	newer := flags.Bool("newer", false,
 		"with --check, a newer build: what its version decides held to what it sends itself")
+	var browserArgs arguments
+	flags.Var(&browserArgs, "browser-arg",
+		"an argument for the browser after the bench's own, again for more; for the machine, as --no-sandbox")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -114,12 +123,13 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if *only != "" {
 		names = strings.Split(*only, ",")
 	}
-	b, said, err := open(ctx, *path)
+	b, said, err := open(ctx, *path, browserArgs)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
 		return 1
 	}
-	about := said + ", --headless=new --lang=en-US, " + machine()
+	about := said + ", " + strings.Join(append([]string{"--headless=new", "--lang=en-US"}, browserArgs...), " ") +
+		", " + machine()
 	var diff []string
 	for _, fixture := range []struct {
 		path    string
@@ -210,6 +220,16 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintln(stdout, "the browser is what the fixtures say")
 	}
 	return 0
+}
+
+// arguments are what --browser-arg gives, each as it is, in order.
+type arguments []string
+
+func (a *arguments) String() string { return strings.Join(*a, " ") }
+
+func (a *arguments) Set(arg string) error {
+	*a = append(*a, arg)
+	return nil
 }
 
 // measurer measures the scenarios of a fixture of requests: harness.Measure,
