@@ -264,8 +264,20 @@ var catalogue = map[string]scenario{
 		script: "fetch('{A}/r/302/{ID}?keep=first&to={S}/cors/{ID}?keep=second').then(()=>fetch('{A}/p/{ID}-after')).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
 	// Which of a cookie of each SameSite (?cookie=2) an answer sets is kept:
 	// a later request to the origin from a page of its own says.
+	"set-cookie-samesite-fetch-cross-site": {note: "fetch() of another site with credentials include whose answer sets a cookie of each SameSite, then a navigation there and a page of its own origin",
+		script: "fetch('{X}/cors/{ID}?cookie=2',{credentials:'include'}).then(()=>{location.href='{X}/p/{ID}-land?after=0&next={X}/p/{ID}-after';});",
+		wait:   "/p/{ID}-after"},
+	"set-cookie-samesite-nav-cross-site": {note: "a navigation to another site whose answer sets a cookie of each SameSite, then a page of its own origin",
+		script: "location.href='{X}/p/{ID}?cookie=2&after=0&next={X}/p/{ID}-after';", wait: "/p/{ID}-after"},
+	"set-cookie-samesite-form-cross-site": {note: "a form posted to another site whose answer sets a cookie of each SameSite, then a page of its own origin",
+		html: formHTML("post", "{X}/p/{ID}?cookie=2&amp;after=0&amp;next={X}/p/{ID}-after", ""), script: submit,
+		wait: "/p/{ID}-after"},
+	"set-cookie-samesite-fetch-same-site": {note: "fetch() of another origin of the site with credentials include whose answer sets a cookie of each SameSite, then another",
+		script: "fetch('{S}/cors/{ID}?cookie=2',{credentials:'include'}).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
 	"set-cookie-samesite-fetch-redirect-back": {note: "fetch() of another site with credentials include, 302 back to the page's origin whose answer sets a cookie of each SameSite, then fetch() of the page's origin",
 		script: "fetch('{X}/r/302/{ID}?to={A}/cors/{ID}?cookie=2',{credentials:'include'}).then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
+	"set-cookie-samesite-nav-redirect-back": {note: "a navigation to another site, 302 back to the page's origin whose answer sets a cookie of each SameSite, then a page of its own origin",
+		script: "location.href='{X}/r/302/{ID}?to={A}/p/{ID}?cookie=2%26after=0%26next={A}/p/{ID}-after';", wait: "/p/{ID}-after"},
 	"fetch-misdirected-cookie": {note: "fetch() of the same origin, answered 421 the first time with a cookie, then fetch() of the same origin",
 		script: "fetch('{A}/misdirected/{ID}?first=1&mcookie=1').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 

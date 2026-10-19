@@ -884,6 +884,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A script's answer from another site keeps its `SameSite=None` cookies
+  alone**, as Chrome's: the answer to `fetch()` or an XHR of another site
+  than its page's set cookies of `SameSite=Strict`, `Lax` and of none
+  named, which tls-forge kept and a later request carried. A navigation's, a
+  form's and a request's to its page's site keep any, whatever site a
+  redirect went through. Measured on Chrome 155 (the six
+  `set-cookie-samesite-*` scenarios of `testdata/chrome155-requests.json`)
+  and held to it request for request.
 - **`Sec-Fetch-Storage-Access` goes as Chrome sends it**: on a script's
   request with credentials to another site than its page's. A redirect that
   takes one through another site back to its page's site sends none, though

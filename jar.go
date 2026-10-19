@@ -66,12 +66,18 @@ func newKeptJar(inner fhttp.CookieJar) *keptJar {
 }
 
 // SetCookies files the cookies in the jar, each cut to Chrome's lifetime, and
-// keeps what the jar will not say of them.
+// keeps what the jar will not say of them. Of an answer to a request in a
+// browser context, whose rule u is ruled by, it files those the request may
+// set (sendRule.keeps).
 func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
+	var rule sendRule
+	if ruled, ok := j.rules.Load(u); ok {
+		rule = ruled.(sendRule)
+	}
 	now := time.Now()
 	capped := make([]*fhttp.Cookie, 0, len(cookies))
 	for _, c := range cookies {
-		if c != nil {
+		if c != nil && rule.keeps(c) {
 			capped = append(capped, capLifetime(c, now))
 		}
 	}
@@ -165,6 +171,17 @@ func (rule sendRule) allows(facts cookieFacts, known bool, now time.Time) bool {
 		return rule.topLevel && rule.safe
 	}
 	return rule.topLevel && (rule.safe || known && now.Sub(facts.created) < laxAllowingUnsafe)
+}
+
+// keeps reports a cookie an answer sets that is filed, by its SameSite: any
+// from a request to its page's site, or one that loads a page at the top,
+// and from a script's request to another site, one of SameSite=None alone, as
+// Chrome keeps them (the set-cookie-samesite-* scenarios of
+// testdata/chrome155-requests.json). A redirect that went through another
+// site changes nothing: the hop's own URL decides. A request without a
+// browser context has the zero rule, and files any.
+func (rule sendRule) keeps(c *fhttp.Cookie) bool {
+	return !rule.crossSite || rule.topLevel || c.SameSite == fhttp.SameSiteNoneMode
 }
 
 // forURL is what goes to a URL, with what the jar does not say of each cookie.

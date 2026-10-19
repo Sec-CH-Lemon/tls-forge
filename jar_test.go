@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -364,5 +365,42 @@ func TestSameSiteNames(t *testing.T) {
 	}
 	if strings.Contains(sameSiteName(fhttp.SameSiteDefaultMode), "default") {
 		t.Error("the default mode has a name of its own")
+	}
+}
+
+func TestAScriptsAnswerFromAnotherSiteSetsSameSiteNoneAlone(t *testing.T) {
+	// As Chrome keeps them: a script's request to another site files a cookie
+	// of SameSite=None alone; one to its page's site, a page's, and a request
+	// without a browser context file any.
+	for _, tc := range []struct {
+		name string
+		rule sendRule
+		want []string
+	}{
+		{"a script to another site", sendRule{crossSite: true}, []string{"none"}},
+		{"a script's unsafe request to another site", sendRule{crossSite: true, safe: false}, []string{"none"}},
+		{"a navigation to another site", sendRule{crossSite: true, topLevel: true, safe: true}, []string{"lax", "none", "strict", "unnamed", "word"}},
+		{"a form posted to another site", sendRule{crossSite: true, topLevel: true}, []string{"lax", "none", "strict", "unnamed", "word"}},
+		{"a script to its page's site", sendRule{}, []string{"lax", "none", "strict", "unnamed", "word"}},
+	} {
+		jar := newTestJar()
+		u := mustURL(t, "https://www.example.com/")
+		jar.restrict(u, tc.rule)
+		jar.SetCookies(u, []*fhttp.Cookie{
+			{Name: "unnamed", Value: "1"},
+			{Name: "none", Value: "1", SameSite: fhttp.SameSiteNoneMode, Secure: true},
+			{Name: "lax", Value: "1", SameSite: fhttp.SameSiteLaxMode},
+			{Name: "strict", Value: "1", SameSite: fhttp.SameSiteStrictMode},
+			{Name: "word", Value: "1", SameSite: fhttp.SameSiteDefaultMode},
+		})
+		jar.release(u)
+		var got []string
+		for _, c := range jar.inner.Cookies(u) {
+			got = append(got, c.Name)
+		}
+		slices.Sort(got)
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("%s: filed %v, want %v", tc.name, got, tc.want)
+		}
 	}
 }

@@ -336,7 +336,10 @@ The cookies an answer sets are kept as Chrome keeps them: none of those of
 the answer to a request that carries none (credentials `omit`, or
 `same-origin` to another origin, each hop of a redirect by its own), and none
 of a preflight's. An answer CORS refuses keeps its cookies, as Chrome's
-network stack keeps them before the page is refused the answer.
+network stack keeps them before the page is refused the answer. The answer
+to `fetch()` or an XHR of another site than its page's keeps those of
+`SameSite=None` alone; one to the page's site, a navigation's and a form's
+keep any, whatever site a redirect went through before.
 
 A request CORS answers, `fetch()` or an XHR in `cors` mode to another origin,
 goes as Chrome sends it. One with a method or a header CORS asks about goes
