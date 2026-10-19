@@ -88,6 +88,7 @@ type Session struct {
 	http2Recorded bool
 	http1         *capture.HTTP1
 	navigator     *capture.Navigator
+	clientHints   []capture.HeaderField
 	remote        string
 	// requests is how many requests have come on the connection, so that a
 	// visit made on one that has carried another can be told apart: what the
@@ -116,7 +117,8 @@ func (s *Session) Remote() string { return s.remote }
 func (s *Session) Capture(source string) *capture.Capture {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := &capture.Capture{Source: source, Negotiated: s.negotiated, Navigator: cloneNavigator(s.navigator)}
+	out := &capture.Capture{Source: source, Negotiated: s.negotiated, Navigator: cloneNavigator(s.navigator),
+		ClientHints: append([]capture.HeaderField(nil), s.clientHints...)}
 	if s.hello != nil {
 		out.RawClientHello = append([]byte(nil), s.hello.Raw...)
 		out.TLS = capture.FromClientHello(s.hello)
@@ -794,6 +796,7 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		page = strings.Replace(page, http1NavigationPlaceholder, http1Navigation, 1)
 		page = strings.Replace(page, hellosPlaceholder, strconv.Itoa(hellos), 1)
 		page = strings.Replace(page, http1AddressPlaceholder, http1Address, 1)
+		page = strings.Replace(page, clientHintsPlaceholder, strings.Join(askedHints(), ", "), 1)
 		return "200", "text/html; charset=utf-8", []byte(page)
 
 	case "/hello":
@@ -829,6 +832,7 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		}
 		target.mu.Lock()
 		target.navigator = &nav
+		target.clientHints = clientHintsIn(req.headers)
 		target.mu.Unlock()
 		// A browser a person opens is measured over HTTP/1.1 next, by a visit
 		// of its own, or finished without one: the capture waits for either.

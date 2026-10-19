@@ -694,7 +694,7 @@ func (p *Profile) validateClientHints() error {
 		switch {
 		case !slices.Contains(ClientHintOrder, hint.Name) || slices.Contains(defaultClientHints, hint.Name):
 			return fmt.Errorf("profile %q: %q is no client hint a server asks for: client_hints are %s, "+
-				"in lower case", p.Name, hint.Name, strings.Join(askable(), ", "))
+				"in lower case", p.Name, hint.Name, strings.Join(AskedClientHints(), ", "))
 		case seen[hint.Name]:
 			return fmt.Errorf("profile %q: client hint %s is said twice", p.Name, hint.Name)
 		case hint.Value == "" || !httpguts.ValidHeaderFieldValue(hint.Value):
@@ -706,8 +706,10 @@ func (p *Profile) validateClientHints() error {
 	return nil
 }
 
-// askable are the client hints a server has to ask for.
-func askable() []string {
+// AskedClientHints are the client hints Chrome sends only to a server that
+// asks for them, in the order it sends them: those a profile's client_hints
+// may say.
+func AskedClientHints() []string {
 	var out []string
 	for _, name := range ClientHintOrder {
 		if !slices.Contains(defaultClientHints, name) {

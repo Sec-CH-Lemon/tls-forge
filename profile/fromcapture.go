@@ -7,6 +7,7 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"golang.org/x/net/http/httpguts"
 )
 
 // perRequest names the headers a profile must NOT carry.
@@ -125,6 +126,9 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 		p.UserAgent = c.Navigator.UserAgent
 	}
 	p.ClientHints = clientHintsOf(c.Navigator)
+	if len(c.ClientHints) > 0 {
+		p.ClientHints = clientHintsSent(c.ClientHints)
+	}
 	p.PerConnection = perConnectionOf(p)
 	if c.Navigator != nil && len(c.Navigator.Brands) > 0 {
 		p.PerConnection = &PerConnection{}
@@ -141,6 +145,25 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 		p.PerConnection = drawn.perConnection()
 	}
 	return p, nil
+}
+
+// clientHintsSent are the client hints a browser sent its page when the page
+// asked for every one, as it sent them, in Chrome's order, those it sends
+// unasked aside (its headers say them) and any no header could carry again:
+// what it sends a server that asks, measured, which a capture that kept them
+// has the profile say over what it gave JavaScript. None of a browser that
+// sent the unasked alone.
+func clientHintsSent(sent []capture.HeaderField) []Field {
+	var out []Field
+	for _, name := range AskedClientHints() {
+		for _, h := range sent {
+			if strings.EqualFold(h.Name, name) && h.Value != "" && httpguts.ValidHeaderFieldValue(h.Value) {
+				out = append(out, Field{Name: name, Value: h.Value})
+				break
+			}
+		}
+	}
+	return out
 }
 
 // clientHintsOf are the client hints of the user agent its browser sends when

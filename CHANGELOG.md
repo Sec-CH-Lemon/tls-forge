@@ -28,6 +28,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   version decides, `sec-ch-ua` and its kind and the length they give an
   HTTP/1.1 head, to what the browser sends itself.
 
+- **`capture` keeps every client hint the browser sends a server that asks**:
+  its page asks for each with a `<meta http-equiv="Accept-CH">`, which applies
+  to the page's own requests alone and which no later visit carries, and the
+  profile says what the browser's report came with: the device's (memory,
+  pixel ratio, the window's size), the network's (`rtt`, `downlink`, `ect`),
+  its person's preferences and the user agent's, as sent. Before, only the
+  user agent's were kept, as the browser told the page's script, which a
+  capture whose report came with none still keeps. `capture` says how many it
+  sent. Chrome 155 sent its page all 21 and the next navigation none.
+
 - **Every replay of what Chrome was measured to do runs wearing the Linux and
   Windows profiles too**, not the macOS one alone: requests and their
   connections, HPACK, HTTP/1.1 records, ALPS, WINDOW_UPDATEs, URLs, False

@@ -272,6 +272,68 @@ func TestFromCaptureSaysTheUserAgentsHintsAsChromeSendsThem(t *testing.T) {
 	}
 }
 
+func TestFromCaptureTakesTheClientHintsTheBrowserSentWhenAsked(t *testing.T) {
+	// What the page's report came with, the page having asked for every hint,
+	// is what the profile says, over what the browser told its script: as
+	// sent, in Chrome's order, those sent unasked aside; a value no header
+	// carries again is left out; and a browser that sent the unasked alone,
+	// as one that sends no hint a server asks for does, has none.
+	raw, err := os.ReadFile("../testdata/chrome155-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	told := &capture.Navigator{FullVersionList: []capture.Brand{{Brand: "Chromium", Version: "1"}}, Architecture: "told"}
+	built := func(sent []capture.HeaderField) []Field {
+		t.Helper()
+		p, err := FromCapture("custom", &capture.Capture{RawClientHello: raw, Navigator: told, ClientHints: sent,
+			HTTP2: &capture.HTTP2{
+				PseudoHeaderOrder: []string{"m", "a", "s", "p"},
+				Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
+			}})
+		if err != nil {
+			t.Fatalf("FromCapture: %v", err)
+		}
+		saved, err := p.Save()
+		if err != nil {
+			t.Fatalf("Save: %v", err)
+		}
+		if _, err := Load(saved); err != nil {
+			t.Errorf("what Save wrote does not read: %v", err)
+		}
+		return p.ClientHints
+	}
+	// Chrome 155 on this Mac sent its page what the shipped profile says,
+	// measured: given here the other way round, in capitals, with the unasked.
+	shipped, err := Get("chrome_155_macos")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	sent := []capture.HeaderField{{Name: "sec-ch-ua", Value: `"Chromium";v="155"`}, {Name: "sec-ch-ua-mobile", Value: "?0"}}
+	for _, hint := range slices.Backward(shipped.ClientHints) {
+		sent = append(sent, capture.HeaderField{Name: strings.ToUpper(hint.Name), Value: hint.Value})
+	}
+	if got := built(sent); !reflect.DeepEqual(got, shipped.ClientHints) {
+		t.Errorf("said %v,\nsent %v", got, shipped.ClientHints)
+	}
+	if got := built([]capture.HeaderField{{Name: "sec-ch-ua-platform", Value: `"macOS"`}}); got != nil {
+		t.Errorf("the unasked alone: %v", got)
+	}
+	got := built([]capture.HeaderField{{Name: "dpr", Value: ""}, {Name: "rtt", Value: "1\n0"},
+		{Name: "ect", Value: "4g"}, {Name: "sec-ch-ua-arch", Value: `"x86"`}})
+	if want := []Field{{Name: "ect", Value: "4g"}, {Name: "sec-ch-ua-arch", Value: `"x86"`}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("values no header carries: %v", got)
+	}
+	// One sent twice is said once, as it came first.
+	got = built([]capture.HeaderField{{Name: "ect", Value: "4g"}, {Name: "ECT", Value: "3g"}})
+	if want := []Field{{Name: "ect", Value: "4g"}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("sent twice: %v", got)
+	}
+	// None kept: what the browser told its script.
+	if got := built(nil); len(got) != 7 || got[1] != (Field{Name: "sec-ch-ua-arch", Value: `"told"`}) {
+		t.Errorf("none kept: %v", got)
+	}
+}
+
 func TestAnECHPayloadLengthIsOneABrowserCouldDraw(t *testing.T) {
 	// The payload's length field holds 65535 bytes, the AEAD's tag among them.
 	for length, ok := range map[int]bool{0: false, 1: true, 65519: true, 65520: false} {

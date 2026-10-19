@@ -4,16 +4,20 @@ const navigationPlaceholder = "__TLS_FORGE_NAVIGATION__"
 const http1NavigationPlaceholder = "__TLS_FORGE_HTTP1_NAVIGATION__"
 const hellosPlaceholder = "__TLS_FORGE_HELLOS__"
 const http1AddressPlaceholder = "__TLS_FORGE_HTTP1_ADDRESS__"
+const clientHintsPlaceholder = "__TLS_FORGE_CLIENT_HINTS__"
 
 // capturePage is served at "/". It has one job beyond being readable: report
 // what the HTTP layer cannot.
 //
-// The handshake and the headers arrive on the wire, but the high-entropy client
-// hints do not — a browser only sends sec-ch-ua-arch, -bitness, -model and
-// -platform-version after a server has asked for them with Accept-CH, and even
-// then only some of them. getHighEntropyValues() returns all of them for the
-// asking, from the browser itself, which is the only source that cannot be
-// wrong about the machine it is running on.
+// The handshake and the headers arrive on the wire, but the client hints a
+// server has to ask for do not. The page asks for every one with a meta
+// http-equiv Accept-CH (askedHints), which applies to its own requests alone
+// and which no later visit carries, so that its report arrives with the hints
+// the browser sends a server that asks: its device's, its network's, its
+// person's preferences and its user agent's, measured, as Chrome 155 sent them
+// all to the page's fetch() and none to the next navigation. The report itself
+// gives what getHighEntropyValues() gives of the user agent, for a browser
+// whose report carries no hints.
 //
 // Everything is inline. The page is served over a self-signed certificate that
 // the browser has been told to ignore; loading a script from anywhere else would
@@ -22,6 +26,7 @@ const capturePage = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<meta http-equiv="Accept-CH" content="__TLS_FORGE_CLIENT_HINTS__">
 <title>tls-forge capture</title>
 <style>
   :root { color-scheme: light dark; --fg:#111; --bg:#fff; --muted:#666; --line:#e3e3e3; --ok:#0a7d32; }

@@ -48,6 +48,12 @@ type Capture struct {
 	// was given. A browser a person opens gives them (echo.WithManual).
 	Connections        [][]byte `json:"connections,omitempty"`
 	ResumedClientHello []byte   `json:"resumed_client_hello,omitempty"`
+
+	// ClientHints are the client hints the browser sent with its page's
+	// report, the page having asked for every one: what a server that asks
+	// is sent, names in lower case, in the order Chrome sends them. None for
+	// a browser that sent none, and none from a server before they were kept.
+	ClientHints []HeaderField `json:"client_hints,omitempty"`
 }
 
 // HTTP1 is what an HTTP/1.1 client sent.

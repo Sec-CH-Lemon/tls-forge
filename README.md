@@ -1460,6 +1460,14 @@ saves a profile, and `--set` changes one, given as its header carries it:
 A hint the browser does not send, as Firefox and Safari send none, is not
 given one: the profile is not kept.
 
+The page asks the browser for every client hint a server can ask for, with a
+`<meta http-equiv="Accept-CH">`, which applies to the page's own requests alone
+and which no later visit carries, and the profile keeps what the browser sends
+when asked: the user agent's and the system's above, and the device's (its
+memory, its pixel ratio, the window's size), the network's (`rtt`, `downlink`,
+`ect`) and its person's preferences (colour scheme, reduced motion and
+transparency). `capture` says how many of them the browser sent.
+
 Installed profiles live below the operating system's user configuration
 directory. Set `TLSFORGE_PROFILES` to choose another directory. Running
 `capture --install` again replaces the local machine profile after a browser

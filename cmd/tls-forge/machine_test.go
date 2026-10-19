@@ -93,12 +93,16 @@ func TestCaptureSetsWhatItKeepsOfTheMachine(t *testing.T) {
 		!strings.Contains(stderr, "no browser came") {
 		t.Errorf("with --install: exit code = %d\n%s", code, stderr)
 	}
-	// A Chromium browser's hints, as its script gives them, are kept as set,
-	// and what is kept of the machine is said.
+	// A Chromium browser's hints, as it sends them when its page asks, are
+	// kept as set, and what is kept of the machine is said.
 	navigator := `{"full_version_list": [{"brand": "Google Chrome", "version": "155.0.8059.85"}],
 		"ua_full_version": "155.0.8059.85", "architecture": "arm", "bitness": "64",
 		"platform_version": "27.0.1", "form_factors": ["Desktop"]}`
-	visited := aPersonVisitsAs(t, "chrome", aPerson{navigator: navigator})
+	visited := aPersonVisitsAs(t, "chrome", aPerson{navigator: navigator, hints: []string{
+		"sec-ch-ua-full-version", `"155.0.8059.85"`, "sec-ch-ua-arch", `"arm"`, "sec-ch-ua-platform-version", `"27.0.1"`,
+		"sec-ch-ua-bitness", `"64"`, "sec-ch-ua-full-version-list", `"Google Chrome";v="155.0.8059.85"`,
+		"sec-ch-ua-form-factors", `"Desktop"`,
+	}})
 	dir := t.TempDir()
 	code, stdout, stderr := exec(t, "capture", "--manual", "--save", dir, "--timeout", "30s",
 		"--set", "accept-language=de-DE,de;q=0.9", "--set", `sec-ch-ua-platform-version="15.7.4"`)

@@ -182,6 +182,10 @@ func printCapture(out *printer, measured *capture.Capture) {
 		field("architecture", strings.TrimSpace(nav.Architecture+" "+nav.Bitness))
 		field("languages", strings.Join(nav.Languages, ", "))
 	}
+	// What it sent its page, which asked for every client hint.
+	if len(measured.ClientHints) > 0 {
+		field("client hints", hintsSaid(measured.ClientHints))
+	}
 	// What a browser a person opened drew for each of the connections its page
 	// opened, and how it resumed, which a profile cannot say all of.
 	if len(measured.Connections) > 0 {
@@ -194,6 +198,21 @@ func printCapture(out *printer, measured *capture.Capture) {
 		field("resumed", resumptionSaid(profile.ResumptionOf(measured)))
 	}
 	out.println(line)
+}
+
+// hintsSaid says how many of the client hints a server has to ask for a
+// browser sent its page, which asked for every one.
+func hintsSaid(sent []capture.HeaderField) string {
+	asked := 0
+	for _, h := range sent {
+		if slices.Contains(profile.AskedClientHints(), h.Name) {
+			asked++
+		}
+	}
+	if asked == 0 {
+		return "none of those a server asks for, though asked"
+	}
+	return fmt.Sprintf("%d of the %d a server asks for, sent when asked", asked, len(profile.AskedClientHints()))
 }
 
 // drawnSaid says what a browser drew for each connection, measured, or that

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,11 +20,13 @@ import (
 
 // aPerson is what the stand-in person at a browser does at its page: what
 // its script reports back (navigator, the JSON /collect takes: what a
-// browser's script says of it), whether it first opens the connections the
-// page asks for, and whether it then makes the HTTP/1.1 visit or finishes
-// without it.
+// browser's script says of it) and the client hints its report comes with
+// (hints, names and values in turn, the page having asked for every one),
+// whether it first opens the connections the page asks for, and whether it
+// then makes the HTTP/1.1 visit or finishes without it.
 type aPerson struct {
 	navigator string
+	hints     []string
 	connects  bool
 	http1     bool
 }
@@ -87,7 +90,7 @@ func visitAsAPerson(address, profileName string, p aPerson) error {
 	collect := said(marker, "'")
 	if _, err := client.Do(&tlsforge.Request{
 		Method: "POST", URL: origin + collect, Body: []byte(p.navigator),
-		Header: tlsforge.NewHeader("content-type", "application/json"),
+		Header: tlsforge.NewHeader(append([]string{"content-type", "application/json"}, p.hints...)...),
 	}); err != nil {
 		return err
 	}
@@ -167,6 +170,41 @@ func TestCaptureManualSavesTheBrowserAPersonOpens(t *testing.T) {
 	}
 	if _, err := saved.ClientProfile(); err != nil {
 		t.Errorf("the saved profile cannot be used: %v", err)
+	}
+}
+
+func TestCaptureManualKeepsTheClientHintsTheBrowserSent(t *testing.T) {
+	// Its page asked for every one, and what its report came with is what
+	// the profile says, over what the browser told its script; the summary
+	// says how many.
+	visited := aPersonVisitsAs(t, "chrome", aPerson{
+		navigator: `{"full_version_list":[{"brand":"Chromium","version":"1"}],"architecture":"told"}`,
+		hints:     []string{"sec-ch-ua-arch", `"x86"`, "device-memory", "8", "sec-ch-ua-platform-version", `"19.0.0"`},
+	})
+	dir := t.TempDir()
+	code, stdout, stderr := exec(t, "capture", "--manual", "--save", dir)
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	version, platform := theVisitorsPlatform(t)
+	data, err := os.ReadFile(filepath.Join(dir, version, platform+".json"))
+	if err != nil {
+		t.Fatalf("nothing was written:\n%s", stdout)
+	}
+	saved, err := profile.Load(data)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	want := []profile.Field{{Name: "device-memory", Value: "8"}, {Name: "sec-ch-ua-arch", Value: `"x86"`},
+		{Name: "sec-ch-ua-platform-version", Value: `"19.0.0"`}}
+	if !reflect.DeepEqual(saved.ClientHints, want) {
+		t.Errorf("the profile says %v", saved.ClientHints)
+	}
+	if !strings.Contains(stdout, "client hints     3 of the 21 a server asks for, sent when asked") {
+		t.Errorf("the summary:\n%s", stdout)
 	}
 }
 
@@ -511,6 +549,33 @@ func TestWhatWasDrawnAndHowItResumedAreSaid(t *testing.T) {
 	} {
 		if got := resumptionSaid(tc.r, tc.err); got != tc.want {
 			t.Errorf("%+v, %v: %q", tc.r, tc.err, got)
+		}
+	}
+}
+
+func TestTheClientHintsABrowserSentAreSaid(t *testing.T) {
+	// How many of those a server asks for it sent; that it sent none of them,
+	// the unasked alone; and nothing of a capture that kept none.
+	for _, tc := range []struct {
+		sent []capture.HeaderField
+		want string
+	}{
+		{[]capture.HeaderField{{Name: "sec-ch-ua", Value: "x"}, {Name: "dpr", Value: "2"}},
+			"client hints     1 of the 21 a server asks for, sent when asked"},
+		{[]capture.HeaderField{{Name: "sec-ch-ua", Value: "x"}, {Name: "sec-ch-ua-platform", Value: "y"}},
+			"client hints     none of those a server asks for, though asked"},
+		{nil, ""},
+	} {
+		var out bytes.Buffer
+		printCapture(newPrinter(&out), &capture.Capture{ClientHints: tc.sent})
+		got := ""
+		for line := range strings.Lines(out.String()) {
+			if strings.Contains(line, "client hints") {
+				got = strings.TrimSpace(line)
+			}
+		}
+		if got != tc.want {
+			t.Errorf("%v: %q", tc.sent, got)
 		}
 	}
 }
