@@ -1431,7 +1431,7 @@ mkdir -p profiles && tls-forge capture --save profiles/
 tls-forge capture --browser edge --headless --save edge.json
 tls-forge capture --install
 tls-forge capture --manual --install
-tls-forge capture --manual --addr 0.0.0.0:8443 --host 192.168.1.20 --save profiles/
+tls-forge capture --manual --addr 0.0.0.0:8443 --host my-mac.local --save profiles/
 ```
 
 Usage: `tls-forge capture [flags]`
@@ -1448,7 +1448,7 @@ Usage: `tls-forge capture [flags]`
 | `--browser-arg <argument>` | Append a browser process argument; repeatable, mainly for CI environments |
 | `--manual` | Wait for a browser you open the page in yourself, rather than launching one; `--timeout` is then ten minutes unless given |
 | `--addr <host:port>` | With `--manual`, where to listen; default `127.0.0.1:0`. `0.0.0.0:8443` lets in a phone on this network |
-| `--host <name>` | With `--manual`, the name or address the page is opened at, which its certificate is made for; default `localhost` |
+| `--host <name>` | With `--manual`, the name the page is opened at, which its certificate is made for; default `localhost`. Not an address when a profile is kept: a browser names no server (SNI) to an address |
 
 Installed profiles live below the operating system's user configuration
 directory. Set `TLSFORGE_PROFILES` to choose another directory. Running
@@ -1476,11 +1476,16 @@ and you can open the address again. Each browser has a first visit of its own,
 told apart by its address and its user agent, so Firefox and Safari can be
 measured one after the other.
 
-For a phone, listen on the network and name this machine the way the phone
-reaches it: `--addr 0.0.0.0:8443 --host 192.168.1.20`. Nothing on the server
-authenticates anybody, which the command warns about; stop it once the phone
-has been measured. Without `--host`, the address printed is `localhost`, which
-a phone cannot open, and the command says so.
+For a phone, listen on the network and give the name the phone reaches this
+machine by: `--addr 0.0.0.0:8443 --host my-mac.local`. An iPhone finds a
+`.local` name by Bonjour; another phone needs a name your network's DNS knows.
+Not the machine's address: a browser names no server (SNI) to an address, so
+what it sends there would make a profile that names none to any site, and
+`capture` refuses to keep one; without `--save` or `--install` it still shows
+what the browser sent. Nothing on the server authenticates anybody, which the
+command warns about; stop it once the phone has been measured. Without
+`--host`, the address printed is `localhost`, which a phone cannot open, and
+the command says so, with a name this machine may be reached by.
 
 The profile is named after the browser and its version, `firefox_148`, and
 filed under the platform its user agent says, which for a phone is not this

@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -56,6 +59,50 @@ func (v visitFlags) check(fs *pflag.FlagSet) error {
 	return nil
 }
 
+// namedHost refuses an address for --host where a profile is to be kept: a
+// browser names no server to an address (RFC 6066), so the hello it sends
+// there would make a profile that names none to any site. profile.FromCapture
+// refuses that hello too, but only once a person has been through the visits.
+func (v visitFlags) namedHost() error {
+	if net.ParseIP(strings.TrimSuffix(strings.TrimPrefix(*v.host, "["), "]")) == nil {
+		return nil
+	}
+	return fmt.Errorf("%w: --host %s is an address, and a browser names no server to an address (no SNI): "+
+		"a profile of what it sends would name none to any site. Give --host a name this machine is reached by%s",
+		errUsage, *v.host, aNameLike())
+}
+
+// hostname is os.Hostname, which a test replaces.
+var hostname = os.Hostname
+
+// networkName is the name a phone on this network may reach this machine by:
+// its host name, NAME.local where it says no domain, which Bonjour answers for;
+// nothing when it has none, or it is an address.
+func networkName() string {
+	name, err := hostname()
+	name = strings.ToLower(strings.TrimSuffix(name, "."))
+	switch {
+	case err != nil || name == "" || net.ParseIP(name) != nil:
+		return ""
+	case !strings.Contains(name, "."):
+		return name + ".local"
+	}
+	return name
+}
+
+// aNameLike gives a message an example of a name this machine may be reached
+// by, when it has one.
+func aNameLike() string {
+	name := networkName()
+	switch {
+	case name == "":
+		return ""
+	case strings.HasSuffix(name, ".local"):
+		return ", such as " + name + " (an iPhone finds a .local name by Bonjour)"
+	}
+	return ", such as " + name
+}
+
 // visitorWait is how long a browser a person opens is waited for when --timeout
 // does not say: long enough to find a phone and type an address into it twice.
 const visitorWait = 10 * time.Minute
@@ -87,7 +134,7 @@ func openForVisitors(v visitFlags, component string, errOut *printer) (*echo.Ser
 	errOut.println("  2. It warns about the certificate, made for this run: accept it.")
 	errOut.println("  3. Open the address again in a new tab, typed or pasted: that visit is measured.")
 	if !listenerIsLoopback(server.Addr()) && *v.host == "localhost" {
-		errOut.println("A phone cannot open localhost: give --host this machine's address on the network.")
+		errOut.println("A phone cannot open localhost: give --host a name it reaches this machine by" + aNameLike() + ".")
 	}
 	visitorReady(address)
 	return server, nil

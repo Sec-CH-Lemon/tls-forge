@@ -675,6 +675,47 @@ func TestFromCaptureErrors(t *testing.T) {
 	}
 }
 
+func TestFromCaptureRefusesAHelloThatNamesNoServer(t *testing.T) {
+	// Chrome 155.0.8059.85 opened https://127.0.0.1:PORT/ (capture --manual
+	// --host 127.0.0.1, 2026-10-19): a browser names no server to an address,
+	// and a profile of that hello sent none to localhost either, JA4 t13i1516
+	// where Chrome's to a name is t13d1517. Its JA4 said too, it is refused all
+	// the same; the same browser at a name is not.
+	atAnAddress, err := os.ReadFile("../testdata/chrome155-clienthello-at-an-address.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	hello, err := fingerprint.ParseClientHello(atAnAddress)
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	if _, named := hello.Extension(fingerprint.ExtServerName); named || hello.JA4() != "t13i1516h2_8daaf6152771_cb7bf5808d99" {
+		t.Fatalf("the fixture names a server, or is another hello: %s", hello.JA4())
+	}
+	atAName, err := os.ReadFile("../testdata/chrome155-clienthello.bin")
+	if err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	for _, tc := range []struct {
+		name string
+		raw  []byte
+		tls  capture.TLS
+		ok   bool
+	}{
+		{"at an address", atAnAddress, capture.TLS{}, false},
+		{"at an address, its JA4 said", atAnAddress, capture.FromClientHello(hello), false},
+		{"at a name", atAName, capture.TLS{}, true},
+	} {
+		_, err := FromCapture("chrome_155", &capture.Capture{RawClientHello: tc.raw, TLS: tc.tls, HTTP2: &capture.HTTP2{
+			PseudoHeaderOrder: []string{"m", "a", "s", "p"},
+			Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
+		}})
+		if tc.ok != (err == nil) || !tc.ok && !strings.Contains(err.Error(), "names no server (no server_name)") {
+			t.Errorf("%s: %v", tc.name, err)
+		}
+	}
+}
+
 func TestFromCaptureRefusesAResumedHandshake(t *testing.T) {
 	// A resumed hello carries pre_shared_key, so its JA4 is not the one a server
 	// sees on first contact. Building a profile from it would produce something

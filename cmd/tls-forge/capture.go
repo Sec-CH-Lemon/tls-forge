@@ -15,6 +15,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
@@ -42,6 +43,11 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	if err := visits.check(fs); err != nil {
 		return err
+	}
+	if *visits.manual && (*save != "" || *install) {
+		if err := visits.namedHost(); err != nil {
+			return err
+		}
 	}
 
 	// To stderr: --json makes standard output a document, and a line of
@@ -80,6 +86,10 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 
 	if where == "" {
+		if namesNoServer(measured) {
+			out.println("\nThe browser named no server, as at an address: capture at a name to keep a profile.")
+			return nil
+		}
 		out.println("\nRe-run with --install to keep this profile, or --save <path> to write it out.")
 		return nil
 	}
@@ -191,6 +201,17 @@ func line(mark, name string, fallback bool) string {
 
 // now is time.Now, named so a test can produce a byte-identical profile.
 var now = time.Now
+
+// namesNoServer reports a capture whose ClientHello names no server, as a
+// browser's at an address: no profile is made of it (profile.FromCapture).
+func namesNoServer(c *capture.Capture) bool {
+	hello, err := c.Hello()
+	if err != nil {
+		return false
+	}
+	_, named := hello.Extension(fingerprint.ExtServerName)
+	return !named
+}
 
 // profileNameFor derives a stable name from a user-agent, e.g. "chrome_151".
 //

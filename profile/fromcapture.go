@@ -72,6 +72,13 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 			"its pre_shared_key makes it a different fingerprint from the same browser's " +
 			"first contact. Capture again against a server that does not issue tickets")
 	}
+	// A browser names no server to an address (RFC 6066), and a profile is the
+	// hello as it came: one taken at an address would name none to any site,
+	// which no browser does.
+	if _, named := hello.Extension(fingerprint.ExtServerName); !named {
+		return nil, fmt.Errorf("profile: the capture's ClientHello names no server (no server_name), as a " +
+			"browser's does at an address: a profile of it would name none to any site. Capture at a name")
+	}
 
 	p := &Profile{
 		Schema:      Schema,

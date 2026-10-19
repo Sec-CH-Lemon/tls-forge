@@ -369,7 +369,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   cookie values and credentials are `***`.
 - `capture --manual` measures a browser tls-forge cannot launch — Firefox,
   Safari, a phone's — which the person using it opens the page in:
-  `--addr 0.0.0.0:8443 --host <address>` lets in a phone on the network. The
+  `--addr 0.0.0.0:8443 --host <name>` lets in a phone on the network, by a
+  name it reaches this machine by (the command suggests `NAME.local`, which an
+  iPhone finds by Bonjour): a browser names no server (SNI) to an address, so
+  an address is refused where a profile is kept, and no profile is made of a
+  ClientHello that names none. The
   first visit only gets the browser past the certificate made for the run; the
   visit measured is the next, typed into a new tab, on a connection of its
   own. A reload, a link, or a visit on a used connection is turned away with

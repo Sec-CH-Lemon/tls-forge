@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -193,15 +194,99 @@ func TestManualWaitsAsLongAsItIsTold(t *testing.T) {
 
 func TestManualOnEveryInterface(t *testing.T) {
 	// Open to a phone, and so to anybody on the network: said, and so is what a
-	// phone needs to find this machine, until it is given.
+	// phone needs to find this machine, a name, until it is given.
+	hostnameIs(t, "Ihars-MacBook-Pro.local", nil)
 	code, _, stderr := exec(t, "capture", "--manual", "--addr", "0.0.0.0:0", "--timeout", "50ms")
 	if code != 1 || !strings.Contains(stderr, "WARNING: capture is listening beyond loopback") ||
-		!strings.Contains(stderr, "A phone cannot open localhost: give --host") {
+		!strings.Contains(stderr, "A phone cannot open localhost: give --host a name it reaches this machine by, "+
+			"such as ihars-macbook-pro.local (an iPhone finds a .local name by Bonjour).") {
 		t.Errorf("exit code = %d\n%s", code, stderr)
 	}
 	_, _, stderr = exec(t, "capture", "--manual", "--addr", "0.0.0.0:0", "--host", "192.0.2.10", "--timeout", "50ms")
 	if strings.Contains(stderr, "A phone cannot open localhost") || !strings.Contains(stderr, "https://192.0.2.10:") {
 		t.Errorf("with --host:\n%s", stderr)
+	}
+}
+
+// hostnameIs has this machine called name, or not say, for the test.
+func hostnameIs(t *testing.T, name string, err error) {
+	t.Helper()
+	previous := hostname
+	hostname = func() (string, error) { return name, err }
+	t.Cleanup(func() { hostname = previous })
+}
+
+func TestCaptureManualKeepsNoProfileAtAnAddress(t *testing.T) {
+	// A browser names no server to an address, so a profile of what it sends
+	// there would name none to any site: refused before anything listens, with
+	// a name this machine may be reached by, and nothing kept.
+	hostnameIs(t, "Ihars-MacBook-Pro.local", nil)
+	dir, kept := t.TempDir(), keepProfilesIn(t)
+	for _, args := range [][]string{
+		{"--host", "127.0.0.1", "--save", dir},
+		{"--host", "192.0.2.10", "--save", dir},
+		{"--host", "::1", "--save", dir},
+		{"--host", "[2001:db8::1]", "--install"},
+	} {
+		code, _, stderr := exec(t, append([]string{"capture", "--manual"}, args...)...)
+		if code != 2 || !strings.Contains(stderr, "--host "+args[1]+" is an address, and a browser names no server") ||
+			!strings.Contains(stderr, "such as ihars-macbook-pro.local (an iPhone finds a .local name by Bonjour)") ||
+			strings.Contains(stderr, "waiting for a browser") {
+			t.Errorf("%q: exit code = %d\n%s", args, code, stderr)
+		}
+	}
+	// Not even the directory --install keeps profiles in was made.
+	if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
+		t.Errorf("%s holds %v, %v", dir, entries, err)
+	}
+	if _, err := os.Stat(kept); !os.IsNotExist(err) {
+		t.Errorf("%s: %v", kept, err)
+	}
+	// A name is waited for as before, and so is an address with nothing to keep.
+	for _, args := range [][]string{{"--host", "example.test", "--save", dir}, {"--host", "127.0.0.1"}} {
+		code, _, stderr := exec(t, append([]string{"capture", "--manual", "--timeout", "50ms"}, args...)...)
+		if code != 1 || !strings.Contains(stderr, "no browser came to https://"+args[1]+":") {
+			t.Errorf("%q: exit code = %d\n%s", args, code, stderr)
+		}
+	}
+}
+
+func TestACaptureAtAnAddressSaysItIsNoProfile(t *testing.T) {
+	// Measured and shown, as a browser at an address sends it, and said not to
+	// be one to keep, rather than told how to keep it.
+	visited := aPersonVisits(t, "chrome")
+	code, stdout, stderr := exec(t, "capture", "--manual", "--host", "127.0.0.1", "--timeout", "30s")
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	if code != 0 || !strings.Contains(stdout, "JA4              t13i") ||
+		!strings.Contains(stdout, "The browser named no server, as at an address: capture at a name to keep a profile.") ||
+		strings.Contains(stdout, "Re-run with --install") {
+		t.Errorf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	if namesNoServer(&capture.Capture{RawClientHello: []byte{1, 2, 3}}) {
+		t.Error("a hello that does not parse says no server")
+	}
+}
+
+func TestTheNameAPhoneReachesThisMachineBy(t *testing.T) {
+	const bonjour = " (an iPhone finds a .local name by Bonjour)"
+	for _, tc := range []struct {
+		host       string
+		err        error
+		name, like string
+	}{
+		{"Ihars-MacBook-Pro.local", nil, "ihars-macbook-pro.local", ", such as ihars-macbook-pro.local" + bonjour},
+		{"mbp", nil, "mbp.local", ", such as mbp.local" + bonjour},
+		{"build.corp.example.com.", nil, "build.corp.example.com", ", such as build.corp.example.com"},
+		{"192.168.1.20", nil, "", ""},
+		{"", nil, "", ""},
+		{"mbp", errors.New("no name"), "", ""},
+	} {
+		hostnameIs(t, tc.host, tc.err)
+		if name, like := networkName(), aNameLike(); name != tc.name || like != tc.like {
+			t.Errorf("%q, %v: %q, %q", tc.host, tc.err, name, like)
+		}
 	}
 }
 
