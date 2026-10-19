@@ -889,6 +889,21 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A header block too large for one frame goes out as Chrome cuts it**, and
+  no longer past what the server allows: in HEADERS and CONTINUATION frames
+  of at most 16,374 bytes of payload each, the HEADERS frame's five of
+  priority included, whatever the server's `SETTINGS_MAX_FRAME_SIZE`, with a
+  Chromium profile. The transport cut a block into frames as large as the
+  server allowed, and gave the first the block's 16,384 bytes and its
+  priority's five, a frame of 16,389 that a server allowing the default
+  16,384 refuses with a connection error, after which the request was sent
+  again on new connections until the client gave up: a request with more
+  than about 16 KB of headers, such as a large cookie, failed. Every HEADERS
+  frame now leaves room for its priority, whatever the profile. Measured on
+  Chrome 155 (the `hpack-big-header*` scenarios of
+  `testdata/chrome155-hpack.json`) and held to it, through tls-forge's forks
+  of fhttp (`http2.Transport.MaxHeaderFramePayload`) and tls-client
+  (`ClientProfile.WithMaxHeaderFramePayload`).
 - **The TLS extension order is drawn as Chrome draws it**: every order of
   the extensions that move as likely as any other, GREASE, padding and
   `pre_shared_key` where the capture has them. The transport's shuffle,

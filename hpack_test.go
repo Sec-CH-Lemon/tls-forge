@@ -86,12 +86,8 @@ var hpackAsked = map[string][]hpackAsk{
 // hpackDiffers are the scenarios of testdata/chrome155-hpack.json tls-forge
 // does not write as Chrome did, and why.
 var hpackDiffers = map[string]string{
-	"hpack-big-header":        "the transport writes a header block in frames as large as the server lets it, where Chrome's carry 16,374 bytes at most",
-	"hpack-bigger-header":     "the transport writes a header block in frames as large as the server lets it, where Chrome's carry 16,374 bytes at most",
-	"hpack-big-header-16k":    "the transport's HEADERS frame carries 16,384 bytes of the block and its five of priority, past what the server lets it send",
-	"hpack-bigger-header-16k": "the transport's HEADERS frame carries 16,384 bytes of the block and its five of priority, past what the server lets it send",
-	"hpack-records-header":    "TLS cuts the first writes of a connection into records of 1,186 bytes and more, where Chrome's records are as large as its writes",
-	"hpack-records-post-64k":  "the transport writes DATA frames as large as the server lets it, where Chrome's carry 16,375 bytes, a record each",
+	"hpack-records-header":   "TLS cuts the first writes of a connection into records of 1,186 bytes and more, where Chrome's records are as large as its writes",
+	"hpack-records-post-64k": "the transport writes DATA frames as large as the server lets it, where Chrome's carry 16,375 bytes, a record each",
 }
 
 // headlessChrome is the profile of the Chrome the HPACK fixture was measured

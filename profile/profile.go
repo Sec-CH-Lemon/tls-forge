@@ -475,16 +475,25 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 
 // chromeTransport is built, when p is a Chromium browser's, writing headers
 // into HPACK as Chromium's encoder does, against a table as large as a server
-// allows, and telling a server of the window its reader frees as Chromium's
-// network stack does; as the transport does otherwise.
+// allows, in frames as large as Chromium's, and telling a server of the window
+// its reader frees as Chromium's network stack does; as the transport does
+// otherwise.
 func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientProfile {
 	if !p.chromium() {
 		return built
 	}
 	return built.WithHeaderRepresentation(chromeHeaderRepresentation).
 		WithMaxEncoderHeaderTableSize(chromeEncoderTableSize).
+		WithMaxHeaderFramePayload(chromeHeaderFramePayload).
 		WithWindowUpdateDelay(chromeWindowUpdateDelay)
 }
+
+// chromeHeaderFramePayload is the most a frame of Chrome's header blocks
+// carries: 16,374 bytes of payload, a HEADERS frame's priority included, 16,383
+// with its frame header (quiche's kHttp2MaxControlFrameSendSize), whatever the
+// server's SETTINGS_MAX_FRAME_SIZE (measured on Chrome 155,
+// testdata/chrome155-hpack.json).
+const chromeHeaderFramePayload = 16374
 
 // chromeWindowUpdateDelay is how long Chrome waits to tell a server of a
 // little of a window its reader freed: what is untold goes once it is more

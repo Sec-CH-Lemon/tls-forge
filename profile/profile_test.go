@@ -847,6 +847,10 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 			if delay, want := built.GetWindowUpdateDelay(), map[bool]time.Duration{true: 5 * time.Second}[tc.chrome]; delay != want {
 				t.Errorf("waits %s to tell of a little of a window, want %s", delay, want)
 			}
+			// And cuts a header block into frames as Chrome does.
+			if payload, want := built.GetMaxHeaderFramePayload(), map[bool]uint32{true: 16374}[tc.chrome]; payload != want {
+				t.Errorf("header frames of at most %d bytes, want %d", payload, want)
+			}
 			if of == nil {
 				return
 			}
