@@ -7,15 +7,15 @@ import (
 )
 
 // echBody is the body of an outer hello's encrypted_client_hello extension as
-// Chrome writes its GREASE one: HKDF-SHA256 with AES-128-GCM, a config id, a
-// 32-byte encapsulated key and a payload of the length given.
+// Chrome writes its GREASE one: the cipher suite given, a config id, a fresh
+// X25519 key and a payload of the length given.
 func echBody(kdf, aead uint16, payload int) []byte {
 	out := []byte{0}
 	out = binary.BigEndian.AppendUint16(out, kdf)
 	out = binary.BigEndian.AppendUint16(out, aead)
 	out = append(out, 0x42)
 	out = binary.BigEndian.AppendUint16(out, 32)
-	out = append(out, make([]byte, 32)...)
+	out = append(out, freshKey("X25519")...)
 	out = binary.BigEndian.AppendUint16(out, uint16(payload))
 	return append(out, make([]byte, payload)...)
 }

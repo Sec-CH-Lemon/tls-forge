@@ -113,6 +113,14 @@ var tlsChanges = []change{
 	{"ChaCha20-Poly1305 for ECH", cold, "ech_grease", func(_ *testing.T, b *helloBuilder) {
 		b.set(ExtEncryptedClientHello, echBody(1, 3, 176))
 	}},
+	{"random bytes for ECH's key", cold, "keys", func(t *testing.T, b *helloBuilder) {
+		b.set(ExtEncryptedClientHello, echWith(fromHex(t, reported)))
+	}},
+	{"the X25519 key of X25519MLKEM768 sent again", cold, "keys", func(_ *testing.T, b *helloBuilder) {
+		hybrid := shareOf(4588, 1216)
+		b.set(ExtKeyShare, keyShareOf(sharedKey{greaseGroup(b), []byte{0}}, sharedKey{4588, hybrid},
+			sharedKey{29, hybrid[1184:]}))
+	}},
 	{"a 48-byte binder", resumed, "pre_shared_key", func(_ *testing.T, b *helloBuilder) {
 		b.set(ExtPreSharedKey, psk([]int{100}, []int{48}))
 	}},

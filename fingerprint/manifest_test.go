@@ -48,13 +48,14 @@ func (b *helloBuilder) set(typ uint16, data []byte) *helloBuilder {
 	panic("no such extension")
 }
 
-// shares is a key_share body with a key of the given length for each group.
+// shares is a key_share body with a key of the given length for each group:
+// a fresh one of the group where the length is its key share's (shareOf).
 func shares(entries ...KeyShare) []byte {
 	var list []byte
 	for _, entry := range entries {
 		list = binary.BigEndian.AppendUint16(list, entry.Group)
 		list = binary.BigEndian.AppendUint16(list, uint16(entry.Length))
-		list = append(list, make([]byte, entry.Length)...)
+		list = append(list, shareOf(entry.Group, entry.Length)...)
 	}
 	return append(binary.BigEndian.AppendUint16(nil, uint16(len(list))), list...)
 }

@@ -15,8 +15,9 @@ import (
 // session id, the keys, the ECH payload. The first are compared as they are.
 // The second cannot be, since the browser would not match itself, and cannot
 // be left out either, since where they go and how long they are does not
-// change: so their shape is compared instead. What no rule here describes is
-// said to be not checked, rather than taken to match.
+// change: so their shape is compared instead, and of the keys what makes them
+// keys (keys.go). What no rule here describes is said to be not checked,
+// rather than taken to match.
 
 // Extensions another field of the comparison reads, value by value.
 var readByAField = map[uint16]bool{
@@ -302,6 +303,10 @@ var manifest = []Rule{
 	{"tls", "signature_algorithms", inOrderNoGREASE},
 	{"tls", "key_share_groups", inOrderNoGREASE},
 	{"tls", "key_share_lengths", "in order: how long each key is; not the keys, drawn for each connection"},
+	{"tls", "keys", "in order: whether each key of key_share and ECH's is a public key of its kind, as the " +
+		"browser's always is (X25519's below 2^255-19, its top bit clear, of a point of the curve in the group " +
+		"of prime order; a NIST curve's a point of it; ML-KEM's through FIPS 203's check), and whether the keys " +
+		"of one kind are each their own; not the keys, drawn for each connection"},
 	{"tls", "alpn", inOrder},
 	{"tls", "application_settings", inOrder},
 	{"tls", "ec_point_formats", inOrder},
@@ -310,7 +315,7 @@ var manifest = []Rule{
 	{"tls", "trust_anchors", "in order when the browser sends them sorted by their bytes, as Chrome 154 " +
 		"and later do; as a set when it does not, as an older Chrome drew their order for each process"},
 	{"tls", "ech_grease", "exactly: the cipher suite and the key's length; " +
-		"not the config id, key or payload, drawn for each connection"},
+		"not the config id, key or payload, drawn for each connection: the key is held as keys"},
 	{"tls", "ech_payload_length", "shown, not compared: " + drawn},
 	{"tls", "pre_shared_key", "exactly: how many identities, how long each binder; not the tickets or binders"},
 	{"tls", "extension_contents", "as a set: the contents of each extension that is the same on every " +

@@ -146,7 +146,9 @@ func scalar(name, value string) Field {
 //     one value is compared as grease.
 //   - The random, the session id, the keys, ECH's config id, key and payload,
 //     and the tickets and binders of pre_shared_key: their lengths are
-//     compared, the bytes are not.
+//     compared, the bytes are not. Of the keys, what a server can check is
+//     compared too: that each is a public key of its kind, and that keys of
+//     one kind are each their own (keys).
 //   - The length of the ECH payload, which Chrome draws from four for every
 //     connection: shown, never compared (Varies).
 //   - The contents of server_name, which are the site's, and of padding, whose
@@ -172,6 +174,7 @@ func TLSFields(hello *ClientHello) []Field {
 		{Name: "signature_algorithms", Values: namesOf(withoutGREASE(hello.SignatureAlgorithms()), SignatureName)},
 		{Name: "key_share_groups", Values: namesOf(withoutGREASE(hello.KeyShareGroups()), GroupName)},
 		{Name: "key_share_lengths", Values: keyShareLengths(hello)},
+		{Name: "keys", Values: keys(hello)},
 		{Name: "alpn", Values: hello.ALPN()},
 		{Name: "application_settings", Values: hello.ApplicationSettings()},
 		{Name: "ec_point_formats", Values: decimalStrings(hello.ECPointFormats())},

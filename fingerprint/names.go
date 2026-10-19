@@ -54,6 +54,7 @@ var groupNames = map[uint16]string{
 	257:   "ffdhe3072",
 	4587:  "SecP256r1MLKEM768",
 	4588:  "X25519MLKEM768",
+	4589:  "SecP384r1MLKEM1024",
 	25497: "X25519Kyber768Draft00",
 }
 

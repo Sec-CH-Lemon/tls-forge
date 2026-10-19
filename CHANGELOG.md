@@ -13,6 +13,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`compare` checks that every key is a key**: a field `keys` says of each
+  key of `key_share` and of the GREASE ECH key whether it is a public key of
+  its kind, as the browser's always is (X25519: below 2^255−19, top bit clear,
+  a point of the curve in the group of prime order; P-256, P-384, P-521: a
+  point of the curve; ML-KEM-768 and -1024: FIPS 203's check), and whether
+  keys of one kind are each their own. Before, keys were compared by their
+  lengths alone, so random bytes in a key's place matched: the hello tls-forge
+  sent before the GREASE ECH fix below now differs from Chrome's in `keys`,
+  and nowhere else. `SecP384r1MLKEM1024` is named.
+
 - **`profile.Profile.ClientProfileShuffled(shuffle)`** is the transport's
   profile with the order of the TLS extensions drawn for every connection, as
   Chrome draws it, or the capture's; `ClientProfile` draws when the browser

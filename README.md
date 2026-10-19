@@ -1511,7 +1511,14 @@ and later do, and the contents of every extension that is the same on each
 connection. What the browser draws for each connection is compared by its shape
 instead of its bytes: where GREASE goes, how long it is and which of its values
 are one, the length of each key share, ECH's cipher suite and key, and the
-identities and binders of `pre_shared_key`. The length of the ECH payload,
+identities and binders of `pre_shared_key`. Of the keys themselves, what a
+server can check is compared too, as `keys`: that each key of `key_share` and
+ECH's is a public key of its kind, as the browser's always is, and that keys
+of one kind are each their own, as Chrome's three X25519 keys are. An X25519
+key is below 2^255−19 with its top bit clear, of a point of the curve in the
+group of prime order; a NIST curve's is a point of it; an ML-KEM key passes
+FIPS 203's check. Bytes of the right length in a key's place match every
+other field and fail this one. The length of the ECH payload,
 which Chrome draws from four for every connection, is shown on a `~` line and
 not compared. An extension no rule describes, sent by both with different
 contents, is listed under `not checked`: it is neither a match nor a
@@ -1520,9 +1527,9 @@ difference, and the command exits `3`.
 Captured profiles generate the GREASE ECH `enc` as a fresh X25519 public key
 through uTLS's HPKE sender setup, rather than filling it with arbitrary bytes.
 The payload is random, with the lengths above. This is GREASE ECH; it does not
-establish successful ECH encryption or hide the server name. Regression tests
-check the generated keys' encoding, curve and subgroup from server-captured
-ClientHello bytes, independently of JA3/JA4 and the structural comparison.
+establish successful ECH encryption or hide the server name. A client that
+filled it with random bytes differs from Chrome in `keys` alone, as tls-forge
+did before 6f819a7.
 
 Over HTTP/2 the comparison covers the SETTINGS in order, the connection's
 WINDOW_UPDATE, PRIORITY frames and the priority on HEADERS, the pseudo-header
