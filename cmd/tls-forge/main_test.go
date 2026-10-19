@@ -1313,8 +1313,48 @@ func TestProfileNameFor(t *testing.T) {
 		{"some unknown agent", "captured"},
 		{"", "captured"},
 	} {
-		if got := profileNameFor(tc.userAgent); got != tc.want {
-			t.Errorf("profileNameFor(%q) = %q, want %q", tc.userAgent, got, tc.want)
+		// Said in the request, or by the page alone.
+		for _, c := range []*capture.Capture{
+			{HTTP2: &capture.HTTP2{Headers: []capture.HeaderField{{Name: "user-agent", Value: tc.userAgent}}}},
+			{Navigator: &capture.Navigator{UserAgent: tc.userAgent}},
+		} {
+			if got := profileNameFor(c); got != tc.want {
+				t.Errorf("profileNameFor(%q) = %q, want %q", tc.userAgent, got, tc.want)
+			}
+		}
+	}
+}
+
+func TestAChromiumBrowserIsNamedByItsBrands(t *testing.T) {
+	// Brave's user agent is Chrome's word for word; its brands say Brave. One
+	// that names no brand of its own but Chromium's is chromium, and brands
+	// none of which is known, the user agent names.
+	const chrome = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) " +
+		"Chrome/155.0.0.0 Safari/537.36"
+	brands := func(pairs ...string) []capture.Brand {
+		var out []capture.Brand
+		for i := 0; i < len(pairs); i += 2 {
+			out = append(out, capture.Brand{Brand: pairs[i], Version: pairs[i+1]})
+		}
+		return out
+	}
+	for _, tc := range []struct {
+		brands []capture.Brand
+		want   string
+	}{
+		{brands("Not(A:Brand", "24", "Chromium", "155", "Google Chrome", "155"), "chrome_155"},
+		{brands("Brave", "155", "Chromium", "155", "Not(A:Brand", "24"), "brave_155"},
+		{brands("Chromium", "155", "Microsoft Edge", "155", "Not(A:Brand", "24"), "edge_155"},
+		{brands("Opera", "120", "Chromium", "135", "Not.A/Brand", "99"), "opera_120"},
+		{brands("Not(A:Brand", "24", "YaBrowser", "25", "Chromium", "136"), "yandex_25"},
+		{brands("Samsung Internet", "28", "Chromium", "130"), "samsung_28"},
+		{brands("Not_A Brand", "8", "Chromium", "155"), "chromium_155"},
+		{brands("Not_A Brand", "8"), "chrome_155"},
+		{nil, "chrome_155"},
+	} {
+		c := &capture.Capture{Navigator: &capture.Navigator{UserAgent: chrome, Brands: tc.brands}}
+		if got := profileNameFor(c); got != tc.want {
+			t.Errorf("%v: %q, want %q", tc.brands, got, tc.want)
 		}
 	}
 }
@@ -1472,7 +1512,7 @@ func TestSaveProfileRejectsAResumedCapture(t *testing.T) {
 	measured := &capture.Capture{RawClientHello: raw}
 	measured.TLS.Resumed = true
 
-	if _, _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured); err == nil {
+	if _, _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured, true); err == nil {
 		t.Error("expected a resumed capture to be refused")
 	}
 }

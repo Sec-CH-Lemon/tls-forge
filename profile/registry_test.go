@@ -235,3 +235,16 @@ func TestFirstNDoesNotClobberItsInput(t *testing.T) {
 		t.Errorf("firstN modified its input: %v", original)
 	}
 }
+
+func TestShipsSaysWhatTLSForgeShips(t *testing.T) {
+	// By the name a profile is filed under, version and platform; a version
+	// alone is one of them; anything else, a phone's too, is not shipped.
+	for name, want := range map[string]bool{
+		"chrome_155_macos": true, "chrome_155_windows": true, "chrome_155": true,
+		"chrome_155_android": false, "brave_155_macos": false, "local_macos": false, "": false,
+	} {
+		if got := Ships(name); got != want {
+			t.Errorf("Ships(%q) = %v", name, got)
+		}
+	}
+}

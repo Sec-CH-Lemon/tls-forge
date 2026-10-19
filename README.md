@@ -1492,7 +1492,14 @@ filed under the platform its user agent says, which for a phone is not this
 machine's: `safari_18/ios.json`, used as `--profile safari_18_ios`.
 `--install` keeps it under that name rather than as `local`, so
 `--profile firefox_148` then finds the Firefox measured here ahead of the
-catalogue's handshake without headers. A browser that opens the page is
+catalogue's handshake without headers. A Chromium browser is named by the
+brand it names to scripts: Brave's user agent is Chrome's word for word, and
+it is kept as `brave_155`; one that names no brand but Chromium's, as
+`chromium_155`. `--install` keeps nothing under the name of a profile
+tls-forge ships, `chrome_155_macos`: read before the shipped ones, it would
+answer for that one from then on, and for `--profile chrome` too. Give it a
+name of its own with `--name`, which is also how to replace a shipped one on
+purpose. A browser that opens the page is
 measured over HTTP/2 alone: it cannot be sent to a second, HTTP/1.1-only
 listener without the trip showing in what it sends, so its profile has no
 HTTP/1.1 section, and a request that goes out over HTTP/1.1 with it uses the

@@ -262,6 +262,14 @@ func (r *Registry) Register(p *Profile) error {
 	return nil
 }
 
+// Ships reports a profile tls-forge ships by the name it is filed under,
+// chrome_155_macos: one kept under that name in the directory of profiles
+// answers for it from then on, the directory being read first (Get).
+func Ships(name string) bool {
+	_, _, ok := lookup(embedded, "data", name)
+	return ok
+}
+
 // Get resolves a name to a profile.
 func (r *Registry) Get(name string) (*Profile, error) {
 	if name == "" {

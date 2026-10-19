@@ -14,10 +14,11 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
-// visitAsAPerson does at the address what a person is told to: opens it,
-// which only says what to do next; opens it again, as if in a new tab; and lets
-// the page report back.
-func visitAsAPerson(address, profileName string) error {
+// visitAsAPersonSaying does at the address what a person is told to: opens
+// it, which only says what to do next; opens it again, as if in a new tab; and
+// lets the page report back navigator, the JSON /collect takes: what a
+// browser's script says of it.
+func visitAsAPersonSaying(address, profileName, navigator string) error {
 	client, err := tlsforge.New(tlsforge.WithProfile(profileName), tlsforge.WithInsecureSkipVerify(),
 		tlsforge.WithoutRedirects())
 	if err != nil {
@@ -42,7 +43,7 @@ func visitAsAPerson(address, profileName string) error {
 	end := strings.IndexByte(page.Text()[start:], '\'')
 	_, err = client.Do(&tlsforge.Request{
 		Method: "POST", URL: strings.TrimSuffix(address, "/") + page.Text()[start:start+end],
-		Body:   []byte(`{}`),
+		Body:   []byte(navigator),
 		Header: tlsforge.NewHeader("content-type", "application/json"),
 	})
 	return err
@@ -52,10 +53,16 @@ func visitAsAPerson(address, profileName string) error {
 // for, wearing a profile; what came of the visit arrives on the channel.
 func aPersonVisits(t *testing.T, profileName string) <-chan error {
 	t.Helper()
+	return aPersonVisitsSaying(t, profileName, `{}`)
+}
+
+// aPersonVisitsSaying is aPersonVisits whose page reports navigator.
+func aPersonVisitsSaying(t *testing.T, profileName, navigator string) <-chan error {
+	t.Helper()
 	visited := make(chan error, 1)
 	previous := visitorReady
 	visitorReady = func(address string) {
-		go func() { visited <- visitAsAPerson(address, profileName) }()
+		go func() { visited <- visitAsAPersonSaying(address, profileName, navigator) }()
 	}
 	t.Cleanup(func() { visitorReady = previous })
 	return visited
@@ -109,22 +116,68 @@ func TestCaptureManualSavesTheBrowserAPersonOpens(t *testing.T) {
 
 func TestCaptureManualInstallsUnderTheBrowsersName(t *testing.T) {
 	// Not as "local": that is this machine's own browser, and a browser a person
-	// opened is another one, which its own name then finds.
+	// opened is another one, which its own name then finds. A Chromium browser
+	// is named by its brands: Brave's user agent is Chrome's.
 	dir := keepProfilesIn(t)
+	visited := aPersonVisitsSaying(t, "chrome",
+		`{"brands": [{"brand": "Brave", "version": "155"}, {"brand": "Chromium", "version": "155"}]}`)
+	code, stdout, stderr := exec(t, "capture", "--manual", "--install", "--timeout", "30s")
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
+	_, platform := theVisitorsPlatform(t)
+	if code != 0 || !strings.Contains(stdout, "--profile brave_155_"+platform) {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "brave_155", platform+".json")); err != nil {
+		t.Errorf("nothing was kept: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, localName)); err == nil {
+		t.Error("it was kept as this machine's own browser")
+	}
+}
+
+func TestCaptureManualKeepsNoProfileUnderAShippedName(t *testing.T) {
+	// A profile kept under the name of one tls-forge ships would answer for it
+	// from then on, --profile chrome too, the directory being read first: not
+	// unless asked by name. The browser is measured and shown all the same.
+	dir := keepProfilesIn(t)
+	version, platform := theVisitorsPlatform(t)
 	visited := aPersonVisits(t, "chrome")
 	code, stdout, stderr := exec(t, "capture", "--manual", "--install", "--timeout", "30s")
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
 	}
-	version, platform := theVisitorsPlatform(t)
+	if code != 1 || !strings.Contains(stdout, "JA4") || !strings.Contains(stderr,
+		version+"_"+platform+" is a profile tls-forge ships, and one kept under its name would answer for it") {
+		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
+	}
+	if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
+		t.Errorf("kept %v, %v", entries, err)
+	}
+	// Asked by name, it is kept under that name.
+	visited = aPersonVisits(t, "chrome")
+	code, stdout, stderr = exec(t, "capture", "--manual", "--install", "--name", version, "--timeout", "30s")
+	if err := <-visited; err != nil {
+		t.Fatalf("visiting: %v", err)
+	}
 	if code != 0 || !strings.Contains(stdout, "--profile "+version+"_"+platform) {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
 	if _, err := os.Stat(filepath.Join(dir, version, platform+".json")); err != nil {
 		t.Errorf("nothing was kept: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(dir, localName)); err == nil {
-		t.Error("it was kept as this machine's own browser")
+	// Of a phone, whose platform tls-forge ships nothing for, it is kept.
+	measured, err := tlsforge.MeasureSelf(context.Background(), tlsforge.WithProfile("chrome"))
+	if err != nil {
+		t.Fatalf("MeasureSelf: %v", err)
+	}
+	measured.Navigator = &capture.Navigator{UserAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/155.0.0.0 Mobile Safari/537.36"}
+	if name, _, err := saveProfile(t.TempDir(), "chrome_155", measured, false); err != nil || name != "chrome_155_android" {
+		t.Errorf("a phone's: %q, %v", name, err)
+	}
+	if !profile.Ships(version+"_"+platform) || profile.Ships("chrome_155_android") || profile.Ships("brave_155_"+platform) {
+		t.Error("Ships says otherwise")
 	}
 }
 
@@ -324,7 +377,7 @@ func TestAProfileIsFiledUnderTheBrowsersPlatform(t *testing.T) {
 	} {
 		measured.Navigator = &capture.Navigator{UserAgent: tc.ua}
 		dir := t.TempDir()
-		name, path, err := saveProfile(dir, "chrome_155", measured)
+		name, path, err := saveProfile(dir, "chrome_155", measured, true)
 		if err != nil || name != "chrome_155_"+tc.platform ||
 			path != filepath.Join(dir, "chrome_155", tc.platform+".json") {
 			t.Errorf("%s: saved %q at %s: %v", tc.platform, name, path, err)

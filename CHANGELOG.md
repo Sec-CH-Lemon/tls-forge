@@ -377,9 +377,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   first visit only gets the browser past the certificate made for the run; the
   visit measured is the next, typed into a new tab, on a connection of its
   own. A reload, a link, or a visit on a used connection is turned away with
-  the reason. The profile is named after the browser and filed under the
-  platform its user agent says (`safari_18/ios.json`), `--install` keeps it
-  under that name, and it is measured over HTTP/2 alone. `compare --manual`
+  the reason. The profile is named after the browser, a Chromium browser by
+  the brand it names (Brave is `brave_155`, though its user agent is
+  Chrome's), and filed under the platform its user agent says
+  (`safari_18/ios.json`); `--install` keeps it under that name, but not under
+  the name of a profile tls-forge ships, which it would then answer for,
+  unless `--name` says so; it is measured over HTTP/2 alone. `compare --manual`
   holds a profile to such a browser over TLS and HTTP/2. The library has
   `MeasureVisitorAt`, `CompareVisitorAt` and `echo.WithManual`.
 - `fetch --wait-for-element SELECTOR` counts an answer as the page when its

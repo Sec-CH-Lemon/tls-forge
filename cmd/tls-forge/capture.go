@@ -103,12 +103,14 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	// Firefox measured here rather than the catalogue's handshake without headers.
 	profileName := *name
 	if profileName == "" {
-		profileName = profileNameFor(measured.UserAgent())
+		profileName = profileNameFor(measured)
 		if *install && !*visits.manual {
 			profileName = localName
 		}
 	}
-	saved, path, err := saveProfile(where, profileName, measured)
+	// One kept under the name of a profile tls-forge ships would answer for it
+	// from then on, the directory being read first: only when asked by name.
+	saved, path, err := saveProfile(where, profileName, measured, !*install || *name != "")
 	if err != nil {
 		return err
 	}
@@ -143,7 +145,7 @@ func browserArgFlag(fs *pflag.FlagSet) *[]string {
 // --profile will find it by. Naming a captured Chrome 151 anything other than
 // chrome_151 is how a machine ends up with a profile nobody can guess the name
 // of.
-func saveProfile(where, name string, measured *capture.Capture) (profileName, path string, err error) {
+func saveProfile(where, name string, measured *capture.Capture, mayShadow bool) (profileName, path string, err error) {
 	built, err := profile.FromCapture(name, measured)
 	if err != nil {
 		return "", "", err
@@ -163,6 +165,11 @@ func saveProfile(where, name string, measured *capture.Capture) (profileName, pa
 		}
 		if platform == "" {
 			platform = profile.HostPlatform()
+		}
+		if !mayShadow && profile.Ships(version+"_"+platform) {
+			return "", "", fmt.Errorf("capture: %s_%s is a profile tls-forge ships, and one kept under its name "+
+				"would answer for it from now on: give this one a name of its own with --name, or write it out "+
+				"with --save", version, platform)
 		}
 		if err := os.MkdirAll(filepath.Join(where, version), 0o755); err != nil {
 			return "", "", err
@@ -213,13 +220,14 @@ func namesNoServer(c *capture.Capture) bool {
 	return !named
 }
 
-// profileNameFor derives a stable name from a user-agent, e.g. "chrome_151".
+// profileNameFor derives a stable name from what a browser says it is, e.g.
+// "chrome_151": the brand a Chromium browser names, else its user agent.
 //
 // The name matters more than it looks: a profile called "chrome" that was
 // measured from Chrome 151 reads as current forever, and the mismatch between
 // the name and the handshake is invisible in every log it appears in.
-func profileNameFor(userAgent string) string {
-	family, major := browserFrom(userAgent)
+func profileNameFor(c *capture.Capture) string {
+	family, major := capturedBrowser(c)
 	switch {
 	case family == "":
 		return "captured"
@@ -247,6 +255,40 @@ func platformFrom(userAgent string) string {
 		}
 	}
 	return ""
+}
+
+// brandNames are the brands Chromium browsers name themselves by, in
+// navigator.userAgentData and sec-ch-ua. Brave's user agent is Chrome's word
+// for word: the brands alone tell it apart.
+var brandNames = map[string]string{
+	"Google Chrome":    "chrome",
+	"Microsoft Edge":   "edge",
+	"Brave":            "brave",
+	"Opera":            "opera",
+	"YaBrowser":        "yandex",
+	"Samsung Internet": "samsung",
+}
+
+// capturedBrowser reads the browser and its major version from the brands only a
+// Chromium browser names: one it is known by, else chromium for one that
+// names no brand of its own but Chromium's; else, as a browser without
+// brands, from its user agent.
+func capturedBrowser(c *capture.Capture) (family, major string) {
+	chromium := ""
+	if c.Navigator != nil {
+		for _, b := range c.Navigator.Brands {
+			if name, ok := brandNames[b.Brand]; ok {
+				return name, b.Version
+			}
+			if b.Brand == "Chromium" {
+				chromium = b.Version
+			}
+		}
+	}
+	if chromium != "" {
+		return "chromium", chromium
+	}
+	return browserFrom(c.UserAgent())
 }
 
 // browserFrom reads the browser and its major version out of a user-agent,
