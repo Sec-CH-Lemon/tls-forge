@@ -43,14 +43,17 @@ type HPACKScenario struct {
 // fingerprint.Representation.Named says it; and, for a header block that took
 // more than one frame, the payload length of each, HEADERS first, as on the
 // wire. In a scenario of records, Data are the payload lengths of its DATA
-// frames and Records how the TLS records carried its frames (Entry.Records).
+// frames and Records how the TLS records carried its frames (Entry.Records);
+// in a fixture of ALPS, Priority is its HEADERS frame's priority, as
+// Request.Priority says it.
 type WrittenRequest struct {
-	Method  string   `json:"method"`
-	URL     string   `json:"url"`
-	Fields  []string `json:"fields"`
-	Frames  []int    `json:"frames,omitempty"`
-	Data    []int    `json:"data,omitempty"`
-	Records []string `json:"records,omitempty"`
+	Method   string   `json:"method"`
+	URL      string   `json:"url"`
+	Fields   []string `json:"fields"`
+	Frames   []int    `json:"frames,omitempty"`
+	Data     []int    `json:"data,omitempty"`
+	Records  []string `json:"records,omitempty"`
+	Priority []uint32 `json:"priority,omitempty"`
 }
 
 // LoadHPACK reads a fixture of header blocks.
@@ -270,6 +273,9 @@ func DiffHPACK(want, got HPACKScenario) []string {
 			case !slices.Equal(g.Data, w.Data) || !slices.Equal(g.Records, w.Records):
 				out = append(out, fmt.Sprintf("connection %d, request %d, %s %s: DATA frames %v and records %v, want %v and %v",
 					c+1, r+1, w.Method, w.URL, g.Data, g.Records, w.Data, w.Records))
+			case !slices.Equal(g.Priority, w.Priority):
+				out = append(out, fmt.Sprintf("connection %d, request %d, %s %s: priority %v, want %v", c+1, r+1,
+					w.Method, w.URL, g.Priority, w.Priority))
 			}
 		}
 	}

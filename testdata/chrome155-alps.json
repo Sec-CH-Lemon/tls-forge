@@ -50,6 +50,11 @@
        "accept-encoding: with indexing, name static 16, value huffman",
        "accept-language: with indexing, name static 17, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      },
      {
@@ -72,6 +77,180 @@
        "accept-encoding: indexed dynamic 69",
        "accept-language: indexed dynamic 68",
        "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-asked": {
+   "note": "ALPS asking the page's origin for three hints, a page whose Accept-CH asked for one of them, and location.href to that origin",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-asked?accept=sec-ch-ua-arch",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-arch: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-full-version-list: with indexing, new name huffman, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/p/alps-accept-ch-asked?quiet",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 78",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: indexed dynamic 77",
+       "sec-ch-ua-mobile: indexed dynamic 76",
+       "sec-ch-ua-arch: indexed dynamic 71",
+       "sec-ch-ua-platform: indexed dynamic 75",
+       "upgrade-insecure-requests: indexed dynamic 74",
+       "user-agent: indexed dynamic 73",
+       "accept: indexed dynamic 72",
+       "sec-ch-ua-platform-version: indexed dynamic 70",
+       "sec-ch-ua-full-version-list: indexed dynamic 69",
+       "sec-fetch-site: with indexing, name dynamic 68, value huffman",
+       "sec-fetch-mode: indexed dynamic 68",
+       "sec-fetch-dest: indexed dynamic 67",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 66",
+       "accept-language: indexed dynamic 65",
+       "priority: indexed dynamic 64"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-capitals": {
+   "note": "ALPS giving an ACCEPT_CH frame for the page's origin in capitals",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-capitals",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-accept-ch-capitals",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
       ]
      }
     ]
@@ -121,6 +300,11 @@
        "accept-encoding: with indexing, name static 16, value huffman",
        "accept-language: with indexing, name static 17, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      },
      {
@@ -143,6 +327,321 @@
        "accept-encoding: indexed dynamic 69",
        "accept-language: indexed dynamic 68",
        "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-flags": {
+   "note": "ALPS giving an ACCEPT_CH frame with a flag",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 6"
+    }
+   ],
+   "connections": []
+  },
+  "alps-accept-ch-form": {
+   "note": "ALPS asking the page's origin for three hints, and a form posted to that origin",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-form",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-arch: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-full-version-list: with indexing, new name huffman, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "POST",
+      "url": "https://www.example.com/p/alps-accept-ch-form?quiet",
+      "fields": [
+       ":method: indexed static 3",
+       ":authority: indexed dynamic 78",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "content-length: with indexing, name static 28, value plain",
+       "cache-control: with indexing, name static 24, value huffman",
+       "sec-ch-ua: indexed dynamic 79",
+       "sec-ch-ua-mobile: indexed dynamic 78",
+       "sec-ch-ua-platform: indexed dynamic 77",
+       "upgrade-insecure-requests: indexed dynamic 76",
+       "content-type: with indexing, name static 31, value huffman",
+       "user-agent: indexed dynamic 76",
+       "origin: with indexing, new name huffman, value huffman",
+       "accept: indexed dynamic 76",
+       "sec-ch-ua-arch: indexed dynamic 75",
+       "sec-ch-ua-platform-version: indexed dynamic 74",
+       "sec-ch-ua-full-version-list: indexed dynamic 73",
+       "sec-fetch-site: with indexing, name dynamic 72, value huffman",
+       "sec-fetch-mode: indexed dynamic 72",
+       "sec-fetch-dest: indexed dynamic 71",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 70",
+       "accept-language: indexed dynamic 69",
+       "priority: indexed dynamic 68"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-good-then-malformed": {
+   "note": "ALPS giving an ACCEPT_CH frame of an entry for the page's origin, then one cut short",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-good-then-malformed",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-arch: with indexing, new name huffman, value plain",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-accept-ch-good-then-malformed",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 76",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 73",
+       "user-agent: indexed dynamic 71",
+       "sec-ch-ua: indexed dynamic 75",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-good-then-stream": {
+   "note": "ALPS giving an ACCEPT_CH frame on stream 0, then one on stream 1, a hint each",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 5"
+    }
+   ],
+   "connections": []
+  },
+  "alps-accept-ch-link": {
+   "note": "ALPS asking the page's origin for three hints, and location.href to a page of that origin",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-link",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-arch: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-full-version-list: with indexing, new name huffman, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/p/alps-accept-ch-link?quiet",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 78",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: indexed dynamic 77",
+       "sec-ch-ua-mobile: indexed dynamic 76",
+       "sec-ch-ua-platform: indexed dynamic 75",
+       "upgrade-insecure-requests: indexed dynamic 74",
+       "user-agent: indexed dynamic 73",
+       "accept: indexed dynamic 72",
+       "sec-ch-ua-arch: indexed dynamic 71",
+       "sec-ch-ua-platform-version: indexed dynamic 70",
+       "sec-ch-ua-full-version-list: indexed dynamic 69",
+       "sec-fetch-site: with indexing, name dynamic 68, value huffman",
+       "sec-fetch-mode: indexed dynamic 68",
+       "sec-fetch-dest: indexed dynamic 67",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 66",
+       "accept-language: indexed dynamic 65",
+       "priority: indexed dynamic 64"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      }
     ]
@@ -192,6 +691,11 @@
        "accept-encoding: with indexing, name static 16, value huffman",
        "accept-language: with indexing, name static 17, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      },
      {
@@ -214,10 +718,687 @@
        "accept-encoding: indexed dynamic 69",
        "accept-language: indexed dynamic 68",
        "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
       ]
      }
     ]
    ]
+  },
+  "alps-accept-ch-malformed-then-good": {
+   "note": "ALPS giving an ACCEPT_CH frame whose entry is cut short, then one for the page's origin",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-malformed-then-good",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-accept-ch-malformed-then-good",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 76",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 73",
+       "user-agent: indexed dynamic 71",
+       "sec-ch-ua: indexed dynamic 75",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-other-origin": {
+   "note": "ALPS giving an ACCEPT_CH frame of an entry for another site's origin, then one for the page's, a hint each",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-other-origin",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-accept-ch-other-origin",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 76",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 73",
+       "user-agent: indexed dynamic 71",
+       "sec-ch-ua: indexed dynamic 75",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-redirect": {
+   "note": "ALPS asking the page's origin for three hints, and location.href to a 302 to that origin",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-redirect",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-arch: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-full-version-list: with indexing, new name huffman, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/r/302/alps-accept-ch-redirect?to=/p/alps-accept-ch-redirected%3Fquiet",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 78",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: indexed dynamic 77",
+       "sec-ch-ua-mobile: indexed dynamic 76",
+       "sec-ch-ua-platform: indexed dynamic 75",
+       "upgrade-insecure-requests: indexed dynamic 74",
+       "user-agent: indexed dynamic 73",
+       "accept: indexed dynamic 72",
+       "sec-ch-ua-arch: indexed dynamic 71",
+       "sec-ch-ua-platform-version: indexed dynamic 70",
+       "sec-ch-ua-full-version-list: indexed dynamic 69",
+       "sec-fetch-site: with indexing, name dynamic 68, value huffman",
+       "sec-fetch-mode: indexed dynamic 68",
+       "sec-fetch-dest: indexed dynamic 67",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 66",
+       "accept-language: indexed dynamic 65",
+       "priority: indexed dynamic 64"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/p/alps-accept-ch-redirected?quiet",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 80",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "upgrade-insecure-requests: indexed dynamic 76",
+       "user-agent: indexed dynamic 75",
+       "accept: indexed dynamic 74",
+       "sec-ch-ua: indexed dynamic 79",
+       "sec-ch-ua-mobile: indexed dynamic 78",
+       "sec-ch-ua-platform: indexed dynamic 77",
+       "sec-ch-ua-arch: indexed dynamic 73",
+       "sec-ch-ua-platform-version: indexed dynamic 72",
+       "sec-ch-ua-full-version-list: indexed dynamic 71",
+       "sec-fetch-site: indexed dynamic 63",
+       "sec-fetch-mode: indexed dynamic 69",
+       "sec-fetch-dest: indexed dynamic 68",
+       "referer: indexed dynamic 62",
+       "accept-encoding: indexed dynamic 66",
+       "accept-language: indexed dynamic 65",
+       "priority: indexed dynamic 64"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-stream": {
+   "note": "ALPS giving an ACCEPT_CH frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 5"
+    }
+   ],
+   "connections": []
+  },
+  "alps-accept-ch-stream-flags": {
+   "note": "ALPS giving an ACCEPT_CH frame on stream 1 with a flag",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 5"
+    }
+   ],
+   "connections": []
+  },
+  "alps-accept-ch-stream-then-ack": {
+   "note": "ALPS giving an ACCEPT_CH frame on stream 1, then a SETTINGS frame that acknowledges",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 4"
+    }
+   ],
+   "connections": []
+  },
+  "alps-accept-ch-stream-then-cut": {
+   "note": "ALPS giving an ACCEPT_CH frame on stream 1, then a SETTINGS frame cut short",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 3"
+    }
+   ],
+   "connections": []
+  },
+  "alps-accept-ch-stream-then-good": {
+   "note": "ALPS giving an ACCEPT_CH frame on stream 1, then one on stream 0, a hint each",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 5"
+    }
+   ],
+   "connections": []
+  },
+  "alps-accept-ch-two-entries": {
+   "note": "ALPS giving an ACCEPT_CH frame of two entries for the page's origin, a hint each",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-two-entries",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-arch: with indexing, new name huffman, value plain",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-accept-ch-two-entries",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 76",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 73",
+       "user-agent: indexed dynamic 71",
+       "sec-ch-ua: indexed dynamic 75",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-accept-ch-two-frames": {
+   "note": "ALPS giving an ACCEPT_CH frame for another site's origin, then one for the page's, a hint each",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-accept-ch-two-frames",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-accept-ch-two-frames",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 76",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 73",
+       "user-agent: indexed dynamic 71",
+       "sec-ch-ua: indexed dynamic 75",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-altsvc": {
+   "note": "ALPS giving an ALTSVC frame",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-altsvc",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-altsvc",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-continuation": {
+   "note": "ALPS giving a CONTINUATION frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
   },
   "alps-data": {
    "note": "ALPS giving a DATA frame",
@@ -239,7 +1420,85 @@
       "6=262144"
      ],
      "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
-    },
+    }
+   ],
+   "connections": []
+  },
+  "alps-data-stream-0": {
+   "note": "ALPS giving a DATA frame on stream 0",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-data-then-accept-ch-stream": {
+   "note": "ALPS giving a DATA frame, then an ACCEPT_CH frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-data-then-cut": {
+   "note": "ALPS giving a DATA frame, then a SETTINGS frame cut short",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-data-then-settings-ack": {
+   "note": "ALPS giving a DATA frame, then a SETTINGS frame that acknowledges",
+   "handshakes": [
     {
      "codepoint": 17613,
      "protocols": [
@@ -305,6 +1564,11 @@
        "accept-encoding: with indexing, name static 16, value huffman",
        "accept-language: with indexing, name static 17, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      },
      {
@@ -327,13 +1591,18 @@
        "accept-encoding: indexed dynamic 69",
        "accept-language: indexed dynamic 68",
        "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
       ]
      }
     ]
    ]
   },
-  "alps-malformed": {
-   "note": "ALPS giving a SETTINGS frame cut short",
+  "alps-goaway": {
+   "note": "ALPS giving a GOAWAY frame",
    "handshakes": [
     {
      "codepoint": 17613,
@@ -351,8 +1620,182 @@
       "4=6291456",
       "6=262144"
      ],
-     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 3"
-    },
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-goaway-stream": {
+   "note": "ALPS giving a GOAWAY frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-headers": {
+   "note": "ALPS giving a HEADERS frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-headers-bad-hpack": {
+   "note": "ALPS giving a HEADERS frame whose block does not decode",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-headers-open": {
+   "note": "ALPS giving a HEADERS frame without END_HEADERS",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-headers-open-then-settings": {
+   "note": "ALPS giving a HEADERS frame without END_HEADERS, then a SETTINGS frame",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-headers-padded-bad": {
+   "note": "ALPS giving a HEADERS frame padded by more than it carries",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-headers-then-continuation": {
+   "note": "ALPS giving a HEADERS frame without END_HEADERS, then its CONTINUATION",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-malformed": {
+   "note": "ALPS giving a SETTINGS frame cut short",
+   "handshakes": [
     {
      "codepoint": 17613,
      "protocols": [
@@ -417,6 +1860,11 @@
        "accept-encoding: with indexing, name static 16, value huffman",
        "accept-language: with indexing, name static 17, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      },
      {
@@ -439,10 +1887,369 @@
        "accept-encoding: indexed dynamic 69",
        "accept-language: indexed dynamic 68",
        "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
       ]
      }
     ]
    ]
+  },
+  "alps-origin-frame": {
+   "note": "ALPS giving an ORIGIN frame",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-origin-frame",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-origin-frame",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-ping": {
+   "note": "ALPS giving a PING frame",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-ping-short": {
+   "note": "ALPS giving a PING frame of seven bytes",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-ping-stream": {
+   "note": "ALPS giving a PING frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-priority": {
+   "note": "ALPS giving a PRIORITY frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-priority-short": {
+   "note": "ALPS giving a PRIORITY frame of four bytes",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-priority-update": {
+   "note": "ALPS giving a PRIORITY_UPDATE frame",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-priority-update",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-priority-update",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-push-promise": {
+   "note": "ALPS giving a PUSH_PROMISE frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-rst-stream": {
+   "note": "ALPS giving a RST_STREAM frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-rst-stream-0": {
+   "note": "ALPS giving a RST_STREAM frame on stream 0",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
   },
   "alps-settings": {
    "note": "ALPS giving SETTINGS: a table of 65536, 100 streams, a window of 1 MiB, a header list of 65536 and an unknown setting",
@@ -489,6 +2296,11 @@
        "accept-encoding: with indexing, name static 16, value huffman",
        "accept-language: with indexing, name static 17, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      },
      {
@@ -511,6 +2323,11 @@
        "accept-encoding: indexed dynamic 69",
        "accept-language: indexed dynamic 68",
        "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
       ]
      }
     ]
@@ -536,7 +2353,37 @@
       "6=262144"
      ],
      "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 4"
-    },
+    }
+   ],
+   "connections": []
+  },
+  "alps-settings-ack-payload": {
+   "note": "ALPS giving a SETTINGS frame that acknowledges and carries a setting",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-settings-ack-then-cut": {
+   "note": "ALPS giving a SETTINGS frame that acknowledges, then a SETTINGS frame cut short",
+   "handshakes": [
     {
      "codepoint": 17613,
      "protocols": [
@@ -558,8 +2405,170 @@
    ],
    "connections": []
   },
-  "alps-settings-stream": {
-   "note": "ALPS giving a SETTINGS frame on stream 1",
+  "alps-settings-connect-0-1": {
+   "note": "ALPS giving SETTINGS: ENABLE_CONNECT_PROTOCOL 0, then 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-connect-0-1",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-connect-0-1",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-connect-1-0": {
+   "note": "ALPS giving SETTINGS: ENABLE_CONNECT_PROTOCOL 1, then 0",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-connect-1-0",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-connect-1-0",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-connect-2": {
+   "note": "ALPS giving SETTINGS: ENABLE_CONNECT_PROTOCOL 2",
    "handshakes": [
     {
      "codepoint": 17613,
@@ -577,8 +2586,177 @@
       "4=6291456",
       "6=262144"
      ],
-     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
-    },
+     "goaway": "PROTOCOL_ERROR: Invalid value for spdy::SETTINGS_ENABLE_CONNECT_PROTOCOL."
+    }
+   ],
+   "connections": []
+  },
+  "alps-settings-flags": {
+   "note": "ALPS giving a SETTINGS frame of a table of 65536, every flag set but ACK",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-flags",
+      "fields": [
+       "size update 65536",
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-flags",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-frame-small": {
+   "note": "ALPS giving SETTINGS: frames of at most 100 bytes",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-frame-small",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-frame-small",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-large": {
+   "note": "ALPS giving a SETTINGS frame of 18,006 bytes: a table of 65536 and an unknown setting 3,000 times",
+   "handshakes": [
     {
      "codepoint": 17613,
      "protocols": [
@@ -599,6 +2777,564 @@
     }
    ],
    "connections": []
+  },
+  "alps-settings-odd": {
+   "note": "ALPS giving a SETTINGS frame of five bytes",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-settings-priorities-1": {
+   "note": "ALPS giving SETTINGS: NO_RFC7540_PRIORITIES 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-priorities-1",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-priorities-1",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-priorities-2": {
+   "note": "ALPS giving SETTINGS: NO_RFC7540_PRIORITIES 2",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Invalid value for spdy::SETTINGS_DEPRECATE_HTTP2_PRIORITIES."
+    }
+   ],
+   "connections": []
+  },
+  "alps-settings-priorities-again": {
+   "note": "ALPS giving SETTINGS: NO_RFC7540_PRIORITIES 1, then 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-priorities-again",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-priorities-again",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-priorities-changed": {
+   "note": "ALPS giving SETTINGS: NO_RFC7540_PRIORITIES 0, then 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-priorities-changed",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-priorities-changed",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-push-2": {
+   "note": "ALPS giving SETTINGS: ENABLE_PUSH 2",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-push-2",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-push-2",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-stream": {
+   "note": "ALPS giving a SETTINGS frame on stream 1",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-settings-streams-0": {
+   "note": "ALPS giving SETTINGS: no stream at a time",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-streams-0",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-streams-0",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-settings-window-large": {
+   "note": "ALPS giving SETTINGS: a window of 2^31",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-settings-window-large",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-settings-window-large",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
   },
   "alps-unknown-frame": {
    "note": "ALPS giving a frame of type 0xfa",
@@ -644,6 +3380,11 @@
        "accept-encoding: with indexing, name static 16, value huffman",
        "accept-language: with indexing, name static 17, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
       ]
      },
      {
@@ -666,10 +3407,192 @@
        "accept-encoding: indexed dynamic 69",
        "accept-language: indexed dynamic 68",
        "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
       ]
      }
     ]
    ]
+  },
+  "alps-unknown-frame-stream": {
+   "note": "ALPS giving a frame of type 0xfa on stream 1, every flag set",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ]
+    }
+   ],
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/alps-unknown-frame-stream",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       255
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/alps-unknown-frame-stream",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "sec-ch-ua-mobile: indexed dynamic 73",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-mode: with indexing, name dynamic 69, value huffman",
+       "sec-fetch-dest: with indexing, name dynamic 68, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: indexed dynamic 69",
+       "accept-language: indexed dynamic 68",
+       "priority: with indexing, name dynamic 67, value huffman"
+      ],
+      "priority": [
+       1,
+       0,
+       219
+      ]
+     }
+    ]
+   ]
+  },
+  "alps-unknown-large": {
+   "note": "ALPS giving a frame of type 0xfa of 20,000 bytes",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-window-update": {
+   "note": "ALPS giving a WINDOW_UPDATE frame",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
+  },
+  "alps-window-update-short": {
+   "note": "ALPS giving a WINDOW_UPDATE frame of three bytes",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 1"
+    }
+   ],
+   "connections": []
+  },
+  "alps-window-update-zero": {
+   "note": "ALPS giving a WINDOW_UPDATE frame of nothing",
+   "handshakes": [
+    {
+     "codepoint": 17613,
+     "protocols": [
+      "h2"
+     ],
+     "alpn": "h2",
+     "negotiated": true,
+     "flight": [
+      "EE+F"
+     ],
+     "settings": [
+      "1=65536",
+      "2=0",
+      "4=6291456",
+      "6=262144"
+     ],
+     "goaway": "PROTOCOL_ERROR: Error parsing ALPS: 2"
+    }
+   ],
+   "connections": []
   }
  }
 }

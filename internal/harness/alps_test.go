@@ -188,6 +188,45 @@ func TestAnALPSMeasurementSaysWhyItIsNone(t *testing.T) {
 	}
 }
 
+func TestWhatABrowserMadeOfALPSEndsWithTheConnectionItRefused(t *testing.T) {
+	// The handshakes after the first that ended in a GOAWAY are the error
+	// page's, which reloads itself; a connection that said nothing (a spare)
+	// is left out; and each request says its HEADERS frame's priority.
+	s := started(t, alpsCatalogue)
+	taken := ALPSHandshake{Conn: 1, Settings: []string{"1=65536"}}
+	spare := ALPSHandshake{Conn: 2}
+	asked := ALPSHandshake{Conn: 3}
+	refused := ALPSHandshake{Conn: 4, Settings: []string{"1=65536"}, GoAway: "PROTOCOL_ERROR: x"}
+	reloaded := ALPSHandshake{Conn: 5, Settings: []string{"1=65536"}, GoAway: "PROTOCOL_ERROR: x"}
+	s.mu.Lock()
+	s.alpsSeen = []*ALPSHandshake{&taken, &spare, &asked, &refused, &reloaded}
+	s.mu.Unlock()
+	entries := []Entry{
+		{Proto: "h2", Conn: 1, Method: "GET", Target: "https://www.example.com/a", Block: []byte{0x82}, Priority: &[3]uint32{1, 0, 255}},
+		{Proto: "http/1.1", Conn: 6, Method: "GET", Target: "https://www.example.com/h1"},
+		{Proto: "h2", Conn: 3, Method: "GET", Target: "https://www.example.com/b", Block: []byte{0x82}},
+		{Proto: "h2", Conn: 1, Method: "GET", Target: "https://www.example.com/c", Block: []byte{0x82}, Priority: &[3]uint32{1, 0, 219}},
+	}
+	got, err := s.ALPSOf("n", "none", entries)
+	if err != nil {
+		t.Fatalf("ALPSOf: %v", err)
+	}
+	var conns []int
+	for _, h := range got.Handshakes {
+		conns = append(conns, h.Conn)
+	}
+	var priorities [][]uint32
+	for _, c := range got.Connections {
+		for _, r := range c {
+			priorities = append(priorities, r.Priority)
+		}
+	}
+	if !slices.Equal(conns, []int{1, 3, 4}) || len(got.Connections) != 2 || len(got.Connections[0]) != 2 ||
+		!slices.EqualFunc(priorities, [][]uint32{{1, 0, 255}, {1, 0, 219}, nil}, slices.Equal) {
+		t.Errorf("handshakes of %v, requests %+v", conns, got.Connections)
+	}
+}
+
 func TestEveryDifferenceInWhatWasMadeOfALPSIsSaid(t *testing.T) {
 	h := ALPSHandshake{Codepoint: extALPS, Protocols: []string{"h2"}, ALPN: "h2", Negotiated: true, Flight: []string{"EE+F"},
 		Settings: []string{"1=65536"}}
@@ -215,6 +254,8 @@ func TestEveryDifferenceInWhatWasMadeOfALPSIsSaid(t *testing.T) {
 		{"other SETTINGS", other(func(h *ALPSHandshake) { h.Settings = nil }), 1},
 		{"a GOAWAY", other(func(h *ALPSHandshake) { h.GoAway = "PROTOCOL_ERROR: x" }), 1},
 		{"no requests", ALPSScenario{Handshakes: want.Handshakes}, 1},
+		{"a priority of its own", ALPSScenario{Handshakes: want.Handshakes, Connections: [][]WrittenRequest{{{Method: "GET",
+			URL: "https://a/1", Fields: []string{"x"}, Priority: []uint32{1, 0, 255}}}}}, 1},
 	} {
 		if diff := DiffALPS(want, tc.got); len(diff) != tc.diff {
 			t.Errorf("%s: %q", tc.name, diff)
@@ -237,6 +278,12 @@ func TestSettingsAndVariantsAreSaidAsTheBenchMakesThem(t *testing.T) {
 	}
 	if got := acceptCHFrame("o", "h"); !bytes.Equal(got, []byte{0, 0, 6, 0x89, 0, 0, 0, 0, 0, 0, 1, 'o', 0, 1, 'h'}) {
 		t.Errorf("acceptCHFrame: %x", got)
+	}
+	if got := acceptCH(1, 2, "o", "h", ""); !bytes.Equal(got, []byte{0, 0, 8, 0x89, 2, 0, 0, 0, 1, 0, 1, 'o', 0, 1, 'h', 0, 0}) {
+		t.Errorf("acceptCH: %x", got)
+	}
+	if got := elsewhere("https://www.example.com:12345"); got != "https://www.example.net:12345" {
+		t.Errorf("elsewhere: %s", got)
 	}
 	if got := alpsNames(map[string]scenario{"a": {alps: "empty"}, "b": {alps: "empty"}, "c": {}, "d": {alps: "data"}}); !slices.Equal(got, []string{"data", "empty"}) {
 		t.Errorf("alpsNames: %q", got)

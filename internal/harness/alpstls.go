@@ -360,7 +360,8 @@ func (srv *alpsServer) handshake(raw net.Conn) (*alpsConn, *ALPSHandshake, error
 	serverSecret := expandLabel(secret, "s hs traffic", transcript.Sum(nil), 32)
 	master := hkdfExtract(expandLabel(secret, "derived", empty[:], 32), zeros)
 
-	// The server's flight, encrypted in one record.
+	// The server's flight, encrypted in records of at most maxRecord bytes:
+	// one, unless ALPS makes it longer.
 	var ee cryptobyte.Builder
 	ee.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
 		if seen.ALPN != "" {
@@ -396,7 +397,11 @@ func (srv *alpsServer) handshake(raw net.Conn) (*alpsConn, *ALPSHandshake, error
 	serverFinished := handshakeMessage(msgFinished, finished(serverSecret, transcript.Sum(nil)))
 	transcript.Write(serverFinished)
 	flight = append(append(flight, certificateVerify...), serverFinished...)
-	sealed := newRecordCipher(serverSecret).seal(recordHandshake, flight)
+	cipher := newRecordCipher(serverSecret)
+	var sealed []byte
+	for rest := flight; len(rest) > 0; rest = rest[min(len(rest), maxRecord):] {
+		sealed = append(sealed, cipher.seal(recordHandshake, rest[:min(len(rest), maxRecord)])...)
+	}
 	compatible := []byte{}
 	if len(ch.sessionID) > 0 {
 		compatible = []byte{recordChangeCipher, 3, 3, 0, 1, 1}

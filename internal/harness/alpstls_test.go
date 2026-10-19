@@ -246,6 +246,29 @@ func (c *scripted) keys() (*recordCipher, *recordCipher) {
 		newRecordCipher(expandLabel(c.master, "s ap traffic", c.application, 32))
 }
 
+func TestALPSOfMoreThanARecordGoesInRecordsOfTheirOwn(t *testing.T) {
+	// 20,009 bytes of ALPS: the server's flight in two records.
+	settings := h2Frame(0xfa, 0, 0, bytes.Repeat([]byte{7}, 20000))
+	srv := alpsTestServer(t, settings)
+	serverEnd, clientEnd := net.Pipe()
+	t.Cleanup(func() { _ = serverEnd.Close(); _ = clientEnd.Close() })
+	done := make(chan handshaken, 1)
+	go func() {
+		conn, seen, err := srv.handshake(serverEnd)
+		done <- handshaken{conn, seen, err}
+	}()
+	client := utls.UClient(clientEnd, &utls.Config{InsecureSkipVerify: true}, utls.HelloChrome_133, false, false, false) //nolint:gosec // the bench's
+	if err := client.Handshake(); err != nil {
+		t.Fatalf("the client's handshake: %v", err)
+	}
+	if got := client.ConnectionState().PeerApplicationSettings; !bytes.Equal(got, settings) {
+		t.Errorf("the client was given %d bytes", len(got))
+	}
+	if h := <-done; h.err != nil || !h.seen.Negotiated {
+		t.Errorf("the server's: %v, saw %s", h.err, h.seen)
+	}
+}
+
 // alpsTestServer is the bench's ALPS server with the bench's certificate,
 // giving settings as ALPS for h2.
 func alpsTestServer(t *testing.T, settings []byte) *alpsServer {
