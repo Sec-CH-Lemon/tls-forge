@@ -28,19 +28,24 @@ type HPACKFixture struct {
 type HPACKScenario struct {
 	Note string `json:"note"`
 	// Table is the size of the HPACK table the server's SETTINGS let the
-	// browser have, when it is not the 4096 bytes they say by default.
+	// browser have, when it is not the 4096 bytes they say by default, and
+	// Frame the largest frame they let it send, when it is not Go's 1 MiB.
 	Table       uint32             `json:"table,omitempty"`
+	Frame       uint32             `json:"frame,omitempty"`
 	Connections [][]WrittenRequest `json:"connections"`
 }
 
 // WrittenRequest is a request as it went into HPACK: its method, its URL with
 // no port, and how each field of its header block was written against the
 // dynamic table the requests before it on its connection left, as
-// fingerprint.Representation.Named says it.
+// fingerprint.Representation.Named says it; and, for a header block that took
+// more than one frame, the payload length of each, HEADERS first, as on the
+// wire.
 type WrittenRequest struct {
 	Method string   `json:"method"`
 	URL    string   `json:"url"`
 	Fields []string `json:"fields"`
+	Frames []int    `json:"frames,omitempty"`
 }
 
 // LoadHPACK reads a fixture of header blocks.
@@ -76,6 +81,14 @@ var hpackCatalogue = map[string]scenario{
 		script: "fetch('{A}/p/hpack-table-64k').then(done);", table: 65536, quiet: true},
 	"hpack-table-1k": {note: "a page, then fetch() of its origin, from a server whose SETTINGS let the dynamic table be 1024 bytes",
 		script: "fetch('{A}/p/hpack-table-1k').then(done);", table: 1024, quiet: true},
+	"hpack-big-header": {note: "a page, then fetch() of its origin with an X-Foo of 30,000 letters, a header block of more than one frame",
+		script: "fetch('{A}/p/hpack-big-header',{headers:{'X-Foo':'a'.repeat(30000)}}).then(done);", quiet: true},
+	"hpack-bigger-header": {note: "a page, then fetch() of its origin with an X-Foo of 60,000 letters",
+		script: "fetch('{A}/p/hpack-bigger-header',{headers:{'X-Foo':'a'.repeat(60000)}}).then(done);", quiet: true},
+	"hpack-big-header-16k": {note: "the same as hpack-big-header, from a server whose SETTINGS let a frame be 16384 bytes",
+		script: "fetch('{A}/p/hpack-big-header-16k',{headers:{'X-Foo':'a'.repeat(30000)}}).then(done);", frame: 16384, quiet: true},
+	"hpack-bigger-header-16k": {note: "the same as hpack-bigger-header, from a server whose SETTINGS let a frame be 16384 bytes",
+		script: "fetch('{A}/p/hpack-bigger-header-16k',{headers:{'X-Foo':'a'.repeat(60000)}}).then(done);", frame: 16384, quiet: true},
 }
 
 // MeasureHPACK is how b writes the requests of each scenario of the HPACK
@@ -112,7 +125,7 @@ func measureHPACK(ctx context.Context, b Browser, scenarios map[string]scenario,
 		sc := scenarios[id]
 		var written [][]WrittenRequest
 		for run := 1; ; run++ {
-			entries, err := s.run(ctx, b, id, sc, origins(s.PortFor(sc.table), s.Plain), t)
+			entries, err := s.run(ctx, b, id, sc, origins(s.PortFor(sc.settings()), s.Plain), t)
 			if err == nil {
 				written, err = s.Written(entries, sc.table)
 			}
@@ -128,7 +141,7 @@ func measureHPACK(ctx context.Context, b Browser, scenarios map[string]scenario,
 			}
 			break
 		}
-		out[id] = HPACKScenario{Note: sc.note, Table: sc.table, Connections: written}
+		out[id] = HPACKScenario{Note: sc.note, Table: sc.table, Frame: sc.frame, Connections: written}
 		_, _ = fmt.Fprintf(progress, "h2 %s: %d connections\n", id, len(written))
 	}
 	return out, nil
@@ -155,16 +168,16 @@ func oneEach(entries []Entry) bool {
 }
 
 // StartHPACKServer starts a Server answering the scenarios of the HPACK
-// catalogue, each from the port its table asks for (PortFor).
+// catalogue, each from the port its SETTINGS ask for (PortFor).
 func StartHPACKServer() (*Server, error) { return startServer(hpackCatalogue) }
 
-// PortFor is the port of the server's HTTP/2 whose SETTINGS let a client's
-// HPACK table be table bytes: H2's for none.
-func (s *Server) PortFor(table uint32) int {
-	if table == 0 {
+// PortFor is the port of the server's HTTP/2 whose SETTINGS say settings
+// where they are not Go's: H2's for none.
+func (s *Server) PortFor(settings H2Settings) int {
+	if settings == (H2Settings{}) {
 		return s.H2
 	}
-	return s.Tables[table]
+	return s.Settled[settings]
 }
 
 // Written is how the HTTP/2 requests of entries went into HPACK, connection by
@@ -195,6 +208,9 @@ func (s *Server) Written(entries []Entry, table uint32) ([][]WrittenRequest, err
 		for _, r := range representations {
 			written.Fields = append(written.Fields, r.Named())
 		}
+		if len(e.Frames) > 1 {
+			written.Frames = e.Frames
+		}
 		out[conns[e.Conn]] = append(out[conns[e.Conn]], written)
 	}
 	return out, nil
@@ -221,6 +237,9 @@ func DiffHPACK(want, got HPACKScenario) []string {
 			case !slices.Equal(g.Fields, w.Fields):
 				out = append(out, fmt.Sprintf("connection %d, request %d, %s %s:\n  written %q\n  want    %q", c+1, r+1,
 					w.Method, w.URL, g.Fields, w.Fields))
+			case !slices.Equal(g.Frames, w.Frames):
+				out = append(out, fmt.Sprintf("connection %d, request %d, %s %s: frames %v, want %v", c+1, r+1,
+					w.Method, w.URL, g.Frames, w.Frames))
 			}
 		}
 	}

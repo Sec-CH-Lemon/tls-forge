@@ -242,8 +242,8 @@ var port = regexp.MustCompile(`:([0-9]+)`)
 // bare is text without any port of the server's: they change every run.
 func (s *Server) bare(text string) string {
 	ours := map[string]bool{strconv.Itoa(s.H2): true, strconv.Itoa(s.H1): true, strconv.Itoa(s.Plain): true}
-	for _, table := range s.Tables {
-		ours[strconv.Itoa(table)] = true
+	for _, settled := range s.Settled {
+		ours[strconv.Itoa(settled)] = true
 	}
 	return port.ReplaceAllStringFunc(text, func(found string) string {
 		if ours[found[1:]] {

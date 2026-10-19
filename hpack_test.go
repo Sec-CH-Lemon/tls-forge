@@ -6,7 +6,9 @@ import (
 	"net"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -62,6 +64,24 @@ var hpackAsked = map[string][]hpackAsk{
 	"hpack-big-cookie": {typed("/run/hpack-big-cookie?big=4080"), fetched("GET", "/p/hpack-big-1"), fetched("GET", "/p/hpack-big-2"), fetched("GET", "/done/hpack-big-cookie")},
 	"hpack-table-64k":  {typed("/run/hpack-table-64k"), fetched("GET", "/p/hpack-table-64k"), fetched("GET", "/done/hpack-table-64k")},
 	"hpack-table-1k":   {typed("/run/hpack-table-1k"), fetched("GET", "/p/hpack-table-1k"), fetched("GET", "/done/hpack-table-1k")},
+	"hpack-big-header": {typed("/run/hpack-big-header"),
+		fetched("GET", "/p/hpack-big-header", "x-foo", strings.Repeat("a", 30000)), fetched("GET", "/done/hpack-big-header")},
+	"hpack-bigger-header": {typed("/run/hpack-bigger-header"),
+		fetched("GET", "/p/hpack-bigger-header", "x-foo", strings.Repeat("a", 60000)), fetched("GET", "/done/hpack-bigger-header")},
+	"hpack-big-header-16k": {typed("/run/hpack-big-header-16k"),
+		fetched("GET", "/p/hpack-big-header-16k", "x-foo", strings.Repeat("a", 30000)), fetched("GET", "/done/hpack-big-header-16k")},
+	"hpack-bigger-header-16k": {typed("/run/hpack-bigger-header-16k"),
+		fetched("GET", "/p/hpack-bigger-header-16k", "x-foo", strings.Repeat("a", 60000)),
+		fetched("GET", "/done/hpack-bigger-header-16k")},
+}
+
+// hpackDiffers are the scenarios of testdata/chrome155-hpack.json tls-forge
+// does not write as Chrome did, and why.
+var hpackDiffers = map[string]string{
+	"hpack-big-header":        "the transport writes a header block in frames as large as the server lets it, where Chrome's carry 16,374 bytes at most",
+	"hpack-bigger-header":     "the transport writes a header block in frames as large as the server lets it, where Chrome's carry 16,374 bytes at most",
+	"hpack-big-header-16k":    "the transport's HEADERS frame carries 16,384 bytes of the block and its five of priority, past what the server lets it send",
+	"hpack-bigger-header-16k": "the transport's HEADERS frame carries 16,384 bytes of the block and its five of priority, past what the server lets it send",
 }
 
 // headlessChrome is the profile of the Chrome the HPACK fixture was measured
@@ -114,16 +134,22 @@ func TestLaterRequestsGoIntoHPACKAsChromeWroteThem(t *testing.T) {
 			// The bench's ports have five digits, as Chrome's had, and as
 			// every system's own ports have: each field naming one is as
 			// long as Chrome's, so the table empties where Chrome's did.
-			port := strconv.Itoa(server.PortFor(want.Table))
+			port := strconv.Itoa(server.PortFor(harness.H2Settings{Table: want.Table, Frame: want.Frame}))
 			if len(port) != 5 {
 				t.Fatalf("the bench listens on %s; Chrome was measured on ports of five digits", port)
 			}
 			server.Reset()
-			client := newTestClient(t, WithProfileValue(chrome), WithTransportOption(tls_client.WithDialContext(
+			opts := []Option{WithProfileValue(chrome), WithTransportOption(tls_client.WithDialContext(
 				func(ctx context.Context, network, addr string) (net.Conn, error) {
 					_, at, _ := net.SplitHostPort(addr)
 					return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", at))
-				})))
+				}))}
+			if hpackDiffers[scenario] != "" {
+				// A request the server refuses is tried again until the
+				// client gives up.
+				opts = append(opts, WithTimeout(2*time.Second))
+			}
+			client := newTestClient(t, opts...)
 			origin := map[string]string{"": "https://www.example.com:" + port, "S": "https://api.example.com:" + port}
 			run := origin[""] + hpackAsked[scenario][0].path
 			for _, ask := range hpackAsked[scenario] {
@@ -134,6 +160,9 @@ func TestLaterRequestsGoIntoHPACKAsChromeWroteThem(t *testing.T) {
 				req := &Request{Method: ask.method, URL: origin[ask.origin] + ask.path, Body: []byte(ask.body),
 					Header: ask.header, Browser: browser}
 				if _, err := client.Do(req); err != nil {
+					if hpackDiffers[scenario] != "" {
+						return
+					}
 					t.Fatalf("%s %s: %v", ask.method, req.URL, err)
 				}
 			}
@@ -145,7 +174,14 @@ func TestLaterRequestsGoIntoHPACKAsChromeWroteThem(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Written: %v", err)
 			}
-			for _, diff := range harness.DiffHPACK(want, harness.HPACKScenario{Connections: got}) {
+			diffs := harness.DiffHPACK(want, harness.HPACKScenario{Connections: got})
+			if why := hpackDiffers[scenario]; why != "" {
+				if len(diffs) == 0 {
+					t.Errorf("%s is written as Chrome wrote it: take it out of hpackDiffers (%s)", scenario, why)
+				}
+				return
+			}
+			for _, diff := range diffs {
 				t.Errorf("%s (%s): %s", scenario, want.Note, diff)
 			}
 		})

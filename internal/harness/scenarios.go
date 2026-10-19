@@ -30,11 +30,16 @@ type scenario struct {
 	// which connection each request came on.
 	connections bool
 	// table is the size of the HPACK table the server's SETTINGS let the
-	// browser have, for a scenario that asks for one; quiet gives the run
-	// page an icon of its own, so that the browser asks for no /favicon.ico.
-	table uint32
-	quiet bool
+	// browser have, and frame the largest frame they let it send, for a
+	// scenario that asks for one; quiet gives the run page an icon of its
+	// own, so that the browser asks for no /favicon.ico.
+	table, frame uint32
+	quiet        bool
 }
+
+// settings are what the server of the scenario says in its SETTINGS where it
+// does not say Go's.
+func (s scenario) settings() H2Settings { return H2Settings{Table: s.table, Frame: s.frame} }
 
 // setting is the query that has the bench set a cookie of each value (?sc).
 func setting(values ...string) string {

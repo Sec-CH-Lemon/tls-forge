@@ -264,7 +264,7 @@ func TestARequestForANameItsConnectionWasNotMadeForIsMisdirected(t *testing.T) {
 	// Over HTTP/2, on the port that offers it and on one with a table of its
 	// own, a connection whose TLS asked for www.example.com carrying a request
 	// for another name.
-	for _, port := range []int{s.H2, s.Tables[1024]} {
+	for _, port := range []int{s.H2, s.Settled[H2Settings{Table: 1024}]} {
 		h2 := strconv.Itoa(port)
 		tr := &http.Transport{ForceAttemptHTTP2: true, DialTLSContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
 			d := &tls.Dialer{Config: &tls.Config{ServerName: "www.example.com", NextProtos: []string{"h2"}, InsecureSkipVerify: true}} //nolint:gosec // the bench's own
@@ -570,7 +570,8 @@ func TestHTTP2IsReadFrameByFrame(t *testing.T) {
 	}
 	e := entries[0]
 	if e.Target != "https://www.example.com/p/x" || e.Method != "POST" || e.Stream != 5 || e.Conn != 7 ||
-		e.Body != "abcd" || e.Priority == nil || *e.Priority != [3]uint32{1, 3, 219} || len(e.Headers) != 5 {
+		e.Body != "abcd" || e.Priority == nil || *e.Priority != [3]uint32{1, 3, 219} || len(e.Headers) != 5 ||
+		!slices.Equal(e.Frames, []int{len(headers), len(head) - 5}) {
 		t.Errorf("kept %+v", e)
 	}
 	// A request that ends with its headers has no body to wait for, and one
@@ -578,7 +579,7 @@ func TestHTTP2IsReadFrameByFrame(t *testing.T) {
 	s.Reset()
 	p.write(frame(http2.FrameHeaders, http2.FlagHeadersEndHeaders|http2.FlagHeadersEndStream, 7,
 		block(":method", "GET", ":scheme", "https", ":authority", "a", ":path", "/")))
-	if e := requests(t, s)[0]; e.Priority != nil || p.open[7] != nil {
+	if e := requests(t, s)[0]; e.Priority != nil || p.open[7] != nil || len(e.Frames) != 1 {
 		t.Errorf("kept %+v, open %v", e, p.open)
 	}
 }

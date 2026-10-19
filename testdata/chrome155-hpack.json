@@ -1,7 +1,7 @@
 {
- "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
- "measured": "2026-10-18",
- "how": "A local server answered www.example.com and api.example.com, mapped to 127.0.0.1 with --host-resolver-rules, over HTTPS with HTTP/2, on ports of five digits, its certificate taken on trust by --ignore-certificate-errors alone, and kept the header block of every request as the bytes said it, connection by connection. Each scenario ran in a fresh profile: a URL opened from the command line, a page whose script called fetch() or navigated, each page naming an icon of its own so that no /favicon.ico came between. A run whose requests to one origin went on more than one connection, as Chrome does now and then with a spare one it opens beside a navigation's, was run again. Each field is said as it was written into HPACK (RFC 7541, section 6): indexed or a literal with or without indexing, its name from the static or the dynamic table by its index or written out, each string Huffman-coded or not, against the dynamic table the blocks before it on its connection left. The server's SETTINGS said a dynamic table of 4096 bytes, or of the scenario's table. The ports and the values are left out.",
+ "browser": "Google Chrome 155.0.8059.85, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-18, 2026-10-19",
+ "how": "A local server answered www.example.com and api.example.com, mapped to 127.0.0.1 with --host-resolver-rules, over HTTPS with HTTP/2, on ports of five digits, its certificate taken on trust by --ignore-certificate-errors alone, and kept the header block of every request as the bytes said it, connection by connection. Each scenario ran in a fresh profile: a URL opened from the command line, a page whose script called fetch() or navigated, each page naming an icon of its own so that no /favicon.ico came between. A run whose requests to one origin went on more than one connection, as Chrome does now and then with a spare one it opens beside a navigation's, was run again. Each field is said as it was written into HPACK (RFC 7541, section 6): indexed or a literal with or without indexing, its name from the static or the dynamic table by its index or written out, each string Huffman-coded or not, against the dynamic table the blocks before it on its connection left. The server's SETTINGS said a dynamic table of 4096 bytes, or of the scenario's table, and frames of Go's 1 MiB, or of the scenario's frame. For a header block of more than one frame, the payload length of each, HEADERS first, as on the wire, priority included. The ports and the values are left out.",
  "scenarios": {
   "hpack-big-cookie": {
    "note": "a page whose answer set a cookie larger than the dynamic table, then fetch() of its origin twice, which carry it",
@@ -97,6 +97,326 @@
        "accept-language: with indexing, name static 17, value huffman",
        "cookie: with indexing, name static 32, value huffman",
        "priority: with indexing, new name huffman, value huffman"
+      ]
+     }
+    ]
+   ]
+  },
+  "hpack-big-header": {
+   "note": "a page, then fetch() of its origin with an X-Foo of 30,000 letters, a header block of more than one frame",
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/hpack-big-header",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/p/hpack-big-header",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "x-foo: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "frames": [
+       16374,
+       2574
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/hpack-big-header",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: indexed dynamic 73",
+       "sec-fetch-site: indexed dynamic 72",
+       "sec-fetch-mode: indexed dynamic 71",
+       "sec-fetch-dest: indexed dynamic 70",
+       "referer: indexed dynamic 69",
+       "accept-encoding: indexed dynamic 68",
+       "accept-language: indexed dynamic 67",
+       "priority: indexed dynamic 66"
+      ]
+     }
+    ]
+   ]
+  },
+  "hpack-big-header-16k": {
+   "note": "the same as hpack-big-header, from a server whose SETTINGS let a frame be 16384 bytes",
+   "frame": 16384,
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/hpack-big-header-16k",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/p/hpack-big-header-16k",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "x-foo: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "frames": [
+       16374,
+       2580
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/hpack-big-header-16k",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: indexed dynamic 73",
+       "sec-fetch-site: indexed dynamic 72",
+       "sec-fetch-mode: indexed dynamic 71",
+       "sec-fetch-dest: indexed dynamic 70",
+       "referer: indexed dynamic 69",
+       "accept-encoding: indexed dynamic 68",
+       "accept-language: indexed dynamic 67",
+       "priority: indexed dynamic 66"
+      ]
+     }
+    ]
+   ]
+  },
+  "hpack-bigger-header": {
+   "note": "a page, then fetch() of its origin with an X-Foo of 60,000 letters",
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/hpack-bigger-header",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/p/hpack-bigger-header",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "x-foo: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "frames": [
+       16374,
+       16374,
+       4954
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/hpack-bigger-header",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: indexed dynamic 73",
+       "sec-fetch-site: indexed dynamic 72",
+       "sec-fetch-mode: indexed dynamic 71",
+       "sec-fetch-dest: indexed dynamic 70",
+       "referer: indexed dynamic 69",
+       "accept-encoding: indexed dynamic 68",
+       "accept-language: indexed dynamic 67",
+       "priority: indexed dynamic 66"
+      ]
+     }
+    ]
+   ]
+  },
+  "hpack-bigger-header-16k": {
+   "note": "the same as hpack-bigger-header, from a server whose SETTINGS let a frame be 16384 bytes",
+   "frame": 16384,
+   "connections": [
+    [
+     {
+      "method": "GET",
+      "url": "https://www.example.com/run/hpack-bigger-header-16k",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "upgrade-insecure-requests: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "accept: with indexing, name static 19, value huffman",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-user: with indexing, new name huffman, value plain",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/p/hpack-bigger-header-16k",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: indexed dynamic 75",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: indexed dynamic 72",
+       "user-agent: indexed dynamic 70",
+       "sec-ch-ua: indexed dynamic 74",
+       "x-foo: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: with indexing, new name huffman, value plain",
+       "accept: with indexing, name static 19, value plain",
+       "sec-fetch-site: with indexing, new name huffman, value huffman",
+       "sec-fetch-mode: with indexing, new name huffman, value huffman",
+       "sec-fetch-dest: with indexing, new name huffman, value huffman",
+       "referer: with indexing, name static 51, value huffman",
+       "accept-encoding: with indexing, name static 16, value huffman",
+       "accept-language: with indexing, name static 17, value huffman",
+       "priority: with indexing, new name huffman, value huffman"
+      ],
+      "frames": [
+       16374,
+       16374,
+       4960
+      ]
+     },
+     {
+      "method": "GET",
+      "url": "https://www.example.com/done/hpack-bigger-header-16k",
+      "fields": [
+       ":method: indexed static 2",
+       ":authority: with indexing, name static 1, value huffman",
+       ":scheme: indexed static 7",
+       ":path: without indexing, name static 4, value huffman",
+       "sec-ch-ua-platform: with indexing, new name huffman, value plain",
+       "user-agent: with indexing, name static 58, value huffman",
+       "sec-ch-ua: with indexing, new name huffman, value huffman",
+       "sec-ch-ua-mobile: indexed dynamic 74",
+       "accept: indexed dynamic 73",
+       "sec-fetch-site: indexed dynamic 72",
+       "sec-fetch-mode: indexed dynamic 71",
+       "sec-fetch-dest: indexed dynamic 70",
+       "referer: indexed dynamic 69",
+       "accept-encoding: indexed dynamic 68",
+       "accept-language: indexed dynamic 67",
+       "priority: indexed dynamic 66"
       ]
      }
     ]

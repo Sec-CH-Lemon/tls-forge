@@ -204,7 +204,8 @@ func TestAServerWithTablesThatCannotStartSaysWhy(t *testing.T) {
 	t.Cleanup(func() { listen = old })
 	calls := 0
 	listen = func(network, addr string) (net.Listener, error) {
-		// The first four are had, and the fifth, the second table's, is not.
+		// The first four are had, and the fifth, the second server's with
+		// SETTINGS of its own, is not.
 		if calls++; calls < 5 {
 			return net.Listen(network, addr)
 		}
@@ -232,7 +233,7 @@ func blocksOf(lists ...[]string) [][]byte {
 }
 
 func TestWrittenReadsEachConnectionAgainstItsOwnTable(t *testing.T) {
-	s := &Server{H2: 1111, H1: 2222, Plain: 3333, Tables: map[uint32]int{1024: 4444}}
+	s := &Server{H2: 1111, H1: 2222, Plain: 3333, Settled: map[H2Settings]int{{Table: 1024}: 4444}}
 	one := blocksOf([]string{":method", "GET", "x-a", "1"}, []string{":method", "GET", "x-a", "1"})
 	// Another connection's table holds another field: read against the
 	// first's, its index would name it.
@@ -264,10 +265,16 @@ func TestWrittenReadsEachConnectionAgainstItsOwnTable(t *testing.T) {
 		t.Error("a table larger than the server allowed was read")
 	}
 	// A block that does not read is said, by its request and connection.
-	entries[3].Block = []byte{0xff}
+	entries[3].Block, entries[3].Frames = []byte{0xff}, nil
 	if _, err := s.Written(entries, 0); err == nil || err.Error() !=
 		"harness: GET https://www.example.com/d on connection 1: fingerprint: an HPACK integer cut short" {
 		t.Errorf("an unreadable block: %v", err)
+	}
+	// A block of one frame says nothing of it; one of more says each.
+	entries[3].Block = one[1]
+	entries[0].Frames, entries[3].Frames = []int{9}, []int{16374, 3}
+	if got, err := s.Written(entries, 1024); err != nil || got[0][0].Frames != nil || !slices.Equal(got[0][1].Frames, []int{16374, 3}) {
+		t.Errorf("frames: %+v, %v", got, err)
 	}
 	// A request with no field written has none, not nil, as JSON says it.
 	if got, err := s.Written([]Entry{{Proto: "h2", Conn: 1}}, 0); err != nil || got[0][0].Fields == nil {
@@ -305,6 +312,8 @@ func TestEveryDifferenceInHowRequestsWentIntoHPACKIsSaid(t *testing.T) {
 			[]string{"connection 1, request 2, GET https://a/2:\n  written [\"y: indexed dynamic 63\"]\n  want    [\"y: indexed dynamic 62\"]"}},
 		{"a field more", [][]WrittenRequest{want.Connections[0], {request("GET", "https://b/1", "z: indexed static 3")}},
 			[]string{"connection 2, request 1, GET https://b/1:\n  written [\"z: indexed static 3\"]\n  want    []"}},
+		{"in frames of its own", [][]WrittenRequest{want.Connections[0], {{Method: "GET", URL: "https://b/1", Frames: []int{16374, 9}}}},
+			[]string{"connection 2, request 1, GET https://b/1: frames [16374 9], want []"}},
 	} {
 		if diff := DiffHPACK(want, HPACKScenario{Connections: tc.got}); !slices.Equal(diff, tc.diff) {
 			t.Errorf("%s: %q, want %q", tc.name, diff, tc.diff)
@@ -325,13 +334,16 @@ func TestTheHPACKScenariosAreServedFromTheirTables(t *testing.T) {
 		t.Fatalf("StartHPACKServer: %v", err)
 	}
 	t.Cleanup(func() { _ = s.Close() })
-	if s.PortFor(0) != s.H2 || s.PortFor(1024) == 0 || s.PortFor(65536) == 0 || s.PortFor(1024) == s.PortFor(65536) ||
-		len(s.Tables) != 2 {
-		t.Fatalf("ports: h2 %d, tables %v", s.H2, s.Tables)
+	ports := map[int]bool{}
+	for _, settings := range []H2Settings{{}, {Table: 1024}, {Table: 65536}, {Frame: 16384}} {
+		ports[s.PortFor(settings)] = true
+	}
+	if s.PortFor(H2Settings{}) != s.H2 || len(ports) != 4 || ports[0] || len(s.Settled) != 3 {
+		t.Fatalf("ports: h2 %d, settled %v", s.H2, s.Settled)
 	}
 	for _, id := range slices.Sorted(maps.Keys(hpackCatalogue)) {
 		sc := hpackCatalogue[id]
-		p := sc.planned(id, origins(s.PortFor(sc.table), s.Plain))
+		p := sc.planned(id, origins(s.PortFor(sc.settings()), s.Plain))
 		res, body := get(t, http.MethodGet, p.start, nil)
 		if res.StatusCode != http.StatusOK || !strings.Contains(body, quietIcon) {
 			t.Errorf("%s: %d %s", id, res.StatusCode, body)
@@ -412,8 +424,18 @@ func TestAConnectionHeldWritesOnlyOnceLetGo(t *testing.T) {
 }
 
 func TestATableServerSaysItsSizeOnceTheFirstHeaderBlockHasCome(t *testing.T) {
-	s := started(t, map[string]scenario{"t": {table: 1024}})
-	conn, err := tls.Dial("tcp", "127.0.0.1:"+strconv.Itoa(s.Tables[1024]),
+	s := started(t, map[string]scenario{"t": {table: 1024}, "f": {frame: 16384}})
+	// A server whose frames are its own says so with the rest, and reads
+	// blocks against a table of Go's.
+	if settings := firstSettings(t, s.PortFor(H2Settings{Frame: 16384})); settings[http2.SettingMaxFrameSize] != 16384 ||
+		settings[http2.SettingHeaderTableSize] != 4096 {
+		t.Errorf("a server of its own frames said %v", settings)
+	}
+	if got := requests(t, s); len(got) != 2 || got[1].Target != "https://www.example.com/p/b" {
+		t.Errorf("the server of its own frames kept %+v", got)
+	}
+	s.Reset()
+	conn, err := tls.Dial("tcp", "127.0.0.1:"+strconv.Itoa(s.Settled[H2Settings{Table: 1024}]),
 		&tls.Config{InsecureSkipVerify: true, NextProtos: []string{"h2"}}) //nolint:gosec // the bench's own
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
@@ -452,4 +474,48 @@ func TestATableServerSaysItsSizeOnceTheFirstHeaderBlockHasCome(t *testing.T) {
 	if got := requests(t, s); len(got) != 2 || got[1].Target != "https://www.example.com/p/b" || len(got[1].Block) == 0 {
 		t.Errorf("kept %+v", got)
 	}
+}
+
+// firstSettings are what the server at port says in its first SETTINGS, once
+// a first request has come, and a second, written against the table the
+// first left, which says that table is 4096 bytes.
+func firstSettings(t *testing.T, port int) map[http2.SettingID]uint32 {
+	t.Helper()
+	conn, err := tls.Dial("tcp", "127.0.0.1:"+strconv.Itoa(port),
+		&tls.Config{InsecureSkipVerify: true, NextProtos: []string{"h2"}}) //nolint:gosec // the bench's own
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+	fr := http2.NewFramer(conn, conn)
+	_, _ = conn.Write([]byte(http2.ClientPreface))
+	_ = fr.WriteSettings()
+	blocks := blocksOf([]string{":method", "GET", ":scheme", "https", ":authority", "www.example.com", ":path", "/p/a"},
+		[]string{":method", "GET", ":scheme", "https", ":authority", "www.example.com", ":path", "/p/b"})
+	// The second says the table is Go's 4096 bytes, as a client may.
+	blocks[1] = append([]byte{0x3f, 0xe1, 0x1f}, blocks[1]...)
+	for i, b := range blocks {
+		_ = fr.WriteHeaders(http2.HeadersFrameParam{StreamID: uint32(1 + 2*i), EndStream: true, EndHeaders: true, BlockFragment: b})
+	}
+	f, err := fr.ReadFrame()
+	settings, ok := f.(*http2.SettingsFrame)
+	if err != nil || !ok {
+		t.Fatalf("first, %v, %v", f, err)
+	}
+	out := map[http2.SettingID]uint32{}
+	_ = settings.ForeachSetting(func(s http2.Setting) error {
+		out[s.ID] = s.Val
+		return nil
+	})
+	for answered := 0; answered < len(blocks); {
+		f, err := fr.ReadFrame()
+		if err != nil {
+			t.Fatalf("ReadFrame: %v", err)
+		}
+		if h, ok := f.(*http2.HeadersFrame); ok && h.StreamID%2 == 1 {
+			answered++
+		}
+	}
+	return out
 }

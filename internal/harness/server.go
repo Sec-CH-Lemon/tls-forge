@@ -2,6 +2,7 @@ package harness
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -55,6 +56,10 @@ type Entry struct {
 	// Block is an HTTP/2 request's header block as the client wrote it into
 	// HPACK: its fragments joined, without padding or priority.
 	Block []byte
+	// Frames are the payload lengths of an HTTP/2 request's HEADERS frame
+	// and of the CONTINUATION frames after it, as on the wire: priority and
+	// padding included.
+	Frames []int
 }
 
 // Server keeps every request made of it, over HTTP/2 and HTTP/1.1 on TLS and
@@ -66,12 +71,11 @@ type Server struct {
 	// TLS that offers HTTP/1.1 alone, and plain HTTP, at 127.0.0.1 and at
 	// [::1].
 	H2, H1, Plain int
-	// Tables are the ports of TLS that offers HTTP/2 alone, by the size of
-	// the HPACK table its SETTINGS let a client have, for each size a scenario
-	// asks for. What each sends a connection waits until the client's first
-	// header block has come, as across a network: the client writes it before
-	// it hears the size.
-	Tables map[uint32]int
+	// Settled are the ports of TLS that offers HTTP/2 alone, by the SETTINGS
+	// it says where they are not Go's, for each a scenario asks for. What each
+	// sends a connection waits until the client's first header block has
+	// come, as across a network: the client writes it before it hears them.
+	Settled map[H2Settings]int
 
 	catalogue map[string]scenario
 	listeners []net.Listener
@@ -79,7 +83,7 @@ type Server struct {
 	// one that speaks HTTP/1.1, one that speaks HTTP/2 by prior knowledge.
 	http1, http2 *chanListener
 	h1, h2       *http.Server
-	tables       map[uint32]*tableServer
+	settled      map[H2Settings]*settledServer
 	tls          *tls.Config
 	// spki is its key as Chrome's --ignore-certificate-errors-spki-list
 	// names one: the SHA-256 of its SubjectPublicKeyInfo, in base64.
@@ -113,12 +117,18 @@ var (
 // StartServer starts a Server answering the scenarios of the catalogue.
 func StartServer() (*Server, error) { return startServer(catalogue) }
 
-// tableServer is an HTTP/2 server whose SETTINGS let a client's HPACK table be
-// size bytes, fed the connections whose bytes are read along the way.
-type tableServer struct {
-	size   uint32
-	ln     *chanListener
-	server *http.Server
+// H2Settings are what an HTTP/2 server of the bench says in its SETTINGS
+// where it does not say Go's: the size of the HPACK table it lets a client
+// have (Go's 4096 for 0), and the largest frame it lets a client send (Go's
+// 1 MiB for 0).
+type H2Settings struct{ Table, Frame uint32 }
+
+// settledServer is an HTTP/2 server whose SETTINGS say settings, fed the
+// connections whose bytes are read along the way.
+type settledServer struct {
+	settings H2Settings
+	ln       *chanListener
+	server   *http.Server
 }
 
 func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server, error) {
@@ -127,12 +137,12 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 		return nil, err
 	}
 	spki := sha256.Sum256(cert.Leaf.RawSubjectPublicKeyInfo)
-	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{}, Tables: map[uint32]int{},
-		http1:  newChanListener(),
-		http2:  newChanListener(),
-		tables: map[uint32]*tableServer{},
-		tls:    &tls.Config{Certificates: []tls.Certificate{cert}},
-		spki:   base64.StdEncoding.EncodeToString(spki[:])}
+	s := &Server{catalogue: scenarios, open: map[net.Conn]struct{}{}, Settled: map[H2Settings]int{},
+		http1:   newChanListener(),
+		http2:   newChanListener(),
+		settled: map[H2Settings]*settledServer{},
+		tls:     &tls.Config{Certificates: []tls.Certificate{cert}},
+		spki:    base64.StdEncoding.EncodeToString(spki[:])}
 	s.tls.GetConfigForClient = s.hello
 	// Each connection's TLS is a clone of this, which would draw keys of its
 	// own for the session tickets it gives, and resume no other's sessions.
@@ -148,14 +158,17 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	s.h2 = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior,
 		ConnContext: servedName}
 	for _, sc := range scenarios {
-		if sc.table != 0 && s.tables[sc.table] == nil {
-			s.tables[sc.table] = &tableServer{size: sc.table, ln: newChanListener(),
+		if key := sc.settings(); key != (H2Settings{}) && s.settled[key] == nil {
+			s.settled[key] = &settledServer{settings: key, ln: newChanListener(),
 				server: &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Minute, Protocols: &prior,
-					HTTP2: &http.HTTP2Config{MaxDecoderHeaderTableSize: int(sc.table)}, ConnContext: servedName}}
+					HTTP2:       &http.HTTP2Config{MaxDecoderHeaderTableSize: int(key.Table), MaxReadFrameSize: int(key.Frame)},
+					ConnContext: servedName}}
 		}
 	}
-	tables := slices.Sorted(maps.Keys(s.tables))
-	for range 3 + len(tables) {
+	settled := slices.SortedFunc(maps.Keys(s.settled), func(a, b H2Settings) int {
+		return cmp.Or(cmp.Compare(a.Table, b.Table), cmp.Compare(a.Frame, b.Frame))
+	})
+	for range 3 + len(settled) {
 		ln, err := listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			_ = s.Close()
@@ -177,9 +190,9 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	}
 	s.listeners = append(s.listeners, ln)
 	servers := map[*http.Server]*chanListener{s.h1: s.http1, s.h2: s.http2}
-	for i, size := range tables {
-		s.Tables[size] = ports[3+i]
-		servers[s.tables[size].server] = s.tables[size].ln
+	for i, key := range settled {
+		s.Settled[key] = ports[3+i]
+		servers[s.settled[key].server] = s.settled[key].ln
 	}
 	s.done.Add(2*len(servers) + 2)
 	for server, ln := range servers {
@@ -192,8 +205,8 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	go s.accept(s.listeners[1], []string{"http/1.1"}, nil)
 	go s.accept(s.listeners[2], nil, nil)
 	go s.accept(ln, nil, nil)
-	for i, size := range tables {
-		go s.accept(s.listeners[3+i], []string{"h2"}, s.tables[size])
+	for i, key := range settled {
+		go s.accept(s.listeners[3+i], []string{"h2"}, s.settled[key])
 	}
 	return s, nil
 }
@@ -224,8 +237,8 @@ func certificate() (tls.Certificate, error) {
 }
 
 // accept serves what comes to ln: over TLS offering protos, or plain HTTP
-// when there are none; HTTP/2 by table, when there is one.
-func (s *Server) accept(ln net.Listener, protos []string, table *tableServer) {
+// when there are none; HTTP/2 by settled, when there is one.
+func (s *Server) accept(ln net.Listener, protos []string, settled *settledServer) {
 	defer s.done.Done()
 	for {
 		raw, err := ln.Accept()
@@ -239,7 +252,7 @@ func (s *Server) accept(ln net.Listener, protos []string, table *tableServer) {
 		s.done.Add(1)
 		go func() {
 			defer s.done.Done()
-			s.serveConn(raw, protos, table)
+			s.serveConn(raw, protos, settled)
 		}()
 	}
 }
@@ -255,7 +268,7 @@ func (s *Server) track(conn net.Conn) bool {
 	return true
 }
 
-func (s *Server) serveConn(raw net.Conn, protos []string, table *tableServer) {
+func (s *Server) serveConn(raw net.Conn, protos []string, settled *settledServer) {
 	defer func() {
 		s.mu.Lock()
 		delete(s.open, raw)
@@ -277,13 +290,15 @@ func (s *Server) serveConn(raw net.Conn, protos []string, table *tableServer) {
 	if state.NegotiatedProtocol == "h2" {
 		parser := &h2parser{s: s, conn: s.nextConn(), resumed: state.DidResume, sni: state.ServerName,
 			dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}}
-		if table == nil {
+		if settled == nil {
 			s.http2.hand(newTeeConn(conn, state.ServerName, parser.write, nil))
 			return
 		}
-		parser.dec.SetAllowedMaxDynamicTableSize(table.size)
+		if table := settled.settings.Table; table != 0 {
+			parser.dec.SetAllowedMaxDynamicTableSize(table)
+		}
 		parser.first = make(chan struct{})
-		table.ln.hand(newTeeConn(conn, state.ServerName, parser.write, parser.first))
+		settled.ln.hand(newTeeConn(conn, state.ServerName, parser.write, parser.first))
 		return
 	}
 	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https", sni: state.ServerName}
@@ -371,9 +386,9 @@ func (s *Server) Close() error {
 	s.http2.close()
 	_ = s.h1.Close()
 	_ = s.h2.Close()
-	for _, table := range s.tables {
-		table.ln.close()
-		_ = table.server.Close()
+	for _, settled := range s.settled {
+		settled.ln.close()
+		_ = settled.server.Close()
 	}
 	s.done.Wait()
 	return nil
@@ -467,8 +482,10 @@ type h2parser struct {
 	stream    uint32
 	endStream bool
 	priority  *[3]uint32
-	open      map[uint32]*Entry
-	first     chan struct{}
+	// frames are the payload lengths of the frames of the header block read.
+	frames []int
+	open   map[uint32]*Entry
+	first  chan struct{}
 }
 
 func (p *h2parser) write(b []byte) {
@@ -512,6 +529,7 @@ func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, 
 			p.s.addBody(e, payload)
 		}
 	case http2.FrameHeaders:
+		p.frames = []int{len(payload)}
 		payload, ok := unpadded(flags, payload)
 		if !ok {
 			p.s.troubled(fmt.Errorf("harness: a HEADERS frame padded past its end on stream %d", stream))
@@ -532,6 +550,7 @@ func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, 
 			p.decode()
 		}
 	case http2.FrameContinuation:
+		p.frames = append(p.frames, len(payload))
 		p.block = append(p.block, payload...)
 		if flags.Has(http2.FlagContinuationEndHeaders) {
 			p.decode()
@@ -550,7 +569,7 @@ func (p *h2parser) decode() {
 		return
 	}
 	e := &Entry{Proto: "h2", Conn: p.conn, Resumed: p.resumed, SNI: p.sni, Stream: p.stream, Priority: p.priority,
-		Block: slices.Clone(p.block)}
+		Block: slices.Clone(p.block), Frames: slices.Clone(p.frames)}
 	var scheme, authority, path string
 	for _, f := range fields {
 		e.Headers = append(e.Headers, [2]string{f.Name, f.Value})
