@@ -56,6 +56,9 @@ var (
 	// machine says what this machine is, as the fixtures do.
 	machine = func() string { return describe(runtime.GOOS, runtime.GOARCH, exec.Command, os.ReadFile) }
 	today   = func() string { return time.Now().UTC().Format(time.DateOnly) }
+	// urlCases measures URL cases, each of which is waited out for seconds
+	// over each protocol.
+	urlCases = harness.MeasureURLs
 )
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -68,13 +71,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	decoding := flags.String("decoding", "testdata/chrome155-decoding.json", "the fixture of decodings; empty, none")
 	hpack := flags.String("hpack", "testdata/chrome155-hpack.json", "the fixture of header blocks; empty, none")
 	flow := flags.String("flow", "testdata/chrome155-flow.json", "the fixture of window updates; empty, none")
+	urls := flags.String("urls", "testdata/chrome155-urls.json", "the fixture of URLs; empty, none")
 	only := flags.String("only", "", "the scenarios to measure, by name, comma-separated; every one unless said")
 	check := flags.Bool("check", false, "hold the browser to the fixtures rather than write them")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 	if *path == "" || flags.NArg() > 0 || *requests == "" && *connections == "" && *decoding == "" && *hpack == "" &&
-		*flow == "" {
+		*flow == "" && *urls == "" {
 		_, _ = fmt.Fprintln(stderr, "measure: --browser is needed, a fixture to measure for, and nothing else")
 		return 2
 	}
@@ -127,6 +131,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		diff = append(diff, found...)
 	}
+	if *urls != "" {
+		found, err := measureURLs(ctx, b, *urls, names, about, *check, stderr)
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+			return 1
+		}
+		diff = append(diff, found...)
+	}
 	for _, d := range diff {
 		_, _ = fmt.Fprintln(stdout, d)
 	}
@@ -171,6 +183,40 @@ func measureRequests(ctx context.Context, b harness.Browser, measure measurer, p
 	}
 	for name, scenario := range got {
 		fixture.Scenarios[name] = scenario
+	}
+	fixture.Browser, fixture.Measured = about, dated(fixture.Measured, today())
+	return nil, fixture.Write(path)
+}
+
+// measureURLs measures the URL cases named, or every one, and holds them to the
+// fixture at path, or writes them into it.
+func measureURLs(ctx context.Context, b harness.Browser, path string, names []string, about string, check bool,
+	progress io.Writer) ([]string, error) {
+	fixture, err := harness.LoadURLs(path)
+	if err != nil {
+		return nil, err
+	}
+	got, err := urlCases(ctx, b, names, progress)
+	if err != nil {
+		return nil, err
+	}
+	if check {
+		want := fixture.Cases
+		if names != nil {
+			want = map[string]harness.URLCase{}
+			for _, name := range names {
+				if c, ok := fixture.Cases[name]; ok {
+					want[name] = c
+				}
+			}
+		}
+		return harness.CompareURLs(want, got), nil
+	}
+	if fixture.Cases == nil {
+		fixture.Cases = map[string]harness.URLCase{}
+	}
+	for name, c := range got {
+		fixture.Cases[name] = c
 	}
 	fixture.Browser, fixture.Measured = about, dated(fixture.Measured, today())
 	return nil, fixture.Write(path)

@@ -1,0 +1,776 @@
+{
+ "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-18",
+ "how": "A local server answered www.example.com and www.example.net, mapped to 127.0.0.1 with --host-resolver-rules, www.example.com on 443 and 80 too, and on 4190, 6000, 6679 and 8080 to the plain port, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP at 127.0.0.1 and [::1]. Each case ran in a fresh profile: a run page whose script set location.href to the case's URL, as it is given here with the bench's TLS port as {P} and its plain one as {Q}, or, for a Location, to a 302 that said it. What the browser sent next is kept, but a favicon: the server name its connection's TLS asked for, the scheme, the authority (:authority, Host) and the target (:path, the request line's) as they went, without the port numbers; \"thrown\" when the script's assignment threw, \"blocked\" when nothing came within 2.5 seconds.",
+ "cases": {
+  "url-fragment": {
+   "note": "a fragment",
+   "input": "https://www.example.com:{P}/p/url-fragment?q=1#frag",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-fragment?q=1"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-fragment?q=1"
+   }
+  },
+  "url-host-fullwidth": {
+   "note": "a name in full-width letters",
+   "input": "https://ｗｗｗ.example.com:{P}/p/url-host-fullwidth",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-host-fullwidth"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-host-fullwidth"
+   }
+  },
+  "url-host-idn": {
+   "note": "a name in Cyrillic",
+   "input": "https://пример.example.com:{P}/p/url-host-idn",
+   "h2": {
+    "sni": "xn--e1afmkfd.example.com",
+    "scheme": "https",
+    "authority": "xn--e1afmkfd.example.com",
+    "target": "/p/url-host-idn"
+   },
+   "h1": {
+    "sni": "xn--e1afmkfd.example.com",
+    "scheme": "https",
+    "authority": "xn--e1afmkfd.example.com",
+    "target": "/p/url-host-idn"
+   }
+  },
+  "url-host-idn-upper": {
+   "note": "a name in Cyrillic capitals",
+   "input": "https://ПРИМЕР.example.com:{P}/p/url-host-idn-upper",
+   "h2": {
+    "sni": "xn--e1afmkfd.example.com",
+    "scheme": "https",
+    "authority": "xn--e1afmkfd.example.com",
+    "target": "/p/url-host-idn-upper"
+   },
+   "h1": {
+    "sni": "xn--e1afmkfd.example.com",
+    "scheme": "https",
+    "authority": "xn--e1afmkfd.example.com",
+    "target": "/p/url-host-idn-upper"
+   }
+  },
+  "url-host-percent": {
+   "note": "a name with a letter percent-encoded",
+   "input": "https://www.ex%61mple.com:{P}/p/url-host-percent",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-host-percent"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-host-percent"
+   }
+  },
+  "url-host-space": {
+   "note": "a name with a space in it",
+   "input": "https://www.exa mple.com:{P}/p/url-host-space",
+   "h2": {
+    "refused": "blocked"
+   },
+   "h1": {
+    "refused": "blocked"
+   }
+  },
+  "url-host-upper": {
+   "note": "a name in capitals",
+   "input": "https://WWW.EXAMPLE.COM:{P}/p/url-host-upper",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-host-upper"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-host-upper"
+   }
+  },
+  "url-ipv4-hex": {
+   "note": "127.0.0.1 in hexadecimal parts",
+   "input": "http://0x7f.0.0.1:{Q}/p/url-ipv4-hex",
+   "h2": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-hex"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-hex"
+   }
+  },
+  "url-ipv4-number": {
+   "note": "127.0.0.1 as one number",
+   "input": "http://2130706433:{Q}/p/url-ipv4-number",
+   "h2": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-number"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-number"
+   }
+  },
+  "url-ipv4-octal": {
+   "note": "127.0.0.1 with an octal part",
+   "input": "http://0177.0.0.1:{Q}/p/url-ipv4-octal",
+   "h2": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-octal"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-octal"
+   }
+  },
+  "url-ipv4-short": {
+   "note": "127.0.0.1 in two parts",
+   "input": "http://127.1:{Q}/p/url-ipv4-short",
+   "h2": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-short"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "127.0.0.1",
+    "target": "/p/url-ipv4-short"
+   }
+  },
+  "url-ipv6-long": {
+   "note": "[::1] written out",
+   "input": "http://[0:0:0:0:0:0:0:1]:{Q}/p/url-ipv6-long",
+   "h2": {
+    "scheme": "http",
+    "authority": "[::1]",
+    "target": "/p/url-ipv6-long"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "[::1]",
+    "target": "/p/url-ipv6-long"
+   }
+  },
+  "url-ipv6-mapped": {
+   "note": "127.0.0.1 as an IPv6 address",
+   "input": "http://[::FFFF:127.0.0.1]:{Q}/p/url-ipv6-mapped",
+   "h2": {
+    "scheme": "http",
+    "authority": "[::ffff:7f00:1]",
+    "target": "/p/url-ipv6-mapped"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "[::ffff:7f00:1]",
+    "target": "/p/url-ipv6-mapped"
+   }
+  },
+  "url-path-ascii": {
+   "note": "the printable ASCII a path holds as it is given",
+   "input": "https://www.example.com:{P}/p/url-path-ascii/ !\"$&'()*+,-.:;<=>@[]^_`{|}~",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-ascii/%20!%22$&'()*+,-.:;%3C=%3E@[]%5E_%60%7B%7C%7D~"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-ascii/%20!%22$&'()*+,-.:;%3C=%3E@[]%5E_%60%7B%7C%7D~"
+   }
+  },
+  "url-path-backslash": {
+   "note": "backslashes for slashes",
+   "input": "https://www.example.com:{P}\\p\\url-path-backslash",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-backslash"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-backslash"
+   }
+  },
+  "url-path-dots": {
+   "note": "dot segments",
+   "input": "https://www.example.com:{P}/p/a/./b/../url-path-dots",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/a/url-path-dots"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/a/url-path-dots"
+   }
+  },
+  "url-path-dots-encoded": {
+   "note": "dot segments percent-encoded",
+   "input": "https://www.example.com:{P}/p/a/%2e/b/%2E%2e/url-path-dots-encoded",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/a/url-path-dots-encoded"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/a/url-path-dots-encoded"
+   }
+  },
+  "url-path-empty": {
+   "note": "no path",
+   "input": "https://www.example.com:{P}",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/"
+   }
+  },
+  "url-path-percent": {
+   "note": "a path percent-encoded, well and not",
+   "input": "https://www.example.com:{P}/p/url-path-percent/%41%7e%2F%2f%zz%",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-percent/%41%7e%2F%2f%zz%"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-percent/%41%7e%2F%2f%zz%"
+   }
+  },
+  "url-path-slashes": {
+   "note": "a path of double slashes",
+   "input": "https://www.example.com:{P}//p//url-path-slashes",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "//p//url-path-slashes"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "//p//url-path-slashes"
+   }
+  },
+  "url-path-unicode": {
+   "note": "a path of letters past ASCII",
+   "input": "https://www.example.com:{P}/p/url-path-unicode/é ж 😀",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-unicode/%C3%A9%20%D0%B6%20%F0%9F%98%80"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-path-unicode/%C3%A9%20%D0%B6%20%F0%9F%98%80"
+   }
+  },
+  "url-port-allowed": {
+   "note": "a port Chrome does not block",
+   "input": "http://www.example.com:8080/p/url-port-allowed",
+   "h2": {
+    "scheme": "http",
+    "authority": "www.example.com:8080",
+    "target": "/p/url-port-allowed"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "www.example.com:8080",
+    "target": "/p/url-port-allowed"
+   }
+  },
+  "url-port-default": {
+   "note": "https on 443, said",
+   "input": "https://www.example.com:443/p/url-port-default",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-default"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-default"
+   }
+  },
+  "url-port-default-http": {
+   "note": "http on 80, said",
+   "input": "http://www.example.com:80/p/url-port-default-http",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-default-http"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-default-http"
+   }
+  },
+  "url-port-none": {
+   "note": "https on no port",
+   "input": "https://www.example.com/p/url-port-none",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-none"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-none"
+   }
+  },
+  "url-port-osaut": {
+   "note": "another port the Fetch standard blocks and Chromium's list has not",
+   "input": "http://www.example.com:6679/p/url-port-osaut",
+   "h2": {
+    "scheme": "http",
+    "authority": "www.example.com:6679",
+    "target": "/p/url-port-osaut"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "www.example.com:6679",
+    "target": "/p/url-port-osaut"
+   }
+  },
+  "url-port-sieve": {
+   "note": "a port the Fetch standard blocks and Chromium's list has not",
+   "input": "http://www.example.com:4190/p/url-port-sieve",
+   "h2": {
+    "scheme": "http",
+    "authority": "www.example.com:4190",
+    "target": "/p/url-port-sieve"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "www.example.com:4190",
+    "target": "/p/url-port-sieve"
+   }
+  },
+  "url-port-too-big": {
+   "note": "a port past 65535",
+   "input": "https://www.example.com:65536/p/url-port-too-big",
+   "h2": {
+    "refused": "thrown"
+   },
+   "h1": {
+    "refused": "thrown"
+   }
+  },
+  "url-port-unsafe": {
+   "note": "a port Chrome blocks",
+   "input": "http://www.example.com:6000/p/url-port-unsafe",
+   "h2": {
+    "refused": "blocked"
+   },
+   "h1": {
+    "refused": "blocked"
+   }
+  },
+  "url-port-zero": {
+   "note": "port 0",
+   "input": "http://www.example.com:0/p/url-port-zero",
+   "h2": {
+    "refused": "blocked"
+   },
+   "h1": {
+    "refused": "blocked"
+   }
+  },
+  "url-port-zeros": {
+   "note": "a port with zeros before it",
+   "input": "https://www.example.com:000{P}/p/url-port-zeros",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-zeros"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-port-zeros"
+   }
+  },
+  "url-query-ascii": {
+   "note": "the printable ASCII a query holds as it is given",
+   "input": "https://www.example.com:{P}/p/url-query-ascii? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-ascii?%20!%22$%&%27()*+,-./:;%3C=%3E?@[\\]^_`{|}~"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-ascii?%20!%22$%&%27()*+,-./:;%3C=%3E?@[\\]^_`{|}~"
+   }
+  },
+  "url-query-empty": {
+   "note": "an empty query",
+   "input": "https://www.example.com:{P}/p/url-query-empty?",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-empty?"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-empty?"
+   }
+  },
+  "url-query-only": {
+   "note": "a query and no path",
+   "input": "https://www.example.com:{P}?url-query-only",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/?url-query-only"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/?url-query-only"
+   }
+  },
+  "url-query-percent": {
+   "note": "a query percent-encoded, well and not",
+   "input": "https://www.example.com:{P}/p/url-query-percent?a=%41%7e%2F%zz%",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-percent?a=%41%7e%2F%zz%"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-percent?a=%41%7e%2F%zz%"
+   }
+  },
+  "url-query-unicode": {
+   "note": "a query of letters past ASCII",
+   "input": "https://www.example.com:{P}/p/url-query-unicode?q=é ж 😀",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-unicode?q=%C3%A9%20%D0%B6%20%F0%9F%98%80"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-query-unicode?q=%C3%A9%20%D0%B6%20%F0%9F%98%80"
+   }
+  },
+  "url-redirect-backslash": {
+   "note": "a Location of backslashes",
+   "input": "\\p\\url-redirect-backslash",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-backslash"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-backslash"
+   }
+  },
+  "url-redirect-bad-escape": {
+   "note": "a Location with a percent that escapes nothing",
+   "input": "/p/url-redirect-bad%zz%",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-bad%zz%"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-bad%zz%"
+   }
+  },
+  "url-redirect-fragment": {
+   "note": "a Location with a fragment",
+   "input": "/p/url-redirect-fragment#f",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-fragment"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-fragment"
+   }
+  },
+  "url-redirect-host-upper": {
+   "note": "a Location with a name in capitals",
+   "input": "https://WWW.EXAMPLE.NET:{P}/p/url-redirect-host-upper",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.net",
+    "scheme": "https",
+    "authority": "www.example.net",
+    "target": "/p/url-redirect-host-upper"
+   },
+   "h1": {
+    "sni": "www.example.net",
+    "scheme": "https",
+    "authority": "www.example.net",
+    "target": "/p/url-redirect-host-upper"
+   }
+  },
+  "url-redirect-port-default": {
+   "note": "a Location on 443, said",
+   "input": "https://www.example.com:443/p/url-redirect-port-default",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-port-default"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-port-default"
+   }
+  },
+  "url-redirect-query": {
+   "note": "a Location with a query to be encoded",
+   "input": "/p/url-redirect-query?a b'c\"d<e>",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-query?a%20b%27c%22d%3Ce%3E"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-query?a%20b%27c%22d%3Ce%3E"
+   }
+  },
+  "url-redirect-relative": {
+   "note": "a relative Location with dot segments",
+   "input": "../p/url-redirect-relative/./x/../y",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/r/p/url-redirect-relative/y"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/r/p/url-redirect-relative/y"
+   }
+  },
+  "url-redirect-scheme-relative": {
+   "note": "a Location without a scheme",
+   "input": "//www.example.net:{P}/p/url-redirect-scheme-relative",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.net",
+    "scheme": "https",
+    "authority": "www.example.net",
+    "target": "/p/url-redirect-scheme-relative"
+   },
+   "h1": {
+    "sni": "www.example.net",
+    "scheme": "https",
+    "authority": "www.example.net",
+    "target": "/p/url-redirect-scheme-relative"
+   }
+  },
+  "url-redirect-space": {
+   "note": "a Location with spaces in its path",
+   "input": "/p/url redirect space",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url%20redirect%20space"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url%20redirect%20space"
+   }
+  },
+  "url-redirect-unicode": {
+   "note": "a Location with letters past ASCII",
+   "input": "/p/url-redirect-é",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-%C3%A9"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-%C3%A9"
+   }
+  },
+  "url-redirect-whitespace": {
+   "note": "a Location with spaces around it",
+   "input": "  /p/url-redirect-whitespace  ",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-whitespace"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-redirect-whitespace"
+   }
+  },
+  "url-scheme-upper": {
+   "note": "a scheme in capitals",
+   "input": "HTTPS://www.example.com:{P}/p/url-scheme-upper",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-scheme-upper"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-scheme-upper"
+   }
+  },
+  "url-userinfo": {
+   "note": "credentials",
+   "input": "https://u:p@www.example.com:{P}/p/url-userinfo",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-userinfo"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-userinfo"
+   }
+  },
+  "url-whitespace": {
+   "note": "spaces around it, a tab and a newline in it",
+   "input": "  https://www.example.com:{P}/p/url-white\tspa\nce  ",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-whitespace"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-whitespace"
+   }
+  }
+ }
+}

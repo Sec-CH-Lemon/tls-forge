@@ -187,11 +187,15 @@ func TestCredentialsAreAUsernameAndItsPassword(t *testing.T) {
 	}
 }
 
-func TestALocationIsRelativeWhenItNamesNoSchemeAndNoHost(t *testing.T) {
-	for location, want := range map[string]bool{"/a": true, "a": true, "?q": true,
-		"//h/a": false, "https://h/a": false, "https:/a": false, "%zz": false} {
-		if got := relativeLocation(location); got != want {
-			t.Errorf("relativeLocation(%q) = %v", location, got)
+func TestALocationIsRelativeWhenItNamesNoAuthority(t *testing.T) {
+	// As Chrome reads one after an https URL: no scheme, or https, and no two
+	// slashes, either way round, after it.
+	for location, want := range map[string]bool{"/a": true, "a": true, "?q": true, "": true, "%zz": true,
+		`\a`: true, "  /a": true, "https:/a": true, "HTTPS:a": true, "https:": true,
+		"//h/a": false, `\\h\a`: false, `/\h`: false, `\/h`: false, "https://h/a": false, `https:\\h`: false,
+		"http:/a": false, "http://h/a": false, "mailto:x": false, " //h": false} {
+		if got := relativeLocation(location, "https"); got != want {
+			t.Errorf("relativeLocation(%q, https) = %v", location, got)
 		}
 	}
 }

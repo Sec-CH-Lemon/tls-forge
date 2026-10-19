@@ -24,9 +24,9 @@ import (
 )
 
 // started is a server answering scenarios, closed with the test.
-func started(t *testing.T, scenarios map[string]scenario) *Server {
+func started(t *testing.T, scenarios map[string]scenario, opts ...func(*Server)) *Server {
 	t.Helper()
-	s, err := startServer(scenarios)
+	s, err := startServer(scenarios, opts...)
 	if err != nil {
 		t.Fatalf("startServer: %v", err)
 	}

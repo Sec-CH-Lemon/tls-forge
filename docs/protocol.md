@@ -76,7 +76,7 @@ daemon a client starts again.
 |---|---|
 | `id` | caller-assigned, echoed on the response — see below |
 | `method` | defaults to `GET` |
-| `url` | required |
+| `url` | required: an http or https URL, sent as Chrome writes it ([GO.md](../GO.md#requests)); one Chrome sends nothing for, such as one on port 6000, fails before anything is sent |
 | `headers` | layered over the profile's; see below |
 | `order` | the order of the headers you send; when omitted, the profile's own order is used |
 | `body` | request body |
@@ -133,11 +133,12 @@ neither.
 }
 ```
 
-`url` is the final URL after redirects. Every value in `headers` is an array;
-values are never folded together because doing that changes the meaning of
-headers such as `set-cookie`. `cookies` is what the jar holds for that URL
-afterwards: an empty list when it holds nothing, and never `null` on an answer.
-`null` is how a failure, below, says it has no cookies to report.
+`url` is the final URL after redirects, as Chrome writes it. Every value in
+`headers` is an array; values are never folded together because doing that
+changes the meaning of headers such as `set-cookie`. `cookies` is what the jar
+holds for that URL afterwards: an empty list when it holds nothing, and never
+`null` on an answer. `null` is how a failure, below, says it has no cookies to
+report.
 
 `body` has been decoded from any gzip, deflate, br or zstd it came in, and
 `headers` describe it decoded: `content-encoding` and `content-length` are left

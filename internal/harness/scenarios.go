@@ -310,10 +310,13 @@ func digestThen(offer, asked string) scenario {
 }
 
 // origins are the origins of a run whose TLS origins are on port, plain HTTP
-// on plain, by the letter the catalogue names them by.
+// on plain, by the letter the catalogue names them by, and the ports
+// themselves, P and Q.
 func origins(port, plain int) map[string]string {
 	tls, http := strconv.Itoa(port), strconv.Itoa(plain)
 	return map[string]string{
+		"P": tls,
+		"Q": http,
 		"A": "https://www.example.com:" + tls,
 		"S": "https://api.example.com:" + tls,
 		"X": "https://www.example.net:" + tls,

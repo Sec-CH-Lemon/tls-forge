@@ -416,7 +416,7 @@ func TestFetchWritesAReportAsJSON(t *testing.T) {
 		t.Fatalf("requests = %+v", doc.Requests)
 	}
 	first, second := doc.Requests[0], doc.Requests[1]
-	if first.Run != 1 || second.Run != 2 || first.URL != server.URL || first.Status != 200 || first.Attempts != 2 {
+	if first.Run != 1 || second.Run != 2 || first.URL != server.URL+"/" || first.Status != 200 || first.Attempts != 2 {
 		t.Errorf("the runs are written as %+v and %+v", first, second)
 	}
 	// Where it came out, from the lookup the run had already made.

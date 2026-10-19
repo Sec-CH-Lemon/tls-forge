@@ -93,7 +93,33 @@ func TestPlainAndSecureRequestsToOneHostOnOneClient(t *testing.T) {
 	}
 }
 
-func TestAPlainRequestThatNamesItsPortKeepsIt(t *testing.T) {
+func TestARedirectToAnotherAuthorityWithoutASchemeNamesItsOwnHost(t *testing.T) {
+	// //host:port after a plain URL that names no port is that host and port:
+	// the Host the hop before was sent with does not go on with it.
+	plain := newRecorder(t, "http", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/away" {
+			w.Header().Set("Location", "//www.example.net:8080/x")
+			w.WriteHeader(http.StatusFound)
+			return
+		}
+		_, _ = w.Write([]byte("page"))
+	})
+	client := newTestClient(t, WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
+		var d net.Dialer
+		return d.DialContext(ctx, network, plain.addr)
+	})))
+	res, err := client.Get("http://www.example.com/away")
+	if err != nil || res.URL != "http://www.example.net:8080/x" {
+		t.Fatalf("Get: %v, %v", res, err)
+	}
+	if got := plain.requests(); len(got) != 2 || got[1].headers[0][1] != "www.example.net:8080" {
+		t.Errorf("sent %+v", got)
+	}
+}
+
+func TestAPlainRequestThatNamesPort80IsSentAsOneThatNamesNone(t *testing.T) {
+	// Chrome leaves out the port a scheme means: the request goes out, and
+	// is shown, as if the URL had named none.
 	secure := newRecorder(t, "h2", toHosts)
 	plain := newRecorder(t, "http", toHosts)
 	client := newTestClient(t, secure.dialingWith(plain))
@@ -101,10 +127,10 @@ func TestAPlainRequestThatNamesItsPortKeepsIt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if res.URL != "http://www.example.com:80/a" {
+	if res.URL != "http://www.example.com/a" {
 		t.Errorf("shown as %s", res.URL)
 	}
-	if got := secure.requests(); len(got) != 1 || got[0].headers[0][1] != "www.example.com:80" {
+	if got := secure.requests(); len(got) != 1 || got[0].headers[0][1] != "www.example.com" {
 		t.Errorf("sent %+v", got)
 	}
 }

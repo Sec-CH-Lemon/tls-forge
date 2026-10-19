@@ -206,7 +206,7 @@ func TestFetchLogsHowARunThatFailedEnded(t *testing.T) {
 	for _, result := range recordsOf(records, "result") {
 		byURL[result.get("url")] = result
 	}
-	if warned := byURL[server.URL]; warned.get("outcome") != "not_2xx" || warned.get("level") != "WARN" {
+	if warned := byURL[server.URL+"/"]; warned.get("outcome") != "not_2xx" || warned.get("level") != "WARN" {
 		t.Errorf("the 503 was said as %v", warned)
 	}
 	if failed := byURL[nowhere]; failed.get("outcome") != "no_response" ||

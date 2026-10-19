@@ -109,7 +109,10 @@ type Request struct {
 	Context context.Context
 	// Method defaults to GET.
 	Method string
-	URL    string
+	// URL is an http or https URL, read as Chrome reads one: the request goes
+	// out for it as Chrome writes it (CanonicalURL), and one Chrome sends
+	// nothing for is refused before anything is sent.
+	URL string
 	// Header is layered over the profile's headers, keeping the profile's order
 	// for names it already has. A Cookie in it goes with the jar's cookies, as
 	// net/http adds a jar's to a request's own: every cookie it names first,
@@ -168,7 +171,7 @@ type Cookie struct {
 // Response is one HTTP response, with the body already read and decoded.
 type Response struct {
 	Status int
-	// URL is the final URL, after redirects.
+	// URL is the final URL, after redirects, as Chrome writes it.
 	URL string
 	// Header describes Body. When Body was decoded from a content coding,
 	// Content-Encoding and Content-Length are left out of it: they said what
@@ -671,12 +674,16 @@ func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 	if req == nil || req.URL == "" {
 		return nil, nil, fmt.Errorf("tlsforge: request needs a URL")
 	}
+	target, err := requestURL(req.URL, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("tlsforge: %q %w", req.URL, err)
+	}
 	method := cmp.Or(req.Method, fhttp.MethodGet)
 	var body io.Reader
 	if len(req.Body) > 0 {
 		body = bytes.NewReader(req.Body)
 	}
-	inner, err := fhttp.NewRequest(method, req.URL, body)
+	inner, err := fhttp.NewRequest(method, target.String(), body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("tlsforge: %w", err)
 	}
@@ -716,6 +723,9 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	// a challenge answered, which is no redirect, as Chrome's does.
 	r := requestLogOf(req.Context())
 	ch, _ := req.Context().Value(chainKey{}).(*chain)
+	if err := locate(req, via[len(via)-1]); err != nil {
+		return err
+	}
 	ch.redirects++
 	if ch.redirects >= maxRedirects {
 		if r != nil {
@@ -745,11 +755,11 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 // CookiesFor returns what the jar would send to a URL, each cookie with its
 // scope, its lifetime and its SameSite.
 func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
-	u, err := url.Parse(rawURL)
+	p, err := parseURL(rawURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %w", err)
+		return nil, fmt.Errorf("tlsforge: %q %w", rawURL, err)
 	}
-	return c.session.cookiesFor(u), nil
+	return c.session.cookiesFor(p.url()), nil
 }
 
 // Cookies returns the jar's cookies for a URL. It is CookiesFor by its older

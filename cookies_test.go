@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -134,6 +135,33 @@ func TestCookiesForReadsTheJarBack(t *testing.T) {
 	if held[0].Domain == "" {
 		t.Errorf("the host was lost: %+v", held[0])
 	}
+	// The URL is read as a request for it is: 127.0.0.1 is 127.0.0.1 in any
+	// of its forms, and a scheme in capitals is the scheme.
+	again, err := client.CookiesFor("HTTPS://" + strings.Replace(strings.TrimPrefix(server.URL, "https://"), "127.0.0.1", "0x7f.1", 1) + "/a/../")
+	if err != nil || len(again) != 1 || again[0] != held[0] {
+		t.Errorf("held for the same URL written otherwise %+v, %v", again, err)
+	}
+}
+
+func TestCookiesForReadsAPathAsARequestCarriesIt(t *testing.T) {
+	// A path is matched decoded, as the jar matches a request's, so a cookie
+	// a request to a URL carries is the one CookiesFor lists for it.
+	var carried atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		carried.Store(r.Header.Get("Cookie"))
+		w.Header().Set("Set-Cookie", "c=1; Path=/a b")
+	}))
+	t.Cleanup(server.Close)
+	client := newTestClient(t)
+	for range 2 {
+		if _, err := client.Get(server.URL + "/a b/x"); err != nil {
+			t.Fatalf("Get: %v", err)
+		}
+	}
+	held, err := client.CookiesFor(server.URL + "/a b/x")
+	if err != nil || len(held) != 1 || held[0].Path != "/a b" || carried.Load() != "c=1" {
+		t.Errorf("held %+v, %v; a request carried %v", held, err, carried.Load())
+	}
 }
 
 func TestCookiesForRejectsAURLItCannotRead(t *testing.T) {
@@ -143,8 +171,18 @@ func TestCookiesForRejectsAURLItCannotRead(t *testing.T) {
 	}
 	defer func() { _ = client.Close() }()
 
-	if _, err := client.CookiesFor("://not a url"); err == nil {
-		t.Error("no error")
+	for raw, says := range map[string]string{
+		"://not a url":      `tlsforge: "://not a url" is not a URL: it names no scheme`,
+		"ftp://files.test/": `tlsforge: "ftp://files.test/" is not an http or https URL`,
+		"https://[::1/":     "its IPv6 address has no closing bracket",
+	} {
+		if _, err := client.CookiesFor(raw); err == nil || !strings.Contains(err.Error(), says) {
+			t.Errorf("CookiesFor(%q): %v, want %q", raw, err, says)
+		}
+	}
+	// A port tells nothing of a cookie, one Chrome sends nothing to as well.
+	if held, err := client.CookiesFor("http://files.test:6000/"); err != nil || len(held) != 0 {
+		t.Errorf("CookiesFor a blocked port: %v, %v", held, err)
 	}
 }
 

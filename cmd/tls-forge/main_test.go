@@ -608,7 +608,7 @@ func TestFetchEndsItsReportWhenItStopsEarly(t *testing.T) {
 	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
 	failingClients(t, func(string) bool { return true })
 
-	code, _, stderr := exec(t, "fetch", "https://127.0.0.1:1/")
+	code, _, stderr := exec(t, "fetch", "https://nothing.test/")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -634,7 +634,7 @@ func TestFetchStopsAtASessionItCannotReadBeforeSayingAnything(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	for _, session := range []string{filepath.Join(dir, "missing.json"), broken} {
-		code, _, stderr := exec(t, "fetch", "--cookies", session, "-o", out, "--trace", trace, "https://127.0.0.1:1/")
+		code, _, stderr := exec(t, "fetch", "--cookies", session, "-o", out, "--trace", trace, "https://nothing.test/")
 		if code != 1 || strings.Contains(stderr, identityRule) {
 			t.Errorf("%s: exit code = %d\n%s", session, code, stderr)
 		}

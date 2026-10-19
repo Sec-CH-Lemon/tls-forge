@@ -429,7 +429,7 @@ func TestTraceKeepsWhatAWrongAnswerSaidAndWhyItWasAskedAgain(t *testing.T) {
 	events := traceFile(t, path)
 	checkShape(t, events)
 
-	tries := named(events, phaseBegin, "GET "+server.URL)
+	tries := named(events, phaseBegin, "GET "+server.URL+"/")
 	if len(tries) != 2 || tries[0].Args["attempt"] != 1.0 || tries[1].Args["attempt"] != 2.0 {
 		t.Fatalf("tries traced as %+v, want two, numbered", tries)
 	}
@@ -595,7 +595,7 @@ func TestFetchTracesWhereEachRunWasWritten(t *testing.T) {
 	events := traceFile(t, path)
 	checkShape(t, events)
 
-	runs := named(events, phaseBegin, "GET "+server.URL)
+	runs := named(events, phaseBegin, "GET "+server.URL+"/")
 	written := named(events, phaseInstant, "saved")
 	if len(runs) != 2 || len(written) != 2 {
 		t.Fatalf("%d runs and %d files traced, want 2 of each", len(runs), len(written))

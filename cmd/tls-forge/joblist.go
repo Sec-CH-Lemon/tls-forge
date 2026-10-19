@@ -15,6 +15,7 @@ import (
 	"strings"
 	"unicode"
 
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
@@ -357,8 +358,10 @@ func field(record []string, at int) string {
 }
 
 // validate rejects a list before any of it is fetched, as a usage error, and
-// writes the scheme of every URL in lower case, as a browser does: `HTTP://`
-// is an http URL.
+// writes every URL as a request goes out for it, as Chrome sends one
+// (tlsforge.CanonicalURL): what the lines, the reports and the kept files say
+// is what was asked for. `HTTP://Example.com:80/a/../b` is
+// http://example.com/b.
 //
 // All of it, rather than the first problem: someone who mistyped two lines of a
 // hundred should learn that from one run.
@@ -369,17 +372,12 @@ func validate(jobs []job) error {
 	var problems []string
 	for i := range jobs {
 		j := &jobs[i]
-		switch u, err := url.Parse(j.URL); {
-		case j.URL == "":
+		if j.URL == "" {
 			problems = append(problems, fmt.Sprintf("entry %d has no URL", i+1))
-		case err != nil:
-			problems = append(problems, fmt.Sprintf("entry %d: %q is not a URL: %v", i+1, j.URL, parseReason(err)))
-		case u.Scheme != "http" && u.Scheme != "https":
-			problems = append(problems, fmt.Sprintf("entry %d: %q is not an http or https URL", i+1, j.URL))
-		case u.Hostname() == "":
-			problems = append(problems, fmt.Sprintf("entry %d: %q names no host", i+1, j.URL))
-		default:
-			j.URL = u.Scheme + j.URL[len(u.Scheme):]
+		} else if canonical, err := tlsforge.CanonicalURL(j.URL); err != nil {
+			problems = append(problems, fmt.Sprintf("entry %d: %q %v", i+1, j.URL, errors.Unwrap(err)))
+		} else {
+			j.URL = canonical
 		}
 		if j.Proxy == "" {
 			continue

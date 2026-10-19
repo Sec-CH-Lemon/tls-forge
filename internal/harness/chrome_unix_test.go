@@ -80,7 +80,7 @@ func TestChromeIsRunAsTheFixturesWereMeasuredAndEndedWhole(t *testing.T) {
 		t.Fatalf("Open: %v", err)
 	}
 	args := strings.Split(strings.TrimSpace(written(t, s.args)), "\n")
-	want := append(flags(dir, ""), "https://www.example.com:1/run/x")
+	want := append(flags(dir, "", ""), "https://www.example.com:1/run/x")
 	if !slices.Equal(args, want) {
 		t.Errorf("run with %q,\nwant %q", args, want)
 	}
@@ -122,7 +122,7 @@ func TestChromeTrustingAServerTakesItsCertificateAsASites(t *testing.T) {
 		t.Fatalf("Open: %v", err)
 	}
 	args := strings.Split(strings.TrimSpace(written(t, s.args)), "\n")
-	want := append(flags(dir, ""), "--ignore-certificate-errors-spki-list=a2V5", "https://www.example.com:1/run/x")
+	want := append(flags(dir, "", ""), "--ignore-certificate-errors-spki-list=a2V5", "https://www.example.com:1/run/x")
 	if !slices.Equal(args, want) {
 		t.Errorf("run with %q,\nwant %q", args, want)
 	}

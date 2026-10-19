@@ -131,6 +131,10 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		DigestPage(w, r)
 	case strings.HasPrefix(path, "/run/"):
 		s.runPage(w, r, strings.TrimPrefix(path, "/run/"))
+	case strings.HasPrefix(path, "/urlrun/"):
+		s.urlPage(w, r, strings.TrimPrefix(path, "/urlrun/"))
+	case strings.HasPrefix(path, "/urlthrown/"):
+		w.WriteHeader(http.StatusNoContent)
 	case path == "/favicon.ico":
 		http.NotFound(w, r)
 	default:

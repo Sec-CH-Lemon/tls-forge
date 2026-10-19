@@ -42,6 +42,9 @@ type Entry struct {
 	// Target is the URL asked for: the scheme, the authority as sent, the
 	// path and query.
 	Target string
+	// SNI is the server name the TLS of its connection asked for: none in
+	// the clear, nor for an address.
+	SNI string
 	// Headers are the fields in the order sent, each name spelt as sent:
 	// HTTP/2's pseudo-headers first.
 	Headers [][2]string
@@ -85,6 +88,9 @@ type Server struct {
 
 	// misdirection answers under /misdirected/.
 	misdirection Misdirection
+	// urls are the URLs the run pages of the URL catalogue go to, by case
+	// (urls.go).
+	urls map[string]urlCase
 
 	mu      sync.Mutex
 	entries []*Entry
@@ -112,7 +118,7 @@ type tableServer struct {
 	server *http.Server
 }
 
-func startServer(scenarios map[string]scenario) (*Server, error) {
+func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server, error) {
 	cert, err := certificate()
 	if err != nil {
 		return nil, err
@@ -126,6 +132,9 @@ func startServer(scenarios map[string]scenario) (*Server, error) {
 		spki:   base64.StdEncoding.EncodeToString(spki[:])}
 	// Each connection's TLS is a clone of this, which would draw keys of its
 	// own for the session tickets it gives, and resume no other's sessions.
+	for _, opt := range opts {
+		opt(s)
+	}
 	var ticketKey [32]byte
 	_, _ = rand.Read(ticketKey[:])
 	s.tls.SetSessionTicketKeys([][32]byte{ticketKey})
@@ -262,8 +271,8 @@ func (s *Server) serveConn(raw net.Conn, protos []string, table *tableServer) {
 	}
 	state := conn.ConnectionState()
 	if state.NegotiatedProtocol == "h2" {
-		parser := &h2parser{s: s, conn: s.nextConn(), resumed: state.DidResume, dec: hpack.NewDecoder(4096, nil),
-			open: map[uint32]*Entry{}}
+		parser := &h2parser{s: s, conn: s.nextConn(), resumed: state.DidResume, sni: state.ServerName,
+			dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}}
 		if table == nil {
 			s.http2.hand(newTeeConn(conn, state.ServerName, parser.write, nil))
 			return
@@ -273,7 +282,7 @@ func (s *Server) serveConn(raw net.Conn, protos []string, table *tableServer) {
 		table.ln.hand(newTeeConn(conn, state.ServerName, parser.write, parser.first))
 		return
 	}
-	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https"}
+	parser := &h1parser{s: s, conn: s.nextConn(), resumed: state.DidResume, scheme: "https", sni: state.ServerName}
 	s.http1.hand(newTeeConn(conn, state.ServerName, parser.write, nil))
 }
 
@@ -446,6 +455,7 @@ type h2parser struct {
 	s         *Server
 	conn      int
 	resumed   bool
+	sni       string
 	buf       []byte
 	preface   bool
 	dec       *hpack.Decoder
@@ -535,7 +545,7 @@ func (p *h2parser) decode() {
 		p.s.troubled(fmt.Errorf("harness: the header block of stream %d: %w", p.stream, err))
 		return
 	}
-	e := &Entry{Proto: "h2", Conn: p.conn, Resumed: p.resumed, Stream: p.stream, Priority: p.priority,
+	e := &Entry{Proto: "h2", Conn: p.conn, Resumed: p.resumed, SNI: p.sni, Stream: p.stream, Priority: p.priority,
 		Block: slices.Clone(p.block)}
 	var scheme, authority, path string
 	for _, f := range fields {
@@ -565,6 +575,7 @@ type h1parser struct {
 	conn    int
 	resumed bool
 	scheme  string
+	sni     string
 	buf     []byte
 	left    int
 	cur     *Entry
@@ -593,7 +604,7 @@ func (p *h1parser) write(b []byte) {
 			p.s.troubled(fmt.Errorf("harness: a request line that is not one: %q", lines[0]))
 			continue
 		}
-		e := &Entry{Proto: "http/1.1", Conn: p.conn, Resumed: p.resumed, Method: parts[0]}
+		e := &Entry{Proto: "http/1.1", Conn: p.conn, Resumed: p.resumed, SNI: p.sni, Method: parts[0]}
 		host := ""
 		for _, line := range lines[1:] {
 			name, value, _ := strings.Cut(line, ":")

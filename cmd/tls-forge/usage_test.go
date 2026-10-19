@@ -233,30 +233,65 @@ func TestAURLWithAnythingInItsPathIsMade(t *testing.T) {
 	}
 }
 
+func TestFetchSendsAndShowsAURLAsChromeWrites(t *testing.T) {
+	// A line says the URL asked for as Chrome writes it, which is how it went
+	// out: not as it was given, and not as an answer from another URL.
+	var mu sync.Mutex
+	var asked []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		asked = append(asked, r.RequestURI)
+		mu.Unlock()
+		_, _ = fmt.Fprint(w, "page")
+	}))
+	t.Cleanup(server.Close)
+	given := "  HTTP://" + strings.TrimPrefix(server.URL, "http://") + "/a/./b/../c d?q=é#frag  "
+	want := server.URL + "/a/c%20d?q=%C3%A9"
+	code, stdout, stderr := exec(t, "fetch", "--json", given)
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	got, ok := lines(t, stdout)[want]
+	if !ok || got.FinalURL != want || got.redirected() {
+		t.Errorf("the line says %s, want %s:\n%s", got.URL, want, stdout)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if !slices.Equal(asked, []string{"/a/c%20d?q=%C3%A9"}) {
+		t.Errorf("asked for %q", asked)
+	}
+}
+
 func TestEveryEntryThatIsNoURLIsSaidAtOnce(t *testing.T) {
 	server := keepingPaths(t)
 	list := writeList(t, "list.csv", "url,proxy\n"+strings.Join([]string{
 		"http://[::1,",
 		"ftp://files.test/,",
-		"http:///nohost,",
+		"http:///,",
 		"://nothing,",
 		server.URL + "/fine,",
 		server.URL + "/through,http://alice:s3cr3t@[bad",
 		server.URL + "/also,socks9://p.test:1",
 		server.URL + "/and,http:///nohost",
+		"http://files.test:6000/,",
+		"https://files.test/100%,",
+		"https://alice:s3cr3t@files.test:65536/,",
 	}, "\n")+"\n")
 	code, _, stderr := exec(t, "fetch", "--input", list)
 	if code != 2 {
 		t.Errorf("exit code = %d, want 2\n%s", code, stderr)
 	}
 	for _, want := range []string{
-		`entry 1: "http://[::1" is not a URL: missing ']' in host`,
+		`entry 1: "http://[::1" is not a URL: its IPv6 address has no closing bracket`,
 		`entry 2: "ftp://files.test/" is not an http or https URL`,
-		`entry 3: "http:///nohost" names no host`,
-		`entry 4: "://nothing" is not a URL: missing protocol scheme`,
+		`entry 3: "http:///" names no host`,
+		`entry 4: "://nothing" is not a URL: it names no scheme, and there is nothing it is relative to`,
 		"entry 6: the proxy [redacted]@[bad is not a URL: missing ']' in host",
 		"entry 7: the proxy socks9://p.test:1 is not an http, https, socks4, socks4a, socks5 or socks5h URL",
 		"entry 8: the proxy http:///nohost names no host",
+		`entry 9: "http://files.test:6000/" is on port 6000, which Chrome sends nothing to (ERR_UNSAFE_PORT)`,
+		`entry 10: "https://files.test/100%" has "%" in its path, a percent sign that escapes nothing`,
+		`entry 11: "https://alice@files.test:65536/" is not a URL: its port 65536 is past 65535`,
 	} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr does not say %q:\n%s", want, stderr)
@@ -317,7 +352,7 @@ func TestAClientTheLibraryWillNotMake(t *testing.T) {
 	t.Run("for a run that goes one way", func(t *testing.T) {
 		failingClients(t, func(string) bool { return true })
 		path := filepath.Join(t.TempDir(), "trace.json")
-		code, _, stderr := exec(t, "fetch", "--trace", path, "http://127.0.0.1:1/")
+		code, _, stderr := exec(t, "fetch", "--trace", path, "http://nothing.test/")
 		if code != 1 || !strings.Contains(stderr, "the transport would not have it") {
 			t.Errorf("exit code = %d\n%s", code, stderr)
 		}

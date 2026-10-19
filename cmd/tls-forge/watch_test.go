@@ -395,7 +395,7 @@ func TestFetchPrintsTheHeadersAloneWhenThatIsAllThatWasAskedFor(t *testing.T) {
 	}
 	// content-length too: the body came as it was sent, so the field is true
 	// of it. The transport used to take it off every HTTP/1.1 answer.
-	if !strings.HasPrefix(stdout, "200 "+server.URL+"\ncontent-length: 8\ncontent-type: text/plain") ||
+	if !strings.HasPrefix(stdout, "200 "+server.URL+"/\ncontent-length: 8\ncontent-type: text/plain") ||
 		!strings.HasSuffix(stdout, "\n\n") {
 		t.Errorf("stdout is not the status and the headers, ended with a blank line: %q", stdout)
 	}

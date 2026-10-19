@@ -95,7 +95,7 @@ func TestListJSONLPreservesABinaryBody(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
-	got := lines(t, stdout)[server.URL]
+	got := lines(t, stdout)[server.URL+"/"]
 	if got.BodyEncoding != "base64" {
 		t.Fatalf("body_encoding = %q, want base64", got.BodyEncoding)
 	}

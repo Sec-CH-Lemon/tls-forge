@@ -174,11 +174,16 @@ func (b *BrowserContext) resolve(method string, target *url.URL, header Header, 
 		return nil, errContext("referrer policy %q is not one of %s", b.ReferrerPolicy, strings.Join(referrerPolicies, ", "))
 	}
 	if b.Initiator != "" {
-		initiator, err := url.Parse(b.Initiator)
-		if err != nil || (initiator.Scheme != "http" && initiator.Scheme != "https") || initiator.Host == "" {
-			return nil, errContext("initiator %q is not an http or https URL", b.Initiator)
+		// The page's URL as Chrome made it, which its Referer is written from.
+		initiator, err := parseURL(b.Initiator, nil)
+		if err == nil {
+			err = initiator.uncarried()
 		}
-		r.initiator, r.from = initiator, originOf(initiator)
+		if err != nil {
+			return nil, errContext("initiator %q %v", b.Initiator, err)
+		}
+		r.initiator = initiator.url()
+		r.from = originOf(r.initiator)
 	}
 	if err := b.resolveKind(r, target, header, body); err != nil {
 		return nil, err

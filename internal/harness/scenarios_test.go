@@ -93,7 +93,7 @@ func TestAScenarioRunsOnItsPageUnlessToldOtherwise(t *testing.T) {
 	if got := origins(1, 2); got["C"] != "https://u:p@www.example.net:1" || got["U"] != "https://u:p@www.example.com:1" ||
 		got["W"] != "https://u:x@www.example.com:1" || got["H"] != "http://www.example.com:2" ||
 		got["D"] != "http://app.localhost:2" || got["4"] != "http://127.0.0.1:2" || got["6"] != "http://[::1]:2" ||
-		len(got) != 11 {
+		got["P"] != "1" || got["Q"] != "2" || len(got) != 13 {
 		t.Errorf("origins %v", got)
 	}
 }

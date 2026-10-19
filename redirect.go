@@ -346,22 +346,40 @@ func (ch *chain) remade(sent *fhttp.Request) *fhttp.Request {
 }
 
 // redirected are the credentials of the URL a redirect leads req to, taken
-// off it: its own, or, when its Location is relative, those of the URL it is
-// relative to, as resolving one keeps them.
+// off it: its own, or, when its Location names no authority, those of the URL
+// it is relative to, as resolving one keeps them.
 func (ch *chain) redirected(req *fhttp.Request) *url.Userinfo {
 	user := req.URL.User
 	req.URL.User = nil
-	if user == nil && relativeLocation(req.Response.Header.Get("Location")) {
+	if user == nil && relativeLocation(req.Response.Header.Get("Location"), req.Response.Request.URL.Scheme) {
 		user = ch.credentials
 	}
 	return user
 }
 
-// relativeLocation reports a Location that names neither a scheme nor a host,
-// read as the transport reads it.
-func relativeLocation(location string) bool {
-	u, err := url.Parse(location)
-	return err == nil && u.Scheme == "" && u.Host == ""
+// relativeLocation reports a Location that names no authority of its own,
+// read as Chrome reads one after a URL of scheme: it names no scheme, or that
+// one, and no two slashes follow, so it keeps that URL's authority,
+// credentials and all.
+func relativeLocation(location, scheme string) bool {
+	input := trimURL(location)
+	if named, rest, ok := urlScheme(input); ok {
+		return named == scheme && !slashes(rest)
+	}
+	return !slashes(input)
+}
+
+// locate gives req, the request a redirect leads to, the URL Chrome makes of
+// the Location, relative to the URL of the request before it, previous: the
+// transport read it as url.Parse does. The error says why Chrome would not
+// follow it.
+func locate(req, previous *fhttp.Request) error {
+	target, err := requestURL(req.Response.Header.Get("Location"), shownURL(previous))
+	if err != nil {
+		return fmt.Errorf("the Location %w", err)
+	}
+	req.URL, req.Host = target, ""
+	return nil
 }
 
 // follow makes req, the request a redirect leads to, the one Chrome sends.

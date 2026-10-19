@@ -213,7 +213,7 @@ response, err := client.Do(&tlsforge.Request{
 |---|---|
 | `Context` | Cancels this request. `nil` means `context.Background()`. |
 | `Method` | HTTP method. An empty value means `GET`. |
-| `URL` | Required absolute request URL. |
+| `URL` | Required absolute http or https URL, sent as Chrome writes it; see below. |
 | `Header` | Ordered headers layered over the profile. Existing names keep their original position; new names are appended, but `Cookie`, which goes where Chrome sends the cookies when the profile is a Chromium browser's: right after `Accept-Language`. |
 | `Body` | Raw request bytes. |
 | `Cookies` | Cookies added to the jar before this request. |
@@ -223,6 +223,31 @@ response, err := client.Do(&tlsforge.Request{
 
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 transport deadline. A request ends when either limit is reached.
+
+A URL is read as Chrome reads one, and the request for it goes out as Chrome
+writes it, measured on Chrome 155 for every case of
+`testdata/chrome155-urls.json`: the spaces and controls around it and any tab
+or newline in it dropped, the scheme and the host in lower case, a name in
+another script in Punycode (`пример.example` is `xn--e1afmkfd.example`), an
+IPv4 address in any of its forms dotted and decimal (`http://0x7f.1/` is
+`http://127.0.0.1/`), an IPv6 one as the URL Standard writes it, no port the
+scheme means, a slash for a backslash, dot segments resolved, what a path or a
+query cannot hold percent-encoded and what is percent-encoded already left as
+it is, and no fragment. Each hop of a redirect is the URL Chrome makes of its
+`Location`, relative to the hop before it. That URL is what the server name,
+`Host` and `:authority`, the request target, the cookies, the origin, the
+connections and an answer to a 401 are worked out from, and what
+`Response.URL`, the log and a trace say. `tlsforge.CanonicalURL(raw)` returns
+it, credentials and all.
+
+What Chrome sends nothing for is refused before anything is sent: a URL it
+cannot parse, one of another scheme, and one on a port it keeps away from,
+Chromium's restricted ports, such as 22, 25 and 6000 (measured on 0 and 6000,
+and on 4190 and 6679, which Chrome sends to though the Fetch standard blocks
+them). So is a path with a percent sign that escapes nothing, such as
+`/50%off`, which Chrome sends as it is and a `url.URL` would escape once more.
+A redirect to any of those fails the request, and one whose `Location` has
+such a path fails as the transport says it cannot parse it.
 
 A `Cookie` in `Header` goes with the jar's cookies, as `net/http` adds a jar's
 to a request's own: every cookie it names first, then those the jar holds for
@@ -535,7 +560,7 @@ their `Content-Encoding`.
 | `Response` field or method | Meaning |
 |---|---|
 | `Status` | HTTP status code |
-| `URL` | Final URL after redirects |
+| `URL` | Final URL after redirects, as Chrome writes it |
 | `Header` | Lower-cased header names mapped to every field value. They describe `Body`: once it is decoded, `content-encoding` and `content-length`, which described the bytes on the wire, are left out |
 | `Body` | Decoded `[]byte` body |
 | `Encoding` | The codings `Body` was decoded from, as a `Content-Encoding` field lists them (`gzip`, `gzip, br`), or empty when it is the bytes as they came |
@@ -731,7 +756,8 @@ client, err := tlsforge.New(tlsforge.WithCookies([]tlsforge.Cookie{
 | `Expires` | Expiration time; zero represents a session cookie. |
 | `SameSite` | `strict`, `lax`, `none`, or empty when the server named none. Kept and written down; not enforced when a request is sent. |
 
-`client.CookiesFor(url)` returns the cookies the jar would send to a URL, and
+`client.CookiesFor(url)` returns the cookies the jar would send to a URL, read
+as a request reads it (a port Chrome sends nothing to is no refusal here), and
 `client.Cookies(url)` is the same method by its older name. `client.AllCookies()`
 returns every cookie the jar holds, for every host, sorted by domain, path and
 name: that is what a session is written down from, so a cookie set by a

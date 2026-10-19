@@ -4,8 +4,10 @@
 // redirects, client hints), testdata/chrome155-connections.json, which
 // connection it sent each on, testdata/chrome155-hpack.json, how it wrote the
 // header blocks of each connection into HPACK, testdata/chrome155-decoding.json,
-// how it decoded each page, and testdata/chrome155-flow.json, the
-// WINDOW_UPDATEs it sent while it read an answer (flow.go).
+// how it decoded each page, testdata/chrome155-flow.json, the WINDOW_UPDATEs
+// it sent while it read an answer (flow.go), and testdata/chrome155-urls.json,
+// the server name, authority and target it sent for each URL a page or a
+// Location gave it, or that it sent nothing (urls.go).
 //
 // Measuring is opening each scenario's page in a fresh headless Google Chrome
 // against a local server that keeps every request as the bytes said it, over
@@ -37,6 +39,13 @@ type Browser interface {
 // only on a certificate it takes so.
 type trusting interface {
 	trusting(spki string) Browser
+}
+
+// remapping is a Browser that can take the ports a scheme means to the
+// bench's: what the URL cases that name no port, or 443 or 80, are measured
+// with.
+type remapping interface {
+	defaultPorts(tls, plain int) Browser
 }
 
 // timing is how long the bench waits for what, which a test makes short.

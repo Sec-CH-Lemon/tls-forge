@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -41,7 +42,9 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 		{"an unknown policy", BrowserContext{Kind: KindNavigation, ReferrerPolicy: "never"}, "", page, nil, "",
 			`referrer policy "never" is not one of no-referrer`},
 		{"an initiator that is not a URL", BrowserContext{Kind: KindNavigation, Initiator: "%zz"}, "", page, nil, "",
-			`initiator "%zz" is not an http or https URL`},
+			`initiator "%zz" is not a URL: it names no scheme`},
+		{"an initiator Chrome sends as it is and tls-forge cannot", BrowserContext{Kind: KindNavigation,
+			Initiator: "https://www.example.com/a%zz"}, "", page, nil, "", `initiator "https://www.example.com/a%zz" has "%zz" in its path`},
 		{"an initiator of another scheme", BrowserContext{Kind: KindNavigation, Initiator: "ftp://x/"}, "", page, nil, "",
 			`initiator "ftp://x/"`},
 		{"a file as initiator", BrowserContext{Kind: KindNavigation, Initiator: "file://localhost/page"}, "", page, nil, "",
@@ -50,8 +53,8 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 			nil, "", `initiator "wss://www.example.com/"`},
 		{"a relative initiator", BrowserContext{Kind: KindNavigation, Initiator: "/page"}, "", page, nil, "",
 			`initiator "/page"`},
-		{"an initiator with no host", BrowserContext{Kind: KindNavigation, Initiator: "https:///page"}, "", page, nil, "",
-			`initiator "https:///page"`},
+		{"an initiator with no host", BrowserContext{Kind: KindNavigation, Initiator: "https:///"}, "", page, nil, "",
+			`initiator "https:///" names no host`},
 		{"a navigation that posts", BrowserContext{Kind: KindNavigation}, "POST", page, nil, "",
 			"a navigation is a GET, not a POST: a form posts"},
 		{"a navigation with a body", BrowserContext{Kind: KindNavigation}, "GET", page, nil, "x",
@@ -754,7 +757,12 @@ func TestValidateRefusesWhatDoRefusesAndSendsNothing(t *testing.T) {
 	}{
 		{"no request", nil, "tlsforge: request needs a URL"},
 		{"no URL", &Request{}, "tlsforge: request needs a URL"},
-		{"a URL the transport cannot read", &Request{URL: "https://[::1"}, "tlsforge: parse"},
+		{"a URL Chrome cannot read", &Request{URL: "https://[::1"}, `tlsforge: "https://[::1" is not a URL`},
+		{"a port Chrome sends nothing to", &Request{URL: "http://www.example.com:6000/"},
+			`tlsforge: "http://www.example.com:6000/" is on port 6000`},
+		{"a path Chrome sends as it is", &Request{URL: "https://www.example.com/a%zz"},
+			`tlsforge: "https://www.example.com/a%zz" has "%zz" in its path`},
+		{"a host the transport cannot read", &Request{URL: "https://a{b.example/"}, "tlsforge: parse"},
 		{"a method that is not one", &Request{Method: "GE T", URL: page}, "tlsforge: net/http: invalid method"},
 		{"a context a page could not be in", &Request{URL: page, Browser: &BrowserContext{Kind: KindForm}},
 			"tlsforge: browser context: a form is submitted from a page"},
@@ -776,5 +784,19 @@ func TestValidateRefusesWhatDoRefusesAndSendsNothing(t *testing.T) {
 	}
 	if got := server.requests(); len(got) != 0 {
 		t.Errorf("Validate sent %d requests", len(got))
+	}
+}
+
+func TestAnInitiatorIsThePagesURLAsChromeMadeIt(t *testing.T) {
+	// The page's URL, which its Origin and its Referer come from, is read as
+	// Chrome reads the URL of a page it is on.
+	target, _ := url.Parse("https://api.example.com/x")
+	r, err := (&BrowserContext{Kind: KindFetch, Initiator: " HTTPS://WWW.Example.COM:443/a/./b/../pa ge?q#f"}).
+		resolve(fhttp.MethodGet, target, nil, nil)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if r.initiator.String() != "https://www.example.com/a/pa%20ge?q" || r.from.String() != "https://www.example.com" {
+		t.Errorf("the page is %s, of %s", r.initiator, r.from)
 	}
 }

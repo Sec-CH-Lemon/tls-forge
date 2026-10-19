@@ -21,6 +21,9 @@ type Chrome struct {
 	// trusted is the key of the server whose certificate it takes as a
 	// site's (trusting), or nothing.
 	trusted string
+	// rules are host resolver rules it is given before hostRules
+	// (defaultPorts), or none.
+	rules string
 }
 
 // trusting is c taking the certificate of the server whose key is spki, as
@@ -32,13 +35,31 @@ func (c Chrome) trusting(spki string) Browser {
 	return c
 }
 
+// defaultPorts is c taking www.example.com on the ports its schemes mean, 443
+// and 80, to the bench's tls and plain ports, and on the other ports the URL
+// cases name for plain http (plainPorts) to the plain one: what the URL cases
+// that name no port, 443, 80 or a port Chrome may block are measured with
+// (urls.go).
+func (c Chrome) defaultPorts(tls, plain int) Browser {
+	c.rules = fmt.Sprintf("MAP www.example.com:443 127.0.0.1:%d, MAP www.example.com:80 127.0.0.1:%d, ", tls, plain)
+	for _, port := range plainPorts {
+		c.rules += fmt.Sprintf("MAP www.example.com:%d 127.0.0.1:%d, ", port, plain)
+	}
+	return c
+}
+
+// hostRules take each example.com and example.net name the bench serves to
+// the loopback address.
+const hostRules = "MAP *.example.com 127.0.0.1, MAP *.example.net 127.0.0.1"
+
 // flags are the browser's arguments for a profile in dir, taking the key
-// trusted, when there is one, as a site's.
-func flags(dir, trusted string) []string {
+// trusted, when there is one, as a site's, and the host resolver rules rules
+// before hostRules.
+func flags(dir, trusted, rules string) []string {
 	out := []string{
 		"--headless=new",
 		"--ignore-certificate-errors",
-		"--host-resolver-rules=MAP *.example.com 127.0.0.1, MAP *.example.net 127.0.0.1",
+		"--host-resolver-rules=" + rules + hostRules,
 		"--user-data-dir=" + dir,
 		"--no-first-run",
 		"--no-default-browser-check",
@@ -58,7 +79,7 @@ func flags(dir, trusted string) []string {
 // Open runs the browser at url until stop is called, or ctx is done, and
 // either ends every process it started.
 func (c Chrome) Open(ctx context.Context, url, dir string) (func(), error) {
-	cmd := exec.CommandContext(ctx, c.Path, append(flags(dir, c.trusted), url)...)
+	cmd := exec.CommandContext(ctx, c.Path, append(flags(dir, c.trusted, c.rules), url)...)
 	proctree.Own(cmd)
 	cmd.Cancel = func() error { return proctree.Kill(cmd.Process) }
 	if err := cmd.Start(); err != nil {
@@ -86,7 +107,7 @@ func (c Chrome) DumpDOM(ctx context.Context, url string) ([]byte, error) {
 	}
 	defer func() { _ = out.Close() }()
 	profile := filepath.Join(dir, "profile")
-	cmd := exec.CommandContext(ctx, c.Path, append(flags(profile, c.trusted), "--dump-dom", url)...)
+	cmd := exec.CommandContext(ctx, c.Path, append(flags(profile, c.trusted, c.rules), "--dump-dom", url)...)
 	proctree.Own(cmd)
 	cmd.Cancel = func() error { return proctree.Kill(cmd.Process) }
 	cmd.Stdout = out

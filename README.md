@@ -251,8 +251,15 @@ are a usage error, rather than one quietly preferred. The whole list is checked
 before anything is fetched, and every entry whose URL is not an HTTP or HTTPS
 URL with a host, or whose proxy is not an `http`, `https`, `socks4`,
 `socks4a`, `socks5` or `socks5h` URL, is reported at once, as a usage error.
-A scheme is read in any case, as a browser reads it, and `HTTP://` goes out as
-`http://`. A list may begin with a UTF-8 byte order mark, which is taken off;
+Each URL is read as Chrome reads one, and goes out, and is written in every
+line, log, trace and report, as Chrome writes it:
+`HTTP://Example.COM:80/a/./b/../c d#top` is `http://example.com/a/c%20d`, a
+name in another script goes out in Punycode, `http://0x7f.1/` is
+`http://127.0.0.1/`, and a fragment is never sent. A URL Chrome sends nothing
+for is a usage error too: one it cannot parse, and one on a port it keeps away
+from, such as 22 or 6000. So is a path with a percent sign that escapes
+nothing, such as `/50%off`, which Chrome sends as it is and tls-forge cannot
+yet. A list may begin with a UTF-8 byte order mark, which is taken off;
 a line of one, its newline included, is at most 1 MiB. With `--format auto`,
 `.json` selects JSON, `.csv` selects CSV and every other name uses one URL per
 line:
@@ -303,7 +310,7 @@ before it empties, opens or makes anything, asks where it comes out or makes a
 request: a flag or a value of one it does not take, such as `--progress
 sometimes`, an unknown profile, a `--proxy` that is no proxy's URL, a
 `--timeout` of nothing, two sources of the list, and a list that does not read
-as one or holds an entry that is not a URL.
+as one or holds an entry that is not a URL or one Chrome sends nothing for.
 
 ### Through a proxy
 

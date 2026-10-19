@@ -69,7 +69,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 		t.Fatalf("reading the log: %v", err)
 	}
 	for _, want := range []string{
-		"GET " + server.URL + "\n",
+		"GET " + server.URL + "/\n",
 		"  request  1 of 2\n",
 		"  outcome  503 Service Unavailable · 8 B\n",
 		"  page     " + filepath.Join(dir, name+"-1.txt") + "\n",
@@ -83,7 +83,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	}
 	events := traceFile(t, filepath.Join(dir, "trace-"+name+"-1.json"))
 	checkShape(t, events)
-	if began := one(t, events, phaseBegin, "GET "+server.URL); began.Args["request"] != 1.0 {
+	if began := one(t, events, phaseBegin, "GET "+server.URL+"/"); began.Args["request"] != 1.0 {
 		t.Errorf("the request was traced as %+v", began)
 	}
 

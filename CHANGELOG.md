@@ -13,6 +13,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`tlsforge.CanonicalURL`** is a URL as tls-forge sends a request for it,
+  which is as Chrome does, or why it sends none.
+
 - **A 401 that offers Digest is answered as Chrome 155 answers it**, with the
   credentials in the URL, as RFC 7616 has it: MD5 and SHA-256, each with its
   `-sess`, `qop=auth` or none, the opaque said back and a hashed username,
@@ -596,6 +599,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **A URL Chrome sends nothing for is refused before anything is sent**: one
+  on a port Chrome keeps away from, Chromium's restricted ports such as 22, 25
+  and 6000 (measured on 0 and 6000, and on 4190 and 6679, which Chrome sends
+  to though the Fetch standard blocks them), and a redirect to one fails the
+  request. So is a path with a percent sign that escapes nothing, such as
+  `/50%off`, which Chrome sends as it is and a `url.URL` would escape once
+  more. `fetch` says so of every entry of a list at once and exits 2. Tests
+  that took `http://127.0.0.1:1` for an address nobody answers at need
+  another: port 1 is one of those.
+- **`fetch` writes each URL as it was asked for**, as Chrome writes it, in its
+  lines, logs, traces and reports: `https://example.com` is
+  `https://example.com/`, and `HTTP://Example.COM:80/a/../b` is
+  `http://example.com/b`.
 - **Each hop of a redirect goes out on the connections of its own top-level
   site and credentials**, as Chrome 155 sends it
   (`testdata/chrome155-connections.json`): a navigation's or a form's hop to
@@ -868,6 +884,25 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A request goes out for its URL as Chrome writes it**, with a browser
+  context and without: the scheme and the host in lower case, a name in
+  another script in Punycode, an IPv4 address in any of its forms dotted and
+  decimal, an IPv6 one as the URL Standard writes it, no port the scheme
+  means, a slash for a backslash, dot segments resolved, what a path or a
+  query cannot hold percent-encoded and what is percent-encoded already left
+  as it is, and the spaces around it, any tab or newline in it and its
+  fragment dropped; each hop of a redirect is the URL Chrome makes of its
+  `Location`. The server name, `Host` and `:authority`, the request target,
+  the cookies, the origin, the connections, a Digest answer's `uri` and
+  `Response.URL` are all of that URL. tls-forge sent a URL as `url.Parse`
+  reads one: a host in capitals, a port the scheme means, dot segments and
+  an IPv4 address in another form went out as given, and a `Location` naming
+  another host and port without a scheme, after a plain http URL that named
+  no port, went out with the `Host` of the hop before. Measured on Chrome 155
+  over HTTP/2 and HTTP/1.1 (`testdata/chrome155-urls.json`, 50 URLs given to a
+  page and by a `Location`), and held to it through the transport, the server
+  name and `:path` included. `CookiesFor` and a browser context's `Initiator`
+  read a URL the same way.
 - **WINDOW_UPDATEs go as Chrome sends them while a body is read**, with a
   Chromium profile: what is read of a window is told once more than half of it
   is untold, 3 MiB of a stream's 6 MiB and 7.5 MiB of the connection's 15 MiB,
