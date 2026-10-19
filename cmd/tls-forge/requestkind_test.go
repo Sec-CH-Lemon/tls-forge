@@ -4,12 +4,15 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/cookie"
 )
 
 // seen is a server's record of the requests it was sent, method and headers.
@@ -113,6 +116,48 @@ func TestRequestKindSendsWhatChromeSendsForIt(t *testing.T) {
 	// Without the flag nothing is said of it, and the run goes as before.
 	if code, _, stderr := exec(t, "fetch", "--insecure", server.URL); code != 0 || strings.Contains(stderr, "sent as") {
 		t.Errorf("without --request-kind: exit code = %d\n%s", code, stderr)
+	}
+}
+
+func TestRequestKindKeepsNoCookieOfAnAnswerToARequestWithoutCredentials(t *testing.T) {
+	// fetch() of another site, credentials same-origin, carries none and keeps
+	// none of the cookies its answer sets, as Chrome's; from the page's own
+	// origin it carries them and keeps them.
+	server, _ := keepingServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Set-Cookie", strings.TrimPrefix(r.URL.Path, "/")+"=1; Path=/; Secure")
+	})
+	for _, tc := range []struct {
+		initiator, name string
+		kept            bool
+	}{
+		{"https://other.test/page", "across", false},
+		{server.URL + "/page", "same", true},
+	} {
+		saved := filepath.Join(t.TempDir(), "session.json")
+		code, _, stderr := exec(t, "fetch", "--insecure", "--profile", "chrome_155_macos", "--request-kind", "fetch",
+			"--initiator-url", tc.initiator, "--save-cookies", saved, server.URL+"/"+tc.name)
+		if code != 0 {
+			t.Fatalf("%s: exit code = %d\n%s", tc.name, code, stderr)
+		}
+		// A jar that holds nothing is written nowhere.
+		var names []string
+		if data, err := os.ReadFile(saved); err == nil {
+			file, err := cookie.Load(data)
+			if err != nil {
+				t.Fatalf("%s: %v", tc.name, err)
+			}
+			for _, set := range file.Sets {
+				for _, c := range set.Cookies {
+					names = append(names, c.Name)
+				}
+			}
+		} else if !os.IsNotExist(err) {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		if kept := slices.Contains(names, tc.name); kept != tc.kept || len(names) > 1 {
+			t.Errorf("%s: saved %v", tc.name, names)
+		}
 	}
 }
 

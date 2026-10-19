@@ -352,6 +352,43 @@ def test_the_real_go_daemon_reads_a_request_as_long_as_the_limit() -> None:
         thread.join(timeout=2)
 
 
+def test_the_real_go_daemon_keeps_no_cookie_of_an_answer_to_a_request_without_credentials() -> None:
+    # fetch() with credentials omit carries no cookies and keeps none its
+    # answer sets, as Chrome's; one with the page's own credentials keeps them.
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    class _Setting(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+            self.send_response(200)
+            self.send_header("Set-Cookie", f"{self.path[1:]}=1; Path=/")
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _Setting)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        page = f"{base}/page"
+        with Client(binary=binary) as client:
+            omitted = client.get(
+                f"{base}/omitted", browser_context={"kind": "fetch", "initiator": page, "credentials": "omit"}
+            )
+            assert omitted.cookies == ()
+            kept = client.get(f"{base}/kept", browser_context={"kind": "fetch", "initiator": page})
+            assert kept.cookies == ("kept=1",)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
 def test_the_real_go_daemon_applies_a_browser_context_cors_and_all() -> None:
     binary = os.environ.get("TLSFORGE_REAL_BIN")
     if not binary:

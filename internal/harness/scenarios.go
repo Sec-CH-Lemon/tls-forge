@@ -251,6 +251,17 @@ var catalogue = map[string]scenario{
 		script: "location.href='{U}/misdirected/{ID}?first=1&auth=1&authfirst=1';", wait: "/misdirected/{ID}", times: 3},
 	"nav-401-misdirected": {note: "location.href to a URL of the same origin with credentials, a page that answers 401 until it is sent them, and 421 the first time it is sent them",
 		script: "location.href='{U}/misdirected/{ID}?auth=1&authfirst=1';", wait: "/misdirected/{ID}", times: 3},
+	// Which answers' cookies are kept (?keep, ?pfkeep): a later request says.
+	"set-cookie-fetch-omit": {note: "fetch() with credentials omit whose answer sets a cookie, then fetch() of the same origin",
+		script: "fetch('{A}/p/{ID}?keep=omitted',{credentials:'omit'}).then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
+	"set-cookie-fetch-across-same-origin-creds": {note: "fetch() of another origin of the site, credentials same-origin, whose answer sets a cookie, then one with credentials include",
+		script: "fetch('{S}/cors/{ID}?keep=crossed').then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
+	"set-cookie-preflight": {note: "a preflight whose answer sets a cookie, between fetch() calls of another origin with credentials include",
+		script: "fetch('{S}/cors/{ID}-control?keep=control',{credentials:'include'}).then(()=>fetch('{S}/cors/{ID}?pfkeep=preflighted',{method:'POST',headers:{'X-Foo':'1'},body:'x',credentials:'include'})).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
+	"set-cookie-fetch-cors-refused": {note: "fetch() of another origin with credentials include whose answer, which CORS refuses, sets a cookie, then one CORS allows",
+		script: "fetch('{S}/cors/{ID}?keep=refused&noacao=1',{credentials:'include'}).catch(()=>0).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
+	"set-cookie-redir-across-same-origin-creds": {note: "fetch() of the same origin, credentials same-origin, 302 to another origin of the site, each answer setting a cookie, then fetch() of each origin",
+		script: "fetch('{A}/r/302/{ID}?keep=first&to={S}/cors/{ID}?keep=second').then(()=>fetch('{A}/p/{ID}-after')).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
 	"fetch-misdirected-cookie": {note: "fetch() of the same origin, answered 421 the first time with a cookie, then fetch() of the same origin",
 		script: "fetch('{A}/misdirected/{ID}?first=1&mcookie=1').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 

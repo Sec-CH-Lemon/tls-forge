@@ -80,6 +80,9 @@ type asSent struct {
 	redirected bool
 	// fails is what the page's request failed with, said in its error.
 	fails string
+	// corsRefused are the requests a page asked for, by their place among
+	// those it asked, whose answers CORS refused once they came.
+	corsRefused []int
 	// before is a URL navigated to first, typed, as the page the scenario ran
 	// in was, for the cookies it set and the client hints it asked for: what
 	// it is sent is no part of the scenario.
@@ -422,6 +425,18 @@ func init() {
 		"auth-nav-cross-site-samesite":    {browser: BrowserContext{Kind: KindNavigation, Initiator: run("auth-nav-cross-site-samesite")}, pages: []int{0, 2}, credentials: []string{"u:p", "u:p"}, cookies: setOnEveryKind("www.example.net")},
 		"nav-misdirected-401-misdirected": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("nav-misdirected-401-misdirected")}, pages: []int{0}, credentials: []string{"u:p"}},
 		"nav-401-misdirected":             {browser: BrowserContext{Kind: KindNavigation, Initiator: run("nav-401-misdirected")}, pages: []int{0}, credentials: []string{"u:p"}},
+		"set-cookie-preflight": {script: []string{"Content-Type", "X-Foo"}, each: []BrowserContext{
+			{Kind: KindFetch, Initiator: run("set-cookie-preflight"), Credentials: "include"},
+			{Kind: KindFetch, Initiator: run("set-cookie-preflight"), Credentials: "include"},
+			{Kind: KindFetch, Initiator: run("set-cookie-preflight"), Credentials: "include"}}},
+		"set-cookie-fetch-cors-refused": {corsRefused: []int{0}, each: []BrowserContext{
+			{Kind: KindFetch, Initiator: run("set-cookie-fetch-cors-refused"), Credentials: "include"},
+			{Kind: KindFetch, Initiator: run("set-cookie-fetch-cors-refused"), Credentials: "include"}}},
+		"set-cookie-redir-across-same-origin-creds": {pages: []int{0, 2, 3}, credentials: []string{"", "", ""},
+			each: []BrowserContext{
+				{Kind: KindFetch, Initiator: run("set-cookie-redir-across-same-origin-creds")},
+				{Kind: KindFetch, Initiator: run("set-cookie-redir-across-same-origin-creds")},
+				{Kind: KindFetch, Initiator: run("set-cookie-redir-across-same-origin-creds"), Credentials: "include"}}},
 		"fetch-misdirected-cookie": {each: []BrowserContext{{Kind: KindFetch, Initiator: run("fetch-misdirected-cookie")},
 			{Kind: KindFetch, Initiator: run("fetch-misdirected-cookie")}}, pages: []int{0, 2}, credentials: []string{"", ""}},
 	} {
@@ -439,6 +454,14 @@ func init() {
 // sentAfter are scenarios whose page made a first fetch() of another kind,
 // to set cookies, before the one measured: the context of each call.
 var sentAfter = map[string][]BrowserContext{
+	"set-cookie-fetch-omit": {
+		{Kind: KindFetch, Initiator: run("set-cookie-fetch-omit"), Credentials: "omit"},
+		{Kind: KindFetch, Initiator: run("set-cookie-fetch-omit")},
+	},
+	"set-cookie-fetch-across-same-origin-creds": {
+		{Kind: KindFetch, Initiator: run("set-cookie-fetch-across-same-origin-creds")},
+		{Kind: KindFetch, Initiator: run("set-cookie-fetch-across-same-origin-creds"), Credentials: "include"},
+	},
 	"fetch-get-cross-site-omit": {
 		{Kind: KindFetch, Initiator: run("fetch-get-cross-site-omit"), Credentials: "include"},
 		{Kind: KindFetch, Initiator: run("fetch-get-cross-site-omit"), Credentials: "omit"},
@@ -510,8 +533,10 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // 401 with a Basic challenge, after a Digest one for ?offer=digest, until the
 // request says u:p, then a redirect to ?to or a page; under /digest/ what the
 // bench answers (harness.DigestPage); under /misdirected/ what the bench
-// answers (harness.Misdirection), and otherwise what /cors/ answers; cookies,
-// two for ?cookie=1 and one of each SameSite for ?cookie=2; and for ?close,
+// answers (harness.Misdirection), and otherwise what /cors/ answers, CORS
+// refusing it for ?noacao; cookies, two for ?cookie=1 and one of each SameSite
+// for ?cookie=2, one named by ?keep on any answer but a preflight's and one
+// named by ?pfkeep on a preflight's; and for ?close,
 // the connection ended once answered, as Connection: close says (GOAWAY over
 // HTTP/2).
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
@@ -536,6 +561,13 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
+	}
+	keep := q.Get("keep")
+	if r.Method == http.MethodOptions {
+		keep = q.Get("pfkeep")
+	}
+	if keep != "" {
+		w.Header().Add("Set-Cookie", keep+"=1; Max-Age=3600; Path=/; SameSite=None; Secure")
 	}
 	if set := q.Get("cookie"); set != "" && r.Method != http.MethodOptions {
 		cookies := []string{"a=1; Max-Age=3600; Path=/", "b=2; Max-Age=3600; Path=/; SameSite=None; Secure",
@@ -600,7 +632,7 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "<!doctype html><title>page</title>")
 		return
 	}
-	if q.Get("deny") == "" {
+	if q.Get("deny") == "" && q.Get("noacao") == "" {
 		allow()
 	}
 	if r.Method == http.MethodOptions {
@@ -689,13 +721,19 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 			req.Cookies = how.cookies
 		}
 		for _, name := range how.script {
-			req.Header = append(req.Header, profile.Field{Name: name, Value: measured.header(name)})
+			if value := measured.header(name); value != "" {
+				req.Header = append(req.Header, profile.Field{Name: name, Value: value})
+			}
 		}
 		if how.form && measured.header("content-type") != "" {
 			req.Header = append(req.Header, profile.Field{Name: "content-type", Value: measured.header("content-type")})
 		}
 		_, err := client.Do(req)
 		switch {
+		case slices.Contains(how.corsRefused, i):
+			if !errors.Is(err, ErrCORS) {
+				t.Fatalf("request %d: CORS let it through: %v", i+1, err)
+			}
 		case how.refused != nil && i == len(asked)-1:
 			if !errors.Is(err, ErrCORS) {
 				t.Fatalf("CORS let it through: %v", err)

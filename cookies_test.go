@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -323,5 +324,45 @@ func TestWithoutCookieJarIgnoresCookiesItIsHanded(t *testing.T) {
 	}
 	if got := string(res.Body); got != "" {
 		t.Errorf("a jarless client sent %q", got)
+	}
+}
+
+func TestAnAnswerToARequestWithoutCredentialsKeepsNoCookie(t *testing.T) {
+	// Whatever it is answered, a 401 too, and whichever client of the session
+	// sends it: a request that carries no credentials keeps none of the
+	// cookies its answer sets, as Chrome's, and one that carries them keeps
+	// them for every client of the session.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Set-Cookie", strings.Trim(r.URL.Path, "/")+"=1; Path=/")
+		if r.URL.Query().Has("challenge") {
+			w.Header().Set("WWW-Authenticate", `Basic realm="r"`)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	}))
+	t.Cleanup(server.Close)
+	client := newTestClient(t)
+	fresh, err := client.Fresh()
+	if err != nil {
+		t.Fatalf("Fresh: %v", err)
+	}
+	t.Cleanup(func() { _ = fresh.Close() })
+	page := server.URL + "/page"
+	omit := &BrowserContext{Kind: KindFetch, Initiator: page, Credentials: "omit"}
+	for _, req := range []*Request{
+		{URL: server.URL + "/omitted", Browser: omit},
+		{URL: server.URL + "/challenged?challenge", Browser: omit},
+	} {
+		for _, c := range []*Client{client, fresh} {
+			if res, err := c.Do(req); err != nil || len(res.Cookies) != 0 {
+				t.Errorf("%s: %v, %v", req.URL, res, err)
+			}
+		}
+	}
+	if res, err := fresh.Do(&Request{URL: server.URL + "/kept", Browser: &BrowserContext{Kind: KindFetch,
+		Initiator: page}}); err != nil || !slices.Equal(res.Cookies, []string{"kept=1"}) {
+		t.Fatalf("with credentials: %v, %v", res, err)
+	}
+	if held, err := client.CookiesFor(server.URL + "/"); err != nil || len(held) != 1 || held[0].Name != "kept" {
+		t.Errorf("the session holds %+v, %v", held, err)
 	}
 }

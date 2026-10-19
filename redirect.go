@@ -114,10 +114,17 @@ func (ch *chain) in(ctx context.Context) context.Context {
 	return http2.WithCoalescing(ctx, !ch.resent)
 }
 
-// keeps reports whether the jar keeps the cookies res sets: not those of a
-// 421 its hop is sent again for, which Chrome's network stack never hands
-// over.
+// keeps reports whether the jar keeps the cookies res sets: not those of the
+// answer to a hop that carries no credentials (credentials omit, or
+// same-origin once the hop has left the page's origin), which Chrome neither
+// sends cookies with nor keeps any from, the answer to a redirect too; nor
+// those of a 421 its hop is sent again for, which Chrome's network stack
+// never hands over. An answer CORS refuses keeps its cookies, as Chrome's
+// network stack keeps them before the page is refused the answer.
 func (ch *chain) keeps(res *fhttp.Response) bool {
+	if ch.browser != nil && ch.browser.cookies(ch.last).none {
+		return false
+	}
 	return res.StatusCode != fhttp.StatusMisdirectedRequest || ch.resent
 }
 

@@ -884,6 +884,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The cookies an answer sets are kept as Chrome keeps them**, with a browser
+  context: none of those of the answer to a request that carries none
+  (credentials `omit`, or `same-origin` to another origin, each hop of a
+  redirect by its own), and none of a preflight's. tls-forge kept every
+  cookie every answer set, so a later request carried what Chrome's would
+  not. An answer CORS refuses keeps its cookies, as Chrome's does. Measured
+  on Chrome 155 (the five `set-cookie-*` scenarios of
+  `testdata/chrome155-requests.json`) and held to it request for request.
 - **A request goes out for its URL as Chrome writes it**, with a browser
   context and without: the scheme and the host in lower case, a name in
   another script in Punycode, an IPv4 address in any of its forms dotted and

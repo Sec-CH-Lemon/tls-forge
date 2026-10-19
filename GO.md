@@ -332,6 +332,12 @@ credentials `omit`, or under `same-origin` to another origin and, once a
 redirect has taken them to one, back at the page's own. To its own site a
 request carries every cookie the jar holds for it.
 
+The cookies an answer sets are kept as Chrome keeps them: none of those of
+the answer to a request that carries none (credentials `omit`, or
+`same-origin` to another origin, each hop of a redirect by its own), and none
+of a preflight's. An answer CORS refuses keeps its cookies, as Chrome's
+network stack keeps them before the page is refused the answer.
+
 A request CORS answers, `fetch()` or an XHR in `cors` mode to another origin,
 goes as Chrome sends it. One with a method or a header CORS asks about goes
 after a preflight, an `OPTIONS` that asks whether it may, with Chrome's

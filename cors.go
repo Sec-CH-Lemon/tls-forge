@@ -281,8 +281,11 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	target := shown.String()
 	u := *inner.URL
 	var conn net.Conn
+	// A preflight carries no credentials, and keeps none of the cookies its
+	// answer sets, as Chrome's.
+	asked := fhttp.WithResponseCookies(context.WithValue(base, preflightContextKey{}, true), keepsNone)
 	ask := (&fhttp.Request{Method: fhttp.MethodOptions, URL: &u, Host: inner.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
-		ProtoMinor: 1}).WithContext(keepingConn(context.WithValue(base, preflightContextKey{}, true), &conn))
+		ProtoMinor: 1}).WithContext(keepingConn(asked, &conn))
 	ask = c.browserLayouts(r.preflightHeader(h, c.headers), nil, preflightOrder, shown.Host).wear(ask)
 	withPort(ask)
 	if c.session.jar != nil {
@@ -317,6 +320,9 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	c.session.preflights.keep(r, h, target, allowed)
 	return nil
 }
+
+// keepsNone keeps none of the cookies an answer sets.
+func keepsNone(*fhttp.Response) bool { return false }
 
 // maxDrain is how much of a preflight's body is read so that its connection
 // can carry the request: a preflight's answer has none worth keeping.

@@ -237,6 +237,30 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
   }
 });
 
+test('the real Go daemon keeps no cookie of an answer to a request without credentials', { skip: !binary }, async () => {
+  // fetch() with credentials omit carries no cookies and keeps none its
+  // answer sets, as Chrome's; one with the page's own credentials keeps them.
+  const server = http.createServer((request, response) => {
+    response.setHeader('Set-Cookie', `${request.url.slice(1)}=1; Path=/`);
+    response.end('ok');
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const client = new Client({ binary });
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const from = `${base}/page`;
+    const omitted = await client.get(`${base}/omitted`, {
+      browserContext: { kind: 'fetch', initiator: from, credentials: 'omit' },
+    });
+    assert.deepEqual(omitted.cookies, []);
+    const kept = await client.get(`${base}/kept`, { browserContext: { kind: 'fetch', initiator: from } });
+    assert.deepEqual(kept.cookies, ['kept=1']);
+  } finally {
+    client.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('the real Go daemon applies a browser context, CORS and all', { skip: !binary }, async () => {
   // Two servers, two origins: the page's, and another one CORS answers for.
   const serve = (answer) => {

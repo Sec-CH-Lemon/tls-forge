@@ -66,7 +66,10 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 //   - anything else is a page, which goes on to ?next by a refresh, ?after
 //     seconds after it has loaded.
 //
-// ?cookie sets cookies, but on a preflight.
+// ?cookie sets cookies, but on a preflight. ?keep=NAME sets a cookie of that
+// name on any answer but a preflight's, and ?pfkeep=NAME on a preflight's
+// alone: what a later request carries says which answers' cookies a browser
+// kept. Under /cors/, ?noacao is an answer CORS refuses.
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	q, path := r.URL.Query(), r.URL.Path
 	if q.Has("accept") {
@@ -77,6 +80,13 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.Has("close") {
 		w.Header().Set("Connection", "close")
+	}
+	keep := q.Get("keep")
+	if r.Method == http.MethodOptions {
+		keep = q.Get("pfkeep")
+	}
+	if keep != "" {
+		w.Header().Add("Set-Cookie", keep+"=1; Max-Age=3600; Path=/; SameSite=None; Secure")
 	}
 	if strings.HasPrefix(path, "/misdirected/") && s.misdirection.Answers(w, r, servedNameOf(r)) {
 		return
@@ -121,7 +131,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			preflighted(w, r, q.Get("maxage"))
 			return
 		}
-		allow(w, r)
+		if q.Get("noacao") == "" {
+			allow(w, r)
+		}
 		setCookies(w, r)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
