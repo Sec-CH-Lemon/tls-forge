@@ -554,7 +554,10 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 	if h.origin != "" {
 		values["origin"] = h.origin
 	}
-	if script && r.credentials == credentialsAll && values["sec-fetch-site"] == "cross-site" {
+	if script && r.credentials == credentialsAll && relation(r.from, to) == "cross-site" {
+		// A script's credentialed request to another site than its page's
+		// says so; one a redirect took through another site back to the
+		// page's does not, though Sec-Fetch-Site says cross-site.
 		values["sec-fetch-storage-access"] = "active"
 	}
 	for _, hint := range h.hints {

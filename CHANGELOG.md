@@ -884,6 +884,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **`Sec-Fetch-Storage-Access` goes as Chrome sends it**: on a script's
+  request with credentials to another site than its page's. A redirect that
+  takes one through another site back to its page's site sends none, though
+  `Sec-Fetch-Site` says cross-site; tls-forge sent it there. Measured on
+  Chrome 155 (`set-cookie-samesite-fetch-redirect-back`).
 - **The cookies an answer sets are kept as Chrome keeps them**, with a browser
   context: none of those of the answer to a request that carries none
   (credentials `omit`, or `same-origin` to another origin, each hop of a

@@ -262,6 +262,10 @@ var catalogue = map[string]scenario{
 		script: "fetch('{S}/cors/{ID}?keep=refused&noacao=1',{credentials:'include'}).catch(()=>0).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
 	"set-cookie-redir-across-same-origin-creds": {note: "fetch() of the same origin, credentials same-origin, 302 to another origin of the site, each answer setting a cookie, then fetch() of each origin",
 		script: "fetch('{A}/r/302/{ID}?keep=first&to={S}/cors/{ID}?keep=second').then(()=>fetch('{A}/p/{ID}-after')).then(()=>fetch('{S}/cors/{ID}-after',{credentials:'include'})).then(done);"},
+	// Which of a cookie of each SameSite (?cookie=2) an answer sets is kept:
+	// a later request to the origin from a page of its own says.
+	"set-cookie-samesite-fetch-redirect-back": {note: "fetch() of another site with credentials include, 302 back to the page's origin whose answer sets a cookie of each SameSite, then fetch() of the page's origin",
+		script: "fetch('{X}/r/302/{ID}?to={A}/cors/{ID}?cookie=2',{credentials:'include'}).then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 	"fetch-misdirected-cookie": {note: "fetch() of the same origin, answered 421 the first time with a cookie, then fetch() of the same origin",
 		script: "fetch('{A}/misdirected/{ID}?first=1&mcookie=1').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 

@@ -425,6 +425,9 @@ func init() {
 		"auth-nav-cross-site-samesite":    {browser: BrowserContext{Kind: KindNavigation, Initiator: run("auth-nav-cross-site-samesite")}, pages: []int{0, 2}, credentials: []string{"u:p", "u:p"}, cookies: setOnEveryKind("www.example.net")},
 		"nav-misdirected-401-misdirected": {browser: BrowserContext{Kind: KindNavigation, Initiator: run("nav-misdirected-401-misdirected")}, pages: []int{0}, credentials: []string{"u:p"}},
 		"nav-401-misdirected":             {browser: BrowserContext{Kind: KindNavigation, Initiator: run("nav-401-misdirected")}, pages: []int{0}, credentials: []string{"u:p"}},
+		"set-cookie-samesite-fetch-redirect-back": {pages: []int{0, 2}, credentials: []string{"", ""}, each: []BrowserContext{
+			{Kind: KindFetch, Initiator: run("set-cookie-samesite-fetch-redirect-back"), Credentials: "include"},
+			{Kind: KindFetch, Initiator: run("set-cookie-samesite-fetch-redirect-back")}}},
 		"set-cookie-preflight": {script: []string{"Content-Type", "X-Foo"}, each: []BrowserContext{
 			{Kind: KindFetch, Initiator: run("set-cookie-preflight"), Credentials: "include"},
 			{Kind: KindFetch, Initiator: run("set-cookie-preflight"), Credentials: "include"},
