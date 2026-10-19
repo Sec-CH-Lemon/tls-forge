@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/cryptobyte"
 )
@@ -494,11 +495,18 @@ func clientSettings(body []byte) (string, error) {
 	return settings, nil
 }
 
+// alpsLinger is how long a connection the server is done with waits for its
+// client to end it.
+const alpsLinger = time.Second
+
 // alpsConn is the application data of a connection the bench's ALPS server
 // shook hands on, in records of TLS 1.3 sealed with its traffic keys. What the
-// client sends is read as it comes, before anything asks for it: a client
-// that ends a connection at once, as Chrome does after a GOAWAY, may reset it
-// and lose what was not read yet.
+// client sends is read as it comes, before anything asks for it, and once the
+// server is done with the connection too, until the client ends it: a client
+// that ends a connection at once, as Chrome and tls-forge do after a GOAWAY,
+// resets it, and Go's HTTP/2 server closes a connection as soon as a write to
+// it fails, which one meeting the reset does, while the GOAWAY may not have
+// been read yet.
 type alpsConn struct {
 	net.Conn
 	in, out *recordCipher
@@ -507,10 +515,15 @@ type alpsConn struct {
 	came    *sync.Cond
 	pending []byte
 	err     error
+	// closed says the server is done with the connection, and ended that the
+	// client is: the connection ends once both are, or linger after the
+	// server was done.
+	closed, ended bool
+	linger        time.Duration
 }
 
 func newALPSConn(raw net.Conn, in, out *recordCipher) *alpsConn {
-	c := &alpsConn{Conn: raw, in: in, out: out}
+	c := &alpsConn{Conn: raw, in: in, out: out, linger: alpsLinger}
 	c.came = sync.NewCond(&c.mu)
 	go c.pump()
 	return c
@@ -521,13 +534,34 @@ func (c *alpsConn) pump() {
 	for {
 		data, err := c.next()
 		c.mu.Lock()
-		c.pending, c.err = append(c.pending, data...), err
+		c.pending, c.err, c.ended = append(c.pending, data...), err, err != nil
+		closed := c.closed
 		c.came.Broadcast()
 		c.mu.Unlock()
 		if err != nil {
+			if closed {
+				_ = c.Conn.Close()
+			}
 			return
 		}
 	}
+}
+
+// Close says the server is done with the connection: it writes nothing more,
+// and what the client sent is read on until the client ends it, or for
+// linger.
+func (c *alpsConn) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return nil
+	}
+	c.closed = true
+	if c.ended {
+		return c.Conn.Close()
+	}
+	time.AfterFunc(c.linger, func() { _ = c.Conn.Close() })
+	return nil
 }
 
 // next is what the client's next record carried: application data, or why
@@ -566,6 +600,12 @@ func (c *alpsConn) Read(p []byte) (int, error) {
 func (c *alpsConn) Write(p []byte) (int, error) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
+	c.mu.Lock()
+	closed := c.closed
+	c.mu.Unlock()
+	if closed {
+		return 0, net.ErrClosed
+	}
 	var out []byte
 	for rest := p; len(rest) > 0; rest = rest[min(len(rest), maxRecord):] {
 		out = append(out, c.out.seal(recordApplication, rest[:min(len(rest), maxRecord)])...)

@@ -953,6 +953,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench keeps the GOAWAY a client sends as it hangs up**: a client that
+  ends a connection right after its GOAWAY, as Chrome and tls-forge do when a
+  server's ALPS does not read, resets it, and Go's HTTP/2 server, whose next
+  write met the reset, closed the connection, now and then before the bench
+  had read the GOAWAY: `measure --alps` and the ALPS replay then said none was
+  sent (2 runs of 20 of the replay on three platforms). The bench's ALPS
+  server now reads on until the client has ended the connection, or for a
+  second after the server is done with it.
+
 - **The bench's `measure` and the pinned gate run Chrome on Windows and on a
   hosted runner**: both asked the browser `--version`, which `chrome.exe`
   takes as a page to open, so they waited on a browser for good; on Windows

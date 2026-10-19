@@ -10,6 +10,7 @@ import (
 	"hash"
 	"io"
 	"net"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -572,5 +573,125 @@ func TestAnALPSConnectionReadsWhatComesAsItComes(t *testing.T) {
 	_ = c.conn.Close()
 	if _, err := h.conn.Write([]byte("x")); err == nil {
 		t.Error("written to a closed connection")
+	}
+}
+
+// loopback is both ends of a TCP connection over the loopback address: what a
+// kernel does with what one end sent once the other is closed is what the
+// tests of a connection the server is done with are about, and net.Pipe
+// keeps nothing of its own.
+func loopback(t *testing.T) (server, client net.Conn) {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Listen: %v", err)
+	}
+	defer func() { _ = ln.Close() }()
+	if client, err = net.Dial("tcp", ln.Addr().String()); err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	if server, err = ln.Accept(); err != nil {
+		t.Fatalf("Accept: %v", err)
+	}
+	t.Cleanup(func() { _ = server.Close(); _ = client.Close() })
+	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
+	return server, client
+}
+
+// pumped is the bench's ALPS connection over raw, waiting linger for its
+// client to end it once the server is done with it, and what the client
+// seals its records with.
+func pumped(raw net.Conn, linger time.Duration) (*alpsConn, *recordCipher) {
+	secret := bytes.Repeat([]byte{7}, 32)
+	c := newALPSConn(raw, newRecordCipher(secret), newRecordCipher(bytes.Repeat([]byte{8}, 32)))
+	c.mu.Lock()
+	c.linger = linger
+	c.mu.Unlock()
+	return c, newRecordCipher(secret)
+}
+
+// closeNotify is the alert a client ends a connection with.
+var closeNotify = []byte{1, 0}
+
+func TestWhatAClientSentIsReadOnceTheServerIsDoneWithItsConnection(t *testing.T) {
+	// Go's HTTP/2 server closes a connection once a write to it fails, as one
+	// does when the client reset it after its GOAWAY: the GOAWAY, on its way
+	// or not read yet, is read all the same, and the connection ends as soon
+	// as the client has ended it.
+	raw, client := loopback(t)
+	conn, sealer := pumped(raw, time.Minute)
+	settings := []byte("SETTINGS")
+	if _, err := client.Write(sealer.seal(recordApplication, settings)); err != nil {
+		t.Fatalf("the client's write: %v", err)
+	}
+	if got, err := io.ReadAll(io.LimitReader(conn, int64(len(settings)))); err != nil || !bytes.Equal(got, settings) {
+		t.Fatalf("read %q, %v", got, err)
+	}
+	if err := conn.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if err := conn.Close(); err != nil {
+		t.Errorf("Close again: %v", err)
+	}
+	if _, err := conn.Write([]byte("more")); !errors.Is(err, net.ErrClosed) {
+		t.Errorf("a write once the server is done: %v", err)
+	}
+	goAway := []byte("a GOAWAY")
+	if _, err := client.Write(append(sealer.seal(recordApplication, goAway), sealer.seal(recordAlert, closeNotify)...)); err != nil {
+		t.Fatalf("the client's write: %v", err)
+	}
+	if got, err := io.ReadAll(conn); err != nil || !bytes.Equal(got, goAway) {
+		t.Errorf("read %q, %v", got, err)
+	}
+	if _, err := client.Read(make([]byte, 1)); err != io.EOF {
+		t.Errorf("the client's read once it ended the connection: %v", err)
+	}
+}
+
+func TestAClientThatDoesNotEndItsConnectionIsHungUpOn(t *testing.T) {
+	// The server done with it, a connection whose client says nothing more
+	// ends after the linger.
+	raw, client := loopback(t)
+	conn, _ := pumped(raw, 20*time.Millisecond)
+	if err := conn.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	_ = client.SetReadDeadline(time.Now().Add(alpsLinger / 2))
+	if _, err := client.Read(make([]byte, 1)); err != io.EOF {
+		t.Errorf("the client's read: %v", err)
+	}
+	if _, err := conn.Read(make([]byte, 1)); err == nil || err == io.EOF {
+		t.Errorf("the server's read: %v", err)
+	}
+}
+
+func TestAConnectionItsClientEndedEndsWhenTheServerIsDoneWithIt(t *testing.T) {
+	// Not before: the server may write to the client still.
+	raw, client := loopback(t)
+	conn, sealer := pumped(raw, time.Minute)
+	if _, err := client.Write(sealer.seal(recordAlert, closeNotify)); err != nil {
+		t.Fatalf("the client's write: %v", err)
+	}
+	if _, err := conn.Read(make([]byte, 1)); err != io.EOF {
+		t.Fatalf("the server's read: %v", err)
+	}
+	_ = client.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
+	if _, err := client.Read(make([]byte, 1)); !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Errorf("the client's read before the server was done: %v", err)
+	}
+	if _, err := conn.Write([]byte("last")); err != nil {
+		t.Errorf("the server's write: %v", err)
+	}
+	for range 2 {
+		if err := conn.Close(); err != nil {
+			t.Errorf("Close: %v", err)
+		}
+	}
+	_ = client.SetReadDeadline(time.Now().Add(10 * time.Second))
+	if _, _, err := readRecord(client); err != nil {
+		t.Errorf("the server's last record: %v", err)
+	}
+	if _, err := client.Read(make([]byte, 1)); err != io.EOF {
+		t.Errorf("then: %v", err)
 	}
 }
