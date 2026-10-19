@@ -1512,7 +1512,7 @@ func TestSaveProfileRejectsAResumedCapture(t *testing.T) {
 	measured := &capture.Capture{RawClientHello: raw}
 	measured.TLS.Resumed = true
 
-	if _, _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured, true); err == nil {
+	if _, _, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_151", measured, true, nil); err == nil {
 		t.Error("expected a resumed capture to be refused")
 	}
 }

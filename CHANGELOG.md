@@ -367,6 +367,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   connection is dialed for a request, an HTTP/2 one that later requests go
   out on too, and its lookup and dial are that request's. Proxy passwords,
   cookie values and credentials are `***`.
+- `capture` lists what a profile keeps of the machine it was captured on,
+  which every request with it says: `accept-language`, and the client hints of
+  the system's version, the processor, the model and the form; `--set
+  NAME=VALUE` (with `--save` or `--install`, repeatable) changes one, given as
+  its header carries it and checked before anything is measured. A hint the
+  browser does not send is not given one, and nothing is kept.
 - `capture --manual` measures a browser tls-forge cannot launch — Firefox,
   Safari, a phone's — which the person using it opens the page in:
   `--addr 0.0.0.0:8443 --host <name>` lets in a phone on the network, by a

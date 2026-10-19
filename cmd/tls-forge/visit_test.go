@@ -229,8 +229,8 @@ func TestCaptureManualKeepsNoProfileUnderAShippedName(t *testing.T) {
 		t.Fatalf("MeasureSelf: %v", err)
 	}
 	measured.Navigator = &capture.Navigator{UserAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/155.0.0.0 Mobile Safari/537.36"}
-	if name, _, err := saveProfile(t.TempDir(), "chrome_155", measured, false); err != nil || name != "chrome_155_android" {
-		t.Errorf("a phone's: %q, %v", name, err)
+	if saved, _, err := saveProfile(t.TempDir(), "chrome_155", measured, false, nil); err != nil || saved.Name != "chrome_155_android" {
+		t.Errorf("a phone's: %+v, %v", saved, err)
 	}
 	if !profile.Ships(version+"_"+platform) || profile.Ships("chrome_155_android") || profile.Ships("brave_155_"+platform) {
 		t.Error("Ships says otherwise")
@@ -442,10 +442,10 @@ func TestAProfileIsFiledUnderTheBrowsersPlatform(t *testing.T) {
 	} {
 		measured.Navigator = &capture.Navigator{UserAgent: tc.ua}
 		dir := t.TempDir()
-		name, path, err := saveProfile(dir, "chrome_155", measured, true)
-		if err != nil || name != "chrome_155_"+tc.platform ||
+		saved, path, err := saveProfile(dir, "chrome_155", measured, true, nil)
+		if err != nil || saved.Name != "chrome_155_"+tc.platform ||
 			path != filepath.Join(dir, "chrome_155", tc.platform+".json") {
-			t.Errorf("%s: saved %q at %s: %v", tc.platform, name, path, err)
+			t.Errorf("%s: saved %+v at %s: %v", tc.platform, saved, path, err)
 		}
 	}
 }
@@ -528,7 +528,7 @@ func TestAProfileNotesWhatItCannotSay(t *testing.T) {
 	}
 	measured.Connections[4] = withRawExtension(t, measured.RawClientHello, 42)
 	measured.ResumedClientHello = withRawExtension(t, measured.RawClientHello, 42)
-	_, path, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_155", measured, true)
+	_, path, err := saveProfile(filepath.Join(t.TempDir(), "p.json"), "chrome_155", measured, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

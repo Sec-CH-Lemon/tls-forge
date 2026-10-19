@@ -35,6 +35,9 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		"how long to wait for the browser; with --manual, ten minutes unless given")
 	browserArgs := browserArgFlag(fs)
 	visits := addVisitFlags(fs)
+	sets := fs.StringArray("set", nil,
+		"with --save or --install, a value the profile keeps of this machine, NAME=VALUE as its header carries it; "+
+			"again for more")
 	if err := parse(fs, args); err != nil {
 		return err
 	}
@@ -43,6 +46,13 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	if err := visits.check(fs); err != nil {
 		return err
+	}
+	settings, err := settingsOf(*sets)
+	if err != nil {
+		return err
+	}
+	if len(settings) > 0 && *save == "" && !*install {
+		return fmt.Errorf("%w: --set changes the profile kept: give --save or --install", errUsage)
 	}
 	if *visits.manual && (*save != "" || *install) {
 		if err := visits.namedHost(); err != nil {
@@ -53,7 +63,6 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	// To stderr: --json makes standard output a document, and a line of
 	// commentary in front of it is a document that will not parse.
 	var measured *capture.Capture
-	var err error
 	if *visits.manual {
 		measured, err = measureVisitor(ctx, visits, visits.waitFor(fs, *timeout), errOut)
 	} else {
@@ -110,13 +119,19 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	// One kept under the name of a profile tls-forge ships would answer for it
 	// from then on, the directory being read first: only when asked by name.
-	saved, path, err := saveProfile(where, profileName, measured, !*install || *name != "")
+	saved, path, err := saveProfile(where, profileName, measured, !*install || *name != "", settings)
 	if err != nil {
 		return err
 	}
-	out.printf("\nwrote profile %q to %s\n", saved, path)
+	out.printf("\nwrote profile %q to %s\n", saved.Name, path)
+	if kept := machineValues(saved); len(kept) > 0 {
+		out.println("kept of the machine it was captured on, which every request with it says (--set NAME=VALUE changes one):")
+		for _, field := range kept {
+			out.printf("  %-28s %s\n", field[0], field[1])
+		}
+	}
 	if *install {
-		out.printf("use it with:  tls-forge fetch --profile %s <url>\n", shellQuote(saved))
+		out.printf("use it with:  tls-forge fetch --profile %s <url>\n", shellQuote(saved.Name))
 	}
 	return nil
 }
@@ -145,10 +160,14 @@ func browserArgFlag(fs *pflag.FlagSet) *[]string {
 // --profile will find it by. Naming a captured Chrome 151 anything other than
 // chrome_151 is how a machine ends up with a profile nobody can guess the name
 // of.
-func saveProfile(where, name string, measured *capture.Capture, mayShadow bool) (profileName, path string, err error) {
+func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
+	settings []setting) (saved *profile.Profile, path string, err error) {
 	built, err := profile.FromCapture(name, measured)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
+	}
+	if err := applySettings(built, settings); err != nil {
+		return nil, "", err
 	}
 	built.Notes = fmt.Sprintf("captured %s from %s", now().UTC().Format(time.RFC3339), built.UserAgent)
 	// What the measurement saw that a profile cannot say, said beside it.
@@ -174,12 +193,12 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool) 
 			platform = profile.HostPlatform()
 		}
 		if !mayShadow && profile.Ships(version+"_"+platform) {
-			return "", "", fmt.Errorf("capture: %s_%s is a profile tls-forge ships, and one kept under its name "+
+			return nil, "", fmt.Errorf("capture: %s_%s is a profile tls-forge ships, and one kept under its name "+
 				"would answer for it from now on: give this one a name of its own with --name, or write it out "+
 				"with --save", version, platform)
 		}
 		if err := os.MkdirAll(filepath.Join(where, version), 0o755); err != nil {
-			return "", "", err
+			return nil, "", err
 		}
 		built.Name = version + "_" + platform
 		path = filepath.Join(where, version, platform+".json")
@@ -190,9 +209,9 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool) 
 		err = atomicfile.Write(path, data, 0o644)
 	}
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
-	return built.Name, path, nil
+	return built, path, nil
 }
 
 // mark is the star against a profile kept on this machine.

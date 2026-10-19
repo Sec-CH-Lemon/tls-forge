@@ -1442,6 +1442,7 @@ Usage: `tls-forge capture [flags]`
 | `--headless` | Run without a window; TLS/HTTP structure remains useful for drift checks, but Chrome may expose `HeadlessChrome` and therefore differ in header values from a headed profile |
 | `-s`, `--save <path>` | Save a profile; an existing directory gets `<name>/<platform>.json` |
 | `--install` | Save into the user profile directory so `--profile local` can find it |
+| `--set <NAME=VALUE>` | With `--save` or `--install`, a value the profile keeps of this machine, as its header carries it: `accept-language`, or a client hint of the machine's (`sec-ch-ua-platform-version`, `-arch`, `-bitness`, `-model`, `-wow64`, `-form-factors`); repeatable |
 | `-n`, `--name <name>` | Override the profile name; otherwise derive it from the browser version |
 | `-j`, `--json` | Print the raw capture instead of a human summary |
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
@@ -1449,6 +1450,15 @@ Usage: `tls-forge capture [flags]`
 | `--manual` | Wait for a browser you open the page in yourself, rather than launching one; `--timeout` is then ten minutes unless given |
 | `--addr <host:port>` | With `--manual`, where to listen; default `127.0.0.1:0`. `0.0.0.0:8443` lets in a phone on this network |
 | `--host <name>` | With `--manual`, the name the page is opened at, which its certificate is made for; default `localhost`. Not an address when a profile is kept: a browser names no server (SNI) to an address |
+
+A profile keeps some of the machine it was captured on, which every request
+with it says: the languages of the browser's person (`accept-language`), and,
+for a Chromium browser, the client hints a server can ask for of the system's
+version, the processor, the model and the form. `capture` lists them after it
+saves a profile, and `--set` changes one, given as its header carries it:
+`--set 'accept-language=de-DE,de;q=0.9' --set 'sec-ch-ua-platform-version="15.7.4"'`.
+A hint the browser does not send, as Firefox and Safari send none, is not
+given one: the profile is not kept.
 
 Installed profiles live below the operating system's user configuration
 directory. Set `TLSFORGE_PROFILES` to choose another directory. Running
