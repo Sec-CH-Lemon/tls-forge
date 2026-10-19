@@ -861,6 +861,10 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 			if merged, want := built.GetMaxMergedHeadAndBody(), map[bool]int{true: 1400}[tc.chrome]; merged != want {
 				t.Errorf("an HTTP/1.1 head and body merged up to %d bytes, want %d", merged, want)
 			}
+			// And waits for a stream on a connection it holds, as Chrome does.
+			if strict := built.GetStrictMaxConcurrentStreams(); strict != tc.chrome {
+				t.Errorf("waits for a stream: %v", strict)
+			}
 			if of == nil {
 				return
 			}

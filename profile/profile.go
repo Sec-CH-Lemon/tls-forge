@@ -476,9 +476,10 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 // chromeTransport is built, when p is a Chromium browser's, writing headers
 // into HPACK as Chromium's encoder does, against a table as large as a server
 // allows, in frames and TLS records as large as Chromium's, writing an
-// HTTP/1.1 request as Chromium writes one, and telling a server of the window
-// its reader frees as Chromium's network stack does; as the transport does
-// otherwise.
+// HTTP/1.1 request as Chromium writes one, telling a server of the window its
+// reader frees as Chromium's network stack does, and waiting for a stream on
+// a connection it holds once a server's MAX_CONCURRENT_STREAMS are in use, as
+// Chromium waits; as the transport does otherwise.
 func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientProfile {
 	if !p.chromium() {
 		return built
@@ -489,7 +490,8 @@ func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientP
 		WithMaxDataFramePayload(chromeDataFramePayload).
 		WithDynamicRecordSizingDisabled(true).
 		WithMaxMergedHeadAndBody(chromeMergedHeadAndBody).
-		WithWindowUpdateDelay(chromeWindowUpdateDelay)
+		WithWindowUpdateDelay(chromeWindowUpdateDelay).
+		WithStrictMaxConcurrentStreams(true)
 }
 
 // chromeMergedHeadAndBody is how many bytes an HTTP/1.1 request's head and a

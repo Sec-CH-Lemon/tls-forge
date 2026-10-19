@@ -889,6 +889,23 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **What a server gives in ALPS is taken as Chrome takes it**: its HTTP/2
+  frames are read before the connection's first request as Chrome 155 reads
+  them, a SETTINGS frame's settings taken (a header table opens the first
+  request's block with a size update), and a window past 2^31-1,
+  `ENABLE_PUSH`, `MAX_FRAME_SIZE` and `MAX_HEADER_LIST_SIZE` passed over;
+  ALPS Chrome refuses (a frame that does not read as its type may, a frame
+  ALPS may not carry, a SETTINGS acknowledgement, a frame cut short, an
+  `ACCEPT_CH` frame on a stream or with flags, `ENABLE_CONNECT_PROTOCOL` or
+  `NO_RFC7540_PRIORITIES` past 1) ends the connection with Chrome's GOAWAY,
+  `Error parsing ALPS: N` or Chrome's own words, and the request fails, tried
+  on no other connection. Measured on Chrome 155 (the 73 scenarios of
+  `testdata/chrome155-alps.json`) and held to it, through tls-forge's fork
+  of fhttp. Until now the transport passed over whatever ALPS held.
+- **A Chromium profile's request waits for a stream**, as Chrome's does,
+  when the server's are all in use, on the connection it would have gone out
+  on, where the transport opened another connection; through tls-forge's
+  fork of tls-client (`ClientProfile.WithStrictMaxConcurrentStreams`).
 - **A page's request carries the client hints its connection's ALPS asks
   for, as Chrome's does**: a navigation, a form and each hop of a redirect in
   a browser context, over a connection whose server gave an `ACCEPT_CH` frame

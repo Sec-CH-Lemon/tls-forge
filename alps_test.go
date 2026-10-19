@@ -59,36 +59,9 @@ func alpsAskedOf(scenario string) alpsPage {
 
 // alpsDiffer are the scenarios of testdata/chrome155-alps.json tls-forge does
 // not make of the bench's ALPS server what Chrome did, and why, the flight of
-// its handshake aside (flightApart), and those whose ALPS Chrome refused
-// (differs).
-var alpsDiffer = map[string]string{
-	"alps-settings":       alpsSettingsApart,
-	"alps-settings-flags": alpsSettingsApart,
-}
-
-const (
-	// alpsSettingsApart is why the first request of a connection whose ALPS
-	// gave SETTINGS differs: the transport takes the server's SETTINGS from its
-	// first SETTINGS frame, not from ALPS, and opens no block with a size
-	// update.
-	alpsSettingsApart = "the transport does not take ALPS's SETTINGS: no size update in the first request"
-	// alpsRefused is why tls-forge answers what Chrome refuses: the transport
-	// does not read ALPS, where Chrome ends the connection with GOAWAY and the
-	// request fails.
-	alpsRefused = "the transport does not read ALPS: it sends its request where Chrome says GOAWAY and the request fails"
-)
-
-// differs is why tls-forge does not make of scenario what Chrome did, want:
-// as alpsDiffer says, and alpsRefused for one whose ALPS Chrome refused.
-func differs(scenario string, want harness.ALPSScenario) string {
-	if why := alpsDiffer[scenario]; why != "" {
-		return why
-	}
-	if n := len(want.Handshakes); n > 0 && want.Handshakes[n-1].GoAway != "" {
-		return alpsRefused
-	}
-	return ""
-}
+// its handshake aside (flightApart): none, kept for a difference measured
+// later.
+var alpsDiffer = map[string]string{}
 
 // flightApart is why the flight of every handshake that negotiated ALPS
 // differs from Chrome's: utls writes the client's EncryptedExtensions and
@@ -168,7 +141,7 @@ func TestALPSIsTakenAsChromeTookIt(t *testing.T) {
 			client.CloseIdleConnections()
 			got := settledALPS(t, server, want.Note, page.variant)
 			diffs := harness.DiffALPS(want, apart(want, got, &setAside))
-			if why := differs(scenario, want); why != "" {
+			if why := alpsDiffer[scenario]; why != "" {
 				if len(diffs) == 0 {
 					t.Errorf("%s is taken as Chrome took it: take it out of alpsDiffer (%s)", scenario, why)
 				}

@@ -160,8 +160,8 @@ and what tls-forge did with it goes too:
 - `tls_client.WithClientProfile` replaces the handshake and the HTTP/2
   settings, priorities and pseudo-header order of the transport, how it
   writes HPACK, cuts header blocks and bodies into frames, writes TLS
-  records and HTTP/1.1 requests, and tells a server of its windows: as
-  Chrome does in a profile
+  records and HTTP/1.1 requests, tells a server of its windows, and waits
+  for a stream when the server's are all in use: as Chrome does in a profile
   `profile.Profile.ClientProfile` builds for a Chromium browser, as the
   transport does in one of tls-client's catalogue. The headers each request
   carries stay the profile's, and so does the HEADERS weight a browser context
