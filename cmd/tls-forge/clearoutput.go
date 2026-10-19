@@ -23,7 +23,10 @@ import (
 // the command runs in or one that holds that — `-o .` is one keystroke from
 // `-o out` — and not one holding a git repository, a file the run is about to
 // read, or the file its output is being redirected to. Each is refused with
-// the reason, and nothing is removed.
+// the reason, and nothing is removed. A directory is known by what it is, not
+// by how it is named: through a link, in other capitals where names ignore
+// case (`-o /Users/ME` is /Users/me on a Mac), or by another name the system
+// gives it (macOS's /System/Volumes/Data/Users/me).
 
 // workingDir and homeDir are os.Getwd and os.UserHomeDir, named so a test can
 // stand in for either.
@@ -164,8 +167,30 @@ func home() string {
 	return resolve(dir)
 }
 
-// within says path is dir, or something in it.
+// within says path is dir, or something in it: by what is there when dir
+// is, one of the directories path is in, up to the root, being dir, whatever
+// names they go by; by their names alone when dir is not there.
 func within(path, dir string) bool {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return namedWithin(path, dir)
+	}
+	for at := path; ; at = filepath.Dir(at) {
+		if there, err := os.Stat(at); err == nil && os.SameFile(there, info) {
+			return true
+		}
+		if filepath.Dir(at) == at {
+			return false
+		}
+	}
+}
+
+// namedWithin says path is dir, or something in it, by their names, which
+// differ only in case where names ignore it.
+func namedWithin(path, dir string) bool {
+	if foldsCase {
+		path, dir = strings.ToLower(path), strings.ToLower(dir)
+	}
 	rel, err := filepath.Rel(dir, path)
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }

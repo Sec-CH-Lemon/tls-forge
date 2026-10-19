@@ -642,7 +642,10 @@ one that holds it, the directory the command runs in or one that holds it
 (`-o .`), one with a git repository in it, one holding a file the run reads
 (`--input`, `--cookies`, `--exit-headers`, and a `.json` `--save-cookies`,
 which a run reads to add its session to the ones there), and one holding the
-file standard output or error is redirected to.
+file standard output or error is redirected to. A directory is known by what
+it is, whatever it is called: through a link, in other capitals where names
+ignore case (`-o /Users/ME` is the home directory /Users/me on a Mac), or by
+another name the system gives it (macOS's `/System/Volumes/Data/Users/me`).
 
 ### Tracing a run
 

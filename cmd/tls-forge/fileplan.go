@@ -307,7 +307,17 @@ func samePath(a, b string) bool {
 	return a == b || (foldsCase && strings.EqualFold(a, b))
 }
 
-// strictlyWithin says path is in dir, and is not dir itself.
+// strictlyWithin says path is in dir, and is not dir itself, by any name.
 func strictlyWithin(path, dir string) bool {
-	return !samePath(path, dir) && within(path, dir)
+	return !samePath(path, dir) && !sameThere(path, dir) && within(path, dir)
+}
+
+// sameThere says two paths lead to one file that is there.
+func sameThere(a, b string) bool {
+	ai, err := os.Stat(a)
+	if err != nil {
+		return false
+	}
+	bi, err := os.Stat(b)
+	return err == nil && os.SameFile(ai, bi)
 }

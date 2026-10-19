@@ -905,6 +905,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **`--clear-output-dir` knows a directory by what it is, not by how it is
+  named**: the home directory, the directory the command runs in, one that
+  holds either, and one holding a file the run reads are refused whatever
+  they are called, in other capitals where names ignore case and by another
+  name the system gives a directory (macOS's `/System/Volumes/Data`), as
+  through a link already. On a Mac `-o /Users/ME --clear-output-dir` emptied
+  the home directory /Users/me, and `-o OUT` a directory `out` holding the
+  `--input` list. Where names keep case, `OUT` is another directory, and is
+  made.
 - **A request to a server that changes its protocol between connections is
   answered**: a connection dialed for a request that spoke another protocol
   than its transport (HTTP/1.1 where the address had spoken HTTP/2, or the
