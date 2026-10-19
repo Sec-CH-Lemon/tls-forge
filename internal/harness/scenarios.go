@@ -55,6 +55,17 @@ func formHTML(method, action, enctype string) string {
 
 const submit = "document.getElementById('f').submit();"
 
+// ended is what follows a fetch(): a request that says whether it was sent,
+// then done().
+const ended = ".then(()=>fetch('/p/{ID}-sent'),()=>fetch('/p/{ID}-blocked')).then(done);"
+
+// xhrEnded is an XHR GET of target, then a request that says whether it was
+// sent, then done().
+func xhrEnded(target string) string {
+	return "const x=new XMLHttpRequest();x.open('GET','" + target + "');" +
+		"x.onload=()=>fetch('/p/{ID}-sent').then(done);x.onerror=()=>fetch('/p/{ID}-blocked').then(done);x.send();"
+}
+
 // catalogue is every scenario measured, by its name in the fixture. In its
 // URLs {A} is https://www.example.com and {S} https://api.example.com, one
 // site, {X} https://www.example.net, another, {C} {X} with credentials, {U}
@@ -316,6 +327,31 @@ var catalogue = map[string]scenario{
 			"long=1; Path=/"+strings.Repeat("p", 1100), "short=1; Path=/") + "').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
 	"fetch-misdirected-cookie": {note: "fetch() of the same origin, answered 421 the first time with a cookie, then fetch() of the same origin",
 		script: "fetch('{A}/misdirected/{ID}?first=1&mcookie=1').then(()=>fetch('{A}/p/{ID}-after')).then(done);"},
+
+	// Mixed content: what a page over https asks of plain http. Each script
+	// says how its request ended by asking for /p/ID-sent or /p/ID-blocked.
+	"mixed-fetch":                    {note: "fetch() from an https page to an http site", script: "fetch('{H}/cors/{ID}')" + ended},
+	"mixed-fetch-no-cors":            {note: "fetch() in no-cors mode from an https page to an http site", script: "fetch('{H}/p/{ID}',{mode:'no-cors'})" + ended},
+	"mixed-fetch-post":               {note: "fetch() POST from an https page to an http site", script: "fetch('{H}/cors/{ID}',{method:'POST',body:'x'})" + ended},
+	"mixed-fetch-localhost":          {note: "fetch() from an https page to http://localhost", script: "fetch('{L}/cors/{ID}')" + ended},
+	"mixed-fetch-dot-localhost":      {note: "fetch() from an https page to http on a name under .localhost", script: "fetch('{D}/cors/{ID}')" + ended},
+	"mixed-fetch-ipv4":               {note: "fetch() from an https page to http://127.0.0.1", script: "fetch('{4}/cors/{ID}')" + ended},
+	"mixed-fetch-ipv6":               {note: "fetch() from an https page to http://[::1]", script: "fetch('{6}/cors/{ID}')" + ended},
+	"mixed-fetch-from-plain":         {note: "fetch() from a page of http://localhost to an http site", start: "{L}/run/{ID}", script: "fetch('{H}/cors/{ID}')" + ended},
+	"mixed-fetch-redirect":           {note: "fetch() from an https page, a 302 of its origin to an http site", script: "fetch('{A}/r/302/{ID}?to={H}/cors/{ID}-hop')" + ended},
+	"mixed-fetch-redirect-localhost": {note: "fetch() from an https page, a 302 of its origin to http://localhost", script: "fetch('{A}/r/302/{ID}?to={L}/cors/{ID}-hop')" + ended},
+	"mixed-fetch-localhost-redirect": {note: "fetch() from an https page to http://localhost, whose 302 goes to an http site", script: "fetch('{L}/r/302/{ID}?to={H}/cors/{ID}-hop')" + ended},
+	"mixed-xhr":                      {note: "an XHR from an https page to an http site", script: xhrEnded("{H}/cors/{ID}")},
+	"mixed-xhr-redirect":             {note: "an XHR from an https page, a 302 of its origin to an http site", script: xhrEnded("{A}/r/302/{ID}?to={H}/cors/{ID}-hop")},
+	"mixed-form-get":                 {note: "a form GET from an https page to an http site", html: formHTML("get", "{H}/p/{ID}", ""), script: submit, wait: "/never", settle: 4000 * time.Millisecond},
+	"mixed-form-post":                {note: "a form POST from an https page to an http site", html: formHTML("post", "{H}/p/{ID}", ""), script: submit, wait: "/never", settle: 4000 * time.Millisecond},
+	"mixed-form-post-localhost":      {note: "a form POST from an https page to http://localhost", html: formHTML("post", "{L}/p/{ID}", ""), script: submit, wait: "/p/{ID}"},
+	"mixed-form-get-redirect":        {note: "a form GET from an https page, a 302 of its origin to an http site", html: `<form id=f method=get action="{A}/r/302/{ID}"><input name=plain value="/p/{ID}-hop"></form>`, script: submit, wait: "/never", settle: 4000 * time.Millisecond},
+	"mixed-form-post-redirect-302":   {note: "a form POST from an https page, a 302 of its origin to an http site", html: formHTML("post", "{A}/r/302/{ID}?to={H}/p/{ID}-hop", ""), script: submit, wait: "/never", settle: 4000 * time.Millisecond},
+	"mixed-form-post-redirect-308":   {note: "a form POST from an https page, a 308 of its origin to an http site", html: formHTML("post", "{A}/r/308/{ID}?to={H}/p/{ID}-hop", ""), script: submit, wait: "/never", settle: 4000 * time.Millisecond},
+	"mixed-form-get-redirect-307":    {note: "a form GET from an https page, a 307 of its origin to an http site", html: `<form id=f method=get action="{A}/r/307/{ID}"><input name=plain value="/p/{ID}-hop"></form>`, script: submit, wait: "/never", settle: 4000 * time.Millisecond},
+	"mixed-form-from-plain":          {note: "a form POST from a page of http://localhost to an http site", start: "{L}/run/{ID}", html: formHTML("post", "{H}/p/{ID}", ""), script: submit, wait: "/never", settle: 4000 * time.Millisecond},
+	"mixed-form-post-redirect":       {note: "a form POST from an https page, a 307 of its origin to an http site", html: formHTML("post", "{A}/r/307/{ID}?to={H}/p/{ID}-hop", ""), script: submit, wait: "/never", settle: 4000 * time.Millisecond},
 
 	// Digest authentication: a page under /digest/OFFER/ asks for it as the
 	// offer says (digestOffers), of the realm "bench", until it is answered

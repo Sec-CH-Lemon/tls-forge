@@ -217,8 +217,8 @@ that says `browser_context` sends the request as Chrome sends its kind, CORS
 and all, and one that predates the field sends it as though it had none. This
 one reads `browser` strictly: a field the protocol does not have, or a value
 of the wrong type, is `"error": "bad request: browser: ..."`, and what the
-library refuses of the context itself, and a request CORS stops, are an
-`error` too, with nothing more sent. The Node.js and Python packages ask
+library refuses of the context itself, a request CORS stops, and one Chrome
+blocks as mixed content, are an `error` too, with nothing more sent. The Node.js and Python packages ask
 `hello` before the first request with a browser context, refuse it with
 `Unsupported` when the daemon does not say `browser_context`, and keep the
 answer for the client's life: what a binary is does not change between its

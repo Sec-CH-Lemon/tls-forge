@@ -536,7 +536,8 @@ func (ch *chain) followInContext(req, previous *fhttp.Request, crossed, dropped 
 
 // next is the hop req makes after the ones before, or why Chrome would not
 // make it. CORS has to allow the redirect itself of a request it answers
-// for, and Chrome refuses some outright. Across origins Authorization goes,
+// for, Chrome refuses some outright, and a page over https some to URLs that
+// are not potentially trustworthy (mixed). Across origins Authorization goes,
 // and the Origin is "null" from then on; the Referer is worked out from the
 // one before, under the policy the redirect may have set, and Sec-Fetch-Site
 // from every URL asked.
@@ -550,6 +551,9 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 	}
 	h := hop{to: originOf(req.URL), method: req.Method, redirected: true, script: last.script}
 	if err := r.mayFollow(shown, h.to, last); err != nil {
+		return hop{}, err
+	}
+	if err := r.mixed(shown, h.method, false); err != nil {
 		return hop{}, err
 	}
 	h.cors = last.cors || r.scripted() && r.mode == modeCORS && h.to != r.from

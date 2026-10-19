@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -52,9 +53,10 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 //   - ?close ends the connection once answered, as Connection: close says,
 //     which over HTTP/2 the server says with GOAWAY;
 //   - /done/ID is a scenario's page saying it is done;
-//   - /r/STATUS/... redirects to ?to with STATUS, CORS allowing it but for
-//     ?noacao, saying Referrer-Policy as ?rp does, and a preflight of it is
-//     allowed and kept for none;
+//   - /r/STATUS/... redirects to ?to with STATUS, or to the path ?plain of
+//     its host over plain HTTP (a form's field, which no port is written in),
+//     CORS allowing it but for ?noacao, saying Referrer-Policy as ?rp does,
+//     and a preflight of it is allowed and kept for none;
 //   - /chain/N redirects to /chain/N+1;
 //   - /cors/... answers what CORS allows, a preflight allowed but for ?deny and
 //     kept as long as ?maxage says;
@@ -119,7 +121,12 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		if policy := q.Get("rp"); policy != "" {
 			w.Header().Set("Referrer-Policy", policy)
 		}
-		w.Header().Set("Location", q.Get("to"))
+		location := q.Get("to")
+		if plain := q.Get("plain"); plain != "" {
+			host := (&url.URL{Host: r.Host}).Hostname()
+			location = "http://" + net.JoinHostPort(host, strconv.Itoa(s.Plain)) + plain
+		}
+		w.Header().Set("Location", location)
 		w.WriteHeader(status)
 	case strings.HasPrefix(path, "/chain/"):
 		n, err := strconv.Atoi(strings.TrimPrefix(path, "/chain/"))

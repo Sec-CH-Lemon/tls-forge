@@ -83,6 +83,12 @@ type asSent struct {
 	// corsRefused are the requests a page asked for, by their place among
 	// those it asked, whose answers CORS refused once they came.
 	corsRefused []int
+	// blocked is what a scenario's page asked for first that Chrome sent
+	// nothing of, mixed content; mixedHops are the requests it asked for, by
+	// their place among those it asked, whose redirect Chrome did not follow
+	// for the same reason.
+	blocked   *Request
+	mixedHops []int
 	// before is a URL navigated to first, typed, as the page the scenario ran
 	// in was, for the cookies it set and the client hints it asked for: what
 	// it is sent is no part of the scenario.
@@ -456,6 +462,54 @@ func init() {
 	} {
 		sentInContexts[scenario] = how
 	}
+	// Mixed content: a page over https asking plain http. Each page went on
+	// with fetch() of /p/ID-blocked, or /p/ID-sent.
+	fetched := func(scenario string) BrowserContext {
+		return BrowserContext{Kind: KindFetch, Initiator: run(scenario)}
+	}
+	posted := func(scenario string) BrowserContext {
+		return BrowserContext{Kind: KindForm, Initiator: run(scenario)}
+	}
+	blocked := func(method, target string, body string, browser BrowserContext) *Request {
+		return &Request{Method: method, URL: target, Body: []byte(body), Browser: &browser}
+	}
+	for scenario, how := range map[string]asSent{
+		"mixed-fetch": {browser: fetched("mixed-fetch"),
+			blocked: blocked("GET", "http://www.example.com/cors/mixed-fetch", "", fetched("mixed-fetch"))},
+		"mixed-fetch-no-cors": {browser: fetched("mixed-fetch-no-cors"), blocked: blocked("GET",
+			"http://www.example.com/p/mixed-fetch-no-cors", "", BrowserContext{Kind: KindFetch,
+				Initiator: run("mixed-fetch-no-cors"), Mode: "no-cors"})},
+		"mixed-fetch-post": {browser: fetched("mixed-fetch-post"),
+			blocked: blocked("POST", "http://www.example.com/cors/mixed-fetch-post", "x", fetched("mixed-fetch-post"))},
+		"mixed-xhr": {browser: fetched("mixed-xhr"), blocked: blocked("GET", "http://www.example.com/cors/mixed-xhr", "",
+			BrowserContext{Kind: KindXHR, Initiator: run("mixed-xhr")})},
+		"mixed-fetch-localhost":     {browser: fetched("mixed-fetch-localhost")},
+		"mixed-fetch-dot-localhost": {browser: fetched("mixed-fetch-dot-localhost")},
+		"mixed-fetch-ipv4":          {browser: fetched("mixed-fetch-ipv4")},
+		"mixed-fetch-ipv6":          {browser: fetched("mixed-fetch-ipv6")},
+		"mixed-fetch-from-plain": {browser: BrowserContext{Kind: KindFetch,
+			Initiator: "http://localhost/run/mixed-fetch-from-plain"}},
+		"mixed-fetch-redirect":           {browser: fetched("mixed-fetch-redirect"), mixedHops: []int{0}},
+		"mixed-fetch-localhost-redirect": {browser: fetched("mixed-fetch-localhost-redirect"), mixedHops: []int{0}},
+		"mixed-xhr-redirect": {mixedHops: []int{0}, each: []BrowserContext{
+			{Kind: KindXHR, Initiator: run("mixed-xhr-redirect")}, fetched("mixed-xhr-redirect")}},
+		"mixed-fetch-redirect-localhost": {pages: []int{0, 2}, credentials: []string{"", ""},
+			each: []BrowserContext{fetched("mixed-fetch-redirect-localhost"), fetched("mixed-fetch-redirect-localhost")}},
+		"mixed-form-get": {blocked: blocked("GET", "http://www.example.com/p/mixed-form-get?a=1&b=x+y", "",
+			posted("mixed-form-get"))},
+		"mixed-form-post": {blocked: blocked("POST", "http://www.example.com/p/mixed-form-post", "a=1&b=x+y",
+			posted("mixed-form-post"))},
+		"mixed-form-post-localhost":    {browser: posted("mixed-form-post-localhost"), form: true},
+		"mixed-form-get-redirect":      {browser: posted("mixed-form-get-redirect"), redirected: true},
+		"mixed-form-get-redirect-307":  {browser: posted("mixed-form-get-redirect-307"), redirected: true},
+		"mixed-form-post-redirect":     {browser: posted("mixed-form-post-redirect"), form: true, mixedHops: []int{0}},
+		"mixed-form-post-redirect-308": {browser: posted("mixed-form-post-redirect-308"), form: true, mixedHops: []int{0}},
+		"mixed-form-post-redirect-302": {browser: posted("mixed-form-post-redirect-302"), form: true, redirected: true},
+		"mixed-form-from-plain": {browser: BrowserContext{Kind: KindForm,
+			Initiator: "http://localhost/run/mixed-form-from-plain"}, form: true},
+	} {
+		sentInContexts[scenario] = how
+	}
 	// A page of each offer, answered, then one of its directory, sent unasked
 	// what was kept, then a page of no realm.
 	for _, offer := range []string{"md5", "md5-sess", "sha256", "sha256-sess", "no-qop", "auth-int", "qop-list", "opaque",
@@ -571,19 +625,19 @@ func TestABrowserContextSendsWhatChromeSent(t *testing.T) {
 // answeringAsMeasured answers as the server the scenarios were measured
 // against did: a page CORS allows; under /cors/ an answer CORS allows, a
 // preflight allowed but for ?deny, kept as long as ?maxage says; under
-// /r/STATUS/ a redirect of that status to ?to, which CORS allows but for
-// ?noacao, saying Referrer-Policy as ?rp does, and a preflight of it allowed
-// and kept for none; under /chain/N a redirect to /chain/N+1; under /auth/ a
-// 401 with a Basic challenge, after a Digest one for ?offer=digest, until the
-// request says u:p, then a redirect to ?to or a page; under /digest/ what the
-// bench answers (harness.DigestPage); under /misdirected/ what the bench
-// answers (harness.Misdirection), and otherwise what /cors/ answers, CORS
-// refusing it for ?noacao; cookies, two for ?cookie=1 and one of each SameSite
-// for ?cookie=2, one named by ?keep on any answer but a preflight's, one
-// named by ?pfkeep on a preflight's, and each ?sc on any answer but a
-// preflight's; and for ?close,
-// the connection ended once answered, as Connection: close says (GOAWAY over
-// HTTP/2).
+// /r/STATUS/ a redirect of that status to ?to, or to the path ?plain of its
+// host over plain http, which CORS allows but for ?noacao, saying
+// Referrer-Policy as ?rp does, and a preflight of it allowed and kept for
+// none; under /chain/N a redirect to /chain/N+1; under /auth/ a 401 with a
+// Basic challenge, after a Digest one for ?offer=digest, until the request
+// says u:p, then a redirect to ?to or a page; under /digest/ what the bench
+// answers (harness.DigestPage); under /misdirected/ what the bench answers
+// (harness.Misdirection), and otherwise what /cors/ answers, CORS refusing it
+// for ?noacao; cookies, two for ?cookie=1 and one of each SameSite for
+// ?cookie=2, one named by ?keep on any answer but a preflight's, one named by
+// ?pfkeep on a preflight's, and each ?sc on any answer but a preflight's; and
+// for ?close, the connection ended once answered, as Connection: close says
+// (GOAWAY over HTTP/2).
 func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 	// The whole request is read before it is answered. Go's HTTP/2 client
 	// stops sending a body once an answer above 299 comes, and over loopback
@@ -652,7 +706,11 @@ func answeringAsMeasured(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Referrer-Policy", policy)
 		}
 		status, _ := strconv.Atoi(strings.Split(path, "/")[2])
-		w.Header().Set("Location", q.Get("to"))
+		location := q.Get("to")
+		if plain := q.Get("plain"); plain != "" {
+			location = "http://" + r.Host + plain
+		}
+		w.Header().Set("Location", location)
 		w.WriteHeader(status)
 		return
 	case strings.HasPrefix(path, "/chain/"):
@@ -732,6 +790,11 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 		drawn = drawn[1:]
 		return next
 	}
+	if how.blocked != nil {
+		if _, err := client.Do(how.blocked); !errors.Is(err, ErrMixedContent) {
+			t.Fatalf("Do %s %s: %v, want mixed content", how.blocked.Method, how.blocked.URL, err)
+		}
+	}
 	skip := 0
 	if how.before != "" {
 		if _, err := client.Do(&Request{URL: how.before, Browser: &BrowserContext{Kind: KindNavigation}}); err != nil {
@@ -783,6 +846,10 @@ func sendAsMeasured(t *testing.T, proto string, how asSent, contexts []BrowserCo
 		case slices.Contains(how.corsRefused, i):
 			if !errors.Is(err, ErrCORS) {
 				t.Fatalf("request %d: CORS let it through: %v", i+1, err)
+			}
+		case slices.Contains(how.mixedHops, i):
+			if !errors.Is(err, ErrMixedContent) {
+				t.Fatalf("request %d: its redirect was followed: %v", i+1, err)
 			}
 		case how.refused != nil && i == len(asked)-1:
 			if !errors.Is(err, ErrCORS) {

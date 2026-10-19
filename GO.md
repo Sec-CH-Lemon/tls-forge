@@ -357,6 +357,17 @@ that does not is an error wrapping `ErrCORS`, and is not returned. What comes
 back is returned whole: a page would see only the headers CORS exposes, and
 nothing of a `no-cors` answer.
 
+A page over https sends nothing to plain http on another machine, a URL that
+is not potentially trustworthy (not `localhost`, a name under `.localhost` or
+a loopback address), as Chrome 155 was measured blocking it as mixed content
+(the `mixed-*` scenarios of `testdata/chrome155-requests.json`): neither
+`fetch()` nor an XHR, in any mode, with any credentials and by any method, nor
+a form, which Chrome submits there only once the person using it says to go on
+past a warning. `Validate` refuses such a request and `Do` sends nothing of
+it, each with an error wrapping `tlsforge.ErrMixedContent`. A navigation is
+never stopped, nor anything from a page that is not over https,
+`http://localhost`'s included.
+
 `fetch()` and an XHR go out on the connections of their page's site, which
 its own requests use too, each HTTP/2 `HEADERS` frame with the weight Chrome
 gives it: 220 for a script's request, its preflight, its redirects and its
@@ -479,6 +490,11 @@ In a browser context each hop is worked out again from the hops before it:
   own origin with the page's own credentials, and a request in `cors` mode
   none across origins. Each of these is an error wrapping
   `tlsforge.ErrCORS`, with nothing more sent.
+- From a page over https, `fetch()` and an XHR follow no redirect to plain
+  http on another machine, and a form none that posts it there again (a 307
+  or a 308); a form's GET, and a POST a 302 or a 303 made a GET, go on, as
+  Chrome's go. Each stop is an error wrapping `tlsforge.ErrMixedContent`,
+  with nothing more sent: CORS is asked about the redirect first.
 
 ### HTTP authentication
 

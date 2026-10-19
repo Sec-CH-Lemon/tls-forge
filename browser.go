@@ -188,6 +188,9 @@ func (b *BrowserContext) resolve(method string, target *url.URL, header Header, 
 	if err := b.resolveKind(r, target, header, body); err != nil {
 		return nil, err
 	}
+	if err := r.mixed(target, r.method, true); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 

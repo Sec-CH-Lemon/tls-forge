@@ -204,6 +204,36 @@ func TestRequestKindAsksCORSFirstAndStopsWhereItSaysNo(t *testing.T) {
 	}
 }
 
+func TestRequestKindAsksNothingOfPlainHTTPFromAPageOverHTTPS(t *testing.T) {
+	// The flags say all there is to know of the first request: a usage
+	// error, before any directory is made.
+	dir := filepath.Join(t.TempDir(), "out")
+	code, _, stderr := exec(t, "fetch", "--profile", "chrome_155_macos", "--request-kind", "fetch",
+		"--initiator-url", "https://www.example.com/page", "-o", dir, "http://plain.test/x")
+	if code != 2 || !strings.Contains(stderr, "tlsforge: bad usage: --request-kind fetch: http://plain.test/x: mixed content: "+
+		"fetch() from a page over https is not sent to http://plain.test/x, which is not potentially trustworthy") {
+		t.Errorf("exit code = %d\n%s", code, stderr)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Errorf("the output directory: %v", err)
+	}
+
+	// A redirect there: the first request goes, once, however many tries were
+	// asked for, and the hop does not.
+	server, got := keepingServer(t, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://plain.test/hop", http.StatusFound)
+	})
+	code, _, stderr = exec(t, "fetch", "--insecure", "--profile", "chrome_155_macos", "--request-kind", "fetch",
+		"--initiator-url", server.URL+"/page", "--retry", "2", server.URL+"/r")
+	if code != 1 || !strings.Contains(stderr, "mixed content: fetch() from a page over https follows no redirect to "+
+		"http://plain.test/hop, which is not potentially trustworthy") {
+		t.Errorf("exit code = %d\n%s", code, stderr)
+	}
+	if methods := methodsOf(got.all()); methods != "GET" {
+		t.Errorf("sent %s", methods)
+	}
+}
+
 func methodsOf(requests []*http.Request) string {
 	var methods []string
 	for _, r := range requests {

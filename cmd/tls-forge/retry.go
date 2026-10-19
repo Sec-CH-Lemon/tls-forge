@@ -143,8 +143,10 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 		if page {
 			return res, attempts, tries, found, nil
 		}
-		// CORS says the same thing every time, and Chrome does not ask again.
-		if ctx.Err() != nil || attempt > p.retries || errors.Is(err, tlsforge.ErrCORS) {
+		// CORS and mixed content say the same thing every time, and Chrome
+		// does not ask again.
+		if ctx.Err() != nil || attempt > p.retries || errors.Is(err, tlsforge.ErrCORS) ||
+			errors.Is(err, tlsforge.ErrMixedContent) {
 			return res, attempts, tries, found, err
 		}
 		wait := retryWait(attempt)

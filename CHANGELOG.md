@@ -139,7 +139,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   name, size and SHA-256, to the version and the commit it was built from.
 - **The bench the Chrome fixtures were measured on is in the repository**,
   `internal/harness`: a server that keeps every request as the bytes said it,
-  over HTTP/2, over HTTP/1.1 alone and over plain HTTP, the 180 scenarios of
+  over HTTP/2, over HTTP/1.1 alone and over plain HTTP, every scenario of
   `testdata/chrome155-requests.json` and the pages of
   `testdata/chrome155-decoding.json`. `go run ./internal/harness/measure
   --browser PATH` measures a browser again and writes the fixtures, or with
@@ -884,6 +884,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A page over https sends nothing to plain http on another machine**, as
+  Chrome blocks it as mixed content: `fetch()` and an XHR, in any mode, with
+  any credentials and by any method, nor a redirect of one there; a form,
+  which Chrome submits there only once the person using it says to go on past
+  a warning, nor a redirect that posts it there again (307, 308). tls-forge
+  sent them all. `localhost`, a name under `.localhost` and a loopback
+  address are potentially trustworthy, and go; so does a navigation, and
+  anything from a page not over https. The first request is refused before
+  anything is sent, by `Client.Validate` too and by `fetch --request-kind`
+  with exit code 2; a redirect stops there, and is not tried again under
+  `--retry`. Each is an error wrapping the new `tlsforge.ErrMixedContent`.
+  Measured on Chrome 155 (the 22 `mixed-*` scenarios of
+  `testdata/chrome155-requests.json`) and held to it request for request.
 - **A server's cookies are held to what Chrome takes of them**, with a
   browser context and without: a prefix's rules in any case (`__Secure-`,
   `__Host-`, `__Http-`, `__Host-Http-`), `SameSite=None` only with `Secure`,

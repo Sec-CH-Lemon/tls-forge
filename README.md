@@ -476,14 +476,20 @@ origin carries no cookies, and goes out, its preflight with it, on connections
 of its own, as Chrome keeps those of requests without credentials apart. Its
 redirects are followed as Chrome follows a page's, each hop worked out again
 ([GO.md](GO.md#redirects)), and one Chrome would not follow fails the same way.
+From a page over https a `fetch`, an `xhr` or a form goes nowhere on plain http
+on another machine, which Chrome blocks as mixed content (a form only until
+the person using it says to go on past its warning, which tls-forge does not
+do): a redirect there fails, said with `mixed content:`, and is not tried
+again, a form's only when it posts the form there again (307, 308).
 The client hints an origin asked for with `Accept-CH` go with every request of
 the run to it, as Chrome sends them ([GO.md](GO.md#client-hints)).
 
 What a page could not send is refused, with exit code 2, before anything is
 sent or written: a navigation with `-H` or `-d`, a form, `fetch` or `xhr`
 without `--initiator-url`, a header a script cannot set (`Cookie`, `Origin`,
-`Referer`, `Sec-*`, `User-Agent`), and a profile of a browser other than a
-Chromium one, or one with no headers of its own. The block the run begins
+`Referer`, `Sec-*`, `User-Agent`), a `fetch`, `xhr` or form from a page over
+https to plain http on another machine, and a profile of a browser other than
+a Chromium one, or one with no headers of its own. The block the run begins
 with says what its requests are sent as.
 
 ### Checking the page
@@ -1887,8 +1893,8 @@ tls-forge does not reproduce everything else. It does not run
 JavaScript, load a page's subresources, solve challenges or speak HTTP/3, and
 the TCP/IP packets under every connection are this machine's operating
 system's. Redirects are followed as Chrome follows them, and a form's POST,
-`fetch()` and an XHR go out as Chrome sends them, CORS and the client hints a
-server asked for and all, when a request says it is one
+`fetch()` and an XHR go out as Chrome sends them, CORS, mixed content and the
+client hints a server asked for and all, when a request says it is one
 ([GO.md](GO.md#browser-contexts)).
 [docs/support.md](docs/support.md)
 lists what is reproduced, how each part is checked, and where it is known not

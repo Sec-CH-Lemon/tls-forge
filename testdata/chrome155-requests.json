@@ -42348,6 +42348,4318 @@
     }
    ]
   },
+  "mixed-fetch": {
+   "note": "fetch() from an https page to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-blocked",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-blocked"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-blocked",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-dot-localhost": {
+   "note": "fetch() from an https page to http on a name under .localhost",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://app.localhost/cors/mixed-fetch-dot-localhost",
+     "headers": [
+      [
+       "Host",
+       "app.localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-dot-localhost-sent",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-dot-localhost-sent"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-dot-localhost"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://app.localhost/cors/mixed-fetch-dot-localhost",
+     "headers": [
+      [
+       "Host",
+       "app.localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-dot-localhost-sent",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-dot-localhost"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-from-plain": {
+   "note": "fetch() from a page of http://localhost to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://www.example.com/cors/mixed-fetch-from-plain",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "http://localhost"
+      ],
+      [
+       "Referer",
+       "http://localhost/"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://localhost/p/mixed-fetch-from-plain-sent",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "http://localhost/run/mixed-fetch-from-plain"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://www.example.com/cors/mixed-fetch-from-plain",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "http://localhost"
+      ],
+      [
+       "Referer",
+       "http://localhost/"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://localhost/p/mixed-fetch-from-plain-sent",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "http://localhost/run/mixed-fetch-from-plain"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-ipv4": {
+   "note": "fetch() from an https page to http://127.0.0.1",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://127.0.0.1/cors/mixed-fetch-ipv4",
+     "headers": [
+      [
+       "Host",
+       "127.0.0.1"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-ipv4-sent",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-ipv4-sent"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-ipv4"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://127.0.0.1/cors/mixed-fetch-ipv4",
+     "headers": [
+      [
+       "Host",
+       "127.0.0.1"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-ipv4-sent",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-ipv4"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-ipv6": {
+   "note": "fetch() from an https page to http://[::1]",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://[::1]/cors/mixed-fetch-ipv6",
+     "headers": [
+      [
+       "Host",
+       "[::1]"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-ipv6-sent",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-ipv6-sent"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-ipv6"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://[::1]/cors/mixed-fetch-ipv6",
+     "headers": [
+      [
+       "Host",
+       "[::1]"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-ipv6-sent",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-ipv6"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-localhost": {
+   "note": "fetch() from an https page to http://localhost",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://localhost/cors/mixed-fetch-localhost",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-localhost-sent",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-localhost-sent"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-localhost"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://localhost/cors/mixed-fetch-localhost",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-localhost-sent",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-localhost"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-localhost-redirect": {
+   "note": "fetch() from an https page to http://localhost, whose 302 goes to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "http://localhost/r/302/mixed-fetch-localhost-redirect?to=http://www.example.com/cors/mixed-fetch-localhost-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-localhost-redirect-blocked",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-localhost-redirect-blocked"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-localhost-redirect"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "http://localhost/r/302/mixed-fetch-localhost-redirect?to=http://www.example.com/cors/mixed-fetch-localhost-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-localhost-redirect-blocked",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-localhost-redirect"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-no-cors": {
+   "note": "fetch() in no-cors mode from an https page to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-no-cors-blocked",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-no-cors-blocked"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-no-cors"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-no-cors-blocked",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-no-cors"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-post": {
+   "note": "fetch() POST from an https page to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-post-blocked",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-post-blocked"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-post"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-post-blocked",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-post"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-redirect": {
+   "note": "fetch() from an https page, a 302 of its origin to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-fetch-redirect?to=http://www.example.com/cors/mixed-fetch-redirect-hop",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/302/mixed-fetch-redirect?to=http://www.example.com/cors/mixed-fetch-redirect-hop"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-redirect"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-redirect-blocked",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-redirect-blocked"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-redirect"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-fetch-redirect?to=http://www.example.com/cors/mixed-fetch-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-redirect"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-redirect-blocked",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-redirect"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-fetch-redirect-localhost": {
+   "note": "fetch() from an https page, a 302 of its origin to http://localhost",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-fetch-redirect-localhost?to=http://localhost/cors/mixed-fetch-redirect-localhost-hop",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/302/mixed-fetch-redirect-localhost?to=http://localhost/cors/mixed-fetch-redirect-localhost-hop"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-redirect-localhost"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://localhost/cors/mixed-fetch-redirect-localhost-hop",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-redirect-localhost-sent",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-fetch-redirect-localhost-sent"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-fetch-redirect-localhost"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-fetch-redirect-localhost?to=http://localhost/cors/mixed-fetch-redirect-localhost-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-redirect-localhost"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://localhost/cors/mixed-fetch-redirect-localhost-hop",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-fetch-redirect-localhost-sent",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-fetch-redirect-localhost"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-form-from-plain": {
+   "note": "a form POST from a page of http://localhost to an http site",
+   "h2": [
+    {
+     "method": "POST",
+     "url": "http://www.example.com/p/mixed-form-from-plain",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "http://localhost"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Referer",
+       "http://localhost/"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ],
+   "h1": [
+    {
+     "method": "POST",
+     "url": "http://www.example.com/p/mixed-form-from-plain",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "http://localhost"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Referer",
+       "http://localhost/"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ]
+  },
+  "mixed-form-get": {
+   "note": "a form GET from an https page to an http site",
+   "h2": [],
+   "h1": []
+  },
+  "mixed-form-get-redirect": {
+   "note": "a form GET from an https page, a 302 of its origin to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-form-get-redirect?plain=%2Fp%2Fmixed-form-get-redirect-hop",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/302/mixed-form-get-redirect?plain=%2Fp%2Fmixed-form-get-redirect-hop"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-form-get-redirect"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/mixed-form-get-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-form-get-redirect?plain=%2Fp%2Fmixed-form-get-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-form-get-redirect"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/mixed-form-get-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-form-get-redirect-307": {
+   "note": "a form GET from an https page, a 307 of its origin to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/307/mixed-form-get-redirect-307?plain=%2Fp%2Fmixed-form-get-redirect-307-hop",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/307/mixed-form-get-redirect-307?plain=%2Fp%2Fmixed-form-get-redirect-307-hop"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-form-get-redirect-307"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/mixed-form-get-redirect-307-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/307/mixed-form-get-redirect-307?plain=%2Fp%2Fmixed-form-get-redirect-307-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-form-get-redirect-307"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/mixed-form-get-redirect-307-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-form-post": {
+   "note": "a form POST from an https page to an http site",
+   "h2": [],
+   "h1": []
+  },
+  "mixed-form-post-localhost": {
+   "note": "a form POST from an https page to http://localhost",
+   "h2": [
+    {
+     "method": "POST",
+     "url": "http://localhost/p/mixed-form-post-localhost",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "null"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ],
+   "h1": [
+    {
+     "method": "POST",
+     "url": "http://localhost/p/mixed-form-post-localhost",
+     "headers": [
+      [
+       "Host",
+       "localhost"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "null"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "cross-site"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ]
+  },
+  "mixed-form-post-redirect": {
+   "note": "a form POST from an https page, a 307 of its origin to an http site",
+   "h2": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/r/307/mixed-form-post-redirect?to=http://www.example.com/p/mixed-form-post-redirect-hop",
+     "headers": [
+      [
+       ":method",
+       "POST"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/307/mixed-form-post-redirect?to=http://www.example.com/p/mixed-form-post-redirect-hop"
+      ],
+      [
+       "content-length",
+       "9"
+      ],
+      [
+       "cache-control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "content-type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "origin",
+       "https://www.example.com"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-form-post-redirect"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ],
+   "h1": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/r/307/mixed-form-post-redirect?to=http://www.example.com/p/mixed-form-post-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-form-post-redirect"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ]
+  },
+  "mixed-form-post-redirect-302": {
+   "note": "a form POST from an https page, a 302 of its origin to an http site",
+   "h2": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/r/302/mixed-form-post-redirect-302?to=http://www.example.com/p/mixed-form-post-redirect-302-hop",
+     "headers": [
+      [
+       ":method",
+       "POST"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/302/mixed-form-post-redirect-302?to=http://www.example.com/p/mixed-form-post-redirect-302-hop"
+      ],
+      [
+       "content-length",
+       "9"
+      ],
+      [
+       "cache-control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "content-type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "origin",
+       "https://www.example.com"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-form-post-redirect-302"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ],
+     "body": "a=1&b=x+y"
+    },
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/mixed-form-post-redirect-302-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/r/302/mixed-form-post-redirect-302?to=http://www.example.com/p/mixed-form-post-redirect-302-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-form-post-redirect-302"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    },
+    {
+     "method": "GET",
+     "url": "http://www.example.com/p/mixed-form-post-redirect-302-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-form-post-redirect-308": {
+   "note": "a form POST from an https page, a 308 of its origin to an http site",
+   "h2": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/r/308/mixed-form-post-redirect-308?to=http://www.example.com/p/mixed-form-post-redirect-308-hop",
+     "headers": [
+      [
+       ":method",
+       "POST"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/308/mixed-form-post-redirect-308?to=http://www.example.com/p/mixed-form-post-redirect-308-hop"
+      ],
+      [
+       "content-length",
+       "9"
+      ],
+      [
+       "cache-control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "upgrade-insecure-requests",
+       "1"
+      ],
+      [
+       "content-type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "origin",
+       "https://www.example.com"
+      ],
+      [
+       "accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "navigate"
+      ],
+      [
+       "sec-fetch-dest",
+       "document"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-form-post-redirect-308"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=0, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      255
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ],
+   "h1": [
+    {
+     "method": "POST",
+     "url": "https://www.example.com/r/308/mixed-form-post-redirect-308?to=http://www.example.com/p/mixed-form-post-redirect-308-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "Content-Length",
+       "9"
+      ],
+      [
+       "Cache-Control",
+       "max-age=0"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "Upgrade-Insecure-Requests",
+       "1"
+      ],
+      [
+       "Content-Type",
+       "application/x-www-form-urlencoded"
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "Origin",
+       "https://www.example.com"
+      ],
+      [
+       "Accept",
+       "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "navigate"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "document"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-form-post-redirect-308"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ],
+     "body": "a=1&b=x+y"
+    }
+   ]
+  },
+  "mixed-xhr": {
+   "note": "an XHR from an https page to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-xhr-blocked",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-xhr-blocked"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-xhr"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-xhr-blocked",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-xhr"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
+  "mixed-xhr-redirect": {
+   "note": "an XHR from an https page, a 302 of its origin to an http site",
+   "h2": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-xhr-redirect?to=http://www.example.com/cors/mixed-xhr-redirect-hop",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/r/302/mixed-xhr-redirect?to=http://www.example.com/cors/mixed-xhr-redirect-hop"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-xhr-redirect"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-xhr-redirect-blocked",
+     "headers": [
+      [
+       ":method",
+       "GET"
+      ],
+      [
+       ":authority",
+       "www.example.com"
+      ],
+      [
+       ":scheme",
+       "https"
+      ],
+      [
+       ":path",
+       "/p/mixed-xhr-redirect-blocked"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "user-agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "accept",
+       "*/*"
+      ],
+      [
+       "sec-fetch-site",
+       "same-origin"
+      ],
+      [
+       "sec-fetch-mode",
+       "cors"
+      ],
+      [
+       "sec-fetch-dest",
+       "empty"
+      ],
+      [
+       "referer",
+       "https://www.example.com/run/mixed-xhr-redirect"
+      ],
+      [
+       "accept-encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "accept-language",
+       "en-US,en;q=0.9"
+      ],
+      [
+       "priority",
+       "u=1, i"
+      ]
+     ],
+     "priority": [
+      1,
+      0,
+      219
+     ]
+    }
+   ],
+   "h1": [
+    {
+     "method": "GET",
+     "url": "https://www.example.com/r/302/mixed-xhr-redirect?to=http://www.example.com/cors/mixed-xhr-redirect-hop",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-xhr-redirect"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    },
+    {
+     "method": "GET",
+     "url": "https://www.example.com/p/mixed-xhr-redirect-blocked",
+     "headers": [
+      [
+       "Host",
+       "www.example.com"
+      ],
+      [
+       "Connection",
+       "keep-alive"
+      ],
+      [
+       "sec-ch-ua-platform",
+       "\"macOS\""
+      ],
+      [
+       "User-Agent",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      ],
+      [
+       "sec-ch-ua",
+       "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+      ],
+      [
+       "sec-ch-ua-mobile",
+       "?0"
+      ],
+      [
+       "Accept",
+       "*/*"
+      ],
+      [
+       "Sec-Fetch-Site",
+       "same-origin"
+      ],
+      [
+       "Sec-Fetch-Mode",
+       "cors"
+      ],
+      [
+       "Sec-Fetch-Dest",
+       "empty"
+      ],
+      [
+       "Referer",
+       "https://www.example.com/run/mixed-xhr-redirect"
+      ],
+      [
+       "Accept-Encoding",
+       "gzip, deflate, br, zstd"
+      ],
+      [
+       "Accept-Language",
+       "en-US,en;q=0.9"
+      ]
+     ]
+    }
+   ]
+  },
   "nav-401-misdirected": {
    "note": "location.href to a URL of the same origin with credentials, a page that answers 401 until it is sent them, and 421 the first time it is sent them",
    "h2": [

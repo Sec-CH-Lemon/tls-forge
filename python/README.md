@@ -234,8 +234,9 @@ and all. The client sends them as the protocol names them, so
 `referrer_policy` goes as `referrerPolicy`. A `browser_context` that is no
 mapping, or has a key there is none of, the protocol's spelling of one
 included, raises `TypeError` before anything is asked. A request a page could
-not send and a request CORS stops raise `RequestFailed` with the transport's
-reason, and nothing more is sent.
+not send, a request CORS stops and one Chrome blocks as mixed content (from a
+page over https to plain http on another machine) raise `RequestFailed` with
+the transport's reason, and nothing more is sent.
 
 Invalid caller values such as an empty URL, non-positive timeout or non-callable
 `on_stderr` raise standard `ValueError` or `TypeError`, and so does a request
