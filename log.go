@@ -61,17 +61,6 @@ func requestLogOf(ctx context.Context) *requestLog {
 	return r
 }
 
-// watchDial has a dial that no request is waiting on logged to the client's
-// log. HTTP/2 dials every connection after a client's first that way, apart
-// from the request that needs it. A dial a request waits on is logged with the
-// request, whose hooks its context already carries.
-func watchDial(ctx context.Context, log *slog.Logger, proxy string) context.Context {
-	if log == nil || requestLogOf(ctx) != nil {
-		return ctx
-	}
-	return newRequestLog(log.With("background", true), proxy, "connect").attachDial(ctx)
-}
-
 // requestLog writes one request down as it goes, or one dial, and keeps the
 // step it is in, so that a request that fails can say where.
 type requestLog struct {

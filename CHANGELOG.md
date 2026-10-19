@@ -338,10 +338,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   each lookup and dial, the `CONNECT` and the proxy's answer, the connection
   and what its handshake settled on, the header fields as written, the answer,
   and the step a failed request gave up in, with the ClientHello of every
-  connection and its server's certificates at `tlsforge.LevelTrace`. The
-  connections HTTP/2 dials apart from any request, every one after a client's
-  first to a host, are logged with `background=true`. Proxy passwords, cookie
-  values and credentials are `***`.
+  connection and its server's certificates at `tlsforge.LevelTrace`. Every
+  connection is dialed for a request, an HTTP/2 one that later requests go
+  out on too, and its lookup and dial are that request's. Proxy passwords,
+  cookie values and credentials are `***`.
 - `capture --manual` measures a browser tls-forge cannot launch — Firefox,
   Safari, a phone's — which the person using it opens the page in:
   `--addr 0.0.0.0:8443 --host <address>` lets in a phone on the network. The
@@ -604,6 +604,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **A request's timeout is one deadline for all of it**: `WithTimeout`, and
+  `--timeout` for each try of `fetch`, bound its connection, its preflight,
+  every hop of its redirects, its answers to a 401 or a 421, its start again
+  for client hints and its body together, where each of those but the hops
+  had the whole timeout again: a request answered after a 401 could take
+  twice as long. A request that runs out of time says
+  `context deadline exceeded`, the error of its context, which
+  `errors.Is(err, context.DeadlineExceeded)` finds, and which the transport
+  told apart from its own timer before (`net/http: request canceled
+  (Client.Timeout exceeded while awaiting headers)`), at random.
 - **utls is a fork of tls-forge's too**: `github.com/igor-lemon/utls`, the
   `tls-forge` branch of a fork of bogdanfinn/utls v1.7.8-barnius, on which
   tls-forge's forks of fhttp, tls-client, quic-go-utls and websocket build.
@@ -895,6 +905,23 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A connection whose handshake the server never answers holds up only the
+  request it is dialed for, and no longer than that request's deadline**: an
+  HTTP/2 connection after a client's first to a host was dialed with no
+  context, and the requests waiting for it waited for good, past their
+  deadlines and Ctrl-C, through a server that took the TCP connection and
+  never answered its handshake; and every connection a client dialed, to any
+  host, waited for the one before it, while the first to a host held up even
+  the requests to hosts whose connections were open, and `Close`. Now a
+  connection is dialed within the context of the request it is for, a
+  request waiting for a connection another request is opening waits no
+  longer than its own context, and the connections to one address are
+  dialed one after another apart from every other address's; `fetch` stops
+  at Ctrl-C and SIGTERM, and ends a try at `--timeout`, whatever its
+  handshake does. A SOCKS5 or SOCKS4 proxy that takes the connection and never
+  answers held a request for good the same way, and lets go of it at its
+  deadline now too. Through tls-forge's forks of fhttp
+  (`http2.Transport.DialTLSContext`) and tls-client.
 - **The client's second TLS 1.3 flight goes in one record, as Chrome's**:
   its EncryptedExtensions (ALPS) and Finished, and a client certificate's
   Certificate and CertificateVerify with them, packed into records of as

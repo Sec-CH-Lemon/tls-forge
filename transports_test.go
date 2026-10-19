@@ -3,7 +3,6 @@ package tlsforge
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/url"
 	"slices"
 	"strings"
@@ -45,9 +44,9 @@ func idlers(t *testing.T, proxy string, refuse func(n int) error) (*transports, 
 		built = append(built, c)
 		return c, nil
 	}
-	tr, err := newTransports(func(*slog.Logger, ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
+	tr, err := newTransports(func(...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		return nil
-	}, nil, proxy)
+	}, proxy)
 	if err != nil {
 		t.Fatalf("newTransports: %v", err)
 	}

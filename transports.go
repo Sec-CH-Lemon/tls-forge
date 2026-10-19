@@ -2,7 +2,6 @@ package tlsforge
 
 import (
 	"fmt"
-	"log/slog"
 	"net/url"
 	"slices"
 	"sync"
@@ -20,11 +19,9 @@ import (
 // built with. A client made Fresh has transports of its own, and shares its
 // session (session).
 type transports struct {
-	// build is what transports are built with, for the log they write to: the
-	// client's options, but for how they dial, which is each client's own,
-	// with own given before the caller's.
-	build func(log *slog.Logger, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
-	log   *slog.Logger
+	// build is what transports are built with: the client's options, with own
+	// given before the caller's.
+	build func(own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
 	// proxy is what an error building them is cleaned of.
 	proxy string
 
@@ -89,10 +86,10 @@ func (p *pool) wrap(trip fhttp.RoundTripper) fhttp.RoundTripper {
 // whose idle connections are closed, and whose sessions are forgotten.
 const maxSites = 64
 
-// newTransports builds transports with build, logging to log.
-func newTransports(build func(*slog.Logger, ...tls_client.HttpClientOption) []tls_client.HttpClientOption,
-	log *slog.Logger, proxy string) (*transports, error) {
-	t := &transports{build: build, log: log, proxy: proxy}
+// newTransports builds transports with build.
+func newTransports(build func(...tls_client.HttpClientOption) []tls_client.HttpClientOption,
+	proxy string) (*transports, error) {
+	t := &transports{build: build, proxy: proxy}
 	spare, err := t.newSite("")
 	if err != nil {
 		return nil, err
@@ -106,7 +103,7 @@ func (t *transports) newSite(name string) (*site, error) {
 	var built [2]pool
 	for i := range built {
 		p := &built[i]
-		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(t.log, tls_client.WithTransportWrapper(p.wrap))...)
+		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(tls_client.WithTransportWrapper(p.wrap))...)
 		if err != nil {
 			// A proxy the transport cannot read is quoted back whole, password
 			// and all, by url.Parse and by the transport alike.
@@ -117,9 +114,9 @@ func (t *transports) newSite(name string) (*site, error) {
 	return &site{name: name, inner: built[0], bare: built[1]}, nil
 }
 
-// fresh are transports of their own, built as these were, logging to log.
-func (t *transports) fresh(log *slog.Logger) (*transports, error) {
-	return newTransports(t.build, log, t.proxy)
+// fresh are transports of their own, built as these were.
+func (t *transports) fresh() (*transports, error) {
+	return newTransports(t.build, t.proxy)
 }
 
 // siteOf are the connections of the top-level site named: a request to a page

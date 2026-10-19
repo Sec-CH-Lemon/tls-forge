@@ -444,20 +444,20 @@ func TestALogFollowsATunnel(t *testing.T) {
 		t.Errorf("the connection was said as %v", connected)
 	}
 
-	// The next connection HTTP/2 dials for no request in particular, and the
-	// tunnel it went through is the one the request's connection says.
+	// The next connection HTTP/2 dials for the next request, through a
+	// tunnel of its own, which the request's connection says.
 	client.CloseIdleConnections()
 	if _, err := client.Get(server.URL() + "/api/all"); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	book.one(t, "idle connections closed")
-	background := book.one(t, "proxy answer", "background", "true")
-	if connected := book.one(t, "connected", "request", "2"); connected.get("tunnel") != background.get("tunnel") ||
-		background.get("tunnel") == answer.get("tunnel") {
-		t.Errorf("the second connection was said as %v, its tunnel as %v", connected, background)
+	again := book.one(t, "proxy answer", "request", "2")
+	if connected := book.one(t, "connected", "request", "2"); connected.get("tunnel") != again.get("tunnel") ||
+		again.get("tunnel") == answer.get("tunnel") {
+		t.Errorf("the second connection was said as %v, its tunnel as %v", connected, again)
 	}
-	book.one(t, "proxy connect", "background", "true")
-	book.one(t, "dialed", "background", "true")
+	book.one(t, "proxy connect", "request", "2")
+	book.one(t, "dialed", "request", "2")
 
 	// Not the password, in any shape.
 	secret := base64.StdEncoding.EncodeToString([]byte("user:s3cr3t"))
@@ -527,7 +527,7 @@ func TestALogSaysACONNECTThatCouldNotBeWritten(t *testing.T) {
 	book, log := newLogBook(slog.LevelDebug)
 	ctx := newRequestLog(log, "", "proxy").attachDial(context.Background())
 	u, _ := url.Parse("http://proxy.test")
-	if _, err := newConnectDialer(u, time.Second, nil, nil, nil).open(ctx, unwritable{}, "example.test:443"); err == nil {
+	if _, err := newConnectDialer(u, time.Second, nil, nil).open(ctx, unwritable{}, "example.test:443"); err == nil {
 		t.Fatal("a CONNECT nobody could write was answered")
 	}
 	if failed := book.one(t, "proxy connect failed"); !strings.Contains(failed.get("error"), "broken pipe") {
@@ -587,9 +587,10 @@ func TestALogFollowsAnHTTPSProxy(t *testing.T) {
 	}
 }
 
-func TestALogOfAConnectionNoRequestDialled(t *testing.T) {
-	// HTTP/2 dials every connection after a client's first apart from the
-	// request that needs it, and the log still has the lookup and the dial.
+func TestALogSaysEachConnectionsDialWithTheRequestItWasDialedFor(t *testing.T) {
+	// HTTP/2 dials every connection after a client's first for the request
+	// that needs it, within its context: the lookup and the dial are that
+	// request's, and none is a dial's of no request.
 	server := startEcho(t)
 	book, log := newLogBook(slog.LevelDebug)
 	client := newTestClient(t, WithLogger(log))
@@ -599,16 +600,19 @@ func TestALogOfAConnectionNoRequestDialled(t *testing.T) {
 		}
 		client.CloseIdleConnections()
 	}
-	book.one(t, "dns lookup", "background", "true")
-	dialed := book.one(t, "dialed", "background", "true")
+	book.one(t, "dns lookup", "request", "2")
+	dialed := book.one(t, "dialed", "request", "2")
 	if connected := book.one(t, "connected", "request", "2"); !strings.HasSuffix(connected.get("conn"), dialed.get("addr")) {
 		t.Errorf("the connection was said as %v, the dial as %v", connected, dialed)
 	}
+	if text := book.text(); strings.Contains(text, "background") {
+		t.Errorf("a dial of no request:\n%s", text)
+	}
 }
 
-func TestAFreshClientLogsWhatItDialsApartFromARequestAsItself(t *testing.T) {
-	// A fresh client's transports are its own, and so is the log they say
-	// their connections in.
+func TestAFreshClientLogsItsDialsAsItself(t *testing.T) {
+	// A fresh client's transports are its own, and so are the requests they
+	// dial their connections for.
 	server := startEcho(t)
 	book, log := newLogBook(slog.LevelDebug)
 	client := newTestClient(t, WithLogger(log))
@@ -623,7 +627,7 @@ func TestAFreshClientLogsWhatItDialsApartFromARequestAsItself(t *testing.T) {
 		}
 		fresh.CloseIdleConnections()
 	}
-	book.one(t, "dialed", "background", "true", "client", book.one(t, "fresh client").get("client"))
+	book.one(t, "dialed", "request", "2", "client", book.one(t, "fresh client").get("client"))
 }
 
 func TestAClientGivenATransportOptionDialsTheTransportsWay(t *testing.T) {

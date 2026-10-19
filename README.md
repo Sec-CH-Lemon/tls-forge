@@ -755,11 +755,11 @@ line about a frame, which cost a request on loopback about a tenth of its time.
 Every record of a request says which it is: `req`, its number in the run,
 `run` under `--repeat`, `worker`, `try`, and `client`, the client it went
 through; one that asks a site where the request came out says `probe`. A
-record that ends a step says how long the step took as `took`. HTTP/2 dials
-every connection after a client's first to a site apart from any request, and
-the records of such a dial say `background=true` and the client: the
-`connected` record of the request names the same connection, as `conn`, and
-the same tunnel. What the transport says of a frame names no request either;
+record that ends a step says how long the step took as `took`. Every
+connection is dialed for a request, and its lookup, dial and tunnel are in
+that request's records; the `connected` record of a later request that goes
+out on it names it, as `conn`, and its tunnel. What the transport says of a
+frame names no request;
 with one request at a time, a frame belongs to the one around it.
 
 A log leaves out what a trace does: proxy passwords, cookie values,
@@ -1065,7 +1065,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--initiator-url <url>` | The page a `--request-kind` request is sent from; a form, `fetch` and `xhr` need one, and a navigation without one is typed into the address bar |
 | **Fingerprint and transport** | |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
-| `-t`, `--timeout <duration>` | Request timeout; default `30s` |
+| `-t`, `--timeout <duration>` | How long each try may take, all of it: its connection, redirects, answers to a 401 or a 421, and body; default `30s` |
 | `-k`, `--insecure` | Skip upstream certificate verification |
 | **Proxy** | |
 | `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
@@ -1622,7 +1622,7 @@ Usage: `tls-forge proxy [flags]`
 | `-p`, `--profile <name-or-path>` | Profile used for outbound requests; without one, the browser measured on this machine (`local`) when there is one, else `chrome` |
 | `-x`, `--proxy <url>` | Optional upstream proxy |
 | `--proxy-env <name>` | Read the upstream proxy from this environment variable, such as `TLSFORGE_PROXY`, instead |
-| `-t`, `--timeout <duration>` | Outbound request timeout; default `30s` |
+| `-t`, `--timeout <duration>` | How long each outbound request may take, all of it; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification on outbound connections |
 | `-a`, `--addr <host:port>` | Listen address; default `127.0.0.1:8080` |
 | `--ca-cert <file>` | CA certificate; generated in the user config directory by default |
@@ -1730,7 +1730,7 @@ Usage: `tls-forge daemon [flags]`
 | `-x`, `--proxy <url>` | Upstream proxy |
 | `--proxy-env <name>` | Read the upstream proxy from this environment variable, such as `TLSFORGE_PROXY`, instead |
 | `--proxy-stdin` | Read the upstream proxy from the first line of standard input, the init line, as the Node.js and Python packages do; see [the protocol](docs/protocol.md#the-init-line) |
-| `-t`, `--timeout <duration>` | Transport request timeout; default `30s` |
+| `-t`, `--timeout <duration>` | How long each request may take, all of it; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification |
 
 One request object is read per line:

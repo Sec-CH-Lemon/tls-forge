@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/netip"
 	"net/url"
@@ -82,23 +81,19 @@ type connectDialer struct {
 	header  fhttp.Header
 	timeout time.Duration
 	dialer  net.Dialer
-	// proxy is the proxy's URL, which what is logged is cleaned of, and log is
-	// the client's, for a tunnel no request waits on. One a request waits on is
-	// logged with the request.
-	proxy string
-	log   *slog.Logger
 }
 
 // dialOptions are how a client's connections are dialled. Through an HTTP or
 // HTTPS proxy, by a tunnel opened here. Through any other, and to a proxy URL
 // that will not parse, by the transport, which knows what to say about them: a
 // SOCKS proxy answers with no header fields to keep. Without a proxy, by a
-// dialer of this package's, which logs the dials the transport makes for no
-// request in particular, and a request to a name goes out on an HTTP/2
+// dialer of this package's, and a request to a name goes out on an HTTP/2
 // connection to another that fits it, as Chrome sends one; unless the caller
 // gave the transport options of its own (own is false), one of which may be a
 // dialer or a proxy of its own, whose names are not to be looked up here.
-func dialOptions(proxyURL string, own bool, log *slog.Logger) []tls_client.HttpClientOption {
+// Every connection is dialed for a request, within its context, which says
+// what the dial does in the request's log.
+func dialOptions(proxyURL string, own bool) []tls_client.HttpClientOption {
 	if proxyURL == "" {
 		if !own {
 			return nil
@@ -107,7 +102,7 @@ func dialOptions(proxyURL string, own bool, log *slog.Logger) []tls_client.HttpC
 			tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
 				_ fhttp.Header, _ tls_client.Logger,
 			) (proxy.ContextDialer, error) {
-				return newDirectDialer(timeout, local, log), nil
+				return newDirectDialer(timeout, local), nil
 			}),
 			tls_client.WithConnectionCoalescing(lookupNames),
 		}
@@ -120,7 +115,7 @@ func dialOptions(proxyURL string, own bool, log *slog.Logger) []tls_client.HttpC
 		tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
 			header fhttp.Header, _ tls_client.Logger,
 		) (proxy.ContextDialer, error) {
-			return newConnectDialer(u, timeout, local, header, log), nil
+			return newConnectDialer(u, timeout, local, header), nil
 		}),
 		// The transport tells by the proxy's URL that QUIC cannot go through it,
 		// and it is given a dialer here instead of the URL. Without this, a
@@ -139,14 +134,13 @@ func lookupNames(ctx context.Context, host string) ([]netip.Addr, error) {
 }
 
 // directDialer dials a site with nothing between, as the transport's own
-// dialer does, and has a dial no request waits on logged to the client's log.
+// dialer does.
 type directDialer struct {
 	dialer net.Dialer
-	log    *slog.Logger
 }
 
-func newDirectDialer(timeout time.Duration, local *net.TCPAddr, log *slog.Logger) *directDialer {
-	d := &directDialer{log: log}
+func newDirectDialer(timeout time.Duration, local *net.TCPAddr) *directDialer {
+	d := &directDialer{}
 	d.dialer.Timeout = timeout
 	if local != nil {
 		d.dialer.LocalAddr = local
@@ -155,15 +149,13 @@ func newDirectDialer(timeout time.Duration, local *net.TCPAddr, log *slog.Logger
 }
 
 func (d *directDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	return d.dialer.DialContext(watchDial(ctx, d.log, ""), network, address)
+	return d.dialer.DialContext(ctx, network, address)
 }
 
-func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header,
-	log *slog.Logger,
-) *connectDialer {
+func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header) *connectDialer {
 	d := &connectDialer{
 		address: u.Host, secure: u.Scheme == "https", name: u.Hostname(),
-		header: fhttp.Header{}, timeout: timeout, proxy: u.String(), log: log,
+		header: fhttp.Header{}, timeout: timeout,
 	}
 	if u.Port() == "" {
 		port := "80"
@@ -190,7 +182,6 @@ func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, ext
 // DialContext opens a tunnel to address. The network is what the proxy is
 // dialled over: tcp, or tcp4 or tcp6 when the other is turned off.
 func (d *connectDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	ctx = watchDial(ctx, d.log, d.proxy)
 	conn, err := d.reach(ctx, network)
 	if err != nil {
 		return nil, err

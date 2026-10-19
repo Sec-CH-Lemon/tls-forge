@@ -178,7 +178,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261019141341-bd9ea92137d1
+github.com/igor-lemon/fhttp v0.6.10-0.20261019153534-ae00594f64e9
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -210,7 +210,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019141441-e46716ffebf5
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019161952-e80b1efd8aa8
 --------------------------------------------------------------------------------
 
 MIT License
@@ -236,7 +236,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261019141516-07e3f62fc51b
+github.com/igor-lemon/tls-client v1.15.2-0.20261019162045-5b99793b7e13
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn
@@ -299,7 +299,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019141439-6da9c97e8451
+github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019161950-64fa8b832418
 --------------------------------------------------------------------------------
 
 Copyright (c) 2013 The Gorilla WebSocket Authors. All rights reserved.

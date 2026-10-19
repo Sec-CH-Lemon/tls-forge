@@ -99,7 +99,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithProfileValue(profile)` | Use a previously loaded `*profile.Profile` directly. |
 | `WithProxy(url)` | Route requests through `http://`, `https://`, `socks5://` or `socks5h://`; credentials may be included in the URL. |
 | `WithProxyHeader(h)` | Header fields to add to the `CONNECT` that opens every tunnel through an HTTP or HTTPS proxy, for a proxy that says more when asked, such as SOAX with `Respond-With`. They reach the proxy and no further. |
-| `WithTimeout(duration)` | Set the transport request timeout. The default is `tlsforge.Timeout` (`30s`). Values must be positive and fit into a signed 32-bit millisecond value. |
+| `WithTimeout(duration)` | Set how long a request may take, all of it: its connection, its preflight, every hop of its redirects, its answers to a 401 or a 421, its start again for client hints and its body. The default is `tlsforge.Timeout` (`30s`). Values must be positive and fit into a signed 32-bit millisecond value. |
 | `WithMaxResponseBody(bytes)` | Limit the decompressed response retained in memory. The default is `tlsforge.DefaultMaxResponseBody` (64 MiB). Values must be positive and bounded. |
 | `WithHeaders(header)` | Layer ordered default headers over the profile for every request. Existing names keep their profile position. |
 | `WithCookies(cookies)` | Seed the client's jar with a warmed session. Cookies are matched to each request URL before being inserted. |
@@ -230,7 +230,12 @@ response, err := client.Do(&tlsforge.Request{
 | `Browser` | A `*BrowserContext`: what in a browser the request stands for, a navigation, a form, `fetch()` or an XHR, sent as Chrome sends that; see [Browser contexts](#browser-contexts). `nil` sends it as a navigation typed into the address bar, as always. |
 
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
-transport deadline. A request ends when either limit is reached.
+deadline of each request, all of it. A request ends when either is reached,
+with the error of its context, which `errors.Is` finds `context.Canceled` or
+`context.DeadlineExceeded` in, and so does every wait in it: for a connection
+another request is opening, for a handshake the server never answers, for an
+address another connection is still being dialed to. The connections to one
+address are dialed one after another, and apart from every other address's.
 
 A URL is read as Chrome reads one, and the request for it goes out as Chrome
 writes it, measured on Chrome 155 for every case of
@@ -715,13 +720,12 @@ own is logged there instead, with `client` added and without `request`, so that
 a caller can say what the request is for. A record that ends a step says how
 long the step took as `took`.
 
-HTTP/2 dials every connection after a client's first to a host apart from the
-request that needs it, so its lookup and dial are not the request's: they are
-logged with the client's logger and `background=true`, and the request's
-`connected` record names the same connection as `conn` and the same tunnel as
-`tunnel`. A client given `WithTransportOption` dials the transport's own way,
-since one of those options may be a dialer or a proxy; such dials then go
-unlogged.
+Every connection is dialed for a request, within its context: its lookup,
+dial and tunnel are in that request's records, an HTTP/2 connection's too,
+which later requests go out on, and whose `connected` records name it as
+`conn` and its tunnel as `tunnel`. A client given `WithTransportOption` dials
+the transport's own way, since one of those options may be a dialer or a
+proxy; such dials then go unlogged.
 
 A log is made to be passed on, so it leaves out what a session is worth: a
 proxy's password, cookie values, `Authorization` and `Proxy-Authorization`

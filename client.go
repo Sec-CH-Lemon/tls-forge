@@ -73,6 +73,8 @@ type Client struct {
 	http1Headers Header
 	closed       atomic.Bool
 	maxBody      int64
+	// timeout is how long a request may take, all of it.
+	timeout time.Duration
 
 	// withheld is what of the profile's headers a request without a browser
 	// context sends only to a URL that is potentially trustworthy, less what
@@ -261,7 +263,11 @@ func New(opts ...Option) (*Client, error) {
 	}
 
 	options := []tls_client.HttpClientOption{
+		// A request ends with its context, which do gives the timeout as its
+		// deadline: the transport sets none of its own on each of the
+		// requests one asks for, and bounds each dial with it.
 		tls_client.WithTimeoutMilliseconds(int(milliseconds)),
+		tls_client.WithoutRequestTimeout(),
 		tls_client.WithCookieJar(transportJar),
 		// Six idle connections per host, which is Chrome's own limit for
 		// HTTP/1.1 and six times the transport's default of one.
@@ -315,16 +321,15 @@ func New(opts ...Option) (*Client, error) {
 		}
 	}
 	// How it dials comes last but for what each transport is given of its own
-	// and the caller's own, and is made for each client, so that every one
-	// logs its connections as itself.
-	built := func(log *slog.Logger, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
+	// and the caller's own.
+	built := func(own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(clientProfile)}, options...)
-		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, log)...)
+		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0)...)
 		return append(append(out, own...), cfg.extra...)
 	}
 
 	id, log := newClientLog(cfg.logger)
-	t, err := newTransports(built, log, cfg.proxy)
+	t, err := newTransports(built, cfg.proxy)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +347,7 @@ func New(opts ...Option) (*Client, error) {
 	// synthesised from a domain has no port, which a jar keyed by host and port
 	// then never matches. The request knows the URL exactly.
 	client := &Client{transports: t, session: newSession(jar, cfg.cookies), profile: prof, headers: headers,
-		http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody,
+		http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody, timeout: cfg.timeout,
 		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
 	if log != nil {
 		client.describe(cfg, shuffleExtensions, clientProfile)
@@ -379,7 +384,7 @@ func (c *Client) Fresh() (*Client, error) {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
 	id, log := newClientLog(c.logger)
-	t, err := c.transports.fresh(log)
+	t, err := c.transports.fresh()
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +392,7 @@ func (c *Client) Fresh() (*Client, error) {
 		log.Debug("fresh client", "from", c.id)
 	}
 	return &Client{transports: t, session: c.session, profile: c.profile, headers: c.headers,
-		http1Headers: c.http1Headers, withheld: c.withheld, maxBody: c.maxBody,
+		http1Headers: c.http1Headers, withheld: c.withheld, maxBody: c.maxBody, timeout: c.timeout,
 		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
 }
 
@@ -471,12 +476,17 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	c.session.seedWarm(parsed)
 	c.session.seed(parsed, req.Cookies)
 
-	res, ch, err := c.send(req, inner, browser, r, false)
+	// One deadline for all of the request: its preflight, each hop, each
+	// answer to a 401 or a 421, its start again for client hints, and its
+	// body. Sent each alone, each had the whole timeout again.
+	ctx, cancel := context.WithTimeout(cmp.Or(req.Context, context.Background()), c.timeout)
+	defer cancel()
+	res, ch, err := c.send(ctx, req, inner, browser, r, false)
 	if errors.Is(err, errCriticalHints) {
 		// Chrome starts the navigation again, once, where it began. The
 		// request was read once already, so it reads the same again.
 		inner, _, _ = c.parse(req)
-		res, ch, err = c.send(req, inner, browser, r, true)
+		res, ch, err = c.send(ctx, req, inner, browser, r, true)
 	}
 	if err != nil {
 		return nil, err
@@ -534,15 +544,13 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 // Chrome starts it again for them, once.
 var errCriticalHints = errors.New("tlsforge: the page needs client hints it was not sent")
 
-// send sends inner, the request req asks for, as its browser context says,
-// and follows its redirects: the first request of a navigation started again
-// for its critical client hints when restarted. It returns the answer, the
-// chain that came to it, or why there is none.
-func (c *Client) send(req *Request, inner *fhttp.Request, browser *browserRequest, r *requestLog,
+// send sends inner, the request req asks for, in ctx, as its browser context
+// says, and follows its redirects: the first request of a navigation started
+// again for its critical client hints when restarted. It returns the answer,
+// the chain that came to it, or why there is none.
+func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, browser *browserRequest, r *requestLog,
 	restarted bool) (*fhttp.Response, *chain, error) {
-	if req.Context != nil {
-		inner = inner.WithContext(req.Context)
-	}
+	inner = inner.WithContext(ctx)
 	if req.Trace != nil {
 		inner = inner.WithContext(req.Trace.attach(inner.Context()))
 	}
