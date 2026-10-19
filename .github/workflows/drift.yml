@@ -17,6 +17,11 @@ name: drift
 # It does not merge. A profile is a measurement, and a measurement that nobody
 # looked at is how a fingerprint nobody sends ends up shipping — which has
 # already happened once here, with Chrome for Testing.
+#
+# The behaviour job asks the larger half of the same question: does a real
+# Chrome, Stable and Beta, still do everything the bench's fixtures say, which
+# tls-forge is held to? It files an issue when it does not; a change of
+# behaviour wants code, and no measurement can propose that.
 on:
   schedule:
     # Mondays, early. Chrome's stable rollouts start midweek, so a Monday run
@@ -324,3 +329,174 @@ jobs:
             "The weekly check found the shipped profile no longer matches a real
           Chrome, and the capture that should have replaced it did not produce
           anything. The run is at $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+
+  # Does a real Chrome still do what the bench's fixtures say it does?
+  #
+  # The check above answers for the first request's handshake and headers.
+  # Most of what tls-forge does as Chrome does is not there: which connection a
+  # request goes on, what it sends in every kind of request and after every
+  # kind of redirect, how its header blocks go into HPACK, its TLS records,
+  # what it makes of ALPS, its WINDOW_UPDATEs, how it reads a URL and a page's
+  # charset, the order it draws for its extensions, False Start. Each was
+  # measured on one build, and tls-forge is held to that; a later build may do
+  # any of it otherwise without a version number saying so. So every fixture
+  # is measured again, on Stable, which people run, and on Beta, which they
+  # will run in a few weeks.
+  #
+  # --newer: what a build's version decides, sec-ch-ua and its kind and the
+  # length they give an HTTP/1.1 head, is held to what the browser sends
+  # itself. Those are the profile's, which the check above deals with; here
+  # they would make every request of a new major a difference. On macOS, the
+  # platform the fixtures were measured on.
+  #
+  # A difference is measured again before it is filed: a bench run on a shared
+  # runner can be slow where Chrome's own timers are not, and a difference
+  # that does not repeat is not reported. One issue for each channel and
+  # major, commented on when what differs changes and not otherwise.
+  behaviour:
+    timeout-minutes: 150
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [stable, beta]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # From Google, not the image's, whose Chrome is whatever build the image
+      # was made with, and only Stable. hdiutil attaches the image on macOS 14
+      # and 15; on macOS 27 it says no mountable file system, and diskutil
+      # image attach, which an older macOS does not have, does it (tried
+      # 2026-10-19). Either mounts it under /Volumes.
+      - name: install Google Chrome ${{ matrix.channel }}
+        id: chrome
+        env:
+          CHANNEL: ${{ matrix.channel }}
+        run: |
+          case $CHANNEL in
+            stable) url=https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg
+                    app="Google Chrome" ;;
+            beta) url=https://dl.google.com/chrome/mac/universal/beta/googlechromebeta.dmg
+                  app="Google Chrome Beta" ;;
+            *) echo "no channel $CHANNEL"; exit 1 ;;
+          esac
+          curl -sSfL -o "$RUNNER_TEMP/chrome.dmg" "$url"
+          attached=$(hdiutil attach -nobrowse -readonly "$RUNNER_TEMP/chrome.dmg" ||
+            diskutil image attach --mountOptions nobrowse --readOnly "$RUNNER_TEMP/chrome.dmg")
+          mount=$(printf '%s\n' "$attached" | awk -F '\t' '/\/Volumes\// {print $NF}' | tail -n 1)
+          ditto "$mount/$app.app" "$RUNNER_TEMP/$app.app"
+          hdiutil detach "$mount" || diskutil eject "$mount"
+          binary="$RUNNER_TEMP/$app.app/Contents/MacOS/$app"
+          version=$("$binary" --version)
+          echo "$version"
+          {
+            echo "binary=$binary"
+            echo "version=$version"
+            echo "major=$(printf '%s' "$version" | grep -oE '[0-9]+' | head -n 1)"
+          } >> "$GITHUB_OUTPUT"
+
+      # measure exits 0 when the browser is what the fixtures say, 3 when it is
+      # not, and anything else when it could not measure: that is no drift, and
+      # fails the job rather than filing one.
+      - name: hold it to the fixtures
+        id: check
+        env:
+          BROWSER: ${{ steps.chrome.outputs.binary }}
+        run: |
+          go build -o "$RUNNER_TEMP/measure" ./internal/harness/measure
+          verdict=matches
+          for run in 1 2; do
+            set +e
+            "$RUNNER_TEMP/measure" --browser "$BROWSER" --check --newer > differences.txt 2> measure.log
+            code=$?
+            set -e
+            tail -n 40 measure.log
+            case $code in
+              0) verdict=matches; break ;;
+              3) verdict=differs; echo "run $run: $(wc -l < differences.txt | tr -d ' ') differences" ;;
+              *) echo "the check could not run: measure exited $code"; exit 1 ;;
+            esac
+          done
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+          if [ "$verdict" = differs ]; then cat differences.txt; fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.check.outputs.verdict == 'differs'
+        with:
+          name: behaviour-${{ matrix.channel }}
+          path: |
+            differences.txt
+            measure.log
+
+      - name: file it
+        if: steps.check.outputs.verdict == 'differs'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANNEL: ${{ matrix.channel }}
+          VERSION: ${{ steps.chrome.outputs.version }}
+          MAJOR: ${{ steps.chrome.outputs.major }}
+          REVIEWER: ${{ vars.PROFILE_REVIEWER }}
+        run: |
+          title="Chrome $CHANNEL $MAJOR does not do what the fixtures say"
+          digest=$(shasum -a 256 differences.txt | cut -d ' ' -f 1)
+          {
+            echo "The weekly check measured every fixture of the bench on $VERSION ($CHANNEL,"
+            # shellcheck disable=SC2016 # The backticks are Markdown, not shell expansion.
+            echo 'macOS) with `measure --check --newer`, twice, and it differed from them both'
+            echo "times: something tls-forge is held to, Chrome may now do otherwise. The run:"
+            echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID, whose"
+            echo "artifact has every difference and the measurement's log."
+            echo
+            echo "What a build's version decides, sec-ch-ua and the length it gives an"
+            echo "HTTP/1.1 head, is held to what the browser sends itself; the profile check"
+            echo "deals with it. A records scenario on the 1,400 bytes a head and a body are"
+            echo "merged up to moves with the head, and is said here when it crosses them."
+            echo
+            echo "To look into one: \`go run ./internal/harness/measure --browser PATH --check"
+            echo "--newer --only ID\`, with every other fixture given as empty. When Chrome does"
+            echo "something new, measure the fixture again (without --check) and hold"
+            echo "tls-forge to it."
+            echo
+            echo '<details><summary>what differs</summary>'
+            echo
+            echo '```'
+            head -n 300 differences.txt
+            echo '```'
+            echo '</details>'
+            echo
+            echo "<!-- digest: $digest -->"
+          } > body.md
+          number=$(gh issue list --state open --search "in:title \"$title\"" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -z "$number" ]; then
+            gh issue create --title "$title" --body-file body.md --label drift ||
+              gh issue create --title "$title" --body-file body.md
+            if [ -n "$REVIEWER" ]; then
+              gh issue edit "$(gh issue list --state open --search "in:title \"$title\"" --json number \
+                --jq '.[0].number')" --add-assignee "$REVIEWER" || echo "could not assign $REVIEWER"
+            fi
+          elif gh issue view "$number" --json body,comments --jq '[.body, .comments[].body] | join("\n")' |
+              grep -qF "digest: $digest"; then
+            echo "#$number already says this"
+          else
+            gh issue comment "$number" --body-file body.md
+          fi
+
+      - name: summary
+        if: always()
+        env:
+          CHANNEL: ${{ matrix.channel }}
+          VERSION: ${{ steps.chrome.outputs.version }}
+          VERDICT: ${{ steps.check.outputs.verdict }}
+        run: |
+          {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| channel | $CHANNEL |"
+            echo "| browser | ${VERSION:-not installed} |"
+            echo "| behaviour | ${VERDICT:-the check could not run} |"
+          } >> "$GITHUB_STEP_SUMMARY"

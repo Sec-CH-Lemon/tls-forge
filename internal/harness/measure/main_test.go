@@ -41,6 +41,9 @@ type fake struct {
 	dump      func(body []byte) string
 	failOpen  bool
 	failDumps bool
+	// version, when there is one, is said in a sec-ch-ua of every page it
+	// opens, as a build of a browser says its own.
+	version string
 }
 
 func (f *fake) Open(_ context.Context, page, _ string) (func(), error) {
@@ -61,7 +64,11 @@ func (f *fake) Open(_ context.Context, page, _ string) (func(), error) {
 			}
 		}
 		for _, page := range asked {
-			if res, err := client.Get(page); err == nil {
+			req, _ := http.NewRequest(http.MethodGet, page, nil)
+			if f.version != "" {
+				req.Header.Set("Sec-Ch-Ua", `"Fake";v="`+f.version+`"`)
+			}
+			if res, err := client.Do(req); err == nil {
 				_, _ = io.Copy(io.Discard, res.Body)
 				_ = res.Body.Close()
 			}
@@ -155,7 +162,7 @@ func TestTheCommandWritesWhatItMeasuredAndThenHoldsTheBrowserToIt(t *testing.T) 
 	b.dump = func([]byte) string { return "<title>windows-1252|b</title>" }
 	code, stdout, stderr = measured(t, "--browser", "chrome", "--requests", requests, "--connections", "", "--decoding", decoding,
 		"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--false-start", "", "--records", "", "--alps", "", "--only", "nav-direct,redir-nav-direct-301", "--check")
-	if code != 1 || !strings.Contains(stdout, "redir-nav-direct-301 was measured, and the fixture has no such scenario\n") ||
+	if code != 3 || !strings.Contains(stdout, "redir-nav-direct-301 was measured, and the fixture has no such scenario\n") ||
 		!strings.Contains(stdout, `a: the browser read "b" as "windows-1252"`) || !strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
@@ -408,7 +415,7 @@ func TestTheCommandWritesTheHeaderBlocksAndThenHoldsTheBrowserToThem(t *testing.
 	fetch.Connections[0] = fetch.Connections[0][:1]
 	hpack = blocks(t, map[string]harness.HPACKScenario{"hpack-fetch": fetch})
 	code, stdout, stderr = measured(t, append(none, "--hpack", hpack, "--only", "hpack-fetch,hpack-table-1k", "--check")...)
-	if code != 1 || stdout != "hpack-fetch: connection 1: 2 requests, want 1\n"+
+	if code != 3 || stdout != "hpack-fetch: connection 1: 2 requests, want 1\n"+
 		"hpack-table-1k was measured, and the fixture has no such scenario\n" ||
 		!strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
@@ -494,7 +501,7 @@ func TestTheCommandWritesTheRecordsAndThenHoldsTheBrowserToThem(t *testing.T) {
 	header.Requests = header.Requests[:1]
 	records = recordsFile(t, map[string]harness.RecordsScenario{"h1-records-header": header})
 	code, stdout, stderr = measured(t, append(none, "--records", records, "--only", "h1-records-header,h1-records-post-100", "--check")...)
-	if code != 1 || stdout != "h1-records-header: 2 requests, want 1\n"+
+	if code != 3 || stdout != "h1-records-header: 2 requests, want 1\n"+
 		"h1-records-post-100 was measured, and the fixture has no such scenario\n" ||
 		!strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
@@ -574,7 +581,7 @@ func TestTheCommandWritesTheALPSAndThenHoldsTheBrowserToIt(t *testing.T) {
 	got.Handshakes = nil
 	alps = alpsFile(t, map[string]harness.ALPSScenario{"alps-none": got})
 	code, stdout, stderr = measured(t, append(none, "--alps", alps, "--only", "alps-none,alps-empty", "--check")...)
-	if code != 1 || stdout != "alps-none: 1 handshakes, want 0\n"+
+	if code != 3 || stdout != "alps-none: 1 handshakes, want 0\n"+
 		"alps-empty was measured, and the fixture has no such scenario\n" ||
 		!strings.HasSuffix(stderr, "measure: 2 differences from the fixtures\n") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
@@ -647,14 +654,14 @@ func TestTheCommandWritesTheWindowUpdatesAndThenHoldsTheBrowserToThem(t *testing
 	small.Updates = append(small.Updates, harness.FlowUpdate{Window: "first", Increment: 1, Part: 9})
 	flow = flows(t, map[string]harness.FlowScenario{"flow-small": small})
 	code, stdout, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small,flow-half", "--check")...)
-	if code != 1 || !strings.Contains(stdout, "flow-small: ") ||
+	if code != 3 || !strings.Contains(stdout, "flow-small: ") ||
 		!strings.Contains(stdout, "flow-half was measured, and the fixture has no such scenario\n") ||
 		!strings.Contains(stderr, "differences from the fixtures") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
 	// Held to the whole fixture, every scenario is measured.
 	flow = flows(t, map[string]harness.FlowScenario{})
-	if code, stdout, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small", "--check")...); code != 1 ||
+	if code, stdout, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small", "--check")...); code != 3 ||
 		stdout != "flow-small was measured, and the fixture has no such scenario\n" {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
@@ -742,12 +749,12 @@ func TestTheCommandWritesTheURLsAndThenHoldsTheBrowserToThem(t *testing.T) {
 	other.H1 = harness.SentURL{Refused: "blocked"}
 	urls = urlFixture(t, map[string]harness.URLCase{"url-host-upper": other, "url-host-idn": upper})
 	code, stdout, stderr := measured(t, append(none, "--urls", urls, "--only", "url-host-upper,url-scheme-upper", "--check")...)
-	if code != 1 || stdout != "url-host-upper over h1: https www.example.com/p/x (sni \"\"), want blocked\n" ||
+	if code != 3 || stdout != "url-host-upper over h1: https www.example.com/p/x (sni \"\"), want blocked\n" ||
 		!strings.Contains(stderr, "1 differences from the fixtures") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
 	// Held to the whole fixture, every case of it is measured.
-	if code, stdout, stderr := measured(t, append(none, "--urls", urls, "--check")...); code != 1 ||
+	if code, stdout, stderr := measured(t, append(none, "--urls", urls, "--check")...); code != 3 ||
 		!strings.Contains(stdout, "url-host-idn was not measured\n") {
 		t.Errorf("exit %d: %s%s", code, stdout, stderr)
 	}
@@ -850,7 +857,7 @@ func TestTheCommandWritesTheHellosAndThenHoldsTheBrowserToThem(t *testing.T) {
 	}
 	hellosMeasured(t, [][]string{every, same}, nil)
 	code, stdout, stderr := measured(t, append(none, "--hellos", hellos, "--check")...)
-	if code != 1 || !strings.HasPrefix(stdout, "hellos, launch 2: 100 orders keep 3.000 extensions where the reference has them") ||
+	if code != 3 || !strings.HasPrefix(stdout, "hellos, launch 2: 100 orders keep 3.000 extensions where the reference has them") ||
 		strings.Count(stdout, "hellos, launch 2: ") != 3 || strings.Contains(stdout, "launch 1") ||
 		!strings.Contains(stderr, "3 differences from the fixtures") {
 		t.Errorf("the same order: exit %d: %s%s", code, stdout, stderr)
@@ -937,13 +944,13 @@ func TestTheCommandWritesFalseStartAndThenHoldsTheBrowserToIt(t *testing.T) {
 	early := wrote.Scenarios[id]
 	early.Early = true
 	path = falseStarts(t, map[string]harness.FalseStartScenario{id: early})
-	if code, stdout, _ := measured(t, append(none, "--false-start", path, "--only", id+",fs-h1-ecdhe-rsa-aes128cbc", "--check")...); code != 1 ||
+	if code, stdout, _ := measured(t, append(none, "--false-start", path, "--only", id+",fs-h1-ecdhe-rsa-aes128cbc", "--check")...); code != 3 ||
 		!strings.Contains(stdout, id+": asked before the server's Finished false, want true") ||
 		!strings.Contains(stdout, "fs-h1-ecdhe-rsa-aes128cbc was measured, and the fixture has no such scenario") {
 		t.Errorf("held to another: %d\n%s", code, stdout)
 	}
 	// Every scenario held, none named.
-	if code, stdout, _ := measured(t, append(none, "--false-start", falseStarts(t, nil), "--only", id, "--check")...); code != 1 ||
+	if code, stdout, _ := measured(t, append(none, "--false-start", falseStarts(t, nil), "--only", id, "--check")...); code != 3 ||
 		stdout != id+" was measured, and the fixture has no such scenario\n" {
 		t.Errorf("held to an empty fixture: %d\n%s", code, stdout)
 	}
@@ -968,5 +975,38 @@ func TestTheCommandSaysWhyItMeasuredNoFalseStart(t *testing.T) {
 	if code, _, stderr := measured(t, append(none, "--false-start", falseStarts(t, nil), "--only", "fs-h1-ecdhe-ecdsa-aes128gcm")...); code != 1 ||
 		!strings.Contains(stderr, "the fake would not open") {
 		t.Errorf("a browser that does not open: %d\n%s", code, stderr)
+	}
+}
+
+func TestTheCommandHoldsANewerBuildToTheFixtures(t *testing.T) {
+	// A build that says another version in sec-ch-ua, and so writes heads a
+	// byte longer, is what the fixtures say with --newer, and not without.
+	none := []string{"--browser", "chrome", "--connections", "", "--decoding", "", "--hpack", "", "--flow", "",
+		"--urls", "", "--hellos", "", "--false-start", "", "--alps", ""}
+	requests, _ := fixtures(t, map[string]harness.MeasuredScenario{}, nil)
+	records := recordsFile(t, nil)
+	for _, only := range []struct{ fixture, scenario, path, other string }{
+		{"--requests", "nav-direct", requests, "--records"},
+		{"--records", "h1-records-header", records, "--requests"},
+	} {
+		args := append(slices.Clone(none), only.fixture, only.path, only.other, "", "--only", only.scenario)
+		opening(t, &fake{version: "1"}, "Fake 1")
+		if code, _, stderr := measured(t, args...); code != 0 {
+			t.Fatalf("%s written: %d\n%s", only.fixture, code, stderr)
+		}
+		opening(t, &fake{version: "22"}, "Fake 22")
+		code, stdout, _ := measured(t, append(args, "--check")...)
+		if code != 3 || !strings.Contains(stdout, only.scenario) {
+			t.Errorf("%s held as it is: %d\n%s", only.fixture, code, stdout)
+		}
+		code, stdout, stderr := measured(t, append(args, "--check", "--newer")...)
+		if code != 0 || stdout != "the browser is what the fixtures say\n" {
+			t.Errorf("%s held as a newer build: %d\n%s%s", only.fixture, code, stdout, stderr)
+		}
+	}
+	// --newer says how to hold a browser, which writing does not.
+	if code, _, stderr := measured(t, append(none, "--requests", requests, "--records", "", "--newer")...); code != 2 ||
+		stderr != "measure: --newer holds a browser to the fixtures, with --check\n" {
+		t.Errorf("--newer without --check: %d\n%s", code, stderr)
 	}
 }

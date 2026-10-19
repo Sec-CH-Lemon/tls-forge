@@ -1954,6 +1954,22 @@ gh workflow run published-e2e.yml \
 Homebrew exposes one current stable formula, so disable `check_brew` when
 verifying a prerelease or an older version after the tap has moved forward.
 
+Whether tls-forge still matches the Chrome people run is asked every Monday by
+the [`drift`](.github/workflows/drift.yml) workflow. It compares the shipped
+profile with Google Chrome Stable and proposes a fresh one in a pull request
+when they differ. It also measures every fixture of the bench again, on Stable
+and on Beta, on macOS, where they were measured, and files an issue for each
+channel and major when what Chrome does differs from them twice running: which
+connection a request goes on, what it sends, its HPACK, TLS records, ALPS,
+WINDOW_UPDATEs, URLs, charsets, extension order and False Start. What a build's
+version decides, `sec-ch-ua` and the length it gives an HTTP/1.1 head, is the
+profile's, and not a difference there. Start it by hand with `gh workflow run
+drift.yml`, or hold the browser on your machine to the fixtures:
+
+```bash
+go run ./internal/harness/measure --browser PATH --check --newer
+```
+
 Release and maintenance documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — user-visible changes;

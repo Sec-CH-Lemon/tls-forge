@@ -6,6 +6,7 @@ import (
 	"io"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -148,6 +149,71 @@ func DiffRecords(want, got RecordsScenario) []string {
 			out = append(out, fmt.Sprintf("request %d, %s %s: a body of %d in records %v, want %d in %v", i+1,
 				w.Method, w.URL, g.Body, g.Records, w.Body, w.Records))
 		}
+	}
+	return out
+}
+
+// CompareRecordsNewer is CompareRecords for a newer build of the browser,
+// whose heads may be longer or shorter than the fixture's by what its version
+// writes in each of them (sec-ch-ua's GREASE brand says a version of one digit
+// or two): a scenario's heads are held to the fixture's as much longer as its
+// first request's head is. A scenario on the 1,400 bytes Chrome merges a head
+// and a body up to moves with the head, and says so as a difference.
+func CompareRecordsNewer(want, got map[string]RecordsScenario) []string {
+	shifted := map[string]RecordsScenario{}
+	for id, w := range want {
+		if g, ok := got[id]; ok && len(g.Requests) > 0 && len(w.Requests) > 0 {
+			w = shiftedHeads(w, headLength(g.Requests[0].Records)-headLength(w.Requests[0].Records))
+		}
+		shifted[id] = w
+	}
+	return CompareRecords(shifted, got)
+}
+
+// headLength is how many bytes of a request's head its records carried: the
+// sum of their R and r parts.
+func headLength(records []string) int {
+	n := 0
+	for _, record := range records {
+		for _, part := range strings.Split(record, "+") {
+			if size, ok := headPart(part); ok {
+				n += size
+			}
+		}
+	}
+	return n
+}
+
+// headPart is how many bytes of a head a part of a record carried, R or r,
+// and whether it carried any.
+func headPart(part string) (int, bool) {
+	if !strings.HasPrefix(part, "R") && !strings.HasPrefix(part, "r") {
+		return 0, false
+	}
+	size, err := strconv.Atoi(part[1:])
+	return size, err == nil
+}
+
+// shiftedHeads is scenario with each request's head delta bytes longer: the
+// last part of its records that carried the head, the part a longer head
+// grows.
+func shiftedHeads(scenario RecordsScenario, delta int) RecordsScenario {
+	out := RecordsScenario{Note: scenario.Note}
+	for _, r := range scenario.Requests {
+		records := slices.Clone(r.Records)
+	last:
+		for i := len(records) - 1; i >= 0; i-- {
+			parts := strings.Split(records[i], "+")
+			for j := len(parts) - 1; j >= 0; j-- {
+				if size, ok := headPart(parts[j]); ok {
+					parts[j] = parts[j][:1] + strconv.Itoa(size+delta)
+					records[i] = strings.Join(parts, "+")
+					break last
+				}
+			}
+		}
+		r.Records = records
+		out.Requests = append(out.Requests, r)
 	}
 	return out
 }

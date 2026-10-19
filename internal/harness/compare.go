@@ -26,6 +26,26 @@ var byBuild = []string{
 	"sec-ch-ua-form-factors",
 }
 
+// OwnValues are the values the browser sent of each header its machine or its
+// build decides, the first of each in the order of the scenarios' names: what
+// a newer build is held to (Compare's profile), so that its version, which
+// sec-ch-ua and the like say, is no difference from a fixture an older build
+// wrote; that its own requests agree with each other still is.
+func OwnValues(got map[string]MeasuredScenario) map[string]string {
+	out := map[string]string{}
+	for _, id := range slices.Sorted(maps.Keys(got)) {
+		for _, r := range append(slices.Clone(got[id].H2), got[id].H1...) {
+			for _, h := range r.Headers {
+				name := strings.ToLower(h[0])
+				if _, seen := out[name]; !seen && (slices.Contains(byMachine, name) || slices.Contains(byBuild, name)) {
+					out[name] = h[1]
+				}
+			}
+		}
+	}
+	return out
+}
+
 // boundary is Chrome's multipart boundary, drawn anew for every form.
 var boundary = regexp.MustCompile(`----WebKitFormBoundary[0-9A-Za-z]{16}`)
 

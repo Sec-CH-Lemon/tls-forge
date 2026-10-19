@@ -10,7 +10,7 @@
 //	go run ./internal/harness/measure --browser PATH [--requests FILE] \
 //	    [--connections FILE] [--decoding FILE] [--hpack FILE] [--records FILE] \
 //	    [--alps FILE] [--flow FILE] [--urls FILE] [--hellos FILE] \
-//	    [--false-start FILE] [--only ID,...] [--check]
+//	    [--false-start FILE] [--only ID,...] [--check [--newer]]
 //
 // --requests, --connections, --decoding, --hpack, --records, --alps, --flow,
 // --urls, --hellos and --false-start name the fixtures,
@@ -23,7 +23,12 @@
 // holds each launch to every order being as likely as any other. --only
 // measures those scenarios alone, of requests, of connections, of header
 // blocks, of records, of ALPS, of window updates and of False Start, and each
-// fixture of them measured has to have every one. Writing replaces what the fixture says of
+// fixture of them measured has to have every one. --newer holds a newer build
+// of the browser than the fixtures': what its version decides, the values of
+// sec-ch-ua and its kind and the length they give an HTTP/1.1 head, is held
+// to what it sends itself rather than to the fixtures'. It exits 0 when the
+// browser is what the fixtures say, 3 when it is not, 2 for what it is given
+// that it cannot run with, and 1 when it could not measure. Writing replaces what the fixture says of
 // each scenario measured, and of every page, and says which browser it was and
 // when.
 package main
@@ -91,12 +96,18 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		"the fixture of False Start over TLS 1.2; empty, none")
 	only := flags.String("only", "", "the scenarios to measure, by name, comma-separated; every one unless said")
 	check := flags.Bool("check", false, "hold the browser to the fixtures rather than write them")
+	newer := flags.Bool("newer", false,
+		"with --check, a newer build: what its version decides held to what it sends itself")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 	if *path == "" || flags.NArg() > 0 || *requests == "" && *connections == "" && *decoding == "" && *hpack == "" &&
 		*records == "" && *alps == "" && *flow == "" && *urls == "" && *hellos == "" && *falseStart == "" {
 		_, _ = fmt.Fprintln(stderr, "measure: --browser is needed, a fixture to measure for, and nothing else")
+		return 2
+	}
+	if *newer && !*check {
+		_, _ = fmt.Fprintln(stderr, "measure: --newer holds a browser to the fixtures, with --check")
 		return 2
 	}
 	var names []string
@@ -117,7 +128,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		if fixture.path == "" {
 			continue
 		}
-		found, err := measureRequests(ctx, b, fixture.measure, fixture.path, names, about, *check, stderr)
+		found, err := measureRequests(ctx, b, fixture.measure, fixture.path, names, about, *check, *newer, stderr)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
 			return 1
@@ -141,7 +152,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		diff = append(diff, found...)
 	}
 	if *records != "" {
-		found, err := measureTLSRecords(ctx, b, *records, names, about, *check, stderr)
+		found, err := measureTLSRecords(ctx, b, *records, names, about, *check, *newer, stderr)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
 			return 1
@@ -193,7 +204,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if len(diff) > 0 {
 		_, _ = fmt.Fprintf(stderr, "measure: %d differences from the fixtures\n", len(diff))
-		return 1
+		return 3
 	}
 	if *check {
 		_, _ = fmt.Fprintln(stdout, "the browser is what the fixtures say")
@@ -209,7 +220,7 @@ type measurer func(ctx context.Context, b harness.Browser, only []string,
 // measureRequests measures the scenarios named, or every one, with measure,
 // and holds them to the fixture at path, or writes them into it.
 func measureRequests(ctx context.Context, b harness.Browser, measure measurer, path string, names []string, about string,
-	check bool, progress io.Writer) ([]string, error) {
+	check, newer bool, progress io.Writer) ([]string, error) {
 	fixture, err := harness.LoadRequests(path)
 	if err != nil {
 		return nil, err
@@ -228,7 +239,11 @@ func measureRequests(ctx context.Context, b harness.Browser, measure measurer, p
 				}
 			}
 		}
-		return harness.Compare(want, got, nil), nil
+		var own map[string]string
+		if newer {
+			own = harness.OwnValues(got)
+		}
+		return harness.Compare(want, got, own), nil
 	}
 	for name, scenario := range got {
 		fixture.Scenarios[name] = scenario
@@ -422,7 +437,7 @@ func measureHeaderBlocks(ctx context.Context, b harness.Browser, path string, na
 
 // measureTLSRecords measures the scenarios of records named, or every one, and
 // holds them to the fixture at path, or writes them into it.
-func measureTLSRecords(ctx context.Context, b harness.Browser, path string, names []string, about string, check bool,
+func measureTLSRecords(ctx context.Context, b harness.Browser, path string, names []string, about string, check, newer bool,
 	progress io.Writer) ([]string, error) {
 	fixture, err := harness.LoadRecords(path)
 	if err != nil {
@@ -441,6 +456,9 @@ func measureTLSRecords(ctx context.Context, b harness.Browser, path string, name
 					want[name] = scenario
 				}
 			}
+		}
+		if newer {
+			return harness.CompareRecordsNewer(want, got), nil
 		}
 		return harness.CompareRecords(want, got), nil
 	}

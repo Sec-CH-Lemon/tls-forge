@@ -13,6 +13,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **The weekly drift check holds Chrome Stable and Beta to every fixture of
+  the bench**: the `behaviour` job of `drift.yml` measures every fixture again
+  on macOS with `measure --check --newer`, a difference measured twice before
+  it counts, and files an issue for each channel and major, commented on only
+  when what differs changes. Before, only the shipped profile was compared
+  with Chrome; the behaviour tls-forge is held to was measured once. The
+  bench's `measure` exits 3 when a browser differs from the fixtures, 1 when
+  it could not measure; `--newer` (with `--check`) holds what a build's
+  version decides, `sec-ch-ua` and its kind and the length they give an
+  HTTP/1.1 head, to what the browser sends itself.
+
 - **`compare` checks that every key is a key**: a field `keys` says of each
   key of `key_share` and of the GREASE ECH key whether it is a public key of
   its kind, as the browser's always is (X25519: below 2^255−19, top bit clear,
