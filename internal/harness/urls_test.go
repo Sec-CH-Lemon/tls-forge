@@ -27,13 +27,15 @@ var testURLCases = map[string]urlCase{
 	"bad":     {note: "one the page cannot read", input: "https://www.example.com:{P}/p/%zz"},
 	"none":    {note: "one nothing is sent for", input: "ftp://www.example.com/"},
 	"located": {note: "a Location", input: "/p/located", redirect: true},
+	"typed":   {note: "a URL typed", input: "https://www.example.com:{P}/p/typed", typed: true},
 }
 
 // urlBrowser is a browser that does what a URL case's run page says: it goes
 // to the case's URL, or to the 302 that says it, and on; it tells /urlthrown/
-// of a URL it cannot read, as the page's script does when Chrome throws. Told
-// the bench's ports, it takes www.example.com on 443, 80 and plainPorts to
-// them, as defaultPorts has Chrome do.
+// of a URL it cannot read, as the page's script does when Chrome throws; a
+// page that is no run page it goes to as typed. Told the bench's ports, it
+// takes the names and ports portRules take to them, as defaultPorts has
+// Chrome do.
 type urlBrowser struct {
 	tls, plain int
 	fail       bool
@@ -54,11 +56,16 @@ func (b urlBrowser) Open(_ context.Context, page, _ string) (func(), error) {
 	go func() {
 		defer close(done)
 		c := b.client()
+		at := strings.Index(page, "/urlrun/")
+		if at < 0 {
+			_, _ = readAll(c, page)
+			return
+		}
 		script, proto := readAll(c, page)
 		if b.h2only && proto != 2 {
 			return
 		}
-		origin, id := page[:strings.Index(page, "/urlrun/")], page[strings.LastIndex(page, "/")+1:]
+		origin, id := page[:at], page[strings.LastIndex(page, "/")+1:]
 		if at := strings.Index(script, "encodeURIComponent("); at >= 0 {
 			_, _ = readAll(c, origin+"/r/302/"+id+"?to="+url.QueryEscape(jsonString(script[at+len("encodeURIComponent("):])))
 			return
@@ -75,17 +82,15 @@ func (b urlBrowser) Open(_ context.Context, page, _ string) (func(), error) {
 
 func (b urlBrowser) DumpDOM(context.Context, string) ([]byte, error) { return nil, nil }
 
-// client is how b asks: the loopback address for every name, www.example.com
-// on the ports the bench was told of taken to its own.
+// client is how b asks: the loopback address for every name, the names and
+// ports portRules take on the bench's ports, once it was told them.
 func (b urlBrowser) client() *http.Client {
 	return &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			_, port, _ := net.SplitHostPort(addr)
-			switch n, _ := strconv.Atoi(port); {
-			case b.tls != 0 && n == 443:
-				port = strconv.Itoa(b.tls)
-			case b.plain != 0 && (n == 80 || slices.Contains(plainPorts, n)):
-				port = strconv.Itoa(b.plain)
+			host, port, _ := net.SplitHostPort(addr)
+			if b.tls != 0 {
+				n, _ := strconv.Atoi(port)
+				port = strconv.Itoa(benchPort(host, n, b.tls, b.plain))
 			}
 			return (&net.Dialer{}).DialContext(ctx, network, "127.0.0.1:"+port)
 		},
@@ -137,10 +142,11 @@ func TestURLCasesAreMeasuredOverEachProtocol(t *testing.T) {
 		"bad":     {Refused: refusedThrown},
 		"none":    {Refused: refusedBlocked},
 		"located": sent("/p/located"),
+		"typed":   sent("/p/typed"),
 	} {
 		c := got[id]
 		if c.H2 != want || c.H1 != want || c.Note != testURLCases[id].note || c.Input != testURLCases[id].input ||
-			c.Redirect != testURLCases[id].redirect {
+			c.Redirect != testURLCases[id].redirect || c.Typed != testURLCases[id].typed {
 			t.Errorf("%s: measured %+v, want %v", id, c, want)
 		}
 	}
@@ -210,9 +216,13 @@ func TestARunPageGoesToItsURLOrToThe302ThatSaysIt(t *testing.T) {
 	if res, _ := get(t, http.MethodGet, o["A"]+"/urlthrown/plain", nil); res.StatusCode != http.StatusNoContent {
 		t.Errorf("a script that threw: %d", res.StatusCode)
 	}
-	if scenarios := urlScenarios(testURLCases); scenarios["plain"] != (scenario{note: "a URL", start: "{A}/urlrun/{ID}",
-		wait: "/never", settle: urlSettle}) {
+	scenarios := urlScenarios(testURLCases)
+	if scenarios["plain"] != (scenario{note: "a URL", start: "{A}/urlrun/{ID}", wait: "/never", settle: urlSettle}) {
 		t.Errorf("the scenario of a URL case is %+v", scenarios["plain"])
+	}
+	if scenarios["typed"] != (scenario{note: "a URL typed", start: "https://www.example.com:{P}/p/typed", wait: "/never",
+		settle: urlSettle}) {
+		t.Errorf("the scenario of a URL typed is %+v", scenarios["typed"])
 	}
 }
 
@@ -221,30 +231,36 @@ func TestWhatWentOutForAURLCaseIsWhatCameAfterItsRunPage(t *testing.T) {
 	entry := func(target, sni string) Entry { return Entry{Target: target, SNI: sni} }
 	run := entry("https://www.example.com:8443/urlrun/x", "www.example.com")
 	page := entry("https://www.example.com:8443/p/x?q", "www.example.com")
+	located, typed := urlCase{redirect: true}, urlCase{typed: true}
+	favicon := entry("https://www.example.com:8443/favicon.ico", "")
 	for _, tc := range []struct {
-		name     string
-		entries  []Entry
-		redirect bool
-		want     SentURL
+		name    string
+		entries []Entry
+		c       urlCase
+		want    SentURL
 	}{
-		{"no run page", []Entry{page}, false, SentURL{Refused: refusedBlocked}},
-		{"nothing after it", []Entry{run}, false, SentURL{Refused: refusedBlocked}},
-		{"a favicon alone", []Entry{run, entry("https://www.example.com:8443/favicon.ico", "")}, false,
-			SentURL{Refused: refusedBlocked}},
-		{"a script that threw", []Entry{run, entry("https://www.example.com:8443/urlthrown/x", "")}, false,
+		{"no run page", []Entry{page}, urlCase{}, SentURL{Refused: refusedBlocked}},
+		{"nothing after it", []Entry{run}, urlCase{}, SentURL{Refused: refusedBlocked}},
+		{"a favicon alone", []Entry{run, favicon}, urlCase{}, SentURL{Refused: refusedBlocked}},
+		{"a script that threw", []Entry{run, entry("https://www.example.com:8443/urlthrown/x", "")}, urlCase{},
 			SentURL{Refused: refusedThrown}},
-		{"the page", []Entry{entry("https://www.example.com:8443/p/before", ""), run, page}, false,
+		{"the page", []Entry{entry("https://www.example.com:8443/p/before", ""), run, page}, urlCase{},
 			SentURL{SNI: "www.example.com", Scheme: "https", Authority: "www.example.com", Target: "/p/x?q"}},
-		{"after its 302", []Entry{run, entry("https://www.example.com:8443/r/302/x?to=y", ""), page}, true,
+		{"after its 302", []Entry{run, entry("https://www.example.com:8443/r/302/x?to=y", ""), page}, located,
 			SentURL{SNI: "www.example.com", Scheme: "https", Authority: "www.example.com", Target: "/p/x?q"}},
-		{"its 302, when it is no Location's", []Entry{run, entry("https://www.example.com:8443/r/302/x", ""), page}, false,
+		{"its 302, when it is no Location's", []Entry{run, entry("https://www.example.com:8443/r/302/x", ""), page}, urlCase{},
 			SentURL{Scheme: "https", Authority: "www.example.com", Target: "/r/302/x"}},
-		{"a host alone", []Entry{run, entry("http://127.0.0.1:8080", "")}, false,
+		{"a host alone", []Entry{run, entry("http://127.0.0.1:8080", "")}, urlCase{},
 			SentURL{Scheme: "http", Authority: "127.0.0.1"}},
-		{"another port", []Entry{run, entry("http://www.example.com:6679/p/x", "")}, false,
+		{"another port", []Entry{run, entry("http://www.example.com:6679/p/x", "")}, urlCase{},
 			SentURL{Scheme: "http", Authority: "www.example.com:6679", Target: "/p/x"}},
+		{"typed: the first, a favicon aside", []Entry{favicon, page, run}, typed,
+			SentURL{SNI: "www.example.com", Scheme: "https", Authority: "www.example.com", Target: "/p/x?q"}},
+		{"typed: no run page wanted", []Entry{entry("http://www.example.com:8080/p/x", "")}, typed,
+			SentURL{Scheme: "http", Authority: "www.example.com", Target: "/p/x"}},
+		{"typed: nothing", nil, typed, SentURL{Refused: refusedBlocked}},
 	} {
-		if got := s.sent(tc.entries, "x", tc.redirect); got != tc.want {
+		if got := s.sent(tc.entries, "x", tc.c); got != tc.want {
 			t.Errorf("%s: %v, want %v", tc.name, got, tc.want)
 		}
 	}
@@ -298,7 +314,8 @@ func TestAFixtureOfURLsIsWrittenAsItIsKept(t *testing.T) {
 		}
 	}
 	for id, c := range fixture.Cases {
-		if want, ok := urlCatalogue[id]; !ok || c.Note != want.note || c.Input != want.input || c.Redirect != want.redirect {
+		if want, ok := urlCatalogue[id]; !ok || c.Note != want.note || c.Input != want.input || c.Redirect != want.redirect ||
+			c.Typed != want.typed {
 			t.Errorf("the fixture's %s is %+v, the catalogue's %+v", id, c, want)
 		}
 	}
@@ -321,10 +338,22 @@ func TestAURLServerIsSentToAsChromeWas(t *testing.T) {
 			got != "https://www.example.com:"+tlsPort[proto]+"/r/302/url-redirect-space?to=%2Fp%2Furl+redirect+space" {
 			t.Errorf("URL(url-redirect-space, %s) = %q, %v", proto, got, err)
 		}
+		if got, err := u.URL("url-upgrade-typed", proto); err != nil || got != "http://www.example.com/p/url-upgrade-typed" {
+			t.Errorf("URL(url-upgrade-typed, %s) = %q, %v", proto, got, err)
+		}
 		for addr, want := range map[string]string{
 			"www.example.com:443":                       "127.0.0.1:" + tlsPort[proto],
+			"WWW.EXAMPLE.COM:443":                       "127.0.0.1:" + tlsPort[proto],
 			"www.example.com:80":                        "127.0.0.1:" + plain,
 			"www.example.com:6679":                      "127.0.0.1:" + plain,
+			"fallback.example.com:443":                  "127.0.0.1:" + plain,
+			"fallback.example.com:80":                   "127.0.0.1:" + plain,
+			"intranet:443":                              "127.0.0.1:" + tlsPort[proto],
+			"intranet:80":                               "127.0.0.1:" + plain,
+			"upgrade.test:443":                          "127.0.0.1:" + tlsPort[proto],
+			"upgrade.test:80":                           "127.0.0.1:" + plain,
+			"www.example.net:443":                       "127.0.0.1:443",
+			"intranet:8080":                             "127.0.0.1:8080",
 			"[::1]:" + plain:                            "127.0.0.1:" + plain,
 			"xn--e1afmkfd.example.com:" + tlsPort["h2"]: "127.0.0.1:" + tlsPort["h2"],
 		} {
@@ -365,12 +394,16 @@ func TestAURLServerIsSentToAsChromeWas(t *testing.T) {
 
 func TestChromeIsToldTheBenchsPortsForWhatAURLCaseNames(t *testing.T) {
 	// www.example.com on 443, on 80 and on every other port a case names for
-	// plain http, to the bench; the browser it was told by is as it was.
+	// plain http, to the bench, and the names of HTTPS-Upgrades' cases on 443
+	// and 80; the browser it was told by is as it was.
 	chrome := Chrome{Path: "chrome"}
 	told, ok := chrome.defaultPorts(1, 2).(Chrome)
 	want := "MAP www.example.com:443 127.0.0.1:1, MAP www.example.com:80 127.0.0.1:2, " +
 		"MAP www.example.com:4190 127.0.0.1:2, MAP www.example.com:6000 127.0.0.1:2, " +
-		"MAP www.example.com:6679 127.0.0.1:2, MAP www.example.com:8080 127.0.0.1:2, "
+		"MAP www.example.com:6679 127.0.0.1:2, MAP www.example.com:8080 127.0.0.1:2, " +
+		"MAP fallback.example.com:443 127.0.0.1:2, MAP fallback.example.com:80 127.0.0.1:2, " +
+		"MAP intranet:443 127.0.0.1:1, MAP intranet:80 127.0.0.1:2, " +
+		"MAP upgrade.test:443 127.0.0.1:1, MAP upgrade.test:80 127.0.0.1:2, "
 	if !ok || told.rules != want || told.Path != "chrome" || chrome.rules != "" {
 		t.Errorf("told %+v, was %+v", told, chrome)
 	}

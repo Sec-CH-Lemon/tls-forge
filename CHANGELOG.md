@@ -944,8 +944,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   an IPv4 address in another form went out as given, and a `Location` naming
   another host and port without a scheme, after a plain http URL that named
   no port, went out with the `Host` of the hop before. Measured on Chrome 155
-  over HTTP/2 and HTTP/1.1 (`testdata/chrome155-urls.json`, 50 URLs given to a
-  page and by a `Location`), and held to it through the transport, the server
+  over HTTP/2 and HTTP/1.1 (`testdata/chrome155-urls.json`, 58 URLs given to a
+  page, by a `Location` and typed), and held to it through the transport, the server
   name and `:path` included. `CookiesFor` and a browser context's `Initiator`
   read a URL the same way.
 - **WINDOW_UPDATEs go as Chrome sends them while a body is read**, with a

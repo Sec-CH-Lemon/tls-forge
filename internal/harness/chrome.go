@@ -35,15 +35,13 @@ func (c Chrome) trusting(spki string) Browser {
 	return c
 }
 
-// defaultPorts is c taking www.example.com on the ports its schemes mean, 443
-// and 80, to the bench's tls and plain ports, and on the other ports the URL
-// cases name for plain http (plainPorts) to the plain one: what the URL cases
-// that name no port, 443, 80 or a port Chrome may block are measured with
-// (urls.go).
+// defaultPorts is c taking the names and ports portRules take to the bench's
+// tls and plain ports: what the URL cases that name no port, 443, 80 or a
+// port Chrome may block are measured with (urls.go).
 func (c Chrome) defaultPorts(tls, plain int) Browser {
-	c.rules = fmt.Sprintf("MAP www.example.com:443 127.0.0.1:%d, MAP www.example.com:80 127.0.0.1:%d, ", tls, plain)
-	for _, port := range plainPorts {
-		c.rules += fmt.Sprintf("MAP www.example.com:%d 127.0.0.1:%d, ", port, plain)
+	c.rules = ""
+	for _, r := range portRules {
+		c.rules += fmt.Sprintf("MAP %s:%d 127.0.0.1:%d, ", r.host, r.port, benchPort(r.host, r.port, tls, plain))
 	}
 	return c
 }

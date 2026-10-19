@@ -1,7 +1,7 @@
 {
- "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
- "measured": "2026-10-18",
- "how": "A local server answered www.example.com and www.example.net, mapped to 127.0.0.1 with --host-resolver-rules, www.example.com on 443 and 80 too, and on 4190, 6000, 6679 and 8080 to the plain port, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP at 127.0.0.1 and [::1]. Each case ran in a fresh profile: a run page whose script set location.href to the case's URL, as it is given here with the bench's TLS port as {P} and its plain one as {Q}, or, for a Location, to a 302 that said it. What the browser sent next is kept, but a favicon: the server name its connection's TLS asked for, the scheme, the authority (:authority, Host) and the target (:path, the request line's) as they went, without the port numbers; \"thrown\" when the script's assignment threw, \"blocked\" when nothing came within 2.5 seconds.",
+ "browser": "Google Chrome 155.0.8059.85, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-18, 2026-10-19",
+ "how": "A local server answered www.example.com and www.example.net, mapped to 127.0.0.1 with --host-resolver-rules, www.example.com on 443 and 80 too, and on 4190, 6000, 6679 and 8080 to the plain port, intranet and upgrade.test on 443 and 80 as www.example.com, and fallback.example.com on both to the plain port, where a TLS handshake fails, over HTTPS with HTTP/2 or with HTTP/1.1 only, and over plain HTTP at 127.0.0.1 and [::1]. Each case ran in a fresh profile: a run page whose script set location.href to the case's URL, as it is given here with the bench's TLS port as {P} and its plain one as {Q}, or, for a Location, to a 302 that said it; for a URL typed, the browser started at it. What the browser sent next is kept, but a favicon: the server name its connection's TLS asked for, the scheme, the authority (:authority, Host) and the target (:path, the request line's) as they went, without the port numbers; \"thrown\" when the script's assignment threw, \"blocked\" when nothing came within 2.5 seconds.",
  "cases": {
   "url-fragment": {
    "note": "a fragment",
@@ -738,6 +738,129 @@
     "scheme": "https",
     "authority": "www.example.com",
     "target": "/p/url-scheme-upper"
+   }
+  },
+  "url-upgrade-dot-test": {
+   "note": "http to a name under .test",
+   "input": "http://upgrade.test/p/url-upgrade-dot-test",
+   "h2": {
+    "scheme": "http",
+    "authority": "upgrade.test",
+    "target": "/p/url-upgrade-dot-test"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "upgrade.test",
+    "target": "/p/url-upgrade-dot-test"
+   }
+  },
+  "url-upgrade-fallback": {
+   "note": "http to a name whose https fails",
+   "input": "http://fallback.example.com/p/url-upgrade-fallback",
+   "h2": {
+    "scheme": "http",
+    "authority": "fallback.example.com",
+    "target": "/p/url-upgrade-fallback"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "fallback.example.com",
+    "target": "/p/url-upgrade-fallback"
+   }
+  },
+  "url-upgrade-fallback-typed": {
+   "note": "http to a name whose https fails, typed",
+   "input": "http://fallback.example.com/p/url-upgrade-fallback-typed",
+   "typed": true,
+   "h2": {
+    "scheme": "http",
+    "authority": "fallback.example.com",
+    "target": "/p/url-upgrade-fallback-typed"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "fallback.example.com",
+    "target": "/p/url-upgrade-fallback-typed"
+   }
+  },
+  "url-upgrade-link": {
+   "note": "http to a name, no port",
+   "input": "http://www.example.com/p/url-upgrade-link",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-link"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-link"
+   }
+  },
+  "url-upgrade-redirect": {
+   "note": "a Location of http to a name, no port",
+   "input": "http://www.example.com/p/url-upgrade-redirect",
+   "redirect": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-redirect"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-redirect"
+   }
+  },
+  "url-upgrade-single-label": {
+   "note": "http to a single label",
+   "input": "http://intranet/p/url-upgrade-single-label",
+   "h2": {
+    "scheme": "http",
+    "authority": "intranet",
+    "target": "/p/url-upgrade-single-label"
+   },
+   "h1": {
+    "scheme": "http",
+    "authority": "intranet",
+    "target": "/p/url-upgrade-single-label"
+   }
+  },
+  "url-upgrade-typed": {
+   "note": "http to a name, no port, typed",
+   "input": "http://www.example.com/p/url-upgrade-typed",
+   "typed": true,
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-typed"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-typed"
+   }
+  },
+  "url-upgrade-userinfo": {
+   "note": "http to a name with credentials",
+   "input": "http://u:p@www.example.com/p/url-upgrade-userinfo",
+   "h2": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-userinfo"
+   },
+   "h1": {
+    "sni": "www.example.com",
+    "scheme": "https",
+    "authority": "www.example.com",
+    "target": "/p/url-upgrade-userinfo"
    }
   },
   "url-userinfo": {

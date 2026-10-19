@@ -26,8 +26,12 @@ var urlDiffers = map[string]string{
 
 // urlUpgraded are the cases Chrome sent over https though they were http
 // URLs: HTTPS-Upgrades tries https first for a navigation to a name on port
-// 80, and tls-forge sends what it is asked for.
-var urlUpgraded = map[string]bool{"url-port-default-http": true}
+// 80, a page's, a redirect's or one typed, and tls-forge sends what it is
+// asked for. The url-upgrade-fallback cases are sent as Chrome's went, over
+// http, but Chrome tried https first: two TLS handshakes naming the host that
+// failed, which the fixture does not hold.
+var urlUpgraded = map[string]bool{"url-port-default-http": true, "url-upgrade-link": true, "url-upgrade-redirect": true,
+	"url-upgrade-typed": true, "url-upgrade-userinfo": true}
 
 // The ports the URL fixture's {P} and {Q} are said as here.
 const (

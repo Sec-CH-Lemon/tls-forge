@@ -35,8 +35,10 @@ type URLCase struct {
 	// plain one {Q}.
 	Input string `json:"input"`
 	// Redirect says Input is the Location of a 302 from
-	// https://www.example.com/r/302/<case>.
+	// https://www.example.com/r/302/<case>, and Typed that it was typed into
+	// the address bar: the browser was started at it.
 	Redirect bool    `json:"redirect,omitempty"`
+	Typed    bool    `json:"typed,omitempty"`
 	H2       SentURL `json:"h2"`
 	H1       SentURL `json:"h1"`
 }
@@ -68,22 +70,61 @@ func LoadURLs(path string) (*URLsFixture, error) { return load[URLsFixture](path
 func (f *URLsFixture) Write(path string) error { return writeJSON(path, f) }
 
 // urlCase is a URL the bench has a browser go to: as its run page gives it to
-// location.href, or, redirect, as a 302's Location says it.
+// location.href, or, redirect, as a 302's Location says it, or, typed, as one
+// typed into the address bar, the browser started at it.
 type urlCase struct {
-	note     string
-	input    string
-	redirect bool
+	note            string
+	input           string
+	redirect, typed bool
 }
 
 // plainPorts are the ports but 80 that URL cases name for plain http to
-// www.example.com, each taken to the bench's plain port (defaultPorts), so
-// that a request Chrome sends to one comes.
+// www.example.com, each taken to the bench's plain port (portRules), so that
+// a request Chrome sends to one comes.
 var plainPorts = []int{4190, 6000, 6679, 8080}
 
+// portRule takes a name on a port to the bench's TLS port, or to its plain
+// one.
+type portRule struct {
+	host  string
+	port  int
+	plain bool
+}
+
+// portRules are where the URL cases that name no port, 443, 80 or a port
+// Chrome may block go: www.example.com on 443 to the TLS port, on 80 and
+// plainPorts to the plain one; fallback.example.com on both to the plain one,
+// where a TLS handshake fails, as with an https site that does not answer;
+// intranet, a single label, and upgrade.test, a name under .test, as
+// www.example.com (defaultPorts, Addr).
+var portRules = func() []portRule {
+	rules := []portRule{{"www.example.com", 443, false}, {"www.example.com", 80, true}}
+	for _, port := range plainPorts {
+		rules = append(rules, portRule{"www.example.com", port, true})
+	}
+	return append(rules, portRule{"fallback.example.com", 443, true}, portRule{"fallback.example.com", 80, true},
+		portRule{"intranet", 443, false}, portRule{"intranet", 80, true},
+		portRule{"upgrade.test", 443, false}, portRule{"upgrade.test", 80, true})
+}()
+
+// benchPort is the port a connection to host on port goes to, as portRules
+// take it to the bench's tls and plain ports: port itself for a name and port
+// they do not take.
+func benchPort(host string, port, tls, plain int) int {
+	for _, r := range portRules {
+		if strings.EqualFold(r.host, host) && r.port == port {
+			if r.plain {
+				return plain
+			}
+			return tls
+		}
+	}
+	return port
+}
+
 // urlCatalogue is every URL measured, by its case's name in the fixture. Its
-// inputs name the bench's TLS port {P} and its plain port {Q}; www.example.com
-// on 443 or 80 is taken to them, and on plainPorts to the plain one
-// (defaultPorts).
+// inputs name the bench's TLS port {P} and its plain port {Q}; the names and
+// ports portRules take go to them.
 var urlCatalogue = map[string]urlCase{
 	// The host.
 	"url-host-upper":     {note: "a name in capitals", input: "https://WWW.EXAMPLE.COM:{P}/p/url-host-upper"},
@@ -141,14 +182,27 @@ var urlCatalogue = map[string]urlCase{
 	"url-redirect-whitespace":      {note: "a Location with spaces around it", input: "  /p/url-redirect-whitespace  ", redirect: true},
 	"url-redirect-port-default":    {note: "a Location on 443, said", input: "https://www.example.com:443/p/url-redirect-port-default", redirect: true},
 	"url-redirect-bad-escape":      {note: "a Location with a percent that escapes nothing", input: "/p/url-redirect-bad%zz%", redirect: true},
+	// HTTPS-Upgrades: plain http on 80, which Chrome tries over https first.
+	"url-upgrade-link":           {note: "http to a name, no port", input: "http://www.example.com/p/url-upgrade-link"},
+	"url-upgrade-redirect":       {note: "a Location of http to a name, no port", input: "http://www.example.com/p/url-upgrade-redirect", redirect: true},
+	"url-upgrade-typed":          {note: "http to a name, no port, typed", input: "http://www.example.com/p/url-upgrade-typed", typed: true},
+	"url-upgrade-userinfo":       {note: "http to a name with credentials", input: "http://u:p@www.example.com/p/url-upgrade-userinfo"},
+	"url-upgrade-fallback":       {note: "http to a name whose https fails", input: "http://fallback.example.com/p/url-upgrade-fallback"},
+	"url-upgrade-fallback-typed": {note: "http to a name whose https fails, typed", input: "http://fallback.example.com/p/url-upgrade-fallback-typed", typed: true},
+	"url-upgrade-single-label":   {note: "http to a single label", input: "http://intranet/p/url-upgrade-single-label"},
+	"url-upgrade-dot-test":       {note: "http to a name under .test", input: "http://upgrade.test/p/url-upgrade-dot-test"},
 }
 
-// urlScenarios are the URL cases as scenarios: each its run page, the
-// browser left to go where it goes.
+// urlScenarios are the URL cases as scenarios: each its run page, or its URL
+// for one typed, the browser left to go where it goes.
 func urlScenarios(cases map[string]urlCase) map[string]scenario {
 	out := map[string]scenario{}
 	for id, c := range cases {
-		out[id] = scenario{note: c.note, start: "{A}/urlrun/{ID}", wait: "/never", settle: urlSettle}
+		start := "{A}/urlrun/{ID}"
+		if c.typed {
+			start = c.input
+		}
+		out[id] = scenario{note: c.note, start: start, wait: "/never", settle: urlSettle}
 	}
 	return out
 }
@@ -216,8 +270,8 @@ func measureURLs(ctx context.Context, b Browser, cases map[string]urlCase, only 
 				return nil, fmt.Errorf("harness: %s over %s: %w", id, proto, err)
 			}
 			got := out[id]
-			got.Note, got.Input, got.Redirect = cases[id].note, cases[id].input, cases[id].redirect
-			sent := s.sent(entries, id, cases[id].redirect)
+			got.Note, got.Input, got.Redirect, got.Typed = cases[id].note, cases[id].input, cases[id].redirect, cases[id].typed
+			sent := s.sent(entries, id, cases[id])
 			if proto == "h2" {
 				got.H2 = sent
 			} else {
@@ -230,12 +284,15 @@ func measureURLs(ctx context.Context, b Browser, cases map[string]urlCase, only 
 	return out, nil
 }
 
-// sent is what went out for the URL case id, of entries: after its run
-// page's request, what sentAfter says.
-func (s *Server) sent(entries []Entry, id string, redirect bool) SentURL {
+// sent is what went out for the URL case id, c, of entries: after its run
+// page's request, or from the first for a URL typed, what sentAfter says.
+func (s *Server) sent(entries []Entry, id string, c urlCase) SentURL {
+	if c.typed {
+		return s.sentAfter(entries, id, false)
+	}
 	for i, e := range entries {
 		if pathOf(e.Target) == "/urlrun/"+id {
-			return s.sentAfter(entries[i+1:], id, redirect)
+			return s.sentAfter(entries[i+1:], id, c.redirect)
 		}
 	}
 	return SentURL{Refused: refusedBlocked}
@@ -293,18 +350,13 @@ func (u *URLServer) URL(id, proto string) (string, error) {
 }
 
 // Addr is where a connection to addr goes for a case over proto, as Chrome's
-// host resolver rules took it: to the loopback address, and www.example.com
-// on 443 to the bench's TLS port of proto, on 80 and plainPorts to its plain
-// one (defaultPorts).
+// host resolver rules took it: to the loopback address, on the bench's TLS
+// port of proto or its plain one where portRules take the name and port
+// (defaultPorts).
 func (u *URLServer) Addr(addr, proto string) string {
-	_, port, _ := net.SplitHostPort(addr)
-	switch n, _ := strconv.Atoi(port); {
-	case n == 443:
-		port = strconv.Itoa(u.port(proto))
-	case n == 80 || slices.Contains(plainPorts, n):
-		port = strconv.Itoa(u.s.Plain)
-	}
-	return net.JoinHostPort("127.0.0.1", port)
+	host, port, _ := net.SplitHostPort(addr)
+	n, _ := strconv.Atoi(port)
+	return net.JoinHostPort("127.0.0.1", strconv.Itoa(benchPort(host, n, u.port(proto), u.s.Plain)))
 }
 
 func (u *URLServer) port(proto string) int {
