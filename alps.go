@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"net"
 
-	utls "github.com/bogdanfinn/utls"
+	utls "github.com/igor-lemon/utls"
 	"golang.org/x/crypto/cryptobyte"
 )
 

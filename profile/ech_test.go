@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
-	tls "github.com/bogdanfinn/utls"
+	tls "github.com/igor-lemon/utls"
 )
 
 // greaseECH is the GREASE encrypted_client_hello extension of a spec.

@@ -24,10 +24,10 @@ import (
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
-	tls "github.com/bogdanfinn/utls"
 	"github.com/igor-lemon/fhttp/http2"
 	"github.com/igor-lemon/fhttp/http2/hpack"
 	"github.com/igor-lemon/tls-client/profiles"
+	tls "github.com/igor-lemon/utls"
 	"golang.org/x/net/http/httpguts"
 )
 

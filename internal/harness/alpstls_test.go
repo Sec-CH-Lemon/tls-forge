@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	utls "github.com/bogdanfinn/utls"
+	utls "github.com/igor-lemon/utls"
 	"golang.org/x/crypto/cryptobyte"
 )
 
@@ -308,7 +308,7 @@ func TestTheALPSServerShakesHandsWithGoAndUTLS(t *testing.T) {
 				return nil, errors.New("the client was given " + string(got))
 			}
 			return conn, nil
-		}, ALPSHandshake{Codepoint: extALPS, Protocols: []string{"h2"}, ALPN: "h2", Negotiated: true, Flight: []string{"EE", "F"}}},
+		}, ALPSHandshake{Codepoint: extALPS, Protocols: []string{"h2"}, ALPN: "h2", Negotiated: true, Flight: []string{"EE+F"}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			serverEnd, clientEnd := net.Pipe()

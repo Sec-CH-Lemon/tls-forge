@@ -604,6 +604,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Changed
 
+- **utls is a fork of tls-forge's too**: `github.com/igor-lemon/utls`, the
+  `tls-forge` branch of a fork of bogdanfinn/utls v1.7.8-barnius, on which
+  tls-forge's forks of fhttp, tls-client, quic-go-utls and websocket build.
+  A type of utls that tls-forge hands out or takes, as the `ClientHelloSpec`
+  of `profile.Profile.Spec`, comes from there: code that imported
+  `github.com/bogdanfinn/utls` for one imports `github.com/igor-lemon/utls`.
 - **A URL Chrome sends nothing for is refused before anything is sent**: one
   on a port Chrome keeps away from, Chromium's restricted ports such as 22, 25
   and 6000 (measured on 0 and 6000, and on 4190 and 6679, which Chrome sends
@@ -889,6 +895,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The client's second TLS 1.3 flight goes in one record, as Chrome's**:
+  its EncryptedExtensions (ALPS) and Finished, and a client certificate's
+  Certificate and CertificateVerify with them, packed into records of as
+  much as one carries, as BoringSSL writes a flight, where utls wrote a
+  record for each. Measured on Chrome 155 (every `alps-*` scenario of
+  `testdata/chrome155-alps.json` that negotiated ALPS) and held to it,
+  through tls-forge's fork of utls.
 - **What a server gives in ALPS is taken as Chrome takes it**: its HTTP/2
   frames are read before the connection's first request as Chrome 155 reads
   them, a SETTINGS frame's settings taken (a header table opens the first

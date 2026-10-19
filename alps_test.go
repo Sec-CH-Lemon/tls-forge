@@ -58,32 +58,9 @@ func alpsAskedOf(scenario string) alpsPage {
 }
 
 // alpsDiffer are the scenarios of testdata/chrome155-alps.json tls-forge does
-// not make of the bench's ALPS server what Chrome did, and why, the flight of
-// its handshake aside (flightApart): none, kept for a difference measured
-// later.
+// not make of the bench's ALPS server what Chrome did, and why: none, kept for
+// a difference measured later.
 var alpsDiffer = map[string]string{}
-
-// flightApart is why the flight of every handshake that negotiated ALPS
-// differs from Chrome's: utls writes the client's EncryptedExtensions and
-// Finished in a record each, where Chrome's BoringSSL writes them in one.
-const flightApart = "utls writes the client's EncryptedExtensions and Finished in a record each, where Chrome writes them in one"
-
-// apart sets aside of got the flight flightApart says, after holding it to
-// being Chrome's written apart: what each record carried, EE+F as EE and F.
-// It counts the flights it set aside in set.
-func apart(want, got harness.ALPSScenario, set *int) harness.ALPSScenario {
-	for i := range min(len(got.Handshakes), len(want.Handshakes)) {
-		split := []string{}
-		for _, carried := range want.Handshakes[i].Flight {
-			split = append(split, strings.Split(carried, "+")...)
-		}
-		if slices.Equal(got.Handshakes[i].Flight, split) && !slices.Equal(split, want.Handshakes[i].Flight) {
-			got.Handshakes[i].Flight = want.Handshakes[i].Flight
-			*set++
-		}
-	}
-	return got
-}
 
 func TestALPSIsTakenAsChromeTookIt(t *testing.T) {
 	fixture, err := harness.LoadALPS(alpsFixture)
@@ -99,12 +76,6 @@ func TestALPSIsTakenAsChromeTookIt(t *testing.T) {
 		t.Fatalf("the bench listens on %d; Chrome was measured on ports of five digits", server.Plain)
 	}
 	chrome := headlessChrome(t)
-	setAside := 0
-	t.Cleanup(func() {
-		if setAside == 0 {
-			t.Errorf("no flight was set aside: take flightApart out (%s)", flightApart)
-		}
-	})
 	for _, scenario := range slices.Sorted(maps.Keys(fixture.Scenarios)) {
 		want, page := fixture.Scenarios[scenario], alpsAskedOf(scenario)
 		t.Run(scenario, func(t *testing.T) {
@@ -140,7 +111,7 @@ func TestALPSIsTakenAsChromeTookIt(t *testing.T) {
 			}
 			client.CloseIdleConnections()
 			got := settledALPS(t, server, want.Note, page.variant)
-			diffs := harness.DiffALPS(want, apart(want, got, &setAside))
+			diffs := harness.DiffALPS(want, got)
 			if why := alpsDiffer[scenario]; why != "" {
 				if len(diffs) == 0 {
 					t.Errorf("%s is taken as Chrome took it: take it out of alpsDiffer (%s)", scenario, why)

@@ -8,8 +8,8 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
-	tls "github.com/bogdanfinn/utls"
 	"github.com/igor-lemon/tls-client/profiles"
+	tls "github.com/igor-lemon/utls"
 )
 
 // orderOf is the extensions' code points of the ClientHello id opens a

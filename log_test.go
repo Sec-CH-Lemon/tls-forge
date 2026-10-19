@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
-	utls "github.com/bogdanfinn/utls"
 	fhttp "github.com/igor-lemon/fhttp"
 	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 	tls_client "github.com/igor-lemon/tls-client"
+	utls "github.com/igor-lemon/utls"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"

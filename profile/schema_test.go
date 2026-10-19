@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
-	tls "github.com/bogdanfinn/utls"
+	tls "github.com/igor-lemon/utls"
 )
 
 func TestEveryShippedProfileSendsItsTrustAnchorsAsItsChromeDid(t *testing.T) {

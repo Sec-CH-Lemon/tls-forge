@@ -18,10 +18,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	utls "github.com/bogdanfinn/utls"
 	fhttp "github.com/igor-lemon/fhttp"
 	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 	"github.com/igor-lemon/tls-client/profiles"
+	utls "github.com/igor-lemon/utls"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"

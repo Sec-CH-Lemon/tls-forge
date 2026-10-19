@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	utls "github.com/bogdanfinn/utls"
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
+	utls "github.com/igor-lemon/utls"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"

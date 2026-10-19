@@ -8,12 +8,12 @@ require (
 	github.com/andybalholm/brotli v1.2.3 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
-	github.com/bogdanfinn/utls v1.7.8-barnius // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
-	github.com/igor-lemon/fhttp v0.6.10-0.20261019125953-3858996aa949 // indirect
-	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019130513-39685ecdc476 // indirect
-	github.com/igor-lemon/tls-client v1.15.2-0.20261019130539-1ebdae021349 // indirect
-	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019130511-7d12c3075c7c // indirect
+	github.com/igor-lemon/fhttp v0.6.10-0.20261019141341-bd9ea92137d1 // indirect
+	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019141441-e46716ffebf5 // indirect
+	github.com/igor-lemon/tls-client v1.15.2-0.20261019141516-07e3f62fc51b // indirect
+	github.com/igor-lemon/utls v1.7.8-barnius.0.20261019134924-8ce0abf27ca1 // indirect
+	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019141439-6da9c97e8451 // indirect
 	github.com/klauspost/compress v1.20.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect

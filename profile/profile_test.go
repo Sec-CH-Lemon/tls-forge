@@ -13,8 +13,8 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
-	tls "github.com/bogdanfinn/utls"
 	"github.com/igor-lemon/fhttp/http2/hpack"
+	tls "github.com/igor-lemon/utls"
 )
 
 func chromeHelloBytes(t *testing.T) []byte {
