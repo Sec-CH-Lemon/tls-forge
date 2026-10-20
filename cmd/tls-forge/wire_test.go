@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -185,8 +186,8 @@ func TestFetchKeepsTheTunnelThroughAProxyInACapture(t *testing.T) {
 	server, _ := keyedSite(t, &keys)
 	proxy := startProxy(t)
 	dir := filepath.Join(t.TempDir(), "out")
-	code, _, stderr := exec(t, "fetch", "--insecure", "--no-exit-lookup", "--proxy", "http://"+proxy.addr, "-o", dir,
-		"--pcap", server.URL)
+	code, _, stderr := exec(t, "fetch", "--insecure", "--no-exit-lookup", "--proxy", "http://alice:s3cr3t@"+proxy.addr,
+		"-o", dir, "--pcap", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -206,6 +207,12 @@ func TestFetchKeepsTheTunnelThroughAProxyInACapture(t *testing.T) {
 	}
 	if mine := linesOf(keys.lines(), randomOf(t, capture.conns[0])); len(mine) != 4 || !slices.Equal(capture.secrets, mine) {
 		t.Errorf("the capture holds %d lines, the site %d of the connection", len(capture.secrets), len(mine))
+	}
+	// The credentials it gave the proxy are in it masked, past their scheme.
+	basic := base64.StdEncoding.EncodeToString([]byte("alice:s3cr3t"))
+	if file, _ := os.ReadFile(captures[0]); bytes.Contains(file, []byte(basic)) ||
+		!bytes.Contains(capture.conns[0].sent, []byte("\r\nProxy-Authorization: Basic "+strings.Repeat("*", len(basic))+"\r\n")) {
+		t.Errorf("the CONNECT went into the capture as\n%s", capture.conns[0].sent[:bytes.Index(capture.conns[0].sent, []byte("\r\n\r\n"))])
 	}
 }
 
@@ -332,8 +339,8 @@ func TestFetchKeepsTheHandshakeWithASOCKSProxyInACapture(t *testing.T) {
 	}{
 		{"socks5", []string{"--proxy", "socks5://" + plain, server.URL}, plain,
 			slices.Concat([]byte{5, 1, 0}, address), slices.Concat([]byte{5, 0}, opened)},
-		{"socks5 with a password", []string{"--proxy", "socks5://alice:s3cr3t@" + credentialed, server.URL}, credentialed,
-			slices.Concat([]byte{5, 2, 0, 2, 1, 5}, []byte("alice"), []byte{6}, []byte("s3cr3t"), address),
+		{"socks5 with a password, which is masked", []string{"--proxy", "socks5://alice:s3cr3t@" + credentialed, server.URL},
+			credentialed, slices.Concat([]byte{5, 2, 0, 2, 1, 5}, []byte("alice"), []byte{6}, []byte("******"), address),
 			slices.Concat([]byte{5, 2, 1, 0}, opened)},
 		{"socks5h", []string{"--proxy", "socks5h://" + plain, byName}, plain,
 			slices.Concat([]byte{5, 1, 0}, name), slices.Concat([]byte{5, 0}, opened)},
@@ -358,6 +365,9 @@ func TestFetchKeepsTheHandshakeWithASOCKSProxyInACapture(t *testing.T) {
 			capture := readCapture(t, captures[0])
 			if len(capture.conns) != 1 {
 				t.Fatalf("%d connections", len(capture.conns))
+			}
+			if file, _ := os.ReadFile(captures[0]); bytes.Contains(file, []byte("s3cr3t")) {
+				t.Error("the capture holds the proxy's password")
 			}
 			conn := capture.conns[0]
 			if fmt.Sprint(conn.server) != strings.TrimPrefix(tc.proxy, "127.0.0.1:") {
@@ -593,6 +603,60 @@ func TestTheWireFindsTheClientHelloAConnectionBeganWith(t *testing.T) {
 				t.Errorf("random %q, looked %v, head of %d, wanted %v", c.random, c.looked, len(c.head), wanted)
 			}
 		})
+	}
+}
+
+func TestTheWireMasksWhatAProxyWasGivenInTheClear(t *testing.T) {
+	// Write by write, as the client wrote them, cut where they may be: the
+	// credentials masked in what the capture holds, and the ClientHello
+	// found after them all the same.
+	random := hex.EncodeToString(bytes.Repeat([]byte{0x11}, 32))
+	for _, tc := range []struct {
+		name         string
+		writes, want [][]byte
+	}{
+		{"a SOCKS5 password",
+			[][]byte{{5, 2, 0, 2}, {1, 5, 'a', 'l', 'i', 'c', 'e', 6, 's', '3'}, []byte("cr3t"),
+				{5, 1, 0, 1, 127, 0, 0, 1, 1, 187}, helloOf(0x11)},
+			[][]byte{{5, 2, 0, 2}, {1, 5, 'a', 'l', 'i', 'c', 'e', 6, '*', '*'}, []byte("****"),
+				{5, 1, 0, 1, 127, 0, 0, 1, 1, 187}, helloOf(0x11)}},
+		{"a CONNECT's credentials",
+			[][]byte{[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic YW"), []byte("xp\r\n\r\n"), helloOf(0x11)},
+			[][]byte{[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic **"), []byte("**\r\n\r\n"), helloOf(0x11)}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := newWire()
+			conn, far := dialedPair(t, w, 1, stringAddr("127.0.0.1:5000"), stringAddr("127.0.0.1:1080"))
+			go func() { _, _ = io.Copy(io.Discard, far) }()
+			for _, write := range tc.writes {
+				if _, err := conn.Write(write); err != nil {
+					t.Fatal(err)
+				}
+			}
+			// The client's own bytes as they were, and the capture's masked.
+			if c := w.conns[0]; c.random != random || !c.looked {
+				t.Errorf("random %q, looked %v", c.random, c.looked)
+			}
+			streams, _ := w.capture(1)
+			for i, e := range streams[0].Events {
+				if !bytes.Equal(e.Data, tc.want[i]) {
+					t.Errorf("write %d: %q, want %q", i, e.Data, tc.want[i])
+				}
+			}
+		})
+	}
+	// Once the ClientHello is found, what follows is as it was sent.
+	w := newWire()
+	conn, far := dialedPair(t, w, 1, stringAddr("127.0.0.1:5000"), stringAddr("127.0.0.1:1080"))
+	go func() { _, _ = io.Copy(io.Discard, far) }()
+	after := []byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic YWxp\r\n\r\n")
+	for _, write := range [][]byte{helloOf(0x11), after} {
+		if _, err := conn.Write(write); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if streams, _ := w.capture(1); !bytes.Equal(streams[0].Events[1].Data, after) {
+		t.Errorf("after the ClientHello: %q", streams[0].Events[1].Data)
 	}
 }
 

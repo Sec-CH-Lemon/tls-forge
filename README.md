@@ -819,11 +819,14 @@ are tls-forge's writes and reads, numbered from zero, with no TCP options and
 no retransmission, and the first packet of each connection says so in a
 comment. What is above them, TLS and HTTP, is exact; what the system did on the
 wire, its handshake and its TCP/IP fingerprint, is not there, and a capture of
-the wire, below, has it. The capture is written with mode `0600`, and whoever
+the wire, below, has it. What a proxy was given in the clear to open a
+tunnel is masked, a `*` for each of its bytes so that nothing else moves: a
+SOCKS5 proxy's password, and an HTTP proxy's `Proxy-Authorization` past its
+scheme, both as a log writes them, the user name and the scheme kept; an
+HTTPS proxy's goes under its TLS, which the secrets in the file open as they
+open every connection's. The capture is written with mode `0600`, and whoever
 has it reads every connection in it; `editcap --discard-all-secrets` makes a
-copy without the secrets, which says nothing of what went over TLS but keeps
-what went in the clear: an HTTP proxy's CONNECT and its `Proxy-Authorization`,
-a SOCKS5 proxy's user name and password.
+copy without the secrets, which says nothing of what went over TLS.
 
 To read the wire itself:
 
@@ -1177,7 +1180,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | **Output** | |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it, and a log of the run; see [Keeping every request](#keeping-every-request) |
 | `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
-| `--pcap` | With `--output`, keep beside each request's files the connections it went out on as `NAME.pcapng`, every byte each way and the TLS secrets that open them, for Wireshark to read as it is, through a proxy the CONNECT or the SOCKS handshake that opened its tunnel, credentials and all; written with mode `0600`; see [Reading a run in Wireshark](#reading-a-run-in-wireshark) |
+| `--pcap` | With `--output`, keep beside each request's files the connections it went out on as `NAME.pcapng`, every byte each way and the TLS secrets that open them, for Wireshark to read as it is, through a proxy the CONNECT or the SOCKS handshake that opened its tunnel, its credentials masked; written with mode `0600`; see [Reading a run in Wireshark](#reading-a-run-in-wireshark) |
 | `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
 | `--json` | Write a JSON line for each request even when one URL is named |
 | `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |

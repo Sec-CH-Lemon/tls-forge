@@ -25,9 +25,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   system's own handshake and TCP/IP fingerprint are not in it. A connection
   is closed before its request is kept, so its end is in the file; with
   `--reuse-connection` each repeat's capture holds the URL's connection from
-  its start. What went in the clear stays in a copy without the secrets: an
-  HTTP proxy's `Proxy-Authorization`, a SOCKS5 proxy's user name and
-  password. Refused without `--output`. JSON lines and both reports name the
+  its start. What a proxy was given in the clear is masked, a `*` for each
+  of its bytes: a SOCKS5 proxy's password and an HTTP proxy's
+  `Proxy-Authorization` past its scheme, as a log writes them. Refused
+  without `--output`. JSON lines and both reports name the
   file as `capture`, the request's log as `capture`. README «Reading a run in
   Wireshark».
 

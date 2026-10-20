@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"io"
 	"net/netip"
+	"strings"
 	"time"
 )
 
@@ -326,18 +327,7 @@ func Tunnelled(sent []byte) ([]byte, bool) {
 // CMD RSV ATYP DST.ADDR DST.PORT. All it sent, whole, when that is no SOCKS5
 // CONNECT.
 func socks5(sent []byte) ([]byte, bool) {
-	// end is where the field at start ends: its length is the byte there, and
-	// more bytes follow it. Past what was sent when that byte is not there.
-	end := func(start, more int) int {
-		if start >= len(sent) {
-			return len(sent) + 1
-		}
-		return start + 1 + int(sent[start]) + more
-	}
-	asked := end(1, 0)
-	if asked < len(sent) && sent[asked] == 1 {
-		asked = end(end(asked+1, 0), 0)
-	}
+	asked, _ := socks5Asked(sent)
 	if asked >= len(sent) {
 		return nil, false
 	}
@@ -357,7 +347,7 @@ func socks5(sent []byte) ([]byte, bool) {
 	case 4:
 		tunnel = asked + 4 + 16 + 2
 	case 3:
-		tunnel = end(asked+4, 2)
+		tunnel = field(sent, asked+4, 2)
 	default:
 		return sent, true
 	}
@@ -365,6 +355,29 @@ func socks5(sent []byte) ([]byte, bool) {
 		return nil, false
 	}
 	return sent[tunnel:], true
+}
+
+// socks5Asked is where a SOCKS5 client's request begins in what it sent,
+// past VER NMETHODS METHODS and, when the proxy asked for them, VER ULEN
+// UNAME PLEN PASSWD, and where PASSWD begins, the request's start when it
+// gave none: past what was sent, when that is cut short.
+func socks5Asked(sent []byte) (asked, password int) {
+	asked = field(sent, 1, 0)
+	if asked < len(sent) && sent[asked] == 1 {
+		length := field(sent, asked+1, 0)
+		return field(sent, length, 0), length + 1
+	}
+	return asked, asked
+}
+
+// field is where the field at start of what was sent ends: its length is
+// the byte there, and more bytes follow it. Past what was sent, when that
+// byte is not there.
+func field(sent []byte, start, more int) int {
+	if start >= len(sent) {
+		return len(sent) + 1
+	}
+	return start + 1 + int(sent[start]) + more
 }
 
 // socks4 is Tunnelled for what a SOCKS4 client sent: VN CD DSTPORT DSTIP
@@ -393,6 +406,55 @@ func socks4(sent []byte) ([]byte, bool) {
 		tunnel += nul + 1
 	}
 	return sent[tunnel:], true
+}
+
+// Masked is what a client sent with the credentials it gave a proxy in the
+// clear, as it asked for a tunnel, a '*' for each of their bytes, so that
+// every length stays: the password a SOCKS5 client gave (RFC 1929), not the
+// user name, and the value of each Proxy-Authorization field of a CONNECT
+// past its scheme, as a log keeps them, or all of a value without one; as
+// far as each was sent. The rest as it was.
+func Masked(sent []byte) []byte {
+	masked := bytes.Clone(sent)
+	switch {
+	case bytes.HasPrefix(sent, []byte("CONNECT ")):
+		maskConnect(masked)
+	case len(sent) > 0 && sent[0] == 5:
+		asked, password := socks5Asked(sent)
+		for i := password; i < min(asked, len(masked)); i++ {
+			masked[i] = '*'
+		}
+	}
+	return masked
+}
+
+// maskConnect masks the credentials of each Proxy-Authorization field of a
+// CONNECT, in its lines up to the blank one that ends them, or to the end of
+// what was sent: a CR that ends it may be its line's end. Its request line
+// is no such field.
+func maskConnect(connect []byte) {
+	for fields := connect; len(fields) > 0; {
+		var line []byte
+		var ended bool
+		line, fields, ended = bytes.Cut(fields, []byte("\r\n"))
+		if len(line) == 0 {
+			return
+		}
+		name, value, _ := bytes.Cut(line, []byte(":"))
+		if !strings.EqualFold(strings.TrimSpace(string(name)), "Proxy-Authorization") {
+			continue
+		}
+		if !ended {
+			value = bytes.TrimSuffix(value, []byte("\r"))
+		}
+		value = bytes.TrimLeft(value, " \t")
+		if _, credentials, found := bytes.Cut(value, []byte(" ")); found {
+			value = credentials
+		}
+		for i := range value {
+			value[i] = '*'
+		}
+	}
 }
 
 // blocks writes pcapng blocks to w, until a write fails.

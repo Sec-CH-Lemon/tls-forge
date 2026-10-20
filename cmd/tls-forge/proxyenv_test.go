@@ -200,16 +200,40 @@ func TestAProxysPasswordIsWrittenNowhere(t *testing.T) {
 	}
 
 	// One that turns the password away, for every request and the question
-	// of where it comes out: the lines, every file kept of every request,
-	// both reports, the log and the trace.
+	// of where it comes out: the lines, every file kept of every request, its
+	// capture with the CONNECT in it among them, both reports, the log and the
+	// trace; and the CONNECT's credentials as they went, nowhere either.
 	dir := t.TempDir()
 	t.Setenv("RUN_PROXY", "http://alice:"+secret+"@"+refusingProxy(t))
 	code, stdout, stderr := exec(t, "fetch", "-k", "--proxy-env", "RUN_PROXY", "--json",
-		"-o", filepath.Join(dir, "out"), "--log", filepath.Join(dir, "run.jsonl"),
+		"-o", filepath.Join(dir, "out"), "--pcap", "--log", filepath.Join(dir, "run.jsonl"),
 		"--trace", filepath.Join(dir, "trace.json"), "--report="+filepath.Join(dir, "report"),
 		"--report-format", "html,json", "--retry", "1", server.URL, server.URL+"/two")
 	if code != 1 || !strings.Contains(stdout, "407") {
 		t.Errorf("exit code = %d, want 1 and the proxy's refusal\n%s\n%s", code, stdout, stderr)
+	}
+	nowhereSaid(t, dir, stdout, stderr)
+	basic := base64.StdEncoding.EncodeToString([]byte("alice:" + secret))
+	captures, _ := filepath.Glob(filepath.Join(dir, "out", "*.pcapng"))
+	for _, path := range captures {
+		if data, _ := os.ReadFile(path); strings.Contains(string(data), basic) ||
+			!strings.Contains(string(data), "Proxy-Authorization: Basic "+strings.Repeat("*", len(basic))) {
+			t.Errorf("%s holds the CONNECT's credentials, or no CONNECT", path)
+		}
+	}
+	if len(captures) != 2 {
+		t.Errorf("%d captures of two requests", len(captures))
+	}
+
+	// One that takes the password, SOCKS5's in the clear: the same.
+	dir = t.TempDir()
+	t.Setenv("RUN_PROXY", "socks5://alice:"+secret+"@"+startSocksProxy(t, "alice", secret))
+	code, stdout, stderr = exec(t, "fetch", "-k", "--proxy-env", "RUN_PROXY", "--no-exit-lookup", "--json",
+		"-o", filepath.Join(dir, "out"), "--pcap", "--log", filepath.Join(dir, "run.jsonl"),
+		"--trace", filepath.Join(dir, "trace.json"), "--report="+filepath.Join(dir, "report"),
+		"--report-format", "html,json", server.URL)
+	if code != 0 {
+		t.Errorf("exit code = %d through SOCKS5\n%s\n%s", code, stdout, stderr)
 	}
 	nowhereSaid(t, dir, stdout, stderr)
 }

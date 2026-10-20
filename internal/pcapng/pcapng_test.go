@@ -522,6 +522,57 @@ func TestClientRandom(t *testing.T) {
 	}
 }
 
+func TestMasked(t *testing.T) {
+	hello := []byte("\x16\x03\x01 Proxy-Authorization: Basic x\r\n")
+	port := []byte{1, 187}
+	for _, tc := range []struct {
+		name       string
+		sent, want []byte
+	}{
+		{"a SOCKS5 password", slices.Concat([]byte{5, 2, 0, 2, 1, 5}, []byte("alice"), []byte{6}, []byte("s3cr3t"),
+			[]byte{5, 1, 0, 1, 192, 0, 2, 1}, port, hello),
+			slices.Concat([]byte{5, 2, 0, 2, 1, 5}, []byte("alice"), []byte{6}, []byte("******"),
+				[]byte{5, 1, 0, 1, 192, 0, 2, 1}, port, hello)},
+		{"a SOCKS5 password cut short", slices.Concat([]byte{5, 1, 2, 1, 1, 'u', 6}, []byte("s3c")),
+			slices.Concat([]byte{5, 1, 2, 1, 1, 'u', 6}, []byte("***"))},
+		{"a SOCKS5 password yet to come", []byte{5, 1, 2, 1, 1, 'u', 6}, []byte{5, 1, 2, 1, 1, 'u', 6}},
+		{"a SOCKS5 user name and no more", []byte{5, 1, 2, 1, 5, 'a', 'l'}, []byte{5, 1, 2, 1, 5, 'a', 'l'}},
+		{"an empty SOCKS5 password", slices.Concat([]byte{5, 1, 2, 1, 1, 'u', 0, 5, 1, 0, 1, 192, 0, 2, 1}, port),
+			slices.Concat([]byte{5, 1, 2, 1, 1, 'u', 0, 5, 1, 0, 1, 192, 0, 2, 1}, port)},
+		{"a SOCKS5 CONNECT without a password", slices.Concat([]byte{5, 1, 0, 5, 1, 0, 1, 1, 6, 1, 1}, port, hello),
+			slices.Concat([]byte{5, 1, 0, 5, 1, 0, 1, 1, 6, 1, 1}, port, hello)},
+		{"a SOCKS4 user", slices.Concat([]byte{4, 1}, port, []byte{192, 0, 2, 1}, []byte("nobody@0.0.0.0\x00")),
+			slices.Concat([]byte{4, 1}, port, []byte{192, 0, 2, 1}, []byte("nobody@0.0.0.0\x00"))},
+		{"a CONNECT's credentials", []byte("CONNECT a:443 HTTP/1.1\r\nHost: a:443\r\n" +
+			"Proxy-Authorization: Basic YWxpY2U6czNjcjN0\r\nX-Asked: Basic yes\r\n\r\n" + string(hello)),
+			[]byte("CONNECT a:443 HTTP/1.1\r\nHost: a:443\r\n" +
+				"Proxy-Authorization: Basic ****************\r\nX-Asked: Basic yes\r\n\r\n" + string(hello))},
+		{"a field in other capitals, spaced out", []byte("CONNECT a:443 HTTP/1.1\r\nproxy-AUTHORIZATION :\t Bearer t0k3n\r\n\r\n"),
+			[]byte("CONNECT a:443 HTTP/1.1\r\nproxy-AUTHORIZATION :\t Bearer *****\r\n\r\n")},
+		{"a value without a scheme", []byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: t0k3n\r\n\r\n"),
+			[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: *****\r\n\r\n")},
+		{"two of them", []byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic ab\r\nProxy-Authorization: Digest c d\r\n\r\n"),
+			[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic **\r\nProxy-Authorization: Digest ***\r\n\r\n")},
+		{"credentials cut short", []byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic YWxp"),
+			[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic ****")},
+		{"credentials cut at their CR", []byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic YWxp\r"),
+			[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization: Basic ****\r")},
+		{"a request line cut short", []byte("CONNECT a:443 HTTP/1.1"), []byte("CONNECT a:443 HTTP/1.1")},
+		{"a field without a colon", []byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization\r\n\r\n"),
+			[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization\r\n\r\n")},
+		{"what goes through a tunnel", []byte("CONNECT a:80 HTTP/1.1\r\n\r\nGET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n"),
+			[]byte("CONNECT a:80 HTTP/1.1\r\n\r\nGET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n")},
+		{"no CONNECT", []byte("GET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n"),
+			[]byte("GET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n")},
+		{"nothing", nil, nil},
+	} {
+		sent := bytes.Clone(tc.sent)
+		if got := Masked(tc.sent); !bytes.Equal(got, tc.want) || !bytes.Equal(tc.sent, sent) {
+			t.Errorf("%s: %q, and what was sent is now %q", tc.name, got, tc.sent)
+		}
+	}
+}
+
 func TestTunnelled(t *testing.T) {
 	// A request for a tunnel, and what went through it once it was asked
 	// for: before the request is whole, at every byte, nothing yet.

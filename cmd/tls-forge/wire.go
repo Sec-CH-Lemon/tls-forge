@@ -20,7 +20,8 @@ import (
 
 // What --pcap keeps beside each request's files: NAME.pcapng, the
 // connections the request went out on, every byte each way as tls-forge wrote
-// and read it, and the TLS secrets Wireshark opens them with.
+// and read it but for the credentials it gave a proxy in the clear, which are
+// masked, and the TLS secrets Wireshark opens them with.
 
 // captureSuffix is what a request's capture adds to its name.
 const captureSuffix = ".pcapng"
@@ -57,9 +58,12 @@ type wiredConn struct {
 	// Everything below is the wire's, under its lock.
 	client, server    netip.AddrPort
 	opened, connected time.Time
-	events            []pcapng.Event
-	// head is what the client sent first, until random, the client random of
-	// the ClientHello it began with, is found, or looked says it will not be.
+	// events are what happened on the connection, what the client sent with
+	// the credentials it gave a proxy masked (pcapng.Masked).
+	events []pcapng.Event
+	// head is what the client sent first, as it sent it, until random, the
+	// client random of the ClientHello it began with, is found, or looked says
+	// it will not be.
 	head   []byte
 	random string
 	looked bool
@@ -133,11 +137,17 @@ func (w *wire) sent(c *wiredConn, data []byte) {
 	if len(data) == 0 {
 		return
 	}
-	c.events = append(c.events, pcapng.Event{At: time.Now(), What: pcapng.Sent, Data: data})
+	at := time.Now()
+	if !c.looked {
+		// What a proxy was given to let the tunnel through goes into no
+		// capture: data is the wire's own copy.
+		c.head = append(c.head, data...)
+		copy(data, pcapng.Masked(c.head)[len(c.head)-len(data):])
+	}
+	c.events = append(c.events, pcapng.Event{At: at, What: pcapng.Sent, Data: data})
 	if c.looked {
 		return
 	}
-	c.head = append(c.head, data...)
 	if random, ok := pcapng.ClientRandom(c.head); ok {
 		c.random = random
 		w.secrets[random] = nil
@@ -247,7 +257,8 @@ func (w *wire) keep(path string, r *result, j job, about requestAbout) error {
 	file := pcapng.File{
 		Application: "tls-forge " + version,
 		Comment: fmt.Sprintf("%s %s, request %d of run %s: the connections it went out on, as tls-forge wrote and "+
-			"read them. Every TCP/IP header is made up; the bytes above them are what the connections carried. "+
+			"read them. Every TCP/IP header is made up; the bytes above them are what the connections carried, but for "+
+			"the credentials a proxy was given in the clear, a * for each of their bytes. "+
 			"The TLS secrets are in this file: whoever has it reads every connection.",
 			about.method, r.URL, j.id, about.run),
 		Interface: "the connections of request " + fmt.Sprint(j.id),
