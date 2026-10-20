@@ -989,6 +989,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench's ALPS fixture counts no connection the browser never used**:
+  a connection Chrome opened as it started, beside its navigation's, and
+  sent nothing on but its SETTINGS, no request and no GOAWAY, was counted as
+  one of the scenario's handshakes, so on GitHub's Linux runner a check now
+  and then said 2 handshakes where Chrome had made 1 (`alps-accept-ch`).
+  Only the connections a request came on and those the browser refused, with
+  a GOAWAY, count; no handshake Chrome was measured to make is another.
+
 - **The bench runs a scenario again whose first page came as a reload**:
   Chrome's start on a hosted runner now and then broke the navigation a
   scenario begins with (closing its connections as its certificate verifier

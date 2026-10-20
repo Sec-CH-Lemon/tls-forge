@@ -190,16 +190,18 @@ func TestAnALPSMeasurementSaysWhyItIsNone(t *testing.T) {
 
 func TestWhatABrowserMadeOfALPSEndsWithTheConnectionItRefused(t *testing.T) {
 	// The handshakes after the first that ended in a GOAWAY are the error
-	// page's, which reloads itself; a connection that said nothing (a spare)
+	// page's, which reloads itself; a connection that said nothing, or
+	// nothing but its SETTINGS (one opened as the browser started, a spare),
 	// is left out; and each request says its HEADERS frame's priority.
 	s := started(t, alpsCatalogue)
 	taken := ALPSHandshake{Conn: 1, Settings: []string{"1=65536"}}
 	spare := ALPSHandshake{Conn: 2}
 	asked := ALPSHandshake{Conn: 3}
+	settled := ALPSHandshake{Conn: 7, Settings: []string{"1=65536"}}
 	refused := ALPSHandshake{Conn: 4, Settings: []string{"1=65536"}, GoAway: "PROTOCOL_ERROR: x"}
 	reloaded := ALPSHandshake{Conn: 5, Settings: []string{"1=65536"}, GoAway: "PROTOCOL_ERROR: x"}
 	s.mu.Lock()
-	s.alpsSeen = []*ALPSHandshake{&taken, &spare, &asked, &refused, &reloaded}
+	s.alpsSeen = []*ALPSHandshake{&settled, &taken, &spare, &asked, &refused, &reloaded}
 	s.mu.Unlock()
 	entries := []Entry{
 		{Proto: "h2", Conn: 1, Method: "GET", Target: "https://www.example.com/a", Block: []byte{0x82}, Priority: &[3]uint32{1, 0, 255}},
@@ -224,6 +226,31 @@ func TestWhatABrowserMadeOfALPSEndsWithTheConnectionItRefused(t *testing.T) {
 	if !slices.Equal(conns, []int{1, 3, 4}) || len(got.Connections) != 2 || len(got.Connections[0]) != 2 ||
 		!slices.EqualFunc(priorities, [][]uint32{{1, 0, 255}, {1, 0, 219}, nil}, slices.Equal) {
 		t.Errorf("handshakes of %v, requests %+v", conns, got.Connections)
+	}
+}
+
+func TestEveryHandshakeChromeMadeOfALPSWasAskedOnOrRefused(t *testing.T) {
+	// So that ALPSOf leaving out a connection that sent nothing but its
+	// SETTINGS leaves out none Chrome was measured to make: each handshake
+	// of the fixture is one a request came on or one Chrome refused, with a
+	// GOAWAY, and never both.
+	fixture, err := LoadALPS(alpsFixture)
+	if err != nil {
+		t.Fatalf("LoadALPS: %v", err)
+	}
+	for id, s := range fixture.Scenarios {
+		refused := 0
+		for _, h := range s.Handshakes {
+			if h.GoAway != "" {
+				refused++
+			}
+		}
+		if asked := len(s.Connections); len(s.Handshakes) != asked+refused || refused > 0 && asked > 0 {
+			t.Errorf("%s: %d handshakes, %d refused, %d connections asked on", id, len(s.Handshakes), refused, asked)
+		}
+	}
+	if len(fixture.Scenarios) != len(alpsCatalogue) {
+		t.Errorf("%d scenarios held, the catalogue has %d", len(fixture.Scenarios), len(alpsCatalogue))
 	}
 }
 

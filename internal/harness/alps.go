@@ -441,8 +441,13 @@ func measureALPS(ctx context.Context, b Browser, scenarios map[string]scenario, 
 
 // ALPSOf is what a client made of the bench's ALPS server of the variant
 // named alps since the server started or was reset, entries being what it
-// asked meanwhile: each connection's handshake, up to the first it ended with
-// a GOAWAY, and how its requests went into HPACK.
+// asked meanwhile: the handshake of each connection it asked on or refused,
+// up to the first it ended with a GOAWAY, and how its requests went into
+// HPACK. A connection it sent nothing on but its SETTINGS, if that, is one
+// Chrome opened as it started, beside its navigation's, and the page never
+// used: on GitHub's Linux runner one now and then outlived the start, and
+// the scenario said 2 handshakes where Chrome had made 1 (2026-10-20,
+// alps-accept-ch); no handshake of the fixture is one.
 func (s *Server) ALPSOf(note, alps string, entries []Entry) (ALPSScenario, error) {
 	written, err := s.Written(entries, alpsVariants[alps].table, false)
 	if err != nil {
@@ -452,7 +457,7 @@ func (s *Server) ALPSOf(note, alps string, entries []Entry) (ALPSScenario, error
 	spoken := []ALPSHandshake{}
 	for _, h := range s.ALPSHandshakes() {
 		asked := slices.ContainsFunc(entries, func(e Entry) bool { return e.Conn == h.Conn })
-		if h.Settings != nil || asked {
+		if asked || h.GoAway != "" {
 			spoken = append(spoken, h)
 		}
 		if h.GoAway != "" {
