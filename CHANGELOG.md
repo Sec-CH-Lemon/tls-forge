@@ -981,6 +981,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench's check goes on past a scenario the browser does not finish**,
+  and passes over what Chrome does otherwise on the platform it runs on. On
+  Windows Chrome answers a 401 that offers Negotiate through SSPI, so the
+  scenario that offers it never reached its end page, and the weekly check
+  stopped there, Stable 155 and Beta 157 alike, before it had measured the
+  rest. A scenario the browser began and did not finish is now a difference,
+  what it asked kept and said, and is never written into a fixture; one it
+  never began still stops the check, as a browser that loads nothing does.
+  On Windows the check passes over the Negotiate scenario, saying why, as the
+  replays wearing the Windows profile do.
+
 - **The bench keeps the GOAWAY a client sends as it hangs up**: a client that
   ends a connection right after its GOAWAY, as Chrome and tls-forge do when a
   server's ALPS does not read, resets it, and Go's HTTP/2 server, whose next

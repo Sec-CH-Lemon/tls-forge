@@ -42,14 +42,17 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/browser"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // exit is os.Exit, which a test of main replaces.
@@ -237,13 +240,34 @@ func (a *arguments) Set(arg string) error {
 type measurer func(ctx context.Context, b harness.Browser, only []string,
 	progress io.Writer) (map[string]harness.MeasuredScenario, error)
 
+// platform is the name of this machine's platform, as profiles say it.
+var platform = profile.HostPlatform
+
 // measureRequests measures the scenarios named, or every one, with measure,
-// and holds them to the fixture at path, or writes them into it.
+// and holds them to the fixture at path, or writes them into it. A check
+// passes over a scenario Chrome sends otherwise on this platform than on
+// macOS (harness.Apart), saying so; a fixture is not written of a scenario
+// the browser did not finish.
 func measureRequests(ctx context.Context, b harness.Browser, measure measurer, path string, names []string, about string,
 	check, newer bool, progress io.Writer) ([]string, error) {
 	fixture, err := harness.LoadRequests(path)
 	if err != nil {
 		return nil, err
+	}
+	if apart := harness.Apart(platform()); check && len(apart) > 0 {
+		if names == nil {
+			names = slices.Sorted(maps.Keys(fixture.Scenarios))
+		}
+		names = slices.DeleteFunc(slices.Clone(names), func(name string) bool {
+			why, ok := apart[name]
+			if ok {
+				_, _ = fmt.Fprintf(progress, "%s: passed over on %s: %s\n", name, platform(), why)
+			}
+			return ok
+		})
+		if len(names) == 0 {
+			return nil, nil
+		}
 	}
 	got, err := measure(ctx, b, names, progress)
 	if err != nil {
@@ -264,6 +288,11 @@ func measureRequests(ctx context.Context, b harness.Browser, measure measurer, p
 			own = harness.OwnValues(got)
 		}
 		return harness.Compare(want, got, own), nil
+	}
+	for _, name := range slices.Sorted(maps.Keys(got)) {
+		if unfinished := got[name].Unfinished; len(unfinished) > 0 {
+			return nil, fmt.Errorf("harness: %s did not finish %s: nothing written", name, strings.Join(unfinished, ", "))
+		}
 	}
 	for name, scenario := range got {
 		fixture.Scenarios[name] = scenario

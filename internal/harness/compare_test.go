@@ -182,3 +182,18 @@ func TestAScenarioMeasuredOrNotIsSaid(t *testing.T) {
 		t.Errorf("Compare: %q", diff)
 	}
 }
+
+func TestAScenarioTheBrowserDidNotFinishIsADifference(t *testing.T) {
+	// Said for each protocol it stopped short over, beside how what it asked
+	// differs.
+	unfinished := one(fetched())
+	scenario := unfinished["x"]
+	scenario.Unfinished = []string{"over h2: /p/end was not asked for within 15s"}
+	scenario.H2 = nil
+	unfinished["x"] = scenario
+	diff := Compare(one(fetched()), unfinished, nil)
+	if len(diff) != 2 || diff[0] != "x did not finish over h2: /p/end was not asked for within 15s" ||
+		!strings.HasPrefix(diff[1], "x over h2: 0 requests, the fixture 1") {
+		t.Errorf("%q", diff)
+	}
+}

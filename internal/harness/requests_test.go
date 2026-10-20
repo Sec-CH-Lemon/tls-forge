@@ -211,10 +211,47 @@ func TestAScenarioWaitsForItsPageToBeAskedForAsOftenAsItSays(t *testing.T) {
 	if err != nil || len(got["thrice"].H2) != 3 {
 		t.Errorf("measure: %+v, %v", got, err)
 	}
-	// Asked for once less, it is not over.
+	// Asked for once less, it is not over: what it asked is kept, and said not
+	// to be finished.
 	four := map[string]scenario{"four": {start: "{A}/p/again", wait: "/p/again", times: 4}}
-	if _, err := measure(context.Background(), &fake{then: again}, four, nil, quick, nil); err == nil ||
-		!strings.Contains(err.Error(), "/p/again was not asked for within") {
+	got, err = measure(context.Background(), &fake{then: again}, four, nil, quick, nil)
+	if err != nil || len(got["four"].H2) != 3 || len(got["four"].Unfinished) != 2 {
+		t.Errorf("measure: %+v, %v", got, err)
+	}
+}
+
+func TestAScenarioTheBrowserBeganAndDidNotFinishIsWhatItDid(t *testing.T) {
+	// It asked for its first page and never for the one it ends at, as Chrome
+	// on Windows a page offering Negotiate: what it asked is kept, said to be
+	// unfinished over each protocol, and the next scenario is measured.
+	scenarios := map[string]scenario{
+		"a-stuck": {note: "stuck", start: "{A}/p/stuck", wait: "/p/elsewhere"},
+		"b-next":  {note: "next", start: "{A}/p/next", wait: "/p/next"},
+	}
+	var progress strings.Builder
+	short := quick
+	short.limit = 300 * time.Millisecond
+	got, err := measure(context.Background(), &fake{}, scenarios, nil, short, &progress)
+	if err != nil {
+		t.Fatalf("measure: %v", err)
+	}
+	stuck := got["a-stuck"]
+	if want := []string{"over h2: /p/elsewhere was not asked for within 300ms", "over h1: /p/elsewhere was not asked for within 300ms"}; !slices.Equal(stuck.Unfinished, want) ||
+		len(stuck.H2) != 1 || stuck.H2[0].URL != "https://www.example.com/p/stuck" || len(stuck.H1) != 1 || stuck.Note != "stuck" {
+		t.Errorf("stuck: %+v", stuck)
+	}
+	if next := got["b-next"]; next.Unfinished != nil || len(next.H2) != 1 {
+		t.Errorf("next: %+v", next)
+	}
+	if !strings.Contains(progress.String(), "h2 a-stuck: 1 requests, /p/elsewhere was not asked for within 300ms\n") ||
+		!strings.Contains(progress.String(), "h2 b-next: 1 requests\n") {
+		t.Errorf("progress:\n%s", progress.String())
+	}
+	// Its context ending is no difference of the browser's: nothing is kept.
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	if _, err := measure(ctx, &fake{}, map[string]scenario{"a-stuck": scenarios["a-stuck"]}, nil, quick, nil); err == nil ||
+		!strings.Contains(err.Error(), "harness: a-stuck over h2: /p/elsewhere was not asked for: context deadline exceeded") {
 		t.Errorf("measure: %v", err)
 	}
 }
@@ -234,8 +271,8 @@ func TestAScenarioThatDoesNotFinishIsNoMeasurement(t *testing.T) {
 		b         *fake
 		says      string
 	}{
-		{"never asks for what it waits for", map[string]scenario{"stuck": {start: "{A}/p/stuck", wait: "/p/elsewhere"}}, &fake{},
-			"harness: stuck over h2: /p/elsewhere was not asked for within 2s"},
+		{"never begins", map[string]scenario{"stuck": {start: "{A}/p/stuck", wait: "/p/stuck"}}, &fake{silent: true},
+			"harness: stuck over h2: /p/stuck was not asked for within 2s"},
 		{"never makes its first visit", map[string]scenario{"first": {pre: "{A}/p/first", start: "{A}/p/x", wait: "/p/x"}},
 			&fake{silent: true}, "the first visit, https://www.example.com:"},
 		{"the browser will not open", map[string]scenario{"closed": {start: "{A}/p/closed", wait: "/p/closed"}}, &fake{fail: "closed"},

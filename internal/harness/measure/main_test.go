@@ -1052,3 +1052,87 @@ func TestTheCommandHoldsANewerBuildToTheFixtures(t *testing.T) {
 		t.Errorf("--newer without --check: %d\n%s", code, stderr)
 	}
 }
+
+// stuckMeasurer is a measurer whose browser began the scenarios it is asked
+// for and finished only those of finished, and which keeps the names it was
+// asked for.
+type stuckMeasurer struct {
+	finished []string
+	asked    [][]string
+}
+
+func (s *stuckMeasurer) measure(_ context.Context, _ harness.Browser, only []string, _ io.Writer) (map[string]harness.MeasuredScenario, error) {
+	s.asked = append(s.asked, only)
+	out := map[string]harness.MeasuredScenario{}
+	for _, id := range only {
+		scenario := harness.MeasuredScenario{Note: id, H2: []harness.Request{{Method: "GET", URL: "https://www.example.com/p/" + id}},
+			H1: []harness.Request{{Method: "GET", URL: "https://www.example.com/p/" + id}}}
+		if !slices.Contains(s.finished, id) {
+			scenario.Unfinished = []string{"over h2: /p/end was not asked for within 15s"}
+		}
+		out[id] = scenario
+	}
+	return out, nil
+}
+
+func TestAScenarioTheBrowserDidNotFinishIsSaidAndNeverWritten(t *testing.T) {
+	kept := harness.MeasuredScenario{Note: "a", H2: []harness.Request{{Method: "GET", URL: "https://www.example.com/p/a"}},
+		H1: []harness.Request{{Method: "GET", URL: "https://www.example.com/p/a"}}}
+	requests, _ := fixtures(t, map[string]harness.MeasuredScenario{"a": kept, "b": kept}, nil)
+	before, err := os.ReadFile(requests)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stuck := &stuckMeasurer{finished: []string{"a"}}
+	var progress bytes.Buffer
+	// Written, nothing is, the fixture as it was.
+	_, err = measureRequests(context.Background(), nil, stuck.measure, requests, []string{"a", "b"}, "about", false, false, &progress)
+	if err == nil || err.Error() != "harness: b did not finish over h2: /p/end was not asked for within 15s: nothing written" {
+		t.Errorf("measureRequests: %v", err)
+	}
+	if after, err := os.ReadFile(requests); err != nil || !bytes.Equal(after, before) {
+		t.Errorf("the fixture was written: %v", err)
+	}
+	// Checked, it is a difference.
+	diff, err := measureRequests(context.Background(), nil, stuck.measure, requests, []string{"a", "b"}, "about", true, false, &progress)
+	if err != nil || !slices.Contains(diff, "b did not finish over h2: /p/end was not asked for within 15s") {
+		t.Errorf("measureRequests: %q, %v", diff, err)
+	}
+}
+
+func TestACheckPassesOverWhatChromeSendsOtherwiseOnThisPlatform(t *testing.T) {
+	// On Windows, Chrome answers Negotiate: the scenario that offers it is
+	// passed over, said, and the rest measured; asked for alone, nothing is.
+	old := platform
+	t.Cleanup(func() { platform = old })
+	scenario := harness.MeasuredScenario{Note: "x"}
+	requests, _ := fixtures(t, map[string]harness.MeasuredScenario{"auth-digest-negotiate": scenario, "nav-direct": scenario}, nil)
+	for _, tc := range []struct {
+		platform string
+		names    []string
+		asked    [][]string
+		says     string
+	}{
+		{"windows", nil, [][]string{{"nav-direct"}}, "auth-digest-negotiate: passed over on windows: Chrome on Windows answers Negotiate"},
+		{"windows", []string{"auth-digest-negotiate"}, nil, "auth-digest-negotiate: passed over on windows"},
+		{"macos", nil, [][]string{nil}, ""},
+	} {
+		platform = func() string { return tc.platform }
+		stuck := &stuckMeasurer{}
+		var progress bytes.Buffer
+		if _, err := measureRequests(context.Background(), nil, stuck.measure, requests, tc.names, "about", true, false, &progress); err != nil {
+			t.Errorf("%s %v: %v", tc.platform, tc.names, err)
+		}
+		if !reflect.DeepEqual(stuck.asked, tc.asked) || !strings.Contains(progress.String(), tc.says) ||
+			tc.says == "" && progress.Len() > 0 {
+			t.Errorf("%s %v: asked %q, said %q", tc.platform, tc.names, stuck.asked, progress.String())
+		}
+	}
+	// Written, a fixture is measured whole whatever the platform.
+	platform = func() string { return "windows" }
+	stuck := &stuckMeasurer{finished: []string{"auth-digest-negotiate", "nav-direct"}}
+	if _, err := measureRequests(context.Background(), nil, stuck.measure, requests, nil, "about", false, false, io.Discard); err != nil ||
+		!reflect.DeepEqual(stuck.asked, [][]string{nil}) {
+		t.Errorf("written: asked %q, %v", stuck.asked, err)
+	}
+}

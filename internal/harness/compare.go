@@ -88,6 +88,9 @@ func Compare(want, got map[string]MeasuredScenario, profile map[string]string) [
 			diff = append(diff, fmt.Sprintf("%s was not measured", id))
 			continue
 		}
+		for _, why := range measured.Unfinished {
+			diff = append(diff, fmt.Sprintf("%s did not finish %s", id, why))
+		}
 		for _, proto := range []string{"h2", "h1"} {
 			w, g := want[id].H2, measured.H2
 			if proto == "h1" {

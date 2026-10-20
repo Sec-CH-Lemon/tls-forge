@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -34,6 +35,10 @@ type MeasuredScenario struct {
 	Note string    `json:"note"`
 	H2   []Request `json:"h2"`
 	H1   []Request `json:"h1"`
+	// Unfinished says over which protocol the browser began the scenario and
+	// never asked for the page it ends at, and so: what it asked is kept, a
+	// difference for a check to say, and never written into a fixture.
+	Unfinished []string `json:"-"`
 }
 
 // Request is a request as the fixture keeps it: no port in its URL or in any
@@ -113,11 +118,18 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 				browser = trusts.trusting(s.spki)
 			}
 			entries, err := s.run(ctx, browser, id, sc, o, t)
-			if err != nil {
+			// A scenario the browser began and did not finish is what the
+			// browser did, there: one it never began measures nothing.
+			var short *unfinished
+			began := errors.As(err, &short) && len(entries) > 0
+			if err != nil && !began {
 				return nil, fmt.Errorf("harness: %s over %s: %w", id, proto, err)
 			}
 			got := out[id]
 			got.Note = sc.note
+			if began {
+				got.Unfinished = append(got.Unfinished, "over "+proto+": "+err.Error())
+			}
 			requests := s.kept(entries, sc.connections)
 			if proto == "h2" {
 				got.H2 = requests
@@ -126,7 +138,11 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 			}
 			out[id] = got
 			if progress != nil {
-				_, _ = fmt.Fprintf(progress, "%s %s: %d requests\n", proto, id, len(requests))
+				ended := ""
+				if began {
+					ended = ", " + err.Error()
+				}
+				_, _ = fmt.Fprintf(progress, "%s %s: %d requests%s\n", proto, id, len(requests), ended)
 			}
 		}
 	}
@@ -181,13 +197,26 @@ func (s *Server) run(ctx context.Context, b Browser, id string, sc scenario, o m
 	finished := s.until(ctx, p.wait, p.times, p.settle, t)
 	stop()
 	entries, trouble := s.Requests()
-	if trouble != nil {
+	switch {
+	case trouble != nil:
 		return nil, trouble
-	}
-	if !finished {
-		return nil, fmt.Errorf("%s was not asked for within %s: %v", p.wait, t.limit, ctx.Err())
+	case !finished && ctx.Err() != nil:
+		return nil, fmt.Errorf("%s was not asked for: %w", p.wait, ctx.Err())
+	case !finished:
+		return entries, &unfinished{wait: p.wait, limit: t.limit}
 	}
 	return entries, nil
+}
+
+// unfinished is a scenario whose page it ends at the browser did not ask
+// for in time, the context still going.
+type unfinished struct {
+	wait  string
+	limit time.Duration
+}
+
+func (u *unfinished) Error() string {
+	return fmt.Sprintf("%s was not asked for within %s", u.wait, u.limit)
 }
 
 // sleep waits d, and says whether ctx let it.

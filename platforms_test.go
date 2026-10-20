@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/net/http2/hpack"
 
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -93,36 +94,29 @@ func headless(p *profile.Profile) *profile.Profile {
 	return out
 }
 
-// apartOn are the scenarios a profile of a platform is not held to, since
-// Chrome sends them otherwise there than on macOS, where they were measured,
-// by platform: why. Chrome on that platform is not measured.
-var apartOn = map[string]map[string]string{
-	"windows": {
-		"auth-digest-negotiate": "Chrome on Windows answers Negotiate, through SSPI, where on macOS it passes it over and " +
-			"answers Digest; tls-forge answers neither, a Windows profile stopping at Negotiate",
-	},
-}
-
-// skipApart skips a scenario p's platform is not held to (apartOn).
+// skipApart skips a scenario Chrome sends otherwise on p's platform than on
+// macOS, where it was measured (harness.Apart): the bench passes it over there
+// too. Chrome on that platform is not held to it.
 func skipApart(t *testing.T, p *profile.Profile, scenario string) {
 	t.Helper()
 	_, platform := profile.Split(p.Name)
-	if why := apartOn[platform][scenario]; why != "" {
+	if why := harness.Apart(platform)[scenario]; why != "" {
 		t.Skipf("%s on %s: %s", scenario, platform, why)
 	}
 }
 
 func TestEveryScenarioApartOnAPlatformIsMeasured(t *testing.T) {
 	measured := loadChromeRequests(t)
-	for platform, scenarios := range apartOn {
-		if !slices.ContainsFunc(chromePlatforms, func(name string) bool { return strings.HasSuffix(name, "_"+platform) }) {
-			t.Errorf("%s is no platform a profile is shipped for", platform)
-		}
-		for scenario := range scenarios {
+	for _, name := range chromePlatforms {
+		_, platform := profile.Split(name)
+		for scenario := range harness.Apart(platform) {
 			if _, ok := measured.Scenarios[scenario]; !ok {
 				t.Errorf("%s: %s is not in the fixture", platform, scenario)
 			}
 		}
+	}
+	if len(harness.Apart("windows")) == 0 {
+		t.Error("nothing is apart on Windows: the Negotiate scenario is")
 	}
 }
 
