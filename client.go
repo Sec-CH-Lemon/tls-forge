@@ -47,6 +47,7 @@ import (
 	tls_client "github.com/igor-lemon/tls-client"
 	"golang.org/x/net/publicsuffix"
 
+	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
@@ -562,6 +563,9 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 	}
 	if r != nil {
 		inner = inner.WithContext(r.attach(inner.Context()))
+	}
+	if tap := conntap.From(ctx); tap != nil {
+		inner = inner.WithContext(watched(inner.Context(), tap))
 	}
 	parsed := inner.URL
 	ch := &chain{client: c, log: r, browser: browser, urls: []*url.URL{parsed}, restarted: restarted}

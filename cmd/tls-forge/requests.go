@@ -15,6 +15,7 @@ import (
 	"time"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
@@ -39,11 +40,13 @@ type result struct {
 	// BodyEncoding is "base64" when Body was not valid UTF-8. It is omitted
 	// for text so existing JSONL consumers keep seeing the old shape normally.
 	BodyEncoding string `json:"body_encoding,omitempty"`
-	// File, Log and Trace are where the page, the log and the trace of the
-	// request were kept, when there was somewhere to keep them.
+	// File, Log, Trace and Capture are where the page, the log, the trace and
+	// the connections of the request were kept, when there was somewhere to
+	// keep them.
 	File    string    `json:"file,omitempty"`
 	Log     string    `json:"log,omitempty"`
 	Trace   string    `json:"trace,omitempty"`
+	Capture string    `json:"capture,omitempty"`
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
 	Millis  int64     `json:"ms"`
@@ -385,6 +388,9 @@ type runner struct {
 	// run knows of all of its requests, for those logs.
 	keep  string
 	about requestAbout
+	// wire keeps what the connections of every request carried, to be kept
+	// with it, for --pcap; nil keeps nothing of them.
+	wire *wire
 	// direct is where a request made without a proxy comes out, as it was asked
 	// before the first request, and directError why that is not known.
 	direct      egress
@@ -549,6 +555,11 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 	// the URL keeps its own.
 	conns := &connections{session: client, own: own, proxy: proxy, held: b.held, entry: j.entry}
 	defer conns.close()
+	if b.wire != nil {
+		// Every connection the request goes out on, its tries' and what its
+		// site is asked over, is seen, to be kept with it.
+		ctx = conntap.With(ctx, b.wire.tap(j.id))
+	}
 
 	request := b.request
 	request.URL = j.URL
@@ -558,6 +569,12 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 	r.finish(started)
 	if proxy != "" {
 		r.Exit, r.ExitError = b.cameOut(ctx, conns.current(), proxy, tries, res, lane, log)
+	}
+	if b.wire != nil && b.held == nil {
+		// Let go of before the request is kept, so that its capture holds how
+		// its connection ended. A URL that keeps its connection for its
+		// repeats keeps it open.
+		conns.release()
 	}
 
 	if err != nil {
@@ -643,7 +660,7 @@ func (b runner) kept(r *result, res *tlsforge.Response, j job, lane *traceLane) 
 	if b.keep == "" {
 		return nil
 	}
-	if err := keepRequest(b.keep, r, res, j, b.about, lane); err != nil {
+	if err := keepRequest(b.keep, r, res, j, b.about, lane, b.wire); err != nil {
 		return fmt.Errorf("fetch: %w", err)
 	}
 	return nil

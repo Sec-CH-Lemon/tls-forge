@@ -373,7 +373,7 @@ func TestKeepRequestReportsAFileItCannotWrite(t *testing.T) {
 		}
 		r := r
 		page := &tlsforge.Response{Status: 200, Header: map[string][]string{"Content-Type": {"text/html"}}, Body: []byte("page")}
-		err := keepRequest(dir, &r, page, j, about, nil)
+		err := keepRequest(dir, &r, page, j, about, nil, nil)
 		var notAFile *os.PathError
 		if !errors.As(err, &notAFile) {
 			t.Errorf("with %s in the way: %v", blocked, err)

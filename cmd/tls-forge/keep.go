@@ -46,9 +46,10 @@ type requestAbout struct {
 	requests, runs int
 }
 
-// keepRequest writes one request down in dir, and notes on its record where.
+// keepRequest writes one request down in dir, and notes on its record where:
+// with what its connections carried, when wire keeps that.
 func keepRequest(dir string, r *result, res *tlsforge.Response, j job, about requestAbout,
-	lane *traceLane,
+	lane *traceLane, wire *wire,
 ) error {
 	name := requestName(r.URL, r.Started, j.id)
 	// 0600, every one, as for a report or a trace of the whole run: the log and
@@ -63,6 +64,13 @@ func keepRequest(dir string, r *result, res *tlsforge.Response, j job, about req
 		}
 		r.File = page
 		lane.instant("saved", "file", traceArgs{"file": page, "bytes": len(res.Body)})
+	}
+	if wire != nil {
+		capture := filepath.Join(dir, name+captureSuffix)
+		if err := wire.keep(capture, r, j, about); err != nil {
+			return err
+		}
+		r.Capture = capture
 	}
 	log := filepath.Join(dir, name+logSuffix)
 	trace := filepath.Join(dir, name+traceSuffix)
@@ -163,6 +171,9 @@ func requestLog(r result, j job, about requestAbout) string {
 	}
 	if r.File != "" {
 		facts = append(facts, [2]string{"page", r.File})
+	}
+	if r.Capture != "" {
+		facts = append(facts, [2]string{"capture", r.Capture})
 	}
 	log.WriteString(aligned(facts))
 

@@ -611,6 +611,10 @@ out/example.com-2026-08-16-091854-584-1-trace.json
 - The `-trace.json` is the same request as a trace of its own, in the Trace
   Event JSON format [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the
   request, inside it every try, and inside each try its steps.
+- With `--pcap`, a fourth, `example.com-2026-08-16-091854-584-1.pcapng`: the
+  connections the request went out on, every byte each way and the TLS
+  secrets that open them, for Wireshark; see
+  [Reading a run in Wireshark](#reading-a-run-in-wireshark).
 
 Beside them is the log of the whole run, `run-<time>.log`, named for the
 moment the run began, unless `--log` puts it somewhere else; see
@@ -780,6 +784,36 @@ that is a usage error, as it is for every file a run reads or writes; see
 cannot be written is said once the run is over, and the run exits 1.
 
 ### Reading a run in Wireshark
+
+```bash
+tls-forge fetch -o out/ --pcap https://example.com/
+```
+
+`--pcap` keeps, beside each request's files, `NAME.pcapng`: the connections
+the request went out on, every byte each way at the moment tls-forge wrote or
+read it, and the TLS secrets of each in the file itself, in a Decryption
+Secrets Block, so that Wireshark opens it decrypted as it is: no capture to
+start, no key log to give it, nothing to run as root. It holds the request's
+connections alone, each try's, the one its site is asked over and, through an
+HTTP or HTTPS proxy, the one to the proxy; not the run's question to an address
+service, which no request went out on. A connection is let go of before the
+request is kept, so its capture holds how it ended; with `--reuse-connection`
+a URL's repeats share theirs, and each repeat's capture holds it from its
+start to where that repeat was kept.
+
+The file is made by tls-forge from what it wrote and read, and its TCP/IP
+headers are made up: the ends of each connection are its own, but its segments
+are tls-forge's writes and reads, numbered from zero, with no TCP options and
+no retransmission, and the first packet of each connection says so in a
+comment. What is above them, TLS and HTTP, is exact; what the system did on the
+wire, its handshake and its TCP/IP fingerprint, is not there, and a capture of
+the wire, below, has it. A SOCKS proxy's connections are dialed by the
+transport, out of tls-forge's sight, so `--pcap` refuses a run through one.
+The capture is written with mode `0600`, and whoever has it reads every
+connection in it; `editcap --discard-all-secrets` makes a copy without the
+secrets, which says nothing of what the connections carried.
+
+To read the wire itself:
 
 ```bash
 # In one terminal, capture what goes over the wire as long as the run takes,
@@ -1131,6 +1165,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | **Output** | |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it, and a log of the run; see [Keeping every request](#keeping-every-request) |
 | `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
+| `--pcap` | With `--output`, keep beside each request's files the connections it went out on as `NAME.pcapng`, every byte each way and the TLS secrets that open them, for Wireshark to read as it is; written with mode `0600`; refused through a SOCKS proxy; see [Reading a run in Wireshark](#reading-a-run-in-wireshark) |
 | `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
 | `--json` | Write a JSON line for each request even when one URL is named |
 | `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |

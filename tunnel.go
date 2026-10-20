@@ -153,7 +153,12 @@ func newDirectDialer(timeout time.Duration, local *net.TCPAddr) *directDialer {
 }
 
 func (d *directDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	return d.dialer.DialContext(ctx, network, address)
+	began := time.Now()
+	conn, err := d.dialer.DialContext(ctx, network, address)
+	if err != nil {
+		return nil, err
+	}
+	return tapped(ctx, conn, began), nil
 }
 
 func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header) *connectDialer {
@@ -201,13 +206,13 @@ func (d *connectDialer) DialContext(ctx context.Context, network, address string
 // reach connects to the proxy itself.
 func (d *connectDialer) reach(ctx context.Context, network string) (net.Conn, error) {
 	if !d.secure {
-		return d.dialer.DialContext(ctx, network, d.address)
+		return d.dial(ctx, network)
 	}
 	// The dial and the handshake together no longer than the timeout, as
 	// tls.Dialer has them, and apart, so that the log can tell which failed.
 	ctx, cancel := context.WithTimeout(ctx, d.timeout)
 	defer cancel()
-	raw, err := d.dialer.DialContext(ctx, network, d.address)
+	raw, err := d.dial(ctx, network)
 	if err != nil {
 		return nil, err
 	}
@@ -224,6 +229,16 @@ func (d *connectDialer) reach(ctx context.Context, network string) (net.Conn, er
 		return nil, err
 	}
 	return conn, nil
+}
+
+// dial connects to the proxy, over a connection the request's tap sees.
+func (d *connectDialer) dial(ctx context.Context, network string) (net.Conn, error) {
+	began := time.Now()
+	raw, err := d.dialer.DialContext(ctx, network, d.address)
+	if err != nil {
+		return nil, err
+	}
+	return tapped(ctx, raw, began), nil
 }
 
 // open asks the proxy, over a connection to it, for a tunnel to address.

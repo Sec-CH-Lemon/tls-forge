@@ -70,3 +70,13 @@ func (k *keyLogFile) close() error {
 	}
 	return nil
 }
+
+// keysTo is where the run's clients write the TLS secrets of their
+// connections: the key log, when there is one, and the wire. Neither fails a
+// write, which would fail the handshake it is of.
+func keysTo(keys io.Writer, wire *wire) io.Writer {
+	if keys == nil {
+		return wire
+	}
+	return io.MultiWriter(keys, wire)
+}

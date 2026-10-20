@@ -425,6 +425,9 @@ func (r reportRow) Facts() []fact {
 	if r.Log != "" {
 		facts = append(facts, fact{Label: "Log", Value: r.Log, Code: true, Link: linkTo(r.Log, r.at)})
 	}
+	if r.Capture != "" {
+		facts = append(facts, fact{Label: "Capture", Value: r.Capture, Code: true, Link: linkTo(r.Capture, r.at)})
+	}
 	if r.trace != "" {
 		facts = append(facts, fact{Label: "Trace", Value: r.trace, Code: true, Link: linkTo(r.trace, r.at),
 			Open: r.Perfetto})

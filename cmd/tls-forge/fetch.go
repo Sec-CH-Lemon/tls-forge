@@ -34,7 +34,8 @@ var fetchFlagGroups = []flagGroup{
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element",
 		"html-decoding"}},
-	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
+	{"output", []string{"output", "clear-output-dir", "pcap", "include", "json", "print-body", "verbose", "progress",
+		"color"}},
 	{"report, trace and log", []string{"report", "report-format", "trace", "log", "log-level", "keylog"}},
 }
 
@@ -498,7 +499,7 @@ type fetchPlan struct {
 	// What comes out, and where it goes.
 	asJSON, showHeaders                   bool
 	output                                string
-	clearOutputDir                        bool
+	clearOutputDir, pcap                  bool
 	again                                 runFlags
 	check                                 *pageCheck
 	waitFor, waitForElement, htmlDecoding string
@@ -555,6 +556,10 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 		"keep every request in this directory: its page, a log of it and a trace of it, and a log of the run")
 	clearOutputDir := fs.Bool("clear-output-dir", false,
 		"empty the --output directory before the run writes into it: every file and directory in it")
+	pcap := fs.Bool("pcap", false,
+		"with --output, keep beside each request's files the connections it went out on, as NAME.pcapng: every "+
+			"byte each way and the TLS secrets that open them, so that Wireshark reads it as it was sent, and so "+
+			"does anybody else who has it")
 	asLines := fs.Bool("json", false,
 		"write a line of JSON for each request rather than the page, as for a list")
 	again := addRunFlags(fs)
@@ -590,6 +595,10 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	}
 	if *clearOutputDir && *output == "" {
 		return nil, fmt.Errorf("%w: --clear-output-dir requires --output", errUsage)
+	}
+	if *pcap && *output == "" {
+		return nil, fmt.Errorf("%w: --pcap keeps each request's connections beside its other files, and requires --output",
+			errUsage)
 	}
 	check, err := newPageCheck(*waitForElement, *waitFor, *htmlDecoding)
 	if err != nil {
@@ -700,6 +709,14 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	// The session each identity starts from, chosen now, before anything is
 	// cleared, opened or asked, from the cookie file as it is now.
 	ways := waysOf(jobs, *common.proxy)
+	if *pcap {
+		for _, way := range ways {
+			if socksProxy(way) {
+				return nil, fmt.Errorf("%w: --pcap: %s is a SOCKS proxy, whose connections the transport dials "+
+					"where tls-forge does not see them", errUsage, redactProxy(way))
+			}
+		}
+	}
 	if err := common.warmup(ways...); err != nil {
 		return nil, err
 	}
@@ -735,7 +752,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 		method: *method, data: *data, headers: headers,
 		requestKind: *requestKind, initiatorURL: *initiatorURL, browser: browser,
 		jobs: jobs, ways: ways, requests: requests, workers: *workers,
-		asJSON: asJSON, showHeaders: *showHeaders, output: *output, clearOutputDir: *clearOutputDir,
+		asJSON: asJSON, showHeaders: *showHeaders, output: *output, clearOutputDir: *clearOutputDir, pcap: *pcap,
 		again: again, check: check,
 		waitFor: *waitFor, waitForElement: *waitForElement, htmlDecoding: *htmlDecoding,
 		watch: watch, wantProgress: wantProgress, paint: paint,
@@ -754,6 +771,7 @@ type fetchRun struct {
 
 	log      *runLog
 	keys     *keyLogFile
+	wire     *wire
 	trace    *tracer
 	lane     *traceLane
 	identity *identityReport
@@ -808,6 +826,13 @@ func (r *fetchRun) open(ctx context.Context) error {
 		return err
 	}
 	r.common.keyLog = r.keys.writer()
+	if r.pcap {
+		// Every connection of the run keeps what it carried until its requests
+		// are kept, and its secrets with it, which the key log, when there is
+		// one, has too.
+		r.wire = newWire()
+		r.common.keyLog = keysTo(r.common.keyLog, r.wire)
+	}
 	if r.trace, err = openTrace(*r.again.trace, "fetch", *r.common.proxy, r.started, r.about); err != nil {
 		return err
 	}
@@ -959,7 +984,7 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: []byte(r.data),
 			Browser: r.browser},
 		retry: *r.again.retry, repeat: *r.again.repeat,
-		keep: r.output,
+		keep: r.output, wire: r.wire,
 		about: requestAbout{
 			method: r.method, profile: r.worn.Name, run: r.common.run.id,
 			requests: r.requests, runs: *r.again.repeat,
