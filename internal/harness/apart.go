@@ -11,6 +11,9 @@ var apart = map[string]map[string]string{
 		"auth-digest-negotiate": "Chrome on Windows answers Negotiate, through SSPI, where on macOS it passes it " +
 			"over and answers Digest (measured: Chrome 155.0.8059.85 on GitHub's Windows Server 2025 runner never " +
 			"asked for the scenario's end page)",
+		"auth-digest-ntlm": "Chrome on Windows writes NTLM's first message through SSPI, with the system's flags " +
+			"and version, where on macOS its own (measured: TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAKAPRlAAAADw== " +
+			"on GitHub's Windows Server 2025 runner, build 26100)",
 	},
 }
 

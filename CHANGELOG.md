@@ -1005,13 +1005,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   asked nothing of, once it has loaded others, is tried once more in a fresh
   profile, and asking nothing again is a difference too; one never begun
   before any other stops the check, as a browser that loads nothing does. On
-  Windows the check passes over the Negotiate scenario, saying why, as the
-  replays wearing the Windows profile do. A page whose dump fails, as
-  Chrome's on a macOS runner once did, is asked once more. A fixture that
-  cannot be measured at all (Beta 157 on Linux sent `hpack-big-cookie`'s
-  requests over two connections every time) is, checked, a difference of its
-  own, and the other fixtures are measured; with none measured, the check
-  could not run.
+  Windows the check passes over the Negotiate scenario, and the NTLM one,
+  whose first message Chrome there writes through SSPI with the system's
+  flags and version, saying why, as the replays wearing the Windows profile
+  do. A page whose dump fails, as Chrome's on a macOS runner once did, is
+  asked once more. A fixture that cannot be measured at all (Beta 157 on
+  Linux sent `hpack-big-cookie`'s requests over two connections every time)
+  is, checked, a difference of its own, and the other fixtures are measured;
+  with none measured, the check could not run.
 
 - **The bench keeps the GOAWAY a client sends as it hangs up**: a client that
   ends a connection right after its GOAWAY, as Chrome and tls-forge do when a
