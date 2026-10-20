@@ -3,8 +3,11 @@ package tlsforge
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"io"
 	"net"
+	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -134,39 +137,73 @@ func TestATapSeesEveryConnectionARequestIsDialedAndGoesOutOn(t *testing.T) {
 func TestATapSeesTheConnectionToAProxy(t *testing.T) {
 	// The connection to the proxy is the one dialed: through an HTTP proxy it
 	// asks for its tunnel in the clear, then shakes hands with the site; to an
-	// HTTPS proxy it shakes hands with the proxy first.
+	// HTTPS proxy it shakes hands with the proxy first; through a SOCKS proxy,
+	// which the transport dials, it shakes hands with the proxy as SOCKS has
+	// it, then with the site.
 	site := keyedServer(t, true, io.Discard)
+	host, port, _ := net.SplitHostPort(strings.TrimPrefix(site.URL, "https://"))
+	number, err := strconv.Atoi(port)
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := binary.BigEndian.AppendUint16(nil, uint16(number))
+	// socks is what a SOCKS client sends before its ClientHello.
+	socks := func(asked ...[]byte) func([]byte) bool {
+		handshake := slices.Concat(asked...)
+		return func(sent []byte) bool {
+			return bytes.HasPrefix(sent, handshake) && beginsWithAHandshake(sent[len(handshake):])
+		}
+	}
+	socks5 := []byte{5, 1, 0, 1, 127, 0, 0, 1}
+	plain, _ := socksServer(t, "", "")
+	credentialed, _ := socksServer(t, "alice", "s3cr3t")
+	http, https := startConnectProxy(t, false, exitAnswer), keyedProxy(t, io.Discard)
 	for _, tc := range []struct {
-		name  string
-		proxy *connectProxy
-		begin func([]byte) bool
+		name, proxyURL, addr string
+		begin                func([]byte) bool
 	}{
-		{"http", startConnectProxy(t, false, exitAnswer), func(sent []byte) bool {
+		{"http", http.server.URL, http.server.Listener.Addr().String(), func(sent []byte) bool {
 			end := bytes.Index(sent, []byte("\r\n\r\n"))
 			return bytes.HasPrefix(sent, []byte("CONNECT ")) && end > 0 && beginsWithAHandshake(sent[end+4:])
 		}},
-		{"https", keyedProxy(t, io.Discard), beginsWithAHandshake},
+		{"https", https.server.URL, https.server.Listener.Addr().String(), beginsWithAHandshake},
+		{"socks5", "socks5://" + plain, plain, socks([]byte{5, 1, 0}, socks5, at)},
+		{"socks5 with a password", "socks5://alice:s3cr3t@" + credentialed, credentialed,
+			socks([]byte{5, 2, 0, 2, 1, 5}, []byte("alice"), []byte{6}, []byte("s3cr3t"), socks5, at)},
+		{"socks5h", "socks5h://" + plain, plain, socks([]byte{5, 1, 0}, socks5, at)},
+		{"socks4", "socks4://" + plain, plain, socks([]byte{4, 1}, at, []byte{127, 0, 0, 1}, []byte("nobody@0.0.0.0\x00"))},
+		{"socks4a", "socks4a://" + plain, plain,
+			socks([]byte{4, 1}, at, []byte{0, 0, 0, 1}, []byte("nobody@0.0.0.0\x00"+host+"\x00"))},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			tap := &seeingTap{}
-			tappedGet(t, newTestClient(t, WithProxy(tc.proxy.server.URL)), site.URL, tap)
+			before := time.Now()
+			tappedGet(t, newTestClient(t, WithProxy(tc.proxyURL)), site.URL, tap)
 			dialed, used := tap.seen()
 			if len(dialed) != 1 || len(used) != 1 || used[0] != dialed[0].LocalAddr().String() {
 				t.Fatalf("dialed %d, went out on %v", len(dialed), used)
 			}
-			sent, _ := dialed[0].what()
-			if dialed[0].RemoteAddr().String() != tc.proxy.server.Listener.Addr().String() || !tc.begin(sent) {
-				t.Errorf("dialed %s, and sent %q…", dialed[0].RemoteAddr(), sent[:min(len(sent), 40)])
+			sent, received := dialed[0].what()
+			if dialed[0].RemoteAddr().String() != tc.addr || !tc.begin(sent) || len(received) == 0 {
+				t.Errorf("dialed %s, sent %q…, received %d bytes", dialed[0].RemoteAddr(), sent[:min(len(sent), 40)],
+					len(received))
+			}
+			if dialed[0].began.Before(before) || dialed[0].began.After(time.Now()) {
+				t.Errorf("a dial begun %v after the request", dialed[0].began.Sub(before))
 			}
 		})
 	}
 }
 
 func TestATapSeesNoDialThatFailed(t *testing.T) {
-	tap := &seeingTap{}
-	_, err := newTestClient(t).Do(&Request{URL: "https://" + refused(t) + "/",
-		Context: conntap.With(context.Background(), tap)})
-	if dialed, used := tap.seen(); err == nil || len(dialed) != 0 || len(used) != 0 {
-		t.Errorf("%v: dialed %d, went out on %v", err, len(dialed), used)
+	// Straight to the site and through a proxy nothing answers at, which
+	// tls-forge dials or the transport does.
+	for _, proxy := range []string{"", "http://" + refused(t), "socks5://" + refused(t), "socks4://" + refused(t)} {
+		tap := &seeingTap{}
+		_, err := newTestClient(t, WithProxy(proxy)).Do(&Request{URL: "https://" + refused(t) + "/",
+			Context: conntap.With(context.Background(), tap)})
+		if dialed, used := tap.seen(); err == nil || len(dialed) != 0 || len(used) != 0 {
+			t.Errorf("%q: %v: dialed %d, went out on %v", proxy, err, len(dialed), used)
+		}
 	}
 }

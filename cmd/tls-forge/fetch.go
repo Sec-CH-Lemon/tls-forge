@@ -709,14 +709,6 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	// The session each identity starts from, chosen now, before anything is
 	// cleared, opened or asked, from the cookie file as it is now.
 	ways := waysOf(jobs, *common.proxy)
-	if *pcap {
-		for _, way := range ways {
-			if socksProxy(way) {
-				return nil, fmt.Errorf("%w: --pcap: %s is a SOCKS proxy, whose connections the transport dials "+
-					"where tls-forge does not see them", errUsage, redactProxy(way))
-			}
-		}
-	}
 	if err := common.warmup(ways...); err != nil {
 		return nil, err
 	}

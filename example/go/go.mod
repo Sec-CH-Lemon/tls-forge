@@ -11,7 +11,7 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/igor-lemon/fhttp v0.6.10-0.20261019184028-b7e6bbf2d6dd // indirect
 	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261019184102-120b3ca7fce0 // indirect
-	github.com/igor-lemon/tls-client v1.15.2-0.20261019184129-160e85e9e633 // indirect
+	github.com/igor-lemon/tls-client v1.15.2-0.20261020123643-f5798908f0a2 // indirect
 	github.com/igor-lemon/utls v1.7.8-barnius.0.20261019181339-54318cac598d // indirect
 	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261019184057-321da6d985db // indirect
 	github.com/klauspost/compress v1.20.0 // indirect

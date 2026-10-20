@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"net/netip"
-	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -27,7 +26,8 @@ import (
 const captureSuffix = ".pcapng"
 
 // maxHead is the most of what a connection sent first that is kept to find
-// the ClientHello it began with: a CONNECT and a ClientHello are far less.
+// the ClientHello it began with: a CONNECT or a SOCKS handshake and a
+// ClientHello are far less.
 const maxHead = 64 << 10
 
 // wire is what the connections of a run carried, kept for --pcap: every byte
@@ -148,17 +148,12 @@ func (w *wire) sent(c *wiredConn, data []byte) {
 }
 
 // beginsTLS says whether what a client sent so far may yet begin with a
-// ClientHello: a handshake record, or a CONNECT, which one follows in the
-// clear, or no more of either than is there.
+// ClientHello: a handshake record, or a request for a tunnel through a proxy
+// in the clear, a CONNECT or a SOCKS handshake, which one follows, or no more
+// of either than is there.
 func beginsTLS(head []byte) bool {
-	if connect := []byte("CONNECT "); bytes.HasPrefix(head, connect) || bytes.HasPrefix(connect, head) {
-		end := bytes.Index(head, []byte("\r\n\r\n"))
-		if end < 0 {
-			return true
-		}
-		head = head[end+4:]
-	}
-	return len(head) == 0 || head[0] == 22
+	tunnelled, whole := pcapng.Tunnelled(head)
+	return !whole || len(tunnelled) == 0 || tunnelled[0] == 22
 }
 
 func (w *wire) received(c *wiredConn, data []byte, err error) {
@@ -259,11 +254,4 @@ func (w *wire) keep(path string, r *result, j job, about requestAbout) error {
 		Secrets:   secrets,
 	}
 	return atomicfile.Stream(path, 0o600, func(out io.Writer) error { return pcapng.Write(out, file, streams) })
-}
-
-// socksProxy says whether proxy is a SOCKS proxy, whose connections the
-// transport dials and no tap sees.
-func socksProxy(proxy string) bool {
-	u, err := url.Parse(proxy)
-	return err == nil && strings.HasPrefix(strings.ToLower(u.Scheme), "socks")
 }

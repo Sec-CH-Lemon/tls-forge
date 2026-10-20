@@ -16,17 +16,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - **`fetch --pcap` keeps what each request's connections carried beside its
   other files, as a pcapng file Wireshark opens decrypted**: with `--output`,
   `NAME.pcapng` holds the connections the request went out on (each try's,
-  the probe's, the one to an HTTP or HTTPS proxy), every byte each way at the
-  moment tls-forge wrote or read it, and the TLS secrets of each in a
-  Decryption Secrets Block, so that no capture, key log or root is needed.
-  Its TCP/IP headers are made up by tls-forge, and the first packet of each
-  connection says so: TLS and HTTP are exact, the system's own handshake and
-  TCP/IP fingerprint are not in it. A connection is closed before its request
-  is kept, so its end is in the file; with `--reuse-connection` each repeat's
-  capture holds the URL's connection from its start. Refused without
-  `--output` and through a SOCKS proxy, whose connections the transport dials.
-  JSON lines and both reports name the file as `capture`, the request's log
-  as `capture`. README «Reading a run in Wireshark».
+  the probe's, the one to an HTTP, HTTPS, SOCKS4, SOCKS4a, SOCKS5 or SOCKS5h
+  proxy, with the CONNECT or the SOCKS handshake that opened its tunnel),
+  every byte each way at the moment tls-forge wrote or read it, and the TLS
+  secrets of each in a Decryption Secrets Block, so that no capture, key log
+  or root is needed. Its TCP/IP headers are made up by tls-forge, and the
+  first packet of each connection says so: TLS and HTTP are exact, the
+  system's own handshake and TCP/IP fingerprint are not in it. A connection
+  is closed before its request is kept, so its end is in the file; with
+  `--reuse-connection` each repeat's capture holds the URL's connection from
+  its start. What went in the clear stays in a copy without the secrets: an
+  HTTP proxy's `Proxy-Authorization`, a SOCKS5 proxy's user name and
+  password. Refused without `--output`. JSON lines and both reports name the
+  file as `capture`, the request's log as `capture`. README «Reading a run in
+  Wireshark».
 
 - **`fetch --keylog FILE` and `WithKeyLogWriter(w)` write the TLS secrets of
   every connection, for Wireshark to read a capture of a run**: in the NSS key

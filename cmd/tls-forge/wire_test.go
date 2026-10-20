@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -208,6 +209,175 @@ func TestFetchKeepsTheTunnelThroughAProxyInACapture(t *testing.T) {
 	}
 }
 
+// startSocksProxy is a SOCKS proxy on a loopback port, SOCKS5 (RFC 1928),
+// SOCKS4 and SOCKS4a alike, which asks a SOCKS5 client for a user name and
+// password (RFC 1929) when user is not empty, and joins each client to the
+// address it asked for.
+func startSocksProxy(t *testing.T, user, password string) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listening: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer func() { _ = conn.Close() }()
+				_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+				target, granted, ok := socksAsked(conn, user, password)
+				if !ok {
+					return
+				}
+				upstream, err := net.Dial("tcp", target)
+				if err != nil {
+					return
+				}
+				defer func() { _ = upstream.Close() }()
+				if _, err := conn.Write(granted); err != nil {
+					return
+				}
+				go func() { _, _ = io.Copy(upstream, conn) }()
+				_, _ = io.Copy(conn, upstream)
+			}()
+		}
+	}()
+	return listener.Addr().String()
+}
+
+// socksAsked reads a SOCKS client's handshake up to the address it asks for,
+// answering a SOCKS5 client as it goes, and is that address and the answer
+// that opens the tunnel to it.
+func socksAsked(conn net.Conn, user, password string) (string, []byte, bool) {
+	failed := false
+	read := func(n int) []byte {
+		b := make([]byte, n)
+		if _, err := io.ReadFull(conn, b); err != nil {
+			failed = true
+		}
+		return b
+	}
+	field := func() string { return string(read(int(read(1)[0]))) }
+	upToNUL := func() string {
+		var s []byte
+		for one := read(1); !failed && one[0] != 0; one = read(1) {
+			s = append(s, one[0])
+		}
+		return string(s)
+	}
+	port := func() string { return strconv.Itoa(int(binary.BigEndian.Uint16(read(2)))) }
+	if read(1)[0] == 4 {
+		command, at := read(1)[0], port()
+		ip := read(4)
+		_ = upToNUL()
+		host := net.IP(ip).String()
+		if ip[0] == 0 && ip[1] == 0 && ip[2] == 0 && ip[3] != 0 {
+			host = upToNUL()
+		}
+		return net.JoinHostPort(host, at), []byte{0, 0x5a, 0, 0, 0, 0, 0, 0}, !failed && command == 1
+	}
+	method := byte(0)
+	if user != "" {
+		method = 2
+	}
+	if offered := read(int(read(1)[0])); failed || !bytes.Contains(offered, []byte{method}) {
+		return "", nil, false
+	}
+	_, _ = conn.Write([]byte{5, method})
+	if user != "" {
+		if read(1)[0] != 1 || field() != user || field() != password || failed {
+			return "", nil, false
+		}
+		_, _ = conn.Write([]byte{1, 0})
+	}
+	request := read(4)
+	var host string
+	switch request[3] {
+	case 1:
+		host = net.IP(read(4)).String()
+	case 3:
+		host = field()
+	}
+	return net.JoinHostPort(host, port()), []byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0}, !failed && request[1] == 1 && host != ""
+}
+
+func TestFetchKeepsTheHandshakeWithASOCKSProxyInACapture(t *testing.T) {
+	// The connection to the proxy, which the transport dials: the handshake
+	// with it in the clear, each way, then the site's TLS through it, its
+	// secrets the site's own, and the FIN that let go of it.
+	var keys siteKeys
+	server, _ := keyedSite(t, &keys)
+	_, port, _ := net.SplitHostPort(strings.TrimPrefix(server.URL, "https://"))
+	number, _ := strconv.Atoi(port)
+	at := binary.BigEndian.AppendUint16(nil, uint16(number))
+	byName := "https://localhost:" + port + "/"
+	plain, credentialed := startSocksProxy(t, "", ""), startSocksProxy(t, "alice", "s3cr3t")
+	list := filepath.Join(t.TempDir(), "list.json")
+	if err := os.WriteFile(list, []byte(`[{"url":"`+byName+`","proxy":"socks5h://`+plain+`"}]`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// What a SOCKS5 client asks for: the site's address, or its name.
+	address := slices.Concat([]byte{5, 1, 0, 1, 127, 0, 0, 1}, at)
+	name := slices.Concat([]byte{5, 1, 0, 3, byte(len("localhost"))}, []byte("localhost"), at)
+	opened, granted := []byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0}, []byte{0, 0x5a, 0, 0, 0, 0, 0, 0}
+	for _, tc := range []struct {
+		name           string
+		args           []string
+		proxy          string
+		sent, received []byte
+	}{
+		{"socks5", []string{"--proxy", "socks5://" + plain, server.URL}, plain,
+			slices.Concat([]byte{5, 1, 0}, address), slices.Concat([]byte{5, 0}, opened)},
+		{"socks5 with a password", []string{"--proxy", "socks5://alice:s3cr3t@" + credentialed, server.URL}, credentialed,
+			slices.Concat([]byte{5, 2, 0, 2, 1, 5}, []byte("alice"), []byte{6}, []byte("s3cr3t"), address),
+			slices.Concat([]byte{5, 2, 1, 0}, opened)},
+		{"socks5h", []string{"--proxy", "socks5h://" + plain, byName}, plain,
+			slices.Concat([]byte{5, 1, 0}, name), slices.Concat([]byte{5, 0}, opened)},
+		{"socks4", []string{"--proxy", "socks4://" + plain, server.URL}, plain,
+			slices.Concat([]byte{4, 1}, at, []byte{127, 0, 0, 1}, []byte("nobody@0.0.0.0\x00")), granted},
+		{"socks4a", []string{"--proxy", "socks4a://" + plain, byName}, plain,
+			slices.Concat([]byte{4, 1}, at, []byte{0, 0, 0, 1}, []byte("nobody@0.0.0.0\x00localhost\x00")), granted},
+		{"a list's entry through one", []string{"--input", list, "--format", "json"}, plain,
+			slices.Concat([]byte{5, 1, 0}, name), slices.Concat([]byte{5, 0}, opened)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "out")
+			code, _, stderr := exec(t, append([]string{"fetch", "--insecure", "--no-exit-lookup", "-o", dir, "--pcap"},
+				tc.args...)...)
+			if code != 0 {
+				t.Fatalf("exit code = %d\n%s", code, stderr)
+			}
+			captures, _ := filepath.Glob(filepath.Join(dir, "*.pcapng"))
+			if len(captures) != 1 {
+				t.Fatalf("kept %v", keptIn(t, dir))
+			}
+			capture := readCapture(t, captures[0])
+			if len(capture.conns) != 1 {
+				t.Fatalf("%d connections", len(capture.conns))
+			}
+			conn := capture.conns[0]
+			if fmt.Sprint(conn.server) != strings.TrimPrefix(tc.proxy, "127.0.0.1:") {
+				t.Errorf("went to port %d, the proxy is at %s", conn.server, tc.proxy)
+			}
+			// The handshake each way, and the TLS records after it.
+			if !bytes.HasPrefix(conn.sent, tc.sent) || !bytes.HasPrefix(conn.received, tc.received) ||
+				!bytes.HasPrefix(conn.received[len(tc.received):], []byte{22, 3}) || !conn.clientFIN {
+				t.Errorf("sent %q…, received %q…, the client's FIN %v", conn.sent[:min(len(conn.sent), 60)],
+					conn.received[:min(len(conn.received), 20)], conn.clientFIN)
+			}
+			if mine := linesOf(keys.lines(), randomOf(t, conn)); len(mine) != 4 ||
+				!slices.Equal(capture.secrets, mine) {
+				t.Errorf("the capture holds\n%s\nthe site's lines of its connection\n%s",
+					strings.Join(capture.secrets, "\n"), strings.Join(mine, "\n"))
+			}
+		})
+	}
+}
+
 func TestFetchKeepsTheConnectionAURLsRepeatsShareInEachCapture(t *testing.T) {
 	var keys siteKeys
 	server, _ := keyedSite(t, &keys)
@@ -293,35 +463,13 @@ func TestFetchKeepsACaptureOfARequestThatWentNowhere(t *testing.T) {
 	}
 }
 
-func TestFetchRefusesACaptureItCannotMake(t *testing.T) {
-	// Before anything is made or asked: exit code 2.
+func TestFetchRefusesACaptureWithoutADirectory(t *testing.T) {
+	// Before anything is asked: exit code 2.
 	server, asked := keyedSite(t, io.Discard)
-	dir := filepath.Join(t.TempDir(), "out")
-	list := filepath.Join(t.TempDir(), "list.json")
-	if err := os.WriteFile(list, []byte(`[{"url":"`+server.URL+`","proxy":"socks5h://127.0.0.1:1080"}]`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	for _, tc := range []struct {
-		name string
-		args []string
-		says string
-	}{
-		{"without a directory", []string{"--pcap", server.URL},
-			"--pcap keeps each request's connections beside its other files, and requires --output"},
-		{"through a SOCKS proxy", []string{"--pcap", "-o", dir, "--proxy", "socks5://u:secret@127.0.0.1:1080", server.URL},
-			"--pcap: socks5://u@127.0.0.1:1080 is a SOCKS proxy"},
-		{"a list through one", []string{"--pcap", "-o", dir, "--input", list, "--format", "json"},
-			"--pcap: socks5h://127.0.0.1:1080 is a SOCKS proxy"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			code, _, stderr := exec(t, append([]string{"fetch", "--insecure"}, tc.args...)...)
-			if code != 2 || !strings.Contains(stderr, tc.says) || strings.Contains(stderr, "secret") {
-				t.Errorf("exit code = %d\n%s", code, stderr)
-			}
-		})
-	}
-	if _, err := os.Stat(dir); !errors.Is(err, os.ErrNotExist) {
-		t.Errorf("a refused run made %s: %v", dir, err)
+	code, _, stderr := exec(t, "fetch", "--insecure", "--pcap", server.URL)
+	if code != 2 || !strings.Contains(stderr,
+		"--pcap keeps each request's connections beside its other files, and requires --output") {
+		t.Errorf("exit code = %d\n%s", code, stderr)
 	}
 	if got := asked.Load(); got != 0 {
 		t.Errorf("a refused run asked %d times", got)
@@ -421,6 +569,12 @@ func TestTheWireFindsTheClientHelloAConnectionBeganWith(t *testing.T) {
 		{"plain HTTP", [][]byte{[]byte("GET / HTTP/1.1\r\n")}, "", true},
 		{"after a CONNECT, plain HTTP", [][]byte{[]byte("CONNECT a:80 HTTP/1.1\r\n\r\nGET /")}, "", true},
 		{"a CONNECT that never ends", [][]byte{[]byte("CONNECT a:443 HTTP/1.1\r\n"), bytes.Repeat([]byte("x"), maxHead)}, "", true},
+		{"after a SOCKS5 handshake", [][]byte{{5, 2, 0, 2}, {1, 1, 'u', 1, 'p'}, {5, 1, 0, 1, 127, 0, 0, 1, 1, 187}, hello},
+			random, true},
+		{"after a SOCKS4 handshake", [][]byte{{4, 1, 1, 187, 127, 0, 0, 1, 'u', 0}, hello}, random, true},
+		{"a SOCKS5 handshake not done", [][]byte{{5, 2, 0, 2}, {1, 1, 'u'}}, "", false},
+		{"after a SOCKS5 handshake, plain HTTP", [][]byte{{5, 1, 0}, {5, 1, 0, 1, 127, 0, 0, 1, 0, 80},
+			[]byte("GET / HTTP/1.1\r\n")}, "", true},
 		{"a handshake record too long to wait for", [][]byte{{22, 3, 1}, make([]byte, maxHead)}, "", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -519,17 +673,6 @@ func TestAddrPortOf(t *testing.T) {
 	} {
 		if got := addrPortOf(tc.addr).String(); got != tc.want {
 			t.Errorf("addrPortOf(%v) = %s, want %s", tc.addr, got, tc.want)
-		}
-	}
-}
-
-func TestSocksProxy(t *testing.T) {
-	for proxy, want := range map[string]bool{
-		"socks5://127.0.0.1:1080": true, "SOCKS4A://h:1": true, "socks5h://u:p@h:1": true,
-		"http://h:8080": false, "https://h": false, "": false, "::not a url": false,
-	} {
-		if got := socksProxy(proxy); got != want {
-			t.Errorf("socksProxy(%q) = %v", proxy, got)
 		}
 	}
 }

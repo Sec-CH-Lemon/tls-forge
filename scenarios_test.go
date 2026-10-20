@@ -272,9 +272,10 @@ func TestAnAnswerCutOffHalfwayIsAFailureNotAPage(t *testing.T) {
 	}
 }
 
-// socksServer is a SOCKS5 proxy (RFC 1928) on a loopback port. When user is
-// not empty it asks for a user name and password (RFC 1929) and turns away
-// any other. It keeps the address each CONNECT named, as it named it.
+// socksServer is a SOCKS proxy on a loopback port: SOCKS5 (RFC 1928), which
+// asks for a user name and password (RFC 1929) when user is not empty and
+// turns away any other, and SOCKS4 and SOCKS4a, which ask for neither. It
+// keeps the address each CONNECT named, as it named it.
 func socksServer(t *testing.T, user, pass string) (string, func() []string) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -293,7 +294,21 @@ func socksServer(t *testing.T, user, pass string) (string, func() []string) {
 			go func() {
 				defer func() { _ = conn.Close() }()
 				_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
-				target, ok := socksGreeting(conn, user, pass)
+				version := make([]byte, 1)
+				if _, err := io.ReadFull(conn, version); err != nil {
+					return
+				}
+				// What the proxy answers when the tunnel is open, and when the
+				// address it was asked for is not there.
+				target, ok := "", false
+				granted, refused := []byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0}, []byte{5, 4, 0, 1, 0, 0, 0, 0, 0, 0}
+				switch version[0] {
+				case 4:
+					target, ok = socks4Request(conn)
+					granted, refused = []byte{0, 0x5a, 0, 0, 0, 0, 0, 0}, []byte{0, 0x5b, 0, 0, 0, 0, 0, 0}
+				case 5:
+					target, ok = socksGreeting(conn, user, pass)
+				}
 				if !ok {
 					return
 				}
@@ -302,11 +317,11 @@ func socksServer(t *testing.T, user, pass string) (string, func() []string) {
 				mu.Unlock()
 				upstream, err := net.Dial("tcp", target)
 				if err != nil {
-					_, _ = conn.Write([]byte{5, 4, 0, 1, 0, 0, 0, 0, 0, 0})
+					_, _ = conn.Write(refused)
 					return
 				}
 				defer func() { _ = upstream.Close() }()
-				if _, err := conn.Write([]byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0}); err != nil {
+				if _, err := conn.Write(granted); err != nil {
 					return
 				}
 				go func() { _, _ = io.Copy(upstream, conn) }()
@@ -321,14 +336,14 @@ func socksServer(t *testing.T, user, pass string) (string, func() []string) {
 	}
 }
 
-// socksGreeting reads a SOCKS5 greeting, its authentication and its CONNECT,
-// and is the address the CONNECT named.
+// socksGreeting reads a SOCKS5 greeting after its version, its
+// authentication and its CONNECT, and is the address the CONNECT named.
 func socksGreeting(conn net.Conn, user, pass string) (string, bool) {
-	head := make([]byte, 2)
-	if _, err := io.ReadFull(conn, head); err != nil || head[0] != 5 {
+	count := make([]byte, 1)
+	if _, err := io.ReadFull(conn, count); err != nil {
 		return "", false
 	}
-	methods := make([]byte, head[1])
+	methods := make([]byte, count[0])
 	if _, err := io.ReadFull(conn, methods); err != nil {
 		return "", false
 	}
@@ -385,6 +400,38 @@ func socksGreeting(conn net.Conn, user, pass string) (string, bool) {
 	return net.JoinHostPort(host, strconv.Itoa(int(binary.BigEndian.Uint16(port)))), true
 }
 
+// socks4Request reads a SOCKS4 or SOCKS4a CONNECT after its version, and is
+// the address it named: the host's name for SOCKS4a, which sends 0.0.0.x.
+func socks4Request(conn net.Conn) (string, bool) {
+	request := make([]byte, 7)
+	if _, err := io.ReadFull(conn, request); err != nil || request[0] != 1 {
+		return "", false
+	}
+	upToNUL := func() (string, bool) {
+		var read []byte
+		for one := make([]byte, 1); ; read = append(read, one[0]) {
+			if _, err := io.ReadFull(conn, one); err != nil {
+				return "", false
+			}
+			if one[0] == 0 {
+				return string(read), true
+			}
+		}
+	}
+	if _, ok := upToNUL(); !ok { // the user's ID
+		return "", false
+	}
+	host := net.IP(request[3:7]).String()
+	if request[3] == 0 && request[4] == 0 && request[5] == 0 && request[6] != 0 {
+		name, ok := upToNUL()
+		if !ok {
+			return "", false
+		}
+		host = name
+	}
+	return net.JoinHostPort(host, strconv.Itoa(int(binary.BigEndian.Uint16(request[1:3])))), true
+}
+
 // socksCredentials reads a user name and password (RFC 1929) as user:pass.
 func socksCredentials(conn net.Conn) (string, bool) {
 	read := func() (string, bool) {
@@ -408,16 +455,19 @@ func socksCredentials(conn net.Conn) (string, bool) {
 	return name + ":" + password, ok
 }
 
-func TestARequestGoesThroughASOCKS5Proxy(t *testing.T) {
-	// With a password and without, and with the name of the host resolved by
-	// the proxy, socks5h, or by the client: the request comes out the other
+func TestARequestGoesThroughASOCKSProxy(t *testing.T) {
+	// SOCKS5 with a password and without, and with the name of the host
+	// resolved by the proxy, socks5h, or by the client; SOCKS4, and SOCKS4a,
+	// which has the proxy look the name up: the request comes out the other
 	// side, and the server answers what the client sent.
 	server := startEcho(t)
 	_, port, _ := net.SplitHostPort(server.Addr())
-	for _, tc := range []struct{ name, scheme, user, pass string }{
-		{"no password", "socks5", "", ""},
-		{"a password", "socks5", "alice", "s3cr3t"},
-		{"the proxy's name lookup", "socks5h", "", ""},
+	for _, tc := range []struct{ name, scheme, user, pass, asked string }{
+		{"no password", "socks5", "", "", "localhost"},
+		{"a password", "socks5", "alice", "s3cr3t", "localhost"},
+		{"the proxy's name lookup", "socks5h", "", "", "localhost"},
+		{"socks4", "socks4", "", "", "127.0.0.1"},
+		{"socks4a", "socks4a", "", "", "localhost"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			addr, asked := socksServer(t, tc.user, tc.pass)
@@ -430,7 +480,7 @@ func TestARequestGoesThroughASOCKS5Proxy(t *testing.T) {
 			if err != nil || !res.OK() {
 				t.Fatalf("Get = %v, %v", res, err)
 			}
-			if got := asked(); len(got) != 1 || !strings.HasSuffix(got[0], ":"+port) {
+			if got := asked(); len(got) != 1 || got[0] != net.JoinHostPort(tc.asked, port) {
 				t.Errorf("the proxy was asked for %v", got)
 			}
 		})

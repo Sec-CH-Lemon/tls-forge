@@ -280,16 +280,11 @@ func checksum(parts ...[]byte) uint16 {
 
 // ClientRandom is the random of the ClientHello a client began a connection
 // with, in hex, which its lines in a key log name it by: at the start of what
-// it sent, or after the CONNECT that opened a tunnel through a proxy in the
-// clear. False when what it sent begins with no ClientHello.
+// it sent, or after it asked a proxy in the clear for a tunnel (Tunnelled).
+// False when what it sent begins with no ClientHello.
 func ClientRandom(sent []byte) (string, bool) {
-	if bytes.HasPrefix(sent, []byte("CONNECT ")) {
-		end := bytes.Index(sent, []byte("\r\n\r\n"))
-		if end < 0 {
-			return "", false
-		}
-		sent = sent[end+4:]
-	}
+	// Nothing, while the request for a tunnel is cut short.
+	sent, _ = Tunnelled(sent)
 	// A handshake record, its ClientHello's type, length and version, then
 	// the random.
 	const random = 5 + 4 + 2
@@ -298,6 +293,106 @@ func ClientRandom(sent []byte) (string, bool) {
 		return "", false
 	}
 	return hex.EncodeToString(sent[random : random+32]), true
+}
+
+// Tunnelled is what a client sent through the tunnel it asked a proxy for in
+// the clear, and whole says it had asked: what it sent after an HTTP proxy's
+// CONNECT and the blank line that ends it; after a SOCKS5 proxy's greeting,
+// the user name and password if it gave them, and its CONNECT (RFC 1928,
+// 1929); or after a SOCKS4 or SOCKS4a proxy's CONNECT. Not whole while what
+// it sent is such a request cut short, nothing yet included, since the rest
+// is still to come; and all it sent, whole, when it begins as none does.
+func Tunnelled(sent []byte) ([]byte, bool) {
+	connect := []byte("CONNECT ")
+	switch {
+	case bytes.HasPrefix(connect, sent):
+		return nil, false
+	case bytes.HasPrefix(sent, connect):
+		end := bytes.Index(sent, []byte("\r\n\r\n"))
+		if end < 0 {
+			return nil, false
+		}
+		return sent[end+4:], true
+	case sent[0] == 5:
+		return socks5(sent)
+	case sent[0] == 4:
+		return socks4(sent)
+	}
+	return sent, true
+}
+
+// socks5 is Tunnelled for what a SOCKS5 client sent: VER NMETHODS METHODS,
+// then VER ULEN UNAME PLEN PASSWD when the proxy asks for them, then VER
+// CMD RSV ATYP DST.ADDR DST.PORT. All it sent, whole, when that is no SOCKS5
+// CONNECT.
+func socks5(sent []byte) ([]byte, bool) {
+	// end is where the field at start ends: its length is the byte there, and
+	// more bytes follow it. Past what was sent when that byte is not there.
+	end := func(start, more int) int {
+		if start >= len(sent) {
+			return len(sent) + 1
+		}
+		return start + 1 + int(sent[start]) + more
+	}
+	asked := end(1, 0)
+	if asked < len(sent) && sent[asked] == 1 {
+		asked = end(end(asked+1, 0), 0)
+	}
+	if asked >= len(sent) {
+		return nil, false
+	}
+	if sent[asked] != 5 {
+		return sent, true
+	}
+	if len(sent) < asked+4 {
+		return nil, false
+	}
+	if sent[asked+1] != 1 || sent[asked+2] != 0 {
+		return sent, true
+	}
+	var tunnel int
+	switch sent[asked+3] {
+	case 1:
+		tunnel = asked + 4 + 4 + 2
+	case 4:
+		tunnel = asked + 4 + 16 + 2
+	case 3:
+		tunnel = end(asked+4, 2)
+	default:
+		return sent, true
+	}
+	if tunnel > len(sent) {
+		return nil, false
+	}
+	return sent[tunnel:], true
+}
+
+// socks4 is Tunnelled for what a SOCKS4 client sent: VN CD DSTPORT DSTIP
+// USERID and a NUL, then a host's name and a NUL when DSTIP is 0.0.0.x, x not
+// 0, as SOCKS4a has it. All it sent, whole, when that is no CONNECT.
+func socks4(sent []byte) ([]byte, bool) {
+	if len(sent) < 2 {
+		return nil, false
+	}
+	if sent[1] != 1 {
+		return sent, true
+	}
+	if len(sent) < 8 {
+		return nil, false
+	}
+	names := 1
+	if sent[4] == 0 && sent[5] == 0 && sent[6] == 0 && sent[7] != 0 {
+		names = 2
+	}
+	tunnel := 8
+	for range names {
+		nul := bytes.IndexByte(sent[tunnel:], 0)
+		if nul < 0 {
+			return nil, false
+		}
+		tunnel += nul + 1
+	}
+	return sent[tunnel:], true
 }
 
 // blocks writes pcapng blocks to w, until a write fails.

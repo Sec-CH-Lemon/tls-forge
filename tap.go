@@ -13,7 +13,8 @@ import (
 // The connections a request goes out on, for whoever made it to see: the
 // tap its context carries is handed every connection tls-forge dials for it,
 // to a site or to a proxy, and told of every one it goes out on. A SOCKS
-// proxy's connections are the transport's to dial, and no tap sees them.
+// proxy's connections are the transport's to dial, and it hands each to the
+// tap as tls-forge's own dialers do (WithProxyConnWrapper).
 
 // tapped is conn, dialed for the request ctx is of from began, as the tap the
 // request carries would have it go out, or as it is.

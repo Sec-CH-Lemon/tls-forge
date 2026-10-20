@@ -385,10 +385,11 @@ func TestANameIsLookedUpAsADirectDialerLooksItUp(t *testing.T) {
 
 func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 	// A SOCKS proxy, and a URL that does not parse, are the transport's: it
-	// knows what to say about them.
+	// knows what to say about them, and hands the request's tap each
+	// connection it dials to the proxy.
 	for _, proxyURL := range []string{"socks5://127.0.0.1:1080", "://not a url", "http://"} {
-		if got := dialOptions(proxyURL, true, nil); len(got) != 1 {
-			t.Errorf("%q is given %d options, want the transport's one", proxyURL, len(got))
+		if got := dialOptions(proxyURL, true, nil); len(got) != 2 {
+			t.Errorf("%q is given %d options, want the transport's two", proxyURL, len(got))
 		}
 	}
 	// An HTTP proxy is tunnelled here, and without HTTP/3, which it cannot carry.

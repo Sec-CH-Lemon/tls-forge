@@ -88,7 +88,8 @@ type connectDialer struct {
 // dialOptions are how a client's connections are dialled. Through an HTTP or
 // HTTPS proxy, by a tunnel opened here. Through any other, and to a proxy URL
 // that will not parse, by the transport, which knows what to say about them: a
-// SOCKS proxy answers with no header fields to keep. Without a proxy, by a
+// SOCKS proxy answers with no header fields to keep, and the transport hands
+// each connection it dials to one to the request's tap. Without a proxy, by a
 // dialer of this package's, and a request to a name goes out on an HTTP/2
 // connection to another that fits it, as Chrome sends one; unless the caller
 // gave the transport options of its own (own is false), one of which may be a
@@ -111,7 +112,7 @@ func dialOptions(proxyURL string, own bool, keys io.Writer) []tls_client.HttpCli
 	}
 	u, err := url.Parse(proxyURL)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return []tls_client.HttpClientOption{tls_client.WithProxyUrl(proxyURL)}
+		return []tls_client.HttpClientOption{tls_client.WithProxyUrl(proxyURL), tls_client.WithProxyConnWrapper(tapped)}
 	}
 	return []tls_client.HttpClientOption{
 		tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,

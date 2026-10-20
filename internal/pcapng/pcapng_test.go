@@ -500,6 +500,12 @@ func TestClientRandom(t *testing.T) {
 		{"a ClientHello", hello(512), true},
 		{"after a CONNECT", append([]byte("CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\n\r\n"), hello(512)...), true},
 		{"a CONNECT that goes on", []byte("CONNECT example.com:443 HTTP/1.1\r\nHost: x"), false},
+		{"after a SOCKS5 handshake", slices.Concat([]byte{5, 1, 0, 5, 1, 0, 3, 11}, []byte("example.com"), []byte{1, 187},
+			hello(512)), true},
+		{"after a SOCKS4 handshake", slices.Concat([]byte{4, 1, 1, 187, 192, 0, 2, 1}, []byte("nobody\x00"), hello(512)), true},
+		{"a SOCKS5 handshake that goes on", []byte{5, 1, 0, 5, 1}, false},
+		{"plain HTTP after a SOCKS5 handshake", slices.Concat([]byte{5, 1, 0, 5, 1, 0, 1, 192, 0, 2, 1, 0, 80},
+			[]byte("GET / HTTP/1.1\r\n\r\n")), false},
 		{"plain HTTP", []byte("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n"), false},
 		{"too short", hello(512)[:40], false},
 		{"a record too short for its random", hello(37), false},
@@ -512,6 +518,70 @@ func TestClientRandom(t *testing.T) {
 		got, ok := ClientRandom(tc.sent)
 		if ok != tc.ok || (ok && got != want) || (!ok && got != "") {
 			t.Errorf("%s: %q, %v", tc.name, got, ok)
+		}
+	}
+}
+
+func TestTunnelled(t *testing.T) {
+	// A request for a tunnel, and what went through it once it was asked
+	// for: before the request is whole, at every byte, nothing yet.
+	inside := []byte("\x16\x03\x01 what went through")
+	port := []byte{1, 187}
+	for _, tc := range []struct {
+		name    string
+		request []byte
+	}{
+		{"a CONNECT", []byte("CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\n\r\n")},
+		{"a SOCKS5 CONNECT to an IPv4 address", slices.Concat([]byte{5, 1, 0, 5, 1, 0, 1, 192, 0, 2, 1}, port)},
+		{"a SOCKS5 CONNECT to an IPv6 address", slices.Concat([]byte{5, 1, 0, 5, 1, 0, 4},
+			netip.MustParseAddr("2001:db8::1").AsSlice(), port)},
+		{"a SOCKS5 CONNECT to a name", slices.Concat([]byte{5, 1, 0, 5, 1, 0, 3, 11}, []byte("example.com"), port)},
+		{"a SOCKS5 CONNECT offering two ways in", slices.Concat([]byte{5, 2, 0, 2, 5, 1, 0, 3, 11}, []byte("example.com"),
+			port)},
+		{"a SOCKS5 CONNECT after a user name and password", slices.Concat([]byte{5, 2, 0, 2, 1, 5}, []byte("alice"),
+			[]byte{6}, []byte("s3cr3t"), []byte{5, 1, 0, 3, 11}, []byte("example.com"), port)},
+		{"a SOCKS5 CONNECT after an empty user name and password", slices.Concat([]byte{5, 1, 2, 1, 0, 0, 5, 1, 0, 1,
+			192, 0, 2, 1}, port)},
+		{"a SOCKS4 CONNECT", slices.Concat([]byte{4, 1}, port, []byte{192, 0, 2, 1}, []byte("nobody@0.0.0.0\x00"))},
+		{"a SOCKS4 CONNECT without a user", slices.Concat([]byte{4, 1}, port, []byte{192, 0, 2, 1, 0})},
+		{"a SOCKS4 CONNECT to 0.0.0.0", slices.Concat([]byte{4, 1}, port, []byte{0, 0, 0, 0}, []byte("u\x00"))},
+		{"a SOCKS4 CONNECT to 1.0.0.1", slices.Concat([]byte{4, 1}, port, []byte{1, 0, 0, 1}, []byte("u\x00"))},
+		{"a SOCKS4 CONNECT to 0.1.0.1", slices.Concat([]byte{4, 1}, port, []byte{0, 1, 0, 1}, []byte("u\x00"))},
+		{"a SOCKS4 CONNECT to 0.0.1.1", slices.Concat([]byte{4, 1}, port, []byte{0, 0, 1, 1}, []byte("u\x00"))},
+		{"a SOCKS4a CONNECT", slices.Concat([]byte{4, 1}, port, []byte{0, 0, 0, 1}, []byte("nobody@0.0.0.0\x00example.com\x00"))},
+		{"a SOCKS4a CONNECT to 0.0.0.255", slices.Concat([]byte{4, 1}, port, []byte{0, 0, 0, 255}, []byte("\x00a\x00"))},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for n := range len(tc.request) {
+				if got, whole := Tunnelled(tc.request[:n]); whole || got != nil {
+					t.Fatalf("the first %d bytes: %q, %v", n, got, whole)
+				}
+			}
+			if got, whole := Tunnelled(tc.request); !whole || len(got) != 0 {
+				t.Errorf("the request alone: %q, %v", got, whole)
+			}
+			if got, whole := Tunnelled(slices.Concat(tc.request, inside)); !whole || !bytes.Equal(got, inside) {
+				t.Errorf("with what went through: %q, %v", got, whole)
+			}
+		})
+	}
+	// What asks a proxy for no tunnel, or for one but not as a CONNECT: all
+	// of it, whole.
+	for _, tc := range []struct {
+		name string
+		sent []byte
+	}{
+		{"a ClientHello", inside},
+		{"plain HTTP", []byte("GET / HTTP/1.1\r\n\r\n")},
+		{"a SOCKS5 greeting and then no SOCKS5", []byte{5, 1, 0, 4, 1, 0, 1}},
+		{"a SOCKS5 BIND", slices.Concat([]byte{5, 1, 0, 5, 2, 0, 1, 192, 0, 2, 1}, port, inside)},
+		{"a SOCKS5 UDP ASSOCIATE", slices.Concat([]byte{5, 1, 0, 5, 3, 0, 1, 192, 0, 2, 1}, port, inside)},
+		{"a SOCKS5 CONNECT reserved wrong", slices.Concat([]byte{5, 1, 0, 5, 1, 1, 1, 192, 0, 2, 1}, port, inside)},
+		{"a SOCKS5 CONNECT to no kind of address", slices.Concat([]byte{5, 1, 0, 5, 1, 0, 2, 192, 0, 2, 1}, port, inside)},
+		{"a SOCKS4 BIND", slices.Concat([]byte{4, 2}, port, []byte{192, 0, 2, 1, 0}, inside)},
+	} {
+		if got, whole := Tunnelled(tc.sent); !whole || !bytes.Equal(got, tc.sent) {
+			t.Errorf("%s: %q, %v", tc.name, got, whole)
 		}
 	}
 }

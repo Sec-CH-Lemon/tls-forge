@@ -236,7 +236,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261019184129-160e85e9e633
+github.com/igor-lemon/tls-client v1.15.2-0.20261020123643-f5798908f0a2
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn
