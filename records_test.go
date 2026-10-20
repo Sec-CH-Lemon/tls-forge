@@ -173,10 +173,7 @@ func carriedAsChromeCarriedThem(t *testing.T, chrome, macOS *profile.Profile, se
 					t.Fatalf("%s %s: %v", ask.method, req.URL, err)
 				}
 			}
-			entries, err := server.Requests()
-			if err != nil {
-				t.Fatalf("Requests: %v", err)
-			}
+			entries := readWhole(t, server, recordsAsked[scenario])
 			diffs := harness.DiffRecords(want, harness.RecordsScenario{Requests: server.Recorded(entries)})
 			if why := recordsDiffer[scenario]; why != "" {
 				if len(diffs) == 0 {

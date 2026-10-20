@@ -28,6 +28,40 @@ type hpackAsk struct {
 	header       []profile.Field
 }
 
+// readWhole is what the bench has read once every body asked was read whole,
+// or after two seconds: a client goes on once its answer has come, which a
+// server may send before it has read a body's end, and the bench reads a
+// connection on its own time. A body's last DATA frame was missing once in a
+// run of the replays under -race (2026-10-20).
+func readWhole(t *testing.T, server *harness.Server, asked []hpackAsk) []harness.Entry {
+	t.Helper()
+	for deadline := time.Now().Add(2 * time.Second); ; time.Sleep(10 * time.Millisecond) {
+		entries, err := server.Requests()
+		if err != nil {
+			t.Fatalf("Requests: %v", err)
+		}
+		if bodiesWhole(entries, asked) || time.Now().After(deadline) {
+			return entries
+		}
+	}
+}
+
+// bodiesWhole says every body asked is among entries whole: the body of a
+// request with its method to its path.
+func bodiesWhole(entries []harness.Entry, asked []hpackAsk) bool {
+	for _, ask := range asked {
+		if ask.body == "" {
+			continue
+		}
+		if !slices.ContainsFunc(entries, func(e harness.Entry) bool {
+			return e.Method == ask.method && strings.HasSuffix(e.Target, ask.path) && e.Body == ask.body
+		}) {
+			return false
+		}
+	}
+	return true
+}
+
 // typed, page and fetched are a scenario's run page, typed, a navigation from
 // it, and a fetch() of its origin.
 func typed(path string) hpackAsk   { return hpackAsk{kind: KindNavigation, path: path} }
@@ -212,11 +246,7 @@ func writtenAsChromeWroteThem(t *testing.T, chrome *profile.Profile, server *har
 					t.Fatalf("%s %s: %v", ask.method, req.URL, err)
 				}
 			}
-			entries, err := server.Requests()
-			if err != nil {
-				t.Fatalf("Requests: %v", err)
-			}
-			got, err := server.Written(entries, want.Table, want.Records)
+			got, err := server.Written(readWhole(t, server, hpackAsked[scenario]), want.Table, want.Records)
 			if err != nil {
 				t.Fatalf("Written: %v", err)
 			}
