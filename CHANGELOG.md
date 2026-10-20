@@ -994,7 +994,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   connection of every scenario (151 requests), and in nothing Chrome decides.
   The connections fixture was measured again so, on Chrome 155.0.8059.85:
   what each run page sent, connections and sessions alike, is what it was,
-  but for the first page's address in its Referer.
+  but for the first page's address in its Referer. And whether the run
+  page's own connection resumed a session is no longer held to the fixture:
+  on GitHub's runners Chrome now and then sent it on a connection it had
+  opened as it started, before it had a session, though the first page's had
+  ended (one to three scenarios a run on macOS and Linux); which connection
+  each request goes on, and whether every later one resumed, is held as
+  before.
 
 - **The bench's check holds what Linux and Windows decide as Chrome's rules
   say**: a value the platform decides (the user agent, `sec-ch-ua-platform`,

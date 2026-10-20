@@ -116,6 +116,28 @@ func TestWhatDiffersIsSaidByScenarioProtocolAndRequest(t *testing.T) {
 	}
 }
 
+func TestWhetherTheRunPagesOwnConnectionResumedIsNotCompared(t *testing.T) {
+	// Chrome may send the run page on a connection it opened as it started,
+	// before it had a session; any other connection's is Chrome's way.
+	on := func(conn int, resumed bool) Request {
+		return changed(fetched(), func(r *Request) { r.Conn, r.Resumed = conn, resumed })
+	}
+	for _, resumed := range []bool{true, false} {
+		if diff := Compare(one(on(runPageConn, resumed)), one(on(runPageConn, !resumed)), nil); diff != nil {
+			t.Errorf("the run page's connection, resumed %v in the fixture: %q", resumed, diff)
+		}
+	}
+	if diff := Compare(one(on(2, true)), one(on(2, false)), nil); len(diff) != 2 ||
+		!strings.Contains(diff[0], "connection 2, the fixture's connection 2, resumed") {
+		t.Errorf("another connection: %q", diff)
+	}
+	// Which connection it came on is compared all the same.
+	if diff := Compare(one(on(runPageConn, true)), one(on(2, true)), nil); len(diff) != 2 ||
+		!strings.Contains(diff[0], "connection 2, resumed, the fixture's connection 1, resumed") {
+		t.Errorf("another connection than the run page's: %q", diff)
+	}
+}
+
 func TestWhatTheMachineDecidesIsComparedByPresence(t *testing.T) {
 	got := changed(fetched(), func(r *Request) {
 		setHeader(r, "user-agent", "Mozilla/5.0 (X11; Linux x86_64)")

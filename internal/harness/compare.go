@@ -71,7 +71,8 @@ func comparable(name, value string) string {
 // Compare is how what a browser asked for, got, differs from what the fixture
 // holds, want: nothing when they are the same. A scenario is the same when
 // every request is, in the same order, over each protocol: its method, URL and
-// body, the connection it came on and whether that one resumed a TLS session,
+// body, the connection it came on and whether that one resumed a TLS session
+// (but the run page's own, runPageConn),
 // its HTTP/2 priority (exclusive and weight: the stream it depends on is the
 // connection's business), the names of its headers in order, spelt alike, and
 // their values, but for what Chrome draws for each (comparable). A value
@@ -128,6 +129,14 @@ func compareScenario(where string, want, got []Request, profile map[string]strin
 	return diff
 }
 
+// runPageConn is the connection a scenario of connections numbers its run
+// page's. Whether that one resumed a TLS session is how the browser started,
+// not what it does: Chrome sends the run page on a connection it opened as it
+// started, before it had a session to resume, when one is still there, as on
+// GitHub's macOS runners now and then (2026-10-20), the lobby's own connection
+// ended though it is; so it is not compared, and which connection is.
+const runPageConn = 1
+
 // connection says which connection a request came on, and whether that one
 // resumed a TLS session.
 func connection(r Request) string {
@@ -146,7 +155,7 @@ func compareRequest(want, got Request, profile map[string]string) []string {
 	if withoutBoundary(got.Body) != withoutBoundary(want.Body) {
 		diff = append(diff, fmt.Sprintf("body %q, the fixture's %q", got.Body, want.Body))
 	}
-	if got.Conn != want.Conn || got.Resumed != want.Resumed {
+	if got.Conn != want.Conn || got.Resumed != want.Resumed && want.Conn != runPageConn {
 		diff = append(diff, fmt.Sprintf("%s, the fixture's %s", connection(got), connection(want)))
 	}
 	if (len(got.Priority) == 3) != (len(want.Priority) == 3) ||
