@@ -2018,8 +2018,10 @@ runs on, as Negotiate on Windows, is passed over there, saying so. Start it by
 hand with `gh workflow run drift.yml`, which files nothing unless given `-f
 file=true`, runs one half alone with `-f profile=false` or `-f
 behaviour=false`, and measures only some runners or channels with `-f
-os='["windows-latest"]' -f channels='["beta"]'` (CI minutes are limited), or
-hold the browser on your machine to the fixtures:
+os='["windows-latest"]' -f channels='["beta"]'`, and only some fixtures and
+scenarios with `-f fixtures=connections -f only=conn-fetch,conn-resume`
+(measure's flags and `--only`; CI minutes are limited), or hold the browser on
+your machine to the fixtures:
 
 ```bash
 go run ./internal/harness/measure --browser PATH --check --newer

@@ -54,6 +54,19 @@ on:
         description: The channels of Chrome it measures, a JSON list
         type: string
         default: '["stable", "beta"]'
+      fixtures:
+        description: >-
+          The fixtures it holds Chrome to, named as measure's flags (requests,
+          connections, decoding, hpack, records, alps, flow, urls, hellos,
+          false-start) and separated by spaces or commas; every one when empty
+        type: string
+        default: ''
+      only:
+        description: >-
+          The scenarios it measures, by name and comma-separated, as measure's
+          --only, of the fixtures that hold them; every one when empty
+        type: string
+        default: ''
 
 permissions:
   contents: write        # push the branch the pull request is for
@@ -397,6 +410,9 @@ jobs:
         shell: bash
     env:
       CHANNEL: ${{ matrix.channel }}
+      # A scheduled run has none: every fixture and scenario.
+      FIXTURES: ${{ inputs.fixtures }}
+      ONLY: ${{ inputs.only }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -487,6 +503,9 @@ jobs:
       # --no-sandbox on Linux and Windows, as the capture workflow says why:
       # without it Chrome starts, loads no page and says nothing. It is process
       # isolation, neither TLS nor a header.
+      #
+      # A fixture the run does not name is given as empty, which measure does
+      # not measure; a name it does not know ends the job before anything is.
       - name: hold it to the fixtures
         id: check
         run: |
@@ -495,6 +514,23 @@ jobs:
           if [ -f "$measure.exe" ]; then measure="$measure.exe"; fi
           args=()
           if [ "$RUNNER_OS" != macOS ]; then args=(--browser-arg=--no-sandbox); fi
+          read -ra named <<< "${FIXTURES//,/ }"
+          if [ "${#named[@]}" -gt 0 ]; then
+            all="requests connections decoding hpack records alps flow urls hellos false-start"
+            for fixture in "${named[@]}"; do
+              case " $all " in
+                *" $fixture "*) ;;
+                *) echo "no fixture $fixture: the fixtures are $all"; exit 1 ;;
+              esac
+            done
+            for fixture in $all; do
+              case " ${named[*]} " in
+                *" $fixture "*) ;;
+                *) args+=("--$fixture=") ;;
+              esac
+            done
+          fi
+          if [ -n "$ONLY" ]; then args+=("--only=$ONLY"); fi
           verdict=matches
           for run in 1 2; do
             set +e
@@ -539,8 +575,11 @@ jobs:
           title="Chrome $CHANNEL $MAJOR on $RUNNER_OS does not do what the fixtures say"
           # git is on every runner, and its digest of a file is the file's.
           digest=$(git hash-object differences.txt)
+          what="every fixture of the bench"
+          if [ -n "${FIXTURES//[ ,]/}" ]; then what="the bench's $FIXTURES"; fi
+          if [ -n "$ONLY" ]; then what="$what (only $ONLY)"; fi
           {
-            echo "The weekly check measured every fixture of the bench on $VERSION ($CHANNEL,"
+            echo "The check measured $what on $VERSION ($CHANNEL,"
             echo "$RUNNER_OS) with \`measure --check --newer\`, twice, and it differed from them both"
             echo "times: something tls-forge is held to, Chrome may now do otherwise, or does"
             echo "otherwise on $RUNNER_OS than on macOS, where the fixtures were measured. The run:"
@@ -594,5 +633,7 @@ jobs:
             echo "| platform | $RUNNER_OS |"
             echo "| channel | $CHANNEL |"
             echo "| browser | ${VERSION:-not installed} |"
+            echo "| fixtures | ${FIXTURES:-every one} |"
+            echo "| scenarios | ${ONLY:-every one} |"
             echo "| behaviour | ${VERDICT:-the check could not run} |"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -21,14 +21,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   twice before it counts, and files an issue for each platform, channel and
   major, commented on only when what differs changes. Run by hand, it files
   nothing unless asked (`-f file=true`), `-f profile=false` or
-  `-f behaviour=false` leaves either half out, and `-f os=` and `-f channels=`
-  (JSON lists) measure only those runners and channels. Each run's
-  differences and log go into the artifact, whatever the check came to. Before, only the shipped profile was compared
-  with Chrome; the behaviour tls-forge is held to was measured once. The
-  bench's `measure` exits 3 when a browser differs from the fixtures, 1 when
-  it could not measure; `--newer` (with `--check`) holds what a build's
-  version decides, `sec-ch-ua` and its kind and the length they give an
-  HTTP/1.1 head, to what the browser sends itself.
+  `-f behaviour=false` leaves either half out, `-f os=` and `-f channels=`
+  (JSON lists) measure only those runners and channels, and `-f fixtures=`
+  (measure's flags, by name: `connections`, `alps`) and `-f only=` (its
+  `--only`) only those fixtures and scenarios. Each run's differences and
+  log go into the artifact, whatever the check came to. Before, only the
+  shipped profile was compared with Chrome; the behaviour tls-forge is held
+  to was measured once. The bench's `measure` exits 3 when a browser differs
+  from the fixtures, 1 when it could not measure; `--newer` (with `--check`)
+  holds what a build's version decides, `sec-ch-ua` and its kind and the
+  length they give an HTTP/1.1 head, to what the browser sends itself.
 
 - **`capture` keeps every client hint the browser sends a server that asks**:
   its page asks for each with a `<meta http-equiv="Accept-CH">`, which applies
