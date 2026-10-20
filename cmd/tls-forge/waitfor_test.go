@@ -94,14 +94,14 @@ func TestWaitForIsSaidEverywhereARequestIs(t *testing.T) {
 	}
 
 	// The log and the trace the request was kept with, and the trace of the run.
-	logs, _ := filepath.Glob(filepath.Join(out, "*-2.log"))
+	logs, _ := filepath.Glob(filepath.Join(out, "*-2-logs.log"))
 	if len(logs) != 1 {
 		t.Fatalf("kept %v", keptIn(t, out))
 	}
 	if log, _ := os.ReadFile(logs[0]); !strings.Contains(string(log), fmt.Sprintf("200 OK · %d B · no text matching %s", len(sold), stock)) {
 		t.Errorf("the log of the request without the text:\n%s", log)
 	}
-	kept := traceFile(t, filepath.Join(out, "trace-"+strings.TrimSuffix(filepath.Base(logs[0]), ".log")+".json"))
+	kept := traceFile(t, strings.TrimSuffix(logs[0], logSuffix)+traceSuffix)
 	if ended := kept[len(kept)-1]; ended.Args["missing_text"] != stock || ended.Args["missing_element"] != nil {
 		t.Errorf("its trace ends as %+v", ended)
 	}
@@ -238,7 +238,7 @@ func TestWaitForDecidesWhateverTheStatus(t *testing.T) {
 			t.Errorf("the report has no %q", want)
 		}
 	}
-	logs, _ := filepath.Glob(filepath.Join(out, "*-1.log"))
+	logs, _ := filepath.Glob(filepath.Join(out, "*-1-logs.log"))
 	if len(logs) != 1 {
 		t.Fatalf("kept %v", keptIn(t, out))
 	}

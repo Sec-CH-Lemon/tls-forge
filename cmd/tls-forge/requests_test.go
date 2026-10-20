@@ -1163,7 +1163,7 @@ func TestFetchRepeatsOneAtATimeUnlessToldHowMany(t *testing.T) {
 		t.Errorf("two at a time: rows %v, %d requests on the command's row, concurrency %v", rows, onCommandRow, concurrency)
 	}
 	for run := 1; run <= 4; run++ {
-		if pages, _ := filepath.Glob(filepath.Join(kept, fmt.Sprintf("*-%d.txt", run))); len(pages) != 1 {
+		if pages, _ := filepath.Glob(filepath.Join(kept, fmt.Sprintf("*-%d-response.txt", run))); len(pages) != 1 {
 			t.Errorf("run %d kept no page among %v", run, keptIn(t, kept))
 		}
 	}

@@ -49,9 +49,10 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	name := "127.0.0.1-" + stamp(clock.now())
 	// And the log of the whole run, named for when it began.
 	runLog := "run-" + stamp(clock.now()) + ".log"
+	// Every file of a request under its name, so that they list together.
 	want := []string{
-		name + "-1.log", name + "-1.txt", name + "-2.log", name + "-2.txt", runLog,
-		"trace-" + name + "-1.json", "trace-" + name + "-2.json",
+		name + "-1-logs.log", name + "-1-response.txt", name + "-1-trace.json",
+		name + "-2-logs.log", name + "-2-response.txt", name + "-2-trace.json", runLog,
 	}
 	if got := keptIn(t, dir); !slices.Equal(got, want) {
 		t.Fatalf("the directory holds %v, want %v", got, want)
@@ -60,11 +61,11 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	// The first run was turned away with a 503, and its page is kept all the
 	// same: what a server says when it refuses is the page worth reading.
 	for run, page := range map[string]string{"1": "answer-1", "2": "answer-2"} {
-		if kept, err := os.ReadFile(filepath.Join(dir, name+"-"+run+".txt")); err != nil || string(kept) != page {
+		if kept, err := os.ReadFile(filepath.Join(dir, name+"-"+run+"-response.txt")); err != nil || string(kept) != page {
 			t.Errorf("run %s kept %q (%v), want %q", run, kept, err, page)
 		}
 	}
-	log, err := os.ReadFile(filepath.Join(dir, name+"-1.log"))
+	log, err := os.ReadFile(filepath.Join(dir, name+"-1-logs.log"))
 	if err != nil {
 		t.Fatalf("reading the log: %v", err)
 	}
@@ -72,7 +73,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 		"GET " + server.URL + "/\n",
 		"  request  1 of 2\n",
 		"  outcome  503 Service Unavailable · 8 B\n",
-		"  page     " + filepath.Join(dir, name+"-1.txt") + "\n",
+		"  page     " + filepath.Join(dir, name+"-1-response.txt") + "\n",
 		"try 1 of 1: 503 Service Unavailable · 8 B",
 		"request headers, as written",
 		"the body began\n    answer-1\n",
@@ -81,7 +82,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 			t.Errorf("the log has no %q:\n%s", want, log)
 		}
 	}
-	events := traceFile(t, filepath.Join(dir, "trace-"+name+"-1.json"))
+	events := traceFile(t, filepath.Join(dir, name+"-1-trace.json"))
 	checkShape(t, events)
 	if began := one(t, events, phaseBegin, "GET "+server.URL+"/"); began.Args["request"] != 1.0 {
 		t.Errorf("the request was traced as %+v", began)
@@ -90,8 +91,8 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 	// A report says where each request was kept, under the names a line uses.
 	doc := decoded(t, []byte(reportOf(t, path)))
 	first := doc.Requests[0]
-	if first.File != filepath.Join(dir, name+"-1.txt") || first.Log != filepath.Join(dir, name+"-1.log") ||
-		first.Trace != filepath.Join(dir, "trace-"+name+"-1.json") {
+	if first.File != filepath.Join(dir, name+"-1-response.txt") || first.Log != filepath.Join(dir, name+"-1-logs.log") ||
+		first.Trace != filepath.Join(dir, name+"-1-trace.json") {
 		t.Errorf("the report has the first request kept at %q, %q and %q", first.File, first.Log, first.Trace)
 	}
 
@@ -100,7 +101,7 @@ func TestOutputKeepsThreeFilesForEveryRequest(t *testing.T) {
 		// what describes a request names where it went, and a page can be one
 		// that only a session could open.
 		for file, mode := range map[string]os.FileMode{
-			name + "-1.txt": 0o600, name + "-1.log": 0o600, "trace-" + name + "-1.json": 0o600, runLog: 0o600,
+			name + "-1-response.txt": 0o600, name + "-1-logs.log": 0o600, name + "-1-trace.json": 0o600, runLog: 0o600,
 		} {
 			if info, err := os.Stat(filepath.Join(dir, file)); err != nil || info.Mode().Perm() != mode {
 				t.Errorf("%s: mode %v (%v), want %v", file, info.Mode().Perm(), err, mode)
@@ -120,15 +121,15 @@ func TestOutputKeepsALogAndATraceOfARequestThatGotNothing(t *testing.T) {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
 	kept := keptIn(t, dir)
-	if len(kept) != 3 || !strings.HasSuffix(kept[0], "-1.log") || !strings.HasPrefix(kept[1], "run-") ||
-		!strings.HasPrefix(kept[2], "trace-127.0.0.1-") {
+	if len(kept) != 3 || !strings.HasPrefix(kept[0], "127.0.0.1-") || !strings.HasSuffix(kept[0], "-1-logs.log") ||
+		kept[1] != strings.TrimSuffix(kept[0], "-logs.log")+"-trace.json" || !strings.HasPrefix(kept[2], "run-") {
 		t.Fatalf("the directory holds %v, want a log and a trace, and the run's log", kept)
 	}
 	log, _ := os.ReadFile(filepath.Join(dir, kept[0]))
 	if !strings.Contains(string(log), "  outcome  no response · ") || !strings.Contains(string(log), nowhere) {
 		t.Errorf("the log does not say why nothing came back:\n%s", log)
 	}
-	events := traceFile(t, filepath.Join(dir, kept[2]))
+	events := traceFile(t, filepath.Join(dir, kept[1]))
 	checkShape(t, events)
 	if ended := events[len(events)-1]; ended.Phase != phaseEnd || ended.Args["error"] == nil {
 		t.Errorf("the trace ends as %+v", ended)
@@ -176,7 +177,7 @@ func TestRequestNameFitsAFileName(t *testing.T) {
 	seen := map[string]string{}
 	for _, host := range []string{dns, strings.Repeat("z", 1000), cyrillic, dns + "x"} {
 		name := requestName("https://"+host+"/", when, math.MaxInt)
-		for _, file := range []string{name + longest, name + ".log", "trace-" + name + ".json"} {
+		for _, file := range []string{name + pageSuffix + longest, name + logSuffix, name + traceSuffix} {
 			if len(file) > 255 {
 				t.Errorf("%d bytes for a host of %d: %s", len(file), len(host), file)
 			}
@@ -191,10 +192,10 @@ func TestRequestNameFitsAFileName(t *testing.T) {
 		seen[name] = host
 	}
 
-	// And a file of that name can be made.
+	// And a file of the longest of those names can be made.
 	name := requestName("https://"+strings.Repeat("z", 1000)+"/", when, math.MaxInt)
-	if err := os.WriteFile(filepath.Join(t.TempDir(), "trace-"+name+".json"), nil, 0o600); err != nil {
-		t.Errorf("the name of a request's trace cannot be a file's: %v", err)
+	if err := os.WriteFile(filepath.Join(t.TempDir(), name+pageSuffix+longest), nil, 0o600); err != nil {
+		t.Errorf("the name of a request's page cannot be a file's: %v", err)
 	}
 }
 
@@ -206,7 +207,7 @@ func keptRequest() (result, job, requestAbout) {
 	r := result{
 		URL: "https://example.test/a", Proxy: "http://user:s3cr3t@proxy.test:8080",
 		Started: started, Ended: started.Add(400 * ms), Status: 200, Bytes: 577, Attempts: 2, Run: 2,
-		FinalURL: "https://example.test/b", File: "out/example.test-2026-03-04-093000-012-3.html",
+		FinalURL: "https://example.test/b", File: "out/example.test-2026-03-04-093000-012-3-response.html",
 		ID: 3, Exit: egress{IP: "203.0.113.7", Country: "pl"},
 		Tries: []try{
 			{
@@ -255,7 +256,7 @@ func TestRequestLog(t *testing.T) {
 		"  outcome    200 OK · 577 B\n",
 		"  tries      2\n",
 		"  final URL  https://example.test/b\n",
-		"  page       out/example.test-2026-03-04-093000-012-3.html\n",
+		"  page       out/example.test-2026-03-04-093000-012-3-response.html\n",
 		"\ntry 1 of 2: 503 Service Unavailable · 19 B, 100ms\n",
 		"  connection  new connection to 198.51.100.7:8080 · TLS 1.3 · TLS_AES_128_GCM_SHA256 · h2\n",
 		"  dns         2.0ms  proxy.test → 198.51.100.7\n",
@@ -363,13 +364,9 @@ func TestRequestTrace(t *testing.T) {
 func TestKeepRequestReportsAFileItCannotWrite(t *testing.T) {
 	// Every one of the three, so that whichever fails, the run hears of it.
 	r, j, about := keptRequest()
-	for _, blocked := range []string{".html", ".log", ".json"} {
+	for _, blocked := range []string{pageSuffix + ".html", logSuffix, traceSuffix} {
 		dir := t.TempDir()
-		name := requestName(r.URL, r.Started, j.id)
-		target := filepath.Join(dir, name+blocked)
-		if blocked == ".json" {
-			target = filepath.Join(dir, "trace-"+name+blocked)
-		}
+		target := filepath.Join(dir, requestName(r.URL, r.Started, j.id)+blocked)
 		// A directory where the file would go.
 		if err := os.Mkdir(target, 0o755); err != nil {
 			t.Fatalf("Mkdir: %v", err)

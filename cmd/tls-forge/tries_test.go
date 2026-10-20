@@ -405,12 +405,12 @@ func TestReportRowFacts(t *testing.T) {
 	// is, and the trace offered to a viewer.
 	open := &perfettoTrace{Data: "H4sI"}
 	kept := reportRow{
-		result: result{URL: "https://example.test/", Log: "out/a.log", Trace: "out/trace-a.json"},
-		at:     "out/report.html", trace: "out/trace-a.json", Perfetto: open,
+		result: result{URL: "https://example.test/", Log: "out/a-logs.log", Trace: "out/a-trace.json"},
+		at:     "out/report.html", trace: "out/a-trace.json", Perfetto: open,
 	}
 	want = []fact{
-		{Label: "Log", Value: "out/a.log", Code: true, Link: "a.log"},
-		{Label: "Trace", Value: "out/trace-a.json", Code: true, Link: "trace-a.json", Open: open},
+		{Label: "Log", Value: "out/a-logs.log", Code: true, Link: "a-logs.log"},
+		{Label: "Trace", Value: "out/a-trace.json", Code: true, Link: "a-trace.json", Open: open},
 		{Label: "Started"}, {Label: "Ended"},
 	}
 	if got := kept.Facts(); !slices.Equal(got, want) {
@@ -647,9 +647,9 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	}
 	html := reportOf(t, path)
 	address := strings.TrimPrefix(server.URL, "http://")
-	pages, _ := filepath.Glob(filepath.Join(kept, "*.txt"))
-	logs, _ := filepath.Glob(filepath.Join(kept, "127.0.0.1-*.log"))
-	traces, _ := filepath.Glob(filepath.Join(kept, "trace-*.json"))
+	pages, _ := filepath.Glob(filepath.Join(kept, "*-response.txt"))
+	logs, _ := filepath.Glob(filepath.Join(kept, "127.0.0.1-*-logs.log"))
+	traces, _ := filepath.Glob(filepath.Join(kept, "127.0.0.1-*-trace.json"))
 	if len(pages) != 2 || len(logs) != 2 || len(traces) != 2 {
 		t.Fatalf("the directory holds %v", keptIn(t, kept))
 	}

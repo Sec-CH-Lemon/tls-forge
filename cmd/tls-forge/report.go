@@ -488,7 +488,7 @@ func perfettoOf(r result, method string) *perfettoTrace {
 	return &perfettoTrace{
 		Data:  base64.StdEncoding.EncodeToString(packed.Bytes()),
 		Title: fmt.Sprintf("%s %s - request %d", method, safeURL(r.URL), r.ID),
-		Name:  "trace-" + requestName(r.URL, r.Started, r.ID) + ".json",
+		Name:  requestName(r.URL, r.Started, r.ID) + traceSuffix,
 	}
 }
 

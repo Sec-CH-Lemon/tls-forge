@@ -119,14 +119,14 @@ func TestWaitForElementIsSaidEverywhereARequestIs(t *testing.T) {
 	}
 
 	// The log and the trace the request was kept with, and the trace of the run.
-	logs, _ := filepath.Glob(filepath.Join(out, "*-2.log"))
+	logs, _ := filepath.Glob(filepath.Join(out, "*-2-logs.log"))
 	if len(logs) != 1 {
 		t.Fatalf("kept %v", keptIn(t, out))
 	}
 	if log, _ := os.ReadFile(logs[0]); !strings.Contains(string(log), fmt.Sprintf("200 OK · %d B · no element matching #price", len(challenge))) {
 		t.Errorf("the log of the request without the element:\n%s", log)
 	}
-	kept := traceFile(t, filepath.Join(out, "trace-"+strings.TrimSuffix(filepath.Base(logs[0]), ".log")+".json"))
+	kept := traceFile(t, strings.TrimSuffix(logs[0], logSuffix)+traceSuffix)
 	if ended := kept[len(kept)-1]; ended.Args["missing_element"] != "#price" {
 		t.Errorf("its trace ends as %+v", ended)
 	}

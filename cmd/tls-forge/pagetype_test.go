@@ -186,7 +186,7 @@ func TestOutputNamesEachPageForWhatItIs(t *testing.T) {
 	}
 	// Requests are numbered in the order they were handed out.
 	for number, want := range map[string]string{"1": ".html", "2": ".json", "3": ".json", "4": ".png", "5": ".json"} {
-		pages, _ := filepath.Glob(filepath.Join(dir, "127.0.0.1-*-"+number+want))
+		pages, _ := filepath.Glob(filepath.Join(dir, "127.0.0.1-*-"+number+pageSuffix+want))
 		if len(pages) != 1 {
 			t.Errorf("request %s was not kept as %s: %v", number, want, keptIn(t, dir))
 			continue

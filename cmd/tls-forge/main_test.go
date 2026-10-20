@@ -303,13 +303,7 @@ func TestFetchKeepsTheRequestInADirectory(t *testing.T) {
 	}
 	// The echo answers in JSON, so the page is kept as JSON, beside the
 	// trace's own .json.
-	var pages []string
-	matches, _ := filepath.Glob(filepath.Join(dir, "*-1.json"))
-	for _, m := range matches {
-		if !strings.HasPrefix(filepath.Base(m), "trace-") {
-			pages = append(pages, m)
-		}
-	}
+	pages, _ := filepath.Glob(filepath.Join(dir, "*-1-response.json"))
 	if len(pages) != 1 {
 		t.Fatalf("the directory has %v, want one page", keptIn(t, dir))
 	}

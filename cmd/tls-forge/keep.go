@@ -18,13 +18,21 @@ import (
 
 // What is kept of each request, in the directory --output names.
 //
-// Three files for every request, under one name: the page, when anything came
-// back, whatever its status, ending in what its Content-Type says it is; a log
-// of the request that a person reads; and a trace of it that ui.perfetto.dev
-// draws. The name is the host the request
-// went to, when it was made, and which request of the run it was, so that a
-// directory of them lists by host and then by time, and the three files of one
-// request sit beside one another.
+// Every file of a request begins with its name, the host the request went to,
+// when it was made and which request of the run it was, and goes on with what
+// it is: the page, when anything came back, whatever its status, ending in
+// what its Content-Type says it is (NAME-response.html); a log of the request
+// that a person reads (NAME-logs.log); and a trace of it that ui.perfetto.dev
+// draws (NAME-trace.json). So a directory of them lists by host and then by
+// time, and the files of one request sit beside one another.
+
+// What each file of a request adds to its name.
+const (
+	// pageSuffix comes before the extension the page's Content-Type gives it.
+	pageSuffix  = "-response"
+	logSuffix   = "-logs.log"
+	traceSuffix = "-trace.json"
+)
 
 // requestAbout is what a run knows of all of its requests, which each of their
 // logs repeats so that one can be read without the others.
@@ -43,21 +51,21 @@ func keepRequest(dir string, r *result, res *tlsforge.Response, j job, about req
 	lane *traceLane,
 ) error {
 	name := requestName(r.URL, r.Started, j.id)
-	// 0600, all three, as for a report or a trace of the whole run: the log and
+	// 0600, every one, as for a report or a trace of the whole run: the log and
 	// the trace name what was asked for and where it went, and a page can be
 	// one that only a session could open.
 	if res != nil {
 		// Whatever came back, an error page included: what a server says when it
 		// turns a request away is the most interesting page it sends.
-		page := filepath.Join(dir, name+pageExtension(res.Header, res.Body))
+		page := filepath.Join(dir, name+pageSuffix+pageExtension(res.Header, res.Body))
 		if err := os.WriteFile(page, res.Body, 0o600); err != nil {
 			return err
 		}
 		r.File = page
 		lane.instant("saved", "file", traceArgs{"file": page, "bytes": len(res.Body)})
 	}
-	log := filepath.Join(dir, name+".log")
-	trace := filepath.Join(dir, "trace-"+name+".json")
+	log := filepath.Join(dir, name+logSuffix)
+	trace := filepath.Join(dir, name+traceSuffix)
 	r.Log, r.Trace = log, trace
 	if err := os.WriteFile(log, []byte(requestLog(*r, j, about)), 0o600); err != nil {
 		return err
@@ -90,9 +98,10 @@ func either(first, fallback string) string {
 // maxNameHost is the most of a host the name of a request's files keeps.
 //
 // A file name is at most 255 bytes on the file systems anybody uses, and what
-// the files of a request add to the host is under 60: a trace's prefix, the
-// moment, the request's number and the longest extension. A host is at most
-// 253 bytes to DNS, and a URL may name a longer one still.
+// the files of a request add to the host is under 60: the moment, the
+// request's number and the longest ending, a page's suffix and the longest
+// extension. A host is at most 253 bytes to DNS, and a URL may name a longer
+// one still.
 const maxNameHost = 100
 
 // requestName is what the files of a request are called, without what each

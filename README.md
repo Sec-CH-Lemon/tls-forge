@@ -415,9 +415,9 @@ the pass it belongs to as `run`. The count covers all of the runs, and `-v`
 adds a line for each as it finishes, and for each try that is made again:
 
 ```text
-  1/3  200      577 B     29ms       out/example.com-2026-08-16-091854-584-1.html
-  2/3  200      577 B     11ms       out/example.com-2026-08-16-091854-614-2.html
-  3/3  200      577 B     10ms       out/example.com-2026-08-16-091854-626-3.html
+  1/3  200      577 B     29ms       out/example.com-2026-08-16-091854-584-1-response.html
+  2/3  200      577 B     11ms       out/example.com-2026-08-16-091854-614-2-response.html
+  3/3  200      577 B     10ms       out/example.com-2026-08-16-091854-626-3-response.html
   ████████████████████████████████████████  3/3  100%
   0s elapsed · 1.7 kB
 
@@ -573,19 +573,21 @@ tls-forge fetch --input urls.csv -o out/ > results.jsonl
 ```
 
 `--output` names a directory, made if it is not there, and every request is
-kept in it as three files under one name: the host it went to, when it was
-made, and which request of the run it was.
+kept in it as three files whose names begin alike: the host it went to, when
+it was made, and which request of the run it was, then what each file is. So
+the directory lists by host and then by time, and the files of one request
+sit together.
 
 ```text
-out/example.com-2026-08-16-091854-584-1.html
-out/example.com-2026-08-16-091854-584-1.log
-out/trace-example.com-2026-08-16-091854-584-1.json
+out/example.com-2026-08-16-091854-584-1-logs.log
+out/example.com-2026-08-16-091854-584-1-response.html
+out/example.com-2026-08-16-091854-584-1-trace.json
 ```
 
-- The page is what came back, whatever its status: what a server says when
-  it turns a request away is the page most worth reading. A request that got
-  no answer has none. It ends in what its `Content-Type` says it is, so that it
-  opens as that: `.html`, `.json`, `.xml`, `.js`, `.css`, `.txt`, `.png`,
+- The `-response` page is what came back, whatever its status: what a server
+  says when it turns a request away is the page most worth reading. A request
+  that got no answer has none. It ends in what its `Content-Type` says it is,
+  so that it opens as that: `.html`, `.json`, `.xml`, `.js`, `.css`, `.txt`, `.png`,
   `.pdf` and the like, `.json` for any `+json` type and `.xml` for any `+xml`.
   The header wins over the bytes: JSON sent as `text/plain` is kept as `.txt`,
   as a browser would show it. A response that names more than one type, in two
@@ -599,14 +601,14 @@ out/trace-example.com-2026-08-16-091854-584-1.json
   `-i`, the JSON lines, the report and the trace describe it decoded:
   `content-encoding` and `content-length` come off. A coding Chrome does not
   know either is left as it came, its field with it.
-- The `.log` is the request written out for a person: what it was, the run
+- The `-logs.log` is the request written out for a person: what it was, the run
   it was made in, the profile and the proxy it went with, where it came out,
   how it ended, and
   every try at it with what the proxy answered when it opened the tunnel,
   the connection it went out on, each thing it waited on and for how long, the
   request as it was written, what the answer came with, how an answer that was
   not a 2xx began, and the wait before the next try.
-- The `trace-….json` is the same request as a trace of its own, in the Trace
+- The `-trace.json` is the same request as a trace of its own, in the Trace
   Event JSON format [ui.perfetto.dev](https://ui.perfetto.dev/) opens: the
   request, inside it every try, and inside each try its steps.
 

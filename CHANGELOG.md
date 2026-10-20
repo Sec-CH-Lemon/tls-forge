@@ -504,19 +504,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   and each JSON line carries its pass as `run`. Lines of a single pass are
   unchanged.
 - **`--output DIR` keeps every request in a directory**, made if it is not
-  there, as three files named after the host, the moment the request was made
-  and its number in the run, such as
-  `example.com-2026-08-16-091854-584-1.html`: the page, whatever its status,
-  when anything came back, ending in what its `Content-Type` says it is
-  (`.html`, `.json`, `.xml`, `.txt`, `.png` and so on, and the last type when
-  it names more than one, as a browser reads it), or in what its bytes look
-  like when the header says nothing more than octet-stream; a `.log` of
-  the request for a person to read, with
-  every try, what each waited on, the header fields that went out and came
-  back, and how an answer that was not a 2xx began; and a
-  `trace-….json` of the request alone that ui.perfetto.dev opens. JSON lines
-  name the three as `file`, `log` and `trace` instead of carrying the page,
-  and so do both reports. The log and the trace are written with mode `0600`.
+  there, as three files whose names begin with the host, the moment the
+  request was made and its number in the run, and go on with what each is, so
+  that a request's files list together:
+  `example.com-2026-08-16-091854-584-1-response.html`, the page, whatever its
+  status, when anything came back, ending in what its `Content-Type` says it
+  is (`.html`, `.json`, `.xml`, `.txt`, `.png` and so on, and the last type
+  when it names more than one, as a browser reads it), or in what its bytes
+  look like when the header says nothing more than octet-stream;
+  `…-1-logs.log`, the request for a person to read, with every try, what each
+  waited on, the header fields that went out and came back, and how an answer
+  that was not a 2xx began; and `…-1-trace.json`, the request alone as a trace
+  that ui.perfetto.dev opens. JSON lines name the three as `file`, `log` and
+  `trace` instead of carrying the page, and so do both reports. The log and
+  the trace are written with mode `0600`.
 - `fetch` counts the answers by status code while it runs: a bar for how far
   the run has got, cut by how the answers went, a line for how long it has
   taken and has left, and a row for each status, by number and by name, with

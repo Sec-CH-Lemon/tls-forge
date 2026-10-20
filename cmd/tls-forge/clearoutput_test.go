@@ -83,8 +83,8 @@ func TestClearOutputDirEmptiesTheDirectoryFirst(t *testing.T) {
 	}
 	page, log, report := false, false, false
 	for _, name := range kept {
-		page = page || strings.HasSuffix(name, "-1.txt")
-		log = log || strings.HasSuffix(name, "-1.log")
+		page = page || strings.HasSuffix(name, "-1-response.txt")
+		log = log || strings.HasSuffix(name, "-1-logs.log")
 		report = report || strings.HasPrefix(name, "report-")
 	}
 	if !page || !log || !report || !slices.Contains(kept, "run.trace.json") {

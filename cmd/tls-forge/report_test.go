@@ -317,10 +317,10 @@ func TestWriteReport(t *testing.T) {
 func TestLinkTo(t *testing.T) {
 	for _, tc := range []struct{ file, report, want string }{
 		// Beside the report, and below where it is.
-		{"out/trace-a.json", "out/report.html", "trace-a.json"},
-		{"out/trace-a.json", "report.html", "out/trace-a.json"},
+		{"out/a-trace.json", "out/report.html", "a-trace.json"},
+		{"out/a-trace.json", "report.html", "out/a-trace.json"},
 		// Somewhere else, which is up and down again, escaped as a URL is.
-		{"out/trace-a.json", "reports/r.html", "../out/trace-a.json"},
+		{"out/a-trace.json", "reports/r.html", "../out/a-trace.json"},
 		{"/runs/out/trace a#1?.json", "/runs/reports/r.html", "../out/trace%20a%231%3F.json"},
 		// A colon in the first part of a path does not make it a scheme.
 		{"c:odd.json", "r.html", "./c:odd.json"},
@@ -355,7 +355,7 @@ func TestPerfettoOf(t *testing.T) {
 	}
 	// Named as the file it is kept in would be, in what the viewer keeps of a
 	// name: anything else it makes a space of.
-	if got.Title != "GET https://example.test/a - request 3" || got.Name != "trace-example.test-2026-03-04-093000-012-3.json" {
+	if got.Title != "GET https://example.test/a - request 3" || got.Name != "example.test-2026-03-04-093000-012-3-trace.json" {
 		t.Errorf("the trace is opened as %q, %q", got.Title, got.Name)
 	}
 	kept := regexp.MustCompile(`^[A-Za-z0-9.\-_#:/?=&;%+$ ]*$`)
@@ -366,7 +366,7 @@ func TestPerfettoOf(t *testing.T) {
 
 func TestReportOpensEveryRequestInPerfetto(t *testing.T) {
 	r, _, _ := keptRequest()
-	r.Log, r.Trace = "out/a.log", "out/trace-a.json"
+	r.Log, r.Trace = "out/a-logs.log", "out/a-trace.json"
 	bare := result{URL: "https://example.test/b", ID: 4, Started: r.Started.Add(time.Second)}
 	in := inputOf([]result{r, bare})
 	in.method, in.trace, in.at = "GET", "run.trace.json", "out/report.html"
@@ -379,7 +379,7 @@ func TestReportOpensEveryRequestInPerfetto(t *testing.T) {
 	for _, want := range []string{
 		// The trace of the run, and of each request, from where the report is.
 		`The run was traced to <a class="font-mono underline`, `href="../run.trace.json">run.trace.json</a>`,
-		`href="a.log">out/a.log</a>`, `href="trace-a.json">out/trace-a.json</a>`,
+		`href="a-logs.log">out/a-logs.log</a>`, `href="a-trace.json">out/a-trace.json</a>`,
 		// A request kept nowhere of its own is in the trace of the run.
 		`href="../run.trace.json">run.trace.json</a>`,
 		`data-title="GET https://example.test/a - request 3"`, `data-title="GET https://example.test/b - request 4"`,
@@ -743,7 +743,7 @@ func TestReportBesideTheRequestsOpensTheirTraces(t *testing.T) {
 	}
 	name := "127.0.0.1-" + stamp(clock.now())
 	page := reportOf(t, filepath.Join("out", "report-"+stamp(clock.now())+".html"))
-	for _, want := range []string{`href="` + name + `-1.log"`, `href="trace-` + name + `-2.json"`} {
+	for _, want := range []string{`href="` + name + `-1-logs.log"`, `href="` + name + `-2-trace.json"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the report has no %q", want)
 		}
@@ -853,7 +853,7 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 	// The log and the trace each request is kept with say the same, and so does
 	// the trace of the run.
 	name := "127.0.0.1-" + stamp(clock.now())
-	log, _ := os.ReadFile(filepath.Join(dir, name+"-3.log"))
+	log, _ := os.ReadFile(filepath.Join(dir, name+"-3-logs.log"))
 	for _, want := range []string{
 		"  exit-ip  203.0.113.4\n", "came out at 203.0.113.4",
 		"\n  the proxy's answer to CONNECT\n    x-exit-ip: 203.0.113.4\n",
@@ -862,7 +862,7 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 			t.Errorf("the log of the last request has no %q:\n%s", want, log)
 		}
 	}
-	kept := traceFile(t, filepath.Join(dir, "trace-"+name+"-2.json"))
+	kept := traceFile(t, filepath.Join(dir, name+"-2-trace.json"))
 	if ended := kept[len(kept)-1]; ended.Args["exit_ip"] != "203.0.113.3" {
 		t.Errorf("the trace of the second request ends as %+v", ended)
 	}
@@ -966,11 +966,11 @@ func TestReportTakesAProxysHashOfTheAddress(t *testing.T) {
 		}
 	}
 	name := "127.0.0.1-" + stamp(clock.now())
-	if log, _ := os.ReadFile(filepath.Join(dir, name+"-1.log")); !strings.Contains(string(log),
+	if log, _ := os.ReadFile(filepath.Join(dir, name+"-1-logs.log")); !strings.Contains(string(log),
 		"  exit-ip  "+hash(2)+" (the proxy's name for the address)\n") {
 		t.Errorf("the log of the first request does not say where it came out:\n%s", log)
 	}
-	kept := traceFile(t, filepath.Join(dir, "trace-"+name+"-2.json"))
+	kept := traceFile(t, filepath.Join(dir, name+"-2-trace.json"))
 	if ended := kept[len(kept)-1]; ended.Args["exit_hash"] != hash(3) || ended.Args["exit_ip"] != nil {
 		t.Errorf("the trace of the second request ends as %+v", ended)
 	}

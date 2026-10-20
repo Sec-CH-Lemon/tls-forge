@@ -106,7 +106,7 @@ func TestEveryPartOfARunNamesTheProfileItWears(t *testing.T) {
 	if said := named(traceFile(t, trace), phaseInstant, "profile"); len(said) != 1 || said[0].Args["name"] != worn {
 		t.Errorf("the trace says %v", said)
 	}
-	kept, err := filepath.Glob(filepath.Join(out, "localhost-*.log"))
+	kept, err := filepath.Glob(filepath.Join(out, "localhost-*-logs.log"))
 	if err != nil || len(kept) != 1 {
 		t.Fatalf("kept %v, %v", kept, err)
 	}
@@ -279,7 +279,7 @@ func TestEveryOutputOfARunNamesTheOneRun(t *testing.T) {
 		begun[0].Args["started"] != doc.Started.Format(time.RFC3339Nano) {
 		t.Errorf("the trace begins %v", begun)
 	}
-	kept, err := filepath.Glob(filepath.Join(out, "127.0.0.1-*.log"))
+	kept, err := filepath.Glob(filepath.Join(out, "127.0.0.1-*-logs.log"))
 	if err != nil || len(kept) != 1 {
 		t.Fatalf("kept %v, %v", kept, err)
 	}
