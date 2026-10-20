@@ -20,10 +20,16 @@ import (
 // stand is a browser standing in for Chrome: it writes its arguments down,
 // and starts a process of its own, as a browser does, that waits ten seconds
 // at most. With --dump-dom it prints dump and ends with code, leaving that
-// process behind, unless dump is hang; without, it waits for it.
+// process behind, unless dump is hang; without, it waits for it. A dump
+// says standSaid on its standard error, as Chrome logs as it goes.
 type stand struct {
 	path, args, child string
 }
+
+// standSaid is what the stand-in says on its standard error as it dumps: lines
+// with nothing to say, one past saidWidth, and its reason last. It is the
+// format printf is given, so that its newlines are ones.
+var standSaid = "starting\n\n  warmed up  \n" + strings.Repeat("x", saidWidth+50) + "\nPage load failed\n\n"
 
 func standIn(t *testing.T, dump string, code int) stand {
 	t.Helper()
@@ -36,11 +42,12 @@ echo $! > %[2]q.tmp && mv %[2]q.tmp %[2]q
 for a; do
 	if [ "$a" = --dump-dom ] && [ %[3]q != hang ]; then
 		printf '%%s' %[3]q
+		printf %[5]q >&2
 		exit %[4]d
 	fi
 done
 wait
-`, s.args, s.child, dump, code)
+`, s.args, s.child, dump, code, standSaid)
 	if err := os.WriteFile(s.path, []byte(script), 0o755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
@@ -160,9 +167,12 @@ func TestADumpIsWhatTheBrowserWroteInAProfileMadeForIt(t *testing.T) {
 }
 
 func TestADumpThatFailsIsNoDump(t *testing.T) {
+	// It says why as the browser did: the last lines it said on its standard
+	// error, each cut short where it runs on.
 	failing := standIn(t, "half", 3)
 	if _, err := (Chrome{Path: failing.path}).DumpDOM(context.Background(), "http://127.0.0.1:1/a"); err == nil ||
-		!strings.Contains(err.Error(), "--dump-dom http://127.0.0.1:1/a: exit status 3") {
+		!strings.HasSuffix(err.Error(), "--dump-dom http://127.0.0.1:1/a: exit status 3; it said: warmed up / "+
+			strings.Repeat("x", saidWidth)+" / Page load failed") {
 		t.Errorf("DumpDOM: %v", err)
 	}
 	if _, err := (Chrome{Path: filepath.Join(t.TempDir(), "none")}).DumpDOM(context.Background(), "x"); err == nil ||
@@ -184,7 +194,8 @@ func TestADumpThatFailsIsNoDump(t *testing.T) {
 	cancel()
 	select {
 	case err := <-dumped:
-		if err == nil || !strings.Contains(err.Error(), "killed") {
+		// One that said nothing is said to have said nothing.
+		if err == nil || !strings.HasSuffix(err.Error(), "killed") {
 			t.Errorf("DumpDOM past its context: %v", err)
 		}
 	case <-time.After(5 * time.Second):
@@ -197,6 +208,15 @@ func TestADumpThatFailsIsNoDump(t *testing.T) {
 	create = func(string) (*os.File, error) { return nil, os.ErrPermission }
 	if _, err := (Chrome{Path: failing.path}).DumpDOM(context.Background(), "x"); !errors.Is(err, os.ErrPermission) {
 		t.Errorf("DumpDOM with nowhere to write the dump: %v", err)
+	}
+	create = func(name string) (*os.File, error) {
+		if filepath.Base(name) == "said.txt" {
+			return nil, os.ErrPermission
+		}
+		return old(name)
+	}
+	if _, err := (Chrome{Path: failing.path}).DumpDOM(context.Background(), "x"); !errors.Is(err, os.ErrPermission) {
+		t.Errorf("DumpDOM with nowhere to keep what the browser says: %v", err)
 	}
 	create = old
 	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "none"))

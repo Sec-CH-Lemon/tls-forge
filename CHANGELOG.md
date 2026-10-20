@@ -1022,7 +1022,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   whose first message Chrome there writes through SSPI with the system's
   flags and version, saying why, as the replays wearing the Windows profile
   do. A page whose dump fails, as Chrome's on a macOS runner once did, is
-  asked once more. A fixture that cannot be measured at all (Beta 157 on
+  asked once more, and a dump that fails says the last lines Chrome said on
+  its standard error. A fixture that cannot be measured at all (Beta 157 on
   Linux sent `hpack-big-cookie`'s requests over two connections every time)
   is, checked, a difference of its own, and the other fixtures are measured;
   with none measured, the check could not run.

@@ -135,8 +135,9 @@ func (c Chrome) Open(ctx context.Context, url, dir string) (func(), error) {
 
 // DumpDOM runs the browser at url with --dump-dom in a profile made for it,
 // and is what it wrote. A browser that fails, or does not end before ctx does,
-// dumped nothing to go by. What it writes goes to a file, not a pipe: a pipe
-// would keep the dump waiting on whatever it started that holds it open.
+// dumped nothing to go by, and the error ends with the last lines it said on
+// its standard error. What it writes goes to files, not pipes: a pipe would
+// keep the dump waiting on whatever it started that holds it open.
 func (c Chrome) DumpDOM(ctx context.Context, url string) ([]byte, error) {
 	dir, err := os.MkdirTemp("", "tls-forge-harness-")
 	if err != nil {
@@ -148,11 +149,16 @@ func (c Chrome) DumpDOM(ctx context.Context, url string) ([]byte, error) {
 		return nil, fmt.Errorf("harness: %w", err)
 	}
 	defer func() { _ = out.Close() }()
+	said, err := create(filepath.Join(dir, "said.txt"))
+	if err != nil {
+		return nil, fmt.Errorf("harness: %w", err)
+	}
+	defer func() { _ = said.Close() }()
 	profile := filepath.Join(dir, "profile")
 	cmd := exec.CommandContext(ctx, c.Path, append(c.arguments(profile), "--dump-dom", url)...)
 	proctree.Own(cmd)
 	cmd.Cancel = func() error { return proctree.Kill(cmd.Process) }
-	cmd.Stdout = out
+	cmd.Stdout, cmd.Stderr = out, said
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("harness: launching %s: %w", c.Path, err)
 	}
@@ -160,7 +166,35 @@ func (c Chrome) DumpDOM(ctx context.Context, url string) ([]byte, error) {
 	// What it started may outlive it: a renderer still closing.
 	_ = proctree.Kill(cmd.Process)
 	if err != nil {
-		return nil, fmt.Errorf("harness: %s --dump-dom %s: %w", c.Path, url, err)
+		return nil, fmt.Errorf("harness: %s --dump-dom %s: %w%s", c.Path, url, err, lastSaid(said.Name()))
 	}
 	return os.ReadFile(out.Name())
+}
+
+// saidLines is how many of the last lines a browser said on its standard error
+// a failure quotes, and saidWidth how much of each, in bytes: enough for
+// Chrome's reason, which it logs last, and never a whole log.
+const (
+	saidLines = 3
+	saidWidth = 300
+)
+
+// lastSaid is the last lines of the file at path that say something, each cut
+// to saidWidth bytes, as "; it said: a / b / c", or nothing when there are
+// none: a file that cannot be read said nothing.
+func lastSaid(path string) string {
+	data, _ := os.ReadFile(path)
+	var lines []string
+	for _, line := range strings.Split(string(data), "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			if len(line) > saidWidth {
+				line = strings.ToValidUTF8(line[:saidWidth], "")
+			}
+			lines = append(lines, line)
+		}
+	}
+	if len(lines) == 0 {
+		return ""
+	}
+	return "; it said: " + strings.Join(lines[max(0, len(lines)-saidLines):], " / ")
 }
