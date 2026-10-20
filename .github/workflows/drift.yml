@@ -500,6 +500,14 @@ jobs:
       # not, and anything else when it could not measure: that is no drift, and
       # fails the job rather than filing one.
       #
+      # A difference counts when the second run has it too. A block of the list,
+      # a line that begins with something and the indented lines after it, is
+      # known by what that line says before its first colon (a scenario, with
+      # its protocol and request where it has them), and is filed as the second
+      # run said it. What one run alone had is the runner's, not Chrome's (a
+      # navigation its start broke, which the error page reloaded; a connection
+      # opened as it started): the verdict is then unsteady, and nothing is filed.
+      #
       # --no-sandbox on Linux and Windows, as the capture workflow says why:
       # without it Chrome starts, loads no page and says nothing. It is process
       # isolation, neither TLS nor a header.
@@ -537,19 +545,27 @@ jobs:
             "$measure" --browser "$CHROME" "${args[@]}" --check --newer > "differences-$run.txt" 2> "measure-$run.log"
             code=$?
             set -e
-            # Each run kept, so that one that ends otherwise leaves the
-            # other's; the last is the one filed.
-            cp "differences-$run.txt" differences.txt
-            cp "measure-$run.log" measure.log
-            tail -n 40 measure.log
+            tail -n 40 "measure-$run.log"
             case $code in
               0) verdict=matches; break ;;
-              3) verdict=differs; echo "run $run: $(wc -l < differences.txt | tr -d ' ') differences" ;;
+              3) verdict=differs; echo "run $run: $(grep -c '^[^ ]' "differences-$run.txt") differences" ;;
               *) echo "the check could not run: measure exited $code"; exit 1 ;;
             esac
           done
+          if [ "$verdict" = differs ]; then
+            awk '/^[^ ]/ { k = $0; sub(/:.*/, "", k); print k }' differences-1.txt | sort -u > first-keys.txt
+            awk 'NR == FNR { known[$0] = 1; next }
+                 /^[^ ]/ { k = $0; sub(/:.*/, "", k); keep = (k in known) }
+                 keep' first-keys.txt differences-2.txt > differences-both.txt
+            if [ -s differences-both.txt ]; then
+              echo "both runs: $(grep -c '^[^ ]' differences-both.txt) differences"
+              cat differences-both.txt
+            else
+              verdict=unsteady
+              echo "no difference in both runs"
+            fi
+          fi
           echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
-          if [ "$verdict" = differs ]; then cat differences.txt; fi
 
       # Whatever the check came to, and when it could not run too: what each
       # run said is how to tell why.
@@ -574,17 +590,17 @@ jobs:
         run: |
           title="Chrome $CHANNEL $MAJOR on $RUNNER_OS does not do what the fixtures say"
           # git is on every runner, and its digest of a file is the file's.
-          digest=$(git hash-object differences.txt)
+          digest=$(git hash-object differences-both.txt)
           what="every fixture of the bench"
           if [ -n "${FIXTURES//[ ,]/}" ]; then what="the bench's $FIXTURES"; fi
           if [ -n "$ONLY" ]; then what="$what (only $ONLY)"; fi
           {
             echo "The check measured $what on $VERSION ($CHANNEL,"
-            echo "$RUNNER_OS) with \`measure --check --newer\`, twice, and it differed from them both"
-            echo "times: something tls-forge is held to, Chrome may now do otherwise, or does"
-            echo "otherwise on $RUNNER_OS than on macOS, where the fixtures were measured. The run:"
-            echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID, whose"
-            echo "artifact has every difference and the measurement's log."
+            echo "$RUNNER_OS) with \`measure --check --newer\`, twice, and both times it differed"
+            echo "from them in what follows: something tls-forge is held to, Chrome may now do"
+            echo "otherwise, or does otherwise on $RUNNER_OS than on macOS, where the fixtures were"
+            echo "measured. The run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID,"
+            echo "whose artifact has each run's differences and log, and those of both."
             echo
             echo "What a build's version and platform decide, sec-ch-ua and the length it gives"
             echo "an HTTP/1.1 head, is held to what the browser sends itself; the profile check"
@@ -599,7 +615,7 @@ jobs:
             echo '<details><summary>what differs</summary>'
             echo
             echo '```'
-            head -n 300 differences.txt
+            head -n 300 differences-both.txt
             echo '```'
             echo '</details>'
             echo

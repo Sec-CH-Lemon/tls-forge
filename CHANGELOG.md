@@ -19,7 +19,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   measures every fixture again with `measure --check --newer`
   (`--browser-arg=--no-sandbox` on Linux and Windows), a difference measured
   twice before it counts, and files an issue for each platform, channel and
-  major, commented on only when what differs changes. Run by hand, it files
+  major, commented on only when what differs changes. A difference counts
+  when both runs have it, a scenario with its protocol and request said
+  alike up to its first colon; what one run alone has is the runner's (a
+  navigation its start broke, which the error page reloaded), and a check
+  with nothing in both is `unsteady` and files nothing. Run by hand, it files
   nothing unless asked (`-f file=true`), `-f profile=false` or
   `-f behaviour=false` leaves either half out, `-f os=` and `-f channels=`
   (JSON lists) measure only those runners and channels, and `-f fixtures=`

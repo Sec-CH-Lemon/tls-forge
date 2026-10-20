@@ -2007,7 +2007,8 @@ profile with Google Chrome Stable and proposes a fresh one in a pull request
 when they differ. It also measures every fixture of the bench again, on Stable
 and on Beta, on macOS, where they were measured, and on Linux and Windows, for
 which profiles are shipped too, and files an issue for each platform, channel
-and major when what Chrome does differs from them twice running: which
+and major when what Chrome does differs from them in the same scenario twice
+running (what one run alone has is the runner's, and files nothing): which
 connection a request goes on, what it sends, its HPACK, TLS records, ALPS,
 WINDOW_UPDATEs, URLs, charsets, extension order and False Start. What a build's
 version and platform decide, `sec-ch-ua` and the length it gives an HTTP/1.1
