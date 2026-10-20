@@ -989,6 +989,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench runs a scenario again whose first page came as a reload**:
+  Chrome's start on a hosted runner now and then broke the navigation a
+  scenario begins with (closing its connections as its certificate verifier
+  is told of the system's store), and its error page asked for the page
+  again, with `Cache-Control: max-age=0`, which no page a browser opens
+  carries: Beta 157 on Linux in 7 scenarios each check, Stable once in four,
+  each a difference of nothing Chrome does. Such a run, its start or its run
+  page asked for with a Cache-Control, is run again in a fresh profile, three
+  times at most, saying so; a scenario whose page came so every time did not
+  finish. No request in the fixtures is one: a form's POST and the GET of its
+  redirect carry a Cache-Control of their own.
+
 - **The bench's scenarios of connections start from a page whose connection
   ends once it is answered**: Chrome on macOS and Linux closes every idle
   connection as its certificate verifier is told of the system's trust store,

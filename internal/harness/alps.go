@@ -418,7 +418,7 @@ func measureALPS(ctx context.Context, b Browser, scenarios map[string]scenario, 
 	for _, id := range ids {
 		sc := scenarios[id]
 		for run := 1; ; run++ {
-			entries, err := s.run(ctx, b, id, sc, origins(s.ALPS[sc.alps], s.Plain), t)
+			entries, err := s.run(ctx, b, id, sc, origins(s.ALPS[sc.alps], s.Plain), t, progress)
 			if err == nil {
 				out[id], err = s.ALPSOf(sc.note, sc.alps, entries)
 			}

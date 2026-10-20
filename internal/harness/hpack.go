@@ -152,7 +152,7 @@ func measureHPACK(ctx context.Context, b Browser, scenarios map[string]scenario,
 		sc := scenarios[id]
 		var written [][]WrittenRequest
 		for run := 1; ; run++ {
-			entries, err := s.run(ctx, b, id, sc, origins(s.PortFor(sc.settings()), s.Plain), t)
+			entries, err := s.run(ctx, b, id, sc, origins(s.PortFor(sc.settings()), s.Plain), t, progress)
 			if err == nil {
 				written, err = s.Written(entries, sc.table, sc.records)
 			}

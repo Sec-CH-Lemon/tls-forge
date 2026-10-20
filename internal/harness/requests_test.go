@@ -36,6 +36,10 @@ type fake struct {
 	// each open was stopped.
 	quiet   map[int]bool
 	stopped []time.Time
+	// reloads are the opens, counted from 0, whose page comes as a reload, as
+	// Chrome's error page asks again for a navigation its start broke:
+	// "instead" of the page, "again" after it, or "alone", nothing after it.
+	reloads map[int]string
 	// trusted are the keys it was told to take as a site's, in order.
 	trusted []string
 }
@@ -54,6 +58,7 @@ func (f *fake) Open(_ context.Context, page, dir string) (func(), error) {
 	f.mu.Lock()
 	f.opened = append(f.opened, opening{page, dir})
 	quiet := f.silent || f.quiet[len(f.opened)-1]
+	reload := f.reloads[len(f.opened)-1]
 	f.mu.Unlock()
 	if f.fail != "" && strings.Contains(page, f.fail) {
 		return nil, errors.New("the fake would not open " + page)
@@ -64,7 +69,15 @@ func (f *fake) Open(_ context.Context, page, dir string) (func(), error) {
 		if quiet {
 			return
 		}
-		ask(page)
+		if reload != "instead" {
+			ask(page)
+		}
+		if reload != "" {
+			askReloading(page)
+		}
+		if reload == "alone" {
+			return
+		}
 		if f.garbling {
 			garble(page)
 		}
@@ -112,6 +125,17 @@ func garble(page string) {
 // ask asks for page, and reads the answer.
 func ask(page string) {
 	res, err := client().Get(page)
+	if err == nil {
+		_ = res.Body.Close()
+	}
+}
+
+// askReloading asks for page as a browser reloading it does, with a
+// Cache-Control, and reads the answer.
+func askReloading(page string) {
+	req, _ := http.NewRequest(http.MethodGet, page, nil)
+	req.Header.Set("Cache-Control", "max-age=0")
+	res, err := client().Do(req)
 	if err == nil {
 		_ = res.Body.Close()
 	}
@@ -288,6 +312,119 @@ func TestAScenarioThatAsksNothingOnceOthersLoadedIsTriedOnceMore(t *testing.T) {
 	}
 	if len(twice.opened) != 5 {
 		t.Errorf("opened %d times", len(twice.opened))
+	}
+}
+
+func TestAScenarioWhosePageCameAsAReloadIsRunAgain(t *testing.T) {
+	// Its first page asked for with a Cache-Control, instead of as a browser
+	// opens it or after it: Chrome's error page, as when its start broke the
+	// navigation. Run again in a fresh profile, it is measured as it ran then,
+	// and said to be run again; a lobby it starts at as well.
+	scenarios := map[string]scenario{
+		"typed": {note: "typed", start: "{A}/p/typed", wait: "/p/typed"},
+		"lobby": {note: "lobby", start: "{A}/p/lobby?next=/run/{ID}", script: "1"},
+	}
+	lobby := func(page string) []string {
+		if strings.Contains(page, "/p/lobby") {
+			return []string{"/run/lobby", "/done/lobby"}
+		}
+		return nil
+	}
+	for _, tc := range []struct {
+		name    string
+		reloads map[int]string
+		id      string
+		page    string
+	}{
+		{"instead of the page", map[int]string{0: "instead"}, "typed", "/p/typed"},
+		{"after the page", map[int]string{0: "again"}, "typed", "/p/typed"},
+		{"its lobby", map[int]string{0: "instead"}, "lobby", "/p/lobby"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := &fake{reloads: tc.reloads, then: lobby}
+			var progress bytes.Buffer
+			got, err := measure(context.Background(), b, scenarios, []string{tc.id}, quick, &progress)
+			said := tc.id + ": " + tc.page + " came as a reload, run again\n"
+			if err != nil || got[tc.id].Unfinished != nil || !strings.HasPrefix(progress.String(), said) ||
+				strings.Count(progress.String(), "run again") != 1 || len(b.opened) != 3 ||
+				b.opened[0].url != b.opened[1].url || b.opened[0].dir == b.opened[1].dir {
+				t.Errorf("measure: %+v, %v, said %q, opened %+v", got, err, progress.String(), b.opened)
+			}
+			for _, r := range append(got[tc.id].H2, got[tc.id].H1...) {
+				if slices.ContainsFunc(r.Headers, func(h [2]string) bool { return strings.EqualFold(h[0], "cache-control") }) {
+					t.Errorf("kept a reload: %+v", r)
+				}
+			}
+		})
+	}
+}
+
+func TestAScenarioThatDidNotFinishAfterAReloadIsRunAgain(t *testing.T) {
+	// The reload asked for nothing more within the time it had: run again,
+	// it is measured. Trouble with what it sent is no reload's, and ends it.
+	scenarios := map[string]scenario{"start": {note: "start", start: "{A}/p/start", wait: "/p/end"}}
+	then := func(page string) []string {
+		if strings.Contains(page, "/p/start") {
+			return []string{"/p/end"}
+		}
+		return nil
+	}
+	short := quick
+	short.limit = 300 * time.Millisecond
+	b := &fake{then: then, reloads: map[int]string{0: "alone"}}
+	got, err := measure(context.Background(), b, scenarios, nil, short, nil)
+	if err != nil || got["start"].Unfinished != nil || len(got["start"].H2) != 2 || len(b.opened) != 3 {
+		t.Errorf("measure: %+v, %v, opened %d", got, err, len(b.opened))
+	}
+	garbled := &fake{then: then, garbling: true, reloads: map[int]string{0: "instead"}}
+	if _, err := measure(context.Background(), garbled, scenarios, nil, quick, nil); err == nil ||
+		!strings.Contains(err.Error(), `a request line that is not one: "BREW"`) || len(garbled.opened) != 1 {
+		t.Errorf("measure: %v, opened %d", err, len(garbled.opened))
+	}
+}
+
+func TestAScenarioWhosePageCameAsAReloadEveryTimeDidNotFinish(t *testing.T) {
+	// Its last run kept, and what it asked; the next protocol measured.
+	scenarios := map[string]scenario{"typed": {note: "typed", start: "{A}/p/typed", wait: "/p/typed"}}
+	b := &fake{reloads: map[int]string{0: "instead", 1: "instead", 2: "instead"}}
+	var progress bytes.Buffer
+	got, err := measure(context.Background(), b, scenarios, nil, quick, &progress)
+	typed := got["typed"]
+	if err != nil || len(b.opened) != 4 || len(typed.H2) != 1 || len(typed.H1) != 1 ||
+		!slices.Equal(typed.Unfinished, []string{"over h2: /p/typed came as a reload in each of 3 runs"}) ||
+		strings.Count(progress.String(), "typed: /p/typed came as a reload, run again\n") != 2 ||
+		!strings.Contains(progress.String(), "h2 typed: 1 requests, /p/typed came as a reload in each of 3 runs\n") {
+		t.Errorf("measure: %+v, %v, said %q, opened %d", got, err, progress.String(), len(b.opened))
+	}
+}
+
+func TestAPageIsAReloadWhenItIsAskedForWithACacheControl(t *testing.T) {
+	p := scenario{start: "{A}/p/lobby?after=2&next=/run/{ID}"}.planned("x", origins(8443, 8080))
+	get := func(target string, headers ...[2]string) Entry {
+		return Entry{Method: http.MethodGet, Target: target, Headers: headers}
+	}
+	for _, tc := range []struct {
+		name    string
+		entries []Entry
+		page    string
+	}{
+		{"none", nil, ""},
+		{"pages opened", []Entry{get("https://www.example.com:8443/p/lobby?after=2", [2]string{"accept", "text/html"}),
+			get("https://www.example.com:8443/run/x")}, ""},
+		{"its start, over HTTP/2", []Entry{get("https://www.example.com:8443/p/lobby?after=2", [2]string{"cache-control", "max-age=0"})},
+			"/p/lobby"},
+		{"its run page, over HTTP/1.1", []Entry{get("https://www.example.com:8443/p/lobby"),
+			get("https://www.example.com:8443/run/x", [2]string{"Cache-Control", "max-age=0"})}, "/run/x"},
+		{"another page", []Entry{get("https://www.example.com:8443/p/x-end", [2]string{"cache-control", "max-age=0"})}, ""},
+		{"another scenario's run page", []Entry{get("https://www.example.com:8443/run/y", [2]string{"cache-control", "max-age=0"})}, ""},
+		{"a form's POST", []Entry{{Method: http.MethodPost, Target: "https://www.example.com:8443/run/x",
+			Headers: [][2]string{{"cache-control", "max-age=0"}}}}, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if page, again := reloaded(tc.entries, p, "x"); page != tc.page || again != (tc.page != "") {
+				t.Errorf("reloaded: %q, %v, want %q", page, again, tc.page)
+			}
+		})
 	}
 }
 
@@ -543,5 +680,70 @@ func TestAFixtureOfRequestsIsWrittenAsItIsKept(t *testing.T) {
 	}
 	if err := writeJSON(out, map[string]any{"x": make(chan int)}); err == nil {
 		t.Error("wrote what JSON cannot say")
+	}
+}
+
+func TestNoRequestChromeSentInAFixtureIsAReload(t *testing.T) {
+	// The rule would run every scenario measured again were Chrome to ask
+	// for a page it begins with with a Cache-Control as it should: none of
+	// the requests, connections, header blocks and ALPS it was measured to
+	// send is one.
+	o := origins(8443, 8080)
+	held := 0
+	hold := func(id string, sc scenario, entries []Entry) {
+		t.Helper()
+		if page, again := reloaded(entries, sc.planned(id, o), id); again {
+			t.Errorf("%s: %s came as a reload", id, page)
+		}
+		held++
+	}
+	for path, scenarios := range map[string]map[string]scenario{requestsFixture: catalogue, connectionsFixture: connectionCatalogue} {
+		fixture, err := LoadRequests(path)
+		if err != nil {
+			t.Fatalf("LoadRequests: %v", err)
+		}
+		for id, measured := range fixture.Scenarios {
+			for _, r := range append(measured.H2, measured.H1...) {
+				hold(id, scenarios[id], []Entry{{Method: r.Method, Target: r.URL, Headers: r.Headers}})
+			}
+		}
+	}
+	written := func(conns [][]WrittenRequest) []Entry {
+		var out []Entry
+		for _, conn := range conns {
+			for _, r := range conn {
+				e := Entry{Method: r.Method, Target: r.URL}
+				for _, field := range r.Fields {
+					name, _, _ := strings.Cut(strings.TrimPrefix(field, ":"), ":")
+					e.Headers = append(e.Headers, [2]string{name, ""})
+				}
+				out = append(out, e)
+			}
+		}
+		return out
+	}
+	hpack, err := LoadHPACK(hpackFixture)
+	if err != nil {
+		t.Fatalf("LoadHPACK: %v", err)
+	}
+	for id, measured := range hpack.Scenarios {
+		hold(id, hpackCatalogue[id], written(measured.Connections))
+	}
+	alps, err := LoadALPS(alpsFixture)
+	if err != nil {
+		t.Fatalf("LoadALPS: %v", err)
+	}
+	for id, measured := range alps.Scenarios {
+		hold(id, alpsCatalogue[id], written(measured.Connections))
+	}
+	if held < 700 {
+		t.Errorf("held %d requests and blocks", held)
+	}
+	// The way blocks are read: a field with the name, as a run page's
+	// reload writes it.
+	if _, again := reloaded(written([][]WrittenRequest{{{Method: "GET", URL: "https://www.example.com/run/x",
+		Fields: []string{":method: indexed static 2", "cache-control: with indexing, name static 24, value huffman"}}}}),
+		scenario{}.planned("x", o), "x"); !again {
+		t.Error("a run page's block with cache-control is no reload")
 	}
 }

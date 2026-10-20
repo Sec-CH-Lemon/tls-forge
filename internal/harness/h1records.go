@@ -109,7 +109,7 @@ func measureRecords(ctx context.Context, b Browser, scenarios map[string]scenari
 	out := map[string]RecordsScenario{}
 	for _, id := range ids {
 		sc := scenarios[id]
-		entries, err := s.run(ctx, b, id, sc, origins(s.H1, s.Plain), t)
+		entries, err := s.run(ctx, b, id, sc, origins(s.H1, s.Plain), t, progress)
 		if err != nil {
 			return nil, fmt.Errorf("harness: %s over http/1.1: %w", id, err)
 		}

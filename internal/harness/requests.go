@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -108,6 +109,9 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 		return nil, err
 	}
 	defer func() { _ = s.Close() }()
+	if progress == nil {
+		progress = io.Discard
+	}
 	out := map[string]MeasuredScenario{}
 	// loaded says the browser has asked for something in a scenario of this
 	// measurement: it loads pages.
@@ -120,12 +124,12 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 			if trusts, ok := b.(trusting); ok && sc.connections {
 				browser = trusts.trusting(s.spki)
 			}
-			entries, err := s.run(ctx, browser, id, sc, o, t)
+			entries, err := s.run(ctx, browser, id, sc, o, t, progress)
 			var short *unfinished
 			if errors.As(err, &short) && len(entries) == 0 && loaded {
 				// Nothing asked, where the browser has loaded other pages: a
 				// browser slow to start, or what it does here. Once more.
-				entries, err = s.run(ctx, browser, id, sc, o, t)
+				entries, err = s.run(ctx, browser, id, sc, o, t, progress)
 			}
 			// A scenario the browser began and did not finish is what the
 			// browser did, there, and so is one it asked nothing of, twice,
@@ -148,13 +152,11 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 				got.H1 = requests
 			}
 			out[id] = got
-			if progress != nil {
-				ended := ""
-				if began {
-					ended = ", " + err.Error()
-				}
-				_, _ = fmt.Fprintf(progress, "%s %s: %d requests%s\n", proto, id, len(requests), ended)
+			ended := ""
+			if began {
+				ended = ", " + err.Error()
 			}
+			_, _ = fmt.Fprintf(progress, "%s %s: %d requests%s\n", proto, id, len(requests), ended)
 		}
 	}
 	return out, nil
@@ -174,10 +176,59 @@ func selected(scenarios map[string]scenario, only []string) ([]string, error) {
 	return slices.Sorted(maps.Keys(scenarios)), nil
 }
 
+// reloadRuns is how often a scenario is run, at most, before its first page
+// comes as no reload (reloaded).
+const reloadRuns = 3
+
 // run runs one scenario in a profile of its own, and is what was asked of the
-// server while it did.
-func (s *Server) run(ctx context.Context, b Browser, id string, sc scenario, o map[string]string, t timing) ([]Entry, error) {
+// server while it did. A run whose first page came as a reload is run again,
+// said to said, reloadRuns times at most: the browser's start broke the
+// navigation the scenario begins with, and its error page loaded it again, so
+// the run measures the start, not the scenario. One that came so every time
+// did not finish as planned.
+func (s *Server) run(ctx context.Context, b Browser, id string, sc scenario, o map[string]string, t timing,
+	said io.Writer) ([]Entry, error) {
 	p := sc.planned(id, o)
+	for runs := 1; ; runs++ {
+		// Only a run that did not finish comes with an error and requests:
+		// any other trouble holds none, so no reload.
+		entries, err := s.runOnce(ctx, b, p, t)
+		page, again := reloaded(entries, p, id)
+		switch {
+		case !again:
+			return entries, err
+		case runs == reloadRuns:
+			return entries, &unfinished{fmt.Sprintf("%s came as a reload in each of %d runs", page, reloadRuns)}
+		}
+		_, _ = fmt.Fprintf(said, "%s: %s came as a reload, run again\n", id, page)
+	}
+}
+
+// reloaded is the path of the page a scenario begins with, its start or its
+// run page, when the browser asked for it with a Cache-Control: a page a
+// browser opens, typed or from another, carries none, and a reload does, as
+// Chrome's error page asks again for a navigation that failed. Chrome's start
+// closes its connections when its certificate verifier is told of the
+// system's store ("Cert verifier changed"), which on a hosted runner's Linux
+// came while it asked for the first page (2026-10-20: Beta 157 in 7 scenarios
+// a run). No fixture holds such a request (a form's POST and the GET of its
+// redirect carry one of their own), not even the reload Chrome's error page
+// makes after a scenario has ended, too many redirects or answers on: a run
+// ends before it.
+func reloaded(entries []Entry, p plan, id string) (string, bool) {
+	pages := []string{pathOf(p.start), "/run/" + id}
+	for _, e := range entries {
+		path := pathOf(e.Target)
+		if e.Method == http.MethodGet && slices.Contains(pages, path) &&
+			slices.ContainsFunc(e.Headers, func(h [2]string) bool { return strings.EqualFold(h[0], "cache-control") }) {
+			return path, true
+		}
+	}
+	return "", false
+}
+
+// runOnce runs a scenario as p plans it once, in a profile of its own.
+func (s *Server) runOnce(ctx context.Context, b Browser, p plan, t timing) ([]Entry, error) {
 	dir, err := os.MkdirTemp("", "tls-forge-harness-")
 	if err != nil {
 		return nil, err
@@ -214,21 +265,17 @@ func (s *Server) run(ctx context.Context, b Browser, id string, sc scenario, o m
 	case !finished && ctx.Err() != nil:
 		return nil, fmt.Errorf("%s was not asked for: %w", p.wait, ctx.Err())
 	case !finished:
-		return entries, &unfinished{wait: p.wait, limit: t.limit}
+		return entries, &unfinished{fmt.Sprintf("%s was not asked for within %s", p.wait, t.limit)}
 	}
 	return entries, nil
 }
 
-// unfinished is a scenario whose page it ends at the browser did not ask
-// for in time, the context still going.
-type unfinished struct {
-	wait  string
-	limit time.Duration
-}
+// unfinished is a scenario the browser did not run as planned, the context
+// still going: the page it ends at not asked for in time, or the page it
+// begins with a reload every time; it says which.
+type unfinished struct{ why string }
 
-func (u *unfinished) Error() string {
-	return fmt.Sprintf("%s was not asked for within %s", u.wait, u.limit)
-}
+func (u *unfinished) Error() string { return u.why }
 
 // sleep waits d, and says whether ctx let it.
 func sleep(ctx context.Context, d time.Duration) bool {

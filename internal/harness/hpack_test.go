@@ -29,13 +29,15 @@ const hpackFixture = "../../testdata/chrome155-hpack.json"
 // what then says it would ask for there, on one HTTP/2 connection, written by
 // Go's own encoder with a table as large as the server allows, up to table.
 // The first split times it is opened, it asks for what follows the page on a
-// connection of its own.
+// connection of its own; the first reloads times, for the page as a browser
+// reloading it does.
 type oneConnection struct {
-	then   func(page string) []string
-	table  uint32
-	fail   bool
-	split  int
-	opened int
+	then    func(page string) []string
+	table   uint32
+	fail    bool
+	split   int
+	reloads int
+	opened  int
 }
 
 // connection is a client of a connection of its own.
@@ -58,7 +60,11 @@ func (b *oneConnection) Open(_ context.Context, page, _ string) (func(), error) 
 	b.opened++
 	first := b.connection()
 	ask := func(c *http.Client, url string) {
-		if res, err := c.Get(url); err == nil {
+		req, _ := http.NewRequest(http.MethodGet, url, nil)
+		if url == page && b.opened <= b.reloads {
+			req.Header.Set("Cache-Control", "max-age=0")
+		}
+		if res, err := c.Do(req); err == nil {
 			_, _ = io.Copy(io.Discard, res.Body)
 			_ = res.Body.Close()
 		}
@@ -157,6 +163,25 @@ func TestAnHPACKMeasurementSaysWhyItIsNone(t *testing.T) {
 	t.Cleanup(func() { listen = old })
 	if _, err := measureHPACK(context.Background(), &oneConnection{}, scenarios, nil, quick, nil); !errors.Is(err, failing) {
 		t.Errorf("measured with no server: %v", err)
+	}
+}
+
+func TestAScenarioWhoseRunPageCameAsAReloadIsRunAgainForItsHeaderBlocks(t *testing.T) {
+	// As for its requests (run): measured in the run whose page came as no
+	// reload, and none measured when every one came so.
+	scenarios := map[string]scenario{"a": {note: "a", wait: "/p/a"}}
+	then := func(string) []string { return []string{"/p/a"} }
+	b := &oneConnection{then: then, reloads: 1}
+	var progress bytes.Buffer
+	got, err := measureHPACK(context.Background(), b, scenarios, nil, quick, &progress)
+	if err != nil || len(got["a"].Connections) != 1 || b.opened != 2 ||
+		progress.String() != "a: /run/a came as a reload, run again\nh2 a: 1 connections\n" {
+		t.Fatalf("measured %+v in %d runs, said %q: %v", got, b.opened, progress.String(), err)
+	}
+	b = &oneConnection{then: then, reloads: reloadRuns}
+	if _, err := measureHPACK(context.Background(), b, scenarios, nil, quick, nil); err == nil || b.opened != reloadRuns ||
+		err.Error() != "harness: a over h2: /run/a came as a reload in each of 3 runs" {
+		t.Errorf("in %d runs: %v", b.opened, err)
 	}
 }
 

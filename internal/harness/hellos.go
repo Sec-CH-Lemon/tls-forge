@@ -109,7 +109,7 @@ func measureHellos(ctx context.Context, b Browser, launches, n int, t timing, pr
 	}
 	var out [][]string
 	for launch := 1; launch <= launches; launch++ {
-		if _, err := s.run(ctx, b, "hellos", scenarios["hellos"], origins(s.H2, s.Plain), t); err != nil {
+		if _, err := s.run(ctx, b, "hellos", scenarios["hellos"], origins(s.H2, s.Plain), t, progress); err != nil {
 			return nil, fmt.Errorf("harness: hellos, launch %d: %w", launch, err)
 		}
 		orders, err := s.helloOrders(n)

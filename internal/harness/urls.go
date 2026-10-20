@@ -265,7 +265,7 @@ func measureURLs(ctx context.Context, b Browser, cases map[string]urlCase, only 
 			browser = remaps.defaultPorts(port, s.Plain)
 		}
 		for _, id := range ids {
-			entries, err := s.run(ctx, browser, id, scenarios[id], origins(port, s.Plain), t)
+			entries, err := s.run(ctx, browser, id, scenarios[id], origins(port, s.Plain), t, progress)
 			if err != nil {
 				return nil, fmt.Errorf("harness: %s over %s: %w", id, proto, err)
 			}
