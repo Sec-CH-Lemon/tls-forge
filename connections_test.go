@@ -177,8 +177,10 @@ func sentOnConnections(t *testing.T, p *profile.Profile, fixture *harness.Reques
 
 // sendOnConnections sends what the run page of scenario id asked for, each
 // request in its context, to a recorder speaking proto, after the page it was
-// opened from and Chrome's closing every idle connection, and is what the
-// recorder kept from the run page on: preflights and redirects too.
+// opened from, whose connection the server ends once it has answered, and is
+// what the recorder kept from the run page on: preflights and redirects too.
+// The client lets go of that connection itself as well, so that the run page
+// never goes out on it before the client has heard the server end it.
 func sendOnConnections(t *testing.T, p *profile.Profile, proto, id string, asked map[int]BrowserContext,
 	want []harness.Request) []*keptRequest {
 	t.Helper()
@@ -188,7 +190,7 @@ func sendOnConnections(t *testing.T, p *profile.Profile, proto, id string, asked
 		t.Fatalf("New: %v", err)
 	}
 	t.Cleanup(func() { _ = client.Close() })
-	lobby := "https://www.example.com/p/lobby?after=2&next=/run/" + id
+	lobby := "https://www.example.com/p/lobby?after=2&close&next=/run/" + id
 	if _, err := client.Do(&Request{URL: lobby, Browser: &BrowserContext{Kind: KindNavigation}}); err != nil {
 		t.Fatalf("Do %s: %v", lobby, err)
 	}

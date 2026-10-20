@@ -1,7 +1,7 @@
 {
- "browser": "Google Chrome 155.0.8059.80, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
- "measured": "2026-10-17, 2026-10-18",
- "how": "A local server answered www.example.com and api.example.com (one site) and www.example.net (another), mapped to 127.0.0.1 with --host-resolver-rules, over HTTPS with HTTP/2 or with HTTP/1.1 only, and Chrome took its certificate as a site's, by its key (--ignore-certificate-errors-spki-list): it sends a request over an HTTP/2 connection to another name only on a certificate without errors. The server numbered every connection it accepted and kept each request as the bytes said it, with the connection it came on and whether that connection resumed a TLS session. Each scenario ran in a fresh profile, from a page that went on to the run page two seconds after it had loaded: Chrome closes every connection it is not using whenever its certificate verifier is told something new, several times in the moments after it starts. The run page's script called fetch() or sent an XHR, of each credentials mode, to the page's origin, another origin of its site and another site, with preflights, redirects, and connections the server ended after an answer. The run page and the requests after it are kept, but for the page saying it is done and any favicon; the connections are numbered from the run page's, in the order requests first came on them, and the port numbers are left out.",
+ "browser": "Google Chrome 155.0.8059.85, --headless=new --lang=en-US, macOS 27.0.1 (arm64)",
+ "measured": "2026-10-17, 2026-10-18, 2026-10-20",
+ "how": "A local server answered www.example.com and api.example.com (one site) and www.example.net (another), mapped to 127.0.0.1 with --host-resolver-rules, over HTTPS with HTTP/2 or with HTTP/1.1 only, and Chrome took its certificate as a site's, by its key (--ignore-certificate-errors-spki-list): it sends a request over an HTTP/2 connection to another name only on a certificate without errors. The server numbered every connection it accepted and kept each request as the bytes said it, with the connection it came on and whether that connection resumed a TLS session. Each scenario ran in a fresh profile, from a page that went on to the run page two seconds after it had loaded, and whose connection the server ended once it had answered: Chrome on macOS and Linux closes every connection it is not using whenever its certificate verifier is told something new, several times in the moments after it starts, and Chrome on Windows, whose verifier is told nothing then, sent the run page on a connection that resumed no session, where they sent it on one that did. The run page's script called fetch() or sent an XHR, of each credentials mode, to the page's origin, another origin of its site and another site, with preflights, redirects, and connections the server ended after an answer. The run page and the requests after it are kept, but for the page saying it is done and any favicon; the connections are numbered from the run page's, in the order requests first came on them, and the port numbers are left out.",
  "scenarios": {
   "conn-fetch": {
    "note": "a page, then fetch() of its origin",
@@ -66,7 +66,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch"
       ],
       [
        "accept-encoding",
@@ -218,7 +218,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch"
       ],
       [
        "Accept-Encoding",
@@ -355,7 +355,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site"
       ],
       [
        "accept-encoding",
@@ -510,7 +510,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -650,7 +650,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-both"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-both"
       ],
       [
        "accept-encoding",
@@ -1051,7 +1051,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-both"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-both"
       ],
       [
        "Accept-Encoding",
@@ -1384,7 +1384,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-include"
       ],
       [
        "accept-encoding",
@@ -1544,7 +1544,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-include"
       ],
       [
        "Accept-Encoding",
@@ -1688,7 +1688,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-no-cors"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-no-cors"
       ],
       [
        "accept-encoding",
@@ -1839,7 +1839,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-no-cors"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-no-cors"
       ],
       [
        "Accept-Encoding",
@@ -1975,7 +1975,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-then-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-then-same-site"
       ],
       [
        "accept-encoding",
@@ -2210,7 +2210,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-cross-site-then-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-cross-site-then-same-site"
       ],
       [
        "Accept-Encoding",
@@ -2413,7 +2413,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-include"
       ],
       [
        "accept-encoding",
@@ -2565,7 +2565,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-include"
       ],
       [
        "Accept-Encoding",
@@ -2702,7 +2702,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-omit"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-omit"
       ],
       [
        "accept-encoding",
@@ -2853,7 +2853,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-omit"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-omit"
       ],
       [
        "Accept-Encoding",
@@ -2989,7 +2989,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-omit-then-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-omit-then-cross-site"
       ],
       [
        "accept-encoding",
@@ -3220,7 +3220,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-omit-then-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-omit-then-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -3419,7 +3419,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-same-site"
       ],
       [
        "accept-encoding",
@@ -3574,7 +3574,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-same-site"
       ],
       [
        "Accept-Encoding",
@@ -3714,7 +3714,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-same-site-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-same-site-include"
       ],
       [
        "accept-encoding",
@@ -3870,7 +3870,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-same-site-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-same-site-include"
       ],
       [
        "Accept-Encoding",
@@ -4010,7 +4010,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-same-site-no-cors"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-same-site-no-cors"
       ],
       [
        "accept-encoding",
@@ -4161,7 +4161,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-fetch-same-site-no-cors"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-fetch-same-site-no-cors"
       ],
       [
        "Accept-Encoding",
@@ -4297,7 +4297,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-form-307-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-form-307-cross-site"
       ],
       [
        "accept-encoding",
@@ -4567,7 +4567,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-form-307-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-form-307-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -4805,7 +4805,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-form-redirect-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-form-redirect-cross-site"
       ],
       [
        "accept-encoding",
@@ -5062,7 +5062,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-form-redirect-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-form-redirect-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -5287,7 +5287,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-always"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-always"
       ],
       [
        "accept-encoding",
@@ -5593,7 +5593,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-always"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-always"
       ],
       [
        "Accept-Encoding",
@@ -5850,7 +5850,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-first"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-first"
       ],
       [
        "accept-encoding",
@@ -6079,7 +6079,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-first"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-first"
       ],
       [
        "Accept-Encoding",
@@ -6276,7 +6276,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-nav"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-nav"
       ],
       [
        "accept-encoding",
@@ -6512,7 +6512,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-nav"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-nav"
       ],
       [
        "Accept-Encoding",
@@ -6652,7 +6652,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-pooled"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-pooled"
       ],
       [
        "accept-encoding",
@@ -6888,7 +6888,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-pooled"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-pooled"
       ],
       [
        "Accept-Encoding",
@@ -7028,7 +7028,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-pooled-again"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-pooled-again"
       ],
       [
        "accept-encoding",
@@ -7344,7 +7344,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-pooled-again"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-pooled-again"
       ],
       [
        "Accept-Encoding",
@@ -7547,7 +7547,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-post"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-post"
       ],
       [
        "accept-encoding",
@@ -7802,7 +7802,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-post"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-post"
       ],
       [
        "Accept-Encoding",
@@ -8025,7 +8025,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-preflight"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-preflight"
       ],
       [
        "accept-encoding",
@@ -8507,7 +8507,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-preflight"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-preflight"
       ],
       [
        "Accept-Encoding",
@@ -8774,7 +8774,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-redirect"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-redirect"
       ],
       [
        "accept-encoding",
@@ -9087,7 +9087,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-misdirected-redirect"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-misdirected-redirect"
       ],
       [
        "Accept-Encoding",
@@ -9287,7 +9287,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-after-omit"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-after-omit"
       ],
       [
        "accept-encoding",
@@ -9519,7 +9519,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-after-omit"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-after-omit"
       ],
       [
        "Accept-Encoding",
@@ -9719,7 +9719,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-cross-site"
       ],
       [
        "accept-encoding",
@@ -9874,7 +9874,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -10014,7 +10014,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-cross-site-after-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-cross-site-after-include"
       ],
       [
        "accept-encoding",
@@ -10254,7 +10254,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-cross-site-after-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-cross-site-after-include"
       ],
       [
        "Accept-Encoding",
@@ -10461,7 +10461,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-redirect-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-redirect-cross-site"
       ],
       [
        "accept-encoding",
@@ -10697,7 +10697,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-redirect-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-redirect-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -10901,7 +10901,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-redirect-cross-site-after-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-redirect-cross-site-after-include"
       ],
       [
        "accept-encoding",
@@ -11222,7 +11222,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-redirect-cross-site-after-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-redirect-cross-site-after-include"
       ],
       [
        "Accept-Encoding",
@@ -11493,7 +11493,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-redirect-there-and-back"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-redirect-there-and-back"
       ],
       [
        "accept-encoding",
@@ -11810,7 +11810,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-redirect-there-and-back"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-redirect-there-and-back"
       ],
       [
        "Accept-Encoding",
@@ -12078,7 +12078,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-same-site"
       ],
       [
        "accept-encoding",
@@ -12234,7 +12234,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-nav-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-nav-same-site"
       ],
       [
        "Accept-Encoding",
@@ -12374,7 +12374,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-omit-and-not"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-omit-and-not"
       ],
       [
        "accept-encoding",
@@ -12678,7 +12678,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-omit-and-not"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-omit-and-not"
       ],
       [
        "Accept-Encoding",
@@ -12933,7 +12933,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-preflight"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-preflight"
       ],
       [
        "accept-encoding",
@@ -13173,7 +13173,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-preflight"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-preflight"
       ],
       [
        "Accept-Encoding",
@@ -13381,7 +13381,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-preflight-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-preflight-include"
       ],
       [
        "accept-encoding",
@@ -13626,7 +13626,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-preflight-include"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-preflight-include"
       ],
       [
        "Accept-Encoding",
@@ -13838,7 +13838,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-preflight-include-after-cors"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-preflight-include-after-cors"
       ],
       [
        "accept-encoding",
@@ -14163,7 +14163,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-preflight-include-after-cors"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-preflight-include-after-cors"
       ],
       [
        "Accept-Encoding",
@@ -14438,7 +14438,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-include-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-include-to-cross-site"
       ],
       [
        "accept-encoding",
@@ -14755,7 +14755,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-include-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-include-to-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -15022,7 +15022,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-no-cors-back"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-no-cors-back"
       ],
       [
        "accept-encoding",
@@ -15249,7 +15249,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-no-cors-back"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-no-cors-back"
       ],
       [
        "Accept-Encoding",
@@ -15444,7 +15444,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-no-cors-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-no-cors-to-cross-site"
       ],
       [
        "accept-encoding",
@@ -15672,7 +15672,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-no-cors-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-no-cors-to-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -15868,7 +15868,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-post-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-post-to-cross-site"
       ],
       [
        "accept-encoding",
@@ -16122,7 +16122,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-post-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-post-to-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -16344,7 +16344,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-preflight-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-preflight-to-cross-site"
       ],
       [
        "accept-encoding",
@@ -16674,7 +16674,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-preflight-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-preflight-to-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -16955,7 +16955,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-there-and-back"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-there-and-back"
       ],
       [
        "accept-encoding",
@@ -17267,7 +17267,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-there-and-back"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-there-and-back"
       ],
       [
        "Accept-Encoding",
@@ -17530,7 +17530,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-to-cross-site"
       ],
       [
        "accept-encoding",
@@ -17842,7 +17842,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-to-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -18105,7 +18105,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-to-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-to-same-site"
       ],
       [
        "accept-encoding",
@@ -18337,7 +18337,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-redirect-to-same-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-redirect-to-same-site"
       ],
       [
        "Accept-Encoding",
@@ -18537,7 +18537,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-resume"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-resume"
       ],
       [
        "accept-encoding",
@@ -18919,7 +18919,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-resume"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-resume"
       ],
       [
        "Accept-Encoding",
@@ -19235,7 +19235,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr"
       ],
       [
        "accept-encoding",
@@ -19387,7 +19387,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr"
       ],
       [
        "Accept-Encoding",
@@ -19524,7 +19524,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-credentials"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-credentials"
       ],
       [
        "accept-encoding",
@@ -19676,7 +19676,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-credentials"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-credentials"
       ],
       [
        "Accept-Encoding",
@@ -19813,7 +19813,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-cross-site"
       ],
       [
        "accept-encoding",
@@ -19968,7 +19968,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-cross-site"
       ],
       [
        "Accept-Encoding",
@@ -20108,7 +20108,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-cross-site-credentials"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-cross-site-credentials"
       ],
       [
        "accept-encoding",
@@ -20268,7 +20268,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-cross-site-credentials"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-cross-site-credentials"
       ],
       [
        "Accept-Encoding",
@@ -20412,7 +20412,7 @@
       ],
       [
        "referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-redirect-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-redirect-to-cross-site"
       ],
       [
        "accept-encoding",
@@ -20644,7 +20644,7 @@
       ],
       [
        "Referer",
-       "https://www.example.com/p/lobby?after=2&next=/run/conn-xhr-redirect-to-cross-site"
+       "https://www.example.com/p/lobby?after=2&close&next=/run/conn-xhr-redirect-to-cross-site"
       ],
       [
        "Accept-Encoding",

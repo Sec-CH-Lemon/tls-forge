@@ -46,9 +46,10 @@ func TestEveryScenarioOfConnectionsStartsAtTheLobbyAndNoOtherDoes(t *testing.T) 
 			t.Errorf("%s is a scenario of connections", id)
 		}
 	}
-	// The run page comes two seconds after the lobby has loaded.
+	// The run page comes two seconds after the lobby has loaded, whose
+	// connection ends once it is answered.
 	if p := connectionCatalogue["conn-fetch"].planned("conn-fetch", origins(8443, 8080)); p.start !=
-		"https://www.example.com:8443/p/lobby?after=2&next=/run/conn-fetch" || p.wait != "/done/conn-fetch" {
+		"https://www.example.com:8443/p/lobby?after=2&close&next=/run/conn-fetch" || p.wait != "/done/conn-fetch" {
 		t.Errorf("planned %+v", p)
 	}
 }

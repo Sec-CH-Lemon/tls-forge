@@ -983,6 +983,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench's scenarios of connections start from a page whose connection
+  ends once it is answered**: Chrome on macOS and Linux closes every idle
+  connection as its certificate verifier is told of the system's trust store,
+  just after it starts, and sent each run page on a connection that resumed
+  the first page's session; Chrome on Windows is told nothing then, and sent
+  it on one that resumed none, so its check differed in the run page's
+  connection of every scenario (151 requests), and in nothing Chrome decides.
+  The connections fixture was measured again so, on Chrome 155.0.8059.85:
+  what each run page sent, connections and sessions alike, is what it was,
+  but for the first page's address in its Referer.
+
 - **The bench's check holds what Linux and Windows decide as Chrome's rules
   say**: a value the platform decides (the user agent, `sec-ch-ua-platform`,
   the client hints) is held to how it was written into HPACK, its coding aside,

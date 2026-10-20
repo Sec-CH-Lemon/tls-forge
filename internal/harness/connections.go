@@ -15,12 +15,15 @@ func MeasureConnections(ctx context.Context, b Browser, only []string, progress 
 }
 
 // lobby is where a scenario of connections starts: a page of its origin that
-// goes on to the run page two seconds after it has loaded. Chrome closes every
-// connection it is not using each time its certificate verifier is told
-// something new, which it is several times in the first few hundred
-// milliseconds after it starts ("Cert verifier changed" in its net log): the
-// run page's own connection could be closed under it.
-const lobby = "{A}/p/lobby?after=2&next=/run/{ID}"
+// goes on to the run page two seconds after it has loaded. Chrome on macOS and
+// Linux closes every connection it is not using each time its certificate
+// verifier is told something new, which it is several times in the first few
+// hundred milliseconds after it starts ("Cert verifier changed" in its net
+// log): the run page's own connection could be closed under it. Chrome on
+// Windows is told nothing then, and kept the lobby's connection for the run
+// page, a full handshake where the others resumed a session (2026-10-20), so
+// the lobby's connection ends once it is answered, on every platform.
+const lobby = "{A}/p/lobby?after=2&close&next=/run/{ID}"
 
 // onConnections is a scenario of connections, run from the lobby: its run
 // page, and what its script asks for.
