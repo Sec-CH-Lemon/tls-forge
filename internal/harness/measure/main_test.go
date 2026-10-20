@@ -16,6 +16,8 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,13 +27,125 @@ import (
 // client asks the bench's server for a page: every name it serves is the
 // loopback address, and its certificate is taken on trust.
 var client = &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
-	DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-		_, port, _ := net.SplitHostPort(addr)
-		return (&net.Dialer{}).DialContext(ctx, network, "127.0.0.1:"+port)
-	},
-	TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // the bench's own certificate
+	DialContext:       dial,
+	DialTLSContext:    dialTLS,
 	ForceAttemptHTTP2: true,
 }}
+
+// readsLate is how long each read of a connection the fake makes waits
+// first: none, unless a test makes what the server sends come late.
+var readsLate time.Duration
+
+// dial reaches what the bench serves at addr on the loopback address, its
+// reads late by readsLate.
+func dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	_, port, _ := net.SplitHostPort(addr)
+	conn, err := (&net.Dialer{}).DialContext(ctx, network, "127.0.0.1:"+port)
+	if err != nil || readsLate == 0 {
+		return conn, err
+	}
+	return lateReads{conn, readsLate}, nil
+}
+
+// lateReads is a connection whose every read waits late first.
+type lateReads struct {
+	net.Conn
+	late time.Duration
+}
+
+func (c lateReads) Read(p []byte) (int, error) {
+	time.Sleep(c.late)
+	return c.Conn.Read(p)
+}
+
+// dialTLS reaches what the bench serves at addr over TLS, its certificate
+// taken on trust, and holds what an HTTP/2 server sends until the fake has
+// written its first request (heldReads).
+func dialTLS(ctx context.Context, network, addr string) (net.Conn, error) {
+	raw, err := dial(ctx, network, addr)
+	if err != nil {
+		return nil, err
+	}
+	held := &heldReads{Conn: raw}
+	host, _, _ := net.SplitHostPort(addr)
+	conn := tls.Client(held, &tls.Config{ServerName: host, NextProtos: []string{"h2", "http/1.1"},
+		InsecureSkipVerify: true}) //nolint:gosec // the bench's own certificate
+	if err := conn.HandshakeContext(ctx); err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+	if conn.ConnectionState().NegotiatedProtocol == "h2" {
+		held.hold()
+	}
+	return conn, nil
+}
+
+// heldReads is a connection under the fake's TLS that, once held, reads
+// nothing until the client has written twice more: an HTTP/2 client's
+// preface and SETTINGS, then its first request's HEADERS. What the server
+// sent, its SETTINGS among it, is then read after the client wrote its first
+// header block, however soon it came. Go's HTTP/2 client starts a header
+// block with a size update once it has read the server's SETTINGS, which on
+// loopback come about as it writes its first request: asked at once, the
+// update went in the first block or the second, and a fixture the fake wrote
+// was not always what it wrote the next time (2026-10-20, under load). A
+// server that holds what it sends until a client's first header block, as
+// the bench's table servers do, sends it after, as before; waiting for the
+// SETTINGS instead, a PING answered after them, would wait for such a server
+// forever.
+type heldReads struct {
+	net.Conn
+	mu     sync.Mutex
+	held   chan struct{}
+	writes int
+}
+
+// holds counts the connections held, for a test to see that they are.
+var holds atomic.Int64
+
+// hold makes reads wait for the next two writes.
+func (c *heldReads) hold() {
+	holds.Add(1)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.held, c.writes = make(chan struct{}), 0
+}
+
+// letGo lets the reads held go, c.mu held.
+func (c *heldReads) letGo() {
+	if c.held != nil {
+		close(c.held)
+		c.held = nil
+	}
+}
+
+func (c *heldReads) Write(p []byte) (int, error) {
+	n, err := c.Conn.Write(p)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.writes++; c.writes == 2 {
+		c.letGo()
+	}
+	return n, err
+}
+
+func (c *heldReads) Read(p []byte) (int, error) {
+	c.mu.Lock()
+	held := c.held
+	c.mu.Unlock()
+	if held != nil {
+		<-held
+	}
+	return c.Conn.Read(p)
+}
+
+// Close lets a read held for a request never written end with it.
+func (c *heldReads) Close() error {
+	c.mu.Lock()
+	c.letGo()
+	c.mu.Unlock()
+	return c.Conn.Close()
+}
 
 // fake is a browser that asks for the page it opens, and dumps each page as
 // dump says; it fails what fail says. A page that goes on to a run page, as a
@@ -1159,4 +1273,111 @@ func TestACheckGoesOnPastAFixtureItCannotMeasure(t *testing.T) {
 	if code != 1 || !strings.HasSuffix(stderr, "measure: nothing could be measured\n") || stdout != "" {
 		t.Errorf("exit %d:\n%s%s", code, stdout, stderr)
 	}
+}
+
+func TestTheFakesHeaderBlocksDoNotHangOnWhenTheServersSettingsCome(t *testing.T) {
+	// Go's HTTP/2 client starts a header block with a size update once it
+	// has read the server's SETTINGS, which on loopback come about as it
+	// writes its first: a fixture the fake wrote did not always hold it to
+	// itself (2026-10-20, under load). The fake reads nothing before it has
+	// written its first request, so the update is in its second block,
+	// whenever they come: at once, or read late.
+	none := []string{"--browser", "chrome", "--requests", "", "--connections", "", "--decoding", "", "--flow", "", "--urls", "",
+		"--hellos", "", "--false-start", "", "--records", ""}
+	opening(t, &fake{}, "Fake Chrome 1.2.3.4")
+	for _, tc := range []struct{ fixture, scenario string }{{"--hpack", "hpack-fetch"}, {"--alps", "alps-none"}} {
+		t.Run(tc.scenario, func(t *testing.T) {
+			var wrote [2]string
+			before := holds.Load()
+			for i, late := range []time.Duration{0, 20 * time.Millisecond} {
+				readsLate = late
+				path := filepath.Join(t.TempDir(), "fixture.json")
+				_ = os.WriteFile(path, []byte("{}"), 0o644)
+				args := append(slices.Clone(none), "--hpack", "", "--alps", "", tc.fixture, path, "--only", tc.scenario)
+				code, _, stderr := measured(t, args...)
+				readsLate = 0
+				if code != 0 {
+					t.Fatalf("exit %d: %s", code, stderr)
+				}
+				data, err := os.ReadFile(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				wrote[i] = strings.Join(strings.Fields(string(data)), " ")
+			}
+			if wrote[0] != wrote[1] {
+				t.Errorf("read at once:\n%s\nread late:\n%s", wrote[0], wrote[1])
+			}
+			// Held, an HTTP/2 connection cannot have read the SETTINGS
+			// before its first block, whatever the machine is doing.
+			if held := holds.Load() - before; held < 2 {
+				t.Errorf("%d connections held", held)
+			}
+			// The second block, of the run page saying it is done, begins
+			// with the update.
+			if at := strings.Index(wrote[0], `"size update 4096"`); at < strings.Index(wrote[0], "/done/") {
+				t.Errorf("the size update not in the second block: %s", wrote[0])
+			}
+		})
+	}
+}
+
+func TestTheFakeReadsNothingBeforeItHasWrittenItsFirstRequest(t *testing.T) {
+	// Once held, what the server sent first waits for the client's second
+	// write, and a read held for a request never written ends when the
+	// connection does; before, a read goes, as TLS's handshake reads.
+	client, server := net.Pipe()
+	held := &heldReads{Conn: client}
+	go func() { _, _ = server.Write([]byte("hello")) }()
+	if n, err := held.Read(make([]byte, 5)); err != nil || n != 5 {
+		t.Fatalf("Read before held: %d, %v", n, err)
+	}
+	held.hold()
+	go func() { _, _ = server.Write([]byte("settings")) }()
+	read := make(chan string, 1)
+	go func() {
+		buf := make([]byte, 8)
+		n, _ := held.Read(buf)
+		read <- string(buf[:n])
+	}()
+	go func() { _, _ = io.Copy(io.Discard, server) }()
+	for i, write := range []string{"preface", "headers"} {
+		select {
+		case got := <-read:
+			t.Fatalf("read %q after %d writes", got, i)
+		case <-time.After(50 * time.Millisecond):
+		}
+		if _, err := held.Write([]byte(write)); err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+	}
+	select {
+	case got := <-read:
+		if got != "settings" {
+			t.Errorf("read %q", got)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no read after two writes")
+	}
+	_ = held.Close()
+	_ = server.Close()
+
+	client, server = net.Pipe()
+	held = &heldReads{Conn: client}
+	held.hold()
+	ended := make(chan error, 1)
+	go func() {
+		_, err := held.Read(make([]byte, 1))
+		ended <- err
+	}()
+	_ = held.Close()
+	select {
+	case err := <-ended:
+		if err == nil {
+			t.Error("a read on a closed connection read")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("a held read outlived its connection")
+	}
+	_ = server.Close()
 }
