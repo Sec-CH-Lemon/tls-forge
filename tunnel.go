@@ -81,6 +81,8 @@ type connectDialer struct {
 	header  fhttp.Header
 	timeout time.Duration
 	dialer  net.Dialer
+	// keys are where the secrets of a connection to an HTTPS proxy go, or nil.
+	keys io.Writer
 }
 
 // dialOptions are how a client's connections are dialled. Through an HTTP or
@@ -93,7 +95,7 @@ type connectDialer struct {
 // dialer or a proxy of its own, whose names are not to be looked up here.
 // Every connection is dialed for a request, within its context, which says
 // what the dial does in the request's log.
-func dialOptions(proxyURL string, own bool) []tls_client.HttpClientOption {
+func dialOptions(proxyURL string, own bool, keys io.Writer) []tls_client.HttpClientOption {
 	if proxyURL == "" {
 		if !own {
 			return nil
@@ -115,7 +117,9 @@ func dialOptions(proxyURL string, own bool) []tls_client.HttpClientOption {
 		tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
 			header fhttp.Header, _ tls_client.Logger,
 		) (proxy.ContextDialer, error) {
-			return newConnectDialer(u, timeout, local, header), nil
+			d := newConnectDialer(u, timeout, local, header)
+			d.keys = keys
+			return d, nil
 		}),
 		// The transport tells by the proxy's URL that QUIC cannot go through it,
 		// and it is given a dialer here instead of the URL. Without this, a
@@ -209,7 +213,8 @@ func (d *connectDialer) reach(ctx context.Context, network string) (net.Conn, er
 	}
 	// HTTP/1.1 only, so that every tunnel is a connection of its own, and the
 	// answer that opened it belongs to it alone.
-	conn := tls.Client(raw, &tls.Config{ServerName: d.name, NextProtos: []string{"http/1.1"}, RootCAs: proxyRoots})
+	conn := tls.Client(raw, &tls.Config{ServerName: d.name, NextProtos: []string{"http/1.1"}, RootCAs: proxyRoots,
+		KeyLogWriter: d.keys})
 	err = conn.HandshakeContext(ctx)
 	if r := requestLogOf(ctx); r != nil {
 		r.proxyTLS(conn.ConnectionState(), err)

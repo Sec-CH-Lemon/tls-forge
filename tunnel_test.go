@@ -40,6 +40,17 @@ type connectProxy struct {
 
 func startConnectProxy(t *testing.T, secure bool, answer func(n int32) string) *connectProxy {
 	t.Helper()
+	var over *tls.Config
+	if secure {
+		over = &tls.Config{}
+	}
+	return startConnectProxyOver(t, over, answer)
+}
+
+// startConnectProxyOver is startConnectProxy spoken to over TLS as over says,
+// or in the clear for none.
+func startConnectProxyOver(t *testing.T, over *tls.Config, answer func(n int32) string) *connectProxy {
+	t.Helper()
 	p := &connectProxy{}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodConnect {
@@ -67,10 +78,12 @@ func startConnectProxy(t *testing.T, secure bool, answer func(n int32) string) *
 		go func() { _, _ = io.Copy(upstream, buffered) }()
 		_, _ = io.Copy(client, upstream)
 	})
-	if secure {
-		p.server = httptest.NewTLSServer(handler)
+	p.server = httptest.NewUnstartedServer(handler)
+	if over != nil {
+		p.server.TLS = over
+		p.server.StartTLS()
 	} else {
-		p.server = httptest.NewServer(handler)
+		p.server.Start()
 	}
 	t.Cleanup(p.server.Close)
 	return p
@@ -374,21 +387,21 @@ func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 	// A SOCKS proxy, and a URL that does not parse, are the transport's: it
 	// knows what to say about them.
 	for _, proxyURL := range []string{"socks5://127.0.0.1:1080", "://not a url", "http://"} {
-		if got := dialOptions(proxyURL, true); len(got) != 1 {
+		if got := dialOptions(proxyURL, true, nil); len(got) != 1 {
 			t.Errorf("%q is given %d options, want the transport's one", proxyURL, len(got))
 		}
 	}
 	// An HTTP proxy is tunnelled here, and without HTTP/3, which it cannot carry.
-	if got := dialOptions("http://proxy.test:8080", true); len(got) != 2 {
+	if got := dialOptions("http://proxy.test:8080", true, nil); len(got) != 2 {
 		t.Errorf("an HTTP proxy is given %d options", len(got))
 	}
 	// No proxy is dialled here, and names are looked up for HTTP/2 to carry
 	// requests to others, unless the caller has options of its own for the
 	// transport, which may say how to dial.
-	if got := dialOptions("", true); len(got) != 2 {
+	if got := dialOptions("", true, nil); len(got) != 2 {
 		t.Errorf("a client without a proxy is given %d options", len(got))
 	}
-	if got := dialOptions("", false); len(got) != 0 {
+	if got := dialOptions("", false, nil); len(got) != 0 {
 		t.Errorf("a client with transport options of its own is given %d options", len(got))
 	}
 }

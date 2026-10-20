@@ -112,6 +112,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling, every order of the extensions that move as likely as any other, as Chrome draws one. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |
 | `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. One that sets what tls-forge sets replaces it; see [Transport options](#transport-options). |
 | `WithLogger(logger)` | Write down what the client does, as it does it, to a `*slog.Logger`; see [Logging](#logging). |
+| `WithKeyLogWriter(w)` | Write the TLS secrets of every connection the client makes, to the sites and to an HTTPS proxy, to an `io.Writer` in the NSS key log format, for Wireshark to read a capture with; see [Reading a client in Wireshark](#reading-a-client-in-wireshark). |
 
 Example:
 
@@ -150,8 +151,9 @@ bogdanfinn's, whose `LEMON.md` says what it changes. An option is written with
 tls-forge's own. An option that sets what tls-forge already sets replaces it,
 and what tls-forge did with it goes too:
 
-- `tls_client.WithTransportOptions` replaces six idle connections per host and
-  the decoding of bodies by tls-forge. The transport then decodes gzip,
+- `tls_client.WithTransportOptions` replaces six idle connections per host,
+  the key log of `WithKeyLogWriter` for the connections to sites, and the
+  decoding of bodies by tls-forge. The transport then decodes gzip,
   deflate, br and zstd itself. It reads deflate sent as zlib only after
   waiting out the request's deadline, and over HTTP/1.1 it takes
   Content-Encoding off a body in any other coding, or in more than one,
@@ -732,6 +734,36 @@ proxy's password, cookie values, `Authorization` and `Proxy-Authorization`
 credentials and the values of headers whose names contain `token`, `secret`,
 `password` or `key` are written as `***`. Without `WithLogger`, or a request's
 `Logger`, nothing is logged and nothing is spent on it.
+
+### Reading a client in Wireshark
+
+```go
+keys, err := os.OpenFile("run.keys", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
+if err != nil {
+	return err
+}
+defer keys.Close()
+client, err := tlsforge.New(tlsforge.WithKeyLogWriter(keys))
+```
+
+`WithKeyLogWriter` has a client write the TLS secrets of every connection it
+makes to `w`, in the NSS key log format browsers write to the file
+`SSLKEYLOGFILE` names: the connections to the sites, the one to an HTTPS proxy
+and those inside its tunnels, and those of every client `Fresh` makes of it.
+Given them, Wireshark reads a capture of the client's traffic (tcpdump,
+dumpcap) as the client wrote and read it, and so does anybody else who has
+them, which is why the file above is made with mode `0600`, and why it is for
+looking into a run, never for keeping. A site's TLS inside an HTTPS proxy's
+tunnel, TLS within TLS, Wireshark 4.6.9 shows as HTTP continuation data; its
+secrets are written all the same.
+
+Each line is one write, and tls-forge makes no two at once, of this client or
+of any other, so `w` need not be safe for concurrent use. A write that fails
+fails the handshake it was for, as crypto/tls's `KeyLogWriter` does: a caller
+who asked for the secrets learns they were not written. Transport options
+given with `WithTransportOption` replace the ones the secrets go with for the
+connections to sites, which then write none ([Transport options](#transport-options));
+an HTTPS proxy's still do.
 
 ## Ordered headers
 

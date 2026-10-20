@@ -13,6 +13,23 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Added
 
+- **`fetch --keylog FILE` and `WithKeyLogWriter(w)` write the TLS secrets of
+  every connection, for Wireshark to read a capture of a run**: in the NSS key
+  log format browsers write to the file `SSLKEYLOGFILE` names, the secrets of
+  the connections to the sites, to an HTTPS proxy and inside its tunnels, of
+  every client `Fresh` makes and of the run's address lookup. Given them,
+  Wireshark or `tshark -o tls.keylog_file:FILE` reads a capture of the run
+  (tcpdump, dumpcap) as it was sent and read: every HTTP/2 frame and HTTP/1.1
+  message, headers and bodies, but for a site's TLS inside an HTTPS proxy's
+  tunnel, which Wireshark 4.6.9 does not take apart. The file is added to,
+  made with mode `0600`, checked with every other file of the run
+  (`--keylog -` is refused), and said in the run's header and its log's `run`
+  record; one that cannot be written is said when the run is over, and the
+  run exits 1. In the library each line is one write and no two are made at
+  once, of any client, so the writer need not be safe for concurrent use; a
+  write that fails fails its handshake, as crypto/tls's `KeyLogWriter` does.
+  README «Reading a run in Wireshark», GO.md «Reading a client in Wireshark».
+
 - **The weekly drift check holds Chrome Stable and Beta to every fixture of
   the bench, on macOS, Linux and Windows**: the `behaviour` job of `drift.yml`
   installs each from Google on each platform a profile is shipped for and

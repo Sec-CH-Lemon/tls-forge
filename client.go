@@ -262,6 +262,9 @@ func New(opts ...Option) (*Client, error) {
 		return nil, fmt.Errorf("tlsforge: timeout is too large")
 	}
 
+	// One writer for every connection of the client and of every client
+	// Fresh makes of it, to sites and to a proxy alike.
+	keys := keyLogOf(cfg.keyLog)
 	options := []tls_client.HttpClientOption{
 		// A request ends with its context, which do gives the timeout as its
 		// deadline: the transport sets none of its own on each of the
@@ -286,6 +289,9 @@ func New(opts ...Option) (*Client, error) {
 			// encoding.go. A caller's WithTransportOption that sets transport
 			// options replaces these, and the transport decodes again.
 			DisableCompression: true,
+			// The secrets of every connection to a site, when they are asked
+			// for: every TLS config the transport shakes hands with takes them.
+			KeyLogWriter: keys,
 		}),
 	}
 	if transportShuffles(prof, shuffleExtensions) {
@@ -324,7 +330,7 @@ func New(opts ...Option) (*Client, error) {
 	// and the caller's own.
 	built := func(own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(clientProfile)}, options...)
-		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0)...)
+		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys)...)
 		return append(append(out, own...), cfg.extra...)
 	}
 

@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"io"
 	"log/slog"
 	"time"
 
@@ -32,6 +33,7 @@ type config struct {
 	shuffleExtensions  *bool
 	extra              []tls_client.HttpClientOption
 	logger             *slog.Logger
+	keyLog             io.Writer
 }
 
 func defaults() config {
@@ -187,6 +189,23 @@ func WithRandomExtensionOrder() Option {
 // the request is for can be said with every record of it.
 func WithLogger(log *slog.Logger) Option {
 	return func(c *config) { c.logger = log }
+}
+
+// WithKeyLogWriter has the client write the TLS secrets of every connection
+// it makes, to the sites it asks and to an HTTPS proxy, to w, in the NSS key
+// log format browsers write to the file SSLKEYLOGFILE names: given them,
+// Wireshark reads a capture of the client's traffic as plainly as the client
+// wrote it. So can anybody else who has them: they are for looking into a
+// run, never for keeping, and a file of them wants the mode 0600.
+//
+// Each line goes to w in a write of its own, never two at once, of this
+// client or of any other, so w need not be safe for concurrent use. A write
+// that fails fails the handshake it was for, as crypto/tls's KeyLogWriter
+// does. Transport options a caller gives with WithTransportOption replace
+// the ones the secrets go with, for the connections to sites, which then
+// write none; an HTTPS proxy's still do.
+func WithKeyLogWriter(w io.Writer) Option {
+	return func(c *config) { c.keyLog = w }
 }
 
 // WithTransportOption passes an option through to the underlying tls-client,

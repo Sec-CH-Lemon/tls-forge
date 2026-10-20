@@ -777,6 +777,44 @@ that is a usage error, as it is for every file a run reads or writes; see
 [Files a run reads and writes](#files-a-run-reads-and-writes). A log that
 cannot be written is said once the run is over, and the run exits 1.
 
+### Reading a run in Wireshark
+
+```bash
+# In one terminal, capture what goes over the wire as long as the run takes,
+# on the interface it goes out by (en0 on most Macs, any on Linux):
+tcpdump -i en0 -w run.pcap 'tcp port 443'
+# In another, run with the secrets of its connections kept:
+tls-forge fetch --keylog run.keys https://example.com/
+# Then read the capture with them, in Wireshark or tshark:
+tshark -r run.pcap -o tls.keylog_file:run.keys -Y http2
+```
+
+A capture of a run is TLS records, which say nothing without the secrets of
+their connections. `--keylog FILE` adds those of every connection the run
+makes to the file, in the NSS key log format that browsers write to the file
+`SSLKEYLOGFILE` names: the connections to the sites, the one to an HTTPS proxy
+and the sites' inside its tunnel, and the one that asks where the run comes
+out. Given the file (Preferences, Protocols, TLS, (Pre)-Master-Secret log
+filename, or `-o tls.keylog_file:FILE` to `tshark`), Wireshark shows each
+connection as the run wrote and read it: the handshake decrypted, every HTTP/2
+frame and HTTP/1.1 message, headers and bodies. Through an HTTP proxy, whose
+CONNECT goes in the clear, the site's connection in the tunnel is read as well.
+Through an HTTPS proxy Wireshark reads the connection to the proxy, the CONNECT
+and its answer, but not the site's TLS inside it, which it shows as HTTP
+continuation data (Wireshark 4.6.9): the site's secrets are in the file all
+the same.
+
+So does anybody else who has the file: it reads every cookie, credential and
+body of the run. It is created with mode `0600`, added to rather than replaced,
+as the browsers do, so that one file serves every run of a capture, and is for
+looking into a run and deleting, never for keeping. `--keylog -` is refused:
+secrets go to no stream. A file that cannot be written is said once the run is
+over, and the run exits 1; the requests themselves go on. The capture is the
+machine's to make: on macOS it needs access to `/dev/bpf`, which Wireshark's
+ChmodBPF gives (`-i any` needs root there), and on Linux root or `CAP_NET_RAW`.
+From Go, `WithKeyLogWriter` does the same for a client; see
+[GO.md](GO.md#reading-a-client-in-wireshark).
+
 ### Reporting a run
 
 ```bash
@@ -1103,6 +1141,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--trace <file>` | Write every step of the run as Trace Event JSON; see [Tracing a run](#tracing-a-run) |
 | `--log <file>` | Write down everything the run does as it does it: every request, the connections it went out on and what came back; `-` is standard error, and a name ending in `.json`, `.jsonl` or `.ndjson` gets JSON lines. With `--output`, kept there as `run-<time>.log` unless this names another; see [Logging a run](#logging-a-run) |
 | `--log-level <level>` | How much the log says: `error`, `warn`, `info`, `debug`, or `trace`, which adds every TLS handshake, certificate and HTTP/2 frame; default `trace` |
+| `--keylog <file>` | Add the TLS secrets of every connection the run makes, to its sites and its proxy, to this file, in the NSS key log format browsers write to the file `SSLKEYLOGFILE` names, so that Wireshark reads a capture of the run; created with mode `0600`; see [Reading a run in Wireshark](#reading-a-run-in-wireshark) |
 
 What comes out is decided by how the command was asked, not by how many URLs
 it ended up with:
@@ -1390,7 +1429,7 @@ cannot go through it.
 
 Before it reads the list, empties a directory or opens a file, a run checks
 every file its flags name together: what it reads (`--input`, `--cookies`,
-`--exit-headers`), what it writes (`--trace`, `--log`, `--report`,
+`--exit-headers`), what it writes (`--trace`, `--log`, `--keylog`, `--report`,
 `--save-cookies`), and the files its standard output and error are
 redirected to. These are usage errors, with exit code 2 and the reason, before
 anything is emptied, opened, made or asked:

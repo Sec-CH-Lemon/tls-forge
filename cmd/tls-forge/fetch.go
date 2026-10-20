@@ -35,7 +35,7 @@ var fetchFlagGroups = []flagGroup{
 	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element",
 		"html-decoding"}},
 	{"output", []string{"output", "clear-output-dir", "include", "json", "print-body", "verbose", "progress", "color"}},
-	{"report, trace and log", []string{"report", "report-format", "trace", "log", "log-level"}},
+	{"report, trace and log", []string{"report", "report-format", "trace", "log", "log-level", "keylog"}},
 }
 
 // headerFlag collects repeated -H "Name: value" flags, in the order given.
@@ -83,8 +83,10 @@ type clientFlags struct {
 	asked tlsforge.Header
 
 	// log is what every client made with these flags writes down what it does
-	// to, or nil.
-	log *slog.Logger
+	// to, or nil, and keyLog where it writes the TLS secrets of its
+	// connections, or nil.
+	log    *slog.Logger
+	keyLog io.Writer
 
 	// run is what the run settles once and its parts share.
 	run *runContext
@@ -432,6 +434,9 @@ func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 	if f.log != nil {
 		opts = append(opts, tlsforge.WithLogger(f.log))
 	}
+	if f.keyLog != nil {
+		opts = append(opts, tlsforge.WithKeyLogWriter(f.keyLog))
+	}
 	return newClient(proxy, append(opts, extra...)...)
 }
 
@@ -622,6 +627,9 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	if err != nil {
 		return nil, err
 	}
+	if *logging.keylog == "-" {
+		return nil, fmt.Errorf("%w: --keylog takes a file: TLS secrets go to no stream", errUsage)
+	}
 	exits, err := loadExitTable(*exitHeaders)
 	if err != nil {
 		return nil, err
@@ -638,6 +646,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 		input: *input, cookies: *common.cookieFile, exitHeaders: *exitHeaders,
 		saveCookies: *common.saveCookies, trace: *again.trace,
 		log:     runLogPath(*logging.path, *output, started),
+		keylog:  *logging.keylog,
 		reports: reportFiles(*reporting.path, *output, formats, started),
 		output:  *output, cleared: *clearOutputDir,
 	}
@@ -744,6 +753,7 @@ type fetchRun struct {
 	out, errOut *printer
 
 	log      *runLog
+	keys     *keyLogFile
 	trace    *tracer
 	lane     *traceLane
 	identity *identityReport
@@ -791,7 +801,13 @@ func (r *fetchRun) open(ctx context.Context) error {
 	r.log.say(slog.LevelInfo, "run", runAttrs(r.about, "version", version, "profile", r.worn.Name,
 		"output", r.output, "wait_for", r.waitFor, "wait_for_element", r.waitForElement, "html_decoding", r.htmlDecoding,
 		"request_kind", r.requestKind, "initiator_url", safeURL(r.initiatorURL),
-		"reuse_connection", *r.again.reuse, "log_level", strings.ToLower(*r.logging.level))...)
+		"reuse_connection", *r.again.reuse, "log_level", strings.ToLower(*r.logging.level), "keylog", *r.logging.keylog)...)
+	// Before any client is made, so that every connection of the run has its
+	// secrets in it, the address lookup's too.
+	if r.keys, err = openKeyLog(*r.logging.keylog); err != nil {
+		return err
+	}
+	r.common.keyLog = r.keys.writer()
 	if r.trace, err = openTrace(*r.again.trace, "fetch", *r.common.proxy, r.started, r.about); err != nil {
 		return err
 	}
@@ -803,6 +819,7 @@ func (r *fetchRun) open(ctx context.Context) error {
 	// on every way out, so a run that stops before then still ends it.
 	r.identity = r.common.wearOpen(r.errOut)
 	r.identity.field("sent as", describeContext(r.browser))
+	r.identity.field("keylog", r.keys.said())
 	r.lane.wearing(r.worn)
 
 	r.clients = newPool(r.common, *r.common.proxy)
@@ -881,6 +898,9 @@ func (r *fetchRun) close(runErr *error) {
 		r.identity.close()
 	}
 	if err := r.trace.close(*runErr); err != nil {
+		*runErr = errors.Join(*runErr, err)
+	}
+	if err := r.keys.close(); err != nil {
 		*runErr = errors.Join(*runErr, err)
 	}
 	if err := r.log.close(*runErr); err != nil {
@@ -1079,10 +1099,10 @@ func (r *fetchRun) finish(records []result, failures int, failed error) error {
 // fetchFiles are the files a fetch reads and writes, as its flags name them,
 // and the directory it keeps its requests in.
 type fetchFiles struct {
-	input, cookies, exitHeaders, saveCookies, trace, log string
-	reports                                              []reportFile
-	output                                               string
-	cleared                                              bool
+	input, cookies, exitHeaders, saveCookies, trace, log, keylog string
+	reports                                                      []reportFile
+	output                                                       string
+	cleared                                                      bool
 }
 
 // plan is those files in one plan: what the run reads, then what it writes,
@@ -1097,6 +1117,7 @@ func (f fetchFiles) plan(stdout, stderr io.Writer) *filePlan {
 	plan.add(flagSaveCookies, f.saveCookies, writesFile)
 	plan.add("--trace", f.trace, writesFile)
 	plan.add("--log", f.log, writesFile)
+	plan.add("--keylog", f.keylog, writesFile)
 	for _, report := range f.reports {
 		plan.add("--report", report.path, writesFile)
 	}

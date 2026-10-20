@@ -38,8 +38,9 @@ import (
 
 // logFlags are where the log goes and how much it says.
 type logFlags struct {
-	path  *string
-	level *string
+	path   *string
+	level  *string
+	keylog *string
 }
 
 func addLogFlags(fs *pflag.FlagSet) logFlags {
@@ -51,6 +52,10 @@ func addLogFlags(fs *pflag.FlagSet) logFlags {
 		level: fs.String("log-level", "trace",
 			"how much the log says: error, warn, info, debug, or trace, which adds every TLS handshake, "+
 				"certificate and HTTP/2 frame"),
+		keylog: fs.String("keylog", "",
+			"add the TLS secrets of every connection the run makes, to its sites and its proxy, to this file, "+
+				"as browsers do to the one SSLKEYLOGFILE names: Wireshark given it reads a capture of the run "+
+				"as plainly as it was sent, and so does anybody else who has it"),
 	}
 }
 
