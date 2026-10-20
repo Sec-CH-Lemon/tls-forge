@@ -170,9 +170,41 @@ func (m *missing) DumpDOM(_ context.Context, page string) ([]byte, error) {
 }
 
 // broken is a browser that dumps nothing.
-type broken struct{ fake }
+type broken struct {
+	fake
+	// works says the dump of a page after how many failed ones works: none
+	// for 0; asked, the number of dumps asked for.
+	works, asked int
+}
 
-func (*broken) DumpDOM(context.Context, string) ([]byte, error) { return nil, errors.New("no dump") }
+func (b *broken) DumpDOM(ctx context.Context, page string) ([]byte, error) {
+	b.asked++
+	if b.works > 0 && b.asked > b.works {
+		return []byte("<html><body><pre>a</pre></body></html>"), nil
+	}
+	return nil, errors.New("no dump")
+}
+
+func TestAPageThatFailedToDumpOnceIsAskedOnceMore(t *testing.T) {
+	// Chrome on a macOS runner exited 2 dumping one page, once in two passes:
+	// asked again, the page is measured; failing twice, it is not.
+	once := &broken{works: 1}
+	got, err := MeasureDecoding(context.Background(), once, []DecodingCase{{Name: "a", Word: []byte("a")}}, nil)
+	if err != nil || once.asked != 2 || got[0].Text == nil || *got[0].Text != "a" {
+		t.Errorf("measured %+v, %v, asked %d", got, err, once.asked)
+	}
+	twice := &broken{works: 2}
+	if _, err := MeasureDecoding(context.Background(), twice, []DecodingCase{{Name: "a"}}, nil); err == nil || twice.asked != 2 {
+		t.Errorf("twice: %v, asked %d", err, twice.asked)
+	}
+	// A context that ended is not asked again.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	never := &broken{works: 1}
+	if _, err := MeasureDecoding(ctx, never, []DecodingCase{{Name: "a"}}, nil); err == nil || never.asked != 1 {
+		t.Errorf("an ended context: %v, asked %d", err, never.asked)
+	}
+}
 
 func TestWhatTheBrowserMadeOfAPageIsReadOutOfItsDump(t *testing.T) {
 	word := []byte("Привет мир")

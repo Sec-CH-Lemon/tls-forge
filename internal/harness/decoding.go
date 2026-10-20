@@ -133,7 +133,13 @@ func MeasureDecoding(ctx context.Context, b Browser, cases []DecodingCase, progr
 	defer func() { _ = server.Close() }()
 	out := make([]DecodingCase, 0, len(cases))
 	for _, c := range cases {
-		dump, err := b.DumpDOM(ctx, "http://"+ln.Addr().String()+"/"+c.Name)
+		page := "http://" + ln.Addr().String() + "/" + c.Name
+		dump, err := b.DumpDOM(ctx, page)
+		if err != nil && ctx.Err() == nil {
+			// Once more: Chrome on a macOS runner exited 2 dumping one page,
+			// once in two passes of the same check (2026-10-20).
+			dump, err = b.DumpDOM(ctx, page)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("harness: %s: %w", c.Name, err)
 		}

@@ -156,9 +156,11 @@ func DiffRecords(want, got RecordsScenario) []string {
 // CompareRecordsNewer is CompareRecords for a newer build of the browser,
 // whose heads may be longer or shorter than the fixture's by what its version
 // writes in each of them (sec-ch-ua's GREASE brand says a version of one digit
-// or two): a scenario's heads are held to the fixture's as much longer as its
-// first request's head is. A scenario on the 1,400 bytes Chrome merges a head
-// and a body up to moves with the head, and says so as a difference.
+// or two) and its platform (the user agent, sec-ch-ua-platform): a scenario's
+// heads are held to the fixture's as much longer as its first request's head
+// is, and a head and a body held in memory to one write or two as Chrome's rule
+// says for their lengths (mergedHeadAndBody): on Linux a POST whose head and
+// body are 1,401 bytes on macOS went in one.
 func CompareRecordsNewer(want, got map[string]RecordsScenario) []string {
 	shifted := map[string]RecordsScenario{}
 	for id, w := range want {
@@ -196,7 +198,8 @@ func headPart(part string) (int, bool) {
 
 // shiftedHeads is scenario with each request's head delta bytes longer: the
 // last part of its records that carried the head, the part a longer head
-// grows.
+// grows; and a head and a body together or apart as Chrome's rule says for
+// their lengths, as they are in a fixture Chrome wrote.
 func shiftedHeads(scenario RecordsScenario, delta int) RecordsScenario {
 	out := RecordsScenario{Note: scenario.Note}
 	for _, r := range scenario.Requests {
@@ -212,10 +215,38 @@ func shiftedHeads(scenario RecordsScenario, delta int) RecordsScenario {
 				}
 			}
 		}
-		r.Records = records
+		r.Records = merged(records)
 		out.Requests = append(out.Requests, r)
 	}
 	return out
+}
+
+// mergedHeadAndBody is the most a request's head and a body held in memory
+// may be together for Chrome to write them at once: HttpStreamParser's
+// kMaxMergedHeaderAndBodySize (h1-records-post-at-1400 and -1401).
+const mergedHeadAndBody = 1400
+
+// merged are records of a whole head and a body, in one record or two, as
+// Chrome writes them for their lengths; any others as they are.
+func merged(records []string) []string {
+	var head, body string
+	switch len(records) {
+	case 1:
+		head, body, _ = strings.Cut(records[0], "+")
+	case 2:
+		head, body = records[0], records[1]
+	default:
+		return records
+	}
+	h, errHead := strconv.Atoi(strings.TrimPrefix(head, "R"))
+	b, errBody := strconv.Atoi(strings.TrimPrefix(body, "B"))
+	switch {
+	case errHead != nil || errBody != nil:
+		return records
+	case h+b <= mergedHeadAndBody:
+		return []string{head + "+" + body}
+	}
+	return []string{head, body}
 }
 
 // CompareRecords is how what a browser's records carried, got, differs from

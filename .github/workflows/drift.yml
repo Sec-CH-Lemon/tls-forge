@@ -498,9 +498,13 @@ jobs:
           verdict=matches
           for run in 1 2; do
             set +e
-            "$measure" --browser "$CHROME" "${args[@]}" --check --newer > differences.txt 2> measure.log
+            "$measure" --browser "$CHROME" "${args[@]}" --check --newer > "differences-$run.txt" 2> "measure-$run.log"
             code=$?
             set -e
+            # Each run kept, so that one that ends otherwise leaves the
+            # other's; the last is the one filed.
+            cp "differences-$run.txt" differences.txt
+            cp "measure-$run.log" measure.log
             tail -n 40 measure.log
             case $code in
               0) verdict=matches; break ;;
@@ -511,13 +515,16 @@ jobs:
           echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
           if [ "$verdict" = differs ]; then cat differences.txt; fi
 
+      # Whatever the check came to, and when it could not run too: what each
+      # run said is how to tell why.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && steps.check.outputs.verdict != ''
+        if: always()
         with:
           name: behaviour-${{ runner.os }}-${{ matrix.channel }}
           path: |
-            differences.txt
-            measure.log
+            differences-*.txt
+            measure-*.log
+          if-no-files-found: ignore
 
       - name: file it
         if: >-

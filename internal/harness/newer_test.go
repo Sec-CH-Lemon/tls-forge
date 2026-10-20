@@ -54,7 +54,8 @@ func TestANewerBuildsHeadsAreHeldAsMuchLongerAsItsFirst(t *testing.T) {
 	fixture := map[string]RecordsScenario{
 		"whole":    scenario([]string{"R718"}, []string{"R593"}),
 		"split":    scenario([]string{"R700"}, []string{"r16384", "r14215"}),
-		"merged":   scenario([]string{"R700"}, []string{"R695+B705"}, []string{"R600", "B706"}),
+		"merged":   scenario([]string{"R700"}, []string{"R695+B705"}, []string{"R695", "B706"}),
+		"shorter":  scenario([]string{"R700"}, []string{"R695+B705"}, []string{"R695", "B706"}),
 		"body":     scenario([]string{"R700"}, []string{"R680", "b16384", "b1"}),
 		"lost":     scenario([]string{"R700"}),
 		"none":     scenario(),
@@ -64,7 +65,8 @@ func TestANewerBuildsHeadsAreHeldAsMuchLongerAsItsFirst(t *testing.T) {
 	newer := map[string]RecordsScenario{
 		"whole":   scenario([]string{"R717"}, []string{"R592"}),
 		"split":   scenario([]string{"R701"}, []string{"r16384", "r14216"}),
-		"merged":  scenario([]string{"R701"}, []string{"R696+B705"}, []string{"R601", "B706"}),
+		"merged":  scenario([]string{"R701"}, []string{"R696", "B705"}, []string{"R696", "B706"}),
+		"shorter": scenario([]string{"R684"}, []string{"R679+B705"}, []string{"R679+B706"}),
 		"body":    scenario([]string{"R699"}, []string{"R679", "b16384", "b1"}),
 		"none":    scenario([]string{"R700"}),
 		"unknown": scenario([]string{"R701"}, []string{"x+R", "Rx", ""}),
@@ -76,13 +78,14 @@ func TestANewerBuildsHeadsAreHeldAsMuchLongerAsItsFirst(t *testing.T) {
 		t.Errorf("CompareRecordsNewer: %q", diff)
 	}
 	// Held as they are, every head that moved is a difference.
-	if diff := CompareRecords(fixture, newer); len(diff) != 14 {
+	if diff := CompareRecords(fixture, newer); len(diff) != 17 {
 		t.Errorf("CompareRecords: %d differences, %q", len(diff), diff)
 	}
-	// A head on the boundary that crosses it says so.
-	crossing := map[string]RecordsScenario{"merged": scenario([]string{"R701"}, []string{"R696", "B705"}, []string{"R601", "B706"})}
-	if diff := CompareRecordsNewer(map[string]RecordsScenario{"merged": fixture["merged"]}, crossing); len(diff) != 1 {
-		t.Errorf("a crossing: %q", diff)
+	// A head and a body kept in one write past the 1,400 bytes, against
+	// Chrome's rule, are a difference.
+	against := map[string]RecordsScenario{"merged": scenario([]string{"R701"}, []string{"R696+B705"}, []string{"R696", "B706"})}
+	if diff := CompareRecordsNewer(map[string]RecordsScenario{"merged": fixture["merged"]}, against); len(diff) != 1 {
+		t.Errorf("against the rule: %q", diff)
 	}
 	if n := headLength([]string{"r16384", "r100+B5", "b9"}); n != 16484 {
 		t.Errorf("headLength = %d", n)
@@ -90,6 +93,29 @@ func TestANewerBuildsHeadsAreHeldAsMuchLongerAsItsFirst(t *testing.T) {
 	for part, want := range map[string]int{"R12": 12, "r3": 3, "B5": 0, "R": 0, "": 0, "Rx": 0} {
 		if size, ok := headPart(part); size != want || ok != (want != 0) {
 			t.Errorf("headPart(%q) = %d, %v", part, size, ok)
+		}
+	}
+}
+
+func TestAHeadAndABodyGoTogetherOrApartAsChromesRuleSays(t *testing.T) {
+	// A whole head and a body held in memory: in one write up to 1,400 bytes
+	// together, in two past them; anything else as it is.
+	for _, tc := range []struct{ records, want []string }{
+		{[]string{"R695+B705"}, []string{"R695+B705"}},
+		{[]string{"R696+B705"}, []string{"R696", "B705"}},
+		{[]string{"R679", "B706"}, []string{"R679+B706"}},
+		{[]string{"R695", "B706"}, []string{"R695", "B706"}},
+		{[]string{"R700"}, []string{"R700"}},
+		{[]string{"r16384", "r100+B5"}, []string{"r16384", "r100+B5"}},
+		{[]string{"r100+B5"}, []string{"r100+B5"}},
+		{[]string{"R100+b5"}, []string{"R100+b5"}},
+		{[]string{"Rx+B5"}, []string{"Rx+B5"}},
+		{[]string{"R5", "Bx"}, []string{"R5", "Bx"}},
+		{[]string{"R5+B5+B5"}, []string{"R5+B5+B5"}},
+		{[]string{"R5+B5", "B5"}, []string{"R5+B5", "B5"}},
+	} {
+		if got := merged(tc.records); !slices.Equal(got, tc.want) {
+			t.Errorf("%q: %q, want %q", tc.records, got, tc.want)
 		}
 	}
 }

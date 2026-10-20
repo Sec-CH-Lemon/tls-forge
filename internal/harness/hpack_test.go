@@ -553,3 +553,35 @@ func firstSettings(t *testing.T, port int) map[http2.SettingID]uint32 {
 	}
 	return out
 }
+
+func TestAValueThePlatformDecidesIsHeldToHowItWasWrittenNotItsCoding(t *testing.T) {
+	// Linux's empty platform version goes plain where macOS's goes
+	// Huffman-coded, as quiche's rule has it: that alone is no difference;
+	// any other field's coding, and how a value of the platform's is written
+	// otherwise, are.
+	block := func(fields ...string) HPACKScenario {
+		return HPACKScenario{Note: "n", Connections: [][]WrittenRequest{{{Method: "GET", URL: "u", Fields: fields}}}}
+	}
+	macOS := block("sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+		"user-agent: with indexing, name static 58, value huffman", "accept: with indexing, name static 19, value huffman")
+	for _, tc := range []struct {
+		name   string
+		got    HPACKScenario
+		differ bool
+	}{
+		{"the same", macOS, false},
+		{"a platform's value coded otherwise", block("sec-ch-ua-platform-version: with indexing, new name huffman, value plain",
+			"user-agent: with indexing, name static 58, value plain", "accept: with indexing, name static 19, value huffman"), false},
+		{"another field coded otherwise", block("sec-ch-ua-platform-version: with indexing, new name huffman, value huffman",
+			"user-agent: with indexing, name static 58, value huffman", "accept: with indexing, name static 19, value plain"), true},
+		{"a platform's value written otherwise", block("sec-ch-ua-platform-version: without indexing, new name huffman, value plain",
+			"user-agent: with indexing, name static 58, value huffman", "accept: with indexing, name static 19, value huffman"), true},
+		{"a platform's value indexed", block("sec-ch-ua-platform-version: indexed dynamic 62",
+			"user-agent: with indexing, name static 58, value huffman", "accept: with indexing, name static 19, value huffman"), true},
+		{"a field fewer", block("sec-ch-ua-platform-version: with indexing, new name huffman, value huffman"), true},
+	} {
+		if diff := DiffHPACK(macOS, tc.got); (diff != nil) != tc.differ {
+			t.Errorf("%s: %q", tc.name, diff)
+		}
+	}
+}

@@ -243,6 +243,11 @@ func TestWhatWindowUpdatesDifferInIsSaid(t *testing.T) {
 			"update 3: 73738, want 65545, more than a read apart"},
 		{"more than a read less", sc(up(windowFirst, half+9, 0), up(windowConnection, connHalf+8000, 0), up(windowFirst, 65545-8193, 1)),
 			"update 3: 57352, want 65545, more than a read apart"},
+		// The stream's last, after another of it, from a reader slower than
+		// the stream's end: no difference; the others held all the same.
+		{"the stream's last missing", sc(up(windowFirst, half+9, 0), up(windowConnection, connHalf+8000, 0)), ""},
+		{"the stream's last missing, another apart", sc(up(windowFirst, half, 0), up(windowConnection, connHalf+8000, 0)),
+			"update 1: 3145728, want 3145737: one past half of the window, one not"},
 	} {
 		got := strings.Join(DiffFlow(chrome, c.got), "\n")
 		if got != c.says && (c.says == "" || !strings.HasPrefix(got, c.says)) {
@@ -258,6 +263,18 @@ func TestWhatWindowUpdatesDifferInIsSaid(t *testing.T) {
 	}
 	if diff := CompareFlow(map[string]FlowScenario{"a": chrome}, map[string]FlowScenario{"a": chrome}); diff != nil {
 		t.Errorf("alike: %q", diff)
+	}
+	// The last missing is a difference when it is the connection's, or a
+	// stream's only one.
+	for name, want := range map[string]FlowScenario{
+		"the connection's last": sc(up(windowConnection, connHalf+8000, 0), up(windowFirst, half+9, 0), up(windowConnection, connHalf+8000, 0)),
+		"a stream's only one":   sc(up(windowConnection, connHalf+8000, 0), up(windowFirst, half+9, 0)),
+		"the only one":          sc(up(windowFirst, half+9, 0)),
+	} {
+		lacking := FlowScenario{Updates: want.Updates[:len(want.Updates)-1]}
+		if diff := DiffFlow(want, lacking); len(diff) != 1 || !strings.Contains(diff[0], "window updates, want") {
+			t.Errorf("%s missing: %q", name, diff)
+		}
 	}
 }
 

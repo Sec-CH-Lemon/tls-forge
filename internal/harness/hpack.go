@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
@@ -264,7 +265,7 @@ func DiffHPACK(want, got HPACKScenario) []string {
 			case g.Method != w.Method || g.URL != w.URL:
 				out = append(out, fmt.Sprintf("connection %d, request %d: %s %s, want %s %s", c+1, r+1, g.Method, g.URL,
 					w.Method, w.URL))
-			case !slices.Equal(g.Fields, w.Fields):
+			case !sameFields(g.Fields, w.Fields):
 				out = append(out, fmt.Sprintf("connection %d, request %d, %s %s:\n  written %q\n  want    %q", c+1, r+1,
 					w.Method, w.URL, g.Fields, w.Fields))
 			case !sameCut(g.Frames, w.Frames):
@@ -280,6 +281,51 @@ func DiffHPACK(want, got HPACKScenario) []string {
 		}
 	}
 	return out
+}
+
+// platformDecided are the fields whose values the platform and the machine
+// decide: the user agent, sec-ch-ua-platform and every client hint a server
+// asks for. Chrome writes a value Huffman-coded only when that is shorter, as
+// quiche's encoder does, so a value of another platform may go the other way:
+// "Windows" goes Huffman-coded where "macOS" does not, and Linux's empty
+// platform version plain where macOS's goes Huffman-coded.
+var platformDecided = []string{
+	"user-agent", "sec-ch-ua-platform",
+	"device-memory", "sec-ch-device-memory", "dpr", "sec-ch-dpr", "viewport-width", "sec-ch-viewport-width",
+	"sec-ch-viewport-height", "rtt", "downlink", "ect", "sec-ch-ua-full-version", "sec-ch-ua-arch",
+	"sec-ch-ua-platform-version", "sec-ch-ua-model", "sec-ch-ua-bitness", "sec-ch-ua-wow64",
+	"sec-ch-ua-full-version-list", "sec-ch-ua-form-factors",
+	"sec-ch-prefers-color-scheme", "sec-ch-prefers-reduced-motion", "sec-ch-prefers-reduced-transparency",
+}
+
+// sameFields says two header blocks were written alike, field by field: the
+// coding of a value the platform decides set aside, the rest of how it was
+// written held.
+func sameFields(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] && withoutCoding(a[i]) != withoutCoding(b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// withoutCoding is a field as written, without its value's coding when the
+// platform decides its value.
+func withoutCoding(field string) string {
+	name, _, _ := strings.Cut(field, ": ")
+	if !slices.Contains(platformDecided, name) {
+		return field
+	}
+	for _, coding := range []string{", value huffman", ", value plain"} {
+		if rest, ok := strings.CutSuffix(field, coding); ok {
+			return rest
+		}
+	}
+	return field
 }
 
 // sameCut says two header blocks went into frames alike: as many frames, each

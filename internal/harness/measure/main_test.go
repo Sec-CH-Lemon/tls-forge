@@ -692,8 +692,9 @@ func TestTheCommandWritesTheWindowUpdatesAndThenHoldsTheBrowserToThem(t *testing
 		t.Errorf("wrote %+v", wrote)
 	}
 	// A fixture that says otherwise is not the browser, nor one without the
-	// scenario.
-	small.Updates = append(small.Updates, harness.FlowUpdate{Window: "first", Increment: 1, Part: 9})
+	// scenario: one more of the connection's (a stream's last missing is a
+	// slow reader's, and no difference).
+	small.Updates = append(small.Updates, harness.FlowUpdate{Window: "connection", Increment: 1, Part: 9})
 	flow = flows(t, map[string]harness.FlowScenario{"flow-small": small})
 	code, stdout, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small,flow-half", "--check")...)
 	if code != 3 || !strings.Contains(stdout, "flow-small: ") ||

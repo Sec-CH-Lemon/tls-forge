@@ -22,7 +22,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   major, commented on only when what differs changes. Run by hand, it files
   nothing unless asked (`-f file=true`), `-f profile=false` or
   `-f behaviour=false` leaves either half out, and `-f os=` and `-f channels=`
-  (JSON lists) measure only those runners and channels. Before, only the shipped profile was compared
+  (JSON lists) measure only those runners and channels. Each run's
+  differences and log go into the artifact, whatever the check came to. Before, only the shipped profile was compared
   with Chrome; the behaviour tls-forge is held to was measured once. The
   bench's `measure` exits 3 when a browser differs from the fixtures, 1 when
   it could not measure; `--newer` (with `--check`) holds what a build's
@@ -982,6 +983,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench's check holds what Linux and Windows decide as Chrome's rules
+  say**: a value the platform decides (the user agent, `sec-ch-ua-platform`,
+  the client hints) is held to how it was written into HPACK, its coding aside,
+  since Chrome codes a value with Huffman only when that is shorter and
+  Linux's empty platform version goes plain; and a head and a body of an
+  HTTP/1.1 request to one write or two as Chrome's 1,400-byte rule says for
+  their lengths, a shorter head on Linux taking a body along that macOS's did
+  not; and a stream's last WINDOW_UPDATE, after others of it, may be missing,
+  as a reader slower than the server's pause before the stream's end never
+  sends it. Chrome Stable 155 on Linux showed all three against the macOS
+  fixtures: its eleven differences were none.
+
 - **The bench's check goes on past a scenario the browser does not finish**,
   and passes over what Chrome does otherwise on the platform it runs on. On
   Windows Chrome answers a 401 that offers Negotiate through SSPI, so the
@@ -993,10 +1006,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   profile, and asking nothing again is a difference too; one never begun
   before any other stops the check, as a browser that loads nothing does. On
   Windows the check passes over the Negotiate scenario, saying why, as the
-  replays wearing the Windows profile do. A fixture that cannot be measured
-  at all (Beta 157 on Linux sent `hpack-big-cookie`'s requests over two
-  connections every time) is, checked, a difference of its own, and the other
-  fixtures are measured; with none measured, the check could not run.
+  replays wearing the Windows profile do. A page whose dump fails, as
+  Chrome's on a macOS runner once did, is asked once more. A fixture that
+  cannot be measured at all (Beta 157 on Linux sent `hpack-big-cookie`'s
+  requests over two connections every time) is, checked, a difference of its
+  own, and the other fixtures are measured; with none measured, the check
+  could not run.
 
 - **The bench keeps the GOAWAY a client sends as it hangs up**: a client that
   ends a connection right after its GOAWAY, as Chrome and tls-forge do when a

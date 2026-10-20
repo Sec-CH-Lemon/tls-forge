@@ -598,8 +598,10 @@ const chromeReadSize = 8 << 10
 // more than half of its window says at most a read more than half, as one
 // whose time came says what was untold and at most a read more, so that two of
 // those differ by a read at most. The connection's window is 15 MiB, a
-// stream's 6 MiB, as Chrome advertises them.
+// stream's 6 MiB, as Chrome advertises them. A stream's last update, after
+// others of it, may be missing (slowReader).
 func DiffFlow(want, got FlowScenario) []string {
+	want.Updates = slowReader(want.Updates, got.Updates)
 	if len(got.Updates) != len(want.Updates) {
 		return []string{fmt.Sprintf("%d window updates, want %d: %v, want %v", len(got.Updates), len(want.Updates),
 			got.Updates, want.Updates)}
@@ -625,6 +627,24 @@ func DiffFlow(want, got FlowScenario) []string {
 		}
 	}
 	return out
+}
+
+// slowReader are want's updates without the last when got lacks that one
+// alone and it is of a stream that was told of before: a reader slower than
+// the server's pause before the stream's end tells nothing more once the end
+// has come, as Chrome tells a stream it has ended nothing (Chrome 155 on a
+// Linux runner, 20 MiB and a pause of 2 s, flow-connection and -1m).
+func slowReader(want, got []FlowUpdate) []FlowUpdate {
+	n := len(want)
+	if len(got) != n-1 || want[n-1].Window == windowConnection {
+		return want
+	}
+	for _, u := range want[:n-1] {
+		if u.Window == want[n-1].Window {
+			return want[:n-1]
+		}
+	}
+	return want
 }
 
 // CompareFlow is how the WINDOW_UPDATEs a browser sent, got, differ from what
