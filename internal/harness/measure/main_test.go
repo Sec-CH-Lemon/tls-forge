@@ -1136,3 +1136,26 @@ func TestACheckPassesOverWhatChromeSendsOtherwiseOnThisPlatform(t *testing.T) {
 		t.Errorf("written: asked %q, %v", stuck.asked, err)
 	}
 }
+
+func TestACheckGoesOnPastAFixtureItCannotMeasure(t *testing.T) {
+	// The decodings cannot be measured here and the requests can: a
+	// difference of its own, said, and the rest held to the fixtures. Only
+	// what cannot be measured is no check.
+	text := "x"
+	requests, decoding := fixtures(t, map[string]harness.MeasuredScenario{"nav-direct": {Note: "x"}},
+		[]harness.DecodingCase{{Name: "a", ContentType: &text}})
+	opening(t, &fake{failDumps: true}, "Fake")
+	none := []string{"--hpack", "", "--flow", "", "--urls", "", "--hellos", "", "--false-start", "", "--records", "", "--alps", ""}
+	code, stdout, stderr := measured(t, append([]string{"--browser", "chrome", "--requests", requests, "--connections", "",
+		"--decoding", decoding, "--only", "nav-direct", "--check"}, none...)...)
+	if code != 3 || !strings.Contains(stdout, "the decoding could not be measured: ") ||
+		!strings.Contains(stdout, "the fake dumped nothing") || !strings.Contains(stdout, "nav-direct over h2: 1 requests, the fixture 0") ||
+		!strings.Contains(stderr, "measure: ") {
+		t.Errorf("exit %d:\n%s%s", code, stdout, stderr)
+	}
+	code, stdout, stderr = measured(t, append([]string{"--browser", "chrome", "--requests", "", "--connections", "",
+		"--decoding", decoding, "--check"}, none...)...)
+	if code != 1 || !strings.HasSuffix(stderr, "measure: nothing could be measured\n") || stdout != "" {
+		t.Errorf("exit %d:\n%s%s", code, stdout, stderr)
+	}
+}

@@ -133,84 +133,72 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	about := said + ", " + strings.Join(append([]string{"--headless=new", "--lang=en-US"}, browserArgs...), " ") +
 		", " + machine()
+	// A fixture that cannot be measured is, checked, a difference, and the
+	// others are measured all the same: one scenario a browser does otherwise
+	// on its platform loses no more than its own fixture. Nothing measured
+	// at all is no check; writing, any is the end.
 	var diff []string
+	measuredAny, failed := false, false
+	step := func(what string, found []string, err error) bool {
+		switch {
+		case err == nil:
+			measuredAny = true
+			diff = append(diff, found...)
+		case *check:
+			failed = true
+			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+			diff = append(diff, fmt.Sprintf("%s could not be measured: %v", what, err))
+		default:
+			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+			return false
+		}
+		return true
+	}
 	for _, fixture := range []struct {
+		what    string
 		path    string
 		measure measurer
-	}{{*requests, harness.Measure}, {*connections, harness.MeasureConnections}} {
+	}{{"the requests", *requests, harness.Measure}, {"the connections", *connections, harness.MeasureConnections}} {
 		if fixture.path == "" {
 			continue
 		}
 		found, err := measureRequests(ctx, b, fixture.measure, fixture.path, names, about, *check, *newer, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+		if !step(fixture.what, found, err) {
 			return 1
 		}
-		diff = append(diff, found...)
 	}
-	if *decoding != "" {
-		found, err := measureDecoding(ctx, b, *decoding, about, *check, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
+	for _, fixture := range []struct {
+		what    string
+		path    string
+		measure func() ([]string, error)
+	}{
+		{"the decoding", *decoding, func() ([]string, error) { return measureDecoding(ctx, b, *decoding, about, *check, stderr) }},
+		{"the header blocks", *hpack, func() ([]string, error) {
+			return measureHeaderBlocks(ctx, b, *hpack, names, about, *check, stderr)
+		}},
+		{"the TLS records", *records, func() ([]string, error) {
+			return measureTLSRecords(ctx, b, *records, names, about, *check, *newer, stderr)
+		}},
+		{"the ALPS", *alps, func() ([]string, error) { return measureALPSFixture(ctx, b, *alps, names, about, *check, stderr) }},
+		{"the window updates", *flow, func() ([]string, error) {
+			return measureWindowUpdates(ctx, b, *flow, names, about, *check, stderr)
+		}},
+		{"the URLs", *urls, func() ([]string, error) { return measureURLs(ctx, b, *urls, names, about, *check, stderr) }},
+		{"False Start", *falseStart, func() ([]string, error) {
+			return measureFalseStartFixture(ctx, b, *falseStart, names, about, *check, stderr)
+		}},
+		{"the hellos", *hellos, func() ([]string, error) { return measureHellos(ctx, b, *hellos, about, *check, stderr) }},
+	} {
+		if fixture.path == "" {
+			continue
+		}
+		if found, err := fixture.measure(); !step(fixture.what, found, err) {
 			return 1
 		}
-		diff = append(diff, found...)
 	}
-	if *hpack != "" {
-		found, err := measureHeaderBlocks(ctx, b, *hpack, names, about, *check, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
-			return 1
-		}
-		diff = append(diff, found...)
-	}
-	if *records != "" {
-		found, err := measureTLSRecords(ctx, b, *records, names, about, *check, *newer, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
-			return 1
-		}
-		diff = append(diff, found...)
-	}
-	if *alps != "" {
-		found, err := measureALPSFixture(ctx, b, *alps, names, about, *check, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
-			return 1
-		}
-		diff = append(diff, found...)
-	}
-	if *flow != "" {
-		found, err := measureWindowUpdates(ctx, b, *flow, names, about, *check, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
-			return 1
-		}
-		diff = append(diff, found...)
-	}
-	if *urls != "" {
-		found, err := measureURLs(ctx, b, *urls, names, about, *check, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
-			return 1
-		}
-		diff = append(diff, found...)
-	}
-	if *falseStart != "" {
-		found, err := measureFalseStartFixture(ctx, b, *falseStart, names, about, *check, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
-			return 1
-		}
-		diff = append(diff, found...)
-	}
-	if *hellos != "" {
-		found, err := measureHellos(ctx, b, *hellos, about, *check, stderr)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "measure: %v\n", err)
-			return 1
-		}
-		diff = append(diff, found...)
+	if failed && !measuredAny {
+		_, _ = fmt.Fprintln(stderr, "measure: nothing could be measured")
+		return 1
 	}
 	for _, d := range diff {
 		_, _ = fmt.Fprintln(stdout, d)

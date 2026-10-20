@@ -20,8 +20,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   (`--browser-arg=--no-sandbox` on Linux and Windows), a difference measured
   twice before it counts, and files an issue for each platform, channel and
   major, commented on only when what differs changes. Run by hand, it files
-  nothing unless asked (`-f file=true`), and `-f profile=false` or
-  `-f behaviour=false` leaves either half out. Before, only the shipped profile was compared
+  nothing unless asked (`-f file=true`), `-f profile=false` or
+  `-f behaviour=false` leaves either half out, and `-f os=` and `-f channels=`
+  (JSON lists) measure only those runners and channels. Before, only the shipped profile was compared
   with Chrome; the behaviour tls-forge is held to was measured once. The
   bench's `measure` exits 3 when a browser differs from the fixtures, 1 when
   it could not measure; `--newer` (with `--check`) holds what a build's
@@ -988,9 +989,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   stopped there, Stable 155 and Beta 157 alike, before it had measured the
   rest. A scenario the browser began and did not finish is now a difference,
   what it asked kept and said, and is never written into a fixture; one it
-  never began still stops the check, as a browser that loads nothing does.
-  On Windows the check passes over the Negotiate scenario, saying why, as the
-  replays wearing the Windows profile do.
+  asked nothing of, once it has loaded others, is tried once more in a fresh
+  profile, and asking nothing again is a difference too; one never begun
+  before any other stops the check, as a browser that loads nothing does. On
+  Windows the check passes over the Negotiate scenario, saying why, as the
+  replays wearing the Windows profile do. A fixture that cannot be measured
+  at all (Beta 157 on Linux sent `hpack-big-cookie`'s requests over two
+  connections every time) is, checked, a difference of its own, and the other
+  fixtures are measured; with none measured, the check could not run.
 
 - **The bench keeps the GOAWAY a client sends as it hangs up**: a client that
   ends a connection right after its GOAWAY, as Chrome and tls-forge do when a

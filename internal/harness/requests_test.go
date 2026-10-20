@@ -264,6 +264,33 @@ func TestAScenarioThatSettlesIsLeftThatLong(t *testing.T) {
 	}
 }
 
+func TestAScenarioThatAsksNothingOnceOthersLoadedIsTriedOnceMore(t *testing.T) {
+	// A browser slow to start once, as Chrome on a Windows runner may be:
+	// tried again in a fresh profile, it is measured. Asking nothing twice,
+	// it is a scenario not finished, nothing kept, and the next is measured.
+	scenarios := map[string]scenario{
+		"a-loads": {note: "a", start: "{A}/p/a", wait: "/p/a"},
+		"b-quiet": {note: "b", start: "{A}/p/b", wait: "/p/b"},
+	}
+	short := quick
+	short.limit = 300 * time.Millisecond
+	once := &fake{quiet: map[int]bool{1: true}}
+	got, err := measure(context.Background(), once, scenarios, nil, short, nil)
+	if err != nil || got["b-quiet"].Unfinished != nil || len(got["b-quiet"].H2) != 1 || len(once.opened) != 5 ||
+		once.opened[1].url != once.opened[2].url || once.opened[1].dir == once.opened[2].dir {
+		t.Errorf("once quiet: %+v, %v, opened %+v", got, err, once.opened)
+	}
+	twice := &fake{quiet: map[int]bool{1: true, 2: true}}
+	got, err = measure(context.Background(), twice, scenarios, nil, short, nil)
+	if quiet := got["b-quiet"]; err != nil || len(quiet.H2) != 0 || len(quiet.H1) != 1 ||
+		!slices.Equal(quiet.Unfinished, []string{"over h2: /p/b was not asked for within 300ms"}) {
+		t.Errorf("twice quiet: %+v, %v", got, err)
+	}
+	if len(twice.opened) != 5 {
+		t.Errorf("opened %d times", len(twice.opened))
+	}
+}
+
 func TestAScenarioThatDoesNotFinishIsNoMeasurement(t *testing.T) {
 	for _, tc := range []struct {
 		name      string

@@ -2011,10 +2011,15 @@ and major when what Chrome does differs from them twice running: which
 connection a request goes on, what it sends, its HPACK, TLS records, ALPS,
 WINDOW_UPDATEs, URLs, charsets, extension order and False Start. What a build's
 version and platform decide, `sec-ch-ua` and the length it gives an HTTP/1.1
-head, is the profile's, and not a difference there. Start it by hand with `gh
-workflow run drift.yml`, which files nothing unless given `-f file=true` and
-runs one half alone with `-f profile=false` or `-f behaviour=false`, or hold
-the browser on your machine to the fixtures:
+head, is the profile's, and not a difference there. A fixture the browser
+cannot be measured against is a difference of its own, and the rest are
+measured all the same; a scenario Chrome does otherwise on the platform it
+runs on, as Negotiate on Windows, is passed over there, saying so. Start it by
+hand with `gh workflow run drift.yml`, which files nothing unless given `-f
+file=true`, runs one half alone with `-f profile=false` or `-f
+behaviour=false`, and measures only some runners or channels with `-f
+os='["windows-latest"]' -f channels='["beta"]'` (CI minutes are limited), or
+hold the browser on your machine to the fixtures:
 
 ```bash
 go run ./internal/harness/measure --browser PATH --check --newer

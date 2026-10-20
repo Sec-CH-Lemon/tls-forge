@@ -44,6 +44,16 @@ on:
         description: File an issue for each behaviour that differs, as a scheduled run does
         type: boolean
         default: false
+      # Which of them the behaviour job measures, so that a check run again
+      # after a fix costs only what it has to: CI minutes are limited.
+      os:
+        description: The runners the behaviour job measures on, a JSON list
+        type: string
+        default: '["macos-latest", "ubuntu-latest", "windows-latest"]'
+      channels:
+        description: The channels of Chrome it measures, a JSON list
+        type: string
+        default: '["stable", "beta"]'
 
 permissions:
   contents: write        # push the branch the pull request is for
@@ -379,8 +389,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-        channel: [stable, beta]
+        # A scheduled run has no inputs: every runner and channel.
+        os: ${{ fromJSON(inputs.os || '["macos-latest", "ubuntu-latest", "windows-latest"]') }}
+        channel: ${{ fromJSON(inputs.channels || '["stable", "beta"]') }}
     defaults:
       run:
         shell: bash

@@ -109,6 +109,9 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 	}
 	defer func() { _ = s.Close() }()
 	out := map[string]MeasuredScenario{}
+	// loaded says the browser has asked for something in a scenario of this
+	// measurement: it loads pages.
+	loaded := false
 	for _, proto := range []string{"h2", "h1"} {
 		port := map[string]int{"h2": s.H2, "h1": s.H1}[proto]
 		o := origins(port, s.Plain)
@@ -118,13 +121,21 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 				browser = trusts.trusting(s.spki)
 			}
 			entries, err := s.run(ctx, browser, id, sc, o, t)
-			// A scenario the browser began and did not finish is what the
-			// browser did, there: one it never began measures nothing.
 			var short *unfinished
-			began := errors.As(err, &short) && len(entries) > 0
+			if errors.As(err, &short) && len(entries) == 0 && loaded {
+				// Nothing asked, where the browser has loaded other pages: a
+				// browser slow to start, or what it does here. Once more.
+				entries, err = s.run(ctx, browser, id, sc, o, t)
+			}
+			// A scenario the browser began and did not finish is what the
+			// browser did, there, and so is one it asked nothing of, twice,
+			// once it has loaded others: one it never began, before it loaded
+			// any, measures nothing.
+			began := errors.As(err, &short) && (len(entries) > 0 || loaded)
 			if err != nil && !began {
 				return nil, fmt.Errorf("harness: %s over %s: %w", id, proto, err)
 			}
+			loaded = loaded || len(entries) > 0
 			got := out[id]
 			got.Note = sc.note
 			if began {
