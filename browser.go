@@ -309,7 +309,7 @@ func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, heade
 			return errContext("%s cannot set %s: the browser sets it", what, f.Name)
 		}
 	}
-	r.script = header
+	r.script = scriptHeaders(header)
 	to := originOf(target)
 	switch {
 	case b.Kind == KindFetch && target.User != nil:
@@ -418,10 +418,8 @@ func corsUnsafeByte(r rune) bool {
 // order (profile.ClientHintOrder); where in a script's those asked for go; and
 // where in a page's those a connection's ALPS asked for that it did not carry.
 const (
-	slotScript     = "\x00script"
-	slotHints      = "\x00hints"
-	slotAskedHints = "\x00asked hints"
-	slotALPSHints  = "\x00ALPS hints"
+	slotHints     = "\x00hints"
+	slotALPSHints = "\x00ALPS hints"
 )
 
 // The headers of each kind of request, in the order Chrome 155 sends them, as
@@ -489,24 +487,17 @@ func alpsOrder(order []string, redirected bool) []string {
 	return slices.Insert(out, at, slotALPSHints)
 }
 
-// scriptOrder is a script's request's slots: its own headers where Chrome's
-// renderer keeps them, which is a hash table where each name has its place, a
-// lone Authorization before User-Agent and any other after sec-ch-ua, as
-// Content-Type and X-Foo were measured; the client hints its page's origin
-// asked for first, as a lone sec-ch-ua-arch was measured, in Chrome's order
-// for a page where the table's would put several; and its Origin before
-// Sec-Fetch-*, or after them once a redirect gave it one.
+// scriptOrder starts with the renderer's actual case-folding header-map order.
+// Headers the network stack adds follow it; a redirect can give Origin late.
 func scriptOrder(h hop) []string {
-	authorization := len(h.script) == 1 && strings.EqualFold(h.script[0].Name, "authorization")
-	out := []string{"content-length", "authorization", slotAskedHints, "sec-ch-ua-platform"}
-	if authorization {
-		out = append(out, slotScript)
+	out := []string{"content-length"}
+	if !h.script.Has("authorization") {
+		out = append(out, "authorization")
 	}
-	out = append(out, "user-agent", "sec-ch-ua")
-	if !authorization {
-		out = append(out, slotScript)
+	out = append(out, scriptHeaderOrder(h)...)
+	if !h.script.Has("accept") {
+		out = append(out, "accept")
 	}
-	out = append(out, "sec-ch-ua-mobile", "accept")
 	if !h.lateOrigin {
 		out = append(out, "origin")
 	}
@@ -523,15 +514,21 @@ func scriptOrder(h hop) []string {
 // cookies, in their slots; Host and Connection are HTTP/1.1's own.
 func (r *browserRequest) header(h hop, base Header) Header {
 	values := r.values(h, base)
+	scriptNames := map[string]string{}
+	for _, f := range h.script {
+		name := strings.ToLower(f.Name)
+		values[name] = f.Value
+		scriptNames[name] = f.Name
+	}
 	var out Header
 	for _, slot := range r.order(h) {
-		if slot == slotScript {
-			out = append(out, h.script...)
-			continue
-		}
 		for _, name := range slotNames(slot, h) {
 			if value, ok := values[name]; ok {
-				out = append(out, profile.Field{Name: name, Value: value})
+				wireName := name
+				if original, ok := scriptNames[name]; ok {
+					wireName = original
+				}
+				out = append(out, profile.Field{Name: wireName, Value: value})
 			}
 		}
 	}
@@ -548,8 +545,6 @@ func slotNames(slot string, h hop) []string {
 			return slices.DeleteFunc(slices.Clone(profile.ClientHintOrder), h.alps.Has)
 		}
 		return profile.ClientHintOrder
-	case slotAskedHints:
-		return h.hints.Names()
 	case slotALPSHints:
 		return h.alps.Names()
 	}
@@ -686,13 +681,7 @@ func withoutCodings(value string, codings ...string) string {
 func (r *browserRequest) wireOrder(h hop) []string {
 	var out []string
 	for _, slot := range r.order(h) {
-		if slot != slotScript {
-			out = append(out, slotNames(slot, h)...)
-			continue
-		}
-		for _, f := range h.script {
-			out = append(out, strings.ToLower(f.Name))
-		}
+		out = append(out, slotNames(slot, h)...)
 	}
 	return out
 }

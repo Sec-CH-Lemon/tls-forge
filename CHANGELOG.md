@@ -1022,6 +1022,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Browser-context Fetch/XHR combines repeated script fields and follows Chrome's
+  renderer-map order instead of fixed custom-header slots;HTTP/1 preserves their
+  input spelling,including lower case. Raw requests retain
+  repeated fields. Regression fixtures cover varied names,case,lengths and
+  table growth from real Chrome.
+- Measured ClientHello profiles serialize ALPS only for protocols in the final
+  ALPN list,including after `WithForceHttp1` changes it. Ordinary H2 offers and
+  negotiated-ALPS fixtures remain covered.
+
 - **The bench's ALPS fixture counts no connection the browser never used**:
   a connection Chrome opened as it started, beside its navigation's, and
   sent nothing on but its SETTINGS, no request and no GOAWAY, was counted as

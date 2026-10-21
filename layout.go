@@ -602,11 +602,9 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 		}
 	}
 	for _, f := range script {
-		// As a script spelt it; in lower case, as NewHeader gives every name,
-		// as a script writes it, which is as HTTP spells it.
-		if f.Name != strings.ToLower(f.Name) {
-			spelling[strings.ToLower(f.Name)] = f.Name
-		}
+		// The script's first spelling survives even when it is all lower
+		// case (fresh Chrome H1 oracle,chrome155-script-headers.json).
+		spelling[strings.ToLower(f.Name)] = f.Name
 	}
 	spell := func(name string) string {
 		lower := strings.ToLower(name)

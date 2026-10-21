@@ -455,6 +455,14 @@ tls-forge fetch --request-kind fetch --initiator-url https://shop.example/item/7
   -X POST -H 'Content-Type: application/json' -d '{"item":7}' https://api.shop.example/cart
 ```
 
+In `fetch` and `xhr` contexts, repeated script header names are combined with
+`, ` in input order, and fields follow Chrome's renderer header-map order,
+including collisions and growth as more names are added. HTTP/1 preserves the
+script fields' spelling,including lower case. Ordinary requests
+without a browser context retain their raw repeated fields. Measured profiles
+also keep ALPS consistent with the final ALPN offer when a transport forces
+HTTP/1.1.
+
 Without `--request-kind` a request goes out as a navigation typed into the
 address bar, with the profile's headers and whatever `-H` adds: what the first
 request of a visit is. To plain http on another machine it goes as Chrome sends

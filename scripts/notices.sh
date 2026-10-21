@@ -55,3 +55,10 @@ go list -deps -f '{{if .Module}}{{.Module.Path}}{{"\t"}}{{.Module.Version}}{{"\t
     fi
     cat "$dir/$licence"
   done
+
+# The header-map hash is adapted from BSD-licensed rapidhash, not a Go module.
+printf '\n%s\n%s\n%s\n\n' \
+  "--------------------------------------------------------------------------------" \
+  "rapidhash header-name hashing (internal/chromehash)" \
+  "--------------------------------------------------------------------------------"
+cat internal/chromehash/LICENSE

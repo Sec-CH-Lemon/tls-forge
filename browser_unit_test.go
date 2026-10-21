@@ -264,7 +264,7 @@ func TestNoEncodingIsOfferedThatTheProfileDoesNotOffer(t *testing.T) {
 	}
 }
 
-func TestALoneAuthorizationGoesBeforeTheUserAgent(t *testing.T) {
+func TestScriptHeadersRetainTheirSpellingInRendererOrder(t *testing.T) {
 	page := mustURL(t, "https://www.example.com/page")
 	base := NewHeader("User-Agent", "UA", "sec-ch-ua", "CH", "sec-ch-ua-platform", "P")
 	for _, tc := range []struct {
@@ -275,7 +275,7 @@ func TestALoneAuthorizationGoesBeforeTheUserAgent(t *testing.T) {
 		{Header{{Name: "AUTHORIZATION", Value: "x"}}, "sec-ch-ua-platform AUTHORIZATION user-agent sec-ch-ua"},
 		{Header{{Name: "X-Foo", Value: "1"}}, "sec-ch-ua-platform user-agent sec-ch-ua X-Foo"},
 		{Header{{Name: "Authorization", Value: "x"}, {Name: "X-Foo", Value: "1"}},
-			"sec-ch-ua-platform user-agent sec-ch-ua Authorization X-Foo"},
+			"sec-ch-ua-platform Authorization user-agent sec-ch-ua X-Foo"},
 	} {
 		for _, kind := range []RequestKind{KindFetch, KindXHR} {
 			r := browserRequest{kind: kind, method: "GET", initiator: page, from: originOf(page),
@@ -410,9 +410,9 @@ func TestAContextSpellsHTTP1AsChromeDoes(t *testing.T) {
 		want     []string
 	}{
 		{"as measured", measured, NewHeader("connection", "close"),
-			[]string{"Host", "Connection", "User-Agent", "sec-ch-ua", "Content-Type", "X-Mixed", "X-Lower", "Accept"}},
+			[]string{"Host", "Connection", "User-Agent", "sec-ch-ua", "Content-Type", "X-Mixed", "x-lower", "Accept"}},
 		{"with nothing measured", nil, nil,
-			[]string{"Host", "Connection", "User-Agent", "sec-ch-ua", "Content-Type", "X-Mixed", "X-Lower", "Accept"}},
+			[]string{"Host", "Connection", "User-Agent", "sec-ch-ua", "Content-Type", "X-Mixed", "x-lower", "Accept"}},
 	} {
 		layout := browserHTTP1Layout(h, script, order, tc.measured, tc.http1, "www.example.com")
 		var names []string

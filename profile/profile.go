@@ -320,7 +320,7 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 				extension.Data = payload
 			}
 		}
-		return withResumption(*spec), nil
+		return settingsForALPN(withResumption(*spec)), nil
 	}
 	if p.Base != "" {
 		base, ok := profiles.MappedTLSClients[p.Base]
