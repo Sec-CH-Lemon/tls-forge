@@ -21,7 +21,7 @@ import (
 type transports struct {
 	// build is what transports are built with: the client's options, with own
 	// given before the caller's.
-	build func(own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
+	build func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
 	// proxy is what an error building them is cleaned of.
 	proxy string
 
@@ -87,7 +87,7 @@ func (p *pool) wrap(trip fhttp.RoundTripper) fhttp.RoundTripper {
 const maxSites = 64
 
 // newTransports builds transports with build.
-func newTransports(build func(...tls_client.HttpClientOption) []tls_client.HttpClientOption,
+func newTransports(build func(*proxyH2Pool, ...tls_client.HttpClientOption) []tls_client.HttpClientOption,
 	proxy string) (*transports, error) {
 	t := &transports{build: build, proxy: proxy}
 	spare, err := t.newSite("")
@@ -101,9 +101,10 @@ func newTransports(build func(...tls_client.HttpClientOption) []tls_client.HttpC
 // newSite builds the connections of the site named.
 func (t *transports) newSite(name string) (*site, error) {
 	var built [2]pool
+	proxyPool := newProxyH2Pool()
 	for i := range built {
 		p := &built[i]
-		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(tls_client.WithTransportWrapper(p.wrap))...)
+		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(proxyPool, tls_client.WithTransportWrapper(p.wrap))...)
 		if err != nil {
 			// A proxy the transport cannot read is quoted back whole, password
 			// and all, by url.Parse and by the transport alike.

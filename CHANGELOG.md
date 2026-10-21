@@ -1026,6 +1026,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Share an HTTPS proxy's outer H2 connection and HPACK state between CONNECT
+  and ordinary HTTP requests within a client/top-level site. Keep CONNECT
+  deadlines and closure local to the stream, preserve active peers on idle
+  cleanup, and isolate Fresh clients and different sites.
+- Suppress further TLS alerts after a failed Chrome-mode encrypted write;
+  its record sequence has already advanced and must never be rolled back.
+- Give H2 CONNECT its measured Chrome weight 147 independently of the
+  navigation or Fetch request inside the tunnel.
+
 - Forward plain HTTP through HTTPS proxies using their negotiated HTTP/1.1
   or HTTP/2 protocol, instead of CONNECT. Keep proxy authentication on that
   hop and close both forwarding pools when idle connections are cleared.

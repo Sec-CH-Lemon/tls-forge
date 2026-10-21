@@ -1358,6 +1358,15 @@ HTTP/2 for this forwarding hop; HTTP/2 uses the destination's `:authority`
 and `:scheme: http`. Proxy credentials stay on the proxy hop. HTTPS
 destinations continue to use CONNECT.
 
+With a Chrome profile, CONNECT streams and ordinary HTTP requests share the
+HTTPS proxy's outer H2 connection within one client and top-level site. Origin
+credential modes retain separate origin connections; their proxy hop can share
+the same proxy-authenticated channel. Fresh clients and different top-level
+sites keep separate pools. Closing or timing out one CONNECT affects only that
+stream. CONNECT uses its own measured H2 priority, independently of the origin
+request. After a fatal TLS write failure, the connection closes without sending
+another encrypted alert with a sequence the peer cannot reconstruct.
+
 Every URL, every repeat of it and every try goes out on a connection of its
 own, through a proxy on a tunnel of its own, so a proxy that hands every
 connection an address of its own gives each one. Once the run has been to a

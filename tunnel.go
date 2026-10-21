@@ -82,10 +82,11 @@ type connectDialer struct {
 	timeout time.Duration
 	dialer  net.Dialer
 	// keys are where the secrets of a connection to an HTTPS proxy go, or nil.
-	keys     io.Writer
-	identity proxyIdentity
-	forward  *url.URL
-	cache    proxyTLSCache
+	keys      io.Writer
+	identity  proxyIdentity
+	forward   *url.URL
+	cache     proxyTLSCache
+	proxyPool *proxyH2Pool
 }
 
 // dialOptions are how a client's connections are dialled. Through an HTTP or
@@ -125,6 +126,10 @@ func dialOptions(proxyURL string, own bool, keys io.Writer, identity ...proxyIde
 			d.keys = keys
 			if len(identity) > 0 {
 				d.identity = identity[0]
+				if d.identity.pool != nil {
+					d.proxyPool = d.identity.pool
+					d.cache = d.proxyPool.cache
+				}
 			}
 			return d, nil
 		}),
@@ -171,7 +176,7 @@ func (d *directDialer) DialContext(ctx context.Context, network, address string)
 func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header) *connectDialer {
 	d := &connectDialer{
 		address: u.Host, secure: u.Scheme == "https", name: u.Hostname(),
-		header: fhttp.Header{}, timeout: timeout, forward: u, cache: newProxyTLSCache(),
+		header: fhttp.Header{}, timeout: timeout, forward: u, cache: newProxyTLSCache(), proxyPool: newProxyH2Pool(),
 	}
 	if u.Port() == "" {
 		port := "80"
@@ -198,6 +203,9 @@ func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, ext
 // DialContext opens a tunnel to address. The network is what the proxy is
 // dialled over: tcp, or tcp4 or tcp6 when the other is turned off.
 func (d *connectDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	if d.secure && d.identity.profile != nil && d.identity.profile.Chromium() {
+		return d.chromeTunnel(ctx, network, address)
+	}
 	conn, err := d.reach(ctx, network)
 	if err != nil {
 		return nil, err

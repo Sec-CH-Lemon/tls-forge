@@ -339,10 +339,10 @@ func New(opts ...Option) (*Client, error) {
 	}
 	// How it dials comes last but for what each transport is given of its own
 	// and the caller's own.
-	built := func(own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
+	built := func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(clientProfile)}, options...)
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys,
-			proxyIdentity{profile: prof})...)
+			proxyIdentity{profile: prof, pool: proxyPool})...)
 		return append(append(out, own...), cfg.extra...)
 	}
 

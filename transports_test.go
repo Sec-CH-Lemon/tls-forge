@@ -44,7 +44,7 @@ func idlers(t *testing.T, proxy string, refuse func(n int) error) (*transports, 
 		built = append(built, c)
 		return c, nil
 	}
-	tr, err := newTransports(func(...tls_client.HttpClientOption) []tls_client.HttpClientOption {
+	tr, err := newTransports(func(*proxyH2Pool, ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		return nil
 	}, proxy)
 	if err != nil {
