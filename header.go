@@ -18,10 +18,12 @@ type Header []profile.Field
 // NewHeader builds a header from alternating name/value pairs. An odd number of
 // arguments drops the last one rather than panicking: this is convenience
 // syntax, not a place to lose a request over.
+// Names retain their spelling for a script's HTTP/1.1 fields. All lookups
+// remain case-insensitive and the HTTP/2 writer lowercases names.
 func NewHeader(pairs ...string) Header {
 	h := make(Header, 0, len(pairs)/2)
 	for i := 0; i+1 < len(pairs); i += 2 {
-		h = append(h, profile.Field{Name: strings.ToLower(pairs[i]), Value: pairs[i+1]})
+		h = append(h, profile.Field{Name: pairs[i], Value: pairs[i+1]})
 	}
 	return h
 }
@@ -64,7 +66,6 @@ func (h Header) Has(name string) bool {
 // overriding one value of a browser profile would silently stop looking like
 // that browser.
 func (h *Header) Set(name, value string) {
-	name = strings.ToLower(name)
 	for i := range *h {
 		if strings.EqualFold((*h)[i].Name, name) {
 			(*h)[i].Value = value
@@ -79,7 +80,7 @@ func (h *Header) Set(name, value string) {
 // on the wire, and the cookies of repeated Cookie fields all go, in the one
 // Cookie a request sends, so the proxy must not drop any of them.
 func (h *Header) Add(name, value string) {
-	*h = append(*h, profile.Field{Name: strings.ToLower(name), Value: value})
+	*h = append(*h, profile.Field{Name: name, Value: value})
 }
 
 // Del removes a header.

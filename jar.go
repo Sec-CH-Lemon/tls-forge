@@ -34,6 +34,9 @@ type keptJar struct {
 	// rules are what a request in a browser context lets through, by the URL
 	// the transport asks the jar about for it: its own, for each hop.
 	rules sync.Map
+	// Partitioned cookies never enter the ordinary jar. Each top-level
+	// schemeful site owns a separate store, including replacement/expiry.
+	partitions map[string]*keptJar
 }
 
 // cookieKey is a cookie's identity in a jar: a second cookie of the same name,
@@ -81,6 +84,37 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 	kept := make([]*fhttp.Cookie, 0, len(cookies))
 	for _, c := range cookies {
 		if c == nil {
+			continue
+		}
+		if partitionedCookie(c) {
+			if !c.Secure || rule.none || !rule.keeps(c) {
+				continue
+			}
+			key := rule.partition
+			if key == "" {
+				key = originOf(u).site()
+			}
+			if j.partitions == nil {
+				j.partitions = map[string]*keptJar{}
+			}
+			part := j.partitions[key]
+			if part == nil {
+				inner, err := newDefaultCookieJar()
+				if err != nil {
+					continue
+				}
+				part = newKeptJar(inner)
+				j.partitions[key] = part
+			}
+			copy := *c
+			copy.Unparsed = nil
+			for _, attr := range c.Unparsed {
+				name, _, _ := strings.Cut(attr, "=")
+				if !strings.EqualFold(strings.TrimSpace(name), "partitioned") {
+					copy.Unparsed = append(copy.Unparsed, attr)
+				}
+			}
+			part.SetCookies(u, []*fhttp.Cookie{&copy})
 			continue
 		}
 		if c = withinLimits(c); rule.keeps(c) && j.accepts(u, c) {
@@ -135,10 +169,26 @@ func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
 	held := j.inner.Cookies(jarURL(u))
 	ruled, ok := j.rules.Load(u)
-	if !ok {
-		return held
+	var rule sendRule
+	if ok {
+		rule = ruled.(sendRule)
 	}
-	rule := ruled.(sendRule)
+	partition := rule.partition
+	if partition == "" {
+		partition = originOf(u).site()
+	}
+	j.mu.Lock()
+	part := j.partitions[partition]
+	j.mu.Unlock()
+	var partitioned []*fhttp.Cookie
+	if part != nil {
+		part.restrict(u, rule)
+		partitioned = part.Cookies(u)
+		part.release(u)
+	}
+	if !ok {
+		return append(held, partitioned...)
+	}
 	now := time.Now()
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -149,7 +199,17 @@ func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
 			kept = append(kept, c)
 		}
 	}
-	return kept
+	return append(kept, partitioned...)
+}
+
+func partitionedCookie(c *fhttp.Cookie) bool {
+	for _, attr := range c.Unparsed {
+		name, _, _ := strings.Cut(attr, "=")
+		if strings.EqualFold(strings.TrimSpace(name), "partitioned") {
+			return true
+		}
+	}
+	return false
 }
 
 // restrict has the jar answer the transport, when it asks about u, with what
@@ -159,6 +219,7 @@ func (j *keptJar) release(u *url.URL)                 { j.rules.Delete(u) }
 
 // sendRule is which cookies a request in a browser context carries.
 type sendRule struct {
+	partition string
 	// none carries none: fetch() with credentials omitted, or kept to its
 	// own origin and going to another.
 	none bool

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/chromehash"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // scriptHeaders is a browser API's header list: repeated names share the first
@@ -42,12 +41,11 @@ func scriptHeaderOrder(h hop) []string {
 	}
 	slices.Sort(names) // Fetch's case-insensitive header list is name-ordered.
 	if h.to.scheme == "" || trustworthy(h.to) {
-		for _, name := range profile.ClientHintOrder {
-			if h.hints.Has(name) {
+		for _, name := range rendererHintInsertionOrder {
+			if h.hints.Has(name) || slices.Contains(defaultRendererHints, name) {
 				names = append(names, name)
 			}
 		}
-		names = append(names, "sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform")
 	}
 	names = append(names, "user-agent")
 	table := make([]string, 8)
@@ -85,3 +83,19 @@ func scriptHeaderOrder(h hop) []string {
 	}
 	return out
 }
+
+// Construction order, not the profile's observed bucket iteration order.
+// Blink FrameFetchContext::AddClientHintsIfNecessary inserts these fields
+// before the network service supplies Accept and Sec-Fetch-*.
+var rendererHintInsertionOrder = []string{
+	"device-memory", "sec-ch-device-memory", "rtt", "downlink", "ect",
+	"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-arch", "sec-ch-ua-platform",
+	"sec-ch-ua-platform-version", "sec-ch-ua-model", "sec-ch-ua-full-version",
+	"sec-ch-ua-full-version-list", "sec-ch-ua-bitness", "sec-ch-ua-wow64",
+	"sec-ch-ua-form-factors", "save-data", "sec-ch-prefers-reduced-transparency",
+	"sec-ch-prefers-reduced-motion", "sec-ch-prefers-color-scheme", "dpr",
+	"sec-ch-dpr", "viewport-width", "sec-ch-viewport-width", "viewport-height",
+	"sec-ch-viewport-height", "width", "sec-ch-width",
+}
+
+var defaultRendererHints = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"}

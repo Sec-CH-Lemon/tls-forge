@@ -431,7 +431,10 @@ func TestALogFollowsATunnel(t *testing.T) {
 	}
 	ask := book.one(t, "proxy connect", "request", "1")
 	if ask.get("proxy") != proxyURL || ask.get("target") != strings.TrimPrefix(server.URL(), "https://") ||
-		ask.get("headers") != "[Proxy-Authorization: Basic ***]" {
+		!strings.Contains(ask.get("headers"), "Proxy-Authorization: Basic ***") ||
+		!strings.Contains(ask.get("headers"), "Proxy-Connection: keep-alive") ||
+		!strings.Contains(ask.get("headers"), "User-Agent: Mozilla/") ||
+		strings.Contains(ask.get("headers"), "Header-Order") {
 		t.Errorf("the CONNECT was said as %v", ask)
 	}
 	answer := book.one(t, "proxy answer", "request", "1")

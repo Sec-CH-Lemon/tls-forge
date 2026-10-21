@@ -227,7 +227,7 @@ func (b *BrowserContext) onlyFetch(header Header, what string) error {
 	case b.Credentials != "":
 		return errContext("%s has no credentials mode: only fetch() and an XHR have one", what)
 	case len(header) > 0:
-		return errContext("%s sends the headers the browser gives it, not %s", what, header[0].Name)
+		return errContext("%s sends the headers the browser gives it, not %s", what, strings.ToLower(header[0].Name))
 	}
 	return nil
 }
@@ -306,7 +306,7 @@ func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, heade
 	}
 	for _, f := range header {
 		if forbiddenHeader(f.Name) {
-			return errContext("%s cannot set %s: the browser sets it", what, f.Name)
+			return errContext("%s cannot set %s: the browser sets it", what, strings.ToLower(f.Name))
 		}
 	}
 	r.script = scriptHeaders(header)

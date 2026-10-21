@@ -54,7 +54,71 @@ const maxZstdWindow = 8 << 20
 // value, exactly.
 var transportCodings = map[string]bool{"gzip": true, "br": true, "deflate": true, "zstd": true}
 
-func gzipDecoder(r io.Reader) (io.ReadCloser, error) { return gzip.NewReader(r) }
+func gzipDecoder(r io.Reader) (io.ReadCloser, error) {
+	g := &chromeGzip{source: bufio.NewReader(r)}
+	if err := g.next(); err != nil {
+		return nil, err
+	}
+	return g, nil
+}
+
+// Chrome's HTTP gzip decoder checks the compressed stream but does not require
+// or validate its CRC/ISIZE trailer. A truncated DEFLATE stream still fails.
+// Keep an actual DEFLATE end-of-stream boundary, so an unexpected EOF in the
+// payload cannot be mistaken for a missing trailer.
+type chromeGzip struct {
+	source *bufio.Reader
+	member io.ReadCloser
+	done   bool
+}
+
+func (g *chromeGzip) next() error {
+	// gzip.NewReader validates the complete optional header without reading
+	// DEFLATE data when its input already implements io.ByteReader.
+	header, err := gzip.NewReader(g.source)
+	if err != nil {
+		return err
+	}
+	_ = header.Close()
+	g.member = flate.NewReader(g.source)
+	return nil
+}
+
+func (g *chromeGzip) Read(p []byte) (int, error) {
+	for !g.done {
+		n, err := g.member.Read(p)
+		if err != io.EOF {
+			return n, err
+		}
+		_ = g.member.Close()
+		var trailer [8]byte
+		_, err = io.ReadFull(g.source, trailer[:])
+		if err != nil {
+			g.done = true
+			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+				return n, io.EOF
+			}
+			return n, err
+		}
+		magic, err := g.source.Peek(2)
+		if len(magic) < 2 || magic[0] != 0x1f || magic[1] != 0x8b {
+			g.done = true
+			if err != nil && !errors.Is(err, io.EOF) {
+				return n, err
+			}
+			return n, io.EOF
+		}
+		if err := g.next(); err != nil {
+			return n, err
+		}
+		if n > 0 {
+			return n, nil
+		}
+	}
+	return 0, io.EOF
+}
+
+func (g *chromeGzip) Close() error { return g.member.Close() }
 
 func brotliDecoder(r io.Reader) (io.ReadCloser, error) {
 	return io.NopCloser(brotli.NewReader(r)), nil

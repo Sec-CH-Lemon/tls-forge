@@ -463,6 +463,35 @@ without a browser context retain their raw repeated fields. Measured profiles
 also keep ALPS consistent with the final ALPN offer when a transport forces
 HTTP/1.1.
 
+`-H`, `NewHeader`, `Header.Set` and `Header.Add` retain the supplied name's
+spelling. Lookups remain case-insensitive; HTTP/2 still writes lowercase names.
+Fetch/XHR chains follow twenty redirects (twenty-one requests); the next
+redirect fails with `the 21st redirect was not followed`. Navigation/form and
+low-level requests retain the measured navigation bound: nineteen redirects,
+twenty requests,then `the 20th redirect was not followed`. Requested client hints
+use the renderer's construction order before its hash
+table is iterated, including partial `Accept-CH` grants.
+
+Requests with a browser context use a private GET cache partitioned by the
+top-level schemeful site, URL and `Vary` fields. Complete 200 responses with
+explicit freshness or a validator can be retained: 8 MiB per body, 64 MiB in
+total and 256 entries. Fresh responses avoid another origin request; stale
+ones use ETag or Last-Modified and merge a 304 response. `no-store`, `Vary: *`
+and incomplete bodies are not cached. Low-level requests without a browser
+context continue to contact the network. Cache-mode and cache-clearing APIs
+remain unavailable.
+
+For a response to a browser-context request, headers retain the received
+Content-Encoding and Content-Length, as Chrome Fetch does. The body is already
+decoded and `Encoding` identifies the codings removed. Responses without a
+browser context retain the decoded-body header contract used by the proxy.
+
+The current unreleased transport fixes use the local `go.work`, which selects
+the maintained checkouts in `../forks/{utls,fhttp,tls-client}`. The rebuilt local
+executable includes those edits. Published module requirements have not been
+advanced: publishing the fork changes and updating their pseudo-versions is a
+separate release step. `GOWORK=off` selects the previously published transport.
+
 Without `--request-kind` a request goes out as a navigation typed into the
 address bar, with the profile's headers and whatever `-H` adds: what the first
 request of a visit is. To plain http on another machine it goes as Chrome sends

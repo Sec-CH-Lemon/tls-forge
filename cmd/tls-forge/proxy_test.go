@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -79,10 +81,21 @@ func (p *recordingProxy) handle(conn net.Conn) {
 		return
 	}
 	fields := strings.Fields(line)
-	if len(fields) < 2 || fields[0] != "CONNECT" {
+	if len(fields) < 2 {
 		return
 	}
 	target := fields[1]
+	forward := fields[0] != "CONNECT"
+	if forward {
+		u, err := url.Parse(target)
+		if err != nil || u.Scheme != "http" {
+			return
+		}
+		target = u.Host
+		if u.Port() == "" {
+			target = net.JoinHostPort(u.Hostname(), "80")
+		}
+	}
 
 	// Drain the headers, so the tunnel starts where the client expects it to.
 	var asked []string
@@ -113,6 +126,31 @@ func (p *recordingProxy) handle(conn net.Conn) {
 	p.mu.Unlock()
 	if heard != nil {
 		heard(asked)
+	}
+	if forward {
+		request, err := http.ReadRequest(bufio.NewReader(io.MultiReader(
+			strings.NewReader(line+strings.Join(asked, "\r\n")+"\r\n\r\n"), reader)))
+		if err != nil {
+			return
+		}
+		request.Header.Del("Proxy-Authorization")
+		request.Header.Del("Proxy-Connection")
+		if err := request.Write(upstream); err != nil {
+			return
+		}
+		answer, err := http.ReadResponse(bufio.NewReader(upstream), request)
+		if err != nil {
+			return
+		}
+		defer answer.Body.Close()
+		for _, field := range strings.Split(p.says(tunnel, asked), "\r\n") {
+			if name, value, ok := strings.Cut(field, ":"); ok {
+				answer.Header.Add(name, strings.TrimSpace(value))
+			}
+		}
+		answer.Close = true
+		_ = answer.Write(conn)
+		return
 	}
 
 	if _, err := fmt.Fprint(conn, "HTTP/1.1 200 Connection established\r\n"+p.says(tunnel, asked)+"\r\n"); err != nil {

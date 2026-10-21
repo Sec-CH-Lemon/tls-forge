@@ -8,6 +8,7 @@ import socketserver
 import subprocess
 import threading
 import zlib
+from urllib.parse import urlsplit
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
@@ -112,8 +113,7 @@ class _ChainHandler(BaseHTTPRequestHandler):
 
 
 def test_the_real_go_daemon_follows_nineteen_redirects_and_stops_at_the_twentieth() -> None:
-    """As Chrome 155 does, and as the CLI and the Go library do: twenty
-    requests, the twentieth redirect not followed, nothing past it asked."""
+    """Navigation follows nineteen redirects; the twentieth is refused."""
     binary = os.environ.get("TLSFORGE_REAL_BIN")
     if not binary:
         pytest.skip("run through make wrapper-smoke")
@@ -191,13 +191,31 @@ class _TunnelHandler(socketserver.StreamRequestHandler):
         while (line := self.rfile.readline().decode("latin-1").strip()) != "":
             name, _, value = line.partition(":")
             headers[name.strip().lower()] = value.strip()
-        if method != "CONNECT" or headers.get("proxy-authorization") != self.server.expected:
+        if headers.get("proxy-authorization") != self.server.expected:
             self.wfile.write(b"HTTP/1.1 407 Proxy Authentication Required\r\nContent-Length: 0\r\n\r\n")
             return
-        self.server.tunnels.append(target)
-        host, port = target.rsplit(":", 1)
+        if method == "CONNECT":
+            authority = target
+            path = ""
+        else:
+            parsed = urlsplit(target)
+            assert parsed.scheme == "http" and parsed.hostname == "127.0.0.1"
+            authority = parsed.netloc
+            path = parsed.path or "/"
+            if parsed.query:
+                path += "?" + parsed.query
+        self.server.tunnels.append(authority)
+        host, port = authority.rsplit(":", 1)
         with socket.create_connection((host, int(port)), timeout=5) as upstream:
-            self.wfile.write(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+            if method == "CONNECT":
+                self.wfile.write(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+            else:
+                headers.pop("proxy-authorization", None)
+                headers.pop("proxy-connection", None)
+                headers["connection"] = "close"
+                head = f"{method} {path} HTTP/1.1\r\n"
+                head += "".join(f"{k}: {v}\r\n" for k, v in headers.items())
+                upstream.sendall((head + "\r\n").encode("latin-1"))
             back = threading.Thread(target=_pipe, args=(upstream, self.connection), daemon=True)
             back.start()
             _pipe(self.connection, upstream)

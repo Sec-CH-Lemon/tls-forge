@@ -1,0 +1,488 @@
+{
+  "browser": "Chrome155.0.8059.85,native minimized macOS27.0.1arm64",
+  "source": "net-fp-server measurements/success-audit-20261021-1348/hints-independent.json;authenticated original H1/H2 requests;two reversed rounds",
+  "cases": [
+    {
+      "id": "CTX-009-audit-mask00-order0-h1",
+      "grant": [],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask01-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask02-order0-h1",
+      "grant": [
+        "sec-ch-ua-arch"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask03-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask04-order0-h1",
+      "grant": [
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask05-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask06-order0-h1",
+      "grant": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask07-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask08-order0-h1",
+      "grant": [
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask09-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask10-order0-h1",
+      "grant": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask11-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask12-order0-h1",
+      "grant": [
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask13-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask14-order0-h1",
+      "grant": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask15-order0-h1",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask15-order1-h1",
+      "grant": [
+        "sec-ch-ua-platform-version",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-full-version-list"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask00-order0-h2",
+      "grant": [],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask01-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask02-order0-h2",
+      "grant": [
+        "sec-ch-ua-arch"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask03-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask04-order0-h2",
+      "grant": [
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask05-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask06-order0-h2",
+      "grant": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask07-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask08-order0-h2",
+      "grant": [
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask09-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask10-order0-h2",
+      "grant": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask11-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask12-order0-h2",
+      "grant": [
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask13-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask14-order0-h2",
+      "grant": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask15-order0-h2",
+      "grant": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-platform-version"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ]
+    },
+    {
+      "id": "CTX-009-audit-mask15-order1-h2",
+      "grant": [
+        "sec-ch-ua-platform-version",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-full-version-list"
+      ],
+      "order": [
+        "sec-ch-ua-full-version-list",
+        "sec-ch-ua-platform",
+        "sec-ch-ua",
+        "sec-ch-ua-bitness",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-arch",
+        "sec-ch-ua-platform-version"
+      ]
+    }
+  ]
+}

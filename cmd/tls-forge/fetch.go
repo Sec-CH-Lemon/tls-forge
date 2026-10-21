@@ -56,7 +56,7 @@ func (h *headerFlag) Set(value string) error {
 		return fmt.Errorf("expected \"Name: value\", got %q", value)
 	}
 	*h = append(*h, profile.Field{
-		Name:  strings.ToLower(strings.TrimSpace(name)),
+		Name:  strings.TrimSpace(name),
 		Value: strings.TrimSpace(val),
 	})
 	return nil

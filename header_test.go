@@ -7,7 +7,7 @@ import (
 
 func TestNewHeader(t *testing.T) {
 	h := NewHeader("Sec-CH-UA", `"Chromium";v="151"`, "User-Agent", "Mozilla/5.0")
-	if got, want := h.Names(), []string{"sec-ch-ua", "user-agent"}; !reflect.DeepEqual(got, want) {
+	if got, want := h.Names(), []string{"Sec-CH-UA", "User-Agent"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Names = %v, want %v", got, want)
 	}
 	if got := h.Get("USER-AGENT"); got != "Mozilla/5.0" {
@@ -55,7 +55,7 @@ func TestSetKeepsPosition(t *testing.T) {
 func TestSetAppendsWhatIsNotThere(t *testing.T) {
 	h := NewHeader("accept", "*/*")
 	h.Set("Referer", "https://example.com")
-	if got, want := h.Names(), []string{"accept", "referer"}; !reflect.DeepEqual(got, want) {
+	if got, want := h.Names(), []string{"accept", "Referer"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Names = %v, want %v", got, want)
 	}
 }

@@ -492,6 +492,7 @@ func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientP
 		return built
 	}
 	return built.WithHeaderRepresentation(chromeHeaderRepresentation).
+		WithChromeBehavior(true).
 		WithMaxEncoderHeaderTableSize(chromeEncoderTableSize).
 		WithMaxHeaderFramePayload(chromeHeaderFramePayload).
 		WithMaxDataFramePayload(chromeDataFramePayload).

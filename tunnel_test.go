@@ -36,6 +36,7 @@ type connectProxy struct {
 	// Respond-With.
 	credentials []string
 	asked       []string
+	forwarded   []string
 }
 
 func startConnectProxy(t *testing.T, secure bool, answer func(n int32) string) *connectProxy {
@@ -54,7 +55,30 @@ func startConnectProxyOver(t *testing.T, over *tls.Config, answer func(n int32) 
 	p := &connectProxy{}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodConnect {
-			http.Error(w, "CONNECT only", http.StatusMethodNotAllowed)
+			if !r.URL.IsAbs() || (r.URL.Hostname() != "127.0.0.1" && r.URL.Hostname() != "localhost") {
+				http.Error(w, "owned absolute-form URLs only", http.StatusBadRequest)
+				return
+			}
+			p.mu.Lock()
+			p.forwarded = append(p.forwarded, r.RequestURI)
+			p.credentials = append(p.credentials, r.Header.Get("Proxy-Authorization"))
+			p.mu.Unlock()
+			copy := r.Clone(r.Context())
+			copy.RequestURI = ""
+			copy.Header.Del("Proxy-Authorization")
+			copy.Header.Del("Proxy-Connection")
+			transport := &http.Transport{DisableKeepAlives: true}
+			answer, err := transport.RoundTrip(copy)
+			if err != nil {
+				http.Error(w, err.Error(), 502)
+				return
+			}
+			defer answer.Body.Close()
+			for name, values := range answer.Header {
+				w.Header()[name] = values
+			}
+			w.WriteHeader(answer.StatusCode)
+			_, _ = io.Copy(w, answer.Body)
 			return
 		}
 		p.mu.Lock()
@@ -172,7 +196,7 @@ func TestATunnelAsksWhatTheClientAsks(t *testing.T) {
 	}
 }
 
-func TestATunnelToAPlainHTTPSite(t *testing.T) {
+func TestAPlainHTTPURLUsesAbsoluteFormAtTheProxy(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("plain"))
 	}))
@@ -188,8 +212,11 @@ func TestATunnelToAPlainHTTPSite(t *testing.T) {
 	if string(res.Body) != "plain" {
 		t.Errorf("body = %q", res.Body)
 	}
-	if len(seen.conns) != 1 || seen.conns[0].ProxyHeader.Get("x-exit-ip") != "203.0.113.1" {
+	if len(seen.conns) != 1 || seen.conns[0].Tunnel != 0 || len(seen.conns[0].ProxyHeader) != 0 {
 		t.Errorf("the connection was reported as %+v", seen.conns)
+	}
+	if via.tunnels.Load() != 0 || len(via.forwarded) != 1 || via.forwarded[0] != server.URL+"/" {
+		t.Errorf("forwarded %v;CONNECTs %d", via.forwarded, via.tunnels.Load())
 	}
 	// Without credentials, nothing is claimed for them.
 	if got := via.credentials; len(got) != 1 || got[0] != "" {

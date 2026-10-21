@@ -105,7 +105,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithCookies(cookies)` | Seed the client's jar with a warmed session. Cookies are matched to each request URL before being inserted. |
 | `WithoutCookieJar()` | Disable cookie storage. Use this when another layer, such as an intercepting proxy, owns the `Cookie` header. |
 | `WithCookieJar(jar)` | Supply an `fhttp.CookieJar`, for example to share or persist a jar. |
-| `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default as Chrome follows them ([Redirects](#redirects)): nineteen in a row, and the twentieth fails the request with `the 20th redirect was not followed`. |
+| `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default as Chrome follows them ([Redirects](#redirects)): nineteen for navigation/form/low-level requests; twenty for Fetch/XHR contexts. |
 | `WithoutSessionResumption()` | Keep no TLS session to resume, so that every connection is the cold handshake of a first contact. Without it a profile whose browser resumes does as the browser does; see below. |
 | `WithInsecureSkipVerify()` | Disable upstream certificate verification. Intended for controlled local test endpoints. |
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
@@ -473,9 +473,10 @@ A redirect is followed as Chrome 155 was measured following one
   the server asks for them.
 - A Chromium profile's client hints go after `Sec-Fetch-Dest` once a request
   is redirected.
-- Nineteen redirects are followed. The twentieth is not, and the request
-  fails with `the 20th redirect was not followed`: on a chain that does not
-  end, Chrome made twenty requests.
+- Navigation/form and low-level requests follow nineteen redirects,then fail
+  with `the 20th redirect was not followed` (twenty requests total). Fetch/XHR
+  contexts follow twenty redirects,then fail with
+  `the 21st redirect was not followed` (twenty-one requests total).
 - Each hop goes out on the connections of its own top-level site, as Chrome
   155 was measured sending them (`testdata/chrome155-connections.json`): a
   hop to another site on that site's, and one back on the first's. A request
@@ -601,7 +602,7 @@ their `Content-Encoding`.
 |---|---|
 | `Status` | HTTP status code |
 | `URL` | Final URL after redirects, as Chrome writes it |
-| `Header` | Lower-cased header names mapped to every field value. They describe `Body`: once it is decoded, `content-encoding` and `content-length`, which described the bytes on the wire, are left out |
+| `Header` | Lower-cased names mapped to every field value. With `Browser`, received representation headers are preserved, as in Fetch; `Body` is decoded and `Encoding` says what was removed. Without `Browser`, `content-encoding` and `content-length` are removed after decoding so the headers describe `Body` |
 | `Body` | Decoded `[]byte` body |
 | `Encoding` | The codings `Body` was decoded from, as a `Content-Encoding` field lists them (`gzip`, `gzip, br`), or empty when it is the bytes as they came |
 | `Cookies` | `name=value` pairs the jar holds for the final URL |

@@ -1016,9 +1016,9 @@ func chainServer(t *testing.T) (*httptest.Server, func() (requests, ends int32))
 	return server, func() (int32, int32) { return requests.Load(), ends.Load() }
 }
 
-func TestAChainOfRedirectsEndsAtItsTwentiethRequest(t *testing.T) {
-	// As Chrome 155 was measured to: 19 redirects are followed to the answer,
-	// 20 requests in all; the 20th redirect is not followed, and nothing past
+func TestANavigationChainEndsAtItsTwentiethRequest(t *testing.T) {
+	// Chrome navigation loader stops after twenty requests. Fetch has its
+	// own twenty-redirect limit,tested separately. Nothing past
 	// it is asked. The default profile carries an HTTP/1.1 layout and the
 	// catalogue one does not, which once decided whether a chain ever ended.
 	for _, name := range []string{DefaultProfile, "chrome_133"} {

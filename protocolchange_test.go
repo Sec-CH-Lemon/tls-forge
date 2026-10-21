@@ -11,9 +11,8 @@ import (
 func TestEveryRequestGoesThroughAServerThatChangesItsProtocol(t *testing.T) {
 	// A server whose connections, one request each, say h2 and then
 	// http/1.1, as a load balancer can over servers that differ: every
-	// request is answered. One whose connection spoke another protocol than
-	// its transport goes again on a transport set up for the server as it is
-	// now, at the cost of a handshake: Chrome would take the connection.
+	// request is answered on the connection already negotiated, including a
+	// replacement whose protocol differs from the previously cached transport.
 	for _, tc := range []struct {
 		name string
 		// http1 says which handshakes, from 1, offer http/1.1 alone.
@@ -21,11 +20,8 @@ func TestEveryRequestGoesThroughAServerThatChangesItsProtocol(t *testing.T) {
 		seen       map[string]int
 		handshakes int32
 	}{
-		// The first over HTTP/2; the second meets HTTP/1.1 on its
-		// connection, and again on the setup's; the rest over it.
-		{"changed once", func(n int32) bool { return n > 1 }, map[string]int{"HTTP/2.0": 1, "HTTP/1.1": 7}, 9},
-		// Each after the first meets HTTP/1.1, then the setup's HTTP/2.
-		{"changing on every connection", func(n int32) bool { return n%2 == 0 }, map[string]int{"HTTP/2.0": 8}, 15},
+		{"changed once", func(n int32) bool { return n > 1 }, map[string]int{"HTTP/2.0": 1, "HTTP/1.1": 7}, 8},
+		{"changing on every connection", func(n int32) bool { return n%2 == 0 }, map[string]int{"HTTP/2.0": 4, "HTTP/1.1": 4}, 8},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var handshakes atomic.Int32

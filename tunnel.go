@@ -82,7 +82,10 @@ type connectDialer struct {
 	timeout time.Duration
 	dialer  net.Dialer
 	// keys are where the secrets of a connection to an HTTPS proxy go, or nil.
-	keys io.Writer
+	keys     io.Writer
+	identity proxyIdentity
+	forward  *url.URL
+	cache    proxyTLSCache
 }
 
 // dialOptions are how a client's connections are dialled. Through an HTTP or
@@ -96,7 +99,7 @@ type connectDialer struct {
 // dialer or a proxy of its own, whose names are not to be looked up here.
 // Every connection is dialed for a request, within its context, which says
 // what the dial does in the request's log.
-func dialOptions(proxyURL string, own bool, keys io.Writer) []tls_client.HttpClientOption {
+func dialOptions(proxyURL string, own bool, keys io.Writer, identity ...proxyIdentity) []tls_client.HttpClientOption {
 	if proxyURL == "" {
 		if !own {
 			return nil
@@ -120,6 +123,9 @@ func dialOptions(proxyURL string, own bool, keys io.Writer) []tls_client.HttpCli
 		) (proxy.ContextDialer, error) {
 			d := newConnectDialer(u, timeout, local, header)
 			d.keys = keys
+			if len(identity) > 0 {
+				d.identity = identity[0]
+			}
 			return d, nil
 		}),
 		// The transport tells by the proxy's URL that QUIC cannot go through it,
@@ -165,7 +171,7 @@ func (d *directDialer) DialContext(ctx context.Context, network, address string)
 func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header) *connectDialer {
 	d := &connectDialer{
 		address: u.Host, secure: u.Scheme == "https", name: u.Hostname(),
-		header: fhttp.Header{}, timeout: timeout,
+		header: fhttp.Header{}, timeout: timeout, forward: u, cache: newProxyTLSCache(),
 	}
 	if u.Port() == "" {
 		port := "80"
@@ -217,6 +223,9 @@ func (d *connectDialer) reach(ctx context.Context, network string) (net.Conn, er
 	if err != nil {
 		return nil, err
 	}
+	if d.identity.profile != nil && d.identity.profile.Chromium() {
+		return d.chromeProxyTLS(ctx, raw)
+	}
 	// HTTP/1.1 only, so that every tunnel is a connection of its own, and the
 	// answer that opened it belongs to it alone.
 	conn := tls.Client(raw, &tls.Config{ServerName: d.name, NextProtos: []string{"http/1.1"}, RootCAs: proxyRoots,
@@ -247,6 +256,9 @@ func (d *connectDialer) dial(ctx context.Context, network string) (net.Conn, err
 // No longer than the client's timeout, and no longer than the request is
 // wanted: a proxy that never answers holds up neither.
 func (d *connectDialer) open(ctx context.Context, conn net.Conn, address string) (*tunnel, error) {
+	if speaksH2(conn) {
+		return d.openH2(ctx, conn, address)
+	}
 	_ = conn.SetDeadline(time.Now().Add(d.timeout))
 	stop := context.AfterFunc(ctx, func() { _ = conn.SetDeadline(time.Now()) })
 	defer stop()

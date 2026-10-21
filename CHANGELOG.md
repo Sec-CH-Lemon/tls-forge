@@ -1026,6 +1026,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Fetch/XHR contexts now follow twenty redirects and reject the twenty-first
+  with `the 21st redirect was not followed`. Navigation/form and low-level
+  requests retain the separately measured nineteen-redirect navigation bound.
+
+- Chrome fidelity remediation: requested-hint construction order and caller
+  header spelling; partitioned cookies; browser-context GET freshness and
+  conditional revalidation; gzip trailer tolerance with DEFLATE truncation
+  rejection; browser-context encoded response metadata; browser CONNECT headers
+  and outer proxy TLS. Local transport fork edits also address ticket
+  consumption/age, terminal-dot SNI, unsolicited EncryptedExtensions, compressed
+  certificate errors, KeyUpdate coalescing, ALPN replacement reuse and HTTP/2
+  error frames. These edits use the local Go workspace until fork publication;
+  live acceptance and remaining scopes are recorded separately in net-fp-server.
+
 - Browser-context Fetch/XHR combines repeated script fields and follows Chrome's
   renderer-map order instead of fixed custom-header slots;HTTP/1 preserves their
   input spelling,including lower case. Raw requests retain

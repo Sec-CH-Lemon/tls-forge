@@ -22,13 +22,15 @@ type session struct {
 	// preflights is what CORS preflights allowed in the session.
 	preflights *preflightCache
 	auth       *authCache
+	cache      *responseCache
 }
 
 // newSession is a session keeping cookies in jar, nil for none, warmed with
 // cookies.
 func newSession(jar *keptJar, cookies []Cookie) *session {
 	return &session{jar: jar, warm: &warmSession{cookies: cookies, seeded: map[warmCookieKey]struct{}{}},
-		hints: newHintStore(), preflights: newPreflightCache(), auth: &authCache{draw: newCnonce}}
+		hints: newHintStore(), preflights: newPreflightCache(), auth: &authCache{draw: newCnonce},
+		cache: &responseCache{entries: map[string][]*cachedResponse{}}}
 }
 
 // warmSession is a session a client was handed, with which of its cookies have

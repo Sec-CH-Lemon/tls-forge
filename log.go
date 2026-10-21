@@ -535,6 +535,9 @@ func valueNames(values []capture.Value) []string {
 func sortedHeaderLines(header map[string][]string) []string {
 	names := make([]string, 0, len(header))
 	for name := range header {
+		if headerLayoutKey(name) {
+			continue
+		}
 		names = append(names, name)
 	}
 	sort.Strings(names)

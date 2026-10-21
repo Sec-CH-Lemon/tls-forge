@@ -68,8 +68,7 @@ test('a request the real Go daemon cannot make rejects', { skip: !binary }, asyn
 });
 
 test('the real Go daemon follows nineteen redirects and stops at the twentieth', { skip: !binary }, async () => {
-  // As Chrome 155 does, and as the CLI and the Go library do: twenty requests,
-  // the twentieth redirect not followed, and nothing past it asked.
+  // Navigation follows nineteen redirects; Fetch uses a separate twenty-hop bound.
   let requests = 0;
   let ends = 0;
   const server = http.createServer((request, response) => {
@@ -115,9 +114,26 @@ async function listen(server) {
 // keeps where each tunnel went.
 async function tunnelling(user, password) {
   const tunnels = [];
-  const proxy = http.createServer((_request, response) => {
-    response.statusCode = 405;
-    response.end();
+  const proxy = http.createServer((request, response) => {
+    const expected = `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
+    if (request.headers['proxy-authorization'] !== expected) {
+      response.writeHead(407, { 'content-length': '0' });
+      response.end();
+      return;
+    }
+    const target = new URL(request.url);
+    assert.equal(target.protocol, 'http:');
+    assert.equal(target.hostname, '127.0.0.1');
+    tunnels.push(target.host);
+    const headers = { ...request.headers, connection: 'close' };
+    delete headers['proxy-authorization'];
+    delete headers['proxy-connection'];
+    const upstream = http.request(target, { method: request.method, headers }, (answer) => {
+      response.writeHead(answer.statusCode, answer.headers);
+      answer.pipe(response);
+    });
+    upstream.on('error', () => response.destroy());
+    request.pipe(upstream);
   });
   proxy.on('connect', (request, socket, head) => {
     const expected = `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;

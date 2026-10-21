@@ -22,12 +22,9 @@ import (
 // unasked; and for a request in a browser context, every hop worked out again
 // from what the hops before it say.
 
-// maxRedirects is the most requests one chain of redirects makes: Chrome
-// 155, measured on a chain that does not end, made 20 and did not follow the
-// 20th redirect, as the Fetch standard's count of 20 has it. A redirect policy
-// of one's own replaces the transport's check rather than adding to it, and
-// one that let everything through followed two pages redirecting to each
-// other until the request's deadline: 54,600 requests in five seconds.
+// maxRedirects is Fetch/XHR's number of followed redirects,excluding the
+// initial request. Chromium navigation/form loader stops one request earlier.
+// Preserve both separately measured boundaries rather than generalize one.
 const maxRedirects = 20
 
 // chain is what a request carries from hop to hop of its redirects, kept in
@@ -164,6 +161,7 @@ func (ch *chain) rule(u *url.URL, rule sendRule) {
 	if ch.client.session.jar == nil {
 		return
 	}
+	rule.partition = topSite(ch.browser, u)
 	ch.client.session.jar.restrict(u, rule)
 	ch.ruled = append(ch.ruled, u)
 }

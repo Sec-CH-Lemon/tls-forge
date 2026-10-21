@@ -176,10 +176,10 @@ type Response struct {
 	Status int
 	// URL is the final URL, after redirects, as Chrome writes it.
 	URL string
-	// Header describes Body. When Body was decoded from a content coding,
-	// Content-Encoding and Content-Length are left out of it: they said what
-	// came over the wire, and a caller that passed them on with Body would be
-	// telling the next reader to decode it again.
+	// Header in a browser context preserves received representation metadata,
+	// as Fetch does even after decoding Body. Encoding says what was decoded.
+	// Without a browser context Header describes the decoded Body, so a proxy
+	// can forward it without instructing its reader to decode it again.
 	Header map[string][]string
 	Body   []byte
 	// Encoding is the content codings Body was decoded from, as a
@@ -301,8 +301,18 @@ func New(opts ...Option) (*Client, error) {
 	if !cfg.followRedirects {
 		options = append(options, tls_client.WithNotFollowRedirects())
 	}
-	if len(cfg.proxyHeader) > 0 {
+	if len(cfg.proxyHeader) > 0 || prof.Chromium() {
 		asked := fhttp.Header{}
+		if prof.Chromium() {
+			ua := Header(prof.Headers).Merge(cfg.headers).Get("user-agent")
+			if !cfg.proxyHeader.Has("user-agent") {
+				asked.Set("User-Agent", ua)
+			}
+			if !cfg.proxyHeader.Has("proxy-connection") {
+				asked.Set("Proxy-Connection", "keep-alive")
+			}
+			asked[fhttp.HeaderOrderKey] = []string{"user-agent", "proxy-connection"}
+		}
 		for _, field := range cfg.proxyHeader {
 			asked.Add(field.Name, field.Value)
 		}
@@ -331,7 +341,8 @@ func New(opts ...Option) (*Client, error) {
 	// and the caller's own.
 	built := func(own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(clientProfile)}, options...)
-		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys)...)
+		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys,
+			proxyIdentity{profile: prof})...)
 		return append(append(out, own...), cfg.extra...)
 	}
 
@@ -532,7 +543,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	}
 	for name, values := range res.Header {
 		lower := strings.ToLower(name)
-		if encoding != "" && (lower == "content-encoding" || lower == "content-length") {
+		if browser == nil && encoding != "" && (lower == "content-encoding" || lower == "content-length") {
 			continue
 		}
 		out.Header[lower] = values
@@ -754,11 +765,18 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		return err
 	}
 	ch.redirects++
-	if ch.redirects >= maxRedirects {
+	limit := maxRedirects - 1 // Chromium navigation loader counts requests.
+	if ch.browser != nil && (ch.browser.kind == KindFetch || ch.browser.kind == KindXHR) {
+		limit = maxRedirects
+	}
+	if ch.redirects > limit {
 		if r != nil {
 			r.stopped(ch.redirects, req.Response.StatusCode, shownURL(req).String())
 		}
-		return fmt.Errorf("the %dth redirect was not followed", maxRedirects)
+		if limit == maxRedirects {
+			return fmt.Errorf("the 21st redirect was not followed")
+		}
+		return fmt.Errorf("the 20th redirect was not followed")
 	}
 	if t, _ := req.Context().Value(traceKey{}).(*Trace); t != nil {
 		t.redirect(req.Response.StatusCode, shownURL(req).String())
