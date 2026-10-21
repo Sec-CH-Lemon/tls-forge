@@ -1352,6 +1352,12 @@ opens each tunnel. `fetch` opens the tunnel through an HTTP or HTTPS proxy
 itself and keeps that answer with the connection, so every request says where
 it came out, and no request is made to anybody to find out.
 
+For a plain `http://` destination, Chrome profiles forward the request to an
+HTTP or HTTPS proxy without CONNECT. An HTTPS proxy negotiates HTTP/1.1 or
+HTTP/2 for this forwarding hop; HTTP/2 uses the destination's `:authority`
+and `:scheme: http`. Proxy credentials stay on the proxy hop. HTTPS
+destinations continue to use CONNECT.
+
 Every URL, every repeat of it and every try goes out on a connection of its
 own, through a proxy on a tunnel of its own, so a proxy that hands every
 connection an address of its own gives each one. Once the run has been to a

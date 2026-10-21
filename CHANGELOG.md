@@ -1026,6 +1026,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Forward plain HTTP through HTTPS proxies using their negotiated HTTP/1.1
+  or HTTP/2 protocol, instead of CONNECT. Keep proxy authentication on that
+  hop and close both forwarding pools when idle connections are cleared.
+
 - Preserve scripted Priority over HTTP/1.1; match cookies against escaped URL
   paths and derive their default path without percent-decoding. Decode 206
   responses and follow measured Chrome gzip EOF/first-member behavior while

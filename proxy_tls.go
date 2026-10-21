@@ -24,10 +24,10 @@ type proxyTLSCache = utls.ClientSessionCache
 
 func newProxyTLSCache() proxyTLSCache { return utls.NewLRUClientSessionCache(32) }
 
-// The transport uses absolute-form HTTP through a plain HTTP proxy; HTTPS
+// The transport forwards plain HTTP through HTTP or HTTPS proxies; HTTPS
 // origins still use CONNECT and retain the origin's TLS profile.
 func (d *connectDialer) ForwardProxyURL() *url.URL {
-	if d.identity.profile != nil && d.identity.profile.Chromium() && !d.secure {
+	if d.identity.profile != nil && d.identity.profile.Chromium() {
 		copy := *d.forward
 		return &copy
 	}
@@ -35,7 +35,13 @@ func (d *connectDialer) ForwardProxyURL() *url.URL {
 }
 
 func (d *connectDialer) DialProxyContext(ctx context.Context, network, _ string) (net.Conn, error) {
-	return d.dial(ctx, network)
+	conn, err := d.reach(ctx, network)
+	if secure, ok := conn.(*utls.UConn); ok {
+		// The proxy handshake is complete. fhttp's TLSNextProto contract takes
+		// *utls.Conn; keep its ALPN state visible so forwarding can use H2.
+		return secure.Conn, err
+	}
+	return conn, err
 }
 
 func (d *connectDialer) chromeProxyTLS(ctx context.Context, raw net.Conn) (net.Conn, error) {
