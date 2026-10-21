@@ -474,8 +474,17 @@ table is iterated, including partial `Accept-CH` grants.
 
 
 Script-owned Accept-Language/Priority fields occupy their renderer slot once.
+HTTP/1.1 retains a script's explicit `Priority`; only the generated network
+Priority is omitted. Cookies match the serialized URL path, preserving percent
+escapes and their spelling, and use that path for a missing cookie Path.
 The browser cache keeps one current representation per URL/partition; a Vary
 mismatch replaces it, so returning to the old variant contacts the origin.
+
+Content decoding also applies to `206` responses. With gzip, a complete HTTP
+body ending within a valid header or DEFLATE stream returns the bytes decoded
+so far, as measured in Chrome. Invalid gzip/DEFLATE data and truncated HTTP
+framing still fail. Only the first gzip member is decoded; trailing bytes are
+consumed to preserve connection reuse. The decoded-body limit still applies.
 
 Requests with a browser context use a private GET cache partitioned by the
 top-level schemeful site, URL and `Vary` fields. Complete 200 responses with

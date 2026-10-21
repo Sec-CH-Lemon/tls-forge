@@ -1026,6 +1026,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Preserve scripted Priority over HTTP/1.1; match cookies against escaped URL
+  paths and derive their default path without percent-decoding. Decode 206
+  responses and follow measured Chrome gzip EOF/first-member behavior while
+  retaining malformed-stream, HTTP-framing and decoded-size error checks.
+
 - Avoid duplicate script-owned Accept-Language/Priority fields and replace
   the current Vary representation as fresh Chrome cache sequences do.
 
@@ -1035,8 +1040,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 - Chrome fidelity remediation: requested-hint construction order and caller
   header spelling; partitioned cookies; browser-context GET freshness and
-  conditional revalidation; gzip trailer tolerance with DEFLATE truncation
-  rejection; browser-context encoded response metadata; browser CONNECT headers
+  conditional revalidation; gzip trailer tolerance (the subsequent measured
+  clean-EOF/first-member correction is listed above); browser-context encoded response metadata; browser CONNECT headers
   and outer proxy TLS. Local transport fork edits also address ticket
   consumption/age, terminal-dot SNI, unsolicited EncryptedExtensions, compressed
   certificate errors, KeyUpdate coalescing, ALPN replacement reuse and HTTP/2

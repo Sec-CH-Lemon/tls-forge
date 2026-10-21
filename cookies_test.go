@@ -145,12 +145,13 @@ func TestCookiesForReadsTheJarBack(t *testing.T) {
 }
 
 func TestCookiesForReadsAPathAsARequestCarriesIt(t *testing.T) {
-	// A path is matched decoded, as the jar matches a request's, so a cookie
-	// a request to a URL carries is the one CookiesFor lists for it.
+	// CookiesFor and a real request use the serialized path. The literal-space
+	// cookie remains stored but cannot match the request's percent-escaped URL.
 	var carried atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		carried.Store(r.Header.Get("Cookie"))
 		w.Header().Set("Set-Cookie", "c=1; Path=/a b")
+		w.Header().Add("Set-Cookie", "encoded=1; Path=/a%20b")
 	}))
 	t.Cleanup(server.Close)
 	client := newTestClient(t)
@@ -160,7 +161,7 @@ func TestCookiesForReadsAPathAsARequestCarriesIt(t *testing.T) {
 		}
 	}
 	held, err := client.CookiesFor(server.URL + "/a b/x")
-	if err != nil || len(held) != 1 || held[0].Path != "/a b" || carried.Load() != "c=1" {
+	if err != nil || len(held) != 1 || held[0].Path != "/a%20b" || carried.Load() != "encoded=1" {
 		t.Errorf("held %+v, %v; a request carried %v", held, err, carried.Load())
 	}
 }

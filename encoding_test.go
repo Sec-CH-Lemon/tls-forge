@@ -191,7 +191,6 @@ func TestABodyComesAsItCameWhenThereIsNothingToDecode(t *testing.T) {
 		"/identity":        {encoding: []string{"identity"}, body: page},
 		"/unknown":         {encoding: []string{"compress"}, body: compressedGarbage},
 		"/unknown-stacked": {encoding: []string{"gzip, dcb"}, body: compressedGarbage},
-		"/range":           {status: http.StatusPartialContent, encoding: []string{"gzip"}, body: gzipped(t, page)[:30]},
 		"/empty":           {encoding: []string{"gzip"}, body: nil},
 		"/no-content":      {status: http.StatusNoContent, encoding: []string{"gzip"}},
 		"/not-modified":    {status: http.StatusNotModified, encoding: []string{"br"}},
@@ -211,8 +210,6 @@ func TestABodyComesAsItCameWhenThereIsNothingToDecode(t *testing.T) {
 			// and so does this; its fields stay true of it.
 			{"/unknown", compressedGarbage, []string{"compress"}},
 			{"/unknown-stacked", compressedGarbage, []string{"gzip, dcb"}},
-			// A piece of an encoded body does not decode on its own.
-			{"/range", gzipped(t, page)[:30], []string{"gzip"}},
 			{"/empty", nil, []string{"gzip"}},
 			{"/no-content", nil, []string{"gzip"}},
 			{"/not-modified", nil, []string{"br"}},
@@ -258,7 +255,6 @@ func TestABodyThatDoesNotDecodeIsAnError(t *testing.T) {
 	needsDictionary := []byte{0x78, 0xbb, 0, 0, 0, 2, 0x03, 0x00}
 	answers := map[string]coded{
 		"/gzip-corrupt":    {encoding: []string{"gzip"}, body: []byte("this is not gzip at all")},
-		"/gzip-cut-short":  {encoding: []string{"gzip"}, body: gzipped(t, page)[:20]},
 		"/br-corrupt":      {encoding: []string{"br"}, body: []byte{0xff, 0xff, 0xff, 0xff}},
 		"/zstd-corrupt":    {encoding: []string{"zstd"}, body: []byte("not a zstd frame")},
 		"/deflate-corrupt": {encoding: []string{"deflate"}, body: []byte{0xff, 0xff, 0xff}},
@@ -274,7 +270,6 @@ func TestABodyThatDoesNotDecodeIsAnError(t *testing.T) {
 		client := newTestClient(t)
 		for _, tc := range []struct{ path, want string }{
 			{"/gzip-corrupt", "decoding a gzip body"},
-			{"/gzip-cut-short", "decoding a gzip body"},
 			{"/br-corrupt", "decoding a br body"},
 			{"/zstd-corrupt", "decoding a zstd body"},
 			{"/deflate-corrupt", "decoding a deflate body"},

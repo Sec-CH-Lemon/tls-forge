@@ -591,7 +591,7 @@ func browserLayout(h Header, order []string, host string) fhttp.Header {
 }
 
 // browserHTTP1Layout is the same request over HTTP/1.1, as Chrome writes it:
-// Host and Connection first, no Priority, and each name spelt as the profile
+// Host and Connection first, no generated Priority (a script's survives), and each name spelt as the profile
 // measured it, a script's as the script gave it, a client hint in lower case,
 // and any other as HTTP spells it.
 func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP1, http1 Header, host string) fhttp.Header {
@@ -624,13 +624,14 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 	}
 	out := fhttp.Header{spell("host"): {host}, spell("connection"): {connection}}
 	wireOrder := []string{"host", "connection"}
+	keepPriority := script.Has("priority")
 	for _, name := range order {
-		if name != "priority" {
+		if !strings.EqualFold(name, "priority") || keepPriority {
 			wireOrder = append(wireOrder, name)
 		}
 	}
 	for _, f := range h {
-		if !strings.EqualFold(f.Name, "priority") {
+		if !strings.EqualFold(f.Name, "priority") || keepPriority {
 			name := spell(f.Name)
 			out[name] = append(out[name], f.Value)
 		}

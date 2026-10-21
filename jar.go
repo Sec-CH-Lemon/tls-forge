@@ -141,7 +141,7 @@ func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 			capped = append(capped, capLifetime(c, now))
 		}
 	}
-	j.inner.SetCookies(u, capped)
+	j.inner.SetCookies(cookiePathURL(u), capped)
 	for _, c := range capped {
 		key, hostOnly, filed := jarKeyOf(u, c)
 		switch {
@@ -360,12 +360,27 @@ func pathWithin(path, under string) bool {
 // for plain http to the machine itself, which Chrome deems a secure origin and
 // sends Secure cookies to (measured: set-cookie-insecure-localhost).
 func jarURL(u *url.URL) *url.URL {
+	u = cookiePathURL(u)
 	if u.Scheme != "http" || !trustworthy(originOf(u)) {
 		return u
 	}
 	https := *u
 	https.Scheme = "https"
 	return &https
+}
+
+// The underlying jar compares URL.Path verbatim. Cookie path matching uses the
+// serialized request path, including percent escapes, rather than url.URL's
+// decoded Path. Only URL inputs are adapted: a Set-Cookie Path is already the
+// literal stored value and must not be decoded or escaped again.
+func cookiePathURL(u *url.URL) *url.URL {
+	path := u.EscapedPath()
+	if path == u.Path {
+		return u
+	}
+	copy := *u
+	copy.Path, copy.RawPath = path, ""
+	return &copy
 }
 
 // forURL is what goes to a URL, with what the jar does not say of each cookie.
@@ -482,7 +497,7 @@ func jarKeyOf(u *url.URL, c *fhttp.Cookie) (key cookieKey, hostOnly, filed bool)
 	}
 	key = cookieKey{name: c.Name, path: c.Path}
 	if key.path == "" || key.path[0] != '/' {
-		key.path = defaultCookiePath(u.Path)
+		key.path = defaultCookiePath(u.EscapedPath())
 	}
 	if c.Domain == "" {
 		key.domain = host

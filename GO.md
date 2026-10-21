@@ -594,8 +594,10 @@ The response body is already decoded and read into memory, subject to the
 configured maximum, which counts the decoded bytes. A body is decoded as Chrome
 decodes it: from gzip, x-gzip, deflate (zlib, or the raw deflate some servers
 send under that name), br and zstd, in the reverse of the order they were
-applied. A body in a coding Chrome does not know either, one of a `206`'s
-ranges, an empty one and the answer to a `HEAD` are left as they came, with
+applied, including `206` responses. Gzip returns the available decoded prefix
+at a clean HTTP EOF, ignores additional gzip members and drains trailing bytes;
+malformed gzip/DEFLATE and incomplete HTTP framing still fail. A body in a
+coding Chrome does not know, an empty one and the answer to a `HEAD` are left as they came, with
 their `Content-Encoding`.
 
 | `Response` field or method | Meaning |

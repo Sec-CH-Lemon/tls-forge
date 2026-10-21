@@ -158,7 +158,7 @@ func TestBrowserCacheUsesFreshResponsesAndConditionalRevalidation(t *testing.T) 
 	}
 }
 
-func TestGzipTrailerToleranceDoesNotAcceptTruncatedDeflate(t *testing.T) {
+func TestGzipReturnsAvailableDecodedBytesAtCleanHTTPEOF(t *testing.T) {
 	payload := bytes.Repeat([]byte("browser body\n"), 3072)
 	valid := gzipped(t, payload)
 	crc := bytes.Clone(valid)
@@ -176,8 +176,9 @@ func TestGzipTrailerToleranceDoesNotAcceptTruncatedDeflate(t *testing.T) {
 					t.Fatalf("%s:changed body", path)
 				}
 			}
-			if _, err := c.Get(s.url + "/payload"); err == nil {
-				t.Error("truncated DEFLATE accepted")
+			r, err := c.Get(s.url + "/payload")
+			if err != nil || len(r.Body) == 0 || len(r.Body) >= len(payload) || !bytes.HasPrefix(payload, r.Body) {
+				t.Fatalf("partial decoded body=%v,error=%v", r, err)
 			}
 			if _, err := c.Get(s.url + "/crc"); err != nil {
 				t.Fatalf("following request:%v", err)
@@ -203,6 +204,46 @@ func TestBrowserResponseKeepsEncodedRepresentationHeaders(t *testing.T) {
 				t.Fatalf("received representation metadata:%v", r.Header)
 			}
 		})
+	}
+}
+
+func TestGzipHeaderAndMemberBoundariesOnTheWire(t *testing.T) {
+	valid := gzipped(t, page)
+	reserved := bytes.Clone(valid)
+	reserved[3] |= 0xe0
+	name := append(bytes.Clone(valid[:10]), []byte("owned-name\x00")...)
+	name[3] |= 8
+	name = append(name, valid[10:]...)
+	corrupt := bytes.Clone(valid)
+	corrupt[10] = 0xff // reserved DEFLATE block type
+	for _, proto := range protocols {
+		answers := map[string]coded{}
+		for path, body := range map[string][]byte{"/full": valid, "/concat": append(bytes.Clone(valid), valid...), "/reserved": reserved, "/name": name, "/name-cut": name[:15], "/prefix1": valid[:1], "/prefix3": valid[:3], "/prefix9": valid[:9], "/invalid": {0}, "/method": {31, 139, 0}, "/deflate": corrupt} {
+			answers[path] = coded{status: 206, encoding: []string{"gzip"}, body: body}
+		}
+		server := startCoded(t, proto.h2, answers)
+		client := newTestClient(t)
+		for path := range answers {
+			t.Run(proto.name+path, func(t *testing.T) {
+				res, err := client.Get(server.url + path)
+				if path == "/invalid" || path == "/method" || path == "/deflate" {
+					if err == nil {
+						t.Fatal("malformed gzip accepted")
+					}
+					return
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := page
+				if strings.HasPrefix(path, "/prefix") || path == "/name-cut" {
+					want = nil
+				}
+				if res.Status != 206 || !bytes.Equal(res.Body, want) || res.Encoding != "gzip" {
+					t.Fatalf("body=%v,error=%v", res, err)
+				}
+			})
+		}
 	}
 }
 
@@ -249,17 +290,71 @@ func TestScriptFieldsOwnOneWireSlot(t *testing.T) {
 						values = append(values, f[1])
 					}
 				}
-				// Chrome strips request Priority on H1;the field owns one slot on H2.
-				if proto == "h1" && name == "priority" {
-					if len(values) != 0 {
-						t.Fatal(values)
-					}
-					continue
-				}
 				if !slices.Equal(values, []string{want}) {
 					t.Fatalf("%s: %v", name, values)
 				}
 			}
 		})
+	}
+}
+
+func TestCookiesMatchTheSerializedRequestPath(t *testing.T) {
+	for _, proto := range []string{"h1", "h2"} {
+		for _, implicit := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/default=%t", proto, implicit), func(t *testing.T) {
+				server := newRecorder(t, proto, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					path := r.URL.EscapedPath()
+					if path == "/set" {
+						for _, cookie := range []string{"encoded=owned; Secure; Path=/a%20b", "decoded=owned; Secure; Path=/a b", "slash=owned; Secure; Path=/a%2Fb", "root=control; Secure; Path=/"} {
+							w.Header().Add("Set-Cookie", cookie)
+						}
+					}
+					if path == "/a%20b/set" {
+						w.Header().Add("Set-Cookie", "implicit=owned; Secure")
+					}
+					fmt.Fprint(w, r.Header.Get("Cookie"))
+				}))
+				client := contextClient(t, server)
+				get := func(path string) string {
+					t.Helper()
+					res, err := client.Do(&Request{URL: "https://example.com" + path, Browser: &BrowserContext{Kind: KindFetch, Initiator: "https://example.com/page"}})
+					if err != nil {
+						t.Fatal(err)
+					}
+					return string(res.Body)
+				}
+				seed, cookie, otherwise := "/set", "encoded=owned; root=control", "root=control"
+				if implicit {
+					seed, cookie, otherwise = "/a%20b/set", "implicit=owned", ""
+				}
+				get(seed)
+				for _, tc := range []struct{ path, want string }{{"/a%20b/x", cookie}, {"/a b/x", cookie}, {"/a%20b", cookie}, {"/a%2520b/x", otherwise}, {"/a%20bc/x", otherwise}} {
+					if got := get(tc.path); got != tc.want {
+						t.Errorf("%s: Cookie=%q, want %q", tc.path, got, tc.want)
+					}
+				}
+				if !implicit {
+					if got := get("/a%2Fb/x"); got != "slash=owned; root=control" {
+						t.Error(got)
+					}
+					if got := get("/a%2fb/x"); got != otherwise {
+						t.Error(got)
+					}
+				}
+				// The export must retain the original literal cookie paths, even
+				// those that no canonical request URL can match (a literal space).
+				paths := map[string]string{}
+				for _, c := range client.AllCookies() {
+					paths[c.Name] = c.Path
+				}
+				if implicit {
+					if paths["implicit"] != "/a%20b" {
+						t.Fatal(paths)
+					}
+				} else if paths["encoded"] != "/a%20b" || paths["decoded"] != "/a b" {
+					t.Fatal(paths)
+				}
+			})
+		}
 	}
 }

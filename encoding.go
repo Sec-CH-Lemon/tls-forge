@@ -55,70 +55,120 @@ const maxZstdWindow = 8 << 20
 var transportCodings = map[string]bool{"gzip": true, "br": true, "deflate": true, "zstd": true}
 
 func gzipDecoder(r io.Reader) (io.ReadCloser, error) {
-	g := &chromeGzip{source: bufio.NewReader(r)}
-	if err := g.next(); err != nil {
+	input := &gzipInput{Reader: r}
+	g := &chromeGzip{source: bufio.NewReader(input), input: input}
+	if err := g.header(); err != nil {
+		if errors.Is(err, io.EOF) && input.err == io.EOF {
+			g.done = true
+			return g, nil
+		}
 		return nil, err
 	}
+	g.member = flate.NewReader(g.source)
 	return g, nil
 }
 
-// Chrome's HTTP gzip decoder checks the compressed stream but does not require
-// or validate its CRC/ISIZE trailer. A truncated DEFLATE stream still fails.
-// Keep an actual DEFLATE end-of-stream boundary, so an unexpected EOF in the
-// payload cannot be mistaken for a missing trailer.
+// A complete HTTP body can end partway through a gzip header or DEFLATE stream:
+// Chrome returns the bytes already decoded. A broken DEFLATE code still fails.
+// Keep the underlying HTTP EOF separate: an incomplete Content-Length or chunked
+// transfer is a transport failure, not this decoder's tolerated compression EOF.
+type gzipInput struct {
+	io.Reader
+	err error
+}
+
+func (r *gzipInput) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	if err != nil {
+		r.err = err
+	}
+	return n, err
+}
+
 type chromeGzip struct {
 	source *bufio.Reader
+	input  *gzipInput
 	member io.ReadCloser
 	done   bool
 }
 
-func (g *chromeGzip) next() error {
-	// gzip.NewReader validates the complete optional header without reading
-	// DEFLATE data when its input already implements io.ByteReader.
-	header, err := gzip.NewReader(g.source)
-	if err != nil {
-		return err
+func (g *chromeGzip) header() error {
+	var fixed [10]byte
+	for i := range fixed {
+		b, err := g.source.ReadByte()
+		if err != nil {
+			return err
+		}
+		fixed[i] = b
+		if i < 3 && b != [3]byte{0x1f, 0x8b, 8}[i] {
+			return gzip.ErrHeader
+		}
 	}
-	_ = header.Close()
-	g.member = flate.NewReader(g.source)
+	skip := func(n int64) error { _, err := io.CopyN(io.Discard, g.source, n); return err }
+	flags := fixed[3]
+	if flags&4 != 0 {
+		lo, err := g.source.ReadByte()
+		if err != nil {
+			return err
+		}
+		hi, err := g.source.ReadByte()
+		if err != nil {
+			return err
+		}
+		if err := skip(int64(lo) | int64(hi)<<8); err != nil {
+			return err
+		}
+	}
+	for _, flag := range []byte{8, 16} {
+		if flags&flag == 0 {
+			continue
+		}
+		for {
+			b, err := g.source.ReadByte()
+			if err != nil {
+				return err
+			}
+			if b == 0 {
+				break
+			}
+		}
+	}
+	// Chromium ignores reserved flags and header CRC, as well as the final
+	// CRC/ISIZE. They remain observable metadata, not validation here.
+	if flags&2 != 0 {
+		return skip(2)
+	}
 	return nil
 }
 
 func (g *chromeGzip) Read(p []byte) (int, error) {
-	for !g.done {
-		n, err := g.member.Read(p)
-		if err != io.EOF {
-			return n, err
-		}
-		_ = g.member.Close()
-		var trailer [8]byte
-		_, err = io.ReadFull(g.source, trailer[:])
-		if err != nil {
-			g.done = true
-			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-				return n, io.EOF
-			}
-			return n, err
-		}
-		magic, err := g.source.Peek(2)
-		if len(magic) < 2 || magic[0] != 0x1f || magic[1] != 0x8b {
-			g.done = true
-			if err != nil && !errors.Is(err, io.EOF) {
-				return n, err
-			}
-			return n, io.EOF
-		}
-		if err := g.next(); err != nil {
-			return n, err
-		}
-		if n > 0 {
-			return n, nil
-		}
+	if g.done {
+		return 0, io.EOF
 	}
-	return 0, io.EOF
+	n, err := g.member.Read(p)
+	if errors.Is(err, io.ErrUnexpectedEOF) && g.input.err == io.EOF {
+		g.done = true
+		return n, io.EOF
+	}
+	if err != io.EOF {
+		return n, err
+	}
+	g.done = true
+	// Chrome decodes only the first gzip member. Drain the footer and every
+	// trailing byte (including another member) to preserve the HTTP connection.
+	_, err = io.Copy(io.Discard, g.source)
+	if err != nil {
+		return n, err
+	}
+	return n, io.EOF
 }
 
-func (g *chromeGzip) Close() error { return g.member.Close() }
+func (g *chromeGzip) Close() error {
+	if g.member == nil {
+		return nil
+	}
+	return g.member.Close()
+}
 
 func brotliDecoder(r io.Reader) (io.ReadCloser, error) {
 	return io.NopCloser(brotli.NewReader(r)), nil
@@ -197,15 +247,14 @@ func hasBody(method string, status int) bool {
 // they came.
 //
 // It comes as it came, its Content-Encoding still true of it, when it has no
-// coding, when it is one of a 206's ranges (a piece of an encoded body does not
-// decode on its own), when it is empty, and when any of its codings is one
+// coding, when it is empty, and when any of its codings is one
 // Chrome does not know either: Chrome passes such a body through undecoded
 // rather than decode part of it.
 func readBody(res *fhttp.Response, method string, limit int64) ([]byte, string, error) {
 	body := bufio.NewReaderSize(chromeReads{res.Body}, chromeReadSize)
 	codings := codingsOf(res.Header)
 	if _, err := body.Peek(1); len(codings) == 0 || !hasBody(method, res.StatusCode) ||
-		res.StatusCode == fhttp.StatusPartialContent || err != nil || !knownCodings(codings) {
+		err != nil || !knownCodings(codings) {
 		read, err := readAtMost(body, limit)
 		if err != nil {
 			return nil, "", readingError(err)
