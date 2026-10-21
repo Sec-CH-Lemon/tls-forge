@@ -472,6 +472,11 @@ twenty requests,then `the 20th redirect was not followed`. Requested client hint
 use the renderer's construction order before its hash
 table is iterated, including partial `Accept-CH` grants.
 
+
+Script-owned Accept-Language/Priority fields occupy their renderer slot once.
+The browser cache keeps one current representation per URL/partition; a Vary
+mismatch replaces it, so returning to the old variant contacts the origin.
+
 Requests with a browser context use a private GET cache partitioned by the
 top-level schemeful site, URL and `Vary` fields. Complete 200 responses with
 explicit freshness or a validator can be retained: 8 MiB per body, 64 MiB in

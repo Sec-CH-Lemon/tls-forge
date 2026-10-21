@@ -232,15 +232,12 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	variants := c.entries[key][:0]
+	// Chromium retains one current representation per cache key. A Vary
+	// mismatch replaces it;returning to an older variant contacts the origin.
 	for _, old := range c.entries[key] {
-		if slices.Equal(old.vary, e.vary) && slices.Equal(old.values, e.values) {
-			c.bytes -= len(old.body)
-		} else {
-			variants = append(variants, old)
-		}
+		c.bytes -= len(old.body)
 	}
-	c.entries[key] = append(variants, e)
+	c.entries[key] = []*cachedResponse{e}
 	c.bytes += len(body)
 	for {
 		count := 0

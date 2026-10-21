@@ -505,7 +505,14 @@ func scriptOrder(h hop) []string {
 	if h.lateOrigin {
 		out = append(out, "origin")
 	}
-	return append(out, "referer", "accept-encoding", "accept-language", "cookie", "priority")
+	// A script-owned field already has its renderer slot. The network stack
+	// must not append the same name again in its default slot.
+	for _, name := range []string{"referer", "accept-encoding", "accept-language", "cookie", "priority"} {
+		if !slices.Contains(out, name) {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // header is the request's headers to target, in Chrome's order: the

@@ -489,3 +489,61 @@ func TestAProxyGivenAsATransportOptionIsTheTransportsToDial(t *testing.T) {
 		t.Errorf("tls-forge's dialer opened the tunnel: %v", said)
 	}
 }
+
+// Writes each inner TLS flight immediately through the outer HTTP/2 stream.
+type flushingTunnelWriter struct{ http.ResponseWriter }
+
+func (w flushingTunnelWriter) Write(p []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(p)
+	w.ResponseWriter.(http.Flusher).Flush()
+	return n, err
+}
+func TestATunnelThroughAnHTTP2HTTPSProxy(t *testing.T) {
+	origin := startEcho(t)
+	seen := make(chan string, 1)
+	via := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "CONNECT" || r.ProtoMajor != 2 {
+			http.Error(w, "CONNECT over h2 required", 400)
+			return
+		}
+		if r.Header.Get("Proxy-Connection") != "" {
+			http.Error(w, "hop header in h2", 400)
+			return
+		}
+		seen <- r.TLS.NegotiatedProtocol
+		remote, err := net.Dial("tcp", r.Host)
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		defer remote.Close()
+		w.WriteHeader(200)
+		w.(http.Flusher).Flush()
+		done := make(chan struct{})
+		go func() { defer close(done); io.Copy(remote, r.Body) }()
+		io.Copy(flushingTunnelWriter{w}, remote)
+		r.Body.Close()
+		remote.Close()
+		<-done
+	}))
+	via.EnableHTTP2 = true
+	via.StartTLS()
+	defer via.Close()
+	roots := x509.NewCertPool()
+	roots.AddCert(via.Certificate())
+	saved := proxyRoots
+	proxyRoots = roots
+	defer func() { proxyRoots = saved }()
+	client := newTestClient(t, WithProxy(via.URL), WithTimeout(5*time.Second))
+	defer client.Close()
+	result, err := client.Get(origin.URL() + "/api/all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Status != 200 {
+		t.Fatalf("status %d", result.Status)
+	}
+	if protocol := <-seen; protocol != "h2" {
+		t.Fatal(protocol)
+	}
+}

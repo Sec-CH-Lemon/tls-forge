@@ -138,7 +138,7 @@ func TestBrowserCacheUsesFreshResponsesAndConditionalRevalidation(t *testing.T) 
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			for path, want := range map[string]int{"/fresh": 2, "/etag": 2, "/no-store": 2, "/vary": 2} {
+			for path, want := range map[string]int{"/fresh": 2, "/etag": 2, "/no-store": 2, "/vary": 3} {
 				if counts[path] != want {
 					t.Errorf("%s:%d wire requests,want%d", path, counts[path], want)
 				}
@@ -230,5 +230,36 @@ func TestFetchAndXHRFollowTwentyRedirects(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestScriptFieldsOwnOneWireSlot(t *testing.T) {
+	for _, proto := range []string{"h1", "h2"} {
+		t.Run(proto, func(t *testing.T) {
+			server := newRecorder(t, proto, nil)
+			client := contextClient(t, server)
+			_, err := client.Do(&Request{URL: "https://example.com/test", Header: NewHeader("Accept-Language", "en", "Priority", "u=4"), Browser: &BrowserContext{Kind: KindFetch, Initiator: "https://example.com/page"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for name, want := range map[string]string{"accept-language": "en", "priority": "u=4"} {
+				values := []string{}
+				for _, f := range server.requests()[0].headers {
+					if strings.EqualFold(f[0], name) {
+						values = append(values, f[1])
+					}
+				}
+				// Chrome strips request Priority on H1;the field owns one slot on H2.
+				if proto == "h1" && name == "priority" {
+					if len(values) != 0 {
+						t.Fatal(values)
+					}
+					continue
+				}
+				if !slices.Equal(values, []string{want}) {
+					t.Fatalf("%s: %v", name, values)
+				}
+			}
+		})
 	}
 }

@@ -1026,6 +1026,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Avoid duplicate script-owned Accept-Language/Priority fields and replace
+  the current Vary representation as fresh Chrome cache sequences do.
+
 - Fetch/XHR contexts now follow twenty redirects and reject the twenty-first
   with `the 21st redirect was not followed`. Navigation/form and low-level
   requests retain the separately measured nineteen-redirect navigation bound.
