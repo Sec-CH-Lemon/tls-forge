@@ -22,7 +22,7 @@ import (
 
 // Both transports reach the same owned origin. The TCP listener makes a losing
 // HTTP attempt observable, including one delayed until after Do has returned.
-func h3Origin(t *testing.T, handler http.Handler) (string, *atomic.Int32, *atomic.Int32) {
+func h3Origin(t *testing.T, handler http.Handler, observe ...func([]byte, net.Addr)) (string, *atomic.Int32, *atomic.Int32) {
 	t.Helper()
 	seed := httptest.NewTLSServer(stdhttp.HandlerFunc(func(stdhttp.ResponseWriter, *stdhttp.Request) {}))
 	cert := seed.TLS.Certificates[0]
@@ -47,7 +47,11 @@ func h3Origin(t *testing.T, handler http.Handler) (string, *atomic.Int32, *atomi
 		QUICConfig: &quic.Config{EnableDatagrams: true}, Handler: handler,
 		ConnContext: func(ctx context.Context, _ *quic.Conn) context.Context { connections.Add(1); return ctx },
 	}
-	go func() { _ = h3.Serve(udp) }()
+	var packets net.PacketConn = udp
+	if len(observe) > 0 {
+		packets = &h3ObservedPackets{PacketConn: udp, observe: observe[0]}
+	}
+	go func() { _ = h3.Serve(packets) }()
 	t.Cleanup(func() { _ = h3.Close(); _ = udp.Close(); _ = srv.Close() })
 	return "https://" + addr, tcpRequests, connections
 }
@@ -181,5 +185,78 @@ func TestH3CancellationDoesNotWaitForTheTCPFallback(t *testing.T) {
 	case <-contact:
 		t.Fatal("cancelled fallback dialled TCP")
 	case <-time.After(350 * time.Millisecond):
+	}
+}
+
+// Observe original datagrams at the actual owned server, not a serialized preset.
+type h3ObservedPackets struct {
+	net.PacketConn
+	observe func([]byte, net.Addr)
+}
+
+func (p *h3ObservedPackets) ReadFrom(b []byte) (int, net.Addr, error) {
+	n, addr, err := p.PacketConn.ReadFrom(b)
+	if err == nil {
+		p.observe(append([]byte{}, b[:n]...), addr)
+	}
+	return n, addr, err
+}
+func TestH3ChromeCIDsUseDedicatedSocketsAcrossOrigins(t *testing.T) {
+	type initial struct {
+		dcid   string
+		scid   int
+		remote string
+	}
+	observed := make(chan initial, 32)
+	see := func(b []byte, addr net.Addr) {
+		if len(b) < 7 || b[0]&0xf0 != 0xc0 {
+			return
+		}
+		n := int(b[5])
+		if len(b) < 7+n {
+			return
+		}
+		observed <- initial{dcid: string(b[6 : 6+n]), scid: int(b[6+n]), remote: addr.String()}
+	}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "h3") })
+	a, ta, ca := h3Origin(t, handler, see)
+	b, tb, cb := h3Origin(t, handler, see)
+	c := racingChrome(t)
+	for _, origin := range []string{a, b, a, b} {
+		r, err := c.Do(&Request{URL: origin})
+		if err != nil || string(r.Body) != "h3" {
+			t.Fatalf("request: %v %v", r, err)
+		}
+	}
+	if err := c.Close(); err != nil {
+		t.Fatal(err)
+	}
+	unique := map[string]string{}
+	seen := map[string]bool{}
+	for len(observed) > 0 {
+		h := <-observed
+		// Only the client's first Initial chooses the original destination CID.
+		// Subsequent Initials correctly use the CID received from the peer.
+		if seen[h.remote] {
+			continue
+		}
+		seen[h.remote] = true
+		if len(h.dcid) != 8 || h.scid != 0 {
+			t.Fatalf("DCID=%d SCID=%d", len(h.dcid), h.scid)
+		}
+		unique[h.dcid] = h.remote
+	}
+	if len(unique) != 2 {
+		t.Fatalf("initial identities: %v", unique)
+	}
+	ports := map[string]bool{}
+	for _, remote := range unique {
+		ports[remote] = true
+	}
+	if len(ports) != 2 {
+		t.Fatalf("source-ID-free origins shared a UDP socket: %v", unique)
+	}
+	if ta.Load() != 0 || tb.Load() != 0 || ca.Load() != 1 || cb.Load() != 1 {
+		t.Fatalf("TCP=%d/%d H3=%d/%d", ta.Load(), tb.Load(), ca.Load(), cb.Load())
 	}
 }

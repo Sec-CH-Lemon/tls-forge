@@ -2247,3 +2247,21 @@ Chrome's protocol output; they do not contain Chrome source code. The project is
 not affiliated with or endorsed by Google or Cloudflare.
 
 Use the software only on systems and traffic you are authorised to access.
+
+
+### Experimental Chrome HTTP/3 CID and receive policy
+
+The local four-fork workspace applies the measured Chromium policy to captured
+Chrome profiles when `WithProtocolRacing` selects HTTP/3: one UDP socket per
+connection, an 8-byte original destination CID and an empty source CID. It accepts
+1472-byte UDP payloads without changing the 1250-byte Initial or the conservative
+transmit MTU. Its DATAGRAM frame limit is 65536; every frame still has to fit the
+negotiated QUIC packet/path limit. The active peer-CID limit is 2 and the ACK timer
+includes a 1 ms margin within the default 25 ms advertised limit; both default-valued
+parameters are omitted. Complete transport-parameter TLVs are shuffled and their
+GREASE identifiers are freshly drawn from the full reserved 62-bit family.
+
+The CID shape and these initial limits do not establish migration, loss recovery,
+HTTP/3 discovery, dynamic QPACK, ALPS bootstrap, compatible version negotiation or
+Google-specific connection-option parity. Missing backend APIs remain open. See
+the shared browser knowledge base for exact source/build and paired wire evidence.

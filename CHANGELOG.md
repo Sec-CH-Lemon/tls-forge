@@ -11,6 +11,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Experimental Chrome HTTP/3 uses a dedicated UDP socket per connection,
+  eight-byte original destination CIDs and zero-byte source CIDs. Its receive
+  policy accepts 1472-byte UDP payloads, advertises 65536-byte DATAGRAM frames
+  subject to the packet limit, enforces two active peer CIDs, and schedules
+  ACKs inside the default 25 ms limit. Transport parameters use fresh full-range
+  GREASE IDs and shuffled complete TLVs. Dynamic QPACK, H3 ALPS and compatible
+  version-negotiation APIs remain open; this is not whole-Chrome parity.
+
+
 - **Experimental HTTP/3 transport corrections** (local transport workspace):
   Chrome profiles apply the measured TLS 1.3 QUIC hello policy. Unsupported
   dynamic QPACK advertisements are refused;captured profiles keep capacity
