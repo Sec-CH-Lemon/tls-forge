@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
 )
 
 // The ways --html-decoding reads a body as text, for --wait-for and

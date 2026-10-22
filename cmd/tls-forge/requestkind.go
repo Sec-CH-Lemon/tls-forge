@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 // requestKinds are what --request-kind takes.

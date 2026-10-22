@@ -20,8 +20,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
 )
 
 func startServer(t *testing.T, opts ...Option) *Server {

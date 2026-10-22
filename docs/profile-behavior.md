@@ -1,16 +1,16 @@
 # Profile-owned network behavior
 
-## Engine/profile compatibility (3.0.0)
+## Engine/profile compatibility (4.0.0)
 
-The compiled engine version is **3.0.0**, independently of the browser build and
+The compiled engine version is **4.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 3`. Engines reject profiles from both older
+non-negative integer `engine_major: 4`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 3, "name": "my-browser"}
+{"schema": 4, "engine_major": 4, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -19,7 +19,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go major versions use their matching module import suffix; this release uses `/v3`.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v4`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -28,13 +28,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-3") // handle err
+candidate, err := old.Migrate("my-browser-engine-4") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-3
+The 15 shipped profiles and all backend catalogue policies have explicit engine-4
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -45,7 +45,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 3`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 4`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -261,9 +261,9 @@ Capture helper hint lists snapshot the process default once; request generation 
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
 
-## HTTP/3 QPACK (engine 3)
+## HTTP/3 QPACK (engine 4)
 
-Engine3 implements RFC9204 dynamic tables in both directions, all field-line
+Engine4 implements RFC9204 dynamic tables in both directions, all field-line
 representations, encoder instructions, Required Insert Count reconstruction,
 blocked sections, section acknowledgments, cancellation and decoder feedback.
 Critical-stream errors close the connection. Table allocation, integer overflow,
@@ -298,7 +298,35 @@ profile candidates retain disabled request indexing and their old string coding
 until measured; all15 have a real TLS/H2 smoke, not fresh old-browser acceptance.
 Original engine2 profiles remain in the immutable r17 source archive.
 
-Engine3.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v3` and Node/Python3.
+Engine4.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v4` and Node/Python4.
 Both cross-major execution directions are rejected. Schema4 and daemon protocol3
 are unchanged. Offline Inspect/Save preserve old identity; explicit Migrate
 creates a separately named candidate using JSON migration additions.
+
+## QPACK small tables and error replay (engine 4)
+
+| Key | Meaning / Chrome155 macOS measured value |
+| --- | --- |
+| `h3.qpack.draining_percent` | Capacity percentage reserved for draining old entries, 0..100; Chrome25. The index is computed once per section. Old exact matches may be duplicated without evicting their source; acknowledgments and live references still pin entries. |
+| `h3.qpack.critical_close_space` | `application` or `transport`; Chrome transport for peer QPACK FIN/reset. |
+| `h3.qpack.critical_close_code` | Exact close code; Chrome10 (QUIC PROTOCOL_VIOLATION). Application260 is a different error. |
+| `h3.qpack.critical_close_frame_type` | Transport triggering frame field; Chrome15 in the measured FIN case. |
+| `h3.qpack.critical_close_reason` | UTF-8 wire diagnostic, bounded1024 bytes; Chrome `17:Attempt to close a static stream`. |
+| `h3.retry_unprocessed_attempts` | Total attempts for provably unprocessed H3_REQUEST_REJECTED/unopened streams, 1..16; retained compatibility value2. Separate from protocol-error replay. |
+| `h3.retry_attempts` | Maximum total protocol-error attempts, 1..16; Chrome3. |
+| `h3.retry_methods` | Explicit method allowlist; Chrome candidate `["GET","HEAD"]`. Independently, the engine rejects non-idempotent protocol replay. |
+| `h3.retry_application_errors` | Exact application-space codes; Chrome candidate512/513/514. |
+| `h3.retry_transport_errors` | Exact transport-space codes; Chrome candidate10. Application10 cannot match this selector. |
+
+Retries apply only while waiting for response headers, require a live request
+context and a nil/NoBody or successful GetBody replay. Body-read errors after
+response delivery are never replayed. The retained JSON-selected retry budget for provably
+unprocessed H3_REQUEST_REJECTED/unopened streams remains separate from this
+profile-selected protocol-error policy. No fallback to another protocol is
+introduced. Every new key is mandatory in current explicit profiles; migration
+defaults are data in engine-migration.json. Other14 profiles keep draining0 and
+protocol retries1 with no selected errors, pending their own measurements.
+
+Engine4.0.0 coordinates this mechanism change once. Original engine3 profiles
+are retained in the immutable dynamic-qpack-20261022-r18 archive. Schema4 and
+daemon protocol3 remain unchanged; exact SDK/profile engine major4 is required.

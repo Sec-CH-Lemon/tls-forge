@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/redact"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 // A run, written down while it happens.

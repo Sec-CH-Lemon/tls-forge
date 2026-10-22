@@ -1,6 +1,6 @@
 {
   "schema": 4,
-  "engine_major": 3,
+  "engine_major": 4,
   "behavior": {
     "cache.entries": 256,
     "cache.entry_bytes": 8388608,
@@ -64,7 +64,12 @@
       ":scheme",
       ":path"
     ],
+    "h3.qpack.critical_close_code": 260,
+    "h3.qpack.critical_close_frame_type": 0,
+    "h3.qpack.critical_close_reason": "invalid or closed QPACK critical stream",
+    "h3.qpack.critical_close_space": "application",
     "h3.qpack.decoder_feedback": "on-insert",
+    "h3.qpack.draining_percent": 0,
     "h3.qpack.encoder_strategy": "disabled",
     "h3.qpack.encoder_table_bytes": 0,
     "h3.qpack.encoder_warmup_sections": 0,
@@ -82,6 +87,11 @@
       3
     ],
     "h3.qpack.streams": "lazy",
+    "h3.retry_application_errors": [],
+    "h3.retry_attempts": 1,
+    "h3.retry_methods": [],
+    "h3.retry_transport_errors": [],
+    "h3.retry_unprocessed_attempts": 2,
     "h3.settings": [
       {
         "id": 1,
@@ -660,5 +670,5 @@
       "value": "u=0, i"
     }
   ],
-  "notes": "captured 2026-08-28T20:33:48Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Behavior schema 3 materializes the pre-existing compatibility policy from the maintained runtime; additional behavior fields are not a new capture of this browser build.\nExplicit migration to engine 1.0.0 (major 1); original capture and wire policy preserved. Engine compatibility is revalidated separately; historical browser acceptance is not a fresh measurement. Explicit engine-2 migration (2026-10-22): QPACK literal coding is now profile-owned; original engine-1 bytes preserved in tls-client-cache-20261022-r16 source archive. Other browser values and capture provenance retained. Explicit engine-3 migration (2026-10-22): dynamic QPACK mechanism; original engine-2 bytes preserved in qpack-20261022-r17 source archive. Other browser values retained unless separately measured."
+  "notes": "captured 2026-08-28T20:33:48Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Behavior schema 3 materializes the pre-existing compatibility policy from the maintained runtime; additional behavior fields are not a new capture of this browser build.\nExplicit migration to engine 1.0.0 (major 1); original capture and wire policy preserved. Engine compatibility is revalidated separately; historical browser acceptance is not a fresh measurement. Explicit engine-2 migration (2026-10-22): QPACK literal coding is now profile-owned; original engine-1 bytes preserved in tls-client-cache-20261022-r16 source archive. Other browser values and capture provenance retained. Explicit engine-3 migration (2026-10-22): dynamic QPACK mechanism; original engine-2 bytes preserved in qpack-20261022-r17 source archive. Other browser values retained unless separately measured. Explicit engine-4 migration (2026-10-23): QPACK draining, critical-stream close and H3 retry mechanisms. Original engine-3 bytes preserved in dynamic-qpack-20261022-r18 source archive. Wire acceptance is scenario scoped."
 }

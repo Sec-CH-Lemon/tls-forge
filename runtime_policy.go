@@ -2,7 +2,7 @@ package tlsforge
 
 import (
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 	"github.com/igor-lemon/fhttp/http2"
 	"github.com/igor-lemon/utls/behavior"
 	"strings"

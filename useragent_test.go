@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/echo"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 // userAgentsSent is every user-agent field the echo server saw from a client,

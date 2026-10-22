@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/cookie"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/cookie"
 )
 
 // cookieEcho reports the Cookie header it was sent, and sets two of its own,

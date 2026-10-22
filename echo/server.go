@@ -31,10 +31,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/accept"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/deadlineconn"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/accept"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/deadlineconn"
 )
 
 // limits is what one connection may cost, how many may cost it at once, and

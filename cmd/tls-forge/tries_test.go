@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
 )
 
 // What a request took, try by try, and what a report shows of it.

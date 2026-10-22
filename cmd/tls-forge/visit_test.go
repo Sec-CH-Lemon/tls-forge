@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 // aPerson is what the stand-in person at a browser does at its page: what

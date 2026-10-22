@@ -5,7 +5,7 @@ import (
 	"maps"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
 )
 
 func TestPageCheckIsWhatTheThreeFlagsSay(t *testing.T) {

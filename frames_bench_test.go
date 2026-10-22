@@ -10,7 +10,7 @@ import (
 
 	"github.com/igor-lemon/fhttp/http2"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/echo"
 )
 
 // BenchmarkHTTP2FrameLines is what the transport saying every HTTP/2 frame it

@@ -12,7 +12,7 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 func TestTheCookieSlotIsRightAfterAcceptLanguage(t *testing.T) {
@@ -602,7 +602,7 @@ func TestAProfileWithholdsItsClientHintsSecFetchAndBrotliFromAURLThatIsNotTrustw
 	}
 	// A profile with none of them withholds nothing; another browser's was
 	// not measured.
-	if got := withheldOf(&profile.Profile{EngineMajor: profile.Major(3), Name: "chrome_133", Base: "chrome_133"}, nil); got != nil {
+	if got := withheldOf(&profile.Profile{EngineMajor: profile.Major(4), Name: "chrome_133", Base: "chrome_133"}, nil); got != nil {
 		t.Errorf("a catalogue profile: %+v", got)
 	}
 	firefox := chrome.Clone()

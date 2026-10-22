@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/conntap"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/redact"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/redact"
 )
 
 // Making a list of requests: the record of each, the clients they go through,

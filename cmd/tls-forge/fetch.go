@@ -16,11 +16,11 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/cookie"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/daemon"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/atomicfile"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/cookie"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/daemon"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/atomicfile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 // fetchFlagGroups is how fetch --help shows its flags: under what each is for,

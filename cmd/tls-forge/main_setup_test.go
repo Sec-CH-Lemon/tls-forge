@@ -11,7 +11,7 @@ import (
 
 	"github.com/igor-lemon/fhttp/http2"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 // The variables a test sets for this binary started as the program: that it

@@ -11,12 +11,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- **Breaking engine release 4.0.0:** profile-selected QPACK draining/duplication,
+  transport versus application critical-stream close (code, triggering frame and
+  reason), and bounded H3 protocol-error retries with replay/context safeguards.
+  Browser values remain JSON-owned. All15 explicit candidates pin engine_major4;
+  original engine3 files remain in the immutable r18 archive. Go module /v4,
+  Node/Python/platform packages4.0.0; schema4/daemon protocol3 are unchanged.
+  Historical acceptance is not transferred to a new major. Guaranteed-unprocessed
+  retry totals are explicit `h3.retry_unprocessed_attempts` (retained value2).
+
+
 - **Breaking engine release 3.0.0:** RFC9204 dynamic QPACK tables, insertion,
   all field representations, blocked decoding, ACK/cancellation, peer blocked
   credit and critical-stream error handling are implemented. Browser SETTINGS,
   insertion/warmup/base, string coding, sensitive names and stream/feedback
   choices remain JSON-owned. Chrome155/macOS advertises65536/100.
-- The Go module is `github.com/Sec-CH-Lemon/tls-forge/v3`; Node/Python and platform
+- The Go module was `github.com/Sec-CH-Lemon/tls-forge/v3`; Node/Python and platform
   bundles are3.0.0. Explicit profiles pin `engine_major: 3`. Original engine2
   bytes remain in the r17 archive; both compatibility directions are rejected.
   Schema4 and daemon protocol3 are unchanged. Other missing APIs remain open.

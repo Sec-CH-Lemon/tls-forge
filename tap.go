@@ -7,7 +7,7 @@ import (
 
 	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/conntap"
 )
 
 // The connections a request goes out on, for whoever made it to see: the

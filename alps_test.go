@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 

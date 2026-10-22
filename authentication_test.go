@@ -18,7 +18,7 @@ import (
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
 )
 
 func TestAChallengeIsReadAsChromiumReadsIt(t *testing.T) {

@@ -620,9 +620,19 @@
         ],
         "h3.qpack.encoder_warmup_sections": 0,
         "h3.qpack.reference_base": "required",
-        "h3.qpack.encoder_table_bytes": 0
+        "h3.qpack.encoder_table_bytes": 0,
+        "h3.qpack.draining_percent": 0,
+        "h3.qpack.critical_close_space": "application",
+        "h3.qpack.critical_close_code": 260,
+        "h3.retry_attempts": 1,
+        "h3.retry_methods": [],
+        "h3.retry_application_errors": [],
+        "h3.retry_transport_errors": [],
+        "h3.qpack.critical_close_frame_type": 0,
+        "h3.qpack.critical_close_reason": "invalid or closed QPACK critical stream",
+        "h3.retry_unprocessed_attempts": 2
       },
-      "engine_major": 3,
+      "engine_major": 4,
       "http2": {
         "settings": null,
         "connection_flow": 0,
@@ -837,9 +847,19 @@
         ],
         "h3.qpack.encoder_warmup_sections": 0,
         "h3.qpack.reference_base": "required",
-        "h3.qpack.encoder_table_bytes": 0
+        "h3.qpack.encoder_table_bytes": 0,
+        "h3.qpack.draining_percent": 0,
+        "h3.qpack.critical_close_space": "application",
+        "h3.qpack.critical_close_code": 260,
+        "h3.retry_attempts": 1,
+        "h3.retry_methods": [],
+        "h3.retry_application_errors": [],
+        "h3.retry_transport_errors": [],
+        "h3.qpack.critical_close_frame_type": 0,
+        "h3.qpack.critical_close_reason": "invalid or closed QPACK critical stream",
+        "h3.retry_unprocessed_attempts": 2
       },
-      "engine_major": 3,
+      "engine_major": 4,
       "http2": {
         "settings": null,
         "connection_flow": 0,

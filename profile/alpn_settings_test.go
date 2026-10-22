@@ -2,7 +2,7 @@ package profile
 
 import (
 	"encoding/binary"
-	"github.com/Sec-CH-Lemon/tls-forge/v3/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
 	tls "github.com/igor-lemon/utls"
 	"io"
 	"slices"
