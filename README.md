@@ -1839,6 +1839,11 @@ says so in its header. To wear Firefox or Safari whole, measure it with
 
 ##### Profile-owned network behavior
 
+HTTP/3 queues the local control-stream preface and SETTINGS before opening a
+request stream. This protocol initialization barrier also applies to 0-RTT and
+direct stream requests; it does not wait for peer SETTINGS or acknowledgement.
+Browser SETTINGS values and order still come from the selected profile.
+
 Schema 3 profiles contain an explicit `behavior` object in the same JSON file as
 ClientHello, SETTINGS and headers. Browser-version choices now come from that
 file: TLS ticket ages, retry alerts/count, resumption and error policy; H1 limits;

@@ -13,6 +13,12 @@ Editing a local file requires no binary rebuild. Embedding a different default i
 
 ## Compatibility and boundaries
 
+HTTP/3 gates request streams on the completion of its local control-stream
+initialization. This is an engine ordering invariant, with no profile opt-out.
+It queues local SETTINGS before request HEADERS, including 0-RTT and direct
+request streams, without waiting for peer SETTINGS or an acknowledgement. The
+SETTINGS values/order and priority/GREASE contents still come from the profile.
+
 Schema 0-2 retains its historical family inference during migration. `Save` materializes `per_connection` and the complete effective policy into schema 3, without mutating the source object. The two JSON templates in `utls/behavior` preserve old default behavior; explicit schema 3 data takes precedence, even for a file called `chrome`. Bare transport-catalogue presets remain legacy backend presets and are not newly measured complete profiles.
 
 Existing shipped TLS capture bytes, ordered settings, header values, machine data and original provenance are preserved. Added behavior sections materialize the pre-existing runtime policy, including the newer policy previously applied to older Chromium profiles; this is not fresh acceptance of Chrome 151-154.

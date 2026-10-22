@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- HTTP/3 requests now wait for local control-stream initialization, so the first
+  request cannot race ahead of SETTINGS. The barrier covers ordinary and 0-RTT
+  requests and direct request-stream opening, and stops on cancellation or setup
+  failure. Browser SETTINGS values and ordering remain in the selected profile.
+
 - **Profile-owned network policy (schema 3):** browser-specific TLS, H1/H2,
   QUIC/H3, header, proxy, cookie, redirect and session settings are explicit JSON
   data. Profile names and descriptive User-Agent strings no longer select policy
