@@ -602,6 +602,11 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 		}
 	}
 	for _, f := range script {
+		if strings.EqualFold(f.Name, "range") && !script.Has("if-range") {
+			// A lone Range is reconstructed by the network stack, including
+			// its HTTP/1 spelling. With If-Range both remain renderer fields.
+			continue
+		}
 		// The script's first spelling survives even when it is all lower
 		// case (fresh Chrome H1 oracle,chrome155-script-headers.json).
 		spelling[strings.ToLower(f.Name)] = f.Name

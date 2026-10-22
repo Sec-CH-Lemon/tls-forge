@@ -198,9 +198,12 @@ func TestThePreflightCache(t *testing.T) {
 		t.Fatal("an empty cache allows")
 	}
 	keep(put, target, allowance{methods: []string{"PUT"}, maxAge: time.Minute})
+	if !allows(put, target) || allows(json, target) {
+		t.Error("first grant does not allow exactly its requested permission")
+	}
 	keep(json, target, allowance{headers: []string{"Content-Type"}, maxAge: time.Minute})
-	if !allows(put, target) || !allows(json, target) {
-		t.Error("what was kept is not allowed")
+	if allows(put, target) || !allows(json, target) {
+		t.Error("replacement grant inherited an old permission or lost its own")
 	}
 	for name, other := range map[string]*browserRequest{
 		"another method":      corsRequest("DELETE", credentialsSame, nil),
@@ -216,7 +219,7 @@ func TestThePreflightCache(t *testing.T) {
 		t.Error("another URL is allowed")
 	}
 	now = now.Add(time.Minute)
-	if allows(put, target) {
+	if allows(json, target) {
 		t.Error("an expired allowance holds")
 	}
 	// A wildcard stands for what a request without credentials sends, but

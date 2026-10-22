@@ -1026,6 +1026,28 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- Chrome browser-context Range requests now use the measured network slot and
+  identity encoding and HTTP/1 spelling; If-Range retains renderer order and adds max-age=0.
+  Complete fresh entries can answer a single range. Strong-validator prefix
+  entries are validated and completed with If-Range before answering a full
+  GET, with exact interval, validator and body-length checks before joining.
+
+- **Chrome connection recheck:** enforce the 256-KiB HTTP/1 response-head
+  boundary and six active connections per host pool; preserve HTTP/2 after a
+  decoded over-budget Huffman field; send `illegal_parameter` for an unoffered
+  TLS1.2 ALPN selection. The ordinary TLS/parser modes retain their policies.
+- **Chrome cookies and browser response metadata:** retain received cookie
+  pair bytes, accept an exact IP Domain as host-only, and reset equal-path
+  ordering only when a replacement changes its value. Preserve original H1
+  transfer/trailer declarations in browser-context responses. Chrome-mode H1
+  parsing uses the measured 200 fallback for a missing numeric status.
+- **Browser state:** a new narrow preflight grant replaces old permissions
+  for that origin/URL/credentials scope. Revalidate cached GETs through HEAD,
+  retain explicitly fresh GET redirects, and coalesce identical buffered GETs
+  with caller cancellation and bounded pending work. Cache modes, document
+  state and other missing APIs remain open. Exact paired observations and
+  remaining limits are maintained in the sibling browser knowledge base.
+
 - Share an HTTPS proxy's outer H2 connection and HPACK state between CONNECT
   and ordinary HTTP requests within a client/top-level site. Keep CONNECT
   deadlines and closure local to the stream, preserve active peers on idle

@@ -251,6 +251,7 @@ func New(opts ...Option) (*Client, error) {
 	var transportJar fhttp.CookieJar
 	if given != nil {
 		jar = newKeptJar(given)
+		jar.chrome = prof.Chromium()
 		transportJar = jar
 	}
 	milliseconds := cfg.timeout.Milliseconds()
@@ -266,6 +267,18 @@ func New(opts ...Option) (*Client, error) {
 	// One writer for every connection of the client and of every client
 	// Fresh makes of it, to sites and to a proxy alike.
 	keys := keyLogOf(cfg.keyLog)
+	transportOptions := &tls_client.TransportOptions{
+		MaxIdleConnsPerHost: 6,
+		DisableCompression:  true,
+		KeyLogWriter:        keys,
+	}
+	if prof.Chromium() {
+		// Chrome bounds an HTTP/1 response head at 256 KiB, including the
+		// status line and delimiters, and holds at most six HTTP/1 connections
+		// in a host's pool. HTTP/2 keeps its own multiplexing/field-list rules.
+		transportOptions.MaxResponseHeaderBytes = 262144
+		transportOptions.MaxConnsPerHost = 6
+	}
 	options := []tls_client.HttpClientOption{
 		// A request ends with its context, which do gives the timeout as its
 		// deadline: the transport sets none of its own on each of the
@@ -283,17 +296,9 @@ func New(opts ...Option) (*Client, error) {
 		// fresh handshake per request is the very signal this library exists to
 		// avoid. HTTP/2 multiplexes and never sees any of it: the same 3000
 		// requests went over two connections.
-		tls_client.WithTransportOptions(&tls_client.TransportOptions{
-			MaxIdleConnsPerHost: 6,
-			// Bodies are decoded here rather than by the transport, which decodes
-			// some wrongly and adds an Accept-Encoding of its own: see
-			// encoding.go. A caller's WithTransportOption that sets transport
-			// options replaces these, and the transport decodes again.
-			DisableCompression: true,
-			// The secrets of every connection to a site, when they are asked
-			// for: every TLS config the transport shakes hands with takes them.
-			KeyLogWriter: keys,
-		}),
+		// Bodies are decoded here (encoding.go); an explicit caller-supplied
+		// transport-options value replaces all these defaults.
+		tls_client.WithTransportOptions(transportOptions),
 	}
 	if transportShuffles(prof, shuffleExtensions) {
 		options = append(options, tls_client.WithRandomTLSExtensionOrder())
@@ -547,6 +552,11 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 			continue
 		}
 		out.Header[lower] = values
+	}
+	if browser != nil {
+		for name, values := range res.FramingHeader {
+			out.Header[strings.ToLower(name)] = values
+		}
 	}
 	if c.session.jar != nil {
 		// What the jar holds for the URL, whatever this request carried.

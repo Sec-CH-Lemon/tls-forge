@@ -255,6 +255,14 @@ func (c *preflightCache) keep(r *browserRequest, h hop, target string, a allowan
 	defer c.mu.Unlock()
 	origin := h.serialized(r)
 	until := c.now().Add(a.maxAge)
+	// Chrome caches one latest preflight result for this origin/URL and
+	// credentials scope. A narrower replacement grant must not inherit
+	// methods or headers allowed by an earlier result.
+	for key := range c.allowed {
+		if key.origin == origin && key.url == target && key.credentials == (r.credentials == credentialsAll) {
+			delete(c.allowed, key)
+		}
+	}
 	for _, method := range a.methods {
 		c.allowed[r.key(origin, target, method, "")] = until
 	}

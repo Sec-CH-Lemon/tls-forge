@@ -486,17 +486,44 @@ so far, as measured in Chrome. Invalid gzip/DEFLATE data and truncated HTTP
 framing still fail. Only the first gzip member is decoded; trailing bytes are
 consumed to preserve connection reuse. The decoded-body limit still applies.
 
-Requests with a browser context use a private GET cache partitioned by the
+Chrome profiles bound HTTP/1 response heads at 262,144 bytes and allow six
+active HTTP/1 connections per host pool; queued cancellation can end before
+origin contact. An explicit transport-options override replaces these defaults.
+HTTP/2 keeps a bounded encoded HPACK literal limit while allowing Huffman
+expansion before applying its decoded field-list budget, preserving the
+connection after an over-budget decoded field resets its stream.
+
+Chrome cookie parsing and serialization preserve received pair bytes, including
+unquoted spaces, quotes, backslashes, UTF-8 and nameless values. Cookie scope,
+prefix, Secure, SameSite and lifetime checks still apply. An exact IP Domain is
+host-only. Replacing a cookie with the same value preserves creation order;
+changing its value gives it a new position among equal-length paths.
+
+Requests with a browser context use a private cache partitioned by the
 top-level schemeful site, URL and `Vary` fields. Complete 200 responses with
 explicit freshness or a validator can be retained: 8 MiB per body, 64 MiB in
 total and 256 entries. Fresh responses avoid another origin request; stale
-ones use ETag or Last-Modified and merge a 304 response. `no-store`, `Vary: *`
-and incomplete bodies are not cached. Low-level requests without a browser
+ones use ETag or Last-Modified and merge a 304 response. HEAD can revalidate a
+stored GET without replacing its body. Explicitly fresh 301/302/307/308 GET
+redirects are retained, and identical buffered GETs can wait on one pending
+cache representation. A single byte range can be served from a complete,
+unencoded fresh 200 entry. A complete 206 prefix with a strong ETag can be
+retained within those same limits; a full GET first validates the prefix, then
+requests the missing interval with If-Range. Only exact intervals with the
+same strong ETag are joined. A changed resource replaces the old prefix;
+truncated bodies are never accepted as complete. Other partial layouts and
+multipart ranges continue through the origin. Script Range without If-Range
+uses the network header slot and HTTP/1 spelling `Range`; with If-Range, Chrome's renderer slots and
+`Cache-Control: max-age=0` apply. Both caller forms use
+`Accept-Encoding: identity`.
+`no-store`, `Vary: *` and truncated bodies are not cached. Low-level requests without a browser
 context continue to contact the network. Cache-mode and cache-clearing APIs
 remain unavailable.
 
 For a response to a browser-context request, headers retain the received
-Content-Encoding and Content-Length, as Chrome Fetch does. The body is already
+Content-Encoding and Content-Length, as Chrome Fetch does. Original HTTP/1
+Transfer-Encoding and Trailer declarations remain visible; actual trailer
+fields are not promoted into response headers. The body is already
 decoded and `Encoding` identifies the codings removed. Responses without a
 browser context retain the decoded-body header contract used by the proxy.
 

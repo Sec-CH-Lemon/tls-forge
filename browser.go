@@ -491,10 +491,17 @@ func alpsOrder(order []string, redirected bool) []string {
 // Headers the network stack adds follow it; a redirect can give Origin late.
 func scriptOrder(h hop) []string {
 	out := []string{"content-length"}
+	if h.script.Has("range") && h.script.Has("if-range") && !h.script.Has("cache-control") {
+		out = append(out, "cache-control")
+	}
 	if !h.script.Has("authorization") {
 		out = append(out, "authorization")
 	}
-	out = append(out, scriptHeaderOrder(h)...)
+	renderer := h
+	if h.script.Has("range") && !h.script.Has("if-range") {
+		renderer.script = h.script.without("range")
+	}
+	out = append(out, scriptHeaderOrder(renderer)...)
 	if !h.script.Has("accept") {
 		out = append(out, "accept")
 	}
@@ -507,7 +514,10 @@ func scriptOrder(h hop) []string {
 	}
 	// A script-owned field already has its renderer slot. The network stack
 	// must not append the same name again in its default slot.
-	for _, name := range []string{"referer", "accept-encoding", "accept-language", "cookie", "priority"} {
+	for _, name := range []string{"referer", "accept-encoding", "accept-language", "cookie", "range", "priority"} {
+		if name == "range" && !h.script.Has(name) {
+			continue
+		}
 		if !slices.Contains(out, name) {
 			out = append(out, name)
 		}
@@ -587,6 +597,12 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 		values["cache-control"] = "max-age=0"
 		if h.method == fhttp.MethodPost {
 			values["content-type"] = r.contentType
+		}
+	}
+	if script && h.script.Has("range") {
+		values["accept-encoding"] = "identity"
+		if h.script.Has("if-range") {
+			values["cache-control"] = "max-age=0"
 		}
 	}
 	values["sec-fetch-site"] = h.site

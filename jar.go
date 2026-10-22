@@ -28,9 +28,11 @@ import (
 
 // keptJar is a jar with what it does not say of its cookies kept beside it.
 type keptJar struct {
-	inner fhttp.CookieJar
-	mu    sync.Mutex
-	kept  map[cookieKey]cookieFacts
+	inner  fhttp.CookieJar
+	mu     sync.Mutex
+	kept   map[cookieKey]cookieFacts
+	chrome bool
+	serial uint64
 	// rules are what a request in a browser context lets through, by the URL
 	// the transport asks the jar about for it: its own, for each hop.
 	rules sync.Map
@@ -53,6 +55,8 @@ type cookieFacts struct {
 	// created is when the cookie was first set: one set again over it keeps
 	// the first's, as RFC 6265 has a browser keep it.
 	created time.Time
+	value   string
+	order   uint64
 }
 
 // maxCookieLifetime is the longest Chrome keeps a cookie: a later Expires or a
@@ -104,6 +108,7 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 					continue
 				}
 				part = newKeptJar(inner)
+				part.chrome = j.chrome
 				j.partitions[key] = part
 			}
 			copy := *c
@@ -118,6 +123,14 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 			continue
 		}
 		if c = withinLimits(c); rule.keeps(c) && j.accepts(u, c) {
+			// Chrome accepts an exact IP Domain as a host-only cookie. The
+			// underlying RFC jar rejects every IP Domain, so file the equivalent
+			// host-only form; a different IP is still rejected by that jar.
+			if host, ok := canonicalHost(u.Host); j.chrome && ok && net.ParseIP(host) != nil && c.Domain == host {
+				copy := *c
+				copy.Domain = ""
+				c = &copy
+			}
 			kept = append(kept, c)
 		}
 	}
@@ -150,8 +163,11 @@ func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 			delete(j.kept, key)
 		default:
 			created := now
-			if before, known := j.kept[key]; known {
+			j.serial++
+			order := j.serial
+			if before, known := j.kept[key]; known && (!j.chrome || before.value == c.Value) {
 				created = before.created
+				order = before.order
 			}
 			j.kept[key] = cookieFacts{
 				hostOnly:   hostOnly,
@@ -159,6 +175,8 @@ func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 				secure:     c.Secure,
 				sameSite:   c.SameSite,
 				created:    created,
+				value:      c.Value,
+				order:      order,
 			}
 		}
 	}
@@ -187,6 +205,9 @@ func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
 		part.release(u)
 	}
 	if !ok {
+		j.mu.Lock()
+		j.sortCookies(held)
+		j.mu.Unlock()
 		return append(held, partitioned...)
 	}
 	now := time.Now()
@@ -199,7 +220,30 @@ func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
 			kept = append(kept, c)
 		}
 	}
+	j.sortCookies(kept)
 	return append(kept, partitioned...)
+}
+
+// Chrome preserves creation order for an identical value (including an expiry
+// refresh), but a changed value receives a new place among equal-length paths.
+// The wrapped RFC jar always retains the old order, so use our measured facts.
+// The caller holds j.mu; non-Chrome jars retain their original ordering.
+func (j *keptJar) sortCookies(cookies []*fhttp.Cookie) {
+	if !j.chrome {
+		return
+	}
+	order := func(c *fhttp.Cookie) uint64 {
+		if f, ok := j.kept[cookieKey{c.Name, c.Domain, c.Path}]; ok {
+			return f.order
+		}
+		return ^uint64(0)
+	}
+	sort.SliceStable(cookies, func(a, b int) bool {
+		if len(cookies[a].Path) != len(cookies[b].Path) {
+			return len(cookies[a].Path) > len(cookies[b].Path)
+		}
+		return order(cookies[a]) < order(cookies[b])
+	})
 }
 
 func partitionedCookie(c *fhttp.Cookie) bool {
