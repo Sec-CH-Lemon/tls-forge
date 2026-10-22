@@ -16,7 +16,7 @@ import (
 	http2 "github.com/igor-lemon/fhttp/http2"
 	tls_client "github.com/igor-lemon/tls-client"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
 )
 
 // What CORS asks of fetch() and an XHR in cors mode to another origin, as the

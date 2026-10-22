@@ -20,8 +20,8 @@ import (
 	"github.com/igor-lemon/fhttp/http2"
 	"github.com/spf13/pflag"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/redact"
 )
 
 // A run's log: everything it did, written down as it did it, for whoever has to

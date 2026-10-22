@@ -2,7 +2,7 @@ package profile
 
 import (
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/engine"
 	"github.com/igor-lemon/utls/behavior"
 	"slices"
 )
@@ -42,7 +42,7 @@ func (p *Profile) validateBehavior() error {
 	}
 	if p.Schema >= 3 {
 		if p.EngineMajor != nil && *p.EngineMajor == engine.Major() {
-			for _, key := range []string{"h3.qpack.huffman_names", "h3.qpack.huffman_values"} {
+			for _, key := range []string{"h3.qpack.huffman_names", "h3.qpack.huffman_values", "h3.qpack.encoder_strategy", "h3.qpack.decoder_feedback", "h3.qpack.never_index", "h3.qpack.streams", "h3.qpack.stream_order", "h3.qpack.encoder_warmup_sections", "h3.qpack.reference_base", "h3.qpack.encoder_table_bytes"} {
 				if !p.Behavior.Has(key) {
 					return fmt.Errorf("profile %q: behavior is incomplete; requires %s", p.Name, key)
 				}

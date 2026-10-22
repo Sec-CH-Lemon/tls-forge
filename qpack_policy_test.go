@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
 	"io"
 	"net"
 	"net/http/httptest"
@@ -184,5 +184,41 @@ func TestQPACKPolicyIsRequiredAndValidatedBeforeNetwork(t *testing.T) {
 		if dialed || !strings.Contains(err.Error(), "h3.qpack.huffman_values") {
 			t.Fatal(dialed, err)
 		}
+	}
+}
+
+func TestDynamicQPACKJSONGateBeforeNetwork(t *testing.T) {
+	for key, bad := range map[string]string{
+		"h3.qpack.encoder_table_bytes":     `1048577`,
+		"h3.qpack.encoder_strategy":        `"browser-magic"`,
+		"h3.qpack.decoder_feedback":        `"maybe"`,
+		"h3.qpack.streams":                 `"hidden-default"`,
+		"h3.qpack.stream_order":            `[2,2]`,
+		"h3.qpack.encoder_warmup_sections": `1025`,
+		"h3.qpack.reference_base":          `"auto"`,
+		"h3.qpack.never_index":             `true`,
+	} {
+		t.Run(key, func(t *testing.T) {
+			for _, missing := range []bool{false, true} {
+				p, e := profile.Get("chrome_155_macos")
+				if e != nil {
+					t.Fatal(e)
+				}
+				p.Name = "neutral-identity"
+				if missing {
+					delete(p.Behavior, key)
+				} else {
+					p.Behavior[key] = json.RawMessage(bad)
+				}
+				dialed := false
+				_, e = New(WithProfileValue(p), WithTransportOption(tc.WithDialContext(func(context.Context, string, string) (net.Conn, error) {
+					dialed = true
+					return nil, fmt.Errorf("unexpected dial")
+				})))
+				if e == nil || dialed || !strings.Contains(e.Error(), key) {
+					t.Fatalf("missing=%v dialed=%v error=%v", missing, dialed, e)
+				}
+			}
+		})
 	}
 }

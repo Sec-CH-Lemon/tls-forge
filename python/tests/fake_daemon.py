@@ -212,10 +212,10 @@ def _blank(request: dict, **extra: object) -> dict:
 
 def _hello(request: dict) -> None:
     capabilities = [name for name in os.environ.get("TLSFORGE_TEST_CAPABILITIES", "").split(",") if name]
-    identity = {"protocol": 3, "version": os.environ.get("TLSFORGE_TEST_ENGINE_VERSION", "2.0.0"), "capabilities": capabilities}
+    identity = {"protocol": 3, "version": os.environ.get("TLSFORGE_TEST_ENGINE_VERSION", "3.0.0"), "capabilities": capabilities}
     major = os.environ.get("TLSFORGE_TEST_ENGINE_MAJOR")
     if major != "missing":
-        identity["engine_major"] = 2 if major is None else json.loads(major)
+        identity["engine_major"] = 3 if major is None else json.loads(major)
     emit(_blank(request, **identity))
     deaf_for = os.environ.get("TLSFORGE_TEST_DEAF_FOR")
     if deaf_for:
@@ -236,7 +236,7 @@ PROTOCOLS: dict[str, Callable[[dict], None]] = {
     "bad-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities=[7])),
     "no-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities="all")),
     "low": lambda request: emit(_blank(request, protocol=1)),
-    "newer": lambda request: emit(_blank(request, protocol=7, engine_major=2, version="2.0.0", capabilities=["browser_context", "teleport"])),
+    "newer": lambda request: emit(_blank(request, protocol=7, engine_major=3, version="3.0.0", capabilities=["browser_context", "teleport"])),
     "silent": lambda _request: None,
     "exit": _exit,
 }

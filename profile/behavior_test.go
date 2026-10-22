@@ -8,7 +8,7 @@ import (
 )
 
 func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
-	old := &Profile{EngineMajor: Major(2), Name: "chrome_custom", Base: "chrome_133"}
+	old := &Profile{EngineMajor: Major(3), Name: "chrome_custom", Base: "chrome_133"}
 	saved, err := old.Save()
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) 
 	if again.Behavior.Int("tls.handshake_retries") != 0 {
 		t.Fatal("profile-only edit lost in round trip")
 	}
-	fresh := &Profile{EngineMajor: Major(2), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
+	fresh := &Profile{EngineMajor: Major(3), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
 	if fresh.Chromium() || fresh.ShufflesExtensions() {
 		t.Fatal("schema 3 inferred behavior from chrome name")
 	}
@@ -57,8 +57,8 @@ func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
 		{`,"behavior":{"tls.handshake_retries":-1}`, "cannot unmarshal"},
 		{`,"behavior":{"tls.handshake_retries":"1"}`, "cannot unmarshal"},
 		{`,"behavior":{"tls.handshake_retries":1,"tls.handshake_retries":0}`, "duplicate behavior field"},
-		{`,"behavior":{"h3.settings":[{"id":1,"value":65536}]}`, "dynamic QPACK API is unavailable"},
-		{`,"behavior":{"h3.settings":[{"id":7,"value":100}]}`, "dynamic QPACK API is unavailable"},
+		{`,"behavior":{"h3.settings":[{"id":1,"value":1048577}]}`, "QPACK exceeds engine resource safety bound"},
+		{`,"behavior":{"h3.settings":[{"id":7,"value":1025}]}`, "QPACK exceeds engine resource safety bound"},
 		{`,"behavior":{"h3.settings":[{"id":1,"value":0},{"id":1,"value":0}]}`, "invalid/duplicate"},
 		{`,"behavior":{"h3.settings":[{"id":1,"vaule":0}]}`, "unknown field"},
 		{`,"behavior":{"h3.origin":true}`, "unsupported behavior field"},
@@ -75,7 +75,7 @@ func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
 		{`,"behavior":{"h1.missing_status":1000}`, "three digits"},
 		{`,"behavior":{"http.content_codings":["unimplemented-codec"]}`, "API is unavailable"},
 	} {
-		raw := `{"engine_major":2,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
+		raw := `{"engine_major":3,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
 		_, err := Load([]byte(raw))
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", raw, err, tc.want)

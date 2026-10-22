@@ -50,9 +50,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/browser"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/browser"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
 )
 
 // exit is os.Exit, which a test of main replaces.

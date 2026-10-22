@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/proctree"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/proctree"
 )
 
 // Browser is a launchable browser found on this machine.

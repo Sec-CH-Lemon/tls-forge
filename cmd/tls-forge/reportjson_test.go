@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
 )
 
 // A report in more than one format: which, where each goes, and what the one

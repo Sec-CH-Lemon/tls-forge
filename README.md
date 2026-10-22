@@ -98,7 +98,7 @@ granting it.
 With Go 1.26.9 or newer:
 
 ```bash
-go install github.com/Sec-CH-Lemon/tls-forge/v2/cmd/tls-forge@latest
+go install github.com/Sec-CH-Lemon/tls-forge/v3/cmd/tls-forge@latest
 ```
 
 The binary is written to `$(go env GOPATH)/bin` unless `GOBIN` is set.
@@ -156,7 +156,7 @@ through linker flags. A release-style static build is:
 
 ```bash
 CGO_ENABLED=0 go build -trimpath \
-  -ldflags "-s -w -X main.version=v2.0.0" \
+  -ldflags "-s -w -X main.version=v3.0.0" \
   -o tls-forge ./cmd/tls-forge
 ```
 
@@ -1837,17 +1837,17 @@ says so in its header. To wear Firefox or Safari whole, measure it with
 `capture --manual`.
 
 
-## Engine/profile compatibility (2.0.0)
+## Engine/profile compatibility (3.0.0)
 
-The compiled engine version is **2.0.0**, independently of the browser build and
+The compiled engine version is **3.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 2`. Engines reject profiles from both older
+non-negative integer `engine_major: 3`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 2, "name": "my-browser"}
+{"schema": 4, "engine_major": 3, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -1856,8 +1856,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Crossing to major 2 will also require Go module path
-versioning.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v3`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -1866,13 +1865,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-2") // handle err
+candidate, err := old.Migrate("my-browser-engine-3") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-2
+The 15 shipped profiles and all backend catalogue policies have explicit engine-3
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -1883,7 +1882,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 2`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 3`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -1914,7 +1913,7 @@ copies require rebuilding only to distribute changed embedded defaults. See
 [the behavior format and field reference](docs/profile-behavior.md).
 
 Unknown fields, incorrect types, duplicate behavior keys and unsupported
-capabilities fail before sending a request. Dynamic QPACK, HTTP/3 ALPS, ORIGIN
+capabilities fail before sending a request. HTTP/3 ALPS, ORIGIN
 pooling and cross-version QUIC negotiation remain unavailable. A new protocol or
 algorithm needs engine support before a profile can select it. OS TCP behavior
 also remains a property of the host stack. Schema 0-2 profiles retain a documented
@@ -2122,7 +2121,7 @@ request options, response fields, lifecycle rules and failure behaviour.
 #### Go
 
 ```bash
-go get github.com/Sec-CH-Lemon/tls-forge/v2
+go get github.com/Sec-CH-Lemon/tls-forge/v3
 ```
 
 ```go
@@ -2132,7 +2131,7 @@ import (
 	"fmt"
 	"log"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2/v2"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3/v2"
 )
 
 func main() {
@@ -2274,7 +2273,7 @@ when a maintainer starts it from the Actions page or from the command line:
 ```bash
 gh workflow run published-e2e.yml \
   --ref main \
-  -f version=2.0.0 \
+  -f version=3.0.0 \
   -f check_brew=true
 ```
 
@@ -2351,7 +2350,7 @@ parameters are omitted. Complete transport-parameter TLVs are shuffled and their
 GREASE identifiers are freshly drawn from the full reserved 62-bit family.
 
 The CID shape and these initial limits do not establish migration, loss recovery,
-HTTP/3 discovery, dynamic QPACK, ALPS bootstrap, compatible version negotiation or
+HTTP/3 discovery, ALPS bootstrap, compatible version negotiation or
 Google-specific connection-option parity. Missing backend APIs remain open. See
 the shared browser knowledge base for exact source/build and paired wire evidence.
 
@@ -2372,17 +2371,16 @@ opening a socket and does not advertise cross-version negotiation support.
 Google option `ORIG` in parameter 12584 requests the HTTP/3 ORIGIN experiment.
 It does not describe the original destination CID. The current H3 backend lacks
 an ORIGIN consumer and corresponding authorized connection-pooling path, so the
-option remains unadvertised and those scenarios remain open. Dynamic QPACK and
-H3 ALPS bootstrap also remain open until their required APIs exist.
+option remains unadvertised and those scenarios remain open. H3 ALPS bootstrap remains open until their required APIs exist.
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
 
-### Engine 2 QPACK policy
+### Engine 3 QPACK policy
 
-The Go SDK module is `github.com/Sec-CH-Lemon/tls-forge/v2`. Browser profiles
-require `engine_major: 2`; Node/Python 2.0.0 require an engine-2 daemon.
+The Go SDK module is `github.com/Sec-CH-Lemon/tls-forge/v3`. Browser profiles
+require `engine_major: 3`; Node/Python 3.0.0 require an engine-3 daemon.
 The profile now explicitly selects QPACK name/value Huffman coding with
 `h3.qpack.huffman_names` and `h3.qpack.huffman_values`: `always`, `shorter`,
 or `never`. Chrome155/macOS selects strictly shorter coding.
-See [profile-owned behavior](docs/profile-behavior.md#http3-qpack-string-coding-engine-2).
-Dynamic QPACK and its nonzero SETTINGS remain unavailable and are rejected.
+See [profile-owned behavior](docs/profile-behavior.md#http3-qpack-engine-3).
+Dynamic QPACK is implemented in engine3; its table/feedback/stream policy is declared in JSON. Other missing-API scenarios remain open.

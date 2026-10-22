@@ -604,9 +604,25 @@
           10080
         ],
         "h3.qpack.huffman_names": "always",
-        "h3.qpack.huffman_values": "always"
+        "h3.qpack.huffman_values": "always",
+        "h3.qpack.encoder_strategy": "disabled",
+        "h3.qpack.decoder_feedback": "on-insert",
+        "h3.qpack.never_index": [
+          "authorization",
+          "proxy-authorization",
+          "cookie",
+          "set-cookie"
+        ],
+        "h3.qpack.streams": "lazy",
+        "h3.qpack.stream_order": [
+          2,
+          3
+        ],
+        "h3.qpack.encoder_warmup_sections": 0,
+        "h3.qpack.reference_base": "required",
+        "h3.qpack.encoder_table_bytes": 0
       },
-      "engine_major": 2,
+      "engine_major": 3,
       "http2": {
         "settings": null,
         "connection_flow": 0,
@@ -805,9 +821,25 @@
           10080
         ],
         "h3.qpack.huffman_names": "always",
-        "h3.qpack.huffman_values": "always"
+        "h3.qpack.huffman_values": "always",
+        "h3.qpack.encoder_strategy": "disabled",
+        "h3.qpack.decoder_feedback": "on-insert",
+        "h3.qpack.never_index": [
+          "authorization",
+          "proxy-authorization",
+          "cookie",
+          "set-cookie"
+        ],
+        "h3.qpack.streams": "lazy",
+        "h3.qpack.stream_order": [
+          2,
+          3
+        ],
+        "h3.qpack.encoder_warmup_sections": 0,
+        "h3.qpack.reference_base": "required",
+        "h3.qpack.encoder_table_bytes": 0
       },
-      "engine_major": 2,
+      "engine_major": 3,
       "http2": {
         "settings": null,
         "connection_flow": 0,

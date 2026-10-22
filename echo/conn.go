@@ -3,7 +3,7 @@ package echo
 import (
 	"net"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/fingerprint"
 )
 
 // recordingConn keeps a copy of the bytes a client sends until it has a whole

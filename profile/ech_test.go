@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/fingerprint"
 	tls "github.com/igor-lemon/utls"
 )
 
@@ -265,9 +265,9 @@ func TestAnotherBrowserKeepsTheECHLengthItWasCapturedWith(t *testing.T) {
 		t.Fatalf("fixture: %v", err)
 	}
 	for _, p := range []*Profile{
-		{EngineMajor: Major(2), Name: "firefox_148", ClientHello: raw},
-		{EngineMajor: Major(2), Name: "chrome_155_ios", ClientHello: raw},
-		{EngineMajor: Major(2), Name: "custom", ClientHello: raw, UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) CriOS/155.0.0.0"},
+		{EngineMajor: Major(3), Name: "firefox_148", ClientHello: raw},
+		{EngineMajor: Major(3), Name: "chrome_155_ios", ClientHello: raw},
+		{EngineMajor: Major(3), Name: "custom", ClientHello: raw, UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) CriOS/155.0.0.0"},
 	} {
 		spec, err := p.Spec()
 		if err != nil {

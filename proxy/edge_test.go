@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
 )
 
 // budgetedReader yields a fixed number of bytes and then fails, so a test can

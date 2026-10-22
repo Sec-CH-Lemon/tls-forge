@@ -1,16 +1,16 @@
 # TLS Forge for Node.js
 
-## Engine/profile compatibility (2.0.0)
+## Engine/profile compatibility (3.0.0)
 
-The compiled engine version is **2.0.0**, independently of the browser build and
+The compiled engine version is **3.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 2`. Engines reject profiles from both older
+non-negative integer `engine_major: 3`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 2, "name": "my-browser"}
+{"schema": 4, "engine_major": 3, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -19,8 +19,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Crossing to major 2 will also require Go module path
-versioning.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v3`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -29,13 +28,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-2") // handle err
+candidate, err := old.Migrate("my-browser-engine-3") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-2
+The 15 shipped profiles and all backend catalogue policies have explicit engine-3
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -46,7 +45,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 2`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 3`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable

@@ -21,11 +21,11 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/echo"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v3"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
 )
 
 // The CLI is driven the way a user drives it — argv in, bytes out — rather than
@@ -746,7 +746,7 @@ func TestDaemon(t *testing.T) {
 	original := daemonInput
 	t.Cleanup(func() { daemonInput = original })
 	daemonInput = strings.NewReader(
-		`{"engine_major":2,"id":42,"url":"` + server.URL() + `/api/all"}` + "\n")
+		`{"engine_major":3,"id":42,"url":"` + server.URL() + `/api/all"}` + "\n")
 
 	code, stdout, stderr := exec(t, "daemon", "--insecure")
 	if code != 0 {
@@ -1529,7 +1529,7 @@ func TestPrintCaptureShowsResumption(t *testing.T) {
 func TestProfilesListsAnUnloadableNameWithTheCatalogue(t *testing.T) {
 	// A registered profile that cannot produce a handshake still has a name, and
 	// dropping it silently would hide exactly the thing worth reporting.
-	if err := profile.Register(&profile.Profile{EngineMajor: profile.Major(2), Name: "zz_unloadable"}); err != nil {
+	if err := profile.Register(&profile.Profile{EngineMajor: profile.Major(3), Name: "zz_unloadable"}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	code, stdout, _ := exec(t, "profiles")
@@ -1998,10 +1998,10 @@ func TestCompareTellsTroubleFromDisagreement(t *testing.T) {
 func TestWrongBuildIdentityCannotDispatch(t *testing.T) {
 	original := version
 	defer func() { version = original }()
-	version = "v3.0.0"
+	version = "v2.0.0"
 	var out, diagnostic bytes.Buffer
 	code := run(context.Background(), []string{"version"}, &out, &diagnostic)
-	if code != 2 || out.Len() != 0 || !strings.Contains(diagnostic.String(), "compiled engine 2.0.0 (major 2)") {
+	if code != 2 || out.Len() != 0 || !strings.Contains(diagnostic.String(), "compiled engine 3.0.0 (major 3)") {
 		t.Fatal(code, out.String(), diagnostic.String())
 	}
 }

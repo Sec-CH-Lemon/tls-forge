@@ -27,9 +27,9 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/echo"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/echo"
 )
 
 func newCAForTest(t *testing.T) *CA {

@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
 )
 
 // budgetedReader yields a fixed number of bytes and then fails, so a test can

@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/v3"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/echo"
 )
 
 // A browser nobody here can launch — Firefox, Safari, a phone's — is measured

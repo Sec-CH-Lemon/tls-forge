@@ -93,7 +93,7 @@ async function checkGo() {
 
   run('go', ['mod', 'init', 'tls-forge-published-smoke'], moduleDir);
   await retry('downloading the Go module', () =>
-    run('go', ['get', `github.com/Sec-CH-Lemon/tls-forge/v2@v${version}`], moduleDir));
+    run('go', ['get', `github.com/Sec-CH-Lemon/tls-forge/v3@v${version}`], moduleDir));
   writeFileSync(
     path.join(moduleDir, 'main.go'),
     `package main
@@ -101,7 +101,7 @@ async function checkGo() {
 import (
   "fmt"
 
-  tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+  tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
 )
 
 func main() {
@@ -122,7 +122,7 @@ func main() {
   await retry('installing the Go CLI', () =>
     run(
       'go',
-      ['install', `github.com/Sec-CH-Lemon/tls-forge/v2/cmd/tls-forge@v${version}`],
+      ['install', `github.com/Sec-CH-Lemon/tls-forge/v3/cmd/tls-forge@v${version}`],
       workspace,
       { env: goEnvironment },
     ));
@@ -130,7 +130,7 @@ func main() {
   const buildInfo = run('go', ['version', '-m', binary], workspace, { capture: true });
   assertIncludes(
     buildInfo,
-    `\tmod\tgithub.com/Sec-CH-Lemon/tls-forge/v2\tv${version}\t`,
+    `\tmod\tgithub.com/Sec-CH-Lemon/tls-forge/v3\tv${version}\t`,
     'Go CLI build info',
   );
   run(binary, ['profiles'], workspace);

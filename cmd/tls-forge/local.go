@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
 )
 
 // localName is what a profile measured from the browser on this machine is

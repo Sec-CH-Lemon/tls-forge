@@ -16,8 +16,8 @@ import (
 	tls_client "github.com/igor-lemon/tls-client"
 	utls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/profile"
 )
 
 // alpsFrame is an HTTP/2 frame of type typ, with flags, on stream, carrying

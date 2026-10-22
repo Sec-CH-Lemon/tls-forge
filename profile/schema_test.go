@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/capture"
 	tls "github.com/igor-lemon/utls"
 )
 
@@ -141,14 +141,14 @@ func TestWhatABrowserDrawsPerConnectionIsSaidOutright(t *testing.T) {
 		lengths  []uint16
 	}{
 		// Said, it is what is done, whatever the name says.
-		{"Chrome said to draw nothing", &Profile{EngineMajor: Major(2), Name: "chrome_155", ClientHello: raw, PerConnection: &PerConnection{}},
+		{"Chrome said to draw nothing", &Profile{EngineMajor: Major(3), Name: "chrome_155", ClientHello: raw, PerConnection: &PerConnection{}},
 			false, captured},
-		{"Firefox said to draw", &Profile{EngineMajor: Major(2), Name: "firefox_148", ClientHello: raw,
+		{"Firefox said to draw", &Profile{EngineMajor: Major(3), Name: "firefox_148", ClientHello: raw,
 			PerConnection: &PerConnection{ShufflesExtensions: true, ECHPayloadLengths: []uint16{100, 200}}},
 			true, []uint16{100, 200}},
 		// Unsaid, it is guessed from the name, as before profiles said it.
-		{"Chrome unsaid", &Profile{EngineMajor: Major(2), Name: "chrome_155", ClientHello: raw}, true, chromeECHPayloadLengths},
-		{"Firefox unsaid", &Profile{EngineMajor: Major(2), Name: "firefox_148", ClientHello: raw}, false, captured},
+		{"Chrome unsaid", &Profile{EngineMajor: Major(3), Name: "chrome_155", ClientHello: raw}, true, chromeECHPayloadLengths},
+		{"Firefox unsaid", &Profile{EngineMajor: Major(3), Name: "firefox_148", ClientHello: raw}, false, captured},
 	} {
 		spec, err := tc.profile.Spec()
 		if err != nil {
@@ -337,7 +337,7 @@ func TestFromCaptureTakesTheClientHintsTheBrowserSentWhenAsked(t *testing.T) {
 func TestAnECHPayloadLengthIsOneABrowserCouldDraw(t *testing.T) {
 	// The payload's length field holds 65535 bytes, the AEAD's tag among them.
 	for length, ok := range map[int]bool{0: false, 1: true, 65519: true, 65520: false} {
-		document := fmt.Sprintf(`{"engine_major":2,"schema":1,"name":"x","base":"chrome_133","per_connection":{"ech_payload_lengths":[128,%d]}}`, length)
+		document := fmt.Sprintf(`{"engine_major":3,"schema":1,"name":"x","base":"chrome_133","per_connection":{"ech_payload_lengths":[128,%d]}}`, length)
 		_, err := Load([]byte(document))
 		if (err == nil) != ok || (err != nil && !strings.Contains(err.Error(), fmt.Sprintf("an ECH payload of %d bytes", length))) {
 			t.Errorf("%d: %v", length, err)
@@ -346,14 +346,14 @@ func TestAnECHPayloadLengthIsOneABrowserCouldDraw(t *testing.T) {
 }
 
 func TestACloneDrawsFromItsOwnLengths(t *testing.T) {
-	original := &Profile{EngineMajor: Major(2), Name: "x", PerConnection: chromiumPerConnection()}
+	original := &Profile{EngineMajor: Major(3), Name: "x", PerConnection: chromiumPerConnection()}
 	clone := original.Clone()
 	clone.PerConnection.ECHPayloadLengths[0] = 1
 	clone.PerConnection.ShufflesExtensions = false
 	if !reflect.DeepEqual(original.PerConnection, chromiumPerConnection()) {
 		t.Errorf("the clone shares %+v", original.PerConnection)
 	}
-	if (&Profile{EngineMajor: Major(2), Name: "x"}).Clone().PerConnection != nil {
+	if (&Profile{EngineMajor: Major(3), Name: "x"}).Clone().PerConnection != nil {
 		t.Error("a profile that says nothing says something cloned")
 	}
 }
@@ -362,7 +362,7 @@ func TestACustomProfileBuildsOnAnyCatalogueEntry(t *testing.T) {
 	// Entries that are a spec of their own and entries that are utls's
 	// presets, which have none to give.
 	for _, base := range []string{"chrome_133", "chrome_110", "safari_16_0", "firefox_120"} {
-		p := &Profile{EngineMajor: Major(2), Name: "custom", Base: base, HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}},
+		p := &Profile{EngineMajor: Major(3), Name: "custom", Base: base, HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}},
 			PseudoHeaderOrder: []string{":method", ":authority", ":scheme", ":path"}}}
 		if spec, err := p.Spec(); err != nil || len(spec.Extensions) == 0 {
 			t.Errorf("%s: %d extensions, %v", base, len(spec.Extensions), err)

@@ -27,10 +27,10 @@ import (
 	"sync"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/accept"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/deadlineconn"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/accept"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/deadlineconn"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/redact"
 )
 
 // budget is what one connection may cost, and how many may cost it at once.

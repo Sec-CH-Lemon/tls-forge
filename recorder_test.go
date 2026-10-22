@@ -26,7 +26,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v3/internal/harness"
 )
 
 // keptRequest is a request as a recorder kept it: the method, the URL with no
@@ -35,6 +35,7 @@ import (
 // the wire), and the body; the connection it came on, numbered as every
 // recorder took them, and whether that one resumed a TLS session.
 type keptRequest struct {
+	bodyMu      sync.Mutex
 	method, url string
 	headers     [][2]string
 	priority    *[3]uint32
@@ -98,7 +99,18 @@ func (r *recorder) keep(req *keptRequest) {
 func (r *recorder) requests() []*keptRequest {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return append([]*keptRequest(nil), r.got...)
+	out := make([]*keptRequest, len(r.got))
+	for i, req := range r.got {
+		req.bodyMu.Lock()
+		q := &keptRequest{method: req.method, url: req.url, headers: append([][2]string(nil), req.headers...), body: req.body, conn: req.conn, resumed: req.resumed}
+		if req.priority != nil {
+			v := *req.priority
+			q.priority = &v
+		}
+		req.bodyMu.Unlock()
+		out[i] = q
+	}
+	return out
 }
 
 // close notes that the server closed connection conn.
@@ -195,7 +207,10 @@ func (r *recorder) dialingWith(plain *recorder) Option {
 func newRecorder(t *testing.T, proto string, handler http.HandlerFunc) *recorder {
 	t.Helper()
 	if handler == nil {
-		handler = func(w http.ResponseWriter, _ *http.Request) {
+		handler = func(w http.ResponseWriter, req *http.Request) {
+			if _, err := io.Copy(io.Discard, req.Body); err != nil {
+				return
+			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			_, _ = io.WriteString(w, "<!doctype html><title>page</title>")
 		}
@@ -360,7 +375,9 @@ func (p *h2Recorder) frame(typ, flags byte, stream uint32, payload []byte) {
 	switch http2.FrameType(typ) {
 	case http2.FrameData:
 		if req := p.open[stream]; req != nil {
+			req.bodyMu.Lock()
 			req.body += string(payload)
+			req.bodyMu.Unlock()
 		}
 	case http2.FrameHeaders:
 		p.priority = nil
@@ -427,7 +444,9 @@ func (p *h1Recorder) write(b []byte) {
 	for {
 		if p.left > 0 {
 			take := min(p.left, len(p.buf))
+			p.cur.bodyMu.Lock()
 			p.cur.body += string(p.buf[:take])
+			p.cur.bodyMu.Unlock()
 			p.buf, p.left = p.buf[take:], p.left-take
 			if p.left > 0 {
 				return

@@ -1,16 +1,16 @@
 # Profile-owned network behavior
 
-## Engine/profile compatibility (2.0.0)
+## Engine/profile compatibility (3.0.0)
 
-The compiled engine version is **2.0.0**, independently of the browser build and
+The compiled engine version is **3.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 2`. Engines reject profiles from both older
+non-negative integer `engine_major: 3`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 2, "name": "my-browser"}
+{"schema": 4, "engine_major": 3, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -19,8 +19,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Crossing to major 2 will also require Go module path
-versioning.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v3`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -29,13 +28,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-2") // handle err
+candidate, err := old.Migrate("my-browser-engine-3") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-2
+The 15 shipped profiles and all backend catalogue policies have explicit engine-3
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -46,7 +45,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 2`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 3`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -78,7 +77,7 @@ Schema 0-2 retains its historical family inference during migration. `Save` mate
 
 Existing shipped TLS capture bytes, ordered settings, header values, machine data and original provenance are preserved. Added behavior sections materialize the pre-existing runtime policy, including the newer policy previously applied to older Chromium profiles; this is not fresh acceptance of Chrome 151-154.
 
-Unknown keys, duplicate behavior keys, null or wrong types, invalid ranges and unsupported algorithm names are errors. Nonzero dynamic QPACK table support, H3 ALPS, ORIGIN/coalescing and cross-version profile negotiation remain unavailable; they must not be advertised through arbitrary data. Missing-API catalogue scenarios remain open.
+Unknown keys, duplicate behavior keys, null or wrong types, invalid ranges and unsupported algorithm names are errors. H3 ALPS, ORIGIN/coalescing and cross-version profile negotiation remain unavailable; they must not be advertised through arbitrary data. Missing-API catalogue scenarios remain open.
 
 Certificate verification, authenticated Finished processing, nonce safety, protocol wire encodings, fresh keys/randomness, parser/state-machine mechanisms and safe finite resource bounds remain engine responsibilities. New algorithms/protocol features require engine code; existing parameter/ordering/timer changes require only profile data. A profile cannot replace the host kernel TCP stack. Explicit caller transport options retain their documented override precedence.
 
@@ -262,21 +261,44 @@ Capture helper hint lists snapshot the process default once; request generation 
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
 
-## HTTP/3 QPACK string coding (engine 2)
+## HTTP/3 QPACK (engine 3)
 
-The required `behavior` keys `h3.qpack.huffman_names` and
-`h3.qpack.huffman_values` each select `always`, `shorter`, or `never`.
-`shorter` uses Huffman only when its encoded bytes are strictly shorter; a tie
-remains literal. Static-table references and field ordering are preserved.
-These are data choices applied to actual request HEADERS, independent of the
-profile name or User-Agent. No dynamic-table support is implied.
+Engine3 implements RFC9204 dynamic tables in both directions, all field-line
+representations, encoder instructions, Required Insert Count reconstruction,
+blocked sections, section acknowledgments, cancellation and decoder feedback.
+Critical-stream errors close the connection. Table allocation, integer overflow,
+queue bounds and reference lifetimes are engine invariants.
 
-The Chrome155/macOS profile selects `shorter` for both strings. Other explicit
-engine-2 migrations retain `always` until separately measured. The 15 original
-engine-1 profile files remain in the private immutable r16 source archive.
-Current macOS Chrome acceptance does not validate older builds or other OSes.
+All selectable behavior belongs in profile JSON:
 
-Engine 2.0.0 uses Go module/import path `github.com/Sec-CH-Lemon/tls-forge/v2`;
-Node and Python packages are 2.0.0. Engine1 profiles cannot execute under engine2,
-and engine2 profiles cannot execute under engine1. Schema4 and daemon protocol3
-are unchanged; exact engine-major compatibility is still required.
+| Key | Values / meaning |
+| --- | --- |
+| `h3.settings` | Ordered settings, including decoder capacity1 and blocked streams7. Hard safety bounds are1MiB and1024; Chrome155/macOS declares65536/100. |
+| `h3.qpack.huffman_names`, `h3.qpack.huffman_values` | `always`, `shorter`, `never`; `shorter` is strict, ties literal. |
+| `h3.qpack.encoder_strategy` | `disabled` (static), `reuse` (insert literals for later reuse), `insert` (also reference new insertions when peer blocked credit allows). |
+| `h3.qpack.encoder_table_bytes` | Local encoder budget, capped by peer decoder capacity and the hard1MiB bound; Chrome155/macOS65536. RIC wrapping still uses the full peer maximum. |
+| `h3.qpack.encoder_warmup_sections` | Initial field sections encoded without table inserts/references. Chrome155/macOS1, explicit compatibility candidates0. |
+| `h3.qpack.reference_base` | `required` or `insert-count` selects the field-section Base. |
+| `h3.qpack.never_index` | Exact lower-case field names excluded from dynamic insertion/reference. |
+| `h3.qpack.decoder_feedback` | `on-insert` increments plus section ACKs, or `on-section` ACKs. |
+| `h3.qpack.streams` | `lazy` or `eager` local critical-stream creation. |
+| `h3.qpack.stream_order` | Exactly `[2,3]` or `[3,2]`. Chrome155/macOS uses decoder-first `[3,2]`. |
+
+A peer's decoder capacity and blocked budget are respected independently of our
+advertised response-decoder limits. Before peer SETTINGS, the request encoder
+uses capacity0; requests do not wait for peer SETTINGS. References pin entries
+until section ACK/cancellation; new blocked references cannot exceed peer credit.
+Instruction writes use bounded queues so HTTP/table locks never wait for QUIC
+flow control. Queue exhaustion closes the connection rather than losing feedback.
+
+The Chrome155/macOS profile selects `insert`, warmup1, `required`, `shorter`,
+`on-section` and eager decoder-first streams. These are finite observed choices,
+not universal RFC requirements or a claim about all Chrome workloads. Other14
+profile candidates retain disabled request indexing and their old string coding
+until measured; all15 have a real TLS/H2 smoke, not fresh old-browser acceptance.
+Original engine2 profiles remain in the immutable r17 source archive.
+
+Engine3.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v3` and Node/Python3.
+Both cross-major execution directions are rejected. Schema4 and daemon protocol3
+are unchanged. Offline Inspect/Save preserve old identity; explicit Migrate
+creates a separately named candidate using JSON migration additions.

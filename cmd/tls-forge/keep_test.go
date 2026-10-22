@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v3"
 )
 
 // What is kept of each request in the directory --output names.
