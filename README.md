@@ -156,7 +156,7 @@ through linker flags. A release-style static build is:
 
 ```bash
 CGO_ENABLED=0 go build -trimpath \
-  -ldflags "-s -w -X main.version=v0.1.0" \
+  -ldflags "-s -w -X main.version=v1.0.0" \
   -o tls-forge ./cmd/tls-forge
 ```
 
@@ -1837,6 +1837,60 @@ says so in its header. To wear Firefox or Safari whole, measure it with
 `capture --manual`.
 
 
+## Engine/profile compatibility (1.0.0)
+
+The compiled engine version is **1.0.0**, independently of the browser build and
+profile format **schema 4**. Every executable profile must declare the exact,
+non-negative integer `engine_major: 1`. Engines reject profiles from both older
+and newer majors, including files with no declaration. Schema, filename, browser
+name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
+The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
+
+```json
+{"schema": 4, "engine_major": 1, "name": "my-browser"}
+```
+
+This illustrates metadata only; a complete profile still needs captured TLS/HTTP
+data and the explicit `behavior` object. Browser values and selections stay in
+JSON. Any coordinated change requiring shipped engine/fork runtime code increments
+the project major exactly once, even a compatible fix. Existing primitives can be
+configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+must agree; `engine/version.json` is the compiled authority. Release builds refuse
+a different version stamp. Crossing to major 2 will also require Go module path
+versioning.
+
+`profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
+without declaring it compatible. `Save` and `Clone` preserve the original
+`engine_major`, including absence; they never retag an old profile. Explicit
+migration creates a candidate while preserving original capture provenance:
+
+```go
+old, err := profile.Inspect(originalJSON) // offline; handle err
+candidate, err := old.Migrate("my-browser-engine-1") // handle err
+migratedJSON, err := candidate.Save() // save to a separate destination
+```
+
+Preserve the original file. Migration is not browser equivalence acceptance;
+repeat the relevant actual browser/wire checks before relying on its behavior.
+The 15 shipped profiles and all backend catalogue policies have explicit engine-1
+migration provenance; older captured browser builds are not new measurements.
+A bare catalogue preset still supplies no browser headers.
+
+For a new programmatically created Go profile, explicitly set
+`EngineMajor: profile.Major(tlsforge.EngineMajor())`. Never use this assignment to
+silently accept an imported file. `tlsforge.Version()` and `tlsforge.EngineMajor()`
+report the compiled identity. Client constructors, transport adapters, the
+registry and `Fresh` enforce it; client/profile clones own their major value.
+
+Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
+request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
+metadata is rejected before client execution. Offline `hello` can omit the field.
+Node/Python validate the actual daemon identity before every first request,
+including plain requests, and revalidate a replacement process. An old executable
+from PATH is rejected rather than used silently. Update the SDK and binary
+together; no compatibility flag disables the gate.
+
+
 ##### Profile-owned network behavior
 
 HTTP/3 queues the local control-stream preface and SETTINGS before opening a
@@ -1844,7 +1898,7 @@ request stream. This protocol initialization barrier also applies to 0-RTT and
 direct stream requests; it does not wait for peer SETTINGS or acknowledgement.
 Browser SETTINGS values and order still come from the selected profile.
 
-Schema 3 profiles contain an explicit `behavior` object in the same JSON file as
+Schema 4 profiles contain an explicit `behavior` object in the same JSON file as
 ClientHello, SETTINGS and headers. Browser-version choices now come from that
 file: TLS ticket ages, retry alerts/count, resumption and error policy; H1 limits;
 H2 framing, HPACK, flow timing and errors; QUIC CIDs, windows, version information
@@ -1864,7 +1918,7 @@ capabilities fail before sending a request. Dynamic QPACK, HTTP/3 ALPS, ORIGIN
 pooling and cross-version QUIC negotiation remain unavailable. A new protocol or
 algorithm needs engine support before a profile can select it. OS TCP behavior
 also remains a property of the host stack. Schema 0-2 profiles retain a documented
-migration path; saving writes the complete explicit schema 3 policy.
+migration path; saving writes the complete explicit schema 4 policy.
 
 These changes currently require the four local fork checkouts selected by
 `go.work`. They are included in the rebuilt `bin/tls-forge`; the published module
@@ -2220,7 +2274,7 @@ when a maintainer starts it from the Actions page or from the command line:
 ```bash
 gh workflow run published-e2e.yml \
   --ref main \
-  -f version=0.1.0 \
+  -f version=1.0.0 \
   -f check_brew=true
 ```
 
@@ -2320,3 +2374,5 @@ It does not describe the original destination CID. The current H3 backend lacks
 an ORIGIN consumer and corresponding authorized connection-pooling path, so the
 option remains unadvertised and those scenarios remain open. Dynamic QPACK and
 H3 ALPS bootstrap also remain open until their required APIs exist.
+
+Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.

@@ -13,6 +13,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"io"
 	"net"
 	"os"
@@ -28,8 +29,17 @@ import (
 
 // version is stamped at build time:
 //
-//	go build -ldflags "-X main.version=$(git describe --tags)"
-var version = "dev"
+//	go build -ldflags "-X main.version=v1.0.0"
+//
+// Keep the variable linker-addressable. A computed initializer would silently
+// overwrite -X at startup and hide a misleading stamp instead of rejecting it.
+var version = ""
+
+func init() {
+	if version == "" {
+		version = "v" + engine.Version()
+	}
+}
 
 // errDiffers reports a comparison that found differences.
 //
@@ -149,6 +159,10 @@ func releaseSignal(ctx context.Context, stop func()) {
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	out, errOut := newPrinter(stdout), newPrinter(stderr)
+	if err := engine.CheckBuildVersion(version); err != nil {
+		errOut.println(err)
+		return 2
+	}
 	if len(args) == 0 {
 		usage(errOut)
 		return 2

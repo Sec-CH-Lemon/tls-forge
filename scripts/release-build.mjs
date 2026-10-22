@@ -13,7 +13,7 @@
 // made from nothing, never over what is there.
 
 import { spawnSync } from 'node:child_process';
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -55,6 +55,8 @@ export function run(command, args, { cwd = ROOT, env = {} } = {}) {
 // where it is.
 export function build({ version, commit, out, python = 'python3' }, { exec = run, log = () => {} } = {}) {
   pep440(version);
+  const identity = JSON.parse(readFileSync(path.join(ROOT, 'engine/version.json'), 'utf8')).version;
+  if (version !== identity) throw new Error(`release version ${version} does not match compiled engine ${identity}`);
   if (!/^[0-9a-f]{40}$/.test(commit ?? '')) throw new Error(`--commit ${commit} is not a full commit`);
   if (typeof out !== 'string' || out === '') throw new Error('--out is where the set is made, and is not said');
   const dir = path.resolve(out);

@@ -27,6 +27,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Literal, Mapping, Sequence, TypedDict
 
+from . import __version__
+ENGINE_MAJOR = int(__version__.split(".")[0])
+
 from ._binary import resolve_binary
 from ._errors import RequestFailed, SessionReset, Timeout, TransportError, Unsupported
 
@@ -160,6 +163,8 @@ class Hello:
 
     protocol: int
     capabilities: tuple[str, ...]
+    engine_major: int | None = None
+    version: str | None = None
 
 
 class Client:
@@ -301,7 +306,7 @@ class Client:
         :raises Timeout: the deadline passed with no answer; asked again next
             time.
         """
-        if self._hello is not None:
+        if self._hello is not None and self._process is not None and self._process.poll() is None and not self._closed:
             return self._hello
         deadline = time.monotonic() + self._timeout
         if not self._lock.acquire(timeout=self._timeout):
@@ -311,6 +316,8 @@ class Client:
             )
         try:
             self._reap()
+            if self._hello is not None:
+                return self._hello
             self._sequence += 1
             asked = self._sequence
             self._hello = _hello_of(
@@ -355,8 +362,9 @@ class Client:
         if not url:
             raise ValueError("tlsforge: request needs a url")
         context = None if browser_context is None else _wire_context(browser_context)
+        hello = self.hello()
+        _check_engine(hello)
         if context is not None:
-            hello = self.hello()
             if "browser_context" not in hello.capabilities:
                 raise Unsupported(
                     f"tlsforge: the tls-forge at {self._binary} speaks protocol {hello.protocol} "
@@ -410,7 +418,7 @@ class Client:
         the daemon names its fields."""
         self._reap()
         self._sequence += 1
-        payload: dict[str, Any] = {"id": self._sequence, "method": method, "url": url}
+        payload: dict[str, Any] = {"id": self._sequence, "method": method, "url": url, "engine_major": ENGINE_MAJOR}
         if headers:
             payload["headers"] = dict(headers)
         if order:
@@ -438,6 +446,11 @@ class Client:
                 "and with it its cookies, TLS sessions and connections; this request was not "
                 "sent, and the next one starts a new session"
             )
+        if self._hello is None:
+            self._sequence += 1
+            identity = self._sequence
+            self._hello = _hello_of(self._exchange(identity, _encode_request({"id": identity, "control": "hello"}), deadline))
+        _check_engine(self._hello)
         return _to_response(self._exchange(payload["id"], line, deadline))
 
     def close(self) -> None:
@@ -475,7 +488,7 @@ class Client:
         init_id = self._sequence
         ready = False
         try:
-            line = _encode_request({"id": init_id, "control": "init", "proxy": self._proxy})
+            line = _encode_request({"id": init_id, "control": "init", "proxy": self._proxy, "engine_major": ENGINE_MAJOR})
             self._write(line, deadline, session=False)
             error = self._answer(init_id, deadline, session=False).get("error")
             if error is not None:
@@ -621,6 +634,7 @@ class Client:
 
     def _lose(self, why: str) -> None:
         """Note that the transport the session was in has gone, and why."""
+        self._hello = None
         self._losses += 1
         self._why = why
         self._untold = True
@@ -638,6 +652,7 @@ class Client:
             self._live.clear()
         if process is None:
             return None
+        self._hello = None
         _kill(process, writer)
         return process
 
@@ -804,7 +819,7 @@ def _hello_of(response: dict[str, Any]) -> Hello:
     protocol = response.get("protocol")
     capabilities = response.get("capabilities", [])
     if (
-        not isinstance(protocol, int)
+        type(protocol) is not int
         or protocol < 2
         or not isinstance(capabilities, list)
         or not all(isinstance(name, str) for name in capabilities)
@@ -814,7 +829,16 @@ def _hello_of(response: dict[str, Any]) -> Hello:
             "tlsforge: bad response: hello must give a protocol from 2 and a list of capabilities, "
             f"not {said}"
         )
-    return Hello(protocol, tuple(capabilities))
+    return Hello(protocol, tuple(capabilities), response.get("engine_major"), response.get("version"))
+
+
+def _check_engine(hello: Hello) -> None:
+    major, version = hello.engine_major, hello.version
+    parts = version.split(".") if isinstance(version, str) else []
+    if (hello.protocol < 3 or type(major) is not int or major != ENGINE_MAJOR or major < 0
+        or len(parts) != 3 or not all(p.isascii() and p.isdigit() for p in parts) or int(parts[0]) != major):
+        raise Unsupported(f"tlsforge: daemon engine_major {major!r} (version {version!r}, protocol {hello.protocol}) "
+                          f"is incompatible with SDK engine major {ENGINE_MAJOR}; request was not sent")
 
 
 def _encode_request(payload: dict[str, Any]) -> str:

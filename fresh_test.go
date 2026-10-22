@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	tls_client "github.com/igor-lemon/tls-client"
-	"github.com/igor-lemon/tls-client/profiles"
 )
 
 // wentOutOn is the one connection a request went out on.
@@ -87,7 +86,7 @@ func TestAFreshClientResumesNoSessionOfAnother(t *testing.T) {
 	// A measured profile is a cold handshake, with no pre_shared_key, and the
 	// transport keeps no sessions for one. A ClientHello that resumes is what
 	// shows a fresh client resuming none of the client's.
-	client := newTestClient(t, WithTransportOption(tls_client.WithClientProfile(profiles.Chrome_150_PSK)))
+	client := newTestClient(t, WithProfile("chrome_150_PSK"))
 	if wentOutOn(t, client, server.URL).Resumed {
 		t.Fatal("the first handshake resumed a session nobody had")
 	}

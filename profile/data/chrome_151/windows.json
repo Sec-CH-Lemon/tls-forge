@@ -1,5 +1,6 @@
 {
-  "schema": 3,
+  "schema": 4,
+  "engine_major": 1,
   "behavior": {
     "cache.entries": 256,
     "cache.entry_bytes": 8388608,
@@ -617,5 +618,5 @@
       "value": "u=0, i"
     }
   ],
-  "notes": "captured 2026-08-16T18:55:08Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Behavior schema 3 materializes the pre-existing compatibility policy from the maintained runtime; additional behavior fields are not a new capture of this browser build."
+  "notes": "captured 2026-08-16T18:55:08Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Behavior schema 3 materializes the pre-existing compatibility policy from the maintained runtime; additional behavior fields are not a new capture of this browser build.\nExplicit migration to engine 1.0.0 (major 1); original capture and wire policy preserved. Engine compatibility is revalidated separately; historical browser acceptance is not a fresh measurement."
 }

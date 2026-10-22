@@ -602,7 +602,7 @@ func TestAProfileWithholdsItsClientHintsSecFetchAndBrotliFromAURLThatIsNotTrustw
 	}
 	// A profile with none of them withholds nothing; another browser's was
 	// not measured.
-	if got := withheldOf(&profile.Profile{Name: "chrome_133", Base: "chrome_133"}, nil); got != nil {
+	if got := withheldOf(&profile.Profile{EngineMajor: profile.Major(1), Name: "chrome_133", Base: "chrome_133"}, nil); got != nil {
 		t.Errorf("a catalogue profile: %+v", got)
 	}
 	firefox := chrome.Clone()

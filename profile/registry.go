@@ -256,6 +256,9 @@ func (r *Registry) Register(p *Profile) error {
 	if p == nil || p.Name == "" {
 		return fmt.Errorf("profile: cannot register a profile without a name")
 	}
+	if err := p.ValidateEngine(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.added[p.Name] = p.Clone()
@@ -280,6 +283,9 @@ func (r *Registry) Get(name string) (*Profile, error) {
 	p, ok := r.added[name]
 	r.mu.RUnlock()
 	if ok {
+		if err := p.ValidateEngine(); err != nil {
+			return nil, err
+		}
 		return p.Clone(), nil
 	}
 
@@ -309,7 +315,7 @@ func (r *Registry) Get(name string) (*Profile, error) {
 		// A bare reference to the catalogue. It carries a handshake and HTTP/2
 		// settings but no headers — tls-client has never claimed to know what
 		// headers a browser sends, only how it connects.
-		return &Profile{Name: name, Base: name}, nil
+		return catalogueProfile(name)
 	}
 
 	// A family name means the newest measured member of that family, so

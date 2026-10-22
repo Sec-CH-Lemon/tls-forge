@@ -2,7 +2,9 @@ package tlsforge
 
 import (
 	"context"
+	"encoding/json"
 	"net"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -50,8 +52,9 @@ func flowsAsChromes(t *testing.T, chrome *profile.Profile, fixture *harness.Flow
 				t.Fatalf("ClientProfile: %v", err)
 			}
 			delay := time.Duration(scale * float64(built.GetWindowUpdateDelay()))
-			client := newTestClient(t, WithProfileValue(chrome),
-				WithTransportOption(tls_client.WithClientProfile(built.WithWindowUpdateDelay(delay))),
+			p := chrome.Clone()
+			p.Behavior["h2.window_update_delay_ms"] = json.RawMessage(strconv.FormatInt(delay.Milliseconds(), 10))
+			client := newTestClient(t, WithProfileValue(p),
 				WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
 					_, port, _ := net.SplitHostPort(addr)
 					var d net.Dialer

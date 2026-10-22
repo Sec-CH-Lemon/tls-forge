@@ -242,7 +242,7 @@ def test_a_transport_started_again_is_told_its_proxy_again_first(client):
         c.get("https://ok/b")
     after = c.get("https://ok/c").json()
     assert after["pid"] != first["pid"] and after["proxy"] == "http://alice:s3cret@proxy.test:8080"
-    assert c.hello() == tlsforge.Hello(2, ())
+    assert c.hello() == tlsforge.Hello(3, (), 1, "1.0.0")
 
 
 def test_a_transport_that_refuses_its_arguments_without_a_proxy_says_only_that(client, monkeypatch):
@@ -527,7 +527,7 @@ def _sized(size: int, request_id: int, char: str = "x") -> tuple[str, str]:
     repeated: ASCII a byte each, anything else six, escaped."""
     url = "https://ok/sized"
     encoded = lambda body: (  # noqa: E731 - read in two places just below
-        json.dumps({"id": request_id, "method": "POST", "url": url, "body": body}, separators=(",", ":")) + "\n"
+        json.dumps({"id": request_id, "engine_major": 1, "method": "POST", "url": url, "body": body}, separators=(",", ":")) + "\n"
     )
     overhead = len(encoded(""))
     each = len(encoded(char)) - overhead
@@ -540,7 +540,7 @@ def _sized(size: int, request_id: int, char: str = "x") -> tuple[str, str]:
 def test_a_request_is_measured_as_the_transport_reads_it(client):
     one = client(timeout=30)
     first = one.get("https://ok/first").json()["pid"]
-    request_id = 1
+    request_id = 2
     for size, char in ((tlsforge.MAX_REQUEST_BYTES - 1, "x"), (tlsforge.MAX_REQUEST_BYTES, "x"),
                        (tlsforge.MAX_REQUEST_BYTES, "я")):
         request_id += 1

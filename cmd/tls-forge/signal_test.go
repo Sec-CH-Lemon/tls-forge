@@ -297,7 +297,7 @@ func TestTheDaemonStopsOnSIGTERM(t *testing.T) {
 		// ends, so that whoever asked is not left waiting for it.
 		server, asked := hanging(t)
 		cmd, stdin, stdout := daemonRunning(t)
-		if _, err := fmt.Fprintf(stdin, `{"id":1,"url":%q}`+"\n", server.URL+"/headers"); err != nil {
+		if _, err := fmt.Fprintf(stdin, `{"engine_major":1,"id":1,"url":%q}`+"\n", server.URL+"/headers"); err != nil {
 			t.Fatalf("writing: %v", err)
 		}
 		reached(t, asked, "/headers")

@@ -27,13 +27,13 @@ COPY . .
 
 # Stamped from the build argument so `tls-forge version` inside the image says
 # something true. Passed by `make docker` and by the release workflow.
-ARG VERSION=dev
+ARG VERSION
 
 # Supplied by BuildKit, one pair per platform being built.
 ARG TARGETOS
 ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
-      -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
+      -trimpath -ldflags "-s -w ${VERSION:+-X main.version=${VERSION}}" \
       -o /out/tls-forge ./cmd/tls-forge
 
 

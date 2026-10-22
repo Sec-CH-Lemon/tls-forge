@@ -585,7 +585,7 @@ func TestTheGateNeedsItsFixturesAndTheirMeasurements(t *testing.T) {
 }
 
 func TestAProfileSaysWhatItSendsByName(t *testing.T) {
-	p := &profile.Profile{UserAgent: "Mozilla", Headers: []profile.Field{{Name: "Sec-CH-UA", Value: "a"}, {Name: "accept", Value: "*/*"}},
+	p := &profile.Profile{EngineMajor: profile.Major(1), UserAgent: "Mozilla", Headers: []profile.Field{{Name: "Sec-CH-UA", Value: "a"}, {Name: "accept", Value: "*/*"}},
 		ClientHints: []profile.Field{{Name: "sec-ch-ua-arch", Value: `"arm"`}}}
 	if got := valuesOf(p); len(got) != 4 || got["user-agent"] != "Mozilla" || got["sec-ch-ua"] != "a" || got["sec-ch-ua-arch"] != `"arm"` ||
 		got["accept"] != "*/*" {

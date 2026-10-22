@@ -1,10 +1,64 @@
 # TLS Forge for Go
 
+## Engine/profile compatibility (1.0.0)
+
+The compiled engine version is **1.0.0**, independently of the browser build and
+profile format **schema 4**. Every executable profile must declare the exact,
+non-negative integer `engine_major: 1`. Engines reject profiles from both older
+and newer majors, including files with no declaration. Schema, filename, browser
+name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
+The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
+
+```json
+{"schema": 4, "engine_major": 1, "name": "my-browser"}
+```
+
+This illustrates metadata only; a complete profile still needs captured TLS/HTTP
+data and the explicit `behavior` object. Browser values and selections stay in
+JSON. Any coordinated change requiring shipped engine/fork runtime code increments
+the project major exactly once, even a compatible fix. Existing primitives can be
+configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+must agree; `engine/version.json` is the compiled authority. Release builds refuse
+a different version stamp. Crossing to major 2 will also require Go module path
+versioning.
+
+`profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
+without declaring it compatible. `Save` and `Clone` preserve the original
+`engine_major`, including absence; they never retag an old profile. Explicit
+migration creates a candidate while preserving original capture provenance:
+
+```go
+old, err := profile.Inspect(originalJSON) // offline; handle err
+candidate, err := old.Migrate("my-browser-engine-1") // handle err
+migratedJSON, err := candidate.Save() // save to a separate destination
+```
+
+Preserve the original file. Migration is not browser equivalence acceptance;
+repeat the relevant actual browser/wire checks before relying on its behavior.
+The 15 shipped profiles and all backend catalogue policies have explicit engine-1
+migration provenance; older captured browser builds are not new measurements.
+A bare catalogue preset still supplies no browser headers.
+
+For a new programmatically created Go profile, explicitly set
+`EngineMajor: profile.Major(tlsforge.EngineMajor())`. Never use this assignment to
+silently accept an imported file. `tlsforge.Version()` and `tlsforge.EngineMajor()`
+report the compiled identity. Client constructors, transport adapters, the
+registry and `Fresh` enforce it; client/profile clones own their major value.
+
+Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
+request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
+metadata is rejected before client execution. Offline `hello` can omit the field.
+Node/Python validate the actual daemon identity before every first request,
+including plain requests, and revalidate a replacement process. An old executable
+from PATH is rejected rather than used silently. Update the SDK and binary
+together; no compatibility flag disables the gate.
+
+
+
 The Go package is the native API behind the `tls-forge` CLI. With a current
 measured profile it sends requests with a captured browser TLS ClientHello,
 HTTP/1.1 wire casing and header order, HTTP/2 settings, pseudo-header order,
-regular header order and browser headers. Older profiles remain compatible and
-use the documented HTTP/1.1 fallback.
+regular header order and browser headers. Older profiles require explicit engine migration before execution.
 
 This document covers the public client API and the optional measurement, proxy,
 echo, profile, capture, cookie, daemon and fingerprint packages.
@@ -161,15 +215,10 @@ and what tls-forge did with it goes too:
 - `tls_client.WithNotFollowRedirects` and `tls_client.WithCustomRedirectFunc`
   replace how redirects are followed: no longer as Chrome follows them
   ([Redirects](#redirects)). `WithoutRedirects` is the way to keep them.
-- `tls_client.WithClientProfile` replaces the handshake and the HTTP/2
-  settings, priorities and pseudo-header order of the transport, how it
-  writes HPACK, cuts header blocks and bodies into frames, writes TLS
-  records and HTTP/1.1 requests, tells a server of its windows, and waits
-  for a stream when the server's are all in use: as Chrome does in a profile
-  `profile.Profile.ClientProfile` builds for a Chromium browser, as the
-  transport does in one of tls-client's catalogue. The headers each request
-  carries stay the profile's, and so does the HEADERS weight a browser context
-  gives `fetch()` and an XHR.
+- `tls_client.WithClientProfile` is refused as a transport override. Select an
+  engine-compatible profile through `WithProfile` or `WithProfileValue`;
+  profile JSON owns its handshake, H2 settings, priority and field ordering.
+
 - `tls_client.WithCookieJar` replaces the client's jar, and `Cookies`,
   `AllCookies` and session files then see none of what the site sets.
   `WithCookieJar` is the way to bring a jar of your own.
@@ -1139,3 +1188,5 @@ make lint
 
 The project is licensed under Apache-2.0; see [`LICENSE`](LICENSE),
 [`NOTICE`](NOTICE) and [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt).
+
+Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.

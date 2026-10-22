@@ -97,7 +97,10 @@ export interface Response {
 }
 
 /** What a transport is, as it answers `hello`. */
+export const ENGINE_MAJOR: number;
 export interface Hello {
+  engine_major?: number;
+  version?: string;
   /** The protocol it speaks: 1 for one older than the question. */
   protocol: number;
   /** What it can do that a client has to ask about, such as

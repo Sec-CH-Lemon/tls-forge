@@ -222,6 +222,9 @@ func New(opts ...Option) (*Client, error) {
 			return nil, err
 		}
 	}
+	if err := prof.ValidateEngine(); err != nil {
+		return nil, err
+	}
 	prof = prof.Clone()
 	prof.Behavior = prof.RuntimeBehavior().Clone()
 	shuffleExtensions := prof.ShufflesExtensions()
@@ -348,7 +351,7 @@ func New(opts ...Option) (*Client, error) {
 	// How it dials comes last but for what each transport is given of its own
 	// and the caller's own.
 	built := func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
-		out := append([]tls_client.HttpClientOption{tls_client.WithClientProfile(clientProfile)}, options...)
+		out := append([]tls_client.HttpClientOption{tls_client.WithLockedClientProfile(clientProfile, fmt.Sprintf("profile %q engine_major %d (running engine major %d)", prof.Name, *prof.EngineMajor, EngineMajor()))}, options...)
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys,
 			proxyIdentity{profile: prof, pool: proxyPool})...)
 		return append(append(out, own...), cfg.extra...)
@@ -406,6 +409,9 @@ var newInnerClient = tls_client.NewHttpClient
 // Each must be closed when it is done with. Closing one leaves this client,
 // and the session they share, as they were.
 func (c *Client) Fresh() (*Client, error) {
+	if err := c.profile.ValidateEngine(); err != nil {
+		return nil, err
+	}
 	if c.closed.Load() {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
@@ -481,6 +487,9 @@ func (c *Client) requestLog(req *Request) *requestLog {
 }
 
 func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
+	if err := c.profile.ValidateEngine(); err != nil {
+		return nil, err
+	}
 	if r != nil && req != nil {
 		r.start(cmp.Or(req.Method, fhttp.MethodGet), req.URL, len(req.Body))
 	}

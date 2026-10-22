@@ -43,6 +43,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
@@ -58,7 +59,8 @@ func sortedKeys(m map[string]string) []string {
 // Request is one line of input.
 type Request struct {
 	// ID is caller-assigned and echoed on the response. See the package comment.
-	ID uint64 `json:"id"`
+	ID          uint64 `json:"id"`
+	EngineMajor *int   `json:"engine_major"`
 
 	Method  string            `json:"method,omitempty"`
 	URL     string            `json:"url"`
@@ -125,16 +127,17 @@ func browserContextOf(raw json.RawMessage) (*tlsforge.BrowserContext, error) {
 		ReferrerPolicy: said.ReferrerPolicy, Mode: said.Mode, Credentials: said.Credentials}, nil
 }
 
-// Protocol is the version of the protocol this daemon speaks: 2 answers
+// Protocol is the version of the protocol this daemon speaks: 3 requires an
+// exact engine_major on requests and init, and reports compiled identity; 2 answers
 // control lines. A daemon of protocol 1 predates them, and answers hello as a
 // request with no url.
-const Protocol = 2
+const Protocol = 3
 
 // capabilities are what this daemon can do that a client has to ask about
 // before it relies on it: browser_context, a request's browser field applied.
 // A client that needs one a daemon does not say finds it missing, and says so
 // instead of being ignored.
-var capabilities = []string{"browser_context"}
+var capabilities = []string{"browser_context", "engine_major"}
 
 // Response is one line of output.
 type Response struct {
@@ -158,6 +161,8 @@ type Response struct {
 	// Protocol and Capabilities answer hello: the protocol the daemon speaks,
 	// and what it can do that a client must ask about. Absent from the answer
 	// to a request.
+	EngineMajor  *int     `json:"engine_major,omitempty"`
+	Version      string   `json:"version,omitempty"`
 	Protocol     int      `json:"protocol,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
 }
@@ -343,9 +348,12 @@ func ReadInit(in io.Reader) (Init, io.Reader, error) {
 		}
 		var said Request
 		if err := json.Unmarshal(line, &said); err != nil {
-			return Init{ID: said.ID}, reader, fmt.Errorf("bad request: %w", err)
+			return Init{ID: said.ID}, reader, fmt.Errorf("bad request: %w; running engine major %d", err, engine.Major())
 		}
 		init := Init{ID: said.ID, Proxy: said.Proxy}
+		if err := checkRequestMajor(line); err != nil {
+			return init, reader, err
+		}
 		switch {
 		case said.Control != "init" || said.URL != "":
 			return init, reader, errors.New("bad request: the first line of a daemon started with --proxy-stdin " +
@@ -433,10 +441,19 @@ func handle(ctx context.Context, line string, client Client) Response {
 		// error while continuing to decode — so the id is already in place. A
 		// genuine syntax error leaves it at 0, and the caller lets that request
 		// time out, which is the safe way to lose one.
-		return failed(req.ID, fmt.Errorf("bad request: %w", err))
+		return failed(req.ID, fmt.Errorf("bad request: %w; running engine major %d", err, engine.Major()))
 	}
 	if req.Control != "" {
+		// hello is offline discovery. Other controls cannot bypass the gate.
+		if req.Control != "hello" {
+			if err := checkRequestMajor([]byte(line)); err != nil {
+				return failed(req.ID, err)
+			}
+		}
 		return control(req)
+	}
+	if err := checkRequestMajor([]byte(line)); err != nil {
+		return failed(req.ID, err)
 	}
 	if req.URL == "" {
 		return Response{ID: req.ID, Error: "bad request: no url"}
@@ -507,7 +524,8 @@ func control(req Request) Response {
 	}
 	switch req.Control {
 	case "hello":
-		return Response{ID: req.ID, Protocol: Protocol, Capabilities: append([]string(nil), capabilities...)}
+		major := engine.Major()
+		return Response{ID: req.ID, Protocol: Protocol, EngineMajor: &major, Version: engine.Version(), Capabilities: append([]string(nil), capabilities...)}
 	case "init":
 		return Response{ID: req.ID, Error: "bad request: init is the first line of a daemon started with " +
 			"--proxy-stdin, and no other"}
@@ -573,4 +591,12 @@ func parseCookies(raw []string) ([]tlsforge.Cookie, error) {
 		out = append(out, tlsforge.Cookie{Name: name, Value: value})
 	}
 	return out, nil
+}
+
+func checkRequestMajor(data []byte) error {
+	major, err := engine.DeclaredMajor(data)
+	if err != nil {
+		return fmt.Errorf("daemon request: %w; running engine major %d", err, engine.Major())
+	}
+	return engine.CheckMajor("daemon request", major)
 }

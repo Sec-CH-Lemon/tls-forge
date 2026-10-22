@@ -1,5 +1,60 @@
 # The daemon protocol
 
+## Engine/profile compatibility (1.0.0)
+
+The compiled engine version is **1.0.0**, independently of the browser build and
+profile format **schema 4**. Every executable profile must declare the exact,
+non-negative integer `engine_major: 1`. Engines reject profiles from both older
+and newer majors, including files with no declaration. Schema, filename, browser
+name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
+The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
+
+```json
+{"schema": 4, "engine_major": 1, "name": "my-browser"}
+```
+
+This illustrates metadata only; a complete profile still needs captured TLS/HTTP
+data and the explicit `behavior` object. Browser values and selections stay in
+JSON. Any coordinated change requiring shipped engine/fork runtime code increments
+the project major exactly once, even a compatible fix. Existing primitives can be
+configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+must agree; `engine/version.json` is the compiled authority. Release builds refuse
+a different version stamp. Crossing to major 2 will also require Go module path
+versioning.
+
+`profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
+without declaring it compatible. `Save` and `Clone` preserve the original
+`engine_major`, including absence; they never retag an old profile. Explicit
+migration creates a candidate while preserving original capture provenance:
+
+```go
+old, err := profile.Inspect(originalJSON) // offline; handle err
+candidate, err := old.Migrate("my-browser-engine-1") // handle err
+migratedJSON, err := candidate.Save() // save to a separate destination
+```
+
+Preserve the original file. Migration is not browser equivalence acceptance;
+repeat the relevant actual browser/wire checks before relying on its behavior.
+The 15 shipped profiles and all backend catalogue policies have explicit engine-1
+migration provenance; older captured browser builds are not new measurements.
+A bare catalogue preset still supplies no browser headers.
+
+For a new programmatically created Go profile, explicitly set
+`EngineMajor: profile.Major(tlsforge.EngineMajor())`. Never use this assignment to
+silently accept an imported file. `tlsforge.Version()` and `tlsforge.EngineMajor()`
+report the compiled identity. Client constructors, transport adapters, the
+registry and `Fresh` enforce it; client/profile clones own their major value.
+
+Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
+request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
+metadata is rejected before client execution. Offline `hello` can omit the field.
+Node/Python validate the actual daemon identity before every first request,
+including plain requests, and revalidate a replacement process. An old executable
+from PATH is rejected rather than used silently. Update the SDK and binary
+together; no compatibility flag disables the gate.
+
+
+
 `tls-forge daemon` speaks one JSON object per line on stdin, and answers with one
 JSON object per line on stdout. It exists so a program in any language can
 borrow a browser's fingerprint without reimplementing one.
@@ -20,7 +75,7 @@ A daemon started with `--proxy-stdin` takes its proxy from the first line of
 its input, the init line, and from nowhere else:
 
 ```json
-{"id": 1, "control": "init", "proxy": "http://user:pass@host:8080"}
+{"id": 1, "engine_major": 1, "control": "init", "proxy": "http://user:pass@host:8080"}
 ```
 
 It reads that line before it makes the client that goes through the proxy,
@@ -199,7 +254,7 @@ that a client has to ask about before relying on it:
 
 ```json
 {"id": 10, "control": "hello"}
-{"id": 10, "status": 0, "url": "", "body": "", "headers": null, "cookies": null, "protocol": 2,
+{"id": 10, "status": 0, "url": "", "body": "", "headers": null, "cookies": null, "protocol": 3, "engine_major": 1, "version": "1.0.0",
  "capabilities": ["browser_context"]}
 ```
 

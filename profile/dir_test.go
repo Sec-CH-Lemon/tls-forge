@@ -74,7 +74,7 @@ func TestAProfileKeptHereBeatsTheShippedOne(t *testing.T) {
 		t.Errorf("the shipped profile won: %q", p.Notes)
 	}
 	// Registering one at runtime still beats both.
-	own := &Profile{Name: "chrome_151", Notes: "registered at runtime"}
+	own := &Profile{EngineMajor: Major(1), Name: "chrome_151", Notes: "registered at runtime"}
 	if err := r.Register(own); err != nil {
 		t.Fatalf("Register: %v", err)
 	}

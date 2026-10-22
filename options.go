@@ -216,7 +216,9 @@ func WithKeyLogWriter(w io.Writer) Option {
 // callers who need one of them.
 //
 // The options are given after tls-forge's own, so one that sets what
-// tls-forge sets replaces it, and what tls-forge did with it goes too: the
+// tls-forge sets replaces it, except profile selection: a raw WithClientProfile
+// override is rejected; use WithProfile/WithProfileValue with engine_major.
+// What tls-forge did with other options goes too: the
 // transport options (tls_client.WithTransportOptions) take six idle
 // connections per host and the decoding of bodies with them, a redirect
 // policy takes Chrome's, a cookie jar the client's, and a proxy given here

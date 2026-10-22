@@ -265,9 +265,9 @@ func TestAnotherBrowserKeepsTheECHLengthItWasCapturedWith(t *testing.T) {
 		t.Fatalf("fixture: %v", err)
 	}
 	for _, p := range []*Profile{
-		{Name: "firefox_148", ClientHello: raw},
-		{Name: "chrome_155_ios", ClientHello: raw},
-		{Name: "custom", ClientHello: raw, UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) CriOS/155.0.0.0"},
+		{EngineMajor: Major(1), Name: "firefox_148", ClientHello: raw},
+		{EngineMajor: Major(1), Name: "chrome_155_ios", ClientHello: raw},
+		{EngineMajor: Major(1), Name: "custom", ClientHello: raw, UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) CriOS/155.0.0.0"},
 	} {
 		spec, err := p.Spec()
 		if err != nil {

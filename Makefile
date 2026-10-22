@@ -1,6 +1,6 @@
 GO      ?= go
 BIN     ?= bin/tls-forge
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+VERSION ?= $(shell python3 -c 'import json; print(json.load(open("engine/version.json"))["version"])')
 COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
@@ -10,7 +10,7 @@ VENV    ?= .venv
 all: check
 
 build:
-	$(GO) build -ldflags "-X main.version=$(VERSION)" -o $(BIN) ./cmd/tls-forge
+	$(GO) build -ldflags "-X main.version=v$(VERSION)" -o $(BIN) ./cmd/tls-forge
 
 # -timeout well under the CI job's ceiling, so a test that hangs is killed by
 # Go — which prints a goroutine dump naming it — rather than by the runner,

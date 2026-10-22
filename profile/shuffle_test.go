@@ -179,7 +179,7 @@ func TestAProfileDrawsItsOrderWhenAskedAndOnlyThen(t *testing.T) {
 		t.Errorf("by default: %d orders", distinct(got))
 	}
 	// A bare base is the transport's own, asked or not.
-	bare := &Profile{Name: "firefox_148", Base: "firefox_148"}
+	bare := &Profile{EngineMajor: Major(1), Name: "firefox_148", Base: "firefox_148"}
 	for _, shuffle := range []bool{true, false} {
 		built, err := bare.ClientProfileShuffled(shuffle)
 		if err != nil {
@@ -197,10 +197,10 @@ func TestABareBaseIsOneWithNothingOfItsOwn(t *testing.T) {
 		p    Profile
 		want bool
 	}{
-		{Profile{Base: "firefox_148"}, true},
-		{Profile{}, false},
-		{Profile{Base: "firefox_148", ClientHello: []byte{1}}, false},
-		{Profile{Base: "firefox_148", HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}}}}, false},
+		{Profile{EngineMajor: Major(1), Base: "firefox_148"}, true},
+		{Profile{EngineMajor: Major(1)}, false},
+		{Profile{EngineMajor: Major(1), Base: "firefox_148", ClientHello: []byte{1}}, false},
+		{Profile{EngineMajor: Major(1), Base: "firefox_148", HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}}}}, false},
 	} {
 		if got := tc.p.BareBase(); got != tc.want {
 			t.Errorf("%+v: %v", tc.p, got)

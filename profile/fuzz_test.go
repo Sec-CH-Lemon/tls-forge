@@ -8,8 +8,8 @@ import "testing"
 // treatment as the wire parser.
 func FuzzLoad(f *testing.F) {
 	f.Add([]byte(`{}`))
-	f.Add([]byte(`{"name":"x","client_hello":"AAAA","header_order":["a"]}`))
-	f.Add([]byte(`{"name":"x","client_hello":"!!!!"}`))
+	f.Add([]byte(`{"engine_major":1,"name":"x","client_hello":"AAAA","header_order":["a"]}`))
+	f.Add([]byte(`{"engine_major":1,"name":"x","client_hello":"!!!!"}`))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		p, err := Load(data)
 		if err != nil {

@@ -11,6 +11,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- **Breaking engine release 1.0.0 / profile schema 4:** every executable profile
+  requires an exact integer `engine_major: 1`. Missing, invalid, duplicate,
+  older/newer declarations fail before network I/O across file/embedded/Go,
+  registry/catalogue, pooled/Fresh and daemon paths. Raw transport-profile
+  overrides are rejected before transport construction; use the validated
+  profile selection APIs. Save/Clone preserve identity;
+  offline Inspect and explicit Migrate do not imply browser acceptance. All 15
+  shipped profiles and catalogue policies are explicitly migrated, with original
+  capture provenance retained. Browser configuration remains JSON-owned.
+- **Daemon protocol 3 / Node and Python 1.0.0:** hello reports compiled engine
+  version/major; every request and proxy init declares its expected major. SDKs
+  gate plain and contextual requests and revalidate replacement daemon processes.
+  Incompatible PATH binaries fail before receiving a request URL or cookies.
+  Canonical compiled identity is engine/version.json; misleading build/release
+  stamps are rejected. Future shipped runtime/fork changes require major +1.
+
 - HTTP/3 requests now wait for local control-stream initialization, so the first
   request cannot race ahead of SETTINGS. The barrier covers ordinary and 0-RTT
   requests and direct request-stream opening, and stops on cancellation or setup

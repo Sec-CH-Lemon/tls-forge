@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -78,16 +78,16 @@ function pastDeadline(t, ask) {
 test('a transport says the protocol it speaks and what it can do, once', async () => {
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'one,two' }, async (client) => {
     const first = await client.hello();
-    assert.deepEqual(first, { protocol: 2, capabilities: ['one', 'two'] });
+    assert.deepEqual(first, { protocol: 3, capabilities: ['one', 'two'], engine_major: 1, version: '1.0.0' });
     // A copy each time: what one caller does with it is not the next's.
     first.capabilities.push('three');
-    assert.deepEqual(await client.hello(), { protocol: 2, capabilities: ['one', 'two'] });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['one', 'two'], engine_major: 1, version: '1.0.0' });
     const { controls, requests } = await seen(client);
     assert.equal(controls, 1);
     assert.equal(requests, 1);
   });
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: '' }, async (client) => {
-    assert.deepEqual(await client.hello(), { protocol: 2, capabilities: [] });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.0' });
   });
 });
 
@@ -95,7 +95,7 @@ test('a transport newer than this package is read for what it says it can do', a
   // A protocol after 2, and a capability no package knows yet, are no reason
   // to refuse what both know.
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'newer' }, async (client) => {
-    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport'] });
+    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport'], engine_major: 1, version: '1.0.0' });
     const context = { kind: 'fetch', initiator: 'https://example.com/' };
     const answer = JSON.parse((await client.get('https://ok/', { browserContext: context })).body);
     assert.deepEqual(answer.browser, context);
@@ -110,7 +110,7 @@ test('a transport older than the question speaks protocol 1', async () => {
 
 test('the committed answers to hello read as they say', async () => {
   for (const [mode, want] of [
-    ['fixture', { protocol: 2, capabilities: ['browser_context'] }],
+    ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major'], engine_major: 1, version: '1.0.0' }],
     ['fixture-old', { protocol: 1, capabilities: [] }],
   ]) {
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
@@ -124,7 +124,7 @@ test('an answer to hello that says nothing it can is a bad response, asked again
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
       await assert.rejects(client.hello(), /^TransportError: tlsforge: bad response: hello must give a protocol from 2/);
       await assert.rejects(client.hello(), /bad response/);
-      assert.equal((await seen(client)).controls, 2, mode);
+      await assert.rejects(client.get('https://ok/'), /bad response/);
     });
   }
 });
@@ -135,8 +135,7 @@ test('a transport that does not answer hello has said nothing, and is asked agai
     // A question was made in no session: it is asked of the next transport,
     // and the next request is the one told its session has gone.
     await assert.rejects(pastDeadline(t, () => client.hello()), /request timed out/);
-    await assert.rejects(client.get('https://ok/'), (err) => err.name === 'SessionReset');
-    assert.equal((await seen(client)).controls, 0);
+    await assert.rejects(pastDeadline(t, () => client.get('https://ok/')), /request timed out/);
   }, { timeout: COLD_START });
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'exit' }, async (client) => {
     await assert.rejects(client.hello(), /transport exited \(code 3\)/);
@@ -146,7 +145,7 @@ test('a transport that does not answer hello has said nothing, and is asked agai
 test('a question asked after a session went leaves the next request to be told', async (t) => {
   await withTransport({}, async (client) => {
     await assert.rejects(pastDeadline(t, () => client.get('https://silent/')), /request timed out/);
-    assert.deepEqual(await client.hello(), { protocol: 2, capabilities: [] });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.0' });
     await assert.rejects(client.get('https://ok/'), (err) => err.name === 'SessionReset');
     assert.equal((await seen(client)).requests, 1);
   }, { timeout: COLD_START });
@@ -160,7 +159,7 @@ test('a closed client asks nothing', async () => {
 
 test('a browser context goes to a transport that applies one, and to no other', async () => {
   const context = { kind: 'fetch', initiator: 'https://example.com/' };
-  for (const [env, protocol] of [[{ TLSFORGE_TEST_CAPABILITIES: 'other' }, 2], [{ TLSFORGE_TEST_PROTOCOL: '1' }, 1]]) {
+  for (const [env, protocol] of [[{ TLSFORGE_TEST_CAPABILITIES: 'other' }, 3]]) {
     await withTransport(env, async (client) => {
       const refused = await client.get('https://ok/', { browserContext: context }).then(
         () => assert.fail('sent'),
@@ -188,7 +187,7 @@ test('a browser context goes to a transport that applies one, and to no other', 
   // Without one, nothing is asked.
   await withTransport({}, async (client) => {
     const answer = await seen(client);
-    assert.equal(answer.controls, 0);
+    assert.equal(answer.controls, 1);
     assert.equal(answer.browser, null);
     assert.ok(!answer.sent.includes('browser'));
   });
@@ -226,8 +225,56 @@ test('a browser context that is no object, or has a key the protocol does not, i
     }
     // Said before anything was asked; and null is none, as it is to the daemon.
     const answer = JSON.parse((await client.get('https://ok/', { browserContext: null })).body);
-    assert.equal(answer.controls, 0);
+    assert.equal(answer.controls, 1);
     assert.equal(answer.requests, 1);
     assert.ok(!answer.sent.includes('browser'));
   });
+});
+
+test('every request requires the exact SDK engine major before URL or cookie transmission', async () => {
+  for (const major of ['missing', 'null', '0', '2', '-1', '1.5', '"1"', 'true']) {
+    const log = path.join(wrapperDir, `engine-${encodeURIComponent(major)}.jsonl`);
+    await withTransport({ TLSFORGE_TEST_ENGINE_MAJOR: major, TLSFORGE_TEST_WIRE_LOG: log }, async (client) => {
+      for (const options of [{}, { browserContext: { kind: 'navigation' } }]) {
+        await assert.rejects(client.get('https://must-not-resolve.invalid/', { cookies: ['secret=never-sent'], ...options }), (err) => {
+          assert.ok(err instanceof Unsupported);
+          assert.match(err.message, /engine_major .*SDK engine major 1; request was not sent/);
+          return true;
+        });
+      }
+      const lines = JSON.parse('[' + readFileSync(log, 'utf8').trim().split('\n').join(',') + ']');
+      assert.equal(lines.length, 1);
+      assert.equal(lines[0].control, 'hello');
+      assert.equal(lines[0].url, undefined);
+      assert.equal(lines[0].setCookie, undefined);
+    });
+  }
+  for (const mode of ['1', 'fixture-old']) {
+    await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
+      await assert.rejects(client.get('https://must-not-resolve.invalid/'), Unsupported);
+    });
+  }
+  for (const version of ['0.1.0', '2.0.0', 'bad']) {
+    await withTransport({ TLSFORGE_TEST_ENGINE_VERSION: version }, async (client) => {
+      await assert.rejects(client.get('https://must-not-resolve.invalid/'), Unsupported);
+    });
+  }
+  await withTransport({}, async (client) => {
+    const answer = await seen(client);
+    assert.ok(answer.sent.includes('engine_major'));
+    assert.equal(answer.controls, 1);
+  });
+});
+
+test('a replacement process must pass its own engine handshake', async () => {
+  const log = path.join(wrapperDir, 'replacement-engine.jsonl');
+  await withTransport({ TLSFORGE_TEST_WIRE_LOG: log, TLSFORGE_TEST_ENGINE_MAJOR: '1' }, async (client) => {
+    await client.get('https://ok/first');
+    process.env.TLSFORGE_TEST_ENGINE_MAJOR = '0';
+    await assert.rejects(client.get('https://silent/'), /timed out/);
+    await assert.rejects(client.get('https://must-not-resolve.invalid/'), Unsupported);
+    const lines = readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
+    assert.equal(lines.filter((line) => line.control === 'hello').length, 2);
+    assert.equal(lines.filter((line) => line.url?.includes('must-not-resolve')).length, 0);
+  }, { timeout: 1000 });
 });

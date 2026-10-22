@@ -94,6 +94,14 @@ func main() {
 	scanner.Buffer(make([]byte, 64*1024), 32*1024*1024)
 	initialised := !proxyStdin
 	for scanner.Scan() {
+		if file := os.Getenv("TLSFORGE_TEST_WIRE_LOG"); file != "" {
+			out, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				panic(err)
+			}
+			_, _ = out.Write(append(append([]byte(nil), scanner.Bytes()...), '\n'))
+			_ = out.Close()
+		}
 		var req request
 		var fields map[string]json.RawMessage
 		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
@@ -317,7 +325,21 @@ func blank(req request, extra map[string]any) map[string]any {
 // protocol 2 with TLSFORGE_TEST_CAPABILITIES when it says nothing.
 var protocols = map[string]func(request){
 	"": func(req request) {
-		extra := map[string]any{"protocol": 2}
+		extra := map[string]any{"protocol": 3, "engine_major": 1, "version": "1.0.0"}
+		if raw, ok := os.LookupEnv("TLSFORGE_TEST_ENGINE_MAJOR"); ok {
+			if raw == "missing" {
+				delete(extra, "engine_major")
+			} else {
+				var major any
+				if err := json.Unmarshal([]byte(raw), &major); err != nil {
+					panic(err)
+				}
+				extra["engine_major"] = major
+			}
+		}
+		if version, ok := os.LookupEnv("TLSFORGE_TEST_ENGINE_VERSION"); ok {
+			extra["version"] = version
+		}
 		if names := strings.Split(os.Getenv("TLSFORGE_TEST_CAPABILITIES"), ","); names[0] != "" {
 			extra["capabilities"] = slices.DeleteFunc(names, func(name string) bool { return name == "" })
 		}
@@ -336,7 +358,7 @@ var protocols = map[string]func(request){
 	},
 	"low": func(req request) { emit(blank(req, map[string]any{"protocol": 1})) },
 	"newer": func(req request) {
-		emit(blank(req, map[string]any{"protocol": 7, "capabilities": []string{"browser_context", "teleport"}}))
+		emit(blank(req, map[string]any{"protocol": 7, "engine_major": 1, "version": "1.0.0", "capabilities": []string{"browser_context", "teleport"}}))
 	},
 	"silent": func(request) {},
 	"exit":   func(request) { os.Exit(3) },

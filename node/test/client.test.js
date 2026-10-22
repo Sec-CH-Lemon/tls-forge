@@ -308,7 +308,7 @@ test('a transport started again is told its proxy again, first', async (t) => {
     const after = JSON.parse((await c.get('https://ok/c')).body);
     assert.notEqual(after.pid, first.pid);
     assert.equal(after.proxy, 'http://alice:s3cret@proxy.test:8080');
-    assert.deepEqual(await c.hello(), { protocol: 2, capabilities: [] });
+    assert.deepEqual(await c.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.0' });
   } finally {
     c.close();
   }
@@ -514,11 +514,11 @@ test('a transport that dies while nobody asks it anything tells the next request
 // repeated: ASCII is a byte each, "я" two.
 function sized(size, id, char = 'x') {
   const url = 'https://ok/sized';
-  const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id }) + '\n');
+  const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id, engine_major: 1 }) + '\n');
   const each = Buffer.byteLength(char);
   const count = Math.floor((size - overhead) / each);
   const body = char.repeat(count) + 'x'.repeat(size - overhead - count * each);
-  assert.equal(Buffer.byteLength(JSON.stringify({ url, body, method: 'POST', id }) + '\n'), size);
+  assert.equal(Buffer.byteLength(JSON.stringify({ url, body, method: 'POST', id, engine_major: 1 }) + '\n'), size);
   return { url, body };
 }
 
@@ -526,7 +526,7 @@ test('a request is measured as the transport reads it, and one too long is not s
   const c = fake({ timeout: 30_000 });
   try {
     const first = JSON.parse((await c.get('https://ok/first')).body).pid;
-    let id = 1;
+    let id = 2;
     for (const [size, char] of [[MAX_REQUEST_BYTES - 1, 'x'], [MAX_REQUEST_BYTES, 'x'], [MAX_REQUEST_BYTES, 'я']]) {
       const { url, body } = sized(size, ++id, char);
       const echoed = JSON.parse((await c.post(url, body)).body);

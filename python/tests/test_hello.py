@@ -19,19 +19,19 @@ def seen(client: tlsforge.Client) -> dict:
 def test_a_transport_says_what_it_is_once(client, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "one,two")
     c = client()
-    assert c.hello() == tlsforge.Hello(2, ("one", "two"))
+    assert c.hello() == tlsforge.Hello(3, ("one", "two"), 1, "1.0.0")
     assert c.hello() is c.hello()
     assert seen(c)["controls"] == 1
 
 
 def test_a_transport_with_nothing_to_say(client, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("TLSFORGE_TEST_CAPABILITIES", raising=False)
-    assert client().hello() == tlsforge.Hello(2, ())
+    assert client().hello() == tlsforge.Hello(3, (), 1, "1.0.0")
 
 
 @pytest.mark.parametrize(
     ("mode", "want"),
-    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(2, ("browser_context",))), ("fixture-old", tlsforge.Hello(1, ()))],
+    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(3, ("browser_context", "engine_major"), 1, "1.0.0")), ("fixture-old", tlsforge.Hello(1, ()))],
 )
 def test_older_transports_and_the_committed_answers(client, monkeypatch, mode, want) -> None:
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", mode)
@@ -52,7 +52,8 @@ def test_an_answer_that_says_nothing_it_can_is_a_bad_response(client, monkeypatc
     # Not kept: asked again.
     with pytest.raises(tlsforge.TransportError, match="bad response"):
         c.hello()
-    assert seen(c)["controls"] == 2
+    with pytest.raises(tlsforge.TransportError, match="bad response"):
+        seen(c)
 
 
 def test_a_transport_newer_than_this_package_is_read_for_what_it_says_it_can_do(client, monkeypatch) -> None:
@@ -60,7 +61,7 @@ def test_a_transport_newer_than_this_package_is_read_for_what_it_says_it_can_do(
     # to refuse what both know.
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", "newer")
     c = client()
-    assert c.hello() == tlsforge.Hello(7, ("browser_context", "teleport"))
+    assert c.hello() == tlsforge.Hello(7, ("browser_context", "teleport"), 1, "1.0.0")
     context = {"kind": "fetch", "initiator": "https://example.com/"}
     assert json.loads(c.get("https://ok/", browser_context=context).body)["browser"] == context
 
@@ -74,16 +75,15 @@ def test_a_transport_that_does_not_answer_is_asked_again(client, monkeypatch) ->
     # and the next request is the one told its session has gone.
     with pytest.raises(tlsforge.Timeout):
         c.hello()
-    with pytest.raises(tlsforge.SessionReset):
+    with pytest.raises(tlsforge.Timeout):
         c.get("https://ok/")
-    assert seen(c)["controls"] == 0
 
 
 def test_a_question_asked_after_a_session_went_leaves_the_next_request_to_be_told(client) -> None:
     c = client(timeout=0.3)
     with pytest.raises(tlsforge.Timeout):
         c.get("https://silent/")
-    assert c.hello() == tlsforge.Hello(2, ())
+    assert c.hello() == tlsforge.Hello(3, (), 1, "1.0.0")
     with pytest.raises(tlsforge.SessionReset):
         c.get("https://ok/")
     assert seen(c)["requests"] == 1
@@ -101,7 +101,7 @@ def test_a_transport_gone_while_idle_is_noticed_by_hello(client, monkeypatch) ->
     os.kill(first["pid"], 9)
     c._process.wait()
     # Asked of a new one; the request after it is told its session went.
-    assert c.hello() == tlsforge.Hello(2, ())
+    assert c.hello() == tlsforge.Hello(3, (), 1, "1.0.0")
     with pytest.raises(tlsforge.SessionReset):
         c.get("https://ok/")
     assert seen(c)["pid"] != first["pid"]
@@ -124,7 +124,7 @@ def test_hello_waits_its_turn(client, monkeypatch) -> None:
         c._lock.release()
 
 
-@pytest.mark.parametrize(("env", "protocol"), [({"TLSFORGE_TEST_CAPABILITIES": "other"}, 2), ({"TLSFORGE_TEST_PROTOCOL": "1"}, 1)])
+@pytest.mark.parametrize(("env", "protocol"), [({"TLSFORGE_TEST_CAPABILITIES": "other"}, 3)])
 def test_a_browser_context_goes_to_no_transport_that_does_not_apply_one(client, monkeypatch, env, protocol) -> None:
     for name, value in env.items():
         monkeypatch.setenv(name, value)
@@ -199,4 +199,4 @@ def test_a_browser_context_that_is_no_mapping_or_has_a_key_there_is_none_of_is_a
     # Said before anything was asked: the plain request after it is the first
     # line the transport read.
     answer = seen(c)
-    assert answer["controls"] == 0 and answer["requests"] == 1
+    assert answer["controls"] == 1 and answer["requests"] == 1

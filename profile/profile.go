@@ -46,7 +46,8 @@ import (
 // Schema 2 added client_hints. A profile of schema 1 is read as strictly, and
 // has none: no tls-forge that wrote 1 knew of them. Schema 3 adds explicit
 // behavior policy; its browser name and user agent are metadata only.
-const Schema = 3
+// Schema 4 adds engine_major, independent of the browser version and schema.
+const Schema = 4
 
 // ClientHintOrder is every client hint Chrome 155 sends when a server asks
 // for it with Accept-CH, in the order it sends them, as measured
@@ -65,6 +66,9 @@ type Profile struct {
 	// Schema is the version of the format the profile was written in: see
 	// the constant. Save writes the current one.
 	Schema int `json:"schema,omitempty"`
+
+	// EngineMajor is required for execution and independent of format/browser versions.
+	EngineMajor *int `json:"engine_major"`
 
 	// Behavior contains explicit versioned network policies, independent of Name and UserAgent.
 	Behavior behavior.Policy `json:"behavior"`
@@ -117,6 +121,9 @@ func (p *Profile) Clone() *Profile {
 		return nil
 	}
 	out := *p
+	if p.EngineMajor != nil {
+		out.EngineMajor = Major(*p.EngineMajor)
+	}
 	out.Behavior = p.Behavior.Clone()
 	out.ClientHello = append([]byte(nil), p.ClientHello...)
 	if p.PerConnection != nil {
@@ -287,6 +294,9 @@ var ErrNoHandshake = fmt.Errorf("profile: neither client_hello nor base is set")
 // state, and a spec shared between connections is a spec whose key share is
 // reused — which is both a bug and a fingerprint, since no browser reuses one.
 func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
+	if err := p.ValidateEngine(); err != nil {
+		return tls.ClientHelloSpec{}, err
+	}
 	if len(p.ClientHello) > 0 {
 		// Let the fingerprinter expose unknown extensions, then admit only the
 		// exact forms which are safe to reproduce as fixed bytes. Blindly allowing
@@ -422,6 +432,9 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 // (shuffleExtensions), and the capture's when it is false. A bare base is the
 // transport's own, and so is drawing its order (BareBase).
 func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error) {
+	if err := p.ValidateEngine(); err != nil {
+		return profiles.ClientProfile{}, err
+	}
 	if err := p.validateBehavior(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
@@ -617,7 +630,13 @@ func (p *Profile) Header(name string) (string, bool) {
 }
 
 // Load reads a profile from JSON, as its schema says: see Schema.
-func Load(data []byte) (*Profile, error) {
+func Load(data []byte) (*Profile, error) { return decodeProfile(data, true) }
+func decodeProfile(data []byte, execute bool) (*Profile, error) {
+	if execute {
+		if err := checkMajorJSON(data); err != nil {
+			return nil, err
+		}
+	}
 	var written struct {
 		Schema *int `json:"schema"`
 	}
@@ -645,6 +664,11 @@ func Load(data []byte) (*Profile, error) {
 			*written.Schema, Schema)
 	default:
 		return nil, fmt.Errorf("profile: schema %d is not one; schemas begin at 1", *written.Schema)
+	}
+	if execute {
+		if err := p.ValidateEngine(); err != nil {
+			return nil, err
+		}
 	}
 	if err := p.validateBehavior(); err != nil {
 		return nil, err

@@ -5,8 +5,11 @@
   "body": "",
   "headers": null,
   "cookies": null,
-  "protocol": 2,
+  "engine_major": 1,
+  "version": "1.0.0",
+  "protocol": 3,
   "capabilities": [
-    "browser_context"
+    "browser_context",
+    "engine_major"
   ]
 }

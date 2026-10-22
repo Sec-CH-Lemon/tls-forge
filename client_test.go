@@ -28,7 +28,6 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
-	"github.com/igor-lemon/tls-client/profiles"
 	"golang.org/x/net/proxy"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
@@ -147,7 +146,7 @@ func TestTheTransportDrawsTheOrderOfABareBaseAlone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	bare := &profile.Profile{Name: "firefox_148", Base: "firefox_148"}
+	bare := &profile.Profile{EngineMajor: profile.Major(1), Name: "firefox_148", Base: "firefox_148"}
 	for _, tc := range []struct {
 		p              *profile.Profile
 		shuffle, wants bool
@@ -360,7 +359,7 @@ func TestTheLastProfileOptionWins(t *testing.T) {
 }
 
 func TestNewRejectsAnUnusableProfile(t *testing.T) {
-	broken := &profile.Profile{Name: "broken", ClientHello: []byte{1, 2, 3}}
+	broken := &profile.Profile{EngineMajor: profile.Major(1), Name: "broken", ClientHello: []byte{1, 2, 3}}
 	if _, err := New(WithProfileValue(broken)); err == nil {
 		t.Error("expected an error")
 	}
@@ -403,13 +402,16 @@ func TestATransportOptionIsGivenAfterTLSForgesOwn(t *testing.T) {
 	}
 }
 
-func TestAClientProfileGivenAsATransportOptionOrdersThePseudoHeaders(t *testing.T) {
+func TestAnExplicitCompatibleProfileOrdersThePseudoHeaders(t *testing.T) {
 	// The transport orders them as its client profile does, so a client
-	// profile given as an option replaces the profile's order with the rest
-	// of what it sets; the headers each request carries stay the profile's.
+	// selected through the engine-compatible Profile value owns the order.
 	server := startEcho(t)
-	client := newTestClient(t, WithProfile("chrome_155_macos"),
-		WithTransportOption(tls_client.WithClientProfile(profiles.Firefox_148)))
+	p, err := profile.Get("chrome_155_macos")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.HTTP2.PseudoHeaderOrder = []string{":method", ":path", ":authority", ":scheme"}
+	client := newTestClient(t, WithProfileValue(p))
 	measured := measure(t, client, server)
 	if got, want := measured.HTTP2.PseudoHeaderOrder, []string{"m", "p", "a", "s"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("pseudo header order = %v, want Firefox's %v", got, want)

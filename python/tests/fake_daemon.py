@@ -212,7 +212,16 @@ def _blank(request: dict, **extra: object) -> dict:
 
 def _hello(request: dict) -> None:
     capabilities = [name for name in os.environ.get("TLSFORGE_TEST_CAPABILITIES", "").split(",") if name]
-    emit(_blank(request, protocol=2, **({"capabilities": capabilities} if capabilities else {})))
+    identity = {"protocol": 3, "version": os.environ.get("TLSFORGE_TEST_ENGINE_VERSION", "1.0.0"), "capabilities": capabilities}
+    major = os.environ.get("TLSFORGE_TEST_ENGINE_MAJOR")
+    if major != "missing":
+        identity["engine_major"] = 1 if major is None else json.loads(major)
+    emit(_blank(request, **identity))
+    deaf_for = os.environ.get("TLSFORGE_TEST_DEAF_FOR")
+    if deaf_for:
+        # The public SDK must complete hello before it can write a body.
+        time.sleep(float(deaf_for))
+        sys.exit(0)
 
 
 #: What hello is answered with, by TLSFORGE_TEST_PROTOCOL: protocol 2 with
@@ -227,7 +236,7 @@ PROTOCOLS: dict[str, Callable[[dict], None]] = {
     "bad-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities=[7])),
     "no-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities="all")),
     "low": lambda request: emit(_blank(request, protocol=1)),
-    "newer": lambda request: emit(_blank(request, protocol=7, capabilities=["browser_context", "teleport"])),
+    "newer": lambda request: emit(_blank(request, protocol=7, engine_major=1, version="1.0.0", capabilities=["browser_context", "teleport"])),
     "silent": lambda _request: None,
     "exit": _exit,
 }
@@ -306,14 +315,14 @@ def main() -> None:
     if not initialised and os.environ.get("TLSFORGE_TEST_INIT") == "deaf":
         INITS["deaf"]({})
         return
-    deaf_for = os.environ.get("TLSFORGE_TEST_DEAF_FOR")
-    if deaf_for:
-        # Reads nothing, for as long as it is told, and then is gone: a write
-        # larger than the pipe holds waits on it all that time.
-        time.sleep(float(deaf_for))
+    if not initialised and os.environ.get("TLSFORGE_TEST_DEAF_FOR"):
+        time.sleep(float(os.environ["TLSFORGE_TEST_DEAF_FOR"]))
         return
     for line in sys.stdin:
         try:
+            if os.environ.get("TLSFORGE_TEST_WIRE_LOG"):
+                with open(os.environ["TLSFORGE_TEST_WIRE_LOG"], "a", encoding="utf-8") as wire:
+                    wire.write(line)
             request = json.loads(line)
         except ValueError:
             emit({"id": 0, "error": "bad request"})

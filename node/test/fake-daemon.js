@@ -12,7 +12,7 @@
 // every fake answers the same ones: see that file.
 
 import readline from 'node:readline';
-import { closeSync, readFileSync } from 'node:fs';
+import { closeSync, readFileSync, appendFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -206,7 +206,10 @@ const blank = (request, extra) => ({ id: request.id, status: 0, url: '', body: '
 const protocols = {
   '': (request) => {
     const capabilities = (process.env.TLSFORGE_TEST_CAPABILITIES ?? '').split(',').filter(Boolean);
-    write(blank(request, { protocol: 2, ...(capabilities.length ? { capabilities } : {}) }));
+    const engine_major = process.env.TLSFORGE_TEST_ENGINE_MAJOR;
+    const identity = { protocol: 3, version: process.env.TLSFORGE_TEST_ENGINE_VERSION ?? '1.0.0', ...(capabilities.length ? { capabilities } : {}) };
+    if (engine_major !== 'missing') identity.engine_major = engine_major === undefined ? 1 : JSON.parse(engine_major);
+    write(blank(request, identity));
   },
   1: (request) => write(blank(request, { error: 'bad request: no url' })),
   fixture: (request) => write({ ...fixture('response-hello.json'), id: request.id }),
@@ -216,12 +219,13 @@ const protocols = {
   'bad-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: [7] })),
   'no-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: 'all' })),
   low: (request) => write(blank(request, { protocol: 1 })),
-  newer: (request) => write(blank(request, { protocol: 7, capabilities: ['browser_context', 'teleport'] })),
+  newer: (request) => write(blank(request, { protocol: 7, engine_major: 1, version: '1.0.0', capabilities: ['browser_context', 'teleport'] })),
   silent: () => {},
   exit: () => process.exit(3),
 };
 
 function onLine(line) {
+  if (process.env.TLSFORGE_TEST_WIRE_LOG) appendFileSync(process.env.TLSFORGE_TEST_WIRE_LOG, line + "\n");
   let request;
   try {
     request = JSON.parse(line);

@@ -746,7 +746,7 @@ func TestDaemon(t *testing.T) {
 	original := daemonInput
 	t.Cleanup(func() { daemonInput = original })
 	daemonInput = strings.NewReader(
-		`{"id":42,"url":"` + server.URL() + `/api/all"}` + "\n")
+		`{"engine_major":1,"id":42,"url":"` + server.URL() + `/api/all"}` + "\n")
 
 	code, stdout, stderr := exec(t, "daemon", "--insecure")
 	if code != 0 {
@@ -1529,7 +1529,7 @@ func TestPrintCaptureShowsResumption(t *testing.T) {
 func TestProfilesListsAnUnloadableNameWithTheCatalogue(t *testing.T) {
 	// A registered profile that cannot produce a handshake still has a name, and
 	// dropping it silently would hide exactly the thing worth reporting.
-	if err := profile.Register(&profile.Profile{Name: "zz_unloadable"}); err != nil {
+	if err := profile.Register(&profile.Profile{EngineMajor: profile.Major(1), Name: "zz_unloadable"}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	code, stdout, _ := exec(t, "profiles")
@@ -1992,5 +1992,16 @@ func TestCompareTellsTroubleFromDisagreement(t *testing.T) {
 				t.Errorf("exit code = %d, want %d", code, tc.want)
 			}
 		})
+	}
+}
+
+func TestWrongBuildIdentityCannotDispatch(t *testing.T) {
+	original := version
+	defer func() { version = original }()
+	version = "v2.0.0"
+	var out, diagnostic bytes.Buffer
+	code := run(context.Background(), []string{"version"}, &out, &diagnostic)
+	if code != 2 || out.Len() != 0 || !strings.Contains(diagnostic.String(), "compiled engine 1.0.0 (major 1)") {
+		t.Fatal(code, out.String(), diagnostic.String())
 	}
 }

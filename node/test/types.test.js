@@ -85,7 +85,7 @@ test('the declared request is the wire request a caller sets, by its own names',
   // Kept by the client: the line's id, how its body is encoded, a question
   // for the transport, and the proxy of an init line. Renamed: cookies go as
   // setCookie, a browser context as browser.
-  const kept = ['id', 'bodyEncoding', 'control', 'proxy'];
+  const kept = ['id', 'bodyEncoding', 'control', 'proxy', 'engine_major'];
   const renamed = { setCookie: 'cookies', browser: 'browserContext' };
   const wire = goTags(read('..', 'daemon', 'daemon.go'), 'Request')
     .filter((tag) => !kept.includes(tag))

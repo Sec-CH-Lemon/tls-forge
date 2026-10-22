@@ -11,7 +11,7 @@ import { MANIFEST, pep440, problems, required } from './release-set.mjs';
 
 const script = fileURLToPath(new URL('./release-build.mjs', import.meta.url));
 const ROOT = path.resolve(path.dirname(script), '..');
-const VERSION = '1.2.3';
+const VERSION = '1.0.0';
 const COMMIT = 'a'.repeat(40);
 
 const temporary = (t, prefix = 'tls-forge-build-test-') => {
@@ -83,7 +83,7 @@ test('a build makes the set of its version, from its commit, and it verifies', (
   const builds = tools.calls.filter((call) => call.tool === 'go');
   assert.deepEqual(builds.map((call) => [call.options.env.GOOS, call.options.env.GOARCH]), TARGETS);
   for (const call of builds) {
-    assert.deepEqual(call.args.slice(0, 4), ['build', '-trimpath', '-ldflags', '-s -w -X main.version=v1.2.3']);
+    assert.deepEqual(call.args.slice(0, 4), ['build', '-trimpath', '-ldflags', '-s -w -X main.version=v1.0.0']);
     assert.equal(call.args.at(-1), './cmd/tls-forge');
     assert.equal(call.options.env.CGO_ENABLED, '0');
     assert.equal(call.options.cwd, undefined);
@@ -93,7 +93,7 @@ test('a build makes the set of its version, from its commit, and it verifies', (
   // Each archive holds its binary, executable, with the notices and the README.
   for (const [goos, goarch] of TARGETS) {
     const exe = goos === 'windows' ? 'tls-forge.exe' : 'tls-forge';
-    assert.deepEqual(tools.archives.get(`tls-forge_1.2.3_${goos}_${goarch}.tar.gz`),
+    assert.deepEqual(tools.archives.get(`tls-forge_1.0.0_${goos}_${goarch}.tar.gz`),
       [['LICENSE', 0o644], ['NOTICE', 0o644], ['README.md', 0o644], ['THIRD-PARTY-NOTICES.txt', 0o644], [exe, 0o755]]
         .map(([name, mode]) => [name, name === exe ? 0o755 : statSync(path.join(ROOT, name)).mode & 0o777])
         .sort((a, b) => (a[0] < b[0] ? -1 : 1)));
@@ -106,7 +106,7 @@ test('a build makes the set of its version, from its commit, and it verifies', (
   assert.equal(packs.length, 6);
   for (const call of packs) assert.deepEqual([call.args[0], ...call.args.slice(2)], ['pack', '--pack-destination', dir, '--ignore-scripts']);
   assert.equal(tools.calls.find((call) => call.tool === 'pypi-release.py').command, '/opt/python');
-  assert.equal(readFileSync(path.join(dir, 'tls-forge.rb'), 'utf8'), 'class TlsForge < Formula # 1.2.3\nend\n');
+  assert.equal(readFileSync(path.join(dir, 'tls-forge.rb'), 'utf8'), 'class TlsForge < Formula # 1.0.0\nend\n');
   for (const name of ['LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.txt']) {
     assert.deepEqual(readFileSync(path.join(dir, name)), readFileSync(path.join(ROOT, name)), name);
   }
@@ -115,19 +115,19 @@ test('a build makes the set of its version, from its commit, and it verifies', (
   assert.deepEqual([...new Set(tools.calls.map((call) => call.tool))],
     ['go', 'tar', 'npm-release.mjs', 'npm', 'pypi-release.py', 'homebrew-formula.mjs']);
   assert.equal(lines.length, 6);
-  assert.equal(lines.at(-1), `${dir}: the set of 1.2.3, built from ${COMMIT}`);
+  assert.equal(lines.at(-1), `${dir}: the set of 1.0.0, built from ${COMMIT}`);
   // What it worked in is gone.
   assert.ok(!existsSync(path.dirname(path.dirname(option(builds[0].args, '-o')))));
 });
 
-test('a pre-release is built as one, and Python by default as python3', (t) => {
-  const out = path.join(temporary(t), 'set');
-  const tools = fakeTools();
-  build({ version: '1.2.3-rc.1', commit: COMMIT, out }, { exec: tools.exec });
-  assert.deepEqual(problems(out, '1.2.3-rc.1', COMMIT), []);
-  assert.ok(existsSync(path.join(out, 'tls_forge-1.2.3rc1.tar.gz')));
-  assert.equal(tools.calls.find((call) => call.tool === 'pypi-release.py').command, 'python3');
-  assert.ok(tools.calls.filter((call) => call.tool === 'go').every((call) => call.args[3] === '-s -w -X main.version=v1.2.3-rc.1'));
+test('a different engine version is refused before any build or filesystem output', (t) => {
+  for (const version of ['0.1.0', '2.0.0', '1.0.1', '1.0.0-rc.1']) {
+    const out = path.join(temporary(t), 'set');
+    const tools = fakeTools();
+    assert.throws(() => build({version, commit: COMMIT, out}, {exec:tools.exec}), /does not match compiled engine 1.0.0/);
+    assert.deepEqual(tools.calls, []);
+    assert.equal(existsSync(out), false);
+  }
 });
 
 test('a set is made from nothing, of a release version and a whole commit', (t) => {
@@ -137,7 +137,7 @@ test('a set is made from nothing, of a release version and a whole commit', (t) 
   mkdirSync(held);
   writeFileSync(path.join(held, 'old.tgz'), 'old');
   for (const [given, says] of [
-    [{ version: 'v1.2.3', commit: COMMIT, out: path.join(root, 'a') }, /^Error: --version v1\.2\.3 is not a release version$/],
+    [{ version: 'v1.0.0', commit: COMMIT, out: path.join(root, 'a') }, /^Error: --version v1\.0\.0 is not a release version$/],
     [{ version: VERSION, commit: 'abc', out: path.join(root, 'b') }, /^Error: --commit abc is not a full commit$/],
     [{ version: VERSION, out: path.join(root, 'c') }, /^Error: --commit undefined is not a full commit$/],
     [{ version: VERSION, commit: COMMIT }, /^Error: --out is where the set is made, and is not said$/],
@@ -174,7 +174,7 @@ test('what is built that is not a release set stops it', (t) => {
   const out = path.join(temporary(t), 'set');
   const tools = fakeTools({ change: { pack: (name, version) => `${name}-v${version}.tgz` } });
   assert.throws(() => build({ version: VERSION, commit: COMMIT, out }, { exec: tools.exec }),
-    /^Error: what was built is not a release's set:\nthe set has no tls-forge-1\.2\.3\.tgz\n/);
+    /^Error: what was built is not a release's set:\nthe set has no tls-forge-1\.0\.0\.tgz\n/);
 });
 
 test('a command is run where it is told, and fails out loud', (t) => {
@@ -228,22 +228,22 @@ test('the command builds a set with the real packaging, and says why it did not'
   const built = runBuild('--version', VERSION, '--commit', COMMIT, '--out', out);
   assert.equal(built.status, 0, built.stderr);
   assert.match(built.stdout, /^building tls-forge-darwin-arm64$/m);
-  assert.ok(built.stdout.endsWith(`${out}: the set of 1.2.3, built from ${COMMIT}\n`));
+  assert.ok(built.stdout.endsWith(`${out}: the set of 1.0.0, built from ${COMMIT}\n`));
   assert.deepEqual(problems(out, VERSION, COMMIT), []);
   // The formula names each archive by its checksum.
   const formula = readFileSync(path.join(out, 'tls-forge.rb'), 'utf8');
   const sums = Object.fromEntries(readFileSync(path.join(out, 'SHA256SUMS'), 'utf8').trim().split('\n').map((line) => line.split('  ').reverse()));
   for (const target of ['darwin_arm64', 'darwin_amd64', 'linux_arm64', 'linux_amd64']) {
-    const archive = `tls-forge_1.2.3_${target}.tar.gz`;
-    assert.ok(formula.includes(`/v1.2.3/${archive}"\n      sha256 "${sums[archive]}"`), archive);
+    const archive = `tls-forge_1.0.0_${target}.tar.gz`;
+    assert.ok(formula.includes(`/v1.0.0/${archive}"\n      sha256 "${sums[archive]}"`), archive);
   }
   // An archive holds the binary, executable, beside the notices.
-  const listed = spawnSync('tar', ['-tvzf', path.join(out, 'tls-forge_1.2.3_linux_amd64.tar.gz')], { encoding: 'utf8' }).stdout;
+  const listed = spawnSync('tar', ['-tvzf', path.join(out, 'tls-forge_1.0.0_linux_amd64.tar.gz')], { encoding: 'utf8' }).stdout;
   assert.match(listed, /^-rwxr-xr-x .* \.\/tls-forge$/m);
   for (const name of ['LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.txt', 'README.md']) assert.match(listed, new RegExp(`\\./${name}$`, 'm'));
   assert.doesNotMatch(listed, /\._/);
   // The npm packages are the real ones, stamped with the version.
-  const packed = spawnSync('tar', ['-xzOf', path.join(out, 'tls-forge-1.2.3.tgz'), 'package/package.json'], { encoding: 'utf8' }).stdout;
+  const packed = spawnSync('tar', ['-xzOf', path.join(out, 'tls-forge-1.0.0.tgz'), 'package/package.json'], { encoding: 'utf8' }).stdout;
   assert.equal(JSON.parse(packed).version, VERSION);
   assert.equal(JSON.parse(packed).optionalDependencies['tls-forge-linux-x64'], VERSION);
 

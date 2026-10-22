@@ -12,6 +12,8 @@
 
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
+import { readFileSync } from 'node:fs';
+export const ENGINE_MAJOR = Number(JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version.split('.')[0]);
 import { resolveBinary } from './binary.js';
 import { RequestFailed, SessionReset, Timeout, TransportError, Unsupported } from './errors.js';
 
@@ -39,8 +41,17 @@ function helloOf(response) {
       `hello must give a protocol from 2 and a list of capabilities, not ${JSON.stringify({ protocol, capabilities })}`,
     );
   }
-  return { protocol, capabilities: [...capabilities] };
+  const { engine_major, version } = response;
+  return { protocol, capabilities: [...capabilities], engine_major, version };
 }
+function checkEngine(hello) {
+ const {protocol, engine_major, version}=hello;
+ if (protocol < 3 || !Number.isSafeInteger(engine_major) || engine_major < 0 || engine_major !== ENGINE_MAJOR ||
+     typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version) || Number(version.split('.')[0]) !== engine_major) {
+  throw new Unsupported(`tlsforge: daemon engine_major ${JSON.stringify(engine_major) ?? 'missing'} (version ${version ?? 'missing'}, protocol ${protocol}) is incompatible with SDK engine major ${ENGINE_MAJOR}; request was not sent`);
+ }
+}
+
 
 // The keys of a browser context, as the protocol names them.
 const CONTEXT_KEYS = ['kind', 'initiator', 'referrerPolicy', 'mode', 'credentials'];
@@ -259,7 +270,7 @@ export class Client {
         this.#hello = null;
         throw err;
       });
-    return this.#hello.then(({ protocol, capabilities }) => ({ protocol, capabilities: [...capabilities] }));
+    return this.#hello.then((identity) => ({ ...identity, capabilities: [...identity.capabilities] }));
   }
 
   /**
@@ -282,24 +293,25 @@ export class Client {
     }
     const { browserContext, ...asked } = request;
     // null is none, as it is to the daemon.
-    if (browserContext == null) return this.#send(asked);
-    const refused = contextProblem(browserContext);
+    const refused = browserContext == null ? undefined : contextProblem(browserContext);
     if (refused) return Promise.reject(new TypeError(refused));
-    return this.hello().then(({ protocol, capabilities }) => {
-      if (!capabilities.includes('browser_context')) {
+    return this.hello().then((identity) => {
+      checkEngine(identity);
+      const { protocol, capabilities } = identity;
+      if (browserContext != null && !capabilities.includes('browser_context')) {
         throw new Unsupported(
           `tlsforge: the tls-forge at ${this.#binary} speaks protocol ${protocol} and does not apply ` +
             'browser contexts; the request was not sent',
         );
       }
-      return this.#send({ ...asked, browser: browserContext });
+      return this.#send(browserContext == null ? asked : { ...asked, browser: browserContext });
     });
   }
 
   // send queues a request, its wire fields named as the protocol names them.
   #send(request) {
     const { cookies, ...rest } = request;
-    return this.#enqueue({ ...rest, setCookie: cookies }, false);
+    return this.#enqueue({ ...rest, setCookie: cookies, engine_major: ENGINE_MAJOR }, false);
   }
 
   // enqueue writes fields as one line, with an id of its own, once the lines
@@ -429,6 +441,7 @@ export class Client {
       // jobs still in the queue were never written, and are told the session
       // they were made in has gone.
       this.#lost = `it exited (code ${code})`;
+      this.#hello = null;
       this.#failInFlight(new TransportError(`tlsforge: transport exited (code ${code})`));
       this.#pump();
     });
@@ -450,7 +463,7 @@ export class Client {
       id,
       init: true,
       control: true,
-      line: JSON.stringify({ id, control: 'init', proxy: this.#proxy }) + '\n',
+      line: JSON.stringify({ id, control: 'init', proxy: this.#proxy, engine_major: ENGINE_MAJOR }) + '\n',
       deadline: performance.now() + this.#timeout,
       resolve: (response) => {
         if (response.error == null) return;
@@ -494,6 +507,7 @@ export class Client {
   #restart(why) {
     this.#kill();
     this.#lost = why;
+    this.#hello = null;
     this.#pump();
   }
 

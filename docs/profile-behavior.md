@@ -1,5 +1,60 @@
 # Profile-owned network behavior
 
+## Engine/profile compatibility (1.0.0)
+
+The compiled engine version is **1.0.0**, independently of the browser build and
+profile format **schema 4**. Every executable profile must declare the exact,
+non-negative integer `engine_major: 1`. Engines reject profiles from both older
+and newer majors, including files with no declaration. Schema, filename, browser
+name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
+The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
+
+```json
+{"schema": 4, "engine_major": 1, "name": "my-browser"}
+```
+
+This illustrates metadata only; a complete profile still needs captured TLS/HTTP
+data and the explicit `behavior` object. Browser values and selections stay in
+JSON. Any coordinated change requiring shipped engine/fork runtime code increments
+the project major exactly once, even a compatible fix. Existing primitives can be
+configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+must agree; `engine/version.json` is the compiled authority. Release builds refuse
+a different version stamp. Crossing to major 2 will also require Go module path
+versioning.
+
+`profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
+without declaring it compatible. `Save` and `Clone` preserve the original
+`engine_major`, including absence; they never retag an old profile. Explicit
+migration creates a candidate while preserving original capture provenance:
+
+```go
+old, err := profile.Inspect(originalJSON) // offline; handle err
+candidate, err := old.Migrate("my-browser-engine-1") // handle err
+migratedJSON, err := candidate.Save() // save to a separate destination
+```
+
+Preserve the original file. Migration is not browser equivalence acceptance;
+repeat the relevant actual browser/wire checks before relying on its behavior.
+The 15 shipped profiles and all backend catalogue policies have explicit engine-1
+migration provenance; older captured browser builds are not new measurements.
+A bare catalogue preset still supplies no browser headers.
+
+For a new programmatically created Go profile, explicitly set
+`EngineMajor: profile.Major(tlsforge.EngineMajor())`. Never use this assignment to
+silently accept an imported file. `tlsforge.Version()` and `tlsforge.EngineMajor()`
+report the compiled identity. Client constructors, transport adapters, the
+registry and `Fresh` enforce it; client/profile clones own their major value.
+
+Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
+request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
+metadata is rejected before client execution. Offline `hello` can omit the field.
+Node/Python validate the actual daemon identity before every first request,
+including plain requests, and revalidate a replacement process. An old executable
+from PATH is rejected rather than used silently. Update the SDK and binary
+together; no compatibility flag disables the gate.
+
+
+
 Schema 3 keeps browser-specific network choices in the same JSON file as the captured ClientHello, ordered HTTP/2 settings, headers and HTTP/1 layout. The engine implements primitives and enforces capability/cryptographic/resource constraints. Profile names, versions and descriptive User-Agent text do not select policy.
 
 ## Updating a browser
@@ -19,7 +74,7 @@ It queues local SETTINGS before request HEADERS, including 0-RTT and direct
 request streams, without waiting for peer SETTINGS or an acknowledgement. The
 SETTINGS values/order and priority/GREASE contents still come from the profile.
 
-Schema 0-2 retains its historical family inference during migration. `Save` materializes `per_connection` and the complete effective policy into schema 3, without mutating the source object. The two JSON templates in `utls/behavior` preserve old default behavior; explicit schema 3 data takes precedence, even for a file called `chrome`. Bare transport-catalogue presets remain legacy backend presets and are not newly measured complete profiles.
+Schema 0-2 retains its historical family inference during migration. `Save` materializes `per_connection` and the complete effective policy into schema 4, without mutating the source object. The two JSON templates in `utls/behavior` preserve old default behavior; explicit schema 3 data takes precedence, even for a file called `chrome`. Bare transport-catalogue presets remain legacy backend presets and are not newly measured complete profiles.
 
 Existing shipped TLS capture bytes, ordered settings, header values, machine data and original provenance are preserved. Added behavior sections materialize the pre-existing runtime policy, including the newer policy previously applied to older Chromium profiles; this is not fresh acceptance of Chrome 151-154.
 
@@ -204,3 +259,5 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 `profile/behavior_test.go` checks strict parsing, migration, cloning, name independence and adapter propagation. `profile_policy_test.go` changes only JSON files and observes actual TLS retry attempts, ordered H1/H2 request fields, H2 frame cuts, response-head boundaries, redirects, cookies/cache and first QUIC CID lengths. Existing wire/browser-fixture regression suites remain enabled. Fresh paired Chrome comparisons and their exact source/evidence hashes belong in the separate net-fp-server knowledge ledger.
 
 Capture helper hint lists snapshot the process default once; request generation uses each client's explicit profile. This avoids rescanning the registry on every header. Restart a long-lived capture-helper process after changing its default profile.
+
+Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.

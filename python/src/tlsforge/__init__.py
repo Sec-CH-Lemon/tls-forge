@@ -13,6 +13,8 @@ and how it is verified.
 
 from __future__ import annotations
 
+__version__ = "1.0.0"
+
 from ._binary import ENV_VAR, bundled_binary, exe_name, resolve_binary
 from ._client import DEFAULT_TIMEOUT, MAX_REQUEST_BYTES, BrowserContext, Client, Hello, Response
 from ._errors import (
@@ -44,5 +46,3 @@ __all__ = [
     "exe_name",
     "ENV_VAR",
 ]
-
-__version__ = "0.0.0.dev0"

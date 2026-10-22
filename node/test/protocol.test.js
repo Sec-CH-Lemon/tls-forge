@@ -115,6 +115,7 @@ test('the request fixture is the shape this client sends', () => {
   assert.deepEqual(Object.keys(request).sort(), [
     'body',
     'bodyEncoding',
+    'engine_major',
     'headers',
     'id',
     'method',

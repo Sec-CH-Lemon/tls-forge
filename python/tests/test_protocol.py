@@ -118,6 +118,7 @@ def test_the_request_fixture_is_the_shape_this_client_sends(
     that renaming a request field in Go fails here too.
     """
     assert set(request_fixture) == {
+        "engine_major",
         "id",
         "method",
         "url",
