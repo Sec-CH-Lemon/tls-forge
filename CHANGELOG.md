@@ -11,6 +11,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- **Experimental HTTP/3 transport corrections** (local transport workspace):
+  Chrome profiles apply the measured TLS 1.3 QUIC hello policy. Unsupported
+  dynamic QPACK advertisements are refused;captured profiles keep capacity
+  and blocked streams at zero. H3 ALPS bootstrap remains unavailable.
+  Protocol racing establishes connections before dispatching one HTTP request,
+  retains the winning transport and observes the caller's cancellation. A losing
+  transport cannot send a duplicate POST. QUIC ECH GREASE without SNI no longer
+  stalls the Initial crypto stream. General Chrome QUIC/QPACK/lifecycle parity
+  remains unfinished; HTTP/3 is still an explicit SDK transport option.
+- **Chrome's bounded TLS connection retry**: selected locally detected TLS
+  protocol errors are retried once before any HTTP bytes can be sent. Trust
+  failures, remote alerts, cancellation and errors after dispatch do not gain
+  an application-level replay. CLI `--retry` remains a separate policy.
+
 ### Added
 
 - **`fetch --pcap` keeps what each request's connections carried beside its

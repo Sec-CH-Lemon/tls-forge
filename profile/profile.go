@@ -472,10 +472,25 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 		streamID = 1
 	}
 
+	// TCP captures contain no HTTP/3 settings. Apply the separately measured
+	// Chromium H3 policy rather than silently constructing an empty H3 profile.
+	var h3Settings map[uint64]uint64
+	var h3Order []uint64
+	var h3Priority uint32
+	var h3Pseudo []string
+	if p.chromium() {
+		// The current QPACK backend is stateless. Advertising Chrome's
+		// 65536/100 would invite responses this client cannot decode.
+		h3Settings = map[uint64]uint64{1: 0, 7: 0}
+		h3Order = []uint64{1, 6, 7, 0x33}
+		h3Priority = 0xf0700 // PRIORITY_UPDATE for requests (RFC 9218).
+		h3Pseudo = []string{":method", ":authority", ":scheme", ":path"}
+	}
+
 	return p.chromeTransport(profiles.NewClientProfile(
 		id, settings, order, p.HTTP2.PseudoHeaderOrder, p.HTTP2.ConnectionFlow,
 		priorities, headerPriority, streamID,
-		false, nil, nil, 0, nil, false,
+		false, h3Settings, h3Order, h3Priority, h3Pseudo, p.chromium(),
 	)), nil
 }
 

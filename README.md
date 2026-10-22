@@ -2122,7 +2122,7 @@ The runnable consumer project is in [`example/python/`](example/python/).
   session was in has gone, and its cookies with it. The request was not sent:
   warm the session again, or keep it in a cookie file.
 - **A site still turns the requests away.** A fingerprint is not all a site
-  looks at: tls-forge runs no JavaScript, speaks no HTTP/3, and the TCP/IP
+  looks at: tls-forge runs no JavaScript, defaults to HTTP/1.1 or HTTP/2, and the TCP/IP
   packets under each connection are this machine's operating system's.
   [docs/support.md](docs/support.md) says what is reproduced and what is not,
   and `tls-forge compare` holds this client to the browser on this machine.
@@ -2131,7 +2131,7 @@ The runnable consumer project is in [`example/python/`](example/python/).
 
 The handshake and the headers are not all that gives a client away, and
 tls-forge does not reproduce everything else. It does not run
-JavaScript, load a page's subresources, solve challenges or speak HTTP/3, and
+JavaScript, load a page's subresources or solve challenges, and
 the TCP/IP packets under every connection are this machine's operating
 system's. Redirects are followed as Chrome follows them, and a form's POST,
 `fetch()` and an XHR go out as Chrome sends them, CORS, mixed content and the
@@ -2140,6 +2140,21 @@ client hints a server asked for and all, when a request says it is one
 [docs/support.md](docs/support.md)
 lists what is reproduced, how each part is checked, and where it is known not
 to be.
+
+The Go SDK can explicitly enable the experimental HTTP/3 transport through
+`WithTransportOption(tls_client.WithProtocolRacing())`. It races connection
+establishment and sends the request once over the selected transport. The
+Chrome policy applies measured QUIC TLS 1.3 vectors and initial receive
+windows. The current QPACK decoder is stateless: table capacity and blocked
+streams remain zero, and nonzero configurations are refused. H3 ALPS
+bootstrap is unavailable and is not advertised. QUIC transport parameters, QPACK compression,
+discovery and complete lifecycle behavior still have differences; enabling
+this option does not establish a Chrome-equivalent H3 fingerprint.
+
+For Chrome profiles, selected local TLS protocol failures receive one bounded
+connection retry before any HTTP is sent. This does not retry a failed
+certificate check, cancellation or an application request. The CLI's
+`--retry` separately controls further request attempts.
 
 ## Development
 

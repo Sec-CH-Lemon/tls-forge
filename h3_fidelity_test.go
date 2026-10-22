@@ -1,0 +1,185 @@
+package tlsforge
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net"
+	stdhttp "net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	http "github.com/igor-lemon/fhttp"
+	quic "github.com/igor-lemon/quic-go-utls"
+	"github.com/igor-lemon/quic-go-utls/http3"
+	tc "github.com/igor-lemon/tls-client"
+	tls "github.com/igor-lemon/utls"
+)
+
+// Both transports reach the same owned origin. The TCP listener makes a losing
+// HTTP attempt observable, including one delayed until after Do has returned.
+func h3Origin(t *testing.T, handler http.Handler) (string, *atomic.Int32, *atomic.Int32) {
+	t.Helper()
+	seed := httptest.NewTLSServer(stdhttp.HandlerFunc(func(stdhttp.ResponseWriter, *stdhttp.Request) {}))
+	cert := seed.TLS.Certificates[0]
+	seed.Close()
+	udp, err := net.ListenPacket("udp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := udp.LocalAddr().String()
+	tcp, err := net.Listen("tcp4", addr)
+	if err != nil {
+		udp.Close()
+		t.Fatal(err)
+	}
+	tcpRequests, connections := new(atomic.Int32), new(atomic.Int32)
+	srv := &stdhttp.Server{Handler: stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+		tcpRequests.Add(1)
+		_, _ = io.WriteString(w, "tcp duplicate")
+	}), TLSConfig: seed.TLS.Clone()}
+	go func() { _ = srv.ServeTLS(tcp, "", "") }()
+	h3 := &http3.Server{TLSConfig: &tls.Config{Certificates: []tls.Certificate{{Certificate: cert.Certificate, PrivateKey: cert.PrivateKey}}, NextProtos: []string{"h3"}}, EnableDatagrams: true,
+		QUICConfig: &quic.Config{EnableDatagrams: true}, Handler: handler,
+		ConnContext: func(ctx context.Context, _ *quic.Conn) context.Context { connections.Add(1); return ctx },
+	}
+	go func() { _ = h3.Serve(udp) }()
+	t.Cleanup(func() { _ = h3.Close(); _ = udp.Close(); _ = srv.Close() })
+	return "https://" + addr, tcpRequests, connections
+}
+
+func racingChrome(t *testing.T) *Client {
+	t.Helper()
+	c, err := New(WithProfile("chrome_155_macos"), WithInsecureSkipVerify(), WithTimeout(5*time.Second), WithTransportOption(tc.WithProtocolRacing()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	return c
+}
+
+func TestH3RacesConnectionsAndReusesTheWinner(t *testing.T) {
+	var requests atomic.Int32
+	url, tcp, conns := h3Origin(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		_, _ = fmt.Fprintf(w, "%s:%s", r.Method, body)
+	}))
+	c := racingChrome(t)
+	for _, method := range []string{"GET", "POST", "POST", "GET"} {
+		res, err := c.Do(&Request{URL: url, Method: method, Body: []byte("one effect")})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(res.Body) != method+":one effect" {
+			t.Fatalf("wrong answer: %q", res.Body)
+		}
+	}
+	// The previous loser slept 300ms and sent the same request over TCP.
+	time.Sleep(450 * time.Millisecond)
+	if tcp.Load() != 0 || requests.Load() != 4 || conns.Load() != 1 {
+		t.Fatalf("TCP requests=%d H3 requests=%d QUIC connections=%d", tcp.Load(), requests.Load(), conns.Load())
+	}
+}
+
+func TestH3LateCancellationLeavesOtherRequestsUsable(t *testing.T) {
+	prefix := make(chan struct{})
+	var once sync.Once
+	url, tcp, conns := h3Origin(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/cancel" {
+			_, _ = io.WriteString(w, "ok")
+			return
+		}
+		w.Header().Set("content-length", "16384")
+		_, _ = io.WriteString(w, strings.Repeat("x", 8192))
+		w.(http.Flusher).Flush()
+		once.Do(func() { close(prefix) })
+		<-r.Context().Done()
+	}))
+	c := racingChrome(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { _, err := c.Do(&Request{URL: url + "/cancel", Context: ctx}); done <- err }()
+	select {
+	case <-prefix:
+	case <-time.After(5 * time.Second):
+		t.Fatal("no response prefix")
+	}
+	cancel()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("cancelled response succeeded")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("late cancel did not finish")
+	}
+	res, err := c.Do(&Request{URL: url + "/after"})
+	if err != nil || string(res.Body) != "ok" {
+		t.Fatalf("following request: %v %#v", err, res)
+	}
+	time.Sleep(450 * time.Millisecond)
+	if tcp.Load() != 0 || conns.Load() != 1 {
+		t.Fatalf("TCP requests=%d QUIC connections=%d", tcp.Load(), conns.Load())
+	}
+}
+
+func TestH3CancellationDoesNotWaitForTheTCPFallback(t *testing.T) {
+	udp, err := net.ListenPacket("udp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer udp.Close()
+	initial := make(chan struct{})
+	go func() {
+		b := make([]byte, 65536)
+		if _, _, err := udp.ReadFrom(b); err == nil {
+			close(initial)
+		}
+	}()
+	tcp, err := net.Listen("tcp4", udp.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tcp.Close()
+	contact := make(chan struct{}, 1)
+	go func() {
+		c, err := tcp.Accept()
+		if err == nil {
+			contact <- struct{}{}
+			_ = c.Close()
+		}
+	}()
+	c := racingChrome(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := c.Do(&Request{URL: "https://" + udp.LocalAddr().String(), Context: ctx})
+		done <- err
+	}()
+	select {
+	case <-initial:
+	case <-time.After(3 * time.Second):
+		t.Fatal("no Initial packet")
+	}
+	cancel()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("cancelled connect succeeded")
+		}
+	case <-time.After(150 * time.Millisecond):
+		t.Fatal("cancellation waited for fallback")
+	}
+	select {
+	case <-contact:
+		t.Fatal("cancelled fallback dialled TCP")
+	case <-time.After(350 * time.Millisecond):
+	}
+}
