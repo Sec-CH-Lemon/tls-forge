@@ -11,6 +11,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Experimental captured-Chrome HTTP/3 now offers authenticated QUIC v1 version
+  information with a fresh reserved version. It rejects malformed peer version
+  information and a chosen version inconsistent with the packet version before
+  HTTP dispatch. Chrome mode preserves measured Chrome155 error code0x0a and
+  its acceptance of a zero Available Version;generic parsing remains RFC-strict.
+  Typed QUIC transport errors no longer collapse into INTERNAL_ERROR. The Chrome policy refuses cross-version configurations and
+  validates version-negotiation CID reflection. Google `ORIG` remains absent:
+  it requests HTTP/3 ORIGIN-frame handling and pooling, which are unavailable.
+
+
 - Experimental Chrome HTTP/3 uses a dedicated UDP socket per connection,
   eight-byte original destination CIDs and zero-byte source CIDs. Its receive
   policy accepts 1472-byte UDP payloads, advertises 65536-byte DATAGRAM frames

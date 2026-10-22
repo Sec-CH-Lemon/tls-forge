@@ -2265,3 +2265,23 @@ The CID shape and these initial limits do not establish migration, loss recovery
 HTTP/3 discovery, dynamic QPACK, ALPS bootstrap, compatible version negotiation or
 Google-specific connection-option parity. Missing backend APIs remain open. See
 the shared browser knowledge base for exact source/build and paired wire evidence.
+
+
+### Experimental HTTP/3 version information
+
+Captured Chrome's H3 policy uses QUIC v1 and advertises transport parameter
+`version_information` (17): chosen version 1, plus v1 and one freshly drawn reserved
+version in the compatible list. Generic parsing follows RFC9368: malformed information is a transport parameter
+error and a chosen/packet-version disagreement is a version-negotiation error.
+The captured-Chrome policy reproduces two measured Chrome155 deviations: it
+accepts a zero Available Version and uses PROTOCOL_VIOLATION(0x0a) for invalid
+version information. A zero Chosen Version is still refused;the actual selected
+version must remain v1. Typed errors retain their original codes. Missing server information is allowed on this fresh
+v1 connection. The policy rejects v2 or multi-version configurations before
+opening a socket and does not advertise cross-version negotiation support.
+
+Google option `ORIG` in parameter 12584 requests the HTTP/3 ORIGIN experiment.
+It does not describe the original destination CID. The current H3 backend lacks
+an ORIGIN consumer and corresponding authorized connection-pooling path, so the
+option remains unadvertised and those scenarios remain open. Dynamic QPACK and
+H3 ALPS bootstrap also remain open until their required APIs exist.
