@@ -203,7 +203,7 @@ func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, ext
 // DialContext opens a tunnel to address. The network is what the proxy is
 // dialled over: tcp, or tcp4 or tcp6 when the other is turned off.
 func (d *connectDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	if d.secure && d.identity.profile != nil && d.identity.profile.Chromium() {
+	if d.secure && d.identity.profile != nil && d.identity.profile.RuntimeBehavior().Flag("proxy.profile_tls") {
 		return d.chromeTunnel(ctx, network, address)
 	}
 	conn, err := d.reach(ctx, network)
@@ -231,7 +231,7 @@ func (d *connectDialer) reach(ctx context.Context, network string) (net.Conn, er
 	if err != nil {
 		return nil, err
 	}
-	if d.identity.profile != nil && d.identity.profile.Chromium() {
+	if d.identity.profile != nil && d.identity.profile.RuntimeBehavior().Flag("proxy.profile_tls") {
 		return d.chromeProxyTLS(ctx, raw)
 	}
 	// HTTP/1.1 only, so that every tunnel is a connection of its own, and the

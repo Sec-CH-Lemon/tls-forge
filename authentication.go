@@ -2,12 +2,11 @@ package tlsforge
 
 import (
 	"encoding/base64"
+	"github.com/igor-lemon/utls/behavior"
 	"net/url"
 	"slices"
 	"strings"
 	"sync"
-
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // HTTP authentication, as Chrome 155 was measured going about it (the auth-*
@@ -43,13 +42,19 @@ func (c credentials) basic() string {
 
 // schemeScores are the schemes Chrome answers a challenge in, by Chromium's
 // score of each: the higher, the more it prefers it.
-var schemeScores = map[string]int{"basic": 1, "digest": 2, "ntlm": 3, "negotiate": 4}
+var schemeScores = func() map[string]int {
+	out := map[string]int{}
+	for i, n := range legacyPolicy().Strings("http.auth_scheme_order") {
+		out[n] = i + 1
+	}
+	return out
+}()
 
 // maxRestarts is the most requests a hop is sent, the first and the answers to
 // its challenges: Chromium's kMaxRestarts, measured on a page that says every
 // Digest answer is out of date (auth-digest-stale-forever), which was sent 32
 // requests and not the 32nd answer.
-const maxRestarts = 32
+var maxRestarts = legacyPolicy().Int("http.max_auth_restarts")
 
 // challenge is a challenge of a 401 Chrome can answer, as its handler of the
 // scheme reads it.
@@ -111,8 +116,15 @@ func firstRound(params string) bool {
 // Negotiate for a client of a Windows profile alone, as elsewhere Chrome takes
 // it only for the sites a policy names, and none is named.
 func (c *Client) challengeOf(field string) (challenge, bool) {
-	_, platform := profile.Split(c.profile.Name)
-	return readChallenge(field, platform == "windows")
+	answer, ok := readChallenge(field, c.behavior().Flag("http.negotiate_auth"))
+	if ok && answer.digest != nil {
+		algorithm := answer.digest.algorithm
+		if algorithm == "" {
+			algorithm = "MD5"
+		}
+		ok = slices.Contains(c.behavior().Strings("http.digest_algorithms"), algorithm)
+	}
+	return answer, ok
 }
 
 // bestChallenge is the challenge of a 401's fields Chrome answers: the one of
@@ -121,7 +133,7 @@ func (c *Client) challengeOf(field string) (challenge, bool) {
 func (c *Client) bestChallenge(fields []string) (challenge, bool) {
 	var best challenge
 	for _, field := range fields {
-		if read, ok := c.challengeOf(field); ok && schemeScores[read.scheme] > schemeScores[best.scheme] {
+		if read, ok := c.challengeOf(field); ok && c.schemeScore(read.scheme) > c.schemeScore(best.scheme) {
 			best = read
 		}
 	}
@@ -280,17 +292,18 @@ func latin1(text string) string {
 // forgets the least recently used past maxAuthEntries, and an entry's least
 // recently added directory past maxAuthPaths, as Chromium does.
 type authCache struct {
-	mu      sync.Mutex
-	entries []*authEntry
+	behavior behavior.Policy
+	mu       sync.Mutex
+	entries  []*authEntry
 	// draw is a client nonce for a Digest answer.
 	draw func() string
 }
 
 // The most a cache keeps, Chromium's kMaxNumRealmEntries and
 // kMaxNumPathsPerRealmEntry.
-const (
-	maxAuthEntries = 20
-	maxAuthPaths   = 10
+var (
+	maxAuthEntries = legacyPolicy().Int("http.auth_cache_entries")
+	maxAuthPaths   = legacyPolicy().Int("http.auth_cache_paths")
 )
 
 type authEntry struct {
@@ -364,8 +377,8 @@ func (c *authCache) keep(at origin, answered challenge, cred credentials, path s
 	} else {
 		e = &authEntry{at: at, realm: answered.realm, scheme: answered.scheme}
 		c.entries = slices.Insert(c.entries, 0, e)
-		if len(c.entries) > maxAuthEntries {
-			c.entries = c.entries[:maxAuthEntries]
+		if len(c.entries) > c.runtimeBehavior().Int("http.auth_cache_entries") {
+			c.entries = c.entries[:c.runtimeBehavior().Int("http.auth_cache_entries")]
 		}
 	}
 	e.field, e.count, e.credentials = answered.field, 1, cred
@@ -375,8 +388,8 @@ func (c *authCache) keep(at origin, answered challenge, cred credentials, path s
 	}
 	e.paths = slices.DeleteFunc(e.paths, func(p string) bool { return strings.HasPrefix(p, dir) })
 	e.paths = slices.Insert(e.paths, 0, dir)
-	if len(e.paths) > maxAuthPaths {
-		e.paths = e.paths[:maxAuthPaths]
+	if len(e.paths) > c.runtimeBehavior().Int("http.auth_cache_paths") {
+		e.paths = e.paths[:c.runtimeBehavior().Int("http.auth_cache_paths")]
 	}
 }
 
@@ -436,4 +449,14 @@ func requestPath(u *url.URL) string {
 		return path
 	}
 	return "/"
+}
+
+func (c *authCache) runtimeBehavior() behavior.Policy {
+	if c.behavior != nil {
+		return c.behavior
+	}
+	return legacyPolicy()
+}
+func (c *Client) schemeScore(s string) int {
+	return slices.Index(c.behavior().Strings("http.auth_scheme_order"), s) + 1
 }

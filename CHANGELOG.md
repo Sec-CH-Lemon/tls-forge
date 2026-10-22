@@ -11,6 +11,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- **Profile-owned network policy (schema 3):** browser-specific TLS, H1/H2,
+  QUIC/H3, header, proxy, cookie, redirect and session settings are explicit JSON
+  data. Profile names and descriptive User-Agent strings no longer select policy
+  for schema 3. Strict key/type/range/capability validation rejects unsupported
+  settings before origin traffic. Legacy schemas are materialized on Save;
+  existing capture bytes/provenance are preserved. The rebuilt local engine uses
+  the policy-aware four-fork workspace; published dependency pins are unchanged.
+  See `docs/profile-behavior.md`. Generic protocol/crypto mechanisms and host TCP
+  remain engine/platform responsibilities, and missing-API scenarios remain open.
+
 - Experimental captured-Chrome HTTP/3 now offers authenticated QUIC v1 version
   information with a fresh reserved version. It rejects malformed peer version
   information and a chosen version inconsistent with the packet version before

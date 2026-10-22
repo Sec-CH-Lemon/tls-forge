@@ -2,6 +2,7 @@ package profile
 
 import (
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"slices"
 	"strings"
 
@@ -87,6 +88,12 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 		UserAgent:   c.UserAgent(),
 		ClientHello: append([]byte(nil), c.RawClientHello...),
 	}
+	// Capturing TCP does not measure the additional policies. Materialize the
+	// compatibility template explicitly; future edits belong to this profile.
+	p.Behavior = behavior.Generic()
+	if p.chromium() {
+		p.Behavior = behavior.Legacy()
+	}
 	if c.HTTP2 == nil {
 		return nil, fmt.Errorf("profile: capture has no HTTP/2 data; a reusable browser profile needs pseudo headers")
 	}
@@ -130,10 +137,15 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 		p.ClientHints = clientHintsSent(c.ClientHints)
 	}
 	p.PerConnection = perConnectionOf(p)
+	p.Behavior = behavior.Generic()
+	if p.chromium() {
+		p.Behavior = behavior.Legacy()
+	}
 	if c.Navigator != nil && len(c.Navigator.Brands) > 0 {
 		p.PerConnection = &PerConnection{}
 		if slices.ContainsFunc(c.Navigator.Brands, func(b capture.Brand) bool { return b.Brand == "Chromium" }) {
 			p.PerConnection = chromiumPerConnection()
+			p.Behavior = behavior.Legacy()
 		}
 	}
 	// Measured, it is what was measured.
@@ -144,6 +156,11 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 	if drawn != nil {
 		p.PerConnection = drawn.perConnection()
 	}
+	p.Behavior["http.negotiate_auth"] = []byte("false")
+	if strings.Contains(p.UserAgent, "Windows") {
+		p.Behavior["http.negotiate_auth"] = []byte("true")
+	}
+	delete(p.Behavior, "tls.ech_payload_lengths")
 	return p, nil
 }
 

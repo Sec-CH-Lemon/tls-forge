@@ -3,6 +3,7 @@ package tlsforge
 import (
 	"context"
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"net"
 	"net/url"
 	"slices"
@@ -25,7 +26,7 @@ import (
 // maxRedirects is Fetch/XHR's number of followed redirects,excluding the
 // initial request. Chromium navigation/form loader stops one request earlier.
 // Preserve both separately measured boundaries rather than generalize one.
-const maxRedirects = 20
+var maxRedirects = legacyPolicy().Int("http.redirects_fetch")
 
 // chain is what a request carries from hop to hop of its redirects, kept in
 // its context for followRedirect.
@@ -183,7 +184,7 @@ func (ch *chain) restart(u *url.URL, header fhttp.Header, sent hop) bool {
 	if ch.restarted || sent.method != fhttp.MethodGet {
 		return false
 	}
-	critical := askedHints(header.Values("Critical-CH"))
+	critical := askedHints(header.Values("Critical-CH"), ch.client.behavior())
 	var missing []string
 	for _, hint := range ch.client.hintsOf(ch.browser, sent) {
 		if slices.Contains(critical, hint.Name) && !sent.hints.Has(hint.Name) && !sent.alps.Has(hint.Name) {
@@ -292,9 +293,9 @@ func (ch *chain) challenged(res *fhttp.Response) (string, bool, error) {
 		}
 		from = "realm"
 	}
-	if ch.restarts++; ch.restarts == maxRestarts {
+	if ch.restarts++; ch.restarts == ch.client.behavior().Int("http.max_auth_restarts") {
 		return "", false, fmt.Errorf("tlsforge: %s %s asked for authentication again after %d answers, and Chrome answers it no more",
-			res.Request.Method, u.Redacted(), maxRestarts-1)
+			res.Request.Method, u.Redacted(), ch.client.behavior().Int("http.max_auth_restarts")-1)
 	}
 	cache.keep(at, best, cred, requestPath(u))
 	ch.sent = &sentAuth{challenge: best, credentials: cred, from: from}
@@ -386,7 +387,11 @@ func relativeLocation(location, scheme string) bool {
 // transport read it as url.Parse does. The error says why Chrome would not
 // follow it.
 func locate(req, previous *fhttp.Request) error {
-	target, err := requestURL(req.Response.Header.Get("Location"), shownURL(previous))
+	pol := legacyPolicy()
+	if ch, ok := req.Context().Value(chainKey{}).(*chain); ok && ch.client != nil {
+		pol = ch.client.behavior()
+	}
+	target, err := requestURL(req.Response.Header.Get("Location"), shownURL(previous), pol)
 	if err != nil {
 		return fmt.Errorf("the Location %w", err)
 	}
@@ -467,7 +472,7 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 		deleteHeader(req.Header, "origin")
 	}
 	// Only Chromium sends client hints, so no other browser's order changes.
-	req.Header[fhttp.HeaderOrderKey] = hintsAfterDest(req.Header[fhttp.HeaderOrderKey])
+	req.Header[fhttp.HeaderOrderKey] = hintsAfterDest(req.Header[fhttp.HeaderOrderKey], ch.client.behavior())
 	if ch.ours {
 		// The Authorization tls-forge gave the request the transport copied
 		// this one from: each hop has its own, or none.
@@ -476,7 +481,7 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 	hop := newLayouts(req.Header, nil)
 	if first := layoutsOn(req); first != nil {
 		hop = first.redirected(req)
-		hop.http1[fhttp.HeaderOrderKey] = hintsAfterDest(hop.http1[fhttp.HeaderOrderKey])
+		hop.http1[fhttp.HeaderOrderKey] = hintsAfterDest(hop.http1[fhttp.HeaderOrderKey], ch.client.behavior())
 	}
 	// What goes only to a potentially trustworthy URL is the chain's: the
 	// hop is written with it or without, as its own URL is.
@@ -489,21 +494,22 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 }
 
 // clientHints are the hints Chrome sends of its own, which a redirect moves.
-var clientHints = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"}
+var clientHints = legacyPolicy().Strings("headers.default_client_hints")
 
 // hintsAfterDest is an order of header names with the client hints moved to
 // just after Sec-Fetch-Dest, where Chrome sends them after a redirect, and as
 // it was when it has no Sec-Fetch-Dest.
-func hintsAfterDest(order []string) []string {
+func hintsAfterDest(order []string, policies ...behavior.Policy) []string {
+	pol := policyArgument(policies)
 	at := -1
 	var rest, hints []string
 	for _, name := range order {
-		if isClientHint(name) {
+		if isClientHint(name, pol) {
 			hints = append(hints, name)
 			continue
 		}
 		rest = append(rest, name)
-		if strings.EqualFold(name, "sec-fetch-dest") {
+		if strings.EqualFold(name, pol.Text("headers.redirected_hints_after")) {
 			at = len(rest)
 		}
 	}
@@ -513,8 +519,8 @@ func hintsAfterDest(order []string) []string {
 	return slices.Concat(rest[:at], hints, rest[at:])
 }
 
-func isClientHint(name string) bool {
-	return slices.ContainsFunc(clientHints, func(hint string) bool { return strings.EqualFold(name, hint) })
+func isClientHint(name string, policies ...behavior.Policy) bool {
+	return slices.ContainsFunc(policyArgument(policies).Strings("headers.default_client_hints"), func(hint string) bool { return strings.EqualFold(name, hint) })
 }
 
 // followInContext is a redirect of a request in a browser context: its next
@@ -555,7 +561,7 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 				shownURL(previous).Redacted(), shown.Redacted(), last.serialized(r), err)
 		}
 	}
-	h := hop{to: originOf(req.URL), method: req.Method, redirected: true, script: last.script}
+	h := hop{behavior: r.behavior, to: originOf(req.URL), method: req.Method, redirected: true, script: last.script}
 	if err := r.mayFollow(shown, h.to, last); err != nil {
 		return hop{}, err
 	}

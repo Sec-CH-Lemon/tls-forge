@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"io"
 	"net"
 	"net/url"
 	"sync"
-	"time"
 
 	fhttp "github.com/igor-lemon/fhttp"
 	"github.com/igor-lemon/fhttp/http2"
@@ -27,8 +27,8 @@ type proxyH2Pool struct {
 	cache proxyTLSCache
 }
 
-func newProxyH2Pool() *proxyH2Pool {
-	return &proxyH2Pool{dial: make(chan struct{}, 1), cache: newProxyTLSCache()}
+func newProxyH2Pool(policies ...behavior.Policy) *proxyH2Pool {
+	return &proxyH2Pool{dial: make(chan struct{}, 1), cache: newProxyTLSCache(policies...)}
 }
 
 type proxyH2Conn struct {
@@ -74,13 +74,13 @@ func (d *connectDialer) adoptProxyH2(conn net.Conn) (*proxyH2Conn, error) {
 		_ = conn.Close()
 		return nil, err
 	}
-	transport := &http2.Transport{AllowHTTP: true, ChromeBehavior: true,
+	transport := &http2.Transport{AllowHTTP: true, Behavior: d.identity.profile.RuntimeBehavior().Clone(),
 		Settings: prof.GetSettings(), SettingsOrder: prof.GetSettingsOrder(), ConnectionFlow: prof.GetConnectionFlow(),
 		HeaderPriority: prof.GetHeaderPriority(), PseudoHeaderOrder: prof.GetPseudoHeaderOrder(), Priorities: prof.GetPriorities(),
 		DisableCompression: true, WindowUpdateDelay: prof.GetWindowUpdateDelay(), HeaderRepresentation: prof.GetHeaderRepresentation(),
 		MaxEncoderHeaderTableSize: prof.GetMaxEncoderHeaderTableSize(), MaxHeaderFramePayload: prof.GetMaxHeaderFramePayload(),
 		MaxDataFramePayload: prof.GetMaxDataFramePayload(), StrictMaxConcurrentStreams: prof.GetStrictMaxConcurrentStreams(),
-		InitialStreamID: prof.GetStreamID(), IdleConnTimeout: 90 * time.Second, ConnPool: d.proxyPool}
+		InitialStreamID: prof.GetStreamID(), IdleConnTimeout: policyDuration(d.identity.profile.RuntimeBehavior(), "proxy.idle_timeout_ms"), ConnPool: d.proxyPool}
 	if enabled, known := transport.Settings[http2.SettingEnablePush]; !known || enabled != 0 {
 		transport.PushHandler = &http2.DefaultPushHandler{}
 	}
@@ -305,12 +305,12 @@ func (d *connectDialer) openProxyStream(ctx context.Context, p *proxyH2Conn, add
 	streamCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	// The proxy CONNECT has its own measured priority (weight 147), not
 	// the origin request's navigation/fetch priority on the inner channel.
-	streamCtx = http2.WithHeaderPriority(streamCtx, http2.PriorityParam{Exclusive: true, Weight: 146})
+	streamCtx = http2.WithHeaderPriority(streamCtx, priorityFrom(d.identity.profile.RuntimeBehavior(), "proxy.connect_priority"))
 	stop := context.AfterFunc(ctx, cancel)
 	reader, writer := io.Pipe()
 	ask := (&fhttp.Request{Method: "CONNECT", URL: &url.URL{Scheme: "https", Host: address}, Host: address, Header: d.header.Clone(), Body: reader, ContentLength: -1}).WithContext(streamCtx)
 	ask.Header.Del("Proxy-Connection")
-	ask.Header[fhttp.PHeaderOrderKey] = []string{":method", ":authority"}
+	ask.Header[fhttp.PHeaderOrderKey] = d.identity.profile.RuntimeBehavior().Strings("proxy.connect_pseudo_order")
 	answer, err := d.proxyRoundTrip(ask, p)
 	if !stop() && err == nil {
 		_ = answer.Body.Close()

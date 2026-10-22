@@ -5,7 +5,8 @@ stored as JSON so it can be committed and reviewed.
 
 ```json
 {
-  "schema": 2,
+  "schema": 3,
+  "behavior": { "tls.handshake_retries": 1, "http.body_read_bytes": 8192 },
   "name": "chrome_151",
   "user_agent": "Mozilla/5.0 (Macintosh; …) Chrome/151.0.0.0 Safari/537.36",
   "client_hello": "FgMBBvgBAAb0AwPdnWafT…",
@@ -78,7 +79,7 @@ sent there when asked, `rtt`, `downlink` and the viewport being what one
 measurement gave, as Chrome estimates them anew. The names a profile may give
 are `profile.ClientHintOrder` but those three, in the order Chrome sends them.
 
-`schema` is the version of the format the profile was written in, 2 today. A
+`schema` is the version of the format the profile was written in, 3 today. A
 profile that names one is read strictly: a field the format does not have, at
 any depth, is an error naming it, so a misspelt `heders` is found when the
 profile is read rather than on the wire. Schema 1 is read as strictly, and has
@@ -240,3 +241,12 @@ the newest measured profile, and the old one stays available for pinning.
 
 The committed profiles are diffable JSON on purpose — an updated profile shows
 up in review as the fields that changed, not as one very long line.
+
+
+Schema 3 requires an explicit `behavior` object and makes profile identity
+metadata independent of behavior selection. The example above is abbreviated;
+start with a complete shipped profile when editing a browser identity. See
+[Profile behavior](profile-behavior.md) for the strict field reference, supported
+primitives, legacy migration and the difference between a data update and a new
+engine capability. TCP capture does not measure QUIC or all session policies;
+newly captured profiles state their inherited compatibility policy explicitly.

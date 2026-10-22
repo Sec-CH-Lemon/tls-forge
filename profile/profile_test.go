@@ -382,6 +382,11 @@ func TestLoadAndSave(t *testing.T) {
 	// and the profile saved is not touched.
 	want := *original
 	want.Schema = Schema
+	want.Behavior = original.RuntimeBehavior().Clone()
+	delete(want.Behavior, "tls.ech_payload_lengths")
+	if original.PerConnection == nil {
+		want.PerConnection = &PerConnection{ShufflesExtensions: original.ShufflesExtensions(), ECHPayloadLengths: original.echPayloadLengths()}
+	}
 	if !reflect.DeepEqual(loaded, &want) || original.Schema != 0 {
 		t.Errorf("round trip changed the profile:\n got %+v\nwant %+v", loaded, &want)
 	}
@@ -402,7 +407,7 @@ func TestAProfileIsReadAsItsSchemaSays(t *testing.T) {
 		{"a field spelt wrong", `{"schema":1,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
 		{"one spelt wrong inside another", `{"schema":1,"name":"x","base":"chrome_133","http2":{"setings":[]}}`,
 			`unknown field "setings"`},
-		{"a newer schema", `{"schema":3,"name":"x"}`, "schema 3 is newer than this tls-forge reads, 2"},
+		{"a newer schema", `{"schema":4,"name":"x"}`, "schema 4 is newer than this tls-forge reads, 3"},
 		{"schema 2 is as strict", `{"schema":2,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
 		{"client hints in schema 1", `{"schema":1,"name":"x","base":"chrome_133",` +
 			`"client_hints":[{"name":"sec-ch-ua-arch","value":"\"arm\""}]}`, "schema 1 has no client_hints"},

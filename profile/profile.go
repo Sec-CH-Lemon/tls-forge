@@ -17,10 +17,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"math"
+	"github.com/igor-lemon/utls/behavior"
 	rand "math/rand/v2"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
@@ -43,8 +44,9 @@ import (
 // from then on.
 //
 // Schema 2 added client_hints. A profile of schema 1 is read as strictly, and
-// has none: no tls-forge that wrote 1 knew of them.
-const Schema = 2
+// has none: no tls-forge that wrote 1 knew of them. Schema 3 adds explicit
+// behavior policy; its browser name and user agent are metadata only.
+const Schema = 3
 
 // ClientHintOrder is every client hint Chrome 155 sends when a server asks
 // for it with Accept-CH, in the order it sends them, as measured
@@ -53,23 +55,19 @@ const Schema = 2
 // user agent's, sec-ch-ua, sec-ch-ua-mobile and sec-ch-ua-platform, go with
 // every request, and are a profile's headers; a profile's ClientHints are the
 // values of the rest.
-var ClientHintOrder = []string{
-	"device-memory", "sec-ch-device-memory", "dpr", "sec-ch-dpr", "viewport-width", "sec-ch-viewport-width",
-	"sec-ch-viewport-height", "rtt", "downlink", "ect",
-	"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-full-version", "sec-ch-ua-arch", "sec-ch-ua-platform",
-	"sec-ch-ua-platform-version", "sec-ch-ua-model", "sec-ch-ua-bitness", "sec-ch-ua-wow64",
-	"sec-ch-ua-full-version-list", "sec-ch-ua-form-factors",
-	"sec-ch-prefers-color-scheme", "sec-ch-prefers-reduced-motion", "sec-ch-prefers-reduced-transparency",
-}
+var ClientHintOrder = behavior.Legacy().Strings("headers.client_hint_order")
 
 // defaultClientHints are the hints Chrome sends unasked.
-var defaultClientHints = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"}
+var defaultClientHints = behavior.Legacy().Strings("headers.default_client_hints")
 
 // Profile is a complete browser identity.
 type Profile struct {
 	// Schema is the version of the format the profile was written in: see
 	// the constant. Save writes the current one.
 	Schema int `json:"schema,omitempty"`
+
+	// Behavior contains explicit versioned network policies, independent of Name and UserAgent.
+	Behavior behavior.Policy `json:"behavior"`
 
 	Name      string `json:"name"`
 	UserAgent string `json:"user_agent,omitempty"`
@@ -119,6 +117,7 @@ func (p *Profile) Clone() *Profile {
 		return nil
 	}
 	out := *p
+	out.Behavior = p.Behavior.Clone()
 	out.ClientHello = append([]byte(nil), p.ClientHello...)
 	if p.PerConnection != nil {
 		perConnection := *p.PerConnection
@@ -178,7 +177,7 @@ func (p *Profile) ShufflesExtensions() bool {
 	if p.PerConnection != nil {
 		return p.PerConnection.ShufflesExtensions
 	}
-	return p.chromium()
+	return p.Schema < 3 && p.chromium()
 }
 
 // echPayloadLengths are what the GREASE ECH payload is drawn from, as
@@ -188,7 +187,7 @@ func (p *Profile) echPayloadLengths() []uint16 {
 	if p.PerConnection != nil {
 		return p.PerConnection.ECHPayloadLengths
 	}
-	if p.chromium() {
+	if p.Schema < 3 && p.chromium() {
 		return chromeECHPayloadLengths
 	}
 	return nil
@@ -198,7 +197,7 @@ func (p *Profile) echPayloadLengths() []uint16 {
 // Brave, Opera and the like, on any platform but iOS, where every browser is
 // Safari underneath. What tls-forge has measured of how a browser sends each
 // kind of request, it measured on Chrome, and applies to these alone.
-func (p *Profile) Chromium() bool { return p.chromium() }
+func (p *Profile) Chromium() bool { return p.RuntimeBehavior().Flag("headers.browser_context") }
 
 // chromium reports a profile of a Chromium browser with Chromium's own TLS
 // stack, BoringSSL: by its name, its base or, for a custom captured profile,
@@ -270,7 +269,13 @@ type Priority struct {
 // of an inner hello, 32 times 4 to 7 (ssl_setup_ech_grease). Chrome 155 was
 // measured sending all four, as often as one another, over 301 connections:
 // testdata/chrome155-ech.json.
-var chromeECHPayloadLengths = []uint16{128, 160, 192, 224}
+var chromeECHPayloadLengths = func() []uint16 {
+	var out []uint16
+	for _, n := range behavior.Legacy().Numbers("tls.ech_payload_lengths") {
+		out = append(out, uint16(n))
+	}
+	return out
+}()
 
 // ErrNoHandshake reports a profile that names neither a captured ClientHello nor
 // a base profile, and so cannot produce a handshake.
@@ -312,7 +317,7 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 					return tls.ClientHelloSpec{}, fmt.Errorf(
 						"profile %q: unsupported extension %d", p.Name, extension.Id)
 				}
-				payload, err := processTrustAnchors.payload(extension.Data)
+				payload, err := processTrustAnchors.payload(extension.Data, p.RuntimeBehavior().Text("tls.trust_anchor_order"))
 				if err != nil {
 					return tls.ClientHelloSpec{}, fmt.Errorf(
 						"profile %q: malformed trust_anchors: %w", p.Name, err)
@@ -320,7 +325,10 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 				extension.Data = payload
 			}
 		}
-		return settingsForALPN(withResumption(*spec)), nil
+		if p.RuntimeBehavior().Flag("tls.resumption") {
+			*spec = withResumption(*spec)
+		}
+		return settingsForALPN(*spec), nil
 	}
 	if p.Base != "" {
 		base, ok := profiles.MappedTLSClients[p.Base]
@@ -414,6 +422,9 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 // (shuffleExtensions), and the capture's when it is false. A bare base is the
 // transport's own, and so is drawing its order (BareBase).
 func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error) {
+	if err := p.validateBehavior(); err != nil {
+		return profiles.ClientProfile{}, err
+	}
 	if err := p.validateHTTP1(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
@@ -424,7 +435,7 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 		if !ok {
 			return profiles.ClientProfile{}, fmt.Errorf("profile %q: unknown base %q", p.Name, p.Base)
 		}
-		return p.chromeTransport(base), nil
+		return p.applyTransportBehavior(base), nil
 	}
 
 	// Built once here so a broken profile is reported when the client is
@@ -472,100 +483,59 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 		streamID = 1
 	}
 
-	// TCP captures contain no HTTP/3 settings. Apply the separately measured
-	// Chromium H3 policy rather than silently constructing an empty H3 profile.
+	pol := p.RuntimeBehavior()
 	var h3Settings map[uint64]uint64
 	var h3Order []uint64
-	var h3Priority uint32
-	var h3Pseudo []string
-	if p.chromium() {
-		// The current QPACK backend is stateless. Advertising Chrome's
-		// 65536/100 would invite responses this client cannot decode.
-		h3Settings = map[uint64]uint64{1: 0, 7: 0}
-		h3Order = []uint64{1, 6, 7, 0x33}
-		h3Priority = 0xf0700 // PRIORITY_UPDATE for requests (RFC 9218).
-		h3Pseudo = []string{":method", ":authority", ":scheme", ":path"}
+	if pol.Has("h3.settings") {
+		h3Settings = map[uint64]uint64{}
+		for _, s := range pol.Settings("h3.settings") {
+			h3Settings[s.ID] = s.Value
+			h3Order = append(h3Order, s.ID)
+		}
 	}
-
-	return p.chromeTransport(profiles.NewClientProfile(
+	return p.applyTransportBehavior(profiles.NewClientProfile(
 		id, settings, order, p.HTTP2.PseudoHeaderOrder, p.HTTP2.ConnectionFlow,
-		priorities, headerPriority, streamID,
-		false, h3Settings, h3Order, h3Priority, h3Pseudo, p.chromium(),
-	)), nil
+		priorities, headerPriority, streamID, false, h3Settings, h3Order, uint32(pol.Uint("h3.priority_frame_type")),
+		pol.Strings("h3.pseudo_header_order"), pol.Flag("h3.grease_frames"))), nil
 }
 
-// chromeTransport is built, when p is a Chromium browser's, writing headers
-// into HPACK as Chromium's encoder does, against a table as large as a server
-// allows, in frames and TLS records as large as Chromium's, writing an
-// HTTP/1.1 request as Chromium writes one, telling a server of the window its
-// reader frees as Chromium's network stack does, waiting for a stream on a
-// connection it holds once a server's MAX_CONCURRENT_STREAMS are in use, as
-// Chromium waits, and sending its request before a TLS 1.2 server's Finished
-// where BoringSSL's False Start would; as the transport does otherwise.
-func (p *Profile) chromeTransport(built profiles.ClientProfile) profiles.ClientProfile {
-	if !p.chromium() {
+func (p *Profile) applyTransportBehavior(built profiles.ClientProfile) profiles.ClientProfile {
+	pol := p.RuntimeBehavior()
+	if pol == nil {
 		return built
 	}
-	return built.WithHeaderRepresentation(chromeHeaderRepresentation).
-		WithChromeBehavior(true).
-		WithMaxEncoderHeaderTableSize(chromeEncoderTableSize).
-		WithMaxHeaderFramePayload(chromeHeaderFramePayload).
-		WithMaxDataFramePayload(chromeDataFramePayload).
-		WithDynamicRecordSizingDisabled(true).
-		WithMaxMergedHeadAndBody(chromeMergedHeadAndBody).
-		WithWindowUpdateDelay(chromeWindowUpdateDelay).
-		WithStrictMaxConcurrentStreams(true).
-		WithFalseStart(true)
-}
-
-// chromeMergedHeadAndBody is how many bytes an HTTP/1.1 request's head and a
-// body held in memory may be together for Chrome to write them at once, its
-// head going at once whatever its size: HttpStreamParser's
-// kMaxMergedHeaderAndBodySize (measured on Chrome 155,
-// testdata/chrome155-records.json).
-const chromeMergedHeadAndBody = 1400
-
-// chromeDataFramePayload is the most a DATA frame of Chrome's request bodies
-// carries: 16,375 bytes, which with the frame's header fill a TLS record of
-// 16,384, each frame a record of its own; Chrome's records are as large as
-// its writes from a connection's first byte (measured on Chrome 155,
-// testdata/chrome155-hpack.json).
-const chromeDataFramePayload = 16375
-
-// chromeHeaderFramePayload is the most a frame of Chrome's header blocks
-// carries: 16,374 bytes of payload, a HEADERS frame's priority included, 16,383
-// with its frame header (quiche's kHttp2MaxControlFrameSendSize), whatever the
-// server's SETTINGS_MAX_FRAME_SIZE (measured on Chrome 155,
-// testdata/chrome155-hpack.json).
-const chromeHeaderFramePayload = 16374
-
-// chromeWindowUpdateDelay is how long Chrome waits to tell a server of a
-// little of a window its reader freed: what is untold goes once it is more
-// than half of the window, 3 MiB of a stream's 6 MiB and 7.5 MiB of the
-// connection's 15 MiB, or at the first byte freed more than five seconds
-// after it last told the server, however little; whatever window the server
-// advertised (Chromium's kDefaultTimeToBufferSmallWindowUpdates; measured on
-// Chrome 155, testdata/chrome155-flow.json).
-const chromeWindowUpdateDelay = 5 * time.Second
-
-// chromeEncoderTableSize is the largest HPACK table Chrome writes headers
-// against: whatever a server's SETTINGS_HEADER_TABLE_SIZE allows, measured on
-// Chrome 155 up to 2147483647 (testdata/chrome155-hpack.json), said in a
-// Dynamic Table Size Update at the start of the next header block.
-const chromeEncoderTableSize = math.MaxUint32
-
-// chromeHeaderRepresentation is how Chrome writes a header field into HPACK
-// where it is not found whole in a table, as measured on Chrome 155
-// (testdata/chrome155-http2-preamble.bin, testdata/chrome155-hpack.json) and as
-// Chromium's encoder has it: a pseudo-header but :authority without indexing,
-// named by the first static entry of its name (:path /a by 4, :method PUT by
-// 2); every other field with incremental indexing, even one larger than the
-// table, which then empties it.
-func chromeHeaderRepresentation(f hpack.HeaderField) hpack.Representation {
-	if strings.HasPrefix(f.Name, ":") && f.Name != ":authority" {
-		return hpack.Representation{WithoutIndexing: true, FirstStaticName: true}
+	if pol.Has("h3.settings") {
+		settings := map[uint64]uint64{}
+		var order []uint64
+		for _, s := range pol.Settings("h3.settings") {
+			settings[s.ID] = s.Value
+			order = append(order, s.ID)
+		}
+		built = built.WithHTTP3Parameters(settings, order, pol.Strings("h3.pseudo_header_order"), uint32(pol.Uint("h3.priority_frame_type")), pol.Flag("h3.grease_frames"))
 	}
-	return hpack.Representation{IndexTooLarge: true}
+	built = built.WithBehavior(pol).WithHeaderRepresentation(headerRepresentation(pol)).
+		WithMaxEncoderHeaderTableSize(uint32(pol.Uint("h2.encoder_table_bytes"))).
+		WithMaxHeaderFramePayload(uint32(pol.Uint("h2.header_frame_payload"))).
+		WithMaxDataFramePayload(uint32(pol.Uint("h2.data_frame_payload"))).
+		WithDynamicRecordSizingDisabled(pol.Flag("tls.full_size_records")).
+		WithMaxMergedHeadAndBody(pol.Int("h1.merged_head_body_bytes")).
+		WithWindowUpdateDelay(time.Duration(pol.Uint("h2.window_update_delay_ms")) * time.Millisecond).
+		WithStrictMaxConcurrentStreams(pol.Flag("h2.strict_max_streams")).WithFalseStart(pol.Flag("tls.false_start"))
+	return built
+}
+func headerRepresentation(pol behavior.Policy) func(hpack.HeaderField) hpack.Representation {
+	if !pol.Has("h2.hpack_unindexed_prefixes") {
+		return nil
+	}
+	prefixes, exceptions := pol.Strings("h2.hpack_unindexed_prefixes"), pol.Strings("h2.hpack_indexed_exceptions")
+	return func(f hpack.HeaderField) hpack.Representation {
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(f.Name, prefix) && !slices.Contains(exceptions, f.Name) {
+				return hpack.Representation{WithoutIndexing: true, FirstStaticName: pol.Flag("h2.hpack_first_static_name")}
+			}
+		}
+		return hpack.Representation{IndexTooLarge: pol.Flag("h2.hpack_index_oversized")}
+	}
 }
 
 func (p *Profile) validatePseudoHeaderOrder() error {
@@ -661,7 +631,7 @@ func Load(data []byte) (*Profile, error) {
 		if err := json.Unmarshal(data, &p); err != nil {
 			return nil, fmt.Errorf("profile: %w", err)
 		}
-	case *written.Schema == 1 || *written.Schema == Schema:
+	case *written.Schema >= 1 && *written.Schema <= Schema:
 		decoder := json.NewDecoder(bytes.NewReader(data))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&p); err != nil {
@@ -675,6 +645,9 @@ func Load(data []byte) (*Profile, error) {
 			*written.Schema, Schema)
 	default:
 		return nil, fmt.Errorf("profile: schema %d is not one; schemas begin at 1", *written.Schema)
+	}
+	if err := p.validateBehavior(); err != nil {
+		return nil, err
 	}
 	if p.Name == "" {
 		return nil, fmt.Errorf("profile: name is required")
@@ -708,9 +681,9 @@ func (p *Profile) validateClientHints() error {
 	seen := map[string]bool{}
 	for _, hint := range p.ClientHints {
 		switch {
-		case !slices.Contains(ClientHintOrder, hint.Name) || slices.Contains(defaultClientHints, hint.Name):
+		case !slices.Contains(p.HintOrder(), hint.Name) || slices.Contains(p.RuntimeBehavior().Strings("headers.default_client_hints"), hint.Name):
 			return fmt.Errorf("profile %q: %q is no client hint a server asks for: client_hints are %s, "+
-				"in lower case", p.Name, hint.Name, strings.Join(AskedClientHints(), ", "))
+				"in lower case", p.Name, hint.Name, strings.Join(p.AskedHints(), ", "))
 		case seen[hint.Name]:
 			return fmt.Errorf("profile %q: client hint %s is said twice", p.Name, hint.Name)
 		case hint.Value == "" || !httpguts.ValidHeaderFieldValue(hint.Value):
@@ -725,14 +698,33 @@ func (p *Profile) validateClientHints() error {
 // AskedClientHints are the client hints Chrome sends only to a server that
 // asks for them, in the order it sends them: those a profile's client_hints
 // may say.
-func AskedClientHints() []string {
-	var out []string
-	for _, name := range ClientHintOrder {
-		if !slices.Contains(defaultClientHints, name) {
-			out = append(out, name)
+func AskedClientHints() []string { return slices.Clone(defaultHints().asked) }
+
+// DefaultHintOrder is the process-default capture helper's data snapshot.
+// Active clients always use their own Profile.HintOrder, not this cache.
+func DefaultHintOrder() []string    { return slices.Clone(defaultHints().order) }
+func DefaultUnaskedHints() []string { return slices.Clone(defaultHints().unasked) }
+
+type hintDefaults struct{ order, unasked, asked []string }
+
+var hintDefaultsOnce sync.Once
+var hintDefaultsValue hintDefaults
+
+func defaultHints() *hintDefaults {
+	hintDefaultsOnce.Do(func() {
+		pol := behavior.Legacy()
+		if p, err := Get("chrome"); err == nil {
+			pol = p.RuntimeBehavior()
 		}
-	}
-	return out
+		hintDefaultsValue.order = pol.Strings("headers.client_hint_order")
+		hintDefaultsValue.unasked = pol.Strings("headers.default_client_hints")
+		for _, name := range hintDefaultsValue.order {
+			if !slices.Contains(hintDefaultsValue.unasked, name) {
+				hintDefaultsValue.asked = append(hintDefaultsValue.asked, name)
+			}
+		}
+	})
+	return &hintDefaultsValue
 }
 
 // Save writes a profile as indented JSON, the form meant to be committed and
@@ -741,7 +733,18 @@ func AskedClientHints() []string {
 // written in the current schema, whichever it was read in.
 func (p *Profile) Save() ([]byte, error) {
 	current := *p
+	if current.PerConnection == nil {
+		current.PerConnection = &PerConnection{ShufflesExtensions: p.ShufflesExtensions(), ECHPayloadLengths: slices.Clone(p.echPayloadLengths())}
+	}
+	current.Behavior = p.RuntimeBehavior().Clone()
+	delete(current.Behavior, "tls.ech_payload_lengths")
+	if current.Behavior == nil {
+		current.Behavior = behavior.Policy{}
+	}
 	current.Schema = Schema
+	if err := current.validateBehavior(); err != nil {
+		return nil, err
+	}
 	return encodeJSON(&current)
 }
 

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"hash"
 	"strings"
 )
@@ -173,8 +174,9 @@ func quoted(text string) string {
 
 // newCnonce is a client nonce as Chromium draws one: eight random bytes in
 // lower-case hexadecimal, 16 digits.
-func newCnonce() string {
-	b := make([]byte, 8)
+func newCnonce() string { return newPolicyCnonce(legacyPolicy()) }
+func newPolicyCnonce(pol behavior.Policy) string {
+	b := make([]byte, pol.Int("http.digest_cnonce_bytes"))
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }

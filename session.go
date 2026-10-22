@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"github.com/igor-lemon/utls/behavior"
 	"net"
 	"net/url"
 	"strings"
@@ -27,10 +28,11 @@ type session struct {
 
 // newSession is a session keeping cookies in jar, nil for none, warmed with
 // cookies.
-func newSession(jar *keptJar, cookies []Cookie) *session {
+func newSession(jar *keptJar, cookies []Cookie, policies ...behavior.Policy) *session {
+	pol := policyArgument(policies)
 	return &session{jar: jar, warm: &warmSession{cookies: cookies, seeded: map[warmCookieKey]struct{}{}},
-		hints: newHintStore(), preflights: newPreflightCache(), auth: &authCache{draw: newCnonce},
-		cache: &responseCache{entries: map[string][]*cachedResponse{}}}
+		hints: newHintStore(pol), preflights: newPreflightCache(), auth: &authCache{draw: func() string { return newPolicyCnonce(pol) }, behavior: pol},
+		cache: &responseCache{behavior: pol, entries: map[string][]*cachedResponse{}}}
 }
 
 // warmSession is a session a client was handed, with which of its cookies have

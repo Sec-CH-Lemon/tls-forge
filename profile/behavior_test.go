@@ -1,0 +1,106 @@
+package profile
+
+import (
+	"encoding/json"
+	"reflect"
+	"strings"
+	"testing"
+)
+
+func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
+	old := &Profile{Name: "chrome_custom", Base: "chrome_133"}
+	saved, err := old.Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := Load(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.Schema != 3 || migrated.Behavior == nil || migrated.PerConnection == nil {
+		t.Fatal("migration did not materialize policy")
+	}
+	before := migrated.RuntimeBehavior().Clone()
+	migrated.Name = "unrelated_200"
+	migrated.Base = "firefox_148"
+	migrated.UserAgent = "Metadata only"
+	if !reflect.DeepEqual(before, migrated.RuntimeBehavior()) || !migrated.ShufflesExtensions() {
+		t.Fatal("identity changed explicit policy")
+	}
+	clone := migrated.Clone()
+	clone.Behavior["tls.handshake_retries"] = json.RawMessage("0")
+	if migrated.Behavior.Int("tls.handshake_retries") != 1 {
+		t.Fatal("cloning aliases behavior")
+	}
+	raw, err := clone.Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := Load(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Behavior.Int("tls.handshake_retries") != 0 {
+		t.Fatal("profile-only edit lost in round trip")
+	}
+	fresh := &Profile{Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
+	if fresh.Chromium() || fresh.ShufflesExtensions() {
+		t.Fatal("schema 3 inferred behavior from chrome name")
+	}
+}
+
+func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
+	for _, tc := range []struct{ body, want string }{
+		{``, "requires an explicit behavior"},
+		{`,"behavior":null`, "behavior must be an object"},
+		{`,"behavior":{"tls.handshake_retires":1}`, "unsupported behavior field"},
+		{`,"behavior":{"tls.handshake_retries":-1}`, "cannot unmarshal"},
+		{`,"behavior":{"tls.handshake_retries":"1"}`, "cannot unmarshal"},
+		{`,"behavior":{"tls.handshake_retries":1,"tls.handshake_retries":0}`, "duplicate behavior field"},
+		{`,"behavior":{"h3.settings":[{"id":1,"value":65536}]}`, "dynamic QPACK API is unavailable"},
+		{`,"behavior":{"h3.settings":[{"id":7,"value":100}]}`, "dynamic QPACK API is unavailable"},
+		{`,"behavior":{"h3.settings":[{"id":1,"value":0},{"id":1,"value":0}]}`, "invalid/duplicate"},
+		{`,"behavior":{"h3.settings":[{"id":1,"vaule":0}]}`, "unknown field"},
+		{`,"behavior":{"h3.origin":true}`, "unsupported behavior field"},
+		{`,"behavior":{"quic.enabled":true,"quic.versions":[1798521807]}`, "cross-version"},
+		{`,"behavior":{"quic.preserve_extensions":[17613]}`, "ALPS bootstrap API is unavailable"},
+		{`,"behavior":{"headers.renderer_order":"new-unimplemented-hash"}`, "unsupported primitive"},
+		{`,"behavior":{"headers.renderer_initial_buckets":3}`, "power of two"},
+		{`,"behavior":{"quic.max_udp_payload":1473}`, "must be in"},
+		{`,"behavior":{"cache.entry_bytes":10,"cache.total_bytes":9}`, "exceeds total"},
+		{`,"behavior":{"h1.missing_status":1000}`, "three digits"},
+		{`,"behavior":{"http.content_codings":["unimplemented-codec"]}`, "API is unavailable"},
+	} {
+		raw := `{"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
+		_, err := Load([]byte(raw))
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", raw, err, tc.want)
+		}
+	}
+}
+
+func TestBehaviorControlsTransportWithoutFamilySwitch(t *testing.T) {
+	p, err := Get("chrome_155_macos")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Name = "neutral"
+	p.UserAgent = "NeutralMetadata"
+	p.Behavior["h2.header_frame_payload"] = []byte("1024")
+	p.Behavior["h2.data_frame_payload"] = []byte("257")
+	p.Behavior["h2.window_update_delay_ms"] = []byte("19")
+	p.Behavior["tls.false_start"] = []byte("false")
+	b, err := p.ClientProfile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.GetMaxHeaderFramePayload() != 1024 || b.GetMaxDataFramePayload() != 257 || b.GetWindowUpdateDelay().Milliseconds() != 19 || b.GetFalseStart() {
+		t.Fatal("profile overrides did not reach transport")
+	}
+	if b.GetChromeBehavior() {
+		t.Fatal("new profile still enables monolithic legacy switch")
+	}
+	if b.GetBehavior().Int("quic.initial_dcid_bytes") != 8 {
+		t.Fatal("QUIC policy lost")
+	}
+}

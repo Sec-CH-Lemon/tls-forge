@@ -103,7 +103,7 @@ func TestEveryBadFlagIsAUsageErrorThatTouchesNothing(t *testing.T) {
 		{[]string{"--request-kind", "fetch", "--initiator-url", "https://a.example/", "-H", "Cookie: a=1"},
 			"fetch() cannot set cookie: the browser sets it"},
 		{[]string{"--request-kind", "navigation", "--profile", "firefox_148"},
-			`browser context: is measured on Chrome; profile "firefox_148" is not of a Chromium browser`},
+			`browser context: profile "firefox_148" does not enable browser_context`},
 		{[]string{"--request-kind", "navigation", "--profile", "chrome_133"},
 			`browser context: needs the profile's headers, and profile "chrome_133" has none to send`},
 		{[]string{"--input", list}, "--input and URLs on the command line each give the list of URLs: give one"},

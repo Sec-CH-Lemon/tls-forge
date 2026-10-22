@@ -39,16 +39,32 @@ func scriptHeaderOrder(h hop) []string {
 	for i := range names {
 		names[i] = strings.ToLower(names[i])
 	}
-	slices.Sort(names) // Fetch's case-insensitive header list is name-ordered.
+	pol := h.runtimeBehavior()
+	if pol.Text("headers.renderer_order") != "insertion" {
+		slices.Sort(names)
+	}
 	if h.to.scheme == "" || trustworthy(h.to) {
-		for _, name := range rendererHintInsertionOrder {
-			if h.hints.Has(name) || slices.Contains(defaultRendererHints, name) {
+		for _, name := range pol.Strings("headers.renderer_hint_insertion_order") {
+			if h.hints.Has(name) || slices.Contains(pol.Strings("headers.renderer_default_hints"), name) {
 				names = append(names, name)
 			}
 		}
 	}
-	names = append(names, "user-agent")
-	table := make([]string, 8)
+	names = append(names, pol.Strings("headers.renderer_extra_fields")...)
+	if pol.Text("headers.renderer_order") == "sorted" {
+		slices.Sort(names)
+		return slices.Compact(names)
+	}
+	if pol.Text("headers.renderer_order") == "insertion" {
+		var out []string
+		for _, n := range names {
+			if !slices.Contains(out, n) {
+				out = append(out, n)
+			}
+		}
+		return out
+	}
+	table := make([]string, pol.Int("headers.renderer_initial_buckets"))
 	count := 0
 	insert := func(table []string, name string) bool {
 		index := int(chromehash.Hash(name)) & (len(table) - 1)
@@ -64,7 +80,7 @@ func scriptHeaderOrder(h hop) []string {
 	for _, name := range names {
 		if insert(table, name) {
 			count++
-			if count*2 >= len(table) {
+			if count*pol.Int("headers.renderer_load_denominator") >= len(table) {
 				old := table
 				table = make([]string, len(old)*2)
 				for _, name := range old {
@@ -87,15 +103,6 @@ func scriptHeaderOrder(h hop) []string {
 // Construction order, not the profile's observed bucket iteration order.
 // Blink FrameFetchContext::AddClientHintsIfNecessary inserts these fields
 // before the network service supplies Accept and Sec-Fetch-*.
-var rendererHintInsertionOrder = []string{
-	"device-memory", "sec-ch-device-memory", "rtt", "downlink", "ect",
-	"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-arch", "sec-ch-ua-platform",
-	"sec-ch-ua-platform-version", "sec-ch-ua-model", "sec-ch-ua-full-version",
-	"sec-ch-ua-full-version-list", "sec-ch-ua-bitness", "sec-ch-ua-wow64",
-	"sec-ch-ua-form-factors", "save-data", "sec-ch-prefers-reduced-transparency",
-	"sec-ch-prefers-reduced-motion", "sec-ch-prefers-color-scheme", "dpr",
-	"sec-ch-dpr", "viewport-width", "sec-ch-viewport-width", "viewport-height",
-	"sec-ch-viewport-height", "width", "sec-ch-width",
-}
+var rendererHintInsertionOrder = legacyPolicy().Strings("headers.renderer_hint_insertion_order")
 
-var defaultRendererHints = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"}
+var defaultRendererHints = legacyPolicy().Strings("headers.renderer_default_hints")

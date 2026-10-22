@@ -2,13 +2,13 @@ package tlsforge
 
 import (
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"net/url"
 	"slices"
 	"sync"
 
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	fhttp "github.com/igor-lemon/fhttp"
-	http2 "github.com/igor-lemon/fhttp/http2"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 
@@ -19,6 +19,7 @@ import (
 // built with. A client made Fresh has transports of its own, and shares its
 // session (session).
 type transports struct {
+	behavior behavior.Policy
 	// build is what transports are built with: the client's options, with own
 	// given before the caller's.
 	build func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
@@ -84,12 +85,12 @@ func (p *pool) wrap(trip fhttp.RoundTripper) fhttp.RoundTripper {
 // maxSites is how many top-level sites a client keeps the connections and
 // TLS sessions of: a request to one more drops the site used longest ago,
 // whose idle connections are closed, and whose sessions are forgotten.
-const maxSites = 64
+var maxSites = legacyPolicy().Int("http.max_site_pools")
 
 // newTransports builds transports with build.
 func newTransports(build func(*proxyH2Pool, ...tls_client.HttpClientOption) []tls_client.HttpClientOption,
-	proxy string) (*transports, error) {
-	t := &transports{build: build, proxy: proxy}
+	proxy string, policies ...behavior.Policy) (*transports, error) {
+	t := &transports{behavior: policyArgument(policies), build: build, proxy: proxy}
 	spare, err := t.newSite("")
 	if err != nil {
 		return nil, err
@@ -101,7 +102,7 @@ func newTransports(build func(*proxyH2Pool, ...tls_client.HttpClientOption) []tl
 // newSite builds the connections of the site named.
 func (t *transports) newSite(name string) (*site, error) {
 	var built [2]pool
-	proxyPool := newProxyH2Pool()
+	proxyPool := newProxyH2Pool(t.behavior)
 	for i := range built {
 		p := &built[i]
 		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(proxyPool, tls_client.WithTransportWrapper(p.wrap))...)
@@ -117,7 +118,7 @@ func (t *transports) newSite(name string) (*site, error) {
 
 // fresh are transports of their own, built as these were.
 func (t *transports) fresh() (*transports, error) {
-	return newTransports(t.build, t.proxy)
+	return newTransports(t.build, t.proxy, t.behavior)
 }
 
 // siteOf are the connections of the top-level site named: a request to a page
@@ -141,7 +142,7 @@ func (t *transports) siteOf(name string) (*site, error) {
 		}
 		s = built
 	}
-	if len(t.sites) == maxSites {
+	if len(t.sites) >= t.behavior.Int("http.max_site_pools") {
 		t.sites[0].closeIdle()
 		t.sites = slices.Delete(t.sites, 0, 1)
 	}
@@ -192,4 +193,4 @@ func (s *site) closeIdle() {
 // fetch(), an XHR and a CORS preflight: exclusive, on no stream, weight 220
 // (219 on the wire), as measured in testdata/chrome155-requests.json, where a
 // page's is 256. The transport puts the profile's on every other request.
-var scriptHeaderPriority = http2.PriorityParam{Exclusive: true, Weight: 219}
+var scriptHeaderPriority = priorityFrom(legacyPolicy(), "headers.script_priority")

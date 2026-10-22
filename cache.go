@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"io"
 	"net/http"
 	"slices"
@@ -24,6 +25,7 @@ import (
 // validated/completed before answering a full GET. Truncated bodies and Vary:*
 // never become cache entries.
 type responseCache struct {
+	behavior behavior.Policy
 	mu       sync.Mutex
 	entries  map[string][]*cachedResponse
 	bytes    int
@@ -45,10 +47,10 @@ type cachedResponse struct {
 	partialTotal int // A validated prefix, never a complete representation.
 }
 
-const (
-	cacheEntryBytes = 8 << 20
-	cacheTotalBytes = 64 << 20
-	cacheMaxEntries = 256
+var (
+	cacheEntryBytes = legacyPolicy().Int("cache.entry_bytes")
+	cacheTotalBytes = legacyPolicy().Int("cache.total_bytes")
+	cacheMaxEntries = legacyPolicy().Int("cache.entries")
 )
 
 func cacheValue(h fhttp.Header, name string) string {
@@ -215,7 +217,7 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 		if store {
 			done := release
 			release = func() {}
-			res.Body = &cacheBody{ReadCloser: res.Body, commit: func(body []byte) { c.store(key, req.Header, res, body) }, done: done}
+			res.Body = &cacheBody{limit: c.runtimeBehavior().Int("cache.entry_bytes"), ReadCloser: res.Body, commit: func(body []byte) { c.store(key, req.Header, res, body) }, done: done}
 		}
 	}
 	return res, nil
@@ -237,7 +239,7 @@ func (c *responseCache) enter(ctx context.Context, key string) (func(), error) {
 			}
 			continue
 		}
-		if len(c.inflight) >= cacheMaxEntries {
+		if len(c.inflight) >= c.runtimeBehavior().Int("cache.entries") {
 			c.mu.Unlock()
 			return func() {}, nil
 		}
@@ -281,7 +283,7 @@ func conditionalRequest(req *fhttp.Request, name, value string) *fhttp.Request {
 }
 
 func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Response, body []byte) {
-	if len(body) > cacheEntryBytes {
+	if len(body) > c.runtimeBehavior().Int("cache.entry_bytes") {
 		return
 	}
 	now := time.Now()
@@ -294,7 +296,7 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 		status: res.StatusCode, statusText: res.Status}
 	if res.StatusCode == 206 {
 		first, last, total, ok := contentRange(res.Header)
-		if !ok || first != 0 || last+1 != len(body) || total > cacheEntryBytes || last+1 >= total ||
+		if !ok || first != 0 || last+1 != len(body) || total > c.runtimeBehavior().Int("cache.entry_bytes") || last+1 >= total ||
 			strongETag(res.Header) == "" || cacheValue(res.Header, "Content-Encoding") != "" {
 			return
 		}
@@ -333,7 +335,7 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 				}
 			}
 		}
-		if c.bytes <= cacheTotalBytes && count <= cacheMaxEntries {
+		if c.bytes <= c.runtimeBehavior().Int("cache.total_bytes") && count <= c.runtimeBehavior().Int("cache.entries") {
 			break
 		}
 		c.entries[oldestKey] = slices.DeleteFunc(c.entries[oldestKey], func(v *cachedResponse) bool { return v == oldest })
@@ -345,6 +347,7 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 }
 
 type cacheBody struct {
+	limit int
 	io.ReadCloser
 	data   []byte
 	large  bool
@@ -355,7 +358,7 @@ type cacheBody struct {
 func (r *cacheBody) Read(p []byte) (int, error) {
 	n, err := r.ReadCloser.Read(p)
 	if !r.large {
-		if len(r.data)+n > cacheEntryBytes {
+		if len(r.data)+n > r.maxBytes() {
 			r.large, r.data = true, nil
 		} else {
 			r.data = append(r.data, p[:n]...)
@@ -377,4 +380,17 @@ func (r *cacheBody) Close() error {
 		r.done()
 	}
 	return err
+}
+
+func (c *responseCache) runtimeBehavior() behavior.Policy {
+	if c.behavior != nil {
+		return c.behavior
+	}
+	return legacyPolicy()
+}
+func (r *cacheBody) maxBytes() int {
+	if r.limit > 0 {
+		return r.limit
+	}
+	return legacyPolicy().Int("cache.entry_bytes")
 }

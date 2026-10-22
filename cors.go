@@ -75,9 +75,7 @@ func (r *browserRequest) needsPreflight(h hop) bool {
 
 // preflightOrder is the order of a preflight's headers in Chrome 155, as
 // measured: no client hints and no cookies.
-var preflightOrder = []string{"accept", "access-control-request-method", "access-control-request-headers", "origin",
-	"user-agent", "sec-fetch-mode", "sec-fetch-site", "sec-fetch-dest", "referer", "accept-encoding",
-	"accept-language", "priority"}
+var preflightOrder = legacyPolicy().Strings("headers.preflight_order")
 
 // preflightHeader is the headers of the preflight of a hop: its own
 // Sec-Fetch-Site, which goes by the URL it asks about alone, and the hop's
@@ -85,13 +83,13 @@ var preflightOrder = []string{"accept", "access-control-request-method", "access
 func (r *browserRequest) preflightHeader(h hop, base Header) Header {
 	h.site = relation(r.from, h.to)
 	values := r.values(h, base)
-	values["accept"] = acceptAnything
+	values["accept"] = r.runtimeBehavior().Text("headers.accept_preflight")
 	values["access-control-request-method"] = h.method
 	if unsafe := unsafeHeaderNames(h.script); len(unsafe) > 0 {
 		values["access-control-request-headers"] = strings.Join(unsafe, ",")
 	}
 	var out Header
-	for _, name := range preflightOrder {
+	for _, name := range r.runtimeBehavior().Strings("headers.preflight_order") {
 		if value, ok := values[name]; ok {
 			out = append(out, profile.Field{Name: name, Value: value})
 		}
@@ -129,9 +127,9 @@ type allowance struct {
 
 // defaultPreflightAge is how long a preflight's answer is kept when it says
 // nothing of it; maxPreflightAge the longest Chrome keeps one whatever it says.
-const (
-	defaultPreflightAge = 5 * time.Second
-	maxPreflightAge     = 2 * time.Hour
+var (
+	defaultPreflightAge = time.Duration(legacyPolicy().Uint("http.preflight_default_age_seconds")) * time.Second
+	maxPreflightAge     = time.Duration(legacyPolicy().Uint("http.preflight_max_age_seconds")) * time.Second
 )
 
 // checkPreflight is what a preflight's answer allows the request, or why it
@@ -164,9 +162,9 @@ func (r *browserRequest) checkPreflight(res *fhttp.Response, h hop) (allowance, 
 			return a, fmt.Errorf("Access-Control-Allow-Headers does not allow %s", name)
 		}
 	}
-	a.maxAge = defaultPreflightAge
+	a.maxAge = time.Duration(r.runtimeBehavior().Uint("http.preflight_default_age_seconds")) * time.Second
 	if seconds, err := strconv.ParseUint(res.Header.Get("Access-Control-Max-Age"), 10, 63); err == nil {
-		a.maxAge = time.Duration(min(seconds, uint64(maxPreflightAge/time.Second))) * time.Second
+		a.maxAge = time.Duration(min(seconds, r.runtimeBehavior().Uint("http.preflight_max_age_seconds"))) * time.Second
 	}
 	return a, nil
 }
@@ -294,7 +292,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	asked := fhttp.WithResponseCookies(context.WithValue(base, preflightContextKey{}, true), keepsNone)
 	ask := (&fhttp.Request{Method: fhttp.MethodOptions, URL: &u, Host: inner.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
 		ProtoMinor: 1}).WithContext(keepingConn(asked, &conn))
-	ask = c.browserLayouts(r.preflightHeader(h, c.headers), nil, preflightOrder, shown.Host).wear(ask)
+	ask = c.browserLayouts(r.preflightHeader(h, c.headers), nil, c.behavior().Strings("headers.preflight_order"), shown.Host).wear(ask)
 	withPort(ask)
 	if c.session.jar != nil {
 		c.session.jar.restrict(ask.URL, sendRule{none: true})

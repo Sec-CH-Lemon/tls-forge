@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"github.com/igor-lemon/utls/behavior"
 	"slices"
 	"strings"
 	"sync"
@@ -23,12 +24,13 @@ import (
 // hintStore is what each origin asked for, for a session: every client made
 // Fresh from one shares it.
 type hintStore struct {
-	mu    sync.Mutex
-	asked map[origin][]string
+	behavior behavior.Policy
+	mu       sync.Mutex
+	asked    map[origin][]string
 }
 
-func newHintStore() *hintStore {
-	return &hintStore{asked: map[origin][]string{}}
+func newHintStore(policies ...behavior.Policy) *hintStore {
+	return &hintStore{behavior: policyArgument(policies), asked: map[origin][]string{}}
 }
 
 // remember keeps what an answer from origin o asked for with Accept-CH, when
@@ -40,7 +42,7 @@ func (s *hintStore) remember(o origin, header fhttp.Header) (asked []string, sai
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if asked = askedHints(fields); len(asked) > 0 {
+	if asked = askedHints(fields, s.behavior); len(asked) > 0 {
 		s.asked[o] = asked
 		return asked, true
 	}
@@ -59,7 +61,7 @@ func (s *hintStore) of(o origin) []string {
 // name, in Chrome's order: each a token of a comma-separated list, its
 // parameters aside, in any case of ASCII, and one Chrome knows; the rest
 // passed over.
-func askedHints(fields []string) []string {
+func askedHints(fields []string, policies ...behavior.Policy) []string {
 	var named []string
 	for _, field := range fields {
 		for _, member := range strings.Split(field, ",") {
@@ -68,7 +70,7 @@ func askedHints(fields []string) []string {
 		}
 	}
 	var out []string
-	for _, name := range profile.ClientHintOrder {
+	for _, name := range policyArgument(policies).Strings("headers.client_hint_order") {
 		if slices.Contains(named, name) {
 			out = append(out, name)
 		}

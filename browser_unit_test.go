@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"context"
+	"github.com/igor-lemon/utls/behavior"
 	"net"
 	"net/http"
 	"net/url"
@@ -152,13 +153,14 @@ func TestABrowserContextNeedsAChromiumProfileWithHeaders(t *testing.T) {
 		t.Fatalf("profile.Get: %v", err)
 	}
 	firefox.Name, firefox.UserAgent = "firefox_148", "Mozilla/5.0 (Macintosh; rv:148.0) Gecko/20100101 Firefox/148.0"
+	firefox.Behavior = behavior.Generic() // This fixture changes policy explicitly; renaming is metadata only.
 	firefox.PerConnection = nil
 	firefox.Headers = []profile.Field{{Name: "user-agent", Value: firefox.UserAgent}}
 	for _, tc := range []struct {
 		option Option
 		says   string
 	}{
-		{WithProfileValue(firefox), `browser context: is measured on Chrome; profile "firefox_148" is not of a Chromium browser`},
+		{WithProfileValue(firefox), `browser context: profile "firefox_148" does not enable browser_context`},
 		{WithProfile("chrome_133"), `browser context: needs the profile's headers, and profile "chrome_133" has none to send`},
 	} {
 		client := newTestClient(t, tc.option, server.dialing())

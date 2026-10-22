@@ -3,6 +3,7 @@ package tlsforge
 import (
 	"errors"
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"math"
 	"net/netip"
 	"net/url"
@@ -42,8 +43,8 @@ func CanonicalURL(raw string) (string, error) {
 
 // requestURL is raw as a request for it is sent, relative to base when raw is
 // a Location, nil when it is not; or why no request is.
-func requestURL(raw string, base *url.URL) (*url.URL, error) {
-	p, err := sendableURL(raw, base)
+func requestURL(raw string, base *url.URL, policies ...behavior.Policy) (*url.URL, error) {
+	p, err := sendableURL(raw, base, policies...)
 	if err != nil {
 		return nil, err
 	}
@@ -52,10 +53,10 @@ func requestURL(raw string, base *url.URL) (*url.URL, error) {
 
 // sendableURL is raw parsed as Chrome parses it, relative to base, when a
 // request for it can be sent as Chrome sends one; or why it cannot.
-func sendableURL(raw string, base *url.URL) (*parsedURL, error) {
+func sendableURL(raw string, base *url.URL, policies ...behavior.Policy) (*parsedURL, error) {
 	p, err := parseURL(raw, base)
 	if err == nil {
-		err = p.refused()
+		err = p.refused(policies...)
 	}
 	if err == nil {
 		err = p.uncarried()
@@ -458,12 +459,12 @@ func hexDigit(c byte) byte {
 
 // refused is why Chrome sends nothing for a URL on its port, or nil: it keeps
 // away from the ports of services that are not the web's.
-func (p *parsedURL) refused() error {
+func (p *parsedURL) refused(policies ...behavior.Policy) error {
 	if p.port == "" {
 		return nil
 	}
 	n, _ := strconv.Atoi(p.port)
-	if _, blocked := slices.BinarySearch(blockedPorts, n); blocked {
+	if slices.Contains(policyArgument(policies).Numbers("url.blocked_ports"), uint64(n)) {
 		return fmt.Errorf("is on port %d, which Chrome sends nothing to (ERR_UNSAFE_PORT)", n)
 	}
 	return nil
@@ -472,10 +473,13 @@ func (p *parsedURL) refused() error {
 // blockedPorts are the ports Chrome sends nothing to, in order: Chromium's
 // kRestrictedPorts, the Fetch standard's bad ports but 4190 and 6679, which
 // Chrome 155 sends to (measured), and port 0.
-var blockedPorts = []int{0, 1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101,
-	102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514,
-	515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659,
-	4045, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6697, 10080}
+var blockedPorts = func() []int {
+	var out []int
+	for _, n := range legacyPolicy().Numbers("url.blocked_ports") {
+		out = append(out, int(n))
+	}
+	return out
+}()
 
 // uncarried is why tls-forge cannot send a request for a URL as Chrome does,
 // or nil: a percent sign in its path that escapes nothing, which Chrome sends

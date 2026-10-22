@@ -31,16 +31,24 @@ func newTrustAnchorPayloads(shuffle func(int, func(int, int))) *trustAnchorPaylo
 	return &trustAnchorPayloads{bySet: make(map[string][]byte), shuffle: shuffle}
 }
 
-func (c *trustAnchorPayloads) payload(captured []byte) ([]byte, error) {
+func (c *trustAnchorPayloads) payload(captured []byte, modes ...string) ([]byte, error) {
+	mode := "legacy-auto"
+	if len(modes) > 0 {
+		mode = modes[0]
+	}
 	records, err := splitTrustAnchors(captured)
 	if err != nil {
 		return nil, err
 	}
-	if inByteOrder(records) {
+	if mode == "captured" || (mode == "legacy-auto" && inByteOrder(records)) {
 		// The browser sorts them, so they went out so every time.
 		return append([]byte(nil), captured...), nil
 	}
 
+	if mode == "sorted" {
+		slices.SortFunc(records, func(a, b []byte) int { return bytes.Compare(a[1:], b[1:]) })
+		return joinTrustAnchors(records), nil
+	}
 	// Each record includes its uint8 length, so their concatenation is an
 	// unambiguous cache key. Sorting makes two captures of the same set share the
 	// process-wide order even when their browser processes used different ones.

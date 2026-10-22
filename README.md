@@ -1836,6 +1836,36 @@ say what is talking more plainly than any handshake could hide it. The run
 says so in its header. To wear Firefox or Safari whole, measure it with
 `capture --manual`.
 
+
+##### Profile-owned network behavior
+
+Schema 3 profiles contain an explicit `behavior` object in the same JSON file as
+ClientHello, SETTINGS and headers. Browser-version choices now come from that
+file: TLS ticket ages, retry alerts/count, resumption and error policy; H1 limits;
+H2 framing, HPACK, flow timing and errors; QUIC CIDs, windows, version information
+and QUIC TLS vectors; H3 settings and GREASE; request ordering, proxy priorities,
+cookies, redirects, CORS cache ages and bounded response-cache/decoder settings.
+Changing a profile name or its descriptive User-Agent does not select a different
+policy. Existing `headers` still carry the actual wire User-Agent.
+
+To update an implemented behavior, edit the relevant field in a local profile
+and pass that file with `--profile`; no rebuild is needed. New client instances
+read the updated data; existing clients keep their own snapshot. The embedded
+copies require rebuilding only to distribute changed embedded defaults. See
+[the behavior format and field reference](docs/profile-behavior.md).
+
+Unknown fields, incorrect types, duplicate behavior keys and unsupported
+capabilities fail before sending a request. Dynamic QPACK, HTTP/3 ALPS, ORIGIN
+pooling and cross-version QUIC negotiation remain unavailable. A new protocol or
+algorithm needs engine support before a profile can select it. OS TCP behavior
+also remains a property of the host stack. Schema 0-2 profiles retain a documented
+migration path; saving writes the complete explicit schema 3 policy.
+
+These changes currently require the four local fork checkouts selected by
+`go.work`. They are included in the rebuilt `bin/tls-forge`; the published module
+pins do not yet contain this policy API.
+
+
 #### `proxy`
 
 Run an intercepting HTTP/HTTPS proxy. It terminates incoming TLS and creates a

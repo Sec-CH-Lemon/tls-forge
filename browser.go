@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"net/url"
 	"slices"
 	"strings"
@@ -58,26 +59,24 @@ type BrowserContext struct {
 
 // Modes of fetch() and its credentials, as fetch() names them.
 const (
-	modeCORS         = "cors"
-	modeNoCORS       = "no-cors"
-	modeSameOrigin   = "same-origin"
-	credentialsSame  = "same-origin"
-	credentialsAll   = "include"
-	credentialsNone  = "omit"
-	modeNavigate     = "navigate"
-	destDocument     = "document"
-	destEmpty        = "empty"
-	priorityDocument = "u=0, i"
-	priorityFetch    = "u=1, i"
-	acceptAnything   = "*/*"
-	formEncoded      = "application/x-www-form-urlencoded"
-	formMultipart    = "multipart/form-data"
-	formText         = "text/plain"
+	modeCORS        = "cors"
+	modeNoCORS      = "no-cors"
+	modeSameOrigin  = "same-origin"
+	credentialsSame = "same-origin"
+	credentialsAll  = "include"
+	credentialsNone = "omit"
+	modeNavigate    = "navigate"
+	destDocument    = "document"
+	destEmpty       = "empty"
+	formEncoded     = "application/x-www-form-urlencoded"
+	formMultipart   = "multipart/form-data"
+	formText        = "text/plain"
 )
 
 // browserRequest is a request in a browser context, as resolved against the
 // URL it goes to: what its headers are computed from.
 type browserRequest struct {
+	behavior    behavior.Policy
 	kind        RequestKind
 	method      string
 	initiator   *url.URL
@@ -101,6 +100,7 @@ type browserRequest struct {
 // Referer and the Origin it carries, its method, and whether it follows a
 // redirect, after which Chrome sends a page's client hints later.
 type hop struct {
+	behavior   behavior.Policy
 	to         origin
 	site       string
 	referrer   string
@@ -137,7 +137,7 @@ type hop struct {
 
 // first is the first request of a chain: to target, as the page sends it.
 func (r *browserRequest) first(target *url.URL) hop {
-	h := hop{to: originOf(target), method: r.method, cors: r.cors, script: r.script}
+	h := hop{behavior: r.behavior, to: originOf(target), method: r.method, cors: r.cors, script: r.script}
 	if r.initiator == nil {
 		h.site = "none"
 		return h
@@ -171,10 +171,10 @@ func errContext(format string, args ...any) error {
 // request it makes: an error, before anything is sent, for a context that is
 // incomplete, names what does not exist, or asks for what a browser would not
 // send or tls-forge does not send as one yet.
-func (b *BrowserContext) resolve(method string, target *url.URL, header Header, body []byte) (*browserRequest, error) {
-	r := &browserRequest{kind: b.Kind, method: normalizedMethod(method), policy: b.ReferrerPolicy}
+func (b *BrowserContext) resolve(method string, target *url.URL, header Header, body []byte, policies ...behavior.Policy) (*browserRequest, error) {
+	r := &browserRequest{behavior: policyArgument(policies), kind: b.Kind, method: normalizedMethod(method), policy: b.ReferrerPolicy}
 	if r.policy == "" {
-		r.policy = policyStrictOriginWhenCrossOrigin
+		r.policy = r.behavior.Text("headers.default_referrer_policy")
 	}
 	if !slices.Contains(referrerPolicies, r.policy) {
 		return nil, errContext("referrer policy %q is not one of %s", b.ReferrerPolicy, strings.Join(referrerPolicies, ", "))
@@ -428,21 +428,13 @@ const (
 // stack adds, goes after the Content-Length and Cache-Control it adds and
 // before the rest.
 var (
-	navigationOrder = []string{"authorization", slotHints, "upgrade-insecure-requests", "user-agent", "accept",
-		"sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding",
-		"accept-language", "cookie", "priority"}
-	formOrder = []string{"content-length", "cache-control", "authorization", slotHints, "upgrade-insecure-requests",
-		"content-type", "user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest",
-		"referer", "accept-encoding", "accept-language", "cookie", "priority"}
+	navigationOrder = slotList(legacyPolicy().Strings("headers.navigation_order"))
+	formOrder       = slotList(legacyPolicy().Strings("headers.form_order"))
 	// restartedOrder is the first request of a navigation started again for
 	// its critical client hints.
-	restartedOrder = []string{"authorization", "upgrade-insecure-requests", "user-agent", "accept", slotHints,
-		"sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding",
-		"accept-language", "cookie", "priority"}
+	restartedOrder = slotList(legacyPolicy().Strings("headers.restarted_order"))
 	// redirectedOrder is a navigation's or a form's after a redirect.
-	redirectedOrder = []string{"content-length", "cache-control", "authorization", "upgrade-insecure-requests",
-		"content-type", "user-agent", "origin", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user",
-		"sec-fetch-dest", slotHints, "referer", "accept-encoding", "accept-language", "cookie", "priority"}
+	redirectedOrder = slotList(legacyPolicy().Strings("headers.redirected_order"))
 )
 
 // order is a request's slots, in Chrome's order: a page's after a redirect
@@ -452,17 +444,17 @@ func (r *browserRequest) order(h hop) []string {
 	if r.scripted() {
 		return scriptOrder(h)
 	}
-	order := navigationOrder
+	order := slotList(r.runtimeBehavior().Strings("headers.navigation_order"))
 	switch {
 	case h.redirected:
-		order = redirectedOrder
+		order = slotList(r.runtimeBehavior().Strings("headers.redirected_order"))
 	case h.restarted:
-		order = restartedOrder
+		order = slotList(r.runtimeBehavior().Strings("headers.restarted_order"))
 	case r.posted:
-		order = formOrder
+		order = slotList(r.runtimeBehavior().Strings("headers.form_order"))
 	}
 	if len(h.alps) > 0 {
-		return alpsOrder(order, h.redirected)
+		return alpsOrder(order, h.redirected, r.runtimeBehavior())
 	}
 	return order
 }
@@ -474,14 +466,15 @@ func (r *browserRequest) order(h hop) []string {
 // hints that follow Accept; and a request after a redirect, whose hints its
 // browser gave last and its network stack's Sec-Fetch-* follow, has its hints
 // after Accept too, those asked after them.
-func alpsOrder(order []string, redirected bool) []string {
+func alpsOrder(order []string, redirected bool, policies ...behavior.Policy) []string {
+	anchor := policyArgument(policies).Text("headers.alps_after")
 	out := slices.Clone(order)
 	if redirected {
 		out = slices.DeleteFunc(out, func(slot string) bool { return slot == slotHints })
-		out = slices.Insert(out, slices.Index(out, "accept")+1, slotHints)
+		out = slices.Insert(out, slices.Index(out, anchor)+1, slotHints)
 	}
-	at := slices.Index(out, "accept") + 1
-	if out[at] == slotHints {
+	at := slices.Index(out, anchor) + 1
+	if at < len(out) && out[at] == slotHints {
 		at++
 	}
 	return slices.Insert(out, at, slotALPSHints)
@@ -490,7 +483,7 @@ func alpsOrder(order []string, redirected bool) []string {
 // scriptOrder starts with the renderer's actual case-folding header-map order.
 // Headers the network stack adds follow it; a redirect can give Origin late.
 func scriptOrder(h hop) []string {
-	out := []string{"content-length"}
+	out := h.runtimeBehavior().Strings("headers.script_leading")
 	if h.script.Has("range") && h.script.Has("if-range") && !h.script.Has("cache-control") {
 		out = append(out, "cache-control")
 	}
@@ -508,13 +501,13 @@ func scriptOrder(h hop) []string {
 	if !h.lateOrigin {
 		out = append(out, "origin")
 	}
-	out = append(out, "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "sec-fetch-storage-access")
+	out = append(out, h.runtimeBehavior().Strings("headers.script_metadata")...)
 	if h.lateOrigin {
 		out = append(out, "origin")
 	}
 	// A script-owned field already has its renderer slot. The network stack
 	// must not append the same name again in its default slot.
-	for _, name := range []string{"referer", "accept-encoding", "accept-language", "cookie", "range", "priority"} {
+	for _, name := range h.runtimeBehavior().Strings("headers.script_trailing") {
 		if name == "range" && !h.script.Has(name) {
 			continue
 		}
@@ -559,9 +552,9 @@ func slotNames(slot string, h hop) []string {
 	switch slot {
 	case slotHints:
 		if len(h.alps) > 0 {
-			return slices.DeleteFunc(slices.Clone(profile.ClientHintOrder), h.alps.Has)
+			return slices.DeleteFunc(h.runtimeBehavior().Strings("headers.client_hint_order"), h.alps.Has)
 		}
-		return profile.ClientHintOrder
+		return h.runtimeBehavior().Strings("headers.client_hint_order")
 	case slotALPSHints:
 		return h.alps.Names()
 	}
@@ -572,16 +565,15 @@ func slotNames(slot string, h hop) []string {
 func (r *browserRequest) values(h hop, base Header) map[string]string {
 	to := h.to
 	values := map[string]string{}
-	for _, name := range []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "user-agent",
-		"accept-language", "accept-encoding"} {
+	for _, name := range r.runtimeBehavior().Strings("headers.browser_base_fields") {
 		if base.Has(name) {
 			values[name] = base.Get(name)
 		}
 	}
 	script := r.scripted()
 	if script {
-		values["accept"] = acceptAnything
-		values["priority"] = priorityFetch
+		values["accept"] = r.runtimeBehavior().Text("headers.accept_fetch")
+		values["priority"] = r.runtimeBehavior().Text("headers.priority_fetch")
 		values["sec-fetch-mode"] = r.mode
 		values["sec-fetch-dest"] = destEmpty
 	} else {
@@ -594,20 +586,20 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 		values["sec-fetch-dest"] = destDocument
 	}
 	if r.posted {
-		values["cache-control"] = "max-age=0"
+		values["cache-control"] = r.runtimeBehavior().Text("headers.form_cache_control")
 		if h.method == fhttp.MethodPost {
 			values["content-type"] = r.contentType
 		}
 	}
 	if script && h.script.Has("range") {
-		values["accept-encoding"] = "identity"
+		values["accept-encoding"] = r.runtimeBehavior().Text("headers.range_accept_encoding")
 		if h.script.Has("if-range") {
-			values["cache-control"] = "max-age=0"
+			values["cache-control"] = r.runtimeBehavior().Text("headers.range_cache_control")
 		}
 	}
 	values["sec-fetch-site"] = h.site
 	if r.initiator == nil {
-		values["sec-fetch-user"] = "?1"
+		values["sec-fetch-user"] = r.runtimeBehavior().Text("headers.navigation_fetch_user")
 	}
 	if h.referrer != "" {
 		values["referer"] = h.referrer
@@ -619,7 +611,7 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 		// A script's credentialed request to another site than its page's
 		// says so; one a redirect took through another site back to the
 		// page's does not, though Sec-Fetch-Site says cross-site.
-		values["sec-fetch-storage-access"] = "active"
+		values["sec-fetch-storage-access"] = r.runtimeBehavior().Text("headers.storage_access")
 	}
 	for _, hint := range slices.Concat(h.hints, h.alps) {
 		values[hint.Name] = hint.Value
@@ -632,12 +624,12 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 		// client's hints nor where its requests come from, and is offered
 		// neither Brotli nor zstd.
 		for name := range values {
-			if strings.HasPrefix(name, "sec-ch-") || strings.HasPrefix(name, "sec-fetch-") {
+			if hasPrefixIn(name, r.runtimeBehavior().Strings("headers.untrusted_prefixes")) {
 				delete(values, name)
 			}
 		}
 		if offered, ok := values["accept-encoding"]; ok {
-			values["accept-encoding"] = withoutCodings(offered, "br", "zstd")
+			values["accept-encoding"] = withoutCodings(offered, r.runtimeBehavior().Strings("headers.untrusted_drop_codings")...)
 		}
 	}
 	for _, f := range h.script {
@@ -731,4 +723,29 @@ func (r *browserRequest) cookies(h hop) sendRule {
 		rule.none = true
 	}
 	return rule
+}
+
+func (r *browserRequest) runtimeBehavior() behavior.Policy {
+	if r.behavior != nil {
+		return r.behavior
+	}
+	return legacyPolicy()
+}
+func (h hop) runtimeBehavior() behavior.Policy {
+	if h.behavior != nil {
+		return h.behavior
+	}
+	return legacyPolicy()
+}
+
+func slotList(in []string) []string {
+	for i, n := range in {
+		switch n {
+		case "@hints":
+			in[i] = slotHints
+		case "@alps-hints":
+			in[i] = slotALPSHints
+		}
+	}
+	return in
 }

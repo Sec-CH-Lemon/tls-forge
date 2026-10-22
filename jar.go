@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"github.com/igor-lemon/utls/behavior"
 	"net"
 	"net/url"
 	"sort"
@@ -28,11 +29,12 @@ import (
 
 // keptJar is a jar with what it does not say of its cookies kept beside it.
 type keptJar struct {
-	inner  fhttp.CookieJar
-	mu     sync.Mutex
-	kept   map[cookieKey]cookieFacts
-	chrome bool
-	serial uint64
+	inner    fhttp.CookieJar
+	mu       sync.Mutex
+	kept     map[cookieKey]cookieFacts
+	chrome   bool // Deprecated fixture compatibility; new clients carry explicit policy.
+	behavior behavior.Policy
+	serial   uint64
 	// rules are what a request in a browser context lets through, by the URL
 	// the transport asks the jar about for it: its own, for each hop.
 	rules sync.Map
@@ -64,7 +66,7 @@ type cookieFacts struct {
 // here too, so that a cookie lives as long as it would in the browser, and a
 // Max-Age of centuries cannot overflow the jar's arithmetic into a date that
 // cannot be written down.
-const maxCookieLifetime = 400 * 24 * time.Hour
+var maxCookieLifetime = time.Duration(legacyPolicy().Uint("cookie.max_age_seconds")) * time.Second
 
 // jarSessionEnd is the expiry the transport's jar gives a session cookie, which
 // is how one is told apart when the wrapper never saw it set.
@@ -109,6 +111,7 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 				}
 				part = newKeptJar(inner)
 				part.chrome = j.chrome
+				part.behavior = j.behavior
 				j.partitions[key] = part
 			}
 			copy := *c
@@ -122,11 +125,11 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 			part.SetCookies(u, []*fhttp.Cookie{&copy})
 			continue
 		}
-		if c = withinLimits(c); rule.keeps(c) && j.accepts(u, c) {
+		if c = withinLimits(c, j.cookiePolicy()); rule.keeps(c) && j.accepts(u, c) {
 			// Chrome accepts an exact IP Domain as a host-only cookie. The
 			// underlying RFC jar rejects every IP Domain, so file the equivalent
 			// host-only form; a different IP is still rejected by that jar.
-			if host, ok := canonicalHost(u.Host); j.chrome && ok && net.ParseIP(host) != nil && c.Domain == host {
+			if host, ok := canonicalHost(u.Host); j.cookiePolicy().Flag("cookie.ip_domain_host_only") && ok && net.ParseIP(host) != nil && c.Domain == host {
 				copy := *c
 				copy.Domain = ""
 				c = &copy
@@ -151,7 +154,7 @@ func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 	capped := make([]*fhttp.Cookie, 0, len(cookies))
 	for _, c := range cookies {
 		if c != nil {
-			capped = append(capped, capLifetime(c, now))
+			capped = append(capped, capLifetime(c, now, j.cookiePolicy()))
 		}
 	}
 	j.inner.SetCookies(cookiePathURL(u), capped)
@@ -165,7 +168,7 @@ func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 			created := now
 			j.serial++
 			order := j.serial
-			if before, known := j.kept[key]; known && (!j.chrome || before.value == c.Value) {
+			if before, known := j.kept[key]; known && (!j.cookiePolicy().Flag("cookie.reset_order_on_value_change") || before.value == c.Value) {
 				created = before.created
 				order = before.order
 			}
@@ -216,7 +219,7 @@ func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
 	kept := held[:0:0]
 	for _, c := range held {
 		facts, known := j.kept[cookieKey{c.Name, c.Domain, c.Path}]
-		if rule.allows(facts, known, now) {
+		if rule.allows(facts, known, now, j.cookiePolicy()) {
 			kept = append(kept, c)
 		}
 	}
@@ -229,7 +232,7 @@ func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
 // The wrapped RFC jar always retains the old order, so use our measured facts.
 // The caller holds j.mu; non-Chrome jars retain their original ordering.
 func (j *keptJar) sortCookies(cookies []*fhttp.Cookie) {
-	if !j.chrome {
+	if !j.cookiePolicy().Flag("cookie.reset_order_on_value_change") {
 		return
 	}
 	order := func(c *fhttp.Cookie) uint64 {
@@ -278,14 +281,14 @@ type sendRule struct {
 // laxAllowingUnsafe is how long after it was set a cookie that named no
 // SameSite still goes with a page's POST to it from another site: Chrome's
 // two minutes, measured in testdata/chrome155-requests.json.
-const laxAllowingUnsafe = 2 * time.Minute
+var laxAllowingUnsafe = time.Duration(legacyPolicy().Uint("cookie.lax_unsafe_age_seconds")) * time.Second
 
 // allows reports a cookie a request carries, by its SameSite: to its own site
 // any; to another, one of SameSite=None, one of Lax when a page is loaded by
 // GET, and one that named none, which is Lax, also when a page is posted to
 // within two minutes of its being set. A cookie the wrapper never saw set
 // named none, as far as it knows, and was not set lately.
-func (rule sendRule) allows(facts cookieFacts, known bool, now time.Time) bool {
+func (rule sendRule) allows(facts cookieFacts, known bool, now time.Time, policies ...behavior.Policy) bool {
 	switch {
 	case rule.none:
 		return false
@@ -300,7 +303,7 @@ func (rule sendRule) allows(facts cookieFacts, known bool, now time.Time) bool {
 	case fhttp.SameSiteLaxMode:
 		return rule.topLevel && rule.safe
 	}
-	return rule.topLevel && (rule.safe || known && now.Sub(facts.created) < laxAllowingUnsafe)
+	return rule.topLevel && (rule.safe || known && now.Sub(facts.created) < time.Duration(policyArgument(policies).Uint("cookie.lax_unsafe_age_seconds"))*time.Second)
 }
 
 // keeps reports a cookie an answer sets that is filed, by its SameSite: any
@@ -319,14 +322,19 @@ func (rule sendRule) keeps(c *fhttp.Cookie) bool {
 // refuses a larger cookie, and passes over a larger attribute
 // (kMaxCookieNamePlusValueSize, kMaxCookieAttributeValueSize; measured: the
 // set-cookie-size scenario).
-const (
-	maxCookieSize    = 4096
-	maxAttributeSize = 1024
+var (
+	maxCookieSize    = legacyPolicy().Int("cookie.max_pair_bytes")
+	maxAttributeSize = legacyPolicy().Int("cookie.max_attribute_bytes")
 )
 
 // withinLimits is c without a Path or a Domain longer than Chrome reads, as a
 // copy: the cookie is filed under the default path, or as its host's.
-func withinLimits(c *fhttp.Cookie) *fhttp.Cookie {
+func withinLimits(c *fhttp.Cookie, policies ...behavior.Policy) *fhttp.Cookie {
+	pol := policyArgument(policies)
+	if !pol.Has("cookie.max_attribute_bytes") {
+		return c
+	}
+	maxAttributeSize := pol.Int("cookie.max_attribute_bytes")
 	if len(c.Path) <= maxAttributeSize && len(c.Domain) <= maxAttributeSize {
 		return c
 	}
@@ -354,7 +362,7 @@ func (j *keptJar) accepts(u *url.URL, c *fhttp.Cookie) bool {
 	secure := trustworthy(originOf(u))
 	name := strings.ToLower(c.Name)
 	switch {
-	case len(c.Name)+len(c.Value) > maxCookieSize:
+	case j.cookiePolicy().Has("cookie.max_pair_bytes") && len(c.Name)+len(c.Value) > j.cookiePolicy().Int("cookie.max_pair_bytes"):
 		return false
 	case c.Secure && !secure, c.SameSite == fhttp.SameSiteNoneMode && !c.Secure:
 		return false
@@ -517,7 +525,13 @@ func asCookie(c *fhttp.Cookie, facts cookieFacts, known bool) Cookie {
 
 // capLifetime is a cookie with Chrome's lifetime at most, as a copy: the
 // transport's own cookie is not changed under it.
-func capLifetime(c *fhttp.Cookie, now time.Time) *fhttp.Cookie {
+func capLifetime(c *fhttp.Cookie, now time.Time, policies ...behavior.Policy) *fhttp.Cookie {
+	pol := policyArgument(policies)
+	if !pol.Has("cookie.max_age_seconds") {
+		out := *c
+		return &out
+	}
+	maxCookieLifetime := time.Duration(pol.Uint("cookie.max_age_seconds")) * time.Second
 	out := *c
 	if longest := int(maxCookieLifetime / time.Second); out.MaxAge > longest {
 		out.MaxAge = longest
@@ -636,4 +650,17 @@ func sameSiteMode(name string) fhttp.SameSite {
 		return fhttp.SameSiteNoneMode
 	}
 	return 0
+}
+
+func (j *keptJar) cookiePolicy() behavior.Policy {
+	if j.behavior != nil {
+		return j.behavior
+	}
+	p := legacyPolicy()
+	if !j.chrome {
+		p["cookie.raw_fields"] = []byte("false")
+		p["cookie.ip_domain_host_only"] = []byte("false")
+		p["cookie.reset_order_on_value_change"] = []byte("false")
+	}
+	return p
 }

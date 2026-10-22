@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"context"
+	"github.com/igor-lemon/utls/behavior"
 	"net/textproto"
 	"slices"
 	"strings"
@@ -19,7 +20,8 @@ import (
 // transport asks it for the header to write once it knows (Request.HeaderFor,
 // of tls-forge's fork of fhttp), which over HTTP/1.1 is the other (wear).
 type layouts struct {
-	http2 fhttp.Header
+	behavior behavior.Policy
+	http2    fhttp.Header
 	// http1 is nil when the request goes the same over both.
 	http1 fhttp.Header
 	// managed are the names either block has, which the change takes away
@@ -82,11 +84,12 @@ func (c *Client) layoutsAsGiven(headers, given Header, host string) *layouts {
 		// else differs.
 		http1 = cloneHeaderLayout(http2)
 	}
-	if c.profile.Chromium() {
-		cookieSlot(http2)
-		cookieSlot(http1)
+	if c.behavior().Flag("headers.cookie_slot") {
+		cookieSlot(http2, c.behavior())
+		cookieSlot(http1, c.behavior())
 	}
 	l := newLayouts(http2, http1)
+	l.behavior = c.behavior()
 	l.withheld = c.withheld.without(given)
 	return l
 }
@@ -100,6 +103,7 @@ func (c *Client) layoutsAsGiven(headers, given Header, host string) *layouts {
 // plain http, https and http://localhost). Only the profile's is withheld: a
 // field the client or the request was given goes as given.
 type withholding struct {
+	encodings []string
 	// names are the lower-case names of the client hints and Sec-Fetch-*.
 	names []string
 	// encoding is whether the Accept-Encoding is the profile's.
@@ -110,19 +114,19 @@ type withholding struct {
 // potentially trustworthy URL, but what given names; nil for nothing. Only
 // Chromium was measured: another browser's profile withholds nothing.
 func withheldOf(prof *profile.Profile, given Header) *withholding {
-	if !prof.Chromium() {
+	if !prof.RuntimeBehavior().Flag("headers.withhold_untrusted") {
 		return nil
 	}
 	fields := append(Header(nil), prof.Headers...)
 	if prof.HTTP1 != nil {
 		fields = append(fields, prof.HTTP1.Headers...)
 	}
-	w := &withholding{}
+	w := &withholding{encodings: prof.RuntimeBehavior().Strings("headers.untrusted_drop_codings")}
 	for _, f := range fields {
 		name := strings.ToLower(f.Name)
 		switch {
 		case given.Has(name) || slices.Contains(w.names, name):
-		case strings.HasPrefix(name, "sec-ch-") || strings.HasPrefix(name, "sec-fetch-"):
+		case hasPrefixIn(name, prof.RuntimeBehavior().Strings("headers.untrusted_prefixes")):
 			w.names = append(w.names, name)
 		case name == "accept-encoding":
 			w.encoding = true
@@ -140,7 +144,7 @@ func (w *withholding) without(given Header) *withholding {
 	if w == nil || len(given) == 0 {
 		return w
 	}
-	out := &withholding{encoding: w.encoding && !given.Has("accept-encoding")}
+	out := &withholding{encodings: w.encodings, encoding: w.encoding && !given.Has("accept-encoding")}
 	for _, name := range w.names {
 		if !given.Has(name) {
 			out.names = append(out.names, name)
@@ -167,7 +171,7 @@ func (w *withholding) from(header fhttp.Header) {
 		if !strings.EqualFold(name, "accept-encoding") {
 			continue
 		}
-		if offered := withoutCodings(strings.Join(values, ", "), "br", "zstd"); offered != "" {
+		if offered := withoutCodings(strings.Join(values, ", "), w.droppedCodings()...); offered != "" {
 			header[name] = []string{offered}
 		} else {
 			delete(header, name)
@@ -184,7 +188,7 @@ func (w *withholding) from(header fhttp.Header) {
 // every name it does: after Priority. A Cookie the request was given goes in
 // the same slot, the jar's cookies after it. A request the same over both
 // protocols has no HTTP/1.1 block: nil is left as it is.
-func cookieSlot(block fhttp.Header) {
+func cookieSlot(block fhttp.Header, policies ...behavior.Policy) {
 	if block == nil {
 		return
 	}
@@ -192,7 +196,9 @@ func cookieSlot(block fhttp.Header) {
 		return strings.EqualFold(name, "cookie")
 	})
 	at := len(order)
-	if i := slices.IndexFunc(order, func(name string) bool { return strings.EqualFold(name, "accept-language") }); i >= 0 {
+	if i := slices.IndexFunc(order, func(name string) bool {
+		return strings.EqualFold(name, policyArgument(policies).Text("headers.cookie_after"))
+	}); i >= 0 {
 		at = i + 1
 	}
 	block[fhttp.HeaderOrderKey] = slices.Insert(order, at, "cookie")
@@ -226,8 +232,10 @@ func ownCookie(block fhttp.Header) {
 // headers, in order over HTTP/2 and as Chrome writes them over HTTP/1.1,
 // script being those a script set.
 func (c *Client) browserLayouts(field, script Header, order []string, host string) *layouts {
-	return newLayouts(browserLayout(field, order, host),
-		browserHTTP1Layout(field, script, order, c.profile.HTTP1, c.http1Headers, host))
+	l := newLayouts(browserLayout(field, order, host),
+		browserHTTP1Layout(field, script, order, c.profile.HTTP1, c.http1Headers, host, c.behavior()))
+	l.behavior = c.behavior()
+	return l
 }
 
 // redirected are the layouts of req, a redirect's request, made from l, the
@@ -247,7 +255,9 @@ func (l *layouts) redirected(req *fhttp.Request) *layouts {
 		// another origin, so a source origin cannot lend its Host to another.
 		host = req.Host
 	}
-	return newLayouts(req.Header, redirectHTTP1Layout(l.http1, l.http2, req.Header, host))
+	out := newLayouts(req.Header, redirectHTTP1Layout(l.http1, l.http2, req.Header, host))
+	out.behavior = l.behavior
+	return out
 }
 
 // authorized are l with Authorization said as value in both blocks, where
@@ -257,19 +267,21 @@ func (l *layouts) redirected(req *fhttp.Request) *layouts {
 func (l *layouts) authorized(value string) *layouts {
 	var http1 fhttp.Header
 	if l.http1 != nil {
-		http1 = withAuthorization(l.http1, value)
+		http1 = withAuthorization(l.http1, value, l.runtimeBehavior())
 	}
-	out := newLayouts(withAuthorization(l.http2, value), http1)
+	out := newLayouts(withAuthorization(l.http2, value, l.runtimeBehavior()), http1)
 	out.withheld = l.withheld
+	out.behavior = l.behavior
 	return out
 }
 
 // leadAuthorization are the names Chrome writes before Authorization.
-var leadAuthorization = []string{"host", "connection", "content-length", "cache-control"}
+var leadAuthorization = legacyPolicy().Strings("headers.authorization_leading")
 
 // withAuthorization is a copy of block with Authorization said as value, in
 // its slot.
-func withAuthorization(block fhttp.Header, value string) fhttp.Header {
+func withAuthorization(block fhttp.Header, value string, policies ...behavior.Policy) fhttp.Header {
+	leadAuthorization := policyArgument(policies).Strings("headers.authorization_leading")
 	out := cloneHeaderLayout(block)
 	deleteHeader(out, "authorization")
 	order := out[fhttp.HeaderOrderKey]
@@ -594,7 +606,8 @@ func browserLayout(h Header, order []string, host string) fhttp.Header {
 // Host and Connection first, no generated Priority (a script's survives), and each name spelt as the profile
 // measured it, a script's as the script gave it, a client hint in lower case,
 // and any other as HTTP spells it.
-func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP1, http1 Header, host string) fhttp.Header {
+func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP1, http1 Header, host string, policies ...behavior.Policy) fhttp.Header {
+	pol := policyArgument(policies)
 	spelling := map[string]string{}
 	if measured != nil {
 		for _, wire := range measured.HeaderOrder {
@@ -616,7 +629,7 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 		switch wire, known := spelling[lower]; {
 		case known:
 			return wire
-		case strings.HasPrefix(lower, "sec-ch-") || slices.Contains(profile.ClientHintOrder, lower):
+		case strings.HasPrefix(lower, "sec-ch-") || slices.Contains(pol.Strings("headers.client_hint_order"), lower):
 			// Chrome writes every client hint in lower case, the device's
 			// under their old names too.
 			return lower
@@ -625,11 +638,14 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 	}
 	connection := http1.Get("connection")
 	if connection == "" {
-		connection = "keep-alive"
+		connection = pol.Text("headers.h1_connection_default")
 	}
-	out := fhttp.Header{spell("host"): {host}, spell("connection"): {connection}}
-	wireOrder := []string{"host", "connection"}
-	keepPriority := script.Has("priority")
+	out := fhttp.Header{spell("host"): {host}}
+	if connection != "" {
+		out[spell("connection")] = []string{connection}
+	}
+	wireOrder := pol.Strings("headers.h1_prefix")
+	keepPriority := script.Has("priority") || pol.Flag("headers.h1_generated_priority")
 	for _, name := range order {
 		if !strings.EqualFold(name, "priority") || keepPriority {
 			wireOrder = append(wireOrder, name)
@@ -643,4 +659,27 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 	}
 	out[fhttp.HeaderOrderKey] = wireOrder
 	return out
+}
+
+func (l *layouts) runtimeBehavior() behavior.Policy {
+	if l.behavior != nil {
+		return l.behavior
+	}
+	return legacyPolicy()
+}
+func retainCodings(offered string, allowed []string) string {
+	var out []string
+	for _, v := range strings.Split(offered, ",") {
+		if slices.Contains(allowed, strings.ToLower(strings.TrimSpace(v))) {
+			out = append(out, strings.TrimSpace(v))
+		}
+	}
+	return strings.Join(out, ", ")
+}
+
+func (w *withholding) droppedCodings() []string {
+	if w.encodings != nil {
+		return w.encodings
+	}
+	return legacyPolicy().Strings("headers.untrusted_drop_codings")
 }

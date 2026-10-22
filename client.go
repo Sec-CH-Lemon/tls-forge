@@ -223,6 +223,7 @@ func New(opts ...Option) (*Client, error) {
 		}
 	}
 	prof = prof.Clone()
+	prof.Behavior = prof.RuntimeBehavior().Clone()
 	shuffleExtensions := prof.ShufflesExtensions()
 	if cfg.shuffleExtensions != nil {
 		shuffleExtensions = *cfg.shuffleExtensions
@@ -251,7 +252,7 @@ func New(opts ...Option) (*Client, error) {
 	var transportJar fhttp.CookieJar
 	if given != nil {
 		jar = newKeptJar(given)
-		jar.chrome = prof.Chromium()
+		jar.behavior = prof.RuntimeBehavior().Clone()
 		transportJar = jar
 	}
 	milliseconds := cfg.timeout.Milliseconds()
@@ -267,17 +268,19 @@ func New(opts ...Option) (*Client, error) {
 	// One writer for every connection of the client and of every client
 	// Fresh makes of it, to sites and to a proxy alike.
 	keys := keyLogOf(cfg.keyLog)
+	idleTimeout := policyDuration(prof.RuntimeBehavior(), "http.idle_connection_timeout_ms")
 	transportOptions := &tls_client.TransportOptions{
-		MaxIdleConnsPerHost: 6,
+		MaxIdleConnsPerHost: prof.RuntimeBehavior().Int("h1.max_idle_connections"),
+		IdleConnTimeout:     &idleTimeout,
 		DisableCompression:  true,
 		KeyLogWriter:        keys,
 	}
-	if prof.Chromium() {
-		// Chrome bounds an HTTP/1 response head at 256 KiB, including the
+	if prof.RuntimeBehavior().Has("h1.response_header_bytes") {
+		// The profile bounds an HTTP/1 response head at 256 KiB, including the
 		// status line and delimiters, and holds at most six HTTP/1 connections
 		// in a host's pool. HTTP/2 keeps its own multiplexing/field-list rules.
-		transportOptions.MaxResponseHeaderBytes = 262144
-		transportOptions.MaxConnsPerHost = 6
+		transportOptions.MaxResponseHeaderBytes = int64(prof.RuntimeBehavior().Uint("h1.response_header_bytes"))
+		transportOptions.MaxConnsPerHost = prof.RuntimeBehavior().Int("h1.max_connections")
 	}
 	options := []tls_client.HttpClientOption{
 		// A request ends with its context, which do gives the timeout as its
@@ -306,17 +309,17 @@ func New(opts ...Option) (*Client, error) {
 	if !cfg.followRedirects {
 		options = append(options, tls_client.WithNotFollowRedirects())
 	}
-	if len(cfg.proxyHeader) > 0 || prof.Chromium() {
+	if len(cfg.proxyHeader) > 0 || prof.RuntimeBehavior().Flag("proxy.profile_tls") {
 		asked := fhttp.Header{}
-		if prof.Chromium() {
+		if prof.RuntimeBehavior().Flag("proxy.profile_tls") {
 			ua := Header(prof.Headers).Merge(cfg.headers).Get("user-agent")
 			if !cfg.proxyHeader.Has("user-agent") {
 				asked.Set("User-Agent", ua)
 			}
 			if !cfg.proxyHeader.Has("proxy-connection") {
-				asked.Set("Proxy-Connection", "keep-alive")
+				asked.Set("Proxy-Connection", prof.RuntimeBehavior().Text("proxy.connection_value"))
 			}
-			asked[fhttp.HeaderOrderKey] = []string{"user-agent", "proxy-connection"}
+			asked[fhttp.HeaderOrderKey] = prof.RuntimeBehavior().Strings("proxy.connect_header_order")
 		}
 		for _, field := range cfg.proxyHeader {
 			asked.Add(field.Name, field.Value)
@@ -326,7 +329,7 @@ func New(opts ...Option) (*Client, error) {
 	if cfg.insecureSkipVerify {
 		options = append(options, tls_client.WithInsecureSkipVerify())
 	}
-	if cfg.noResumption {
+	if cfg.noResumption || !prof.RuntimeBehavior().Flag("tls.resumption") {
 		options = append(options, tls_client.WithDisableSessionTickets())
 	}
 	if cfg.followRedirects {
@@ -352,7 +355,7 @@ func New(opts ...Option) (*Client, error) {
 	}
 
 	id, log := newClientLog(cfg.logger)
-	t, err := newTransports(built, cfg.proxy)
+	t, err := newTransports(built, cfg.proxy, prof.RuntimeBehavior())
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +372,7 @@ func New(opts ...Option) (*Client, error) {
 	// not here: the jar files a cookie under the URL it is given, and a URL
 	// synthesised from a domain has no port, which a jar keyed by host and port
 	// then never matches. The request knows the URL exactly.
-	client := &Client{transports: t, session: newSession(jar, cfg.cookies), profile: prof, headers: headers,
+	client := &Client{transports: t, session: newSession(jar, cfg.cookies, prof.RuntimeBehavior()), profile: prof, headers: headers,
 		http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody, timeout: cfg.timeout,
 		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
 	if log != nil {
@@ -529,7 +532,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 		// have changed.
 		answered = res.Request.Method
 	}
-	read, encoding, err := readBody(res, answered, c.maxBody)
+	read, encoding, err := readBody(res, answered, c.maxBody, c.behavior())
 	if err != nil {
 		return nil, err
 	}
@@ -619,7 +622,7 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 	if browser != nil && browser.scripted() {
 		// With a priority of their own, as Chrome sends them: the preflight,
 		// the hops of its redirects and its answer to a 401 too.
-		inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), scriptHeaderPriority))
+		inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), priorityFrom(c.behavior(), "headers.script_priority")))
 	}
 	// A request that carries no credentials goes out on connections of its
 	// own, as Chrome sends one, and each top-level site has its own; each hop
@@ -713,7 +716,7 @@ func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 	if req == nil || req.URL == "" {
 		return nil, nil, fmt.Errorf("tlsforge: request needs a URL")
 	}
-	target, err := requestURL(req.URL, nil)
+	target, err := requestURL(req.URL, nil, c.behavior())
 	if err != nil {
 		return nil, nil, fmt.Errorf("tlsforge: %q %w", req.URL, err)
 	}
@@ -742,12 +745,12 @@ func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 // and are filled in with the profile's own header values.
 func (c *Client) resolveBrowser(req *Request, method string, target *url.URL) (*browserRequest, error) {
 	switch {
-	case !c.profile.Chromium():
-		return nil, errContext("is measured on Chrome; profile %q is not of a Chromium browser", c.profile.Name)
+	case !c.behavior().Flag("headers.browser_context"):
+		return nil, errContext("profile %q does not enable browser_context", c.profile.Name)
 	case !c.headers.Has("user-agent"):
 		return nil, errContext("needs the profile's headers, and profile %q has none to send", c.profile.Name)
 	}
-	return req.Browser.resolve(method, target, req.Header, req.Body)
+	return req.Browser.resolve(method, target, req.Header, req.Body, c.behavior())
 }
 
 // transportShuffles reports whether the transport draws the order of a
@@ -775,18 +778,15 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		return err
 	}
 	ch.redirects++
-	limit := maxRedirects - 1 // Chromium navigation loader counts requests.
+	limit := ch.client.behavior().Int("http.redirects_navigation")
 	if ch.browser != nil && (ch.browser.kind == KindFetch || ch.browser.kind == KindXHR) {
-		limit = maxRedirects
+		limit = ch.client.behavior().Int("http.redirects_fetch")
 	}
 	if ch.redirects > limit {
 		if r != nil {
 			r.stopped(ch.redirects, req.Response.StatusCode, shownURL(req).String())
 		}
-		if limit == maxRedirects {
-			return fmt.Errorf("the 21st redirect was not followed")
-		}
-		return fmt.Errorf("the 20th redirect was not followed")
+		return fmt.Errorf("the %s redirect was not followed", ordinal(limit+1))
 	}
 	if t, _ := req.Context().Value(traceKey{}).(*Trace); t != nil {
 		t.redirect(req.Response.StatusCode, shownURL(req).String())

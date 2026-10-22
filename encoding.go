@@ -7,7 +7,9 @@ import (
 	"compress/zlib"
 	"errors"
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/andybalholm/brotli"
@@ -47,7 +49,7 @@ var decoders = map[string]func(io.Reader) (io.ReadCloser, error){
 // maxZstdWindow is the largest window a zstd body may ask for, as Chrome has
 // it and as RFC 9659 lets a decoder of HTTP content refuse beyond: a body that
 // wants more memory than that to decode is refused rather than given it.
-const maxZstdWindow = 8 << 20
+var maxZstdWindow = legacyPolicy().Uint("http.zstd_window_bytes")
 
 // transportCodings are the codings the transport decodes when a caller's own
 // transport options let it, spelled as it matches them: one Content-Encoding
@@ -250,11 +252,16 @@ func hasBody(method string, status int) bool {
 // coding, when it is empty, and when any of its codings is one
 // Chrome does not know either: Chrome passes such a body through undecoded
 // rather than decode part of it.
-func readBody(res *fhttp.Response, method string, limit int64) ([]byte, string, error) {
-	body := bufio.NewReaderSize(chromeReads{res.Body}, chromeReadSize)
+func readBody(res *fhttp.Response, method string, limit int64, policies ...behavior.Policy) ([]byte, string, error) {
+	pol := policyArgument(policies)
+	readSize := pol.Int("http.body_read_bytes")
+	if readSize == 0 {
+		return nil, "", fmt.Errorf("profile has no body read policy")
+	}
+	body := bufio.NewReaderSize(policyReads{Reader: res.Body, limit: readSize}, readSize)
 	codings := codingsOf(res.Header)
 	if _, err := body.Peek(1); len(codings) == 0 || !hasBody(method, res.StatusCode) ||
-		err != nil || !knownCodings(codings) {
+		err != nil || !knownCodings(codings, pol) {
 		read, err := readAtMost(body, limit)
 		if err != nil {
 			return nil, "", readingError(err)
@@ -274,7 +281,7 @@ func readBody(res *fhttp.Response, method string, limit int64) ([]byte, string, 
 
 	var reader io.Reader = body
 	for i := len(codings) - 1; i >= 0; i-- {
-		decoder, err := decoders[codings[i]](reader)
+		decoder, err := decodeCoding(codings[i], reader, pol, len(policies) == 0)
 		if err != nil {
 			return nil, "", decodingError(codings, err)
 		}
@@ -292,9 +299,10 @@ func readBody(res *fhttp.Response, method string, limit int64) ([]byte, string, 
 }
 
 // knownCodings says every coding is one Chrome accepts.
-func knownCodings(codings []string) bool {
+func knownCodings(codings []string, policies ...behavior.Policy) bool {
+	pol := policyArgument(policies)
 	for _, coding := range codings {
-		if decoders[coding] == nil {
+		if decoders[coding] == nil || !slices.Contains(pol.Strings("http.content_codings"), coding) {
 			return false
 		}
 	}
@@ -308,7 +316,7 @@ func knownCodings(codings []string) bool {
 // at most 8 KiB: what is freed of a window past half of it, which the
 // transport tells the server of as Chrome does, is at most that much more, as
 // Chrome's WINDOW_UPDATEs were measured (testdata/chrome155-flow.json).
-const chromeReadSize = 8 << 10
+var chromeReadSize = legacyPolicy().Int("http.body_read_bytes")
 
 // chromeReads is a body read chromeReadSize at a time at most.
 type chromeReads struct{ io.Reader }
@@ -343,4 +351,29 @@ func readingError(err error) error {
 // wanting more of a decoder than it is given.
 func decodingError(codings []string, err error) error {
 	return fmt.Errorf("tlsforge: decoding a %s body: %w", strings.Join(codings, ", "), err)
+}
+
+type policyReads struct {
+	io.Reader
+	limit int
+}
+
+func (r policyReads) Read(p []byte) (int, error) {
+	if len(p) > r.limit {
+		p = p[:r.limit]
+	}
+	return r.Reader.Read(p)
+}
+func decodeCoding(coding string, r io.Reader, pol behavior.Policy, compat bool) (io.ReadCloser, error) {
+	if (coding == "gzip" || coding == "x-gzip") && pol.Text("http.gzip_decoder") == "rfc1952" {
+		return gzip.NewReader(r)
+	}
+	if coding == "zstd" && !compat {
+		d, err := zstd.NewReader(r, append(slices.Clone(zstdOptions), zstd.WithDecoderMaxWindow(pol.Uint("http.zstd_window_bytes")))...)
+		if err != nil {
+			return nil, err
+		}
+		return d.IOReadCloser(), nil
+	}
+	return decoders[coding](r)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"github.com/igor-lemon/utls/behavior"
 	"net"
 	"net/url"
 
@@ -18,12 +19,14 @@ type proxyIdentity struct {
 
 type proxyTLSCache = utls.ClientSessionCache
 
-func newProxyTLSCache() proxyTLSCache { return utls.NewLRUClientSessionCache(32) }
+func newProxyTLSCache(policies ...behavior.Policy) proxyTLSCache {
+	return utls.NewLRUClientSessionCache(policyArgument(policies).Int("proxy.tls_cache_entries"))
+}
 
 // The transport forwards plain HTTP through HTTP or HTTPS proxies; HTTPS
 // origins still use CONNECT and retain the origin's TLS profile.
 func (d *connectDialer) ForwardProxyURL() *url.URL {
-	if d.identity.profile != nil && d.identity.profile.Chromium() {
+	if d.identity.profile != nil && d.identity.profile.RuntimeBehavior().Flag("proxy.forward_http") {
 		copy := *d.forward
 		return &copy
 	}
@@ -47,7 +50,8 @@ func (d *connectDialer) chromeProxyTLS(ctx context.Context, raw net.Conn) (net.C
 		return nil, err
 	}
 	conn := utls.UClient(raw, &utls.Config{ServerName: d.name, RootCAs: proxyRoots,
-		ClientSessionCache: d.cache, OmitEmptyPsk: true, KeyLogWriter: d.keys, ChromeBehavior: true},
+		DynamicRecordSizingDisabled: prof.GetDynamicRecordSizingDisabled(), FalseStart: prof.GetFalseStart(),
+		ClientSessionCache: d.cache, OmitEmptyPsk: true, KeyLogWriter: d.keys, Behavior: d.identity.profile.RuntimeBehavior().Clone()},
 		prof.GetClientHelloId(), false, false, true)
 	err = conn.HandshakeContext(ctx)
 	var refused *utls.CertificateVerificationError

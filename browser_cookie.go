@@ -12,7 +12,7 @@ import (
 // bytes are less restrictive than Go Cookie.Name/Value; scope, Secure, prefix,
 // credentials, SameSite and lifetime checks still run through SetCookies.
 func (j *keptJar) RawSetCookieHeaders(u *url.URL, h fhttp.Header) bool {
-	if !j.chrome {
+	if !j.cookiePolicy().Flag("cookie.raw_fields") {
 		return false
 	}
 	var cookies []*fhttp.Cookie
@@ -49,7 +49,7 @@ func (j *keptJar) RawSetCookieHeaders(u *url.URL, h fhttp.Header) bool {
 // Go Cookie.String value. Only values admitted by the response parser or the
 // caller's explicit seed API enter this path; controls cannot inject a field.
 func (j *keptJar) RawCookieHeader(u *url.URL) (string, bool) {
-	if !j.chrome {
+	if !j.cookiePolicy().Flag("cookie.raw_fields") {
 		return "", false
 	}
 	var pairs []string

@@ -19,8 +19,8 @@ func TestTheCapturePageAsksForEveryClientHintAServerAsksFor(t *testing.T) {
 	// applies to the page's own requests alone and which no later visit
 	// carries (measured on Chrome 155: its fetch() sent all 21, the next
 	// navigation none).
-	if !slices.Equal(clientHints, profile.ClientHintOrder) {
-		t.Errorf("the hints %v, Chrome's %v", clientHints, profile.ClientHintOrder)
+	if !slices.Equal(clientHints, profile.DefaultHintOrder()) {
+		t.Errorf("the hints %v, Chrome's %v", clientHints, profile.DefaultHintOrder())
 	}
 	if !slices.Equal(askedHints(), profile.AskedClientHints()) {
 		t.Errorf("asked %v, a server asks for %v", askedHints(), profile.AskedClientHints())

@@ -4,22 +4,16 @@ import (
 	"slices"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // clientHints are the client hints Chrome sends, in the order it sends them
 // (profile.ClientHintOrder, measured on Chrome 155). unaskedHints it sends to
 // every server; the rest only to one that asks.
-var clientHints = []string{
-	"device-memory", "sec-ch-device-memory", "dpr", "sec-ch-dpr", "viewport-width", "sec-ch-viewport-width",
-	"sec-ch-viewport-height", "rtt", "downlink", "ect",
-	"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-full-version", "sec-ch-ua-arch", "sec-ch-ua-platform",
-	"sec-ch-ua-platform-version", "sec-ch-ua-model", "sec-ch-ua-bitness", "sec-ch-ua-wow64",
-	"sec-ch-ua-full-version-list", "sec-ch-ua-form-factors",
-	"sec-ch-prefers-color-scheme", "sec-ch-prefers-reduced-motion", "sec-ch-prefers-reduced-transparency",
-}
+var clientHints = profile.DefaultHintOrder()
 
 // unaskedHints are the client hints Chrome sends unasked.
-var unaskedHints = []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"}
+var unaskedHints = profile.DefaultUnaskedHints()
 
 // askedHints are the client hints the capture page asks for: every one a
 // server has to ask for.

@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"fmt"
+	"github.com/igor-lemon/utls/behavior"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -119,6 +120,7 @@ func TestARequestWithoutAContextNamesTheCookieWhereChromeWritesIt(t *testing.T) 
 			t.Fatalf("profile: %v", err)
 		}
 		p.Name, p.UserAgent = "firefox_test", "Mozilla/5.0 (Macintosh; rv:148.0) Gecko/20100101 Firefox/148.0"
+		p.Behavior = behavior.Generic() // This fixture changes policy explicitly; renaming is metadata only.
 		p.Headers = []profile.Field{{Name: "user-agent", Value: p.UserAgent}, {Name: "accept-language", Value: "en"},
 			{Name: "priority", Value: "u=0, i"}}
 		client := newTestClient(t, WithProfileValue(p))
@@ -379,6 +381,7 @@ func TestARequestsOwnCookieGoesBeforeTheJarsOverBothProtocols(t *testing.T) {
 		t.Fatalf("profile: %v", err)
 	}
 	firefox.Name, firefox.UserAgent = "firefox_test", "Mozilla/5.0 (Macintosh; rv:148.0) Gecko/20100101 Firefox/148.0"
+	firefox.Behavior = behavior.Generic() // This fixture changes policy explicitly; renaming is metadata only.
 	firefox.Headers = []profile.Field{{Name: "user-agent", Value: firefox.UserAgent}, {Name: "accept-language", Value: "en"},
 		{Name: "priority", Value: "u=0, i"}}
 	own := NewHeader("cookie", "x=9")
@@ -604,6 +607,7 @@ func TestAProfileWithholdsItsClientHintsSecFetchAndBrotliFromAURLThatIsNotTrustw
 	}
 	firefox := chrome.Clone()
 	firefox.Name, firefox.UserAgent = "firefox_148", "Mozilla/5.0 (Macintosh; rv:148.0) Gecko/20100101 Firefox/148.0"
+	firefox.Behavior = behavior.Generic() // This fixture changes policy explicitly; renaming is metadata only.
 	firefox.PerConnection = nil
 	if got := withheldOf(firefox, nil); got != nil {
 		t.Errorf("another browser's profile: %+v", got)
