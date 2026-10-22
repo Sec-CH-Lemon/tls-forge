@@ -5,8 +5,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/Sec-CH-Lemon/tls-forge/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
 )
 
 // minDrawn is how many hellos a capture needs, its own and those of the other

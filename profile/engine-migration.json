@@ -1,0 +1,7 @@
+{
+  "engine_major": 2,
+  "behavior": {
+    "h3.qpack.huffman_names": "always",
+    "h3.qpack.huffman_values": "always"
+  }
+}

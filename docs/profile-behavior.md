@@ -1,16 +1,16 @@
 # Profile-owned network behavior
 
-## Engine/profile compatibility (1.0.0)
+## Engine/profile compatibility (2.0.0)
 
-The compiled engine version is **1.0.0**, independently of the browser build and
+The compiled engine version is **2.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 1`. Engines reject profiles from both older
+non-negative integer `engine_major: 2`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 1, "name": "my-browser"}
+{"schema": 4, "engine_major": 2, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -29,13 +29,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-1") // handle err
+candidate, err := old.Migrate("my-browser-engine-2") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-1
+The 15 shipped profiles and all backend catalogue policies have explicit engine-2
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -46,7 +46,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 2`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -78,7 +78,7 @@ Schema 0-2 retains its historical family inference during migration. `Save` mate
 
 Existing shipped TLS capture bytes, ordered settings, header values, machine data and original provenance are preserved. Added behavior sections materialize the pre-existing runtime policy, including the newer policy previously applied to older Chromium profiles; this is not fresh acceptance of Chrome 151-154.
 
-Unknown keys, duplicate behavior keys, null or wrong types, invalid ranges and unsupported algorithm names are errors. Nonzero dynamic QPACK, H3 ALPS, ORIGIN/coalescing and cross-version profile negotiation remain unavailable; they must not be advertised through arbitrary data. Missing-API catalogue scenarios remain open.
+Unknown keys, duplicate behavior keys, null or wrong types, invalid ranges and unsupported algorithm names are errors. Nonzero dynamic QPACK table support, H3 ALPS, ORIGIN/coalescing and cross-version profile negotiation remain unavailable; they must not be advertised through arbitrary data. Missing-API catalogue scenarios remain open.
 
 Certificate verification, authenticated Finished processing, nonce safety, protocol wire encodings, fresh keys/randomness, parser/state-machine mechanisms and safe finite resource bounds remain engine responsibilities. New algorithms/protocol features require engine code; existing parameter/ordering/timer changes require only profile data. A profile cannot replace the host kernel TCP stack. Explicit caller transport options retain their documented override precedence.
 
@@ -261,3 +261,22 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 Capture helper hint lists snapshot the process default once; request generation uses each client's explicit profile. This avoids rescanning the registry on every header. Restart a long-lived capture-helper process after changing its default profile.
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
+
+## HTTP/3 QPACK string coding (engine 2)
+
+The required `behavior` keys `h3.qpack.huffman_names` and
+`h3.qpack.huffman_values` each select `always`, `shorter`, or `never`.
+`shorter` uses Huffman only when its encoded bytes are strictly shorter; a tie
+remains literal. Static-table references and field ordering are preserved.
+These are data choices applied to actual request HEADERS, independent of the
+profile name or User-Agent. No dynamic-table support is implied.
+
+The Chrome155/macOS profile selects `shorter` for both strings. Other explicit
+engine-2 migrations retain `always` until separately measured. The 15 original
+engine-1 profile files remain in the private immutable r16 source archive.
+Current macOS Chrome acceptance does not validate older builds or other OSes.
+
+Engine 2.0.0 uses Go module/import path `github.com/Sec-CH-Lemon/tls-forge/v2`;
+Node and Python packages are 2.0.0. Engine1 profiles cannot execute under engine2,
+and engine2 profiles cannot execute under engine1. Schema4 and daemon protocol3
+are unchanged; exact engine-major compatibility is still required.

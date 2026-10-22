@@ -6,15 +6,15 @@ import (
 )
 
 func TestCompiledIdentity(t *testing.T) {
-	if Version() != "1.0.0" || Major() != 1 {
+	if Version() != "2.0.0" || Major() != 2 {
 		t.Fatalf("wrong compiled identity: %s/%d", Version(), Major())
 	}
-	for _, v := range []string{"1.0.0", "v1.0.0"} {
+	for _, v := range []string{"2.0.0", "v2.0.0"} {
 		if err := CheckBuildVersion(v); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for _, v := range []string{"dev", "v0.1.0", "v2.0.0", "v1.0.1", "v1.0.0-dirty"} {
+	for _, v := range []string{"dev", "v0.1.0", "v1.0.0", "v2.0.1", "v2.0.0-dirty"} {
 		if CheckBuildVersion(v) == nil {
 			t.Fatal(v)
 		}
@@ -36,7 +36,7 @@ func TestUnambiguousMajorJSON(t *testing.T) {
 			t.Fatal(raw)
 		}
 	}
-	for _, raw := range []string{`{"engine_major":1,"engine_major":1}`, `{"engine_major":0,"Engine_Major":1}`, `{"ENGINE_MAJOR":1}`, `[]`, `{} {}`, `{"engine_major":1,`} {
+	for _, raw := range []string{`{"engine_major":2,"engine_major":2}`, `{"engine_major":0,"Engine_Major":1}`, `{"ENGINE_MAJOR":1}`, `[]`, `{} {}`, `{"engine_major":2,`} {
 		if _, err := DeclaredMajor([]byte(raw)); err == nil {
 			t.Fatal(raw)
 		}
@@ -46,7 +46,7 @@ func TestUnambiguousMajorJSON(t *testing.T) {
 			t.Fatal(n, err)
 		}
 	}
-	if err := CheckMajor("profile x", nil); err == nil || !strings.Contains(err.Error(), "running engine major 1") {
+	if err := CheckMajor("profile x", nil); err == nil || !strings.Contains(err.Error(), "running engine major 2") {
 		t.Fatal(err)
 	}
 	n := -1

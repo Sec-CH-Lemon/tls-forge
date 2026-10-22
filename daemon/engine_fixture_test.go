@@ -1,3 +1,3 @@
 package daemon
 
-func majorForTest() *int { n := 1; return &n }
+func majorForTest() *int { n := 2; return &n }

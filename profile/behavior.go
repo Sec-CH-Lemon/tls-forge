@@ -2,6 +2,7 @@ package profile
 
 import (
 	"fmt"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
 	"github.com/igor-lemon/utls/behavior"
 	"slices"
 )
@@ -40,6 +41,13 @@ func (p *Profile) validateBehavior() error {
 		return fmt.Errorf("profile %q: %w", p.Name, err)
 	}
 	if p.Schema >= 3 {
+		if p.EngineMajor != nil && *p.EngineMajor == engine.Major() {
+			for _, key := range []string{"h3.qpack.huffman_names", "h3.qpack.huffman_values"} {
+				if !p.Behavior.Has(key) {
+					return fmt.Errorf("profile %q: behavior is incomplete; requires %s", p.Name, key)
+				}
+			}
+		}
 		if p.Behavior.Has("tls.ech_payload_lengths") {
 			return fmt.Errorf("profile %q: ECH lengths belong in per_connection.ech_payload_lengths", p.Name)
 		}

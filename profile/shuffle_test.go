@@ -6,8 +6,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
 	"github.com/igor-lemon/tls-client/profiles"
 	tls "github.com/igor-lemon/utls"
 )
@@ -179,7 +179,7 @@ func TestAProfileDrawsItsOrderWhenAskedAndOnlyThen(t *testing.T) {
 		t.Errorf("by default: %d orders", distinct(got))
 	}
 	// A bare base is the transport's own, asked or not.
-	bare := &Profile{EngineMajor: Major(1), Name: "firefox_148", Base: "firefox_148"}
+	bare := &Profile{EngineMajor: Major(2), Name: "firefox_148", Base: "firefox_148"}
 	for _, shuffle := range []bool{true, false} {
 		built, err := bare.ClientProfileShuffled(shuffle)
 		if err != nil {
@@ -197,10 +197,10 @@ func TestABareBaseIsOneWithNothingOfItsOwn(t *testing.T) {
 		p    Profile
 		want bool
 	}{
-		{Profile{EngineMajor: Major(1), Base: "firefox_148"}, true},
-		{Profile{EngineMajor: Major(1)}, false},
-		{Profile{EngineMajor: Major(1), Base: "firefox_148", ClientHello: []byte{1}}, false},
-		{Profile{EngineMajor: Major(1), Base: "firefox_148", HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}}}}, false},
+		{Profile{EngineMajor: Major(2), Base: "firefox_148"}, true},
+		{Profile{EngineMajor: Major(2)}, false},
+		{Profile{EngineMajor: Major(2), Base: "firefox_148", ClientHello: []byte{1}}, false},
+		{Profile{EngineMajor: Major(2), Base: "firefox_148", HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}}}}, false},
 	} {
 		if got := tc.p.BareBase(); got != tc.want {
 			t.Errorf("%+v: %v", tc.p, got)

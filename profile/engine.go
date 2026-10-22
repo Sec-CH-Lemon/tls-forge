@@ -1,11 +1,15 @@
 package profile
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
 	"strings"
 )
+
+//go:embed engine-migration.json
+var migrationData []byte
 
 // Major declares compatibility explicitly when constructing a profile in Go.
 func Major(n int) *int { return &n }
@@ -43,6 +47,25 @@ func (p *Profile) Migrate(name string) (*Profile, error) {
 	out := p.Clone()
 	out.Name = name
 	out.EngineMajor = Major(engine.Major())
+	// Explicit migration alone applies the current data-owned additions. Offline
+	// Inspect/Save and ordinary Load never complete or retag archived profiles.
+	if out.Behavior != nil {
+		var defaults struct {
+			EngineMajor *int                       `json:"engine_major"`
+			Behavior    map[string]json.RawMessage `json:"behavior"`
+		}
+		if err := json.Unmarshal(migrationData, &defaults); err != nil {
+			return nil, err
+		}
+		if err := engine.CheckMajor("migration defaults", defaults.EngineMajor); err != nil {
+			return nil, err
+		}
+		for key, value := range defaults.Behavior {
+			if !out.Behavior.Has(key) {
+				out.Behavior[key] = append(json.RawMessage(nil), value...)
+			}
+		}
+	}
 	out.Notes += fmt.Sprintf("\nExplicit engine migration to %s (major %d) from profile %q; capture provenance retained; browser acceptance must be rechecked.", engine.Version(), engine.Major(), p.Name)
 	data, err := out.Save()
 	if err != nil {

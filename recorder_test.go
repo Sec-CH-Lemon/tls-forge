@@ -26,7 +26,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
 )
 
 // keptRequest is a request as a recorder kept it: the method, the URL with no

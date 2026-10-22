@@ -11,6 +11,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- **Breaking engine release 2.0.0:** the generic H3 QPACK encoder now supports
+  profile-owned name/value Huffman choices (`always`, `shorter`, `never`).
+  Chrome155/macOS uses strictly shorter coding; other profiles preserve their
+  previous coding until measured. Required choices live in JSON. Dynamic QPACK
+  remains unavailable and nonzero table SETTINGS are still rejected.
+- The Go module/import path is now `github.com/Sec-CH-Lemon/tls-forge/v2`;
+  Node/Python packages and platform bundles are 2.0.0. All executable profiles
+  explicitly pin `engine_major: 2`. Original engine-1 profiles are preserved;
+  exact compatibility rejects both directions. Schema4 and daemon protocol3
+  remain unchanged. Profile migration does not imply fresh browser acceptance.
+
 - **Breaking engine release 1.0.0 / profile schema 4:** every executable profile
   requires an exact integer `engine_major: 1`. Missing, invalid, duplicate,
   older/newer declarations fail before network I/O across file/embedded/Go,

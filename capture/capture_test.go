@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
 )
 
 // The fixture is a real Chrome 151 ClientHello, recorded off the wire. Tests

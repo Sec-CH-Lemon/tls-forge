@@ -602,9 +602,11 @@
           6669,
           6697,
           10080
-        ]
+        ],
+        "h3.qpack.huffman_names": "always",
+        "h3.qpack.huffman_values": "always"
       },
-      "engine_major": 1,
+      "engine_major": 2,
       "http2": {
         "settings": null,
         "connection_flow": 0,
@@ -801,9 +803,11 @@
           6669,
           6697,
           10080
-        ]
+        ],
+        "h3.qpack.huffman_names": "always",
+        "h3.qpack.huffman_values": "always"
       },
-      "engine_major": 1,
+      "engine_major": 2,
       "http2": {
         "settings": null,
         "connection_flow": 0,

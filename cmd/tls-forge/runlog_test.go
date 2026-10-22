@@ -20,7 +20,7 @@ import (
 
 	"github.com/igor-lemon/fhttp/http2"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
 )
 
 // logRecord is one record of a JSON log, each value as fmt.Sprint says it.
@@ -90,7 +90,7 @@ func TestFetchKeepsARunLogInItsOutput(t *testing.T) {
 	// Everything, by default: the run, each step of the request, the handshake,
 	// the frames that came back, and how it ended.
 	for _, want := range []string{
-		"level=INFO msg=run version=v1.0.0 profile=", "level=INFO msg=client client=",
+		"level=INFO msg=run version=v2.0.0 profile=", "level=INFO msg=client client=",
 		"level=INFO msg=request worker=1 req=1 try=1 client=", "level=DEBUG msg=\"dns lookup\"",
 		"level=DEBUG msg=connected", "level=TRACE msg=\"client hello\"", "level=TRACE msg=certificate",
 		"level=TRACE msg=transport said=\"http2: Transport received SETTINGS", "level=DEBUG msg=\"request sent\"",

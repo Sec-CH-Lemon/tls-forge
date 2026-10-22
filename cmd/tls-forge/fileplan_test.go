@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/cookie"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/cookie"
 )
 
 // planned is one file of a plan in a test: what names it, its path, and what

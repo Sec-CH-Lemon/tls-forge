@@ -8,7 +8,7 @@ import (
 )
 
 func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
-	old := &Profile{EngineMajor: Major(1), Name: "chrome_custom", Base: "chrome_133"}
+	old := &Profile{EngineMajor: Major(2), Name: "chrome_custom", Base: "chrome_133"}
 	saved, err := old.Save()
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) 
 	if again.Behavior.Int("tls.handshake_retries") != 0 {
 		t.Fatal("profile-only edit lost in round trip")
 	}
-	fresh := &Profile{EngineMajor: Major(1), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
+	fresh := &Profile{EngineMajor: Major(2), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
 	if fresh.Chromium() || fresh.ShufflesExtensions() {
 		t.Fatal("schema 3 inferred behavior from chrome name")
 	}
@@ -62,6 +62,10 @@ func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
 		{`,"behavior":{"h3.settings":[{"id":1,"value":0},{"id":1,"value":0}]}`, "invalid/duplicate"},
 		{`,"behavior":{"h3.settings":[{"id":1,"vaule":0}]}`, "unknown field"},
 		{`,"behavior":{"h3.origin":true}`, "unsupported behavior field"},
+		{`,"behavior":{"h3.qpack.huffman_names":"auto"}`, "unsupported primitive"},
+		{`,"behavior":{"h3.qpack.huffman_values":true}`, "cannot unmarshal"},
+		{`,"behavior":{"h3.qpack.huffman_values":null}`, "must not be null"},
+		{`,"behavior":{"h3.qpack.huffman_names":"shorter","h3.qpack.huffman_names":"always"}`, "duplicate behavior field"},
 		{`,"behavior":{"quic.enabled":true,"quic.versions":[1798521807]}`, "cross-version"},
 		{`,"behavior":{"quic.preserve_extensions":[17613]}`, "ALPS bootstrap API is unavailable"},
 		{`,"behavior":{"headers.renderer_order":"new-unimplemented-hash"}`, "unsupported primitive"},
@@ -71,7 +75,7 @@ func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
 		{`,"behavior":{"h1.missing_status":1000}`, "three digits"},
 		{`,"behavior":{"http.content_codings":["unimplemented-codec"]}`, "API is unavailable"},
 	} {
-		raw := `{"engine_major":1,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
+		raw := `{"engine_major":2,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
 		_, err := Load([]byte(raw))
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", raw, err, tc.want)

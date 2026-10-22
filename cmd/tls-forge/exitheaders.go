@@ -16,8 +16,8 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // The header fields a proxy says where its tunnel comes out in, and what to ask

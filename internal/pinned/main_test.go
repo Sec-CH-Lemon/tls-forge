@@ -19,11 +19,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // TestBrowserHelper is the browser the end-to-end test launches: this test
@@ -585,7 +585,7 @@ func TestTheGateNeedsItsFixturesAndTheirMeasurements(t *testing.T) {
 }
 
 func TestAProfileSaysWhatItSendsByName(t *testing.T) {
-	p := &profile.Profile{EngineMajor: profile.Major(1), UserAgent: "Mozilla", Headers: []profile.Field{{Name: "Sec-CH-UA", Value: "a"}, {Name: "accept", Value: "*/*"}},
+	p := &profile.Profile{EngineMajor: profile.Major(2), UserAgent: "Mozilla", Headers: []profile.Field{{Name: "Sec-CH-UA", Value: "a"}, {Name: "accept", Value: "*/*"}},
 		ClientHints: []profile.Field{{Name: "sec-ch-ua-arch", Value: `"arm"`}}}
 	if got := valuesOf(p); len(got) != 4 || got["user-agent"] != "Mozilla" || got["sec-ch-ua"] != "a" || got["sec-ch-ua-arch"] != `"arm"` ||
 		got["accept"] != "*/*" {

@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/echo"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/echo"
 )
 
 // rotatingProxy hands every tunnel an address of its own, and says which.

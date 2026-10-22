@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // machineFields are the values a profile keeps that the machine it was
