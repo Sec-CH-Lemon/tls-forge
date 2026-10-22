@@ -1,6 +1,6 @@
 {
   "name": "tls-forge",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Scraping HTTP client for Node that gets past TLS fingerprinting \u2014 sends a real browser's JA3/JA4, HTTP/2 and header order",
   "type": "module",
   "main": "index.js",
@@ -26,11 +26,11 @@
     "test": "node --test --experimental-test-coverage --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"test/*.test.js\""
   },
   "optionalDependencies": {
-    "tls-forge-darwin-arm64": "4.0.0",
-    "tls-forge-darwin-x64": "4.0.0",
-    "tls-forge-linux-arm64": "4.0.0",
-    "tls-forge-linux-x64": "4.0.0",
-    "tls-forge-windows-x64": "4.0.0"
+    "tls-forge-darwin-arm64": "5.0.0",
+    "tls-forge-darwin-x64": "5.0.0",
+    "tls-forge-linux-arm64": "5.0.0",
+    "tls-forge-linux-x64": "5.0.0",
+    "tls-forge-windows-x64": "5.0.0"
   },
   "keywords": [
     "scraper",

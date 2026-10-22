@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/atomicfile"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/atomicfile"
 )
 
 // The certificate authority the proxy signs with.

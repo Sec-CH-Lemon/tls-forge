@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v5"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
 )
 
 func runCompare(ctx context.Context, args []string, out, errOut *printer) error {

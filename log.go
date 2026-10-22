@@ -23,9 +23,9 @@ import (
 	"github.com/igor-lemon/tls-client/profiles"
 	utls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/redact"
 )
 
 // Logging: what a client does to make a request, written down as it does it.

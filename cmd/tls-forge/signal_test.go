@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/cookie"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/cookie"
 )
 
 // program is this test binary started as tls-forge, so that a signal sent to
@@ -297,7 +297,7 @@ func TestTheDaemonStopsOnSIGTERM(t *testing.T) {
 		// ends, so that whoever asked is not left waiting for it.
 		server, asked := hanging(t)
 		cmd, stdin, stdout := daemonRunning(t)
-		if _, err := fmt.Fprintf(stdin, `{"engine_major":4,"id":1,"url":%q}`+"\n", server.URL+"/headers"); err != nil {
+		if _, err := fmt.Fprintf(stdin, `{"engine_major":5,"id":1,"url":%q}`+"\n", server.URL+"/headers"); err != nil {
 			t.Fatalf("writing: %v", err)
 		}
 		reached(t, asked, "/headers")

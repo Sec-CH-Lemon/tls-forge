@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/conntap"
 )
 
 // seenConn is a connection as a tap sees it: what went over it, each way.

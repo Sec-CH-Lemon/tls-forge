@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/fingerprint"
 )
 
 func TestATrustAnchorListInByteOrderGoesOutAsCaptured(t *testing.T) {
@@ -88,7 +88,7 @@ func TestMalformedTrustAnchorPayloadsAreRejected(t *testing.T) {
 	}
 
 	raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, nil)
-	if _, err := (&Profile{EngineMajor: Major(4), Name: "malformed", ClientHello: raw}).Spec(); err == nil ||
+	if _, err := (&Profile{EngineMajor: Major(5), Name: "malformed", ClientHello: raw}).Spec(); err == nil ||
 		!strings.Contains(err.Error(), "malformed trust_anchors") {
 		t.Errorf("profile error = %v", err)
 	}

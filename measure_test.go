@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/echo"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
 )
 
 // TestBrowserHelper is this test binary standing in for a browser.

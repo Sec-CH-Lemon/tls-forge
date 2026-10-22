@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/harness"
 )
 
 // client asks the bench's server for a page: every name it serves is the

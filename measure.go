@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/browser"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/echo"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/browser"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/fingerprint"
 )
 
 // Measuring: what does a client actually send?

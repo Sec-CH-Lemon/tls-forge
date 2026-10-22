@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
 )
 
 // shippedServices is the list as it ships, kept from before TestMain puts a

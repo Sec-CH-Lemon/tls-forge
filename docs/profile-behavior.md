@@ -1,16 +1,16 @@
 # Profile-owned network behavior
 
-## Engine/profile compatibility (4.0.0)
+## Engine/profile compatibility (5.0.0)
 
-The compiled engine version is **4.0.0**, independently of the browser build and
+The compiled engine version is **5.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 4`. Engines reject profiles from both older
+non-negative integer `engine_major: 5`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 4, "name": "my-browser"}
+{"schema": 4, "engine_major": 5, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -19,7 +19,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go major versions use their matching module import suffix; this release uses `/v4`.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v5`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -28,13 +28,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-4") // handle err
+candidate, err := old.Migrate("my-browser-engine-5") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-4
+The 15 shipped profiles and all backend catalogue policies have explicit engine-5
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -45,7 +45,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 4`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 5`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -261,9 +261,9 @@ Capture helper hint lists snapshot the process default once; request generation 
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
 
-## HTTP/3 QPACK (engine 4)
+## HTTP/3 QPACK (engine 5)
 
-Engine4 implements RFC9204 dynamic tables in both directions, all field-line
+Engine5 implements RFC9204 dynamic tables in both directions, all field-line
 representations, encoder instructions, Required Insert Count reconstruction,
 blocked sections, section acknowledgments, cancellation and decoder feedback.
 Critical-stream errors close the connection. Table allocation, integer overflow,
@@ -298,12 +298,12 @@ profile candidates retain disabled request indexing and their old string coding
 until measured; all15 have a real TLS/H2 smoke, not fresh old-browser acceptance.
 Original engine2 profiles remain in the immutable r17 source archive.
 
-Engine4.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v4` and Node/Python4.
+Engine5.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v5` and Node/Python5.
 Both cross-major execution directions are rejected. Schema4 and daemon protocol3
 are unchanged. Offline Inspect/Save preserve old identity; explicit Migrate
 creates a separately named candidate using JSON migration additions.
 
-## QPACK small tables and error replay (engine 4)
+## QPACK small tables and error replay (engine 5)
 
 | Key | Meaning / Chrome155 macOS measured value |
 | --- | --- |
@@ -327,6 +327,42 @@ introduced. Every new key is mandatory in current explicit profiles; migration
 defaults are data in engine-migration.json. Other14 profiles keep draining0 and
 protocol retries1 with no selected errors, pending their own measurements.
 
-Engine4.0.0 coordinates this mechanism change once. Original engine3 profiles
+Engine5.0.0 coordinates this mechanism change once. Original engine3 profiles
 are retained in the immutable dynamic-qpack-20261022-r18 archive. Schema4 and
-daemon protocol3 remain unchanged; exact SDK/profile engine major4 is required.
+daemon protocol3 remain unchanged; exact SDK/profile engine major5 is required.
+
+## QPACK diagnostic policy (engine 5)
+
+Nine current-profile keys select wire CONNECTION_CLOSE reason text. Every key
+is required;all are UTF-8 strings limited to1024 bytes. Missing/null/unknown or
+malformed fields are rejected before request DNS/socket activity.
+
+| Key under `h3.qpack.` | Scope | Chrome155/macOS value |
+| --- | --- | --- |
+| `error_invalid_relative_index_reason` | Relative dynamic index underflow;not a static/post-base/RIC error | `126:Error decoding headers on stream {stream_id}: Invalid relative index.` |
+| `error_capacity_exceeded_reason` | Encoder capacity above advertised maximum | `185:Encoder stream error: Error updating dynamic table capacity.` |
+| `error_zero_increment_reason` | Decoder Insert Count Increment exactly0;not nonzero overflow | `187:Decoder stream error: Invalid increment value 0.` |
+| `error_decompression_reason` | Other field-section decompression failures | `{detail}` |
+| `error_encoder_reason` | Other encoder-stream syntax failures | `invalid or closed QPACK critical stream` |
+| `error_decoder_reason` | Other decoder-stream failures | `invalid or closed QPACK critical stream` |
+| `error_stream_unavailable_reason` | Local instruction stream cannot open | `QPACK stream unavailable` |
+| `error_stream_write_reason` | Local instruction stream write failure | `QPACK stream write failed` |
+| `error_queue_exhausted_reason` | Bounded local instruction queue exhausted | `QPACK instruction queue exhausted` |
+
+`{stream_id}` is the actual failing request stream ID and is allowed only in
+relative-index/decompression templates. `{detail}` is the preserved local error
+text. All other placeholders/braces are rejected;there is no executable code,
+format-string evaluation or arbitrary data access. Expanded diagnostics retain
+a hard1024-byte UTF-8 bound. Empty reasons are allowed as an explicit choice.
+
+Parser classification, RFC error space/code, reference validation and local error
+causes remain engine mechanisms. Changing the wire message never turns invalid
+data into success or changes retry/replay permissions. Current Chrome acceptance
+for the first three classes is measured separately. Generic fallback/local-write
+messages preserve the earlier policy;they are not a claim about every Chrome
+error. Other14 profiles retain earlier diagnostic text pending browser witnesses.
+
+This coordinated mechanism change raises major4→5 once. Go uses /v5;Node/Python
+and compiled engine are5.0.0. Schema4 and daemon protocol3 remain unchanged.
+The15 shipped profiles are explicit engine5 candidates with original engine4
+bytes preserved in the immutable qpack-edges-20261023-r19 archive.

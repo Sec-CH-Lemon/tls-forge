@@ -15,8 +15,8 @@ import (
 	"strings"
 	"unicode"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/redact"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/redact"
 )
 
 // Reading a list of URLs.

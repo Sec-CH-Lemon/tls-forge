@@ -13,7 +13,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/engine"
 	"io"
 	"net"
 	"os"
@@ -24,7 +24,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/redact"
 )
 
 // version is stamped at build time:

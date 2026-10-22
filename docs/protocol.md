@@ -1,16 +1,16 @@
 # The daemon protocol
 
-## Engine/profile compatibility (4.0.0)
+## Engine/profile compatibility (5.0.0)
 
-The compiled engine version is **4.0.0**, independently of the browser build and
+The compiled engine version is **5.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 4`. Engines reject profiles from both older
+non-negative integer `engine_major: 5`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 4, "name": "my-browser"}
+{"schema": 4, "engine_major": 5, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -29,13 +29,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-4") // handle err
+candidate, err := old.Migrate("my-browser-engine-5") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-4
+The 15 shipped profiles and all backend catalogue policies have explicit engine-5
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -46,7 +46,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 4`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 5`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -75,7 +75,7 @@ A daemon started with `--proxy-stdin` takes its proxy from the first line of
 its input, the init line, and from nowhere else:
 
 ```json
-{"id": 1, "engine_major": 4, "control": "init", "proxy": "http://user:pass@host:8080"}
+{"id": 1, "engine_major": 5, "control": "init", "proxy": "http://user:pass@host:8080"}
 ```
 
 It reads that line before it makes the client that goes through the proxy,
@@ -254,7 +254,7 @@ that a client has to ask about before relying on it:
 
 ```json
 {"id": 10, "control": "hello"}
-{"id": 10, "status": 0, "url": "", "body": "", "headers": null, "cookies": null, "protocol": 3, "engine_major": 4, "version": "1.0.0",
+{"id": 10, "status": 0, "url": "", "body": "", "headers": null, "cookies": null, "protocol": 3, "engine_major": 5, "version": "1.0.0",
  "capabilities": ["browser_context"]}
 ```
 

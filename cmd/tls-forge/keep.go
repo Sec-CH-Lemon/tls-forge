@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
 )
 
 // What is kept of each request, in the directory --output names.

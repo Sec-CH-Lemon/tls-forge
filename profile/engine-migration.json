@@ -1,5 +1,5 @@
 {
-  "engine_major": 4,
+  "engine_major": 5,
   "behavior": {
     "h3.qpack.huffman_names": "always",
     "h3.qpack.huffman_values": "always",
@@ -28,6 +28,15 @@
     "h3.retry_transport_errors": [],
     "h3.qpack.critical_close_frame_type": 0,
     "h3.qpack.critical_close_reason": "invalid or closed QPACK critical stream",
-    "h3.retry_unprocessed_attempts": 2
+    "h3.retry_unprocessed_attempts": 2,
+    "h3.qpack.error_invalid_relative_index_reason": "{detail}",
+    "h3.qpack.error_capacity_exceeded_reason": "invalid or closed QPACK critical stream",
+    "h3.qpack.error_zero_increment_reason": "invalid or closed QPACK critical stream",
+    "h3.qpack.error_decompression_reason": "{detail}",
+    "h3.qpack.error_encoder_reason": "invalid or closed QPACK critical stream",
+    "h3.qpack.error_decoder_reason": "invalid or closed QPACK critical stream",
+    "h3.qpack.error_stream_unavailable_reason": "QPACK stream unavailable",
+    "h3.qpack.error_stream_write_reason": "QPACK stream write failed",
+    "h3.qpack.error_queue_exhausted_reason": "QPACK instruction queue exhausted"
   }
 }

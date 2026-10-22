@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
 )
 
 // resolved is the profile a name resolves to.
@@ -146,14 +146,14 @@ func TestTheReportSaysWhoseTCPIPARunHas(t *testing.T) {
 
 func TestNetworkNote(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "mine.json")
-	if err := os.WriteFile(file, []byte(`{"engine_major":4,"name":"mine_windows","base":"chrome_133"}`), 0o644); err != nil {
+	if err := os.WriteFile(file, []byte(`{"engine_major":5,"name":"mine_windows","base":"chrome_133"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	fromFile, err := profile.Get(file)
 	if err != nil {
 		t.Fatalf("loading %s: %v", file, err)
 	}
-	named := func(name string) *profile.Profile { return &profile.Profile{EngineMajor: profile.Major(4), Name: name} }
+	named := func(name string) *profile.Profile { return &profile.Profile{EngineMajor: profile.Major(5), Name: name} }
 
 	for _, tc := range []struct {
 		name    string
@@ -308,11 +308,11 @@ func TestBrowserFrom(t *testing.T) {
 func TestBrowserOfSaysNothingAboutABrowserItCannotRead(t *testing.T) {
 	// Better a missing line than a confident wrong one: the user-agent is
 	// printed in full underneath either way.
-	if got := browserOf(&profile.Profile{EngineMajor: profile.Major(4), Name: "x", UserAgent: "Nobody/1.0"}); got != "" {
+	if got := browserOf(&profile.Profile{EngineMajor: profile.Major(5), Name: "x", UserAgent: "Nobody/1.0"}); got != "" {
 		t.Errorf("browserOf = %q, want nothing", got)
 	}
 	// And the platform is only added when the name carries one.
-	got := browserOf(&profile.Profile{EngineMajor: profile.Major(4), Name: "mine", UserAgent: "… Chrome/151.0.0.0"})
+	got := browserOf(&profile.Profile{EngineMajor: profile.Major(5), Name: "mine", UserAgent: "… Chrome/151.0.0.0"})
 	if got != "Chrome 151" {
 		t.Errorf("browserOf = %q, want no platform on a name without one", got)
 	}
@@ -323,7 +323,7 @@ func TestBrowserOfAPhone(t *testing.T) {
 		{"chrome_138_android", "… Chrome/138.0.0.0 Mobile Safari/537.36", "Chrome 138 on Android"},
 		{"safari_18_ios", "… Version/18.5 Mobile/15E148 Safari/604.1", "Safari 18 on iOS"},
 	} {
-		if got := browserOf(&profile.Profile{EngineMajor: profile.Major(4), Name: tc.name, UserAgent: tc.ua}); got != tc.want {
+		if got := browserOf(&profile.Profile{EngineMajor: profile.Major(5), Name: tc.name, UserAgent: tc.ua}); got != tc.want {
 			t.Errorf("browserOf(%s) = %q, want %q", tc.name, got, tc.want)
 		}
 	}

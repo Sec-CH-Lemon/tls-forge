@@ -9,7 +9,7 @@ import (
 	fhttptrace "github.com/igor-lemon/fhttp/httptrace"
 	utls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
 )
 
 // Trace is told what a request does on the wire, while it does it.

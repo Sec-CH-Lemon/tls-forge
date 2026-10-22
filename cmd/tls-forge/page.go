@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
 )
 
 // pageCheck is what an answer has to have to be the page, whatever its status:

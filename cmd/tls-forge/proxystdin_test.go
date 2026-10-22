@@ -40,8 +40,8 @@ func TestProxyStdinTakesTheProxyFromTheInitLine(t *testing.T) {
 	var heard []string
 	proxy := startProxyHearing(t, func(int, []string) string { return "" })
 	proxy.heard = func(fields []string) { heard = append(heard, fields...) }
-	input := "\n" + `{"engine_major":4,"id":7,"control":"init","proxy":"http://alice:` + secret + `@` + proxy.addr + `"}` + "\n" +
-		`{"engine_major":4,"id":8,"url":"` + server.URL + `"}` + "\n"
+	input := "\n" + `{"engine_major":5,"id":7,"control":"init","proxy":"http://alice:` + secret + `@` + proxy.addr + `"}` + "\n" +
+		`{"engine_major":5,"id":8,"url":"` + server.URL + `"}` + "\n"
 
 	code, answers, stderr := daemonGiven(t, input, "--insecure", "--proxy-stdin")
 	if code != 0 || len(answers) != 2 {
@@ -72,7 +72,7 @@ func TestProxyStdinRefusals(t *testing.T) {
 		{"--proxy-stdin", "--proxy", "http://127.0.0.1:2"},
 		{"--proxy-env", "RUN_PROXY_SET", "--proxy-stdin"},
 	} {
-		code, answers, stderr := daemonGiven(t, `{"engine_major":4,"id":1,"control":"init","proxy":"http://127.0.0.1:3"}`+"\n", args...)
+		code, answers, stderr := daemonGiven(t, `{"engine_major":5,"id":1,"control":"init","proxy":"http://127.0.0.1:3"}`+"\n", args...)
 		if code != 2 || len(answers) != 0 || !strings.Contains(stderr, "--proxy-stdin takes the proxy from the input") ||
 			strings.Contains(stderr, secret) {
 			t.Errorf("%q: exit code = %d, answers %v\n%s", args, code, answers, stderr)
@@ -84,7 +84,7 @@ func TestAnInitLineThatCannotStartTheDaemonIsAnswered(t *testing.T) {
 	// With its id, without the password, and nothing sent: the daemon ends
 	// with 1, which the packages do not read as a tls-forge older than they.
 	server, asked := countingTLS(t)
-	request := `{"engine_major":4,"id":5,"url":"` + server.URL + `"}`
+	request := `{"engine_major":5,"id":5,"url":"` + server.URL + `"}`
 	missing := filepath.Join(t.TempDir(), "no-cookies.json")
 	for _, tc := range []struct {
 		name  string
@@ -94,15 +94,15 @@ func TestAnInitLineThatCannotStartTheDaemonIsAnswered(t *testing.T) {
 		says  string
 	}{
 		{"a request first", request + "\n", nil, 5, "the first line of a daemon started with --proxy-stdin is its init line"},
-		{"an init line with a url", `{"engine_major":4,"id":3,"control":"init","proxy":"http://127.0.0.1:1","url":"` + server.URL + `"}`,
+		{"an init line with a url", `{"engine_major":5,"id":3,"control":"init","proxy":"http://127.0.0.1:1","url":"` + server.URL + `"}`,
 			nil, 3, "is its init line"},
-		{"no proxy", `{"engine_major":4,"id":3,"control":"init"}`, nil, 3, "the init line names no proxy"},
-		{"no JSON", `{"engine_major":4,"id":3,`, nil, 0, "bad request: unexpected end of JSON input"},
+		{"no proxy", `{"engine_major":5,"id":3,"control":"init"}`, nil, 3, "the init line names no proxy"},
+		{"no JSON", `{"engine_major":5,"id":3,`, nil, 0, "bad request: unexpected end of JSON input"},
 		{"no input", "", nil, 0, "the input ended before the init line"},
 		{"nothing but blank lines", "\n \n\t\n", nil, 0, "the input ended before the init line"},
-		{"a proxy that is not one", `{"engine_major":4,"id":4,"control":"init","proxy":"http://alice:` + secret + `@[bad"}`, nil, 4,
+		{"a proxy that is not one", `{"engine_major":5,"id":4,"control":"init","proxy":"http://alice:` + secret + `@[bad"}`, nil, 4,
 			"the init line's proxy [redacted]@[bad is not a URL"},
-		{"a session file there is none of", `{"engine_major":4,"id":6,"control":"init","proxy":"http://127.0.0.1:1"}`,
+		{"a session file there is none of", `{"engine_major":5,"id":6,"control":"init","proxy":"http://127.0.0.1:1"}`,
 			[]string{"--cookies", missing}, 6, "no-cookies.json"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -124,7 +124,7 @@ func TestAnInitLineThatCannotStartTheDaemonIsAnswered(t *testing.T) {
 func TestADaemonThatCannotSayItIsReadyEnds(t *testing.T) {
 	original := daemonInput
 	t.Cleanup(func() { daemonInput = original })
-	daemonInput = strings.NewReader(`{"engine_major":4,"id":1,"control":"init","proxy":"http://127.0.0.1:1"}` + "\n")
+	daemonInput = strings.NewReader(`{"engine_major":5,"id":1,"control":"init","proxy":"http://127.0.0.1:1"}` + "\n")
 	var errOut bytes.Buffer
 	err := runDaemon(context.Background(), []string{"--proxy-stdin"}, newPrinter(failingWriter{}), newPrinter(&errOut))
 	if err == nil || !strings.Contains(err.Error(), "no space left on device") {
@@ -137,7 +137,7 @@ func TestAProfileThereIsNoneOfEndsTheDaemonBeforeItsInitLine(t *testing.T) {
 	// reads its input: the init line goes unanswered.
 	original := daemonInput
 	t.Cleanup(func() { daemonInput = original })
-	line := `{"engine_major":4,"id":1,"control":"init","proxy":"http://127.0.0.1:1"}` + "\n"
+	line := `{"engine_major":5,"id":1,"control":"init","proxy":"http://127.0.0.1:1"}` + "\n"
 	input := strings.NewReader(line)
 	daemonInput = input
 	code, stdout, stderr := exec(t, "daemon", "--proxy-stdin", "--profile", "netscape_4")

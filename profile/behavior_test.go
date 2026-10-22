@@ -8,7 +8,7 @@ import (
 )
 
 func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
-	old := &Profile{EngineMajor: Major(4), Name: "chrome_custom", Base: "chrome_133"}
+	old := &Profile{EngineMajor: Major(5), Name: "chrome_custom", Base: "chrome_133"}
 	saved, err := old.Save()
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) 
 	if again.Behavior.Int("tls.handshake_retries") != 0 {
 		t.Fatal("profile-only edit lost in round trip")
 	}
-	fresh := &Profile{EngineMajor: Major(4), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
+	fresh := &Profile{EngineMajor: Major(5), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
 	if fresh.Chromium() || fresh.ShufflesExtensions() {
 		t.Fatal("schema 3 inferred behavior from chrome name")
 	}
@@ -75,7 +75,7 @@ func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
 		{`,"behavior":{"h1.missing_status":1000}`, "three digits"},
 		{`,"behavior":{"http.content_codings":["unimplemented-codec"]}`, "API is unavailable"},
 	} {
-		raw := `{"engine_major":4,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
+		raw := `{"engine_major":5,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
 		_, err := Load([]byte(raw))
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", raw, err, tc.want)

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v4/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
 	"io"
 	"net"
 	"net/http/httptest"
@@ -189,24 +189,33 @@ func TestQPACKPolicyIsRequiredAndValidatedBeforeNetwork(t *testing.T) {
 
 func TestDynamicQPACKJSONGateBeforeNetwork(t *testing.T) {
 	for key, bad := range map[string]string{
-		"h3.qpack.draining_percent":          `101`,
-		"h3.qpack.critical_close_space":      `"either"`,
-		"h3.qpack.critical_close_code":       `-1`,
-		"h3.qpack.critical_close_frame_type": `-1`,
-		"h3.qpack.critical_close_reason":     `true`,
-		"h3.retry_unprocessed_attempts":      `0`,
-		"h3.retry_attempts":                  `17`,
-		"h3.retry_methods":                   `true`,
-		"h3.retry_application_errors":        `[-1]`,
-		"h3.retry_transport_errors":          `[4294967296]`,
-		"h3.qpack.encoder_table_bytes":       `1048577`,
-		"h3.qpack.encoder_strategy":          `"browser-magic"`,
-		"h3.qpack.decoder_feedback":          `"maybe"`,
-		"h3.qpack.streams":                   `"hidden-default"`,
-		"h3.qpack.stream_order":              `[2,2]`,
-		"h3.qpack.encoder_warmup_sections":   `1025`,
-		"h3.qpack.reference_base":            `"auto"`,
-		"h3.qpack.never_index":               `true`,
+		"h3.qpack.error_invalid_relative_index_reason": `true`,
+		"h3.qpack.error_capacity_exceeded_reason":      `true`,
+		"h3.qpack.error_zero_increment_reason":         `true`,
+		"h3.qpack.error_decompression_reason":          `true`,
+		"h3.qpack.error_encoder_reason":                `true`,
+		"h3.qpack.error_decoder_reason":                `true`,
+		"h3.qpack.error_stream_unavailable_reason":     `true`,
+		"h3.qpack.error_stream_write_reason":           `true`,
+		"h3.qpack.error_queue_exhausted_reason":        `true`,
+		"h3.qpack.draining_percent":                    `101`,
+		"h3.qpack.critical_close_space":                `"either"`,
+		"h3.qpack.critical_close_code":                 `-1`,
+		"h3.qpack.critical_close_frame_type":           `-1`,
+		"h3.qpack.critical_close_reason":               `true`,
+		"h3.retry_unprocessed_attempts":                `0`,
+		"h3.retry_attempts":                            `17`,
+		"h3.retry_methods":                             `true`,
+		"h3.retry_application_errors":                  `[-1]`,
+		"h3.retry_transport_errors":                    `[4294967296]`,
+		"h3.qpack.encoder_table_bytes":                 `1048577`,
+		"h3.qpack.encoder_strategy":                    `"browser-magic"`,
+		"h3.qpack.decoder_feedback":                    `"maybe"`,
+		"h3.qpack.streams":                             `"hidden-default"`,
+		"h3.qpack.stream_order":                        `[2,2]`,
+		"h3.qpack.encoder_warmup_sections":             `1025`,
+		"h3.qpack.reference_base":                      `"auto"`,
+		"h3.qpack.never_index":                         `true`,
 	} {
 		t.Run(key, func(t *testing.T) {
 			for _, missing := range []bool{false, true} {

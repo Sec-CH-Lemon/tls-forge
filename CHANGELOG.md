@@ -11,6 +11,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- **Breaking engine release 5.0.0:** typed QPACK error classes and nine explicit
+  JSON diagnostic text/template choices. Relative-index messages use the actual
+  request stream ID;capacity excess and zero increments are classified separately
+  from other malformed data. RFC close codes, retry budgets and replay guards are
+  retained. All15 profile candidates pin engine_major5;original engine4 bytes stay
+  in the r19 archive. Go /v5,Node/Python/platform packages5.0.0;schema4 and daemon
+  protocol3 are unchanged. Browser acceptance is measured per error/workload.
+
+
 - **Breaking engine release 4.0.0:** profile-selected QPACK draining/duplication,
   transport versus application critical-stream close (code, triggering frame and
   reason), and bounded H3 protocol-error retries with replay/context safeguards.
