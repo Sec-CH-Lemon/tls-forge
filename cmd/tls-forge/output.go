@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
 )
 
 // What becomes of what a request brought back.

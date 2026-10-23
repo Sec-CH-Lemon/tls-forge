@@ -1,16 +1,16 @@
 # Profile-owned network behavior
 
-## Engine/profile compatibility (6.0.0)
+## Engine/profile compatibility (7.0.0)
 
-The compiled engine version is **6.0.0**, independently of the browser build and
+The compiled engine version is **7.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 6`. Engines reject profiles from both older
+non-negative integer `engine_major: 7`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 6, "name": "my-browser"}
+{"schema": 4, "engine_major": 7, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -19,7 +19,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go major versions use their matching module import suffix; this release uses `/v6`.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v7`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -28,13 +28,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-6") // handle err
+candidate, err := old.Migrate("my-browser-engine-7") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-6
+The 15 shipped profiles and all backend catalogue policies have explicit engine-7
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -45,7 +45,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 6`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 7`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -326,7 +326,7 @@ profile candidates retain disabled request indexing and their old string coding
 until measured; all15 have a real TLS/H2 smoke, not fresh old-browser acceptance.
 Original engine2 profiles remain in the immutable r17 source archive.
 
-Engine6.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v6` and Node/Python6.
+Engine7.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v7` and Node/Python7.
 Both cross-major execution directions are rejected. Schema4 and daemon protocol3
 are unchanged. Offline Inspect/Save preserve old identity; explicit Migrate
 creates a separately named candidate using JSON migration additions.
@@ -423,7 +423,7 @@ Reservation and first-write synchronization are engine primitives. A writer may
 queue feedback while setup finishes; only its I/O goroutine waits for reservation,
 without holding a table lock. Cancellation/connection failure terminates that
 wait. Existing bounded queues, protocol errors and JSON-owned diagnostics remain.
-This new primitive increments engine5→6 once. Original engine5 files remain
+The deferred-QPACK primitive was introduced by engine5→6. Original engine5 files remain
 archived; all15 new candidates explicitly pin6. Metadata migration alone does
 not transfer browser acceptance to another profile or platform.
 
@@ -451,8 +451,40 @@ writes serialize outside QPACK/header locks. Request cancellation stops the call
 wait without resetting a critical stream; at most one bounded frame write remains
 in flight, and connection shutdown terminates it. Protocol ordering, cryptographic
 random generation, synchronization and hard resource ceilings are engine mechanisms.
-The new mechanisms are part of the same coordinated, unpublished 5→6 release.
+Those H3 mechanisms were introduced in engine6 and remain available in engine7.
 
 Repeated original-wire measurements and scope/negative controls are maintained in
 `../net-fp-server/docs/DYNAMIC_FIELDS_2026-10-23.md`. RFC-valid random lengths alone
 are insufficient: the measured N/length relationship and lifecycle must also hold.
+
+
+## Initial HTTP/2 input scheduling (engine 7)
+
+`h2.read_loop_start` is required in every current explicit profile and selects
+one generic initial connection policy:
+
+| JSON choice | Reader starts |
+| --- | --- |
+| `connection` | During connection setup, retaining the previous concurrent behavior. |
+| `first-headers` | After the first request's complete HEADERS/CONTINUATION write, before body/response waits. |
+
+The measured Chrome155/macOS candidate selects `first-headers`. This prevents
+already-buffered peer SETTINGS from changing the first request's HPACK block or
+sending an ACK ahead of it. Subsequent SETTINGS apply normally: the encoder still
+shrinks to0/128, grows to4096/65536 or the current allowed peer maximum, preserves
+intervening minima, evicts entries and emits required table-size updates. Never
+replace this ordering policy with a permanent4096encoder cap or a fixed block.
+
+ALPS is interpreted before the first request as before. If ALPS leaves a request
+waiting for a stream slot, the reader starts so later peer SETTINGS can unblock
+it. Explicit PING/Shutdown operations also require input without a request.
+Close and idle close start/terminate the single reader for normal cleanup.
+There is no timing sleep or arbitrary wall-clock grace in the runtime mechanism.
+Other14 profile candidates and catalogue/legacy/migration policies explicitly
+retain `connection` until measured for their own browser/platform.
+
+This new generic scheduling mechanism raises engine6→7 once; Go `/v7`, CLI/SDK
+7.0.0 and profiles engine_major7 agree. Original engine6 files/binary/source are
+preserved in the immutable `hpack-20261023-r22` before-build archive. Profile
+migration alone is not browser acceptance. The scoped repeated Chrome results
+are maintained in `../net-fp-server/docs/HPACK_STARTUP_2026-10-23.md`.

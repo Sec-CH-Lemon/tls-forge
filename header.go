@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
 )
 
 // Header is an ordered list of headers.

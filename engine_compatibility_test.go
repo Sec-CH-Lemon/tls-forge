@@ -3,7 +3,7 @@ package tlsforge
 import (
 	"context"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
 	tc "github.com/igor-lemon/tls-client"
 	"github.com/igor-lemon/tls-client/profiles"
 	"net"
@@ -37,7 +37,7 @@ func TestEngineGateBeforeProxyOrOriginConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, major := range []*int{nil, profile.Major(-1), profile.Major(0), profile.Major(1), profile.Major(2), profile.Major(3), profile.Major(4), profile.Major(5), profile.Major(7)} {
+	for _, major := range []*int{nil, profile.Major(-1), profile.Major(0), profile.Major(1), profile.Major(2), profile.Major(3), profile.Major(4), profile.Major(5), profile.Major(6), profile.Major(8)} {
 		q := p.Clone()
 		q.Name = "renamed"
 		q.EngineMajor = major
@@ -121,7 +121,7 @@ func TestRawPresetCannotReplaceValidatedEngineProfile(t *testing.T) {
 			c.CloseIdleConnections()
 			t.Fatal("raw profile bypass")
 		}
-		if !strings.Contains(err.Error(), "chrome_155_macos") || !strings.Contains(err.Error(), "engine_major 6") || !strings.Contains(err.Error(), "raw client profile override") {
+		if !strings.Contains(err.Error(), "chrome_155_macos") || !strings.Contains(err.Error(), "engine_major 7") || !strings.Contains(err.Error(), "raw client profile override") {
 			t.Fatal(err)
 		}
 	}

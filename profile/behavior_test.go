@@ -8,7 +8,7 @@ import (
 )
 
 func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
-	old := &Profile{EngineMajor: Major(6), Name: "chrome_custom", Base: "chrome_133"}
+	old := &Profile{EngineMajor: Major(7), Name: "chrome_custom", Base: "chrome_133"}
 	saved, err := old.Save()
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) 
 	if again.Behavior.Int("tls.handshake_retries") != 0 {
 		t.Fatal("profile-only edit lost in round trip")
 	}
-	fresh := &Profile{EngineMajor: Major(6), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
+	fresh := &Profile{EngineMajor: Major(7), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
 	if fresh.Chromium() || fresh.ShufflesExtensions() {
 		t.Fatal("schema 3 inferred behavior from chrome name")
 	}
@@ -75,7 +75,7 @@ func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
 		{`,"behavior":{"h1.missing_status":1000}`, "three digits"},
 		{`,"behavior":{"http.content_codings":["unimplemented-codec"]}`, "API is unavailable"},
 	} {
-		raw := `{"engine_major":6,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
+		raw := `{"engine_major":7,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
 		_, err := Load([]byte(raw))
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", raw, err, tc.want)
@@ -130,5 +130,26 @@ func TestH3ControlPoliciesRejectInvalidRules(t *testing.T) {
 				t.Fatal("invalid control policy accepted")
 			}
 		})
+	}
+}
+
+func TestInitialH2ReadPolicyMustBeExplicitAndSupported(t *testing.T) {
+	for _, raw := range []string{`null`, `true`, `1`, `"captured-delay"`} {
+		p, err := Get("chrome_155_macos")
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Behavior["h2.read_loop_start"] = json.RawMessage(raw)
+		if err := p.validateBehavior(); err == nil {
+			t.Fatalf("unsupported reader-start policy accepted: %s", raw)
+		}
+	}
+	p, err := Get("chrome_155_macos")
+	if err != nil {
+		t.Fatal(err)
+	}
+	delete(p.Behavior, "h2.read_loop_start")
+	if err := p.validateBehavior(); err == nil {
+		t.Fatal("missing engine7 reader-start policy inferred")
 	}
 }

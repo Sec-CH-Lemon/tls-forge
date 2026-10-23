@@ -5,8 +5,8 @@
   "body": "",
   "headers": null,
   "cookies": null,
-  "engine_major": 6,
-  "version": "6.0.0",
+  "engine_major": 7,
+  "version": "7.0.0",
   "protocol": 3,
   "capabilities": [
     "browser_context",

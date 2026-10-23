@@ -3,8 +3,8 @@ package echo
 import (
 	"slices"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v6/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
 )
 
 // clientHints are the client hints Chrome sends, in the order it sends them

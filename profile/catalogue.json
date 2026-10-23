@@ -649,9 +649,10 @@
           "grease"
         ],
         "h3.priority_updates": "initial",
-        "h3.priority_source": "profile"
+        "h3.priority_source": "profile",
+        "h2.read_loop_start": "connection"
       },
-      "engine_major": 6,
+      "engine_major": 7,
       "http2": {
         "settings": null,
         "connection_flow": 0,
@@ -895,9 +896,10 @@
           "grease"
         ],
         "h3.priority_updates": "initial",
-        "h3.priority_source": "profile"
+        "h3.priority_source": "profile",
+        "h2.read_loop_start": "connection"
       },
-      "engine_major": 6,
+      "engine_major": 7,
       "http2": {
         "settings": null,
         "connection_flow": 0,

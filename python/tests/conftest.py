@@ -55,7 +55,7 @@ def deaf(tmp_path: Path, wrapper: Path) -> Path:
         "#!/bin/sh\n"
         "read -r line\n"
         'id=$(printf \'%s\' "$line" | sed \'s/.*"id":\\([0-9]*\\).*/\\1/\')\n'
-        'printf \'{"id":%s,"protocol":3,"engine_major":6,"version":"6.0.0","capabilities":[]}\\n\' "$id"\n'
+        'printf \'{"id":%s,"protocol":3,"engine_major":7,"version":"7.0.0","capabilities":[]}\\n\' "$id"\n'
         "read -r line\n"
         'id=$(printf \'%s\' "$line" | sed \'s/.*"id":\\([0-9]*\\).*/\\1/\')\n'
         "printf '{\"id\":%s,\"status\":200,\"url\":\"https://deaf/first\","

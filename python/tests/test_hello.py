@@ -19,19 +19,19 @@ def seen(client: tlsforge.Client) -> dict:
 def test_a_transport_says_what_it_is_once(client, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "one,two")
     c = client()
-    assert c.hello() == tlsforge.Hello(3, ("one", "two"), 6, "6.0.0")
+    assert c.hello() == tlsforge.Hello(3, ("one", "two"), 7, "7.0.0")
     assert c.hello() is c.hello()
     assert seen(c)["controls"] == 1
 
 
 def test_a_transport_with_nothing_to_say(client, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("TLSFORGE_TEST_CAPABILITIES", raising=False)
-    assert client().hello() == tlsforge.Hello(3, (), 6, "6.0.0")
+    assert client().hello() == tlsforge.Hello(3, (), 7, "7.0.0")
 
 
 @pytest.mark.parametrize(
     ("mode", "want"),
-    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(3, ("browser_context", "engine_major"), 6, "6.0.0")), ("fixture-old", tlsforge.Hello(1, ()))],
+    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(3, ("browser_context", "engine_major"), 7, "7.0.0")), ("fixture-old", tlsforge.Hello(1, ()))],
 )
 def test_older_transports_and_the_committed_answers(client, monkeypatch, mode, want) -> None:
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", mode)
@@ -61,7 +61,7 @@ def test_a_transport_newer_than_this_package_is_read_for_what_it_says_it_can_do(
     # to refuse what both know.
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", "newer")
     c = client()
-    assert c.hello() == tlsforge.Hello(7, ("browser_context", "teleport"), 6, "6.0.0")
+    assert c.hello() == tlsforge.Hello(7, ("browser_context", "teleport"), 7, "7.0.0")
     context = {"kind": "fetch", "initiator": "https://example.com/"}
     assert json.loads(c.get("https://ok/", browser_context=context).body)["browser"] == context
 
@@ -83,7 +83,7 @@ def test_a_question_asked_after_a_session_went_leaves_the_next_request_to_be_tol
     c = client(timeout=0.3)
     with pytest.raises(tlsforge.Timeout):
         c.get("https://silent/")
-    assert c.hello() == tlsforge.Hello(3, (), 6, "6.0.0")
+    assert c.hello() == tlsforge.Hello(3, (), 7, "7.0.0")
     with pytest.raises(tlsforge.SessionReset):
         c.get("https://ok/")
     assert seen(c)["requests"] == 1
@@ -101,7 +101,7 @@ def test_a_transport_gone_while_idle_is_noticed_by_hello(client, monkeypatch) ->
     os.kill(first["pid"], 9)
     c._process.wait()
     # Asked of a new one; the request after it is told its session went.
-    assert c.hello() == tlsforge.Hello(3, (), 6, "6.0.0")
+    assert c.hello() == tlsforge.Hello(3, (), 7, "7.0.0")
     with pytest.raises(tlsforge.SessionReset):
         c.get("https://ok/")
     assert seen(c)["pid"] != first["pid"]

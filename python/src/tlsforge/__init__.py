@@ -13,7 +13,7 @@ and how it is verified.
 
 from __future__ import annotations
 
-__version__ = "6.0.0"
+__version__ = "7.0.0"
 
 from ._binary import ENV_VAR, bundled_binary, exe_name, resolve_binary
 from ._client import DEFAULT_TIMEOUT, MAX_REQUEST_BYTES, BrowserContext, Client, Hello, Response

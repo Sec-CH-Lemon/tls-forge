@@ -1,5 +1,5 @@
 {
-  "engine_major": 6,
+  "engine_major": 7,
   "behavior": {
     "h3.qpack.huffman_names": "always",
     "h3.qpack.huffman_values": "always",
@@ -47,6 +47,7 @@
       "grease"
     ],
     "h3.priority_updates": "initial",
-    "h3.priority_source": "profile"
+    "h3.priority_source": "profile",
+    "h2.read_loop_start": "connection"
   }
 }

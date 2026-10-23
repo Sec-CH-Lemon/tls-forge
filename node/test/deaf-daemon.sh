@@ -8,7 +8,7 @@
 # a signal instead. A shell closes fd 0 and nothing else.
 read -r line
 id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
-printf '{"id":%s,"protocol":3,"engine_major":6,"version":"6.0.0","capabilities":[]}\n' "$id"
+printf '{"id":%s,"protocol":3,"engine_major":7,"version":"7.0.0","capabilities":[]}\n' "$id"
 read -r line
 id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
 printf '{"id":%s,"status":200,"url":"https://deaf/first","body":"","headers":{},"cookies":[]}\n' "$id"

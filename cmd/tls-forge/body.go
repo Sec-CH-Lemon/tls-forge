@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/net/html/charset"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
 )
 
 // textOf is an answer's body as UTF-8 text, as a browser reads it: in the

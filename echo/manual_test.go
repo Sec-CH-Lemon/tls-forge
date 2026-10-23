@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/net/http2"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v6/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
 )
 
 const visitorAgent = "Mozilla/5.0 (Test) Visitor/1.0"

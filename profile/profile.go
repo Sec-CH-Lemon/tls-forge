@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v6/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
 	"github.com/igor-lemon/fhttp/http2"
 	"github.com/igor-lemon/fhttp/http2/hpack"
 	"github.com/igor-lemon/tls-client/profiles"

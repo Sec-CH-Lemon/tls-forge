@@ -8,7 +8,7 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
 )
 
 // Client hints a server asks for, as Chrome 155 was measured keeping and

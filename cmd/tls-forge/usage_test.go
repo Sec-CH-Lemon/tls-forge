@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
 )
 
 // askedFor is a server that keeps the paths it is asked for.

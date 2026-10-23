@@ -12,12 +12,12 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v6"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/echo"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/internal/atomicfile"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v7"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/atomicfile"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
 )
 
 func runCapture(ctx context.Context, args []string, out, errOut *printer) error {

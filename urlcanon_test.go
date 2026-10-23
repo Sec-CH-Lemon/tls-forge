@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v6/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 

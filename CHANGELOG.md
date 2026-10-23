@@ -11,6 +11,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Engine7.0.0 (Go `/v7`, Node/Python7.0.0) adds required JSON
+  `h2.read_loop_start` (`connection`/`first-headers`). The Chrome155/macOS profile
+  emits the initial request HEADERS before starting peer-frame processing,
+  eliminating the early HPACK table-update race while retaining later SETTINGS,
+  ALPS, flow-control and control-operation handling. Original engine6 profiles
+  remain archived; older/newer SDK/profile majors are rejected before network I/O.
+
+
 - Engine6 H3: JSON selects control-frame order, GREASE payload-length vector and
   per-request PRIORITY_UPDATE source/mode. Generate fresh payload bytes with the
   measured frame-N/length relationship and use actual stream IDs/current request

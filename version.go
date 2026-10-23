@@ -1,6 +1,6 @@
 package tlsforge
 
-import "github.com/Sec-CH-Lemon/tls-forge/v6/engine"
+import "github.com/Sec-CH-Lemon/tls-forge/v7/engine"
 
 // Version is the actual compiled engine version.
 func Version() string { return engine.Version() }
