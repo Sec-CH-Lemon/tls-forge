@@ -48,6 +48,12 @@
       ":"
     ],
     "h2.idle_connection_timeout_ms": 0,
+    "h2.preface_ping_failed_goaway_code": 1,
+    "h2.preface_ping_failed_goaway_debug": "Failed ping.",
+    "h2.preface_ping_failed_retries": 2,
+    "h2.preface_ping_first_id": 1,
+    "h2.preface_ping_hung_ms": 10000,
+    "h2.preface_ping_idle_ms": 10000,
     "h2.read_loop_start": "connection",
     "h2.reject_unsolicited_ping_ack": true,
     "h2.reset_data_before_headers": true,

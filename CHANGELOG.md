@@ -11,6 +11,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A PING of the connection's own, as Chrome's SpdySession sends it, chosen in
+  profile JSON: a request's HEADERS (or a DATA frame of its body) to an HTTP/2
+  connection that has read nothing for longer than `h2.preface_ping_idle_ms`
+  goes with a PING in a TLS record of its own, after the HEADERS and before the
+  DATA, a big-endian count from `h2.preface_ping_first_id`; none while one is
+  unanswered or its check pending. Unanswered with nothing read for
+  `h2.preface_ping_hung_ms`, it gives the connection up: GOAWAY
+  `h2.preface_ping_failed_goaway_code`/`_debug`, then the close, and a request
+  without an answer yet goes again at once on another connection,
+  `h2.preface_ping_failed_retries` times at most. The 15 shipped Chrome
+  profiles say 10 s, 1, 10 s, PROTOCOL_ERROR "Failed ping." and 2; other
+  policies keep no PING. Measured on Chrome 155.0.8059.85 on macOS; the forks
+  of utls (the keys) and fhttp (the mechanism) gain it. Same unreleased 1.0.0.
+
 - Connection lifecycle as Chrome's, chosen in profile JSON: TCP keep-alive
   (`tcp.keepalive`, `tcp.keepalive_idle_seconds`, `_interval_seconds`,
   `_count`; Chrome 45 s, not Go's 15 s), no TLS close_notify when a connection

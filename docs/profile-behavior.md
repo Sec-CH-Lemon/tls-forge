@@ -152,6 +152,12 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.hpack_indexed_exceptions` | `[":authority"]` |
 | `h2.hpack_unindexed_prefixes` | `[":"]` |
 | `h2.idle_connection_timeout_ms` | `0` |
+| `h2.preface_ping_failed_goaway_code` | `1` |
+| `h2.preface_ping_failed_goaway_debug` | `"Failed ping."` |
+| `h2.preface_ping_failed_retries` | `2` |
+| `h2.preface_ping_first_id` | `1` |
+| `h2.preface_ping_hung_ms` | `10000` |
+| `h2.preface_ping_idle_ms` | `10000` |
 | `h2.reject_unsolicited_ping_ack` | `true` |
 | `h2.reset_data_before_headers` | `true` |
 | `h2.strict_max_streams` | `true` |
@@ -572,10 +578,10 @@ alert, an idle HTTP/2 connection kept 100 s, an idle HTTP/1.1
 connection reused after 100 s, and a GOAWAY'd connection closed the
 millisecond its stream ended. Linux and Windows values come from Chromium's
 source (`tcp_socket_posix.cc`, `tcp_socket_win.cc`), not from a measurement.
-Not covered yet: Chrome's PING before a request on an HTTP/2 connection idle
-for more than 10 s, and its silence when a server closes an idle HTTP/1.1
+Not covered yet: Chrome's silence when a server closes an idle HTTP/1.1
 connection (Chrome closes it only at its next pool cleanup; tls-forge's
-reader sees the close at once and ends the connection with a FIN).
+reader sees the close at once and ends the connection with a FIN). Chrome's
+PING on a connection idle for long is the next section.
 
 Tests: `TestEveryConnectionIsProbedAsTheProfilesBrowserProbesIt` reads the
 socket options of a request's connection; `TestAKeepAliveIsWhatTheProfileSays`;
@@ -589,3 +595,71 @@ The forks: utls `TestCloseSendsCloseNotifyAsThePolicySays`, fhttp
 `TestASessionGoingAwayIsClosedOnceItHasNoStream` and
 `TestIdleConnReapOnRequestClosesOnlyWhenAConnectionIsAskedFor`, tls-client
 `TestTheTransportsKeepIdleConnectionsAsTheirOptionsSay`.
+
+
+## The connection's own PING (unreleased engine 1)
+
+Chrome tells a dead HTTP/2 connection from a quiet one by a PING of its own
+(SpdySession::MaybeSendPrefacePing, WritePingFrame, CheckPingStatus): when it
+writes a request's HEADERS, or a DATA frame that carries any of a body, to a
+connection that has read nothing for longer than 10 s, a PING goes with it,
+after the HEADERS and before the DATA, each in a TLS record of its own. A
+server sees it on every request that comes after a pause, so the shipped
+Chrome profiles do the same. Absent fields keep the engine's earlier
+behaviour, no PING; catalogue, legacy and migration policies keep it until
+measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `h2.preface_ping_idle_ms` | Read nothing for longer than this and the connection pings with its next HEADERS or DATA; 0 never; `10000` (`kSpdyDefaultConnectionAtRiskOfLossSeconds`). |
+| `h2.preface_ping_first_id` | The eight bytes of the connection's first PING, a big-endian count, one more for each after; `1` (`next_ping_id_`). Required with a nonzero `h2.preface_ping_idle_ms`. |
+| `h2.preface_ping_hung_ms` | How long a PING may go unanswered with nothing read before the connection is given up, 0 never; `10000` (`kHungIntervalSeconds`). A read after the PING, its answer aside, puts it off until nothing has been read for that long. |
+| `h2.preface_ping_failed_goaway_code` | The GOAWAY a connection given up says before it closes (last stream 0), absent none; `1`, PROTOCOL_ERROR (`MapNetErrorToGoAwayStatus` of ERR_HTTP2_PING_FAILED). |
+| `h2.preface_ping_failed_goaway_debug` | That GOAWAY's debug data; `"Failed ping."`. At most 1024 bytes. |
+| `h2.preface_ping_failed_retries` | How often a request without an answer yet goes again, at once, on another connection, when its own is given up; `2` (`kMaxRetryAttempts`). At most 16; a body without `GetBody` that began to go cannot go again. |
+
+No other PING goes while one is unanswered, nor while the check of one is
+pending (`h2.preface_ping_hung_ms` after it, answered or not), as Chrome's.
+Any acknowledgement answers the connection's PING, whatever it says; one that
+answers nothing is still the connection error
+`h2.reject_unsolicited_ping_ack` makes it. A connection given up fails its
+streams first, then says its GOAWAY and closes, so that a request may go
+again on another connection while the GOAWAY is written, as Chrome's
+session ends its streams before its write loop writes the GOAWAY. A write
+the dead connection holds up gives up within `h2.preface_ping_hung_ms`.
+
+`h2.preface_ping_first_id` and `h2.preface_ping_hung_ms` need
+`h2.preface_ping_idle_ms`; `h2.preface_ping_failed_goaway_code` and
+`h2.preface_ping_failed_retries` need `h2.preface_ping_hung_ms`;
+`h2.preface_ping_failed_goaway_debug` needs the code. The same applies on an
+HTTPS proxy's HTTP/2 connection, which takes the profile's policy, and to a
+tunnel's DATA through it.
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-23, `../net-fp-server/captures/review-20261023/`): after 15 s and 50 s
+of nothing read, the next request's HEADERS and then a PING saying 1, then 2,
+records of their own in the same millisecond, the PING acknowledged; a PING
+left unanswered with nothing read: GOAWAY PROTOCOL_ERROR "Failed ping." 10.01 s
+after it, the FIN in the same millisecond, and the request again on a new
+connection (its SYN 70 µs before the GOAWAY), answered there with no PING.
+A `fetch()` streaming its body (`duplex: "half"`), its second byte 15 s after
+its first: PING 1, then that DATA and the empty DATA that ends the stream,
+each a record of its own. Chromium's source agrees and says 151 to 155 alike;
+Linux and Windows are not measured. tls-forge with these values on the same
+bench (`ping-1`, `ping-hang`): the same records, 1 then 2, 70 and 144 µs
+after the HEADERS (Chrome's 25 to 35), and the same GOAWAY 10.001 s after an
+unanswered PING, the request again on a new connection; its SYN went 1.5 ms
+after the GOAWAY, Chrome's 70 µs before it.
+
+Tests: `TestAChromeProfilePingsAConnectionThatHasReadNothingForLong` changes
+only the JSON's times and holds the wire to Chrome's: the PING after the
+HEADERS in a TLS record of its own, 1 then 2, none to a connection that has
+just read or while a check is pending, and the GOAWAY and the request again on
+another connection; `TestAChromeProfileWithoutItsPingNeverPings` is its
+control; `TestPrefacePingPolicyIsTypedAndCoherent` and
+`TestEveryShippedChromeProfilePingsAsChrome` hold the data. fhttp's
+`prefaceping_test.go` holds the mechanism: after HEADERS and trailers, before
+DATA, the count, one unanswered or a check pending holding the next, any
+acknowledgement answering it, the giving up put off by a read, a connection
+held up in a write given up too, how often and how soon a request goes again
+and what a body that cannot go again says.

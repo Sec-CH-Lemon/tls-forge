@@ -227,6 +227,88 @@ func TestConnectionLifecyclePolicyIsTypedAndCoherent(t *testing.T) {
 	}
 }
 
+// TestPrefacePingPolicyIsTypedAndCoherent: the connection's own PING, its
+// count, when a connection is given up, the GOAWAY it says and how often a
+// request goes again are typed, bounded, and said only with what they
+// depend on.
+func TestPrefacePingPolicyIsTypedAndCoherent(t *testing.T) {
+	long := `"` + strings.Repeat("x", 1025) + `"`
+	for _, tc := range []struct{ body, want string }{
+		{`{"h2.preface_ping_idle_ms":-1}`, "cannot unmarshal"},
+		{`{"h2.preface_ping_idle_ms":4294967296,"h2.preface_ping_first_id":1}`, "must be in"},
+		{`{"h2.preface_ping_idle_ms":10000}`, "requires h2.preface_ping_first_id"},
+		{`{"h2.preface_ping_first_id":1}`, "requires h2.preface_ping_idle_ms"},
+		{`{"h2.preface_ping_hung_ms":10000}`, "requires h2.preface_ping_idle_ms"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_first_id":18446744073709551616}`, "cannot unmarshal"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":4294967296}`, "must be in"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_failed_retries":1}`, "requires h2.preface_ping_hung_ms"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_failed_goaway_code":1}`, "requires h2.preface_ping_hung_ms"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_retries":17}`, "must be in"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_goaway_code":4294967296}`, "must be in"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_goaway_debug":"x"}`, "requires h2.preface_ping_failed_goaway_code"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_goaway_code":1,"h2.preface_ping_failed_goaway_debug":"a\nb"}`, "control byte"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_goaway_code":1,"h2.preface_ping_failed_goaway_debug":` + long + `}`, "exceeds 1024"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%.120s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+	for _, body := range []string{
+		`{"h2.preface_ping_idle_ms":0}`,
+		`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":0,"h2.preface_ping_failed_retries":0}`,
+		`{"h2.preface_ping_idle_ms":4294967295,"h2.preface_ping_first_id":18446744073709551615}`,
+		`{"h2.preface_ping_idle_ms":10000,"h2.preface_ping_first_id":0,"h2.preface_ping_hung_ms":4294967295,"h2.preface_ping_failed_retries":16,"h2.preface_ping_failed_goaway_code":4294967295,"h2.preface_ping_failed_goaway_debug":""}`,
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err != nil {
+			t.Errorf("%s: %v", body, err)
+		}
+	}
+}
+
+// TestEveryShippedChromeProfilePingsAsChrome pins the shipped data to
+// Chrome's SpdySession and HttpNetworkTransaction: a PING after 10 s of
+// reading nothing, the first saying 1, a connection given up 10 s after it
+// with GOAWAY PROTOCOL_ERROR "Failed ping.", and a request sent again twice
+// at most.
+func TestEveryShippedChromeProfilePingsAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	want := map[string]string{
+		"h2.preface_ping_idle_ms":             "10000",
+		"h2.preface_ping_first_id":            "1",
+		"h2.preface_ping_hung_ms":             "10000",
+		"h2.preface_ping_failed_goaway_code":  "1",
+		"h2.preface_ping_failed_goaway_debug": `"Failed ping."`,
+		"h2.preface_ping_failed_retries":      "2",
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+	}
+}
+
 // TestEveryShippedChromeProfileKeepsItsConnectionsAsChrome pins the shipped
 // data: Chrome's TCP keep-alive (45 s; the interval Linux's and Windows's 45 s,
 // macOS's the system's), no close_notify, an HTTP/2 session with no idle timer

@@ -2443,10 +2443,16 @@ Chrome 155 on macOS, 2026-10-23):
   (`h2.idle_connection_timeout_ms: 0`), an idle HTTP/1.1 one 300 s and closed
   only when the client next asks for a connection (`h1.idle_reap`);
 - a connection is closed as soon as a GOAWAY leaves it no stream
-  (`h2.close_on_goaway`).
+  (`h2.close_on_goaway`);
+- a request to an HTTP/2 connection that has read nothing for more than 10 s
+  sends a PING after its HEADERS, the first saying 1 (`h2.preface_ping_*`);
+  left unanswered 10 s with nothing read, it gives the connection up with a
+  GOAWAY PROTOCOL_ERROR "Failed ping.", and the request goes again at once on
+  another connection, twice at most.
 
 A profile without these fields keeps the earlier behaviour. See
-[the field reference](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1).
+[the field reference](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1)
+and [the PING](docs/profile-behavior.md#the-connections-own-ping-unreleased-engine-1).
 
 ### Empty uploads and profile-owned Content-Length
 
