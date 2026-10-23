@@ -114,7 +114,8 @@ func main() {
 `chrome`. Unlike the CLI, the Go package does not automatically switch to a
 locally installed profile; select `local` explicitly when that is desired.
 
-`Client.Close()` releases idle connections and is final. Calls made after close
+`Client.Close()` releases idle connections, and those it still reads an
+answer it went on from on (below), and is final. Calls made after close
 return an error; construct another client to create another identity.
 
 A connection is kept and closed as the profile's browser keeps and closes it
@@ -129,6 +130,18 @@ its HEADERS ([the PING](docs/profile-behavior.md#the-connections-own-ping-unrele
 when no answer comes and nothing is read for 10 s, the connection is given up
 and a request with no answer yet goes again on another connection, at most
 twice, so a `Trace` may see a request dial twice.
+
+An answer a request goes on from without reading it (a redirect followed, a
+401 answered, a navigation started again for its client hints, a CORS
+preflight) is let go of as the profile's browser lets go of it
+([answers let go of unread](docs/profile-behavior.md#answers-let-go-of-unread-unreleased-engine-1)).
+With a shipped Chrome profile the next request no longer waits for that
+body: over HTTP/2 its stream is reset, over HTTP/1.1 a redirect's body is read
+in the background on its own connection while the next hop takes another, so
+a `Trace` may see a hop dial although the connection before was HTTP/1.1 and
+kept. `CloseIdleConnections` and `Close` end that reading, and wait for it,
+before they close the idle connections: the next request opens one of its
+own.
 
 A client resumes TLS sessions as its browser does. A measured profile's
 handshake is the browser's first contact, and its spec ends with the

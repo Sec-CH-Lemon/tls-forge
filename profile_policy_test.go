@@ -35,6 +35,11 @@ func policyFile(t *testing.T, values map[string]any) *profile.Profile {
 	p.Name = "neutral_profile"
 	p.UserAgent = "Metadata without a browser family"
 	for k, v := range values {
+		if v == nil {
+			// Said by no word of the file's.
+			delete(p.Behavior, k)
+			continue
+		}
 		b, err := json.Marshal(v)
 		if err != nil {
 			t.Fatal(err)

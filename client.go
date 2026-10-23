@@ -690,16 +690,14 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 			continue
 		}
 		value, ok, failed := ch.challenged(res)
-		if failed != nil || ok {
-			_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
-			_ = res.Body.Close()
-		}
 		if failed != nil {
+			c.leave("dropped", res, maxDrain)
 			return nil, nil, failed
 		}
 		if !ok {
 			break
 		}
+		c.leave("auth", res, maxDrain)
 		retry := ch.again(res.Request, value)
 		if r != nil {
 			r.step("connect")
@@ -714,8 +712,7 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 		// What the origin asked for, said on the answer to a navigation.
 		ch.remember(originOf(res.Request.URL), res.Header)
 		if ch.restart(shownURL(res.Request), res.Header, ch.last) {
-			_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
-			_ = res.Body.Close()
+			c.leave("restart", res, maxDrain)
 			return nil, nil, errCriticalHints
 		}
 	}
@@ -798,6 +795,9 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	// a challenge answered, which is no redirect, as Chrome's does.
 	r := requestLogOf(req.Context())
 	ch, _ := req.Context().Value(chainKey{}).(*chain)
+	// The request goes on from the redirect, followed or not, without its
+	// body, which is let go of before anything the hop asks.
+	ch.client.leave("dropped", req.Response, -1)
 	if err := locate(req, via[len(via)-1]); err != nil {
 		return err
 	}
@@ -857,7 +857,9 @@ func (c *Client) AllCookies() []Cookie { return c.session.all() }
 // CloseIdleConnections closes the connections the client holds open between
 // requests, so that the next request opens one of its own: one that resumes
 // the TLS session of the last, when the profile's browser resumes and the site
-// issued a ticket, as a browser's new connection does. The client stays open.
+// issued a ticket, as a browser's new connection does. Those it still reads an
+// answer it went on from on are let go of first, and closed. The client stays
+// open.
 func (c *Client) CloseIdleConnections() {
 	c.transports.closeIdle()
 	if c.log != nil {
@@ -865,7 +867,8 @@ func (c *Client) CloseIdleConnections() {
 	}
 }
 
-// Close releases the client's connections. A closed client must not be reused.
+// Close releases the client's connections, those it reads an answer it went
+// on from in the background on too. A closed client must not be reused.
 func (c *Client) Close() error {
 	c.closed.Store(true)
 	c.transports.closeIdle()

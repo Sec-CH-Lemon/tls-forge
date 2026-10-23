@@ -1,8 +1,10 @@
 package tlsforge
 
 import (
+	"context"
 	"fmt"
 	"github.com/igor-lemon/utls/behavior"
+	"maps"
 	"net/url"
 	"slices"
 	"sync"
@@ -37,6 +39,13 @@ type transports struct {
 	// spare are the connections built with the transports, which the first
 	// site to need some takes.
 	spare *site
+	// ending is what its connections let go of answers in the background
+	// for (leave), and draining those still at it, each until its channel
+	// is closed: closeIdle ends them and waits for them, so that the next
+	// request opens a connection of its own.
+	ending   context.Context
+	end      context.CancelFunc
+	draining map[<-chan struct{}]bool
 }
 
 // site are the connections of one top-level site.
@@ -91,6 +100,8 @@ var maxSites = legacyPolicy().Int("http.max_site_pools")
 func newTransports(build func(*proxyH2Pool, ...tls_client.HttpClientOption) []tls_client.HttpClientOption,
 	proxy string, policies ...behavior.Policy) (*transports, error) {
 	t := &transports{behavior: policyArgument(policies), build: build, proxy: proxy}
+	t.ending, t.end = context.WithCancel(context.Background())
+	t.draining = map[<-chan struct{}]bool{}
 	spare, err := t.newSite("")
 	if err != nil {
 		return nil, err
@@ -172,8 +183,18 @@ func topSite(browser *browserRequest, target *url.URL) string {
 	return originOf(target).site()
 }
 
-// closeIdle closes the connections they hold open between requests.
+// closeIdle closes the connections they hold open between requests, those
+// they let go of an answer on in the background (leave) too: it ends them and
+// waits for them, so that none is put back to be used once it returns.
 func (t *transports) closeIdle() {
+	t.mu.Lock()
+	end, draining := t.end, slices.Collect(maps.Keys(t.draining))
+	t.ending, t.end = context.WithCancel(context.Background())
+	t.mu.Unlock()
+	end()
+	for _, done := range draining {
+		<-done
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for _, s := range t.sites {
@@ -182,6 +203,29 @@ func (t *transports) closeIdle() {
 	if t.spare != nil {
 		t.spare.closeIdle()
 	}
+}
+
+// letGo has drain let go of an answer within the transports' ending, and
+// keeps it among those draining until it is done.
+func (t *transports) letGo(drain func(context.Context) <-chan struct{}) {
+	t.mu.Lock()
+	ending := t.ending
+	t.mu.Unlock()
+	done := drain(ending)
+	select {
+	case <-done:
+		return
+	default:
+	}
+	t.mu.Lock()
+	t.draining[done] = true
+	t.mu.Unlock()
+	go func() {
+		<-done
+		t.mu.Lock()
+		delete(t.draining, done)
+		t.mu.Unlock()
+	}()
 }
 
 func (s *site) closeIdle() {

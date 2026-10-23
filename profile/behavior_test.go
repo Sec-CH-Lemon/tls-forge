@@ -301,6 +301,107 @@ func TestPriorityDependencyIsAChoiceOfTheEngines(t *testing.T) {
 	}
 }
 
+// TestUnreadAnswerPolicyIsTypedAndCoherent: how an answer a request goes on
+// from is let go of is one of the engine's ways for each kind and protocol,
+// and its limits, its wait and the graces are said with the ways that use
+// them, and only then.
+func TestUnreadAnswerPolicyIsTypedAndCoherent(t *testing.T) {
+	for _, tc := range []struct{ body, want string }{
+		{`{"h2.dropped_body":"reset"}`, "unsupported primitive"},
+		{`{"h1.auth_body":""}`, "unsupported primitive"},
+		{`{"h1.preflight_body":1}`, "cannot unmarshal"},
+		{`{"h2.restart_body":null}`, "must not be null"},
+		{`{"h3.dropped_body":"close"}`, "unsupported behavior field"},
+		{`{"h1.dropped_body":"drain"}`, "requires http.drain_bytes"},
+		{`{"h1.dropped_body":"drain","http.drain_bytes":16384}`, "requires http.drain_ms"},
+		{`{"h2.auth_body":"drain","http.drain_ms":5000}`, "requires http.drain_bytes"},
+		{`{"http.drain_bytes":16384,"http.drain_ms":5000}`, "while no answer is let go of by drain"},
+		{`{"h1.dropped_body":"close","http.drain_ms":5000}`, "while no answer is let go of by drain"},
+		{`{"h1.dropped_body":"drain","http.drain_bytes":1073741825,"http.drain_ms":5000}`, "must be in"},
+		{`{"h1.dropped_body":"drain","http.drain_bytes":16384,"http.drain_ms":4294967296}`, "must be in"},
+		{`{"h2.preflight_body":"first-bytes"}`, "requires http.first_bytes_ms"},
+		{`{"http.first_bytes_ms":0}`, "while no answer is let go of by first-bytes"},
+		{`{"h1.preflight_body":"first-bytes","http.first_bytes_ms":-1}`, "cannot unmarshal"},
+		{`{"h1.unread_grace_us":1000}`, "h1.unread_grace_us is set while no answer over it is let go of"},
+		{`{"h2.dropped_body":"close","h1.unread_grace_us":1000}`, "h1.unread_grace_us is set while"},
+		{`{"h1.dropped_body":"read-all","h1.unread_grace_us":1000}`, "h1.unread_grace_us is set while"},
+		{`{"h2.dropped_body":"read","h2.unread_grace_us":1000}`, "h2.unread_grace_us is set while"},
+		{`{"h2.dropped_body":"close","h2.unread_grace_us":10000001}`, "must be in"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+	for _, body := range []string{
+		`{"h1.dropped_body":"read","h2.dropped_body":"read-all","h1.auth_body":"read","h2.auth_body":"read-all"}`,
+		`{"h1.dropped_body":"drain","h2.auth_body":"drain","http.drain_bytes":0,"http.drain_ms":0}`,
+		`{"h1.dropped_body":"drain","http.drain_bytes":1073741824,"http.drain_ms":4294967295}`,
+		`{"h1.preflight_body":"first-bytes","h2.restart_body":"first-bytes","http.first_bytes_ms":4294967295}`,
+		`{"h1.restart_body":"close","h1.unread_grace_us":0,"h2.preflight_body":"close","h2.unread_grace_us":10000000}`,
+		`{"h1.preflight_body":"first-bytes","http.first_bytes_ms":0,"h1.unread_grace_us":2000}`,
+		`{"h2.dropped_body":"drain","http.drain_bytes":1,"http.drain_ms":1,"h2.unread_grace_us":1}`,
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err != nil {
+			t.Errorf("%s: %v", body, err)
+		}
+	}
+}
+
+// TestEveryShippedChromeProfileLetsGoOfAnswersAsChrome pins the shipped data
+// to what Chrome 155.0.8059.85 was measured to do with an answer it goes on
+// from unread (HttpNetworkTransaction, HttpResponseBodyDrainer, the
+// preflight's SimpleURLLoader): over HTTP/2 every such stream reset at once
+// but a preflight's, let go of at its first bytes; over HTTP/1.1 a redirect's
+// body drained, 16 KiB within 5 s, a 401's read whole, a restarted
+// navigation's connection closed, a preflight's let go of at its first bytes
+// however long they take; what comes within 2 ms (HTTP/1.1) or 0.5 ms
+// (HTTP/2) of what came read as come already.
+func TestEveryShippedChromeProfileLetsGoOfAnswersAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	want := map[string]string{
+		"h1.dropped_body":     `"drain"`,
+		"h2.dropped_body":     `"close"`,
+		"h1.auth_body":        `"read-all"`,
+		"h2.auth_body":        `"close"`,
+		"h1.restart_body":     `"close"`,
+		"h2.restart_body":     `"close"`,
+		"h1.preflight_body":   `"first-bytes"`,
+		"h2.preflight_body":   `"first-bytes"`,
+		"http.drain_bytes":    "16384",
+		"http.drain_ms":       "5000",
+		"http.first_bytes_ms": "0",
+		"h1.unread_grace_us":  "2000",
+		"h2.unread_grace_us":  "500",
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+	}
+}
+
 // TestEveryShippedChromeProfileChainsItsStreamsAsChrome pins the shipped data
 // to Chrome's Http2PriorityDependencies.
 func TestEveryShippedChromeProfileChainsItsStreamsAsChrome(t *testing.T) {

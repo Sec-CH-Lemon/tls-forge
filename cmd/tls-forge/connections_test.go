@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/echo"
@@ -359,5 +361,57 @@ func TestConnectionsOfAClosedSession(t *testing.T) {
 			t.Error("a try that never went out left a client of its own behind")
 		}
 		conns.close()
+	}
+}
+
+func TestATryAfterARedirectWhoseBodyIsDrainedGoesOutOnAConnectionOfItsOwn(t *testing.T) {
+	// Over HTTP/1.1 a Chrome profile drains a redirect's late body in the
+	// background, on its connection, while the hop takes another; the try
+	// again after a pause must not find that connection kept for it once
+	// its body came.
+	original := retryWait
+	t.Cleanup(func() { retryWait = original })
+	retryWait = func(int) time.Duration { return 400 * time.Millisecond }
+	var mu sync.Mutex
+	var asked []string // path and the client's address, in order
+	var ended atomic.Int32
+	site := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		asked = append(asked, r.URL.Path+" "+r.RemoteAddr)
+		mu.Unlock()
+		if r.URL.Path == "/r" {
+			w.Header().Set("Location", "/end")
+			w.WriteHeader(http.StatusFound)
+			w.(http.Flusher).Flush()
+			select {
+			case <-time.After(200 * time.Millisecond):
+				_, _ = w.Write([]byte(strings.Repeat("x", 100)))
+			case <-r.Context().Done():
+			}
+			return
+		}
+		if ended.Add(1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+		_, _ = w.Write([]byte("page"))
+	}))
+	t.Cleanup(site.Close)
+
+	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", site.URL+"/r")
+	if code != 0 {
+		t.Fatalf("exit code = %d\n%s", code, stderr)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(asked) != 4 {
+		t.Fatalf("asked %q, want /r and /end twice", asked)
+	}
+	conns := map[string]bool{}
+	for _, a := range asked {
+		_, conn, _ := strings.Cut(a, " ")
+		conns[conn] = true
+	}
+	if len(conns) != 4 {
+		t.Errorf("asked %q: every request on a connection of its own, the drained one closed between the tries", asked)
 	}
 }

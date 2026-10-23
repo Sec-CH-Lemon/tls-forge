@@ -11,6 +11,34 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- An answer a request goes on from without reading it is let go of as
+  Chrome lets go of it, chosen in profile JSON for each kind and protocol
+  (`h1.`/`h2.` `dropped_body`: a redirect followed or refused and a 401
+  answered no more; `auth_body`: a 401 answered again; `restart_body`: a
+  navigation started again for Critical-CH; `preflight_body`: a CORS
+  preflight). `"close"` lets go at once (an HTTP/2 stream reset with CANCEL,
+  an HTTP/1.1 connection closed); `"drain"` reads in the background, apart
+  from the request, `http.drain_bytes` within `http.drain_ms` (Chrome's
+  HttpResponseBodyDrainer, 16 KiB within 5 s) and keeps the connection when
+  the body ended; `"read-all"` reads it whole first; `"first-bytes"` sends
+  the request on at once and waits for the body's first bytes however long
+  (`http.first_bytes_ms` 0), keeping the connection only when the rest came
+  with them; what comes within `h1.unread_grace_us`/`h2.unread_grace_us`
+  (2 ms, 0.5 ms) of what came counts as come. Before, tls-forge read up to
+  2 KiB of a redirect's body (the transport's) and up to 64 KiB of the
+  others' before going on, so a body that came 2 s late held the next request
+  back 2 s. The 15 shipped Chrome profiles say Chrome's: over HTTP/2 every
+  such stream reset at once but a preflight's; over HTTP/1.1 a redirect's
+  body drained, a 401's read whole (or its connection closed at once after
+  `Connection: close`), a restarted navigation's connection closed, a
+  preflight's let go of at its first bytes. `"read"` or no field keeps the
+  old behaviour. `CloseIdleConnections` and `Close` end what a client drains
+  and wait for it, so the CLI's next try still opens a connection of its
+  own. Measured on Chrome
+  155.0.8059.85 on macOS (25 runs), and tls-forge on the same bench (21
+  runs) does the same; the forks of utls (the keys) and fhttp (`DrainBody`,
+  `AwaitBody`, a body's `Detach`) gain it. Same unreleased 1.0.0.
+
 - HTTP/2 stream dependencies as Chrome's, chosen in profile JSON
   (`h2.priority_dependency`): with `"nearest-weight"` a request's HEADERS
   depend, exclusively, on the most recently opened of a connection's open

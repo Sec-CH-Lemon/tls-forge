@@ -2465,6 +2465,31 @@ chain 1←3←5←7, and a request with nothing else open depends on none. A
 profile without the field, or with `"root"`, keeps every stream on none. See
 [the field reference](docs/profile-behavior.md#stream-dependencies-in-headers-unreleased-engine-1).
 
+### Answers a request goes on from unread
+
+A request that follows a redirect, answers a 401, starts a navigation again
+for its critical client hints or sends what a CORS preflight allowed goes on
+from an answer without reading its body. The shipped Chrome profiles let go
+of that body as Chrome does (measured on Chrome 155 on macOS, 2026-10-23):
+
+- over HTTP/2 the stream is reset (CANCEL) at once, and the next request goes
+  on the same connection, a preflight's aside;
+- over HTTP/1.1 a redirect's body is read in the background, 16 KiB within
+  5 s at most, while the next hop goes on another connection, and the first
+  is kept once its body ended; a 401's body is read whole first, the request
+  then sent again on the same connection; a navigation started again closes
+  its connection;
+- a preflight's request goes as soon as the preflight's head came, the
+  preflight's body waited for however long, and let go of at its first bytes;
+- a body that came with its head, or within 2 ms (0.5 ms over HTTP/2), is
+  read as come, the connection kept.
+
+Before, a body that came late held the next request back as long. Each kind
+and protocol is a field of its own (`h1.dropped_body`, `h2.auth_body`, …,
+`http.drain_bytes`, `h1.unread_grace_us`); a profile without them reads as
+before. See
+[the field reference](docs/profile-behavior.md#answers-let-go-of-unread-unreleased-engine-1).
+
 ### Empty uploads and profile-owned Content-Length
 
 Unreleased v1.0.0 preserves an absent body separately from an explicit empty

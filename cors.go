@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"slices"
 	"strconv"
@@ -314,8 +313,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	if err != nil {
 		return transportError(err)
 	}
-	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxDrain))
-	_ = res.Body.Close()
+	c.leave("preflight", res, maxDrain)
 	allowed, err := r.checkPreflight(res, h)
 	if log != nil {
 		log.preflight(target, res.StatusCode, err)
@@ -330,6 +328,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 // keepsNone keeps none of the cookies an answer sets.
 func keepsNone(*fhttp.Response) bool { return false }
 
-// maxDrain is how much of a preflight's body is read so that its connection
-// can carry the request: a preflight's answer has none worth keeping.
+// maxDrain is how much of the body of an answer a request goes on from is
+// read, so that its connection can carry what comes next, where the profile
+// does not say otherwise (leave): such an answer has none worth keeping.
 const maxDrain = 64 << 10

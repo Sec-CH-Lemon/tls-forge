@@ -131,19 +131,26 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `cookie.max_pair_bytes` | `4096` |
 | `cookie.raw_fields` | `true` |
 | `cookie.reset_order_on_value_change` | `true` |
+| `h1.auth_body` | `"read-all"` |
+| `h1.dropped_body` | `"drain"` |
 | `h1.idle_connection_timeout_ms` | `300000` |
 | `h1.idle_reap` | `"on-request"` |
 | `h1.max_connections` | `6` |
 | `h1.max_idle_connections` | `6` |
 | `h1.merged_head_body_bytes` | `1400` |
 | `h1.missing_status` | `200` |
+| `h1.preflight_body` | `"first-bytes"` |
 | `h1.preserve_framing_fields` | `true` |
 | `h1.response_header_bytes` | `262144` |
+| `h1.restart_body` | `"close"` |
+| `h1.unread_grace_us` | `2000` |
 | `h2.allow_huffman_expansion` | `true` |
 | `h2.alps_settings` | `[1,3,4,8,9]` |
+| `h2.auth_body` | `"close"` |
 | `h2.close_on_goaway` | `true` |
 | `h2.connection_window_overflow_error` | `1` |
 | `h2.data_frame_payload` | `16375` |
+| `h2.dropped_body` | `"close"` |
 | `h2.encoder_table_bytes` | `4294967295` |
 | `h2.enforce_advertised_frame_limit` | `true` |
 | `h2.header_frame_payload` | `16374` |
@@ -152,6 +159,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.hpack_indexed_exceptions` | `[":authority"]` |
 | `h2.hpack_unindexed_prefixes` | `[":"]` |
 | `h2.idle_connection_timeout_ms` | `0` |
+| `h2.preflight_body` | `"first-bytes"` |
 | `h2.preface_ping_failed_goaway_code` | `1` |
 | `h2.preface_ping_failed_goaway_debug` | `"Failed ping."` |
 | `h2.preface_ping_failed_retries` | `2` |
@@ -161,8 +169,10 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.priority_dependency` | `"nearest-weight"` |
 | `h2.reject_unsolicited_ping_ack` | `true` |
 | `h2.reset_data_before_headers` | `true` |
+| `h2.restart_body` | `"close"` |
 | `h2.strict_max_streams` | `true` |
 | `h2.tolerated_response_fields` | `["connection","keep-alive"]` |
+| `h2.unread_grace_us` | `500` |
 | `h2.window_update_delay_ms` | `5000` |
 | `h2.window_update_denominator` | `2` |
 | `h2.zero_window_stream_error` | `3` |
@@ -224,6 +234,9 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `http.content_codings` | `["gzip","x-gzip","deflate","br","zstd"]` |
 | `http.digest_algorithms` | `["MD5","MD5-sess","SHA-256","SHA-256-sess"]` |
 | `http.digest_cnonce_bytes` | `8` |
+| `http.drain_bytes` | `16384` |
+| `http.drain_ms` | `5000` |
+| `http.first_bytes_ms` | `0` |
 | `http.gzip_decoder` | `"prefix-first-member"` |
 | `http.max_auth_restarts` | `32` |
 | `http.max_site_pools` | `64` |
@@ -701,3 +714,113 @@ one reset by the server and one without a priority. Not done: PRIORITY
 frames when a request's priority changes (Chrome's `OnStreamUpdate`;
 tls-forge changes none), and priorities tls-forge never sends (fetch
 priority hints, sub-resources).
+
+
+## Answers let go of unread (unreleased engine 1)
+
+A request often goes on from an answer without reading its body: it follows
+a redirect, answers a 401, starts a navigation again for its critical client
+hints, or sends the request a preflight allowed. Chrome reads none of that
+body (HttpNetworkTransaction's destructor and PrepareForAuthRestart,
+HttpResponseBodyDrainer, the preflight's SimpleURLLoader), so a server that
+holds a body back sees at once what a client does with it: over HTTP/2 a
+RST_STREAM(CANCEL), over HTTP/1.1 a closed connection or the next request on
+another one. Before, tls-forge read up to 2 KiB of a redirect's body (the
+transport) and up to 64 KiB of the others' before it went on, so a body that
+came 2 s late held the next request back 2 s. Absent fields keep that;
+catalogue, legacy and migration policies keep it until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `h1.dropped_body`, `h2.dropped_body` | A redirect followed or refused, and a 401 answered no more (`http.max_auth_restarts` spent). Chrome: `drain` over HTTP/1.1, `close` over HTTP/2. |
+| `h1.auth_body`, `h2.auth_body` | A 401 the request is sent again for with credentials. Chrome: `read-all` over HTTP/1.1, the same connection after; `close` over HTTP/2, the same connection after. |
+| `h1.restart_body`, `h2.restart_body` | A navigation started again for its critical client hints (Critical-CH). Chrome: `close` over both: its loader had a read pending. |
+| `h1.preflight_body`, `h2.preflight_body` | A CORS preflight whose request goes on at once. Chrome: `first-bytes` over both. |
+| `http.drain_bytes`, `http.drain_ms` | What `drain` reads at most, and for how long: `16384` and `5000` (`kDrainBodyBufferSize`, `kTimeoutInSeconds`). Required with a `drain`, refused without one. |
+| `http.first_bytes_ms` | How long `first-bytes` waits for the body's first bytes, 0 as long as the connection lasts; `0`. Required with a `first-bytes`, refused without one. |
+| `h1.unread_grace_us`, `h2.unread_grace_us` | How long, at most, what is left of a body may take to come and still count as come with what came before, before `close`, `drain` or `first-bytes` lets it go; 0 none. Chrome: `2000` over HTTP/1.1, `500` over HTTP/2 (below). Refused for a protocol none of whose answers is let go of so. |
+
+The ways, each of the engine's (`unread.go`; fhttp's `DrainBody`,
+`AwaitBody`, `Detach`):
+
+- `read`, or no field, or a protocol other than HTTP/1.1 and HTTP/2: as
+  before. The request waits for what is read.
+- `close`: what is left of the body, all in the transport's buffer or come
+  within the grace, is read and the connection kept; otherwise the HTTP/1.1
+  connection is closed, the HTTP/2 stream reset (CANCEL) unless the server
+  ended it. The request goes on once that is decided.
+- `drain`: read in the background, apart from the request (whose context
+  ends nothing of it), at most `http.drain_bytes` within `http.drain_ms`;
+  the connection is kept when the body ended within both, else let go of as
+  `close` does. The request goes on once the body ended or the grace is
+  over, so an HTTP/1.1 connection whose body came within it carries the next
+  request, and any other leaves the next to a connection of its own.
+- `read-all`: read to its end before the request goes on, bound only by the
+  request's deadline, the connection kept; an answer the server closes its
+  connection after (`Connection: close`, a body that ends with the
+  connection) is let go of at once.
+- `first-bytes`: the request goes on at once; in the background, the body's
+  first bytes are waited for, then let go of as `close` does, the grace
+  counted from them: a body that came whole keeps its connection, one that
+  comes in parts has it closed (HTTP/1.1) or reset (HTTP/2) with its first.
+
+`CloseIdleConnections` and `Close` end what the client reads in the
+background and wait for it before they close the idle connections, so that
+the next request opens one of its own (the CLI's one connection per try).
+
+An HTTP/1.1 connection whose body is all in the transport's buffer is kept
+without a grace; the grace takes in what came with the head but past what
+one read of the buffer holds, as Chrome's reads take what has come.
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-23, `../net-fp-server/captures/review-20261023/runs/lg-*`, 25 runs):
+a 302 whose body comes 2 s after its head: over HTTP/2 RST_STREAM(CANCEL) in
+the millisecond of the head, the next hop on the same connection; over
+HTTP/1.1 the next hop at once on a new connection, the first kept once its
+body came within 5 s and 16 KiB, closed 5.0 s after the head when it came
+7 s late, and on arrival when it was 20,000 bytes. Its body 1, 3 and 10 ms
+late: over HTTP/2 reset each time before it came; over HTTP/1.1 the next hop
+on the first's connection at 1 ms, on a new one at 3 and 10 ms. With the
+head: no RST over HTTP/2, the same connection over HTTP/1.1. A 401: over
+HTTP/2 reset at once, the request again on the same connection; over
+HTTP/1.1 its body waited for (2 s), the request again on the same
+connection, and with `Connection: close` the connection closed at once and
+the request again on a new one. A navigation's Critical-CH: over HTTP/2
+reset at once; over HTTP/1.1 the connection closed at once, the start again
+on a new one, and with the body with the head, on the same one. A preflight
+whose body comes late: its PUT right after the preflight's head (over
+HTTP/1.1 on a new connection), the preflight's stream or connection waited
+on 7 s until its body came, then ended or kept; a body in two parts 2 s
+apart: reset (HTTP/2) or closed (HTTP/1.1) within 2 ms of the first.
+Chromium's source agrees and says 151 to 155 alike. Linux and Windows are not
+measured. tls-forge with these values on the same bench (`fg-*`, 21 runs):
+over HTTP/2 the stream reset 1 to 2 ms after the head and the next request on
+the same connection, none with the body with the head; over HTTP/1.1 the
+next hop 3 ms after the head on a new connection, the first kept once its
+body came, closed 5.000 s after the head when it was 7 s late and on arrival
+at 20,000 bytes, the same socket with the body with the head or 1 ms late; a
+401's body read whole first (2.004 s), and with `Connection: close` the
+connection closed at once; a Critical-CH start closing its connection 3 ms
+after the head; a preflight's PUT 1 ms after its head, its body awaited 7 s,
+in parts reset 1 ms and closed 3 ms after the first. With the body 3 ms late
+over HTTP/1.1 the hop took the first socket, and the connection dialed for
+it closed after its handshake (a dial ends with its request, S01), where
+Chrome's hop took the new one.
+
+Tests: `TestAnAnswerIsLetGoOfUnreadAsTheProfileSays` changes only the JSON
+and holds the server's view, for each kind and way over both protocols, to
+when the next request came and on which connection, whether the held body
+was sent or given up and when, and when the connection closed;
+`TestA401AnsweredNoMoreIsLetGoOfAsADroppedAnswer`,
+`TestClosingIdleConnectionsLetsGoOfWhatADrainHolds`,
+`TestAClosedClientLetsGoOfWhatItDrains`,
+`TestAnAnswerOfAnotherProtocolIsReadAsAlways` and the CLI's
+`TestATryAfterARedirectWhoseBodyIsDrainedGoesOutOnAConnectionOfItsOwn` hold
+the rest;
+`TestUnreadAnswerPolicyIsTypedAndCoherent` and
+`TestEveryShippedChromeProfileLetsGoOfAnswersAsChrome` hold the data.
+fhttp's `drain_test.go`, `drain_internal_test.go`,
+`http2/drainbody_test.go` and `internal/chunked_buffer_test.go` hold the
+mechanism. Not done: a grace of each kind's own (Chrome's window is its
+processes' passing the answer on, from under 1 ms for an HTTP/2 redirect to
+about 4 ms for a Critical-CH start again); HTTP/3.
