@@ -117,6 +117,14 @@ locally installed profile; select `local` explicitly when that is desired.
 `Client.Close()` releases idle connections and is final. Calls made after close
 return an error; construct another client to create another identity.
 
+A connection is kept and closed as the profile's browser keeps and closes it
+([connection lifecycle](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1)).
+With a shipped Chrome profile no close sends a TLS close_notify, `Close` and
+`CloseIdleConnections` included; an idle HTTP/2 connection is kept until its
+server closes it, an idle HTTP/1.1 one 300 s, reaped when a later request asks
+for a connection; a connection a GOAWAY leaves no stream is closed at once;
+and the system probes an idle TCP connection after 45 s.
+
 A client resumes TLS sessions as its browser does. A measured profile's
 handshake is the browser's first contact, and its spec ends with the
 `pre_shared_key` the browser resumes with, which is sent only when there is a

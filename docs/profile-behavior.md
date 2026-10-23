@@ -131,6 +131,8 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `cookie.max_pair_bytes` | `4096` |
 | `cookie.raw_fields` | `true` |
 | `cookie.reset_order_on_value_change` | `true` |
+| `h1.idle_connection_timeout_ms` | `300000` |
+| `h1.idle_reap` | `"on-request"` |
 | `h1.max_connections` | `6` |
 | `h1.max_idle_connections` | `6` |
 | `h1.merged_head_body_bytes` | `1400` |
@@ -139,6 +141,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h1.response_header_bytes` | `262144` |
 | `h2.allow_huffman_expansion` | `true` |
 | `h2.alps_settings` | `[1,3,4,8,9]` |
+| `h2.close_on_goaway` | `true` |
 | `h2.connection_window_overflow_error` | `1` |
 | `h2.data_frame_payload` | `16375` |
 | `h2.encoder_table_bytes` | `4294967295` |
@@ -148,6 +151,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.hpack_index_oversized` | `true` |
 | `h2.hpack_indexed_exceptions` | `[":authority"]` |
 | `h2.hpack_unindexed_prefixes` | `[":"]` |
+| `h2.idle_connection_timeout_ms` | `0` |
 | `h2.reject_unsolicited_ping_ack` | `true` |
 | `h2.reset_data_before_headers` | `true` |
 | `h2.strict_max_streams` | `true` |
@@ -214,7 +218,6 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `http.digest_algorithms` | `["MD5","MD5-sess","SHA-256","SHA-256-sess"]` |
 | `http.digest_cnonce_bytes` | `8` |
 | `http.gzip_decoder` | `"prefix-first-member"` |
-| `http.idle_connection_timeout_ms` | `90000` |
 | `http.max_auth_restarts` | `32` |
 | `http.max_site_pools` | `64` |
 | `http.negotiate_auth` | `false` |
@@ -265,8 +268,13 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `quic.version_mismatch_error` | `10` |
 | `quic.version_parse_error` | `10` |
 | `quic.versions` | `[1]` |
+| `tcp.keepalive` | `true` |
+| `tcp.keepalive_count` | `0` |
+| `tcp.keepalive_idle_seconds` | `45` |
+| `tcp.keepalive_interval_seconds` | `0` |
 | `tls.alpn_mismatch_alert` | `47` |
 | `tls.certificate_decode_alert` | `50` |
+| `tls.close_notify` | `false` |
 | `tls.defer_key_update` | `true` |
 | `tls.duplicate_extension_alert` | `47` |
 | `tls.false_start` | `true` |
@@ -528,3 +536,56 @@ No version is incremented for another change within this unpublished major1.
 Historical profiles/captures keep their original bytes; JSON migration is explicit
 and is not fresh old-browser acceptance. Actual minimized Chrome series and
 complete packet/HPACK/QPACK witnesses determine the bounded parity result.
+
+
+## Connection lifecycle (unreleased engine 1)
+
+How a connection is kept and let go of over time is profile data too: what a
+one-request comparison never sees, and what a server that keeps a connection
+open sees on every one. Absent fields keep the engine's earlier behaviour
+(Go's 15 s keep-alive, close_notify, one idle timeout for both protocols, a
+connection kept after a GOAWAY until its server closes it); the 15 shipped
+Chrome profiles say Chrome's, and catalogue, legacy and migration policies
+keep the earlier behaviour until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `tcp.keepalive` | Whether the system probes an idle TCP connection (SO_KEEPALIVE); `true` (Chrome sets it on every connection but on Android and iOS). |
+| `tcp.keepalive_idle_seconds` | Idle time before the first probe, 0 the system's; `45` (`kTCPKeepAliveSeconds`, TCPSocketPosix::SetDefaultOptionsForClient). At most 32767. |
+| `tcp.keepalive_interval_seconds` | Between unanswered probes, 0 the system's; Linux and Windows `45`, macOS `0` (Chrome sets TCP_KEEPALIVE alone there: the system's 75 s). At most 32767. |
+| `tcp.keepalive_count` | Unanswered probes before the connection is dropped, 0 the system's; `0`. At most 127. |
+| `tls.close_notify` | Whether closing a connection sends a TLS close_notify alert first; `false`: Chrome's SSLClientSocketImpl::Disconnect calls no SSL_shutdown, so a connection ends with the TCP FIN alone, also when the server's close_notify came first. `CloseWrite` keeps its alert. |
+| `h1.idle_connection_timeout_ms` | How long an idle HTTP/1.1 connection is kept; `300000` (`g_used_idle_socket_timeout_s`). Without it, `http.idle_connection_timeout_ms` applies. |
+| `h1.idle_reap` | `timer` closes a connection when it has been idle that long; `on-request` closes it only when the client next asks for a connection, to any host, as Chromium's socket pool cleans up its idle sockets in RequestSocket (`CleanupIdleSockets`) and never by itself; Chrome `on-request`. |
+| `h2.idle_connection_timeout_ms` | How long an idle HTTP/2 connection is kept, 0 never; `0`: a SpdySession has no idle timer and is kept until its server closes it. Without it, `http.idle_connection_timeout_ms` applies. |
+| `h2.close_on_goaway` | Close a connection as soon as a GOAWAY leaves it no stream, or its last stream ends after one, with no GOAWAY of the client's; `true` (SpdySession::MaybeFinishGoingAway). |
+
+`tcp.keepalive_*` need `tcp.keepalive`, and with it false they must be 0;
+`h1.idle_reap` needs `h1.idle_connection_timeout_ms`. A profile applies its
+keep-alive on whatever system the client runs on: the TCP stack stays that
+machine's.
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-23, `../net-fp-server/captures/review-20261023/`): the first probe
+45.0 s after the last packet in four runs, every close without a client
+alert, an idle HTTP/2 connection kept 100 s, an idle HTTP/1.1
+connection reused after 100 s, and a GOAWAY'd connection closed the
+millisecond its stream ended. Linux and Windows values come from Chromium's
+source (`tcp_socket_posix.cc`, `tcp_socket_win.cc`), not from a measurement.
+Not covered yet: Chrome's PING before a request on an HTTP/2 connection idle
+for more than 10 s, and its silence when a server closes an idle HTTP/1.1
+connection (Chrome closes it only at its next pool cleanup; tls-forge's
+reader sees the close at once and ends the connection with a FIN).
+
+Tests: `TestEveryConnectionIsProbedAsTheProfilesBrowserProbesIt` reads the
+socket options of a request's connection; `TestAKeepAliveIsWhatTheProfileSays`;
+`TestAChromeProfileClosesItsConnectionsWithoutCloseNotify`,
+`TestAChromeProfileClosesASessionGoingAwayAtOnce`,
+`TestAChromeProfileKeepsAnIdleHTTP2ConnectionOpen` and
+`TestAChromeProfileReapsIdleHTTP1ConnectionsWhenItAsksForOne` change only JSON
+and watch the server's side; `TestConnectionLifecyclePolicyIsTypedAndCoherent`
+and `TestEveryShippedChromeProfileKeepsItsConnectionsAsChrome` hold the data.
+The forks: utls `TestCloseSendsCloseNotifyAsThePolicySays`, fhttp
+`TestASessionGoingAwayIsClosedOnceItHasNoStream` and
+`TestIdleConnReapOnRequestClosesOnlyWhenAConnectionIsAskedFor`, tls-client
+`TestTheTransportsKeepIdleConnectionsAsTheirOptionsSay`.

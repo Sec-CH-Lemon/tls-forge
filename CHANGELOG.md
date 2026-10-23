@@ -11,6 +11,21 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Connection lifecycle as Chrome's, chosen in profile JSON: TCP keep-alive
+  (`tcp.keepalive`, `tcp.keepalive_idle_seconds`, `_interval_seconds`,
+  `_count`; Chrome 45 s, not Go's 15 s), no TLS close_notify when a connection
+  is closed (`tls.close_notify`; Chrome never calls SSL_shutdown), idle
+  timeouts per protocol (`h1.idle_connection_timeout_ms` 300 s reaped when a
+  connection is next asked for, `h1.idle_reap: "on-request"`;
+  `h2.idle_connection_timeout_ms: 0`, no HTTP/2 idle timer) and a connection
+  closed as soon as a GOAWAY leaves it no stream (`h2.close_on_goaway`). The
+  15 shipped Chrome profiles say Chrome's values (the keep-alive interval the
+  system's on macOS, 45 s on Linux and Windows) and drop
+  `http.idle_connection_timeout_ms`, which still serves profiles without the
+  per-protocol fields; catalogue, legacy and migration policies keep the
+  earlier behaviour. Measured on Chrome 155.0.8059.85 on macOS; the forks of
+  utls, fhttp and tls-client gain the mechanisms. Same unreleased 1.0.0.
+
 - Preserve absent versus explicit empty uploads and make Content-Length framing
   profile-owned across H1/H2/H3. Chrome155/macOS selects zero-length POST/PUT
   and explicit-empty uploads in JSON, so PATCH without a body omits the field.

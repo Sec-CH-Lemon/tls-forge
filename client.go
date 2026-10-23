@@ -273,12 +273,23 @@ func New(opts ...Option) (*Client, error) {
 	// One writer for every connection of the client and of every client
 	// Fresh makes of it, to sites and to a proxy alike.
 	keys := keyLogOf(cfg.keyLog)
+	// How long an idle connection is kept: the profile's for each protocol,
+	// else one for both. A browser's HTTP/1.1 socket pool reaps an idle
+	// socket when a socket is next asked of it ("on-request"), not by a timer.
 	idleTimeout := policyDuration(prof.RuntimeBehavior(), "http.idle_connection_timeout_ms")
+	if prof.RuntimeBehavior().Has("h1.idle_connection_timeout_ms") {
+		idleTimeout = policyDuration(prof.RuntimeBehavior(), "h1.idle_connection_timeout_ms")
+	}
 	transportOptions := &tls_client.TransportOptions{
-		MaxIdleConnsPerHost: prof.RuntimeBehavior().Int("h1.max_idle_connections"),
-		IdleConnTimeout:     &idleTimeout,
-		DisableCompression:  true,
-		KeyLogWriter:        keys,
+		MaxIdleConnsPerHost:   prof.RuntimeBehavior().Int("h1.max_idle_connections"),
+		IdleConnTimeout:       &idleTimeout,
+		IdleConnReapOnRequest: prof.RuntimeBehavior().Text("h1.idle_reap") == "on-request",
+		DisableCompression:    true,
+		KeyLogWriter:          keys,
+	}
+	if prof.RuntimeBehavior().Has("h2.idle_connection_timeout_ms") {
+		http2Idle := policyDuration(prof.RuntimeBehavior(), "h2.idle_connection_timeout_ms")
+		transportOptions.HTTP2IdleConnTimeout = &http2Idle
 	}
 	if prof.RuntimeBehavior().Has("h1.response_header_bytes") {
 		// The profile bounds an HTTP/1 response head at 256 KiB, including the
@@ -354,7 +365,7 @@ func New(opts ...Option) (*Client, error) {
 	// and the caller's own.
 	built := func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithLockedClientProfile(clientProfile, fmt.Sprintf("profile %q engine_major %d (running engine major %d)", prof.Name, *prof.EngineMajor, EngineMajor()))}, options...)
-		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys,
+		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys, keepAliveOf(prof.RuntimeBehavior()),
 			proxyIdentity{profile: prof, pool: proxyPool})...)
 		return append(append(out, own...), cfg.extra...)
 	}
@@ -512,6 +523,8 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// with the stale value loaded at construction.
 	c.session.seedWarm(parsed)
 	c.session.seed(parsed, req.Cookies)
+	// A request asks the pool for a connection: what is idle too long goes.
+	c.transports.reapIdle()
 
 	// One deadline for all of the request: its preflight, each hop, each
 	// answer to a 401 or a 421, its start again for client hints, and its

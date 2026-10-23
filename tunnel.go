@@ -19,6 +19,7 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
+	"github.com/igor-lemon/utls/behavior"
 	"golang.org/x/net/proxy"
 
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -100,29 +101,36 @@ type connectDialer struct {
 // dialer or a proxy of its own, whose names are not to be looked up here.
 // Every connection is dialed for a request, within its context, which says
 // what the dial does in the request's log.
-func dialOptions(proxyURL string, own bool, keys io.Writer, identity ...proxyIdentity) []tls_client.HttpClientOption {
+//
+// Every TCP connection is probed while idle as the profile says (ka): the
+// dialers of this package's directly, the transport's own through the dialer
+// it is given.
+func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, identity ...proxyIdentity) []tls_client.HttpClientOption {
 	if proxyURL == "" {
 		if !own {
-			return nil
+			return ka.transport()
 		}
-		return []tls_client.HttpClientOption{
+		return append(ka.transport(),
 			tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
 				_ fhttp.Header, _ tls_client.Logger,
 			) (proxy.ContextDialer, error) {
-				return newDirectDialer(timeout, local), nil
+				d := newDirectDialer(timeout, local)
+				ka.on(&d.dialer)
+				return d, nil
 			}),
 			tls_client.WithConnectionCoalescing(lookupNames),
-		}
+		)
 	}
 	u, err := url.Parse(proxyURL)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return []tls_client.HttpClientOption{tls_client.WithProxyUrl(proxyURL), tls_client.WithProxyConnWrapper(tapped)}
+		return append(ka.transport(), tls_client.WithProxyUrl(proxyURL), tls_client.WithProxyConnWrapper(tapped))
 	}
-	return []tls_client.HttpClientOption{
+	return append(ka.transport(),
 		tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
 			header fhttp.Header, _ tls_client.Logger,
 		) (proxy.ContextDialer, error) {
 			d := newConnectDialer(u, timeout, local, header)
+			ka.on(&d.dialer)
 			d.keys = keys
 			if len(identity) > 0 {
 				d.identity = identity[0]
@@ -138,7 +146,65 @@ func dialOptions(proxyURL string, own bool, keys io.Writer, identity ...proxyIde
 		// request it moved to HTTP/3 would leave the proxy behind and go out
 		// from the machine's own address.
 		tls_client.WithDisableHttp3(),
+	)
+}
+
+// keepAlive is how a profile's browser has the system probe its idle TCP
+// connections: "tcp.keepalive" and the idle time, interval and count, each 0
+// the system's own. Chrome sets SO_KEEPALIVE and 45 s on every connection it
+// dials (TCPSocketPosix::SetDefaultOptionsForClient), the interval too on
+// Linux and Windows, and leaves the rest to the system. A profile that says
+// nothing is dialed with Go's default, 15 s.
+type keepAlive struct {
+	set    bool
+	config net.KeepAliveConfig
+}
+
+func keepAliveOf(p behavior.Policy) keepAlive {
+	if !p.Has("tcp.keepalive") {
+		return keepAlive{}
 	}
+	// Go leaves an option the system's when it is negative.
+	seconds := func(key string) time.Duration {
+		if n := p.Uint(key); n != 0 {
+			return time.Duration(n) * time.Second
+		}
+		return -1
+	}
+	count := -1
+	if n := p.Int("tcp.keepalive_count"); n != 0 {
+		count = n
+	}
+	return keepAlive{set: true, config: net.KeepAliveConfig{
+		Enable:   p.Flag("tcp.keepalive"),
+		Idle:     seconds("tcp.keepalive_idle_seconds"),
+		Interval: seconds("tcp.keepalive_interval_seconds"),
+		Count:    count,
+	}}
+}
+
+// on gives d the profile's keep-alive. A profile that turns it off has none:
+// Go's KeepAlive is negative.
+func (k keepAlive) on(d *net.Dialer) {
+	if !k.set {
+		return
+	}
+	d.KeepAliveConfig = k.config
+	if !k.config.Enable {
+		d.KeepAlive = -1
+	}
+}
+
+// transport is the dialer the transport makes its own dialers of, a SOCKS
+// proxy's and those of a client given transport options of the caller's, which
+// may replace it.
+func (k keepAlive) transport() []tls_client.HttpClientOption {
+	if !k.set {
+		return nil
+	}
+	var d net.Dialer
+	k.on(&d)
+	return []tls_client.HttpClientOption{tls_client.WithDialer(d)}
 }
 
 // lookupNames finds the addresses of host as a directDialer does, with the

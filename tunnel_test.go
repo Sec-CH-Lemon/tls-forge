@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,6 +23,7 @@ import (
 	"time"
 
 	tls_client "github.com/igor-lemon/tls-client"
+	"github.com/igor-lemon/utls/behavior"
 )
 
 // connectProxy stands in for an HTTP proxy: it opens a tunnel for every
@@ -415,22 +417,74 @@ func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 	// knows what to say about them, and hands the request's tap each
 	// connection it dials to the proxy.
 	for _, proxyURL := range []string{"socks5://127.0.0.1:1080", "://not a url", "http://"} {
-		if got := dialOptions(proxyURL, true, nil); len(got) != 2 {
+		if got := dialOptions(proxyURL, true, nil, keepAlive{}); len(got) != 2 {
 			t.Errorf("%q is given %d options, want the transport's two", proxyURL, len(got))
 		}
 	}
 	// An HTTP proxy is tunnelled here, and without HTTP/3, which it cannot carry.
-	if got := dialOptions("http://proxy.test:8080", true, nil); len(got) != 2 {
+	if got := dialOptions("http://proxy.test:8080", true, nil, keepAlive{}); len(got) != 2 {
 		t.Errorf("an HTTP proxy is given %d options", len(got))
 	}
 	// No proxy is dialled here, and names are looked up for HTTP/2 to carry
 	// requests to others, unless the caller has options of its own for the
 	// transport, which may say how to dial.
-	if got := dialOptions("", true, nil); len(got) != 2 {
+	if got := dialOptions("", true, nil, keepAlive{}); len(got) != 2 {
 		t.Errorf("a client without a proxy is given %d options", len(got))
 	}
-	if got := dialOptions("", false, nil); len(got) != 0 {
+	if got := dialOptions("", false, nil, keepAlive{}); len(got) != 0 {
 		t.Errorf("a client with transport options of its own is given %d options", len(got))
+	}
+	// A profile's keep-alive goes to the transport's own dialers as well, in
+	// every case, as its first option, which the caller's may replace.
+	chrome := keepAliveOf(behavior.Policy{"tcp.keepalive": json.RawMessage("true")})
+	for _, tc := range []struct {
+		proxy string
+		own   bool
+		want  int
+	}{{"socks5://127.0.0.1:1080", true, 3}, {"http://proxy.test:8080", true, 3}, {"", true, 3}, {"", false, 1}} {
+		if got := dialOptions(tc.proxy, tc.own, nil, chrome); len(got) != tc.want {
+			t.Errorf("%q (own %v) is given %d options with a keep-alive, want %d", tc.proxy, tc.own, len(got), tc.want)
+		}
+	}
+}
+
+// TestAKeepAliveIsWhatTheProfileSays holds keepAliveOf and on to the
+// profile's fields: absent leaves a dialer as Go has it, 15 s; 0 is the
+// system's (a negative value to Go); false turns it off.
+func TestAKeepAliveIsWhatTheProfileSays(t *testing.T) {
+	policy := func(fields map[string]string) behavior.Policy {
+		p := behavior.Policy{}
+		for k, v := range fields {
+			p[k] = json.RawMessage(v)
+		}
+		return p
+	}
+	for _, tc := range []struct {
+		name      string
+		fields    map[string]string
+		keepAlive time.Duration
+		config    net.KeepAliveConfig
+	}{
+		{"unsaid", nil, 0, net.KeepAliveConfig{}},
+		{"chrome-macos", map[string]string{"tcp.keepalive": "true", "tcp.keepalive_idle_seconds": "45", "tcp.keepalive_interval_seconds": "0", "tcp.keepalive_count": "0"},
+			0, net.KeepAliveConfig{Enable: true, Idle: 45 * time.Second, Interval: -1, Count: -1}},
+		{"chrome-linux", map[string]string{"tcp.keepalive": "true", "tcp.keepalive_idle_seconds": "45", "tcp.keepalive_interval_seconds": "45", "tcp.keepalive_count": "0"},
+			0, net.KeepAliveConfig{Enable: true, Idle: 45 * time.Second, Interval: 45 * time.Second, Count: -1}},
+		{"system", map[string]string{"tcp.keepalive": "true"}, 0, net.KeepAliveConfig{Enable: true, Idle: -1, Interval: -1, Count: -1}},
+		{"counted", map[string]string{"tcp.keepalive": "true", "tcp.keepalive_count": "3"}, 0, net.KeepAliveConfig{Enable: true, Idle: -1, Interval: -1, Count: 3}},
+		{"off", map[string]string{"tcp.keepalive": "false"}, -1, net.KeepAliveConfig{Idle: -1, Interval: -1, Count: -1}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ka := keepAliveOf(policy(tc.fields))
+			d := net.Dialer{Timeout: time.Second}
+			ka.on(&d)
+			if d.KeepAlive != tc.keepAlive || d.KeepAliveConfig != tc.config || d.Timeout != time.Second {
+				t.Errorf("dialer KeepAlive %v, %+v", d.KeepAlive, d.KeepAliveConfig)
+			}
+			if got := len(ka.transport()); (tc.fields == nil) != (got == 0) {
+				t.Errorf("%d transport options", got)
+			}
+		})
 	}
 }
 

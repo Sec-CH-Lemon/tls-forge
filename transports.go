@@ -189,6 +189,29 @@ func (s *site) closeIdle() {
 	s.bare.CloseIdleConnections()
 }
 
+// reapIdle closes, in every pool of every site, the idle HTTP/1.1 connections
+// an on-request idle timeout ("h1.idle_reap") finds too old, as Chromium's
+// one socket pool cleans up the idle sockets of every host each time a socket
+// is asked of it, and never on its own.
+func (t *transports) reapIdle() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, s := range t.sites {
+		s.reapIdle()
+	}
+	if t.spare != nil {
+		t.spare.reapIdle()
+	}
+}
+
+func (s *site) reapIdle() {
+	for _, p := range []pool{s.inner, s.bare} {
+		if r, ok := p.HttpClient.(interface{ ReapIdleConnections() }); ok {
+			r.ReapIdleConnections()
+		}
+	}
+}
+
 // scriptHeaderPriority is the priority Chrome 155 puts on the HEADERS frame of
 // fetch(), an XHR and a CORS preflight: exclusive, on no stream, weight 220
 // (219 on the wire), as measured in testdata/chrome155-requests.json, where a

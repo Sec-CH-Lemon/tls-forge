@@ -2,9 +2,13 @@ package profile
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/igor-lemon/utls/behavior"
 )
 
 func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
@@ -173,6 +177,90 @@ func TestFramingPolicyMustBeExplicitAndTyped(t *testing.T) {
 			if p.validateBehavior() == nil {
 				t.Fatal("invalid framing choice accepted", key, raw)
 			}
+		}
+	}
+}
+
+// TestConnectionLifecyclePolicyIsTypedAndCoherent: the keep-alive, close and
+// idle fields are refused with a wrong type, past their bounds, null, or
+// without the field they depend on.
+func TestConnectionLifecyclePolicyIsTypedAndCoherent(t *testing.T) {
+	for _, tc := range []struct{ body, want string }{
+		{`{"tcp.keepalive":"yes"}`, "cannot unmarshal"},
+		{`{"tcp.keepalive_idle_seconds":45}`, "requires tcp.keepalive"},
+		{`{"tcp.keepalive_count":0}`, "requires tcp.keepalive"},
+		{`{"tcp.keepalive":false,"tcp.keepalive_idle_seconds":45}`, "while tcp.keepalive is false"},
+		{`{"tcp.keepalive":false,"tcp.keepalive_interval_seconds":1}`, "while tcp.keepalive is false"},
+		{`{"tcp.keepalive":true,"tcp.keepalive_idle_seconds":32768}`, "must be in"},
+		{`{"tcp.keepalive":true,"tcp.keepalive_interval_seconds":32768}`, "must be in"},
+		{`{"tcp.keepalive":true,"tcp.keepalive_count":128}`, "must be in"},
+		{`{"tcp.keepalive":true,"tcp.keepalive_count":-1}`, "cannot unmarshal"},
+		{`{"tls.close_notify":0}`, "cannot unmarshal"},
+		{`{"h2.close_on_goaway":null}`, "must not be null"},
+		{`{"h2.idle_connection_timeout_ms":-1}`, "cannot unmarshal"},
+		{`{"h1.idle_connection_timeout_ms":4294967296}`, "must be in"},
+		{`{"h1.idle_reap":"on-request"}`, "requires h1.idle_connection_timeout_ms"},
+		{`{"h1.idle_reap":"lazy","h1.idle_connection_timeout_ms":1}`, "unsupported primitive"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+	for _, body := range []string{
+		`{"tcp.keepalive":false,"tcp.keepalive_idle_seconds":0,"tcp.keepalive_interval_seconds":0,"tcp.keepalive_count":0}`,
+		`{"tcp.keepalive":true}`,
+		`{"tcp.keepalive":true,"tcp.keepalive_idle_seconds":32767,"tcp.keepalive_interval_seconds":32767,"tcp.keepalive_count":127}`,
+		`{"h1.idle_connection_timeout_ms":0,"h1.idle_reap":"timer","h2.idle_connection_timeout_ms":4294967295}`,
+		`{"tls.close_notify":true,"h2.close_on_goaway":false}`,
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err != nil {
+			t.Errorf("%s: %v", body, err)
+		}
+	}
+}
+
+// TestEveryShippedChromeProfileKeepsItsConnectionsAsChrome pins the shipped
+// data: Chrome's TCP keep-alive (45 s; the interval Linux's and Windows's 45 s,
+// macOS's the system's), no close_notify, an HTTP/2 session with no idle timer
+// closed once a GOAWAY leaves it no stream, an HTTP/1.1 socket kept 300 s and
+// reaped when a socket is asked for; and no single idle timeout for both.
+func TestEveryShippedChromeProfileKeepsItsConnectionsAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		interval := uint64(45)
+		if strings.HasSuffix(name, "macos.json") {
+			interval = 0
+		}
+		if !b.Flag("tcp.keepalive") || b.Uint("tcp.keepalive_idle_seconds") != 45 || b.Uint("tcp.keepalive_interval_seconds") != interval ||
+			!b.Has("tcp.keepalive_count") || b.Uint("tcp.keepalive_count") != 0 {
+			t.Errorf("%s: keep-alive %s %s %s %s", name, b["tcp.keepalive"], b["tcp.keepalive_idle_seconds"], b["tcp.keepalive_interval_seconds"], b["tcp.keepalive_count"])
+		}
+		if !b.Has("tls.close_notify") || b.Flag("tls.close_notify") || !b.Flag("h2.close_on_goaway") {
+			t.Errorf("%s: close_notify %s, close on GOAWAY %s", name, b["tls.close_notify"], b["h2.close_on_goaway"])
+		}
+		if !b.Has("h2.idle_connection_timeout_ms") || b.Uint("h2.idle_connection_timeout_ms") != 0 ||
+			b.Uint("h1.idle_connection_timeout_ms") != 300000 || b.Text("h1.idle_reap") != "on-request" || b.Has("http.idle_connection_timeout_ms") {
+			t.Errorf("%s: idle %s/%s/%s, both %s", name, b["h1.idle_connection_timeout_ms"], b["h1.idle_reap"], b["h2.idle_connection_timeout_ms"], b["http.idle_connection_timeout_ms"])
 		}
 	}
 }

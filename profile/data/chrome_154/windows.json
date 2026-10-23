@@ -12,6 +12,8 @@
     "cookie.max_pair_bytes": 4096,
     "cookie.raw_fields": true,
     "cookie.reset_order_on_value_change": true,
+    "h1.idle_connection_timeout_ms": 300000,
+    "h1.idle_reap": "on-request",
     "h1.max_connections": 6,
     "h1.max_idle_connections": 6,
     "h1.merged_head_body_bytes": 1400,
@@ -31,6 +33,7 @@
       8,
       9
     ],
+    "h2.close_on_goaway": true,
     "h2.connection_window_overflow_error": 1,
     "h2.data_frame_payload": 16375,
     "h2.encoder_table_bytes": 4294967295,
@@ -44,6 +47,7 @@
     "h2.hpack_unindexed_prefixes": [
       ":"
     ],
+    "h2.idle_connection_timeout_ms": 0,
     "h2.read_loop_start": "connection",
     "h2.reject_unsolicited_ping_ack": true,
     "h2.reset_data_before_headers": true,
@@ -379,7 +383,6 @@
     ],
     "http.digest_cnonce_bytes": 8,
     "http.gzip_decoder": "prefix-first-member",
-    "http.idle_connection_timeout_ms": 90000,
     "http.max_auth_restarts": 32,
     "http.max_site_pools": 64,
     "http.negotiate_auth": true,
@@ -473,8 +476,13 @@
     "quic.versions": [
       1
     ],
+    "tcp.keepalive": true,
+    "tcp.keepalive_count": 0,
+    "tcp.keepalive_idle_seconds": 45,
+    "tcp.keepalive_interval_seconds": 45,
     "tls.alpn_mismatch_alert": 47,
     "tls.certificate_decode_alert": 50,
+    "tls.close_notify": false,
     "tls.defer_key_update": true,
     "tls.duplicate_extension_alert": 47,
     "tls.false_start": true,

@@ -2428,6 +2428,26 @@ peer SETTINGS are read; subsequent dynamic-table growth/shrink still follows the
 actual peer. See [profile behavior](docs/profile-behavior.md#initial-http2-input-scheduling-unreleased-engine-1).
 
 
+### Connection lifecycle
+
+How a connection is kept and let go of is profile data in the unreleased
+1.0.0, and the shipped Chrome profiles do what Chrome does (measured on
+Chrome 155 on macOS, 2026-10-23):
+
+- the system probes an idle TCP connection after 45 s (`tcp.keepalive_*`),
+  not Go's 15 s;
+- closing a connection sends no TLS close_notify (`tls.close_notify`), as
+  Chrome never shuts TLS down: `Client.Close`, an idle timeout and the CLI's
+  close after each try end with the TCP FIN alone;
+- an idle HTTP/2 connection is kept until its server closes it
+  (`h2.idle_connection_timeout_ms: 0`), an idle HTTP/1.1 one 300 s and closed
+  only when the client next asks for a connection (`h1.idle_reap`);
+- a connection is closed as soon as a GOAWAY leaves it no stream
+  (`h2.close_on_goaway`).
+
+A profile without these fields keeps the earlier behaviour. See
+[the field reference](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1).
+
 ### Empty uploads and profile-owned Content-Length
 
 Unreleased v1.0.0 preserves an absent body separately from an explicit empty
