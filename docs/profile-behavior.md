@@ -1,16 +1,16 @@
 # Profile-owned network behavior
 
-## Engine/profile compatibility (5.0.0)
+## Engine/profile compatibility (6.0.0)
 
-The compiled engine version is **5.0.0**, independently of the browser build and
+The compiled engine version is **6.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 5`. Engines reject profiles from both older
+non-negative integer `engine_major: 6`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 5, "name": "my-browser"}
+{"schema": 4, "engine_major": 6, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -19,7 +19,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go major versions use their matching module import suffix; this release uses `/v5`.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v6`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -28,13 +28,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-5") // handle err
+candidate, err := old.Migrate("my-browser-engine-6") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-5
+The 15 shipped profiles and all backend catalogue policies have explicit engine-6
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -45,7 +45,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 5`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 6`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -64,6 +64,34 @@ Schema 3 keeps browser-specific network choices in the same JSON file as the cap
 4. Run the relevant paired browser/wire acceptance. Passing schema validation does not establish browser equivalence.
 
 Editing a local file requires no binary rebuild. Embedding a different default in a distributed binary requires rebuilding that distribution. This is initialization-time loading, not live mutation of pooled connections.
+
+## Generation rules, not frozen observations
+
+A profile describes a browser's rules under a declared request, machine and
+connection context. A captured value is not automatically a reusable constant.
+Separate scoped invariants, request-derived values, generated values, evolving
+connection/session state, environment-dependent observations and unknowns.
+
+Keep supported rules and their parameters in JSON. For example,
+`per_connection.shuffles_extensions` selects fresh ordering and
+`per_connection.ech_payload_lengths` specifies candidate lengths, not one captured
+payload. Cryptographic generation remains an engine mechanism. QPACK diagnostics
+use `{stream_id}` in a JSON template; the engine substitutes the actual stream.
+Stream IDs, compression tables, tickets and cookies follow their current context;
+they must not be copied from an earlier request or reset to imitate its bytes.
+
+Use several real Chrome connections, independent contexts and repeated requests
+on the same connection. Measure cold/reused/resumed states separately. Check
+dynamic fields for protocol validity, freshness where required, relationships and
+evidenced browser generation rules rather than equality of unrelated random
+bytes. Legal GREASE repetition is not a failure. A small unchanged cohort is not
+proof that a field is constant, and RFC-valid output alone does not prove Chrome
+fidelity. Preserve originals and list every normalization explicitly.
+
+The shared method is kept in the separate collector project at
+`../net-fp-server/docs/DYNAMIC_COMPARISON_POLICY.md`, relative to this repository
+root. It defines the sampling protocol, per-layer classification and evidence
+limits.
 
 ## Compatibility and boundaries
 
@@ -261,9 +289,9 @@ Capture helper hint lists snapshot the process default once; request generation 
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
 
-## HTTP/3 QPACK (engine 5)
+## HTTP/3 QPACK (engine 6)
 
-Engine5 implements RFC9204 dynamic tables in both directions, all field-line
+Engine6 implements RFC9204 dynamic tables in both directions, all field-line
 representations, encoder instructions, Required Insert Count reconstruction,
 blocked sections, section acknowledgments, cancellation and decoder feedback.
 Critical-stream errors close the connection. Table allocation, integer overflow,
@@ -281,7 +309,7 @@ All selectable behavior belongs in profile JSON:
 | `h3.qpack.reference_base` | `required` or `insert-count` selects the field-section Base. |
 | `h3.qpack.never_index` | Exact lower-case field names excluded from dynamic insertion/reference. |
 | `h3.qpack.decoder_feedback` | `on-insert` increments plus section ACKs, or `on-section` ACKs. |
-| `h3.qpack.streams` | `lazy` or `eager` local critical-stream creation. |
+| `h3.qpack.streams` | `lazy`, `eager` or `deferred` local critical-stream lifecycle. Chrome155/macOS selects `deferred`. |
 | `h3.qpack.stream_order` | Exactly `[2,3]` or `[3,2]`. Chrome155/macOS uses decoder-first `[3,2]`. |
 
 A peer's decoder capacity and blocked budget are respected independently of our
@@ -298,12 +326,12 @@ profile candidates retain disabled request indexing and their old string coding
 until measured; all15 have a real TLS/H2 smoke, not fresh old-browser acceptance.
 Original engine2 profiles remain in the immutable r17 source archive.
 
-Engine5.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v5` and Node/Python5.
+Engine6.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v6` and Node/Python6.
 Both cross-major execution directions are rejected. Schema4 and daemon protocol3
 are unchanged. Offline Inspect/Save preserve old identity; explicit Migrate
 creates a separately named candidate using JSON migration additions.
 
-## QPACK small tables and error replay (engine 5)
+## QPACK small tables and error replay (engine 6)
 
 | Key | Meaning / Chrome155 macOS measured value |
 | --- | --- |
@@ -327,11 +355,11 @@ introduced. Every new key is mandatory in current explicit profiles; migration
 defaults are data in engine-migration.json. Other14 profiles keep draining0 and
 protocol retries1 with no selected errors, pending their own measurements.
 
-Engine5.0.0 coordinates this mechanism change once. Original engine3 profiles
+The small-table/critical-close mechanisms were introduced before engine6 and remain supported. Original engine3 profiles
 are retained in the immutable dynamic-qpack-20261022-r18 archive. Schema4 and
 daemon protocol3 remain unchanged; exact SDK/profile engine major5 is required.
 
-## QPACK diagnostic policy (engine 5)
+## QPACK diagnostic policy (engine 6)
 
 Nine current-profile keys select wire CONNECTION_CLOSE reason text. Every key
 is required;all are UTF-8 strings limited to1024 bytes. Missing/null/unknown or
@@ -362,7 +390,69 @@ for the first three classes is measured separately. Generic fallback/local-write
 messages preserve the earlier policy;they are not a claim about every Chrome
 error. Other14 profiles retain earlier diagnostic text pending browser witnesses.
 
-This coordinated mechanism change raises major4→5 once. Go uses /v5;Node/Python
-and compiled engine are5.0.0. Schema4 and daemon protocol3 remain unchanged.
-The15 shipped profiles are explicit engine5 candidates with original engine4
-bytes preserved in the immutable qpack-edges-20261023-r19 archive.
+The diagnostic mechanism was introduced in engine5 (major4→5). Engine6 retains
+the diagnostic templates and uses Go /v6,Node/Python6.0.0. Schema4 and daemon
+protocol3 remain unchanged. Original engine5 profiles are preserved in the
+dynamic-series-20261023-r21 pre-fix source archive.
+
+
+## QPACK stream lifecycle (engine 6)
+
+`h3.qpack.streams` selects an implemented generic lifecycle:
+
+| Choice | Stream IDs | First bytes |
+| --- | --- | --- |
+| `eager` | Reserved in `h3.qpack.stream_order` during local setup | Type prefixes are sent immediately. |
+| `lazy` | Allocated when each writer first has an instruction | Prefix and instructions are sent on demand; allocation follows demand. |
+| `deferred` | Reserved in `h3.qpack.stream_order` during local setup | No stream bytes are sent until that writer has an instruction. |
+
+The current Chrome155/macOS candidate selects `deferred` and `[3,2]` in JSON.
+With control stream2 this reserves decoder6/encoder10 while a static-only cold
+exchange exposes neither prefix. A later encoder instruction or decoder feedback
+activates its own stream without changing the reserved identity. Other profiles
+keep their previous lifecycle choices pending separate browser measurement.
+
+The same measured profile excludes `authorization`, `proxy-authorization` and
+`set-cookie` from QPACK insertion/reference. It allows `cookie`: repeated
+controlled cookie updates in Chrome use the dynamic table. The earlier blanket
+cookie exclusion preserved values but produced different compressed sections.
+This correction uses the existing JSON primitive; it requires no extra engine
+change. Other profiles retain their own explicit policies.
+
+Reservation and first-write synchronization are engine primitives. A writer may
+queue feedback while setup finishes; only its I/O goroutine waits for reservation,
+without holding a table lock. Cancellation/connection failure terminates that
+wait. Existing bounded queues, protocol errors and JSON-owned diagnostics remain.
+This new primitive increments engine5→6 once. Original engine5 files remain
+archived; all15 new candidates explicitly pin6. Metadata migration alone does
+not transfer browser acceptance to another profile or platform.
+
+
+## HTTP/3 dynamic control stream (engine 6)
+
+The current Chrome155/macOS candidate owns these rules in JSON:
+
+| Profile key | Selection | Runtime meaning |
+| --- | --- | --- |
+| `h3.control_order` | `["settings","grease"]` | Initial control components in wire order. SETTINGS is required first. |
+| `h3.grease_payload_lengths` | `[0,1,2,3]` | For frame type `31*N+33`, select length at `N mod vector_length`, then generate fresh random payload bytes. |
+| `h3.priority_updates` | `"per-request"` | Emit PRIORITY_UPDATE for each actual request stream, including reused connections. |
+| `h3.priority_source` | `"header"` | Use the current request's Priority field, falling back to JSON `h3.priority_value`. |
+
+`initial` priority mode retains the historical single initial update; `disabled`
+omits updates. `profile` priority source uses the JSON fallback for every update.
+Initial mode requires `priority` in the control order; per-request/disabled modes
+exclude it. Other explicitly migrated profiles/catalogue templates preserve their
+prior initial-mode policy and empty GREASE payload through `[0]` until measured.
+No captured random bytes, stream IDs, request priorities or cookies are replayed.
+
+The writer applies to RoundTrip and OpenRequestStream/SendRequestHeader. Control
+writes serialize outside QPACK/header locks. Request cancellation stops the caller's
+wait without resetting a critical stream; at most one bounded frame write remains
+in flight, and connection shutdown terminates it. Protocol ordering, cryptographic
+random generation, synchronization and hard resource ceilings are engine mechanisms.
+The new mechanisms are part of the same coordinated, unpublished 5→6 release.
+
+Repeated original-wire measurements and scope/negative controls are maintained in
+`../net-fp-server/docs/DYNAMIC_FIELDS_2026-10-23.md`. RFC-valid random lengths alone
+are insufficient: the measured N/length relationship and lifecycle must also hold.

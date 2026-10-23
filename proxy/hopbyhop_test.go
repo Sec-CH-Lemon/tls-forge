@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
 )
 
 // answering is a client that keeps what each request said, and answers each

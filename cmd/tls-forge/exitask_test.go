@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
 )
 
 // cloudflareSite answers as a site behind Cloudflare does: every response with

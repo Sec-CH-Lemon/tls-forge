@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/cookie"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/cookie"
 )
 
 // profileWith is a profile file, at path, of a shipped Chrome whose user agent

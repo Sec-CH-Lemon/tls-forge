@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
 	fhttp "github.com/igor-lemon/fhttp"
 	tc "github.com/igor-lemon/tls-client"
 )

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
 )
 
 const defaultURL = "https://tls.browserleaks.com/json"

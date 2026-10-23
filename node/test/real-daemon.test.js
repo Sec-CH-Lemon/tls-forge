@@ -207,7 +207,7 @@ test('a proxy the real Go daemon turns down says why without its password', { sk
   // starts it: its answer to the init line and its last words, read here to
   // the end.
   const started = spawnSync(binary, ['daemon', '--proxy-stdin'], {
-    input: JSON.stringify({ id: 1, engine_major: 5, control: 'init', proxy: 'http://alice:s3cret-never-shown@[bad' }) + '\n',
+    input: JSON.stringify({ id: 1, engine_major: 6, control: 'init', proxy: 'http://alice:s3cret-never-shown@[bad' }) + '\n',
     encoding: 'utf8',
   });
   assert.equal(started.status, 1, started.stderr);
@@ -239,7 +239,7 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
   try {
     await client.get(`${base}/set`);
     const url = `${base}/echo`;
-    const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id: 3, engine_major: 5 }) + '\n');
+    const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id: 3, engine_major: 6 }) + '\n');
     const body = 'x'.repeat(MAX_REQUEST_BYTES - overhead);
     await client.post(url, body);
     assert.deepEqual(seen, { cookie: 'visitor=42', length: body.length });
@@ -297,7 +297,7 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
   try {
     const base = `http://127.0.0.1:${page.server.address().port}`;
     const elsewhere = `http://127.0.0.1:${other.server.address().port}`;
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major'], engine_major: 5, version: '5.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major'], engine_major: 6, version: '6.0.0' });
     const from = `${base}/page`;
     const response = await client.get(`${base}/api`, { browserContext: { kind: 'fetch', initiator: from } });
     assert.equal(response.status, 200);

@@ -8,7 +8,7 @@ import (
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
 )
 
 // DefaultProfile is used when no profile is named. It is a Chrome measured from

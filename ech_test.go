@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/fingerprint"
 	"golang.org/x/crypto/cryptobyte"
 )
 

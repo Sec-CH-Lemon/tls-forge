@@ -14,8 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
 )
 
 // chromeRequests is testdata/chrome155-requests.json: what Chrome 155 sent

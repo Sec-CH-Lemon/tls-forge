@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/pcapng"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/internal/pcapng"
 )
 
 // What --pcap keeps of a request, read back from the file as Wireshark reads

@@ -70,7 +70,7 @@ func TestRegisterTakesPrecedence(t *testing.T) {
 	// A caller who captures their own browser and registers it under a name must
 	// get theirs, not the one shipped here.
 	registry := NewRegistry()
-	mine := &Profile{EngineMajor: Major(5), Name: "chrome_151", UserAgent: "mine", Base: "chrome_133"}
+	mine := &Profile{EngineMajor: Major(6), Name: "chrome_151", UserAgent: "mine", Base: "chrome_133"}
 	if err := registry.Register(mine); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -98,14 +98,14 @@ func TestRegisterRejectsUnnamedProfiles(t *testing.T) {
 	if err := registry.Register(nil); err == nil {
 		t.Error("registering nil should be reported")
 	}
-	if err := registry.Register(&Profile{EngineMajor: Major(5)}); err == nil {
+	if err := registry.Register(&Profile{EngineMajor: Major(6)}); err == nil {
 		t.Error("registering a profile without a name should be reported")
 	}
 }
 
 func TestNames(t *testing.T) {
 	registry := NewRegistry()
-	if err := registry.Register(&Profile{EngineMajor: Major(5), Name: "my_browser", Base: "chrome_133"}); err != nil {
+	if err := registry.Register(&Profile{EngineMajor: Major(6), Name: "my_browser", Base: "chrome_133"}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -153,12 +153,12 @@ func TestNewestInFamilyPrefersMeasuredOverNewer(t *testing.T) {
 	// resolving the family name to it would trade a complete impersonation for a
 	// handshake-only one — quietly, at the moment the catalogue moved ahead.
 	registry := NewRegistry()
-	if err := registry.Register(&Profile{EngineMajor: Major(5),
+	if err := registry.Register(&Profile{EngineMajor: Major(6),
 		Name: "acme_10", ClientHello: chromeHelloBytes(t),
 	}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
-	if err := registry.Register(&Profile{EngineMajor: Major(5), Name: "acme_99", Base: "chrome_133"}); err != nil {
+	if err := registry.Register(&Profile{EngineMajor: Major(6), Name: "acme_99", Base: "chrome_133"}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -174,12 +174,12 @@ func TestNewestInFamilyPrefersMeasuredOverNewer(t *testing.T) {
 func TestNewestInFamilyPicksTheHighestVersion(t *testing.T) {
 	registry := NewRegistry()
 	for _, name := range []string{"acme_9", "acme_120", "acme_37"} {
-		if err := registry.Register(&Profile{EngineMajor: Major(5), Name: name, ClientHello: chromeHelloBytes(t)}); err != nil {
+		if err := registry.Register(&Profile{EngineMajor: Major(6), Name: name, ClientHello: chromeHelloBytes(t)}); err != nil {
 			t.Fatalf("Register: %v", err)
 		}
 	}
 	// A suffix that is not a version is a distinct profile, not a candidate.
-	if err := registry.Register(&Profile{EngineMajor: Major(5), Name: "acme_nightly", ClientHello: chromeHelloBytes(t)}); err != nil {
+	if err := registry.Register(&Profile{EngineMajor: Major(6), Name: "acme_nightly", ClientHello: chromeHelloBytes(t)}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -205,7 +205,7 @@ func TestNewestInFamilyFallsBackToTheCatalogue(t *testing.T) {
 }
 
 func TestPackageLevelHelpersUseTheDefaultRegistry(t *testing.T) {
-	if err := Register(&Profile{EngineMajor: Major(5), Name: "package_level_test", Base: "chrome_133"}); err != nil {
+	if err := Register(&Profile{EngineMajor: Major(6), Name: "package_level_test", Base: "chrome_133"}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	if _, err := Get("package_level_test"); err != nil {

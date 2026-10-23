@@ -639,9 +639,19 @@
         "h3.qpack.error_decoder_reason": "invalid or closed QPACK critical stream",
         "h3.qpack.error_stream_unavailable_reason": "QPACK stream unavailable",
         "h3.qpack.error_stream_write_reason": "QPACK stream write failed",
-        "h3.qpack.error_queue_exhausted_reason": "QPACK instruction queue exhausted"
+        "h3.qpack.error_queue_exhausted_reason": "QPACK instruction queue exhausted",
+        "h3.grease_payload_lengths": [
+          0
+        ],
+        "h3.control_order": [
+          "settings",
+          "priority",
+          "grease"
+        ],
+        "h3.priority_updates": "initial",
+        "h3.priority_source": "profile"
       },
-      "engine_major": 5,
+      "engine_major": 6,
       "http2": {
         "settings": null,
         "connection_flow": 0,
@@ -875,9 +885,19 @@
         "h3.qpack.error_decoder_reason": "invalid or closed QPACK critical stream",
         "h3.qpack.error_stream_unavailable_reason": "QPACK stream unavailable",
         "h3.qpack.error_stream_write_reason": "QPACK stream write failed",
-        "h3.qpack.error_queue_exhausted_reason": "QPACK instruction queue exhausted"
+        "h3.qpack.error_queue_exhausted_reason": "QPACK instruction queue exhausted",
+        "h3.grease_payload_lengths": [
+          0
+        ],
+        "h3.control_order": [
+          "settings",
+          "priority",
+          "grease"
+        ],
+        "h3.priority_updates": "initial",
+        "h3.priority_source": "profile"
       },
-      "engine_major": 5,
+      "engine_major": 6,
       "http2": {
         "settings": null,
         "connection_flow": 0,

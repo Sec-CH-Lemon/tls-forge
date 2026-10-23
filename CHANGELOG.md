@@ -11,6 +11,31 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Engine6 H3: JSON selects control-frame order, GREASE payload-length vector and
+  per-request PRIORITY_UPDATE source/mode. Generate fresh payload bytes with the
+  measured frame-N/length relationship and use actual stream IDs/current request
+  priority. Both RoundTrip and direct request-stream APIs share the same mechanism;
+  legacy policy choices remain explicit in unmeasured profile candidates.
+
+
+- **Breaking engine release 6.0.0:** profile-selected deferred QPACK stream
+  reservation preserves JSON-defined IDs while sending prefixes/instructions
+  only on demand. This fixes premature encoder/decoder stream bytes on a cold
+  static-only exchange without the ID reversal caused by lazy allocation.
+  Chrome155/macOS selects `h3.qpack.streams: deferred`; other choices remain
+  explicit data. Go/v6, Node/Python6.0.0,15 engine_major6 candidates; schema4 and
+  daemon protocol3 are unchanged. Original engine5 bytes are archived; exact
+  compatibility checks and independently captured Chrome acceptance are required.
+- Chrome155/macOS QPACK policy permits dynamic Cookie insertion/reference, as
+  observed across controlled jar updates. This JSON-only correction removes
+  the earlier unconditional exclusion; values still come from current jar state.
+
+- Document the owner-required multi-sample comparison contract: profiles contain
+  generation/selection rules and runtime templates, not frozen connection/request
+  values. Distinguish invariants, generated values, state and environment; retain
+  explicit normalization and uncertainty. Documentation only; engine5 and profile
+  data are unchanged.
+
 - **Breaking engine release 5.0.0:** typed QPACK error classes and nine explicit
   JSON diagnostic text/template choices. Relative-index messages use the actual
   request stream ID;capacity excess and zero increments are classified separately

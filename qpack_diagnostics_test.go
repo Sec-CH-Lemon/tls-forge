@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
 	quic "github.com/igor-lemon/quic-go-utls"
 	"github.com/igor-lemon/quic-go-utls/quicvarint"
 	tc "github.com/igor-lemon/tls-client"

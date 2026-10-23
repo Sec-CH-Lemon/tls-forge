@@ -98,7 +98,7 @@ granting it.
 With Go 1.26.9 or newer:
 
 ```bash
-go install github.com/Sec-CH-Lemon/tls-forge/v5/cmd/tls-forge@latest
+go install github.com/Sec-CH-Lemon/tls-forge/v6/cmd/tls-forge@latest
 ```
 
 The binary is written to `$(go env GOPATH)/bin` unless `GOBIN` is set.
@@ -156,7 +156,7 @@ through linker flags. A release-style static build is:
 
 ```bash
 CGO_ENABLED=0 go build -trimpath \
-  -ldflags "-s -w -X main.version=v5.0.0" \
+  -ldflags "-s -w -X main.version=v6.0.0" \
   -o tls-forge ./cmd/tls-forge
 ```
 
@@ -1837,17 +1837,24 @@ says so in its header. To wear Firefox or Safari whole, measure it with
 `capture --manual`.
 
 
-## Engine/profile compatibility (5.0.0)
+## Engine/profile compatibility (6.0.0)
 
-The compiled engine version is **5.0.0**, independently of the browser build and
+Profiles store generation rules and context-dependent templates, rather than
+freezing changing values from one capture. Compare several fresh Chrome
+connections and repeated requests on reused connections; distinguish protocol
+validity from observed browser behavior. See [generation rules](docs/profile-behavior.md#generation-rules-not-frozen-observations).
+The shared method lives in the separate collector project at
+`../net-fp-server/docs/DYNAMIC_COMPARISON_POLICY.md`.
+
+The compiled engine version is **6.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 5`. Engines reject profiles from both older
+non-negative integer `engine_major: 6`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 5, "name": "my-browser"}
+{"schema": 4, "engine_major": 6, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
@@ -1856,7 +1863,7 @@ JSON. Any coordinated change requiring shipped engine/fork runtime code incremen
 the project major exactly once, even a compatible fix. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go major versions use their matching module import suffix; this release uses `/v5`.
+a different version stamp. Go major versions use their matching module import suffix; this release uses `/v6`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -1865,13 +1872,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-5") // handle err
+candidate, err := old.Migrate("my-browser-engine-6") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-5
+The 15 shipped profiles and all backend catalogue policies have explicit engine-6
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -1882,7 +1889,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 5`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 6`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -2121,7 +2128,7 @@ request options, response fields, lifecycle rules and failure behaviour.
 #### Go
 
 ```bash
-go get github.com/Sec-CH-Lemon/tls-forge/v5
+go get github.com/Sec-CH-Lemon/tls-forge/v6
 ```
 
 ```go
@@ -2131,7 +2138,7 @@ import (
 	"fmt"
 	"log"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
 )
 
 func main() {
@@ -2273,7 +2280,7 @@ when a maintainer starts it from the Actions page or from the command line:
 ```bash
 gh workflow run published-e2e.yml \
   --ref main \
-  -f version=5.0.0 \
+  -f version=6.0.0 \
   -f check_brew=true
 ```
 
@@ -2377,24 +2384,30 @@ Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before t
 
 ### Engine 3 QPACK policy
 
-The Go SDK module is `github.com/Sec-CH-Lemon/tls-forge/v5`. Browser profiles
-require `engine_major: 5`; Node/Python 5.0.0 require an engine-5 daemon.
+The Go SDK module is `github.com/Sec-CH-Lemon/tls-forge/v6`. Browser profiles
+require `engine_major: 6`; Node/Python 6.0.0 require an engine-6 daemon.
 The profile now explicitly selects QPACK name/value Huffman coding with
 `h3.qpack.huffman_names` and `h3.qpack.huffman_values`: `always`, `shorter`,
 or `never`. Chrome155/macOS selects strictly shorter coding.
-See [profile-owned behavior](docs/profile-behavior.md#http3-qpack-engine-5).
-Dynamic QPACK is implemented in engine5; its table/feedback/stream policy is declared in JSON. Other missing-API scenarios remain open.
+See [profile-owned behavior](docs/profile-behavior.md#http3-qpack-engine-6).
+Dynamic QPACK is implemented in engine6; its table/feedback/stream policy is declared in JSON. Other missing-API scenarios remain open.
 
 QPACK table draining, critical-stream error space/code/frame/reason and H3
-protocol-error retries are profile-owned in engine5. See
-[the policy reference](docs/profile-behavior.md#qpack-small-tables-and-error-replay-engine-5).
+protocol-error retries are profile-owned in engine6. See
+[the policy reference](docs/profile-behavior.md#qpack-small-tables-and-error-replay-engine-6).
 Original engine3 profiles remain in the r18 source archive and are rejected by
-engine5. A migrated profile needs fresh wire acceptance for its workload.
+engine6. A migrated profile needs fresh wire acceptance for its workload.
 
 H3 guaranteed-unprocessed retries use explicit `h3.retry_unprocessed_attempts`
 (total attempts, retained value2), with the same bounded attempt index as
 protocol retries. Do not restore a hardcoded single retry.
 
-QPACK error reasons and bounded diagnostic templates are JSON-owned in engine5.
-See [the diagnostic policy](docs/profile-behavior.md#qpack-diagnostic-policy-engine-5).
+QPACK error reasons and bounded diagnostic templates are JSON-owned in engine6.
+See [the diagnostic policy](docs/profile-behavior.md#qpack-diagnostic-policy-engine-6).
 Profiles from engine4 require explicit migration and fresh relevant wire checks.
+
+
+The engine6 Chrome155/macOS profile also controls initial H3 control-frame order,
+GREASE payload generation and per-request priority updates in JSON. Generated
+payloads retain the measured frame-N/length relationship; reused requests use
+actual stream IDs and current priorities. See [profile behavior](docs/profile-behavior.md#http3-dynamic-control-stream-engine-6).

@@ -10,8 +10,8 @@ import (
 )
 
 func TestEngineCompatibilityMatrix(t *testing.T) {
-	for _, running := range []int{0, 1, 2, 3, 4, 5, 6} {
-		for _, declared := range []int{0, 1, 2, 3, 4, 5, 6} {
+	for _, running := range []int{0, 1, 2, 3, 4, 5, 6, 7} {
+		for _, declared := range []int{0, 1, 2, 3, 4, 5, 6, 7} {
 			p := &Profile{Name: "renamed", EngineMajor: Major(declared)}
 			if err := p.validateEngineMajor(running); (err == nil) != (running == declared) {
 				t.Fatal(running, declared, err)
@@ -25,7 +25,7 @@ func TestEngineCompatibilityMatrix(t *testing.T) {
 	data, _ := p.Save()
 	var fields map[string]json.RawMessage
 	json.Unmarshal(data, &fields)
-	for _, raw := range []string{"missing", "null", "0", "1", "2", "3", "4", "6", "-1", "1.25", `"1"`, "true"} {
+	for _, raw := range []string{"missing", "null", "0", "1", "2", "3", "4", "5", "7", "-1", "1.25", `"1"`, "true"} {
 		t.Run(raw, func(t *testing.T) {
 			if raw == "missing" {
 				delete(fields, "engine_major")
@@ -34,7 +34,7 @@ func TestEngineCompatibilityMatrix(t *testing.T) {
 			}
 			bytes, _ := json.Marshal(fields)
 			_, err := Load(bytes)
-			if err == nil || !strings.Contains(err.Error(), "engine_major") || !strings.Contains(err.Error(), "running engine major 5") {
+			if err == nil || !strings.Contains(err.Error(), "engine_major") || !strings.Contains(err.Error(), "running engine major 6") {
 				t.Fatal(err)
 			}
 			at := filepath.Join(t.TempDir(), "renamed.json")
@@ -44,7 +44,7 @@ func TestEngineCompatibilityMatrix(t *testing.T) {
 			}
 		})
 	}
-	for _, major := range []*int{nil, Major(-1), Major(0), Major(1), Major(2), Major(3), Major(4), Major(6)} {
+	for _, major := range []*int{nil, Major(-1), Major(0), Major(1), Major(2), Major(3), Major(4), Major(5), Major(7)} {
 		q := p.Clone()
 		q.Name = "firefox_148"
 		q.Base = "chrome_133"
@@ -70,10 +70,10 @@ func TestEngineMajorPreservedAndMigrationExplicit(t *testing.T) {
 	}
 	q := p.Clone()
 	*q.EngineMajor = 0
-	if *p.EngineMajor != 5 {
+	if *p.EngineMajor != 6 {
 		t.Fatal("major pointer aliases")
 	}
-	for _, major := range []*int{nil, Major(0), Major(1), Major(2), Major(3), Major(4), Major(6)} {
+	for _, major := range []*int{nil, Major(0), Major(1), Major(2), Major(3), Major(4), Major(5), Major(7)} {
 		q := p.Clone()
 		q.EngineMajor = major
 		b, err := q.Save()
@@ -90,11 +90,11 @@ func TestEngineMajorPreservedAndMigrationExplicit(t *testing.T) {
 		if _, err := Load(b); err == nil {
 			t.Fatal("archive executable")
 		}
-		m, err := archived.Migrate("explicit-engine-5-candidate")
+		m, err := archived.Migrate("explicit-engine-6-candidate")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if *m.EngineMajor != 5 || m.Notes == p.Notes || !reflect.DeepEqual(m.ClientHello, p.ClientHello) || !reflect.DeepEqual(archived.EngineMajor, major) {
+		if *m.EngineMajor != 6 || m.Notes == p.Notes || !reflect.DeepEqual(m.ClientHello, p.ClientHello) || !reflect.DeepEqual(archived.EngineMajor, major) {
 			t.Fatal("migration lost provenance or changed source")
 		}
 	}
@@ -110,7 +110,7 @@ func TestAllEmbeddedProfilesPinThisEngine(t *testing.T) {
 		if err != nil {
 			t.Fatal(path, err)
 		}
-		if p.Schema != 4 || p.EngineMajor == nil || *p.EngineMajor != 5 {
+		if p.Schema != 4 || p.EngineMajor == nil || *p.EngineMajor != 6 {
 			t.Fatal(path)
 		}
 		if _, err := p.ClientProfile(); err != nil {
@@ -118,7 +118,7 @@ func TestAllEmbeddedProfilesPinThisEngine(t *testing.T) {
 		}
 	}
 	p, err := catalogueProfile("firefox_148")
-	if err != nil || p.EngineMajor == nil || *p.EngineMajor != 5 {
+	if err != nil || p.EngineMajor == nil || *p.EngineMajor != 6 {
 		t.Fatal(p, err)
 	}
 }
@@ -156,9 +156,9 @@ func TestCatalogueMetadataIsCheckedBeforeTemplateExpansion(t *testing.T) {
 	json.Unmarshal(original, &inventory)
 	key := inventory.Entries["firefox_148"]
 	template := string(inventory.Templates[key])
-	for _, replacement := range []string{`"engine_major":0,`, `"engine_major":6,`, `"engine_major":null,`, ``, `"engine_major":5,"engine_major":5,`, `"engine_major":0,"Engine_Major":1,`} {
+	for _, replacement := range []string{`"engine_major":0,`, `"engine_major":7,`, `"engine_major":null,`, ``, `"engine_major":6,"engine_major":6,`, `"engine_major":0,"Engine_Major":1,`} {
 		compact := strings.ReplaceAll(strings.ReplaceAll(template, " ", ""), "\n", "")
-		inventory.Templates[key] = json.RawMessage(strings.Replace(compact, `"engine_major":5,`, replacement, 1))
+		inventory.Templates[key] = json.RawMessage(strings.Replace(compact, `"engine_major":6,`, replacement, 1))
 		catalogueTemplate, _ = json.Marshal(inventory)
 		if _, err := catalogueProfile("firefox_148"); err == nil || !strings.Contains(err.Error(), "firefox_148") || !strings.Contains(err.Error(), "engine_major") {
 			t.Fatal(replacement, err)
@@ -192,7 +192,7 @@ func TestOldEngineProfileInspectionDoesNotInventQPACKPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if *migrated.EngineMajor != 5 || migrated.Behavior.Text("h3.qpack.huffman_names") != "always" || migrated.Behavior.Text("h3.qpack.huffman_values") != "always" {
+	if *migrated.EngineMajor != 6 || migrated.Behavior.Text("h3.qpack.huffman_names") != "always" || migrated.Behavior.Text("h3.qpack.huffman_values") != "always" {
 		t.Fatal("explicit migration missed data defaults")
 	}
 	if archived.Behavior.Has("h3.qpack.huffman_names") || *archived.EngineMajor != 1 {

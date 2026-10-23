@@ -7,7 +7,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/internal/redact"
 	fhttp "github.com/igor-lemon/fhttp"
 	tls_client "github.com/igor-lemon/tls-client"
 )

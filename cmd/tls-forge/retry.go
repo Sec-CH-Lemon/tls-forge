@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v5"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v6"
 )
 
 // How hard a run tries, and where it writes down what trying looked like.

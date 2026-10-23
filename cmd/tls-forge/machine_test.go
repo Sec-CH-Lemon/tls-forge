@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v6/profile"
 )
 
 func TestSetTakesWhatAHeaderCarries(t *testing.T) {
@@ -47,7 +47,7 @@ func TestSetTakesWhatAHeaderCarries(t *testing.T) {
 }
 
 func TestSetChangesWhatAProfileKeepsOfTheMachine(t *testing.T) {
-	p := &profile.Profile{EngineMajor: profile.Major(5),
+	p := &profile.Profile{EngineMajor: profile.Major(6),
 		Headers:     []profile.Field{{Name: "user-agent", Value: "u"}, {Name: "accept-language", Value: "ru-RU"}},
 		HTTP1:       &profile.HTTP1{Headers: []profile.Field{{Name: "Accept-Language", Value: "ru-RU"}}},
 		ClientHints: []profile.Field{{Name: "sec-ch-ua-arch", Value: `"arm"`}, {Name: "sec-ch-ua-wow64", Value: "?0"}},
@@ -67,10 +67,10 @@ func TestSetChangesWhatAProfileKeepsOfTheMachine(t *testing.T) {
 		!strings.Contains(err.Error(), "the browser measured sends no sec-ch-ua-model") {
 		t.Errorf("a hint it has not: %v", err)
 	}
-	if err := applySettings(&profile.Profile{EngineMajor: profile.Major(5)}, []setting{{"accept-language", "de"}}); err == nil {
+	if err := applySettings(&profile.Profile{EngineMajor: profile.Major(6)}, []setting{{"accept-language", "de"}}); err == nil {
 		t.Error("an accept-language it has not")
 	}
-	if err := applySettings(&profile.Profile{EngineMajor: profile.Major(5), Headers: []profile.Field{{Name: "accept-language", Value: "x"}}},
+	if err := applySettings(&profile.Profile{EngineMajor: profile.Major(6), Headers: []profile.Field{{Name: "accept-language", Value: "x"}}},
 		[]setting{{"accept-language", "de"}}); err != nil {
 		t.Errorf("without HTTP/1.1: %v", err)
 	}

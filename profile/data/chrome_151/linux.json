@@ -1,6 +1,6 @@
 {
   "schema": 4,
-  "engine_major": 5,
+  "engine_major": 6,
   "behavior": {
     "cache.entries": 256,
     "cache.entry_bytes": 8388608,
@@ -50,13 +50,23 @@
     "h2.window_update_denominator": 2,
     "h2.zero_window_stream_error": 3,
     "h3.body_copy_bytes": 8192,
+    "h3.control_order": [
+      "settings",
+      "priority",
+      "grease"
+    ],
     "h3.grease_frame_n_bits": 32,
     "h3.grease_frames": true,
+    "h3.grease_payload_lengths": [
+      0
+    ],
     "h3.grease_setting_n_max": 9999999999,
     "h3.grease_setting_n_min": 1000000000,
     "h3.grease_setting_nonzero": true,
     "h3.grease_settings": true,
     "h3.priority_frame_type": 984832,
+    "h3.priority_source": "profile",
+    "h3.priority_updates": "initial",
     "h3.priority_value": "u=0, i",
     "h3.pseudo_header_order": [
       ":method",
@@ -655,5 +665,5 @@
       "value": "u=0, i"
     }
   ],
-  "notes": "captured 2026-08-16T18:54:35Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Behavior schema 3 materializes the pre-existing compatibility policy from the maintained runtime; additional behavior fields are not a new capture of this browser build.\nExplicit migration to engine 1.0.0 (major 1); original capture and wire policy preserved. Engine compatibility is revalidated separately; historical browser acceptance is not a fresh measurement. Explicit engine-2 migration (2026-10-22): QPACK literal coding is now profile-owned; original engine-1 bytes preserved in tls-client-cache-20261022-r16 source archive. Other browser values and capture provenance retained. Explicit engine-3 migration (2026-10-22): dynamic QPACK mechanism; original engine-2 bytes preserved in qpack-20261022-r17 source archive. Other browser values retained unless separately measured. Explicit engine-4 migration (2026-10-23): QPACK draining, critical-stream close and H3 retry mechanisms. Original engine-3 bytes preserved in dynamic-qpack-20261022-r18 source archive. Wire acceptance is scenario scoped. Explicit engine-5 migration (2026-10-23): typed QPACK diagnostics and JSON-owned error text/templates. Original engine-4 bytes preserved in qpack-edges-20261023-r19 source archive. Browser/wire acceptance remains scenario scoped."
+  "notes": "captured 2026-08-16T18:54:35Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Behavior schema 3 materializes the pre-existing compatibility policy from the maintained runtime; additional behavior fields are not a new capture of this browser build.\nExplicit migration to engine 1.0.0 (major 1); original capture and wire policy preserved. Engine compatibility is revalidated separately; historical browser acceptance is not a fresh measurement. Explicit engine-2 migration (2026-10-22): QPACK literal coding is now profile-owned; original engine-1 bytes preserved in tls-client-cache-20261022-r16 source archive. Other browser values and capture provenance retained. Explicit engine-3 migration (2026-10-22): dynamic QPACK mechanism; original engine-2 bytes preserved in qpack-20261022-r17 source archive. Other browser values retained unless separately measured. Explicit engine-4 migration (2026-10-23): QPACK draining, critical-stream close and H3 retry mechanisms. Original engine-3 bytes preserved in dynamic-qpack-20261022-r18 source archive. Wire acceptance is scenario scoped. Explicit engine-5 migration (2026-10-23): typed QPACK diagnostics and JSON-owned error text/templates. Original engine-4 bytes preserved in qpack-edges-20261023-r19 source archive. Browser/wire acceptance remains scenario scoped. Explicit engine-6 candidate (2026-10-23): deferred QPACK stream identity reservation with demand-driven wire output. Original engine-5 bytes preserved in dynamic-series-20261023-r21 pre-fix source archive; browser acceptance remains per profile and scenario."
 }

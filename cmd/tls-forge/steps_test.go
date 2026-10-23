@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v5"
+	"github.com/Sec-CH-Lemon/tls-forge/v6"
 )
 
 // drivenTries drives two tries through every hook a client reports through,
