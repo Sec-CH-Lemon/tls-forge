@@ -158,6 +158,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.preface_ping_first_id` | `1` |
 | `h2.preface_ping_hung_ms` | `10000` |
 | `h2.preface_ping_idle_ms` | `10000` |
+| `h2.priority_dependency` | `"nearest-weight"` |
 | `h2.reject_unsolicited_ping_ack` | `true` |
 | `h2.reset_data_before_headers` | `true` |
 | `h2.strict_max_streams` | `true` |
@@ -663,3 +664,40 @@ DATA, the count, one unanswered or a check pending holding the next, any
 acknowledgement answering it, the giving up put off by a read, a connection
 held up in a write given up too, how often and how soon a request goes again
 and what a body that cannot go again says.
+
+
+## Stream dependencies in HEADERS (unreleased engine 1)
+
+Chrome's HEADERS frames say which stream they depend on, and it is not
+always none: requests open at once on one connection form chains
+(net/spdy/http2_priority_dependencies.cc). The shipped Chrome profiles do
+the same; absent, a stream depends on none, as before, and catalogue, legacy
+and migration policies keep that until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `h2.priority_dependency` | `root`: every HEADERS depends on stream 0. `nearest-weight`: a new stream depends, with the exclusive flag and weight its priority says, on the stream most recently opened among the open ones of the lowest weight not below its own, or on none; the weight is Chrome's priority on the wire (255 a page, 219 a `fetch()`, 146 a CONNECT through a proxy). A stream stops being depended on when its answer ends or it is reset; a request whose HEADERS carry no priority joins no list. Chrome: `nearest-weight`. |
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-23, `../net-fp-server/captures/review-20261023/`): four `fetch()`es
+at once went as streams 1, 3, 5, 7 depending on 0, 1, 3, 5 (`chrome-par`,
+`chrome-par2`); a page that opened `fetch()`es (219), `fetch()`es with
+priority low and an async script (146) and style sheets (255) at once, one
+of them ending before the next three began (`chrome-prio`), had each depend
+on the last open stream of the nearest weight not below its own (a `fetch()`
+on the first `fetch()`, not on a style sheet opened after it), no PRIORITY
+frame. tls-forge with these values on the same bench (`dep-par`,
+`dep-prio`): the same chains for the weights it has, 219 and 255.
+
+Tests: `TestAChromeProfileChainsItsStreamsAsChromeDoes` changes only the
+JSON and holds a client's HEADERS to the rule on the wire (and "root" to
+none); `TestABrowserContextSendsWhatChromeSent` holds every replayed request
+to the dependency Chrome's fixture recorded (none: they were sequential);
+`TestPriorityDependencyIsAChoiceOfTheEngines` and
+`TestEveryShippedChromeProfileChainsItsStreamsAsChrome` hold the data.
+fhttp's `http2/dependency_test.go` replays Chrome's measured connection
+stream by stream, on the lists and on the wire, with a stream cancelled,
+one reset by the server and one without a priority. Not done: PRIORITY
+frames when a request's priority changes (Chrome's `OnStreamUpdate`;
+tls-forge changes none), and priorities tls-forge never sends (fetch
+priority hints, sub-resources).

@@ -123,7 +123,12 @@ With a shipped Chrome profile no close sends a TLS close_notify, `Close` and
 `CloseIdleConnections` included; an idle HTTP/2 connection is kept until its
 server closes it, an idle HTTP/1.1 one 300 s, reaped when a later request asks
 for a connection; a connection a GOAWAY leaves no stream is closed at once;
-and the system probes an idle TCP connection after 45 s.
+and the system probes an idle TCP connection after 45 s. A request to an
+HTTP/2 connection that has read nothing for more than 10 s sends a PING with
+its HEADERS ([the PING](docs/profile-behavior.md#the-connections-own-ping-unreleased-engine-1));
+when no answer comes and nothing is read for 10 s, the connection is given up
+and a request with no answer yet goes again on another connection, at most
+twice, so a `Trace` may see a request dial twice.
 
 A client resumes TLS sessions as its browser does. A measured profile's
 handshake is the browser's first contact, and its spec ends with the

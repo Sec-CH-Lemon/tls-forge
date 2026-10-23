@@ -273,6 +273,56 @@ func TestPrefacePingPolicyIsTypedAndCoherent(t *testing.T) {
 	}
 }
 
+// TestPriorityDependencyIsAChoiceOfTheEngines: "root" or "nearest-weight",
+// nothing else.
+func TestPriorityDependencyIsAChoiceOfTheEngines(t *testing.T) {
+	for _, tc := range []struct{ body, want string }{
+		{`{"h2.priority_dependency":"chain"}`, "unsupported primitive"},
+		{`{"h2.priority_dependency":""}`, "unsupported primitive"},
+		{`{"h2.priority_dependency":1}`, "cannot unmarshal"},
+		{`{"h2.priority_dependency":null}`, "must not be null"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+	for _, body := range []string{`{"h2.priority_dependency":"root"}`, `{"h2.priority_dependency":"nearest-weight"}`} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err != nil {
+			t.Errorf("%s: %v", body, err)
+		}
+	}
+}
+
+// TestEveryShippedChromeProfileChainsItsStreamsAsChrome pins the shipped data
+// to Chrome's Http2PriorityDependencies.
+func TestEveryShippedChromeProfileChainsItsStreamsAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := p.RuntimeBehavior().Text("h2.priority_dependency"); got != "nearest-weight" {
+			t.Errorf("%s: h2.priority_dependency %q", name, got)
+		}
+	}
+}
+
 // TestEveryShippedChromeProfilePingsAsChrome pins the shipped data to
 // Chrome's SpdySession and HttpNetworkTransaction: a PING after 10 s of
 // reading nothing, the first saying 1, a connection given up 10 s after it

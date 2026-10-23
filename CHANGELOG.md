@@ -11,6 +11,19 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- HTTP/2 stream dependencies as Chrome's, chosen in profile JSON
+  (`h2.priority_dependency`): with `"nearest-weight"` a request's HEADERS
+  depend, exclusively, on the most recently opened of a connection's open
+  streams of the lowest weight not below its own (Chrome's
+  Http2PriorityDependencies), so requests open at once form chains (four
+  `fetch()`es: 1←3←5←7) where every stream depended on none; a stream
+  answered or reset is depended on no more. The 15 shipped Chrome profiles
+  say `"nearest-weight"`; `"root"` or no field keeps the old behaviour.
+  Measured on Chrome 155.0.8059.85 on macOS with mixed priorities and a
+  stream ending midway; the fork of fhttp gains the lists, and its shared
+  empty body of an answer without one no longer races when two are read at
+  once. Same unreleased 1.0.0.
+
 - A PING of the connection's own, as Chrome's SpdySession sends it, chosen in
   profile JSON: a request's HEADERS (or a DATA frame of its body) to an HTTP/2
   connection that has read nothing for longer than `h2.preface_ping_idle_ms`

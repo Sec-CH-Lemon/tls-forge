@@ -895,7 +895,7 @@ func diffRequest(want chromeRequest, got *keptRequest, proto string, p *profile.
 		diff = append(diff, fmt.Sprintf("body %q, Chrome's %q", got.body, want.Body))
 	}
 	if len(want.Priority) > 0 {
-		if got.priority == nil || got.priority[0] != want.Priority[0] || got.priority[1] != 0 ||
+		if got.priority == nil || got.priority[0] != want.Priority[0] || got.priority[1] != want.Priority[1] ||
 			got.priority[2] != want.Priority[2] {
 			diff = append(diff, fmt.Sprintf("priority %v, Chrome's %v", got.priority, want.Priority))
 		}

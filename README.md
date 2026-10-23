@@ -2454,6 +2454,17 @@ A profile without these fields keeps the earlier behaviour. See
 [the field reference](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1)
 and [the PING](docs/profile-behavior.md#the-connections-own-ping-unreleased-engine-1).
 
+### Stream dependencies in HTTP/2
+
+Requests open at once on one HTTP/2 connection say in their HEADERS which
+stream they depend on, as Chrome's do (`h2.priority_dependency:
+"nearest-weight"` in the shipped Chrome profiles, measured on Chrome 155 on
+macOS, 2026-10-23): each on the most recently opened of the open streams of
+the lowest weight not below its own, so four `fetch()`es at once go as a
+chain 1←3←5←7, and a request with nothing else open depends on none. A
+profile without the field, or with `"root"`, keeps every stream on none. See
+[the field reference](docs/profile-behavior.md#stream-dependencies-in-headers-unreleased-engine-1).
+
 ### Empty uploads and profile-owned Content-Length
 
 Unreleased v1.0.0 preserves an absent body separately from an explicit empty

@@ -54,6 +54,7 @@
     "h2.preface_ping_first_id": 1,
     "h2.preface_ping_hung_ms": 10000,
     "h2.preface_ping_idle_ms": 10000,
+    "h2.priority_dependency": "nearest-weight",
     "h2.read_loop_start": "first-headers",
     "h2.reject_unsolicited_ping_ack": true,
     "h2.reset_data_before_headers": true,
