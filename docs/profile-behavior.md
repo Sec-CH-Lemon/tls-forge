@@ -1,25 +1,27 @@
 # Profile-owned network behavior
 
-## Engine/profile compatibility (7.0.0)
+## Engine/profile compatibility (1.0.0)
 
-The compiled engine version is **7.0.0**, independently of the browser build and
+The compiled engine version is **1.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 7`. Engines reject profiles from both older
+non-negative integer `engine_major: 1`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 7, "name": "my-browser"}
+{"schema": 4, "engine_major": 1, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
 data and the explicit `behavior` object. Browser values and selections stay in
-JSON. Any coordinated change requiring shipped engine/fork runtime code increments
-the project major exactly once, even a compatible fix. Existing primitives can be
-configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+JSON. Major selection is anchored to the latest published stable release:
+`latest_released_major + 1` for an engine change, once for the whole next release.
+The current candidate is **unreleased1.0.0** after0.2.2. Further runtime changes
+before1.0.0 is published stay in major1; after publication, the next engine change
+targets2.0.0. Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go major versions use their matching module import suffix; this release uses `/v7`.
+a different version stamp. Go v1 uses the unsuffixed module path; `/v2` starts with major2. The release anchor and pending status are recorded in `engine/version.json`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -28,13 +30,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-7") // handle err
+candidate, err := old.Migrate("my-browser-engine-1") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-7
+The 15 shipped profiles and all backend catalogue policies have explicit unreleased engine-1
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -45,7 +47,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 7`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -289,7 +291,13 @@ Capture helper hint lists snapshot the process default once; request generation 
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
 
-## HTTP/3 QPACK (engine 6)
+> Release-number correction (2026-10-23): current engine is unreleased1.0.0.
+> The engine2..engine7 labels in historical mechanism notes below identify
+> internal experiments, never published releases. All those mechanisms belong
+> to the same pending v1. Future development before publication retains major1.
+> Original measurement archives and their labels are preserved.
+
+## HTTP/3 QPACK (unreleased engine 1)
 
 Engine6 implements RFC9204 dynamic tables in both directions, all field-line
 representations, encoder instructions, Required Insert Count reconstruction,
@@ -326,12 +334,12 @@ profile candidates retain disabled request indexing and their old string coding
 until measured; all15 have a real TLS/H2 smoke, not fresh old-browser acceptance.
 Original engine2 profiles remain in the immutable r17 source archive.
 
-Engine7.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge/v7` and Node/Python7.
+Unreleased engine1.0.0 uses Go module `github.com/Sec-CH-Lemon/tls-forge` and Node/Python1.0.0.
 Both cross-major execution directions are rejected. Schema4 and daemon protocol3
 are unchanged. Offline Inspect/Save preserve old identity; explicit Migrate
 creates a separately named candidate using JSON migration additions.
 
-## QPACK small tables and error replay (engine 6)
+## QPACK small tables and error replay (unreleased engine 1)
 
 | Key | Meaning / Chrome155 macOS measured value |
 | --- | --- |
@@ -357,9 +365,9 @@ protocol retries1 with no selected errors, pending their own measurements.
 
 The small-table/critical-close mechanisms were introduced before engine6 and remain supported. Original engine3 profiles
 are retained in the immutable dynamic-qpack-20261022-r18 archive. Schema4 and
-daemon protocol3 remain unchanged; exact SDK/profile engine major5 is required.
+daemon protocol3 remain unchanged; exact SDK/profile engine major1 is required.
 
-## QPACK diagnostic policy (engine 6)
+## QPACK diagnostic policy (unreleased engine 1)
 
 Nine current-profile keys select wire CONNECTION_CLOSE reason text. Every key
 is required;all are UTF-8 strings limited to1024 bytes. Missing/null/unknown or
@@ -390,13 +398,13 @@ for the first three classes is measured separately. Generic fallback/local-write
 messages preserve the earlier policy;they are not a claim about every Chrome
 error. Other14 profiles retain earlier diagnostic text pending browser witnesses.
 
-The diagnostic mechanism was introduced in engine5 (major4→5). Engine6 retains
-the diagnostic templates and uses Go /v6,Node/Python6.0.0. Schema4 and daemon
+The diagnostic mechanism was introduced in internal snapshot5. Unreleased engine1 retains
+the diagnostic templates and uses the unsuffixed Go module,Node/Python1.0.0. Schema4 and daemon
 protocol3 remain unchanged. Original engine5 profiles are preserved in the
 dynamic-series-20261023-r21 pre-fix source archive.
 
 
-## QPACK stream lifecycle (engine 6)
+## QPACK stream lifecycle (unreleased engine 1)
 
 `h3.qpack.streams` selects an implemented generic lifecycle:
 
@@ -428,7 +436,7 @@ archived; all15 new candidates explicitly pin6. Metadata migration alone does
 not transfer browser acceptance to another profile or platform.
 
 
-## HTTP/3 dynamic control stream (engine 6)
+## HTTP/3 dynamic control stream (unreleased engine 1)
 
 The current Chrome155/macOS candidate owns these rules in JSON:
 
@@ -451,14 +459,14 @@ writes serialize outside QPACK/header locks. Request cancellation stops the call
 wait without resetting a critical stream; at most one bounded frame write remains
 in flight, and connection shutdown terminates it. Protocol ordering, cryptographic
 random generation, synchronization and hard resource ceilings are engine mechanisms.
-Those H3 mechanisms were introduced in engine6 and remain available in engine7.
+Those H3 mechanisms were introduced in internal snapshot6 and remain part of the same unreleased engine1.
 
 Repeated original-wire measurements and scope/negative controls are maintained in
 `../net-fp-server/docs/DYNAMIC_FIELDS_2026-10-23.md`. RFC-valid random lengths alone
 are insufficient: the measured N/length relationship and lifecycle must also hold.
 
 
-## Initial HTTP/2 input scheduling (engine 7)
+## Initial HTTP/2 input scheduling (unreleased engine 1)
 
 `h2.read_loop_start` is required in every current explicit profile and selects
 one generic initial connection policy:
@@ -483,8 +491,7 @@ There is no timing sleep or arbitrary wall-clock grace in the runtime mechanism.
 Other14 profile candidates and catalogue/legacy/migration policies explicitly
 retain `connection` until measured for their own browser/platform.
 
-This new generic scheduling mechanism raises engine6→7 once; Go `/v7`, CLI/SDK
-7.0.0 and profiles engine_major7 agree. Original engine6 files/binary/source are
+This generic scheduling mechanism is part of the same unreleased engine1; Go uses the unsuffixed module, CLI/SDK1.0.0 and profiles engine_major1 agree. Original engine6 files/binary/source are
 preserved in the immutable `hpack-20261023-r22` before-build archive. Profile
 migration alone is not browser acceptance. The scoped repeated Chrome results
 are maintained in `../net-fp-server/docs/HPACK_STARTUP_2026-10-23.md`.

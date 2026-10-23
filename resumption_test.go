@@ -7,10 +7,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/echo"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // startEchoWithTickets is the echo server issuing session tickets, as a site

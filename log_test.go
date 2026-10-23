@@ -27,8 +27,8 @@ import (
 	tls_client "github.com/igor-lemon/tls-client"
 	utls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // logBook is a log a test reads back: every record as the JSON handler writes

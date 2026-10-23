@@ -652,7 +652,7 @@
         "h3.priority_source": "profile",
         "h2.read_loop_start": "connection"
       },
-      "engine_major": 7,
+      "engine_major": 1,
       "http2": {
         "settings": null,
         "connection_flow": 0,
@@ -899,7 +899,7 @@
         "h3.priority_source": "profile",
         "h2.read_loop_start": "connection"
       },
-      "engine_major": 7,
+      "engine_major": 1,
       "http2": {
         "settings": null,
         "connection_flow": 0,

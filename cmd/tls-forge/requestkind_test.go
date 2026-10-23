@@ -11,8 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/cookie"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/cookie"
 )
 
 // seen is a server's record of the requests it was sent, method and headers.

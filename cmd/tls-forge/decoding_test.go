@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 // chromeDecodings is testdata/chrome155-decoding.json: bodies, and how

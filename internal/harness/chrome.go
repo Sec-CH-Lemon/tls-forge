@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/proctree"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/proctree"
 )
 
 // The seams the tests reach through: create is os.Create, which a test makes

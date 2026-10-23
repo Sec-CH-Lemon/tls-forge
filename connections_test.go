@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // script is the context of fetch() or an XHR of a scenario's run page, with

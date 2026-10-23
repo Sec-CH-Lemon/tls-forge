@@ -1,5 +1,5 @@
 {
-  "engine_major": 7,
+  "engine_major": 1,
   "behavior": {
     "h3.qpack.huffman_names": "always",
     "h3.qpack.huffman_values": "always",

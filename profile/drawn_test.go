@@ -9,8 +9,8 @@ import (
 
 	tls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
 // earlyData is early_data, which a browser offers resuming a session whose

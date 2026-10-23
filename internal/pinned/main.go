@@ -32,10 +32,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/reference"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/reference"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // exit is os.Exit, which a test of main replaces.

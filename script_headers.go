@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/chromehash"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/chromehash"
 )
 
 // scriptHeaders is a browser API's header list: repeated names share the first

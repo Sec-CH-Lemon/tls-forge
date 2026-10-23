@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 // What a request took, try by try.

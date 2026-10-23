@@ -2,13 +2,13 @@ package profile
 
 import (
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"github.com/igor-lemon/utls/behavior"
 	"slices"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"golang.org/x/net/http/httpguts"
 )
 

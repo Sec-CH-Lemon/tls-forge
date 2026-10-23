@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 // budgeted makes the budget servers start with what change says for the rest

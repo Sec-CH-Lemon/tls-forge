@@ -325,7 +325,7 @@ func blank(req request, extra map[string]any) map[string]any {
 // protocol 2 with TLSFORGE_TEST_CAPABILITIES when it says nothing.
 var protocols = map[string]func(request){
 	"": func(req request) {
-		extra := map[string]any{"protocol": 3, "engine_major": 7, "version": "7.0.0"}
+		extra := map[string]any{"protocol": 3, "engine_major": 1, "version": "1.0.0"}
 		if raw, ok := os.LookupEnv("TLSFORGE_TEST_ENGINE_MAJOR"); ok {
 			if raw == "missing" {
 				delete(extra, "engine_major")
@@ -358,7 +358,7 @@ var protocols = map[string]func(request){
 	},
 	"low": func(req request) { emit(blank(req, map[string]any{"protocol": 1})) },
 	"newer": func(req request) {
-		emit(blank(req, map[string]any{"protocol": 7, "engine_major": 7, "version": "7.0.0", "capabilities": []string{"browser_context", "teleport"}}))
+		emit(blank(req, map[string]any{"protocol": 7, "engine_major": 1, "version": "1.0.0", "capabilities": []string{"browser_context", "teleport"}}))
 	},
 	"silent": func(request) {},
 	"exit":   func(request) { os.Exit(3) },

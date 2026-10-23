@@ -30,9 +30,9 @@ import (
 	tls_client "github.com/igor-lemon/tls-client"
 	"golang.org/x/net/proxy"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/echo"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/echo"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // Every test here runs against the local echo server rather than the internet.
@@ -146,7 +146,7 @@ func TestTheTransportDrawsTheOrderOfABareBaseAlone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	bare := &profile.Profile{EngineMajor: profile.Major(7), Name: "firefox_148", Base: "firefox_148"}
+	bare := &profile.Profile{EngineMajor: profile.Major(1), Name: "firefox_148", Base: "firefox_148"}
 	for _, tc := range []struct {
 		p              *profile.Profile
 		shuffle, wants bool
@@ -359,7 +359,7 @@ func TestTheLastProfileOptionWins(t *testing.T) {
 }
 
 func TestNewRejectsAnUnusableProfile(t *testing.T) {
-	broken := &profile.Profile{EngineMajor: profile.Major(7), Name: "broken", ClientHello: []byte{1, 2, 3}}
+	broken := &profile.Profile{EngineMajor: profile.Major(1), Name: "broken", ClientHello: []byte{1, 2, 3}}
 	if _, err := New(WithProfileValue(broken)); err == nil {
 		t.Error("expected an error")
 	}

@@ -19,8 +19,8 @@ import (
 	"testing/iotest"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // fakeClient records what it was asked for and answers with whatever it was
@@ -58,7 +58,7 @@ func TestAnAnswerWithoutCookiesSaysSoWithAnEmptyList(t *testing.T) {
 		{"a failure", &fakeClient{err: errors.New("refused")}, `"cookies":null`},
 	} {
 		var out strings.Builder
-		if err := Serve(strings.NewReader(`{"engine_major":7,"id":1,"url":"https://example.com/"}`+"\n"), &out, tc.client); err != nil {
+		if err := Serve(strings.NewReader(`{"engine_major":1,"id":1,"url":"https://example.com/"}`+"\n"), &out, tc.client); err != nil {
 			t.Fatalf("%s: Serve: %v", tc.name, err)
 		}
 		if !strings.Contains(out.String(), tc.want) {
@@ -96,7 +96,7 @@ func TestServeAnswersARequest(t *testing.T) {
 		Cookies: []string{"a=1"},
 	}}
 
-	responses := serve(t, client, `{"engine_major":7,"id":7,"url":"https://example.com"}`)
+	responses := serve(t, client, `{"engine_major":1,"id":7,"url":"https://example.com"}`)
 	if len(responses) != 1 {
 		t.Fatalf("got %d responses, want 1", len(responses))
 	}
@@ -126,9 +126,9 @@ func TestEveryResponseCarriesItsID(t *testing.T) {
 	client := &fakeClient{err: errors.New("connection refused")}
 
 	for _, line := range []string{
-		`{"engine_major":7,"id":11,"url":"https://example.com"}`,
-		`{"engine_major":7,"id":12,"url":""}`,
-		`{"engine_major":7,"id":13,"url":5}`,
+		`{"engine_major":1,"id":11,"url":"https://example.com"}`,
+		`{"engine_major":1,"id":12,"url":""}`,
+		`{"engine_major":1,"id":13,"url":5}`,
 	} {
 		responses := serve(t, client, line)
 		if len(responses) != 1 {
@@ -146,7 +146,7 @@ func TestEveryResponseCarriesItsID(t *testing.T) {
 func TestSyntacticallyBrokenJSONIsReported(t *testing.T) {
 	// A genuine syntax error leaves the id at 0, and the caller lets that request
 	// time out — the safe way to lose one.
-	responses := serve(t, &fakeClient{}, `{"engine_major":7,"id":9,`)
+	responses := serve(t, &fakeClient{}, `{"engine_major":1,"id":9,`)
 	if len(responses) != 1 || responses[0].Error == "" {
 		t.Fatalf("responses = %+v", responses)
 	}
@@ -156,7 +156,7 @@ func TestSyntacticallyBrokenJSONIsReported(t *testing.T) {
 }
 
 func TestBlankLinesAreIgnored(t *testing.T) {
-	responses := serve(t, &fakeClient{}, "", "   ", `{"engine_major":7,"id":1,"url":"https://example.com"}`, "")
+	responses := serve(t, &fakeClient{}, "", "   ", `{"engine_major":1,"id":1,"url":"https://example.com"}`, "")
 	if len(responses) != 1 {
 		t.Fatalf("got %d responses, want 1", len(responses))
 	}
@@ -164,7 +164,7 @@ func TestBlankLinesAreIgnored(t *testing.T) {
 
 func TestRequestFieldsReachTheClient(t *testing.T) {
 	client := &fakeClient{}
-	serve(t, client, `{"engine_major":7,"id":1,"method":"POST","url":"https://example.com","body":"a=1",`+
+	serve(t, client, `{"engine_major":1,"id":1,"method":"POST","url":"https://example.com","body":"a=1",`+
 		`"headers":{"Referer":"https://x"},"order":["referer"],"setCookie":["s=1"]}`)
 
 	if client.got.Method != "POST" {
@@ -184,9 +184,9 @@ func TestRequestFieldsReachTheClient(t *testing.T) {
 func TestMalformedCookiesFailOnlyTheirRequest(t *testing.T) {
 	client := &fakeClient{}
 	responses := serve(t, client,
-		`{"engine_major":7,"id":1,"url":"https://example.com","setCookie":["malformed"]}`,
-		`{"engine_major":7,"id":2,"url":"https://example.com","setCookie":["=empty-name"]}`,
-		`{"engine_major":7,"id":3,"url":"https://example.com","setCookie":["valid=1"]}`,
+		`{"engine_major":1,"id":1,"url":"https://example.com","setCookie":["malformed"]}`,
+		`{"engine_major":1,"id":2,"url":"https://example.com","setCookie":["=empty-name"]}`,
+		`{"engine_major":1,"id":3,"url":"https://example.com","setCookie":["valid=1"]}`,
 	)
 	if len(responses) != 3 {
 		t.Fatalf("responses = %+v", responses)
@@ -206,12 +206,12 @@ func TestAnAnswerSaysNoPasswordOfAnyURL(t *testing.T) {
 	// client said of a proxy nor a request's own URL that would not parse
 	// carries a password across.
 	client := &fakeClient{err: errors.New(`tlsforge: parse "http://alice:s3cr3t@[bad": missing ']' in host`)}
-	responses := serve(t, client, `{"engine_major":7,"id":1,"url":"https://example.com"}`)
+	responses := serve(t, client, `{"engine_major":1,"id":1,"url":"https://example.com"}`)
 	if len(responses) != 1 || responses[0].Error != `tlsforge: parse "http://alice@[bad": missing ']' in host` {
 		t.Errorf("responses = %+v", responses)
 	}
 	// A bad request is said with what was wrong with it, quoted.
-	responses = serve(t, &fakeClient{}, `{"engine_major":7,"id":2,"url":"https://example.com","setCookie":["http://bob:s3cr3t@x"]}`)
+	responses = serve(t, &fakeClient{}, `{"engine_major":1,"id":2,"url":"https://example.com","setCookie":["http://bob:s3cr3t@x"]}`)
 	if len(responses) != 1 ||
 		responses[0].Error != `bad request: cookie: expected name=value, got "http://bob@x"` {
 		t.Errorf("responses = %+v", responses)
@@ -221,7 +221,7 @@ func TestAnAnswerSaysNoPasswordOfAnyURL(t *testing.T) {
 func TestHeadersWithDuplicateCasingAreRejectedDeterministically(t *testing.T) {
 	client := &fakeClient{}
 	responses := serve(t, client,
-		`{"engine_major":7,"id":7,"url":"https://example.com","headers":{"User-Agent":"one","user-agent":"two"}}`)
+		`{"engine_major":1,"id":7,"url":"https://example.com","headers":{"User-Agent":"one","user-agent":"two"}}`)
 	if len(responses) != 1 || responses[0].ID != 7 ||
 		!strings.Contains(responses[0].Error, "repeated with different casing") {
 		t.Fatalf("responses = %+v", responses)
@@ -233,7 +233,7 @@ func TestHeadersWithDuplicateCasingAreRejectedDeterministically(t *testing.T) {
 
 func TestExplicitOrderWins(t *testing.T) {
 	client := &fakeClient{headers: tlsforge.NewHeader("accept", "*/*", "user-agent", "profile")}
-	serve(t, client, `{"engine_major":7,"id":1,"url":"https://example.com",`+
+	serve(t, client, `{"engine_major":1,"id":1,"url":"https://example.com",`+
 		`"headers":{"user-agent":"mine","accept":"text/html"},"order":["user-agent","accept"]}`)
 
 	if got, want := client.got.Header.Names(), []string{"user-agent", "accept"}; !reflect.DeepEqual(got, want) {
@@ -246,7 +246,7 @@ func TestWithoutAnOrderTheProfilesOrderIsUsed(t *testing.T) {
 	// the browser's ordering rather than Go's map iteration order.
 	client := &fakeClient{headers: tlsforge.NewHeader(
 		"sec-ch-ua", "", "user-agent", "", "accept", "", "accept-language", "")}
-	serve(t, client, `{"engine_major":7,"id":1,"url":"https://example.com","headers":`+
+	serve(t, client, `{"engine_major":1,"id":1,"url":"https://example.com","headers":`+
 		`{"accept":"text/html","user-agent":"mine","sec-ch-ua":"x"}}`)
 
 	if got, want := client.got.Header.Names(), []string{"sec-ch-ua", "user-agent", "accept"}; !reflect.DeepEqual(got, want) {
@@ -259,7 +259,7 @@ func TestHeadersOutsideTheOrderGoLastAndAreStable(t *testing.T) {
 	// itself between two otherwise identical requests would be a fingerprint of
 	// its own.
 	client := &fakeClient{headers: tlsforge.NewHeader("accept", "")}
-	line := `{"engine_major":7,"id":1,"url":"https://example.com","headers":` +
+	line := `{"engine_major":1,"id":1,"url":"https://example.com","headers":` +
 		`{"accept":"text/html","zeta":"1","alpha":"2","mu":"3"},"order":["accept"]}`
 
 	var first []string
@@ -281,7 +281,7 @@ func TestHeadersOutsideTheOrderGoLastAndAreStable(t *testing.T) {
 
 func TestNoHeadersMeansTheProfilesOwn(t *testing.T) {
 	client := &fakeClient{headers: tlsforge.NewHeader("accept", "*/*")}
-	serve(t, client, `{"engine_major":7,"id":1,"url":"https://example.com"}`)
+	serve(t, client, `{"engine_major":1,"id":1,"url":"https://example.com"}`)
 	if client.got.Header != nil {
 		t.Errorf("header = %v, want nil so the client applies the profile's", client.got.Header)
 	}
@@ -290,7 +290,7 @@ func TestNoHeadersMeansTheProfilesOwn(t *testing.T) {
 func TestServeReportsAWriteFailure(t *testing.T) {
 	// A broken stdout is the one failure the daemon cannot answer with a
 	// response, so it has to stop rather than spin.
-	err := Serve(strings.NewReader(`{"engine_major":7,"id":1,"url":"https://example.com"}`+"\n"),
+	err := Serve(strings.NewReader(`{"engine_major":1,"id":1,"url":"https://example.com"}`+"\n"),
 		failingWriter{}, &fakeClient{})
 	if err == nil || !strings.Contains(err.Error(), "writing response") {
 		t.Fatalf("error = %v, want a write failure", err)
@@ -316,7 +316,7 @@ func TestALineIsReadUpToItsLimitItsNewlineIncluded(t *testing.T) {
 	// The Node.js and Python packages refuse a request longer than this before
 	// they send it, so the two have to agree to the byte.
 	line := func(size int) string {
-		head, tail := `{"engine_major":7,"id":1,"url":"https://example.com","body":"`, `"}`+"\n"
+		head, tail := `{"engine_major":1,"id":1,"url":"https://example.com","body":"`, `"}`+"\n"
 		return head + strings.Repeat("x", size-len(head)-len(tail)) + tail
 	}
 	for _, tc := range []struct {
@@ -421,7 +421,7 @@ func TestABinaryBodySurvivesTheProtocol(t *testing.T) {
 
 	var out strings.Builder
 	err := Serve(
-		strings.NewReader(`{"engine_major":7,"id":1,"url":"https://example.com/logo.png"}`+"\n"),
+		strings.NewReader(`{"engine_major":1,"id":1,"url":"https://example.com/logo.png"}`+"\n"),
 		&out,
 		&fakeClient{response: &tlsforge.Response{Status: 200, Body: want}},
 	)
@@ -453,7 +453,7 @@ func TestABinaryBodySurvivesTheProtocol(t *testing.T) {
 func TestATextBodyCarriesNoEncoding(t *testing.T) {
 	var out strings.Builder
 	err := Serve(
-		strings.NewReader(`{"engine_major":7,"id":1,"url":"https://example.com/"}`+"\n"),
+		strings.NewReader(`{"engine_major":1,"id":1,"url":"https://example.com/"}`+"\n"),
 		&out,
 		&fakeClient{response: &tlsforge.Response{Status: 200, Body: []byte("héllo — ok")}},
 	)
@@ -476,7 +476,7 @@ func TestAnInvalidUTF8ResponseHeaderFailsExplicitly(t *testing.T) {
 	responses := serve(t, &fakeClient{response: &tlsforge.Response{
 		Status: 200,
 		Header: map[string][]string{"content-disposition": {"name=\xff.txt"}},
-	}}, `{"engine_major":7,"id":9,"url":"https://example.com/"}`)
+	}}, `{"engine_major":1,"id":9,"url":"https://example.com/"}`)
 	if len(responses) != 1 || responses[0].ID != 9 {
 		t.Fatalf("responses = %+v", responses)
 	}
@@ -489,7 +489,7 @@ func TestAnInvalidUTF8ResponseHeaderNameFailsExplicitly(t *testing.T) {
 	responses := serve(t, &fakeClient{response: &tlsforge.Response{
 		Status: 200,
 		Header: map[string][]string{"x-\xff": {"value"}},
-	}}, `{"engine_major":7,"id":10,"url":"https://example.com/"}`)
+	}}, `{"engine_major":1,"id":10,"url":"https://example.com/"}`)
 	if len(responses) != 1 || responses[0].ID != 10 {
 		t.Fatalf("responses = %+v", responses)
 	}
@@ -525,8 +525,8 @@ func TestABinaryRequestBodyIsSentIntact(t *testing.T) {
 
 func TestABadBodyEncodingIsRejected(t *testing.T) {
 	for _, line := range []string{
-		`{"engine_major":7,"id":1,"url":"https://x/","body":"!!not base64!!","bodyEncoding":"base64"}`,
-		`{"engine_major":7,"id":1,"url":"https://x/","body":"x","bodyEncoding":"rot13"}`,
+		`{"engine_major":1,"id":1,"url":"https://x/","body":"!!not base64!!","bodyEncoding":"base64"}`,
+		`{"engine_major":1,"id":1,"url":"https://x/","body":"x","bodyEncoding":"rot13"}`,
 	} {
 		var out strings.Builder
 		if err := Serve(strings.NewReader(line+"\n"), &out, &fakeClient{
@@ -604,7 +604,7 @@ func TestServeContextStopsWhileAReadWaits(t *testing.T) {
 		t.Errorf("ServeContext() = %v", err)
 	}
 	// A request that comes after it was told to stop is read, and dropped.
-	if _, err := io.WriteString(theirs, `{"engine_major":7,"id":1,"url":"https://example.com/late"}`+"\n"); err != nil {
+	if _, err := io.WriteString(theirs, `{"engine_major":1,"id":1,"url":"https://example.com/late"}`+"\n"); err != nil {
 		t.Fatalf("writing: %v", err)
 	}
 	_ = theirs.Close()
@@ -635,7 +635,7 @@ func TestServeContextStopsWhileAWriteWaits(t *testing.T) {
 	ours, theirs := net.Pipe()
 	out := &writing{Conn: ours, started: make(chan struct{})}
 	ctx, cancel := context.WithCancel(context.Background())
-	done := served(ctx, strings.NewReader(`{"engine_major":7,"id":1,"url":"https://example.com"}`+"\n"), out, &fakeClient{})
+	done := served(ctx, strings.NewReader(`{"engine_major":1,"id":1,"url":"https://example.com"}`+"\n"), out, &fakeClient{})
 	<-out.started
 	told := time.Now()
 	cancel()
@@ -669,7 +669,7 @@ func TestServeContextCancelsTheRequestInFlightAndAnswersIt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := served(ctx, ours, &out, client)
 	go func() {
-		_, _ = io.WriteString(theirs, `{"engine_major":7,"id":1,"url":"https://example.com/slow"}`+"\n")
+		_, _ = io.WriteString(theirs, `{"engine_major":1,"id":1,"url":"https://example.com/slow"}`+"\n")
 	}()
 	<-client.asked
 	cancel()
@@ -688,7 +688,7 @@ func TestServeContextCancelsTheRequestInFlightAndAnswersIt(t *testing.T) {
 
 func TestHelloSaysWhatTheDaemonIsWithoutAConnection(t *testing.T) {
 	client := &fakeClient{}
-	got := handle(context.Background(), `{"engine_major":7,"id":3,"control":"hello"}`, client)
+	got := handle(context.Background(), `{"engine_major":1,"id":3,"control":"hello"}`, client)
 	if got.ID != 3 || got.Error != "" || got.Protocol != Protocol || !slices.Equal(got.Capabilities, []string{"browser_context", "engine_major"}) ||
 		client.got != nil {
 		t.Errorf("hello: %+v, a request %v", got, client.got)
@@ -697,14 +697,14 @@ func TestHelloSaysWhatTheDaemonIsWithoutAConnection(t *testing.T) {
 	original := capabilities
 	capabilities = []string{"something"}
 	defer func() { capabilities = original }()
-	got = handle(context.Background(), `{"engine_major":7,"id":4,"control":"hello"}`, client)
+	got = handle(context.Background(), `{"engine_major":1,"id":4,"control":"hello"}`, client)
 	got.Capabilities[0] = "changed"
 	if capabilities[0] != "something" {
 		t.Error("an answer shares the daemon's capabilities")
 	}
 	for line, want := range map[string]string{
-		`{"engine_major":7,"id":5,"control":"hello","url":"https://example.com/"}`: "a control line is not a request, and has no url",
-		`{"engine_major":7,"id":6,"control":"goodbye"}`:                            `unknown control "goodbye"`,
+		`{"engine_major":1,"id":5,"control":"hello","url":"https://example.com/"}`: "a control line is not a request, and has no url",
+		`{"engine_major":1,"id":6,"control":"goodbye"}`:                            `unknown control "goodbye"`,
 	} {
 		got := handle(context.Background(), line, client)
 		if got.Protocol != 0 || !strings.Contains(got.Error, want) || client.got != nil {
@@ -720,8 +720,8 @@ func TestAFieldTheProtocolDoesNotHaveIsPassedOver(t *testing.T) {
 	// in the line does not cost the id.
 	client := &fakeClient{}
 	for _, line := range []string{
-		`{"engine_major":7,"timeout":5000,"frame":{"top":true},"id":11,"url":"https://example.com/"}`,
-		`{"engine_major":7,"id":11,"url":"https://example.com/","Browser ":{"kind":7},"json":[1,2]}`,
+		`{"engine_major":1,"timeout":5000,"frame":{"top":true},"id":11,"url":"https://example.com/"}`,
+		`{"engine_major":1,"id":11,"url":"https://example.com/","Browser ":{"kind":7},"json":[1,2]}`,
 	} {
 		client.got = nil
 		got := handle(context.Background(), line, client)
@@ -734,7 +734,7 @@ func TestAFieldTheProtocolDoesNotHaveIsPassedOver(t *testing.T) {
 
 func TestABrowserContextIsApplied(t *testing.T) {
 	client := &fakeClient{}
-	got := handle(context.Background(), `{"engine_major":7,"id":7,"url":"https://example.com/","browser":{"kind":"fetch",`+
+	got := handle(context.Background(), `{"engine_major":1,"id":7,"url":"https://example.com/","browser":{"kind":"fetch",`+
 		`"initiator":"https://example.com/page","referrerPolicy":"origin","mode":"no-cors","credentials":"omit"}}`, client)
 	want := &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: "https://example.com/page",
 		ReferrerPolicy: "origin", Mode: "no-cors", Credentials: "omit"}
@@ -742,8 +742,8 @@ func TestABrowserContextIsApplied(t *testing.T) {
 		t.Errorf("a browser context: %+v, sent %+v", got, client.got)
 	}
 	// None given, or null, is none.
-	for _, line := range []string{`{"engine_major":7,"id":8,"url":"https://example.com/"}`,
-		`{"engine_major":7,"id":8,"url":"https://example.com/","browser":null}`} {
+	for _, line := range []string{`{"engine_major":1,"id":8,"url":"https://example.com/"}`,
+		`{"engine_major":1,"id":8,"url":"https://example.com/","browser":null}`} {
 		client.got = nil
 		if got := handle(context.Background(), line, client); got.Error != "" || client.got == nil ||
 			client.got.Browser != nil {
@@ -752,9 +752,9 @@ func TestABrowserContextIsApplied(t *testing.T) {
 	}
 	// What the protocol does not have is a bad request, and nothing is sent.
 	for line, says := range map[string]string{
-		`{"engine_major":7,"id":9,"url":"https://example.com/","browser":{"kind":"fetch","frame":"top"}}`: `bad request: browser: json: unknown field "frame"`,
-		`{"engine_major":7,"id":9,"url":"https://example.com/","browser":{"kind":7}}`:                     "bad request: browser: json: cannot unmarshal number",
-		`{"engine_major":7,"id":9,"url":"https://example.com/","browser":"fetch"}`:                        "bad request: browser: json: cannot unmarshal string",
+		`{"engine_major":1,"id":9,"url":"https://example.com/","browser":{"kind":"fetch","frame":"top"}}`: `bad request: browser: json: unknown field "frame"`,
+		`{"engine_major":1,"id":9,"url":"https://example.com/","browser":{"kind":7}}`:                     "bad request: browser: json: cannot unmarshal number",
+		`{"engine_major":1,"id":9,"url":"https://example.com/","browser":"fetch"}`:                        "bad request: browser: json: cannot unmarshal string",
 	} {
 		client.got = nil
 		got := handle(context.Background(), line, client)
@@ -768,9 +768,9 @@ func TestReadInit(t *testing.T) {
 	// The proxy, the id, and the input after it, blank lines before it aside;
 	// the last line need not end in a newline.
 	for _, input := range []string{
-		`{"engine_major":7,"id":3,"control":"init","proxy":"http://u:p@h:1"}` + "\n" + `{"engine_major":7,"id":4,"url":"x"}` + "\n",
-		"\n  \n" + `{"engine_major":7,"id":3,"control":"init","proxy":"http://u:p@h:1"}` + "\n" + `{"engine_major":7,"id":4,"url":"x"}` + "\n",
-		`{"engine_major":7,"id":3,"control":"init","proxy":"http://u:p@h:1"}`,
+		`{"engine_major":1,"id":3,"control":"init","proxy":"http://u:p@h:1"}` + "\n" + `{"engine_major":1,"id":4,"url":"x"}` + "\n",
+		"\n  \n" + `{"engine_major":1,"id":3,"control":"init","proxy":"http://u:p@h:1"}` + "\n" + `{"engine_major":1,"id":4,"url":"x"}` + "\n",
+		`{"engine_major":1,"id":3,"control":"init","proxy":"http://u:p@h:1"}`,
 	} {
 		init, rest, err := ReadInit(strings.NewReader(input))
 		if err != nil || init.ID != 3 || init.Proxy != "http://u:p@h:1" {
@@ -782,7 +782,7 @@ func TestReadInit(t *testing.T) {
 		}
 	}
 	// A line longer than the reader's buffer, not than a request line may be.
-	long := `{"engine_major":7,"id":9,"control":"init","proxy":"http://h:1/` + strings.Repeat("a", 3*initialLineBuffer) + `"}` + "\n"
+	long := `{"engine_major":1,"id":9,"control":"init","proxy":"http://h:1/` + strings.Repeat("a", 3*initialLineBuffer) + `"}` + "\n"
 	if init, _, err := ReadInit(strings.NewReader(long)); err != nil || init.ID != 9 {
 		t.Errorf("a long init line: %+v, %v", init, err)
 	}
@@ -792,15 +792,15 @@ func TestReadInit(t *testing.T) {
 		id    uint64
 		says  string
 	}{
-		{"a request", strings.NewReader(`{"engine_major":7,"id":5,"url":"https://example.com/"}`), 5, "is its init line"},
-		{"hello", strings.NewReader(`{"engine_major":7,"id":5,"control":"hello"}`), 5, "is its init line"},
-		{"a url", strings.NewReader(`{"engine_major":7,"id":5,"control":"init","proxy":"http://h:1","url":"x"}`), 5, "is its init line"},
-		{"no proxy", strings.NewReader(`{"engine_major":7,"id":5,"control":"init"}`), 5, "the init line names no proxy"},
-		{"no JSON", strings.NewReader(`{"engine_major":7,"id":5,` + "\n"), 0, "bad request: unexpected end of JSON input"},
-		{"the wrong shape", strings.NewReader(`{"engine_major":7,"id":5,"proxy":7}` + "\n"), 5, "bad request: json: cannot unmarshal"},
+		{"a request", strings.NewReader(`{"engine_major":1,"id":5,"url":"https://example.com/"}`), 5, "is its init line"},
+		{"hello", strings.NewReader(`{"engine_major":1,"id":5,"control":"hello"}`), 5, "is its init line"},
+		{"a url", strings.NewReader(`{"engine_major":1,"id":5,"control":"init","proxy":"http://h:1","url":"x"}`), 5, "is its init line"},
+		{"no proxy", strings.NewReader(`{"engine_major":1,"id":5,"control":"init"}`), 5, "the init line names no proxy"},
+		{"no JSON", strings.NewReader(`{"engine_major":1,"id":5,` + "\n"), 0, "bad request: unexpected end of JSON input"},
+		{"the wrong shape", strings.NewReader(`{"engine_major":1,"id":5,"proxy":7}` + "\n"), 5, "bad request: json: cannot unmarshal"},
 		{"nothing", strings.NewReader(""), 0, "the input ended before the init line"},
 		{"a broken input", iotest.ErrReader(errors.New("gone")), 0, "reading the init line: gone"},
-		{"a line too long", io.MultiReader(strings.NewReader(`{"engine_major":7,"id":5,"proxy":"`),
+		{"a line too long", io.MultiReader(strings.NewReader(`{"engine_major":1,"id":5,"proxy":"`),
 			strings.NewReader(strings.Repeat("a", maxLineBuffer))), 0, "longer than 16777216 bytes"},
 	} {
 		init, _, err := ReadInit(tc.input)
@@ -824,14 +824,14 @@ func TestAnInitLineIsReadUpToItsLimitItsNewlineIncluded(t *testing.T) {
 		{maxLineBuffer - 1, "\n", true}, {maxLineBuffer, "\n", true}, {maxLineBuffer + 1, "\n", false},
 		{maxLineBuffer, "", true}, {maxLineBuffer + 1, "", false},
 	} {
-		init := line(`{"engine_major":7,"id":1,"control":"init","proxy":"http://h:1/`, tc.size, tc.newline)
+		init := line(`{"engine_major":1,"id":1,"control":"init","proxy":"http://h:1/`, tc.size, tc.newline)
 		_, _, err := ReadInit(strings.NewReader(init))
 		if read := err == nil; read != tc.read ||
 			(!read && (!errors.Is(err, bufio.ErrTooLong) || !strings.Contains(err.Error(), "its newline included"))) {
 			t.Errorf("an init line of %d bytes (newline %q): %v", tc.size, tc.newline, err)
 		}
 		var out strings.Builder
-		err = Serve(strings.NewReader(line(`{"engine_major":7,"id":1,"url":"https://example.com","body":"`, tc.size, tc.newline)),
+		err = Serve(strings.NewReader(line(`{"engine_major":1,"id":1,"url":"https://example.com","body":"`, tc.size, tc.newline)),
 			&out, &fakeClient{})
 		if read := strings.Contains(out.String(), `"status":200`); read != tc.read {
 			t.Errorf("a request line of %d bytes (newline %q): %v, %q", tc.size, tc.newline, err, out.String())
@@ -855,7 +855,7 @@ func TestAnInitLineIsAnswered(t *testing.T) {
 	}
 	// An init line among requests is no init line.
 	client := &fakeClient{}
-	got := handle(context.Background(), `{"engine_major":7,"id":5,"control":"init","proxy":"http://h:1"}`, client)
+	got := handle(context.Background(), `{"engine_major":1,"id":5,"control":"init","proxy":"http://h:1"}`, client)
 	if got.ID != 5 || !strings.Contains(got.Error, "init is the first line of a daemon started with --proxy-stdin") ||
 		client.got != nil {
 		t.Errorf("%+v", got)

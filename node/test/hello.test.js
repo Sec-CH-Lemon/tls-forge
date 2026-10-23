@@ -78,16 +78,16 @@ function pastDeadline(t, ask) {
 test('a transport says the protocol it speaks and what it can do, once', async () => {
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'one,two' }, async (client) => {
     const first = await client.hello();
-    assert.deepEqual(first, { protocol: 3, capabilities: ['one', 'two'], engine_major: 7, version: '7.0.0' });
+    assert.deepEqual(first, { protocol: 3, capabilities: ['one', 'two'], engine_major: 1, version: '1.0.0' });
     // A copy each time: what one caller does with it is not the next's.
     first.capabilities.push('three');
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['one', 'two'], engine_major: 7, version: '7.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['one', 'two'], engine_major: 1, version: '1.0.0' });
     const { controls, requests } = await seen(client);
     assert.equal(controls, 1);
     assert.equal(requests, 1);
   });
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: '' }, async (client) => {
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 7, version: '7.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.0' });
   });
 });
 
@@ -95,7 +95,7 @@ test('a transport newer than this package is read for what it says it can do', a
   // A protocol after 2, and a capability no package knows yet, are no reason
   // to refuse what both know.
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'newer' }, async (client) => {
-    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport'], engine_major: 7, version: '7.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport'], engine_major: 1, version: '1.0.0' });
     const context = { kind: 'fetch', initiator: 'https://example.com/' };
     const answer = JSON.parse((await client.get('https://ok/', { browserContext: context })).body);
     assert.deepEqual(answer.browser, context);
@@ -110,7 +110,7 @@ test('a transport older than the question speaks protocol 1', async () => {
 
 test('the committed answers to hello read as they say', async () => {
   for (const [mode, want] of [
-    ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major'], engine_major: 7, version: '7.0.0' }],
+    ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major'], engine_major: 1, version: '1.0.0' }],
     ['fixture-old', { protocol: 1, capabilities: [] }],
   ]) {
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
@@ -145,7 +145,7 @@ test('a transport that does not answer hello has said nothing, and is asked agai
 test('a question asked after a session went leaves the next request to be told', async (t) => {
   await withTransport({}, async (client) => {
     await assert.rejects(pastDeadline(t, () => client.get('https://silent/')), /request timed out/);
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 7, version: '7.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.0' });
     await assert.rejects(client.get('https://ok/'), (err) => err.name === 'SessionReset');
     assert.equal((await seen(client)).requests, 1);
   }, { timeout: COLD_START });
@@ -232,13 +232,13 @@ test('a browser context that is no object, or has a key the protocol does not, i
 });
 
 test('every request requires the exact SDK engine major before URL or cookie transmission', async () => {
-  for (const major of ['missing', 'null', '0', '1', '2', '3', '4', '5', '6', '8', '-1', '1.5', '"1"', 'true']) {
+  for (const major of ['missing', 'null', '0', '7', '2', '3', '4', '5', '6', '8', '-1', '1.5', '"1"', 'true']) {
     const log = path.join(wrapperDir, `engine-${encodeURIComponent(major)}.jsonl`);
     await withTransport({ TLSFORGE_TEST_ENGINE_MAJOR: major, TLSFORGE_TEST_WIRE_LOG: log }, async (client) => {
       for (const options of [{}, { browserContext: { kind: 'navigation' } }]) {
         await assert.rejects(client.get('https://must-not-resolve.invalid/', { cookies: ['secret=never-sent'], ...options }), (err) => {
           assert.ok(err instanceof Unsupported);
-          assert.match(err.message, /engine_major .*SDK engine major 7; request was not sent/);
+          assert.match(err.message, /engine_major .*SDK engine major 1; request was not sent/);
           return true;
         });
       }
@@ -254,7 +254,7 @@ test('every request requires the exact SDK engine major before URL or cookie tra
       await assert.rejects(client.get('https://must-not-resolve.invalid/'), Unsupported);
     });
   }
-  for (const version of ['0.1.0', '1.0.0', 'bad']) {
+  for (const version of ['0.1.0', '7.0.0', 'bad']) {
     await withTransport({ TLSFORGE_TEST_ENGINE_VERSION: version }, async (client) => {
       await assert.rejects(client.get('https://must-not-resolve.invalid/'), Unsupported);
     });
@@ -268,7 +268,7 @@ test('every request requires the exact SDK engine major before URL or cookie tra
 
 test('a replacement process must pass its own engine handshake', async () => {
   const log = path.join(wrapperDir, 'replacement-engine.jsonl');
-  await withTransport({ TLSFORGE_TEST_WIRE_LOG: log, TLSFORGE_TEST_ENGINE_MAJOR: '7' }, async (client) => {
+  await withTransport({ TLSFORGE_TEST_WIRE_LOG: log, TLSFORGE_TEST_ENGINE_MAJOR: '1' }, async (client) => {
     await client.get('https://ok/first');
     process.env.TLSFORGE_TEST_ENGINE_MAJOR = '0';
     await assert.rejects(client.get('https://silent/'), /timed out/);

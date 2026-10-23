@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tls_client "github.com/igor-lemon/tls-client"
 )
 
@@ -208,9 +208,9 @@ func TestRecordsWearingFollowsChromesRule(t *testing.T) {
 	// takes a head and body across the 1,400 bytes they are merged up to, and
 	// one 10 bytes shorter brings them back; a head cut into records grows in
 	// its last part, and a body of more than a record never joins its head.
-	macOS := &profile.Profile{EngineMajor: profile.Major(7), Headers: []profile.Field{{Name: "user-agent", Value: "UA"},
+	macOS := &profile.Profile{EngineMajor: profile.Major(1), Headers: []profile.Field{{Name: "user-agent", Value: "UA"},
 		{Name: "sec-ch-ua-platform", Value: `"macOS"`}}}
-	longer := &profile.Profile{EngineMajor: profile.Major(7), Headers: []profile.Field{{Name: "user-agent", Value: "UA and more"},
+	longer := &profile.Profile{EngineMajor: profile.Major(1), Headers: []profile.Field{{Name: "user-agent", Value: "UA and more"},
 		{Name: "sec-ch-ua-platform", Value: `"macOS!"`}}}
 	scenario := func(records ...[]string) harness.RecordsScenario {
 		out := harness.RecordsScenario{Note: "n"}

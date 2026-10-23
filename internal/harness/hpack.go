@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
 // HPACKFixture is what testdata/chrome155-hpack.json holds: how a browser wrote

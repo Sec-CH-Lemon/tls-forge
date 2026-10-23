@@ -1,3 +1,5 @@
 package daemon
 
-func majorForTest() *int { n := 7; return &n }
+import "github.com/Sec-CH-Lemon/tls-forge/engine"
+
+func majorForTest() *int { n := engine.Major(); return &n }

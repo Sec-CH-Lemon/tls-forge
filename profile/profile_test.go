@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/igor-lemon/fhttp/http2/hpack"
 	tls "github.com/igor-lemon/utls"
 )
@@ -77,7 +77,7 @@ func withRawExtension(t *testing.T, raw []byte, id uint16, data []byte) []byte {
 }
 
 func TestSpecFromCapturedClientHello(t *testing.T) {
-	p := &Profile{EngineMajor: Major(7), Name: "test", ClientHello: chromeHelloBytes(t)}
+	p := &Profile{EngineMajor: Major(1), Name: "test", ClientHello: chromeHelloBytes(t)}
 
 	spec, err := p.Spec()
 	if err != nil {
@@ -112,7 +112,7 @@ func TestSpecRejectsBluntMimicry(t *testing.T) {
 	// one ever falls through to a replayed blob, the ECH GREASE payload — random
 	// per connection in a browser — becomes a constant, which is a unique marker
 	// on every request this library makes. Failing loudly is the point.
-	spec, err := (&Profile{EngineMajor: Major(7), Name: "chrome", ClientHello: chromeHelloBytes(t)}).Spec()
+	spec, err := (&Profile{EngineMajor: Major(1), Name: "chrome", ClientHello: chromeHelloBytes(t)}).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestSpecRejectsBluntMimicry(t *testing.T) {
 	}
 
 	unknown := withRawExtension(t, chromeHelloBytes(t), 0x1234, []byte{1, 2, 3})
-	if _, err := (&Profile{EngineMajor: Major(7), Name: "unknown", ClientHello: unknown}).Spec(); err == nil ||
+	if _, err := (&Profile{EngineMajor: Major(1), Name: "unknown", ClientHello: unknown}).Spec(); err == nil ||
 		!strings.Contains(err.Error(), "unsupported extension 4660") {
 		t.Errorf("unknown extension error = %v", err)
 	}
@@ -148,7 +148,7 @@ func TestSpecAllowsMeasuredTrustAnchors(t *testing.T) {
 	// process drew for them.
 	for _, captured := range [][]byte{{0, 4, 1, 0xaa, 1, 0xbb}, {0, 4, 1, 0xbb, 1, 0xaa}} {
 		raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, captured)
-		sent := trustAnchorsSent(t, &Profile{EngineMajor: Major(7), Name: "chrome_152", ClientHello: raw})
+		sent := trustAnchorsSent(t, &Profile{EngineMajor: Major(1), Name: "chrome_152", ClientHello: raw})
 		if sent == nil {
 			t.Fatal("trust_anchors did not survive into the spec")
 		}
@@ -192,7 +192,7 @@ func trustAnchorsIn(spec tls.ClientHelloSpec) []byte {
 }
 
 func TestSpecFromBase(t *testing.T) {
-	spec, err := (&Profile{EngineMajor: Major(7), Name: "borrowed", Base: "chrome_133"}).Spec()
+	spec, err := (&Profile{EngineMajor: Major(1), Name: "borrowed", Base: "chrome_133"}).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -202,19 +202,19 @@ func TestSpecFromBase(t *testing.T) {
 }
 
 func TestSpecErrors(t *testing.T) {
-	if _, err := (&Profile{EngineMajor: Major(7), Name: "empty"}).Spec(); err == nil {
+	if _, err := (&Profile{EngineMajor: Major(1), Name: "empty"}).Spec(); err == nil {
 		t.Error("a profile with neither a hello nor a base cannot produce a spec")
 	}
-	if _, err := (&Profile{EngineMajor: Major(7), Name: "bad-base", Base: "netscape_4"}).Spec(); err == nil {
+	if _, err := (&Profile{EngineMajor: Major(1), Name: "bad-base", Base: "netscape_4"}).Spec(); err == nil {
 		t.Error("an unknown base should be reported")
 	}
-	if _, err := (&Profile{EngineMajor: Major(7), Name: "junk", ClientHello: []byte{1, 2, 3}}).Spec(); err == nil {
+	if _, err := (&Profile{EngineMajor: Major(1), Name: "junk", ClientHello: []byte{1, 2, 3}}).Spec(); err == nil {
 		t.Error("unparseable bytes should be reported")
 	}
 }
 
 func TestClientProfileFromCapturedHello(t *testing.T) {
-	p := &Profile{EngineMajor: Major(7),
+	p := &Profile{EngineMajor: Major(1),
 		Name:        "test",
 		ClientHello: chromeHelloBytes(t),
 		HTTP2: HTTP2{
@@ -245,7 +245,7 @@ func TestClientProfileFromCapturedHello(t *testing.T) {
 }
 
 func TestCloneIsIndependent(t *testing.T) {
-	original := &Profile{EngineMajor: Major(7),
+	original := &Profile{EngineMajor: Major(1),
 		Name: "browser", ClientHello: []byte{1}, Headers: []Field{{Name: "accept"}},
 		ClientHints: []Field{{Name: "dpr", Value: "1"}},
 		HTTP1: &HTTP1{HeaderOrder: []string{"Host", "accept"},
@@ -281,7 +281,7 @@ func TestCloneIsIndependent(t *testing.T) {
 func TestClientProfileUsesTheBaseVerbatim(t *testing.T) {
 	// A profile that only names a base IS that base. Rebuilding it from parts
 	// would be a second, drifting copy of settings this library does not own.
-	built, err := (&Profile{EngineMajor: Major(7), Name: "chrome_133", Base: "chrome_133"}).ClientProfile()
+	built, err := (&Profile{EngineMajor: Major(1), Name: "chrome_133", Base: "chrome_133"}).ClientProfile()
 	if err != nil {
 		t.Fatalf("ClientProfile: %v", err)
 	}
@@ -291,20 +291,20 @@ func TestClientProfileUsesTheBaseVerbatim(t *testing.T) {
 }
 
 func TestClientProfileErrors(t *testing.T) {
-	if _, err := (&Profile{EngineMajor: Major(7), Name: "x", Base: "nope"}).ClientProfile(); err == nil {
+	if _, err := (&Profile{EngineMajor: Major(1), Name: "x", Base: "nope"}).ClientProfile(); err == nil {
 		t.Error("an unknown base should be reported")
 	}
-	if _, err := (&Profile{EngineMajor: Major(7), Name: "x"}).ClientProfile(); err == nil {
+	if _, err := (&Profile{EngineMajor: Major(1), Name: "x"}).ClientProfile(); err == nil {
 		t.Error("a profile that cannot handshake should be reported")
 	}
-	if _, err := (&Profile{EngineMajor: Major(7), Name: "x", Base: "chrome_133",
+	if _, err := (&Profile{EngineMajor: Major(1), Name: "x", Base: "chrome_133",
 		HTTP1: &HTTP1{HeaderOrder: []string{"accept"}}}).ClientProfile(); err == nil {
 		t.Error("ClientProfile accepted an invalid HTTP/1 section")
 	}
 	// A profile that names an unknown base AND carries HTTP/2 settings is not a
 	// bare base, so it takes the assembly path — which must still fail rather
 	// than build a client profile around a handshake it could not resolve.
-	broken := &Profile{EngineMajor: Major(7), Name: "x", Base: "nope", HTTP2: HTTP2{Settings: []Setting{{ID: 1}}}}
+	broken := &Profile{EngineMajor: Major(1), Name: "x", Base: "nope", HTTP2: HTTP2{Settings: []Setting{{ID: 1}}}}
 	if _, err := broken.ClientProfile(); err == nil {
 		t.Error("an unknown base should be reported from the assembly path too")
 	}
@@ -314,7 +314,7 @@ func TestClientProfileErrors(t *testing.T) {
 		{":method", ":authority", ":scheme", ":scheme"},
 		{":method", ":authority", ":scheme", ":unknown"},
 	} {
-		p := &Profile{EngineMajor: Major(7), Name: "x", ClientHello: chromeHelloBytes(t), HTTP2: HTTP2{PseudoHeaderOrder: order}}
+		p := &Profile{EngineMajor: Major(1), Name: "x", ClientHello: chromeHelloBytes(t), HTTP2: HTTP2{PseudoHeaderOrder: order}}
 		if _, err := p.ClientProfile(); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
 			t.Errorf("ClientProfile accepted pseudo header order %v: %v", order, err)
 		}
@@ -322,7 +322,7 @@ func TestClientProfileErrors(t *testing.T) {
 }
 
 func TestStreamIDIsHonouredWhenSet(t *testing.T) {
-	p := &Profile{EngineMajor: Major(7),
+	p := &Profile{EngineMajor: Major(1),
 		Name:        "test",
 		ClientHello: chromeHelloBytes(t),
 		HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 1}}, StreamID: 7,
@@ -338,7 +338,7 @@ func TestStreamIDIsHonouredWhenSet(t *testing.T) {
 }
 
 func TestHeaderAccessors(t *testing.T) {
-	p := &Profile{EngineMajor: Major(7), Headers: []Field{
+	p := &Profile{EngineMajor: Major(1), Headers: []Field{
 		{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
 		{Name: "user-agent", Value: "Mozilla/5.0"},
 	}}
@@ -354,7 +354,7 @@ func TestHeaderAccessors(t *testing.T) {
 }
 
 func TestLoadAndSave(t *testing.T) {
-	original := &Profile{EngineMajor: Major(7),
+	original := &Profile{EngineMajor: Major(1),
 		Name:        "chrome_151",
 		UserAgent:   "Mozilla/5.0",
 		ClientHello: chromeHelloBytes(t),
@@ -396,25 +396,25 @@ func TestAProfileIsReadAsItsSchemaSays(t *testing.T) {
 	read := func(document string) (*Profile, error) { return Load([]byte(document)) }
 	// Written before there was a schema: read as it always was, what the
 	// format does not have passed over.
-	legacy, err := read(`{"engine_major":7,"name":"old","base":"chrome_133","heders":[{"name":"a","value":"b"}]}`)
+	legacy, err := read(`{"engine_major":1,"name":"old","base":"chrome_133","heders":[{"name":"a","value":"b"}]}`)
 	if err != nil || legacy.Name != "old" || legacy.Schema != 0 || legacy.Headers != nil {
 		t.Errorf("a profile with no schema: %+v, %v", legacy, err)
 	}
-	if current, err := read(`{"engine_major":7,"schema":1,"name":"new","base":"chrome_133"}`); err != nil || current.Schema != 1 {
+	if current, err := read(`{"engine_major":1,"schema":1,"name":"new","base":"chrome_133"}`); err != nil || current.Schema != 1 {
 		t.Errorf("schema 1: %+v, %v", current, err)
 	}
 	for _, tc := range []struct{ name, document, want string }{
-		{"a field spelt wrong", `{"engine_major":7,"schema":1,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
-		{"one spelt wrong inside another", `{"engine_major":7,"schema":1,"name":"x","base":"chrome_133","http2":{"setings":[]}}`,
+		{"a field spelt wrong", `{"engine_major":1,"schema":1,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
+		{"one spelt wrong inside another", `{"engine_major":1,"schema":1,"name":"x","base":"chrome_133","http2":{"setings":[]}}`,
 			`unknown field "setings"`},
-		{"a newer schema", `{"engine_major":7,"schema":5,"name":"x"}`, "schema 5 is newer than this tls-forge reads, 4"},
-		{"schema 2 is as strict", `{"engine_major":7,"schema":2,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
-		{"client hints in schema 1", `{"engine_major":7,"schema":1,"name":"x","base":"chrome_133",` +
+		{"a newer schema", `{"engine_major":1,"schema":5,"name":"x"}`, "schema 5 is newer than this tls-forge reads, 4"},
+		{"schema 2 is as strict", `{"engine_major":1,"schema":2,"name":"x","base":"chrome_133","heders":[]}`, `unknown field "heders"`},
+		{"client hints in schema 1", `{"engine_major":1,"schema":1,"name":"x","base":"chrome_133",` +
 			`"client_hints":[{"name":"sec-ch-ua-arch","value":"\"arm\""}]}`, "schema 1 has no client_hints"},
-		{"schema 0", `{"engine_major":7,"schema":0,"name":"x"}`, "schema 0 is not one"},
-		{"a schema below it", `{"engine_major":7,"schema":-3,"name":"x"}`, "schema -3 is not one"},
-		{"a schema that is no number", `{"engine_major":7,"schema":"1","name":"x"}`, "cannot unmarshal string"},
-		{"more after the profile", `{"engine_major":7,"schema":1,"name":"x","base":"chrome_133"} {}`, "extra data"},
+		{"schema 0", `{"engine_major":1,"schema":0,"name":"x"}`, "schema 0 is not one"},
+		{"a schema below it", `{"engine_major":1,"schema":-3,"name":"x"}`, "schema -3 is not one"},
+		{"a schema that is no number", `{"engine_major":1,"schema":"1","name":"x"}`, "cannot unmarshal string"},
+		{"more after the profile", `{"engine_major":1,"schema":1,"name":"x","base":"chrome_133"} {}`, "extra data"},
 	} {
 		if _, err := read(tc.document); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", tc.name, err, tc.want)
@@ -426,10 +426,10 @@ func TestLoadErrors(t *testing.T) {
 	if _, err := Load([]byte("{")); err == nil {
 		t.Error("malformed JSON should be reported")
 	}
-	if _, err := Load([]byte(`{"engine_major":7,"user_agent":"x"}`)); err == nil {
+	if _, err := Load([]byte(`{"engine_major":1,"user_agent":"x"}`)); err == nil {
 		t.Error("a profile without a name should be reported")
 	}
-	if _, err := Load([]byte(`{"engine_major":7,"name":"x","base":"chrome_133","http2":{"settings":[{"id":1}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
+	if _, err := Load([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http2":{"settings":[{"id":1}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
 		t.Errorf("a profile without pseudo headers was accepted: %v", err)
 	}
 	for _, section := range []string{
@@ -440,12 +440,12 @@ func TestLoadErrors(t *testing.T) {
 		`{"header_order":["Host"],"headers":[{"name":"Host","value":"x"}]}`,
 		`{"header_order":["Host"],"headers":[{"name":"Connection","value":"close"}]}`,
 	} {
-		_, err := Load([]byte(`{"engine_major":7,"name":"x","base":"chrome_133","http1":` + section + `}`))
+		_, err := Load([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http1":` + section + `}`))
 		if err == nil || !strings.Contains(err.Error(), "http1") {
 			t.Errorf("invalid HTTP/1 section %s was accepted: %v", section, err)
 		}
 	}
-	legacy, err := Load([]byte(`{"engine_major":7,"name":"old","base":"chrome_133"}`))
+	legacy, err := Load([]byte(`{"engine_major":1,"name":"old","base":"chrome_133"}`))
 	if err != nil || legacy.HTTP1 != nil {
 		t.Errorf("legacy profile no longer loads: %+v, %v", legacy, err)
 	}
@@ -453,7 +453,7 @@ func TestLoadErrors(t *testing.T) {
 
 func TestAProfilesClientHintsAreOnesAServerAsksFor(t *testing.T) {
 	load := func(hints string) error {
-		_, err := Load([]byte(`{"engine_major":7,"schema":2,"name":"x","base":"chrome_133","client_hints":[` + hints + `]}`))
+		_, err := Load([]byte(`{"engine_major":1,"schema":2,"name":"x","base":"chrome_133","client_hints":[` + hints + `]}`))
 		return err
 	}
 	if err := load(`{"name":"sec-ch-ua-arch","value":"\"arm\""},{"name":"rtt","value":"100"},` +
@@ -489,20 +489,20 @@ func TestShufflesExtensionsByBrowserFamily(t *testing.T) {
 		profile Profile
 		want    bool
 	}{
-		{profile: Profile{EngineMajor: Major(7), Name: "chrome_151"}, want: true},
-		{profile: Profile{EngineMajor: Major(7), Name: "brave_146"}, want: true},
-		{profile: Profile{EngineMajor: Major(7), Name: "opera_91"}, want: true},
-		{profile: Profile{EngineMajor: Major(7), Name: "custom", Base: "chrome_133"}, want: true},
-		{profile: Profile{EngineMajor: Major(7), Name: "custom", UserAgent: "Mozilla/5.0 Chrome/151.0"}, want: true},
-		{profile: Profile{EngineMajor: Major(7), Name: "firefox_148"}, want: false},
-		{profile: Profile{EngineMajor: Major(7), Name: "safari_18_5"}, want: false},
+		{profile: Profile{EngineMajor: Major(1), Name: "chrome_151"}, want: true},
+		{profile: Profile{EngineMajor: Major(1), Name: "brave_146"}, want: true},
+		{profile: Profile{EngineMajor: Major(1), Name: "opera_91"}, want: true},
+		{profile: Profile{EngineMajor: Major(1), Name: "custom", Base: "chrome_133"}, want: true},
+		{profile: Profile{EngineMajor: Major(1), Name: "custom", UserAgent: "Mozilla/5.0 Chrome/151.0"}, want: true},
+		{profile: Profile{EngineMajor: Major(1), Name: "firefox_148"}, want: false},
+		{profile: Profile{EngineMajor: Major(1), Name: "safari_18_5"}, want: false},
 		// Chrome on Android is Chrome; on iOS it is Apple's stack under another
 		// name, said by the platform in its name or by its user agent.
-		{profile: Profile{EngineMajor: Major(7), Name: "chrome_138_android"}, want: true},
-		{profile: Profile{EngineMajor: Major(7), Name: "chrome_138_ios"}, want: false},
-		{profile: Profile{EngineMajor: Major(7), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
-		{profile: Profile{EngineMajor: Major(7), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPad; CPU OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
-		{profile: Profile{EngineMajor: Major(7), Name: "custom", Base: "safari_ios_18_5"}, want: false},
+		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138_android"}, want: true},
+		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138_ios"}, want: false},
+		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
+		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPad; CPU OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
+		{profile: Profile{EngineMajor: Major(1), Name: "custom", Base: "safari_ios_18_5"}, want: false},
 	} {
 		if got := tc.profile.ShufflesExtensions(); got != tc.want {
 			t.Errorf("%q ShufflesExtensions = %v, want %v", tc.profile.Name, got, tc.want)
@@ -824,7 +824,7 @@ func TestWithResumption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fixture: %v", err)
 	}
-	spec, err := (&Profile{EngineMajor: Major(7), Name: "resumed", ClientHello: raw}).Spec()
+	spec, err := (&Profile{EngineMajor: Major(1), Name: "resumed", ClientHello: raw}).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -874,9 +874,9 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 		"a captured Chrome on macOS":   {mustGet(t, "chrome_155_macos"), true},
 		"a captured Chrome on Linux":   {mustGet(t, "chrome_155_linux"), true},
 		"a captured Chrome on Windows": {mustGet(t, "chrome_155_windows"), true},
-		"Chrome from the catalogue":    {&Profile{EngineMajor: Major(7), Name: "chrome_133", Base: "chrome_133"}, true},
-		"Firefox from the catalogue":   {&Profile{EngineMajor: Major(7), Name: "firefox_148", Base: "firefox_148"}, false},
-		"Chrome on an iPhone":          {&Profile{EngineMajor: Major(7), Name: "chrome_ios", Base: "safari_ios_18_0", UserAgent: "CriOS iPhone"}, false},
+		"Chrome from the catalogue":    {&Profile{EngineMajor: Major(1), Name: "chrome_133", Base: "chrome_133"}, true},
+		"Firefox from the catalogue":   {&Profile{EngineMajor: Major(1), Name: "firefox_148", Base: "firefox_148"}, false},
+		"Chrome on an iPhone":          {&Profile{EngineMajor: Major(1), Name: "chrome_ios", Base: "safari_ios_18_0", UserAgent: "CriOS iPhone"}, false},
 	} {
 		t.Run(name, func(t *testing.T) {
 			built, err := tc.p.ClientProfile()

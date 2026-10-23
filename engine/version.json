@@ -1,1 +1,6 @@
-{"version":"7.0.0"}
+{
+  "version": "1.0.0",
+  "latest_released_version": "0.2.2",
+  "release_status": "unreleased",
+  "pending_engine_change": true
+}

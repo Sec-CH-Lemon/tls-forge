@@ -17,7 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
 // Source labels which side produced a capture.

@@ -1,25 +1,27 @@
 # TLS Forge for Python
 
-## Engine/profile compatibility (7.0.0)
+## Engine/profile compatibility (1.0.0)
 
-The compiled engine version is **7.0.0**, independently of the browser build and
+The compiled engine version is **1.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 7`. Engines reject profiles from both older
+non-negative integer `engine_major: 1`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 7, "name": "my-browser"}
+{"schema": 4, "engine_major": 1, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
 data and the explicit `behavior` object. Browser values and selections stay in
-JSON. Any coordinated change requiring shipped engine/fork runtime code increments
-the project major exactly once, even a compatible fix. Existing primitives can be
-configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+JSON. Major selection is anchored to the latest published stable release:
+`latest_released_major + 1` for an engine change, once for the whole next release.
+The current candidate is **unreleased1.0.0** after0.2.2. Further runtime changes
+before1.0.0 is published stay in major1; after publication, the next engine change
+targets2.0.0. Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go major versions use their matching module import suffix; this release uses `/v7`.
+a different version stamp. Go v1 uses the unsuffixed module path; `/v2` starts with major2. The release anchor and pending status are recorded in `engine/version.json`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -28,13 +30,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-7") // handle err
+candidate, err := old.Migrate("my-browser-engine-1") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-7
+The 15 shipped profiles and all backend catalogue policies have explicit unreleased engine-1
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -45,7 +47,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 7`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable

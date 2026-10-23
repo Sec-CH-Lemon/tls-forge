@@ -21,7 +21,7 @@ import (
 	tls_client "github.com/igor-lemon/tls-client"
 	"golang.org/x/net/proxy"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // Through an HTTP proxy, a request is a tunnel. The client asks the proxy to

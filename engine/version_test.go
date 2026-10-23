@@ -1,20 +1,51 @@
 package engine
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
 
+// The published release is the anchor. More implementation commits in the
+// same unpublished engine must not turn one pending release into majors2..7.
+func TestReleaseAnchoredDevelopmentMajor(t *testing.T) {
+	var release struct {
+		Latest  string `json:"latest_released_version"`
+		Status  string `json:"release_status"`
+		Pending bool   `json:"pending_engine_change"`
+	}
+	if err := json.Unmarshal(metadata, &release); err != nil {
+		t.Fatal(err)
+	}
+	previous := parse([]byte(`{"version":"` + release.Latest + `"}`))
+	wantMajor := previous.major
+	switch release.Status {
+	case "unreleased":
+		if release.Pending {
+			wantMajor++
+		}
+	case "released":
+		if release.Pending || Version() != release.Latest {
+			t.Fatal("published identity must equal its release anchor")
+		}
+	default:
+		t.Fatal("release status must explicitly distinguish published and unpublished versions")
+	}
+	if Major() != wantMajor {
+		t.Fatalf("engine major%d must be%d, anchored to released%s; development iterations do not increment it", Major(), wantMajor, release.Latest)
+	}
+}
+
 func TestCompiledIdentity(t *testing.T) {
-	if Version() != "7.0.0" || Major() != 7 {
+	if Version() != "1.0.0" || Major() != 1 {
 		t.Fatalf("wrong compiled identity: %s/%d", Version(), Major())
 	}
-	for _, v := range []string{"7.0.0", "v7.0.0"} {
+	for _, v := range []string{"1.0.0", "v1.0.0"} {
 		if err := CheckBuildVersion(v); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for _, v := range []string{"dev", "v0.1.0", "v1.0.0", "v2.0.1", "v3.0.0", "v4.0.0", "v5.0.0", "v6.0.0", "v7.0.1", "v7.0.0-dirty"} {
+	for _, v := range []string{"dev", "v0.1.0", "v7.0.0", "v2.0.1", "v3.0.0", "v4.0.0", "v5.0.0", "v6.0.0", "v1.0.1", "v1.0.0-dirty"} {
 		if CheckBuildVersion(v) == nil {
 			t.Fatal(v)
 		}
@@ -36,7 +67,7 @@ func TestUnambiguousMajorJSON(t *testing.T) {
 			t.Fatal(raw)
 		}
 	}
-	for _, raw := range []string{`{"engine_major":7,"engine_major":7}`, `{"engine_major":0,"Engine_Major":1}`, `{"ENGINE_MAJOR":1}`, `[]`, `{} {}`, `{"engine_major":7,`} {
+	for _, raw := range []string{`{"engine_major":1,"engine_major":1}`, `{"engine_major":0,"Engine_Major":1}`, `{"ENGINE_MAJOR":1}`, `[]`, `{} {}`, `{"engine_major":1,`} {
 		if _, err := DeclaredMajor([]byte(raw)); err == nil {
 			t.Fatal(raw)
 		}
@@ -46,7 +77,7 @@ func TestUnambiguousMajorJSON(t *testing.T) {
 			t.Fatal(n, err)
 		}
 	}
-	if err := CheckMajor("profile x", nil); err == nil || !strings.Contains(err.Error(), "running engine major 7") {
+	if err := CheckMajor("profile x", nil); err == nil || !strings.Contains(err.Error(), "running engine major 1") {
 		t.Fatal(err)
 	}
 	n := -1

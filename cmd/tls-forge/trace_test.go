@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // traceFile is a trace file as the events in it. It has to parse as the JSON

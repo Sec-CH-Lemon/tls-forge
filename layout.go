@@ -9,7 +9,7 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // layouts are the header blocks of one request, made before it is sent: as it

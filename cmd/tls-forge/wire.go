@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/atomicfile"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/conntap"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/pcapng"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/pcapng"
 )
 
 // What --pcap keeps beside each request's files: NAME.pcapng, the

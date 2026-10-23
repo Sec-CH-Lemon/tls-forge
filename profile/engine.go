@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v7/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"strings"
 )
 

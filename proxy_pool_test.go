@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	peerh2 "golang.org/x/net/http2"
 )
 

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 // Where a run comes out.

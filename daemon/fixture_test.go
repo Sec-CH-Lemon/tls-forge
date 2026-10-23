@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7"
+	"github.com/Sec-CH-Lemon/tls-forge"
 )
 
 var updateFixtures = flag.Bool("update", false, "rewrite the protocol fixtures")
@@ -24,7 +24,7 @@ var updateFixtures = flag.Bool("update", false, "rewrite the protocol fixtures")
 // Every field is exercised, including the ones whose absence is meaningful,
 // so that a rename or a retype of any of them changes a file.
 func fixtureResponse() Response {
-	return handle(context.Background(), `{"engine_major":7,"id":7,"url":"https://example.com/"}`, &fakeClient{response: &tlsforge.Response{
+	return handle(context.Background(), `{"engine_major":1,"id":7,"url":"https://example.com/"}`, &fakeClient{response: &tlsforge.Response{
 		Status: 200,
 		URL:    "https://example.com/after-redirect",
 		Body:   []byte{0x00, 0xfe, 0xff, 0x80},
@@ -40,7 +40,7 @@ func fixtureResponse() Response {
 // readers must keep seeing the same response shape for ordinary UTF-8 bodies.
 // Its jar holds nothing, which the client reports as no cookies at all.
 func fixtureTextResponse() Response {
-	return handle(context.Background(), `{"engine_major":7,"id":8,"url":"https://example.com/text"}`, &fakeClient{response: &tlsforge.Response{
+	return handle(context.Background(), `{"engine_major":1,"id":8,"url":"https://example.com/text"}`, &fakeClient{response: &tlsforge.Response{
 		Status: 200,
 		URL:    "https://example.com/text",
 		Body:   []byte("plain text — unchanged"),
@@ -52,7 +52,7 @@ func fixtureTextResponse() Response {
 
 // A request the transport could not make: the shape every failure has.
 func fixtureErrorResponse() Response {
-	return handle(context.Background(), `{"engine_major":7,"id":9,"url":"https://example.com/"}`, &fakeClient{err: errors.New(
+	return handle(context.Background(), `{"engine_major":1,"id":9,"url":"https://example.com/"}`, &fakeClient{err: errors.New(
 		`tlsforge: Get "https://example.com/": dial tcp 127.0.0.1:1: connect: connection refused`)})
 }
 
@@ -60,7 +60,7 @@ func fixtureErrorResponse() Response {
 // connection. A daemon that predates control lines answers it as
 // response-hello-old.json, a request with no url.
 func fixtureHelloResponse() Response {
-	return handle(context.Background(), `{"engine_major":7,"id":10,"control":"hello"}`, &fakeClient{})
+	return handle(context.Background(), `{"engine_major":1,"id":10,"control":"hello"}`, &fakeClient{})
 }
 
 func fixtureOldHelloResponse() Response {

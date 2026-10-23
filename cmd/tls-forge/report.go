@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v7/internal/atomicfile"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
 )
 
 // What a run turned out to be.

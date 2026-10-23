@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v7"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 // Fuzzing the request decoder.
@@ -18,11 +18,11 @@ import (
 // from another. A line that produced no answer at all, or the wrong id, is how
 // a client ends up filing one page under another page's request.
 func FuzzHandle(f *testing.F) {
-	f.Add(`{"engine_major":7,"id":7,"url":"https://example.com/"}`)
-	f.Add(`{"engine_major":7,"id":7,"url":"https://example.com/","headers":{"a":"b"},"order":["a"]}`)
-	f.Add(`{"engine_major":7,"id":7,"url":"https://example.com/","cookies":["a=b"],"method":"POST","body":"x"}`)
-	f.Add(`{"engine_major":7,"id":7}`)
-	f.Add(`{"engine_major":7,"id":"seven","url":"https://example.com/"}`)
+	f.Add(`{"engine_major":1,"id":7,"url":"https://example.com/"}`)
+	f.Add(`{"engine_major":1,"id":7,"url":"https://example.com/","headers":{"a":"b"},"order":["a"]}`)
+	f.Add(`{"engine_major":1,"id":7,"url":"https://example.com/","cookies":["a=b"],"method":"POST","body":"x"}`)
+	f.Add(`{"engine_major":1,"id":7}`)
+	f.Add(`{"engine_major":1,"id":"seven","url":"https://example.com/"}`)
 	f.Add(`{`)
 	f.Add(`[]`)
 	f.Add(`null`)
