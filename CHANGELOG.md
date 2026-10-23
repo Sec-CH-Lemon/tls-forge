@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Correct the inherited fhttp `TestTransportRejectsConnHeaders` fixture: an
+  explicit Content-Length is message framing, not a connection-specific field.
+  Keep every rejection case and verify exact received fields, complete bodies,
+  no handler calls on rejection, and caller-header immutability. Add twelve
+  generated/explicit/unknown-length framing controls. Runtime and profile JSON
+  are unchanged; this test-only correction retains engine7.
+
 - Engine7.0.0 (Go `/v7`, Node/Python7.0.0) adds required JSON
   `h2.read_loop_start` (`connection`/`first-headers`). The Chrome155/macOS profile
   emits the initial request HEADERS before starting peer-frame processing,

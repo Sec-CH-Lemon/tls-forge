@@ -463,6 +463,13 @@ without a browser context retain their raw repeated fields. Measured profiles
 also keep ALPS consistent with the final ALPN offer when a transport forces
 HTTP/1.1.
 
+The low-level fhttp HTTP/2 API preserves an explicit `Content-Length`; callers
+must make it agree with the body. This field is message framing, rather than a
+connection-specific header. The fork's regression tests check exact framing
+values and complete bodies separately from connection-header rejection.
+Fetch/XHR browser contexts reject attempts to set browser-owned fields,
+including `Content-Length`, before contacting the origin.
+
 `-H`, `NewHeader`, `Header.Set` and `Header.Add` retain the supplied name's
 spelling. Lookups remain case-insensitive; HTTP/2 still writes lowercase names.
 Fetch/XHR chains follow twenty redirects (twenty-one requests); the next
