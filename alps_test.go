@@ -108,7 +108,7 @@ func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.
 				case ask.fromPage:
 					browser.Initiator = run
 				}
-				req := &Request{Method: ask.method, URL: origin + ask.path, Body: []byte(ask.body), Browser: browser}
+				req := &Request{Method: ask.method, URL: origin + ask.path, Body: capturedBody(ask.body), Browser: browser}
 				if _, err := client.Do(req); err != nil {
 					if i == 0 {
 						// The page did not load, and asked nothing.

@@ -301,7 +301,7 @@ func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, heade
 		return errContext("credentials %q is not same-origin, include or omit", b.Credentials)
 	case forbiddenMethod(r.method):
 		return errContext("%s cannot send %s", what, r.method)
-	case (r.method == fhttp.MethodGet || r.method == fhttp.MethodHead) && len(body) > 0:
+	case (r.method == fhttp.MethodGet || r.method == fhttp.MethodHead) && body != nil:
 		return errContext("%s sends no body with %s", what, r.method)
 	}
 	for _, f := range header {

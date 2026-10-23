@@ -134,7 +134,11 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 			"https://u:p@www.example.com/x", nil, "", "fetch() is given no URL with credentials in it"},
 	} {
 		browser := tc.browser
-		_, err := client.Do(&Request{Method: tc.method, URL: tc.url, Header: tc.header, Body: []byte(tc.body),
+		var payload []byte
+		if tc.body != "" {
+			payload = []byte(tc.body)
+		}
+		_, err := client.Do(&Request{Method: tc.method, URL: tc.url, Header: tc.header, Body: payload,
 			Browser: &browser})
 		if err == nil || !strings.HasPrefix(err.Error(), "tlsforge: browser context: ") ||
 			!strings.Contains(err.Error(), tc.says) {

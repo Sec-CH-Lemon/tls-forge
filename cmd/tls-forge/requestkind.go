@@ -32,7 +32,7 @@ func browserContextOf(kind, initiator string, initiatorGiven bool) (*tlsforge.Br
 // checkBrowser refuses a run whose requests a browser would not send as the
 // kind says, or this profile cannot send as one: the request of every URL of
 // the list is checked as the library would check it, before anything is sent.
-func checkBrowser(worn *profile.Profile, jobs []job, method string, header headerFlag, data string,
+func checkBrowser(worn *profile.Profile, jobs []job, method string, header headerFlag, data []byte,
 	browser *tlsforge.BrowserContext,
 ) error {
 	if browser == nil {
@@ -45,7 +45,7 @@ func checkBrowser(worn *profile.Profile, jobs []job, method string, header heade
 	defer func() { _ = checker.Close() }()
 	for _, j := range jobs {
 		err := checker.Validate(&tlsforge.Request{Method: method, URL: j.URL, Header: tlsforge.Header(header),
-			Body: []byte(data), Browser: browser})
+			Body: data, Browser: browser})
 		if err != nil {
 			return fmt.Errorf("%w: --request-kind %s: %s: %s", errUsage, browser.Kind, safeURL(j.URL),
 				strings.TrimPrefix(err.Error(), "tlsforge: "))
@@ -73,4 +73,13 @@ func describeContext(browser *tlsforge.BrowserContext) string {
 		return "fetch() from " + page
 	}
 	return "an XHR from " + page
+}
+
+// requestBody preserves -d "" as an explicit empty upload and an omitted -d as
+// no body. Nonempty data in an in-memory fetch plan is provided by definition.
+func requestBody(data string, provided bool) []byte {
+	if provided || data != "" {
+		return []byte(data)
+	}
+	return nil
 }

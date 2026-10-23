@@ -495,3 +495,36 @@ This generic scheduling mechanism is part of the same unreleased engine1; Go use
 preserved in the immutable `hpack-20261023-r22` before-build archive. Profile
 migration alone is not browser acceptance. The scoped repeated Chrome results
 are maintained in `../net-fp-server/docs/HPACK_STARTUP_2026-10-23.md`.
+
+
+## Request body presence and Content-Length
+
+The current unreleased engine remains1.0.0/engine_major1. These mandatory JSON
+choices replace the transports' old hardcoded zero-length method list:
+
+| Key | Meaning / Chrome155 macOS choice |
+| --- | --- |
+| `http.zero_content_length_methods` | Exact method tokens that emit0 when no body exists; `["POST","PUT"]`. |
+| `http.content_length_empty_body` | Emit a derived zero length for an explicit empty upload; `true`. |
+| `h1.zero_length_identity` | Retain the old raw H1 identity-transfer fallback; Chrome profile `false`. |
+| `h1.zero_length_identity_excluded_methods` | Methods excluded from that compatibility fallback; `["GET","HEAD"]`. |
+
+These are selectors, not a length template. Positive lengths come from actual
+bytes; unknown-length streams never get a fabricated numeric length. Empty
+selector lists are valid, duplicate/invalid method tokens and wrong types are
+rejected. Profile names and browser versions do not dispatch the mechanism.
+Legacy/canonical catalogue and other14 profile data retain their prior
+POST/PUT/PATCH zero-method selection and disabled explicit-empty override.
+
+The Go request body distinguishes nil from a non-nil empty slice. The daemon
+preserves absent/null versus an explicitly empty body field. Node/Python already
+serialize that distinction. CLI omits a body unless -d is provided; -d "" is an
+explicit empty upload. This preservation applies to redirects and retry copies,
+while transitions that remove the upload must keep it absent. Fetch GET/HEAD
+refuses any explicitly provided body before origin contact. Raw fhttp header
+overrides retain their separately tested contract.
+
+No version is incremented for another change within this unpublished major1.
+Historical profiles/captures keep their original bytes; JSON migration is explicit
+and is not fresh old-browser acceptance. Actual minimized Chrome series and
+complete packet/HPACK/QPACK witnesses determine the bounded parity result.

@@ -28,3 +28,22 @@ func TestEngineGateBeforeDaemonClientAndProxyInit(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestRequestBodyPresenceSurvivesJSON(t *testing.T) {
+	for _, tt := range []struct {
+		field    string
+		provided bool
+		want     string
+	}{
+		{"", false, ""}, {`,"body":null`, false, ""}, {`,"body":""`, true, ""}, {`,"body":"","bodyEncoding":"base64"`, true, ""}, {`,"body":"eA==","bodyEncoding":"base64"`, true, "x"},
+	} {
+		c := &fakeClient{}
+		r := handle(context.Background(), `{"id":1,"engine_major":1,"url":"https://example.invalid/"`+tt.field+`}`, c)
+		if r.Error != "" || c.got == nil {
+			t.Fatal(tt, r)
+		}
+		if (c.got.Body != nil) != tt.provided || string(c.got.Body) != tt.want {
+			t.Fatal("request body presence/bytes lost", tt, c.got.Body)
+		}
+	}
+}

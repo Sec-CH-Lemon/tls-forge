@@ -467,7 +467,7 @@ The low-level fhttp HTTP/2 API preserves an explicit `Content-Length`; callers
 must make it agree with the body. This field is message framing, rather than a
 connection-specific header. The fork's regression tests check exact framing
 values and complete bodies separately from connection-header rejection.
-Fetch/XHR browser contexts reject attempts to set browser-owned fields,
+tls-forge Fetch/XHR browser contexts reject attempts to set browser-owned fields,
 including `Content-Length`, before contacting the origin.
 
 `-H`, `NewHeader`, `Header.Set` and `Header.Add` retain the supplied name's
@@ -2426,3 +2426,20 @@ The same unreleased engine1 includes profile-owned initial HTTP/2 input scheduli
 `h2.read_loop_start: "first-headers"` so the first HPACK block is queued before
 peer SETTINGS are read; subsequent dynamic-table growth/shrink still follows the
 actual peer. See [profile behavior](docs/profile-behavior.md#initial-http2-input-scheduling-unreleased-engine-1).
+
+
+### Empty uploads and profile-owned Content-Length
+
+Unreleased v1.0.0 preserves an absent body separately from an explicit empty
+upload. Go `Body: nil`, an omitted/null daemon body, Node's omitted body and
+Python `body=None` mean no upload. A non-nil empty Go slice, an explicit empty
+string/Buffer/bytes, or CLI `-d ""` is a zero-byte upload. Fetch GET/HEAD refuses
+an explicit body before network I/O, including an empty one.
+
+Profile JSON selects `http.zero_content_length_methods` and
+`http.content_length_empty_body`; the measured Chrome155/macOS profile uses
+`["POST","PUT"]` and `true`. Consequently PATCH without a body omits
+Content-Length; PATCH with an explicit empty upload sends0; nonempty payloads
+send their actual byte length. The same mechanism serves H1/H2/H3. Other
+profiles retain explicit compatibility choices pending their own measurements.
+See [framing policy](docs/profile-behavior.md#request-body-presence-and-content-length).

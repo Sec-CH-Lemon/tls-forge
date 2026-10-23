@@ -203,7 +203,7 @@ func sendOnConnections(t *testing.T, p *profile.Profile, proto, id string, asked
 		if at > 0 {
 			browser.Initiator = run(id)
 		}
-		req := &Request{Method: measured.Method, URL: measured.URL, Body: []byte(measured.Body), Browser: &browser}
+		req := &Request{Method: measured.Method, URL: measured.URL, Body: capturedBody(measured.Body), Browser: &browser}
 		for _, h := range measured.Headers {
 			if strings.EqualFold(h[0], "content-type") {
 				req.Header = append(req.Header, profile.Field{Name: "Content-Type", Value: h[1]})

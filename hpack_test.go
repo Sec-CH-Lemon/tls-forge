@@ -237,7 +237,7 @@ func writtenAsChromeWroteThem(t *testing.T, chrome *profile.Profile, server *har
 				if ask.fromPage {
 					browser.Initiator = run
 				}
-				req := &Request{Method: ask.method, URL: origin[ask.origin] + ask.path, Body: []byte(ask.body),
+				req := &Request{Method: ask.method, URL: origin[ask.origin] + ask.path, Body: capturedBody(ask.body),
 					Header: ask.header, Browser: browser}
 				if _, err := client.Do(req); err != nil {
 					if hpackDiffers[scenario] != "" {

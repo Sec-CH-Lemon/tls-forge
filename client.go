@@ -121,7 +121,9 @@ type Request struct {
 	// net/http adds a jar's to a request's own: every cookie it names first,
 	// then those the jar holds for the URL, over HTTP/1.1 and HTTP/2 alike.
 	Header Header
-	Body   []byte
+	// Body nil means no body. A non-nil empty slice is an explicit zero-byte
+	// upload; framing is derived from this distinction and the selected profile.
+	Body []byte
 	// Cookies are added to the jar before the request.
 	//
 	// Through the jar rather than through a Cookie header on purpose: a cookie
@@ -731,7 +733,7 @@ func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 	}
 	method := cmp.Or(req.Method, fhttp.MethodGet)
 	var body io.Reader
-	if len(req.Body) > 0 {
+	if req.Body != nil {
 		body = bytes.NewReader(req.Body)
 	}
 	inner, err := fhttp.NewRequest(method, target.String(), body)

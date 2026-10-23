@@ -471,7 +471,11 @@ func init() {
 		return BrowserContext{Kind: KindForm, Initiator: run(scenario)}
 	}
 	blocked := func(method, target string, body string, browser BrowserContext) *Request {
-		return &Request{Method: method, URL: target, Body: []byte(body), Browser: &browser}
+		var payload []byte
+		if body != "" {
+			payload = []byte(body)
+		}
+		return &Request{Method: method, URL: target, Body: payload, Browser: &browser}
 	}
 	for scenario, how := range map[string]asSent{
 		"mixed-fetch": {browser: fetched("mixed-fetch"),
@@ -837,7 +841,11 @@ func sendAsMeasured(t *testing.T, p *profile.Profile, proto string, how asSent, 
 		if contexts != nil {
 			browser = contexts[i]
 		}
-		req := &Request{Method: measured.Method, URL: measured.URL, Body: []byte(measured.Body), Browser: &browser}
+		var payload []byte
+		if measured.Body != "" || measured.header("content-length") == "0" {
+			payload = []byte(measured.Body)
+		}
+		req := &Request{Method: measured.Method, URL: measured.URL, Body: payload, Browser: &browser}
 		if i == 0 {
 			req.Cookies = how.cookies
 		}

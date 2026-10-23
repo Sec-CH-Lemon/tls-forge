@@ -477,6 +477,16 @@ func handle(ctx context.Context, line string, client Client) Response {
 		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
 
+	if len(body) == 0 {
+		var fields struct{ Body json.RawMessage }
+		// The full request has already decoded successfully. Preserve absent/null
+		// separately from an explicit empty string/base64 upload.
+		_ = json.Unmarshal([]byte(line), &fields)
+		if len(fields.Body) == 0 || bytes.Equal(bytes.TrimSpace(fields.Body), []byte("null")) {
+			body = nil
+		}
+	}
+
 	res, err := client.Do(&tlsforge.Request{
 		Method:  req.Method,
 		URL:     req.URL,

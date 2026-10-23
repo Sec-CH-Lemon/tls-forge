@@ -485,6 +485,7 @@ type fetchPlan struct {
 	// The request, which is the same for every URL it is made to, and what in
 	// a browser it is sent as.
 	method, data              string
+	dataProvided              bool
 	headers                   headerFlag
 	requestKind, initiatorURL string
 	browser                   *tlsforge.BrowserContext
@@ -688,7 +689,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	}
 	// What a browser would not send, or this profile cannot send as one, for
 	// any URL of the list, before anything is warmed, cleared or sent.
-	if err := checkBrowser(common.run.profile, jobs, *method, headers, *data, browser); err != nil {
+	if err := checkBrowser(common.run.profile, jobs, *method, headers, requestBody(*data, fs.Changed("data")), browser); err != nil {
 		return nil, err
 	}
 	// Every pass over the list is counted before the first one is made, and a
@@ -741,7 +742,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	}
 	return &fetchPlan{
 		common: common, worn: worn,
-		method: *method, data: *data, headers: headers,
+		method: *method, data: *data, dataProvided: fs.Changed("data"), headers: headers,
 		requestKind: *requestKind, initiatorURL: *initiatorURL, browser: browser,
 		jobs: jobs, ways: ways, requests: requests, workers: *workers,
 		asJSON: asJSON, showHeaders: *showHeaders, output: *output, clearOutputDir: *clearOutputDir, pcap: *pcap,
@@ -973,7 +974,7 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 	with := runner{
 		check:   r.check,
 		clients: r.clients, workers: r.workers,
-		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: []byte(r.data),
+		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: requestBody(r.data, r.dataProvided),
 			Browser: r.browser},
 		retry: *r.again.retry, repeat: *r.again.repeat,
 		keep: r.output, wire: r.wire,

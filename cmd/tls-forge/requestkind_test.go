@@ -251,3 +251,15 @@ func TestACheckerThatCannotBeMadeIsSaid(t *testing.T) {
 		t.Errorf("exit code = %d\n%s", code, stderr)
 	}
 }
+
+func TestDataFlagPreservesAnExplicitEmptyBody(t *testing.T) {
+	if requestBody("", false) != nil {
+		t.Fatal("omitted data became an upload")
+	}
+	if body := requestBody("", true); body == nil || len(body) != 0 {
+		t.Fatal("explicit empty data became no body")
+	}
+	if string(requestBody("payload", false)) != "payload" {
+		t.Fatal("plan body bytes lost")
+	}
+}

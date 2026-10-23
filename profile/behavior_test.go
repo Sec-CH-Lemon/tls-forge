@@ -153,3 +153,26 @@ func TestInitialH2ReadPolicyMustBeExplicitAndSupported(t *testing.T) {
 		t.Fatal("missing engine7 reader-start policy inferred")
 	}
 }
+
+func TestFramingPolicyMustBeExplicitAndTyped(t *testing.T) {
+	for _, key := range []string{"http.zero_content_length_methods", "http.content_length_empty_body", "h1.zero_length_identity", "h1.zero_length_identity_excluded_methods"} {
+		p, err := Get("chrome_155_macos")
+		if err != nil {
+			t.Fatal(err)
+		}
+		delete(p.Behavior, key)
+		if p.validateBehavior() == nil {
+			t.Fatal("missing framing choice inferred", key)
+		}
+		for _, raw := range []string{`null`, `1`, `"captured"`} {
+			p, err := Get("chrome_155_macos")
+			if err != nil {
+				t.Fatal(err)
+			}
+			p.Behavior[key] = json.RawMessage(raw)
+			if p.validateBehavior() == nil {
+				t.Fatal("invalid framing choice accepted", key, raw)
+			}
+		}
+	}
+}

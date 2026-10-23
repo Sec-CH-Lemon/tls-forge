@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Preserve absent versus explicit empty uploads and make Content-Length framing
+  profile-owned across H1/H2/H3. Chrome155/macOS selects zero-length POST/PUT
+  and explicit-empty uploads in JSON, so PATCH without a body omits the field.
+  CLI -d "" remains an upload; Fetch GET/HEAD rejects an explicit body before
+  origin contact. Keep the single unreleased1.0.0 candidate and exact major1.
+
 - Correct release-anchored versioning: all current engine work is the single
   **unreleased1.0.0** candidate after published major0 (latest remote tag0.2.2).
   Further development before publication keeps major1. Only after publication

@@ -167,7 +167,7 @@ func carriedAsChromeCarriedThem(t *testing.T, chrome, macOS *profile.Profile, se
 				if ask.fromPage {
 					browser.Initiator = run
 				}
-				req := &Request{Method: ask.method, URL: origin + ask.path, Body: []byte(ask.body), Header: ask.header,
+				req := &Request{Method: ask.method, URL: origin + ask.path, Body: capturedBody(ask.body), Header: ask.header,
 					Browser: browser}
 				if _, err := client.Do(req); err != nil {
 					t.Fatalf("%s %s: %v", ask.method, req.URL, err)
