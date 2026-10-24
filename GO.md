@@ -317,6 +317,7 @@ response, err := client.Do(&tlsforge.Request{
 | `Trace` | Optional hooks told each step the request takes on the wire; see [Tracing a request](#tracing-a-request). |
 | `Logger` | A `*slog.Logger` this request is logged to instead of the client's, so that what it is for goes with every record of it; see [Logging](#logging). |
 | `Browser` | A `*BrowserContext`: what in a browser the request stands for, a navigation, a form, `fetch()` or an XHR, sent as Chrome sends that; see [Browser contexts](#browser-contexts). `nil` sends it as a navigation typed into the address bar, a `GET` with no body: another method, or a body, is refused with `ErrNeedsContext`. |
+| `Reload` | The page the request opened, reloaded as Chrome reloads it (Ctrl+R); see [Reloading a page](#reloading-a-page). |
 
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 deadline of each request, all of it. A request ends when either is reached,
@@ -429,6 +430,7 @@ response, err := client.Do(&tlsforge.Request{
 | `ReferrerPolicy` | The page's referrer policy. Empty is Chrome's default, `strict-origin-when-cross-origin`. |
 | `Mode` | `fetch()`'s mode: `cors` (default), `no-cors` or `same-origin`. |
 | `Credentials` | `fetch()`'s credentials: `same-origin` (default), `include` or `omit`; an XHR's `same-origin` or `include` (`withCredentials`). |
+| `Clicked` | A person's click on the page sent the navigation or the form, a link or the form's button: `Sec-Fetch-User: ?1` on every hop, a form's between `Sec-Fetch-Mode` and `Sec-Fetch-Dest`. Without it the page's script navigated or submitted the form, and the request says nothing of a person. Refused for `fetch()`, an XHR, a navigation typed into the address bar (the person's already) and `Sent`. |
 | `Sent` | `Header` is what a browser sent for the request, as an intercepting proxy is given it; see below. |
 
 `client.Validate(req)` says what of this `Do` would refuse, without sending
@@ -579,6 +581,39 @@ so the order changes with the set of names; one goes where Chrome was
 measured to put it), frames, and a form submitted by the user's click
 (`Sec-Fetch-User`).
 
+### Reloading a page
+
+```go
+res, err := client.Do(&req)
+if err == nil && res.Status == http.StatusForbidden {
+	again := req.Reloaded(res)
+	res, err = client.Do(&again)
+}
+```
+
+`Request.Reload` sends the request as Chrome sends it when the page it opened
+is reloaded (Ctrl+R), as Chrome 155 was measured doing it after a 403
+(`testdata/chrome155-reload.json`, `TestAPageIsReloadedAsChromeReloadedIt`):
+asking for the page afresh (`Cache-Control: max-age=0`, first in a
+navigation's order, `headers.reload_cache_control`), saying the person asked
+(`Sec-Fetch-User: ?1`, whether a click or the page's script sent it first),
+with what the page's answer set, its cookies and the client hints it asked
+for, and from the page it came from (`Referer`, `Origin`, `Sec-Fetch-Site`) as
+before. A form's POST goes again with its body, its `Content-Type` after
+`Origin` (`headers.form_reload_order`). It goes on a connection the client
+still holds to the site, as Chrome's goes on the one the page came on: make it
+with the client that made the request, not a `Fresh` one.
+`req.Reloaded(res)` is the request that reloads the page `res` is at: `req`
+with `Reload`, to `res.URL`, where a redirect may have taken it (Chrome reloads
+the page it ended on, not the redirect), by the method `res` answers
+(`Response.Method`); a form's POST a redirect made a GET is reloaded as that
+GET, a navigation from the form's page without its body. `fetch()` and an XHR
+open no page: `Reloaded` hands them back as they are, for the page's script to
+send them again, and `Reload` on one is refused, as on a request a browser sent
+(`Sent`), with a profile that says nothing of reloads, and with one that sends
+a request without a context as it is given. A reload that bypasses the cache
+(Ctrl+Shift+R: `Pragma` and `Cache-Control` `no-cache`) is not modelled.
+
 ### Redirects
 
 A redirect is followed as Chrome 155 was measured following one
@@ -728,6 +763,7 @@ their `Content-Encoding`.
 |---|---|
 | `Status` | HTTP status code |
 | `URL` | Final URL after redirects, as Chrome writes it |
+| `Method` | The method of the request this answers: the request's own, or `GET` where a redirect made a `POST` one |
 | `Header` | Lower-cased names mapped to every field value. With `Browser`, received representation headers are preserved, as in Fetch; `Body` is decoded and `Encoding` says what was removed. Without `Browser`, `content-encoding` and `content-length` are removed after decoding so the headers describe `Body` |
 | `Body` | Decoded `[]byte` body |
 | `Encoding` | The codings `Body` was decoded from, as a `Content-Encoding` field lists them (`gzip`, `gzip, br`), or empty when it is the bytes as they came |

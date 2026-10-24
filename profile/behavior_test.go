@@ -689,8 +689,8 @@ func TestEveryShippedChromeProfileGivesFieldsAsChrome(t *testing.T) {
 			`"accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]`,
 		"headers.form_order": `["content-length","pragma","cache-control","authorization","@hints",` +
 			`"upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site",` +
-			`"sec-fetch-mode","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match",` +
-			`"if-modified-since","priority"]`,
+			`"sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie",` +
+			`"if-none-match","if-modified-since","priority"]`,
 		"headers.redirected_order": `["content-length","pragma","cache-control","authorization",` +
 			`"upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site",` +
 			`"sec-fetch-mode","sec-fetch-user","sec-fetch-dest","@hints","referer","accept-encoding","accept-language",` +
@@ -704,6 +704,84 @@ func TestEveryShippedChromeProfileGivesFieldsAsChrome(t *testing.T) {
 			`"empty=u=1, i"]`,
 		"h2.urgency_weights":            `[255,219,182,146,109,73,36,0]`,
 		"headers.renderer_origin_dests": `["font"]`,
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+	}
+}
+
+// TestReloadPolicyIsTypedAndCoherent: how Chrome reloads a page (Ctrl+R) is
+// said whole, a form posted again in an order where the ALPS hints have their
+// anchor.
+func TestReloadPolicyIsTypedAndCoherent(t *testing.T) {
+	const context = `"headers.browser_context":true,"headers.alps_after":"accept",` +
+		`"headers.renderer_initial_buckets":8,"headers.renderer_load_denominator":2,` +
+		`"headers.navigation_order":["accept"],"headers.form_order":["accept"],` +
+		`"headers.redirected_order":["accept"],"headers.restarted_order":["accept"],`
+	const user = `"headers.navigation_fetch_user":"?1",`
+	for _, tc := range []struct{ body, want string }{
+		{`{` + user + `"headers.reload_cache_control":"max-age=0"}`, "are said together"},
+		{`{` + user + `"headers.form_reload_order":["accept"]}`, "are said together"},
+		{`{"headers.reload_cache_control":"max-age=0","headers.form_reload_order":["accept"]}`, "are said together"},
+		{`{` + user + `"headers.reload_cache_control":0,"headers.form_reload_order":["accept"]}`, "cannot unmarshal"},
+		{`{` + user + `"headers.reload_cache_control":"max-age=0\r","headers.form_reload_order":["accept"]}`,
+			"control byte"},
+		{`{` + user + `"headers.reload_cache_control":"max-age=0","headers.form_reload_order":"accept"}`,
+			"cannot unmarshal"},
+		{`{` + context + user + `"headers.reload_cache_control":"max-age=0","headers.form_reload_order":["origin"]}`,
+			"headers.form_reload_order is missing ALPS anchor accept"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+	for _, body := range []string{
+		`{}`,
+		`{` + user + `"headers.reload_cache_control":"max-age=0","headers.form_reload_order":["origin"]}`,
+		`{` + context + user + `"headers.reload_cache_control":"max-age=0","headers.form_reload_order":["accept"]}`,
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err != nil {
+			t.Errorf("%s: %v", body, err)
+		}
+	}
+}
+
+// TestEveryShippedChromeProfileReloadsAsChrome: a page reloaded asks for
+// itself afresh, and a form posted again has its Content-Type after Origin, as
+// Chrome 155.0.8059.85 sends them (testdata/chrome155-reload.json).
+func TestEveryShippedChromeProfileReloadsAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	want := map[string]string{
+		"headers.navigation_fetch_user": `"?1"`,
+		"headers.reload_cache_control":  `"max-age=0"`,
+		"headers.form_reload_order": `["content-length","pragma","cache-control","authorization","@hints",` +
+			`"upgrade-insecure-requests","user-agent","origin","content-type","accept","sec-fetch-site",` +
+			`"sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie",` +
+			`"if-none-match","if-modified-since","priority"]`,
 	}
 	for _, name := range names {
 		raw, err := os.ReadFile(name)

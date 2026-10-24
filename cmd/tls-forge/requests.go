@@ -381,6 +381,8 @@ type runner struct {
 	// back as a page, and repeat how many times the whole list is gone through.
 	retry  int
 	repeat int
+	// asBrowser asks again as Chrome does when the page is reloaded.
+	asBrowser bool
 	// out is what becomes of what each request brings back.
 	out output
 	// keep is the directory every request is kept in, with what it brought back,
@@ -564,7 +566,7 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 	request := b.request
 	request.URL = j.URL
 	res, attempts, tries, found, err := retrier{retries: b.retry, note: b.note, keep: b.detailed, check: b.check,
-		log: log}.do(ctx, conns, request, lane, j.run, proxy)
+		log: log, asBrowser: b.asBrowser}.do(ctx, conns, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
 	r.finish(started)
 	if proxy != "" {

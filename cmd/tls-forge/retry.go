@@ -25,6 +25,8 @@ import (
 type runFlags struct {
 	retry  *int
 	repeat *int
+	// asBrowser asks again as Chrome does when the page is reloaded.
+	asBrowser *bool
 	// reuse keeps a URL's connection for its repeats and its tries.
 	reuse *bool
 	trace *string
@@ -38,6 +40,10 @@ func addRunFlags(fs *pflag.FlagSet) runFlags {
 		retry: fs.Int("retry", 0,
 			"times to ask again when the answer is not a 2xx, or does not come"),
 		repeat: fs.Int("repeat", 1, "times to make each request"),
+		asBrowser: fs.Bool("retry-as-browser", false,
+			"ask again as Chrome does when the page is reloaded (Ctrl+R): to the URL the answer is at, on the "+
+				"connection it came on, asking for it afresh, with the cookies and client hints it set; "+
+				"fetch and xhr are sent again as their page's script sends them; needs --retry"),
 		reuse: fs.Bool("reuse-connection", false,
 			"repeat a URL, and try it again, on the connection its first request opened, rather than on a new one"),
 		trace: fs.String("trace", "",
@@ -55,6 +61,9 @@ func (f runFlags) check() error {
 	}
 	if *f.repeat < 1 {
 		return fmt.Errorf("%w: --repeat must be at least 1", errUsage)
+	}
+	if *f.asBrowser && *f.retry == 0 {
+		return fmt.Errorf("%w: --retry-as-browser says how a request is asked for again: give --retry", errUsage)
 	}
 	return nil
 }
@@ -74,6 +83,10 @@ type retrier struct {
 	// log is the request's in the run's log, which every try is written to
 	// under its number, or nil.
 	log *slog.Logger
+	// asBrowser asks again as Chrome does when the page is reloaded: the page
+	// the answer is at, reloaded (tlsforge.Request.Reloaded), on the
+	// connection it came on.
+	asBrowser bool
 }
 
 // do makes the request, and makes it again while the answer is not the page:
@@ -157,15 +170,26 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 		if found.misses() {
 			why = found.said()
 		}
-		lane.instant("retry", "retry", traceArgs{
-			"attempt": attempt, "reason": why, "wait_ms": wait.Milliseconds(),
-		})
+		args := traceArgs{"attempt": attempt, "reason": why, "wait_ms": wait.Milliseconds()}
+		said := []any{"reason", why, "wait", wait, "next", attempt + 1}
+		again := "trying again"
+		if p.asBrowser {
+			// As a person asks again in Chrome: the page reloaded, or a
+			// script's request sent again, on the connection it came on.
+			req = req.Reloaded(res)
+			conns.keep = true
+			if req.Reload {
+				args["as"], again = "reload", "reloading"
+				said = append(said, "as", "reload")
+			}
+		}
+		lane.instant("retry", "retry", args)
 		if tried != nil {
-			tried.Info("retry", "reason", why, "wait", wait, "next", attempt+1)
+			tried.Info("retry", said...)
 		}
 		if p.note != nil {
-			p.note(fmt.Sprintf("  try %d of %d: %s, trying again in %s",
-				attempt, p.retries+1, why, preciseDuration(wait)))
+			p.note(fmt.Sprintf("  try %d of %d: %s, %s in %s",
+				attempt, p.retries+1, why, again, preciseDuration(wait)))
 		}
 		if !pause(ctx, wait) {
 			return res, attempts, tries, found, err
@@ -196,6 +220,9 @@ type connections struct {
 	entry int
 	// last is the client the latest try went through.
 	last *tlsforge.Client
+	// keep holds the connection of a try for the next, as a page reloaded
+	// goes on the connection it came on.
+	keep bool
 }
 
 // do makes a try through the client it is to go out through.
@@ -215,7 +242,9 @@ func (c *connections) next() (*tlsforge.Client, error) {
 	if c.held != nil {
 		client, err = c.held.of(c.entry, c.session)
 	} else {
-		c.release()
+		if !c.keep {
+			c.release()
+		}
 		client, err = c.own.of(c.proxy, c.session)
 	}
 	c.last = client

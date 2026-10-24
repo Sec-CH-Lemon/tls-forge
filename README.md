@@ -404,6 +404,24 @@ arrived, and on whether it had what `--wait-for-element` and `--wait-for` name.
 Nothing is asked for again unless `--retry` says so, for a list as
 for one URL, and a JSON line's `attempts` counts the tries.
 
+```bash
+tls-forge fetch --retry 2 --retry-as-browser https://shop.example/item/7
+```
+
+`--retry-as-browser` makes each try after the first as a person makes it again
+in Chrome, by reloading the page (Ctrl+R), as Chrome 155 was measured doing it
+after a 403: to the URL the answer is at (the page a redirect led to, not the
+redirect), on the connection the page came on, asking for it afresh
+(`Cache-Control: max-age=0`) and saying the person asked (`Sec-Fetch-User:
+?1`), with the cookies the answer set and the client hints it asked for, and
+from the page the request came from (`Referer`, `Origin`, `Sec-Fetch-Site`) as
+before. A form posted is posted again with its body, its `Content-Type` after
+`Origin` as Chrome posts one again; one a redirect made a GET is reloaded as
+that GET. A `fetch` or `xhr` opens no page to reload: it is sent again as its
+page's script sends it, on the connection it went on. It needs `--retry`, the
+run's header says it (`tried again`), and each try made again says
+`reloading`. A reload that bypasses the cache (Ctrl+Shift+R) is not modelled.
+
 `--repeat` makes the same request several times in one session, so a later run
 sends the cookies the runs before it were given. Every run opens a connection
 of its own, so through a proxy that hands every connection an address every
@@ -582,14 +600,19 @@ do): a redirect there fails, said with `mixed content:`, and is not tried
 again, a form's only when it posts the form there again (307, 308).
 The client hints an origin asked for with `Accept-CH` go with every request of
 the run to it, as Chrome sends them ([GO.md](GO.md#client-hints)).
+`--clicked` says a person's click on the page sends the request, a link or a
+form's button, which Chrome says in `Sec-Fetch-User: ?1` (between
+`Sec-Fetch-Mode` and `Sec-Fetch-Dest`); without it the page's script navigated
+or submitted the form, and the request says nothing of a person.
 
 What a page could not send is refused, with exit code 2, before anything is
 sent or written: a navigation with `-H` or `-d`, a form, `fetch` or `xhr`
 without `--initiator-url`, a header a script cannot set (`Cookie`, `Origin`,
 `Referer`, `Sec-*`, `User-Agent`), a `fetch`, `xhr` or form from a page over
-https to plain http on another machine, and a profile of a browser other than
-a Chromium one, or one with no headers of its own. The block the run begins
-with says what its requests are sent as.
+https to plain http on another machine, `--clicked` without `--request-kind
+navigation` or `form` and `--initiator-url`, and a profile of a browser other
+than a Chromium one, or one with no headers of its own. The block the run
+begins with says what its requests are sent as.
 
 ### Checking the page
 
@@ -1246,6 +1269,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-d`, `--data <text>` | Request body, for every URL |
 | `--request-kind <kind>` | Send every request as Chrome sends this kind: `navigation`, `form`, `fetch` or `xhr`; see [Sending a request as a page would](#sending-a-request-as-a-page-would) |
 | `--initiator-url <url>` | The page a `--request-kind` request is sent from; a form, `fetch` and `xhr` need one, and a navigation without one is typed into the address bar |
+| `--clicked` | A person's click on the `--initiator-url` page sends the request, a link or a form's button, as `Sec-Fetch-User` says; without it the page's script navigates or submits the form |
 | **Fingerprint and transport** | |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
 | `-t`, `--timeout <duration>` | How long each try may take, all of it: its connection, redirects, answers to a 401 or a 421, and body; default `30s` |
@@ -1263,6 +1287,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | **Running** | |
 | `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given. In `compare`, `-c` is `--color` |
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
+| `--retry-as-browser` | Ask again as a person does in Chrome, by reloading the page (Ctrl+R): to the URL the answer is at, on the connection it came on, asking for it afresh, with the cookies and client hints it set; `fetch` and `xhr` are sent again as their page's script sends them; needs `--retry`; see [Retrying and repeating](#retrying-and-repeating) |
 | `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
 | `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
 | `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |

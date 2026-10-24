@@ -12,19 +12,23 @@ import (
 // requestKinds are what --request-kind takes.
 var requestKinds = []tlsforge.RequestKind{tlsforge.KindNavigation, tlsforge.KindForm, tlsforge.KindFetch, tlsforge.KindXHR}
 
-// browserContextOf is the browser context --request-kind and --initiator-url
-// give every request of a run, or nil when neither is given.
-func browserContextOf(kind, initiator string, initiatorGiven bool) (*tlsforge.BrowserContext, error) {
+// browserContextOf is the browser context --request-kind, --initiator-url and
+// --clicked give every request of a run, or nil when none is given.
+func browserContextOf(kind, initiator string, initiatorGiven, clicked bool) (*tlsforge.BrowserContext, error) {
 	if kind == "" {
-		if initiatorGiven {
+		switch {
+		case initiatorGiven:
 			return nil, fmt.Errorf("%w: --initiator-url names the page a --request-kind request is sent from: "+
 				"give --request-kind", errUsage)
+		case clicked:
+			return nil, fmt.Errorf("%w: --clicked says a click on the --initiator-url page sends the request: "+
+				"give --request-kind navigation or form", errUsage)
 		}
 		return nil, nil
 	}
 	for _, known := range requestKinds {
 		if tlsforge.RequestKind(kind) == known {
-			return &tlsforge.BrowserContext{Kind: known, Initiator: initiator}, nil
+			return &tlsforge.BrowserContext{Kind: known, Initiator: initiator, Clicked: clicked}, nil
 		}
 	}
 	return nil, badValue("--request-kind", kind, "navigation, form, fetch or xhr")
@@ -32,14 +36,16 @@ func browserContextOf(kind, initiator string, initiatorGiven bool) (*tlsforge.Br
 
 // checkBrowser refuses a run whose requests a browser would not send as the
 // kind says, or this profile cannot send as one, or, without --request-kind,
-// as the navigation typed into the address bar a request without one goes as:
-// the request of every URL of the list is checked as the library would check
-// it, before anything is sent. A GET with no body and no kind has nothing to
-// check that the list has not been checked for.
+// as the navigation typed into the address bar a request without one goes as;
+// and, with --retry-as-browser (reload), one whose page the profile cannot
+// reload as Chrome does: the request of every URL of the list is checked as
+// the library would check it, before anything is sent. A GET with no body and
+// no kind, not reloaded, has nothing to check that the list has not been
+// checked for.
 func checkBrowser(worn *profile.Profile, jobs []job, method string, header headerFlag, data []byte,
-	browser *tlsforge.BrowserContext,
+	browser *tlsforge.BrowserContext, reload bool,
 ) error {
-	if browser == nil && strings.EqualFold(method, "GET") && data == nil {
+	if browser == nil && strings.EqualFold(method, "GET") && data == nil && !reload {
 		return nil
 	}
 	checker, err := newClient("", tlsforge.WithProfileValue(worn))
@@ -48,8 +54,14 @@ func checkBrowser(worn *profile.Profile, jobs []job, method string, header heade
 	}
 	defer func() { _ = checker.Close() }()
 	for _, j := range jobs {
-		err := checker.Validate(&tlsforge.Request{Method: method, URL: j.URL, Header: tlsforge.Header(header),
-			Body: data, Browser: browser})
+		req := tlsforge.Request{Method: method, URL: j.URL, Header: tlsforge.Header(header), Body: data, Browser: browser}
+		err := checker.Validate(&req)
+		if again := req.Reloaded(nil); err == nil && reload {
+			if err := checker.Validate(&again); err != nil {
+				return fmt.Errorf("%w: --retry-as-browser: %s: %s", errUsage, safeURL(j.URL),
+					strings.TrimPrefix(err.Error(), "tlsforge: "))
+			}
+		}
 		switch {
 		case err == nil:
 		case errors.Is(err, tlsforge.ErrNeedsContext):
@@ -96,15 +108,31 @@ func describeContext(browser *tlsforge.BrowserContext) string {
 		return "a navigation typed into the address bar"
 	}
 	page := safeURL(browser.Initiator)
+	clicked := ""
+	if browser.Clicked {
+		clicked = ", clicked"
+	}
 	switch browser.Kind {
 	case tlsforge.KindNavigation:
-		return "a navigation from " + page
+		return "a navigation from " + page + clicked
 	case tlsforge.KindForm:
-		return "a form from " + page
+		return "a form from " + page + clicked
 	case tlsforge.KindFetch:
 		return "fetch() from " + page
 	}
 	return "an XHR from " + page
+}
+
+// againAs says how a request is asked for again under --retry-as-browser, for
+// the run's header: nothing without it.
+func againAs(asBrowser bool, browser *tlsforge.BrowserContext) string {
+	switch {
+	case !asBrowser:
+		return ""
+	case browser != nil && (browser.Kind == tlsforge.KindFetch || browser.Kind == tlsforge.KindXHR):
+		return "as the page's script sends it again, on the connection it went on"
+	}
+	return "as Chrome reloads the page (Ctrl+R): its URL, on the connection it came on"
 }
 
 // requestBody preserves -d "" as an explicit empty upload and an omitted -d as

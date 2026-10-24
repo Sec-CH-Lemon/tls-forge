@@ -134,16 +134,20 @@ func TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid(t *testing
 						continue
 					}
 					// The reload or revalidation Chrome made of it, which the
-					// request is given.
+					// request is given; a reload that does not bypass the
+					// cache is a reload (Request.Reload), whose Cache-Control
+					// is its own.
 					header := given.Clone()
+					reload := step.Reload != nil && !*step.Reload
 					if at := len(server.requests()); at < len(chrome) {
 						for _, f := range chrome[at].Headers {
-							if slices.Contains(organic, strings.ToLower(f[0])) {
+							if slices.Contains(organic, strings.ToLower(f[0])) &&
+								!(reload && strings.EqualFold(f[0], "cache-control")) {
 								header = append(header, Header{{Name: f[0], Value: f[1]}}...)
 							}
 						}
 					}
-					if _, err := client.Do(&Request{URL: last, Header: header}); err != nil {
+					if _, err := client.Do(&Request{URL: last, Header: header, Reload: reload}); err != nil {
 						t.Fatalf("%s: %v", last, err)
 					}
 				}

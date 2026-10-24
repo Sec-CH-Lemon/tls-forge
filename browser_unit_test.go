@@ -132,6 +132,14 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 			NewHeader("Content-Type", "application/json"), "{}", "with only the headers CORS lets through"},
 		{"a URL with credentials", BrowserContext{Kind: KindFetch, Initiator: page}, "",
 			"https://u:p@www.example.com/x", nil, "", "fetch() is given no URL with credentials in it"},
+		{"fetch() clicked", BrowserContext{Kind: KindFetch, Initiator: page, Clicked: true}, "", page, nil, "",
+			"fetch() is no navigation: a click says nothing of it"},
+		{"an XHR clicked", BrowserContext{Kind: KindXHR, Initiator: page, Clicked: true}, "", page, nil, "",
+			"an XHR is no navigation: a click says nothing of it"},
+		{"a typed navigation clicked", BrowserContext{Kind: KindNavigation, Clicked: true}, "", page, nil, "",
+			"a navigation typed into the address bar is the person's already: only one from a page is clicked"},
+		{"a browser's request clicked", BrowserContext{Kind: KindNavigation, Initiator: page, Sent: true, Clicked: true},
+			"", page, nil, "", "a request a browser sent says itself whether a click sent it"},
 	} {
 		browser := tc.browser
 		var payload []byte

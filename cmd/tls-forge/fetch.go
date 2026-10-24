@@ -28,12 +28,12 @@ import (
 // shown under "other flags", and TestFetchHelpShowsEveryFlagUnderAGroup says so.
 var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
-	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url"}},
+	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url", "clicked"}},
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
 	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
-	{"running", []string{"concurrency", "retry", "repeat", "reuse-connection", "wait-for", "wait-for-element",
-		"html-decoding"}},
+	{"running", []string{"concurrency", "retry", "retry-as-browser", "repeat", "reuse-connection", "wait-for",
+		"wait-for-element", "html-decoding"}},
 	{"output", []string{"output", "clear-output-dir", "pcap", "include", "json", "print-body", "verbose", "progress",
 		"color"}},
 	{"report, trace and log", []string{"report", "report-format", "trace", "log", "log-level", "keylog"}},
@@ -539,6 +539,9 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	initiatorURL := fs.String("initiator-url", "",
 		"the page a --request-kind request is sent from: a form, fetch and xhr need one, and a navigation "+
 			"without one is typed into the address bar")
+	clicked := fs.Bool("clicked", false,
+		"a person's click on the --initiator-url page sends the request, a link or a form's button, as "+
+			"Sec-Fetch-User says; without it the page's script navigates or submits the form")
 	var headers headerFlag
 	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Authorization: Bearer …\"")
 
@@ -606,7 +609,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	if err != nil {
 		return nil, err
 	}
-	browser, err := browserContextOf(*requestKind, *initiatorURL, fs.Changed("initiator-url"))
+	browser, err := browserContextOf(*requestKind, *initiatorURL, fs.Changed("initiator-url"), *clicked)
 	if err != nil {
 		return nil, err
 	}
@@ -690,7 +693,8 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	}
 	// What a browser would not send, or this profile cannot send as one, for
 	// any URL of the list, before anything is warmed, cleared or sent.
-	if err := checkBrowser(common.run.profile, jobs, *method, headers, requestBody(*data, fs.Changed("data")), browser); err != nil {
+	if err := checkBrowser(common.run.profile, jobs, *method, headers, requestBody(*data, fs.Changed("data")), browser,
+		*again.asBrowser); err != nil {
 		return nil, err
 	}
 	// Every pass over the list is counted before the first one is made, and a
@@ -733,6 +737,9 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 		"run_id": common.run.id,
 		"method": *method, "timeout": common.timeout.String(), "concurrency": *workers,
 		"retry": *again.retry, "repeat": *again.repeat,
+	}
+	if *again.asBrowser {
+		about["retry_as_browser"] = true
 	}
 	if len(jobs) == 1 {
 		about["url"] = safeURL(jobs[0].URL)
@@ -839,6 +846,7 @@ func (r *fetchRun) open(ctx context.Context) error {
 	// on every way out, so a run that stops before then still ends it.
 	r.identity = r.common.wearOpen(r.errOut)
 	r.identity.field("sent as", describeContext(r.browser))
+	r.identity.field("tried again", againAs(*r.again.asBrowser, r.browser))
 	r.identity.field("keylog", r.keys.said())
 	r.lane.wearing(r.worn)
 
@@ -978,7 +986,7 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 		clients: r.clients, workers: r.workers,
 		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: requestBody(r.data, r.dataProvided),
 			Browser: r.browser},
-		retry: *r.again.retry, repeat: *r.again.repeat,
+		retry: *r.again.retry, repeat: *r.again.repeat, asBrowser: *r.again.asBrowser,
 		keep: r.output, wire: r.wire,
 		about: requestAbout{
 			method: r.method, profile: r.worn.Name, run: r.common.run.id,

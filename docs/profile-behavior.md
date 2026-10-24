@@ -203,7 +203,8 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `headers.default_client_hints` | `["sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-platform"]` |
 | `headers.default_referrer_policy` | `"strict-origin-when-cross-origin"` |
 | `headers.form_cache_control` | `"max-age=0"` |
-| `headers.form_order` | `["content-length","pragma","cache-control","authorization","@hints","upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
+| `headers.form_order` | `["content-length","pragma","cache-control","authorization","@hints","upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
+| `headers.form_reload_order` | `["content-length","pragma","cache-control","authorization","@hints","upgrade-insecure-requests","user-agent","origin","content-type","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
 | `headers.given_order` | `"bytes"` |
 | `headers.given_redirect_drops` | `["cookie"]` |
 | `headers.h1_connection_default` | `"keep-alive"` |
@@ -217,6 +218,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `headers.range_cache_control` | `"max-age=0"` |
 | `headers.redirected_hints_after` | `"sec-fetch-dest"` |
 | `headers.redirected_order` | `["content-length","pragma","cache-control","authorization","upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","@hints","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
+| `headers.reload_cache_control` | `"max-age=0"` |
 | `headers.renderer_default_hints` | `["sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-platform"]` |
 | `headers.renderer_extra_fields` | `["user-agent"]` |
 | `headers.renderer_hint_insertion_order` | `["device-memory","sec-ch-device-memory","rtt","downlink","ect","sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-arch","sec-ch-ua-platform","sec-ch-ua-platform-version","sec-ch-ua-model","sec-ch-ua-full-version","sec-ch-ua-full-version-list","sec-ch-ua-bitness","sec-ch-ua-wow64","sec-ch-ua-form-factors","save-data","sec-ch-prefers-reduced-transparency","sec-ch-prefers-reduced-motion","sec-ch-prefers-color-scheme","dpr","sec-ch-dpr","viewport-width","sec-ch-viewport-width","viewport-height","sec-ch-viewport-height","width","sec-ch-width"]` |
@@ -1004,3 +1006,28 @@ and the replay above (typed.go); `TestARequestABrowserSent*`,
 `TestABrowsersRequestsReachTheSiteAsChromeSentThemThere` and
 `TestTheContextARequestSaysItWasSentIn`; `TestGivenFieldsPolicyIsTypedAndCoherent`
 and `TestEveryShippedChromeProfileGivesFieldsAsChrome` hold the data.
+
+## A page reloaded, and a click (unreleased engine 1)
+
+Without them, a request made again was the first one again: the same fields on
+a new connection, as `fetch --retry` makes each try. Chrome, when a person
+reloads the page (Ctrl+R) after a 403, asks the page the answer is at again on
+the connection it came on, afresh and as the person's, with what the answer
+set; and a navigation or a form a person's click sends says so, where the
+page's script's does not. Absent keys keep the old way: a reload is refused for
+such a profile (`Request.Reload`), and a click goes without Sec-Fetch-User in a
+form's order without its slot.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `headers.reload_cache_control` | The Cache-Control of a page reloaded, in its `cache-control` slot, first in a navigation's order: `"max-age=0"`. Said with `headers.form_reload_order` and `headers.navigation_fetch_user`, which a reload sends as Sec-Fetch-User however the page was first asked for. |
+| `headers.form_reload_order` | The order of a form posted again from the page it opened: as `headers.form_order`, its Content-Type after Origin, no `@given` (a form is given no fields). Its ALPS anchor (`headers.alps_after`) where a browser context is. |
+| `headers.form_order` | Has a `sec-fetch-user` slot, between `sec-fetch-mode` and `sec-fetch-dest`, for a form a person's click submits (`BrowserContext.Clicked`). |
+
+Measured on Google Chrome 155.0.8059.85, headed, macOS, over its DevTools
+port, 5 s after it started (Page.reload, which Ctrl+R's chrome::Reload calls
+the same way, the repost dialog aside; Input.dispatchMouseEvent for a click):
+12 scenarios over HTTP/2 and HTTP/1.1, two runs each, alike
+(`testdata/chrome155-reload.json`). The other 14 shipped profiles carry the
+same values, not measured on their own platforms or builds.
+

@@ -55,6 +55,14 @@ type BrowserContext struct {
 	// include or omit. An XHR takes same-origin, its default, or include,
 	// which is withCredentials.
 	Credentials string
+	// Clicked says a person's click on the page sent the request: the link
+	// they clicked, or the button of the form they submitted, which Chrome
+	// says in Sec-Fetch-User. Without it the page's script navigated or
+	// submitted the form, and the request says nothing of a person. Only a
+	// navigation from a page and a form are clicked: one typed into the
+	// address bar is the person's already, and a script's request is no
+	// navigation for Chrome to say it of.
+	Clicked bool
 	// Sent says the request's Header is what a browser sent for it, as an
 	// intercepting proxy is given a browser's request (sent.go): it goes with
 	// those fields and no others, in Chrome's order for its kind, the
@@ -105,6 +113,10 @@ type browserRequest struct {
 	cors bool
 	// posted is a form sent by POST: its redirects keep its Cache-Control.
 	posted bool
+	// clicked is a navigation or a form a person's click sent, and reload the
+	// page such a request opened, reloaded as Ctrl+R reloads it: both say so
+	// in Sec-Fetch-User, and a reload asks for the page afresh.
+	clicked, reload bool
 	// implicit is a request without a browser context, which goes as a
 	// navigation typed into the address bar (typed.go): what it is answered
 	// with is a request's without one. given are the fields it and its client
@@ -183,6 +195,22 @@ func (r *browserRequest) scripted() bool {
 	return r.kind == KindFetch || r.kind == KindXHR
 }
 
+// reloads makes r the page it opened, reloaded as Ctrl+R reloads it; or says
+// why it cannot be: a script's request opens no page, the browser reloads
+// what it sent itself, and the profile says how Chrome reloads a page.
+func (r *browserRequest) reloads() error {
+	switch {
+	case r.sent:
+		return errContext("a request a browser sent is reloaded by the browser")
+	case r.scripted():
+		return errContext("%s opens no page to reload: Ctrl+R reloads the page that sent it", r.kindName())
+	case !r.runtimeBehavior().Has("headers.reload_cache_control"):
+		return errContext("the profile says nothing of how Chrome reloads a page (headers.reload_cache_control)")
+	}
+	r.reload = true
+	return nil
+}
+
 // kindName is what a script's request is called: fetch() or an XHR.
 func (r *browserRequest) kindName() string {
 	if r.kind == KindXHR {
@@ -222,10 +250,23 @@ func (b *BrowserContext) resolve(method string, target *url.URL, header Header, 
 		r.from = originOf(r.initiator)
 	}
 	if b.Sent {
+		if b.Clicked {
+			return nil, errContext("a request a browser sent says itself whether a click sent it")
+		}
 		return r, b.resolveSent(r, header, body)
 	}
 	if err := b.resolveKind(r, target, header, body); err != nil {
 		return nil, err
+	}
+	if b.Clicked {
+		switch {
+		case r.scripted():
+			return nil, errContext("%s is no navigation: a click says nothing of it", r.kindName())
+		case r.initiator == nil:
+			return nil, errContext("a navigation typed into the address bar is the person's already: " +
+				"only one from a page is clicked")
+		}
+		r.clicked = true
 	}
 	if err := r.mixed(target, r.method, true); err != nil {
 		return nil, err
@@ -540,6 +581,10 @@ func (r *browserRequest) slots(h hop) []string {
 		order = slotList(r.runtimeBehavior().Strings("headers.redirected_order"))
 	case h.restarted:
 		order = slotList(r.runtimeBehavior().Strings("headers.restarted_order"))
+	case r.posted && r.reload:
+		// Posted again from the page it opened, as the browser posts it:
+		// its Content-Type after Origin.
+		order = slotList(r.runtimeBehavior().Strings("headers.form_reload_order"))
 	case r.posted:
 		order = slotList(r.runtimeBehavior().Strings("headers.form_order"))
 	}
@@ -749,8 +794,13 @@ func (r *browserRequest) workedOut(values map[string]string, h hop, base Header)
 			values["content-type"] = r.contentType
 		}
 	}
+	if r.reload {
+		values["cache-control"] = r.runtimeBehavior().Text("headers.reload_cache_control")
+	}
 	values["sec-fetch-site"] = h.site
-	if r.initiator == nil {
+	if r.initiator == nil || r.clicked || r.reload {
+		// Typed, clicked or reloaded: the person's own, as Chrome says of a
+		// navigation a page's script did not start.
 		values["sec-fetch-user"] = r.runtimeBehavior().Text("headers.navigation_fetch_user")
 	}
 	if h.referrer != "" {

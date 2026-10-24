@@ -11,6 +11,36 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- `fetch --retry-as-browser` (with `--retry`) makes each try after the first
+  as a person makes it again in Chrome, by reloading the page (Ctrl+R): to the
+  URL the answer is at, where a redirect led (the redirect is not asked again),
+  on the connection the page came on, which is kept for the request's tries
+  (`--retry` alone opens one for each), asking for it afresh with
+  `Cache-Control: max-age=0` and saying the person asked
+  (`Sec-Fetch-User: ?1`), with the cookies the answer set and the client hints
+  it asked for, from the page the request came from (`Referer`, `Origin`,
+  `Sec-Fetch-Site`) as before. A form posted to the end is posted again with
+  its body, its Content-Type after Origin; one a redirect made a GET is
+  reloaded as that GET. A `fetch` or `xhr` is sent again as its page's script
+  sends it, on the connection it went on. The run's header says it (`tried
+  again`), a try made again says `reloading`, and the log's `retry` record
+  `"as": "reload"`. Library: `Request.Reload`, `Request.Reloaded(res)` (the
+  request that reloads the page `res` is at), and `Response.Method` (the
+  method the answer is to: GET after a redirect made a POST one). Profile keys
+  `headers.reload_cache_control` and `headers.form_reload_order`, said with
+  `headers.navigation_fetch_user` (the 15 shipped Chrome profiles). Measured
+  on Chrome 155.0.8059.85 on macOS over its DevTools port (Page.reload, which
+  Ctrl+R's chrome::Reload calls the same way, the repost dialog aside): 12
+  scenarios over HTTP/2 and HTTP/1.1, two runs each, alike
+  (`testdata/chrome155-reload.json`), against which
+  `TestAPageIsReloadedAsChromeReloadedIt` holds tls-forge; a reload that
+  bypasses the cache (Ctrl+Shift+R) is measured and not modelled.
+- `fetch --clicked`, `BrowserContext.Clicked`: a person's click on the page
+  sends the navigation or the form, which Chrome says in `Sec-Fetch-User: ?1`
+  on every hop, a form's between `Sec-Fetch-Mode` and `Sec-Fetch-Dest`
+  (`headers.form_order` has the slot now). Without it the page's script
+  navigated or submitted the form, as before. Refused for `fetch()`, an XHR,
+  a navigation typed into the address bar and a request a browser sent.
 - A request without a browser context goes as a navigation typed into the
   address bar, where the profile says so (`headers.without_context`:
   `typed-navigation`; the 15 shipped Chrome profiles; absent or `as-given`

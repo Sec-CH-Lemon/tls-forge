@@ -149,6 +149,16 @@ type Request struct {
 	// it goes out as Chrome sends that request: see BrowserContext. Nil sends
 	// it as a navigation typed into the address bar, as it always was.
 	Browser *BrowserContext
+	// Reload sends the request as Chrome sends it again when the page it
+	// opened is reloaded (Ctrl+R): the navigation, typed or from a page, or
+	// the form, to the URL of that page, its Response's URL. It asks for the
+	// page afresh (Cache-Control), says the person asked (Sec-Fetch-User),
+	// carries what the page's answer set, its cookies and the client hints it
+	// asked for, and goes on a connection the client still holds to the site,
+	// as Chrome's goes on the one the page came on; a form's POST goes with
+	// its body again, in the order Chrome posts it again in. A script's
+	// request opens no page and is not reloaded: Ctrl+R reloads its page.
+	Reload bool
 }
 
 // Cookie is one cookie, as a jar holds it and as a session is written down.
@@ -182,6 +192,9 @@ type Response struct {
 	Status int
 	// URL is the final URL, after redirects, as Chrome writes it.
 	URL string
+	// Method is the method of the request this answers: the request's own,
+	// or GET where a redirect made a POST one, as Chrome follows it.
+	Method string
 	// Header in a browser context preserves received representation metadata,
 	// as Fetch does even after decoding Body. Encoding says what was decoded.
 	// Without a browser context Header describes the decoded Body, so a proxy
@@ -568,6 +581,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	out := &Response{
 		Status:   res.StatusCode,
 		URL:      req.URL,
+		Method:   answered,
 		Body:     read,
 		Encoding: encoding,
 		Header:   map[string][]string{},
@@ -762,18 +776,22 @@ func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("tlsforge: %w", err)
 	}
-	if req.Browser == nil {
-		if !c.typedWithoutContext() {
-			return inner, nil, nil
+	var browser *browserRequest
+	switch {
+	case req.Browser != nil:
+		browser, err = c.resolveBrowser(req, method, inner.URL)
+	case !c.typedWithoutContext():
+		if req.Reload {
+			return nil, nil, fmt.Errorf("tlsforge: profile %q sends a request without a browser context as "+
+				"it is given, which opens no page to reload", c.profile.Name)
 		}
-		browser, err := c.typedNavigation(req, method, inner.URL)
-		if err != nil {
-			return nil, nil, err
-		}
-		inner.Method = browser.method
-		return inner, browser, nil
+		return inner, nil, nil
+	default:
+		browser, err = c.typedNavigation(req, method, inner.URL)
 	}
-	browser, err := c.resolveBrowser(req, method, inner.URL)
+	if err == nil && req.Reload {
+		err = browser.reloads()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
