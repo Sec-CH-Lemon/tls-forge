@@ -34,6 +34,7 @@ type config struct {
 	extra              []tls_client.HttpClientOption
 	logger             *slog.Logger
 	keyLog             io.Writer
+	dnsServer          string
 }
 
 func defaults() config {
@@ -206,6 +207,17 @@ func WithLogger(log *slog.Logger) Option {
 // write none; an HTTPS proxy's still do.
 func WithKeyLogWriter(w io.Writer) Option {
 	return func(c *config) { c.keyLog = w }
+}
+
+// WithDNSServer has the client ask the DNS server at address (host:port, or a
+// host and port 53) for the names it connects to, the addresses and, as the
+// profile says (dns.https_records), the HTTPS records whose ECH configs a
+// connection offers, instead of the machine's servers. It is for a direct
+// connection, which the client dials itself: through a proxy the names are
+// the proxy's to look up, and transport options a caller gives with
+// WithTransportOption replace the dialer it would ask with.
+func WithDNSServer(address string) Option {
+	return func(c *config) { c.dnsServer = address }
 }
 
 // WithTransportOption passes an option through to the underlying tls-client,

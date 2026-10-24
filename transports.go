@@ -79,7 +79,7 @@ type hopper struct{ own fhttp.RoundTripper }
 
 func (h hopper) RoundTrip(req *fhttp.Request) (*fhttp.Response, error) {
 	if ch, ok := req.Context().Value(chainKey{}).(*chain); ok {
-		return ch.client.session.cache.roundTrip(ch, req, ch.on.trip)
+		return ch.client.session.cache.roundTrip(ch, req, dnsUpgrade{ch.client.upgrades, ch.on.trip})
 	}
 	return h.own.RoundTrip(req)
 }

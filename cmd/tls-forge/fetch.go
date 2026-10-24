@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"math"
 	"math/rand"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +30,7 @@ import (
 var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
 	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url", "clicked", "form"}},
-	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
+	{"fingerprint and transport", []string{"profile", "timeout", "insecure", "dns-server"}},
 	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "retry-as-browser", "repeat", "reuse-connection", "wait-for",
@@ -74,6 +75,9 @@ type clientFlags struct {
 	proxyEnv *string
 	timeout  *time.Duration
 	insecure *bool
+	// dnsServer is the DNS server names are looked up with instead of the
+	// machine's: their addresses, and the HTTPS records that give ECH.
+	dnsServer *string
 
 	// chose reports whether a flag was given rather than defaulted, which is
 	// how "no profile named" is told from "--profile chrome".
@@ -155,6 +159,9 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 			"off the command line; no variable is read unless named")
 	flags.timeout = fs.DurationP("timeout", "t", tlsforge.Timeout, "request timeout")
 	flags.insecure = fs.BoolP("insecure", "k", false, "skip certificate verification")
+	flags.dnsServer = fs.String("dns-server", "",
+		"look names up with the DNS server at this IP address (and port, else 53), addresses and HTTPS records alike, "+
+			"instead of the machine's; for direct connections, as a proxy looks up its own")
 	return flags
 }
 
@@ -210,6 +217,9 @@ func (f clientFlags) settle() (*profile.Profile, error) {
 	}
 	if *f.timeout <= 0 {
 		return nil, fmt.Errorf("%w: --timeout is %v, and has to be more than nothing", errUsage, *f.timeout)
+	}
+	if !dnsServerAddress(*f.dnsServer) {
+		return nil, fmt.Errorf("%w: --dns-server %q is no IP address, with or without a port", errUsage, *f.dnsServer)
 	}
 	worn, err := f.resolve()
 	if err != nil {
@@ -438,7 +448,20 @@ func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 	if f.keyLog != nil {
 		opts = append(opts, tlsforge.WithKeyLogWriter(f.keyLog))
 	}
+	// None named is the machine's.
+	opts = append(opts, tlsforge.WithDNSServer(*f.dnsServer))
 	return newClient(proxy, append(opts, extra...)...)
+}
+
+// dnsServerAddress says whether --dns-server names a server as
+// tlsforge.WithDNSServer takes one: nothing, or an IP address with a port or
+// without one (then 53).
+func dnsServerAddress(s string) bool {
+	if _, err := netip.ParseAddr(strings.TrimSuffix(strings.TrimPrefix(s, "["), "]")); s == "" || err == nil {
+		return true
+	}
+	server, err := netip.ParseAddrPort(s)
+	return err == nil && server.Port() != 0
 }
 
 // newClient makes the client for a proxy: tlsforge.New, named so that a test
@@ -829,7 +852,8 @@ func (r *fetchRun) open(ctx context.Context) error {
 	r.log.say(slog.LevelInfo, "run", runAttrs(r.about, "version", version, "profile", r.worn.Name,
 		"output", r.output, "wait_for", r.waitFor, "wait_for_element", r.waitForElement, "html_decoding", r.htmlDecoding,
 		"request_kind", r.requestKind, "initiator_url", safeURL(r.initiatorURL),
-		"reuse_connection", *r.again.reuse, "log_level", strings.ToLower(*r.logging.level), "keylog", *r.logging.keylog)...)
+		"reuse_connection", *r.again.reuse, "log_level", strings.ToLower(*r.logging.level), "keylog", *r.logging.keylog,
+		"dns_server", *r.common.dnsServer)...)
 	// Before any client is made, so that every connection of the run has its
 	// secrets in it, the address lookup's too.
 	if r.keys, err = openKeyLog(*r.logging.keylog); err != nil {
@@ -857,6 +881,10 @@ func (r *fetchRun) open(ctx context.Context) error {
 		requestBody(r.data, r.dataProvided), r.jobs))
 	r.identity.field("tried again", againAs(*r.again.asBrowser, kindOf(r.browser, r.own)))
 	r.identity.field("keylog", r.keys.said())
+	if *r.common.dnsServer != "" {
+		r.identity.field("dns", *r.common.dnsServer+" · names are looked up there: addresses, and the HTTPS records "+
+			"that give a connection its ECH")
+	}
 	r.lane.wearing(r.worn)
 
 	r.clients = newPool(r.common, *r.common.proxy)

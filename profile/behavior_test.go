@@ -800,3 +800,70 @@ func TestEveryShippedChromeProfileReloadsAsChrome(t *testing.T) {
 		}
 	}
 }
+
+// TestEveryShippedChromeProfileOffersECHAsChrome pins the shipped data: the
+// HTTPS records of a direct connection's name asked for and waited for as
+// Chrome's host resolver does, plain http sent to https by one, and ECH
+// offered with their configs as Chrome 155's BoringSSL offers it, measured
+// (testdata/chrome155-ech-dns.json).
+func TestEveryShippedChromeProfileOffersECHAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	want := map[string]string{
+		"dns.https_records":          "true",
+		"dns.https_wait_percent":     "20",
+		"dns.https_wait_min_ms":      "5",
+		"dns.https_wait_max_ms":      "50",
+		"dns.https_upgrade":          "true",
+		"tls.ech":                    "true",
+		"tls.ech_inner_own":          "[0,43,65037]",
+		"tls.ech_inner_omitted":      "[11,23,35,65281]",
+		"tls.ech_inner_min_version":  "772",
+		"tls.ech_padding_block":      "32",
+		"tls.ech_kems":               "[32]",
+		"tls.ech_kdfs":               "[1]",
+		"tls.ech_aeads":              "[1,2,3]",
+		"tls.ech_chacha_without_aes": "true",
+		"tls.ech_outer_psk":          `"none"`,
+		"tls.ech_retries":            "1",
+		"tls.ech_retry_without":      "true",
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+	}
+}
+
+func TestECHPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
+	// A profile file is refused for an ECH or HTTPS record field the engine
+	// cannot do as said, before anything is sent.
+	for _, tc := range []struct{ body, want string }{
+		{`{"tls.ech":true}`, "tls.ech requires tls.ech_inner_own"},
+		{`{"tls.ech_retries":1}`, "is set while tls.ech is not"},
+		{`{"dns.https_wait_percent":20}`, "is set while dns.https_records is not"},
+		{`{"dns.https_upgrade":true}`, "dns.https_upgrade requires dns.https_records"},
+		{`{"dns.https_records":true,"dns.https_wait_percent":20,"dns.https_wait_min_ms":60,"dns.https_wait_max_ms":50}`, "exceeds"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+}

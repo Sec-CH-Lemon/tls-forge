@@ -97,6 +97,11 @@ type Client struct {
 	// proxy is the proxy every connection goes through, which what is logged
 	// is cleaned of.
 	proxy string
+	// upgrades is how a request to plain http learns that the name's HTTPS
+	// records send it to https (dns.https_upgrade), or nil: through a proxy
+	// and with transport options of the caller's, the names are not looked
+	// up here.
+	upgrades *resolving
 }
 
 // DefaultMaxResponseBody bounds the decompressed body retained in memory.
@@ -290,6 +295,10 @@ func New(opts ...Option) (*Client, error) {
 	// One writer for every connection of the client and of every client
 	// Fresh makes of it, to sites and to a proxy alike.
 	keys := keyLogOf(cfg.keyLog)
+	dnsServer, err := dnsServerOf(cfg.dnsServer)
+	if err != nil {
+		return nil, err
+	}
 	// How long an idle connection is kept: the profile's for each protocol,
 	// else one for both. A browser's HTTP/1.1 socket pool reaps an idle
 	// socket when a socket is next asked of it ("on-request"), not by a timer.
@@ -380,10 +389,13 @@ func New(opts ...Option) (*Client, error) {
 	}
 	// How it dials comes last but for what each transport is given of its own
 	// and the caller's own.
+	// One resolving for every connection of the client and of every client
+	// Fresh makes of it: what it keeps of the HTTPS records, the host cache.
+	res := newResolving(dnsServer, prof.RuntimeBehavior())
 	built := func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithLockedClientProfile(clientProfile, fmt.Sprintf("profile %q engine_major %d (running engine major %d)", prof.Name, *prof.EngineMajor, EngineMajor()))}, options...)
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys, keepAliveOf(prof.RuntimeBehavior()),
-			proxyIdentity{profile: prof, pool: proxyPool})...)
+			res, proxyIdentity{profile: prof, pool: proxyPool})...)
 		return append(append(out, own...), cfg.extra...)
 	}
 
@@ -408,6 +420,9 @@ func New(opts ...Option) (*Client, error) {
 	client := &Client{transports: t, session: newSession(jar, cfg.cookies, prof.RuntimeBehavior()), profile: prof, headers: headers,
 		given: cfg.headers.Clone(), http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody, timeout: cfg.timeout,
 		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
+	if prof.RuntimeBehavior().Flag("dns.https_upgrade") && cfg.proxy == "" && len(cfg.extra) == 0 {
+		client.upgrades = res
+	}
 	if log != nil {
 		client.describe(cfg, shuffleExtensions, clientProfile)
 	}
@@ -455,7 +470,7 @@ func (c *Client) Fresh() (*Client, error) {
 	}
 	return &Client{transports: t, session: c.session, profile: c.profile, headers: c.headers,
 		given: c.given, http1Headers: c.http1Headers, withheld: c.withheld, maxBody: c.maxBody, timeout: c.timeout,
-		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
+		id: id, log: log, logger: c.logger, proxy: c.proxy, upgrades: c.upgrades}, nil
 }
 
 func profileHTTP1Headers(prof *profile.Profile) Header {

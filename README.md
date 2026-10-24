@@ -1290,6 +1290,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
 | `-t`, `--timeout <duration>` | How long each try may take, all of it: its connection, redirects, answers to a 401 or a 421, and body; default `30s` |
 | `-k`, `--insecure` | Skip upstream certificate verification |
+| `--dns-server <ip[:port]>` | Look names up with this DNS server (port 53 when none is given), addresses and the HTTPS records that give a connection its ECH alike, instead of the machine's servers; for direct connections, as a proxy looks up its own. See [Encrypted Client Hello from DNS](#encrypted-client-hello-from-dns) |
 | **Proxy** | |
 | `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
 | `--proxy-env <name>` | Read `--proxy` from this environment variable, such as `TLSFORGE_PROXY`, which keeps its password off the command line; no variable is read unless named. See [Through a proxy](#through-a-proxy) |
@@ -2023,6 +2024,7 @@ Usage: `tls-forge proxy [flags]`
 | `--proxy-env <name>` | Read the upstream proxy from this environment variable, such as `TLSFORGE_PROXY`, instead |
 | `-t`, `--timeout <duration>` | How long each outbound request may take, all of it; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification on outbound connections |
+| `--dns-server <ip[:port]>` | Look the names of direct outbound connections up with this DNS server instead of the machine's |
 | `-a`, `--addr <host:port>` | Listen address; default `127.0.0.1:8080` |
 | `--ca-cert <file>` | CA certificate; generated in the user config directory by default |
 | `--ca-key <file>` | Matching CA private key |
@@ -2151,6 +2153,7 @@ Usage: `tls-forge daemon [flags]`
 | `--proxy-stdin` | Read the upstream proxy from the first line of standard input, the init line, as the Node.js and Python packages do; see [the protocol](docs/protocol.md#the-init-line) |
 | `-t`, `--timeout <duration>` | How long each request may take, all of it; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification |
+| `--dns-server <ip[:port]>` | Look the names of direct connections up with this DNS server instead of the machine's |
 
 One request object is read per line:
 
@@ -2593,6 +2596,39 @@ lost HTTP/1.1 connection's POST, and took a 408 as the answer. The fields are
 `http.connection_error_retries`, `http.connection_error_methods` and
 `h1.request_timeout_resend`; a profile without them keeps the old rules. See
 [the field reference](docs/profile-behavior.md#requests-sent-again-unreleased-engine-1).
+
+### Encrypted Client Hello from DNS
+
+A direct connection to a name asks the name's HTTPS records (RFC 9460) of the
+DNS servers its addresses come from, at the same time, as Chrome does, and
+offers Encrypted Client Hello (RFC 9849) with the configs the record gives:
+the server sees the config's public name in the outer hello and the real one
+only in the inner, which the shipped Chrome profiles make as Chrome makes it
+(measured on Chrome 155 on macOS, 2026-10-24, against servers that opened
+every inner hello they were sent, byte for byte):
+
+- the inner hello writes the server's name, its supported versions (TLS 1.3
+  and GREASE) and its own `encrypted_client_hello` itself, in the outer's
+  order, and names every other extension of the outer but four of TLS 1.2
+  by reference; a session is resumed in the inner alone; the encoding is
+  padded as RFC 9849 says;
+- the config is the first of the record's list with an X25519 key, sealed
+  with the first cipher suite of its own (AES-128-GCM, AES-256-GCM or
+  ChaCha20-Poly1305);
+- a server that refuses ECH and sends configs to retry with gets a new
+  connection that offers those, once; one that sends none, or speaks TLS 1.2,
+  a new connection without ECH (GREASE ECH, as before); refused again, the
+  request fails (`tls: server rejected ECH`);
+- records that come later than the addresses by more than a fifth of the
+  time the lookup took (5 ms at least, 50 ms at most) are not waited for;
+- an `http://` URL whose name has a record goes to `https://` without being
+  sent, as a redirect does, its fields where Chrome puts a redirect's.
+
+`--dns-server` (`WithDNSServer` in Go) points the lookups at another server.
+Through a proxy nothing is looked up here, and GREASE ECH goes as before. The
+profile fields are `dns.https_*` and `tls.ech_*`; a profile without them
+offers no ECH. See
+[the field reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
 
 ### Empty uploads and profile-owned Content-Length
 

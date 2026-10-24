@@ -81,6 +81,8 @@ func TestEveryBadFlagIsAUsageErrorThatTouchesNothing(t *testing.T) {
 		{[]string{"--repeat", "0"}, "--repeat must be at least 1"},
 		{[]string{"--timeout", "0s"}, "--timeout is 0s, and has to be more than nothing"},
 		{[]string{"--timeout", "-1s"}, "--timeout is -1s, and has to be more than nothing"},
+		{[]string{"--dns-server", "dns.example.test"}, `--dns-server "dns.example.test" is no IP address, with or without a port`},
+		{[]string{"--dns-server", "192.0.2.53:0"}, `--dns-server "192.0.2.53:0" is no IP address`},
 		{[]string{"--profile", "netscape_4"}, `unknown profile "netscape_4"`},
 		{[]string{"--proxy", "socks9://p.test:1"}, "--proxy socks9://p.test:1 is not an http, https, socks4, socks4a, socks5 or socks5h URL"},
 		{[]string{"--proxy", "http:///nowhere"}, "--proxy http:///nowhere names no host"},

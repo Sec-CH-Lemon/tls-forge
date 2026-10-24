@@ -1031,3 +1031,65 @@ the same way, the repost dialog aside; Input.dispatchMouseEvent for a click):
 (`testdata/chrome155-reload.json`). The other 14 shipped profiles carry the
 same values, not measured on their own platforms or builds.
 
+
+## Encrypted Client Hello from DNS HTTPS records (unreleased engine 1)
+
+A direct connection to a name asks the name's HTTPS records (RFC 9460) as
+Chrome's host resolver does, and offers ECH (RFC 9849) with the configs the
+record it takes gives, as BoringSSL offers it in Chrome. A server that opens
+the inner hello sees Chrome's; one that does not sees Chrome's outer hello,
+its `encrypted_client_hello` the real one, to the config's public name.
+Before, every connection sent GREASE ECH and no name was asked for its
+records. Absent fields keep that; catalogue, legacy and migration policies
+keep it until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `dns.https_records` | Ask a name's HTTPS records for a direct connection to it, as Chrome does for http, https, ws and wss (`kUseDnsHttpsSvcb`): of the same servers as its addresses, at the same time, for `_PORT._https.NAME` where the port is not 443 (`GetNameForHttpsQuery`). Not for an address, `localhost` and names under it, or `.local`. `true`. |
+| `dns.https_wait_percent`, `dns.https_wait_min_ms`, `dns.https_wait_max_ms` | Once the addresses are in, how long a connection waits for the records: this percent of the time the lookup has taken so far, at least the floor, at most the ceiling (0: none); after it the connection goes on without them (`HostResolverDnsTask::MaybeStartTimeoutTimer`). `20`, `5`, `50`. Need `dns.https_records`. |
+| `dns.https_upgrade` | A request to plain http whose name has a record Chrome takes goes to https without being sent (Chrome fails its host resolution with ERR_DNS_NAME_HTTPS_ONLY and its URLRequestHttpJob redirects it, 307, `Non-Authoritative-Reason: DNS`): the hop after it is a redirect's, its fields where a redirect's are. Port 80 goes to 443, another stays. `true`. Needs `dns.https_records`. |
+| `tls.ech` | Offer ECH with the configs a connection's records gave. `true`. Needs every key below. |
+| `tls.ech_inner_own` | The extensions of the outer hello the inner one writes itself, in the outer's order: the server's own name, the supported versions of `tls.ech_inner_min_version` and up (GREASE kept), the inner `encrypted_client_hello` (`01`). Must name 0 and 65037. Chrome: `[0, 43, 65037]`. |
+| `tls.ech_inner_omitted` | The extensions of the outer hello the inner one leaves out. Chrome: `[11, 23, 35, 65281]` (ec_point_formats, extended_master_secret, session_ticket, renegotiation_info). Every other extension of the outer goes in the inner after its own, in the outer's order, its encoding naming them in one `ech_outer_extensions`; then a session's `pre_shared_key`, whose binders are over the inner. The padding extension is the outer's alone, and `pre_shared_key` and `ech_outer_extensions` are the engine's to place: neither list may name them. |
+| `tls.ech_inner_min_version` | The inner's supported versions and cipher suites are those of this version and up, and the outer's GREASE. `772` (TLS 1.3). |
+| `tls.ech_padding_block` | The encoding is padded as RFC 9849 section 6.1.3 says, past the name to the longest the config allows, then to a multiple of this; `32`. 0 pads to no block. |
+| `tls.ech_kems`, `tls.ech_kdfs`, `tls.ech_aeads` | The HPKE primitives a config may use: the first config of the list with one of these KEMs and a cipher suite of these KDFs and AEADs, a public name that is a DNS name (not one the URL parser takes for an IPv4 address) and no mandatory extension is the one offered, with the first such suite of its own. Chrome: `[32]` (DHKEM X25519), `[1]` (HKDF-SHA256), `[1, 2, 3]` (AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305). |
+| `tls.ech_chacha_without_aes` | Where the machine has no AES hardware, ChaCha20-Poly1305 rather than the first suite when the config lists it (BoringSSL's `select_ech_cipher_suite`). `true`. |
+| `tls.ech_outer_psk` | What the outer hello says of a session the inner resumes: `none`, no `pre_shared_key`. |
+| `tls.ech_retries` | How many times a connection whose ECH a server refused is made again, on a new connection: with the configs the refusal sent, and, when it sent none, without ECH when `tls.ech_retry_without` says so (GREASE ECH then); a second refusal fails the request. `1` (`SSLConnectJob`'s `ech_retry_configs_`). |
+| `tls.ech_retry_without` | `true`. |
+
+A refusal is believed only from a server whose certificate is good for the
+config's public name, as the outer hello named it (RFC 9849 section 6.1.7);
+with `WithInsecureSkipVerify` no certificate is checked. A connection made
+again after a refusal asks the records of nothing: they are kept for their
+time to live. ECH goes on direct connections alone: through a proxy the
+names are the proxy's to look up, as Chrome's are.
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-24, `../net-fp-server/captures/review-20261023/bench/ech`: a DNS over
+HTTPS resolver that Chrome's Local State points secure DNS at, answering A,
+AAAA and HTTPS records, and TLS servers of Go's that keep every ClientHello and
+open the inner one with the bench's HPKE keys whether they took it or not; 36
+scenarios in two cohorts, testdata/chrome155-ech-dns.json): the inner hello is
+the outer's as the table says, byte for byte from the outer (the server's name
+and its random aside), in every one of 51 hellos opened, a resumed one and
+both of a HelloRetryRequest among them; the encoding padded to 128 bytes for
+names up to 15 letters with a config of no maximum length, 208 with 64; a
+config of ChaCha20 first taken with it, a list of P-384, P-256 and X25519
+configs given the X25519 one; a refusal with retry configs made again once
+with them, one without again without ECH, a second refusal
+ERR_ECH_NOT_NEGOTIATED; a record of TargetName "." for a name of a port not
+taken (the target is the record's own name, which the addresses are not for);
+records later than 5 ms after addresses that came at once not waited for,
+records after addresses 300 ms late waited for up to about 55 ms; an http://
+URL with a record sent to https, the request's client hints after
+Sec-Fetch-Dest, as a redirect's hop, `Sec-Fetch-Site: none` typed and
+`cross-site` from a link. Chrome opens a second connection at a navigation's
+start, which makes its own ECH offer; tls-forge opens none.
+
+Not modelled: ECH over QUIC; the HTTP/2 pooling of a name onto another's
+connection whatever their ECH (Chrome pools them, measured); Chrome's DNS
+queries as they are on the wire (its EDNS0 and padding, its AAAA only with
+IPv6, its host cache for addresses: tls-forge asks its resolver again for a
+connection made again); a server that negotiates TLS 1.2 with an ECH offer.

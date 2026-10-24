@@ -11,6 +11,37 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A direct connection to a name asks the name's HTTPS records (RFC 9460) and
+  offers real Encrypted Client Hello (RFC 9849) with the configs a record
+  gives, as Chrome 155 does, measured on macOS against servers that opened
+  every inner hello (testdata/chrome155-ech-dns.json): the record of
+  `_PORT._https.NAME` for a port other than 443, its TargetName the name (or
+  `.` without a port before it), waited for once the addresses are in no
+  longer than 20% of the lookup's time, 5 to 50 ms; the outer hello the
+  profile's to the config's public name with no `pre_shared_key`; the inner
+  one of the profile's own extensions, the server's name, TLS 1.3 and its
+  inner marker written for it, the rest of the outer's by reference but
+  ec_point_formats, extended_master_secret, session_ticket and
+  renegotiation_info, a session's PSK last, padded as RFC 9849 says; the
+  first config with an X25519 key and the first of its suites; one retry with
+  the configs a refusal sends, without ECH when it sends none or the server
+  speaks TLS 1.2, a second refusal the request's failure. An `http://`
+  request whose name has a record goes to `https://` as an internal redirect
+  (307, `Non-Authoritative-Reason: DNS`), never sent, its next hop's fields
+  in a redirect's order, as Chrome's. New profile fields `dns.https_records`,
+  `dns.https_wait_percent`, `dns.https_wait_min_ms`, `dns.https_wait_max_ms`,
+  `dns.https_upgrade`, `tls.ech`, `tls.ech_inner_own`,
+  `tls.ech_inner_omitted`, `tls.ech_inner_min_version`,
+  `tls.ech_padding_block`, `tls.ech_kems`, `tls.ech_kdfs`, `tls.ech_aeads`,
+  `tls.ech_chacha_without_aes`, `tls.ech_outer_psk`, `tls.ech_retries` and
+  `tls.ech_retry_without`, set in every shipped Chrome profile; without them a
+  profile asks for no record and offers GREASE ECH alone, as before. Through
+  a proxy nothing changes. `--dns-server` (fetch, proxy, daemon) and
+  `WithDNSServer` look names up with another server, addresses too; the run
+  header says `dns` and the log's `run` record `dns_server`. A refused ECH
+  offer is checked against the config's public name, which the outer hello
+  named (it was checked against the server's own).
+
 - `fetch` without `--request-kind` sends another method than GET, or `-d`, as
   an XHR of the root of the URL's own origin, as the site's own script sends
   it (owner decision, 2026-10-24), where it refused it with exit code 2:

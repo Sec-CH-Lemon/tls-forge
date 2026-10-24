@@ -399,15 +399,15 @@ func TestConnectDialerSettings(t *testing.T) {
 func TestANameIsLookedUpAsADirectDialerLooksItUp(t *testing.T) {
 	// The machine's resolver, which gives an address back as it was asked
 	// for it, an IPv4 one written as IPv6.
-	got, err := lookupNames(context.Background(), "127.0.0.1")
+	got, err := newResolving("", nil).lookupNames(context.Background(), "127.0.0.1")
 	if err != nil || len(got) != 1 || got[0].Unmap() != netip.MustParseAddr("127.0.0.1") {
 		t.Errorf("127.0.0.1 is found at %v, %v", got, err)
 	}
 	// IPv6 as well as IPv4, as a dialer of TCP looks for both.
-	if got, err := lookupNames(context.Background(), "::1"); err != nil || len(got) != 1 || got[0] != netip.IPv6Loopback() {
+	if got, err := newResolving("", nil).lookupNames(context.Background(), "::1"); err != nil || len(got) != 1 || got[0] != netip.IPv6Loopback() {
 		t.Errorf("::1 is found at %v, %v", got, err)
 	}
-	if _, err := lookupNames(context.Background(), "nowhere.invalid"); err == nil {
+	if _, err := newResolving("", nil).lookupNames(context.Background(), "nowhere.invalid"); err == nil {
 		t.Error("nowhere.invalid is found")
 	}
 }
@@ -417,21 +417,21 @@ func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 	// knows what to say about them, and hands the request's tap each
 	// connection it dials to the proxy.
 	for _, proxyURL := range []string{"socks5://127.0.0.1:1080", "://not a url", "http://"} {
-		if got := dialOptions(proxyURL, true, nil, keepAlive{}); len(got) != 2 {
+		if got := dialOptions(proxyURL, true, nil, keepAlive{}, newResolving("", nil)); len(got) != 2 {
 			t.Errorf("%q is given %d options, want the transport's two", proxyURL, len(got))
 		}
 	}
 	// An HTTP proxy is tunnelled here, and without HTTP/3, which it cannot carry.
-	if got := dialOptions("http://proxy.test:8080", true, nil, keepAlive{}); len(got) != 2 {
+	if got := dialOptions("http://proxy.test:8080", true, nil, keepAlive{}, newResolving("", nil)); len(got) != 2 {
 		t.Errorf("an HTTP proxy is given %d options", len(got))
 	}
 	// No proxy is dialled here, and names are looked up for HTTP/2 to carry
 	// requests to others, unless the caller has options of its own for the
 	// transport, which may say how to dial.
-	if got := dialOptions("", true, nil, keepAlive{}); len(got) != 2 {
+	if got := dialOptions("", true, nil, keepAlive{}, newResolving("", nil)); len(got) != 2 {
 		t.Errorf("a client without a proxy is given %d options", len(got))
 	}
-	if got := dialOptions("", false, nil, keepAlive{}); len(got) != 0 {
+	if got := dialOptions("", false, nil, keepAlive{}, newResolving("", nil)); len(got) != 0 {
 		t.Errorf("a client with transport options of its own is given %d options", len(got))
 	}
 	// A profile's keep-alive goes to the transport's own dialers as well, in
@@ -442,7 +442,7 @@ func TestTheProxiesTheTransportIsLeftWith(t *testing.T) {
 		own   bool
 		want  int
 	}{{"socks5://127.0.0.1:1080", true, 3}, {"http://proxy.test:8080", true, 3}, {"", true, 3}, {"", false, 1}} {
-		if got := dialOptions(tc.proxy, tc.own, nil, chrome); len(got) != tc.want {
+		if got := dialOptions(tc.proxy, tc.own, nil, chrome, newResolving("", nil)); len(got) != tc.want {
 			t.Errorf("%q (own %v) is given %d options with a keep-alive, want %d", tc.proxy, tc.own, len(got), tc.want)
 		}
 	}

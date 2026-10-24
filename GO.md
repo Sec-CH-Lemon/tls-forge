@@ -206,6 +206,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. One that sets what tls-forge sets replaces it; see [Transport options](#transport-options). |
 | `WithLogger(logger)` | Write down what the client does, as it does it, to a `*slog.Logger`; see [Logging](#logging). |
 | `WithKeyLogWriter(w)` | Write the TLS secrets of every connection the client makes, to the sites and to an HTTPS proxy, to an `io.Writer` in the NSS key log format, for Wireshark to read a capture with; see [Reading a client in Wireshark](#reading-a-client-in-wireshark). |
+| `WithDNSServer(address)` | Look names up with the DNS server at `address` (an IP address, with a port or without one for 53) instead of the machine's servers: the addresses, and the HTTPS records whose ECH configs a connection offers; see [Encrypted Client Hello](#encrypted-client-hello). For direct connections: through a proxy the names are the proxy's, and transport options of the caller's replace the dialer that would ask. |
 
 Example:
 
@@ -283,6 +284,35 @@ the options. `WithInsecureSkipVerify` is for the sites and does not reach it,
 since the proxy is who the password is given to: a proxy whose certificate
 the system does not trust is refused, and asked for no tunnel. There is no
 option for other roots yet.
+
+### Encrypted Client Hello
+
+A client with no proxy and no transport options of the caller's asks the
+HTTPS records (RFC 9460) of every name it connects to, alongside its
+addresses, of the DNS servers it looks addresses up with, as its profile says
+(`dns.https_records`), and offers Encrypted Client Hello (RFC 9849) with the
+configs the record it takes gives (`tls.ech`): the outer hello names the
+config's public name, the inner one the site, both as the profile's browser
+makes them. The shipped Chrome profiles do as Chrome 155 does, measured
+against servers that opened every inner hello they were sent; the fields and
+what was measured are in
+[the profile behavior reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
+
+```go
+client, err := tlsforge.New(tlsforge.WithProfile("chrome_155_macos"))
+// A site whose HTTPS record gives ECH configs gets an ECH offer; one that
+// refuses it with configs to retry with is offered those once, one that
+// sends none is asked again without ECH.
+res, err := client.Do(&tlsforge.Request{URL: "https://example.com/"})
+```
+
+A refused offer is believed only from a server whose certificate is good for
+the public name (`WithInsecureSkipVerify` checks none); refused again, `Do`
+fails with `tls: server rejected ECH`. A request to `http://` whose name has
+a record goes to `https://` as a redirect (307, `Non-Authoritative-Reason:
+DNS`) that never reaches the network (`dns.https_upgrade`), its next hop sent
+as a redirect's is. Records are kept for their time to live: a connection
+made again asks for none.
 
 ## Requests
 

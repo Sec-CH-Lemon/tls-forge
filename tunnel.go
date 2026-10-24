@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/netip"
 	"net/url"
 	"sort"
 	"strings"
@@ -105,7 +104,7 @@ type connectDialer struct {
 // Every TCP connection is probed while idle as the profile says (ka): the
 // dialers of this package's directly, the transport's own through the dialer
 // it is given.
-func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, identity ...proxyIdentity) []tls_client.HttpClientOption {
+func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, res *resolving, identity ...proxyIdentity) []tls_client.HttpClientOption {
 	if proxyURL == "" {
 		if !own {
 			return ka.transport()
@@ -116,9 +115,11 @@ func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, identi
 			) (proxy.ContextDialer, error) {
 				d := newDirectDialer(timeout, local)
 				ka.on(&d.dialer)
+				d.resolving = res
+				d.dialer.Resolver = res.resolver
 				return d, nil
 			}),
-			tls_client.WithConnectionCoalescing(lookupNames),
+			tls_client.WithConnectionCoalescing(res.lookupNames),
 		)
 	}
 	u, err := url.Parse(proxyURL)
@@ -207,18 +208,13 @@ func (k keepAlive) transport() []tls_client.HttpClientOption {
 	return []tls_client.HttpClientOption{tls_client.WithDialer(d)}
 }
 
-// lookupNames finds the addresses of host as a directDialer does, with the
-// machine's resolver, which says what it does to the trace of the request it
-// is for: Chrome looks a name up before it sends a request over an HTTP/2
-// connection to another, at an address the name has, on its certificate.
-func lookupNames(ctx context.Context, host string) ([]netip.Addr, error) {
-	return net.DefaultResolver.LookupNetIP(ctx, "ip", host)
-}
-
 // directDialer dials a site with nothing between, as the transport's own
-// dialer does.
+// dialer does, with the addresses its resolving finds, and, where its
+// profile asks for them, offers the ECH the site's HTTPS records give (an
+// echConn).
 type directDialer struct {
-	dialer net.Dialer
+	dialer    net.Dialer
+	resolving *resolving
 }
 
 func newDirectDialer(timeout time.Duration, local *net.TCPAddr) *directDialer {
@@ -232,12 +228,39 @@ func newDirectDialer(timeout time.Duration, local *net.TCPAddr) *directDialer {
 
 func (d *directDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	began := time.Now()
-	conn, err := d.dialer.DialContext(ctx, network, address)
+	dialer := d.dialer
+	// Port 80's are plain http's, whose records were asked for, as for
+	// 443, before the request was sent (dnsUpgrade).
+	var https *httpsLookup
+	if !strings.HasSuffix(address, ":80") {
+		https = d.resolving.ask(ctx, address)
+	}
+	if https != nil {
+		// The records are waited for once the addresses are in, before the
+		// first of them is connected to, as Chrome waits.
+		dialer.ControlContext = https.control(dialer.ControlContext)
+		// A dial that connected to nothing waits for nothing.
+		defer https.cancel()
+	}
+	conn, err := dialer.DialContext(ctx, network, address)
 	if err != nil {
 		return nil, err
 	}
-	return tapped(ctx, conn, began), nil
+	conn = tapped(ctx, conn, began)
+	if https != nil && len(https.taken) > 0 {
+		return echConn{Conn: conn, configs: https.taken}, nil
+	}
+	return conn, nil
 }
+
+// echConn is a connection to a server whose HTTPS records gave the ECH
+// configs it is offered with (tls_client.ECHConn).
+type echConn struct {
+	net.Conn
+	configs []byte
+}
+
+func (c echConn) ECHConfigList() []byte { return c.configs }
 
 func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header) *connectDialer {
 	d := &connectDialer{

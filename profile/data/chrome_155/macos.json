@@ -12,6 +12,11 @@
     "cookie.max_pair_bytes": 4096,
     "cookie.raw_fields": true,
     "cookie.reset_order_on_value_change": true,
+    "dns.https_records": true,
+    "dns.https_upgrade": true,
+    "dns.https_wait_max_ms": 50,
+    "dns.https_wait_min_ms": 5,
+    "dns.https_wait_percent": 20,
     "h1.auth_body": "read-all",
     "h1.dropped_body": "drain",
     "h1.idle_connection_timeout_ms": 300000,
@@ -595,6 +600,35 @@
     "tls.close_notify": false,
     "tls.defer_key_update": true,
     "tls.duplicate_extension_alert": 47,
+    "tls.ech": true,
+    "tls.ech_aeads": [
+      1,
+      2,
+      3
+    ],
+    "tls.ech_chacha_without_aes": true,
+    "tls.ech_inner_min_version": 772,
+    "tls.ech_inner_omitted": [
+      11,
+      23,
+      35,
+      65281
+    ],
+    "tls.ech_inner_own": [
+      0,
+      43,
+      65037
+    ],
+    "tls.ech_kdfs": [
+      1
+    ],
+    "tls.ech_kems": [
+      32
+    ],
+    "tls.ech_outer_psk": "none",
+    "tls.ech_padding_block": 32,
+    "tls.ech_retries": 1,
+    "tls.ech_retry_without": true,
     "tls.false_start": true,
     "tls.full_size_records": true,
     "tls.handshake_retries": 1,
