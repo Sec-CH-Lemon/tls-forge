@@ -12,18 +12,25 @@ import (
 // requestKinds are what --request-kind takes.
 var requestKinds = []tlsforge.RequestKind{tlsforge.KindNavigation, tlsforge.KindForm, tlsforge.KindFetch, tlsforge.KindXHR}
 
-// browserContextOf is the browser context --request-kind, --initiator-url and
-// --clicked give every request of a run, or nil when none is given.
-func browserContextOf(kind, initiator string, initiatorGiven, clicked bool) (*tlsforge.BrowserContext, error) {
-	if kind == "" {
-		switch {
-		case initiatorGiven:
-			return nil, fmt.Errorf("%w: --initiator-url names the page a --request-kind request is sent from: "+
-				"give --request-kind", errUsage)
-		case clicked:
-			return nil, fmt.Errorf("%w: --clicked says a click on the --initiator-url page sends the request: "+
-				"give --request-kind navigation or form", errUsage)
-		}
+// browserContextOf is the browser context --request-kind, --initiator-url,
+// --clicked and --form give every request of a run, or nil when none is
+// given. --form is the form a person's click submits, on the page
+// --initiator-url names or, with none, on the root of each URL's own origin,
+// which checkBrowser and the run fill in for each URL.
+func browserContextOf(kind, initiator string, initiatorGiven, clicked, form bool) (*tlsforge.BrowserContext, error) {
+	switch {
+	case form && kind != "":
+		return nil, fmt.Errorf("%w: --form says the request is the form a click submits, and --request-kind says "+
+			"what sends it: give one of them", errUsage)
+	case form:
+		return &tlsforge.BrowserContext{Kind: tlsforge.KindForm, Initiator: initiator, Clicked: true}, nil
+	case kind == "" && initiatorGiven:
+		return nil, fmt.Errorf("%w: --initiator-url names the page a --request-kind or --form request is sent "+
+			"from: give one of them", errUsage)
+	case kind == "" && clicked:
+		return nil, fmt.Errorf("%w: --clicked says a click on the --initiator-url page sends the request: "+
+			"give --request-kind navigation or form, or --form", errUsage)
+	case kind == "":
 		return nil, nil
 	}
 	for _, known := range requestKinds {
@@ -34,52 +41,89 @@ func browserContextOf(kind, initiator string, initiatorGiven, clicked bool) (*tl
 	return nil, badValue("--request-kind", kind, "navigation, form, fetch or xhr")
 }
 
+// onOwnPage is req, to its URL, as it goes from the root of the URL's own
+// origin as own says: the form a person's click there submits (--form with no
+// --initiator-url), or an XHR of that page (tlsforge.Request.FromItsOwnPage,
+// a request without --request-kind that no typed navigation is: owner
+// decision, 2026-10-24); req as it is for neither.
+func onOwnPage(req tlsforge.Request, own tlsforge.RequestKind) (tlsforge.Request, error) {
+	switch own {
+	case tlsforge.KindForm:
+		page, err := tlsforge.OwnPage(req.URL)
+		if err != nil {
+			return req, err
+		}
+		req.Browser = &tlsforge.BrowserContext{Kind: tlsforge.KindForm, Initiator: page, Clicked: true}
+	case tlsforge.KindXHR:
+		req = req.FromItsOwnPage()
+	}
+	return req, nil
+}
+
 // checkBrowser refuses a run whose requests a browser would not send as the
 // kind says, or this profile cannot send as one, or, without --request-kind,
-// as the navigation typed into the address bar a request without one goes as;
-// and, with --retry-as-browser (reload), one whose page the profile cannot
-// reload as Chrome does: the request of every URL of the list is checked as
-// the library would check it, before anything is sent. A GET with no body and
-// no kind, not reloaded, has nothing to check that the list has not been
-// checked for.
+// as the navigation typed into the address bar a GET without one goes as, or
+// as the XHR of its URL's own page anything else without one goes as; and,
+// with --retry-as-browser (reload), one whose page the profile cannot reload
+// as Chrome does: the request of every URL of the list is checked as the
+// library would check it, before anything is sent. It says what the requests
+// go as from their URL's own page (onOwnPage): a form with --form and no
+// --initiator-url, an XHR without --request-kind, else nothing. A GET with no
+// body and no kind, not reloaded, has nothing to check that the list has not
+// been checked for.
 func checkBrowser(worn *profile.Profile, jobs []job, method string, header headerFlag, data []byte,
-	browser *tlsforge.BrowserContext, reload bool,
-) error {
+	browser *tlsforge.BrowserContext, form, reload bool,
+) (own tlsforge.RequestKind, err error) {
 	if browser == nil && strings.EqualFold(method, "GET") && data == nil && !reload {
-		return nil
+		return "", nil
 	}
 	checker, err := newClient("", tlsforge.WithProfileValue(worn))
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer func() { _ = checker.Close() }()
+	said := "--form"
+	switch {
+	case !form && browser != nil:
+		said = "--request-kind " + string(browser.Kind)
+	case form && browser.Initiator == "":
+		own = tlsforge.KindForm
+	}
 	for _, j := range jobs {
-		req := tlsforge.Request{Method: method, URL: j.URL, Header: tlsforge.Header(header), Body: data, Browser: browser}
-		err := checker.Validate(&req)
+		req, err := onOwnPage(tlsforge.Request{Method: method, URL: j.URL, Header: tlsforge.Header(header), Body: data,
+			Browser: browser}, own)
+		if err == nil {
+			err = checker.Validate(&req)
+		}
+		if page := req.FromItsOwnPage(); errors.Is(err, tlsforge.ErrNeedsContext) && page.Browser != nil {
+			// No navigation typed into the address bar: as the script of its
+			// URL's own page sends it.
+			req, own = page, tlsforge.KindXHR
+			if err := checker.Validate(&req); err != nil {
+				return "", fmt.Errorf("%w: %s: sent as %s, without --request-kind: %s", errUsage, safeURL(j.URL),
+					describeContext(req.Browser), strings.TrimPrefix(err.Error(), "tlsforge: "))
+			}
+			err = nil
+		}
 		if again := req.Reloaded(nil); err == nil && reload {
 			if err := checker.Validate(&again); err != nil {
-				return fmt.Errorf("%w: --retry-as-browser: %s: %s", errUsage, safeURL(j.URL),
+				return "", fmt.Errorf("%w: --retry-as-browser: %s: %s", errUsage, safeURL(j.URL),
 					strings.TrimPrefix(err.Error(), "tlsforge: "))
 			}
 		}
 		switch {
 		case err == nil:
 		case errors.Is(err, tlsforge.ErrNeedsContext):
-			what := method + " " + safeURL(j.URL)
-			if data != nil && strings.EqualFold(method, "GET") {
-				what += " with a body"
-			}
-			return fmt.Errorf("%w: %s needs --request-kind: without it a request goes as a navigation typed into "+
-				"the address bar, a GET with no body; give --request-kind form, fetch or xhr, and --initiator-url, "+
-				"the page that sends it", errUsage, what)
+			return "", fmt.Errorf("%w: GET %s with a body: no page sends one; give its fields in the URL, or "+
+				"send it with -X POST", errUsage, safeURL(j.URL))
 		case browser == nil:
-			return fmt.Errorf("%w: %s: %s", errUsage, safeURL(j.URL), strings.TrimPrefix(err.Error(), "tlsforge: "))
+			return "", fmt.Errorf("%w: %s: %s", errUsage, safeURL(j.URL), strings.TrimPrefix(err.Error(), "tlsforge: "))
 		default:
-			return fmt.Errorf("%w: --request-kind %s: %s: %s", errUsage, browser.Kind, safeURL(j.URL),
+			return "", fmt.Errorf("%w: %s: %s: %s", errUsage, said, safeURL(j.URL),
 				strings.TrimPrefix(err.Error(), "tlsforge: "))
 		}
 	}
-	return nil
+	return own, nil
 }
 
 // warnAboutReferer says, of a run that gives its requests a Referer, that
@@ -96,6 +140,27 @@ func warnAboutReferer(errOut *printer, worn *profile.Profile, header headerFlag)
 	errOut.println("WARN: -H Referer without --request-kind goes as a navigation typed into the address bar,")
 	errOut.println("      with Sec-Fetch-Site: none, which Chrome sends only when automation gives it a Referer.")
 	errOut.println("      For a request from a page, give --request-kind navigation --initiator-url PAGE instead.")
+}
+
+// describeRequests is what a run's requests are sent as, for its header: as
+// --request-kind or --form says, or, from their URL's own page (own,
+// checkBrowser), as onOwnPage sends the one URL a run of one asks for, or
+// each URL of a list; or nothing when they go as they always have.
+func describeRequests(browser *tlsforge.BrowserContext, own tlsforge.RequestKind, method string, header headerFlag,
+	data []byte, jobs []job,
+) string {
+	without := map[tlsforge.RequestKind]string{tlsforge.KindXHR: ", without --request-kind"}[own]
+	switch {
+	case own == "":
+		return describeContext(browser)
+	case len(jobs) != 1 && own == tlsforge.KindForm:
+		return "the form a click submits on the root of each URL's own origin"
+	case len(jobs) != 1:
+		return "an XHR of the root of each URL's own origin" + without
+	}
+	req, _ := onOwnPage(tlsforge.Request{Method: method, URL: jobs[0].URL, Header: tlsforge.Header(header), Body: data,
+		Browser: browser}, own)
+	return describeContext(req.Browser) + without
 }
 
 // describeContext is what a run's requests are sent as, for its header: the
@@ -124,15 +189,25 @@ func describeContext(browser *tlsforge.BrowserContext) string {
 }
 
 // againAs says how a request is asked for again under --retry-as-browser, for
-// the run's header: nothing without it.
-func againAs(asBrowser bool, browser *tlsforge.BrowserContext) string {
+// the run's header, by the kind of what sends it (kindOf): nothing without it.
+func againAs(asBrowser bool, kind tlsforge.RequestKind) string {
 	switch {
 	case !asBrowser:
 		return ""
-	case browser != nil && (browser.Kind == tlsforge.KindFetch || browser.Kind == tlsforge.KindXHR):
+	case kind == tlsforge.KindFetch || kind == tlsforge.KindXHR:
 		return "as the page's script sends it again, on the connection it went on"
 	}
 	return "as Chrome reloads the page (Ctrl+R): its URL, on the connection it came on"
+}
+
+// kindOf is the kind of what sends a run's requests: the kind --request-kind
+// or --form says, else the kind they go as from their URL's own page, else
+// none (a navigation typed into the address bar).
+func kindOf(browser *tlsforge.BrowserContext, own tlsforge.RequestKind) tlsforge.RequestKind {
+	if browser != nil {
+		return browser.Kind
+	}
+	return own
 }
 
 // requestBody preserves -d "" as an explicit empty upload and an omitted -d as

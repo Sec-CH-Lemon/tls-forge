@@ -342,33 +342,29 @@ func TestFetchPost(t *testing.T) {
 	}
 }
 
-func TestFetchRefusesAPostWithoutAKindOfRequest(t *testing.T) {
-	// Without --request-kind a request goes as a navigation typed into the
-	// address bar, which no POST, HEAD or body is: refused before anything is
-	// sent, and the message says what to give.
+func TestFetchRefusesAGetWithABodyWithoutAKindOfRequest(t *testing.T) {
+	// Without --request-kind a GET goes as a navigation typed into the
+	// address bar, and anything else as an XHR of its URL's own page: a GET
+	// with a body no page sends, and what the library refuses of a request
+	// is said as it says it, refused before anything is sent.
 	var asked atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { asked.Add(1) }))
 	t.Cleanup(server.Close)
-	for _, args := range [][]string{
-		{"-X", "POST", "-d", "a=1"},
-		{"-X", "HEAD"},
-		{"-d", ""},
+	for _, tc := range []struct {
+		args []string
+		says string
+	}{
+		{[]string{"-d", ""}, "GET " + server.URL + "/x with a body: no page sends one; give its fields in the URL, " +
+			"or send it with -X POST"},
+		{[]string{"-d", "a=1"}, "GET " + server.URL + "/x with a body: no page sends one"},
+		{[]string{"-X", "POST", "-H", "Cookie: a=1", "-d", "a=1"}, server.URL + "/x: sent as an XHR from " +
+			server.URL + "/, without --request-kind: browser context: an XHR cannot set cookie: the browser sets it"},
+		{[]string{"-X", "GE T"}, server.URL + "/x: net/http: invalid method"},
 	} {
-		code, _, stderr := exec(t, append(append([]string{"fetch"}, args...), server.URL+"/x")...)
-		if code != 2 || !strings.Contains(stderr, "needs --request-kind: without it a request goes as a navigation "+
-			"typed into the address bar, a GET with no body; give --request-kind form, fetch or xhr, and "+
-			"--initiator-url, the page that sends it") {
-			t.Errorf("%v: exit code %d, %s", args, code, stderr)
+		code, _, stderr := exec(t, append(append([]string{"fetch"}, tc.args...), server.URL+"/x")...)
+		if code != 2 || !strings.Contains(stderr, tc.says) {
+			t.Errorf("%v: exit code %d, %s\nwant %q", tc.args, code, stderr, tc.says)
 		}
-		if what := map[string]string{"-d": "GET " + server.URL + "/x with a body needs",
-			"-X": args[1] + " " + server.URL + "/x needs"}[args[0]]; !strings.Contains(stderr, what) {
-			t.Errorf("%v: %s", args, stderr)
-		}
-	}
-	// What else the library refuses of it is said as the library says it.
-	if code, _, stderr := exec(t, "fetch", "-X", "GE T", server.URL+"/x"); code != 2 ||
-		!strings.Contains(stderr, server.URL+"/x: net/http: invalid method") {
-		t.Errorf("an invalid method: exit code %d, %s", code, stderr)
 	}
 	if n := asked.Load(); n != 0 {
 		t.Errorf("the server was asked %d times", n)

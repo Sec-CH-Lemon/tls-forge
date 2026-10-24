@@ -223,7 +223,8 @@ func TestRetryAsABrowserAndAClickAreRefusedWhereTheyMeanNothing(t *testing.T) {
 		{[]string{"--retry-as-browser", page},
 			"--retry-as-browser says how a request is asked for again: give --retry"},
 		{[]string{"--clicked", page},
-			"--clicked says a click on the --initiator-url page sends the request: give --request-kind navigation or form"},
+			"--clicked says a click on the --initiator-url page sends the request: give --request-kind navigation or " +
+				"form, or --form"},
 		{[]string{"--clicked", "--request-kind", "fetch", "--initiator-url", page, page},
 			"--request-kind fetch: " + page + ": browser context: fetch() is no navigation: a click says nothing of it"},
 		{[]string{"--clicked", "--request-kind", "navigation", page},
@@ -249,18 +250,21 @@ func TestTheRunSaysHowARequestIsAskedForAgain(t *testing.T) {
 	for _, tc := range []struct {
 		asBrowser bool
 		browser   *tlsforge.BrowserContext
+		own       tlsforge.RequestKind
 		want      string
 	}{
-		{false, nil, ""},
-		{false, &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: page}, ""},
-		{true, nil, reload},
-		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindNavigation, Initiator: page}, reload},
-		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindForm, Initiator: page}, reload},
-		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: page}, script},
-		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindXHR, Initiator: page}, script},
+		{false, nil, "", ""},
+		{false, &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: page}, "", ""},
+		{true, nil, "", reload},
+		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindNavigation, Initiator: page}, "", reload},
+		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindForm, Initiator: page}, "", reload},
+		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindForm, Clicked: true}, tlsforge.KindForm, reload},
+		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: page}, "", script},
+		{true, &tlsforge.BrowserContext{Kind: tlsforge.KindXHR, Initiator: page}, "", script},
+		{true, nil, tlsforge.KindXHR, script},
 	} {
-		if got := againAs(tc.asBrowser, tc.browser); got != tc.want {
-			t.Errorf("%v %+v: %q, want %q", tc.asBrowser, tc.browser, got, tc.want)
+		if got := againAs(tc.asBrowser, kindOf(tc.browser, tc.own)); got != tc.want {
+			t.Errorf("%v %+v %q: %q, want %q", tc.asBrowser, tc.browser, tc.own, got, tc.want)
 		}
 	}
 }

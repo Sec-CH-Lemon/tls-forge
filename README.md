@@ -561,12 +561,27 @@ executable includes those edits. Published module requirements have not been
 advanced: publishing the fork changes and updating their pseudo-versions is a
 separate release step. `GOWORK=off` selects the previously published transport.
 
-Without `--request-kind` a request goes out as a navigation typed into the
+Without `--request-kind` a GET goes out as a navigation typed into the
 address bar: what the first request of a visit is, worked out as Chrome works
 out one, with the client hints an origin asked for, `Accept-CH`, `Critical-CH`
-and what a connection's ALPS asks for. It is a GET with no body: a POST, a HEAD
-or `-d` without `--request-kind` is refused with exit code 2 (`needs
---request-kind`) before anything is sent. To plain http on another machine it
+and what a connection's ALPS asks for. A GET with `-d` is refused with exit
+code 2 before anything is sent: no page sends one. Any other method, or `-d`,
+goes out as an XHR of the root of the URL's own origin, as the site's own
+script sends it: `Sec-Fetch-Mode: cors`, `Sec-Fetch-Dest: empty`,
+`Accept: */*`, `Priority: u=1, i`, `Origin`, the page as its `Referer`, and
+what `-H` gives where a script's fields go (a field a script cannot set,
+`Cookie`, `Origin`, `Referer`, `Sec-*`, is refused with exit code 2). Chrome
+gives an XHR of a string `Content-Type: text/plain;charset=UTF-8` unless its
+script says another: give `-H 'Content-Type: …'` as the page's script does.
+`--form` sends it instead as the form a person's click submits on that page,
+or on the one `--initiator-url` names: `Sec-Fetch-Mode: navigate`,
+`Sec-Fetch-User: ?1`, `Cache-Control: max-age=0`, a POST of a form's fields
+(`application/x-www-form-urlencoded`, the default, `multipart/form-data` with
+Chrome's boundary, or `text/plain`) or a GET with them in the URL. The block
+the run begins with says which (`sent as`). A profile of the transport's
+catalogue sends such a request as it is given, as before. For another page or
+kind, give `--request-kind` and
+`--initiator-url`. To plain http on another machine a typed navigation
 goes as Chrome sends it there, without the client hints and `Sec-Fetch-*` and
 offering neither Brotli nor zstd, and each hop of a redirect as its own URL is.
 What `-H` gives it goes where Chrome writes that field (`Accept-Language`,
@@ -1267,9 +1282,10 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-X`, `--method <method>` | HTTP method, for every URL; default `GET` |
 | `-H`, `--header "Name: value"` | Add or override an ordered request header, for every URL; repeatable |
 | `-d`, `--data <text>` | Request body, for every URL |
-| `--request-kind <kind>` | Send every request as Chrome sends this kind: `navigation`, `form`, `fetch` or `xhr`; see [Sending a request as a page would](#sending-a-request-as-a-page-would) |
+| `--request-kind <kind>` | Send every request as Chrome sends this kind: `navigation`, `form`, `fetch` or `xhr`. Without it a GET is a navigation typed into the address bar, and another method or `-d` an XHR of the root of the URL's own origin; see [Sending a request as a page would](#sending-a-request-as-a-page-would) |
 | `--initiator-url <url>` | The page a `--request-kind` request is sent from; a form, `fetch` and `xhr` need one, and a navigation without one is typed into the address bar |
 | `--clicked` | A person's click on the `--initiator-url` page sends the request, a link or a form's button, as `Sec-Fetch-User` says; without it the page's script navigates or submits the form |
+| `--form` | Send the request as the form a person's click submits, on the page `--initiator-url` names or on the root of the URL's own origin: a POST of urlencoded, multipart or text/plain fields, or a GET with them in the URL |
 | **Fingerprint and transport** | |
 | `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
 | `-t`, `--timeout <duration>` | How long each try may take, all of it: its connection, redirects, answers to a 401 or a 421, and body; default `30s` |

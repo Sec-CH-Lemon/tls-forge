@@ -383,6 +383,9 @@ type runner struct {
 	repeat int
 	// asBrowser asks again as Chrome does when the page is reloaded.
 	asBrowser bool
+	// own is what a request goes as from the root of its URL's own origin
+	// (checkBrowser, onOwnPage): a form, an XHR, or nothing.
+	own tlsforge.RequestKind
 	// out is what becomes of what each request brings back.
 	out output
 	// keep is the directory every request is kept in, with what it brought back,
@@ -565,6 +568,8 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 
 	request := b.request
 	request.URL = j.URL
+	// Checked for every URL before the run (checkBrowser).
+	request, _ = onOwnPage(request, b.own)
 	res, attempts, tries, found, err := retrier{retries: b.retry, note: b.note, keep: b.detailed, check: b.check,
 		log: log, asBrowser: b.asBrowser}.do(ctx, conns, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries

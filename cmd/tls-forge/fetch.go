@@ -28,7 +28,7 @@ import (
 // shown under "other flags", and TestFetchHelpShowsEveryFlagUnderAGroup says so.
 var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
-	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url", "clicked"}},
+	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url", "clicked", "form"}},
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure"}},
 	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
@@ -489,6 +489,9 @@ type fetchPlan struct {
 	headers                   headerFlag
 	requestKind, initiatorURL string
 	browser                   *tlsforge.BrowserContext
+	// own is what the requests go as from the root of their URL's own origin
+	// (checkBrowser, onOwnPage): a form, an XHR, or nothing.
+	own tlsforge.RequestKind
 
 	// The list, the identities it goes as, how many requests it comes to and
 	// how many are made at once.
@@ -534,14 +537,18 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	data := fs.StringP("data", "d", "", "request body")
 	requestKind := fs.String("request-kind", "",
 		"send each request as Chrome sends this kind: navigation, form, fetch or xhr, from the page "+
-			"--initiator-url names; without it, as a navigation typed into the address bar, a GET with what -H "+
-			"gives (another method or -d needs a kind)")
+			"--initiator-url names; without it, a GET as a navigation typed into the address bar, with what -H "+
+			"gives, and another method or -d as an XHR of the root of the URL's own origin")
 	initiatorURL := fs.String("initiator-url", "",
 		"the page a --request-kind request is sent from: a form, fetch and xhr need one, and a navigation "+
 			"without one is typed into the address bar")
 	clicked := fs.Bool("clicked", false,
 		"a person's click on the --initiator-url page sends the request, a link or a form's button, as "+
 			"Sec-Fetch-User says; without it the page's script navigates or submits the form")
+	form := fs.Bool("form", false,
+		"send the request as the form a person's click submits, on the page --initiator-url names or on the "+
+			"root of the URL's own origin: a POST of urlencoded, multipart or text/plain fields, or a GET with "+
+			"them in the URL")
 	var headers headerFlag
 	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Authorization: Bearer …\"")
 
@@ -609,7 +616,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	if err != nil {
 		return nil, err
 	}
-	browser, err := browserContextOf(*requestKind, *initiatorURL, fs.Changed("initiator-url"), *clicked)
+	browser, err := browserContextOf(*requestKind, *initiatorURL, fs.Changed("initiator-url"), *clicked, *form)
 	if err != nil {
 		return nil, err
 	}
@@ -693,8 +700,9 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	}
 	// What a browser would not send, or this profile cannot send as one, for
 	// any URL of the list, before anything is warmed, cleared or sent.
-	if err := checkBrowser(common.run.profile, jobs, *method, headers, requestBody(*data, fs.Changed("data")), browser,
-		*again.asBrowser); err != nil {
+	own, err := checkBrowser(common.run.profile, jobs, *method, headers, requestBody(*data, fs.Changed("data")),
+		browser, *form, *again.asBrowser)
+	if err != nil {
 		return nil, err
 	}
 	// Every pass over the list is counted before the first one is made, and a
@@ -752,7 +760,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	return &fetchPlan{
 		common: common, worn: worn,
 		method: *method, data: *data, dataProvided: fs.Changed("data"), headers: headers,
-		requestKind: *requestKind, initiatorURL: *initiatorURL, browser: browser,
+		requestKind: *requestKind, initiatorURL: *initiatorURL, browser: browser, own: own,
 		jobs: jobs, ways: ways, requests: requests, workers: *workers,
 		asJSON: asJSON, showHeaders: *showHeaders, output: *output, clearOutputDir: *clearOutputDir, pcap: *pcap,
 		again: again, check: check,
@@ -845,8 +853,9 @@ func (r *fetchRun) open(ctx context.Context) error {
 	// made a client: a run that cannot be made has no address to report. Closed
 	// on every way out, so a run that stops before then still ends it.
 	r.identity = r.common.wearOpen(r.errOut)
-	r.identity.field("sent as", describeContext(r.browser))
-	r.identity.field("tried again", againAs(*r.again.asBrowser, r.browser))
+	r.identity.field("sent as", describeRequests(r.browser, r.own, r.method, r.headers,
+		requestBody(r.data, r.dataProvided), r.jobs))
+	r.identity.field("tried again", againAs(*r.again.asBrowser, kindOf(r.browser, r.own)))
 	r.identity.field("keylog", r.keys.said())
 	r.lane.wearing(r.worn)
 
@@ -987,7 +996,7 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: requestBody(r.data, r.dataProvided),
 			Browser: r.browser},
 		retry: *r.again.retry, repeat: *r.again.repeat, asBrowser: *r.again.asBrowser,
-		keep: r.output, wire: r.wire,
+		own: r.own, keep: r.output, wire: r.wire,
 		about: requestAbout{
 			method: r.method, profile: r.worn.Name, run: r.common.run.id,
 			requests: r.requests, runs: *r.again.repeat,

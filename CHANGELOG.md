@@ -11,6 +11,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- `fetch` without `--request-kind` sends another method than GET, or `-d`, as
+  an XHR of the root of the URL's own origin, as the site's own script sends
+  it (owner decision, 2026-10-24), where it refused it with exit code 2:
+  `Sec-Fetch-Mode: cors`, `Accept: */*`, `Priority: u=1, i`, `Origin`, the
+  page as its Referer, and what `-H` gives where a script's fields go. `fetch
+  --form` sends it as the form a person's click submits on that page, or on
+  the one `--initiator-url` names (`Sec-Fetch-Mode: navigate`,
+  `Sec-Fetch-User: ?1`, `Cache-Control: max-age=0`): a POST of a form's fields,
+  or a GET with them in the URL; with `--request-kind` it is a usage error.
+  The run's header says which (`sent as ...`). A GET with `-d` is still
+  refused (no page sends one), a field a script cannot set too, and a profile
+  of the transport's catalogue sends such a request as it is given. Library:
+  `OwnPage(url)` (the root of a URL's own origin) and
+  `Request.FromItsOwnPage()` (the request as that page's XHR); `Client.Do`
+  itself still refuses a request without a context that no typed navigation
+  is (`ErrNeedsContext`).
 - `fetch --retry-as-browser` (with `--retry`) makes each try after the first
   as a person makes it again in Chrome, by reloading the page (Ctrl+R): to the
   URL the answer is at, where a redirect led (the redirect is not asked again),
@@ -72,10 +88,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - A request without a browser context that a typed navigation cannot be,
   one by another method than GET or with a body (an empty one too), is
   refused before anything is sent (`ErrNeedsContext`): give it the context of
-  the form, fetch() or XHR that sends it. `fetch` refuses it with exit code 2
-  (`... needs --request-kind ...`), the daemon answers it with that error,
-  and the SDKs' `post()` takes the request's `browserContext` /
-  `browser_context`. `fetch -H Referer` without `--request-kind` warns that the
+  the form, fetch() or XHR that sends it. `fetch` sends it from its URL's own
+  page instead (above), the daemon answers it with that error, and the SDKs'
+  `post()` takes the request's `browserContext` / `browser_context`. `fetch -H Referer` without `--request-kind` warns that the
   request says `Sec-Fetch-Site: none`, which Chrome sends with a Referer only
   when automation gives it one; the help's `-H` example is an Authorization.
 - `proxy`: a request that says what in a browser sent it, with the

@@ -319,6 +319,16 @@ response, err := client.Do(&tlsforge.Request{
 | `Browser` | A `*BrowserContext`: what in a browser the request stands for, a navigation, a form, `fetch()` or an XHR, sent as Chrome sends that; see [Browser contexts](#browser-contexts). `nil` sends it as a navigation typed into the address bar, a `GET` with no body: another method, or a body, is refused with `ErrNeedsContext`. |
 | `Reload` | The page the request opened, reloaded as Chrome reloads it (Ctrl+R); see [Reloading a page](#reloading-a-page). |
 
+`req.FromItsOwnPage()` is `req` sent by the script of a page of its URL's own
+origin, the origin's root (`OwnPage(url)`, as `https://host/` or
+`https://[::1]:8443/`), as an ordinary XHR (`KindXHR`), when it has no browser
+context and no navigation typed into the address bar is it (a GET is): a POST,
+PUT, PATCH, DELETE or HEAD. A request in a context, a GET and one whose URL
+does not read come back as they are. `fetch` sends a request without
+`--request-kind` so, and the form `--form` asks for as
+`&BrowserContext{Kind: KindForm, Initiator: page, Clicked: true}` of the same
+page.
+
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 deadline of each request, all of it. A request ends when either is reached,
 with the error of its context, which `errors.Is` finds `context.Canceled` or
