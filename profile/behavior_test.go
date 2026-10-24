@@ -802,7 +802,8 @@ func TestEveryShippedChromeProfileReloadsAsChrome(t *testing.T) {
 }
 
 // TestEveryShippedChromeProfileOffersECHAsChrome pins the shipped data: the
-// HTTPS records of a direct connection's name asked for and waited for as
+// addresses and the HTTPS records of a direct connection's name asked by a
+// client of its own (Chrome's built-in DNS client) and waited for as
 // Chrome's host resolver does, plain http sent to https by one, and ECH
 // offered with their configs as Chrome 155's BoringSSL offers it, measured
 // (testdata/chrome155-ech-dns.json).
@@ -817,6 +818,7 @@ func TestEveryShippedChromeProfileOffersECHAsChrome(t *testing.T) {
 		"dns.https_wait_min_ms":      "5",
 		"dns.https_wait_max_ms":      "50",
 		"dns.https_upgrade":          "true",
+		"dns.resolver":               `"built-in"`,
 		"tls.ech":                    "true",
 		"tls.ech_inner_own":          "[0,43,65037]",
 		"tls.ech_inner_omitted":      "[11,23,35,65281]",
@@ -856,7 +858,9 @@ func TestECHPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
 		{`{"tls.ech_retries":1}`, "is set while tls.ech is not"},
 		{`{"dns.https_wait_percent":20}`, "is set while dns.https_records is not"},
 		{`{"dns.https_upgrade":true}`, "dns.https_upgrade requires dns.https_records"},
-		{`{"dns.https_records":true,"dns.https_wait_percent":20,"dns.https_wait_min_ms":60,"dns.https_wait_max_ms":50}`, "exceeds"},
+		{`{"dns.https_records":true,"dns.https_wait_percent":20,"dns.https_wait_min_ms":60,"dns.https_wait_max_ms":50,"dns.resolver":"built-in"}`, "exceeds"},
+		{`{"dns.https_records":true,"dns.https_wait_percent":20,"dns.https_wait_min_ms":5,"dns.https_wait_max_ms":50}`, "dns.https_records requires dns.resolver built-in"},
+		{`{"dns.resolver":"getaddrinfo"}`, "unsupported primitive"},
 	} {
 		var p behavior.Policy
 		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {

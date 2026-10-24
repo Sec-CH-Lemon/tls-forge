@@ -7,8 +7,6 @@ import (
 	"io"
 	"net"
 	"net/netip"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -301,6 +299,7 @@ func TestTheNameAskedAboutIsThePortsAsChromesIs(t *testing.T) {
 			t.Errorf("%d: %q", tc.port, got)
 		}
 	}
+	namingServers(t, "192.0.2.53:53")
 	r := newResolving("", chromeDNS(t))
 	for host, want := range map[string]bool{
 		"www.example.test": true, "": false, "192.0.2.1": false, "::1": false, "localhost": false,
@@ -324,12 +323,121 @@ func TestTheNameAskedAboutIsThePortsAsChromesIs(t *testing.T) {
 	}
 }
 
+func TestTheResolverIsTheOneChromesHostResolverWouldUse(t *testing.T) {
+	// A profile of the built-in resolver asks the network's names itself,
+	// and leaves localhost, the names under it and under .local, and
+	// addresses to the machine, as Chrome does.
+	namingServers(t, "192.0.2.53:53")
+	r := newResolving("", chromeDNS(t))
+	if r.resolver != builtInResolver || !r.https {
+		t.Fatalf("built-in: %v, records %v", r.resolver, r.https)
+	}
+	for host, own := range map[string]bool{
+		"www.example.test": true, "WWW.Example.Test.": true, "local.example.test": true, "localhost.example.test": true,
+		"www.carlocal": true, "www.notlocalhost": true,
+		"": false, "localhost": false, "LOCALHOST.": false, "app.localhost": false, "printer.local": false,
+		"printer.local.": false, "192.0.2.1": false, "::1": false,
+	} {
+		if got := r.resolverFor(host) == builtInResolver; got != own {
+			t.Errorf("%q: its own %v", host, got)
+		}
+		if !own && r.resolverFor(host) != machineResolver {
+			t.Errorf("%q: not the machine's", host)
+		}
+	}
+	// A server named answers every name.
+	named := newResolving("192.0.2.53:53", chromeDNS(t))
+	if named.resolver == builtInResolver || named.resolver == machineResolver || !named.https {
+		t.Fatal("the server's")
+	}
+	for _, host := range []string{"www.example.test", "localhost", "printer.local"} {
+		if named.resolverFor(host) != named.resolver {
+			t.Errorf("%q: not the server's", host)
+		}
+	}
+	// Where the machine names no server, the built-in client cannot ask:
+	// the machine's resolver answers, and no record is asked for.
+	namingServers(t)
+	none := newResolving("", chromeDNS(t))
+	if none.resolver != machineResolver || none.https || none.ask(context.Background(), "www.example.test:443") != nil {
+		t.Errorf("no server named: %v, records %v", none.resolver, none.https)
+	}
+	// A profile of the machine's resolver, and one that says nothing.
+	namingServers(t, "192.0.2.53:53")
+	system := behavior.Policy{"dns.resolver": []byte(`"system"`)}
+	for _, p := range []behavior.Policy{system, nil} {
+		if r := newResolving("", p); r.resolver != machineResolver || r.https {
+			t.Errorf("%s: %v, records %v", p, r.resolver, r.https)
+		}
+	}
+}
+
+func TestTheBuiltInResolverAsksTheMachinesServers(t *testing.T) {
+	// Its queries go where Go's resolver sends them, the machine's servers,
+	// through dialDNS; a name the hosts file or the server knows is found.
+	f := startDNS(t, func(q dnsmessage.Question) ([]dnsRecord, time.Duration, dnsmessage.RCode) {
+		if q.Type == dnsmessage.TypeA && strings.HasSuffix(q.Name.String(), ".example.test.") {
+			return []dnsRecord{{name: strings.TrimSuffix(q.Name.String(), "."), ttl: 60,
+				a: netip.MustParseAddr("192.0.2.7")}}, 0, 0
+		}
+		return nil, 0, 0
+	})
+	var mu sync.Mutex
+	var dialed []string
+	real := dialDNS
+	t.Cleanup(func() { dialDNS = real })
+	dialDNS = func(ctx context.Context, network, server string) (net.Conn, error) {
+		mu.Lock()
+		dialed = append(dialed, network+" "+server)
+		mu.Unlock()
+		return real(ctx, network, f.addr)
+	}
+	namingServers(t, "192.0.2.53:53")
+	r := newResolving("", chromeDNS(t))
+	got, err := r.lookupNames(context.Background(), "www.example.test")
+	if err != nil || !slices.Equal(got, []netip.Addr{netip.MustParseAddr("192.0.2.7")}) {
+		t.Fatalf("%v %v", got, err)
+	}
+	if q := f.queries(); !slices.Contains(q, "A www.example.test.") {
+		t.Errorf("asked %v", q)
+	}
+	mu.Lock()
+	if len(dialed) == 0 {
+		t.Error("no server dialed")
+	}
+	dialed = nil
+	mu.Unlock()
+	// A name under .local is the machine's to find, whatever it finds.
+	was := machineResolver
+	t.Cleanup(func() { machineResolver = was })
+	var machine atomic.Int32
+	machineResolver = &net.Resolver{PreferGo: true, Dial: func(context.Context, string, string) (net.Conn, error) {
+		machine.Add(1)
+		return nil, errors.New("the machine's")
+	}}
+	_, _ = r.lookupNames(context.Background(), "printer.local")
+	mu.Lock()
+	defer mu.Unlock()
+	if machine.Load() == 0 || len(dialed) != 0 {
+		t.Errorf("printer.local: the machine asked %d times, the client's own %v", machine.Load(), dialed)
+	}
+}
+
+// namingServers has the machine name servers for the test: the HTTPS
+// records' servers, and whether a profile's built-in resolver can ask.
+func namingServers(t *testing.T, servers ...string) {
+	t.Helper()
+	was := systemDNSServers
+	t.Cleanup(func() { systemDNSServers = was })
+	systemDNSServers = func() []string { return servers }
+}
+
 // chromeDNS is the DNS policy of Chrome's profiles.
 func chromeDNS(t *testing.T) behavior.Policy {
 	t.Helper()
 	p := behavior.Policy{}
 	for k, v := range map[string]string{"dns.https_records": "true", "dns.https_wait_percent": "20",
-		"dns.https_wait_min_ms": "5", "dns.https_wait_max_ms": "50"} {
+		"dns.https_wait_min_ms": "5", "dns.https_wait_max_ms": "50", "dns.resolver": `"built-in"`} {
 		p[k] = []byte(v)
 	}
 	if err := p.Validate(); err != nil {
@@ -374,23 +482,6 @@ func TestADNSServerIsAnAddressWithAPort(t *testing.T) {
 	}
 	if _, err := New(WithDNSServer("dns.example.test")); err == nil {
 		t.Error("a client takes a DNS server of no address")
-	}
-}
-
-func TestTheMachinesDNSServersAreResolvConfs(t *testing.T) {
-	dir := t.TempDir()
-	defer func(was string) { resolvConf = was }(resolvConf)
-	resolvConf = filepath.Join(dir, "resolv.conf")
-	if got := systemDNSServers(); !slices.Equal(got, []string{"127.0.0.1:53", "[::1]:53"}) {
-		t.Errorf("no file: %v", got)
-	}
-	conf := "# a comment\nsearch example.test\nnameserver 192.0.2.53\nnameserver\nnameserver not-an-address\n" +
-		"sortlist 192.0.2.99\nnameserver 2001:db8::53\noptions ndots:2\n"
-	if err := os.WriteFile(resolvConf, []byte(conf), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if got := systemDNSServers(); !slices.Equal(got, []string{"192.0.2.53:53", "[2001:db8::53]:53"}) {
-		t.Errorf("servers %v", got)
 	}
 }
 
@@ -522,9 +613,8 @@ func TestAServerThatDoesNotAnswerIsGivenUp(t *testing.T) {
 		return []dnsRecord{{name: "www.example.test", https: service(1, ".", echParam("A"))}}, 0, 0
 	})
 	real := exchangeDNS
-	defer func(servers string) { exchangeDNS, resolvConf = real, servers }(resolvConf)
-	resolvConf = filepath.Join(t.TempDir(), "resolv.conf")
-	_ = os.WriteFile(resolvConf, []byte("nameserver 127.0.0.1\nnameserver 127.0.0.2\n"), 0o600)
+	defer func() { exchangeDNS = real }()
+	namingServers(t, "127.0.0.1:53", "127.0.0.2:53")
 	var tried []string
 	exchangeDNS = func(ctx context.Context, server string, query []byte, id uint16) ([]byte, error) {
 		tried = append(tried, server)

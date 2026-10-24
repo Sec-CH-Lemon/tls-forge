@@ -11,10 +11,9 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// systemDNSServers are the DNS servers of the machine's adapters that are up,
-// each on port 53, as Go's resolver reads them; the machine itself when there
-// are none.
-func systemDNSServers() []string {
+// machineDNSServers are the DNS servers of the machine's adapters that are
+// up, each on port 53, as Go's resolver reads them; none when there are none.
+func machineDNSServers() []string {
 	var servers []string
 	size := uint32(15000)
 	for range 3 {
@@ -49,9 +48,6 @@ func systemDNSServers() []string {
 			}
 		}
 		break
-	}
-	if len(servers) == 0 {
-		servers = []string{"127.0.0.1:53", "[::1]:53"}
 	}
 	return servers
 }

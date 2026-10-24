@@ -2599,9 +2599,11 @@ lost HTTP/1.1 connection's POST, and took a 408 as the answer. The fields are
 
 ### Encrypted Client Hello from DNS
 
-A direct connection to a name asks the name's HTTPS records (RFC 9460) of the
-DNS servers its addresses come from, at the same time, as Chrome does, and
-offers Encrypted Client Hello (RFC 9849) with the configs the record gives:
+A direct connection to a name asks its addresses and its HTTPS records
+(RFC 9460) of the machine's DNS servers itself, at the same time, as Chrome's
+built-in DNS client does (a name under `.local`, and `localhost` and names
+under it, are the machine's resolver's, as Chrome's are), and offers
+Encrypted Client Hello (RFC 9849) with the configs the record gives:
 the server sees the config's public name in the outer hello and the real one
 only in the inner, which the shipped Chrome profiles make as Chrome makes it
 (measured on Chrome 155 on macOS, 2026-10-24, against servers that opened
@@ -2626,8 +2628,9 @@ every inner hello they were sent, byte for byte):
 
 `--dns-server` (`WithDNSServer` in Go) points the lookups at another server.
 Through a proxy nothing is looked up here, and GREASE ECH goes as before. The
-profile fields are `dns.https_*` and `tls.ech_*`; a profile without them
-offers no ECH. See
+profile fields are `dns.resolver`, `dns.https_*` and `tls.ech_*`; a profile
+without them asks the machine's resolver for addresses alone and offers no
+ECH. See
 [the field reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
 
 ### Empty uploads and profile-owned Content-Length

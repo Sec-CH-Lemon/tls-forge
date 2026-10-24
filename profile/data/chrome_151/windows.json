@@ -17,6 +17,7 @@
     "dns.https_wait_max_ms": 50,
     "dns.https_wait_min_ms": 5,
     "dns.https_wait_percent": 20,
+    "dns.resolver": "built-in",
     "h1.auth_body": "read-all",
     "h1.dropped_body": "drain",
     "h1.idle_connection_timeout_ms": 300000,

@@ -23,11 +23,16 @@ import (
 
 // resolving is how a client with no proxy finds a site, as Chrome's host
 // resolver finds one for a direct connection (measured on Chrome 155,
-// testdata/chrome155-ech-dns.json): its addresses, with the machine's
-// resolver or with the DNS server WithDNSServer names; and, where the
-// profile asks for them (dns.https_records), its HTTPS records (RFC 9460),
-// asked of the same servers alongside the addresses, whose ECH configs the
-// connection offers (tls.ech).
+// testdata/chrome155-ech-dns.json): its addresses, asked of the DNS server
+// WithDNSServer names, else as the profile says (dns.resolver): by a client
+// of tls-forge's own of the machine's DNS servers ("built-in", as Chrome's
+// built-in DNS client asks them: kAsyncDns, InsecureDnsMode kEnabledBuiltIn),
+// or by the machine's resolver; and, where the profile asks for them
+// (dns.https_records), its HTTPS records (RFC 9460), asked of the same
+// servers alongside the addresses, whose ECH configs the connection offers
+// (tls.ech). A name the network does not answer, localhost or one under it
+// and one under .local, is always the machine's resolver's, as Chrome
+// resolves it itself or by its system task.
 //
 // Once the addresses are in, a connection waits for the records no longer
 // than dns.https_wait_percent of the time the lookup has taken so far, but
@@ -38,7 +43,7 @@ import (
 // connection made again, after a server refused its ECH, asks for nothing.
 type resolving struct {
 	server   string        // the DNS server asked instead of the machine's, or ""
-	resolver *net.Resolver // the addresses' resolver: the machine's, or the server's
+	resolver *net.Resolver // the resolver of names the network answers: the machine's, its own, or the server's
 	https    bool
 	percent  int
 	min, max time.Duration
@@ -53,20 +58,75 @@ type keptHTTPS struct {
 }
 
 // newResolving is how a client resolves: with server ("" for the machine's
-// resolver), and as policy says of HTTPS records.
+// servers), and as policy says of its resolver and of HTTPS records.
 func newResolving(server string, p behavior.Policy) *resolving {
-	r := &resolving{server: server, resolver: net.DefaultResolver, https: p.Flag("dns.https_records"),
+	r := &resolving{server: server, resolver: machineResolver, https: p.Flag("dns.https_records"),
 		kept:    map[string]keptHTTPS{},
 		percent: p.Int("dns.https_wait_percent"),
 		min:     time.Duration(p.Uint("dns.https_wait_min_ms")) * time.Millisecond,
 		max:     time.Duration(p.Uint("dns.https_wait_max_ms")) * time.Millisecond}
-	if server != "" {
+	switch {
+	case server != "":
 		var d net.Dialer
 		r.resolver = &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 			return d.DialContext(ctx, network, server)
 		}}
+	case p.Text("dns.resolver") == "built-in" && len(systemDNSServers()) > 0:
+		r.resolver = builtInResolver
+	default:
+		// The machine's resolver asks for addresses alone: no records, as
+		// Chrome's built-in client asks none where the machine names no
+		// server (CanUseInsecureDnsTransactions) and its system task none.
+		r.https = false
 	}
 	return r
+}
+
+// systemDNSServers are the DNS servers the machine names, each on port 53
+// (machineDNSServers): the HTTPS records' when no server was named.
+var systemDNSServers = machineDNSServers
+
+// machineResolver is the machine's own resolver.
+var machineResolver = net.DefaultResolver
+
+// builtInResolver asks the machine's DNS servers itself, as Go's resolver
+// reads them (resolv.conf, or the adapters' on Windows), the hosts file
+// first, as Chrome's built-in client does: what the server answers, not what
+// a cache of the machine's kept, and as late as the server answers.
+var builtInResolver = &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, server string) (net.Conn, error) {
+	return dialDNS(ctx, network, server)
+}}
+
+// dialDNS opens a connection to a DNS server, every query's: the addresses'
+// and the HTTPS records'.
+var dialDNS = func(ctx context.Context, network, server string) (net.Conn, error) {
+	var d net.Dialer
+	return d.DialContext(ctx, network, server)
+}
+
+// resolverFor is the resolver that finds host's addresses: the machine's
+// for a name the network does not answer (networkName), unless a server was
+// named, else the client's.
+func (r *resolving) resolverFor(host string) *net.Resolver {
+	if r.server == "" && !networkName(host) {
+		return machineResolver
+	}
+	return r.resolver
+}
+
+// networkName says whether the network answers for host: a name, not an
+// address, localhost or a name under it, which Chrome answers itself (its
+// ResolveLocalHostname), or one under .local, which Chrome leaves to the
+// system (ResemblesMulticastDNSName).
+func networkName(host string) bool {
+	if host == "" {
+		return false
+	}
+	if _, err := netip.ParseAddr(host); err == nil {
+		return false
+	}
+	name := strings.ToLower(strings.TrimSuffix(host, "."))
+	return name != "localhost" && !strings.HasSuffix(name, ".localhost") && !strings.HasSuffix(name, ".local")
 }
 
 // dnsServerOf is the server WithDNSServer names, with its port: an IP
@@ -90,7 +150,7 @@ func dnsServerOf(address string) (string, error) {
 // for: Chrome looks a name up before it sends a request over an HTTP/2
 // connection to another, at an address the name has, on its certificate.
 func (r *resolving) lookupNames(ctx context.Context, host string) ([]netip.Addr, error) {
-	return r.resolver.LookupNetIP(ctx, "ip", host)
+	return r.resolverFor(host).LookupNetIP(ctx, "ip", host)
 }
 
 // wait is how long a connection waits for the HTTPS records of a lookup
@@ -103,17 +163,10 @@ func (r *resolving) wait(elapsed time.Duration) time.Duration {
 	return max(w, r.min)
 }
 
-// asksFor says whether the HTTPS records of host are asked for: a name, but
-// one the machine answers for itself.
+// asksFor says whether the HTTPS records of host are asked for: a name the
+// network answers for.
 func (r *resolving) asksFor(host string) bool {
-	if !r.https || host == "" {
-		return false
-	}
-	if _, err := netip.ParseAddr(host); err == nil {
-		return false
-	}
-	name := strings.ToLower(strings.TrimSuffix(host, "."))
-	return name != "localhost" && !strings.HasSuffix(name, ".localhost") && !strings.HasSuffix(name, ".local")
+	return r.https && networkName(host)
 }
 
 // httpsQueryName is the name whose HTTPS records say how to reach port of
@@ -322,8 +375,7 @@ var exchangeDNS = func(ctx context.Context, server string, query []byte, id uint
 }
 
 func exchangeOver(ctx context.Context, network, server string, query []byte, id uint16) ([]byte, error) {
-	var d net.Dialer
-	conn, err := d.DialContext(ctx, network, server)
+	conn, err := dialDNS(ctx, network, server)
 	if err != nil {
 		return nil, err
 	}

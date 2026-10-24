@@ -11,8 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
-- A direct connection to a name asks the name's HTTPS records (RFC 9460) and
-  offers real Encrypted Client Hello (RFC 9849) with the configs a record
+- A direct connection to a name asks its addresses and its HTTPS records
+  (RFC 9460) of the machine's DNS servers itself, at the same time, as
+  Chrome's built-in DNS client does (`*.local`, and `localhost` and names
+  under it, stay the machine's resolver's, as Chrome's do; a machine that
+  names no DNS server answers with its resolver, and no record is asked),
+  and offers real Encrypted Client Hello (RFC 9849) with the configs a record
   gives, as Chrome 155 does, measured on macOS against servers that opened
   every inner hello (testdata/chrome155-ech-dns.json): the record of
   `_PORT._https.NAME` for a port other than 443, its TargetName the name (or
@@ -28,7 +32,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   speaks TLS 1.2, a second refusal the request's failure. An `http://`
   request whose name has a record goes to `https://` as an internal redirect
   (307, `Non-Authoritative-Reason: DNS`), never sent, its next hop's fields
-  in a redirect's order, as Chrome's. New profile fields `dns.https_records`,
+  in a redirect's order, as Chrome's. At cloudflare-ech.com over a home
+  router, by turns with Chrome 155, both took ECH in 8 visits of 8. New
+  profile fields `dns.resolver`, `dns.https_records`,
   `dns.https_wait_percent`, `dns.https_wait_min_ms`, `dns.https_wait_max_ms`,
   `dns.https_upgrade`, `tls.ech`, `tls.ech_inner_own`,
   `tls.ech_inner_omitted`, `tls.ech_inner_min_version`,

@@ -13,10 +13,9 @@ import (
 // resolvConf is where the machine's DNS servers are said.
 var resolvConf = "/etc/resolv.conf"
 
-// systemDNSServers are the DNS servers the machine asks, as resolv.conf names
-// them, each on port 53; the machine itself when it names none, as Go's
-// resolver takes it.
-func systemDNSServers() []string {
+// machineDNSServers are the DNS servers the machine asks, as resolv.conf
+// names them, each on port 53; none when it names none.
+func machineDNSServers() []string {
 	var servers []string
 	if f, err := os.Open(resolvConf); err == nil {
 		defer func() { _ = f.Close() }()
@@ -30,9 +29,6 @@ func systemDNSServers() []string {
 				servers = append(servers, net.JoinHostPort(addr.String(), "53"))
 			}
 		}
-	}
-	if len(servers) == 0 {
-		servers = []string{"127.0.0.1:53", "[::1]:53"}
 	}
 	return servers
 }

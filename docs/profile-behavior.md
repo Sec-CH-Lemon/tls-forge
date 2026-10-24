@@ -1045,7 +1045,8 @@ keep it until measured.
 
 | Key | Meaning / Chrome 155 choice |
 | --- | --- |
-| `dns.https_records` | Ask a name's HTTPS records for a direct connection to it, as Chrome does for http, https, ws and wss (`kUseDnsHttpsSvcb`): of the same servers as its addresses, at the same time, for `_PORT._https.NAME` where the port is not 443 (`GetNameForHttpsQuery`). Not for an address, `localhost` and names under it, or `.local`. `true`. |
+| `dns.resolver` | Who asks a direct connection's names: `built-in`, a DNS client of tls-forge's own that reads the machine's DNS servers (resolv.conf, an adapter's on Windows) and its hosts file and asks the servers itself, as Chrome's built-in client does (`kAsyncDns`, InsecureDnsMode `kEnabledBuiltIn`, on by default on macOS, Windows, Linux, Android and ChromeOS in Chrome 155); or `system`, the machine's resolver, with its cache. With `built-in`, a name under `.local` stays the machine's (Chrome's system task), and `localhost` and names under it too (Chrome answers them itself); where the machine names no DNS server, its resolver answers and no record is asked (Chrome's client cannot run then, `CanUseInsecureDnsTransactions`). A server named with `--dns-server` (`WithDNSServer`) is asked every name whatever this says. Absent: `system`. `built-in`. |
+| `dns.https_records` | Ask a name's HTTPS records for a direct connection to it, as Chrome does for http, https, ws and wss (`kUseDnsHttpsSvcb`): of the same servers as its addresses, at the same time, for `_PORT._https.NAME` where the port is not 443 (`GetNameForHttpsQuery`). Not for an address, `localhost` and names under it, or `.local`. Needs `dns.resolver` `built-in`: a record asked apart from addresses the machine's resolver answers from its cache would come later than the wait every time. `true`. |
 | `dns.https_wait_percent`, `dns.https_wait_min_ms`, `dns.https_wait_max_ms` | Once the addresses are in, how long a connection waits for the records: this percent of the time the lookup has taken so far, at least the floor, at most the ceiling (0: none); after it the connection goes on without them (`HostResolverDnsTask::MaybeStartTimeoutTimer`). `20`, `5`, `50`. Need `dns.https_records`. |
 | `dns.https_upgrade` | A request to plain http whose name has a record Chrome takes goes to https without being sent (Chrome fails its host resolution with ERR_DNS_NAME_HTTPS_ONLY and its URLRequestHttpJob redirects it, 307, `Non-Authoritative-Reason: DNS`): the hop after it is a redirect's, its fields where a redirect's are. Port 80 goes to 443, another stays. `true`. Needs `dns.https_records`. |
 | `tls.ech` | Offer ECH with the configs a connection's records gave. `true`. Needs every key below. |
@@ -1088,8 +1089,23 @@ Sec-Fetch-Dest, as a redirect's hop, `Sec-Fetch-Site: none` typed and
 `cross-site` from a link. Chrome opens a second connection at a navigation's
 start, which makes its own ECH offer; tls-forge opens none.
 
+On the machine's own DNS (2026-10-24, a home router answering A in about
+4 ms and HTTPS records in 7 to 10 ms, so that a record comes near the 5 ms
+floor), at cloudflare-ech.com, which says whether the SNI went encrypted:
+Chrome took ECH in 3 of 5 visits, and in 8 of 8 later; tls-forge, while it
+asked addresses of the machine's resolver, in 2 of 5 (and 0 of 6, but 5 of
+6 with the router named by `--dns-server`); with `dns.resolver` `built-in`,
+in 8 of 8, by turns with Chrome's. Chrome reads its own DNS client's
+answers there, as Chromium 155's source says (`ConfigureStubHostResolver`
+with `kEnabledBuiltIn`).
+
 Not modelled: ECH over QUIC; the HTTP/2 pooling of a name onto another's
 connection whatever their ECH (Chrome pools them, measured); Chrome's DNS
 queries as they are on the wire (its EDNS0 and padding, its AAAA only with
 IPv6, its host cache for addresses: tls-forge asks its resolver again for a
-connection made again); a server that negotiates TLS 1.2 with an ECH offer.
+connection made again); the machine's DNS configurations Chrome's built-in
+client leaves to the system (a macOS configuration of several resolvers,
+a VPN's domains, say, or resolv.conf options it does not know: tls-forge's
+client asks the servers anyway). A server that negotiates
+TLS 1.2 with an ECH offer is refused as BoringSSL refuses it, read in its
+source, not measured.

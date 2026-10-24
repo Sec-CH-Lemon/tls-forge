@@ -116,7 +116,6 @@ func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, res *r
 				d := newDirectDialer(timeout, local)
 				ka.on(&d.dialer)
 				d.resolving = res
-				d.dialer.Resolver = res.resolver
 				return d, nil
 			}),
 			tls_client.WithConnectionCoalescing(res.lookupNames),
@@ -229,6 +228,8 @@ func newDirectDialer(timeout time.Duration, local *net.TCPAddr) *directDialer {
 func (d *directDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	began := time.Now()
 	dialer := d.dialer
+	host, _, _ := net.SplitHostPort(address)
+	dialer.Resolver = d.resolving.resolverFor(host)
 	// Port 80's are plain http's, whose records were asked for, as for
 	// 443, before the request was sent (dnsUpgrade).
 	var https *httpsLookup

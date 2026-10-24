@@ -971,6 +971,49 @@ func TestADNSServerIsAskedForTheAddressesToo(t *testing.T) {
 	}
 }
 
+func TestAChromeProfileAsksTheMachinesServersItselfAsChromesBuiltInClientDoes(t *testing.T) {
+	// No server named: the addresses and the records are asked of the
+	// machine's servers by the client's own resolver, at the same time, so
+	// a record the server answers with its addresses comes in time, where
+	// the machine's resolver would answer from its cache before it.
+	good := newECHKey(t, 0x11, ecdh.X25519(), 0x20, [][2]uint16{{1, 1}}, 0)
+	site := startECHSite(t, []tls.EncryptedClientHelloKey{{Config: good.config, PrivateKey: good.key.Bytes(), SendAsRetry: true}},
+		[]echKey{good})
+	dns := echNames(t, map[string]*dnsmessage.SVCBResource{"ech.ech.test": service(1, "ech.ech.test", alpnParam("h2"),
+		echParam(echList(good)))}, 0, 0)
+	var mu sync.Mutex
+	var dialed []string
+	real := dialDNS
+	t.Cleanup(func() { dialDNS = real })
+	dialDNS = func(ctx context.Context, network, server string) (net.Conn, error) {
+		mu.Lock()
+		dialed = append(dialed, network+" "+server)
+		mu.Unlock()
+		return real(ctx, network, dns.addr)
+	}
+	namingServers(t, "192.0.2.53:53")
+	c, err := New(WithProfile("chrome_155_macos"), WithInsecureSkipVerify(), WithTimeout(10*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	res, err := c.Do(&Request{URL: "https://ech.ech.test:" + site.port + "/"})
+	if err != nil || res.Status != 200 {
+		t.Fatalf("%v %+v", err, res)
+	}
+	if conns := site.seen(); len(conns) != 1 || conns[0].request != "ech.ech.test:"+site.port+" / ech=true" {
+		t.Fatalf("the site saw %d connections", len(conns))
+	}
+	if q := dns.queries(); !slices.Contains(q, "A ech.ech.test.") || !slices.Contains(q, "HTTPS _"+site.port+"._https.ech.ech.test.") {
+		t.Errorf("asked %v", q)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if !slices.Contains(dialed, "udp 192.0.2.53:53") {
+		t.Errorf("dialed %v", dialed)
+	}
+}
+
 func TestPlainHTTPGoesToHTTPSOnlyWhereTheProfileAndTheClientSay(t *testing.T) {
 	// A plain server at a name with a record: a client through a proxy, one
 	// whose profile does not send plain http to https, and a fresh client of

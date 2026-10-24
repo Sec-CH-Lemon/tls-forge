@@ -290,7 +290,11 @@ option for other roots yet.
 A client with no proxy and no transport options of the caller's asks the
 HTTPS records (RFC 9460) of every name it connects to, alongside its
 addresses, of the DNS servers it looks addresses up with, as its profile says
-(`dns.https_records`), and offers Encrypted Client Hello (RFC 9849) with the
+(`dns.https_records`): the machine's servers, which a DNS client of its own
+asks as Chrome's built-in client does (`dns.resolver` `built-in`; a name
+under `.local`, and `localhost` and names under it, are the machine's
+resolver's), or the server `WithDNSServer` names. It offers Encrypted Client
+Hello (RFC 9849) with the
 configs the record it takes gives (`tls.ech`): the outer hello names the
 config's public name, the inner one the site, both as the profile's browser
 makes them. The shipped Chrome profiles do as Chrome 155 does, measured
