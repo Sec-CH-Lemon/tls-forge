@@ -128,8 +128,20 @@ and the system probes an idle TCP connection after 45 s. A request to an
 HTTP/2 connection that has read nothing for more than 10 s sends a PING with
 its HEADERS ([the PING](docs/profile-behavior.md#the-connections-own-ping-unreleased-engine-1));
 when no answer comes and nothing is read for 10 s, the connection is given up
-and a request with no answer yet goes again on another connection, at most
-twice, so a `Trace` may see a request dial twice.
+and a request with no answer yet goes again on another connection, so a
+`Trace` may see a request dial twice.
+
+A request goes again as the profile's browser sends one again
+([requests sent again](docs/profile-behavior.md#requests-sent-again-unreleased-engine-1)).
+With a shipped Chrome profile a stream the server refuses goes again at once
+on its connection, and one above a GOAWAY with NO_ERROR on another, twice at
+most, those two and a PING not answered counted together; above a GOAWAY with
+any other code the request fails. A request whose reused connection is lost
+under it before any of its answer came goes again at once on another,
+whatever its method, a POST with its body, 50 times at most, and a 408 on a
+reused HTTP/1.1 connection closes the connection and sends the request again.
+The counts are a hop's: its answers to a 401 and a 421 share them. `Do`
+returns the last failure; a `Trace` sees each connection a request went on.
 
 An answer a request goes on from without reading it (a redirect followed, a
 401 answered, a navigation started again for its client hints, a CORS

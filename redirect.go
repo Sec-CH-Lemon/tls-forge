@@ -94,6 +94,11 @@ type chain struct {
 	// from then on (took); mu guards them.
 	mu    sync.Mutex
 	taken Header
+	// resends are the times the latest hop went again for a failure of its
+	// own (a refused stream, a GOAWAY, a lost connection), which the
+	// transport counts as Chrome counts them for a transaction: the hop, its
+	// answers to a 401 and a 421 too.
+	resends fhttp.Resends
 }
 
 // sentAuth is the Authorization tls-forge gave a hop: the challenge it
@@ -108,13 +113,13 @@ type sentAuth struct {
 type chainKey struct{}
 
 // in is ctx for a request of the chain: the chain in it, the connection the
-// request goes out on kept, and the jar given the cookies of each answer but
-// a 421 its hop is sent again for; once its hop was sent again for a 421, it
-// goes out on no connection shared with another host, as Chrome sends what is
-// left of a hop with IP pooling off.
+// request goes out on kept, the times its hop went again counted, and the jar
+// given the cookies of each answer but a 421 its hop is sent again for; once
+// its hop was sent again for a 421, it goes out on no connection shared with
+// another host, as Chrome sends what is left of a hop with IP pooling off.
 func (ch *chain) in(ctx context.Context) context.Context {
 	ctx = keepingConn(context.WithValue(ctx, chainKey{}, ch), &ch.conn)
-	ctx = fhttp.WithResponseCookies(ctx, ch.keeps)
+	ctx = fhttp.WithResponseCookies(fhttp.WithResends(ctx, &ch.resends), ch.keeps)
 	return http2.WithCoalescing(ctx, !ch.resent)
 }
 
@@ -217,12 +222,14 @@ func (ch *chain) authenticates(h hop) bool {
 }
 
 // arrive begins the hop to u, a request of method: user, the credentials its
-// URL carried, are kept, none sent; and it is the Authorization the session
+// URL carried, are kept, none sent, and the times it went again are counted
+// from none; and it is the Authorization the session
 // sends unasked to where it goes, worked out from the challenge kept for the
 // directory, nothing for a URL that carries credentials, nor where allowed
 // says none goes.
 func (ch *chain) arrive(method string, u *url.URL, user *url.Userinfo, allowed bool) string {
 	ch.credentials, ch.embedded, ch.sent, ch.restarts, ch.resent = user, false, nil, 0, false
+	ch.resends.Reset()
 	if _, carried := credentialsOf(user); carried || !allowed {
 		return ""
 	}

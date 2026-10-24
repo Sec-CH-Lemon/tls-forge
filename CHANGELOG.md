@@ -11,6 +11,33 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A request goes again as Chrome sends one again, chosen in profile JSON.
+  Over HTTP/2, a stream refused (RST_STREAM REFUSED_STREAM) goes again at once
+  on its connection, and one above a GOAWAY with NO_ERROR on another, as many
+  times as `h2.retries` says for the failures `h2.retry_errors` names, counted
+  together (`refused-stream`, `goaway-no-error`, `goaway-error`,
+  `ping-failed`), `h2.retry_delay_ms` after; a request whose reused
+  connection is closed or reset under it before any of its answer came goes
+  again at once on another, over HTTP/2 and HTTP/1.1, `http.connection_error_
+  retries` times at most, by the methods `http.connection_error_methods` says
+  (`any` or `idempotent`); a 408 on a reused HTTP/1.1 connection closes it and
+  sends the request again (`h1.request_timeout_resend`). The counts are a
+  hop's: its answers to a 401 and a 421 share them. `h2.preface_ping_failed_
+  retries` goes: a request whose connection is given up for its PING goes
+  again as `h2.retry_errors` and `h2.retries` say. The 15 shipped Chrome
+  profiles say Chrome's (`kMaxRetryAttempts` 2, refusals, GOAWAY NO_ERROR and
+  PING counted together, a GOAWAY with an error code failing the request,
+  `kMaxRetryAttemptsOnConnectionErrors` 50, any method, the 408 resent).
+  Before, the transport tried a refused stream or a stream above a GOAWAY of
+  any code seven times, a second apart and longer each time, failed the
+  request of a lost HTTP/2 connection and the POST of a lost HTTP/1.1 one,
+  and took a 408 as the answer; a profile without the fields keeps that.
+  Measured on Chrome 155.0.8059.85 on macOS (29 runs, an own bench speaking
+  HTTP/2 frame by frame), and tls-forge on the same bench (29 runs) does the
+  same, but where Chrome's navigation preconnect makes a first HTTP/1.1
+  connection count as reused. The forks of utls (the keys) and fhttp
+  (`Resends`, the transports' resends) gain it. Same unreleased 1.0.0.
+
 - An answer a request goes on from without reading it is let go of as
   Chrome lets go of it, chosen in profile JSON for each kind and protocol
   (`h1.`/`h2.` `dropped_body`: a redirect followed or refused and a 401
@@ -60,10 +87,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   unanswered or its check pending. Unanswered with nothing read for
   `h2.preface_ping_hung_ms`, it gives the connection up: GOAWAY
   `h2.preface_ping_failed_goaway_code`/`_debug`, then the close, and a request
-  without an answer yet goes again at once on another connection,
-  `h2.preface_ping_failed_retries` times at most. The 15 shipped Chrome
-  profiles say 10 s, 1, 10 s, PROTOCOL_ERROR "Failed ping." and 2; other
-  policies keep no PING. Measured on Chrome 155.0.8059.85 on macOS; the forks
+  without an answer yet goes again at once on another connection, as a
+  refused one does (`ping-failed` in `h2.retry_errors`, above). The 15
+  shipped Chrome profiles say 10 s, 1, 10 s and PROTOCOL_ERROR "Failed
+  ping."; other policies keep no PING. Measured on Chrome 155.0.8059.85 on macOS; the forks
   of utls (the keys) and fhttp (the mechanism) gain it. Same unreleased 1.0.0.
 
 - Connection lifecycle as Chrome's, chosen in profile JSON: TCP keep-alive

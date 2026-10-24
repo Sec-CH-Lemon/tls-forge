@@ -228,9 +228,8 @@ func TestConnectionLifecyclePolicyIsTypedAndCoherent(t *testing.T) {
 }
 
 // TestPrefacePingPolicyIsTypedAndCoherent: the connection's own PING, its
-// count, when a connection is given up, the GOAWAY it says and how often a
-// request goes again are typed, bounded, and said only with what they
-// depend on.
+// count, when a connection is given up and the GOAWAY it says are typed,
+// bounded, and said only with what they depend on.
 func TestPrefacePingPolicyIsTypedAndCoherent(t *testing.T) {
 	long := `"` + strings.Repeat("x", 1025) + `"`
 	for _, tc := range []struct{ body, want string }{
@@ -241,9 +240,8 @@ func TestPrefacePingPolicyIsTypedAndCoherent(t *testing.T) {
 		{`{"h2.preface_ping_hung_ms":10000}`, "requires h2.preface_ping_idle_ms"},
 		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_first_id":18446744073709551616}`, "cannot unmarshal"},
 		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":4294967296}`, "must be in"},
-		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_failed_retries":1}`, "requires h2.preface_ping_hung_ms"},
 		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_failed_goaway_code":1}`, "requires h2.preface_ping_hung_ms"},
-		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_retries":17}`, "must be in"},
+		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_retries":2}`, "unsupported behavior field"},
 		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_goaway_code":4294967296}`, "must be in"},
 		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_goaway_debug":"x"}`, "requires h2.preface_ping_failed_goaway_code"},
 		{`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,"h2.preface_ping_failed_goaway_code":1,"h2.preface_ping_failed_goaway_debug":"a\nb"}`, "control byte"},
@@ -259,9 +257,60 @@ func TestPrefacePingPolicyIsTypedAndCoherent(t *testing.T) {
 	}
 	for _, body := range []string{
 		`{"h2.preface_ping_idle_ms":0}`,
-		`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":0,"h2.preface_ping_failed_retries":0}`,
+		`{"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":0}`,
 		`{"h2.preface_ping_idle_ms":4294967295,"h2.preface_ping_first_id":18446744073709551615}`,
-		`{"h2.preface_ping_idle_ms":10000,"h2.preface_ping_first_id":0,"h2.preface_ping_hung_ms":4294967295,"h2.preface_ping_failed_retries":16,"h2.preface_ping_failed_goaway_code":4294967295,"h2.preface_ping_failed_goaway_debug":""}`,
+		`{"h2.preface_ping_idle_ms":10000,"h2.preface_ping_first_id":0,"h2.preface_ping_hung_ms":4294967295,"h2.preface_ping_failed_goaway_code":4294967295,"h2.preface_ping_failed_goaway_debug":""}`,
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err != nil {
+			t.Errorf("%s: %v", body, err)
+		}
+	}
+}
+
+// TestRetryPolicyIsTypedAndCoherent: how many times a request goes again, for
+// which HTTP/2 failures, after how long, how many times after a lost
+// connection and by which methods, and whether after a 408: typed, bounded,
+// each failure known and named once, and said only with what it depends on.
+func TestRetryPolicyIsTypedAndCoherent(t *testing.T) {
+	const ping = `"h2.preface_ping_idle_ms":0,"h2.preface_ping_hung_ms":1,`
+	for _, tc := range []struct{ body, want string }{
+		{`{"h2.retries":17,"h2.retry_errors":[]}`, "must be in"},
+		{`{"h2.retries":-1,"h2.retry_errors":[]}`, "cannot unmarshal"},
+		{`{"h2.retries":2}`, "go together"},
+		{`{"h2.retry_errors":["refused-stream"]}`, "go together"},
+		{`{"h2.retries":2,"h2.retry_errors":"refused-stream"}`, "cannot unmarshal"},
+		{`{"h2.retries":2,"h2.retry_errors":["refused"]}`, "unknown or repeated"},
+		{`{"h2.retries":2,"h2.retry_errors":["refused-stream","refused-stream"]}`, "unknown or repeated"},
+		{`{"h2.retries":2,"h2.retry_errors":["ping-failed"]}`, "names ping-failed while no PING is given up"},
+		{`{"h2.retry_delay_ms":0}`, "requires h2.retries"},
+		{`{"h2.retries":2,"h2.retry_errors":[],"h2.retry_delay_ms":60001}`, "must be in"},
+		{`{"h2.retries":2,"h2.retry_errors":[],"http.connection_error_retries":1001,"http.connection_error_methods":"any"}`, "must be in"},
+		{`{"h2.retries":2,"h2.retry_errors":[],"http.connection_error_retries":50}`, "go together"},
+		{`{"h2.retries":2,"h2.retry_errors":[],"http.connection_error_methods":"any"}`, "go together"},
+		{`{"h2.retries":2,"h2.retry_errors":[],"http.connection_error_retries":50,"http.connection_error_methods":"post"}`, "unsupported primitive"},
+		{`{"http.connection_error_retries":50,"http.connection_error_methods":"any"}`, "requires h2.retries"},
+		{`{"h1.request_timeout_resend":1}`, "cannot unmarshal"},
+		{`{"h1.request_timeout_resend":null}`, "must not be null"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+	for _, body := range []string{
+		`{"h2.retries":0,"h2.retry_errors":[]}`,
+		`{"h2.retries":16,"h2.retry_errors":["refused-stream","goaway-no-error","goaway-error"],"h2.retry_delay_ms":60000}`,
+		`{` + ping + `"h2.retries":2,"h2.retry_errors":["ping-failed"]}`,
+		`{"h2.retries":2,"h2.retry_errors":[],"http.connection_error_retries":0,"http.connection_error_methods":"idempotent"}`,
+		`{"h2.retries":2,"h2.retry_errors":[],"http.connection_error_retries":1000,"http.connection_error_methods":"any"}`,
+		`{"h1.request_timeout_resend":false}`,
 	} {
 		var p behavior.Policy
 		if err := json.Unmarshal([]byte(body), &p); err != nil {
@@ -425,10 +474,9 @@ func TestEveryShippedChromeProfileChainsItsStreamsAsChrome(t *testing.T) {
 }
 
 // TestEveryShippedChromeProfilePingsAsChrome pins the shipped data to
-// Chrome's SpdySession and HttpNetworkTransaction: a PING after 10 s of
-// reading nothing, the first saying 1, a connection given up 10 s after it
-// with GOAWAY PROTOCOL_ERROR "Failed ping.", and a request sent again twice
-// at most.
+// Chrome's SpdySession: a PING after 10 s of reading nothing, the first
+// saying 1, and a connection given up 10 s after it with GOAWAY
+// PROTOCOL_ERROR "Failed ping.".
 func TestEveryShippedChromeProfilePingsAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
 	if err != nil || len(names) != 15 {
@@ -440,7 +488,6 @@ func TestEveryShippedChromeProfilePingsAsChrome(t *testing.T) {
 		"h2.preface_ping_hung_ms":             "10000",
 		"h2.preface_ping_failed_goaway_code":  "1",
 		"h2.preface_ping_failed_goaway_debug": `"Failed ping."`,
-		"h2.preface_ping_failed_retries":      "2",
 	}
 	for _, name := range names {
 		raw, err := os.ReadFile(name)
@@ -456,6 +503,49 @@ func TestEveryShippedChromeProfilePingsAsChrome(t *testing.T) {
 			if string(b[k]) != v {
 				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
 			}
+		}
+	}
+}
+
+// TestEveryShippedChromeProfileRetriesAsChrome pins the shipped data to
+// Chrome's HttpNetworkTransaction (kMaxRetryAttempts,
+// kMaxRetryAttemptsOnConnectionErrors, ShouldResendRequest and the 408 of
+// DoReadHeadersComplete) and SpdySession (OnRstStream, OnGoAway), as
+// measured: a request goes again at once, twice at most, after a refused
+// stream, a GOAWAY with NO_ERROR above it or a PING not answered, never
+// after a GOAWAY with another code; 50 times at most after a reused
+// connection was lost, whatever its method; and after a 408 on a reused
+// HTTP/1.1 connection.
+func TestEveryShippedChromeProfileRetriesAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	want := map[string]string{
+		"h2.retries":                    "2",
+		"h2.retry_errors":               `["refused-stream","goaway-no-error","ping-failed"]`,
+		"h2.retry_delay_ms":             "0",
+		"http.connection_error_retries": "50",
+		"http.connection_error_methods": `"any"`,
+		"h1.request_timeout_resend":     "true",
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+		if b.Has("h2.preface_ping_failed_retries") {
+			t.Errorf("%s: still says h2.preface_ping_failed_retries", name)
 		}
 	}
 }

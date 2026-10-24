@@ -141,6 +141,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h1.missing_status` | `200` |
 | `h1.preflight_body` | `"first-bytes"` |
 | `h1.preserve_framing_fields` | `true` |
+| `h1.request_timeout_resend` | `true` |
 | `h1.response_header_bytes` | `262144` |
 | `h1.restart_body` | `"close"` |
 | `h1.unread_grace_us` | `2000` |
@@ -162,7 +163,6 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.preflight_body` | `"first-bytes"` |
 | `h2.preface_ping_failed_goaway_code` | `1` |
 | `h2.preface_ping_failed_goaway_debug` | `"Failed ping."` |
-| `h2.preface_ping_failed_retries` | `2` |
 | `h2.preface_ping_first_id` | `1` |
 | `h2.preface_ping_hung_ms` | `10000` |
 | `h2.preface_ping_idle_ms` | `10000` |
@@ -170,6 +170,9 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.reject_unsolicited_ping_ack` | `true` |
 | `h2.reset_data_before_headers` | `true` |
 | `h2.restart_body` | `"close"` |
+| `h2.retries` | `2` |
+| `h2.retry_delay_ms` | `0` |
+| `h2.retry_errors` | `["refused-stream","goaway-no-error","ping-failed"]` |
 | `h2.strict_max_streams` | `true` |
 | `h2.tolerated_response_fields` | `["connection","keep-alive"]` |
 | `h2.unread_grace_us` | `500` |
@@ -231,6 +234,8 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `http.auth_cache_paths` | `10` |
 | `http.auth_scheme_order` | `["basic","digest","ntlm","negotiate"]` |
 | `http.body_read_bytes` | `8192` |
+| `http.connection_error_methods` | `"any"` |
+| `http.connection_error_retries` | `50` |
 | `http.content_codings` | `["gzip","x-gzip","deflate","br","zstd"]` |
 | `http.digest_algorithms` | `["MD5","MD5-sess","SHA-256","SHA-256-sess"]` |
 | `http.digest_cnonce_bytes` | `8` |
@@ -630,7 +635,10 @@ measured.
 | `h2.preface_ping_hung_ms` | How long a PING may go unanswered with nothing read before the connection is given up, 0 never; `10000` (`kHungIntervalSeconds`). A read after the PING, its answer aside, puts it off until nothing has been read for that long. |
 | `h2.preface_ping_failed_goaway_code` | The GOAWAY a connection given up says before it closes (last stream 0), absent none; `1`, PROTOCOL_ERROR (`MapNetErrorToGoAwayStatus` of ERR_HTTP2_PING_FAILED). |
 | `h2.preface_ping_failed_goaway_debug` | That GOAWAY's debug data; `"Failed ping."`. At most 1024 bytes. |
-| `h2.preface_ping_failed_retries` | How often a request without an answer yet goes again, at once, on another connection, when its own is given up; `2` (`kMaxRetryAttempts`). At most 16; a body without `GetBody` that began to go cannot go again. |
+
+A request without an answer yet whose connection is given up goes again on
+another as `h2.retry_errors` (`ping-failed`) and `h2.retries` say, below
+(«Requests sent again»).
 
 No other PING goes while one is unanswered, nor while the check of one is
 pending (`h2.preface_ping_hung_ms` after it, answered or not), as Chrome's.
@@ -643,8 +651,8 @@ session ends its streams before its write loop writes the GOAWAY. A write
 the dead connection holds up gives up within `h2.preface_ping_hung_ms`.
 
 `h2.preface_ping_first_id` and `h2.preface_ping_hung_ms` need
-`h2.preface_ping_idle_ms`; `h2.preface_ping_failed_goaway_code` and
-`h2.preface_ping_failed_retries` need `h2.preface_ping_hung_ms`;
+`h2.preface_ping_idle_ms`; `h2.preface_ping_failed_goaway_code` needs
+`h2.preface_ping_hung_ms`;
 `h2.preface_ping_failed_goaway_debug` needs the code. The same applies on an
 HTTPS proxy's HTTP/2 connection, which takes the profile's policy, and to a
 tunnel's DATA through it.
@@ -824,3 +832,83 @@ fhttp's `drain_test.go`, `drain_internal_test.go`,
 mechanism. Not done: a grace of each kind's own (Chrome's window is its
 processes' passing the answer on, from under 1 ms for an HTTP/2 redirect to
 about 4 ms for a Critical-CH start again); HTTP/3.
+
+## Requests sent again (unreleased engine 1)
+
+A request that a server refuses, sends a GOAWAY above, or whose connection it
+closes before answering, goes again or fails as the browser decides
+(HttpNetworkTransaction::HandleIOError, ShouldResendRequest and
+DoReadHeadersComplete; SpdySession::OnRstStream and OnGoAway), and a server
+sees which: how many times, on which connection, how soon, and whether a POST
+comes back. Before, tls-forge did as Go's transports do: over HTTP/2 up to
+seven tries after a refused stream or a stream above any GOAWAY, the second a
+second after the first and each later one longer, and none after a lost
+connection; over HTTP/1.1 the request of a lost reused connection again only
+when idempotent, and a 408 the answer. Absent fields keep that; catalogue,
+legacy and migration policies keep it until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `h2.retries` | How many times at most a request goes again for the HTTP/2 failures `h2.retry_errors` names, all of them together; `2` (`kMaxRetryAttempts`, which ERR_HTTP2_PING_FAILED and ERR_HTTP2_SERVER_REFUSED_STREAM share). At most 16. |
+| `h2.retry_errors` | The failures that send a request again: `refused-stream` (RST_STREAM REFUSED_STREAM: on its connection, while it takes streams), `goaway-no-error` and `goaway-error` (a stream above the last a GOAWAY with NO_ERROR, or with another code, says the server took: on another connection), `ping-failed` (its connection given up for its PING, which needs `h2.preface_ping_hung_ms`). Each once. Chrome: `["refused-stream","goaway-no-error","ping-failed"]`; a GOAWAY with an error code fails the streams above it (ERR_HTTP2_PROTOCOL_ERROR). Goes with `h2.retries`. |
+| `h2.retry_delay_ms` | How long a request waits before it goes again for one of them; `0`. At most 60000. Needs `h2.retries`. |
+| `http.connection_error_retries` | How many times at most a request goes again, at once, on another connection, when the reused connection it went on was lost under it (closed or reset by the server, or a write to it failed) before any of its answer came, not even a 1xx; `50` (`kMaxRetryAttemptsOnConnectionErrors`). At most 1000. Over HTTP/2 a connection is reused when it had read a frame before the request's stream opened (SpdySession::IsReused counts frames received), over HTTP/1.1 when it had carried a request before. A loss on a new connection is final, as Chrome's. Needs `h2.retries`. |
+| `http.connection_error_methods` | Which requests may go again for a lost connection: `any`, or `idempotent` (GET, HEAD, OPTIONS, TRACE, or one with an Idempotency-Key, as Go's net/http sends one again). Chrome: `any`, a POST with its body. Goes with `http.connection_error_retries`. |
+| `h1.request_timeout_resend` | A 408 on a reused HTTP/1.1 connection is not the answer: the client closes the connection, the 408 unread, and sends the request again on another (DoReadHeadersComplete). A 408 on a new connection, or over HTTP/2, is the answer. Chrome: `true`. |
+
+Both counts are a hop's, as Chrome keeps them for a transaction: a hop's
+answers to its 401 and its 421 share them, and the next hop of a redirect
+starts from none (`chain.resends`; fhttp's `Resends`). A request whose body
+cannot be read again cannot go again, and fails saying so. A request given a
+connection that could take it no more before anything of it was sent goes
+again at once, seven times at most, whatever the profile says.
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-24, `../net-fp-server/captures/review-20261023/runs/rc-*`, 29
+runs, one a scenario; `bench/retry`, a server speaking HTTP/2 frame by frame
+and HTTP/1.1 line by line, the request after two pages so that it goes on a
+reused connection):
+over HTTP/2 a refused stream again at once on its connection, twice at most,
+then the request failed, a POST with its body; a stream above a GOAWAY with
+NO_ERROR again at once on a new connection, counted with the refusals
+(refused, GOAWAY, refused: failed at the third); a GOAWAY with PROTOCOL_ERROR,
+INTERNAL_ERROR or ENHANCE_YOUR_CALM failed the request; the reused
+connection closed or reset under it, or closed after a GOAWAY that took its
+stream, again at once on a new one, a POST too, and that one's loss failed
+it, as a new connection's did; two refusals and then the connection's loss:
+again all the same, the loss counted apart; a 408 the answer. Over HTTP/1.1,
+a reused connection closed or reset before any of the answer: again at once
+on another, a `fetch()` POST and a form's POST with their bodies; a status
+line cut short: failed; a 408 on a reused connection: closed by Chrome at
+once and the request again on another. Chrome's error page reloads itself
+about 1 s after a navigation that failed, with `Cache-Control: max-age=0`:
+its renderer's, not modelled. Chromium's source for 151 (branch 7922) and 155
+(8059) agrees line by line. Linux and Windows are not measured.
+
+tls-forge with these values on the same bench (`rf1-*`, 29 runs): each
+scenario as Chrome's, the request again 0 to 4 ms after the failure (a new
+connection's dial). Before (`rf0-*`): a second refusal's try a second late
+and a third's two more, a request refused three times answered at its
+fourth, a stream above a GOAWAY with an error code sent again, the request of
+a lost HTTP/2 connection and the POST of a lost HTTP/1.1 one failed, a 408
+the answer.
+
+What still differs: Chrome's navigation preconnects a socket over HTTP/1.1,
+which, idle and unused, counts as reused (HttpBasicState::IsConnectionReused):
+a navigation whose first connection to an origin is lost, or answered 408,
+goes again there, and once more after a loss on that socket, where
+tls-forge, which preconnects nothing, fails it or takes the 408 (`rc-h1-
+close-fresh`, `-408-fresh`, `-close-twice`, `-408-twice`). A GOAWAY with
+HTTP_1_1_REQUIRED, which Chrome answers by going again over HTTP/1.1, fails
+the streams above it as any error code does; HTTP/3 keeps its own keys.
+
+Tests: `TestARequestGoesAgainAsChromeSendsItAgainOverHTTP2` and
+`TestARequestGoesAgainAsChromeSendsItAgainOverHTTP1` change only the JSON
+and hold what the server is asked, and on which connection, to each measured
+scenario, the hop's count shared by the answer to a 401 and fresh after a
+redirect, and Go's rules without the keys; `TestRetryPolicyIsTypedAndCoherent`
+and `TestEveryShippedChromeProfileRetriesAsChrome` hold the data. fhttp's
+`http2/resend_test.go`, `resend_test.go` and `resend_internal_test.go` hold
+the mechanism: each kind of failure, the counts and their limits, the delay,
+reused and new connections, a 1xx, the methods, writes that fail, a body that
+cannot go again, and the transports' own rules without the keys.

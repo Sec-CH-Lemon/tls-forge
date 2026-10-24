@@ -22,6 +22,7 @@
     "h1.missing_status": 200,
     "h1.preflight_body": "first-bytes",
     "h1.preserve_framing_fields": true,
+    "h1.request_timeout_resend": true,
     "h1.response_header_bytes": 262144,
     "h1.restart_body": "close",
     "h1.unread_grace_us": 2000,
@@ -57,7 +58,6 @@
     "h2.idle_connection_timeout_ms": 0,
     "h2.preface_ping_failed_goaway_code": 1,
     "h2.preface_ping_failed_goaway_debug": "Failed ping.",
-    "h2.preface_ping_failed_retries": 2,
     "h2.preface_ping_first_id": 1,
     "h2.preface_ping_hung_ms": 10000,
     "h2.preface_ping_idle_ms": 10000,
@@ -67,6 +67,13 @@
     "h2.reject_unsolicited_ping_ack": true,
     "h2.reset_data_before_headers": true,
     "h2.restart_body": "close",
+    "h2.retries": 2,
+    "h2.retry_delay_ms": 0,
+    "h2.retry_errors": [
+      "refused-stream",
+      "goaway-no-error",
+      "ping-failed"
+    ],
     "h2.strict_max_streams": true,
     "h2.tolerated_response_fields": [
       "connection",
@@ -384,6 +391,8 @@
       "negotiate"
     ],
     "http.body_read_bytes": 8192,
+    "http.connection_error_methods": "any",
+    "http.connection_error_retries": 50,
     "http.content_codings": [
       "gzip",
       "x-gzip",

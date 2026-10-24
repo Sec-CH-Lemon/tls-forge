@@ -394,7 +394,10 @@ element or the text, whatever its status, and not when it has them. The waits
 between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
 goes out on a connection of its own, so through a proxy that rotates, a try
 turned away from one exit is made again from another; `--reuse-connection`
-makes it again on the same connection. When the
+makes it again on the same connection. Within a try the request may go again
+on its own, as the profile's browser sends one again after a refused stream,
+a GOAWAY or a lost connection ([A request sent again](#a-request-sent-again)),
+on another connection when its own was lost. When the
 tries run out, the last answer is the one that is counted, printed or saved,
 whatever its status, and the exit code still depends only on whether a response
 arrived, and on whether it had what `--wait-for-element` and `--wait-for` name.
@@ -2448,7 +2451,7 @@ Chrome 155 on macOS, 2026-10-23):
   sends a PING after its HEADERS, the first saying 1 (`h2.preface_ping_*`);
   left unanswered 10 s with nothing read, it gives the connection up with a
   GOAWAY PROTOCOL_ERROR "Failed ping.", and the request goes again at once on
-  another connection, twice at most.
+  another connection, as a refused one does (below, «A request sent again»).
 
 A profile without these fields keeps the earlier behaviour. See
 [the field reference](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1)
@@ -2489,6 +2492,35 @@ and protocol is a field of its own (`h1.dropped_body`, `h2.auth_body`, …,
 `http.drain_bytes`, `h1.unread_grace_us`); a profile without them reads as
 before. See
 [the field reference](docs/profile-behavior.md#answers-let-go-of-unread-unreleased-engine-1).
+
+### A request sent again
+
+A server that refuses a request, says GOAWAY above it or closes its
+connection before answering sees what the client does then: how many times
+the request comes back, on which connection, how soon, and whether a POST
+does. The shipped Chrome profiles do what Chrome does (measured on Chrome 155
+on macOS, 2026-10-24):
+
+- over HTTP/2 a refused stream (RST_STREAM REFUSED_STREAM) goes again at once
+  on its connection, and a stream above a GOAWAY with NO_ERROR on another,
+  twice at most, the two and a connection given up for its PING counted
+  together; above a GOAWAY with any other code the request fails;
+- a request whose reused connection is closed or reset under it before any
+  of its answer came goes again at once on another, whatever its method, a
+  POST with its body, 50 times at most; on a new connection, or once its
+  answer began, the loss is final;
+- a 408 on a reused HTTP/1.1 connection is not the answer: the connection is
+  closed and the request sent again on another.
+
+The counts are a hop's: its answers to a 401 and a 421 share them, a
+redirect's next hop starts afresh. Before, the transport tried a refused
+stream seven times, a second apart and longer each time, sent a stream above
+a GOAWAY of any code again, failed a lost HTTP/2 connection's request and a
+lost HTTP/1.1 connection's POST, and took a 408 as the answer. The fields are
+`h2.retries`, `h2.retry_errors`, `h2.retry_delay_ms`,
+`http.connection_error_retries`, `http.connection_error_methods` and
+`h1.request_timeout_resend`; a profile without them keeps the old rules. See
+[the field reference](docs/profile-behavior.md#requests-sent-again-unreleased-engine-1).
 
 ### Empty uploads and profile-owned Content-Length
 
