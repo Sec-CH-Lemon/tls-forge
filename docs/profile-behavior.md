@@ -176,6 +176,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.strict_max_streams` | `true` |
 | `h2.tolerated_response_fields` | `["connection","keep-alive"]` |
 | `h2.unread_grace_us` | `500` |
+| `h2.urgency_weights` | `[255,219,182,146,109,73,36,0]` |
 | `h2.window_update_delay_ms` | `5000` |
 | `h2.window_update_denominator` | `2` |
 | `h2.zero_window_stream_error` | `3` |
@@ -202,34 +203,39 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `headers.default_client_hints` | `["sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-platform"]` |
 | `headers.default_referrer_policy` | `"strict-origin-when-cross-origin"` |
 | `headers.form_cache_control` | `"max-age=0"` |
-| `headers.form_order` | `["content-length","cache-control","authorization","@hints","upgrade-insecure-requests","content-type","user-agent","origin","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","priority"]` |
+| `headers.form_order` | `["content-length","pragma","cache-control","authorization","@hints","upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
+| `headers.given_order` | `"bytes"` |
+| `headers.given_redirect_drops` | `["cookie"]` |
 | `headers.h1_connection_default` | `"keep-alive"` |
 | `headers.h1_generated_priority` | `false` |
 | `headers.h1_prefix` | `["host","connection"]` |
 | `headers.navigation_fetch_user` | `"?1"` |
-| `headers.navigation_order` | `["authorization","@hints","upgrade-insecure-requests","user-agent","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","priority"]` |
+| `headers.navigation_order` | `["pragma","cache-control","authorization","@hints","upgrade-insecure-requests","user-agent","@given","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
 | `headers.preflight_order` | `["accept","access-control-request-method","access-control-request-headers","origin","user-agent","sec-fetch-mode","sec-fetch-site","sec-fetch-dest","referer","accept-encoding","accept-language","priority"]` |
 | `headers.priority_fetch` | `"u=1, i"` |
 | `headers.range_accept_encoding` | `"identity"` |
 | `headers.range_cache_control` | `"max-age=0"` |
 | `headers.redirected_hints_after` | `"sec-fetch-dest"` |
-| `headers.redirected_order` | `["content-length","cache-control","authorization","upgrade-insecure-requests","content-type","user-agent","origin","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","@hints","referer","accept-encoding","accept-language","cookie","priority"]` |
+| `headers.redirected_order` | `["content-length","pragma","cache-control","authorization","upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","@hints","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
 | `headers.renderer_default_hints` | `["sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-platform"]` |
 | `headers.renderer_extra_fields` | `["user-agent"]` |
 | `headers.renderer_hint_insertion_order` | `["device-memory","sec-ch-device-memory","rtt","downlink","ect","sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-arch","sec-ch-ua-platform","sec-ch-ua-platform-version","sec-ch-ua-model","sec-ch-ua-full-version","sec-ch-ua-full-version-list","sec-ch-ua-bitness","sec-ch-ua-wow64","sec-ch-ua-form-factors","save-data","sec-ch-prefers-reduced-transparency","sec-ch-prefers-reduced-motion","sec-ch-prefers-color-scheme","dpr","sec-ch-dpr","viewport-width","sec-ch-viewport-width","viewport-height","sec-ch-viewport-height","width","sec-ch-width"]` |
 | `headers.renderer_initial_buckets` | `8` |
 | `headers.renderer_load_denominator` | `2` |
 | `headers.renderer_order` | `"utf16-rapidhash-quadratic-v1"` |
-| `headers.restarted_order` | `["authorization","upgrade-insecure-requests","user-agent","accept","@hints","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","priority"]` |
+| `headers.renderer_origin_dests` | `["font"]` |
+| `headers.restarted_order` | `["pragma","cache-control","authorization","upgrade-insecure-requests","user-agent","@given","accept","@hints","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]` |
 | `headers.script_leading` | `["content-length"]` |
 | `headers.script_metadata` | `["sec-fetch-site","sec-fetch-mode","sec-fetch-dest","sec-fetch-storage-access"]` |
 | `headers.script_priority_exclusive` | `true` |
 | `headers.script_priority_weight` | `219` |
-| `headers.script_trailing` | `["referer","accept-encoding","accept-language","cookie","range","priority"]` |
+| `headers.script_trailing` | `["referer","accept-encoding","accept-language","cookie","if-none-match","if-modified-since","range","priority"]` |
+| `headers.sent_priority` | `["document=u=0, i","iframe=u=0, i","style=u=0","font=u=0","image=i","script=","empty=u=1, i"]` |
 | `headers.storage_access` | `"active"` |
 | `headers.untrusted_drop_codings` | `["br","zstd"]` |
 | `headers.untrusted_prefixes` | `["sec-ch-","sec-fetch-"]` |
 | `headers.withhold_untrusted` | `true` |
+| `headers.without_context` | `"typed-navigation"` |
 | `http.auth_cache_entries` | `20` |
 | `http.auth_cache_paths` | `10` |
 | `http.auth_scheme_order` | `["basic","digest","ntlm","negotiate"]` |
@@ -912,3 +918,89 @@ and `TestEveryShippedChromeProfileRetriesAsChrome` hold the data. fhttp's
 the mechanism: each kind of failure, the counts and their limits, the delay,
 reused and new connections, a 1xx, the methods, writes that fail, a body that
 cannot go again, and the transports' own rules without the keys.
+
+## Requests without a context, and requests a browser sent (unreleased engine 1)
+
+A request without a browser context was the profile's headers with the
+caller's laid over them: a field the profile has no name for after its last,
+after Priority, and the transport's Content-Length last, by any method, a
+navigation with a JSON body included. Chrome sends no such request: a
+navigation is a GET with no body, and every field it writes has its place. And
+a request an intercepting proxy is given by a browser, with the Sec-Fetch-* a
+browser gives every request, went the same way, every image, script and XHR as
+a typed navigation with the browser's own fields after Priority, and every GET
+with `content-length: 0`. Absent fields keep the old way; catalogue, legacy and
+migration policies keep it until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `headers.without_context` | `typed-navigation`: a request without a browser context goes as a navigation typed into the address bar, worked out as one in a context is (`headers.navigation_order` and the rest, the client hints an origin asked for, Accept-CH, Critical-CH and ALPS), a GET with no body, any other refused (`ErrNeedsContext`); `as-given`: the profile's headers with the request's own over them. Needs `headers.browser_context` and `@given`. Chrome: `typed-navigation`. |
+| `@given` | In `headers.navigation_order`, `form_order`, `redirected_order` and `restarted_order`, all four or none, once each: where the fields a request was given go that no other slot of the order names, as Chrome driven over DevTools writes the extra headers it is given (`Network.setExtraHTTPHeaders`): after User-Agent; after Origin in a form's and a redirect's. A field a slot names goes in it, in place of what the browser would give it. |
+| `pragma`, `cache-control`, `if-none-match`, `if-modified-since` | Slots for what Chrome writes of a reload (Pragma and Cache-Control before Authorization: `no-cache` both for a hard one, `max-age=0` for a reload) and of a revalidation (after the cookies), in the four orders; the validators after the cookies in `headers.script_trailing` too. |
+| `headers.given_order` | How the fields in `@given` go: `bytes`, by the bytes of their names as first given, as DevTools gives Chrome them; or `as-given`. Needs `@given`. Chrome: `bytes`. |
+| `headers.given_redirect_drops` | The fields a request was given that no hop of its redirects goes with; `["cookie"]`, as Chrome makes each hop's Cookie of its jar. Lower-case names. Needs `@given`. |
+| `headers.sent_priority` | The Priority Chrome writes over HTTP/2 for a request a browser sent without one, as it sends none over HTTP/1.1, by what it is for (Sec-Fetch-Dest), `destination=Priority`, each once; a destination not named, and one with nothing after `=`, none. Needs `h2.urgency_weights`. |
+| `h2.urgency_weights` | The weight of a HEADERS frame on the wire for each urgency of RFC 9218, 0 to 7, of a request a browser sent; eight of them. Chromium's Spdy3PriorityToHttp2Weight less one: `[255,219,182,146,109,73,36,0]`. |
+| `headers.renderer_origin_dests` | The destinations of a request a browser sent whose Origin its renderer gives, in the renderer's map: `["font"]`; any other's goes after Accept, as the network stack gives fetch()'s. |
+
+A request in a context with `BrowserContext.Sent` is a browser's: the fields
+it is given are all it goes with, in its kind's slots, a script's own and a
+page's subresource's in the renderer's map (`headers.renderer_*`), but the
+profile's user agent, client hints, Accept-Language and Accept-Encoding
+(`headers.browser_base_fields` and the client hints the profile has values
+of), as the handshake says the profile. Nothing the browser works out is
+worked out again: no Origin, Referer, Sec-Fetch-* or client hints of
+tls-forge's, no preflight, no CORS check, no answer to a 401, no start again
+for Critical-CH, no redirect followed, no answer kept. `tls-forge proxy` sends
+a request with Sec-Fetch-Mode so: `navigate` a navigation (typed when
+Sec-Fetch-Site says `none`) or a form's POST, `cors`, `no-cors` and
+`same-origin` fetch() in that mode, the page its Referer or Origin names, with
+credentials when it carries a Cookie or an Authorization.
+
+Measured on Google Chrome 155.0.8059.85, headed, macOS, over its DevTools
+port as Playwright drives it (2026-10-24, `../net-fp-server/captures/
+review-20261023/runs/oc-*` and `op-*`, an own server keeping each request's
+fields as they came and each HEADERS frame's priority, `bench/order`, `oc.sh`,
+`op.sh`, `cdp.mjs`): 25 scenarios over HTTP/2 and HTTP/1.1, 50 runs
+(`testdata/chrome155-given.json`). The extra headers of a navigation go after
+User-Agent and before Accept, by the bytes of their names as given, spelt as
+given over HTTP/1.1; one Chrome writes before them (the client hints,
+Upgrade-Insecure-Requests, User-Agent) in its place with the value given; a
+Referer in its own slot, Sec-Fetch-Site still `none`; Accept, Accept-Language,
+Accept-Encoding, Priority, Authorization, Cache-Control, Pragma, Origin,
+Content-Type, If-None-Match, If-Modified-Since and Range among them, Accept and
+Sec-Fetch-Site with Chrome's values and Accept-Encoding `identity` beside a
+Range; a Cookie given there too, the jar's in its place when the jar has some;
+on a redirect's hop the same after User-Agent (after Origin), the Cookie gone,
+Authorization kept even across origins, an Origin `null` across them; on the
+start again for Critical-CH all of them, the Cookie too, the hints after
+Accept; in a form's POST after Origin. Chrome's own: a reload's
+`cache-control: max-age=0` and a hard reload's `pragma` and `cache-control:
+no-cache` first, before the client hints; a revalidation's If-None-Match and
+If-Modified-Since after the cookies. tls-forge puts a field Chrome writes in a
+slot of its own there instead, as Chrome writes it when it is its own, keeps
+the values it was given, and sends no Authorization across origins: the
+differences `givenApart` names in `TestARequestWithoutAContextGivesItsFields
+AsChromeOverDevToolsDid`, which holds every other field of every scenario to
+Chrome's. A page loading an image, a script, a style sheet, a font and a
+frame, fetch()ing a GET and a POST of JSON, sending an XHR and posting a form
+(`testdata/chrome155-subresources.json`): a document's and a frame's
+Priority `u=0, i` (255), a style sheet's and a font's `u=0` (255), an image's
+`i` and a script's none (146), fetch()'s and the XHR's `u=1, i` (219); a
+font's Origin first. Chrome behind `tls-forge proxy` before: 0 of 9 requests
+as Chrome sends them directly; with these values 11 of 11, over HTTP/2 and
+HTTP/1.1. Linux and Windows are not measured; nor are subresources but these,
+service workers, beacons, prefetches and WebSockets (the proxy answers 501).
+
+Tests: `TestTheFieldsARequestIsGivenGoWhereChromeWritesThem`,
+`TestTheFieldsChromeAddsItselfGoInItsSlotsWhenARequestIsGivenThem`,
+`TestARedirectTakesFromARequestWithoutAContextWhatChromeTakes`,
+`TestACriticalHintRestartsARequestWithoutAContextWithItsOwnFields`,
+`TestARequestWithoutAContextIsSentAgainForTheHintsALPSAsksForWithItsOwnFields`,
+`TestARequestWithoutAContextThatIsNoTypedNavigationIsRefusedAndNothingIsSent`
+and the replay above (typed.go); `TestARequestABrowserSent*`,
+`TestARequestABrowsersPageSentGoesAsFetchInItsModeDoes` and
+`TestAFormABrowserPostedGoesAsChromePostsOne` (sent.go); the proxy's
+`TestABrowsersRequestsReachTheSiteAsChromeSentThemThere` and
+`TestTheContextARequestSaysItWasSentIn`; `TestGivenFieldsPolicyIsTypedAndCoherent`
+and `TestEveryShippedChromeProfileGivesFieldsAsChrome` hold the data.

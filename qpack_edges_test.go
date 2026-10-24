@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	quic "github.com/igor-lemon/quic-go-utls"
 	"github.com/igor-lemon/quic-go-utls/quicvarint"
 	tc "github.com/igor-lemon/tls-client"
@@ -102,10 +101,8 @@ func TestQPACKErrorCloseAndRetryOnProductionQUIC(t *testing.T) {
 					mu.Unlock()
 				}
 			}()
-			p, err := profile.Get("chrome_155_macos")
-			if err != nil {
-				t.Fatal(err)
-			}
+			// Requests without a context by any method, as given.
+			p := asGivenProfile(t, "chrome_155_macos")
 			p.Name = "neutral-profile-name"
 			p.Behavior["h3.retry_attempts"] = json.RawMessage(tt.attempts)
 			// A malicious profile selecting POST must still not override replay safety.

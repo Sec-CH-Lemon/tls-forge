@@ -70,10 +70,8 @@ func TestJSONFramingControlsH1H2WithoutBrowserNameDispatch(t *testing.T) {
 		for _, method := range []string{"PATCH", "REPORT"} {
 			t.Run(proto+method, func(t *testing.T) {
 				s := newRecorder(t, proto, nil)
-				p, err := profile.Get("chrome_155_macos")
-				if err != nil {
-					t.Fatal(err)
-				}
+				// Without a context, which a profile that says so sends as given.
+				p := asGivenProfile(t, "chrome_155_macos")
 				p.Name = "unrelated-profile-name"
 				raw, _ := json.Marshal([]string{method})
 				p.Behavior["http.zero_content_length_methods"] = raw

@@ -223,8 +223,11 @@ export class Client {
    * GET a URL.
    * @param {string} url
    * @param {object} [options]
-   * @param {Record<string,string>} [options.headers] layered over the profile's
-   * @param {string[]} [options.order] header order; defaults to the profile's
+   * @param {Record<string,string>} [options.headers] the request's own fields,
+   * each where Chrome writes that field, one it has no place for after
+   * user-agent, by the bytes of its name
+   * @param {string[]} [options.order] their order, for a profile that lays
+   * them out as given
    * @param {string[]} [options.cookies] "name=value" pairs to seed the jar
    * @returns {Promise<Response>}
    */
@@ -233,8 +236,10 @@ export class Client {
   }
 
   /**
-   * POST a body. A Buffer or Uint8Array is sent as base64, so a body that is
-   * not text arrives intact.
+   * POST a body, in the browserContext of the form or script that posts it: a
+   * request without one is a navigation typed into the address bar, which
+   * posts nothing, and is refused. A Buffer or Uint8Array is sent as base64,
+   * so a body that is not text arrives intact.
    * @param {string} url
    * @param {string|Buffer|Uint8Array} body
    * @param {object} [options]

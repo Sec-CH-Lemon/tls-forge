@@ -68,6 +68,10 @@ type Client struct {
 	session    *session
 	profile    *profile.Profile
 	headers    Header
+	// given are the fields the client was given (WithHeaders), which a request
+	// without a browser context sent as a typed navigation carries in their
+	// slots (typed.go).
+	given Header
 	// http1Headers begins with the shared profile headers, then applies values
 	// measured only on HTTP/1.1. It stays separate so Connection can never leak
 	// into HPACK merely because the same client also talks to an h1 origin.
@@ -389,7 +393,7 @@ func New(opts ...Option) (*Client, error) {
 	// synthesised from a domain has no port, which a jar keyed by host and port
 	// then never matches. The request knows the URL exactly.
 	client := &Client{transports: t, session: newSession(jar, cfg.cookies, prof.RuntimeBehavior()), profile: prof, headers: headers,
-		http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody, timeout: cfg.timeout,
+		given: cfg.headers.Clone(), http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody, timeout: cfg.timeout,
 		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
 	if log != nil {
 		client.describe(cfg, shuffleExtensions, clientProfile)
@@ -437,7 +441,7 @@ func (c *Client) Fresh() (*Client, error) {
 		log.Debug("fresh client", "from", c.id)
 	}
 	return &Client{transports: t, session: c.session, profile: c.profile, headers: c.headers,
-		http1Headers: c.http1Headers, withheld: c.withheld, maxBody: c.maxBody, timeout: c.timeout,
+		given: c.given, http1Headers: c.http1Headers, withheld: c.withheld, maxBody: c.maxBody, timeout: c.timeout,
 		id: id, log: log, logger: c.logger, proxy: c.proxy}, nil
 }
 
@@ -575,12 +579,12 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	}
 	for name, values := range res.Header {
 		lower := strings.ToLower(name)
-		if browser == nil && encoding != "" && (lower == "content-encoding" || lower == "content-length") {
+		if !browser.explicit() && encoding != "" && (lower == "content-encoding" || lower == "content-length") {
 			continue
 		}
 		out.Header[lower] = values
 	}
-	if browser != nil {
+	if browser.explicit() {
 		for name, values := range res.FramingHeader {
 			out.Header[strings.ToLower(name)] = values
 		}
@@ -625,7 +629,9 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 	switch {
 	case browser != nil:
 		first := browser.first(parsed)
-		first.hints = c.hintsOf(browser, first)
+		if !browser.sent {
+			first.hints = c.hintsOf(browser, first)
+		}
 		first.restarted = restarted
 		first.authorization = ch.arrive(first.method, parsed, user, ch.authenticates(first))
 		ch.last, ch.policy = first, browser.policy
@@ -643,7 +649,13 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 		ch.laid = blocks
 	}
 	ch.ours = ch.sent != nil
-	if browser != nil && browser.scripted() {
+	switch {
+	case browser != nil && browser.sent:
+		// The priority of its urgency, as Chrome gives what the browser sent.
+		if priority, ok := c.sentFramePriority(browser, ch.last); ok {
+			inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), priority))
+		}
+	case browser != nil && browser.scripted():
 		// With a priority of their own, as Chrome sends them: the preflight,
 		// the hops of its redirects and its answer to a 401 too.
 		inner = inner.WithContext(http2.WithHeaderPriority(inner.Context(), priorityFrom(c.behavior(), "headers.script_priority")))
@@ -708,7 +720,7 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 	if err != nil {
 		return nil, nil, transportError(err)
 	}
-	if browser != nil && !browser.scripted() {
+	if browser != nil && !browser.scripted() && !browser.sent {
 		// What the origin asked for, said on the answer to a navigation.
 		ch.remember(originOf(res.Request.URL), res.Header)
 		if ch.restart(shownURL(res.Request), res.Header, ch.last) {
@@ -751,7 +763,15 @@ func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 		return nil, nil, fmt.Errorf("tlsforge: %w", err)
 	}
 	if req.Browser == nil {
-		return inner, nil, nil
+		if !c.typedWithoutContext() {
+			return inner, nil, nil
+		}
+		browser, err := c.typedNavigation(req, method, inner.URL)
+		if err != nil {
+			return nil, nil, err
+		}
+		inner.Method = browser.method
+		return inner, browser, nil
 	}
 	browser, err := c.resolveBrowser(req, method, inner.URL)
 	if err != nil {
@@ -771,7 +791,11 @@ func (c *Client) resolveBrowser(req *Request, method string, target *url.URL) (*
 	case !c.headers.Has("user-agent"):
 		return nil, errContext("needs the profile's headers, and profile %q has none to send", c.profile.Name)
 	}
-	return req.Browser.resolve(method, target, req.Header, req.Body, c.behavior())
+	r, err := req.Browser.resolve(method, target, req.Header, req.Body, c.behavior())
+	if err == nil && r.sent {
+		c.asProfile(r)
+	}
+	return r, err
 }
 
 // transportShuffles reports whether the transport draws the order of a
@@ -795,6 +819,11 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	// a challenge answered, which is no redirect, as Chrome's does.
 	r := requestLogOf(req.Context())
 	ch, _ := req.Context().Value(chainKey{}).(*chain)
+	if ch.browser != nil && ch.browser.sent {
+		// A browser follows the redirects of what it sent itself, with its
+		// own cookies and Sec-Fetch-* for each hop: it is answered with them.
+		return fhttp.ErrUseLastResponse
+	}
 	// The request goes on from the redirect, followed or not, without its
 	// body, which is let go of before anything the hop asks.
 	ch.client.leave("dropped", req.Response, -1)

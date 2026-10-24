@@ -1,0 +1,1410 @@
+{
+ "browser": "Google Chrome 155.0.8059.85, headed, macOS, a copy of a warmed profile",
+ "measured": "2026-10-24",
+ "how": "Chrome driven over its DevTools port (Page.navigate) to a page that loads an image, a script, a style sheet, a font and a frame, then fetch()es a GET and a POST of JSON, sends an XHR and posts a form, one after another, against a server keeping every request's fields as they came and each HTTP/2 HEADERS frame's priority (review-20261023 bench/order, op.sh, cdp.mjs); one run over each protocol",
+ "h2": [
+  {
+   "method": "GET",
+   "url": "/sub",
+   "headers": [
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "upgrade-insecure-requests",
+     "1"
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "sec-fetch-site",
+     "none"
+    ],
+    [
+     "sec-fetch-mode",
+     "navigate"
+    ],
+    [
+     "sec-fetch-user",
+     "?1"
+    ],
+    [
+     "sec-fetch-dest",
+     "document"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=0, i"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 255
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/i.png",
+   "headers": [
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "accept",
+     "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "no-cors"
+    ],
+    [
+     "sec-fetch-dest",
+     "image"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "i"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 146
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/s.js",
+   "headers": [
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "accept",
+     "*/*"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "no-cors"
+    ],
+    [
+     "sec-fetch-dest",
+     "script"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 146
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/c.css",
+   "headers": [
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "accept",
+     "text/css,*/*;q=0.1"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "no-cors"
+    ],
+    [
+     "sec-fetch-dest",
+     "style"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=0"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 255
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/f.woff2",
+   "headers": [
+    [
+     "origin",
+     "{A}"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "accept",
+     "*/*"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "cors"
+    ],
+    [
+     "sec-fetch-dest",
+     "font"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=0"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 255
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/p/frame",
+   "headers": [
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "upgrade-insecure-requests",
+     "1"
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "navigate"
+    ],
+    [
+     "sec-fetch-dest",
+     "iframe"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=0, i"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 255
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/f",
+   "headers": [
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "accept",
+     "*/*"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "cors"
+    ],
+    [
+     "sec-fetch-dest",
+     "empty"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=1, i"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 219
+   }
+  },
+  {
+   "method": "POST",
+   "url": "/f?post",
+   "headers": [
+    [
+     "content-length",
+     "7"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "accept",
+     "*/*"
+    ],
+    [
+     "origin",
+     "{A}"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "cors"
+    ],
+    [
+     "sec-fetch-dest",
+     "empty"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=1, i"
+    ]
+   ],
+   "body": "{\"a\":1}",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 219
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/x",
+   "headers": [
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "accept",
+     "*/*"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "cors"
+    ],
+    [
+     "sec-fetch-dest",
+     "empty"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=1, i"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 219
+   }
+  },
+  {
+   "method": "POST",
+   "url": "/fp",
+   "headers": [
+    [
+     "content-length",
+     "3"
+    ],
+    [
+     "cache-control",
+     "max-age=0"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "upgrade-insecure-requests",
+     "1"
+    ],
+    [
+     "content-type",
+     "application/x-www-form-urlencoded"
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "origin",
+     "{A}"
+    ],
+    [
+     "accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "navigate"
+    ],
+    [
+     "sec-fetch-dest",
+     "document"
+    ],
+    [
+     "referer",
+     "{A}/sub"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=0, i"
+    ]
+   ],
+   "body": "a=b",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 255
+   }
+  },
+  {
+   "method": "GET",
+   "url": "/p/done",
+   "headers": [
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "upgrade-insecure-requests",
+     "1"
+    ],
+    [
+     "user-agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "sec-fetch-site",
+     "same-origin"
+    ],
+    [
+     "sec-fetch-mode",
+     "navigate"
+    ],
+    [
+     "sec-fetch-dest",
+     "document"
+    ],
+    [
+     "referer",
+     "{A}/fp"
+    ],
+    [
+     "accept-encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "accept-language",
+     "en-US,en;q=0.9"
+    ],
+    [
+     "priority",
+     "u=0, i"
+    ]
+   ],
+   "body": "",
+   "priority": {
+    "depends_on": 0,
+    "exclusive": true,
+    "weight": 255
+   }
+  }
+ ],
+ "h1": [
+  {
+   "method": "GET",
+   "url": "/sub",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "Upgrade-Insecure-Requests",
+     "1"
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "Accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "none"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "navigate"
+    ],
+    [
+     "Sec-Fetch-User",
+     "?1"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "document"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "GET",
+   "url": "/i.png",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "Accept",
+     "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "no-cors"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "image"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "GET",
+   "url": "/s.js",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "Accept",
+     "*/*"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "no-cors"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "script"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "GET",
+   "url": "/c.css",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "Accept",
+     "text/css,*/*;q=0.1"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "no-cors"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "style"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "GET",
+   "url": "/f.woff2",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "Origin",
+     "{A}"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "Accept",
+     "*/*"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "cors"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "font"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "GET",
+   "url": "/p/frame",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "Upgrade-Insecure-Requests",
+     "1"
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "Accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "navigate"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "iframe"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "GET",
+   "url": "/f",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "Accept",
+     "*/*"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "cors"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "empty"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "POST",
+   "url": "/f?post",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "Content-Length",
+     "7"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "Content-Type",
+     "application/json"
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "Accept",
+     "*/*"
+    ],
+    [
+     "Origin",
+     "{A}"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "cors"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "empty"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": "{\"a\":1}"
+  },
+  {
+   "method": "GET",
+   "url": "/x",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "Accept",
+     "*/*"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "cors"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "empty"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  },
+  {
+   "method": "POST",
+   "url": "/fp",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "Content-Length",
+     "3"
+    ],
+    [
+     "Cache-Control",
+     "max-age=0"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "Upgrade-Insecure-Requests",
+     "1"
+    ],
+    [
+     "Content-Type",
+     "application/x-www-form-urlencoded"
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "Origin",
+     "{A}"
+    ],
+    [
+     "Accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "navigate"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "document"
+    ],
+    [
+     "Referer",
+     "{A}/sub"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": "a=b"
+  },
+  {
+   "method": "GET",
+   "url": "/p/done",
+   "headers": [
+    [
+     "Host",
+     "localhost"
+    ],
+    [
+     "Connection",
+     "keep-alive"
+    ],
+    [
+     "sec-ch-ua",
+     "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+    ],
+    [
+     "sec-ch-ua-mobile",
+     "?0"
+    ],
+    [
+     "sec-ch-ua-platform",
+     "\"macOS\""
+    ],
+    [
+     "Upgrade-Insecure-Requests",
+     "1"
+    ],
+    [
+     "User-Agent",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    ],
+    [
+     "Accept",
+     "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    ],
+    [
+     "Sec-Fetch-Site",
+     "same-origin"
+    ],
+    [
+     "Sec-Fetch-Mode",
+     "navigate"
+    ],
+    [
+     "Sec-Fetch-Dest",
+     "document"
+    ],
+    [
+     "Referer",
+     "{A}/fp"
+    ],
+    [
+     "Accept-Encoding",
+     "gzip, deflate, br, zstd"
+    ],
+    [
+     "Accept-Language",
+     "en-US,en;q=0.9"
+    ]
+   ],
+   "body": ""
+  }
+ ]
+}

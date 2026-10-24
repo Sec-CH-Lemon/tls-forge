@@ -334,8 +334,16 @@ func TestARequestBodyIsForwarded(t *testing.T) {
 	ca := newCAForTest(t)
 	server, _ := startProxy(t, client, ca)
 
-	res, err := throughProxy(t, server, ca).Post(destination.URL+"/submit", "application/json",
-		strings.NewReader(`{"a":1}`))
+	// As a page's script posts it, saying so as a browser does.
+	req, err := http.NewRequest(http.MethodPost, destination.URL+"/submit", strings.NewReader(`{"a":1}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, value := range map[string]string{"Content-Type": "application/json", "Sec-Fetch-Site": "same-origin",
+		"Sec-Fetch-Mode": "cors", "Sec-Fetch-Dest": "empty", "Origin": destination.URL, "Referer": destination.URL + "/"} {
+		req.Header.Set(name, value)
+	}
+	res, err := throughProxy(t, server, ca).Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,6 +353,104 @@ func TestARequestBodyIsForwarded(t *testing.T) {
 	}
 	if res.StatusCode != 201 {
 		t.Errorf("status = %d", res.StatusCode)
+	}
+}
+
+func TestAnEmptyBodyIsOneAndNoBodyIsNone(t *testing.T) {
+	// A POST of nothing says so, with a Content-Length of 0; a GET came with
+	// no body, and goes with none.
+	lengths := map[string][]string{}
+	destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lengths[r.Method] = r.Header.Values("Content-Length")
+	}))
+	defer destination.Close()
+	client, err := tlsforge.New(tlsforge.WithoutCookieJar())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	ca := newCAForTest(t)
+	server, _ := startProxy(t, client, ca)
+	for _, method := range []string{http.MethodPost, http.MethodGet} {
+		req, _ := http.NewRequest(method, destination.URL+"/x", http.NoBody)
+		if method == http.MethodPost {
+			req.ContentLength = 0
+			req.Body = io.NopCloser(strings.NewReader(""))
+		}
+		for name, value := range map[string]string{"Sec-Fetch-Site": "same-origin", "Sec-Fetch-Mode": "cors",
+			"Sec-Fetch-Dest": "empty", "Origin": destination.URL, "Referer": destination.URL + "/"} {
+			req.Header.Set(name, value)
+		}
+		res, err := throughProxy(t, server, ca).Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		if res.StatusCode != 200 {
+			t.Errorf("%s: answered %d", method, res.StatusCode)
+		}
+	}
+	if !reflect.DeepEqual(lengths, map[string][]string{"POST": {"0"}, "GET": nil}) {
+		t.Errorf("lengths %v", lengths)
+	}
+}
+
+func TestAnEmptyBodyIsOneWhateverTheMethod(t *testing.T) {
+	// A DELETE of nothing, with a Content-Length of 0 or chunked and ended at
+	// once, goes with an empty body, which a fetch() of '' says; one with
+	// neither goes with none.
+	client := &answering{}
+	server, _ := startProxy(t, client, newCAForTest(t))
+	r, _ := through(t, server, strings.Join([]string{
+		"DELETE http://example.test/length HTTP/1.1\r\nHost: example.test\r\nContent-Length: 0\r\n\r\n",
+		"DELETE http://example.test/chunked HTTP/1.1\r\nHost: example.test\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n",
+		"DELETE http://example.test/none HTTP/1.1\r\nHost: example.test\r\n\r\n",
+	}, ""))
+	for range 3 {
+		if status, _ := headLines(t, r); status != "HTTP/1.1 200 OK" {
+			t.Fatalf("answered %q", status)
+		}
+		if _, err := io.ReadFull(r, make([]byte, len("page"))); err != nil {
+			t.Fatalf("reading the answer: %v", err)
+		}
+	}
+	asked := client.requests()
+	if len(asked) != 3 {
+		t.Fatalf("%d requests went on", len(asked))
+	}
+	for i, empty := range []bool{true, true, false} {
+		if (asked[i].Body != nil) != empty || len(asked[i].Body) != 0 {
+			t.Errorf("%s went with the body %#v", asked[i].URL, asked[i].Body)
+		}
+	}
+}
+
+func TestAPostThatSaysNothingOfABrowserIsRefused(t *testing.T) {
+	// Without Sec-Fetch-Mode a request goes as a navigation typed into the
+	// address bar, which no POST is: refused, the reason said, nothing sent.
+	var asked int
+	destination := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { asked++ }))
+	defer destination.Close()
+	client, err := tlsforge.New(tlsforge.WithoutCookieJar())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	ca := newCAForTest(t)
+	server, _ := startProxy(t, client, ca)
+	res, err := throughProxy(t, server, ca).Post(destination.URL+"/submit", "application/json",
+		strings.NewReader(`{"a":1}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	said, _ := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusBadRequest || !strings.Contains(string(said), "needs a browser context") ||
+		!strings.Contains(string(said), "send Sec-Fetch-Site, Sec-Fetch-Mode and Sec-Fetch-Dest as a browser would") {
+		t.Errorf("answered %d: %s", res.StatusCode, said)
+	}
+	if asked != 0 {
+		t.Errorf("the destination was asked %d times", asked)
 	}
 }
 
@@ -481,22 +587,22 @@ func TestCloseIsFinal(t *testing.T) {
 	}
 }
 
-func TestMergeHeaders(t *testing.T) {
+func TestExtraHeaders(t *testing.T) {
 	profile := tlsforge.NewHeader("sec-ch-ua", `"Chromium";v="151"`, "user-agent", "Chrome", "accept", "text/html")
 	incoming := http.Header{}
 	incoming.Set("User-Agent", "curl/8.4.0")       // the profile owns this
-	incoming.Set("Zeta", "1")                      // kept, sorted after the profile
+	incoming.Set("Zeta", "1")                      // kept, sorted
 	incoming.Set("Alpha", "2")                     // kept
 	incoming.Set("Proxy-Connection", "keep-alive") // hop-by-hop
 	incoming.Set("Connection", "close")            // hop-by-hop
 	incoming.Set("Content-Length", "10")           // recomputed downstream
 	incoming.Set("Host", "elsewhere.example")      // derived from the URL
 
-	merged := mergeHeaders(profile, incoming)
-	if got := merged.Get("user-agent"); got != "Chrome" {
-		t.Errorf("user-agent = %q, want the profile's", got)
+	merged := extraHeaders(profile, incoming)
+	if merged.Has("user-agent") {
+		t.Errorf("user-agent = %q, want the profile's own left to it", merged.Get("user-agent"))
 	}
-	want := []string{"sec-ch-ua", "user-agent", "accept", "alpha", "zeta"}
+	want := []string{"alpha", "zeta"}
 	got := merged.Names()
 	if len(got) != len(want) {
 		t.Fatalf("headers = %v, want %v", got, want)
@@ -859,7 +965,7 @@ func TestProxyAuthorizationIsNotForwarded(t *testing.T) {
 		"Proxy-Authenticate":  {"Basic realm=\"proxy\""},
 		"Cookie":              {"session=abc"},
 	}
-	out := mergeHeaders(tlsforge.NewHeader("accept", "*/*"), incoming)
+	out := extraHeaders(tlsforge.NewHeader("accept", "*/*"), incoming)
 
 	for _, name := range []string{"proxy-authorization", "proxy-authenticate"} {
 		if out.Has(name) {
@@ -872,12 +978,12 @@ func TestProxyAuthorizationIsNotForwarded(t *testing.T) {
 	}
 }
 
-func TestMergeHeadersPreservesRepeatedValues(t *testing.T) {
+func TestExtraHeadersPreserveRepeatedValues(t *testing.T) {
 	incoming := http.Header{
 		"Cookie":          {"a=1", "b=2"},
 		"X-Forwarded-For": {"192.0.2.1", "198.51.100.2"},
 	}
-	out := mergeHeaders(tlsforge.NewHeader("accept", "*/*"), incoming)
+	out := extraHeaders(tlsforge.NewHeader("accept", "*/*"), incoming)
 	if got, want := out.Values("cookie"), []string{"a=1", "b=2"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("cookie = %v, want %v", got, want)
 	}

@@ -230,10 +230,14 @@ func ownCookie(block fhttp.Header) {
 
 // browserLayouts are the layouts of a request in a browser context: field, its
 // headers, in order over HTTP/2 and as Chrome writes them over HTTP/1.1,
-// script being those a script set.
-func (c *Client) browserLayouts(field, script Header, order []string, host string) *layouts {
-	l := newLayouts(browserLayout(field, order, host),
-		browserHTTP1Layout(field, script, order, c.profile.HTTP1, c.http1Headers, host, c.behavior()))
+// script being those a script set, and spelt those it was given that go over
+// HTTP/1.1 as given. A Cookie it was given goes as one, the jar's cookies after
+// it (ownCookie).
+func (c *Client) browserLayouts(field, script, spelt Header, order []string, host string) *layouts {
+	http2 := browserLayout(field, order, host)
+	ownCookie(http2)
+	l := newLayouts(http2,
+		browserHTTP1Layout(field, script, spelt, order, c.profile.HTTP1, c.http1Headers, host, c.behavior()))
 	l.behavior = c.behavior()
 	return l
 }
@@ -332,9 +336,11 @@ func (l *layouts) wear(req *fhttp.Request) *fhttp.Request {
 		case http1:
 			applyHeaderLayout(written, l.http1, l.managed)
 		case asked != nil:
-			// Neither block has a Cookie of its own: the one written is the
-			// client's.
-			applyHeaderLayout(written, asked, managedHeaderNames(l.http2, asked))
+			// The asked block has no Cookie of its own: the one written is the
+			// client's, the request's own with the jar's after it.
+			managed := managedHeaderNames(l.http2, asked)
+			delete(managed, "cookie")
+			applyHeaderLayout(written, asked, managed)
 		}
 		if withheld != nil {
 			withheld.from(written)
@@ -603,15 +609,23 @@ func browserLayout(h Header, order []string, host string) fhttp.Header {
 }
 
 // browserHTTP1Layout is the same request over HTTP/1.1, as Chrome writes it:
-// Host and Connection first, no generated Priority (a script's survives), and each name spelt as the profile
-// measured it, a script's as the script gave it, a client hint in lower case,
-// and any other as HTTP spells it.
-func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP1, http1 Header, host string, policies ...behavior.Policy) fhttp.Header {
+// Host and Connection first, no generated Priority (a script's survives, and
+// one the request was given), and each name spelt as the profile measured it,
+// a script's as the script gave it, one of spelt as first given, a client hint
+// in lower case, and any other as HTTP spells it.
+func browserHTTP1Layout(h, script, spelt Header, order []string, measured *profile.HTTP1, http1 Header, host string, policies ...behavior.Policy) fhttp.Header {
 	pol := policyArgument(policies)
 	spelling := map[string]string{}
 	if measured != nil {
 		for _, wire := range measured.HeaderOrder {
 			spelling[strings.ToLower(wire)] = wire
+		}
+	}
+	for i, f := range spelt {
+		// As DevTools gives Chrome the extra headers it writes: the first
+		// spelling of a name.
+		if lower := strings.ToLower(f.Name); !spelt[:i].Has(lower) {
+			spelling[lower] = f.Name
 		}
 	}
 	for _, f := range script {
@@ -645,7 +659,7 @@ func browserHTTP1Layout(h, script Header, order []string, measured *profile.HTTP
 		out[spell("connection")] = []string{connection}
 	}
 	wireOrder := pol.Strings("headers.h1_prefix")
-	keepPriority := script.Has("priority") || pol.Flag("headers.h1_generated_priority")
+	keepPriority := script.Has("priority") || spelt.Has("priority") || pol.Flag("headers.h1_generated_priority")
 	for _, name := range order {
 		if !strings.EqualFold(name, "priority") || keepPriority {
 			wireOrder = append(wireOrder, name)

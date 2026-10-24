@@ -185,7 +185,7 @@ func TestFixedExtensionOrder(t *testing.T) {
 	}
 }
 
-func TestPerRequestHeadersKeepTheProfileOrder(t *testing.T) {
+func TestPerRequestHeadersGoWhereChromeWritesThem(t *testing.T) {
 	server := startEcho(t)
 	client := newTestClient(t)
 
@@ -201,14 +201,13 @@ func TestPerRequestHeadersKeepTheProfileOrder(t *testing.T) {
 		t.Fatalf("decoding: %v", err)
 	}
 
-	order := measured.HTTP2.HeaderOrder
-	shipped, _ := profile.Get(DefaultProfile)
-	// The overridden header stays in the browser's slot; the new one goes last.
-	if got, want := order[:len(shipped.Headers)], shipped.HeaderOrder(); !reflect.DeepEqual(got, want) {
+	// The overridden header stays in the browser's slot; the new one goes
+	// where Chrome over DevTools writes a field it is given, after User-Agent.
+	want := []string{"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "upgrade-insecure-requests", "user-agent",
+		"x-extra", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "accept-encoding",
+		"accept-language", "priority"}
+	if got := measured.HTTP2.HeaderOrder; !reflect.DeepEqual(got, want) {
 		t.Errorf("header order = %v\nwant             %v", got, want)
-	}
-	if order[len(order)-1] != "x-extra" {
-		t.Errorf("header order = %v, want the extra header last", order)
 	}
 	if value, _ := measured.HTTP2.Fingerprint().Header("accept-language"); value != "en-GB,en;q=0.9" {
 		t.Errorf("accept-language = %q", value)
@@ -241,11 +240,13 @@ func TestPostSendsABody(t *testing.T) {
 	server := startEcho(t)
 	client := newTestClient(t)
 
+	// As the page's script posts it: a POST goes in a browser context.
 	res, err := client.Do(&Request{
-		Method: "POST",
-		URL:    server.URL() + "/collect",
-		Body:   []byte(`{"user_agent":"from a POST"}`),
-		Header: NewHeader("content-type", "application/json"),
+		Method:  "POST",
+		URL:     server.URL() + "/collect",
+		Body:    []byte(`{"user_agent":"from a POST"}`),
+		Header:  NewHeader("content-type", "application/json"),
+		Browser: &BrowserContext{Kind: KindFetch, Initiator: server.URL() + "/"},
 	})
 	if err != nil {
 		t.Fatalf("Do: %v", err)
@@ -701,24 +702,25 @@ func TestForcedHTTP1UsesBrowserLikeCasingAndHeaderOrder(t *testing.T) {
 		if strings.HasPrefix(line, "user-agent: ") {
 			t.Errorf("User-Agent was sent in lower case: %q", line)
 		}
-		if strings.HasPrefix(line, "X-Repeat: ") {
+		if strings.HasPrefix(line, "x-repeat: ") {
 			repeats = append(repeats, line)
 		}
 	}
 	if !userAgent {
 		t.Errorf("no canonically cased User-Agent in %v", lines)
 	}
-	if got, want := repeats, []string{"X-Repeat: one", "X-Repeat: two"}; !reflect.DeepEqual(got, want) {
+	// Spelt as given, as Chrome over DevTools writes a field it is given.
+	if got, want := repeats, []string{"x-repeat: one", "x-repeat: two"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("repeated headers = %v, want %v", got, want)
 	}
 }
 
+// profileWithMeasuredHTTP1 is a profile whose HTTP/1.1 is measured in an
+// order of its own, which only a request without a browser context sent as
+// given is laid out in.
 func profileWithMeasuredHTTP1(t *testing.T) *profile.Profile {
 	t.Helper()
-	p, err := profile.Get(DefaultProfile)
-	if err != nil {
-		t.Fatalf("profile: %v", err)
-	}
+	p := asGivenProfile(t, DefaultProfile)
 	p.HTTP1 = &profile.HTTP1{
 		HeaderOrder: []string{"Host", "sec-ch-ua", "User-Agent", "Connection"},
 		Headers:     []profile.Field{{Name: "Connection", Value: "keep-alive"}},
@@ -1321,23 +1323,26 @@ func TestClientIsSafeForConcurrentUse(t *testing.T) {
 // Host lines is one RFC 7230 requires a server to answer with 400, as well as a
 // request smuggling primitive when a proxy and an origin choose different ones.
 func TestACallerSuppliedHostReplacesTheOneFromTheURL(t *testing.T) {
-	url, recorded := recordingHTTP1Server(t)
-	client := newTestClient(t, WithTransportOption(tls_client.WithForceHttp1()))
-	if _, err := client.Do(&Request{
-		URL:    url,
-		Header: NewHeader("host", "chosen.example"),
-	}); err != nil {
-		t.Fatalf("Do: %v", err)
-	}
-
-	var hosts []string
-	for _, line := range (<-recorded)[1:] {
-		if strings.HasPrefix(strings.ToLower(line), "host:") {
-			hosts = append(hosts, line)
+	// Typed, and as given.
+	for _, p := range []*profile.Profile{shippedProfile(t, DefaultProfile), asGivenProfile(t, DefaultProfile)} {
+		url, recorded := recordingHTTP1Server(t)
+		client := newTestClient(t, WithProfileValue(p), WithTransportOption(tls_client.WithForceHttp1()))
+		if _, err := client.Do(&Request{
+			URL:    url,
+			Header: NewHeader("host", "chosen.example"),
+		}); err != nil {
+			t.Fatalf("Do: %v", err)
 		}
-	}
-	if got, want := hosts, []string{"Host: chosen.example"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("Host lines = %v, want %v", got, want)
+
+		var hosts []string
+		for _, line := range (<-recorded)[1:] {
+			if strings.HasPrefix(strings.ToLower(line), "host:") {
+				hosts = append(hosts, line)
+			}
+		}
+		if got, want := hosts, []string{"Host: chosen.example"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("Host lines = %v, want %v", got, want)
+		}
 	}
 }
 

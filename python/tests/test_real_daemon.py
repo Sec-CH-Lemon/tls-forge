@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from tlsforge import MAX_REQUEST_BYTES, Client, Hello, RequestFailed, TransportError
+from tlsforge import MAX_REQUEST_BYTES, BrowserContext, Client, Hello, RequestFailed, TransportError
 
 
 class _BinaryHandler(BaseHTTPRequestHandler):
@@ -353,15 +353,19 @@ def test_the_real_go_daemon_reads_a_request_as_long_as_the_limit() -> None:
         with Client(binary=binary, timeout=60) as client:
             client.get(f"{base}/set")
             url = f"{base}/echo"
+            # As a page's script posts: a request without a browser context is
+            # a navigation typed into the address bar, which posts nothing.
+            context: BrowserContext = {"kind": "fetch", "initiator": f"{base}/"}
             overhead = len(
-                json.dumps({"id": 3, "method": "POST", "url": url, "body": "", "engine_major": 1}, separators=(",", ":")) + "\n"
+                json.dumps({"id": 3, "method": "POST", "url": url, "body": "", "engine_major": 1, "browser": context},
+                           separators=(",", ":")) + "\n"
             )
             body = "x" * (MAX_REQUEST_BYTES - overhead)
-            client.post(url, body)
+            client.post(url, body, browser_context=context)
             assert _SessionHandler.seen == {"cookie": "visitor=42", "length": len(body)}
 
             with pytest.raises(ValueError, match="more than"):
-                client.post(url, body + "x")
+                client.post(url, body + "x", browser_context=context)
             client.get(url)
             assert _SessionHandler.seen == {"cookie": "visitor=42", "length": 0}
     finally:

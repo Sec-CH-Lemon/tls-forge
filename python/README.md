@@ -157,26 +157,31 @@ response = client.get(
 )
 ```
 
-### `post(url, body="", *, headers=None, order=None, cookies=None)`
+### `post(url, body="", *, headers=None, order=None, cookies=None, browser_context=None)`
+
+A POST goes in a browser context, as the page's script or form sends it: a
+request without one is a navigation typed into the address bar, which posts
+nothing, and the transport refuses it (`RequestFailed`, `... needs a browser
+context ...`).
 
 ```python
 response = client.post(
     "https://example.com/api",
     '{"hello":"world"}',
     headers={"content-type": "application/json"},
-    order=["content-type"],
+    browser_context={"kind": "fetch", "initiator": "https://example.com/"},
 )
 ```
 
-### `request(url, *, method="GET", headers=None, order=None, body=None, cookies=None)`
+### `request(url, *, method="GET", headers=None, order=None, body=None, cookies=None, browser_context=None)`
 
 ```python
 response = client.request(
     "https://example.com/resource",
     method="DELETE",
     headers={"authorization": "Bearer token"},
-    order=["authorization"],
     cookies=["session=abc"],
+    browser_context={"kind": "fetch", "initiator": "https://example.com/"},
 )
 ```
 
@@ -184,17 +189,16 @@ response = client.request(
 |---|---|---|
 | `url` | `str`, required | Absolute HTTP or HTTPS URL. |
 | `method` | `str`, `"GET"` | HTTP method. `get()` and `post()` set it automatically. |
-| `headers` | `Mapping[str, str] | None` | Headers layered over the profile. Existing profile names retain their browser position. |
-| `order` | `Sequence[str] | None` | Order for caller-only headers. Profile headers keep their measured browser positions; unnamed caller headers follow in sorted order. |
-| `body` | `str | bytes | None` | Request body. `bytes` is sent as base64 so it arrives intact; `None` omits the field. |
+| `headers` | `Mapping[str, str] | None` | The request's own fields. Without a `browser_context` each goes where Chrome writes that field, in place of Chrome's own, and one Chrome has no place for after `user-agent`, by the bytes of its name, as Chrome driven by automation writes it; in one, what the page's script gives `fetch()` or an XHR. |
+| `order` | `Sequence[str] | None` | Order for caller-only headers, where a profile lays them out as given (not Chrome's profiles, which place every field). |
+| `body` | `str | bytes | None` | Request body. `bytes` is sent as base64 so it arrives intact; `None` omits the field. A request without a `browser_context` has none. |
 | `cookies` | `Iterable[str] | None` | `name=value` pairs added to the daemon's jar before the request. |
 
 A `cookie` header goes with the jar's cookies: every cookie it names first,
-then those the jar holds for the URL, over HTTP/1.1 and HTTP/2 alike, and on a
-redirect to its host or one under it; a redirect to any other host carries the
-jar's alone. `cookies` adds values to the jar instead, where they go on every
-later request they belong to and give way to a value the server sets; a name
-in both would go twice.
+then those the jar holds for the URL, over HTTP/1.1 and HTTP/2 alike; a
+redirect's hop carries the jar's alone, as Chrome's does. `cookies` adds values
+to the jar instead, where they go on every later request and hop they belong to
+and give way to a value the server sets; a name in both would go twice.
 
 ## Response
 

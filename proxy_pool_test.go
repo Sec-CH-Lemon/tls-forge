@@ -362,7 +362,9 @@ func TestProxyPoolRetriesRefusedForwardStream(t *testing.T) {
 					}
 				}
 			}()
-			c := newTestClient(t, WithProxy("https://"+ln.Addr().String()), WithTimeout(time.Second))
+			// A POST without a context, as given.
+			c := newTestClient(t, WithProxy("https://"+ln.Addr().String()), WithTimeout(time.Second),
+				WithProfileValue(asGivenProfile(t, DefaultProfile)))
 			var payload []byte
 			if method == "POST" {
 				payload = bytes.Repeat([]byte{0, 1, 255, 'x'}, 257)

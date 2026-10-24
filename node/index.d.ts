@@ -60,9 +60,13 @@ export interface BrowserContext {
 
 /** What `get` and `post` take besides the URL and the body. */
 export interface RequestOptions {
-  /** Headers layered over the profile's. */
+  /**
+   * The request's own fields: without a browserContext, each where Chrome
+   * writes that field, and one Chrome has no place for after user-agent, by
+   * the bytes of its name; in one, what the page's script gives.
+   */
   headers?: Record<string, string>;
-  /** The order of the headers given; the profile's own when omitted. */
+  /** The order of the headers given, for a profile that lays them out as given; sorted when omitted. */
   order?: string[];
   /** `name=value` pairs put in the jar before the request. */
   cookies?: string[];
@@ -118,7 +122,7 @@ export class Client {
   constructor(options?: ClientOptions);
   /** GET a URL. */
   get(url: string, options?: RequestOptions): Promise<Response>;
-  /** POST a body. */
+  /** POST a body, in the browserContext of the form or script that posts it: without one it is refused. */
   post(url: string, body: string | Buffer | Uint8Array, options?: RequestOptions): Promise<Response>;
   /** Make a request. */
   request(request: Request): Promise<Response>;

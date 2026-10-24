@@ -59,8 +59,10 @@ func TestBrowserHelper(t *testing.T) {
 	end := strings.IndexByte(page.Text()[start:], '\'')
 	navigator, _ := json.Marshal(map[string]string{"user_agent": browserProfile.UserAgent})
 	final, _ := neturl.Parse(page.URL)
+	// As the capture page's script posts its report.
 	if _, err := client.Do(&tlsforge.Request{Method: "POST", URL: final.Scheme + "://" + final.Host +
-		page.Text()[start:start+end], Body: navigator, Header: tlsforge.NewHeader("content-type", "application/json")}); err != nil {
+		page.Text()[start:start+end], Body: navigator, Header: tlsforge.NewHeader("content-type", "application/json"),
+		Browser: &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: page.URL}}); err != nil {
 		os.Exit(1)
 	}
 	os.Exit(0)

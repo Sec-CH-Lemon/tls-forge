@@ -218,7 +218,8 @@ func (ch *chain) authenticates(h hop) bool {
 	if ch.browser == nil {
 		return !ch.own
 	}
-	return !h.script.Has("authorization") && !h.cors && !ch.browser.cookies(h).none
+	return !ch.browser.sent && !h.script.Has("authorization") && !h.given.Has("authorization") && !h.cors &&
+		!ch.browser.cookies(h).none
 }
 
 // arrive begins the hop to u, a request of method: user, the credentials its
@@ -568,7 +569,8 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 				shownURL(previous).Redacted(), shown.Redacted(), last.serialized(r), err)
 		}
 	}
-	h := hop{behavior: r.behavior, to: originOf(req.URL), method: req.Method, redirected: true, script: last.script}
+	h := hop{behavior: r.behavior, to: originOf(req.URL), method: req.Method, redirected: true, script: last.script,
+		given: last.given.without(r.runtimeBehavior().Strings("headers.given_redirect_drops")...)}
 	if err := r.mayFollow(shown, h.to, last); err != nil {
 		return hop{}, err
 	}
@@ -587,10 +589,19 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 		h.tainted = last.tainted || crossed
 	}
 	if crossed {
+		// Chrome sends an Authorization it was given on across origins, as
+		// measured; tls-forge sends a caller's credentials to no origin but
+		// the one they were given for, as every HTTP client does.
 		h.script = h.script.without("authorization")
+		h.given = h.given.without("authorization")
 	}
 	if dropped {
 		h.script = h.script.without(bodyHeaders...)
+	}
+	if h.tainted {
+		// An Origin it was given is said as "null" once the chain has gone
+		// to another origin, as Chrome says it.
+		h.given = h.given.withValue("origin", "null")
 	}
 	if !r.scripted() {
 		// A redirect a navigation was answered with may ask for hints too,
@@ -632,8 +643,9 @@ func (ch *chain) dress(req *fhttp.Request, h hop) {
 // block with the client hints its connection's ALPS asks for (alpsBlock).
 func (ch *chain) layoutsOf(h hop, host string) *layouts {
 	r, c := ch.browser, ch.client
-	l := c.browserLayouts(r.header(h, c.headers), h.script, r.wireOrder(h), host)
-	if !r.scripted() {
+	host = r.hostOf(h, host)
+	l := c.browserLayouts(r.header(h, c.headers), h.script, r.spelt(h), r.wireOrder(h), host)
+	if !r.scripted() && !r.sent {
 		l.asked = func() fhttp.Header { return ch.alpsBlock(h, host) }
 	}
 	return l
@@ -656,7 +668,11 @@ func (ch *chain) alpsBlock(h hop, host string) fhttp.Header {
 	}
 	h.alps = append(slices.Clone(h.alps), more...)
 	r := ch.browser
-	return newLayouts(browserLayout(r.header(h, ch.client.headers), r.wireOrder(h), host), nil).http2
+	block := browserLayout(r.header(h, ch.client.headers), r.wireOrder(h), host)
+	// The Cookie written is the client's, the request's own with the jar's
+	// after it: the block has none of its own.
+	deleteFields(block, "cookie")
+	return newLayouts(block, nil).http2
 }
 
 // took has the latest hop carry the client hints its connection's ALPS gave

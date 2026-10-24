@@ -67,7 +67,8 @@ func TestChromeRetriesAProtocolFailureBeforeSendingHTTP(t *testing.T) {
 			srv.Listener = ln
 			srv.StartTLS()
 			defer srv.Close()
-			c, err := New(WithProfile("chrome_155_macos"), WithInsecureSkipVerify(), WithTimeout(5*time.Second), WithTransportOption(tc.WithForceHttp1()))
+			// A POST without a context, as given.
+			c, err := New(WithProfileValue(asGivenProfile(t, "chrome_155_macos")), WithInsecureSkipVerify(), WithTimeout(5*time.Second), WithTransportOption(tc.WithForceHttp1()))
 			if err != nil {
 				t.Fatal(err)
 			}

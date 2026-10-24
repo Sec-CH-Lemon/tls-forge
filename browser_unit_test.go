@@ -420,7 +420,7 @@ func TestAContextSpellsHTTP1AsChromeDoes(t *testing.T) {
 		{"with nothing measured", nil, nil,
 			[]string{"Host", "Connection", "User-Agent", "sec-ch-ua", "Content-Type", "X-Mixed", "x-lower", "Accept"}},
 	} {
-		layout := browserHTTP1Layout(h, script, order, tc.measured, tc.http1, "www.example.com")
+		layout := browserHTTP1Layout(h, script, nil, order, tc.measured, tc.http1, "www.example.com")
 		var names []string
 		for name := range layout {
 			if name != fhttp.HeaderOrderKey {
@@ -774,7 +774,11 @@ func TestValidateRefusesWhatDoRefusesAndSendsNothing(t *testing.T) {
 			"tlsforge: browser context: a form is submitted from a page"},
 		{"a form posted in lower case", &Request{Method: "post", URL: page, Body: []byte("a=1"),
 			Browser: &BrowserContext{Kind: KindForm, Initiator: page}}, ""},
-		{"a request without a context", &Request{Method: "DELETE", URL: page, Header: NewHeader("X-Foo", "1")}, ""},
+		{"a request without a context", &Request{URL: page, Header: NewHeader("X-Foo", "1")}, ""},
+		{"a request without a context by another method", &Request{Method: "DELETE", URL: page},
+			"tlsforge: DELETE https://www.example.com/page needs a browser context"},
+		{"a GET without a context with a body", &Request{URL: page, Body: []byte{}},
+			"tlsforge: GET https://www.example.com/page with a body needs a browser context"},
 	} {
 		err := client.Validate(tc.req)
 		if tc.says == "" && err != nil || tc.says != "" && (err == nil || !strings.HasPrefix(err.Error(), tc.says)) {

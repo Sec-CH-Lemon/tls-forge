@@ -210,7 +210,8 @@ func TestALogSaysHowMuchARequestSends(t *testing.T) {
 	server := startEcho(t)
 	book, log := newLogBook(slog.LevelInfo)
 	client := newTestClient(t, WithLogger(log))
-	if _, err := client.Do(&Request{Method: "POST", URL: server.URL() + "/api/all", Body: []byte("12345")}); err != nil {
+	if _, err := client.Do(&Request{Method: "POST", URL: server.URL() + "/api/all", Body: []byte("12345"),
+		Browser: &BrowserContext{Kind: KindFetch, Initiator: server.URL() + "/"}}); err != nil {
 		t.Fatalf("Do: %v", err)
 	}
 	if asked := book.one(t, "request"); asked.get("method") != "POST" || asked.get("body_bytes") != "5" {

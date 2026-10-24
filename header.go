@@ -106,6 +106,18 @@ func (h Header) without(names ...string) Header {
 	return out
 }
 
+// withValue is the header with every field of the name given, in any case,
+// saying value, where it was; h as it was. Nil stays nil.
+func (h Header) withValue(name, value string) Header {
+	out := h.Clone()
+	for i := range out {
+		if strings.EqualFold(out[i].Name, name) {
+			out[i].Value = value
+		}
+	}
+	return out
+}
+
 // Names lists the header names in order.
 func (h Header) Names() []string {
 	out := make([]string, len(h))

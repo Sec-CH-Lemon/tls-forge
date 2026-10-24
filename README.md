@@ -544,13 +544,24 @@ advanced: publishing the fork changes and updating their pseudo-versions is a
 separate release step. `GOWORK=off` selects the previously published transport.
 
 Without `--request-kind` a request goes out as a navigation typed into the
-address bar, with the profile's headers and whatever `-H` adds: what the first
-request of a visit is. To plain http on another machine it goes as Chrome sends
-it there, without the client hints and `Sec-Fetch-*` and offering neither
-Brotli nor zstd, and each hop of a redirect as its own URL is; `-H` adds what
-it is given all the same, a `Referer` too, though a navigation from a page gets
-its `Referer` from `--request-kind navigation --initiator-url`. A page sends
-others, and Chrome sends each kind its own way. `--request-kind` says which
+address bar: what the first request of a visit is, worked out as Chrome works
+out one, with the client hints an origin asked for, `Accept-CH`, `Critical-CH`
+and what a connection's ALPS asks for. It is a GET with no body: a POST, a HEAD
+or `-d` without `--request-kind` is refused with exit code 2 (`needs
+--request-kind`) before anything is sent. To plain http on another machine it
+goes as Chrome sends it there, without the client hints and `Sec-Fetch-*` and
+offering neither Brotli nor zstd, and each hop of a redirect as its own URL is.
+What `-H` gives it goes where Chrome writes that field (`Accept-Language`,
+`Cookie`, `Referer`, `Authorization`, a reload's `Cache-Control`), in place of
+Chrome's own; a field Chrome has no place of its own for goes where Chrome
+driven by automation (Playwright's `extraHTTPHeaders`) writes it: after
+`User-Agent`, by the bytes of its name, spelt as given over HTTP/1.1. A
+redirect's hop goes without the `Cookie` `-H` gave (`--cookie` puts one in the
+jar, whose cookies go with every hop), and without its `Authorization` across
+origins. A `Referer` from `-H` goes with `Sec-Fetch-Site: none`, which Chrome
+sends only when automation gives it one, and the run says so: a navigation from
+a page gets its `Referer` from `--request-kind navigation --initiator-url`. A
+page sends others, and Chrome sends each kind its own way. `--request-kind` says which
 this is, and `--initiator-url` the page it is sent from, and every request of
 the run goes out as Chrome 155 was measured sending that kind
 ([GO.md](GO.md#browser-contexts) has the rules): a form's POST with
@@ -1625,7 +1636,7 @@ Usage: `tls-forge capture [flags]`
 | Flag | Meaning |
 |---|---|
 | `-b`, `--browser <name-or-path>` | `chrome`, `chromium`, `edge`, `brave`, or an executable path; auto-detected when omitted |
-| `--headless` | Run without a window; TLS/HTTP structure remains useful for drift checks, but Chrome may expose `HeadlessChrome` and therefore differ in header values from a headed profile |
+| `--headless` | Run without a window; TLS/HTTP structure remains useful for drift checks, but Chrome says `HeadlessChrome` in its user agent where a headed one says `Chrome`, so with `--install` it needs `--name`: a capture saying `HeadlessChrome` is not kept as `local`, every command's default |
 | `-s`, `--save <path>` | Save a profile; an existing directory gets `<name>/<platform>.json` |
 | `--install` | Save into the user profile directory so `--profile local` can find it |
 | `--set <NAME=VALUE>` | With `--save` or `--install`, a value the profile keeps of this machine, as its header carries it: `accept-language`, or a client hint of the machine's (`sec-ch-ua-platform-version`, `-arch`, `-bitness`, `-model`, `-wow64`, `-form-factors`); repeatable |
@@ -1976,6 +1987,26 @@ Usage: `tls-forge proxy [flags]`
 | `--ca-key <file>` | Matching CA private key |
 | `-q`, `--quiet` | Suppress per-connection error messages |
 | `--max-request-body <bytes>` | Largest request body buffered by the proxy; default `16777216` (16 MiB) |
+
+A request that says what in a browser sent it, with the `Sec-Fetch-Mode` a
+browser gives every request, goes as the browser sent it: a navigation (typed
+when `Sec-Fetch-Site` says `none`), a form's POST, or a page's `fetch()`, XHR or
+image, script, style sheet or font as `fetch()` in its mode, from the page its
+`Referer` or `Origin` names. It goes with the browser's own fields, in Chrome's
+order for its kind, but the profile's `User-Agent`, client hints,
+`Accept-Language` and `Accept-Encoding`, the handshake being the profile's;
+with the `Priority` Chrome writes over HTTP/2 for what it is for, and its
+HTTP/2 priority weighted by it, which a browser speaking HTTP/1.1 to the proxy
+does not send. tls-forge works out nothing the browser said: no `Origin`,
+`Referer` or `Sec-Fetch-*` of its own, no preflight and no CORS check, no
+answer to a 401 and no start again for `Critical-CH`; a redirect is the
+browser's to follow, and nothing is kept for later. Chrome 155 behind the proxy
+sends a site every request of a page as it sends them directly, over HTTP/2 and
+HTTP/1.1 alike. A request without `Sec-Fetch-Mode`, a program's, goes as one
+without a browser context with the caller's fields the profile does not define:
+a navigation typed into the address bar, so a POST of it is answered 400, saying
+to send `Sec-Fetch-Site`, `Sec-Fetch-Mode`, `Sec-Fetch-Dest` and a `Referer` as a
+browser would.
 
 The proxy deliberately has no cookie jar; it forwards the caller's `Cookie`
 header. Fields that describe a connection rather than what goes over it are

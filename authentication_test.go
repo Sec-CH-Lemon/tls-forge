@@ -569,7 +569,7 @@ func TestA401ChromeWouldAnswerInAnotherSchemeIsLeftAsItIs(t *testing.T) {
 func TestTheBodyIsSentAgainWithTheAnswer(t *testing.T) {
 	server := newRecorder(t, "h1", answeringAsMeasured)
 	var dials atomic.Int32
-	client := newTestClient(t, WithProfile("chrome_155_macos"),
+	client := newTestClient(t, WithProfileValue(asGivenProfile(t, "chrome_155_macos")),
 		WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
 			dials.Add(1)
 			var d net.Dialer
@@ -962,7 +962,7 @@ func TestAnAnswerSentUnaskedIsWorkedOutForItsOwnRequest(t *testing.T) {
 			w.WriteHeader(http.StatusUnauthorized)
 		}
 	})
-	client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+	client := newTestClient(t, WithProfileValue(asGivenProfile(t, "chrome_155_macos")), server.dialing())
 	client.session.auth.draw = func() string { return "c" }
 	if _, err := client.Get("https://u:p@www.example.com/d/a"); err != nil {
 		t.Fatalf("Get: %v", err)
@@ -1062,7 +1062,9 @@ func TestARedirectedHopIsSentUnaskedAnAnswerOfItsOwnMethod(t *testing.T) {
 					w.WriteHeader(http.StatusUnauthorized)
 				}
 			})
-			client := newTestClient(t, WithProfile("chrome_155_macos"), server.dialing())
+			// A POST without a context goes as given, as a profile that says
+			// so sends it.
+			client := newTestClient(t, WithProfileValue(asGivenProfile(t, "chrome_155_macos")), server.dialing())
 			client.session.auth.draw = func() string { return "c" }
 			if _, err := client.Get("https://u:p@www.example.com/d/a"); err != nil {
 				t.Fatalf("Get: %v", err)
@@ -1111,5 +1113,19 @@ func TestEachDigestAnswerDrawsAClientNonceOfItsOwn(t *testing.T) {
 	}
 	if len(drawn) != 2 || drawn[0] == drawn[1] {
 		t.Errorf("client nonces %q", drawn)
+	}
+}
+
+func TestAnAuthorizationGivenToAnAnswerIsNotCopiedOntoItsRedirectAsGiven(t *testing.T) {
+	// fhttp copies the first request's headers onto every hop: a request
+	// without a context sent as given takes off the Authorization tls-forge
+	// gave the answer to a 401, each hop going with its own, or none.
+	server := newRecorder(t, "h2", answeringAsMeasured)
+	client := newTestClient(t, WithProfileValue(asGivenProfile(t, "chrome_155_macos")), server.dialing())
+	if _, err := client.Get(authURL("u:p", "x?to=/p/landed")); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got := authorizations(server.requests()); !slices.Equal(got, []string{"", "Basic dTpw", ""}) {
+		t.Errorf("Authorization %q", got)
 	}
 }

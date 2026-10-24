@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -584,6 +585,140 @@ func TestEveryShippedChromeProfileKeepsItsConnectionsAsChrome(t *testing.T) {
 		if !b.Has("h2.idle_connection_timeout_ms") || b.Uint("h2.idle_connection_timeout_ms") != 0 ||
 			b.Uint("h1.idle_connection_timeout_ms") != 300000 || b.Text("h1.idle_reap") != "on-request" || b.Has("http.idle_connection_timeout_ms") {
 			t.Errorf("%s: idle %s/%s/%s, both %s", name, b["h1.idle_connection_timeout_ms"], b["h1.idle_reap"], b["h2.idle_connection_timeout_ms"], b["http.idle_connection_timeout_ms"])
+		}
+	}
+}
+
+// TestGivenFieldsPolicyIsTypedAndCoherent: where a request's own fields go
+// that Chrome has no slot for is said in every order of a page's request or
+// in none, once; how they go there, what a redirect takes of them and a
+// request without a context sent as a typed navigation only with it; the
+// Priority of a browser's request by what it is for only with the weights of
+// each urgency, eight of them.
+func TestGivenFieldsPolicyIsTypedAndCoherent(t *testing.T) {
+	orders := func(withGiven ...string) string {
+		var out []string
+		for _, key := range []string{"navigation_order", "form_order", "redirected_order", "restarted_order"} {
+			list := `["accept"]`
+			if slices.Contains(withGiven, key) {
+				list = `["@given","accept"]`
+			}
+			out = append(out, `"headers.`+key+`":`+list)
+		}
+		return strings.Join(out, ",")
+	}
+	all := orders("navigation_order", "form_order", "redirected_order", "restarted_order")
+	const context = `"headers.browser_context":true,"headers.alps_after":"accept","headers.renderer_initial_buckets":8,` +
+		`"headers.renderer_load_denominator":2,`
+	for _, tc := range []struct{ body, want string }{
+		{`{` + orders("navigation_order") + `}`, "@given is in some of"},
+		{`{` + orders("navigation_order", "form_order", "redirected_order") + `}`, "@given is in some of"},
+		{`{"headers.navigation_order":["@given","@given"]}`, "names @given more than once"},
+		{`{"headers.given_order":"bytes"}`, "requires @given"},
+		{`{` + all + `,"headers.given_order":"sorted"}`, "unsupported primitive"},
+		{`{"headers.given_redirect_drops":["cookie"]}`, "requires @given"},
+		{`{` + all + `,"headers.given_redirect_drops":["Cookie"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":[""]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":["a:b"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":["a b"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":["a\tb"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":["@given"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":["a\rb"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":["a\nb"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.given_redirect_drops":["a\u0000b"]}`, "not a field name in lower case"},
+		{`{` + all + `,"headers.without_context":"typed-navigation"}`, "requires headers.browser_context"},
+		{`{` + context + orders() + `,"headers.without_context":"typed-navigation"}`, "requires @given"},
+		{`{"headers.without_context":"navigation"}`, "unsupported primitive"},
+		{`{"h2.urgency_weights":[255]}`, "a weight for each urgency"},
+		{`{"h2.urgency_weights":[256,0,0,0,0,0,0,0]}`, "is no weight on the wire"},
+		{`{"headers.sent_priority":["document=u=0"]}`, "requires h2.urgency_weights"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["document"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["=u=0"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["a=i","a=u=1"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["Image=i"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["im age=i"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["im\tage=i"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["image,font=i"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["image;x=i"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["image=i\r"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["image=i\n"]}`, "destination=Priority said once"},
+		{`{"h2.urgency_weights":[1,1,1,1,1,1,1,1],"headers.sent_priority":["image=i\u0000"]}`, "destination=Priority said once"},
+		{`{"headers.renderer_origin_dests":"font"}`, "cannot unmarshal"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+	for _, body := range []string{
+		`{` + all + `}`,
+		`{` + all + `,"headers.given_order":"as-given","headers.given_redirect_drops":[]}`,
+		`{` + context + all + `,"headers.without_context":"typed-navigation"}`,
+		`{"headers.without_context":"as-given"}`,
+		`{"h2.urgency_weights":[255,219,182,146,109,73,36,0],"headers.sent_priority":["script=","empty=u=1, i"]}`,
+		`{"headers.renderer_origin_dests":["font"]}`,
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err != nil {
+			t.Errorf("%s: %v", body, err)
+		}
+	}
+}
+
+// TestEveryShippedChromeProfileGivesFieldsAsChrome: a request without a
+// context is a typed navigation, and what it is given goes where Chrome
+// 155.0.8059.85 writes it (testdata/chrome155-given.json); a browser's
+// request the Priority of what it is for (testdata/chrome155-subresources.json).
+func TestEveryShippedChromeProfileGivesFieldsAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	want := map[string]string{
+		"headers.without_context":      `"typed-navigation"`,
+		"headers.given_order":          `"bytes"`,
+		"headers.given_redirect_drops": `["cookie"]`,
+		"headers.navigation_order": `["pragma","cache-control","authorization","@hints","upgrade-insecure-requests",` +
+			`"user-agent","@given","accept","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer",` +
+			`"accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]`,
+		"headers.form_order": `["content-length","pragma","cache-control","authorization","@hints",` +
+			`"upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site",` +
+			`"sec-fetch-mode","sec-fetch-dest","referer","accept-encoding","accept-language","cookie","if-none-match",` +
+			`"if-modified-since","priority"]`,
+		"headers.redirected_order": `["content-length","pragma","cache-control","authorization",` +
+			`"upgrade-insecure-requests","content-type","user-agent","origin","@given","accept","sec-fetch-site",` +
+			`"sec-fetch-mode","sec-fetch-user","sec-fetch-dest","@hints","referer","accept-encoding","accept-language",` +
+			`"cookie","if-none-match","if-modified-since","priority"]`,
+		"headers.restarted_order": `["pragma","cache-control","authorization","upgrade-insecure-requests","user-agent",` +
+			`"@given","accept","@hints","sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest","referer",` +
+			`"accept-encoding","accept-language","cookie","if-none-match","if-modified-since","priority"]`,
+		"headers.script_trailing": `["referer","accept-encoding","accept-language","cookie","if-none-match",` +
+			`"if-modified-since","range","priority"]`,
+		"headers.sent_priority": `["document=u=0, i","iframe=u=0, i","style=u=0","font=u=0","image=i","script=",` +
+			`"empty=u=1, i"]`,
+		"h2.urgency_weights":            `[255,219,182,146,109,73,36,0]`,
+		"headers.renderer_origin_dests": `["font"]`,
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
 		}
 	}
 }

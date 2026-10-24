@@ -58,7 +58,8 @@ func h3Origin(t *testing.T, handler http.Handler, observe ...func([]byte, net.Ad
 
 func racingChrome(t *testing.T) *Client {
 	t.Helper()
-	c, err := New(WithProfile("chrome_155_macos"), WithInsecureSkipVerify(), WithTimeout(5*time.Second), WithTransportOption(tc.WithProtocolRacing()))
+	// Requests without a context by any method, as given.
+	c, err := New(WithProfileValue(asGivenProfile(t, "chrome_155_macos")), WithInsecureSkipVerify(), WithTimeout(5*time.Second), WithTransportOption(tc.WithProtocolRacing()))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,12 +9,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -103,12 +105,17 @@ func TestBrowserHelper(t *testing.T) {
 		os.Exit(1)
 	}
 	defer client.Close()
-	page, err := client.Do(&tlsforge.Request{URL: url, Header: tlsforge.NewHeader(
+	opened := tlsforge.NewHeader(
 		"sec-fetch-site", "none",
 		"sec-fetch-mode", "navigate",
 		"sec-fetch-user", "?1",
 		"sec-fetch-dest", "document",
-	)})
+	)
+	if os.Getenv("TLSFORGE_BROWSER_HEADLESS") != "" {
+		// As a headless Chrome says itself.
+		opened.Set("user-agent", strings.Replace(browserProfile.UserAgent, "Chrome/", "HeadlessChrome/", 1))
+	}
+	page, err := client.Do(&tlsforge.Request{URL: url, Header: opened})
 	if err != nil {
 		os.Exit(1)
 	}
@@ -134,11 +141,13 @@ func TestBrowserHelper(t *testing.T) {
 		os.Exit(1)
 	}
 	collect := final.Scheme + "://" + final.Host + page.Text()[start:start+end]
+	// As the capture page's script posts its report.
 	if _, err := client.Do(&tlsforge.Request{
-		Method: "POST",
-		URL:    collect,
-		Body:   navigator,
-		Header: tlsforge.NewHeader("content-type", "application/json"),
+		Method:  "POST",
+		URL:     collect,
+		Body:    navigator,
+		Header:  tlsforge.NewHeader("content-type", "application/json"),
+		Browser: &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: page.URL},
 	}); err != nil {
 		os.Exit(1)
 	}
@@ -146,6 +155,14 @@ func TestBrowserHelper(t *testing.T) {
 }
 
 func browserStandIn(t *testing.T) string {
+	t.Helper()
+	return browserStandInSaying(t, "")
+}
+
+// browserStandInSaying is browserStandIn with the environment it is run with
+// given more, such as TLSFORGE_BROWSER_HEADLESS=1, which has it say it is
+// headless.
+func browserStandInSaying(t *testing.T, environment string) string {
 	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("the stand-in is a shell script")
@@ -156,8 +173,8 @@ func browserStandIn(t *testing.T) string {
 	}
 	script := fmt.Sprintf(`#!/bin/sh
 for last; do :; done
-TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
-`, self)
+%s TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
+`, environment, self)
 	path := filepath.Join(t.TempDir(), "stand-in-browser")
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatalf("writing the stand-in: %v", err)
@@ -314,14 +331,82 @@ func TestFetchKeepsTheRequestInADirectory(t *testing.T) {
 
 func TestFetchPost(t *testing.T) {
 	server := startEcho(t)
-	code, stdout, _ := exec(t, "fetch", "--insecure", "--method", "POST",
-		"-H", "content-type: application/json",
+	code, stdout, stderr := exec(t, "fetch", "--insecure", "--method", "POST",
+		"-H", "content-type: application/json", "--request-kind", "fetch", "--initiator-url", server.URL()+"/",
 		"--data", `{"user_agent":"from the CLI"}`, server.URL()+"/collect")
 	if code != 0 {
-		t.Fatalf("exit code = %d", code)
+		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	if !strings.Contains(stdout, "from the CLI") {
 		t.Errorf("stdout = %q", stdout)
+	}
+}
+
+func TestFetchRefusesAPostWithoutAKindOfRequest(t *testing.T) {
+	// Without --request-kind a request goes as a navigation typed into the
+	// address bar, which no POST, HEAD or body is: refused before anything is
+	// sent, and the message says what to give.
+	var asked atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { asked.Add(1) }))
+	t.Cleanup(server.Close)
+	for _, args := range [][]string{
+		{"-X", "POST", "-d", "a=1"},
+		{"-X", "HEAD"},
+		{"-d", ""},
+	} {
+		code, _, stderr := exec(t, append(append([]string{"fetch"}, args...), server.URL+"/x")...)
+		if code != 2 || !strings.Contains(stderr, "needs --request-kind: without it a request goes as a navigation "+
+			"typed into the address bar, a GET with no body; give --request-kind form, fetch or xhr, and "+
+			"--initiator-url, the page that sends it") {
+			t.Errorf("%v: exit code %d, %s", args, code, stderr)
+		}
+		if what := map[string]string{"-d": "GET " + server.URL + "/x with a body needs",
+			"-X": args[1] + " " + server.URL + "/x needs"}[args[0]]; !strings.Contains(stderr, what) {
+			t.Errorf("%v: %s", args, stderr)
+		}
+	}
+	// What else the library refuses of it is said as the library says it.
+	if code, _, stderr := exec(t, "fetch", "-X", "GE T", server.URL+"/x"); code != 2 ||
+		!strings.Contains(stderr, server.URL+"/x: net/http: invalid method") {
+		t.Errorf("an invalid method: exit code %d, %s", code, stderr)
+	}
+	if n := asked.Load(); n != 0 {
+		t.Errorf("the server was asked %d times", n)
+	}
+}
+
+func TestFetchWarnsOfARefererWithoutAKindOfRequest(t *testing.T) {
+	// A typed navigation's Sec-Fetch-Site: none, with a Referer, is what Chrome
+	// sends only when automation gives it one: said once, and the request goes
+	// all the same. Not with --request-kind, nor in a profile whose requests
+	// without a context go as given.
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	t.Cleanup(server.Close)
+	const warned = "WARN: -H Referer without --request-kind goes as a navigation typed into the address bar,\n" +
+		"      with Sec-Fetch-Site: none, which Chrome sends only when automation gives it a Referer.\n" +
+		"      For a request from a page, give --request-kind navigation --initiator-url PAGE instead.\n"
+	for _, tc := range []struct {
+		args []string
+		warn bool
+	}{
+		{[]string{"-H", "Referer: https://shop.example/a"}, true},
+		{[]string{"-H", "referer: https://shop.example/a", "-H", "X-Foo: 1"}, true},
+		{[]string{"-H", "X-Foo: 1"}, false},
+		{[]string{"-H", "Referer: https://shop.example/a", "--request-kind", "navigation"}, false},
+		{[]string{"-H", "Referer: https://shop.example/a", "--profile", "firefox_148"}, false},
+	} {
+		code, _, stderr := exec(t, append(append([]string{"fetch"}, tc.args...), server.URL+"/x")...)
+		if tc.args[len(tc.args)-1] == "navigation" {
+			// A navigation in a context is given no headers of its own.
+			if code != 2 || strings.Contains(stderr, "WARN: -H Referer") {
+				t.Errorf("%v: exit code %d, %s", tc.args, code, stderr)
+			}
+			continue
+		}
+		if code != 0 || strings.Contains(stderr, warned) != tc.warn || strings.Count(stderr, "WARN: -H Referer") > 1 {
+			t.Errorf("%v: exit code %d, warned %v, want %v:\n%s", tc.args, code, strings.Contains(stderr, warned),
+				tc.warn, stderr)
+		}
 	}
 }
 
@@ -1655,6 +1740,40 @@ func keepProfilesIn(t *testing.T) string {
 	profile.Default.SetDir(dir)
 	t.Cleanup(func() { profile.Default.SetDir(previous) })
 	return dir
+}
+
+func TestCaptureKeepsNoHeadlessBrowserAsLocal(t *testing.T) {
+	// A headless Chrome names itself HeadlessChrome, and local is what every
+	// command wears unless told otherwise: refused before a browser is
+	// opened when --headless says so, and after the capture when the browser
+	// said so itself; under a name of its own it is kept.
+	dir := keepProfilesIn(t)
+	code, _, stderr := exec(t, "capture", "--browser", filepath.Join(t.TempDir(), "no-browser"), "--headless",
+		"--install")
+	if code != 2 || !strings.Contains(stderr, "--headless with --install: a headless Chrome names itself HeadlessChrome") {
+		t.Errorf("exit code %d: %s", code, stderr)
+	}
+	headless := browserStandInSaying(t, "TLSFORGE_BROWSER_HEADLESS=1")
+	code, _, stderr = exec(t, "capture", "--browser", headless, "--timeout", "30s", "--install")
+	if code != 1 || !strings.Contains(stderr, "the browser measured was headless: a headless Chrome names itself "+
+		"HeadlessChrome in its user agent, and --install keeps the profile every command wears by default (local); "+
+		"capture with a window, or keep it under a name of its own with --name, or as a file with --save; nothing "+
+		"was kept") {
+		t.Errorf("exit code %d: %s", code, stderr)
+	}
+	if kept, _ := os.ReadDir(dir); len(kept) != 0 {
+		t.Errorf("kept %v", kept)
+	}
+	// Named, even local, it is kept: --headless asked for it too.
+	for _, name := range []string{"mine", localName} {
+		if code, stdout, stderr := exec(t, "capture", "--browser", headless, "--headless", "--timeout", "30s",
+			"--install", "--name", name); code != 0 {
+			t.Errorf("exit code %d:\n%s\n%s", code, stdout, stderr)
+		}
+		if _, err := os.Stat(filepath.Join(dir, name, profile.HostPlatform()+".json")); err != nil {
+			t.Errorf("not kept under its name: %v", err)
+		}
+	}
 }
 
 func TestCaptureInstallsIntoThisMachinesDirectory(t *testing.T) {

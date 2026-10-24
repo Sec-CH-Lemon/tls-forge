@@ -290,7 +290,9 @@ class Client:
         cookies: Iterable[str] | None = None,
         browser_context: BrowserContext | None = None,
     ) -> Response:
-        """POST a body."""
+        """POST a body, in the browser context of the form or script that
+        posts it: a request without one is a navigation typed into the address
+        bar, which posts nothing, and is refused."""
         return self.request(
             url, method="POST", body=body, headers=headers, order=order, cookies=cookies,
             browser_context=browser_context,
@@ -340,11 +342,12 @@ class Client:
     ) -> Response:
         """Make a request.
 
-        :param headers: layered over the profile's. A name the profile already
-            sends keeps the browser's position and takes your value; one it does
-            not send is appended after the rest.
-        :param order: the order of the headers *you* send. Without it they go
-            last, sorted.
+        :param headers: the request's own fields. Without a browser context,
+            each goes where Chrome writes that field, in place of Chrome's own,
+            and one Chrome has no place for after ``user-agent``, by the bytes
+            of its name; in one, what the page's script gives fetch() or an XHR.
+        :param order: the order of the headers *you* send, for a profile that
+            lays them out as given. Without it they go sorted.
         :param cookies: ``name=value`` pairs added to the jar before the request.
         :param browser_context: the browser context the request is made in, by
             this package's names (:class:`BrowserContext`), sent only to a

@@ -445,6 +445,10 @@ func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 	if err != nil {
 		return fmt.Errorf("proxy: reading the request body: %w", err)
 	}
+	if len(body) == 0 && len(req.TransferEncoding) == 0 && len(req.Header.Values("Content-Length")) == 0 {
+		// No body was sent, which is not an empty one: a GET carries none.
+		body = nil
+	}
 	if int64(len(body)) > limit {
 		if err := writeResponse(w, http.StatusRequestEntityTooLarge,
 			map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
@@ -464,20 +468,111 @@ func (s *Server) forward(w io.Writer, req *http.Request, scheme string) error {
 		target.Host = req.Host
 	}
 
-	res, err := s.opts.Client.Do(&tlsforge.Request{
-		Method: req.Method,
-		URL:    target.String(),
-		Header: mergeHeaders(s.opts.Client.Headers(), req.Header),
-		Body:   body,
-	})
+	res, err := s.opts.Client.Do(s.request(req, target.String(), body))
 	if err != nil {
 		// The caller is a client waiting on a socket; it deserves a status, not
 		// a dropped connection, and the reason, without the password of any
-		// URL in it: the caller is somebody else.
-		return writeResponse(w, 502, map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
+		// URL in it: the caller is somebody else. A request this proxy will
+		// not send as it is, it was given wrong.
+		status := http.StatusBadGateway
+		if errors.Is(err, tlsforge.ErrNeedsContext) {
+			status = http.StatusBadRequest
+			err = fmt.Errorf("%w; a request without Sec-Fetch-Mode goes as one: send Sec-Fetch-Site, Sec-Fetch-Mode "+
+				"and Sec-Fetch-Dest as a browser would, with the Referer of the page that sends it", err)
+		}
+		return writeResponse(w, status, map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
 			[]byte(redact.Text(err.Error())+"\n"), req.Method)
 	}
 	return writeResponse(w, res.Status, res.Header, res.Body, req.Method)
+}
+
+// request is what the client is asked for req, to target, with body.
+//
+// A request that says what in a browser sent it, with the Sec-Fetch-Mode a
+// browser gives every request, goes as the browser sent it (sentContext): its
+// own fields, in Chrome's order for its kind, the profile's in place of the
+// browser's for what the profile says itself. One that says nothing goes as a
+// request without a browser context, with the fields the profile does not
+// define (extraHeaders), and so does one a client cannot take as a browser's.
+func (s *Server) request(req *http.Request, target string, body []byte) *tlsforge.Request {
+	asked := &tlsforge.Request{Method: req.Method, URL: target, Body: body}
+	if browser := sentContext(req); browser != nil {
+		sent := *asked
+		sent.Header, sent.Browser = sentHeader(req.Header), browser
+		if v, ok := s.opts.Client.(interface{ Validate(*tlsforge.Request) error }); ok && v.Validate(&sent) == nil {
+			return &sent
+		}
+	}
+	asked.Header = extraHeaders(s.opts.Client.Headers(), req.Header)
+	return asked
+}
+
+// sentContext is the browser context req says it was sent in, by the
+// Sec-Fetch-* a browser gives every request to a potentially trustworthy URL,
+// or nil for one that says none: a navigation, typed into the address bar
+// when Sec-Fetch-Site says none, or from the page its Referer names; a form's
+// POST; or what a page's script or its markup fetches, in the mode it says,
+// which goes as fetch() in that mode does, from the page its Referer, else its
+// Origin, names, and with credentials when it carries a Cookie or an
+// Authorization.
+func sentContext(req *http.Request) *tlsforge.BrowserContext {
+	page := req.Header.Get("Referer")
+	if origin := req.Header.Get("Origin"); page == "" && origin != "" && origin != "null" {
+		page = origin + "/"
+	}
+	switch mode := strings.ToLower(strings.TrimSpace(req.Header.Get("Sec-Fetch-Mode"))); {
+	case mode == "navigate" && req.Method == http.MethodPost:
+		return &tlsforge.BrowserContext{Kind: tlsforge.KindForm, Initiator: page, Sent: true}
+	case mode == "navigate":
+		browser := &tlsforge.BrowserContext{Kind: tlsforge.KindNavigation, Sent: true}
+		if !strings.EqualFold(strings.TrimSpace(req.Header.Get("Sec-Fetch-Site")), "none") {
+			browser.Initiator = page
+		}
+		return browser
+	case mode == "cors" || mode == "no-cors" || mode == "same-origin":
+		browser := &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Mode: mode, Initiator: page, Sent: true}
+		if req.Header.Get("Cookie") != "" || req.Header.Get("Authorization") != "" {
+			browser.Credentials = "include"
+		}
+		return browser
+	}
+	return nil
+}
+
+// sentHeader is what of a browser's header goes on (forwarded): in the order
+// of its names, as a map has none, each name's values in theirs.
+func sentHeader(incoming http.Header) tlsforge.Header {
+	var out tlsforge.Header
+	for _, name := range forwarded(incoming) {
+		for _, value := range incoming.Values(name) {
+			out.Add(name, value)
+		}
+	}
+	return out
+}
+
+// forwarded are the names of the fields of incoming that go on from this
+// proxy, sorted: not those of its connection, Host and Content-Length, which
+// the transport gives the next, nor those addressed to the proxy.
+func forwarded(incoming http.Header) []string {
+	hop := connectionOptions(incoming)
+	var out []string
+	for name := range incoming {
+		lower := strings.ToLower(name)
+		switch {
+		case hop[lower], lower == "host", lower == "content-length":
+			// Hop-by-hop, those the caller's Connection names as well, or
+			// recomputed by the transport. Forwarding them describes the
+			// connection to the proxy, not the one to the site.
+		case lower == "proxy-authorization", lower == "proxy-authenticate":
+			// Addressed to this proxy, not through it. Forwarding them hands
+			// the user's proxy password to whatever site they browsed to.
+		default:
+			out = append(out, name)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // hopByHop are the fields that describe a connection rather than what goes
@@ -515,7 +610,8 @@ func connectionNames(header map[string][]string) map[string]bool {
 	return named
 }
 
-// mergeHeaders decides what the outgoing request says about itself.
+// extraHeaders decides what of a caller's request that says nothing of a
+// browser goes on with it: the client lays it over the profile's headers.
 //
 // The profile wins every name it defines. That is the point of the proxy: a
 // caller whose `user-agent` says curl, sent over Chrome's handshake, has simply
@@ -527,33 +623,15 @@ func connectionNames(header map[string][]string) map[string]bool {
 // type. They follow in sorted order rather than map order, since a header set
 // that shuffled itself between two identical requests would be a fingerprint of
 // its own.
-func mergeHeaders(profile tlsforge.Header, incoming http.Header) tlsforge.Header {
-	out := profile.Clone()
-	hop := connectionOptions(incoming)
-
-	extras := make([]string, 0, len(incoming))
-	for name := range incoming {
+func extraHeaders(profile tlsforge.Header, incoming http.Header) tlsforge.Header {
+	var out tlsforge.Header
+	for _, name := range forwarded(incoming) {
 		lower := strings.ToLower(name)
-		switch {
-		case hop[lower], lower == "host", lower == "content-length":
-			// Hop-by-hop, those the caller's Connection names as well, or
-			// recomputed by the transport. Forwarding them describes the
-			// connection to the proxy, not the one to the site.
-			continue
-		case lower == "proxy-authorization", lower == "proxy-authenticate":
-			// Addressed to this proxy, not through it. Forwarding them hands
-			// the user's proxy password to whatever site they browsed to.
+		if profile.Has(lower) {
 			continue
 		}
-		if out.Has(lower) {
-			continue
-		}
-		extras = append(extras, lower)
-	}
-	sort.Strings(extras)
-	for _, name := range extras {
 		for _, value := range incoming.Values(name) {
-			out.Add(name, value)
+			out.Add(lower, value)
 		}
 	}
 	return out

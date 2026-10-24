@@ -69,7 +69,7 @@ func TestProfileJSONChangesActualHeadersAndPriority(t *testing.T) {
 	for _, proto := range []string{"h1", "h2"} {
 		t.Run(proto, func(t *testing.T) {
 			s := newRecorder(t, proto, nil)
-			p := policyFile(t, map[string]any{"headers.navigation_order": []string{"accept", "user-agent", "@hints", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "accept-encoding", "accept-language", "cookie", "priority"}, "headers.priority_fetch": "u=6", "headers.script_priority_weight": 41, "headers.script_priority_exclusive": false, "headers.renderer_order": "sorted", "headers.h1_generated_priority": true})
+			p := policyFile(t, map[string]any{"headers.navigation_order": []string{"accept", "user-agent", "@given", "@hints", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "accept-encoding", "accept-language", "cookie", "priority"}, "headers.priority_fetch": "u=6", "headers.script_priority_weight": 41, "headers.script_priority_exclusive": false, "headers.renderer_order": "sorted", "headers.h1_generated_priority": true})
 			c := newTestClient(t, WithProfileValue(p), s.dialing())
 			for _, req := range []*Request{{URL: "https://example.com/nav", Browser: &BrowserContext{Kind: KindNavigation}}, {URL: "https://example.com/fetch", Browser: &BrowserContext{Kind: KindFetch, Initiator: "https://example.com/nav"}, Header: NewHeader("X-Z", "z", "X-A", "a")}} {
 				if _, err := c.Do(req); err != nil {
@@ -111,7 +111,8 @@ func TestProfileJSONChangesActualH2FrameCuts(t *testing.T) {
 	}
 	defer server.Close()
 	port := server.PortFor(harness.H2Settings{Frame: 16384})
-	p := policyFile(t, map[string]any{"h2.header_frame_payload": 1024, "h2.data_frame_payload": 257})
+	// A POST without a context, as given.
+	p := policyFile(t, map[string]any{"h2.header_frame_payload": 1024, "h2.data_frame_payload": 257, "headers.without_context": "as-given"})
 	c := newTestClient(t, WithProfileValue(p), WithTimeout(5*time.Second), WithTransportOption(tc.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
 		_, at, _ := net.SplitHostPort(addr)
 		return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", at))
@@ -194,7 +195,8 @@ func TestProfileJSONControlsTLSRetryWithoutRequestReplay(t *testing.T) {
 			srv.Listener = ln
 			srv.StartTLS()
 			defer srv.Close()
-			p := policyFile(t, map[string]any{"tls.handshake_retries": retries})
+			// A POST without a context, as given.
+			p := policyFile(t, map[string]any{"tls.handshake_retries": retries, "headers.without_context": "as-given"})
 			c := newTestClient(t, WithProfileValue(p), WithTimeout(3*time.Second), WithTransportOption(tc.WithForceHttp1()))
 			res, err := c.Do(&Request{URL: srv.URL, Method: "POST", Body: []byte("one effect")})
 			if retries == 0 {
@@ -274,7 +276,9 @@ func TestProfileJSONControlsRawCookieAnchorAndNavigationMarker(t *testing.T) {
 	for _, proto := range []string{"h1", "h2"} {
 		t.Run(proto, func(t *testing.T) {
 			s := newRecorder(t, proto, nil)
-			p := policyFile(t, map[string]any{"headers.cookie_after": "accept", "headers.navigation_fetch_user": "?0"})
+			// The Cookie's slot of a request without a context sent as given.
+			p := policyFile(t, map[string]any{"headers.cookie_after": "accept", "headers.navigation_fetch_user": "?0",
+				"headers.without_context": "as-given"})
 			c := newTestClient(t, WithProfileValue(p), s.dialing())
 			if _, err := c.Do(&Request{URL: "https://example.com/raw", Cookies: []Cookie{{Name: "a", Value: "1"}}}); err != nil {
 				t.Fatal(err)

@@ -1109,7 +1109,7 @@ func TestListIsAskedForTheWayOneURLIs(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	code, stdout, stderr := exec(t, "fetch", "-X", "POST", "-H", "X-Asked-By: a test", "-d", "payload",
-		server.URL+"/one", server.URL+"/two")
+		"--request-kind", "fetch", "--initiator-url", server.URL+"/", server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

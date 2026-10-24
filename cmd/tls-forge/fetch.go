@@ -534,12 +534,13 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	data := fs.StringP("data", "d", "", "request body")
 	requestKind := fs.String("request-kind", "",
 		"send each request as Chrome sends this kind: navigation, form, fetch or xhr, from the page "+
-			"--initiator-url names; without it, as a navigation typed into the address bar, with what -H and -d give")
+			"--initiator-url names; without it, as a navigation typed into the address bar, a GET with what -H "+
+			"gives (another method or -d needs a kind)")
 	initiatorURL := fs.String("initiator-url", "",
 		"the page a --request-kind request is sent from: a form, fetch and xhr need one, and a navigation "+
 			"without one is typed into the address bar")
 	var headers headerFlag
-	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Referer: https://…\"")
+	fs.VarP(&headers, "header", "H", "extra header, repeatable: -H \"Authorization: Bearer …\"")
 
 	// More URLs than the one.
 	input := fs.String("input", "",
@@ -726,6 +727,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 		*workers = 1
 	}
 	warnAboutConcurrency(errOut, *workers)
+	warnAboutReferer(errOut, common.run.profile, headers)
 
 	about := traceArgs{
 		"run_id": common.run.id,

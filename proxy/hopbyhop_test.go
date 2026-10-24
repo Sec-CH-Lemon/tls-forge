@@ -103,7 +103,8 @@ func TestTheFieldsAConnectionNamesGoNoFurther(t *testing.T) {
 	for _, field := range asked[0].Header {
 		names = append(names, field.Name)
 	}
-	if !slices.Equal(names, []string{"user-agent", "x-keep"}) {
+	// The profile's own the client lays under it.
+	if !slices.Equal(names, []string{"x-keep"}) {
 		t.Errorf("the request went on with %v", names)
 	}
 	if got := problems.list(); len(got) != 0 {

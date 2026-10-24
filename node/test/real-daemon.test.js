@@ -239,12 +239,17 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
   try {
     await client.get(`${base}/set`);
     const url = `${base}/echo`;
-    const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id: 3, engine_major: 1 }) + '\n');
+    // As a page's script posts: a request without a browser context is a
+    // navigation typed into the address bar, which posts nothing.
+    const browserContext = { kind: 'fetch', initiator: `${base}/` };
+    const overhead = Buffer.byteLength(JSON.stringify({
+      url, body: '', method: 'POST', browser: browserContext, id: 3, engine_major: 1,
+    }) + '\n');
     const body = 'x'.repeat(MAX_REQUEST_BYTES - overhead);
-    await client.post(url, body);
+    await client.post(url, body, { browserContext });
     assert.deepEqual(seen, { cookie: 'visitor=42', length: body.length });
 
-    await assert.rejects(() => client.post(url, `${body}x`), RangeError);
+    await assert.rejects(() => client.post(url, `${body}x`, { browserContext }), RangeError);
     await client.get(url);
     assert.deepEqual(seen, { cookie: 'visitor=42', length: 0 });
   } finally {

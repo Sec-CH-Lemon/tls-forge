@@ -81,7 +81,8 @@ func TestAHeaderBlockAtAFramesLimitReachesAStrictServerWhole(t *testing.T) {
 		if err != nil {
 			t.Fatalf("profile: %v", err)
 		}
-		each = append(each, wearing{name + ": Chrome's 16,374", WithProfileValue(headless(p)), 16374, 5})
+		// A POST without a context, as given.
+		each = append(each, wearing{name + ": Chrome's 16,374", WithProfileValue(asGiven(t, headless(p))), 16374, 5})
 	}
 	each = append(each, wearing{"another browser's from the catalogue: the server's 16,384", WithProfile("firefox_148"), 16384, 5})
 	for _, tc := range each {

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -39,7 +40,14 @@ type aPerson struct {
 // opens the HTTP/1.1 address the page gives, twice, the first visit there only
 // saying what to do next; or, without http1, finishes without it.
 func visitAsAPerson(address, profileName string, p aPerson) error {
-	client, err := tlsforge.New(tlsforge.WithProfile(profileName), tlsforge.WithInsecureSkipVerify(),
+	// Its requests without a browser context go as given: the report it
+	// posts carries client hints, which no page's script may set.
+	worn, err := profile.Get(profileName)
+	if err != nil {
+		return err
+	}
+	worn.Behavior["headers.without_context"] = json.RawMessage(`"as-given"`)
+	client, err := tlsforge.New(tlsforge.WithProfileValue(worn), tlsforge.WithInsecureSkipVerify(),
 		tlsforge.WithoutRedirects())
 	if err != nil {
 		return err

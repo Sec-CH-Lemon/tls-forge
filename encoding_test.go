@@ -232,6 +232,9 @@ func TestABodyComesAsItCameWhenThereIsNothingToDecode(t *testing.T) {
 		}
 
 		t.Run(protocol.name+"/HEAD", func(t *testing.T) {
+			// A HEAD without a context goes as given, as a profile that says
+			// so sends it.
+			client := newTestClient(t, WithProfileValue(asGivenProfile(t, DefaultProfile)))
 			res, err := client.Do(&Request{Method: http.MethodHead, URL: server.url + "/br-head"})
 			if err != nil {
 				t.Fatalf("HEAD: %v", err)

@@ -296,14 +296,13 @@ response, err := client.Do(&tlsforge.Request{
 	Context: ctx,
 	Method:  "POST",
 	URL:     "https://example.com/api",
-	Header: tlsforge.NewHeader(
-		"Content-Type", "application/json",
-		"Referer", "https://example.com/",
-	),
-	Body: []byte(`{"hello":"world"}`),
+	Header:  tlsforge.NewHeader("Content-Type", "application/json"),
+	Body:    []byte(`{"hello":"world"}`),
 	Cookies: []tlsforge.Cookie{
 		{Name: "session", Value: "abc", Secure: true},
 	},
+	// What sends it: the page's script, by fetch().
+	Browser: &tlsforge.BrowserContext{Kind: tlsforge.KindFetch, Initiator: "https://example.com/"},
 })
 ```
 
@@ -312,12 +311,12 @@ response, err := client.Do(&tlsforge.Request{
 | `Context` | Cancels this request. `nil` means `context.Background()`. |
 | `Method` | HTTP method. An empty value means `GET`. |
 | `URL` | Required absolute http or https URL, sent as Chrome writes it; see below. |
-| `Header` | Ordered headers layered over the profile. Existing names keep their original position; new names are appended, but `Cookie`, which goes where Chrome sends the cookies when the profile is a Chromium browser's: right after `Accept-Language`. |
-| `Body` | Raw request bytes. |
+| `Header` | The request's own fields. Without a browser context, each goes in the slot Chrome writes that field in, in place of Chrome's own, and one Chrome has no slot for after `User-Agent`, by the bytes of its name; see below. In a context, what a script gives `fetch()` or an XHR. |
+| `Body` | Raw request bytes. `nil` is none, an empty slice an empty body. A request without a browser context has none. |
 | `Cookies` | Cookies added to the jar before this request. |
 | `Trace` | Optional hooks told each step the request takes on the wire; see [Tracing a request](#tracing-a-request). |
 | `Logger` | A `*slog.Logger` this request is logged to instead of the client's, so that what it is for goes with every record of it; see [Logging](#logging). |
-| `Browser` | A `*BrowserContext`: what in a browser the request stands for, a navigation, a form, `fetch()` or an XHR, sent as Chrome sends that; see [Browser contexts](#browser-contexts). `nil` sends it as a navigation typed into the address bar, as always. |
+| `Browser` | A `*BrowserContext`: what in a browser the request stands for, a navigation, a form, `fetch()` or an XHR, sent as Chrome sends that; see [Browser contexts](#browser-contexts). `nil` sends it as a navigation typed into the address bar, a `GET` with no body: another method, or a body, is refused with `ErrNeedsContext`. |
 
 Use `Request.Context` for caller-driven cancellation and `WithTimeout` for the
 deadline of each request, all of it. A request ends when either is reached,
@@ -355,31 +354,53 @@ such a path fails as the transport says it cannot parse it.
 A `Cookie` in `Header` goes with the jar's cookies, as `net/http` adds a jar's
 to a request's own: every cookie it names first, then those the jar holds for
 the URL, in one `Cookie` over HTTP/1.1 and a field for each cookie over HTTP/2,
-on the answer to a 401 and on a redirect to its host or one under it too; a
-redirect to any other host carries the jar's alone. `Request.Cookies` adds
-values to the jar instead, where they go on every later request they belong
-to and give way to a value the server sets, as a browser's do; a name in both
-would go twice.
+on the answer to a 401 too. A redirect's hop carries the jar's alone, as Chrome
+makes each hop's `Cookie` of its jar (`headers.given_redirect_drops`); a
+profile whose requests without a context go as given (`headers.without_context`
+`as-given`) sends it on to its host and the hosts under it, as `net/http`
+does. `Request.Cookies` adds values to the jar instead, where they go on every
+later request they belong to and every hop, and give way to a value the server
+sets, as a browser's do; a name in both would go twice.
 
-A request without a browser context goes to an http URL that is not on the
-machine itself as Chrome sends a navigation there: without the profile's
-client hints and `Sec-Fetch-*`, offering neither Brotli nor zstd.
-`localhost`, a name under `.localhost`, `127.0.0.1` and `[::1]` are
-potentially trustworthy, as https is, and get every header of the profile;
-each hop of a redirect goes as its own URL is, measured on Chrome 155 (the
-`nav-direct-*` and `redir-nav-direct-*` scenarios of
-`testdata/chrome155-requests.json`). What `Header` or `WithHeaders` gives goes
-as given, to any URL: a `Referer` too, though Chrome sends none beside a typed
-navigation's `Sec-Fetch-Site: none`. A navigation from a page is a
-[browser context](#browser-contexts) with its `Initiator`, which works its
-`Referer` out and refuses one given. Only Chromium was measured: another
-browser's profile sends every header it names.
+A request without a browser context is a navigation typed into the address
+bar, where the profile says so (`headers.without_context`: `typed-navigation`,
+as every shipped Chrome profile does): its headers worked out as a typed
+navigation in a [browser context](#browser-contexts) has them, with the client
+hints its origin asked for, `Accept-CH`, `Critical-CH` and what a connection's
+ALPS asks for. It is a `GET` with no body; another method or a body is refused
+before anything is sent, with an error `errors.Is` finds `ErrNeedsContext` in.
+What `Header` and `WithHeaders` give it goes each in the slot Chrome writes
+that field in, in place of Chrome's own: a reload's `Pragma` and
+`Cache-Control` and `Authorization` before the client hints, `Referer`,
+`Accept-Language`, the `Cookie` and a revalidation's `If-None-Match` and
+`If-Modified-Since` after `Sec-Fetch-*`, the client hints, `User-Agent` and
+`Accept` where they are. A field Chrome has no slot for goes where Chrome
+driven over DevTools (Playwright's `extraHTTPHeaders`) writes the extra headers
+it is given: after `User-Agent`, after `Origin` in a form's and a redirect's,
+by the bytes of their names as given, spelt as given over HTTP/1.1 (measured on
+Chrome 155: `testdata/chrome155-given.json`). A redirect's hop goes without its
+`Authorization` across origins, which Chrome sends on, and says an `Origin` it
+was given as "null" across origins, as Chrome does. A `Referer` goes beside a
+typed navigation's `Sec-Fetch-Site: none`, which Chrome sends only when
+automation gives it one: a navigation from a page is a browser context with its
+`Initiator`, which works its `Referer` out and refuses one given. To an http URL
+that is not on the machine itself it goes as Chrome sends a navigation there:
+without the profile's client hints and `Sec-Fetch-*`, offering neither Brotli
+nor zstd, what it was given as given. `localhost`, a name under `.localhost`,
+`127.0.0.1` and `[::1]` are potentially trustworthy, as https is, and get every
+header of the profile; each hop of a redirect goes as its own URL is, measured
+on Chrome 155 (the `nav-direct-*` and `redir-nav-direct-*` scenarios of
+`testdata/chrome155-requests.json`). Its answer is a request's without a
+context: no cache, and the fields of what was decoded taken off. A profile that
+does not say so, a capture's and the transport catalogue's, sends a request
+without a context as given: the profile's headers with the request's own over
+them, a name it does not have after its last, by any method.
 
 ## Browser contexts
 
-A request on its own goes out as a navigation typed into the address bar: the
-profile's headers, with whatever the caller adds. Chrome sends other requests
-differently. A form's POST has `Cache-Control`, `Origin` and its own order;
+A request on its own goes out as a navigation typed into the address bar, with
+whatever the caller adds where Chrome writes it ([Requests](#requests)). Chrome
+sends other requests differently. A form's POST has `Cache-Control`, `Origin` and its own order;
 `fetch()` sends `Accept: */*`, `Sec-Fetch-Mode: cors` and a lower HTTP/2
 priority; every request from a page carries `Referer` as the page's referrer
 policy says, `Sec-Fetch-Site` as it stands to the page, and only the cookies
@@ -408,6 +429,7 @@ response, err := client.Do(&tlsforge.Request{
 | `ReferrerPolicy` | The page's referrer policy. Empty is Chrome's default, `strict-origin-when-cross-origin`. |
 | `Mode` | `fetch()`'s mode: `cors` (default), `no-cors` or `same-origin`. |
 | `Credentials` | `fetch()`'s credentials: `same-origin` (default), `include` or `omit`; an XHR's `same-origin` or `include` (`withCredentials`). |
+| `Sent` | `Header` is what a browser sent for the request, as an intercepting proxy is given it; see below. |
 
 `client.Validate(req)` says what of this `Do` would refuse, without sending
 anything: a command checks a whole list with it before it starts.
@@ -426,6 +448,20 @@ six it knows (`GET`, `POST` and the rest) in capitals, whatever case they were
 given in. A context needs a profile of a Chromium
 browser with headers to send: one of another browser, or a bare entry of the
 transport's catalogue, is refused.
+
+A request in a context with `Sent` is one a browser sent, as `tls-forge proxy`
+is given a browser's request: it goes with the fields `Header` says and no
+others, each in Chrome's slot for its kind (a script's own, a page's
+subresource's, in the renderer's map, sent as `fetch()` in its mode), but the
+profile's `User-Agent`, client hints, `Accept-Language` and `Accept-Encoding`,
+which the handshake says; with the `Priority` Chrome writes over HTTP/2 for
+what it is for (`Sec-Fetch-Dest`: `headers.sent_priority`) when it came with
+none, as over HTTP/1.1 it does, and its HTTP/2 priority weighted by its
+urgency (`h2.urgency_weights`). Nothing the browser does is done again: no
+`Origin`, `Referer`, `Sec-Fetch-*` or client hints of tls-forge's, no
+preflight, no CORS check, no answer to a 401, no start again for
+`Critical-CH`, no redirect followed, and no answer kept for later; it is
+answered as a request without a context is.
 
 The cookies go as Chrome sends them. To another site, a navigation carries
 cookies of `SameSite=None` and `Lax`, and those that named none; a form's POST

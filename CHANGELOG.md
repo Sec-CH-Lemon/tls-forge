@@ -11,6 +11,71 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A request without a browser context goes as a navigation typed into the
+  address bar, where the profile says so (`headers.without_context`:
+  `typed-navigation`; the 15 shipped Chrome profiles; absent or `as-given`
+  keeps the old way): the profile's headers worked out as a typed navigation
+  in a context has them, with the client hints an origin asked for, Accept-CH,
+  Critical-CH and the ACCEPT_CH of ALPS, which a request without a context
+  ignored. The fields it is given, the client's (`WithHeaders`) too, go each
+  in the slot Chrome writes that field in, in place of Chrome's own: a
+  reload's Pragma and Cache-Control, then Authorization, before the client
+  hints; Referer, Accept-Language, the Cookie (the request's own, the jar's
+  after it) and a revalidation's If-None-Match and If-Modified-Since after
+  Sec-Fetch-*. One Chrome has no slot for goes where Chrome driven over
+  DevTools (Playwright's `extraHTTPHeaders`) writes the extra headers it is
+  given: after User-Agent, after Origin in a form's and a redirect's, by the
+  bytes of their names as given (`@given` in the orders,
+  `headers.given_order`: `bytes` or `as-given`), spelt as given over
+  HTTP/1.1. A hop of its redirects goes without the Cookie it was given, as
+  Chrome makes each hop's of its jar (`headers.given_redirect_drops`), without
+  its Authorization across origins (Chrome sends it on; tls-forge does not),
+  and with an Origin it was given said as "null" across origins; one started
+  again for Critical-CH keeps them all. A Range it is given makes its
+  Accept-Encoding `identity`. Before, the fields the profile has no name for
+  went after Priority, the transport's Content-Length last, and a request by
+  any method went as a navigation, body and all. Measured on Chrome
+  155.0.8059.85 on macOS over its DevTools port (50 runs, 25 scenarios over
+  HTTP/2 and HTTP/1.1: `testdata/chrome155-given.json`), against which
+  `TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid` holds
+  tls-forge, the fields Chrome writes in a slot of its own aside.
+- A request without a browser context that a typed navigation cannot be,
+  one by another method than GET or with a body (an empty one too), is
+  refused before anything is sent (`ErrNeedsContext`): give it the context of
+  the form, fetch() or XHR that sends it. `fetch` refuses it with exit code 2
+  (`... needs --request-kind ...`), the daemon answers it with that error,
+  and the SDKs' `post()` takes the request's `browserContext` /
+  `browser_context`. `fetch -H Referer` without `--request-kind` warns that the
+  request says `Sec-Fetch-Site: none`, which Chrome sends with a Referer only
+  when automation gives it one; the help's `-H` example is an Authorization.
+- `proxy`: a request that says what in a browser sent it, with the
+  Sec-Fetch-Mode a browser gives every request, goes as the browser sent it
+  (`BrowserContext.Sent`): a navigation, typed when Sec-Fetch-Site says none,
+  a form's POST, or a page's fetch(), XHR or subresource as fetch() in its
+  mode, from the page its Referer or Origin names; with the browser's fields,
+  in Chrome's order for its kind, but the profile's user agent, client hints,
+  Accept-Language and Accept-Encoding; with the Priority Chrome writes over
+  HTTP/2 for what it is for and its HEADERS frame weighted by its urgency,
+  which a browser's request over HTTP/1.1, the protocol it speaks to a proxy,
+  does not carry (`headers.sent_priority`, `h2.urgency_weights`); a font's
+  Origin where its renderer puts it (`headers.renderer_origin_dests`). It is
+  given no Origin, Referer, Sec-Fetch-* or client hints of tls-forge's, no
+  preflight, no check of CORS, no answer to a 401, no start again for
+  Critical-CH, no redirect followed and no answer kept: the browser does each.
+  A request without Sec-Fetch-Mode goes without a context, and one that
+  cannot is answered 400 with the reason. A request that came without a body
+  goes without one: every GET went with `content-length: 0`. Before, every
+  request of a browser went as a typed navigation, its own fields after
+  Priority. Measured: Chrome 155.0.8059.85 behind `tls-forge proxy` sends a
+  site every request of a page with an image, a script, a style sheet, a font
+  and a frame, fetch()es, an XHR and a form's POST as it sends them directly,
+  11 of 11 over HTTP/2 and over HTTP/1.1 (0 of 9 before):
+  `testdata/chrome155-subresources.json`,
+  `TestABrowsersRequestsReachTheSiteAsChromeSentThemThere`.
+- `capture --headless --install` without `--name` is refused (exit code 2),
+  and a capture whose browser says HeadlessChrome in its user agent is not
+  kept as `local` (exit code 1, nothing kept): `local` is what every command
+  wears by default, and a headless Chrome is told apart by that word alone.
 - A request goes again as Chrome sends one again, chosen in profile JSON.
   Over HTTP/2, a stream refused (RST_STREAM REFUSED_STREAM) goes again at once
   on its connection, and one above a GOAWAY with NO_ERROR on another, as many

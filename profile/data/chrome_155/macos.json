@@ -80,6 +80,16 @@
       "keep-alive"
     ],
     "h2.unread_grace_us": 500,
+    "h2.urgency_weights": [
+      255,
+      219,
+      182,
+      146,
+      109,
+      73,
+      36,
+      0
+    ],
     "h2.window_update_delay_ms": 5000,
     "h2.window_update_denominator": 2,
     "h2.zero_window_stream_error": 3,
@@ -228,6 +238,7 @@
     "headers.form_cache_control": "max-age=0",
     "headers.form_order": [
       "content-length",
+      "pragma",
       "cache-control",
       "authorization",
       "@hints",
@@ -235,6 +246,7 @@
       "content-type",
       "user-agent",
       "origin",
+      "@given",
       "accept",
       "sec-fetch-site",
       "sec-fetch-mode",
@@ -243,7 +255,13 @@
       "accept-encoding",
       "accept-language",
       "cookie",
+      "if-none-match",
+      "if-modified-since",
       "priority"
+    ],
+    "headers.given_order": "bytes",
+    "headers.given_redirect_drops": [
+      "cookie"
     ],
     "headers.h1_connection_default": "keep-alive",
     "headers.h1_generated_priority": false,
@@ -253,10 +271,13 @@
     ],
     "headers.navigation_fetch_user": "?1",
     "headers.navigation_order": [
+      "pragma",
+      "cache-control",
       "authorization",
       "@hints",
       "upgrade-insecure-requests",
       "user-agent",
+      "@given",
       "accept",
       "sec-fetch-site",
       "sec-fetch-mode",
@@ -266,6 +287,8 @@
       "accept-encoding",
       "accept-language",
       "cookie",
+      "if-none-match",
+      "if-modified-since",
       "priority"
     ],
     "headers.preflight_order": [
@@ -288,12 +311,14 @@
     "headers.redirected_hints_after": "sec-fetch-dest",
     "headers.redirected_order": [
       "content-length",
+      "pragma",
       "cache-control",
       "authorization",
       "upgrade-insecure-requests",
       "content-type",
       "user-agent",
       "origin",
+      "@given",
       "accept",
       "sec-fetch-site",
       "sec-fetch-mode",
@@ -304,6 +329,8 @@
       "accept-encoding",
       "accept-language",
       "cookie",
+      "if-none-match",
+      "if-modified-since",
       "priority"
     ],
     "headers.renderer_default_hints": [
@@ -347,10 +374,16 @@
     "headers.renderer_initial_buckets": 8,
     "headers.renderer_load_denominator": 2,
     "headers.renderer_order": "utf16-rapidhash-quadratic-v1",
+    "headers.renderer_origin_dests": [
+      "font"
+    ],
     "headers.restarted_order": [
+      "pragma",
+      "cache-control",
       "authorization",
       "upgrade-insecure-requests",
       "user-agent",
+      "@given",
       "accept",
       "@hints",
       "sec-fetch-site",
@@ -361,6 +394,8 @@
       "accept-encoding",
       "accept-language",
       "cookie",
+      "if-none-match",
+      "if-modified-since",
       "priority"
     ],
     "headers.script_leading": [
@@ -379,8 +414,19 @@
       "accept-encoding",
       "accept-language",
       "cookie",
+      "if-none-match",
+      "if-modified-since",
       "range",
       "priority"
+    ],
+    "headers.sent_priority": [
+      "document=u=0, i",
+      "iframe=u=0, i",
+      "style=u=0",
+      "font=u=0",
+      "image=i",
+      "script=",
+      "empty=u=1, i"
     ],
     "headers.storage_access": "active",
     "headers.untrusted_drop_codings": [
@@ -392,6 +438,7 @@
       "sec-fetch-"
     ],
     "headers.withhold_untrusted": true,
+    "headers.without_context": "typed-navigation",
     "http.auth_cache_entries": 20,
     "http.auth_cache_paths": 10,
     "http.auth_scheme_order": [

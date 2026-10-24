@@ -50,7 +50,12 @@ func TestARequestAnswered421IsSentAgainOnce(t *testing.T) {
 					misdirect(w, false)
 				}))
 				book, log := newLogBook(slog.LevelInfo)
-				client := contextClient(t, server, WithLogger(log))
+				opts := []Option{WithLogger(log)}
+				if browser == nil {
+					// A POST without a context, as given.
+					opts = append(opts, WithProfileValue(asGivenProfile(t, "chrome_155_macos")))
+				}
+				client := contextClient(t, server, opts...)
 				res, err := client.Do(&Request{Method: http.MethodPost, URL: "https://www.example.com/x?q=1",
 					Header: Header{{Name: "Content-Type", Value: "text/plain"}}, Body: []byte("a=1"), Browser: browser})
 				if err != nil || res.Status != http.StatusMisdirectedRequest || res.Text() != "misdirected" {

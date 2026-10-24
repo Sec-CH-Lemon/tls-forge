@@ -59,6 +59,9 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 			return err
 		}
 	}
+	if *headless && *install && *name == "" {
+		return fmt.Errorf("%w: --headless with --install: %s", errUsage, headlessKept)
+	}
 
 	// To stderr: --json makes standard output a document, and a line of
 	// commentary in front of it is a document that will not parse.
@@ -117,6 +120,9 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 			profileName = localName
 		}
 	}
+	if profileName == localName && *name == "" && strings.Contains(measured.UserAgent(), headlessBrand) {
+		return fmt.Errorf("capture: the browser measured was headless: %s; nothing was kept", headlessKept)
+	}
 	// One kept under the name of a profile tls-forge ships would answer for it
 	// from then on, the directory being read first: only when asked by name.
 	saved, path, err := saveProfile(where, profileName, measured, !*install || *name != "", settings)
@@ -135,6 +141,17 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	return nil
 }
+
+// headlessBrand is what a headless Chrome says in its user agent where a
+// Chrome with a window says Chrome, and the one thing that sets the two apart
+// in what they send: compare measured Chrome 155 headless against its headed
+// profile alike but for it.
+const headlessBrand = "HeadlessChrome"
+
+// headlessKept is why a headless capture is not kept as local.
+const headlessKept = "a headless Chrome names itself HeadlessChrome in its user agent, and --install keeps " +
+	"the profile every command wears by default (local); capture with a window, or keep it under a name of its " +
+	"own with --name, or as a file with --save"
 
 // browserArgFlag registers --browser-arg on the two commands that drive a
 // browser.

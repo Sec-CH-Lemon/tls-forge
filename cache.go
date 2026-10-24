@@ -136,7 +136,7 @@ func (e *cachedResponse) response(req *fhttp.Request) *fhttp.Response {
 }
 
 func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.RoundTripper) (*fhttp.Response, error) {
-	if c == nil || ch.browser == nil {
+	if c == nil || !ch.browser.explicit() {
 		return next.RoundTrip(req)
 	}
 	key := c.key(ch, req)

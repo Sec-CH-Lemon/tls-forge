@@ -291,7 +291,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	asked := fhttp.WithResponseCookies(context.WithValue(base, preflightContextKey{}, true), keepsNone)
 	ask := (&fhttp.Request{Method: fhttp.MethodOptions, URL: &u, Host: inner.Host, Proto: "HTTP/1.1", ProtoMajor: 1,
 		ProtoMinor: 1}).WithContext(keepingConn(asked, &conn))
-	ask = c.browserLayouts(r.preflightHeader(h, c.headers), nil, c.behavior().Strings("headers.preflight_order"), shown.Host).wear(ask)
+	ask = c.browserLayouts(r.preflightHeader(h, c.headers), nil, nil, c.behavior().Strings("headers.preflight_order"), shown.Host).wear(ask)
 	withPort(ask)
 	if c.session.jar != nil {
 		c.session.jar.restrict(ask.URL, sendRule{none: true})

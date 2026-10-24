@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	fhttp "github.com/igor-lemon/fhttp"
+
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 func TestTheHintsAnAcceptCHNames(t *testing.T) {
@@ -167,15 +169,20 @@ func TestALogSaysWhatAnOriginAskedFor(t *testing.T) {
 		asked[1].get("hints") != "" {
 		t.Errorf("%v", asked)
 	}
-	// A request without a browser context, or of a script, asks nothing.
+	// A request without a browser context is a typed navigation, which asks
+	// too; one of a script asks nothing, nor one sent as given.
 	if _, err := client.Get("https://www.example.com/x?accept=rtt"); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if _, err := client.Do(&Request{URL: "https://www.example.com/x?accept=rtt",
+	if _, err := client.Do(&Request{URL: "https://www.example.com/x?accept=dpr",
 		Browser: &BrowserContext{Kind: KindFetch, Initiator: "https://www.example.com/page"}}); err != nil {
 		t.Fatalf("Do: %v", err)
 	}
-	if got := book.with(t, "client hints asked"); len(got) != 2 {
+	given := contextClient(t, server, WithLogger(log), WithProfileValue(asGivenProfile(t, "chrome_155_macos")))
+	if _, err := given.Get("https://www.example.com/x?accept=dpr"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got := book.with(t, "client hints asked"); len(got) != 3 || got[2].get("hints") != "rtt" {
 		t.Errorf("%v", got)
 	}
 }
@@ -229,23 +236,25 @@ func TestANavigationThatSentTheHintsGoesOn(t *testing.T) {
 	}
 }
 
-func TestOnlyANavigationInAContextWithTheValuesStartsAgain(t *testing.T) {
+func TestOnlyANavigationWithTheValuesStartsAgain(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
-		profile string
+		profile *profile.Profile
 		browser *BrowserContext
+		sent    int
 	}{
-		{"without a browser context", "chrome_155_macos", nil},
-		{"with a profile that has no values of hints", "chrome_154_macos", &BrowserContext{Kind: KindNavigation}},
+		{"without a browser context, a typed navigation", shippedProfile(t, "chrome_155_macos"), nil, 2},
+		{"without a browser context, sent as given", asGivenProfile(t, "chrome_155_macos"), nil, 1},
+		{"with a profile that has no values of hints", shippedProfile(t, "chrome_154_macos"), &BrowserContext{Kind: KindNavigation}, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := newRecorder(t, "h2", criticalPage)
-			client := newTestClient(t, WithProfile(tc.profile), server.dialing())
+			client := newTestClient(t, WithProfileValue(tc.profile), server.dialing())
 			if _, err := client.Do(&Request{URL: "https://www.example.com/p", Browser: tc.browser}); err != nil {
 				t.Fatalf("Do: %v", err)
 			}
-			if got := server.requests(); len(got) != 1 {
-				t.Errorf("sent %d requests", len(got))
+			if got := server.requests(); len(got) != tc.sent {
+				t.Errorf("sent %d requests, want %d", len(got), tc.sent)
 			}
 		})
 	}

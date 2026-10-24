@@ -63,7 +63,7 @@ func TestEveryKindOfRequestHasTheCookieWhereChromeWritesIt(t *testing.T) {
 		if at < 1 || order[at-1] != "accept-language" || at+1 >= len(order) || order[at+1] != "priority" {
 			t.Errorf("%s: %v", name, order)
 		}
-		h1 := browserHTTP1Layout(nil, nil, order, nil, nil, "h")[fhttp.HeaderOrderKey]
+		h1 := browserHTTP1Layout(nil, nil, nil, order, nil, nil, "h")[fhttp.HeaderOrderKey]
 		if h1[len(h1)-1] != "cookie" || h1[len(h1)-2] != "accept-language" {
 			t.Errorf("%s over HTTP/1.1: %v", name, h1)
 		}
@@ -295,43 +295,48 @@ func TestARequestWithoutAContextGoesToEachURLAsChromeTypedIt(t *testing.T) {
 	// zstd; and each hop of its redirects as its own URL is, what was withheld
 	// from one going back on at the next.
 	measured := loadChromeRequests(t)
-	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) {
-		for _, scenario := range []string{"nav-direct", "nav-direct-plain", "nav-direct-localhost", "nav-direct-dot-localhost",
-			"nav-direct-ipv4", "nav-direct-ipv6", "redir-nav-direct-301", "redir-nav-direct-302", "redir-nav-direct-303",
-			"redir-nav-direct-307", "redir-nav-direct-308", "redir-nav-direct-cross-site", "redir-nav-direct-downgrade",
-			"redir-nav-direct-upgrade", "redir-nav-direct-to-localhost", "redir-nav-direct-plain-to-localhost"} {
-			both := measured.Scenarios[scenario]
-			for proto, want := range map[string][]chromeRequest{"h2": both.H2, "h1": both.H1} {
-				t.Run(scenario+"/"+proto, func(t *testing.T) {
-					if len(want) == 0 {
-						t.Fatal("not in the fixture")
-					}
-					server := newRecorder(t, proto, answeringAsMeasured)
-					plain := newRecorder(t, "http", answeringAsMeasured)
-					client := newTestClient(t, WithProfileValue(p), server.dialingWith(plain))
-					if _, err := client.Do(&Request{URL: want[0].URL}); err != nil {
-						t.Fatalf("Do: %v", err)
-					}
-					got := server.requests()
-					if len(got) != len(want) {
-						t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
-					}
-					for i := range want {
-						if diff := diffRequest(want[i], got[i], proto, p); diff != "" {
-							t.Errorf("request %d:\n%s", i+1, diff)
+	onEveryPlatform(t, func(t *testing.T, shipped *profile.Profile) {
+		// As the profile ships, a typed navigation (typed.go), and as a
+		// profile that says it goes as given lays the profile's headers out.
+		for way, p := range map[string]*profile.Profile{"typed": shipped, "as given": asGiven(t, shipped)} {
+			for _, scenario := range []string{"nav-direct", "nav-direct-plain", "nav-direct-localhost", "nav-direct-dot-localhost",
+				"nav-direct-ipv4", "nav-direct-ipv6", "redir-nav-direct-301", "redir-nav-direct-302", "redir-nav-direct-303",
+				"redir-nav-direct-307", "redir-nav-direct-308", "redir-nav-direct-cross-site", "redir-nav-direct-downgrade",
+				"redir-nav-direct-upgrade", "redir-nav-direct-to-localhost", "redir-nav-direct-plain-to-localhost"} {
+				both := measured.Scenarios[scenario]
+				for proto, want := range map[string][]chromeRequest{"h2": both.H2, "h1": both.H1} {
+					t.Run(way+"/"+scenario+"/"+proto, func(t *testing.T) {
+						if len(want) == 0 {
+							t.Fatal("not in the fixture")
 						}
-					}
-				})
+						server := newRecorder(t, proto, answeringAsMeasured)
+						plain := newRecorder(t, "http", answeringAsMeasured)
+						client := newTestClient(t, WithProfileValue(p), server.dialingWith(plain))
+						if _, err := client.Do(&Request{URL: want[0].URL}); err != nil {
+							t.Fatalf("Do: %v", err)
+						}
+						got := server.requests()
+						if len(got) != len(want) {
+							t.Fatalf("sent %d requests, Chrome %d", len(got), len(want))
+						}
+						for i := range want {
+							if diff := diffRequest(want[i], got[i], proto, p); diff != "" {
+								t.Errorf("request %d:\n%s", i+1, diff)
+							}
+						}
+					})
+				}
 			}
 		}
 	})
 }
 
 func TestARedirectToAnotherHostSendsTheJarsCookieInTheSlot(t *testing.T) {
-	// A Cookie given for www.example.com, which fhttp does not send on to
-	// api.example.com, and the jar's for the domain, which it does: the hop's
-	// Cookie goes right after Accept-Language, before what the request was
-	// given, over both protocols.
+	// A Cookie given, which no hop after the first sends, as Chrome rebuilds
+	// a hop's from the jar (headers.given_redirect_drops), and the jar's for
+	// the domain, which the hop to api.example.com sends: its Cookie goes
+	// right after Accept-Language, and what the request was given after
+	// User-Agent, over both protocols.
 	for _, proto := range []string{"h2", "h1"} {
 		t.Run(proto, func(t *testing.T) {
 			server := newRecorder(t, proto, func(w http.ResponseWriter, r *http.Request) {
@@ -353,9 +358,9 @@ func TestARedirectToAnotherHostSendsTheJarsCookieInTheSlot(t *testing.T) {
 			for _, h := range got[1].headers {
 				names = append(names, h[0])
 			}
-			want := []string{"Accept-Language", "Cookie", "X-Foo"}
+			want, given := []string{"Accept-Language", "Cookie"}, []string{"User-Agent", "x-foo", "Accept"}
 			if proto == "h2" {
-				want = []string{"accept-language", "cookie", "priority", "x-foo"}
+				want, given = []string{"accept-language", "cookie", "priority"}, []string{"user-agent", "x-foo", "accept"}
 			}
 			at := slices.Index(names, want[1])
 			if at < 1 || !slices.Equal(names[at-1:min(at-1+len(want), len(names))], want) {
@@ -363,6 +368,9 @@ func TestARedirectToAnotherHostSendsTheJarsCookieInTheSlot(t *testing.T) {
 			}
 			if cookie := got[1].headers[at][1]; cookie != "d=4" {
 				t.Errorf("hop's Cookie %q, want the jar's alone", cookie)
+			}
+			if at := slices.Index(names, given[1]); at < 1 || !slices.Equal(names[at-1:min(at+2, len(names))], given) {
+				t.Errorf("hop's headers %v, want %v", names, given)
 			}
 		})
 	}
@@ -373,8 +381,10 @@ func TestARequestsOwnCookieGoesBeforeTheJarsOverBothProtocols(t *testing.T) {
 	// together, its own first, as net/http adds a jar's: the same over
 	// HTTP/1.1, one line, and HTTP/2, a field for each cookie, right after
 	// Accept-Language where the profile is Chromium's (cookieSlot). So on the
-	// answer to a 401, and on a redirect's hop, to which fhttp sends the
-	// request's own on its host alone.
+	// answer to a 401; a redirect's hop goes with the jar's alone, as Chrome
+	// rebuilds a hop's Cookie from its jar (headers.given_redirect_drops), but
+	// for a request sent as given, to which fhttp sends the request's own on
+	// its host alone.
 	jar := []Cookie{{Name: "a", Value: "1", Domain: "example.com", Path: "/"}, {Name: "b", Value: "2"}}
 	firefox, err := profile.Get("chrome_155_macos")
 	if err != nil {
@@ -414,18 +424,24 @@ func TestARequestsOwnCookieGoesBeforeTheJarsOverBothProtocols(t *testing.T) {
 			req:  Request{URL: www + "/", Header: NewHeader("cookie", "x=9", "cookie", "y=8")},
 			want: []sent{{www + "/", []string{"x=9", "y=8"}}}},
 		{name: "redirected on its host", req: Request{URL: www + "/same", Header: own, Cookies: jar},
-			want: []sent{{www + "/same", all}, {www + "/landed", all}}},
+			want: []sent{{www + "/same", all}, {www + "/landed", []string{"a=1", "b=2"}}}},
+		{name: "sent as given, redirected on its host", opts: []Option{WithProfileValue(asGivenProfile(t, "chrome_155_macos"))},
+			req: Request{URL: www + "/same", Header: own, Cookies: jar}, want: []sent{{www + "/same", all}, {www + "/landed", all}}},
 		{name: "redirected to another host", req: Request{URL: www + "/other", Header: own, Cookies: jar},
 			want: []sent{{www + "/other", all}, {api + "/landed", []string{"a=1"}}}},
 		{name: "redirected to a host under its own", req: Request{URL: "https://example.com/under", Header: own, Cookies: jar},
+			want: []sent{{"https://example.com/under", all}, {www + "/landed", []string{"a=1"}}}},
+		{name: "sent as given, redirected to a host under its own", opts: []Option{WithProfileValue(asGivenProfile(t, "chrome_155_macos"))},
+			req:  Request{URL: "https://example.com/under", Header: own, Cookies: jar},
 			want: []sent{{"https://example.com/under", all}, {www + "/landed", []string{"x=9", "a=1"}}}},
 		{name: "redirected by an answer setting a cookie it was given",
 			req:  Request{URL: www + "/set", Header: NewHeader("cookie", "x=9; y=8"), Cookies: jar},
-			want: []sent{{www + "/set", []string{"x=9", "y=8", "a=1", "b=2"}}, {www + "/landed", []string{"y=8", "a=1", "b=2", "x=new"}}}},
+			want: []sent{{www + "/set", []string{"x=9", "y=8", "a=1", "b=2"}}, {www + "/landed", []string{"a=1", "b=2", "x=new"}}}},
 		{name: "answered after a 401", req: Request{URL: "https://u:p@www.example.com/auth", Header: own, Cookies: jar},
 			want: []sent{{www + "/auth", all}, {www + "/auth", all}}},
 		{name: "a profile the same over both protocols", opts: []Option{WithProfile("chrome_151_linux")},
-			req: Request{URL: www + "/same", Header: own, Cookies: jar}, want: []sent{{www + "/same", all}, {www + "/landed", all}}},
+			req:  Request{URL: www + "/same", Header: own, Cookies: jar},
+			want: []sent{{www + "/same", all}, {www + "/landed", []string{"a=1", "b=2"}}}},
 		{name: "a profile of the transport's catalogue", opts: []Option{WithProfile("chrome_131")}, last: true,
 			req: Request{URL: www + "/same", Header: own, Cookies: jar}, want: []sent{{www + "/same", all}, {www + "/landed", all}}},
 		{name: "another browser's profile", opts: []Option{WithProfileValue(firefox)}, last: true,

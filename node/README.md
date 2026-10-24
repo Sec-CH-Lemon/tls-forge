@@ -160,13 +160,18 @@ const response = await client.get('https://example.com/page', {
 
 ### `post(url, body, options?)`
 
+A POST goes in a browser context, as the page's script or form sends it: a
+request without one is a navigation typed into the address bar, which posts
+nothing, and the transport refuses it (`RequestFailed`, `... needs a browser
+context ...`).
+
 ```js
 const response = await client.post(
   'https://example.com/api',
   JSON.stringify({ hello: 'world' }),
   {
     headers: { 'content-type': 'application/json' },
-    order: ['content-type'],
+    browserContext: { kind: 'fetch', initiator: 'https://example.com/' },
   },
 );
 ```
@@ -178,9 +183,8 @@ const response = await client.request({
   url: 'https://example.com/resource',
   method: 'DELETE',
   headers: { authorization: 'Bearer token' },
-  order: ['authorization'],
-  body: '',
   cookies: ['session=abc'],
+  browserContext: { kind: 'fetch', initiator: 'https://example.com/' },
 });
 ```
 
@@ -188,16 +192,16 @@ const response = await client.request({
 |---|---|---|
 | `url` | `string`, required | Absolute HTTP or HTTPS URL. |
 | `method` | `string`, `GET` in `request()` | HTTP method. `get()` and `post()` set it automatically. |
-| `headers` | `Record<string, string>`, `{}` | Headers layered over the profile. Existing profile names retain their browser position. |
-| `order` | `string[]`, profile order | Order for caller-only headers. Profile headers keep their measured browser positions; unnamed caller headers follow in sorted order. |
-| `body` | `string \| Buffer \| Uint8Array`, empty | Request body. A `Buffer` or `Uint8Array` is sent as base64 so it arrives intact. |
+| `headers` | `Record<string, string>`, `{}` | The request's own fields. Without a `browserContext` each goes where Chrome writes that field, in place of Chrome's own, and one Chrome has no place for after `user-agent`, by the bytes of its name, as Chrome driven by automation writes it; in one, what the page's script gives `fetch()` or an XHR. |
+| `order` | `string[]`, profile order | Order for caller-only headers, where a profile lays them out as given (not Chrome's profiles, which place every field). |
+| `body` | `string \| Buffer \| Uint8Array`, empty | Request body. A `Buffer` or `Uint8Array` is sent as base64 so it arrives intact. A request without a `browserContext` has none. |
 | `cookies` | `string[]`, `[]` | `name=value` pairs added to the cookie jar before the request. |
 
 A `cookie` header goes with the jar's cookies: every cookie it names first,
-then those the jar holds for the URL, over HTTP/1.1 and HTTP/2 alike, and on a
-redirect to its host or one under it; a redirect to any other host carries the
-jar's alone. `cookies` adds values to the jar instead, where they go on every
-later request they belong to and give way to a value the server sets; a name
+then those the jar holds for the URL, over HTTP/1.1 and HTTP/2 alike; a
+redirect's hop carries the jar's alone, as Chrome's does. `cookies` adds values
+to the jar instead, where they go on every later request and hop they belong to
+and give way to a value the server sets; a name
 in both would go twice.
 
 ## Response

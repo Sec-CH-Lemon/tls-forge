@@ -55,6 +55,18 @@ type BrowserContext struct {
 	// include or omit. An XHR takes same-origin, its default, or include,
 	// which is withCredentials.
 	Credentials string
+	// Sent says the request's Header is what a browser sent for it, as an
+	// intercepting proxy is given a browser's request (sent.go): it goes with
+	// those fields and no others, in Chrome's order for its kind, the
+	// profile's own in place of the browser's for the user agent, the client
+	// hints the profile has values of, Accept-Language and Accept-Encoding. A
+	// page's subresource is sent as fetch() is in its mode, which goes the
+	// same. What a browser works out is not worked out again: no Origin,
+	// Referer or Sec-Fetch-* of tls-forge's, no client hints it was not sent,
+	// no preflight, no check of CORS, no answer to a 401 and no start again
+	// for critical hints, which the browser does itself; nor are its answers
+	// kept, which it keeps itself.
+	Sent bool
 }
 
 // Modes of fetch() and its credentials, as fetch() names them.
@@ -93,6 +105,19 @@ type browserRequest struct {
 	cors bool
 	// posted is a form sent by POST: its redirects keep its Cache-Control.
 	posted bool
+	// implicit is a request without a browser context, which goes as a
+	// navigation typed into the address bar (typed.go): what it is answered
+	// with is a request's without one. given are the fields it and its client
+	// were given, each in its slot in place of what the browser would give it,
+	// and one Chrome has no slot for where @given stands; host is the Host it
+	// was given, which the hops to hostFor, its URL's origin, go with.
+	implicit bool
+	given    Header
+	host     string
+	hostFor  origin
+	// sent is a request a browser sent (BrowserContext.Sent), whose given
+	// are its fields, but those the profile says itself.
+	sent bool
 }
 
 // hop is one request of a chain of redirects, the first included, as what is
@@ -133,11 +158,16 @@ type hop struct {
 	// authorization is the Authorization tls-forge gives the hop: a
 	// challenge answered, or what the session keeps for where it goes.
 	authorization string
+	// given are the fields a request without a browser context was given
+	// that the hop still carries: a redirect takes away what the profile says
+	// it does (headers.given_redirect_drops), Authorization across origins,
+	// and says an Origin as "null" once it has gone to another.
+	given Header
 }
 
 // first is the first request of a chain: to target, as the page sends it.
 func (r *browserRequest) first(target *url.URL) hop {
-	h := hop{behavior: r.behavior, to: originOf(target), method: r.method, cors: r.cors, script: r.script}
+	h := hop{behavior: r.behavior, to: originOf(target), method: r.method, cors: r.cors, script: r.script, given: r.given}
 	if r.initiator == nil {
 		h.site = "none"
 		return h
@@ -190,6 +220,9 @@ func (b *BrowserContext) resolve(method string, target *url.URL, header Header, 
 		}
 		r.initiator = initiator.url()
 		r.from = originOf(r.initiator)
+	}
+	if b.Sent {
+		return r, b.resolveSent(r, header, body)
 	}
 	if err := b.resolveKind(r, target, header, body); err != nil {
 		return nil, err
@@ -279,6 +312,33 @@ func formEncoding(contentType string) bool {
 
 func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, header Header, body []byte) error {
 	what := r.kindName()
+	if err := b.resolveScriptOf(r, body); err != nil {
+		return err
+	}
+	for _, f := range header {
+		if forbiddenHeader(f.Name) {
+			return errContext("%s cannot set %s: the browser sets it", what, strings.ToLower(f.Name))
+		}
+	}
+	r.script = scriptHeaders(header)
+	to := originOf(target)
+	switch {
+	case b.Kind == KindFetch && target.User != nil:
+		return errContext("fetch() is given no URL with credentials in it, as a Request cannot be")
+	case r.mode == modeSameOrigin && to != r.from:
+		return errContext("%s in same-origin mode cannot go to another origin", what)
+	case r.mode == modeNoCORS && !noCORSSafe(r.method, header):
+		return errContext("%s in no-cors mode sends GET, HEAD or POST with only the headers CORS lets through", what)
+	}
+	r.cors = r.mode == modeCORS && to != r.from
+	return nil
+}
+
+// resolveScriptOf checks what a script's request is sent from and how: a
+// page, a mode and credentials of its kind, a method a script can send, and
+// no body with a GET or a HEAD.
+func (b *BrowserContext) resolveScriptOf(r *browserRequest, body []byte) error {
+	what := r.kindName()
 	if r.initiator == nil {
 		return errContext("%s is sent by a page's script: name the page as the initiator", what)
 	}
@@ -304,22 +364,6 @@ func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, heade
 	case (r.method == fhttp.MethodGet || r.method == fhttp.MethodHead) && body != nil:
 		return errContext("%s sends no body with %s", what, r.method)
 	}
-	for _, f := range header {
-		if forbiddenHeader(f.Name) {
-			return errContext("%s cannot set %s: the browser sets it", what, strings.ToLower(f.Name))
-		}
-	}
-	r.script = scriptHeaders(header)
-	to := originOf(target)
-	switch {
-	case b.Kind == KindFetch && target.User != nil:
-		return errContext("fetch() is given no URL with credentials in it, as a Request cannot be")
-	case r.mode == modeSameOrigin && to != r.from:
-		return errContext("%s in same-origin mode cannot go to another origin", what)
-	case r.mode == modeNoCORS && !noCORSSafe(r.method, header):
-		return errContext("%s in no-cors mode sends GET, HEAD or POST with only the headers CORS lets through", what)
-	}
-	r.cors = r.mode == modeCORS && to != r.from
 	return nil
 }
 
@@ -416,10 +460,13 @@ func corsUnsafeByte(r rune) bool {
 // XHR the headers its script gave go; where in a page's the client hints go,
 // the three Chrome sends unasked and those an origin asked for, in Chrome's
 // order (profile.ClientHintOrder); where in a script's those asked for go; and
-// where in a page's those a connection's ALPS asked for that it did not carry.
+// where in a page's those a connection's ALPS asked for that it did not carry;
+// and where the fields a request was given go that Chrome has no slot of its
+// own for.
 const (
 	slotHints     = "\x00hints"
 	slotALPSHints = "\x00ALPS hints"
+	slotGiven     = "\x00given"
 )
 
 // The headers of each kind of request, in the order Chrome 155 sends them, as
@@ -439,8 +486,51 @@ var (
 
 // order is a request's slots, in Chrome's order: a page's after a redirect
 // has its client hints after Sec-Fetch-Dest, and one a connection's ALPS asked
-// hints of those after Accept (alpsOrder).
+// hints of those after Accept (alpsOrder); the fields it was given that no
+// slot names go where @given stands (givenBlock).
 func (r *browserRequest) order(h hop) []string {
+	slots := r.slots(h)
+	at := slices.Index(slots, slotGiven)
+	if at < 0 {
+		return slots
+	}
+	block := r.givenBlock(h, slots)
+	for i, name := range block {
+		block[i] = strings.ToLower(name)
+	}
+	return slices.Concat(slots[:at], block, slots[at+1:])
+}
+
+// givenBlock are the names of the fields h was given that no slot of slots
+// names, once each and as first given, where Chrome driven over DevTools writes
+// the extra headers it is given (testdata/chrome155-given.json): by their bytes
+// as given, or as given, as the profile says (headers.given_order). None when
+// slots have no place for them.
+func (r *browserRequest) givenBlock(h hop, slots []string) []string {
+	if len(h.given) == 0 || !slices.Contains(slots, slotGiven) {
+		return nil
+	}
+	named := map[string]bool{}
+	for _, slot := range slots {
+		for _, name := range slotNames(slot, h) {
+			named[name] = true
+		}
+	}
+	var block []string
+	for _, f := range h.given {
+		if lower := strings.ToLower(f.Name); !named[lower] {
+			named[lower] = true
+			block = append(block, f.Name)
+		}
+	}
+	if r.runtimeBehavior().Text("headers.given_order") == "bytes" {
+		slices.Sort(block)
+	}
+	return block
+}
+
+// slots are a request's slots before the fields it was given take theirs.
+func (r *browserRequest) slots(h hop) []string {
 	if r.scripted() {
 		return scriptOrder(h)
 	}
@@ -498,11 +588,14 @@ func scriptOrder(h hop) []string {
 	if !h.script.Has("accept") {
 		out = append(out, "accept")
 	}
-	if !h.lateOrigin {
+	// The network stack's Origin, but where the renderer gave one, as it
+	// gives a font's.
+	origin := !h.script.Has("origin")
+	if origin && !h.lateOrigin {
 		out = append(out, "origin")
 	}
 	out = append(out, h.runtimeBehavior().Strings("headers.script_metadata")...)
-	if h.lateOrigin {
+	if origin && h.lateOrigin {
 		out = append(out, "origin")
 	}
 	// A script-owned field already has its renderer slot. The network stack
@@ -530,9 +623,20 @@ func (r *browserRequest) header(h hop, base Header) Header {
 		values[name] = f.Value
 		scriptNames[name] = f.Name
 	}
+	// What a request was given goes in its slot, every field of a name, in
+	// place of what the browser would give it.
+	given := map[string]Header{}
+	for _, f := range h.given {
+		name := strings.ToLower(f.Name)
+		given[name] = append(given[name], f)
+	}
 	var out Header
 	for _, slot := range r.order(h) {
 		for _, name := range slotNames(slot, h) {
+			if fields, ok := given[name]; ok {
+				out = append(out, fields...)
+				continue
+			}
 			if value, ok := values[name]; ok {
 				wireName := name
 				if original, ok := scriptNames[name]; ok {
@@ -557,6 +661,8 @@ func slotNames(slot string, h hop) []string {
 		return h.runtimeBehavior().Strings("headers.client_hint_order")
 	case slotALPSHints:
 		return h.alps.Names()
+	case slotGiven:
+		return nil
 	}
 	return []string{slot}
 }
@@ -571,47 +677,25 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 		}
 	}
 	script := r.scripted()
-	if script {
-		values["accept"] = r.runtimeBehavior().Text("headers.accept_fetch")
-		values["priority"] = r.runtimeBehavior().Text("headers.priority_fetch")
-		values["sec-fetch-mode"] = r.mode
-		values["sec-fetch-dest"] = destEmpty
-	} else {
-		for _, name := range []string{"accept", "upgrade-insecure-requests", "priority"} {
-			if base.Has(name) {
-				values[name] = base.Get(name)
-			}
-		}
-		values["sec-fetch-mode"] = modeNavigate
-		values["sec-fetch-dest"] = destDocument
+	if !r.sent {
+		// What a browser works out of the request; one a browser sent says
+		// it itself.
+		r.workedOut(values, h, base)
 	}
-	if r.posted {
-		values["cache-control"] = r.runtimeBehavior().Text("headers.form_cache_control")
-		if h.method == fhttp.MethodPost {
-			values["content-type"] = r.contentType
+	if r.sent && !h.given.Has("priority") {
+		// What Chrome writes over HTTP/2 for the request a browser sent over
+		// HTTP/1.1, which has none.
+		if value := r.sentPriority(h); value != "" {
+			values["priority"] = value
 		}
 	}
-	if script && h.script.Has("range") {
+	if script && h.script.Has("range") || h.given.Has("range") {
+		// A request for a range is offered no coding, whoever gave it the
+		// Range: a script, or a navigation given one (testdata/chrome155-given.json).
 		values["accept-encoding"] = r.runtimeBehavior().Text("headers.range_accept_encoding")
-		if h.script.Has("if-range") {
+		if script && h.script.Has("if-range") {
 			values["cache-control"] = r.runtimeBehavior().Text("headers.range_cache_control")
 		}
-	}
-	values["sec-fetch-site"] = h.site
-	if r.initiator == nil {
-		values["sec-fetch-user"] = r.runtimeBehavior().Text("headers.navigation_fetch_user")
-	}
-	if h.referrer != "" {
-		values["referer"] = h.referrer
-	}
-	if h.origin != "" {
-		values["origin"] = h.origin
-	}
-	if script && r.credentials == credentialsAll && relation(r.from, to) == "cross-site" {
-		// A script's credentialed request to another site than its page's
-		// says so; one a redirect took through another site back to the
-		// page's does not, though Sec-Fetch-Site says cross-site.
-		values["sec-fetch-storage-access"] = r.runtimeBehavior().Text("headers.storage_access")
 	}
 	for _, hint := range slices.Concat(h.hints, h.alps) {
 		values[hint.Name] = hint.Value
@@ -637,6 +721,50 @@ func (r *browserRequest) values(h hop, base Header) map[string]string {
 		delete(values, strings.ToLower(f.Name))
 	}
 	return values
+}
+
+// workedOut puts in values what a browser works out of hop h of the request:
+// the Accept, Priority and Sec-Fetch-* of its kind, a form's Cache-Control
+// and Content-Type, where it comes from, the Referer and the Origin the page
+// gives it, and whether a script's may use the storage of its site.
+func (r *browserRequest) workedOut(values map[string]string, h hop, base Header) {
+	script := r.scripted()
+	if script {
+		values["accept"] = r.runtimeBehavior().Text("headers.accept_fetch")
+		values["priority"] = r.runtimeBehavior().Text("headers.priority_fetch")
+		values["sec-fetch-mode"] = r.mode
+		values["sec-fetch-dest"] = destEmpty
+	} else {
+		for _, name := range []string{"accept", "upgrade-insecure-requests", "priority"} {
+			if base.Has(name) {
+				values[name] = base.Get(name)
+			}
+		}
+		values["sec-fetch-mode"] = modeNavigate
+		values["sec-fetch-dest"] = destDocument
+	}
+	if r.posted {
+		values["cache-control"] = r.runtimeBehavior().Text("headers.form_cache_control")
+		if h.method == fhttp.MethodPost {
+			values["content-type"] = r.contentType
+		}
+	}
+	values["sec-fetch-site"] = h.site
+	if r.initiator == nil {
+		values["sec-fetch-user"] = r.runtimeBehavior().Text("headers.navigation_fetch_user")
+	}
+	if h.referrer != "" {
+		values["referer"] = h.referrer
+	}
+	if h.origin != "" {
+		values["origin"] = h.origin
+	}
+	if script && r.credentials == credentialsAll && relation(r.from, h.to) == "cross-site" {
+		// A script's credentialed request to another site than its page's
+		// says so; one a redirect took through another site back to the
+		// page's does not, though Sec-Fetch-Site says cross-site.
+		values["sec-fetch-storage-access"] = r.runtimeBehavior().Text("headers.storage_access")
+	}
 }
 
 // originHeader is the Origin a request carries, as the Fetch standard
@@ -745,6 +873,8 @@ func slotList(in []string) []string {
 			in[i] = slotHints
 		case "@alps-hints":
 			in[i] = slotALPSHints
+		case "@given":
+			in[i] = slotGiven
 		}
 	}
 	return in

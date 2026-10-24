@@ -69,7 +69,9 @@ func TestPlainHTTPUsesTheHTTPSProxysNegotiatedProtocol(t *testing.T) {
 			proxyRoots = x509.NewCertPool()
 			proxyRoots.AddCert(proxy.Certificate())
 			defer func() { proxyRoots = previous }()
-			client := newTestClient(t, WithProxy(strings.Replace(proxy.URL, "://", "://owned:synthetic-password@", 1)))
+			// POSTs without a context, as given.
+			client := newTestClient(t, WithProxy(strings.Replace(proxy.URL, "://", "://owned:synthetic-password@", 1)),
+				WithProfileValue(asGivenProfile(t, DefaultProfile)))
 			for i, method := range []string{"GET", "POST", "POST", "GET"} {
 				if i == 3 {
 					client.CloseIdleConnections()

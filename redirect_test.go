@@ -65,9 +65,10 @@ func TestARedirectLeavesTheMethodAsTheFetchStandardDoes(t *testing.T) {
 			if tc.method == "HEAD" || tc.method == "GET" {
 				body = ""
 			}
+			// Without a context, as given.
 			got, err := sent(t, &Request{Method: tc.method, URL: "https://www.example.com/r/" + tc.status + "/x?to=/p/y",
 				Body: []byte(body), Header: NewHeader("Content-Type", "text/plain", "Content-Language", "de",
-					"Origin", "https://www.example.com")})
+					"Origin", "https://www.example.com")}, WithProfileValue(asGivenProfile(t, "chrome_155_macos")))
 			if err != nil {
 				t.Fatalf("Do: %v", err)
 			}
@@ -94,7 +95,8 @@ func TestABodyARedirectDroppedStaysDropped(t *testing.T) {
 	// The transport sends the first request's body again after a 307, and its
 	// headers on every hop, even once a 302 dropped both.
 	got, err := sent(t, &Request{Method: "POST", URL: "https://www.example.com/r/302/x?to=/r/307/y?to=/p/z",
-		Body: []byte("a=1"), Header: NewHeader("Content-Type", "text/plain", "Origin", "https://www.example.com")})
+		Body: []byte("a=1"), Header: NewHeader("Content-Type", "text/plain", "Origin", "https://www.example.com")},
+		WithProfileValue(asGivenProfile(t, "chrome_155_macos")))
 	if err != nil {
 		t.Fatalf("Do: %v", err)
 	}
@@ -142,19 +144,22 @@ func TestARedirectSendsOnlyTheRefererARequestWasGiven(t *testing.T) {
 			t.Errorf("the hop said %s: %s", h[0], h[1])
 		}
 	}
-	got, err = sent(t, &Request{URL: "https://www.example.com/r/302/x?to=https://www.example.net/p/y",
-		Header: NewHeader("Referer", "https://shop.example/a", "Referer", "https://shop.example/b")})
-	if err != nil {
-		t.Fatalf("Do: %v", err)
-	}
-	var referers []string
-	for _, h := range got[1].headers {
-		if strings.EqualFold(h[0], "referer") {
-			referers = append(referers, h[1])
+	// Typed, and as given.
+	for _, opts := range [][]Option{nil, {WithProfileValue(asGivenProfile(t, "chrome_155_macos"))}} {
+		got, err = sent(t, &Request{URL: "https://www.example.com/r/302/x?to=https://www.example.net/p/y",
+			Header: NewHeader("Referer", "https://shop.example/a", "Referer", "https://shop.example/b")}, opts...)
+		if err != nil {
+			t.Fatalf("Do: %v", err)
 		}
-	}
-	if strings.Join(referers, " ") != "https://shop.example/a https://shop.example/b" {
-		t.Errorf("the hop said Referer %v", referers)
+		var referers []string
+		for _, h := range got[1].headers {
+			if strings.EqualFold(h[0], "referer") {
+				referers = append(referers, h[1])
+			}
+		}
+		if strings.Join(referers, " ") != "https://shop.example/a https://shop.example/b" {
+			t.Errorf("the hop said Referer %v", referers)
+		}
 	}
 }
 
@@ -163,8 +168,9 @@ func TestARedirectAcrossOriginsDropsAuthorizationForGood(t *testing.T) {
 	// To another origin of the same site, which the transport counts as its
 	// own, and on within it: the transport copies the first request's headers
 	// onto every hop.
+	asGiven := WithProfileValue(asGivenProfile(t, "chrome_155_macos"))
 	got, err := sent(t, &Request{Method: "PUT", URL: "https://www.example.com/r/307/x?to=" +
-		"https://api.example.com/r/307/y?to=/p/z", Header: given, Body: []byte("a")})
+		"https://api.example.com/r/307/y?to=/p/z", Header: given, Body: []byte("a")}, asGiven)
 	if err != nil {
 		t.Fatalf("Do: %v", err)
 	}
@@ -179,7 +185,7 @@ func TestARedirectAcrossOriginsDropsAuthorizationForGood(t *testing.T) {
 	}
 	// Within its origin it keeps both.
 	got, err = sent(t, &Request{Method: "PUT", URL: "https://www.example.com/r/307/x?to=/p/z", Header: given,
-		Body: []byte("a")})
+		Body: []byte("a")}, asGiven)
 	if err != nil {
 		t.Fatalf("Do: %v", err)
 	}

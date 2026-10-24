@@ -77,11 +77,13 @@ func TestBrowserHelper(t *testing.T) {
 		os.Exit(1)
 	}
 	collect := final.Scheme + "://" + final.Host + page.Text()[start:start+end]
+	// As the capture page's script posts its report.
 	if _, err := client.Do(&Request{
-		Method: "POST",
-		URL:    collect,
-		Body:   []byte(`{"user_agent":"stand-in browser","platform":"testOS"}`),
-		Header: NewHeader("content-type", "application/json"),
+		Method:  "POST",
+		URL:     collect,
+		Body:    []byte(`{"user_agent":"stand-in browser","platform":"testOS"}`),
+		Header:  NewHeader("content-type", "application/json"),
+		Browser: &BrowserContext{Kind: KindFetch, Initiator: page.URL},
 	}); err != nil {
 		os.Exit(1)
 	}
@@ -762,10 +764,12 @@ func visitAsAPersonOver(server *echo.Server, profileName string, http1 bool) err
 	start += len(marker)
 	end := strings.IndexByte(page.Text()[start:], '\'')
 	collect := page.Text()[start : start+end]
+	// As the page's script posts its report.
 	if _, err := client.Do(&Request{
 		Method: "POST", URL: server.URL() + collect,
-		Body:   []byte(`{"user_agent":"a person's browser"}`),
-		Header: NewHeader("content-type", "application/json"),
+		Body:    []byte(`{"user_agent":"a person's browser"}`),
+		Header:  NewHeader("content-type", "application/json"),
+		Browser: &BrowserContext{Kind: KindFetch, Initiator: page.URL},
 	}); err != nil {
 		return err
 	}
