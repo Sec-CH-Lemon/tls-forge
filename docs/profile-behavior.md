@@ -1181,11 +1181,14 @@ over QUIC on one loopback port; listeners whose QUIC answers come 50 ms or
 - TCP 10 ms late: HTTP/3, the next request too.
 
 The library (one client, `Do` after `Do`, `bench/h3client`) did as Chrome in
-every scenario, two cohorts: but on loopback with nothing late, where both
+every scenario, four cohorts: but on loopback with nothing late, where both
 handshakes take about a millisecond of the processor's, its TCP SYN went
-0.1 ms after QUIC's Initial and the request went over HTTP/3 in 7 races of
-14, where Chrome's went over it in 14 of 14 (with TCP 10 ms late, over
-HTTP/3 in every run of both).
+0.1 ms after QUIC's Initial and the request went over HTTP/3 in 16 races of
+28, where Chrome's went over it in 14 of 14 (with TCP 10 ms late, over
+HTTP/3 in every run of both). At cloudflare-ech.com over a home router, by
+turns with Chrome 155 (2026-10-25): tls-forge over HTTP/3 with ECH in 4
+visits of 4; Chrome in 2, and in the other 2 over HTTP/2 without ECH, its
+record having come after the wait.
 
 Not modelled: `Alt-Svc` (Chrome went over HTTP/3 to an origin whose answer
 offered `h3`, from its next request: tls-forge ignores it); Chrome's quick

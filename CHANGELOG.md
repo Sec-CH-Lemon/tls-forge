@@ -38,8 +38,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `http.unused_idle_connection_timeout_ms`, set in every shipped Chrome
   profile; without them a profile goes over HTTP/3 only with
   `WithProtocolRacing`, as before. Through a proxy, or with transport options
-  of the caller's, nothing changes. `--keylog` and `WithKeyLogWriter` now take
-  the secrets of QUIC connections too; `--pcap` does not capture them yet.
+  of the caller's, nothing changes. At cloudflare-ech.com over a home router,
+  by turns with Chrome 155: tls-forge over HTTP/3 with ECH in 4 visits of 4,
+  Chrome in 2 (in the other 2 its record came after the wait). `--keylog`
+  and `WithKeyLogWriter` now take the secrets of QUIC connections too;
+  `--pcap` does not capture them yet.
   Not followed: `Alt-Svc`. The QUIC handshake is not yet all Chrome's: no
   ALPS in its ClientHello, its Initials laid out and sent again as quic-go
   does them.
