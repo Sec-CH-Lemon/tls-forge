@@ -104,7 +104,7 @@ func (c *proxyStream) setDeadlineLocked(at time.Time, read bool) {
 		}
 		c.mu.Unlock()
 		if expire {
-			c.Close()
+			_ = c.Close()
 		}
 	})
 	if read {

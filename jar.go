@@ -278,11 +278,6 @@ type sendRule struct {
 	safe bool
 }
 
-// laxAllowingUnsafe is how long after it was set a cookie that named no
-// SameSite still goes with a page's POST to it from another site: Chrome's
-// two minutes, measured in testdata/chrome155-requests.json.
-var laxAllowingUnsafe = time.Duration(legacyPolicy().Uint("cookie.lax_unsafe_age_seconds")) * time.Second
-
 // allows reports a cookie a request carries, by its SameSite: to its own site
 // any; to another, one of SameSite=None, one of Lax when a page is loaded by
 // GET, and one that named none, which is Lax, also when a page is posted to
@@ -316,16 +311,6 @@ func (rule sendRule) allows(facts cookieFacts, known bool, now time.Time, polici
 func (rule sendRule) keeps(c *fhttp.Cookie) bool {
 	return !rule.crossSite || rule.topLevel || c.SameSite == fhttp.SameSiteNoneMode
 }
-
-// maxCookieSize is the most a cookie's name and value may be together, and
-// maxAttributeSize the most an attribute's value may be, in bytes: Chrome
-// refuses a larger cookie, and passes over a larger attribute
-// (kMaxCookieNamePlusValueSize, kMaxCookieAttributeValueSize; measured: the
-// set-cookie-size scenario).
-var (
-	maxCookieSize    = legacyPolicy().Int("cookie.max_pair_bytes")
-	maxAttributeSize = legacyPolicy().Int("cookie.max_attribute_bytes")
-)
 
 // withinLimits is c without a Path or a Domain longer than Chrome reads, as a
 // copy: the cookie is filed under the default path, or as its host's.

@@ -47,7 +47,7 @@ func h3Origin(t *testing.T, handler http.Handler, observe ...func([]byte, net.Ad
 		QUICConfig: &quic.Config{EnableDatagrams: true}, Handler: handler,
 		ConnContext: func(ctx context.Context, _ *quic.Conn) context.Context { connections.Add(1); return ctx },
 	}
-	var packets net.PacketConn = udp
+	packets := udp
 	if len(observe) > 0 {
 		packets = &h3ObservedPackets{PacketConn: udp, observe: observe[0]}
 	}

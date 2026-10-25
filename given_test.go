@@ -142,7 +142,7 @@ func TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid(t *testing
 					if at := len(server.requests()); at < len(chrome) {
 						for _, f := range chrome[at].Headers {
 							if slices.Contains(organic, strings.ToLower(f[0])) &&
-								!(reload && strings.EqualFold(f[0], "cache-control")) {
+								(!reload || !strings.EqualFold(f[0], "cache-control")) {
 								header = append(header, Header{{Name: f[0], Value: f[1]}}...)
 							}
 						}

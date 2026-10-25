@@ -72,10 +72,6 @@ func (r *browserRequest) needsPreflight(h hop) bool {
 	return h.cors && (!corsSafelistedMethod(h.method) || len(unsafeHeaderNames(h.script)) > 0)
 }
 
-// preflightOrder is the order of a preflight's headers in Chrome 155, as
-// measured: no client hints and no cookies.
-var preflightOrder = legacyPolicy().Strings("headers.preflight_order")
-
 // preflightHeader is the headers of the preflight of a hop: its own
 // Sec-Fetch-Site, which goes by the URL it asks about alone, and the hop's
 // Origin, which a request CORS answers always carries.
@@ -123,13 +119,6 @@ type allowance struct {
 	methods, headers []string
 	maxAge           time.Duration
 }
-
-// defaultPreflightAge is how long a preflight's answer is kept when it says
-// nothing of it; maxPreflightAge the longest Chrome keeps one whatever it says.
-var (
-	defaultPreflightAge = time.Duration(legacyPolicy().Uint("http.preflight_default_age_seconds")) * time.Second
-	maxPreflightAge     = time.Duration(legacyPolicy().Uint("http.preflight_max_age_seconds")) * time.Second
-)
 
 // checkPreflight is what a preflight's answer allows the request, or why it
 // does not: a status that is not 2xx, a CORS check that fails, a method or a

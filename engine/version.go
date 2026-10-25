@@ -39,8 +39,12 @@ func parse(data []byte) identity {
 	}
 	return identity{v.Version, nums[0]}
 }
+
+// Version is the compiled engine version, as engine/version.json says it.
 func Version() string { return current.version }
-func Major() int      { return current.major }
+
+// Major is the compiled engine major a profile's engine_major must equal.
+func Major() int { return current.major }
 
 // CheckBuildVersion rejects a misleading linker stamp; compatibility always uses
 // the actual embedded major, never display text, environment or a git tag.

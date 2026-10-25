@@ -47,12 +47,6 @@ type cachedResponse struct {
 	partialTotal int // A validated prefix, never a complete representation.
 }
 
-var (
-	cacheEntryBytes = legacyPolicy().Int("cache.entry_bytes")
-	cacheTotalBytes = legacyPolicy().Int("cache.total_bytes")
-	cacheMaxEntries = legacyPolicy().Int("cache.entries")
-)
-
 func cacheValue(h fhttp.Header, name string) string {
 	return strings.Join(fieldValues(h, strings.ToLower(name)), ", ")
 }

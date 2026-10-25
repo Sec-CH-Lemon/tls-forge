@@ -255,9 +255,3 @@ func (s *site) reapIdle() {
 		}
 	}
 }
-
-// scriptHeaderPriority is the priority Chrome 155 puts on the HEADERS frame of
-// fetch(), an XHR and a CORS preflight: exclusive, on no stream, weight 220
-// (219 on the wire), as measured in testdata/chrome155-requests.json, where a
-// page's is 256. The transport puts the profile's on every other request.
-var scriptHeaderPriority = priorityFrom(legacyPolicy(), "headers.script_priority")

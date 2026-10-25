@@ -349,14 +349,13 @@ func (d *connectDialer) dial(ctx context.Context, network string) (net.Conn, err
 	return tapped(ctx, raw, began), nil
 }
 
-// open asks the proxy, over a connection to it, for a tunnel to address.
+// open asks the proxy, over a connection to it, for a tunnel to address. The
+// connection speaks HTTP/1.1: Go's TLS offers the proxy nothing else, and
+// chromeTunnel opens the streams of a proxy that speaks HTTP/2 itself.
 //
 // No longer than the client's timeout, and no longer than the request is
 // wanted: a proxy that never answers holds up neither.
 func (d *connectDialer) open(ctx context.Context, conn net.Conn, address string) (*tunnel, error) {
-	if speaksH2(conn) {
-		return d.openH2(ctx, conn, address)
-	}
 	_ = conn.SetDeadline(time.Now().Add(d.timeout))
 	stop := context.AfterFunc(ctx, func() { _ = conn.SetDeadline(time.Now()) })
 	defer stop()

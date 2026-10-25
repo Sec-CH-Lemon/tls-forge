@@ -58,9 +58,6 @@ const Schema = 4
 // values of the rest.
 var ClientHintOrder = behavior.Legacy().Strings("headers.client_hint_order")
 
-// defaultClientHints are the hints Chrome sends unasked.
-var defaultClientHints = behavior.Legacy().Strings("headers.default_client_hints")
-
 // Profile is a complete browser identity.
 type Profile struct {
 	// Schema is the version of the format the profile was written in: see
@@ -514,9 +511,6 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 
 func (p *Profile) applyTransportBehavior(built profiles.ClientProfile) profiles.ClientProfile {
 	pol := p.RuntimeBehavior()
-	if pol == nil {
-		return built
-	}
 	if pol.Has("h3.settings") {
 		settings := map[uint64]uint64{}
 		var order []uint64
@@ -665,11 +659,6 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 	default:
 		return nil, fmt.Errorf("profile: schema %d is not one; schemas begin at 1", *written.Schema)
 	}
-	if execute {
-		if err := p.ValidateEngine(); err != nil {
-			return nil, err
-		}
-	}
 	if err := p.validateBehavior(); err != nil {
 		return nil, err
 	}
@@ -726,7 +715,10 @@ func AskedClientHints() []string { return slices.Clone(defaultHints().asked) }
 
 // DefaultHintOrder is the process-default capture helper's data snapshot.
 // Active clients always use their own Profile.HintOrder, not this cache.
-func DefaultHintOrder() []string    { return slices.Clone(defaultHints().order) }
+func DefaultHintOrder() []string { return slices.Clone(defaultHints().order) }
+
+// DefaultUnaskedHints are the hints of DefaultHintOrder that go to every
+// server unasked, from the same snapshot.
 func DefaultUnaskedHints() []string { return slices.Clone(defaultHints().unasked) }
 
 type hintDefaults struct{ order, unasked, asked []string }

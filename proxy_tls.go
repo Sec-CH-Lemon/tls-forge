@@ -71,18 +71,6 @@ func (d *connectDialer) chromeProxyTLS(ctx context.Context, raw net.Conn) (net.C
 }
 
 func speaksH2(conn net.Conn) bool {
-	if c, ok := conn.(interface{ ConnectionState() utls.ConnectionState }); ok {
-		return c.ConnectionState().NegotiatedProtocol == "h2"
-	}
-	return false
-}
-
-// A CONNECT stream is a duplex byte connection. Outer HTTP/2 framing is
-// independent of the inner origin protocol and uses its own flow control.
-func (d *connectDialer) openH2(ctx context.Context, conn net.Conn, address string) (*tunnel, error) {
-	p, err := d.adoptProxyH2(conn)
-	if err != nil {
-		return nil, err
-	}
-	return d.openProxyStream(ctx, p, address)
+	c, ok := conn.(interface{ ConnectionState() utls.ConnectionState })
+	return ok && c.ConnectionState().NegotiatedProtocol == "h2"
 }

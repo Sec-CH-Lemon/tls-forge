@@ -257,7 +257,6 @@ type resendCase struct {
 	change map[string]any
 	fresh  bool   // the request goes first, on a connection of its own
 	post   bool   // a fetch() POST of "x"
-	path   string // /x
 	user   string // credentials in its URL
 	want   []string
 	status int // 0 for none: the request fails

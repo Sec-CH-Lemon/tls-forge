@@ -32,11 +32,8 @@ func (j *keptJar) RawSetCookieHeaders(u *url.URL, h fhttp.Header) bool {
 		}
 		// Reuse the attribute parser independently of its stricter cookie-pair
 		// grammar. The raw name/value (including quotes) are kept for transmission.
-		parsed := (&fhttp.Response{Header: fhttp.Header{"Set-Cookie": []string{"netfp=placeholder;" + attrs}}}).Cookies()
-		if len(parsed) != 1 {
-			continue
-		}
-		c := parsed[0]
+		// The placeholder pair always parses, so the field is one cookie.
+		c := (&fhttp.Response{Header: fhttp.Header{"Set-Cookie": []string{"netfp=placeholder;" + attrs}}}).Cookies()[0]
 		c.Name, c.Value, c.Raw = name, value, line
 		c.Quoted = false
 		cookies = append(cookies, c)

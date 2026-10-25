@@ -56,7 +56,7 @@ func (l *badFirstTLS) Accept() (net.Conn, error) {
 
 func TestChromeRetriesAProtocolFailureBeforeSendingHTTP(t *testing.T) {
 	for _, bad := range []int32{1, 100} {
-		t.Run(string(rune('0'+bad%10)), func(t *testing.T) {
+		t.Run(string('0'+bad%10), func(t *testing.T) {
 			var requests atomic.Int32
 			srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				requests.Add(1)

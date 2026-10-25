@@ -72,7 +72,7 @@ func startConnectProxyOver(t *testing.T, over *tls.Config, answer func(n int32) 
 			transport := &http.Transport{DisableKeepAlives: true}
 			answer, err := transport.RoundTrip(copy)
 			if err != nil {
-				http.Error(w, err.Error(), 502)
+				http.Error(w, err.Error(), http.StatusBadGateway)
 				return
 			}
 			defer answer.Body.Close()
@@ -567,7 +567,7 @@ func TestATunnelThroughAnHTTP2HTTPSProxy(t *testing.T) {
 		seen <- r.TLS.NegotiatedProtocol
 		remote, err := net.Dial("tcp", r.Host)
 		if err != nil {
-			http.Error(w, err.Error(), 502)
+			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
 		}
 		defer remote.Close()

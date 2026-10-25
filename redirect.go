@@ -501,9 +501,6 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 	*req = *hop.wear(req)
 }
 
-// clientHints are the hints Chrome sends of its own, which a redirect moves.
-var clientHints = legacyPolicy().Strings("headers.default_client_hints")
-
 // hintsAfterDest is an order of header names with the client hints moved to
 // just after Sec-Fetch-Dest, where Chrome sends them after a redirect, and as
 // it was when it has no Sec-Fetch-Dest.

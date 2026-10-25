@@ -54,12 +54,12 @@ func ownedH2Proxy(t *testing.T, origin string) (*httptest.Server, *[]proxyPoolEv
 				}
 			}
 			if r.Host != strings.TrimPrefix(origin, "https://") {
-				http.Error(w, "owned target required", 403)
+				http.Error(w, "owned target required", http.StatusForbidden)
 				return
 			}
 			up, err := net.DialTimeout("tcp", r.Host, time.Second)
 			if err != nil {
-				http.Error(w, err.Error(), 502)
+				http.Error(w, err.Error(), http.StatusBadGateway)
 				return
 			}
 			defer up.Close()

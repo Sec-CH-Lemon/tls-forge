@@ -99,10 +99,3 @@ func scriptHeaderOrder(h hop) []string {
 	}
 	return out
 }
-
-// Construction order, not the profile's observed bucket iteration order.
-// Blink FrameFetchContext::AddClientHintsIfNecessary inserts these fields
-// before the network service supplies Accept and Sec-Fetch-*.
-var rendererHintInsertionOrder = legacyPolicy().Strings("headers.renderer_hint_insertion_order")
-
-var defaultRendererHints = legacyPolicy().Strings("headers.renderer_default_hints")

@@ -311,23 +311,6 @@ func knownCodings(codings []string, policies ...behavior.Policy) bool {
 
 // readAtMost reads a body whole, unless it is longer than limit, which it says
 // with ErrResponseTooLarge once limit and one more byte have come.
-// chromeReadSize is the most a read takes of a body at a time, as Chrome's
-// network service takes a response's body from its HTTP/2 stream in pieces of
-// at most 8 KiB: what is freed of a window past half of it, which the
-// transport tells the server of as Chrome does, is at most that much more, as
-// Chrome's WINDOW_UPDATEs were measured (testdata/chrome155-flow.json).
-var chromeReadSize = legacyPolicy().Int("http.body_read_bytes")
-
-// chromeReads is a body read chromeReadSize at a time at most.
-type chromeReads struct{ io.Reader }
-
-func (r chromeReads) Read(p []byte) (int, error) {
-	if len(p) > chromeReadSize {
-		p = p[:chromeReadSize]
-	}
-	return r.Reader.Read(p)
-}
-
 func readAtMost(r io.Reader, limit int64) ([]byte, error) {
 	read, err := io.ReadAll(io.LimitReader(r, limit+1))
 	if err != nil {

@@ -279,9 +279,6 @@ func (l *layouts) authorized(value string) *layouts {
 	return out
 }
 
-// leadAuthorization are the names Chrome writes before Authorization.
-var leadAuthorization = legacyPolicy().Strings("headers.authorization_leading")
-
 // withAuthorization is a copy of block with Authorization said as value, in
 // its slot.
 func withAuthorization(block fhttp.Header, value string, policies ...behavior.Policy) fhttp.Header {
@@ -681,16 +678,6 @@ func (l *layouts) runtimeBehavior() behavior.Policy {
 	}
 	return legacyPolicy()
 }
-func retainCodings(offered string, allowed []string) string {
-	var out []string
-	for _, v := range strings.Split(offered, ",") {
-		if slices.Contains(allowed, strings.ToLower(strings.TrimSpace(v))) {
-			out = append(out, strings.TrimSpace(v))
-		}
-	}
-	return strings.Join(out, ", ")
-}
-
 func (w *withholding) droppedCodings() []string {
 	if w.encodings != nil {
 		return w.encodings

@@ -51,7 +51,7 @@ func TestPlainHTTPUsesTheHTTPSProxysNegotiatedProtocol(t *testing.T) {
 				defer transport.CloseIdleConnections()
 				res, err := transport.RoundTrip(copy)
 				if err != nil {
-					http.Error(w, err.Error(), 502)
+					http.Error(w, err.Error(), http.StatusBadGateway)
 					return
 				}
 				defer res.Body.Close()

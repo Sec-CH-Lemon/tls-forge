@@ -790,7 +790,8 @@ func TestRecordsAreKeptForTheirTimeToLive(t *testing.T) {
 		}
 		return n
 	}
-	if ask() != "A" || ask() != "A" || asked() != 1 {
+	first, again := ask(), ask()
+	if first != "A" || again != "A" || asked() != 1 {
 		t.Fatalf("asked %d times", asked())
 	}
 	// Past its time.

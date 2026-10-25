@@ -59,9 +59,15 @@ func (p *Profile) validateBehavior() error {
 	}
 	return nil
 }
+
+// HintOrder is the order the profile sends its client hints in, as its
+// behavior's headers.client_hint_order says.
 func (p *Profile) HintOrder() []string {
 	return p.RuntimeBehavior().Strings("headers.client_hint_order")
 }
+
+// AskedHints are the hints of HintOrder that go only to a server that asks
+// for them: all but the profile's headers.default_client_hints.
 func (p *Profile) AskedHints() []string {
 	var out []string
 	defaults := p.RuntimeBehavior().Strings("headers.default_client_hints")

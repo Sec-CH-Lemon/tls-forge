@@ -40,22 +40,6 @@ func (c credentials) basic() string {
 	return "Basic " + base64.StdEncoding.EncodeToString([]byte(c.username+":"+c.password))
 }
 
-// schemeScores are the schemes Chrome answers a challenge in, by Chromium's
-// score of each: the higher, the more it prefers it.
-var schemeScores = func() map[string]int {
-	out := map[string]int{}
-	for i, n := range legacyPolicy().Strings("http.auth_scheme_order") {
-		out[n] = i + 1
-	}
-	return out
-}()
-
-// maxRestarts is the most requests a hop is sent, the first and the answers to
-// its challenges: Chromium's kMaxRestarts, measured on a page that says every
-// Digest answer is out of date (auth-digest-stale-forever), which was sent 32
-// requests and not the 32nd answer.
-var maxRestarts = legacyPolicy().Int("http.max_auth_restarts")
-
 // challenge is a challenge of a 401 Chrome can answer, as its handler of the
 // scheme reads it.
 type challenge struct {

@@ -1,5 +1,6 @@
 // Copyright (C) 2024 Nicolas De Carli
 // Based on rapidhash (BSD-2-Clause); see LICENSE.
+
 // Package chromehash implements the deterministic ASCII header-name hash used
 // by Blink's case-folding header map. It hashes lower-case UTF-16LE code units.
 package chromehash
