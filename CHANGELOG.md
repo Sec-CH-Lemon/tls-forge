@@ -478,8 +478,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   data. Profile names and descriptive User-Agent strings no longer select policy
   for schema 3. Strict key/type/range/capability validation rejects unsupported
   settings before origin traffic. Legacy schemas are materialized on Save;
-  existing capture bytes/provenance are preserved. The rebuilt local engine uses
-  the policy-aware four-fork workspace; published dependency pins are unchanged.
+  existing capture bytes/provenance are preserved. The engine uses the
+  policy-aware forks, required at the commits pushed to their branches.
   See `docs/profile-behavior.md`. Generic protocol/crypto mechanisms and host TCP
   remain engine/platform responsibilities, and missing-API scenarios remain open.
 
@@ -1229,6 +1229,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   is shown; anything else is reported as not looked up.
 
 ### Changed
+
+- **The forks are required as pushed.** `go.mod` names utls, fhttp,
+  websocket, quic-go-utls and tls-client at the commits their `tls-forge`
+  branches were pushed at on 2026-10-25, so tls-forge builds and passes its
+  tests without a `go.work` beside the forks' checkouts; the pins before
+  were of 2026-10-19 and 2026-10-20, and only that workspace built. With
+  them, an HTTP/2 connection just closed no longer counts as one the origin
+  has, so a request meant to wait behind QUIC waits as Chrome's does (the
+  fork of fhttp: `HasConn` counts a connection that can take a request).
 
 - **A request's timeout is one deadline for all of it**: `WithTimeout`, and
   `--timeout` for each try of `fetch`, bound its connection, its preflight,

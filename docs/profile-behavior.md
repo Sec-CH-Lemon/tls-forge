@@ -111,7 +111,7 @@ Unknown keys, duplicate behavior keys, null or wrong types, invalid ranges and u
 
 Certificate verification, authenticated Finished processing, nonce safety, protocol wire encodings, fresh keys/randomness, parser/state-machine mechanisms and safe finite resource bounds remain engine responsibilities. New algorithms/protocol features require engine code; existing parameter/ordering/timer changes require only profile data. A profile cannot replace the host kernel TCP stack. Explicit caller transport options retain their documented override precedence.
 
-The shared policy registry in `github.com/igor-lemon/utls/behavior` contains supported keys/types and engine bounds. Browser values live in profile JSON. Dependencies currently resolve to the four local forks through `go.work`; no publication of those APIs is implied.
+The shared policy registry in `github.com/igor-lemon/utls/behavior` contains supported keys/types and engine bounds. Browser values live in profile JSON. The forks are required at the commits pushed to their `tls-forge` branches; the engine itself is unreleased.
 
 ## Field reference
 

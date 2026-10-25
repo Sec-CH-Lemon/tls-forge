@@ -556,11 +556,10 @@ fields are not promoted into response headers. The body is already
 decoded and `Encoding` identifies the codings removed. Responses without a
 browser context retain the decoded-body header contract used by the proxy.
 
-The current unreleased transport fixes use the local `go.work`, which selects
-the maintained checkouts in `../forks/{utls,fhttp,tls-client}`. The rebuilt local
-executable includes those edits. Published module requirements have not been
-advanced: publishing the fork changes and updating their pseudo-versions is a
-separate release step. `GOWORK=off` selects the previously published transport.
+The transport fixes live in tls-forge's forks of utls, fhttp, websocket,
+quic-go-utls and tls-client (`github.com/igor-lemon/...`, the `tls-forge` branch
+of each), which `go.mod` requires at the commits pushed there. A build needs no
+`go.work`; one that names checkouts of the forks is for work not yet pushed.
 
 Without `--request-kind` a GET goes out as a navigation typed into the
 address bar: what the first request of a visit is, worked out as Chrome works
@@ -1999,9 +1998,8 @@ algorithm needs engine support before a profile can select it. OS TCP behavior
 also remains a property of the host stack. Schema 0-2 profiles retain a documented
 migration path; saving writes the complete explicit schema 4 policy.
 
-These changes currently require the four local fork checkouts selected by
-`go.work`. They are included in the rebuilt `bin/tls-forge`; the published module
-pins do not yet contain this policy API.
+These changes live in tls-forge's forks, which `go.mod` requires at the commits
+pushed to their `tls-forge` branches.
 
 
 #### `proxy`
