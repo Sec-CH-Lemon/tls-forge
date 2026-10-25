@@ -48,7 +48,11 @@ func startH3Site(t *testing.T, tcpLag, quicLag time.Duration, echKeys ...tls.Enc
 	s := &h3Site{}
 	udp, tcp := udpAndTCP(t)
 	_, s.port, _ = net.SplitHostPort(tcp.Addr().String())
+	// An answer says what it came over; ?alt is its Alt-Svc.
 	server := httptest.NewUnstartedServer(stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+		if alt := r.URL.Query().Get("alt"); alt != "" {
+			w.Header().Set("Alt-Svc", alt)
+		}
 		_, _ = io.WriteString(w, r.Proto)
 	}))
 	server.Listener = &slowFirstWord{Listener: tcp, lag: tcpLag}
@@ -74,6 +78,9 @@ func startH3Site(t *testing.T, tcpLag, quicLag time.Duration, echKeys ...tls.Enc
 		udp = inner
 	}
 	h3 := &http3.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if alt := r.URL.Query().Get("alt"); alt != "" {
+			w.Header().Set("Alt-Svc", alt)
+		}
 		said := r.Proto
 		if r.TLS != nil && r.TLS.ECHAccepted {
 			said += " ech"
@@ -213,7 +220,8 @@ func TestARecordWithoutH3OrAProfileWithoutItGoesOverTCPAlone(t *testing.T) {
 	for _, k := range []string{"quic.tcp_wait_cold_ms", "quic.tcp_wait_broken_ms", "quic.tcp_wait_rtt_percent",
 		"quic.tcp_wait_default_ms", "quic.tcp_wait_extra_ms", "quic.tcp_wait_max_ms", "quic.tcp_waits_with_connection",
 		"quic.retry_over_tcp", "quic.broken_ms", "quic.broken_doublings", "quic.broken_max_ms", "quic.broken_recent_max",
-		"quic.server_rtts_max", "http.unused_idle_connection_timeout_ms"} {
+		"quic.server_rtts_max", "http.unused_idle_connection_timeout_ms", "quic.alt_svc", "quic.alt_svc_user_ports",
+		"quic.alt_svc_remote_hosts", "quic.alt_svc_tcp_waits_with_h2"} {
 		delete(off.Behavior, k)
 	}
 	if got := came(t, echClient(t, dns, WithProfileValue(off)), "https://h3.h3.test:"+site.port+"/"); got != "HTTP/2.0" {

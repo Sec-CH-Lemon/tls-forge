@@ -101,7 +101,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Chrome in 2 (in the other 2 its record came after the wait). `--keylog`
   and `WithKeyLogWriter` now take the secrets of QUIC connections too;
   `--pcap` does not capture them yet.
-  Not followed: `Alt-Svc`.
+
+- An answer whose `Alt-Svc` advertises `h3` (RFC 7838) sends its origin's
+  later requests over HTTP/3 to that alternative as Chrome 155's alternative
+  job does, measured on macOS against an own bench (17 scenarios, two or
+  three cohorts each): a QUIC connection to the alternative's port, and host
+  where it names one, the origin's name in its hello, the request's TCP
+  connection held back as for a record's `h3` by the wait the origin's QUIC
+  connections measured, but the request at once on an HTTP/2 connection the
+  origin has, the QUIC connection made apart for the next. The value is read
+  as Chrome's quiche reads it (one it cannot read whole is not taken,
+  `clear`, `ma`, the fields joined); each answer but a 421's replaces what its
+  origin advertised; only `h3` is taken, the first the profile allows that is
+  not broken; a request the alternative's QUIC connection failed breaks the
+  alternative. Alternatives are the session's, kept for the origin and the
+  top-level site. New profile fields `quic.alt_svc`,
+  `quic.alt_svc_user_ports`, `quic.alt_svc_remote_hosts` and
+  `quic.alt_svc_tcp_waits_with_h2`, set in every shipped Chrome profile;
+  without them `Alt-Svc` is not read, as before.
 
 - A direct connection to a name asks its addresses and its HTTPS records
   (RFC 9460) of the machine's DNS servers itself, at the same time, as

@@ -2666,7 +2666,7 @@ over HTTP/3 as Chrome's goes (measured on Chrome 155 on macOS, 2026-10-25):
   and a record that comes later than the wait: TCP alone.
 
 Through a proxy, or with transport options of the caller's, nothing changes.
-`Alt-Svc` is not followed. The QUIC handshake is Chrome's, ALPS for `h3`
+The QUIC handshake is Chrome's, ALPS for `h3`
 offered and read as Chrome reads it
 ([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1)).
 The profile fields are `dns.https_h3`, `quic.tcp_wait_*`,
@@ -2675,6 +2675,25 @@ The profile fields are `dns.https_h3`, `quic.tcp_wait_*`,
 profile without them goes over HTTP/3 only when asked to
 (`WithProtocolRacing`). See
 [the field reference](docs/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
+
+### HTTP/3 from Alt-Svc
+
+An answer whose `Alt-Svc` advertises `h3` sends its origin's later requests
+over HTTP/3 as Chrome's go (measured on Chrome 155 on macOS, 2026-10-25):
+
+- to the alternative's port, and its host where it names one, with the
+  origin's name in the QUIC handshake; the request's TCP connection held
+  back as for a record's `h3`, but the request at once on an HTTP/2
+  connection the origin has, the QUIC connection made apart for the next;
+- the value read as Chrome reads it: one it cannot read whole is not taken,
+  `clear` forgets, `ma` keeps it that long (a day without), a 421 changes
+  nothing; only `h3` is taken (not `h3-29` nor `h2`), not one on a port of
+  1024 or more for an origin below it, and the next where QUIC to one failed;
+- kept for the origin and the top-level site it was learnt in.
+
+The profile fields are `quic.alt_svc` and `quic.alt_svc_*`; a profile without
+them does not read `Alt-Svc`. See
+[the field reference](docs/profile-behavior.md#http3-from-an-answers-alt-svc-unreleased-engine-1).
 
 ### Empty uploads and profile-owned Content-Length
 

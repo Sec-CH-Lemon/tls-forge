@@ -857,10 +857,11 @@ func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
 	if err != nil || len(names) != 15 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
-	// Chromium 155's DNS ALPN job, measured on macOS (bench/h3, bench/h3alps)
-	// and read in its source (GetTimeDelayForWaitingJob,
-	// BrokenAlternativeServices, unused_idle_socket_timeout, HandleIOError
-	// with retry_without_alt_svc_on_quic_errors).
+	// Chromium 155's DNS ALPN job and alternative job, measured on macOS
+	// (bench/h3, bench/h3alps, bench/alt) and read in its source
+	// (GetTimeDelayForWaitingJob, BrokenAlternativeServices,
+	// unused_idle_socket_timeout, HandleIOError with
+	// retry_without_alt_svc_on_quic_errors, GetAdvertisedAltSvcInternal).
 	want := map[string]string{
 		"dns.https_h3":                           "true",
 		"quic.tcp_wait_cold_ms":                  "0",
@@ -877,6 +878,10 @@ func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
 		"quic.broken_recent_max":                 "200",
 		"quic.server_rtts_max":                   "500",
 		"http.unused_idle_connection_timeout_ms": "60000",
+		"quic.alt_svc":                           "true",
+		"quic.alt_svc_user_ports":                "false",
+		"quic.alt_svc_remote_hosts":              "true",
+		"quic.alt_svc_tcp_waits_with_h2":         "false",
 	}
 	for _, name := range names {
 		raw, err := os.ReadFile(name)
@@ -903,6 +908,8 @@ func TestHTTP3FromDNSPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
 		{`{"dns.https_h3":true}`, "dns.https_h3 requires dns.https_records"},
 		{`{"quic.broken_ms":300000}`, "is set while dns.https_h3 is not"},
 		{`{"dns.https_h3":"yes"}`, "dns.https_h3"},
+		{`{"quic.alt_svc":true}`, "quic.alt_svc requires dns.https_h3"},
+		{`{"quic.alt_svc_remote_hosts":true}`, "is set while quic.alt_svc is not"},
 	} {
 		var p behavior.Policy
 		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {

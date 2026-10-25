@@ -339,9 +339,16 @@ res, err := client.Do(&tlsforge.Request{URL: "https://example.com/"})
 
 Through a proxy, or with transport options of the caller's, nothing changes;
 `tls_client.WithProtocolRacing` given with `WithTransportOption` still races
-HTTP/3 to every origin. `Alt-Svc` is not followed. The fields and what was
-measured are in
+HTTP/3 to every origin. The fields and what was measured are in
 [the profile behavior reference](docs/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
+
+An answer whose `Alt-Svc` advertises `h3` sends its origin's later requests
+over HTTP/3 to that alternative, as Chrome's alternative job does
+(`quic.alt_svc`): the request at once on an HTTP/2 connection the origin
+has, its QUIC connection made apart for the next, else QUIC and TCP raced as
+for a record's `h3`. Alternatives are the session's, kept for the origin and
+the top-level site: see
+[the reference](docs/profile-behavior.md#http3-from-an-answers-alt-svc-unreleased-engine-1).
 
 ## Requests
 

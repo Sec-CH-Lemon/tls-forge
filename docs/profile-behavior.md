@@ -1215,13 +1215,81 @@ record having come after the wait. The TCP connection that lost
 (`bench/unused`, the page's `fetch()` 40 and 62 s after it, two cohorts): as
 Chrome's, request by request, connection by connection and ticket by ticket.
 
-Not modelled: `Alt-Svc` (Chrome went over HTTP/3 to an origin whose answer
-offered `h3`, from its next request: tls-forge ignores it); a navigation's
+Not modelled: a navigation's
 preconnect (for an origin whose record names `h3` a QUIC connection made
 before the request: after QUIC's connection went away, Chrome's typed
 navigation goes over HTTP/3 on it where tls-forge's goes over the TCP
 connection waiting unused, or races again). The QUIC handshake itself is
 below.
+
+## HTTP/3 from an answer's Alt-Svc (unreleased engine 1)
+
+An answer to a direct https request whose `Alt-Svc` advertises `h3` (RFC
+7838) sends its origin's later requests over HTTP/3 to that alternative, as
+Chrome's alternative job sends them (`HttpStreamFactory::JobController`): a
+QUIC connection to the alternative's host (the origin's where it names none)
+and port, named as the origin is, and the request's TCP connection held back
+behind it as for a record's `h3` (above), by the wait the origin's QUIC
+connections measured; but at once on an HTTP/2 connection the origin has, the
+QUIC connection made apart. The QUIC connection up takes the origin's later
+requests while the origin still advertises its alternative, and keeps its RTT
+for the origin. Before, `Alt-Svc` was not read. Absent fields keep that.
+
+The value is read as Chrome's quiche reads it (`SpdyAltSvcWireFormat`), its
+fields joined: one it cannot read whole is not taken at all; `clear` forgets
+the origin's alternatives; `ma` is how long each is kept, 24 hours without.
+Each answer, a 421's aside, replaces what its origin advertised. Only `h3`
+(QUIC version 1) is taken, the first one the profile allows that is not
+broken: `h3-29`, `hq` and `h2` are passed over. An alternative whose QUIC
+connection failed where TCP worked is broken as a record's server is
+(`quic.broken_*`), and the next is taken. Alternatives are the session's,
+kept for the origin and the client's top-level site, as many origins as
+`quic.server_rtts_max`.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `quic.alt_svc` | Follow `h3` alternatives, as above. `true`. Needs `dns.https_h3` and the keys below. |
+| `quic.alt_svc_user_ports` | Whether an alternative on a port of 1024 or more is taken for an origin on a port below it (`enable_user_alternate_protocol_ports`). `false`. |
+| `quic.alt_svc_remote_hosts` | Whether an alternative on another host is taken (`allow_remote_alt_svc`). `true`. |
+| `quic.alt_svc_tcp_waits_with_h2` | Whether the request's TCP connection waits behind QUIC where the origin has an HTTP/2 connection (`delay_main_job_with_available_spdy_session`). `false`: the request goes on it at once. |
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-25, `../net-fp-server/captures/review-20261023/bench/alt`: the same
+DNS over HTTPS, a listener speaking TLS over TCP and HTTP/3 over QUIC on one
+port, one for HTTP/1.1 and QUIC, another QUIC port, a UDP port that never
+answers; 17 scenarios, each in two or three cohorts):
+
+- an answer of the page advertising `h3` on its port: a `fetch()` right after
+  it or 2 s later over HTTP/2 on the page's connection, a QUIC connection
+  made at once apart, whether QUIC had worked on another origin or not; the
+  next request over HTTP/3;
+- the alternative on another port or another host: QUIC there, the origin's
+  name in its hello, the next request over it;
+- an origin over HTTP/1.1: with QUIC not yet working in the browser, the
+  request at once on the idle HTTP/1.1 connection, QUIC made apart; once QUIC
+  had worked on another origin, over HTTP/3 within the 300 ms wait, the idle
+  connection not taken; after the page's HTTP/2 connection went, QUIC and TCP
+  raced and QUIC took the request;
+- two alternatives, the first a port that never answers: the requests over
+  HTTP/2 while it was tried, then the second's QUIC connection made;
+- `ma=1`: not gone to 3 s later; `clear`, then QUIC's connection closed: the
+  next request over HTTP/2; `h3-29` and `h2`: no QUIC;
+- advertised to a no-cors `fetch()` from a page of another site: not gone to
+  by a navigation to the origin.
+
+The library (one client, `Do` after `Do`, `bench/alt-lib.sh`, two cohorts of
+15 scenarios, the page's `fetch()` a request like any other) did as Chrome in
+each, request by request and connection by connection, but where Chrome's
+navigation preconnect made the QUIC connection before the request, and where
+a record's `h3` raced TCP on loopback (above).
+
+Not modelled: Chrome's preconnects (in 9 runs of 16 a QUIC connection was
+made 5 to 15 ms after the page's answer, by a preconnect for the page as one
+net log shows, so that the next request, even 2 s later, went over HTTP/3
+where tls-forge's goes over HTTP/2 and makes QUIC apart; a navigation's
+own); the hints of the `IncreaseHttp3Usage` field trials (canonical
+suffixes, known QUIC hosts); a record's DNS ALPN job beside an alternative's
+to another destination (Chrome runs both); versions of QUIC other than 1.
 
 ## QUIC's handshake as Chrome's (unreleased engine 1)
 

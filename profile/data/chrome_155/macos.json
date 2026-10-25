@@ -597,6 +597,10 @@
     "quic.alps_protocols": [
       "h3"
     ],
+    "quic.alt_svc": true,
+    "quic.alt_svc_remote_hosts": true,
+    "quic.alt_svc_tcp_waits_with_h2": false,
+    "quic.alt_svc_user_ports": false,
     "quic.broken_doublings": 18,
     "quic.broken_max_ms": 172800000,
     "quic.broken_ms": 300000,
