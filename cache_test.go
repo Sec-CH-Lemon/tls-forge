@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -394,5 +395,138 @@ func TestAPrefixWhoseOriginFailsIsNotCompleted(t *testing.T) {
 				t.Errorf("the prefix stayed: %v", c.entries[key])
 			}
 		})
+	}
+}
+
+// detachable is a transport's body that says whether it was made its
+// request's no more.
+type detachable struct {
+	io.Reader
+	detached atomic.Bool
+}
+
+func (b *detachable) Detach()    { b.detached.Store(true) }
+func (*detachable) Close() error { return nil }
+
+func TestARedirectLeftUnreadIsKeptWithoutItsBody(t *testing.T) {
+	c := cacheOf(t, nil)
+	body := &detachable{Reader: strings.NewReader("hop")}
+	origin := &cacheOrigin{answers: []func(*fhttp.Request) (*fhttp.Response, error){
+		func(req *fhttp.Request) (*fhttp.Response, error) {
+			res, _ := cacheAnswer(302, "", "Cache-Control", "max-age=60", "Location", "/final")(req)
+			res.Body = body
+			return res, nil
+		},
+	}}
+	req := mustRequest(t, "https://www.example.com/start")
+	res, err := c.roundTrip(&chain{browser: &browserRequest{}}, req, origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leftUnread(res)
+	// The transport's body is back, and what is read of it after is no
+	// entry's: the redirect is kept without it, and nothing waits for it.
+	if res.Body != io.ReadCloser(body) {
+		t.Fatalf("the body is %T", res.Body)
+	}
+	_, _ = io.ReadAll(res.Body)
+	key := c.key(&chain{browser: &browserRequest{}}, req)
+	if e := c.entries[key]; len(e) != 1 || e[0].status != 302 || len(e[0].body) != 0 || c.bytes != 0 || len(c.inflight) != 0 {
+		t.Fatalf("entries %+v, %d bytes, %d waited for", e, c.bytes, len(c.inflight))
+	}
+	// Asked again, it is the cache's answer: the origin is not asked.
+	if res, got, err := cacheFetch(t, c, origin, "GET", req.URL.String()); err != nil || res.StatusCode != 302 || got != "" ||
+		res.Header.Get("Location") != "/final" || origin.times() != 1 {
+		t.Errorf("again: %v %q %v, the origin asked %d times", res, got, err, origin.times())
+	}
+}
+
+func TestAnAnswerLeftUnreadThatIsNoRedirectIsKeptOnlyWithItsBody(t *testing.T) {
+	c := cacheOf(t, nil)
+	origin := &cacheOrigin{answers: []func(*fhttp.Request) (*fhttp.Response, error){
+		cacheAnswer(200, "page", "Cache-Control", "max-age=60"),
+		cacheAnswer(302, "hop", "Location", "/final"),
+	}}
+	req := mustRequest(t, "https://www.example.com/page")
+	res, err := c.roundTrip(&chain{browser: &browserRequest{}}, req, origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leftUnread(res)
+	key := c.key(&chain{browser: &browserRequest{}}, req)
+	if _, ok := res.Body.(*cacheBody); !ok || len(c.entries[key]) != 0 || len(c.inflight) != 1 {
+		t.Fatalf("a page left unread: %T, entries %v, %d waited for", res.Body, c.entries[key], len(c.inflight))
+	}
+	if body, _ := io.ReadAll(res.Body); string(body) != "page" || len(c.entries[key]) != 1 || len(c.inflight) != 0 {
+		t.Fatalf("read whole: %q, entries %v, %d waited for", body, c.entries[key], len(c.inflight))
+	}
+	// A redirect the cache would not keep is the transport's as it was.
+	other := mustRequest(t, "https://www.example.com/other")
+	res, err = c.roundTrip(&chain{browser: &browserRequest{}}, other, origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leftUnread(res)
+	if body, _ := io.ReadAll(res.Body); string(body) != "hop" || len(c.entries[c.key(&chain{browser: &browserRequest{}}, other)]) != 0 {
+		t.Errorf("a redirect not kept: %q, entries %v", body, c.entries)
+	}
+}
+
+func TestABodyCutShortIsNotKept(t *testing.T) {
+	c := cacheOf(t, nil)
+	broke := errors.New("connection reset")
+	origin := &cacheOrigin{answers: []func(*fhttp.Request) (*fhttp.Response, error){
+		func(req *fhttp.Request) (*fhttp.Response, error) {
+			res, _ := cacheAnswer(200, "", "Cache-Control", "max-age=60")(req)
+			res.Body = io.NopCloser(&failsAfter{bytes.NewReader([]byte("pa")), broke})
+			return res, nil
+		},
+	}}
+	url := "https://www.example.com/cut"
+	if _, body, err := cacheFetch(t, c, origin, "GET", url); !errors.Is(err, broke) || body != "pa" {
+		t.Fatalf("%q %v", body, err)
+	}
+	if e := c.entries[c.key(&chain{browser: &browserRequest{}}, mustRequest(t, url))]; len(e) != 0 || len(c.inflight) != 0 {
+		t.Errorf("kept %+v, %d waited for", e, len(c.inflight))
+	}
+}
+
+func TestABodyIsKeptUpToTheLimitOfAnEntry(t *testing.T) {
+	c := cacheOf(t, map[string]string{"cache.entry_bytes": "4"})
+	for body, kept := range map[string]bool{"abcd": true, "abcde": false} {
+		origin := &cacheOrigin{answers: []func(*fhttp.Request) (*fhttp.Response, error){
+			cacheAnswer(200, body, "Cache-Control", "max-age=60")}}
+		url := "https://www.example.com/" + body
+		if _, got, err := cacheFetch(t, c, origin, "GET", url); err != nil || got != body {
+			t.Fatalf("%q: %q %v", body, got, err)
+		}
+		if _, ok := c.entries[c.key(&chain{browser: &browserRequest{}}, mustRequest(t, url))]; ok != kept {
+			t.Errorf("%q kept: %v", body, ok)
+		}
+	}
+}
+
+func TestARedirectLetGoOfIsDrainedAsTheTransportsOwn(t *testing.T) {
+	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	for _, major := range []int{1, 2} {
+		c := cacheOf(t, nil)
+		body := &detachable{Reader: strings.NewReader("hop")}
+		origin := &cacheOrigin{answers: []func(*fhttp.Request) (*fhttp.Response, error){
+			func(req *fhttp.Request) (*fhttp.Response, error) {
+				res, _ := cacheAnswer(307, "", "Cache-Control", "max-age=60", "Location", "/final")(req)
+				res.Body, res.ProtoMajor = body, major
+				return res, nil
+			},
+		}}
+		res, err := c.roundTrip(&chain{browser: &browserRequest{}}, mustRequest(t, "https://www.example.com/start"), origin)
+		if err != nil {
+			t.Fatal(err)
+		}
+		client.leave("dropped", res, -1)
+		// Made its request's no more, as the drain makes a body of the
+		// transport's, so that the request's end does not cut it.
+		if !body.detached.Load() || res.Body != fhttp.NoBody {
+			t.Errorf("HTTP/%d: detached %v, the body left %T", major, body.detached.Load(), res.Body)
+		}
 	}
 }

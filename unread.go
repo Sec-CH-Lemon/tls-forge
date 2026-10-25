@@ -38,8 +38,10 @@ import (
 //
 // What goes on in the background ends when the client closes its idle
 // connections, or is closed. The body is fhttp.NoBody after, but where it is
-// left to the transport.
+// left to the transport. A redirect a browser context's cache would keep is
+// kept first, without its body, as Chrome's is (leftUnread).
 func (c *Client) leave(kind string, res *fhttp.Response, limit int64) {
+	leftUnread(res)
 	p := c.behavior()
 	// Keys of HTTP/1.1 and HTTP/2 alone: another protocol's say nothing.
 	proto := fmt.Sprintf("h%d.", res.ProtoMajor)

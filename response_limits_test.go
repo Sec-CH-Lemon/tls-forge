@@ -319,6 +319,51 @@ func TestBrowserCacheKeepsExplicitlyFreshRedirects(t *testing.T) {
 	}
 }
 
+// A redirect is kept complete without its body, which Chrome never reads:
+// one whose body has not come when the client goes on from it, over HTTP/2
+// where its stream is reset then, and one larger than HTTP/1.1's drain, are
+// kept as one whose body came at once.
+func TestBrowserCacheKeepsARedirectWithoutItsBody(t *testing.T) {
+	for _, proto := range []string{"h1", "h2"} {
+		for _, status := range []int{301, 302, 307, 308} {
+			for _, body := range []string{"held", "large"} {
+				t.Run(fmt.Sprintf("%s-%d-%s", proto, status, body), func(t *testing.T) {
+					release := make(chan struct{})
+					s := newRecorder(t, proto, func(w http.ResponseWriter, r *http.Request) {
+						w.Header().Set("Cache-Control", "max-age=60")
+						if r.URL.Path != "/start" {
+							io.WriteString(w, "owned")
+							return
+						}
+						w.Header().Set("Location", "/final")
+						if body == "large" {
+							w.WriteHeader(status)
+							io.WriteString(w, strings.Repeat("x", 16385))
+							return
+						}
+						w.Header().Set("Content-Length", "3")
+						w.WriteHeader(status)
+						w.(http.Flusher).Flush()
+						<-release
+						io.WriteString(w, "hop")
+					})
+					t.Cleanup(func() { close(release) })
+					c := contextClient(t, s)
+					for i := range 2 {
+						r, err := c.Do(&Request{URL: "https://example.com/start", Browser: &BrowserContext{Kind: KindFetch, Initiator: "https://example.com/seed"}})
+						if err != nil || string(r.Body) != "owned" {
+							t.Fatalf("round %d: %v %v", i+1, r, err)
+						}
+					}
+					if got := s.requests(); len(got) != 2 {
+						t.Fatalf("the origin was asked %d times", len(got))
+					}
+				})
+			}
+		}
+	}
+}
+
 func TestBrowserCacheCoalescesIdenticalBufferedRequests(t *testing.T) {
 	for _, proto := range []string{"h1", "h2"} {
 		t.Run(proto, func(t *testing.T) {

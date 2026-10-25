@@ -1531,6 +1531,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A fresh redirect is cached without its body.** A browser context's cache
+  kept an explicitly fresh 301, 302, 307 or 308 only once its body had been
+  read to the end, which nothing waits for when a redirect is followed: an
+  HTTP/2 redirect whose body came after the 500 µs the client gives it, an
+  HTTP/1.1 one larger than the 16 KiB drained, or one still being drained
+  when its request ended, was not kept, and the next request for it went to
+  the origin again. It is kept as the client goes on from it now, without
+  its body, as Chrome keeps it (Chrome reads no redirect's body), and its
+  HTTP/1.1 connection is drained as the transport's own, so that the end of
+  its request no longer cuts the drain and closes the connection.
+
 - **QUIC and TCP keep their TLS sessions apart.** HTTP/3 (`WithProtocolRacing`,
   and from DNS) shared one session cache with TCP, by name, so a QUIC
   connection offered the ticket a server had given over TCP, which a QUIC

@@ -533,8 +533,9 @@ explicit freshness or a validator can be retained: 8 MiB per body, 64 MiB in
 total and 256 entries. Fresh responses avoid another origin request; stale
 ones use ETag or Last-Modified and merge a 304 response. HEAD can revalidate a
 stored GET without replacing its body. Explicitly fresh 301/302/307/308 GET
-redirects are retained, and identical buffered GETs can wait on one pending
-cache representation. A single byte range can be served from a complete,
+redirects are retained as soon as the client goes on from them, without their
+bodies, as Chrome retains them (it reads no redirect's body), and identical
+buffered GETs can wait on one pending cache representation. A single byte range can be served from a complete,
 unencoded fresh 200 entry. A complete 206 prefix with a strong ETag can be
 retained within those same limits; a full GET first validates the prefix, then
 requests the missing interval with If-Range. Only exact intervals with the

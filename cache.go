@@ -211,7 +211,8 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 		if store {
 			done := release
 			release = func() {}
-			res.Body = &cacheBody{limit: c.runtimeBehavior().Int("cache.entry_bytes"), ReadCloser: res.Body, commit: func(body []byte) { c.store(key, req.Header, res, body) }, done: done}
+			res.Body = &cacheBody{limit: c.runtimeBehavior().Int("cache.entry_bytes"), ReadCloser: res.Body, commit: func(body []byte) { c.store(key, req.Header, res, body) }, done: done,
+				redirect: res.StatusCode/100 == 3}
 		}
 	}
 	return res, nil
@@ -343,29 +344,46 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 type cacheBody struct {
 	limit int
 	io.ReadCloser
-	data   []byte
-	large  bool
-	commit func([]byte)
-	done   func()
+	data     []byte
+	commit   func([]byte)
+	done     func()
+	redirect bool
 }
 
+// Read keeps what it reads, and what it read as the entry's once the body
+// ends, unless it grew past the limit: then none of it.
 func (r *cacheBody) Read(p []byte) (int, error) {
 	n, err := r.ReadCloser.Read(p)
-	if !r.large {
+	if r.commit != nil {
 		if len(r.data)+n > r.maxBytes() {
-			r.large, r.data = true, nil
-		} else {
-			r.data = append(r.data, p[:n]...)
+			r.commit, r.data = nil, nil
+		} else if r.data = append(r.data, p[:n]...); err == io.EOF {
+			r.commit(r.data)
+			r.commit = nil
 		}
-	}
-	if err == io.EOF && !r.large && r.commit != nil {
-		r.commit(r.data)
-		r.commit = nil
 	}
 	if err != nil && r.done != nil {
 		r.done()
 	}
 	return n, err
+}
+
+// leftUnread is the client going on from res without reading its body. A
+// redirect's, followed or not, Chrome's network stack never reads, and its
+// cache keeps the redirect complete without it then
+// (URLRequestJob::NotifyHeadersComplete, DoneReadingRedirectResponse): so a
+// redirect the cache would keep is kept now, without its body, the requests
+// that wait for it go on, and res has the transport's body back, which the
+// cache has nothing more to do with. Any other answer the cache keeps only
+// once its body is read whole.
+func leftUnread(res *fhttp.Response) {
+	b, ok := res.Body.(*cacheBody)
+	if !ok || !b.redirect {
+		return
+	}
+	b.commit(nil)
+	b.done()
+	res.Body = b.ReadCloser
 }
 
 func (r *cacheBody) Close() error {
