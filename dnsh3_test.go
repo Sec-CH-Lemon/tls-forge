@@ -40,6 +40,7 @@ type h3Site struct {
 	port      string
 	quicConns atomic.Int32
 	tcpConns  atomic.Int32
+	tcpClosed atomic.Int32
 }
 
 func startH3Site(t *testing.T, tcpLag, quicLag time.Duration, echKeys ...tls.EncryptedClientHelloKey) *h3Site {
@@ -53,8 +54,11 @@ func startH3Site(t *testing.T, tcpLag, quicLag time.Duration, echKeys ...tls.Enc
 	server.Listener = &slowFirstWord{Listener: tcp, lag: tcpLag}
 	server.EnableHTTP2 = true
 	server.Config.ConnState = func(_ net.Conn, state stdhttp.ConnState) {
-		if state == stdhttp.StateNew {
+		switch state {
+		case stdhttp.StateNew:
 			s.tcpConns.Add(1)
+		case stdhttp.StateClosed:
+			s.tcpClosed.Add(1)
 		}
 	}
 	server.StartTLS()
@@ -461,4 +465,46 @@ func TestARequestsQUICAndTCPConnectionsShareOneLookupOfRecordsKeptNoTime(t *test
 	if want := []string{"A h3.h3.test.", "AAAA h3.h3.test.", "HTTPS _" + site.port + "._https.h3.h3.test."}; !slices.Equal(q, want) {
 		t.Errorf("asked %v, want each of %v once", q, want)
 	}
+}
+
+func TestARequestElsewhereReapsTheTCPConnectionThatLostToQUICAndOneToItsOwnAddressNone(t *testing.T) {
+	// QUIC up first: TCP's connection waits unused past its time (50 ms
+	// here, Chrome's 60 s). A request on the QUIC connection asks no socket
+	// of its own address's; one to another address, any socket, as Chromium's
+	// pool cleans up every group then.
+	site := startH3Site(t, 100*time.Millisecond, 0)
+	other := startH3Site(t, 0, 0)
+	dns := echNames(t, map[string]*dnsmessage.SVCBResource{"h3.h3.test": service(1, "h3.h3.test", alpnParam("h3", "h2"))}, 0, 0)
+	c := echClient(t, dns, WithProfileValue(policyFile(t, map[string]any{"http.unused_idle_connection_timeout_ms": 50})))
+	url := "https://h3.h3.test:" + site.port + "/"
+	if got := came(t, c, url); got != "HTTP/3.0" {
+		t.Fatalf("came over %q, want HTTP/3", got)
+	}
+	if !soon(2*time.Second, func() bool { return site.tcpConns.Load() == 1 }) {
+		t.Fatal("no TCP connection raced")
+	}
+	time.Sleep(200 * time.Millisecond)
+	if got := came(t, c, url+"again"); got != "HTTP/3.0" {
+		t.Fatalf("came over %q, want the QUIC connection up", got)
+	}
+	time.Sleep(100 * time.Millisecond)
+	if site.tcpClosed.Load() != 0 {
+		t.Fatal("a request on its address's QUIC connection reaped the TCP connection that lost")
+	}
+	if got := came(t, c, "https://plain.h3.test:"+other.port+"/"); got != "HTTP/2.0" {
+		t.Fatalf("came over %q, want TCP's", got)
+	}
+	if !soon(2*time.Second, func() bool { return site.tcpClosed.Load() == 1 }) {
+		t.Error("a request elsewhere left the TCP connection that lost open past its time")
+	}
+}
+
+// soon says whether ok comes true within d.
+func soon(d time.Duration, ok func() bool) bool {
+	for end := time.Now().Add(d); time.Now().Before(end); time.Sleep(5 * time.Millisecond) {
+		if ok() {
+			return true
+		}
+	}
+	return ok()
 }

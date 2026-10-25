@@ -29,6 +29,20 @@ func withPort(req *fhttp.Request) {
 	req.URL.Host = net.JoinHostPort(req.URL.Hostname(), "80")
 }
 
+// dialAddress is the host and port tls-client files a request to u under:
+// the port u names, else 80 for plain http (withPort), else 443.
+func dialAddress(u *url.URL) string {
+	port := u.Port()
+	switch {
+	case port != "":
+	case u.Scheme == "http":
+		port = "80"
+	default:
+		port = "443"
+	}
+	return net.JoinHostPort(u.Hostname(), port)
+}
+
 // shownURL is the URL a request was asked for: its own, without the port
 // withPort told the transport.
 func shownURL(req *fhttp.Request) *url.URL {

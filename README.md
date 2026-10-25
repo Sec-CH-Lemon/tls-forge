@@ -2653,7 +2653,8 @@ over HTTP/3 as Chrome's goes (measured on Chrome 155 on macOS, 2026-10-25):
   known, 3 s at most), or at once when QUIC fails;
 - the first of the two up takes the request; the other is made all the
   same, a QUIC connection taking the requests after it, a TCP one kept
-  unused for a minute;
+  unused for a minute, its session ticket read as it comes, and closed by the
+  next request after that which asks for a connection;
 - a request to an origin with a TCP connection already goes on it at once,
   a QUIC connection made apart for the next;
 - a request its QUIC connection failed before its answer (its stream reset,

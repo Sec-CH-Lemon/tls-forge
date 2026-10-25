@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -234,6 +235,27 @@ func TestWithPort(t *testing.T) {
 		req.Host = tc.host
 		if shownURL(req) != req.URL {
 			t.Errorf("%s with Host %s is shown anew", tc.url, tc.host)
+		}
+	}
+}
+
+func TestADialAddressIsTheOneTLSClientFilesARequestUnder(t *testing.T) {
+	for raw, want := range map[string]string{
+		"https://x/":        "x:443",
+		"https://x:8443/p":  "x:8443",
+		"http://x/":         "x:80",
+		"http://x:8080/":    "x:8080",
+		"https://[::1]/":    "[::1]:443",
+		"http://[::1]:81/":  "[::1]:81",
+		"wss://x/":          "x:443",
+		"https://u:p@x/a?b": "x:443",
+	} {
+		u, err := url.Parse(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := dialAddress(u); got != want {
+			t.Errorf("%s: %q, want %q", raw, got, want)
 		}
 	}
 }

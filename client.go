@@ -559,8 +559,11 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// with the stale value loaded at construction.
 	c.session.seedWarm(parsed)
 	c.session.seed(parsed, req.Cookies)
-	// A request asks the pool for a connection: what is idle too long goes.
-	c.transports.reapIdle()
+	// A request asks the pool for a connection: what is idle too long goes,
+	// but at its own address, whose round trip cleans up once it has asked
+	// whether there is a connection, as Chromium's main job asks its socket
+	// group before its socket request cleans up.
+	c.transports.reapIdle(dialAddress(parsed))
 
 	// One deadline for all of the request: its preflight, each hop, each
 	// answer to a 401 or a 421, its start again for client hints, and its

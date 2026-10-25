@@ -76,8 +76,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   requests after it until it goes away (idle 30 s, or closed by the server:
   the next request races again, where HTTP/3's transport handed it the
   closed connection, and it failed with `no cached connection was
-  available`), a TCP one kept unused for a minute and closed by the request
-  after that; an origin with a TCP connection already sends a
+  available`), a TCP one kept unused for a minute, read as it waits (its
+  session ticket cached as it comes, as Chrome's `DoPeek` reads a
+  connection), and closed by the next request after that which asks for a
+  connection, as Chrome's pool cleans up when a socket is asked of it (past
+  its time, or closed by its server, it holds no TCP back: a new one is made
+  at once beside QUIC); an origin with a TCP connection already sends a
   request on it at once and makes its QUIC connection apart; QUIC that
   failed where TCP did not is not tried again for 5 minutes, twice as long
   for each break before it lately, 2 days at most. A record of `h2` alone,
@@ -1507,6 +1511,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `dist/npm` and `dist/pypi`, unpacked and with no checksums.
 
 ### Fixed
+
+- **QUIC and TCP keep their TLS sessions apart.** HTTP/3 (`WithProtocolRacing`,
+  and from DNS) shared one session cache with TCP, by name, so a QUIC
+  connection offered the ticket a server had given over TCP, which a QUIC
+  server cannot resume, and the other way round. QUIC's sessions are kept in
+  a cache of their own now, as Chrome keeps them.
 
 - **A CONNECT an HTTP/2 proxy refuses fails at once.** Through an HTTPS proxy
   that speaks HTTP/2, a CONNECT the proxy answered 403 or 407, or took back

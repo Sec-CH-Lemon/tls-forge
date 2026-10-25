@@ -1139,11 +1139,11 @@ record of `h2` alone, or none.
 | `quic.tcp_wait_cold_ms` | How long the request's TCP connection waits once its QUIC one has sent its first packet, while QUIC has not worked in the session (`IsQuicKnownToWorkOnCurrentNetwork`). `0`. |
 | `quic.tcp_wait_broken_ms` | The wait for a server whose QUIC broke lately (below), or is broken now. `0`. |
 | `quic.tcp_wait_rtt_percent`, `quic.tcp_wait_default_ms`, `quic.tcp_wait_extra_ms`, `quic.tcp_wait_max_ms` | Otherwise: this percent of the smoothed RTT the server's last QUIC connection measured, or the default where none is known, plus the extra, at most the maximum (`QuicSessionPool::GetTimeDelayForWaitingJob`). `150`, `300`, `0` (Chrome adds 100 ms on Android), `3000`. A QUIC connection that fails ends the wait: TCP goes at once. |
-| `quic.tcp_waits_with_connection` | Whether TCP waits when the origin has a TCP connection already, made or being made (`TargettedSocketGroupHasActiveSocket`). `false`: the request goes on it at once, and a QUIC connection is made apart for the requests after it. |
+| `quic.tcp_waits_with_connection` | Whether TCP waits when the origin has a TCP connection already, made or being made, asked before the connections that wait are cleaned up (`TargettedSocketGroupHasActiveSocket`, asked before the main job's socket request cleans up). `false`: the request goes on it at once, and a QUIC connection is made apart for the requests after it; where that connection went as they were cleaned up (past its time, or closed by its server), TCP goes at once beside QUIC, the first up taking the request. |
 | `quic.retry_over_tcp` | Whether a request its QUIC connection failed before its answer, for whatever reason but its own context's (its stream reset, its connection closed by either side), goes again over TCP, its body again where it can be had (`GetBody`, or none), and QUIC to the server is broken once TCP's answer came: Chromium's `QuicHttpStream::ComputeResponseStatus` says `ERR_QUIC_PROTOCOL_ERROR` of any request it sent that failed, which `HttpNetworkTransaction::HandleIOError` restarts with alternative services off (`retry_without_alt_svc_on_quic_errors`), marking the alternative service broken once the restart has read its body (`MarkAlternativeServiceBroken`). `true`. A request its QUIC connection could not take (gone before it went, or refused unprocessed) goes over TCP whatever this says, and breaks nothing. |
 | `quic.broken_ms`, `quic.broken_doublings`, `quic.broken_max_ms` | A QUIC connection that failed where the request's TCP one worked has QUIC to the server not tried for this long, doubled for each break before it lately, this many times at most, and at most this long (`BrokenAlternativeServices`, with its exponential backoff on the first delay). `300000` (5 minutes), `18`, `172800000` (2 days). A QUIC connection that works ends the server's breaks, its recent ones too. |
 | `quic.broken_recent_max`, `quic.server_rtts_max` | How many servers' recent breaks and how many servers' RTTs are kept, the least recently used forgotten first. `200`, `500`. |
-| `http.unused_idle_connection_timeout_ms` | How long a TCP connection that lost to QUIC waits unused for a request, closed when a request comes after that (`unused_idle_socket_timeout`, the pool's `CleanupIdleSockets`). `60000`. A request it takes and loses before any of its answer goes again, as on a socket Chrome's pool kept idle (`http.connection_error_retries`). |
+| `http.unused_idle_connection_timeout_ms` | How long a TCP connection that lost to QUIC waits unused for a request, closed by the next request after that which asks the client for a connection: one to another address, or one to its own that goes over TCP (one on the QUIC connection asks for none; one QUIC failed, sent again over TCP, does), as Chrome's pool cleans up its idle sockets when a socket is asked of it (`unused_idle_socket_timeout`, `CleanupIdleSockets`, no timer). `60000`. A request it takes and loses before any of its answer goes again, as on a socket Chrome's pool kept idle (`http.connection_error_retries`). |
 
 A server is the client's top-level site and the origin's host and port, as
 Chrome keys them (`NetworkAnonymizationKey`); what is known of QUIC is the
@@ -1153,8 +1153,17 @@ given transport options of the caller's (which may race HTTP/3 its own way,
 the proxy's, or the caller's dialer's, to look up. The TCP connection is made
 apart from the request that started it, within its deadline, as a connect
 job goes on for its pool; a QUIC connection goes on until its own handshake
-timeout. A TCP connection waiting unused that the server dropped is passed
-over (its socket peeked, as Chrome asks `IsConnected` of an idle socket).
+timeout.
+
+A TCP connection waiting unused is read from its handshake on, as Chrome reads
+each of its connections whether or not anything reads it yet (`DoPeek`): its
+session tickets are cached as they come, and what the server sends after them
+is left for the request that takes it up; one its server closed is cleaned up
+as one past its time is (the reading met its end; else its socket is peeked,
+as Chrome asks `IsConnected` of an idle socket). The sessions of QUIC
+connections are kept apart from those of TCP's, as Chrome keeps them (its QUIC
+session cache and `SSLClientSessionCache`): a ticket a server gave over one is
+offered only over the same.
 
 Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
 (2026-10-24 and 2026-10-25, `../net-fp-server/captures/review-20261023/bench/h3`:
@@ -1179,7 +1188,20 @@ over QUIC on one loopback port; listeners whose QUIC answers come 50 ms or
   with no TCP connection made, QUIC 1 s late lost to TCP at 310 ms, and the
   next went over it; UDP never answered, TCP at 310 ms;
 - records later than the wait (10 ms to 1 s): no QUIC;
-- TCP 10 ms late: HTTP/3, the next request too.
+- TCP 10 ms late: HTTP/3, the next request too;
+- a TCP connection that lost to QUIC and waited unused: kept while nothing
+  asked Chrome's pool for a socket (52 s, until Chrome was closed), closed
+  66.7 s after it was made, as a background request of Chrome's to another
+  host asked for one; its session ticket cached at once, a TCP connection made
+  62 s later resuming with it;
+- a page's `fetch()` 40 s after the page (QUIC's connection gone, idle 30 s):
+  over HTTP/1.1 on the connection waiting unused, and a QUIC connection made
+  apart, resumed with QUIC's ticket; 62 s after, the connection there past its
+  time: closed as the request came and a new one made at once beside QUIC,
+  which took the request;
+- a typed navigation 40, 50 or 70 s after the page: over HTTP/3 on a QUIC
+  connection Chrome's preconnect for the navigation made 3 to 5 ms before the
+  request (its net log), the connection waiting unused left alone.
 
 The library (one client, `Do` after `Do`, `bench/h3client`) did as Chrome in
 every scenario, four cohorts: but on loopback with nothing late, where both
@@ -1189,11 +1211,17 @@ handshakes take about a millisecond of the processor's, its TCP SYN went
 HTTP/3 in every run of both). At cloudflare-ech.com over a home router, by
 turns with Chrome 155 (2026-10-25): tls-forge over HTTP/3 with ECH in 4
 visits of 4; Chrome in 2, and in the other 2 over HTTP/2 without ECH, its
-record having come after the wait.
+record having come after the wait. The TCP connection that lost
+(`bench/unused`, the page's `fetch()` 40 and 62 s after it, two cohorts): as
+Chrome's, request by request, connection by connection and ticket by ticket.
 
 Not modelled: `Alt-Svc` (Chrome went over HTTP/3 to an origin whose answer
 offered `h3`, from its next request: tls-forge ignores it); a navigation's
-second, speculative connection. The QUIC handshake itself is below.
+preconnect (for an origin whose record names `h3` a QUIC connection made
+before the request: after QUIC's connection went away, Chrome's typed
+navigation goes over HTTP/3 on it where tls-forge's goes over the TCP
+connection waiting unused, or races again). The QUIC handshake itself is
+below.
 
 ## QUIC's handshake as Chrome's (unreleased engine 1)
 

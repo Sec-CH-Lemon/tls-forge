@@ -238,24 +238,27 @@ func (s *site) closeIdle() {
 }
 
 // reapIdle closes, in every pool of every site, the idle HTTP/1.1 connections
-// an on-request idle timeout ("h1.idle_reap") finds too old, as Chromium's
-// one socket pool cleans up the idle sockets of every host each time a socket
-// is asked of it, and never on its own.
-func (t *transports) reapIdle() {
+// an on-request idle timeout ("h1.idle_reap") finds too old, and the
+// connections that lost a race to QUIC and wait past their time
+// ("http.unused_idle_connection_timeout_ms") or that their servers closed,
+// as Chromium's one socket pool cleans up the idle sockets of every host each
+// time a socket is asked of it, and never on its own: but at but, the address
+// of the request that asks, whose round trip cleans up there.
+func (t *transports) reapIdle(but string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for _, s := range t.sites {
-		s.reapIdle()
+		s.reapIdle(but)
 	}
 	if t.spare != nil {
-		t.spare.reapIdle()
+		t.spare.reapIdle(but)
 	}
 }
 
-func (s *site) reapIdle() {
+func (s *site) reapIdle(but string) {
 	for _, p := range []pool{s.inner, s.bare} {
-		if r, ok := p.HttpClient.(interface{ ReapIdleConnections() }); ok {
-			r.ReapIdleConnections()
+		if r, ok := p.HttpClient.(interface{ ReapIdleConnectionsBut(string) }); ok {
+			r.ReapIdleConnectionsBut(but)
 		}
 	}
 }
