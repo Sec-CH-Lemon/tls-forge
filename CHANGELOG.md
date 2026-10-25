@@ -1540,6 +1540,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A key log that fails once no longer holds up every later handshake.** A
+  `WithKeyLogWriter` writer whose write failed failed its handshake, as
+  crypto/tls's does, but the fork of utls returned from that write with the
+  lock every key log of the process is written under still held (bogdanfinn's
+  `SSLKEYLOGFILE` support, 2024): each later handshake that wrote its
+  secrets, of any client of the process, waited for it for good, the
+  request's own deadline included, and so did each after a file
+  `SSLKEYLOGFILE` names that could not be opened, written or closed. The
+  lock is let go of on every return now; the handshake whose key log failed
+  still fails. `fetch --keylog` and `--pcap` were never affected: their
+  writers never fail a write.
+
 - **The measuring server answers localhost at [::1] too.** It listened at
   127.0.0.1 alone, on a port the system picked, and gave its URL as
   `https://localhost:PORT`; a client of localhost tries [::1] first (Chrome

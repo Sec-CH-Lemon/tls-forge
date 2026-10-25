@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	tls_client "github.com/igor-lemon/tls-client"
 )
@@ -187,6 +188,27 @@ func TestAKeyLogThatCannotBeWrittenFailsTheHandshake(t *testing.T) {
 	}
 	if keyLogOf(nil) != nil {
 		t.Error("no writer is a key log")
+	}
+}
+
+func TestAKeyLogThatFailedHoldsUpNoOtherClientsHandshake(t *testing.T) {
+	// utls writes the secrets of every client of the process under one lock,
+	// which it kept held when a write failed: each later handshake that wrote
+	// its secrets, of any client, waited for it for good, and go test -count=2
+	// hung in the second TestTheSecretsOfEveryConnectionAreWrittenAsTheServerHasThem.
+	// The client whose key log failed fails, and the next one goes on.
+	failed := keyedServer(t, true, io.Discard)
+	if err := endedWithin(t, doing(newTestClient(t, WithKeyLogWriter(failing{})), &Request{URL: failed.URL}), 5*time.Second); err == nil ||
+		!strings.Contains(err.Error(), "the disk is full") {
+		t.Fatalf("Get: %v", err)
+	}
+	var server, client lines
+	site := keyedServer(t, true, &server)
+	if err := endedWithin(t, doing(newTestClient(t, WithKeyLogWriter(&client)), &Request{URL: site.URL}), 5*time.Second); err != nil {
+		t.Fatalf("Get after a key log failed: %v", err)
+	}
+	if got, want := client.secrets(t), server.secrets(t); len(want) != 4 || !slices.Equal(got, want) {
+		t.Errorf("the client wrote\n%s\nthe server\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 }
 
