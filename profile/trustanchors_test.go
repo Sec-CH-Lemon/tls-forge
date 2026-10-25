@@ -93,3 +93,14 @@ func TestMalformedTrustAnchorPayloadsAreRejected(t *testing.T) {
 		t.Errorf("profile error = %v", err)
 	}
 }
+
+func TestASortedOrderSortsTheIDsByTheirBytes(t *testing.T) {
+	// The order a profile says it sorts its IDs in, whatever order they were
+	// captured in: by the IDs' bytes, the length each record leads with aside.
+	drawn := false
+	cache := newTrustAnchorPayloads(func(int, func(int, int)) { drawn = true })
+	got, err := cache.payload([]byte{0, 7, 2, 0xd6, 0x79, 3, 0x82, 0xdf, 0x13}, "sorted")
+	if want := []byte{0, 7, 3, 0x82, 0xdf, 0x13, 2, 0xd6, 0x79}; err != nil || !bytes.Equal(got, want) || drawn {
+		t.Errorf("payload = %x, %v, drawn %v; want %x", got, err, drawn, want)
+	}
+}

@@ -2,6 +2,7 @@ package profile
 
 import (
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -869,5 +870,62 @@ func TestECHPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
 		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
 		}
+	}
+}
+
+func TestARuntimeBehaviorIsTheProfilesOwnOrTheLegacyData(t *testing.T) {
+	var none *Profile
+	if none.RuntimeBehavior() != nil {
+		t.Error("a nil profile has a behavior")
+	}
+	// Before schema 3 a Chromium profile reads the frozen legacy data, which
+	// answers Negotiate on Windows alone; schema 3 says its own or has none.
+	for platform, negotiates := range map[string]bool{"windows": true, "macos": false, "linux": false} {
+		old := &Profile{EngineMajor: Major(1), Schema: 2, Name: "chrome_155_" + platform}
+		if got := old.RuntimeBehavior().Flag("http.negotiate_auth"); got != negotiates {
+			t.Errorf("%s: negotiates %v, want %v", platform, got, negotiates)
+		}
+	}
+	if (&Profile{EngineMajor: Major(1), Schema: 3, Name: "chrome_155_windows"}).RuntimeBehavior() != nil {
+		t.Error("a schema 3 profile without its own data has one")
+	}
+}
+
+func TestAProfileWithoutAFieldThisEngineReadsIsRefused(t *testing.T) {
+	data, err := mustGet(t, "chrome_155_macos").Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields, pol map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(fields["behavior"], &pol); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		change func(map[string]json.RawMessage)
+		want   string
+	}{
+		{func(b map[string]json.RawMessage) { delete(b, "http.max_site_pools") }, "requires http.max_site_pools"},
+		{func(b map[string]json.RawMessage) { delete(b, "cache.entries") }, "requires cache.entries"},
+		{func(b map[string]json.RawMessage) { delete(b, "h3.qpack.critical_close_reason") }, "requires h3.qpack.critical_close_reason"},
+		{func(b map[string]json.RawMessage) { b["tls.ech_payload_lengths"] = json.RawMessage("[144]") }, "ECH lengths belong in per_connection"},
+	} {
+		changed := maps.Clone(pol)
+		tc.change(changed)
+		fields["behavior"], _ = json.Marshal(changed)
+		raw, _ := json.Marshal(fields)
+		if _, err := Load(raw); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%v, want %q", err, tc.want)
+		}
+	}
+	// Without its own behavior a schema 3 profile is neither worn nor saved.
+	bare := &Profile{EngineMajor: Major(1), Schema: 3, Name: "neutral", Base: "chrome_133"}
+	if _, err := bare.ClientProfile(); err == nil || !strings.Contains(err.Error(), "requires an explicit behavior") {
+		t.Errorf("worn: %v", err)
+	}
+	if _, err := bare.Save(); err == nil || !strings.Contains(err.Error(), "behavior is incomplete") {
+		t.Errorf("saved: %v", err)
 	}
 }

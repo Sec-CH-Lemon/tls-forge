@@ -206,3 +206,77 @@ func TestOldEngineProfileInspectionDoesNotInventQPACKPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestAMigrationNeedsASourceANameAndDefaultsOfThisEngine(t *testing.T) {
+	var none *Profile
+	for _, tc := range []struct {
+		p    *Profile
+		name string
+	}{{none, "x"}, {mustGet(t, "chrome_155_macos"), ""}, {mustGet(t, "chrome_155_macos"), " \t"}} {
+		if _, err := tc.p.Migrate(tc.name); err == nil || !strings.Contains(err.Error(), "explicit destination name") {
+			t.Errorf("Migrate(%q) of %v: %v", tc.name, tc.p == nil, err)
+		}
+	}
+	// An archived candidate of another engine without a field this engine reads:
+	// the migration's defaults give it, and are held to what this engine runs.
+	old := mustGet(t, "chrome_155_macos").Clone()
+	old.EngineMajor = Major(0)
+	delete(old.Behavior, "h2.read_loop_start")
+	saved, err := old.Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived, err := Inspect(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaults := migrationData
+	t.Cleanup(func() { migrationData = defaults })
+	for _, tc := range []struct{ data, want string }{
+		{`{`, "unexpected end of JSON input"},
+		{`{"engine_major":2,"behavior":{}}`, "migration defaults: engine_major 2 is incompatible"},
+		{`{"behavior":{}}`, "migration defaults: engine_major is required"},
+		{`{"engine_major":1,"behavior":{"h2.read_loop_start":"sideways"}}`, "h2.read_loop_start"},
+	} {
+		migrationData = []byte(tc.data)
+		if _, err := archived.Migrate("candidate"); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("defaults %s: %v, want %q", tc.data, err, tc.want)
+		}
+	}
+	migrationData = defaults
+	m, err := archived.Migrate("candidate")
+	if err != nil || m.Behavior.Text("h2.read_loop_start") != "connection" {
+		t.Errorf("migrated: %v, read loop %q", err, m.Behavior.Text("h2.read_loop_start"))
+	}
+}
+
+func TestACatalogueEntryIsItsPinnedTemplateOrNone(t *testing.T) {
+	inventory := catalogueTemplate
+	t.Cleanup(func() { catalogueTemplate = inventory })
+	if _, err := catalogueProfile("firefox_9999"); err == nil || !strings.Contains(err.Error(), "no explicit engine-compatible catalogue policy") {
+		t.Errorf("an entry the inventory lacks: %v", err)
+	}
+	for _, tc := range []struct{ data, want string }{
+		{`{`, "unexpected EOF"},
+		{`{"entries":{},"templates":{},"more":1}`, "unknown field"},
+		{`{"entries":{"firefox_148":"t"},"templates":{}}`, `profile "firefox_148"`},
+		{`{"entries":{"firefox_148":"t"},"templates":{"t":{"engine_major":2}}}`, "engine_major 2 is incompatible"},
+	} {
+		catalogueTemplate = []byte(tc.data)
+		if _, err := catalogueProfile("firefox_148"); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("inventory %s: %v, want %q", tc.data, err, tc.want)
+		}
+	}
+}
+
+func TestARegisteredProfileIsGivenOnlyToTheEngineItPins(t *testing.T) {
+	r := NewRegistry()
+	// Register refuses another engine's; one that got in anyway is not given.
+	if err := r.Register(&Profile{Name: "other", EngineMajor: Major(2)}); err == nil {
+		t.Fatal("registered another engine's profile")
+	}
+	r.added["other"] = &Profile{Name: "other", EngineMajor: Major(2)}
+	if _, err := r.Get("other"); err == nil || !strings.Contains(err.Error(), "engine_major 2 is incompatible") {
+		t.Errorf("Get: %v", err)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -139,6 +140,32 @@ func TestOriginAskingForDefaultHintsDoesNotDuplicateThem(t *testing.T) {
 		}
 		if n != 1 {
 			t.Fatalf("%s appears %d times", name, n)
+		}
+	}
+}
+
+func TestAScriptsFieldOfAHintsNameHasOnePlaceInEveryOrder(t *testing.T) {
+	// A script's own field of a hint's name meets the hint in the renderer's
+	// map: one place, whichever order the policy says the map gives.
+	for _, order := range []string{"utf16-rapidhash-quadratic-v1", "sorted", "insertion"} {
+		pol := legacyPolicy()
+		pol["headers.renderer_order"] = json.RawMessage(strconv.Quote(order))
+		h := hop{to: originOf(mustURL(t, "https://example.com/")), behavior: pol,
+			script: NewHeader("X-B", "1", "Sec-CH-UA", "own", "X-A", "2")}
+		got := scriptHeaderOrder(h)
+		if n := slices.Index(got, "sec-ch-ua"); n < 0 || slices.Contains(got[n+1:], "sec-ch-ua") {
+			t.Errorf("%s: %q", order, got)
+		}
+		switch order {
+		case "sorted":
+			if !slices.IsSorted(got) {
+				t.Errorf("sorted: %q", got)
+			}
+		case "insertion":
+			// The script's fields as it set them, then the hints the renderer adds.
+			if len(got) < 3 || !slices.Equal(got[:3], []string{"x-b", "sec-ch-ua", "x-a"}) {
+				t.Errorf("insertion: %q", got)
+			}
 		}
 	}
 }

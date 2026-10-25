@@ -85,3 +85,36 @@ func TestUnambiguousMajorJSON(t *testing.T) {
 		t.Fatal("negative major")
 	}
 }
+
+func TestADeclaredMajorIsReadExactlyOrRefused(t *testing.T) {
+	one := 1
+	for _, tc := range []struct {
+		data string
+		want *int
+		err  string
+	}{
+		{`{"name":"x","engine_major":1,"behavior":{"a":[1,{"b":2}]}}`, &one, ""},
+		{`{"name":"x"}`, nil, ""},
+		{``, nil, "EOF"},
+		{`[1]`, nil, "expected a JSON object"},
+		{`{"name":}`, nil, "invalid character"},
+		{`{"Engine_Major":1}`, nil, `invalid engine_major spelling "Engine_Major"`},
+		{`{"engine_major":1,"engine_major":1}`, nil, "duplicate engine_major"},
+		{`{"engine_major":null}`, nil, "engine_major is null"},
+		{`{"engine_major":-1}`, nil, "invalid engine_major -1"},
+		{`{"engine_major":1.5}`, nil, "invalid engine_major 1.5"},
+		{`{"engine_major":1`, nil, "EOF"},
+		{`{"engine_major":1} {}`, nil, "extra data after JSON object"},
+	} {
+		got, err := DeclaredMajor([]byte(tc.data))
+		if tc.err != "" {
+			if err == nil || !strings.Contains(err.Error(), tc.err) {
+				t.Errorf("%s: %v, %v; want %q", tc.data, got, err, tc.err)
+			}
+			continue
+		}
+		if err != nil || (got == nil) != (tc.want == nil) || (got != nil && *got != *tc.want) {
+			t.Errorf("%s: %v, %v; want %v", tc.data, got, err, tc.want)
+		}
+	}
+}

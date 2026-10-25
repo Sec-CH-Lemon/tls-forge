@@ -601,3 +601,62 @@ func TestATunnelThroughAnHTTP2HTTPSProxy(t *testing.T) {
 		t.Fatal(protocol)
 	}
 }
+
+func TestAProfileThatShakesHandsWithAProxyAsGoDoesTunnelsThroughIt(t *testing.T) {
+	// proxy.profile_tls false: the proxy gets Go's own handshake, HTTP/1.1
+	// alone, its certificate held to the proxy's roots, and the log says it.
+	worn := shippedProfile(t, "chrome_155_macos").Clone()
+	worn.Behavior["proxy.profile_tls"] = json.RawMessage("false")
+	server := startEcho(t)
+	via := startConnectProxy(t, true, exitAnswer)
+	book, log := newLogBook(slog.LevelDebug)
+	refused := newTestClient(t, WithProfileValue(worn), WithProxy(via.url()), WithLogger(log))
+	var unknown *tls.CertificateVerificationError
+	if _, err := refused.Get(server.URL()); !errors.As(err, &unknown) {
+		t.Fatalf("an untrusted proxy: %v", err)
+	}
+	if failed := book.with(t, "proxy tls failed"); len(failed) == 0 {
+		t.Errorf("the refused handshake was not logged: %v", book.messages(t))
+	}
+	roots := x509.NewCertPool()
+	roots.AddCert(via.server.Certificate())
+	original := proxyRoots
+	t.Cleanup(func() { proxyRoots = original })
+	proxyRoots = roots
+	client := newTestClient(t, WithProfileValue(worn), WithProxy(via.url()))
+	if _, err := client.Do(&Request{URL: server.URL() + "/api/all"}); err != nil {
+		t.Fatalf("a trusted proxy: %v", err)
+	}
+}
+
+func TestAProxyDialerWithoutAProfileThatForwardsForwardsNothing(t *testing.T) {
+	u, _ := url.Parse("https://proxy.test:8443")
+	d := newConnectDialer(u, time.Second, nil, nil)
+	if d.ForwardProxyURL() != nil {
+		t.Error("a dialer without a profile forwards")
+	}
+	d.identity.profile = shippedProfile(t, "chrome_155_macos").Clone()
+	d.identity.profile.Behavior["proxy.forward_http"] = json.RawMessage("false")
+	if d.ForwardProxyURL() != nil {
+		t.Error("a profile that does not forward forwards")
+	}
+	d.identity.profile.Behavior["proxy.forward_http"] = json.RawMessage("true")
+	if got := d.ForwardProxyURL(); got == nil || got.Host != "proxy.test:8443" || got == d.forward {
+		t.Errorf("forwards to %v, the dialer's own %v", got, d.forward)
+	}
+}
+
+func TestAProxyHandshakeOfAProfileThisEngineDoesNotRunIsNotMade(t *testing.T) {
+	via := startConnectProxy(t, true, exitAnswer)
+	u, _ := url.Parse(via.url())
+	d := newConnectDialer(u, time.Second, nil, nil)
+	other := shippedProfile(t, "chrome_155_macos").Clone()
+	*other.EngineMajor = 2
+	d.identity.profile = other
+	if _, err := d.reach(context.Background(), "tcp"); err == nil || !strings.Contains(err.Error(), "engine_major 2") {
+		t.Errorf("reach: %v", err)
+	}
+	if got := via.tunnels.Load(); got != 0 {
+		t.Errorf("%d tunnels asked", got)
+	}
+}

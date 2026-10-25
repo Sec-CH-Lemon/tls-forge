@@ -3,6 +3,7 @@ package tlsforge
 import (
 	"context"
 	"fmt"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tc "github.com/igor-lemon/tls-client"
 	"github.com/igor-lemon/tls-client/profiles"
@@ -127,5 +128,16 @@ func TestRawPresetCannotReplaceValidatedEngineProfile(t *testing.T) {
 	}
 	if called {
 		t.Fatal("profile override caused network I/O")
+	}
+}
+
+func TestThePackageSaysTheCompiledEngine(t *testing.T) {
+	if Version() != engine.Version() || EngineMajor() != engine.Major() {
+		t.Errorf("Version %s, EngineMajor %d; the engine's %s, %d", Version(), EngineMajor(), engine.Version(), engine.Major())
+	}
+	// A client that wears no profile reads the frozen legacy data.
+	var none *Client
+	if !reflect.DeepEqual(none.behavior(), legacyPolicy()) || !reflect.DeepEqual((&Client{}).behavior(), legacyPolicy()) {
+		t.Error("a client without a profile reads another behavior")
 	}
 }

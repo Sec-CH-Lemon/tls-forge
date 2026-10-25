@@ -298,6 +298,11 @@ func (d *connectDialer) CloseIdleProxyConnections() {
 	}
 }
 
+// connectAnswered is told of each CONNECT a proxy's HTTP/2 connection has
+// answered, before the dial's end is looked at: the seam a test ends a dial
+// through at that moment, which nothing else can reach.
+var connectAnswered = func() {}
+
 func (d *connectDialer) openProxyStream(ctx context.Context, p *proxyH2Conn, address string) (*tunnel, error) {
 	// Dial cancellation applies through the CONNECT response, as for
 	// net.DialContext. Afterwards the stream belongs to the returned Conn.
@@ -312,6 +317,7 @@ func (d *connectDialer) openProxyStream(ctx context.Context, p *proxyH2Conn, add
 	ask.Header.Del("Proxy-Connection")
 	ask.Header[fhttp.PHeaderOrderKey] = d.identity.profile.RuntimeBehavior().Strings("proxy.connect_pseudo_order")
 	answer, err := d.proxyRoundTrip(ask, p)
+	connectAnswered()
 	if !stop() && err == nil {
 		_ = answer.Body.Close()
 		err = ctx.Err()

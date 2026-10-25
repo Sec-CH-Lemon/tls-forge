@@ -362,6 +362,13 @@ func TestADecoderThatCannotBeMadeIsADecodingError(t *testing.T) {
 		!strings.Contains(err.Error(), "decoding a zstd body") {
 		t.Fatalf("Get = %v, want a decoding error", err)
 	}
+	// Without a policy the frozen legacy data decodes, by zstd's decoder of its
+	// own, which the same options refuse.
+	res := &fhttp.Response{StatusCode: 200, Header: fhttp.Header{"Content-Encoding": {"zstd"}},
+		Body: io.NopCloser(bytes.NewReader(zstded(t, page)))}
+	if _, _, err := readBody(res, http.MethodGet, 1<<20); err == nil || !strings.Contains(err.Error(), "decoding a zstd body") {
+		t.Errorf("readBody without a policy = %v, want a decoding error", err)
+	}
 }
 
 func TestTheAcceptEncodingThatGoesOutIsTheProfiles(t *testing.T) {
@@ -509,5 +516,105 @@ func TestABodyIsReadAtMostEightKiBAtATime(t *testing.T) {
 		if len(body.asked) == 0 || slices.Max(body.asked) > 8192 {
 			t.Errorf("%s: reads asked for %v", c.name, body.asked)
 		}
+	}
+}
+
+// failsAfter is a body whose bytes end in an error, not an EOF: a connection
+// that broke after them.
+type failsAfter struct {
+	*bytes.Reader
+	err error
+}
+
+func (f *failsAfter) Read(p []byte) (int, error) {
+	n, err := f.Reader.Read(p)
+	if err == io.EOF {
+		err = f.err
+	}
+	return n, err
+}
+
+func TestAGzipHeadersOptionalFieldsAreReadAsChromeReadsThem(t *testing.T) {
+	valid := gzipped(t, page)
+	// with is the member with flag set and the field after its fixed header.
+	with := func(flag byte, field ...byte) []byte {
+		out := append(bytes.Clone(valid[:10]), field...)
+		out[3] |= flag
+		return append(out, valid[10:]...)
+	}
+	broke := errors.New("connection reset")
+	for _, tc := range []struct {
+		name   string
+		body   []byte
+		broken bool // the bytes end in an error, not in the body's end
+		want   []byte
+		err    error
+	}{
+		{"extra", with(4, 3, 0, 'a', 'b', 'c'), false, page, nil},
+		{"header crc", with(2, 0x12, 0x34), false, page, nil},
+		{"extra and crc", with(4|2, 1, 0, 'x', 0x12, 0x34), false, page, nil},
+		// A complete body that ends inside the header is Chrome's empty page.
+		{"no extra length", with(4)[:10], false, nil, nil},
+		{"half an extra length", with(4, 9)[:11], false, nil, nil},
+		{"extra cut", with(4, 9, 0, 'a')[:13], false, nil, nil},
+		{"crc cut", with(2, 0x12)[:11], false, nil, nil},
+		// One that broke there is the connection's error.
+		{"broken before the extra length", with(4)[:10], true, nil, broke},
+		{"broken in the extra length", with(4, 9)[:11], true, nil, broke},
+		{"broken in the extra", with(4, 9, 0, 'a')[:13], true, nil, broke},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var r io.Reader = bytes.NewReader(tc.body)
+			if tc.broken {
+				r = &failsAfter{bytes.NewReader(tc.body), broke}
+			}
+			d, err := gzipDecoder(r)
+			if err == nil {
+				var got []byte
+				got, err = io.ReadAll(d)
+				if err == nil && !bytes.Equal(got, tc.want) {
+					t.Errorf("decoded %d bytes, want %d", len(got), len(tc.want))
+				}
+			}
+			if !errors.Is(err, tc.err) {
+				t.Errorf("error %v, want %v", err, tc.err)
+			}
+		})
+	}
+	// After the member, what follows is drained for the connection's sake, and
+	// a connection that breaks then is the body's error.
+	d, err := gzipDecoder(&failsAfter{bytes.NewReader(append(bytes.Clone(valid), "trailing"...)), broke})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.ReadAll(d); !errors.Is(err, broke) {
+		t.Errorf("draining after the member: %v", err)
+	}
+}
+
+func TestABodyIsDecodedByThePolicysDecoders(t *testing.T) {
+	answer := func(coding string, body []byte) *fhttp.Response {
+		return &fhttp.Response{StatusCode: 200, Header: fhttp.Header{"Content-Encoding": {coding}}, Body: io.NopCloser(bytes.NewReader(body))}
+	}
+	chrome := shippedProfile(t, "chrome_155_macos").RuntimeBehavior()
+	// Without a policy the frozen legacy data decodes, zstd by its own decoder.
+	if got, coding, err := readBody(answer("zstd", zstded(t, page)), http.MethodGet, 1<<20); err != nil || coding != "zstd" || !bytes.Equal(got, page) {
+		t.Errorf("zstd without a policy: %d bytes, %q, %v", len(got), coding, err)
+	}
+	// RFC 1952's decoder, when a profile says so, is Go's: a trailer is checked.
+	rfc := chrome.Clone()
+	rfc["http.gzip_decoder"] = json.RawMessage(`"rfc1952"`)
+	if got, _, err := readBody(answer("gzip", gzipped(t, page)), http.MethodGet, 1<<20, rfc); err != nil || !bytes.Equal(got, page) {
+		t.Errorf("rfc1952: %d bytes, %v", len(got), err)
+	}
+	cut := gzipped(t, page)
+	if _, _, err := readBody(answer("gzip", cut[:len(cut)-4]), http.MethodGet, 1<<20, rfc); err == nil {
+		t.Error("rfc1952 took a member without its trailer")
+	}
+	// A policy that says no read size reads nothing.
+	none := chrome.Clone()
+	delete(none, "http.body_read_bytes")
+	if _, _, err := readBody(answer("gzip", gzipped(t, page)), http.MethodGet, 1<<20, none); err == nil || !strings.Contains(err.Error(), "no body read policy") {
+		t.Errorf("no read size: %v", err)
 	}
 }

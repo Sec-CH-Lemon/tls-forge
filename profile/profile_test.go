@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -937,4 +938,48 @@ func mustGet(t *testing.T, name string) *Profile {
 		t.Fatalf("Get(%s): %v", name, err)
 	}
 	return p
+}
+
+func TestAProfileOfACaptureOnWindowsAnswersNegotiate(t *testing.T) {
+	// Chromium answers a Negotiate challenge through SSPI on Windows alone
+	// (auth-digest-negotiate, measured on Windows' runners): the platform the
+	// captured user agent says decides it.
+	for ua, negotiates := range map[string]bool{
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36":       true,
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36": false,
+	} {
+		p, err := FromCapture("custom", &capture.Capture{
+			RawClientHello: chromeHelloBytes(t),
+			HTTP2: &capture.HTTP2{
+				Settings:          []capture.Setting{{ID: 1, Value: 65536}},
+				WindowUpdate:      15663105,
+				PseudoHeaderOrder: []string{"m", "a", "s", "p"},
+				Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}, {Name: "user-agent", Value: ua}},
+			},
+			Navigator: &capture.Navigator{UserAgent: ua},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := p.Behavior.Flag("http.negotiate_auth"); got != negotiates {
+			t.Errorf("%s: negotiates %v, want %v", ua, got, negotiates)
+		}
+	}
+}
+
+func TestTheDefaultHintOrderIsTheShippedData(t *testing.T) {
+	order, unasked := DefaultHintOrder(), DefaultUnaskedHints()
+	if len(order) == 0 || len(unasked) == 0 {
+		t.Fatalf("order %v, unasked %v", order, unasked)
+	}
+	for _, name := range unasked {
+		if !slices.Contains(order, name) {
+			t.Errorf("%s is sent unasked but has no place in the order", name)
+		}
+	}
+	// Each call is the caller's own copy.
+	order[0], unasked[0] = "changed", "changed"
+	if DefaultHintOrder()[0] == "changed" || DefaultUnaskedHints()[0] == "changed" {
+		t.Error("a caller's change reached the defaults")
+	}
 }

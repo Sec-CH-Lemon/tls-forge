@@ -47,3 +47,22 @@ func TestRequestBodyPresenceSurvivesJSON(t *testing.T) {
 		}
 	}
 }
+
+func TestAControlButHelloIsHeldToTheEngineMajorToo(t *testing.T) {
+	// hello alone is offline discovery: any other control line says the major
+	// it was written for, and one of another engine is refused before it is
+	// read for what it asks.
+	for line, want := range map[string]string{
+		`{"id":7,"control":"init","proxy":"http://p.test:80"}`:                  "engine_major is required",
+		`{"id":7,"engine_major":2,"control":"init","proxy":"http://p.test:80"}`: "engine_major 2 is incompatible",
+		`{"id":7,"engine_major":1,"control":"init","proxy":"http://p.test:80"}`: "init is the first line",
+		`{"id":7,"engine_major":1,"control":"nothing"}`:                         `unknown control "nothing"`,
+		`{"id":7,"engine_major":1,"Engine_Major":1,"control":"nothing"}`:        "invalid engine_major spelling",
+	} {
+		client := &fakeClient{}
+		got := handle(context.Background(), line, client)
+		if !strings.Contains(got.Error, want) || got.ID != 7 || client.got != nil {
+			t.Errorf("%s: %+v, want %q", line, got, want)
+		}
+	}
+}
