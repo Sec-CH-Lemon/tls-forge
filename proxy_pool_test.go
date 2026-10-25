@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -449,5 +450,102 @@ func TestCONNECTUsesItsOwnChromePriority(t *testing.T) {
 		}
 	default:
 		t.Fatal("no CONNECT HEADERS")
+	}
+}
+
+// goingAwayProxy is a proxy's HTTP/2 connection whose every request is
+// answered by GOAWAY before it was read: one the client may send again.
+func goingAwayProxy(t *testing.T) net.Conn {
+	t.Helper()
+	conn, _ := countingGoingAwayProxy(t)
+	return conn
+}
+
+// countingGoingAwayProxy is goingAwayProxy and how many requests it went
+// away on.
+func countingGoingAwayProxy(t *testing.T) (net.Conn, *atomic.Int32) {
+	t.Helper()
+	asked := new(atomic.Int32)
+	// Over loopback TCP, not net.Pipe: each side writes its preface before it
+	// reads the other's, which only a buffered connection lets them both do.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = ln.Close() })
+	client, err := net.Dial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := ln.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		defer server.Close()
+		preface := make([]byte, len(peerh2.ClientPreface))
+		if _, err := io.ReadFull(server, preface); err != nil {
+			return
+		}
+		fr := peerh2.NewFramer(server, server)
+		if err := fr.WriteSettings(); err != nil {
+			return
+		}
+		for {
+			f, err := fr.ReadFrame()
+			if err != nil {
+				return
+			}
+			switch f := f.(type) {
+			case *peerh2.SettingsFrame:
+				if !f.IsAck() {
+					_ = fr.WriteSettingsAck()
+				}
+			case *peerh2.HeadersFrame:
+				asked.Add(1)
+				_ = fr.WriteGoAway(0, peerh2.ErrCodeNo, nil)
+			}
+		}
+	}()
+	t.Cleanup(func() { _ = client.Close() })
+	return client, asked
+}
+
+// pooledProxy is a dialer of chrome_155_macos with conn adopted into its
+// pool, idle.
+func pooledProxy(t *testing.T, conn net.Conn) (*connectDialer, *proxyH2Conn) {
+	t.Helper()
+	u, _ := url.Parse("https://proxy.test:8443")
+	d := newConnectDialer(u, time.Second, nil, nil)
+	d.identity.profile = shippedProfile(t, "chrome_155_macos")
+	p, err := d.adoptProxyH2(conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.releaseProxyH2(p)
+	t.Cleanup(d.CloseIdleProxyConnections)
+	return d, p
+}
+
+func TestAProxyThatRefusesACONNECTOverHTTP2SaysSo(t *testing.T) {
+	via, _, _ := ownedH2Proxy(t, "")
+	u, _ := url.Parse(via.URL)
+	d := newConnectDialer(u, time.Second, nil, nil)
+	d.identity.profile, _ = profile.Get("chrome_155_macos")
+	defer d.CloseIdleProxyConnections()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := d.DialContext(ctx, "tcp", "elsewhere.test:443")
+	if err == nil || !strings.Contains(err.Error(), "proxy responded with non 200 code: 403") {
+		t.Errorf("CONNECT: %v", err)
+	}
+}
+
+func TestACONNECTTheProxysConnectionTurnsAwayFails(t *testing.T) {
+	d, _ := pooledProxy(t, goingAwayProxy(t))
+	// The tunnel's body (its writer) cannot be had again: the dial fails, at
+	// once, rather than waiting for a tunnel that will not open.
+	if _, err := d.chromeTunnel(context.Background(), "tcp", "www.example.com:443"); err == nil || !strings.Contains(err.Error(), "GOAWAY") {
+		t.Errorf("CONNECT: %v", err)
 	}
 }

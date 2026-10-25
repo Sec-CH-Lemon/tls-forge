@@ -1420,6 +1420,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A CONNECT an HTTP/2 proxy refuses fails at once.** Through an HTTPS proxy
+  that speaks HTTP/2, a CONNECT the proxy answered 403 or 407, or took back
+  with a GOAWAY, held the dial for good, the request's own deadline included:
+  the transport waited for the tunnel's body to be written, which a refused
+  tunnel never is. The fork of fhttp now closes a stream's request body when
+  its write is stopped, as x/net does, so the dial ends with the proxy's
+  answer (`proxy responded with non 200 code: 407 ...`).
+
 - Chrome browser-context Range requests now use the measured network slot and
   identity encoding and HTTP/1 spelling; If-Range retains renderer order and adds max-age=0.
   Complete fresh entries can answer a single range. Strong-validator prefix
