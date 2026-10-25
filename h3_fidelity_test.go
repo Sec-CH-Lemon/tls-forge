@@ -27,16 +27,8 @@ func h3Origin(t *testing.T, handler http.Handler, observe ...func([]byte, net.Ad
 	seed := httptest.NewTLSServer(stdhttp.HandlerFunc(func(stdhttp.ResponseWriter, *stdhttp.Request) {}))
 	cert := seed.TLS.Certificates[0]
 	seed.Close()
-	udp, err := net.ListenPacket("udp4", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
+	udp, tcp := udpAndTCP(t)
 	addr := udp.LocalAddr().String()
-	tcp, err := net.Listen("tcp4", addr)
-	if err != nil {
-		udp.Close()
-		t.Fatal(err)
-	}
 	tcpRequests, connections := new(atomic.Int32), new(atomic.Int32)
 	srv := &stdhttp.Server{Handler: stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 		tcpRequests.Add(1)
@@ -54,6 +46,27 @@ func h3Origin(t *testing.T, handler http.Handler, observe ...func([]byte, net.Ad
 	go func() { _ = h3.Serve(packets) }()
 	t.Cleanup(func() { _ = h3.Close(); _ = udp.Close(); _ = srv.Close() })
 	return "https://" + addr, tcpRequests, connections
+}
+
+// udpAndTCP are a UDP socket and a TCP listener on one loopback port: the
+// port the system gave the UDP socket, which TCP may hold already, in which
+// case another is asked for, a few times at most.
+func udpAndTCP(t *testing.T) (net.PacketConn, net.Listener) {
+	t.Helper()
+	for tries := 1; ; tries++ {
+		udp, err := net.ListenPacket("udp4", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		tcp, err := net.Listen("tcp4", udp.LocalAddr().String())
+		if err == nil {
+			return udp, tcp
+		}
+		_ = udp.Close()
+		if tries == 10 {
+			t.Fatal(err)
+		}
+	}
 }
 
 func racingChrome(t *testing.T) *Client {
@@ -135,11 +148,9 @@ func TestH3LateCancellationLeavesOtherRequestsUsable(t *testing.T) {
 }
 
 func TestH3CancellationDoesNotWaitForTheTCPFallback(t *testing.T) {
-	udp, err := net.ListenPacket("udp4", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
+	udp, tcp := udpAndTCP(t)
 	defer udp.Close()
+	defer tcp.Close()
 	initial := make(chan struct{})
 	go func() {
 		b := make([]byte, 65536)
@@ -147,11 +158,6 @@ func TestH3CancellationDoesNotWaitForTheTCPFallback(t *testing.T) {
 			close(initial)
 		}
 	}()
-	tcp, err := net.Listen("tcp4", udp.LocalAddr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tcp.Close()
 	contact := make(chan struct{}, 1)
 	go func() {
 		c, err := tcp.Accept()
