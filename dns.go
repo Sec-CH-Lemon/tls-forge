@@ -189,20 +189,26 @@ type httpsLookup struct {
 	answer  httpsAnswer
 	settled sync.Once
 	// What came in time: a record Chrome takes, and the configs the
-	// connection offers ECH with.
-	record bool
-	taken  []byte
+	// connection offers ECH with; whether one names h3, and the configs of
+	// that one, which a QUIC connection offers.
+	record  bool
+	taken   []byte
+	h3      bool
+	h3taken []byte
 }
 
 // httpsAnswer is what the HTTPS records of a name say of a connection to
 // one of its ports: whether there is one Chrome takes, and the ECH configs of
-// the one the connection takes; for how long, the least time to live of the
-// records it read.
+// the one the connection takes; whether one names h3, and that one's ECH
+// configs, which a QUIC connection takes; for how long, the least time to
+// live of the records it read.
 type httpsAnswer struct {
-	record  bool
-	configs []byte
-	ttl     time.Duration
-	err     error
+	record    bool
+	configs   []byte
+	h3        bool
+	h3configs []byte
+	ttl       time.Duration
+	err       error
 }
 
 // ask starts looking up the HTTPS records for address (host:port), or is nil
@@ -245,6 +251,7 @@ func (l *httpsLookup) settle(ctx context.Context) {
 		select {
 		case <-l.done:
 			l.record, l.taken = l.answer.record, l.answer.configs
+			l.h3, l.h3taken = l.answer.h3, l.answer.h3configs
 		case <-timer.C:
 		case <-ctx.Done():
 		}
@@ -429,11 +436,14 @@ var httpsSupportedKeys = []dnsmessage.SVCParamKey{dnsmessage.SVCParamALPN, dnsme
 // host cache read it. The records are those of the name the answer's CNAMEs
 // lead name to. Any of them whose mandatory parameters Chrome's parser knows
 // is a record that sends plain http to https; an AliasMode one leaves the
-// connection nothing else. Of the ServiceMode ones, the connection takes the
-// one of the lowest priority (the first of equals) that is for its port,
-// offers HTTP/2 or HTTP/1.1, and names the server the addresses are for
-// (host's canonical name: "." names it in a record of a name with no port
-// before it), and offers ECH with its configs.
+// connection nothing else, and so does every one saying no-default-alpn
+// (ExtractHttpsResults: a domain gives one with its default ALPN, or none is
+// taken). Of the ServiceMode ones, a TCP connection takes the one of the
+// lowest priority (the first of equals) that is for its port, offers HTTP/2
+// or HTTP/1.1, and names the server the addresses are for (host's canonical
+// name: "." names it in a record of a name with no port before it), and
+// offers ECH with its configs; a QUIC connection the first such one whose
+// alpn names h3 (QuicSessionPool::SelectQuicVersion), and its configs.
 func httpsOf(reply []byte, host, name string, port int) httpsAnswer {
 	var p dnsmessage.Parser
 	h, err := p.Start(reply)
@@ -486,8 +496,8 @@ func httpsOf(reply []byte, host, name string, port int) httpsAnswer {
 		addresses = canonical
 	}
 	var answer httpsAnswer
-	var best *dnsmessage.SVCBResource
-	alias := false
+	var best, quic *dnsmessage.SVCBResource
+	alias, defaultALPN := false, false
 	for i, r := range records {
 		if r.owner != canonical || !httpsKnown(r.svcb) {
 			continue
@@ -504,12 +514,27 @@ func httpsOf(reply []byte, host, name string, port int) httpsAnswer {
 		if target == "." {
 			target = r.owner
 		}
-		if httpsFor(r.svcb, port) && target == addresses && (best == nil || r.svcb.Priority < best.Priority) {
+		if target != addresses || !forPort(r.svcb, port) {
+			continue
+		}
+		_, noDefault := r.svcb.GetParam(dnsmessage.SVCParamNoDefaultALPN)
+		defaultALPN = defaultALPN || !noDefault
+		if httpsFor(r.svcb) && (best == nil || r.svcb.Priority < best.Priority) {
 			best = &records[i].svcb
 		}
+		if namesH3(r.svcb) && (quic == nil || r.svcb.Priority < quic.Priority) {
+			quic = &records[i].svcb
+		}
 	}
-	if best != nil && !alias {
+	if alias || !defaultALPN {
+		return answer
+	}
+	if best != nil {
 		answer.configs, _ = best.GetParam(dnsmessage.SVCParamECH)
+	}
+	if quic != nil {
+		answer.h3 = true
+		answer.h3configs, _ = quic.GetParam(dnsmessage.SVCParamECH)
 	}
 	return answer
 }
@@ -531,22 +556,33 @@ func httpsKnown(r dnsmessage.SVCBResource) bool {
 	return true
 }
 
-// httpsFor says whether a connection to port may take r: it says no other
-// port, and offers HTTP/2 or HTTP/1.1 (by default, without no-default-alpn).
-func httpsFor(r dnsmessage.SVCBResource, port int) bool {
-	if p, ok := r.GetParam(dnsmessage.SVCParamPort); ok && (len(p) != 2 || int(binary.BigEndian.Uint16(p)) != port) {
-		return false
-	}
-	_, noDefault := r.GetParam(dnsmessage.SVCParamNoDefaultALPN)
-	if !noDefault {
+// forPort says whether r is for a connection to port: it says no other.
+func forPort(r dnsmessage.SVCBResource, port int) bool {
+	p, ok := r.GetParam(dnsmessage.SVCParamPort)
+	return !ok || len(p) == 2 && int(binary.BigEndian.Uint16(p)) == port
+}
+
+// httpsFor says whether a TCP connection may take r: it offers HTTP/2 or
+// HTTP/1.1 (by default, without no-default-alpn).
+func httpsFor(r dnsmessage.SVCBResource) bool {
+	if _, noDefault := r.GetParam(dnsmessage.SVCParamNoDefaultALPN); !noDefault {
 		return true
 	}
+	return slices.ContainsFunc(alpnOf(r), func(p string) bool { return p == "h2" || p == "http/1.1" })
+}
+
+// namesH3 says whether r's alpn names h3, which a QUIC connection takes it for.
+func namesH3(r dnsmessage.SVCBResource) bool {
+	return slices.Contains(alpnOf(r), "h3")
+}
+
+// alpnOf are the protocols r's alpn names, as far as they read.
+func alpnOf(r dnsmessage.SVCBResource) []string {
 	alpn, _ := r.GetParam(dnsmessage.SVCParamALPN)
+	var names []string
 	for len(alpn) > 0 && int(alpn[0]) < len(alpn) {
-		if p := string(alpn[1 : 1+alpn[0]]); p == "h2" || p == "http/1.1" {
-			return true
-		}
+		names = append(names, string(alpn[1:1+alpn[0]]))
 		alpn = alpn[1+alpn[0]:]
 	}
-	return false
+	return names
 }

@@ -212,7 +212,8 @@ func WithKeyLogWriter(w io.Writer) Option {
 // WithDNSServer has the client ask the DNS server at address (host:port, or a
 // host and port 53) for the names it connects to, the addresses and, as the
 // profile says (dns.https_records), the HTTPS records whose ECH configs a
-// connection offers, instead of the machine's servers. It is for a direct
+// connection offers and whose ALPN may send it over HTTP/3 (dns.https_h3),
+// instead of the machine's servers. It is for a direct
 // connection, which the client dials itself: through a proxy the names are
 // the proxy's to look up, and transport options a caller gives with
 // WithTransportOption replace the dialer it would ask with.

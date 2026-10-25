@@ -392,10 +392,14 @@ func New(opts ...Option) (*Client, error) {
 	// One resolving for every connection of the client and of every client
 	// Fresh makes of it: what it keeps of the HTTPS records, the host cache.
 	res := newResolving(dnsServer, prof.RuntimeBehavior())
-	built := func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
+	// What the session knows of QUIC, as a profile's network session does:
+	// whether it worked, where it broke, each server's RTT.
+	quic := tls_client.NewQUICState()
+	built := func(proxyPool *proxyH2Pool, site func() string, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithLockedClientProfile(clientProfile, fmt.Sprintf("profile %q engine_major %d (running engine major %d)", prof.Name, *prof.EngineMajor, EngineMajor()))}, options...)
+		h3 := &tls_client.HTTP3FromDNS{Endpoint: res.quicEndpoint, State: quic, Key: site}
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys, keepAliveOf(prof.RuntimeBehavior()),
-			res, proxyIdentity{profile: prof, pool: proxyPool})...)
+			res, h3, proxyIdentity{profile: prof, pool: proxyPool})...)
 		return append(append(out, own...), cfg.extra...)
 	}
 

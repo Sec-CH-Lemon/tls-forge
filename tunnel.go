@@ -104,12 +104,12 @@ type connectDialer struct {
 // Every TCP connection is probed while idle as the profile says (ka): the
 // dialers of this package's directly, the transport's own through the dialer
 // it is given.
-func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, res *resolving, identity ...proxyIdentity) []tls_client.HttpClientOption {
+func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, res *resolving, h3 *tls_client.HTTP3FromDNS, identity ...proxyIdentity) []tls_client.HttpClientOption {
 	if proxyURL == "" {
 		if !own {
 			return ka.transport()
 		}
-		return append(ka.transport(),
+		opts := append(ka.transport(),
 			tls_client.WithProxyDialerFactory(func(_ string, timeout time.Duration, local *net.TCPAddr,
 				_ fhttp.Header, _ tls_client.Logger,
 			) (proxy.ContextDialer, error) {
@@ -120,6 +120,13 @@ func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, res *r
 			}),
 			tls_client.WithConnectionCoalescing(res.lookupNames),
 		)
+		// HTTP/3 where a name's record names h3 is the direct connection's
+		// alone, as Chrome's DNS ALPN job is: through a proxy, names are the
+		// proxy's to look up.
+		if h3 != nil {
+			opts = append(opts, tls_client.WithHTTP3FromDNS(*h3))
+		}
+		return opts
 	}
 	u, err := url.Parse(proxyURL)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
@@ -231,9 +238,15 @@ func (d *directDialer) DialContext(ctx context.Context, network, address string)
 	host, _, _ := net.SplitHostPort(address)
 	dialer.Resolver = d.resolving.resolverFor(host)
 	// Port 80's are plain http's, whose records were asked for, as for
-	// 443, before the request was sent (dnsUpgrade).
+	// 443, before the request was sent (dnsUpgrade). A request whose QUIC
+	// connection resolved its name has it all: its addresses, and its records
+	// in.
 	var https *httpsLookup
-	if !strings.HasSuffix(address, ":80") {
+	switch known := resolvedFor(ctx, host); {
+	case known != nil:
+		dialer.Resolver = known.resolver()
+		https = known.https
+	case !strings.HasSuffix(address, ":80"):
 		https = d.resolving.ask(ctx, address)
 	}
 	if https != nil {

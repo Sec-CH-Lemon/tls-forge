@@ -11,6 +11,39 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A direct `https://` request to a name whose HTTPS record names `h3` goes
+  over HTTP/3 as Chrome 155's does, measured on macOS against an own bench
+  (two cohorts of 18 scenarios, and of 3 more): its QUIC connection to the
+  name's first address, offering the record's ECH, and its TCP one after
+  QUIC's first packet has gone, at once while QUIC has not worked in the
+  session, else 150% of the server's last QUIC round trip (300 ms where none
+  is known, 3 s at most), at once when QUIC fails; the first up takes the
+  request, the other is made all the same, a QUIC connection taking the
+  requests after it until it goes away (idle 30 s, or closed by the server:
+  the next request races again, where HTTP/3's transport handed it the
+  closed connection, and it failed with `no cached connection was
+  available`), a TCP one kept unused for a minute and closed by the request
+  after that; an origin with a TCP connection already sends a
+  request on it at once and makes its QUIC connection apart; QUIC that
+  failed where TCP did not is not tried again for 5 minutes, twice as long
+  for each break before it lately, 2 days at most. A record of `h2` alone,
+  records that all say `no-default-alpn`, none, or one later than the wait:
+  TCP alone. What a session knows of QUIC its `Fresh` clients share. New
+  profile fields `dns.https_h3`, `quic.tcp_wait_cold_ms`,
+  `quic.tcp_wait_broken_ms`, `quic.tcp_wait_rtt_percent`,
+  `quic.tcp_wait_default_ms`, `quic.tcp_wait_extra_ms`,
+  `quic.tcp_wait_max_ms`, `quic.tcp_waits_with_connection`,
+  `quic.broken_ms`, `quic.broken_doublings`, `quic.broken_max_ms`,
+  `quic.broken_recent_max`, `quic.server_rtts_max` and
+  `http.unused_idle_connection_timeout_ms`, set in every shipped Chrome
+  profile; without them a profile goes over HTTP/3 only with
+  `WithProtocolRacing`, as before. Through a proxy, or with transport options
+  of the caller's, nothing changes. `--keylog` and `WithKeyLogWriter` now take
+  the secrets of QUIC connections too; `--pcap` does not capture them yet.
+  Not followed: `Alt-Svc`. The QUIC handshake is not yet all Chrome's: no
+  ALPS in its ClientHello, its Initials laid out and sent again as quic-go
+  does them.
+
 - A direct connection to a name asks its addresses and its HTTPS records
   (RFC 9460) of the machine's DNS servers itself, at the same time, as
   Chrome's built-in DNS client does (`*.local`, and `localhost` and names

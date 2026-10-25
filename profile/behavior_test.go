@@ -851,6 +851,66 @@ func TestEveryShippedChromeProfileOffersECHAsChrome(t *testing.T) {
 	}
 }
 
+func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	// Chromium 155's DNS ALPN job, measured on macOS (bench/h3) and read in
+	// its source (GetTimeDelayForWaitingJob, BrokenAlternativeServices,
+	// unused_idle_socket_timeout).
+	want := map[string]string{
+		"dns.https_h3":                           "true",
+		"quic.tcp_wait_cold_ms":                  "0",
+		"quic.tcp_wait_broken_ms":                "0",
+		"quic.tcp_wait_rtt_percent":              "150",
+		"quic.tcp_wait_default_ms":               "300",
+		"quic.tcp_wait_extra_ms":                 "0",
+		"quic.tcp_wait_max_ms":                   "3000",
+		"quic.tcp_waits_with_connection":         "false",
+		"quic.broken_ms":                         "300000",
+		"quic.broken_doublings":                  "18",
+		"quic.broken_max_ms":                     "172800000",
+		"quic.broken_recent_max":                 "200",
+		"quic.server_rtts_max":                   "500",
+		"http.unused_idle_connection_timeout_ms": "60000",
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+	}
+}
+
+func TestHTTP3FromDNSPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
+	// A profile file is refused for an HTTP/3 field the engine cannot do as
+	// said, before anything is sent.
+	for _, tc := range []struct{ body, want string }{
+		{`{"dns.https_h3":true}`, "dns.https_h3 requires dns.https_records"},
+		{`{"quic.broken_ms":300000}`, "is set while dns.https_h3 is not"},
+		{`{"dns.https_h3":"yes"}`, "dns.https_h3"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+}
+
 func TestECHPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
 	// A profile file is refused for an ECH or HTTPS record field the engine
 	// cannot do as said, before anything is sent.

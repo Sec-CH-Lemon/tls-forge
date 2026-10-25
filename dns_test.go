@@ -237,12 +237,14 @@ func TestTheHTTPSRecordsOfANameAreReadAsChromeReadsThem(t *testing.T) {
 			dnsmessage.SVCParam{Key: dnsmessage.SVCParamPort, Value: []byte{1}}, echParam("A"))}}, true, "", 0},
 		{"a port of three bytes", host, 443, 0, []dnsRecord{{name: host, https: service(1, ".",
 			dnsmessage.SVCParam{Key: dnsmessage.SVCParamPort, Value: []byte{0x01, 0xbb, 0}}, echParam("A"))}}, true, "", 0},
+		// Every record without the default ALPN: none is taken
+		// (ExtractHttpsResults; measured for h3 alone, bench/h3 h3only).
 		{"HTTP/3 alone", host, 443, 0, []dnsRecord{{name: host, https: service(1, ".", alpnParam("h3"), noDefault,
 			echParam("A"))}}, true, "", 0},
 		{"HTTP/2 without the default", host, 443, 0, []dnsRecord{{name: host, https: service(1, ".", alpnParam("h3", "h2"),
-			noDefault, echParam("A"))}}, true, "A", 0},
+			noDefault, echParam("A"))}}, true, "", 0},
 		{"HTTP/1.1 without the default", host, 443, 0, []dnsRecord{{name: host, https: service(1, ".",
-			alpnParam("http/1.1"), noDefault, echParam("A"))}}, true, "A", 0},
+			alpnParam("http/1.1"), noDefault, echParam("A"))}}, true, "", 0},
 		{"no ALPN at all", host, 443, 0, []dnsRecord{{name: host, https: service(1, ".", noDefault, echParam("A"))}},
 			true, "", 0},
 		{"an ALPN cut short", host, 443, 0, []dnsRecord{{name: host, https: service(1, ".", noDefault,
@@ -255,6 +257,54 @@ func TestTheHTTPSRecordsOfANameAreReadAsChromeReadsThem(t *testing.T) {
 	} {
 		got := httpsOf(replyOf(t, tc.asked, tc.rcode, tc.records...), host, tc.asked, tc.port)
 		if got.err != nil || got.record != tc.record || string(got.configs) != tc.configs || got.ttl != tc.ttl {
+			t.Errorf("%s: %+v", tc.name, got)
+		}
+	}
+	// The record a QUIC connection takes: the one of the lowest priority, of
+	// those a TCP connection could take but for their protocols, whose alpn
+	// names h3 (QuicSessionPool::SelectQuicVersion), and its configs.
+	for _, tc := range []struct {
+		name      string
+		asked     string
+		port      int
+		records   []dnsRecord
+		configs   string // the TCP connection's
+		h3        bool
+		h3configs string
+	}{
+		{"h2 alone", host, 443, []dnsRecord{{name: host, https: service(1, ".", h2, echParam("A"))}}, "A", false, ""},
+		{"h3 alone without the default", host, 443, []dnsRecord{{name: host, https: service(1, ".", alpnParam("h3"),
+			noDefault, echParam("A"))}}, "", false, ""},
+		{"one without the default and one with", host, 443, []dnsRecord{
+			{name: host, https: service(1, ".", alpnParam("h3"), noDefault, echParam("B"))},
+			{name: host, https: service(2, ".", h2, echParam("A"))}}, "A", true, "B"},
+		{"one with the default and one without", host, 443, []dnsRecord{
+			{name: host, https: service(1, ".", h2, echParam("A"))},
+			{name: host, https: service(2, ".", alpnParam("h3"), noDefault, echParam("B"))}}, "A", true, "B"},
+		{"HTTP/2 without the default beside one with", host, 443, []dnsRecord{
+			{name: host, https: service(1, ".", alpnParam("h2"), noDefault, echParam("B"))},
+			{name: host, https: service(2, ".", alpnParam("h3"), echParam("A"))}}, "B", true, "A"},
+		{"h3 and h2", host, 443, []dnsRecord{{name: host, https: service(1, ".", alpnParam("h3", "h2"),
+			echParam("A"))}}, "A", true, "A"},
+		{"h3 with the default", host, 443, []dnsRecord{{name: host, https: service(1, ".", alpnParam("h3"),
+			echParam("A"))}}, "A", true, "A"},
+		{"h3 at a priority of its own", host, 443, []dnsRecord{
+			{name: host, https: service(1, ".", h2, echParam("A"))},
+			{name: host, https: service(3, ".", alpnParam("h3"), echParam("C"))},
+			{name: host, https: service(2, ".", alpnParam("h3", "h2"), echParam("B"))}}, "A", true, "B"},
+		{"h3 of the name of a port", prefixed, 8443, []dnsRecord{{name: prefixed,
+			https: service(1, host, alpnParam("h3", "h2"), echParam("A"))}}, "A", true, "A"},
+		{"h3 for another port", prefixed, 8443, []dnsRecord{{name: prefixed,
+			https: service(1, host, alpnParam("h3", "h2"), port(9443), echParam("A"))}}, "", false, ""},
+		{"h3 of another target", host, 443, []dnsRecord{{name: host,
+			https: service(1, "cdn.test", alpnParam("h3", "h2"), echParam("A"))}}, "", false, ""},
+		{"h3 beside an alias", host, 443, []dnsRecord{{name: host, https: service(0, "cdn.test")},
+			{name: host, https: service(1, ".", alpnParam("h3", "h2"), echParam("A"))}}, "", false, ""},
+		{"h3 without ech", host, 443, []dnsRecord{{name: host, https: service(1, ".", alpnParam("h3", "h2"))}},
+			"", true, ""},
+	} {
+		got := httpsOf(replyOf(t, tc.asked, 0, tc.records...), host, tc.asked, tc.port)
+		if got.err != nil || !got.record || string(got.configs) != tc.configs || got.h3 != tc.h3 || string(got.h3configs) != tc.h3configs {
 			t.Errorf("%s: %+v", tc.name, got)
 		}
 	}

@@ -1099,7 +1099,7 @@ in 8 of 8, by turns with Chrome's. Chrome reads its own DNS client's
 answers there, as Chromium 155's source says (`ConfigureStubHostResolver`
 with `kEnabledBuiltIn`).
 
-Not modelled: ECH over QUIC; the HTTP/2 pooling of a name onto another's
+Not modelled: the HTTP/2 pooling of a name onto another's
 connection whatever their ECH (Chrome pools them, measured); Chrome's DNS
 queries as they are on the wire (its EDNS0 and padding, its AAAA only with
 IPv6, its host cache for addresses: tls-forge asks its resolver again for a
@@ -1109,3 +1109,90 @@ a VPN's domains, say, or resolv.conf options it does not know: tls-forge's
 client asks the servers anyway). A server that negotiates
 TLS 1.2 with an ECH offer is refused as BoringSSL refuses it, read in its
 source, not measured.
+
+## HTTP/3 from DNS HTTPS records (unreleased engine 1)
+
+A direct https request to a name whose HTTPS record names `h3` goes over
+HTTP/3 as Chrome's DNS ALPN job sends it (`HttpStreamFactory::JobController`
+with `kUseDnsHttpsSvcbAlpn`): a QUIC connection to the name's first address,
+offering the ECH of that record, and the request's TCP connection held back
+behind it as the profile says; the first of the two up takes the request, and
+the other is made anyway. A QUIC connection up takes every later request to
+its origin until it goes away (idle past its timeout, or closed by the
+server), when the next races again; a TCP connection that lost waits unused
+for the next request over TCP. A QUIC connection that failed where TCP did not leaves QUIC to the
+origin untried for a while. Before, a request went over HTTP/3 only with
+`WithTransportOption(tls_client.WithProtocolRacing())`, to any origin, racing
+TCP after 300 ms. Absent fields keep that; catalogue, legacy and migration
+policies keep it until measured.
+
+The record is read as for ECH (above): of the records for the name itself
+(`.` only where it is the record's own name) that say no other port, the
+lowest priority one that names `h3`, its own ECH configs. Where every record
+says `no-default-alpn`, none is taken, as Chrome takes none
+(`ExtractHttpsResults`): the request goes over TCP alone, as it does for a
+record of `h2` alone, or none.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `dns.https_h3` | Go over HTTP/3 where the record names `h3`, as above. `true`. Needs `dns.https_records`, `quic.enabled` and every key below. |
+| `quic.tcp_wait_cold_ms` | How long the request's TCP connection waits once its QUIC one has sent its first packet, while QUIC has not worked in the session (`IsQuicKnownToWorkOnCurrentNetwork`). `0`. |
+| `quic.tcp_wait_broken_ms` | The wait for a server whose QUIC broke lately (below), or is broken now. `0`. |
+| `quic.tcp_wait_rtt_percent`, `quic.tcp_wait_default_ms`, `quic.tcp_wait_extra_ms`, `quic.tcp_wait_max_ms` | Otherwise: this percent of the smoothed RTT the server's last QUIC connection measured, or the default where none is known, plus the extra, at most the maximum (`QuicSessionPool::GetTimeDelayForWaitingJob`). `150`, `300`, `0` (Chrome adds 100 ms on Android), `3000`. A QUIC connection that fails ends the wait: TCP goes at once. |
+| `quic.tcp_waits_with_connection` | Whether TCP waits when the origin has a TCP connection already, made or being made (`TargettedSocketGroupHasActiveSocket`). `false`: the request goes on it at once, and a QUIC connection is made apart for the requests after it. |
+| `quic.broken_ms`, `quic.broken_doublings`, `quic.broken_max_ms` | A QUIC connection that failed where the request's TCP one worked has QUIC to the server not tried for this long, doubled for each break before it lately, this many times at most, and at most this long (`BrokenAlternativeServices`, with its exponential backoff on the first delay). `300000` (5 minutes), `18`, `172800000` (2 days). A QUIC connection that works ends the server's breaks, its recent ones too. |
+| `quic.broken_recent_max`, `quic.server_rtts_max` | How many servers' recent breaks and how many servers' RTTs are kept, the least recently used forgotten first. `200`, `500`. |
+| `http.unused_idle_connection_timeout_ms` | How long a TCP connection that lost to QUIC waits unused for a request, closed when a request comes after that (`unused_idle_socket_timeout`, the pool's `CleanupIdleSockets`). `60000`. A request it takes and loses before any of its answer goes again, as on a socket Chrome's pool kept idle (`http.connection_error_retries`). |
+
+A server is the client's top-level site and the origin's host and port, as
+Chrome keys them (`NetworkAnonymizationKey`); what is known of QUIC is the
+session's, shared by its `Fresh` clients. Through a proxy, or for a client
+given transport options of the caller's (which may race HTTP/3 its own way,
+`tls_client.WithProtocolRacing`), a record names no protocol: the names are
+the proxy's, or the caller's dialer's, to look up. The TCP connection is made
+apart from the request that started it, within its deadline, as a connect
+job goes on for its pool; a QUIC connection goes on until its own handshake
+timeout. A TCP connection waiting unused that the server dropped is passed
+over (its socket peeked, as Chrome asks `IsConnected` of an idle socket).
+
+Measured on Google Chrome 155.0.8059.85, macOS 27.0.1 arm64, on an own bench
+(2026-10-24 and 2026-10-25, `../net-fp-server/captures/review-20261023/bench/h3`:
+a DNS over HTTPS resolver that Chrome's Local State points secure DNS at,
+answering A and HTTPS records, and servers that speak TLS over TCP and HTTP/3
+over QUIC on one loopback port; listeners whose QUIC answers come 50 ms or
+1 s late, whose UDP is unreachable or never answered, and whose TCP answers
+10 ms late, as on a network, where TCP's handshake takes a round trip more;
+18 scenarios in two cohorts and three more in two others):
+
+- a record of `h3,h2`: QUIC's Initial 1 to 3 ms after the record's answer,
+  TCP's SYN 0.7 to 0.9 ms after the Initial; QUIC up first, the request and
+  the next over HTTP/3, the TCP connection made and kept unused;
+- `h2` alone, no record, or `h3` with `no-default-alpn`: no QUIC;
+- ECH in the record: offered over QUIC, the outer hello to the public name;
+- UDP unreachable or never answered: the request over TCP; QUIC never
+  answered given up about 5 s after its first Initial, not tried again for
+  the next request 20 s later;
+- QUIC answered 50 ms or 1 s late in a fresh profile: the request over TCP,
+  QUIC up apart, the next request over it; once QUIC had worked on another
+  origin, TCP waited 300 ms (no RTT known): QUIC 50 ms late took the request
+  with no TCP connection made, QUIC 1 s late lost to TCP at 310 ms, and the
+  next went over it; UDP never answered, TCP at 310 ms;
+- records later than the wait (10 ms to 1 s): no QUIC;
+- TCP 10 ms late: HTTP/3, the next request too.
+
+The library (one client, `Do` after `Do`, `bench/h3client`) did as Chrome in
+every scenario, two cohorts: but on loopback with nothing late, where both
+handshakes take about a millisecond of the processor's, its TCP SYN went
+0.1 ms after QUIC's Initial and the request went over HTTP/3 in 7 races of
+14, where Chrome's went over it in 14 of 14 (with TCP 10 ms late, over
+HTTP/3 in every run of both).
+
+Not modelled: `Alt-Svc` (Chrome went over HTTP/3 to an origin whose answer
+offered `h3`, from its next request: tls-forge ignores it); Chrome's quick
+failure of QUIC to a port that answers ICMP unreachable (tls-forge's QUIC
+goes on sending its Initials until its handshake timeout, its TCP taking the
+request all the same); a navigation's second, speculative connection; the
+QUIC handshake itself where it is not yet Chrome's: no ALPS in the
+ClientHello (HTTP3-005), the Initials' layout and their retransmissions
+(Chrome's first again after 309 ms and one packet each time, quic-go's after
+200 ms and two; HTTP3-018).

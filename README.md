@@ -935,7 +935,10 @@ connections alone, each try's, the one its site is asked over and, through a
 proxy, the one to the proxy: an HTTP or HTTPS proxy's, with the CONNECT that
 opened the tunnel, or a SOCKS4, SOCKS4a, SOCKS5 or SOCKS5h proxy's, with the
 handshake that did; not the run's question to an address service, which no
-request went out on. A connection is let go of before the request is kept, so
+request went out on, nor yet a QUIC connection: a request that went over
+HTTP/3 ([HTTP/3 from DNS](#http3-from-dns)) has the TCP connection it raced
+in its capture, and its QUIC one only in a capture of the wire, below. A
+connection is let go of before the request is kept, so
 its capture holds how it ended; with `--reuse-connection` a URL's repeats share
 theirs, and each repeat's capture holds it from its start to where that repeat
 was kept. Wireshark finds the site's TLS after a SOCKS handshake on any port,
@@ -961,23 +964,24 @@ To read the wire itself:
 
 ```bash
 # In one terminal, capture what goes over the wire as long as the run takes,
-# on the interface it goes out by (en0 on most Macs, any on Linux):
-tcpdump -i en0 -w run.pcap 'tcp port 443'
+# on the interface it goes out by (en0 on most Macs, any on Linux), TCP and
+# QUIC's UDP:
+tcpdump -i en0 -w run.pcap 'port 443'
 # In another, run with the secrets of its connections kept:
 tls-forge fetch --keylog run.keys https://example.com/
 # Then read the capture with them, in Wireshark or tshark:
-tshark -r run.pcap -o tls.keylog_file:run.keys -Y http2
+tshark -r run.pcap -o tls.keylog_file:run.keys -Y 'http2 or http3'
 ```
 
 A capture of a run is TLS records, which say nothing without the secrets of
 their connections. `--keylog FILE` adds those of every connection the run
 makes to the file, in the NSS key log format that browsers write to the file
-`SSLKEYLOGFILE` names: the connections to the sites, the one to an HTTPS proxy
-and the sites' inside its tunnel, and the one that asks where the run comes
-out. Given the file (Preferences, Protocols, TLS, (Pre)-Master-Secret log
+`SSLKEYLOGFILE` names: the connections to the sites, over TCP and over QUIC,
+the one to an HTTPS proxy and the sites' inside its tunnel, and the one that
+asks where the run comes out. Given the file (Preferences, Protocols, TLS, (Pre)-Master-Secret log
 filename, or `-o tls.keylog_file:FILE` to `tshark`), Wireshark shows each
 connection as the run wrote and read it: the handshake decrypted, every HTTP/2
-frame and HTTP/1.1 message, headers and bodies. Through an HTTP proxy, whose
+and HTTP/3 frame and HTTP/1.1 message, headers and bodies. Through an HTTP proxy, whose
 CONNECT goes in the clear, the site's connection in the tunnel is read as well.
 Through an HTTPS proxy Wireshark reads the connection to the proxy, the CONNECT
 and its answer, but not the site's TLS inside it, which it shows as HTTP
@@ -1290,7 +1294,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome`, the newest Chrome shipped |
 | `-t`, `--timeout <duration>` | How long each try may take, all of it: its connection, redirects, answers to a 401 or a 421, and body; default `30s` |
 | `-k`, `--insecure` | Skip upstream certificate verification |
-| `--dns-server <ip[:port]>` | Look names up with this DNS server (port 53 when none is given), addresses and the HTTPS records that give a connection its ECH alike, instead of the machine's servers; for direct connections, as a proxy looks up its own. See [Encrypted Client Hello from DNS](#encrypted-client-hello-from-dns) |
+| `--dns-server <ip[:port]>` | Look names up with this DNS server (port 53 when none is given), addresses and the HTTPS records that give a connection its ECH and its HTTP/3 alike, instead of the machine's servers; for direct connections, as a proxy looks up its own. See [Encrypted Client Hello from DNS](#encrypted-client-hello-from-dns) and [HTTP/3 from DNS](#http3-from-dns) |
 | **Proxy** | |
 | `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
 | `--proxy-env <name>` | Read `--proxy` from this environment variable, such as `TLSFORGE_PROXY`, which keeps its password off the command line; no variable is read unless named. See [Through a proxy](#through-a-proxy) |
@@ -2323,7 +2327,9 @@ client hints a server asked for and all, when a request says it is one
 lists what is reproduced, how each part is checked, and where it is known not
 to be.
 
-The Go SDK can explicitly enable the experimental HTTP/3 transport through
+The shipped Chrome profiles go over HTTP/3 where a name's HTTPS record names
+`h3` ([HTTP/3 from DNS](#http3-from-dns)). The Go SDK can also enable the
+experimental HTTP/3 transport for every origin through
 `WithTransportOption(tls_client.WithProtocolRacing())`. It races connection
 establishment and sends the request once over the selected transport. The
 Chrome policy applies measured QUIC TLS 1.3 vectors and initial receive
@@ -2632,6 +2638,35 @@ profile fields are `dns.resolver`, `dns.https_*` and `tls.ech_*`; a profile
 without them asks the machine's resolver for addresses alone and offers no
 ECH. See
 [the field reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
+
+### HTTP/3 from DNS
+
+A direct `https://` request to a name whose HTTPS record names `h3` goes
+over HTTP/3 as Chrome's goes (measured on Chrome 155 on macOS, 2026-10-25):
+
+- its QUIC connection goes to the name's first address, offering the ECH of
+  that record, and its TCP connection follows once QUIC's first packet has
+  gone: at once while QUIC has not worked in the session, else after half as
+  long again as the server's last QUIC round trip (300 ms where none is
+  known, 3 s at most), or at once when QUIC fails;
+- the first of the two up takes the request; the other is made all the
+  same, a QUIC connection taking the requests after it, a TCP one kept
+  unused for a minute;
+- a request to an origin with a TCP connection already goes on it at once,
+  a QUIC connection made apart for the next;
+- QUIC that failed where TCP did not is not tried again for five minutes,
+  twice as long each time it fails again lately;
+- a record of `h2` alone, every record saying `no-default-alpn`, or none,
+  and a record that comes later than the wait: TCP alone.
+
+Through a proxy, or with transport options of the caller's, nothing changes.
+`Alt-Svc` is not followed, and the QUIC handshake is not yet all Chrome's: no
+ALPS in its ClientHello, Initials laid out and sent again as quic-go does.
+The profile fields are `dns.https_h3`, `quic.tcp_wait_*`, `quic.broken_*`,
+`quic.server_rtts_max` and `http.unused_idle_connection_timeout_ms`; a
+profile without them goes over HTTP/3 only when asked to
+(`WithProtocolRacing`). See
+[the field reference](docs/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
 
 ### Empty uploads and profile-owned Content-Length
 

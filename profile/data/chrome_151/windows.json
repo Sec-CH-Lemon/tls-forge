@@ -12,6 +12,7 @@
     "cookie.max_pair_bytes": 4096,
     "cookie.raw_fields": true,
     "cookie.reset_order_on_value_change": true,
+    "dns.https_h3": true,
     "dns.https_records": true,
     "dns.https_upgrade": true,
     "dns.https_wait_max_ms": 50,
@@ -497,6 +498,7 @@
     "http.preflight_max_age_seconds": 7200,
     "http.redirects_fetch": 20,
     "http.redirects_navigation": 19,
+    "http.unused_idle_connection_timeout_ms": 60000,
     "http.zero_content_length_methods": [
       "POST",
       "PUT",
@@ -524,6 +526,10 @@
     "quic.alpn": [
       "h3"
     ],
+    "quic.broken_doublings": 18,
+    "quic.broken_max_ms": 172800000,
+    "quic.broken_ms": 300000,
+    "quic.broken_recent_max": 200,
     "quic.connection_receive_window": 15728640,
     "quic.datagrams": true,
     "quic.dedicated_socket": true,
@@ -554,10 +560,18 @@
       41
     ],
     "quic.remove_grease_groups": true,
+    "quic.server_rtts_max": 500,
     "quic.shuffle_extensions": true,
     "quic.shuffle_parameters": true,
     "quic.source_cid_bytes": 0,
     "quic.stream_receive_window": 6291456,
+    "quic.tcp_wait_broken_ms": 0,
+    "quic.tcp_wait_cold_ms": 0,
+    "quic.tcp_wait_default_ms": 300,
+    "quic.tcp_wait_extra_ms": 0,
+    "quic.tcp_wait_max_ms": 3000,
+    "quic.tcp_wait_rtt_percent": 150,
+    "quic.tcp_waits_with_connection": false,
     "quic.tls_cipher_suites": [
       4865,
       4866,

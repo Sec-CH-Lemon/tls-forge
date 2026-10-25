@@ -76,7 +76,8 @@ type clientFlags struct {
 	timeout  *time.Duration
 	insecure *bool
 	// dnsServer is the DNS server names are looked up with instead of the
-	// machine's: their addresses, and the HTTPS records that give ECH.
+	// machine's: their addresses, and the HTTPS records that give ECH and
+	// HTTP/3.
 	dnsServer *string
 
 	// chose reports whether a flag was given rather than defaulted, which is

@@ -206,7 +206,7 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. One that sets what tls-forge sets replaces it; see [Transport options](#transport-options). |
 | `WithLogger(logger)` | Write down what the client does, as it does it, to a `*slog.Logger`; see [Logging](#logging). |
 | `WithKeyLogWriter(w)` | Write the TLS secrets of every connection the client makes, to the sites and to an HTTPS proxy, to an `io.Writer` in the NSS key log format, for Wireshark to read a capture with; see [Reading a client in Wireshark](#reading-a-client-in-wireshark). |
-| `WithDNSServer(address)` | Look names up with the DNS server at `address` (an IP address, with a port or without one for 53) instead of the machine's servers: the addresses, and the HTTPS records whose ECH configs a connection offers; see [Encrypted Client Hello](#encrypted-client-hello). For direct connections: through a proxy the names are the proxy's, and transport options of the caller's replace the dialer that would ask. |
+| `WithDNSServer(address)` | Look names up with the DNS server at `address` (an IP address, with a port or without one for 53) instead of the machine's servers: the addresses, and the HTTPS records whose ECH configs a connection offers and whose ALPN may send it over HTTP/3; see [Encrypted Client Hello](#encrypted-client-hello) and [HTTP/3 from DNS](#http3-from-dns). For direct connections: through a proxy the names are the proxy's, and transport options of the caller's replace the dialer that would ask. |
 
 Example:
 
@@ -317,6 +317,31 @@ a record goes to `https://` as a redirect (307, `Non-Authoritative-Reason:
 DNS`) that never reaches the network (`dns.https_upgrade`), its next hop sent
 as a redirect's is. Records are kept for their time to live: a connection
 made again asks for none.
+
+### HTTP/3 from DNS
+
+The same client goes over HTTP/3 to a name whose HTTPS record names `h3`,
+as its profile says (`dns.https_h3`), as Chrome's DNS ALPN job does: a QUIC
+connection to the name's first address, offering that record's ECH, and the
+request's TCP connection after it once QUIC's first packet has gone, as long
+after as what the session knows of QUIC says (`quic.tcp_wait_*`: at once
+while QUIC has not worked in it). The first up takes the request; the other
+is made all the same, a QUIC connection taking the requests to its origin
+after it, a TCP one kept unused for the next over TCP. QUIC that failed where
+TCP did not is not tried again for a while (`quic.broken_*`). What the
+session knows of QUIC its `Fresh` clients share.
+
+```go
+client, err := tlsforge.New(tlsforge.WithProfile("chrome_155_macos"))
+// Over HTTP/3 where the name's record names h3, else over TCP as before.
+res, err := client.Do(&tlsforge.Request{URL: "https://example.com/"})
+```
+
+Through a proxy, or with transport options of the caller's, nothing changes;
+`tls_client.WithProtocolRacing` given with `WithTransportOption` still races
+HTTP/3 to every origin. `Alt-Svc` is not followed. The fields and what was
+measured are in
+[the profile behavior reference](docs/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
 
 ## Requests
 
@@ -955,8 +980,9 @@ client, err := tlsforge.New(tlsforge.WithKeyLogWriter(keys))
 
 `WithKeyLogWriter` has a client write the TLS secrets of every connection it
 makes to `w`, in the NSS key log format browsers write to the file
-`SSLKEYLOGFILE` names: the connections to the sites, the one to an HTTPS proxy
-and those inside its tunnels, and those of every client `Fresh` makes of it.
+`SSLKEYLOGFILE` names: the connections to the sites, over TCP and over QUIC,
+the one to an HTTPS proxy and those inside its tunnels, and those of every
+client `Fresh` makes of it.
 Given them, Wireshark reads a capture of the client's traffic (tcpdump,
 dumpcap) as the client wrote and read it, and so does anybody else who has
 them, which is why the file above is made with mode `0600`, and why it is for

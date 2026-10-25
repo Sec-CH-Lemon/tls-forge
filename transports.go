@@ -23,8 +23,8 @@ import (
 type transports struct {
 	behavior behavior.Policy
 	// build is what transports are built with: the client's options, with own
-	// given before the caller's.
-	build func(proxyPool *proxyH2Pool, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
+	// given before the caller's, for the site whose name site says.
+	build func(proxyPool *proxyH2Pool, site func() string, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption
 	// proxy is what an error building them is cleaned of.
 	proxy string
 
@@ -97,7 +97,7 @@ func (p *pool) wrap(trip fhttp.RoundTripper) fhttp.RoundTripper {
 var maxSites = legacyPolicy().Int("http.max_site_pools")
 
 // newTransports builds transports with build.
-func newTransports(build func(*proxyH2Pool, ...tls_client.HttpClientOption) []tls_client.HttpClientOption,
+func newTransports(build func(*proxyH2Pool, func() string, ...tls_client.HttpClientOption) []tls_client.HttpClientOption,
 	proxy string, policies ...behavior.Policy) (*transports, error) {
 	t := &transports{behavior: policyArgument(policies), build: build, proxy: proxy}
 	t.ending, t.end = context.WithCancel(context.Background())
@@ -110,13 +110,13 @@ func newTransports(build func(*proxyH2Pool, ...tls_client.HttpClientOption) []tl
 	return t, nil
 }
 
-// newSite builds the connections of the site named.
+// newSite builds the connections of the site named, which the spare is when
+// the first site takes it.
 func (t *transports) newSite(name string) (*site, error) {
-	var built [2]pool
+	s := &site{name: name}
 	proxyPool := newProxyH2Pool(t.behavior)
-	for i := range built {
-		p := &built[i]
-		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(proxyPool, tls_client.WithTransportWrapper(p.wrap))...)
+	for _, p := range []*pool{&s.inner, &s.bare} {
+		inner, err := newInnerClient(tls_client.NewNoopLogger(), t.build(proxyPool, s.named, tls_client.WithTransportWrapper(p.wrap))...)
 		if err != nil {
 			// A proxy the transport cannot read is quoted back whole, password
 			// and all, by url.Parse and by the transport alike.
@@ -124,8 +124,12 @@ func (t *transports) newSite(name string) (*site, error) {
 		}
 		p.HttpClient = inner
 	}
-	return &site{name: name, inner: built[0], bare: built[1]}, nil
+	return s, nil
 }
+
+// named is the site's name, asked of each request after siteOf handed the
+// site out.
+func (s *site) named() string { return s.name }
 
 // fresh are transports of their own, built as these were.
 func (t *transports) fresh() (*transports, error) {
