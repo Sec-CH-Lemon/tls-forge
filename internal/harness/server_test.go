@@ -523,6 +523,66 @@ func TestAServerThatCannotStartSaysWhy(t *testing.T) {
 	}
 }
 
+// told is a listener that says it is at 127.0.0.1:port when port is set, and
+// keeps whether it was closed.
+type told struct {
+	net.Listener
+	port   int
+	closed bool
+}
+
+func (l *told) Addr() net.Addr {
+	if l.port == 0 {
+		return l.Listener.Addr()
+	}
+	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: l.port}
+}
+
+func (l *told) Close() error {
+	l.closed = true
+	return l.Listener.Close()
+}
+
+func TestPlainHTTPGoesOnAPortNoSocketHoldsAtEitherLoopbackAddress(t *testing.T) {
+	// The port the system gives at 127.0.0.1 is another socket's at [::1], as
+	// another program's may be: the server lets it go and listens on another,
+	// at both (localhost.Listen).
+	held, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer func() { _ = held.Close() }()
+	port := held.Addr().(*net.TCPAddr).Port
+	old := listen
+	t.Cleanup(func() { listen = old })
+	var first *told
+	var asked []string
+	listen = func(network, addr string) (net.Listener, error) {
+		asked = append(asked, addr)
+		ln, err := net.Listen(network, addr)
+		if err == nil && first == nil {
+			first = &told{Listener: ln, port: port}
+			return first, nil
+		}
+		return ln, err
+	}
+	s := started(t, catalogue)
+	if s.Plain == port || !first.closed || len(asked) < 2 || asked[1] != "[::1]:"+strconv.Itoa(port) {
+		t.Errorf("plain HTTP on %d, the port held at [::1] %d, let go of: %v, asked %v", s.Plain, port, first.closed, asked)
+	}
+	urls := []string{"http://127.0.0.1:" + strconv.Itoa(s.Plain) + "/p/a", "http://[::1]:" + strconv.Itoa(s.Plain) + "/p/a"}
+	for _, url := range urls {
+		res, err := (&http.Client{Timeout: 10 * time.Second}).Get(url)
+		if err != nil {
+			t.Fatalf("GET %s: %v", url, err)
+		}
+		_ = res.Body.Close()
+	}
+	if entries := requests(t, s); len(entries) != 2 || entries[0].Target != urls[0] || entries[1].Target != urls[1] {
+		t.Errorf("kept %+v", entries)
+	}
+}
+
 // frame is an HTTP/2 frame's bytes.
 func frame(typ http2.FrameType, flags http2.Flags, stream uint32, payload []byte) []byte {
 	out := []byte{byte(len(payload) >> 16), byte(len(payload) >> 8), byte(len(payload)), byte(typ), byte(flags),

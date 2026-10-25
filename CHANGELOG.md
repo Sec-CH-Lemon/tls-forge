@@ -1540,6 +1540,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The bench takes a port free at both loopback addresses** for plain HTTP.
+  It listened at 127.0.0.1 on the port the system gave and at [::1] on the
+  same number, which another socket may hold there: macOS gives a port at
+  127.0.0.1 that a socket of IPv6 alone holds at [::1] (another program's
+  node workers on the machine measured), and the other way round. A whole
+  `go test ./...` failed so once: `harness: listen tcp [::1]:53165: bind:
+  address already in use`. Such a port is let go of now and another taken,
+  each try asking the other address first, sixteen at most.
+
 - **A fresh redirect is cached without its body.** A browser context's cache
   kept an explicitly fresh 301, 302, 307 or 308 only once its body had been
   read to the end, which nothing waits for when a redirect is followed: an

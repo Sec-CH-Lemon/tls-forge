@@ -27,6 +27,8 @@ import (
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 )
 
 // Entry is a request as the bytes said it.
@@ -188,7 +190,15 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	settled := slices.SortedFunc(maps.Keys(s.settled), func(a, b H2Settings) int {
 		return cmp.Or(cmp.Compare(a.Table, b.Table), cmp.Compare(a.Frame, b.Frame))
 	})
-	for range 3 + len(settled) {
+	// Plain HTTP at the IPv6 loopback address too, on the same port, so that
+	// a URL naming [::1] is kept as one naming 127.0.0.1 is.
+	plain, plain6, err := localhost.Listen(listen)
+	if err != nil {
+		_ = s.Close()
+		return nil, fmt.Errorf("harness: %w", err)
+	}
+	s.listeners = append(s.listeners, plain, plain6)
+	for range 2 + len(settled) {
 		ln, err := listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			_ = s.Close()
@@ -200,15 +210,7 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	for i, ln := range s.listeners {
 		ports[i] = ln.Addr().(*net.TCPAddr).Port
 	}
-	s.H2, s.H1, s.Plain = ports[0], ports[1], ports[2]
-	// Plain HTTP at the IPv6 loopback address too, on the same port, so that
-	// a URL naming [::1] is kept as one naming 127.0.0.1 is.
-	ln, err := listen("tcp", net.JoinHostPort("::1", strconv.Itoa(s.Plain)))
-	if err != nil {
-		_ = s.Close()
-		return nil, fmt.Errorf("harness: %w", err)
-	}
-	s.listeners = append(s.listeners, ln)
+	s.Plain, s.H2, s.H1 = ports[0], ports[2], ports[3]
 	names := alpsNames(scenarios)
 	for _, name := range names {
 		ln, err := listen("tcp", "127.0.0.1:0")
@@ -226,7 +228,7 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 	}
 	servers := map[*http.Server]*chanListener{s.h1: s.http1, s.h2: s.http2}
 	for i, key := range settled {
-		s.Settled[key] = ports[3+i]
+		s.Settled[key] = ports[4+i]
 		servers[s.settled[key].server] = s.settled[key].ln
 	}
 	s.done.Add(2*len(servers) + 2 + len(names))
@@ -236,12 +238,12 @@ func startServer(scenarios map[string]scenario, opts ...func(*Server)) (*Server,
 			_ = server.Serve(ln)
 		}()
 	}
-	go s.accept(s.listeners[0], []string{"h2", "http/1.1"}, nil)
-	go s.accept(s.listeners[1], []string{"http/1.1"}, nil)
-	go s.accept(s.listeners[2], nil, nil)
-	go s.accept(ln, nil, nil)
+	go s.accept(plain, nil, nil)
+	go s.accept(plain6, nil, nil)
+	go s.accept(s.listeners[2], []string{"h2", "http/1.1"}, nil)
+	go s.accept(s.listeners[3], []string{"http/1.1"}, nil)
 	for i, key := range settled {
-		go s.accept(s.listeners[3+i], []string{"h2"}, s.settled[key])
+		go s.accept(s.listeners[4+i], []string{"h2"}, s.settled[key])
 	}
 	for i, name := range names {
 		go s.acceptALPS(s.listeners[4+len(settled)+i], name)
