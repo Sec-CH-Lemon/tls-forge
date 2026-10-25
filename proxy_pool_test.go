@@ -981,8 +981,9 @@ func (c writesNoData) Write(p []byte) (int, error) {
 
 type noDataTap struct{}
 
-func (noDataTap) Dialed(conn net.Conn, _ time.Time) net.Conn { return writesNoData{conn} }
-func (noDataTap) Used(net.Conn)                              {}
+func (noDataTap) Dialed(conn net.Conn, _ time.Time) net.Conn           { return writesNoData{conn} }
+func (noDataTap) QUIC(net.Addr, net.Addr, time.Time) conntap.Datagrams { return nil }
+func (noDataTap) Used(net.Conn)                                        {}
 
 func TestAProxysHTTP2ConnectionThePrefaceCannotBeWrittenToFailsTheDial(t *testing.T) {
 	via, _, _ := ownedH2Proxy(t, "")

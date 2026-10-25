@@ -934,10 +934,11 @@ start, no key log to give it, nothing to run as root. It holds the request's
 connections alone, each try's, the one its site is asked over and, through a
 proxy, the one to the proxy: an HTTP or HTTPS proxy's, with the CONNECT that
 opened the tunnel, or a SOCKS4, SOCKS4a, SOCKS5 or SOCKS5h proxy's, with the
-handshake that did; not the run's question to an address service, which no
-request went out on, nor yet a QUIC connection: a request that went over
-HTTP/3 ([HTTP/3 from DNS](#http3-from-dns)) has the TCP connection it raced
-in its capture, and its QUIC one only in a capture of the wire, below. A
+handshake that did; and over HTTP/3 ([HTTP/3 from DNS](#http3-from-dns)),
+the QUIC connection's datagrams as its socket wrote and read them, one UDP
+packet each, beside the TCP connection it raced; not the run's question to
+an address service, which no request went out on. Wireshark finds QUIC on
+any port. A
 connection is let go of before the request is kept, so
 its capture holds how it ended; with `--reuse-connection` a URL's repeats share
 theirs, and each repeat's capture holds it from its start to where that repeat
@@ -949,7 +950,9 @@ The file is made by tls-forge from what it wrote and read, and its TCP/IP
 headers are made up: the ends of each connection are its own, but its segments
 are tls-forge's writes and reads, numbered from zero, with no TCP options and
 no retransmission, and the first packet of each connection says so in a
-comment. What is above them, TLS and HTTP, is exact; what the system did on the
+comment; a QUIC connection's IP and UDP headers too, its datagrams exact (a
+write the system cut into several, as Linux's segmentation does, is kept as
+the datagrams it sent). What is above them, TLS and HTTP, is exact; what the system did on the
 wire, its handshake and its TCP/IP fingerprint, is not there, and a capture of
 the wire, below, has it. What a proxy was given in the clear to open a
 tunnel is masked, a `*` for each of its bytes so that nothing else moves: a
@@ -1317,7 +1320,7 @@ Usage: `tls-forge fetch [flags] [url...]`
 | **Output** | |
 | `-o`, `--output <dir>` | Keep every request in this directory: its page, a log of it and a trace of it, and a log of the run; see [Keeping every request](#keeping-every-request) |
 | `--clear-output-dir` | Empty the `--output` directory before the run writes into it, of every file and directory in it; refused for a directory whose loss would be a disaster, see [Keeping every request](#keeping-every-request) |
-| `--pcap` | With `--output`, keep beside each request's files the connections it went out on as `NAME.pcapng`, every byte each way and the TLS secrets that open them, for Wireshark to read as it is, through a proxy the CONNECT or the SOCKS handshake that opened its tunnel, its credentials masked; written with mode `0600`; see [Reading a run in Wireshark](#reading-a-run-in-wireshark) |
+| `--pcap` | With `--output`, keep beside each request's files the connections it went out on as `NAME.pcapng`, every byte each way, a QUIC connection's datagrams, and the TLS secrets that open them, for Wireshark to read as it is, through a proxy the CONNECT or the SOCKS handshake that opened its tunnel, its credentials masked; written with mode `0600`; see [Reading a run in Wireshark](#reading-a-run-in-wireshark) |
 | `-i`, `--include` | Print the status and response headers in front of the page; with JSON lines, add them to each line as `headers` |
 | `--json` | Write a JSON line for each request even when one URL is named |
 | `--print-body` | Print the page or the JSON lines on standard output even when that is a terminal, and the page even when `--output` keeps it |

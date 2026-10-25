@@ -2,7 +2,8 @@
 // that Wireshark opens: every byte each connection carried, each way, at the
 // moment the client wrote or read it, in packets whose IP and TCP headers are
 // made here, and the TLS secrets that let Wireshark read them, in a
-// Decryption Secrets Block ahead of the packets.
+// Decryption Secrets Block ahead of the packets. A QUIC connection's
+// datagrams go in as UDP packets, one each.
 //
 // The headers are made up. The two ends of a connection are its own, but its
 // segments are the client's writes and reads, cut only where an IP packet
@@ -44,7 +45,9 @@ type Event struct {
 	Data []byte
 }
 
-// A Stream is one TCP connection as its client saw it.
+// A Stream is one TCP connection as its client saw it, or with Datagrams one
+// QUIC connection: each event it Sent or Received a datagram, and nothing
+// opened or ended but by them.
 type Stream struct {
 	// Client and Server are its two ends.
 	Client, Server netip.AddrPort
@@ -52,6 +55,8 @@ type Stream struct {
 	Opened, Connected time.Time
 	// Events are what happened on it, in the order they did.
 	Events []Event
+	// Datagrams says it is UDP's.
+	Datagrams bool
 }
 
 // File is what the head of a file says.
@@ -68,9 +73,14 @@ type File struct {
 }
 
 // synComment is said of the first packet of every connection, which is the
-// one a reader of the TCP/IP layer looks at first.
-const synComment = "made up by tls-forge, as is every TCP/IP header in this file: " +
-	"the bytes above them are what the connection carried"
+// one a reader of the TCP/IP layer looks at first; datagramComment of a QUIC
+// connection's.
+const (
+	synComment = "made up by tls-forge, as is every TCP/IP header in this file: " +
+		"the bytes above them are what the connection carried"
+	datagramComment = "made up by tls-forge, as is every IP and UDP header in this file: " +
+		"the datagrams are what the QUIC connection's socket wrote and read"
+)
 
 // maxData is the most a packet carries past its headers: what fits an IPv4
 // packet of 65,535 bytes after 20 of IP and 20 of TCP.
@@ -145,8 +155,12 @@ func Write(w io.Writer, f File, streams []Stream) error {
 }
 
 // segmentsOf is a stream as packets: the handshake its connection must have
-// had, the client's writes and reads, and how it ended.
+// had, the client's writes and reads, and how it ended; a QUIC connection's
+// datagrams alone.
 func segmentsOf(s Stream) []segment {
+	if s.Datagrams {
+		return datagramsOf(s)
+	}
 	opened, connected := s.Opened, s.Connected
 	if opened.IsZero() {
 		opened = connected
@@ -212,6 +226,28 @@ func segmentsOf(s Stream) []segment {
 	return out
 }
 
+// datagramsOf is a QUIC connection's stream as packets: a UDP packet for
+// each datagram, sent or received.
+func datagramsOf(s Stream) []segment {
+	v4 := s.Client.Addr().Unmap().Is4() && s.Server.Addr().Unmap().Is4()
+	var out []segment
+	for _, e := range s.Events {
+		if e.What != Sent && e.What != Received {
+			continue
+		}
+		src, dst := s.Client, s.Server
+		if e.What == Received {
+			src, dst = s.Server, s.Client
+		}
+		comment := ""
+		if len(out) == 0 {
+			comment = datagramComment
+		}
+		out = append(out, segment{at: e.At, header: udpHeaders(v4, src, dst, e.Data), data: e.Data, comment: comment})
+	}
+	return out
+}
+
 // headers are the IP and TCP headers of a segment from src to dst carrying
 // data: IPv4 when both ends are IPv4 addresses, else IPv6, with checksums.
 func headers(v4 bool, src, dst netip.AddrPort, seq, ack uint32, flags byte, data []byte) []byte {
@@ -223,9 +259,37 @@ func headers(v4 bool, src, dst netip.AddrPort, seq, ack uint32, flags byte, data
 	tcp[12] = 5 << 4
 	tcp[13] = flags
 	binary.BigEndian.PutUint16(tcp[14:], 65535)
-	length := len(tcp) + len(data)
+	ip, pseudo := ipHeader(v4, src, dst, protocolTCP, len(tcp)+len(data))
+	binary.BigEndian.PutUint16(tcp[16:], checksum(pseudo, tcp, data))
+	return append(ip, tcp...)
+}
 
-	var ip, pseudo []byte
+// udpHeaders are the IP and UDP headers of a datagram from src to dst, with
+// checksums: a UDP checksum that comes to zero is written as all ones.
+func udpHeaders(v4 bool, src, dst netip.AddrPort, data []byte) []byte {
+	udp := make([]byte, 8)
+	binary.BigEndian.PutUint16(udp[0:], src.Port())
+	binary.BigEndian.PutUint16(udp[2:], dst.Port())
+	binary.BigEndian.PutUint16(udp[4:], uint16(len(udp)+len(data)))
+	ip, pseudo := ipHeader(v4, src, dst, protocolUDP, len(udp)+len(data))
+	sum := checksum(pseudo, udp, data)
+	if sum == 0 {
+		sum = 0xffff
+	}
+	binary.BigEndian.PutUint16(udp[6:], sum)
+	return append(ip, udp...)
+}
+
+// The protocols an IP header names.
+const (
+	protocolTCP = 6
+	protocolUDP = 17
+)
+
+// ipHeader is the IP header of a packet from src to dst of a protocol whose
+// part is length bytes long, and the pseudo-header that part's checksum
+// covers: IPv4 when both ends are IPv4 addresses, else IPv6.
+func ipHeader(v4 bool, src, dst netip.AddrPort, protocol byte, length int) (ip, pseudo []byte) {
 	if v4 {
 		from, to := src.Addr().Unmap().As4(), dst.Addr().Unmap().As4()
 		ip = make([]byte, 20)
@@ -233,25 +297,24 @@ func headers(v4 bool, src, dst netip.AddrPort, seq, ack uint32, flags byte, data
 		binary.BigEndian.PutUint16(ip[2:], uint16(len(ip)+length))
 		binary.BigEndian.PutUint16(ip[6:], 0x4000) // don't fragment
 		ip[8] = 64
-		ip[9] = 6
+		ip[9] = protocol
 		copy(ip[12:], from[:])
 		copy(ip[16:], to[:])
 		binary.BigEndian.PutUint16(ip[10:], checksum(ip))
-		pseudo = append(append(append([]byte{}, from[:]...), to[:]...), 0, 6, byte(length>>8), byte(length))
-	} else {
-		from, to := src.Addr().As16(), dst.Addr().As16()
-		ip = make([]byte, 40)
-		ip[0] = 6 << 4
-		binary.BigEndian.PutUint16(ip[4:], uint16(length))
-		ip[6] = 6
-		ip[7] = 64
-		copy(ip[8:], from[:])
-		copy(ip[24:], to[:])
-		pseudo = append(append(append([]byte{}, from[:]...), to[:]...),
-			0, 0, byte(length>>8), byte(length), 0, 0, 0, 6)
+		pseudo = append(append(append([]byte{}, from[:]...), to[:]...), 0, protocol, byte(length>>8), byte(length))
+		return ip, pseudo
 	}
-	binary.BigEndian.PutUint16(tcp[16:], checksum(pseudo, tcp, data))
-	return append(ip, tcp...)
+	from, to := src.Addr().As16(), dst.Addr().As16()
+	ip = make([]byte, 40)
+	ip[0] = 6 << 4
+	binary.BigEndian.PutUint16(ip[4:], uint16(length))
+	ip[6] = protocol
+	ip[7] = 64
+	copy(ip[8:], from[:])
+	copy(ip[24:], to[:])
+	pseudo = append(append(append([]byte{}, from[:]...), to[:]...),
+		0, 0, byte(length>>8), byte(length), 0, 0, 0, protocol)
+	return ip, pseudo
 }
 
 // checksum is the Internet checksum of the parts, one after another: the

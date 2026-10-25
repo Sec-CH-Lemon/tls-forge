@@ -99,8 +99,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   of the caller's, nothing changes. At cloudflare-ech.com over a home router,
   by turns with Chrome 155: tls-forge over HTTP/3 with ECH in 4 visits of 4,
   Chrome in 2 (in the other 2 its record came after the wait). `--keylog`
-  and `WithKeyLogWriter` now take the secrets of QUIC connections too;
-  `--pcap` does not capture them yet.
+  and `WithKeyLogWriter` now take the secrets of QUIC connections too, and
+  `--pcap` keeps a QUIC connection's datagrams, one UDP packet each (a write
+  the system segmented as the datagrams it sent), with its secrets in the
+  file: Wireshark opens HTTP/3 decrypted as it is (tshark 4.6.9, measured).
 
 - An answer whose `Alt-Svc` advertises `h3` (RFC 7838) sends its origin's
   later requests over HTTP/3 to that alternative as Chrome 155's alternative

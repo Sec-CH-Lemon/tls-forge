@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/dns/dnsmessage"
+
 	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
 )
 
@@ -47,12 +49,48 @@ func (c *seenConn) what() (sent, received []byte) {
 	return bytes.Clone(c.sent.Bytes()), bytes.Clone(c.received.Bytes())
 }
 
-// seeingTap keeps the connections dialed for a request and the near end of
-// each it went out on.
+// seenQUIC is a QUIC connection as a tap sees it: its ends, the datagrams
+// its socket wrote and read, and how often it was told of its end.
+type seenQUIC struct {
+	local, remote net.Addr
+	mu            sync.Mutex
+	wrote, read   [][]byte
+	closed        int
+}
+
+func (q *seenQUIC) Wrote(b []byte) {
+	q.mu.Lock()
+	q.wrote = append(q.wrote, bytes.Clone(b))
+	q.mu.Unlock()
+}
+func (q *seenQUIC) Read(b []byte) {
+	q.mu.Lock()
+	q.read = append(q.read, bytes.Clone(b))
+	q.mu.Unlock()
+}
+func (q *seenQUIC) Closed() { q.mu.Lock(); q.closed++; q.mu.Unlock() }
+
+func (q *seenQUIC) what() (wrote, read [][]byte, closed int) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return slices.Clone(q.wrote), slices.Clone(q.read), q.closed
+}
+
+// seeingTap keeps the connections dialed for a request, the QUIC ones made
+// for it, and the near end of each it went out on.
 type seeingTap struct {
 	mu     sync.Mutex
 	dialed []*seenConn
+	quic   []*seenQUIC
 	used   []string
+}
+
+func (t *seeingTap) QUIC(local, remote net.Addr, _ time.Time) conntap.Datagrams {
+	q := &seenQUIC{local: local, remote: remote}
+	t.mu.Lock()
+	t.quic = append(t.quic, q)
+	t.mu.Unlock()
+	return q
 }
 
 func (t *seeingTap) Dialed(conn net.Conn, began time.Time) net.Conn {
@@ -205,5 +243,35 @@ func TestATapSeesNoDialThatFailed(t *testing.T) {
 		if dialed, used := tap.seen(); err == nil || len(dialed) != 0 || len(used) != 0 {
 			t.Errorf("%q: %v: dialed %d, went out on %v", proxy, err, len(dialed), used)
 		}
+	}
+}
+
+func TestARequestOverHTTP3ShowsTheTapItsQUICConnectionsDatagrams(t *testing.T) {
+	// TCP late: QUIC is up first and takes the request.
+	site := startH3Site(t, 100*time.Millisecond, 0)
+	dns := echNames(t, map[string]*dnsmessage.SVCBResource{"h3.h3.test": service(1, "h3.h3.test", alpnParam("h3", "h2"))}, 0, 0)
+	c := echClient(t, dns)
+	tap := &seeingTap{}
+	res := tappedGet(t, c, "https://h3.h3.test:"+site.port+"/", tap)
+	if string(res.Body) != "HTTP/3.0" {
+		t.Fatalf("came over %q, want HTTP/3", res.Body)
+	}
+	tap.mu.Lock()
+	quic := slices.Clone(tap.quic)
+	used := slices.Clone(tap.used)
+	tap.mu.Unlock()
+	if len(quic) != 1 || quic[0].remote.String() != "127.0.0.1:"+site.port {
+		t.Fatalf("QUIC connections seen: %v", quic)
+	}
+	if !slices.Contains(used, quic[0].local.String()) {
+		t.Errorf("the request went out on %v, not the QUIC connection from %s", used, quic[0].local)
+	}
+	_ = c.Close()
+	if !soon(2*time.Second, func() bool { _, _, closed := quic[0].what(); return closed == 1 }) {
+		t.Fatal("the tap was not told of the QUIC connection's end")
+	}
+	wrote, read, _ := quic[0].what()
+	if len(wrote) == 0 || wrote[0][0]&0x80 == 0 || len(read) == 0 {
+		t.Errorf("%d datagrams written, the first's form %#x, %d read", len(wrote), wrote[0][0], len(read))
 	}
 }

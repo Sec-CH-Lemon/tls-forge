@@ -38,10 +38,18 @@ type capturedConn struct {
 	clientFIN bool
 }
 
+// capturedQUIC is a QUIC connection as a capture holds it: its datagrams
+// each way.
+type capturedQUIC struct {
+	client, server uint16
+	sent, received [][]byte
+}
+
 type keptCapture struct {
 	comment string
 	secrets []string
 	conns   []*capturedConn
+	quic    []*capturedQUIC
 }
 
 // readCapture reads a pcapng file of raw IPv4 packets, as --pcap writes for
@@ -54,6 +62,7 @@ func readCapture(t *testing.T, path string) keptCapture {
 	}
 	var out keptCapture
 	byPort := map[uint16]*capturedConn{}
+	quicByPort := map[uint16]*capturedQUIC{}
 	for len(file) > 0 {
 		kind, length := binary.LittleEndian.Uint32(file), binary.LittleEndian.Uint32(file[4:])
 		body := file[8 : length-4]
@@ -72,6 +81,22 @@ func readCapture(t *testing.T, path string) keptCapture {
 			out.secrets = keyLines(string(body[8 : 8+size]))
 		case 0x06:
 			packet := body[20 : 20+binary.LittleEndian.Uint32(body[12:])]
+			if packet[9] == 17 { // UDP: a QUIC connection's datagram
+				udp := packet[20:]
+				src, dst, data := binary.BigEndian.Uint16(udp), binary.BigEndian.Uint16(udp[2:]), udp[8:]
+				if q, ok := quicByPort[dst]; ok {
+					q.received = append(q.received, data)
+					continue
+				}
+				q, ok := quicByPort[src]
+				if !ok {
+					q = &capturedQUIC{client: src, server: dst}
+					quicByPort[src] = q
+					out.quic = append(out.quic, q)
+				}
+				q.sent = append(q.sent, data)
+				continue
+			}
 			tcp := packet[20:]
 			src, dst, flags := binary.BigEndian.Uint16(tcp), binary.BigEndian.Uint16(tcp[2:]), tcp[13]
 			data := tcp[20:]

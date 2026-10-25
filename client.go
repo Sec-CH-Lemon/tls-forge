@@ -397,7 +397,7 @@ func New(opts ...Option) (*Client, error) {
 	quic := tls_client.NewQUICState()
 	built := func(proxyPool *proxyH2Pool, site func() string, own ...tls_client.HttpClientOption) []tls_client.HttpClientOption {
 		out := append([]tls_client.HttpClientOption{tls_client.WithLockedClientProfile(clientProfile, fmt.Sprintf("profile %q engine_major %d (running engine major %d)", prof.Name, *prof.EngineMajor, EngineMajor()))}, options...)
-		h3 := &tls_client.HTTP3FromDNS{Endpoint: res.quicEndpoint, State: quic, Key: site}
+		h3 := &tls_client.HTTP3FromDNS{Endpoint: res.quicEndpoint, State: quic, Key: site, Tap: quicTapped}
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys, keepAliveOf(prof.RuntimeBehavior()),
 			res, h3, proxyIdentity{profile: prof, pool: proxyPool})...)
 		return append(append(out, own...), cfg.extra...)

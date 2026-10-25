@@ -34,6 +34,7 @@ type readPacket struct {
 	at       uint64
 	comment  string
 	v4       bool
+	udp      bool
 	src, dst netip.AddrPort
 	seq, ack uint32
 	flags    byte
@@ -142,37 +143,52 @@ func onesSum(parts ...[]byte) uint16 {
 	return uint16(sum)
 }
 
-// readIP is a packet's IP and TCP headers, their lengths and checksums
-// checked.
+// readIP is a packet's IP and TCP or UDP headers, their lengths and
+// checksums checked.
 func readIP(t *testing.T, packet []byte) readPacket {
 	t.Helper()
 	var p readPacket
 	var pseudo, tcp []byte
+	var protocol byte
 	switch packet[0] >> 4 {
 	case 4:
 		ip := packet[:20]
-		if packet[0] != 0x45 || int(binary.BigEndian.Uint16(ip[2:])) != len(packet) || ip[9] != 6 || ip[8] != 64 ||
-			binary.BigEndian.Uint16(ip[6:]) != 0x4000 || onesSum(ip) != 0xffff {
+		protocol = ip[9]
+		if packet[0] != 0x45 || int(binary.BigEndian.Uint16(ip[2:])) != len(packet) || protocol != 6 && protocol != 17 ||
+			ip[8] != 64 || binary.BigEndian.Uint16(ip[6:]) != 0x4000 || onesSum(ip) != 0xffff {
 			t.Fatalf("an IPv4 header % x for %d bytes", ip, len(packet))
 		}
 		p.v4 = true
 		p.src = netip.AddrPortFrom(netip.AddrFrom4([4]byte(ip[12:16])), 0)
 		p.dst = netip.AddrPortFrom(netip.AddrFrom4([4]byte(ip[16:20])), 0)
 		tcp = packet[20:]
-		pseudo = append(append(slices.Clone(ip[12:20]), 0, 6), binary.BigEndian.AppendUint16(nil, uint16(len(tcp)))...)
+		pseudo = append(append(slices.Clone(ip[12:20]), 0, protocol), binary.BigEndian.AppendUint16(nil, uint16(len(tcp)))...)
 	case 6:
 		ip := packet[:40]
+		protocol = ip[6]
 		if !bytes.Equal(ip[:4], []byte{0x60, 0, 0, 0}) || int(binary.BigEndian.Uint16(ip[4:])) != len(packet)-40 ||
-			ip[6] != 6 || ip[7] != 64 {
+			protocol != 6 && protocol != 17 || ip[7] != 64 {
 			t.Fatalf("an IPv6 header % x for %d bytes", ip, len(packet))
 		}
 		p.src = netip.AddrPortFrom(netip.AddrFrom16([16]byte(ip[8:24])), 0)
 		p.dst = netip.AddrPortFrom(netip.AddrFrom16([16]byte(ip[24:40])), 0)
 		tcp = packet[40:]
 		pseudo = append(slices.Clone(ip[8:40]), binary.BigEndian.AppendUint32(nil, uint32(len(tcp)))...)
-		pseudo = append(pseudo, 0, 0, 0, 6)
+		pseudo = append(pseudo, 0, 0, 0, protocol)
 	default:
 		t.Fatalf("a packet of IP version %d", packet[0]>>4)
+	}
+	if protocol == 17 {
+		udp := tcp
+		if int(binary.BigEndian.Uint16(udp[4:])) != len(udp) || onesSum(pseudo, udp) != 0xffff ||
+			binary.BigEndian.Uint16(udp[6:]) == 0 {
+			t.Fatalf("a UDP header % x for %d bytes", udp[:8], len(udp))
+		}
+		p.udp = true
+		p.src = netip.AddrPortFrom(p.src.Addr(), binary.BigEndian.Uint16(udp))
+		p.dst = netip.AddrPortFrom(p.dst.Addr(), binary.BigEndian.Uint16(udp[2:]))
+		p.data = udp[8:]
+		return p
 	}
 	if tcp[12] != 5<<4 || onesSum(pseudo, tcp) != 0xffff || tcp[18] != 0 || tcp[19] != 0 {
 		t.Fatalf("a TCP header % x", tcp[:20])

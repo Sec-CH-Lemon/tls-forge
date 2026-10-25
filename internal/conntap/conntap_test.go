@@ -9,8 +9,9 @@ import (
 
 type tap struct{}
 
-func (tap) Dialed(conn net.Conn, _ time.Time) net.Conn { return conn }
-func (tap) Used(net.Conn)                              {}
+func (tap) Dialed(conn net.Conn, _ time.Time) net.Conn   { return conn }
+func (tap) QUIC(net.Addr, net.Addr, time.Time) Datagrams { return nil }
+func (tap) Used(net.Conn)                                {}
 
 func TestAContextCarriesTheTapItWasGiven(t *testing.T) {
 	ctx := context.Background()
