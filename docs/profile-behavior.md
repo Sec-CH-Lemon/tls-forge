@@ -1191,11 +1191,119 @@ visits of 4; Chrome in 2, and in the other 2 over HTTP/2 without ECH, its
 record having come after the wait.
 
 Not modelled: `Alt-Svc` (Chrome went over HTTP/3 to an origin whose answer
-offered `h3`, from its next request: tls-forge ignores it); Chrome's quick
-failure of QUIC to a port that answers ICMP unreachable (tls-forge's QUIC
-goes on sending its Initials until its handshake timeout, its TCP taking the
-request all the same); a navigation's second, speculative connection; the
-QUIC handshake itself where it is not yet Chrome's: no ALPS in the
-ClientHello (HTTP3-005), the Initials' layout and their retransmissions
-(Chrome's first again after 309 ms and one packet each time, quic-go's after
-200 ms and two; HTTP3-018).
+offered `h3`, from its next request: tls-forge ignores it); a navigation's
+second, speculative connection. The QUIC handshake itself is below.
+
+## QUIC's handshake as Chrome's (unreleased engine 1)
+
+A Chrome profile's QUIC client goes through its handshake as Chrome 155's
+does (quiche at Chrome 155's DEPS revision `0b2bc13f`, the same code at
+Chrome 151's `4729ceb2`): one packet number counter for the three packet
+number spaces, from 1, a number as long as quiche's window rule makes it;
+the first flight laid out as `QuicChaosProtector` and
+`MultiPacketChaosProtect` lay it out; probes as quiche sends them, one a
+time, a number skipped before each; at the end of its handshake's idle time
+a `CONNECTION_CLOSE` in an Initial with quiche's reason; a UDP socket
+connected to the server, so that an ICMP unreachable ends QUIC at once.
+Absent fields keep quic-go's ways; catalogue, legacy and migration policies
+keep them until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `quic.packet_numbers` | `separate` (a counter of each space's own, quic-go's, its application space skipping a number now and then) or `shared`: one counter for the Initial, Handshake and 1-RTT packets, with no random skips. `shared`. |
+| `quic.first_packet_number` | The counter's first number (`shared` alone). `1`. |
+| `quic.packet_number_length` | `two-byte-minimum` (quic-go's) or `window` (`shared` alone): a number in as few bytes as four times the larger of the packets the peer has yet to acknowledge and the congestion window in packets of the room left take (`UpdatePacketNumberLength`), the room what is left of the datagram while packets are coalesced before the handshake is confirmed; one byte, then two, then four. `window`: the first Initial's number one byte, the second's two (the datagram had no room left), the Handshake's and the first 1-RTT's one. |
+| `quic.pto_skip` | `application` (quic-go's) or `every-space` (`shared` alone): a number skipped at every probe timeout, whatever space it probes (`OnRetransmissionAlarm`). `every-space`. |
+| `quic.pto_probes` | Packets a probe timeout sends, 1 or 2. `1`: the frames of the oldest packet outstanding. |
+| `quic.pto_initial_rtt_ms`, `quic.pto_no_sample_multiplier`, `quic.pto_no_sample_min_ms` | Before an RTT sample, a probe timeout is the multiplier times the initial RTT, at least the minimum (`GetProbeTimeoutDelay`). `100`, `3`, `10`: 300 ms, doubling. |
+| `quic.pto_rttvar_multiplier` | After one, the smoothed RTT and this many times the mean deviation. `2`. |
+| `quic.alarm_slack_ms` | How late the loss detection and idle alarms fire: Chrome's network thread runs an alarm once its timer's leeway has passed. `8` (probes measured 308.7, 917 and 2125 ms after the first flight). |
+| `quic.handshake_idle_timeout_ms` | The handshake's idle time: Chrome's `max_idle_time_before_crypto_handshake` less the client's second (`SetNetworkTimeouts`). `4000`. |
+| `quic.handshake_timeout_ms` | The longest a handshake may take (`max_time_before_crypto_handshake`), at least the idle time. `10000`. |
+| `quic.handshake_ack_timer_ms` | How long an ACK of an Initial or Handshake packet may wait (`kAlarmGranularity`): a handshake that ends within it never acknowledges the server's Initial. `1`. |
+| `quic.idle_close` | `silent` (quic-go's: an idle connection ends without a word) or `after-pto`: one whose probes went unanswered sends a `CONNECTION_CLOSE` (`OnIdleNetworkDetected`). `after-pto`. |
+| `quic.idle_close_code`, `quic.idle_close_reason`, `quic.handshake_idle_close_reason` | Its transport error code and reasons, after the handshake and during it; `{elapsed}` and `{timeout}` as quiche writes a `QuicTime::Delta`, `{undecryptable_count}` and `{undecryptable}` the packets kept undecrypted, `{{` and `}}` braces. `0`, `25:No recent network activity after {elapsed}. Timeout:{timeout}` and the same with ` num_undecryptable_packets: {undecryptable_count} {{{undecryptable}}}`. |
+| `quic.undecryptable_level_names` | The four encryption levels' names in that list. `ENCRYPTION_INITIAL`, `ENCRYPTION_HANDSHAKE`, `ENCRYPTION_ZERO_RTT`, `ENCRYPTION_FORWARD_SECURE`. |
+| `quic.initial_layout` | `scramble` (quic-go's) or `chaos`: the ClientHello's first `quic.chaos_first_frame_min` + a draw below `quic.chaos_first_frame_spread` bytes and its end in the first Initial, its middle in the next, split evenly; each Initial with CRYPTO and PADDING split into `quic.chaos_crypto_splits_min`..`max` more CRYPTO frames, given `quic.chaos_pings_min`..`max` PINGs, its padding spread and its frames shuffled, an ACK first. `chaos`, `55`, `32`, `2`..`10`, `2`..`10`. |
+| `quic.padding_position` | `after-ack` (quic-go's) or `end`: an Initial's padding after its frames. `end`. |
+| `quic.connected_socket` | The QUIC connection's own UDP socket connected to the server (needs `quic.dedicated_socket`): an ICMP unreachable is the next read's or write's error and ends the connection at once, as Chrome's `QuicChromiumPacketReader` ends it. `true`. |
+| `quic.close_early_application` | `transport` (RFC 9000, section 10.2.3, quic-go's: an application close in an Initial or Handshake packet becomes `APPLICATION_ERROR` with no reason) or `application`: it goes as it is in them too, as quiche sends it. `application`. |
+
+Measured on Chrome 155.0.8059.85 on macOS (2026-10-25,
+`../net-fp-server/captures/review-20261023/bench/h3`, cohorts `h3a` and `h3b`,
+tshark 4.6.9 opening the Initials): its first Initial numbered 1 with 2 to 10
+PINGs among its CRYPTO frames, the hello's first 55 to 86 bytes and its end
+in it, its middle in the second, numbered 2 in two bytes, both 1250 bytes;
+into UDP never answered one probe 308.7 ms after the first flight, then at
+917 and 2125 ms, numbers 4, 6, 8 after the skips; at 4 s a close in an Initial,
+code 0, `25:No recent network activity after 4008694us. Timeout:4s
+num_undecryptable_packets: 0 {}`; no ACK of the server's Initial when the
+handshake ends within a millisecond; QUIC to a closed port given up at once.
+The library (`bench/h3client`, cohorts `h3x1`, `h3x2`) did the same, its
+probes within about 2 ms of Chrome's. `quicwire_test.go` holds the first
+flight, the probes and the close through `Client.Do`, the JSON alone
+changing them; quic-go-utls's `send_policy_test.go`, `chaos_test.go`,
+`chrome_packer_test.go`, `idle_close_test.go` and tls-client's
+`connected_socket_test.go` hold the rules.
+
+Not modelled: ECN (tls-forge's 1-RTT packets are marked ECT(0), Chrome's
+not), path MTU probes (Chrome sends none), a `RETIRE_CONNECTION_ID` after
+the handshake (Chrome sends none), the first 1-RTT packet's stream data
+(Chrome's control stream goes with its Finished), Chrome's idle timeout of
+the negotiated time less a second after the handshake.
+
+## ALPS for HTTP/3 (unreleased engine 1)
+
+Chrome's QUIC ClientHello offers ALPS (application_settings, 17613) for
+`h3`, with no settings of its own; a server that gives settings in it is
+answered with empty ones in the client's EncryptedExtensions, before its
+Finished. What the server gives is HTTP/3 frames, read once the handshake is
+done and before the connection says it is (quiche's
+`TlsClientHandshaker::FinishHandshake`, `QuicSpdySession::OnAlpsData`, its
+`HttpDecoder` and `AlpsFrameDecoder`): one SETTINGS frame, taken as the
+control stream's would be, so that the first request's QPACK encoder has the
+table it gives (Chrome's first request sets that capacity and inserts into
+it, though the control stream's SETTINGS come later); ACCEPT_CH frames,
+whose hints a page's request to the origin carries; unknown frames passed
+over; anything else refused, which closes the connection before its Finished
+goes. The control stream's SETTINGS are then held to what ALPS gave
+(`QuicSpdyClientSessionBase::OnSettingsFrame`, `QuicSpdySession::OnSetting`).
+A profile that keeps 17613 (or 17513) in `quic.preserve_extensions` offers
+ALPS and must say all of the keys below; one that keeps neither says none.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `quic.alps_protocols` | The protocols the QUIC hello offers ALPS for, each of `quic.alpn`. `["h3"]`. |
+| `h3.alps_reader` | How a server's ALPS is read: `quiche`, the only reader. |
+| `h3.alps_origin_frames` | An ORIGIN frame (0x0c) in ALPS: `skip` (passed over unread, as an unknown frame), `read` (read, refused cut short, passed over: quiche's `enable_h3_origin_frame` as written) or `abandon`: the connection ends without a word, where Chrome 155's network service crashes (`AlpsFrameDecoder::OnOriginFrameStart` is `QUICHE_NOTREACHED`; measured, a well-formed frame and one cut short alike). `abandon`. |
+| `h3.alps_close_space`, `h3.alps_close_code`, `h3.alps_close_frame_type` | The close of a refused ALPS: a `transport` (`CONNECTION_CLOSE` 0x1c) or `application` (0x1d) close, its code, and for a transport one the frame type it says. `transport`, `10` (PROTOCOL_VIOLATION), `6` (CRYPTO). |
+| `h3.alps_close_reason` | Its reason, `{detail}` the condition's text. `28:Error processing ALPS data: {detail}`. |
+| `h3.alps_errors` | The text of each condition: `data`, `headers`, `goaway`, `max_push_id`, `priority_update`, `metadata` (a frame ALPS may not carry), `settings_twice`, `incomplete` (a frame cut short; a frame type cut short at the end is a frame boundary, and taken, as quiche takes it), `too_large`, `setting_id`, `setting_value`, `setting_twice`, `goaway_id`, `goaway_extra`, `max_push_id_id`, `max_push_id_extra`, `priority_update_id`, `accept_ch_origin`, `accept_ch_value`, `origin_origin`, `http2_frame` (`{type}`), `cancel_push`, `push_promise`. quiche's words: `DATA frame forbidden`, ..., `HTTP/2 frame received in a HTTP/3 connection: {type}`. |
+| `h3.peer_settings` | How the server's settings are taken, ALPS's then the control stream's: `quiche`, the only rule (the QPACK table's capacity fixed once said other than 0, the field section and the blocked streams never made smaller, one given in ALPS said again on the control stream, the field section first, then the blocked streams, then the capacity; an HTTP/2 setting refused; a boolean said otherwise refused; the rest passed over). |
+| `h3.settings_close_space`, `h3.settings_close_code` | The close of a refused setting. `application`, `265` (H3_SETTINGS_ERROR), sent in the Initial and Handshake packets too (`quic.close_early_application`). |
+| `h3.settings_errors` | The text of each: `http2` (`{id}`), `boolean` (`{name}`, `{value}`), `capacity`, `field_section`, `blocked` (`{value}`, `{current}`), `omitted_field_section`, `omitted_blocked`, `omitted_capacity`. `169:received HTTP/2 specific setting in HTTP/3 session: {id}`, `207:Received {name} with invalid value {value}`, `164:Server sent an SETTINGS_QPACK_MAX_TABLE_CAPACITY: {value} while current value is: {current}`, ..., `164:Server accepted 0-RTT but omitted non-default SETTINGS_QPACK_BLOCKED_STREAMS`. |
+| `h3.settings_http2` | The settings of HTTP/2 refused. `[2, 3, 4, 5]`. |
+| `h3.settings_boolean`, `h3.settings_boolean_names` | The settings held to 0 or 1 and their names in the reason. `[8, 51]`, `SETTINGS_ENABLE_CONNECT_PROTOCOL`, `SETTINGS_H3_DATAGRAM`. |
+
+The ACCEPT_CH entry of an origin is the first that names it as an Origin
+header writes it (capitals, a trailing slash or another origin name none);
+a page's request over the connection carries its hints with the profile's
+values, a script's none, as over HTTP/2, where the ALPS of h2 asks for them.
+`h3.qpack.encoder_warmup_sections` holds back the control stream's settings
+alone: a table ALPS gave is written into from the first section.
+
+Measured on Chrome 155.0.8059.85 on macOS (2026-10-25,
+`../net-fp-server/captures/review-20261023/bench/h3alps`: the fork's QUIC and
+uTLS server giving ALPS by the name asked, 51 variants, two cohorts, `hpa` and
+`hpb`, alike in every one; tshark opening the client's packets with the
+server's secrets): every refusal above, its code, frame type and reason, in
+one datagram of 1250 bytes of an Initial (padded), a Handshake and a 1-RTT
+packet, numbered 3, 4 and 5, its Finished never sent; a setting's close an
+application one in all three (quic-go's server refuses it in the Initial,
+`FRAME_ENCODING_ERROR`); the page then over HTTP/2. ACCEPT_CH's hints on the
+first request and the next; the first entry of an origin. With ALPS's QPACK
+settings and the control stream's 300 ms late, the first request set the
+capacity 4096 and inserted 13 fields. The library (`bench/h3client`, cohort
+`hl1`) closed alike in 49 of the 51, its encoder writing as Chrome's; in the
+two ORIGIN variants it falls back to HTTP/2 where Chrome's network service
+crashed and the page failed.

@@ -320,7 +320,7 @@ func (l *layouts) wear(req *fhttp.Request) *fhttp.Request {
 	req.HeaderFor = func(protocol string, header fhttp.Header) fhttp.Header {
 		http1 := protocol == fhttp.ProtocolHTTP1 && l.http1 != nil
 		var asked fhttp.Header
-		if protocol == fhttp.ProtocolHTTP2 && l.asked != nil {
+		if (protocol == fhttp.ProtocolHTTP2 || protocol == fhttp.ProtocolHTTP3) && l.asked != nil {
 			asked = l.asked()
 		}
 		if !http1 && withheld == nil && asked == nil {

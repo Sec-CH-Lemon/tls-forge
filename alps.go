@@ -64,12 +64,23 @@ func acceptCHOf(alps []byte, o origin) (string, bool) {
 	return "", false
 }
 
+// acceptCHAsked is what the ALPS of conn asks o for: over HTTP/3, the
+// ACCEPT_CH entries its transport read of it (quic-go-utls's fakeConn,
+// h3.alps_reader), whose frames are HTTP/3's; else those of its HTTP/2
+// frames (acceptCHOf).
+func acceptCHAsked(conn net.Conn, o origin) (string, bool) {
+	if q, ok := conn.(interface{ AcceptCH(string) (string, bool) }); ok {
+		return q.AcceptCH(o.String())
+	}
+	return acceptCHOf(alpsOf(conn), o)
+}
+
 // alpsHints are the client hints the ALPS of conn, the connection hop h of a
 // page's request goes out on, asks h's origin for that h does not carry, with
 // the profile's values, in Chrome's order: none when it asks for none, or for
 // none the profile has a value for, or when conn is not TLS.
 func (c *Client) alpsHints(conn net.Conn, h hop) Header {
-	value, ok := acceptCHOf(alpsOf(conn), h.to)
+	value, ok := acceptCHAsked(conn, h.to)
 	if !ok {
 		return nil
 	}

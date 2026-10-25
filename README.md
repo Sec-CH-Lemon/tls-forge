@@ -1989,7 +1989,7 @@ copies require rebuilding only to distribute changed embedded defaults. See
 [the behavior format and field reference](docs/profile-behavior.md).
 
 Unknown fields, incorrect types, duplicate behavior keys and unsupported
-capabilities fail before sending a request. HTTP/3 ALPS, ORIGIN
+capabilities fail before sending a request. HTTP/3 ORIGIN
 pooling and cross-version QUIC negotiation remain unavailable. A new protocol or
 algorithm needs engine support before a profile can select it. OS TCP behavior
 also remains a property of the host stack. Schema 0-2 profiles retain a documented
@@ -2334,8 +2334,10 @@ experimental HTTP/3 transport for every origin through
 establishment and sends the request once over the selected transport. The
 Chrome policy applies measured QUIC TLS 1.3 vectors and initial receive
 windows. The current QPACK decoder is stateless: table capacity and blocked
-streams remain zero, and nonzero configurations are refused. H3 ALPS
-bootstrap is unavailable and is not advertised. QUIC transport parameters, QPACK compression,
+streams remain zero, and nonzero configurations are refused. A Chrome
+profile's QUIC handshake is Chrome 155's, ALPS offered for h3 and what a server
+gives in it read as Chrome reads it ([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1),
+[ALPS for HTTP/3](docs/profile-behavior.md#alps-for-http3-unreleased-engine-1)). QUIC transport parameters, QPACK compression,
 discovery and complete lifecycle behavior still have differences; enabling
 this option does not establish a Chrome-equivalent H3 fingerprint.
 
@@ -2450,7 +2452,7 @@ parameters are omitted. Complete transport-parameter TLVs are shuffled and their
 GREASE identifiers are freshly drawn from the full reserved 62-bit family.
 
 The CID shape and these initial limits do not establish migration, loss recovery,
-HTTP/3 discovery, ALPS bootstrap, compatible version negotiation or
+HTTP/3 discovery, compatible version negotiation or
 Google-specific connection-option parity. Missing backend APIs remain open. See
 the shared browser knowledge base for exact source/build and paired wire evidence.
 
@@ -2471,7 +2473,7 @@ opening a socket and does not advertise cross-version negotiation support.
 Google option `ORIG` in parameter 12584 requests the HTTP/3 ORIGIN experiment.
 It does not describe the original destination CID. The current H3 backend lacks
 an ORIGIN consumer and corresponding authorized connection-pooling path, so the
-option remains unadvertised and those scenarios remain open. H3 ALPS bootstrap remains open until their required APIs exist.
+option remains unadvertised and those scenarios remain open.
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
 
@@ -2660,8 +2662,9 @@ over HTTP/3 as Chrome's goes (measured on Chrome 155 on macOS, 2026-10-25):
   and a record that comes later than the wait: TCP alone.
 
 Through a proxy, or with transport options of the caller's, nothing changes.
-`Alt-Svc` is not followed, and the QUIC handshake is not yet all Chrome's: no
-ALPS in its ClientHello, Initials laid out and sent again as quic-go does.
+`Alt-Svc` is not followed. The QUIC handshake is Chrome's, ALPS for `h3`
+offered and read as Chrome reads it
+([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1)).
 The profile fields are `dns.https_h3`, `quic.tcp_wait_*`, `quic.broken_*`,
 `quic.server_rtts_max` and `http.unused_idle_connection_timeout_ms`; a
 profile without them goes over HTTP/3 only when asked to

@@ -46,6 +46,11 @@ type alpnSettings struct {
 	code      uint16
 }
 
+// Unwrap is the ALPS extension itself, for a hello made of the spec that
+// offers ALPS for other protocols than this connection's (QUIC's, for h3:
+// tls-client's profileQUICSpec).
+func (e *alpnSettings) Unwrap() tls.TLSExtension { return e.TLSExtension }
+
 func (e *alpnSettings) offered() []string {
 	var out []string
 	if e.alpn != nil {

@@ -11,6 +11,53 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A Chrome profile's QUIC handshake is Chrome 155's, measured on macOS
+  against an own bench (tshark opening the packets): one packet number
+  counter for the three spaces from 1, a number as long as quiche's window
+  rule makes it (the first Initial's one byte, the second's two); the first
+  flight laid out as quiche's chaos protector lays it out, the hello's first
+  55 to 86 bytes and its end in the first Initial, its middle in the second,
+  each with 2 to 10 PINGs, its CRYPTO split and its padding spread; into
+  silence one probe 300 ms after the first flight, doubling, a number skipped
+  before each, every alarm 8 ms late; at 4 s of quiet a `CONNECTION_CLOSE`
+  with quiche's reason (`25:No recent network activity after 4008694us.
+  Timeout:4s num_undecryptable_packets: 0 {}`); no ACK of the server's
+  Initial when the handshake ends within a millisecond; a UDP socket
+  connected to the server, so that a port that answers ICMP unreachable ends
+  QUIC at once. Before, quic-go's: numbers from 0 in each space, two probes
+  200 ms after, a silent end at the handshake's timeout, QUIC going on to a
+  closed port until it. Its ClientHello offers ALPS for `h3` (12 extensions,
+  as Chrome's), and what a server gives in it is read as Chrome reads it,
+  measured over 51 variants in two cohorts: its SETTINGS taken, so that the
+  first request writes into the QPACK table it gives; ACCEPT_CH's hints on a
+  page's request; a frame ALPS may not carry, a field that does not read, a
+  second SETTINGS frame or a frame cut short closing the connection before
+  its Finished goes with PROTOCOL_VIOLATION and quiche's words; the server's
+  settings, ALPS's and the control stream's, taken as quiche takes them, a
+  refusal an application close with SETTINGS_ERROR and quiche's words, in the
+  Initial and Handshake packets too, as Chrome sends it (RFC 9000 would make
+  it `APPLICATION_ERROR`). The close of a client's coalesced packets now
+  fills its datagram to its size, where quic-go's went 16 bytes past it. An
+  ORIGIN frame in ALPS crashes Chrome 155's network service; tls-forge
+  abandons the QUIC connection without a word, and its TCP one takes the
+  request. New profile fields `quic.packet_numbers`,
+  `quic.first_packet_number`, `quic.packet_number_length`, `quic.pto_skip`,
+  `quic.pto_probes`, `quic.pto_initial_rtt_ms`,
+  `quic.pto_no_sample_multiplier`, `quic.pto_no_sample_min_ms`,
+  `quic.pto_rttvar_multiplier`, `quic.alarm_slack_ms`,
+  `quic.handshake_idle_timeout_ms`, `quic.handshake_timeout_ms`,
+  `quic.handshake_ack_timer_ms`, `quic.idle_close`, `quic.idle_close_code`,
+  `quic.idle_close_reason`, `quic.handshake_idle_close_reason`,
+  `quic.undecryptable_level_names`, `quic.initial_layout`, `quic.chaos_*`,
+  `quic.padding_position`, `quic.connected_socket`, `quic.alps_protocols`,
+  `quic.close_early_application`, `h3.alps_reader`, `h3.alps_origin_frames`,
+  `h3.alps_close_*`, `h3.alps_errors`, `h3.peer_settings`, `h3.settings_*`,
+  set in every shipped Chrome profile, with 17613 kept in
+  `quic.preserve_extensions`; without them a profile's QUIC is quic-go's, as
+  before. Not yet Chrome's: ECN marks, path MTU probes, a
+  `RETIRE_CONNECTION_ID` after the handshake, the first 1-RTT packet's
+  stream data.
+
 - A direct `https://` request to a name whose HTTPS record names `h3` goes
   over HTTP/3 as Chrome 155's does, measured on macOS against an own bench
   (two cohorts of 18 scenarios, and of 3 more): its QUIC connection to the
@@ -43,9 +90,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Chrome in 2 (in the other 2 its record came after the wait). `--keylog`
   and `WithKeyLogWriter` now take the secrets of QUIC connections too;
   `--pcap` does not capture them yet.
-  Not followed: `Alt-Svc`. The QUIC handshake is not yet all Chrome's: no
-  ALPS in its ClientHello, its Initials laid out and sent again as quic-go
-  does them.
+  Not followed: `Alt-Svc`.
 
 - A direct connection to a name asks its addresses and its HTTPS records
   (RFC 9460) of the machine's DNS servers itself, at the same time, as

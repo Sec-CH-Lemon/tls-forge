@@ -84,3 +84,17 @@ func TestSettingsFollowTheFinalALPNList(t *testing.T) {
 		t.Fatal("ALPS with no ALPN")
 	}
 }
+
+func TestTheALPSOfAQUICHelloIsTheExtensionItself(t *testing.T) {
+	// tls-client's profileQUICSpec takes the extension itself, to offer it for
+	// h3, which the ALPN bound here never offers
+	inner := &tls.ApplicationSettingsExtensionNew{SupportedProtocols: []string{"h2"}}
+	spec := settingsForALPN(tls.ClientHelloSpec{Extensions: []tls.TLSExtension{&tls.ALPNExtension{AlpnProtocols: []string{"h3"}}, inner}})
+	w, ok := spec.Extensions[1].(interface{ Unwrap() tls.TLSExtension })
+	if !ok || w.Unwrap() != tls.TLSExtension(inner) {
+		t.Fatalf("the bound ALPS gives %v", spec.Extensions[1])
+	}
+	if spec.Extensions[1].Len() != 0 {
+		t.Error("bound to an ALPN of h3, it offers h2's settings")
+	}
+}
