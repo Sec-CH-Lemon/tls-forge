@@ -35,6 +35,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/accept"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 )
 
 // limits is what one connection may cost, how many may cost it at once, and
@@ -57,7 +58,7 @@ type limits struct {
 	// its bytes dropped before it closes: closing with bytes unread sends a
 	// reset, which can lose the GOAWAY on its way.
 	linger time.Duration
-	// connections is how many are served at once, on both listeners: the
+	// connections is how many are served at once, on every listener: the
 	// next waits to be accepted until one ends.
 	connections int
 	// kept is how many the server keeps of the latest of each thing it keeps
@@ -164,14 +165,18 @@ func cloneNavigator(n *capture.Navigator) *capture.Navigator {
 
 // Server is the listener. The zero value is not usable; call Start.
 type Server struct {
-	listener         net.Listener
-	captureListener  net.Listener
+	listener        net.Listener
+	captureListener net.Listener
+	// twin and captureTwin are listener's and captureListener's at [::1], on
+	// their ports, where they have one (listenLoopback).
+	twin             net.Listener
+	captureTwin      net.Listener
 	tlsConfig        *tls.Config
 	captureTLSConfig *tls.Config
 	host             string
 	limits           limits
-	// slots holds a token for every connection being served, on both
-	// listeners, so that accept waits while it is full. Close ends that wait
+	// slots holds a token for every connection being served, on every
+	// listener, so that accept waits while it is full. Close ends that wait
 	// as it ends every connection, which frees their slots.
 	slots chan struct{}
 
@@ -242,7 +247,8 @@ type Option func(*options)
 
 // WithAddr sets the listen address. The default binds an ephemeral port on
 // loopback, which is what makes it safe to run several at once — in tests, for
-// instance.
+// instance: at 127.0.0.1 and at [::1] on that port, both of which localhost
+// names (listenLoopback).
 func WithAddr(addr string) Option { return func(o *options) { o.addr = addr } }
 
 // WithHost sets the hostname used in URL and in the certificate. "localhost"
@@ -286,15 +292,54 @@ func WithSessionTickets(enabled bool) Option { return func(o *options) { o.ticke
 // the HTTP/1.1 listener without the trip showing in what it sends.
 func WithManual(enabled bool) Option { return func(o *options) { o.manual = enabled } }
 
-// listenCapture binds the protocol-restricted listener beside the main one.
-// Named because the second bind can fail after the first succeeded, a branch a
-// test cannot otherwise reach without depending on the machine's network.
-var listenCapture = func(main net.Listener) (net.Listener, error) {
+// listen is net.Listen, named so a test can say what each bind finds.
+var listen = net.Listen
+
+// listenLoopback listens at addr, and at [::1] on the same port as well where
+// addr is 127.0.0.1 on a port the system picks, as by default
+// (localhost.Listen): the server's name is localhost unless it is told
+// another, which names both, and a browser of it tries [::1] first, as Chrome
+// does and Go's resolver on macOS. Whatever held the port there was what
+// answered: a capture waited out its timeout for a stand-in browser that had
+// reached another program's node worker at [::1] (2026-10-25). Where [::1]
+// takes no port, 127.0.0.1 alone, as before.
+func listenLoopback(addr string) (net.Listener, net.Listener, error) {
+	if host, port, _ := net.SplitHostPort(addr); host != "127.0.0.1" || port != "0" {
+		ln, err := listen("tcp", addr)
+		return ln, nil, err
+	}
+	v4, v6, err := localhost.Listen(listen)
+	if errors.Is(err, localhost.ErrNoIPv6) {
+		v4, err = listen("tcp", addr)
+	}
+	return v4, v6, err
+}
+
+// listenCapture binds the protocol-restricted listener beside the main one:
+// at its address, and at [::1] too where the main one is there as well
+// (twinned). Named because the second bind can fail after the first
+// succeeded, a branch a test cannot otherwise reach without depending on the
+// machine's network.
+var listenCapture = func(main net.Listener, twinned bool) (net.Listener, net.Listener, error) {
 	host, _, err := net.SplitHostPort(main.Addr().String())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return net.Listen("tcp", net.JoinHostPort(host, "0"))
+	addr := net.JoinHostPort(host, "0")
+	if twinned {
+		return listenLoopback(addr)
+	}
+	ln, err := listen("tcp", addr)
+	return ln, nil, err
+}
+
+// closeEach closes each listener that is there.
+func closeEach(listeners ...net.Listener) {
+	for _, l := range listeners {
+		if l != nil {
+			_ = l.Close()
+		}
+	}
 }
 
 // Start binds the listener and begins accepting. The caller must Close it.
@@ -319,13 +364,13 @@ func Start(opts ...Option) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	listener, err := net.Listen("tcp", cfg.addr)
+	listener, twin, err := listenLoopback(cfg.addr)
 	if err != nil {
 		return nil, fmt.Errorf("echo: listen: %w", err)
 	}
-	captureListener, err := listenCapture(listener)
+	captureListener, captureTwin, err := listenCapture(listener, twin != nil)
 	if err != nil {
-		_ = listener.Close()
+		closeEach(listener, twin)
 		return nil, fmt.Errorf("echo: listen for HTTP/1.1 capture: %w", err)
 	}
 
@@ -343,6 +388,8 @@ func Start(opts ...Option) (*Server, error) {
 	s := &Server{
 		listener:         listener,
 		captureListener:  captureListener,
+		twin:             twin,
+		captureTwin:      captureTwin,
 		tlsConfig:        tlsConfig,
 		captureTLSConfig: captureTLSConfig,
 		host:             cfg.host,
@@ -358,14 +405,19 @@ func Start(opts ...Option) (*Server, error) {
 	}
 	if s.manual {
 		if err := s.offerTickets(); err != nil {
-			_ = listener.Close()
-			_ = captureListener.Close()
+			closeEach(listener, twin, captureListener, captureTwin)
 			return nil, err
 		}
 	}
-	s.wg.Add(2)
-	go s.accept(false)
-	go s.accept(true)
+	for _, l := range []struct {
+		net.Listener
+		captureOnly bool
+	}{{listener, false}, {twin, false}, {captureListener, true}, {captureTwin, true}} {
+		if l.Listener != nil {
+			s.wg.Add(1)
+			go s.accept(l.Listener, l.captureOnly)
+		}
+	}
 	return s, nil
 }
 
@@ -442,7 +494,7 @@ func (s *Server) Close() error {
 	s.closeOnce.Do(func() {
 		close(s.closed)
 		err = s.listener.Close()
-		_ = s.captureListener.Close()
+		closeEach(s.captureListener, s.twin, s.captureTwin)
 
 		// Open connections have to be closed explicitly. A handler blocked
 		// reading from a kept-alive connection is not woken by closing the
@@ -463,12 +515,8 @@ func (s *Server) Close() error {
 	return err
 }
 
-func (s *Server) accept(captureOnly bool) {
+func (s *Server) accept(listener net.Listener, captureOnly bool) {
 	defer s.wg.Done()
-	listener := s.listener
-	if captureOnly {
-		listener = s.captureListener
-	}
 	var pause time.Duration
 	for {
 		conn, err := listener.Accept()
@@ -481,8 +529,8 @@ func (s *Server) accept(captureOnly bool) {
 		pause = 0
 		// A slot before it is served: while every one is taken, it waits, and
 		// the connections after it wait in the listener's queue. Taken after
-		// Accept, not before, since the two listeners share the slots: one
-		// waiting on an idle listener would hold a slot the other needs.
+		// Accept, not before, since the listeners share the slots: one
+		// waiting on an idle listener would hold a slot the others need.
 		s.slots <- struct{}{}
 		s.wg.Add(1)
 		go func() {

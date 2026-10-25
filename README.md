@@ -1694,7 +1694,7 @@ Usage: `tls-forge capture [flags]`
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
 | `--browser-arg <argument>` | Append a browser process argument; repeatable, mainly for CI environments |
 | `--manual` | Wait for a browser you open the page in yourself, rather than launching one; `--timeout` is then ten minutes unless given |
-| `--addr <host:port>` | With `--manual`, where to listen; default `127.0.0.1:0`. `0.0.0.0:8443` lets in a phone on this network |
+| `--addr <host:port>` | With `--manual`, where to listen; default `127.0.0.1:0`, and `[::1]` on the same port. `0.0.0.0:8443` lets in a phone on this network |
 | `--host <name>` | With `--manual`, the name the page is opened at, which its certificate is made for; default `localhost`. Not an address when a profile is kept: a browser names no server (SNI) to an address |
 
 A profile keeps some of the machine it was captured on, which every request
@@ -2100,7 +2100,7 @@ Usage: `tls-forge serve [flags]`
 
 | Flag | Meaning |
 |---|---|
-| `-a`, `--addr <host:port>` | Listen address; default `127.0.0.1:0` chooses an available port |
+| `-a`, `--addr <host:port>` | Listen address; default `127.0.0.1:0` chooses a port free at 127.0.0.1 and at `[::1]` and listens at both, as `localhost` names both; an address given is listened at alone |
 | `--host <hostname>` | Hostname used in the URL, certificate and SNI; default `localhost` |
 | `--session-tickets` | Enable TLS session resumption; disabled by default because resumption changes the fingerprint |
 

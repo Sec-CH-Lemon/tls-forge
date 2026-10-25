@@ -1540,6 +1540,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The measuring server answers localhost at [::1] too.** It listened at
+  127.0.0.1 alone, on a port the system picked, and gave its URL as
+  `https://localhost:PORT`; a client of localhost tries [::1] first (Chrome
+  does, and so does tls-forge's own client on macOS), so whatever another
+  program held at [::1] on that port answered instead. Here another program's
+  node workers did: `capture`'s stand-in browser in the tests reached one, and
+  the capture waited out its 30 seconds (`no capture from …: context deadline
+  exceeded`). By default (`127.0.0.1:0`, as `capture`, `compare` and `serve`
+  start it) it listens at both addresses now, its HTTP/1.1 listener too, each
+  on a port free at both; an address given with `--addr` is listened at alone,
+  and a machine with no IPv6 loopback address has 127.0.0.1 alone, as before.
+
 - **The bench takes a port free at both loopback addresses** for plain HTTP.
   It listened at 127.0.0.1 on the port the system gave and at [::1] on the
   same number, which another socket may hold there: macOS gives a port at

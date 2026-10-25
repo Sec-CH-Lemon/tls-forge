@@ -411,7 +411,7 @@ func TestRunningOutOfDescriptorsIsWaitedOut(t *testing.T) {
 		slots: make(chan struct{}, 1), closed: make(chan struct{}), ready: make(chan struct{}),
 		conns: map[net.Conn]struct{}{}, navigationByID: map[string]*Session{}, trusted: map[string]bool{}}
 	restarted.wg.Add(1)
-	go restarted.accept(false)
+	go restarted.accept(flaky, false)
 	t.Cleanup(func() { _ = restarted.Close() })
 
 	for i := range 2 {

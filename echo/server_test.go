@@ -882,8 +882,8 @@ func TestStartRejectsAnUnusableAddress(t *testing.T) {
 func TestStartReportsASecondListenerFailure(t *testing.T) {
 	original := listenCapture
 	t.Cleanup(func() { listenCapture = original })
-	listenCapture = func(net.Listener) (net.Listener, error) {
-		return nil, errors.New("no second port")
+	listenCapture = func(net.Listener, bool) (net.Listener, net.Listener, error) {
+		return nil, nil, errors.New("no second port")
 	}
 	if _, err := Start(); err == nil || !strings.Contains(err.Error(), "HTTP/1.1 capture") {
 		t.Errorf("Start error = %v", err)
@@ -900,7 +900,7 @@ type malformedAddrListener struct{ net.Listener }
 func (malformedAddrListener) Addr() net.Addr { return malformedListenerAddr{} }
 
 func TestListenCaptureReportsAMalformedMainAddress(t *testing.T) {
-	if _, err := listenCapture(malformedAddrListener{}); err == nil {
+	if _, _, err := listenCapture(malformedAddrListener{}, false); err == nil {
 		t.Error("a listener address without a port was accepted")
 	}
 }
