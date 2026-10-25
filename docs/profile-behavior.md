@@ -1140,6 +1140,7 @@ record of `h2` alone, or none.
 | `quic.tcp_wait_broken_ms` | The wait for a server whose QUIC broke lately (below), or is broken now. `0`. |
 | `quic.tcp_wait_rtt_percent`, `quic.tcp_wait_default_ms`, `quic.tcp_wait_extra_ms`, `quic.tcp_wait_max_ms` | Otherwise: this percent of the smoothed RTT the server's last QUIC connection measured, or the default where none is known, plus the extra, at most the maximum (`QuicSessionPool::GetTimeDelayForWaitingJob`). `150`, `300`, `0` (Chrome adds 100 ms on Android), `3000`. A QUIC connection that fails ends the wait: TCP goes at once. |
 | `quic.tcp_waits_with_connection` | Whether TCP waits when the origin has a TCP connection already, made or being made (`TargettedSocketGroupHasActiveSocket`). `false`: the request goes on it at once, and a QUIC connection is made apart for the requests after it. |
+| `quic.retry_over_tcp` | Whether a request its QUIC connection failed before its answer, for whatever reason but its own context's (its stream reset, its connection closed by either side), goes again over TCP, its body again where it can be had (`GetBody`, or none), and QUIC to the server is broken once TCP's answer came: Chromium's `QuicHttpStream::ComputeResponseStatus` says `ERR_QUIC_PROTOCOL_ERROR` of any request it sent that failed, which `HttpNetworkTransaction::HandleIOError` restarts with alternative services off (`retry_without_alt_svc_on_quic_errors`), marking the alternative service broken once the restart has read its body (`MarkAlternativeServiceBroken`). `true`. A request its QUIC connection could not take (gone before it went, or refused unprocessed) goes over TCP whatever this says, and breaks nothing. |
 | `quic.broken_ms`, `quic.broken_doublings`, `quic.broken_max_ms` | A QUIC connection that failed where the request's TCP one worked has QUIC to the server not tried for this long, doubled for each break before it lately, this many times at most, and at most this long (`BrokenAlternativeServices`, with its exponential backoff on the first delay). `300000` (5 minutes), `18`, `172800000` (2 days). A QUIC connection that works ends the server's breaks, its recent ones too. |
 | `quic.broken_recent_max`, `quic.server_rtts_max` | How many servers' recent breaks and how many servers' RTTs are kept, the least recently used forgotten first. `200`, `500`. |
 | `http.unused_idle_connection_timeout_ms` | How long a TCP connection that lost to QUIC waits unused for a request, closed when a request comes after that (`unused_idle_socket_timeout`, the pool's `CleanupIdleSockets`). `60000`. A request it takes and loses before any of its answer goes again, as on a socket Chrome's pool kept idle (`http.connection_error_retries`). |
@@ -1303,7 +1304,13 @@ application one in all three (quic-go's server refuses it in the Initial,
 `FRAME_ENCODING_ERROR`); the page then over HTTP/2. ACCEPT_CH's hints on the
 first request and the next; the first entry of an origin. With ALPS's QPACK
 settings and the control stream's 300 ms late, the first request set the
-capacity 4096 and inserted 13 fields. The library (`bench/h3client`, cohort
-`hl1`) closed alike in 49 of the 51, its encoder writing as Chrome's; in the
-two ORIGIN variants it falls back to HTTP/2 where Chrome's network service
-crashed and the page failed.
+capacity 4096 and inserted 13 fields. A request its connection failed went
+again over TCP, QUIC to the origin broken after (`quic.retry_over_tcp`,
+above). The library (`bench/h3client`, cohort `hl3`, and `hl4` with TCP's
+first answer 10 ms late) closed alike in 49 of the 51, its first request
+writing into the table ALPS gave; in the two ORIGIN variants it falls back
+to HTTP/2 where Chrome's network service crashed and the page failed. Its
+requests went over the protocols Chrome's did in 34 of the other 49, the
+rest where its TCP won the loopback race (as in «HTTP/3 from DNS HTTPS
+records»): with TCP late, in each of the 12 variants run so, one of them as
+Chrome's cohort `hpa` (in `hpb` Chrome made a second QUIC connection).

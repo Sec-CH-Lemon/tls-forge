@@ -857,9 +857,10 @@ func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
 	if err != nil || len(names) != 15 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
-	// Chromium 155's DNS ALPN job, measured on macOS (bench/h3) and read in
-	// its source (GetTimeDelayForWaitingJob, BrokenAlternativeServices,
-	// unused_idle_socket_timeout).
+	// Chromium 155's DNS ALPN job, measured on macOS (bench/h3, bench/h3alps)
+	// and read in its source (GetTimeDelayForWaitingJob,
+	// BrokenAlternativeServices, unused_idle_socket_timeout, HandleIOError
+	// with retry_without_alt_svc_on_quic_errors).
 	want := map[string]string{
 		"dns.https_h3":                           "true",
 		"quic.tcp_wait_cold_ms":                  "0",
@@ -869,6 +870,7 @@ func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
 		"quic.tcp_wait_extra_ms":                 "0",
 		"quic.tcp_wait_max_ms":                   "3000",
 		"quic.tcp_waits_with_connection":         "false",
+		"quic.retry_over_tcp":                    "true",
 		"quic.broken_ms":                         "300000",
 		"quic.broken_doublings":                  "18",
 		"quic.broken_max_ms":                     "172800000",

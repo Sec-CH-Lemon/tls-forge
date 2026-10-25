@@ -2656,6 +2656,9 @@ over HTTP/3 as Chrome's goes (measured on Chrome 155 on macOS, 2026-10-25):
   unused for a minute;
 - a request to an origin with a TCP connection already goes on it at once,
   a QUIC connection made apart for the next;
+- a request its QUIC connection failed before its answer (its stream reset,
+  its connection closed by either side) goes again over TCP, its body
+  again, and QUIC to the origin is then broken;
 - QUIC that failed where TCP did not is not tried again for five minutes,
   twice as long each time it fails again lately;
 - a record of `h2` alone, every record saying `no-default-alpn`, or none,
@@ -2665,8 +2668,9 @@ Through a proxy, or with transport options of the caller's, nothing changes.
 `Alt-Svc` is not followed. The QUIC handshake is Chrome's, ALPS for `h3`
 offered and read as Chrome reads it
 ([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1)).
-The profile fields are `dns.https_h3`, `quic.tcp_wait_*`, `quic.broken_*`,
-`quic.server_rtts_max` and `http.unused_idle_connection_timeout_ms`; a
+The profile fields are `dns.https_h3`, `quic.tcp_wait_*`,
+`quic.retry_over_tcp`, `quic.broken_*`, `quic.server_rtts_max` and
+`http.unused_idle_connection_timeout_ms`; a
 profile without them goes over HTTP/3 only when asked to
 (`WithProtocolRacing`). See
 [the field reference](docs/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).

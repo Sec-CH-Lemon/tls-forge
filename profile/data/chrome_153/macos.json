@@ -649,6 +649,7 @@
     "quic.pto_rttvar_multiplier": 2,
     "quic.pto_skip": "every-space",
     "quic.remove_grease_groups": true,
+    "quic.retry_over_tcp": true,
     "quic.server_rtts_max": 500,
     "quic.shuffle_extensions": true,
     "quic.shuffle_parameters": true,

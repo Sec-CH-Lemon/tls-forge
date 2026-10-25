@@ -208,8 +208,8 @@ func TestARecordWithoutH3OrAProfileWithoutItGoesOverTCPAlone(t *testing.T) {
 	off.Behavior["dns.https_h3"] = []byte("false")
 	for _, k := range []string{"quic.tcp_wait_cold_ms", "quic.tcp_wait_broken_ms", "quic.tcp_wait_rtt_percent",
 		"quic.tcp_wait_default_ms", "quic.tcp_wait_extra_ms", "quic.tcp_wait_max_ms", "quic.tcp_waits_with_connection",
-		"quic.broken_ms", "quic.broken_doublings", "quic.broken_max_ms", "quic.broken_recent_max", "quic.server_rtts_max",
-		"http.unused_idle_connection_timeout_ms"} {
+		"quic.retry_over_tcp", "quic.broken_ms", "quic.broken_doublings", "quic.broken_max_ms", "quic.broken_recent_max",
+		"quic.server_rtts_max", "http.unused_idle_connection_timeout_ms"} {
 		delete(off.Behavior, k)
 	}
 	if got := came(t, echClient(t, dns, WithProfileValue(off)), "https://h3.h3.test:"+site.port+"/"); got != "HTTP/2.0" {

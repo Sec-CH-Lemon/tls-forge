@@ -62,6 +62,10 @@ func startALPSSite(t *testing.T, alps func(origin string) []byte, control map[ui
 		cfg.ApplicationSettings = map[string][]byte{"h3": alps("https://h3.h3.test:" + s.port)}
 	}
 	h3 := &http3.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/slow" {
+			// answered late: the client reads the server's settings first
+			time.Sleep(300 * time.Millisecond)
+		}
 		_, _ = io.WriteString(w, said(r.Proto, r.Header.Get))
 	}), TLSConfig: cfg, AdditionalSettings: control,
 		ConnContext: func(ctx context.Context, c *quic.Conn) context.Context {
@@ -173,7 +177,11 @@ func TestAControlStreamsSettingsAreHeldToWhatALPSGaveAsChromes(t *testing.T) {
 	site := startALPSSite(t, func(string) []byte { return settings(1, 4096) }, map[uint64]uint64{1: 8192})
 	c := echClient(t, alpsNames(t))
 	url := "https://h3.h3.test:" + site.port + "/"
-	came(t, c, url)
+	// The request on the connection its client closes goes again over TCP,
+	// as Chrome's did (HTTP_TRANSACTION_RESTART_AFTER_ERROR, -356).
+	if got := came(t, c, url+"slow"); got != "HTTP/2.0 arch= model=" {
+		t.Errorf("the request in flight came over %q, want TCP's", got)
+	}
 	deadline := time.Now().Add(2 * time.Second)
 	for {
 		_, closed := site.seen()
@@ -189,9 +197,14 @@ func TestAControlStreamsSettingsAreHeldToWhatALPSGaveAsChromes(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	// and the next request goes over TCP, QUIC broken for the site
+	// and the next request goes over TCP, QUIC broken for the site: no QUIC
+	// connection made for it
 	if got := came(t, c, url+"again"); got != "HTTP/2.0 arch= model=" {
 		t.Errorf("the next came over %q", got)
+	}
+	time.Sleep(100 * time.Millisecond)
+	if hellos, _ := site.seen(); len(hellos) != 1 {
+		t.Errorf("%d QUIC hellos, want the one of the connection that failed", len(hellos))
 	}
 }
 

@@ -40,7 +40,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   fills its datagram to its size, where quic-go's went 16 bytes past it. An
   ORIGIN frame in ALPS crashes Chrome 155's network service; tls-forge
   abandons the QUIC connection without a word, and its TCP one takes the
-  request. New profile fields `quic.packet_numbers`,
+  request. A request a QUIC connection of a record's `h3` failed before its
+  answer, its stream reset or its connection closed by either side, now goes
+  again over TCP, its body again, and QUIC to the origin is broken once TCP
+  answered, as Chrome's did (`HTTP_TRANSACTION_RESTART_AFTER_ERROR`,
+  `ERR_QUIC_PROTOCOL_ERROR`); before, it failed with QUIC's error or
+  `http3: no cached connection was available`, and the next request made
+  another QUIC connection. New profile fields `quic.packet_numbers`,
   `quic.first_packet_number`, `quic.packet_number_length`, `quic.pto_skip`,
   `quic.pto_probes`, `quic.pto_initial_rtt_ms`,
   `quic.pto_no_sample_multiplier`, `quic.pto_no_sample_min_ms`,
@@ -50,9 +56,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `quic.idle_close_reason`, `quic.handshake_idle_close_reason`,
   `quic.undecryptable_level_names`, `quic.initial_layout`, `quic.chaos_*`,
   `quic.padding_position`, `quic.connected_socket`, `quic.alps_protocols`,
-  `quic.close_early_application`, `h3.alps_reader`, `h3.alps_origin_frames`,
-  `h3.alps_close_*`, `h3.alps_errors`, `h3.peer_settings`, `h3.settings_*`,
-  set in every shipped Chrome profile, with 17613 kept in
+  `quic.close_early_application`, `quic.retry_over_tcp`, `h3.alps_reader`,
+  `h3.alps_origin_frames`, `h3.alps_close_*`, `h3.alps_errors`,
+  `h3.peer_settings`, `h3.settings_*`, set in every shipped Chrome profile,
+  with 17613 kept in
   `quic.preserve_extensions`; without them a profile's QUIC is quic-go's, as
   before. Not yet Chrome's: ECN marks, path MTU probes, a
   `RETIRE_CONNECTION_ID` after the handshake, the first 1-RTT packet's
