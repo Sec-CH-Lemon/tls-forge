@@ -25,7 +25,7 @@ import (
 // so both directions can be checked without a network.
 func cookieEcho(t *testing.T) *httptest.Server {
 	t.Helper()
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/hop" {
 			// To the same server under another name, which is another host to a
 			// jar: what it sets there is not the asked-for host's.
@@ -45,6 +45,8 @@ func cookieEcho(t *testing.T) *httptest.Server {
 		sort.Strings(names)
 		_, _ = fmt.Fprint(w, strings.Join(names, " "))
 	}))
+	// At [::1] too, which /hop sends a client to by localhost.
+	atLocalhost(t, server).StartTLS()
 	t.Cleanup(server.Close)
 	return server
 }

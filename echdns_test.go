@@ -553,6 +553,9 @@ func startECHSite(t *testing.T, served []tls.EncryptedClientHelloKey, opens []ec
 		}
 		_, _ = io.WriteString(w, "ok "+r.Host)
 	}))
+	// At [::1] too: TestNoHTTPSRecordIsAskedForWhereChromeAsksForNone asks
+	// for it by localhost.
+	atLocalhost(t, srv)
 	srv.Listener = helloListener{srv.Listener, site}
 	srv.EnableHTTP2 = true
 	srv.TLS = &tls.Config{Certificates: []tls.Certificate{echSiteCertificate(t)}, EncryptedClientHelloKeys: served,

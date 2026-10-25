@@ -911,6 +911,8 @@ func TestRedirectChoosesTheLayoutOfTheNextConnection(t *testing.T) {
 		w.Header().Set("Location", target)
 		w.WriteHeader(http.StatusFound)
 	}))
+	// At [::1] too, as it is asked for by localhost below.
+	atLocalhost(t, redirect)
 	redirect.EnableHTTP2 = true
 	redirect.StartTLS()
 	t.Cleanup(redirect.Close)
@@ -992,6 +994,9 @@ func hopServer(t *testing.T) (*httptest.Server, *atomic.Int32) {
 			_, _ = w.Write([]byte("landed"))
 		}
 	}))
+	// At [::1] too: TestTraceWithNoHooksChangesNothing asks for it by
+	// localhost.
+	atLocalhost(t, server)
 	server.EnableHTTP2 = true
 	server.StartTLS()
 	t.Cleanup(server.Close)

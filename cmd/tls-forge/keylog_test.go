@@ -54,6 +54,9 @@ func keyedSite(t *testing.T, keys io.Writer) (*httptest.Server, *atomic.Int32) {
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprintf(w, "answer-%d", asked.Add(1))
 	}))
+	// At [::1] too: a SOCKS proxy is asked for it by localhost
+	// (TestFetchKeepsTheHandshakeWithASOCKSProxyInACapture).
+	atLocalhost(t, server)
 	server.EnableHTTP2 = true
 	server.TLS = &tls.Config{KeyLogWriter: keys}
 	server.StartTLS()

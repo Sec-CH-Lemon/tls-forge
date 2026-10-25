@@ -282,9 +282,11 @@ func TestDefaultJarEnforcesCookieScope(t *testing.T) {
 }
 
 func TestResponseCookiesBelongToTheFinalRedirectURL(t *testing.T) {
-	destination := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	destination := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: "final", Value: "1", Path: "/", Secure: true})
 	}))
+	// At [::1] too, as the redirect names it by localhost.
+	atLocalhost(t, destination).StartTLS()
 	t.Cleanup(destination.Close)
 	finalURL := strings.Replace(destination.URL, "127.0.0.1", "localhost", 1)
 

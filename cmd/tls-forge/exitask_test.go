@@ -62,7 +62,9 @@ func cloudflareSite(t *testing.T) *httptest.Server {
 			mu.Unlock()
 		}
 	}
-	server.StartTLS()
+	// At [::1] too, which a redirect to it by localhost leads a proxy to
+	// (TestASiteARedirectWentToIsAskedOverTheConnectionOfTheHop).
+	atLocalhost(t, server).StartTLS()
 	t.Cleanup(server.Close)
 	return server
 }
