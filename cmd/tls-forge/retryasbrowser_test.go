@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // seenRequest is a request a site was asked: what, with which fields and
@@ -62,6 +63,24 @@ func refusingOnce(t *testing.T, h2 bool) (*httptest.Server, func() []seenRequest
 	}
 }
 
+// hintOf is the value of a client hint the profile a run wears without
+// --profile sends when it is asked for: the machine's own, Sec-CH-UA-Arch
+// "arm" on a Mac and "x86" elsewhere.
+func hintOf(t *testing.T, name string) string {
+	t.Helper()
+	worn, err := profile.Get(defaultProfileName())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range worn.ClientHints {
+		if strings.EqualFold(f.Name, name) {
+			return f.Value
+		}
+	}
+	t.Fatalf("%s has no %s", worn.Name, name)
+	return ""
+}
+
 func TestFetchRetriesAsAPersonReloadsThePageInChrome(t *testing.T) {
 	for _, h2 := range []bool{true, false} {
 		t.Run(map[bool]string{true: "h2", false: "h1"}[h2], func(t *testing.T) {
@@ -80,7 +99,7 @@ func TestFetchRetriesAsAPersonReloadsThePageInChrome(t *testing.T) {
 				t.Errorf("the reload asked for %s on %s, the page came from %s", again.path, again.remote, first.remote)
 			}
 			for name, want := range map[string]string{"Cache-Control": "max-age=0", "Sec-Fetch-User": "?1",
-				"Sec-Fetch-Site": "none", "Cookie": "d=1", "Sec-Ch-Ua-Arch": `"arm"`} {
+				"Sec-Fetch-Site": "none", "Cookie": "d=1", "Sec-Ch-Ua-Arch": hintOf(t, "sec-ch-ua-arch")} {
 				if v := again.header.Get(name); v != want {
 					t.Errorf("the reload's %s is %q, want %q", name, v, want)
 				}
