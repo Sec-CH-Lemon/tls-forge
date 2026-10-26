@@ -607,8 +607,8 @@ func (a *attemptTrace) firstByte() {
 		// the whole request ends the sending instead, and so does a transport
 		// that says the request was written only after the answer began: what
 		// it says then is the sending's still (early).
-		switch {
-		case a.step == "send":
+		switch a.step {
+		case "send":
 			a.drawEarly()
 			a.early = &earlySend{since: a.since, at: at, facts: a.facts, kept: -1, said: make(chan struct{})}
 			if a.log != nil {
@@ -616,7 +616,7 @@ func (a *attemptTrace) firstByte() {
 				a.early.kept = len(a.log.Steps) - 1
 			}
 			a.step = ""
-		case a.step == "wait":
+		case "wait":
 			a.finish(at)
 		default:
 			return
