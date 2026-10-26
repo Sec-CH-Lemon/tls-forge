@@ -362,6 +362,16 @@ func TestTheCommandSaysWhyItMeasuredNothing(t *testing.T) {
 	}
 }
 
+// denied is how the system says it may not write a file whose mode keeps it
+// from being written: EACCES's words on Unix, ERROR_ACCESS_DENIED's on
+// Windows.
+func denied() string {
+	if runtime.GOOS == "windows" {
+		return "Access is denied"
+	}
+	return "permission denied"
+}
+
 func TestTheCommandSaysWhyItCouldNotWrite(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root writes a file it may not")
@@ -381,7 +391,7 @@ func TestTheCommandSaysWhyItCouldNotWrite(t *testing.T) {
 			t.Fatalf("Chmod: %v", err)
 		}
 		if code, _, stderr := measured(t, append([]string{"--browser", "chrome"}, args...)...); code != 1 ||
-			!strings.Contains(stderr, "permission denied") {
+			!strings.Contains(stderr, denied()) {
 			t.Errorf("%v: exit %d, %s", args, code, stderr)
 		}
 	}
@@ -612,7 +622,7 @@ func TestTheCommandSaysWhyItMeasuredNoHeaderBlocks(t *testing.T) {
 			t.Fatalf("Chmod: %v", err)
 		}
 		if code, _, stderr := measured(t, append(none, "--hpack", hpack, "--only", "hpack-fetch")...); code != 1 ||
-			!strings.Contains(stderr, "permission denied") {
+			!strings.Contains(stderr, denied()) {
 			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
 		}
 	}
@@ -693,7 +703,7 @@ func TestTheCommandSaysWhyItMeasuredNoRecords(t *testing.T) {
 			t.Fatalf("Chmod: %v", err)
 		}
 		if code, _, stderr := measured(t, append(none, "--records", records, "--only", "h1-records-header")...); code != 1 ||
-			!strings.Contains(stderr, "permission denied") {
+			!strings.Contains(stderr, denied()) {
 			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
 		}
 	}
@@ -773,7 +783,7 @@ func TestTheCommandSaysWhyItMeasuredNoALPS(t *testing.T) {
 			t.Fatalf("Chmod: %v", err)
 		}
 		if code, _, stderr := measured(t, append(none, "--alps", alps, "--only", "alps-none")...); code != 1 ||
-			!strings.Contains(stderr, "permission denied") {
+			!strings.Contains(stderr, denied()) {
 			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
 		}
 	}
@@ -850,7 +860,7 @@ func TestTheCommandSaysWhyItMeasuredNoWindowUpdates(t *testing.T) {
 			t.Fatalf("Chmod: %v", err)
 		}
 		if code, _, stderr := measured(t, append(none, "--flow", flow, "--only", "flow-small")...); code != 1 ||
-			!strings.Contains(stderr, "permission denied") {
+			!strings.Contains(stderr, denied()) {
 			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
 		}
 	}
@@ -952,7 +962,7 @@ func TestTheCommandSaysWhyItMeasuredNoURLs(t *testing.T) {
 			t.Fatalf("Chmod: %v", err)
 		}
 		if code, _, stderr := measured(t, append(none, "--urls", urls, "--only", "url-host-upper")...); code != 1 ||
-			!strings.Contains(stderr, "permission denied") {
+			!strings.Contains(stderr, denied()) {
 			t.Errorf("a fixture it may not write: exit %d, %s", code, stderr)
 		}
 	}

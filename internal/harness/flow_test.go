@@ -597,7 +597,7 @@ func TestAWindowUpdateMeasurementSaysWhyItIsNone(t *testing.T) {
 		!strings.Contains(err.Error(), context.Canceled.Error()) {
 		t.Errorf("a measurement stopped: %v", err)
 	}
-	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "none"))
+	tempNowhere(t)
 	if _, err := measureFlow(context.Background(), &flowBrowser{}, shapes, nil, quick, nil); err == nil {
 		t.Error("measured with nowhere to keep a profile")
 	}

@@ -346,7 +346,7 @@ func TestAFalseStartMeasurementSaysWhyItIsNone(t *testing.T) {
 	if err := <-done; err == nil || !strings.HasSuffix(err.Error(), "context canceled") {
 		t.Errorf("stopped while it waited after: %v", err)
 	}
-	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "none"))
+	tempNowhere(t)
 	if _, err := measureFalseStart(context.Background(), &fsBrowser{}, shapes, nil, quick, 0, nil); err == nil {
 		t.Error("measured with nowhere to keep a profile")
 	}

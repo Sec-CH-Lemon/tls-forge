@@ -510,8 +510,18 @@ func TestAMeasurementStopsWhenItsContextDoes(t *testing.T) {
 	}
 }
 
+// tempNowhere points every variable the system's temporary directory is read
+// from at one that is not there: TMPDIR on Unix, TMP and TEMP on Windows.
+func tempNowhere(t *testing.T) {
+	t.Helper()
+	none := filepath.Join(t.TempDir(), "none")
+	for _, name := range []string{"TMPDIR", "TMP", "TEMP"} {
+		t.Setenv(name, none)
+	}
+}
+
 func TestAMeasurementNeedsAPlaceForItsProfiles(t *testing.T) {
-	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "none"))
+	tempNowhere(t)
 	scenarios := map[string]scenario{"a": {start: "{A}/p/a", wait: "/p/a"}}
 	if _, err := measure(context.Background(), &fake{}, scenarios, nil, quick, nil); err == nil {
 		t.Error("measured with nowhere to keep a profile")
