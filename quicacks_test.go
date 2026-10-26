@@ -1,7 +1,9 @@
 package tlsforge
 
 import (
+	"fmt"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,17 +67,31 @@ func longDownload(control *quic.SendStream, str *quic.Stream) {
 }
 
 // download is what a bundleSite of longDownload heard of a client wearing p
-// downloading it, the client's ACK of the lone packet included.
+// downloading it, the client's ACK of the lone packet included. A loaded
+// machine may set QUIC up after the site's TCP, which answers a round trip
+// late, and the answer comes over TCP: such a run is run again.
 func download(t *testing.T, p *profile.Profile) *downloadSeen {
 	t.Helper()
-	port, heard := bundleSite(t, longDownload)
-	c := echClient(t, alpsNames(t), WithProfileValue(p))
-	res, err := c.Do(&Request{URL: "https://h3.h3.test:" + port + "/"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Body) != downloadSize {
-		t.Fatalf("came %q, want the long answer over QUIC", res.Body[:min(len(res.Body), 20)])
+	var heard *bundleHeard
+	var c *Client
+	for try := 1; ; try++ {
+		var port string
+		port, heard = bundleSite(t, longDownload)
+		c = echClient(t, alpsNames(t), WithProfileValue(p))
+		res, err := c.Do(&Request{URL: "https://h3.h3.test:" + port + "/"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(res.Body) == downloadSize {
+			break
+		}
+		if !strings.HasPrefix(res.Text(), "HTTP/") {
+			t.Fatalf("came %q, want the long answer over QUIC", res.Body[:min(len(res.Body), 20)])
+		}
+		if try == 3 {
+			t.Fatalf("came over TCP (%s) in each of three runs, want the long answer over QUIC", res.Text())
+		}
+		_ = c.Close()
 	}
 	// the control stream's type and SETTINGS come first on it
 	lone := heard.sentWith(3, int64(1+len(qpackTable)))
@@ -223,6 +239,44 @@ func (s *downloadSeen) loneDelay() time.Duration {
 	return s.heard.ackOf(s.lone).DelayTime
 }
 
+// disturbance is why the ACK of the lone packet says nothing of how long
+// the client waits for one, or "": a number among the four before it that
+// the client never acknowledged, skipped or lost, made it one of the four
+// after a gap (quic.ack_gap_packets), acknowledged at once; or the ACK is
+// of a later packet too, a probe the server sent before a loaded machine
+// fired the client's alarm.
+func (s *downloadSeen) disturbance() string {
+	for pn := s.lone - 4; pn < s.lone; pn++ {
+		if s.heard.ackOf(pn) == nil {
+			return fmt.Sprintf("%d, before the lone packet %d, never acknowledged", pn, s.lone)
+		}
+	}
+	if largest := s.heard.ackOf(s.lone).LargestAcked(); largest != s.lone {
+		return fmt.Sprintf("the lone packet %d acknowledged with %d", s.lone, largest)
+	}
+	return ""
+}
+
+// loneDownload is download of a client wearing p (probedLate, so that the
+// server's probe is due 200 ms after the lone packet, past any alarm of the
+// client's) whose ACK of the lone packet says how long it waited: a run with
+// a disturbance is run again.
+func loneDownload(t *testing.T, p *profile.Profile) *downloadSeen {
+	t.Helper()
+	p = probedLate(p)
+	var why []string
+	for range 4 {
+		s := download(t, p)
+		w := s.disturbance()
+		if w == "" {
+			return s
+		}
+		why = append(why, w)
+	}
+	t.Fatalf("the lone packet's ACK disturbed in every run: %s", strings.Join(why, "; "))
+	return nil
+}
+
 func TestALongDownloadIsAcknowledgedAsChromeAcknowledgesIt(t *testing.T) {
 	s := download(t, quicProfile(t, nil))
 	// two by two to the server's first packet number plus 100, ten by ten
@@ -256,30 +310,32 @@ func TestALongDownloadIsAcknowledgedAsChromeAcknowledgesIt(t *testing.T) {
 
 func TestHowALongDownloadIsAcknowledgedIsTheProfilesToSay(t *testing.T) {
 	// the JSON alone: no decimation, two by two to the end, and a lone
-	// packet as its timer says, 24 ms and 4 late (probedLate: a server's
-	// probe would otherwise come first)
+	// packet as its timer says, 24 ms and 4 late
 	off := map[string]string{}
 	for _, k := range []string{"quic.ack_decimation_after", "quic.ack_decimation_packets",
 		"quic.ack_decimation_rtt_percent", "quic.ack_decimation_min_ms"} {
 		off[k] = ""
 	}
-	s := download(t, probedLate(quicProfile(t, off)))
+	s := loneDownload(t, quicProfile(t, off))
 	if before, after, _ := s.mostFresh(10); before != 2 || after != 2 {
 		t.Errorf("without decimation, ACKs of at most %d and %d packets, want 2 throughout", before, after)
 	}
 	if d := s.loneDelay(); d < 28*time.Millisecond {
 		t.Errorf("without decimation, the lone packet acknowledged after %s, want 28 ms at least", d)
 	}
-	// five by five, and a floor of 10 ms, 2 late
-	s = download(t, quicProfile(t, map[string]string{"quic.ack_decimation_packets": "5", "quic.ack_decimation_min_ms": "10"}))
+	// five by five, and a floor of 10 ms, 2 late; a timer of 100 ms, so that
+	// the floor is told from the timer however late a loaded machine fires
+	// the alarm
+	s = loneDownload(t, quicProfile(t, map[string]string{"quic.ack_decimation_packets": "5",
+		"quic.ack_decimation_min_ms": "10", "quic.ack_timer_ms": "100"}))
 	if _, after, fives := s.mostFresh(5); after != 5 || fives < 80 {
 		t.Errorf("ACKs of at most %d packets after the 100th (%d of five), want 5", after, fives)
 	}
-	if d := s.loneDelay(); d < 12*time.Millisecond || d >= 28*time.Millisecond {
+	if d := s.loneDelay(); d < 12*time.Millisecond || d >= 100*time.Millisecond {
 		t.Errorf("a floor of 10 ms: the lone packet acknowledged after %s, want 12 ms or a little more", d)
 	}
 	// the slack whole, 4 ms, not a fifth of the delay
-	if d := download(t, quicProfile(t, map[string]string{"quic.ack_alarm_slack_percent": ""})).loneDelay(); d < 5*time.Millisecond {
+	if d := loneDownload(t, quicProfile(t, map[string]string{"quic.ack_alarm_slack_percent": ""})).loneDelay(); d < 5*time.Millisecond {
 		t.Errorf("the slack whole: the lone packet acknowledged after %s, want 5 ms at least", d)
 	}
 	// a PING in every fifth ACK packet
