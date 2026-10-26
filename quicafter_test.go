@@ -108,14 +108,24 @@ func afterSite(t *testing.T, reset bool) (string, *quicQlog) {
 }
 
 // afterHandshake is what the QUIC server of an afterSite heard of a request
-// of a client wearing p, then of the client's connection for hold, and what
-// the request came over.
+// of a client wearing p, then of the client's connection for hold, and of a
+// second request after it but where the server resets the first (that one
+// goes over TCP, QUIC broken); and what the first came over. quic-go sends a
+// path MTU probe only when it sends something once five round trips have
+// passed since the handshake, which the first request's packets did, or did
+// not, as a loaded machine had it: the second's do.
 func afterHandshake(t *testing.T, p *profile.Profile, reset bool, hold time.Duration) ([]qlog.PacketReceived, string) {
 	t.Helper()
 	port, heard := afterSite(t, reset)
 	c := echClient(t, alpsNames(t), WithProfileValue(p))
-	got := came(t, c, "https://h3.h3.test:"+port+"/")
+	url := "https://h3.h3.test:" + port + "/"
+	got := came(t, c, url)
 	time.Sleep(hold)
+	if !reset {
+		if again := came(t, c, url); again != got {
+			t.Fatalf("the second request came over %q, the first over %q", again, got)
+		}
+	}
 	_ = c.Close()
 	return heard.heard(), got
 }
