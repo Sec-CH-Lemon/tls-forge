@@ -3,6 +3,7 @@
 package deadlineconn
 
 import (
+	"errors"
 	"net"
 	"sync/atomic"
 	"time"
@@ -37,6 +38,16 @@ type Conn struct {
 // timeout to finish, so a large one to a peer that keeps reading, only slowly,
 // would be cut off by a bound meant for a peer that has stopped.
 const chunk = 64 << 10
+
+// CloseWrite shuts the writing side of the connection under it, where that
+// one can (a TCP connection's, a TLS connection's), and says
+// errors.ErrUnsupported where it cannot.
+func (c *Conn) CloseWrite() error {
+	if cw, ok := c.Conn.(interface{ CloseWrite() error }); ok {
+		return cw.CloseWrite()
+	}
+	return errors.ErrUnsupported
+}
 
 // Read refreshes the read deadline before waiting for input.
 func (c *Conn) Read(p []byte) (int, error) {

@@ -229,3 +229,55 @@ func TestSetDeadlineReportsEachSidesFailure(t *testing.T) {
 		t.Errorf("SetDeadline = %v, want the write side's failure", err)
 	}
 }
+
+func TestCloseWriteShutsTheWritingSideWhereItCan(t *testing.T) {
+	// A TCP connection: its peer reads to the end of what it was sent, and
+	// can still write back.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = ln.Close() })
+	accepted := make(chan net.Conn, 1)
+	go func() {
+		conn, err := ln.Accept()
+		if err != nil {
+			close(accepted)
+			return
+		}
+		accepted <- conn
+	}()
+	raw, err := net.Dial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = raw.Close() })
+	peer, ok := <-accepted
+	if !ok {
+		t.Fatal("nothing accepted")
+	}
+	t.Cleanup(func() { _ = peer.Close() })
+	conn := Wrap(raw, time.Minute).(*Conn)
+	if _, err := conn.Write([]byte("said")); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.CloseWrite(); err != nil {
+		t.Fatalf("CloseWrite: %v", err)
+	}
+	_ = peer.SetDeadline(time.Now().Add(5 * time.Second))
+	if got, err := io.ReadAll(peer); err != nil || string(got) != "said" {
+		t.Fatalf("the peer read %q, %v", got, err)
+	}
+	if _, err := peer.Write([]byte("back")); err != nil {
+		t.Fatal(err)
+	}
+	got := make([]byte, 4)
+	if _, err := io.ReadFull(conn, got); err != nil || string(got) != "back" {
+		t.Errorf("read %q, %v", got, err)
+	}
+	// One that cannot shut a side alone says so.
+	left, _ := pipe(t)
+	if err := Wrap(left, time.Minute).(*Conn).CloseWrite(); !errors.Is(err, errors.ErrUnsupported) {
+		t.Errorf("a pipe's CloseWrite: %v", err)
+	}
+}

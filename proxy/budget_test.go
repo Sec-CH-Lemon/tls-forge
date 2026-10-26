@@ -69,6 +69,57 @@ func endsWithin(t *testing.T, conn net.Conn, least, most time.Duration) []byte {
 	return said
 }
 
+// TestARefusedCallerIsReadOnUntilItHangsUp: a 431 with the rest of its
+// header still coming is the end of what the proxy sends (a FIN at once), and
+// what the caller sends after it is read and dropped rather than met with a
+// reset, which a Windows caller answers by throwing away the answer it had not
+// read yet (CI run 40399734448: the 431 without its body); for budget.linger
+// at most, and lingerBytes.
+func TestARefusedCallerIsReadOnUntilItHangsUp(t *testing.T) {
+	over := requestOf(t, 8192+4096+1, "")
+	// refused is a connection answered 431, its answer read to its end.
+	refused := func(t *testing.T, linger time.Duration) net.Conn {
+		t.Helper()
+		budgeted(t, func(b *budget) { b.headerBytes = 8192; b.linger = linger })
+		server, _ := startProxy(t, &counting{}, newCAForTest(t))
+		_, conn := through(t, server, over)
+		if said := string(endsWithin(t, conn, 0, time.Second)); !strings.HasSuffix(said, "request header exceeds 8192 bytes\n") {
+			t.Fatalf("answered %q", said)
+		}
+		return conn
+	}
+	// taken is how many of chunks writes of 16 KiB the proxy takes.
+	taken := func(conn net.Conn, chunks int) int {
+		_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+		for i := range chunks {
+			if _, err := conn.Write(make([]byte, 16<<10)); err != nil {
+				return i
+			}
+		}
+		return chunks
+	}
+	t.Run("read on", func(t *testing.T) {
+		conn := refused(t, 5*time.Second)
+		time.Sleep(100 * time.Millisecond)
+		if n := taken(conn, 16); n != 16 {
+			t.Errorf("the proxy took %d writes of 16 after its answer", n)
+		}
+	})
+	t.Run("for its linger", func(t *testing.T) {
+		conn := refused(t, 200*time.Millisecond)
+		time.Sleep(600 * time.Millisecond)
+		if n := taken(conn, 48); n == 48 {
+			t.Error("the proxy read on past its linger")
+		}
+	})
+	t.Run("for its bytes", func(t *testing.T) {
+		conn := refused(t, 10*time.Second)
+		if n := taken(conn, 256); n == 256 {
+			t.Errorf("the proxy read on past %d bytes", lingerBytes)
+		}
+	})
+}
+
 func TestAHeaderPastItsBudgetIsAnswered431(t *testing.T) {
 	// Plainly and in a tunnel. Refused at the budget and at most one buffer
 	// past it, never later: the bytes the reader holds already are not

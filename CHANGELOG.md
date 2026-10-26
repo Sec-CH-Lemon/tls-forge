@@ -1623,6 +1623,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **The `proxy` command's 431 reaches a client on Windows.** A request whose
+  header ran past its budget was answered 431 and its connection closed with
+  the rest of the header unread, which resets it: a Windows client throws
+  away what it had not read yet when that happens, and saw the answer
+  without its body. After such an answer the proxy now ends what it sends (a
+  FIN, or a TLS close_notify in a tunnel), then reads and drops what still
+  comes, for a second or 1 MiB at most, before it closes.
+
 - **A redirect's next request depends on no stream Chrome has closed.** The
   answer to a request with a body, a form's POST, whose HEADERS ended its
   stream was handed on before the stream left its connection's priority

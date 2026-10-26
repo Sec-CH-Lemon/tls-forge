@@ -55,6 +55,9 @@ type budget struct {
 	// connections is how many are served at once. The next one waits to be
 	// accepted until one of them ends: Chrome opens at most 32 to a proxy.
 	connections int
+	// linger is how long a connection refused with an answer is read on,
+	// what still comes dropped, before it is closed (lingered).
+	linger time.Duration
 }
 
 // defaultBudget is what Start serves with. A variable so that a test can make
@@ -65,6 +68,7 @@ var defaultBudget = budget{
 	handshake:   10 * time.Second,
 	headerBytes: 1 << 20,
 	connections: 1024,
+	linger:      time.Second,
 }
 
 // Client is the part of *tlsforge.Client the proxy needs, named so tests can
@@ -327,18 +331,38 @@ func (l *headerLimit) Read(p []byte) (int, error) {
 // is answered 431 and is the caller's doing; a connection that ended or went
 // quiet is an ordinary end; anything else is a failure, in the tunnel to
 // where when where is not empty.
-func (s *Server) unread(w io.Writer, err error, where string) {
+func (s *Server) unread(conn net.Conn, err error, where string) {
 	switch {
 	case errors.Is(err, errHeaderTooLarge):
-		_ = writeResponse(w, http.StatusRequestHeaderFieldsTooLarge,
+		_ = writeResponse(conn, http.StatusRequestHeaderFieldsTooLarge,
 			map[string][]string{"content-type": {"text/plain; charset=utf-8"}},
 			[]byte(fmt.Sprintf("request header exceeds %d bytes\n", s.budget.headerBytes)), "")
+		s.lingered(conn)
 	case isClosed(err):
 	case where != "":
 		s.opts.OnError(fmt.Errorf("proxy: reading a request for %s: %w", where, err))
 	default:
 		s.opts.OnError(fmt.Errorf("proxy: reading a request: %w", err))
 	}
+}
+
+// lingerBytes is the most a connection being lingered on is read of: a caller
+// still sending past it is cut off.
+const lingerBytes = 1 << 20
+
+// lingered ends a connection whose caller is still sending what will not be
+// read, after its answer: the writing side is shut (a TCP FIN, a TLS
+// close_notify), and what still comes is read and dropped until the caller
+// hangs up, budget.linger passes or lingerBytes came. Closed with bytes it
+// had not read, a connection is reset, and a caller whose system throws away
+// what it had not read yet when it is reset, as Windows does, loses the
+// answer (CI run 40399734448: a 431 without its body).
+func (s *Server) lingered(conn net.Conn) {
+	if cw, ok := conn.(interface{ CloseWrite() error }); ok {
+		_ = cw.CloseWrite()
+	}
+	_ = conn.SetReadDeadline(time.Now().Add(s.budget.linger))
+	_, _ = io.CopyN(io.Discard, conn, lingerBytes)
 }
 
 // bufferedConn is a connection read through the reader that already holds the
