@@ -17,8 +17,9 @@ docker run --rm --entrypoint sh "$image" -c '
   touch /work/.written && rm /work/.written
   touch "$HOME/.written" && rm "$HOME/.written"
   # Nothing answers on the port, which fails the request and not the keeping
-  # of the run.
-  tls-forge fetch --no-exit-lookup --timeout 2s --output kept http://127.0.0.1:9/ > /dev/null 2>&1 || true
+  # of the run. Not 9 (discard), nor any port Chrome sends nothing to: fetch
+  # refuses those as a usage error before it keeps anything.
+  tls-forge fetch --no-exit-lookup --timeout 2s --output kept http://127.0.0.1:59999/ > /dev/null 2>&1 || true
   ls kept | grep -q "^run-.*\.log$" || { echo "fetch kept no run under /work" >&2; exit 1; }
 '
 
