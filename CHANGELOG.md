@@ -1623,6 +1623,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Fixed
 
+- **A report, a trace and a kept request say what went out, whenever the
+  answer began.** The transport says a request was written right after its
+  write, which can come after the answer's first byte; the sending was then
+  over, and its header fields went unsaid (a JSON report's first try
+  without its request, on a loaded runner). What the transport says of a
+  sending its answer ended is now that sending's, the end of the try waiting
+  for it a moment (100 ms at most); a server that answers before it has read
+  the whole request has the sending end at its first byte, as before.
+
 - **The `proxy` command's 431 reaches a client on Windows.** A request whose
   header ran past its budget was answered 431 and its connection closed with
   the rest of the header unread, which resets it: a Windows client throws

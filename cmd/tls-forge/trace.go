@@ -348,7 +348,27 @@ type attemptTrace struct {
 	category string
 	since    int64
 	facts    stepFacts
+	// early is the sending a first byte ended before the transport said the
+	// request was written: kept in its place, and drawn once the transport
+	// says what went out (a moment after its flush, its hook runs late), or
+	// when another such sending or the try ends without it having said so.
+	early *earlySend
 }
+
+// earlySend is a sending its answer ended before it was said written: when it
+// began and ended, what was said of it, and where the record keeps it.
+type earlySend struct {
+	since, at int64
+	facts     stepFacts
+	kept      int
+	// said is closed once the transport says the request was written.
+	said chan struct{}
+}
+
+// earlyWait is how long the end of a try waits for the transport to say what
+// went out of a sending its answer ended: it says so right after its write,
+// which can come after the answer's first byte.
+const earlyWait = 100 * time.Millisecond
 
 // stepFacts is what a step of a try says beyond its name and how long it
 // took, gathered as the client reports it. One record, which the trace writes
@@ -566,26 +586,61 @@ func (a *attemptTrace) gotConn(conn tlsforge.ConnInfo) {
 
 func (a *attemptTrace) wroteRequest(sent tlsforge.Header, err error) {
 	a.when(func(at int64) {
-		if a.step != "send" {
-			return
+		switch {
+		case a.step == "send":
+			a.facts.written, a.facts.wrote = safeHeaders(sent), true
+			a.facts.fail(err, a.proxy)
+			a.finish(at)
+			a.begin("wait", "http", at)
+		case a.early != nil:
+			// Said after the answer began: still what that sending sent.
+			a.early.facts.written, a.early.facts.wrote = safeHeaders(sent), true
+			a.early.facts.fail(err, a.proxy)
+			a.drawEarly()
 		}
-		a.facts.written, a.facts.wrote = safeHeaders(sent), true
-		a.facts.fail(err, a.proxy)
-		a.finish(at)
-		a.begin("wait", "http", at)
 	})
 }
 
 func (a *attemptTrace) firstByte() {
 	a.when(func(at int64) {
 		// Normally the wait ends here. A server that answers before it has read
-		// the whole request ends the sending instead.
-		if a.step != "wait" && a.step != "send" {
+		// the whole request ends the sending instead, and so does a transport
+		// that says the request was written only after the answer began: what
+		// it says then is the sending's still (early).
+		switch {
+		case a.step == "send":
+			a.drawEarly()
+			a.early = &earlySend{since: a.since, at: at, facts: a.facts, kept: -1, said: make(chan struct{})}
+			if a.log != nil {
+				a.log.keep(a.step, micros(a.since-a.opened), micros(at-a.since), a.facts)
+				a.early.kept = len(a.log.Steps) - 1
+			}
+			a.step = ""
+		case a.step == "wait":
+			a.finish(at)
+		default:
 			return
 		}
-		a.finish(at)
 		a.begin("receive", "http", at)
 	})
+}
+
+// drawEarly draws the sending an answer ended early, with what has been said
+// of it, and fills in its record, if there is one waiting.
+func (a *attemptTrace) drawEarly() {
+	e := a.early
+	if e == nil {
+		return
+	}
+	a.early = nil
+	if a.lane != nil {
+		a.lane.span("send", "http", e.since, e.at, e.facts.args())
+	}
+	if e.kept >= 0 {
+		kept := &a.log.Steps[e.kept]
+		kept.Note, kept.Written = e.facts.note("send"), strings.Join(e.facts.written, "\n")
+	}
+	close(e.said)
 }
 
 func (a *attemptTrace) redirect(status int, location string) {
@@ -611,6 +666,18 @@ func (a *attemptTrace) end(res *tlsforge.Response, err error) {
 		return
 	}
 	a.mu.Lock()
+	var said chan struct{}
+	if a.early != nil {
+		said = a.early.said
+	}
+	a.mu.Unlock()
+	if said != nil {
+		select {
+		case <-said:
+		case <-time.After(earlyWait):
+		}
+	}
+	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	// A step that was still going when the try failed is where it failed, and
@@ -622,6 +689,7 @@ func (a *attemptTrace) end(res *tlsforge.Response, err error) {
 		a.facts.unfinished = true
 	}
 	at := a.at()
+	a.drawEarly()
 	a.finish(at)
 	a.over = true
 	if a.lane != nil {

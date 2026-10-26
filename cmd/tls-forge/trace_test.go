@@ -929,7 +929,9 @@ func TestTraceIgnoresWhatIsReportedOutOfTurn(t *testing.T) {
 	hooks.DNSStart("example.test")
 	hooks.DNSDone(nil, errors.New("no such host"))
 	hooks.GotConn(tlsforge.ConnInfo{Reused: true, RemoteAddr: "192.0.2.1:80"})
-	// A server that answers before it has read the whole request.
+	// A server that answers before it has read the whole request: the sending
+	// ends at the answer's first byte, and what the transport says of the
+	// request after is the sending's still.
 	hooks.FirstByte()
 	hooks.WroteRequest(tlsforge.NewHeader("host", "example.test"), errors.New("broken pipe"))
 	try.end(&tlsforge.Response{Status: 200, URL: "http://example.test/"}, nil)
@@ -950,8 +952,97 @@ func TestTraceIgnoresWhatIsReportedOutOfTurn(t *testing.T) {
 	}
 	// Plain HTTP on a connection already open: no handshake to describe.
 	sent := one(t, events, phaseComplete, "send")
-	if sent.Args["reused"] != true || sent.Args["tls"] != nil || sent.Args["headers"] != nil {
+	if sent.Args["reused"] != true || sent.Args["tls"] != nil || fmt.Sprint(sent.Args["headers"]) != "[host: example.test]" ||
+		sent.Args["error"] != "broken pipe" {
 		t.Errorf("the request was traced as %v", sent.Args)
+	}
+}
+
+func TestASendingItsAnswerEndedKeepsWhatIsSaidOfItAfter(t *testing.T) {
+	// The transport says a request was written after its write, which can be
+	// after the answer's first byte and even after the answer was read: the
+	// end of the try waits a moment for it (CI run 40403430568: a JSON
+	// report's first try without its request).
+	file := &brokenFile{}
+	traceInto(t, file)
+	trace, err := openTrace("anywhere", "fetch", "", now(), traceArgs{})
+	if err != nil {
+		t.Fatalf("openTrace: %v", err)
+	}
+	kept := &try{}
+	a := trace.main().attempt("GET", "http://example.test/", 1, 1, "", kept)
+	hooks := a.hooks()
+	hooks.GotConn(tlsforge.ConnInfo{RemoteAddr: "192.0.2.1:80"})
+	hooks.FirstByte()
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		hooks.WroteRequest(tlsforge.NewHeader("host", "example.test"), nil)
+	}()
+	a.end(&tlsforge.Response{Status: 200, URL: "http://example.test/"}, nil)
+	if len(kept.Steps) != 2 || kept.Steps[0].Name != "send" || kept.Steps[0].Written != "host: example.test" ||
+		kept.Steps[1].Name != "receive" {
+		t.Errorf("kept %+v", kept.Steps)
+	}
+	events := finished(t, file, trace)
+	if got := steps(events, mainLane); fmt.Sprint(got) != "[send receive]" {
+		t.Errorf("steps = %v", got)
+	}
+	if sent := one(t, events, phaseComplete, "send"); fmt.Sprint(sent.Args["headers"]) != "[host: example.test]" {
+		t.Errorf("the request was traced as %v", sent.Args)
+	}
+
+	// Never said: kept and drawn as it was, the end waiting earlyWait and no
+	// longer; and what comes after the end goes nowhere.
+	file = &brokenFile{}
+	traceInto(t, file)
+	if trace, err = openTrace("anywhere", "fetch", "", now(), traceArgs{}); err != nil {
+		t.Fatalf("openTrace: %v", err)
+	}
+	alone := &try{}
+	b := trace.main().attempt("GET", "http://example.test/", 1, 1, "", alone)
+	late := b.hooks()
+	late.GotConn(tlsforge.ConnInfo{RemoteAddr: "192.0.2.1:80"})
+	late.FirstByte()
+	began := time.Now()
+	b.end(&tlsforge.Response{Status: 200, URL: "http://example.test/"}, nil)
+	if took := time.Since(began); took < earlyWait || took > earlyWait+time.Second {
+		t.Errorf("the end waited %v, want %v", took, earlyWait)
+	}
+	late.WroteRequest(tlsforge.NewHeader("host", "example.test"), nil)
+	if len(alone.Steps) != 2 || alone.Steps[0].Name != "send" || alone.Steps[0].Written != "" {
+		t.Errorf("kept %+v", alone.Steps)
+	}
+	events = finished(t, file, trace)
+	if sent := one(t, events, phaseComplete, "send"); sent.Args["headers"] != nil {
+		t.Errorf("a request never said written was traced as %v", sent.Args)
+	}
+
+	// A hop that ended early is drawn as it was once the next hop's answer
+	// comes, and the next hop's sending is its own.
+	file = &brokenFile{}
+	traceInto(t, file)
+	if trace, err = openTrace("anywhere", "fetch", "", now(), traceArgs{}); err != nil {
+		t.Fatalf("openTrace: %v", err)
+	}
+	hops := &try{}
+	c := trace.main().attempt("GET", "http://example.test/", 1, 1, "", hops)
+	h := c.hooks()
+	h.GotConn(tlsforge.ConnInfo{RemoteAddr: "192.0.2.1:80"})
+	h.FirstByte()
+	h.Redirect(302, "http://example.test/next")
+	h.GotConn(tlsforge.ConnInfo{Reused: true, RemoteAddr: "192.0.2.1:80"})
+	h.FirstByte()
+	h.WroteRequest(tlsforge.NewHeader("host", "next"), nil)
+	c.end(&tlsforge.Response{Status: 200, URL: "http://example.test/next"}, nil)
+	var written []string
+	for _, s := range hops.Steps {
+		written = append(written, s.Name+"="+s.Written)
+	}
+	if got := strings.Join(written, " "); got != "send= receive= redirect= send=host: next receive=" {
+		t.Errorf("kept %s", got)
+	}
+	if got := steps(finished(t, file, trace), mainLane); fmt.Sprint(got) != "[send receive redirect send receive]" {
+		t.Errorf("steps = %v", got)
 	}
 }
 
