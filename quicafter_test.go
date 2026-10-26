@@ -214,11 +214,16 @@ func TestWhatAQUICClientSendsAfterItsHandshakeIsTheProfilesToSay(t *testing.T) {
 	}
 }
 
-// requestResets are the RESET_STREAM frames heard of request streams.
+// requestResets are the RESET_STREAM frames heard of request streams, one a
+// stream: a frame sent again, its packet's acknowledgement late, is the same
+// reset (quic-go-utls's own test heard one three times, 1 run in 4 under
+// load).
 func requestResets(packets []qlog.PacketReceived) []*qlog.ResetStreamFrame {
 	var resets []*qlog.ResetStreamFrame
+	seen := map[quic.StreamID]bool{}
 	for _, f := range heardFrames[*qlog.ResetStreamFrame](packets...) {
-		if f.StreamID%4 == 0 {
+		if f.StreamID%4 == 0 && !seen[f.StreamID] {
+			seen[f.StreamID] = true
 			resets = append(resets, f)
 		}
 	}
