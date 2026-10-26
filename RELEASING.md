@@ -118,10 +118,12 @@ other change: what each action's new commit changes is part of it.
 ## A dry run
 
 ```bash
-gh workflow run release.yml --ref main -f version=X.Y.Z
+gh workflow run release.yml --ref main
 ```
 
-`dry_run` is on unless it is turned off. A dry run builds and checks the set
+`dry_run` is on unless it is turned off. Off a tag it builds the engine's
+version (`engine/version.json`), the only one a set is built of;
+`-f version=X.Y.Z` names it, and any other is refused. A dry run builds and checks the set
 as a release does, runs the gate when the reference can be restored, and asks
 the draft, npm and PyPI what each has, saying what it would give each. It
 stores, signs and publishes nothing. Run on a tag, it takes the set the tag

@@ -126,8 +126,9 @@ check: vet lint test cover node-test python-test python-typecheck docs-check gen
 # packaging can be looked at before a version number is spent: a published
 # version cannot be taken back on npm, on PyPI or in a git tag someone has
 # already fetched. The set's manifest names HEAD, whatever the working tree
-# holds. See RELEASING.md.
-RELEASE_VERSION ?= 0.0.0
+# holds. The version is the engine's (engine/version.json), the only one
+# release-build.mjs builds a set of. See RELEASING.md.
+RELEASE_VERSION ?= $(VERSION)
 dist:
 	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
 	@$(VENV)/bin/pip install -q build wheel

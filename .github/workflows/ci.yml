@@ -307,13 +307,16 @@ jobs:
     timeout-minutes: 25
     # Does a release still build?
     #
-    # The release's own path, scripts/release-build.mjs, makes the set of
-    # 0.0.0 for this commit, every file a tag would publish with its
-    # SHA256SUMS and manifest.json; without this the first tag would be the
-    # first time the packaging ran, and a release that fails halfway has
-    # published to whichever registry came first. Storing and publishing are
-    # all that is left out.
+    # The release's own path, scripts/release-build.mjs, makes the set of the
+    # engine's version (engine/version.json, the only one it builds) for this
+    # commit, every file a tag would publish with its SHA256SUMS and
+    # manifest.json; without this the first tag would be the first time the
+    # packaging ran, and a release that fails halfway has published to
+    # whichever registry came first. Storing and publishing are all that is
+    # left out.
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -327,7 +330,9 @@ jobs:
         with:
           python-version: '3.13'
       - run: pip install build wheel
-      - run: node scripts/release-build.mjs --version 0.0.0 --commit "$GITHUB_SHA" --out dist/set --python python
+      - id: version
+        run: echo "version=$(jq -r .version engine/version.json)" >> "$GITHUB_OUTPUT"
+      - run: node scripts/release-build.mjs --version "${{ steps.version.outputs.version }}" --commit "$GITHUB_SHA" --out dist/set --python python
 
       # The oldest hatchling pyproject.toml allows builds the distributions as
       # well, and as scripts/pypi-release.py checks them, licence metadata and
@@ -342,7 +347,7 @@ jobs:
             printf '#!/bin/sh\n' > "$RUNNER_TEMP/bin/tls-forge-$target"
           done
           printf 'MZ' > "$RUNNER_TEMP/bin/tls-forge-windows-amd64.exe"
-          PIP_CONSTRAINT="$RUNNER_TEMP/floor.txt" python scripts/pypi-release.py --version 0.0.0 \
+          PIP_CONSTRAINT="$RUNNER_TEMP/floor.txt" python scripts/pypi-release.py --version "${{ steps.version.outputs.version }}" \
             --binaries "$RUNNER_TEMP/bin" --out "$RUNNER_TEMP/floor"
 
       # The set crosses to the native runners as it is: archives, npm tarballs
@@ -383,8 +388,8 @@ jobs:
         with:
           name: release-set
           path: set
-      - run: node scripts/release-set.mjs verify --dir set --version 0.0.0 --commit ${{ github.sha }}
-      - run: node scripts/check-release-packages.mjs --version 0.0.0 --set set --python python
+      - run: node scripts/release-set.mjs verify --dir set --version ${{ needs.packaging.outputs.version }} --commit ${{ github.sha }}
+      - run: node scripts/check-release-packages.mjs --version ${{ needs.packaging.outputs.version }} --set set --python python
 
   docker:
     timeout-minutes: 30
@@ -397,7 +402,9 @@ jobs:
       - run: scripts/check-docker-context.sh
       # Built and run, not merely built: an image whose binary cannot start is
       # not a working image, and nothing else in the repository would notice.
-      - run: docker build --build-arg VERSION=ci -t tls-forge:ci .
+      # Stamped as a release stamps it, with the engine's version: the binary
+      # refuses to run under any other (engine.CheckBuildVersion).
+      - run: docker build --build-arg VERSION="$(jq -r .version engine/version.json)" -t tls-forge:ci .
       - run: docker run --rm tls-forge:ci version
       - run: docker run --rm tls-forge:ci profiles
       # As somebody other than root, who can write where it works and where
@@ -406,7 +413,7 @@ jobs:
       # Both platforms a release publishes, the other one under emulation.
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - run: docker buildx build --platform linux/amd64,linux/arm64 --build-arg VERSION=ci .
+      - run: docker buildx build --platform linux/amd64,linux/arm64 --build-arg VERSION="$(jq -r .version engine/version.json)" .
 
   browser:
     timeout-minutes: 20

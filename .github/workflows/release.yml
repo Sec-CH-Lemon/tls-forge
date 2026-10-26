@@ -1,7 +1,9 @@
 name: release
 
-# A release is a tag, and the tag is the version: nothing reads one out of a
-# committed file, and every package is stamped from it.
+# A release is a tag, and the tag is the version: every package is stamped
+# from it, and it must be the engine's (engine/version.json), the only one a
+# set is built of. A dry run off a tag builds the engine's unless told
+# another.
 #
 # The release's set, every file it publishes, is built once from the tag's
 # commit, checked on every platform, and stored in the tag's draft GitHub
@@ -21,9 +23,9 @@ on:
         type: boolean
         default: true
       version:
-        description: The version a dry run that is not on a tag builds
+        description: The version a dry run that is not on a tag builds (the engine's, engine/version.json, when not given)
         type: string
-        default: 0.0.0-dev.0
+        default: ''
 
 permissions:
   contents: read
@@ -67,7 +69,7 @@ jobs:
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             version=${GITHUB_REF_NAME#v}
           elif [ "$dry_run" = true ]; then
-            version=$ASKED
+            version=${ASKED:-$(jq -r .version engine/version.json)}
           else
             echo "::error::a release runs on its tag, and $GITHUB_REF_NAME is a branch" >&2
             exit 1
