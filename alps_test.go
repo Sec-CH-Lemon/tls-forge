@@ -91,34 +91,46 @@ func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.
 			if len(port) != 5 {
 				t.Fatalf("the bench listens on %s; Chrome was measured on ports of five digits", port)
 			}
-			server.Reset()
-			client := newTestClient(t, WithProfileValue(chrome), WithTimeout(5*time.Second),
-				WithTransportOption(tls_client.WithDialContext(
-					func(ctx context.Context, network, addr string) (net.Conn, error) {
-						_, at, _ := net.SplitHostPort(addr)
-						return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", at))
-					})))
 			origin := "https://www.example.com:" + port
 			run := origin + page.asked[0].path
-			for i, ask := range page.asked {
-				browser := &BrowserContext{Kind: ask.kind}
-				switch {
-				case i == 0 && page.lobby:
-					browser.Initiator = "http://www.example.com:" + strconv.Itoa(server.Plain) + "/p/lobby?after=2&next=" + run
-				case ask.fromPage:
-					browser.Initiator = run
-				}
-				req := &Request{Method: ask.method, URL: origin + ask.path, Body: capturedBody(ask.body), Browser: browser}
-				if _, err := client.Do(req); err != nil {
-					if i == 0 {
-						// The page did not load, and asked nothing.
-						break
+			// A connection the client refuses is kept by its GOAWAY, after
+			// which the client resets it, as Chrome does; Windows throws away
+			// what its server had not read when the reset comes, and the
+			// connection is not seen (CI runs 40222769334 and 40399734448:
+			// one and two replays of 219). It is asked again, three times at
+			// most: a client that sends no GOAWAY is seen in none.
+			var got harness.ALPSScenario
+			for try := 1; ; try++ {
+				server.Reset()
+				client := newTestClient(t, WithProfileValue(chrome), WithTimeout(5*time.Second),
+					WithTransportOption(tls_client.WithDialContext(
+						func(ctx context.Context, network, addr string) (net.Conn, error) {
+							_, at, _ := net.SplitHostPort(addr)
+							return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", at))
+						})))
+				for i, ask := range page.asked {
+					browser := &BrowserContext{Kind: ask.kind}
+					switch {
+					case i == 0 && page.lobby:
+						browser.Initiator = "http://www.example.com:" + strconv.Itoa(server.Plain) + "/p/lobby?after=2&next=" + run
+					case ask.fromPage:
+						browser.Initiator = run
 					}
-					t.Fatalf("%s %s: %v", ask.method, req.URL, err)
+					req := &Request{Method: ask.method, URL: origin + ask.path, Body: capturedBody(ask.body), Browser: browser}
+					if _, err := client.Do(req); err != nil {
+						if i == 0 {
+							// The page did not load, and asked nothing.
+							break
+						}
+						t.Fatalf("%s %s: %v", ask.method, req.URL, err)
+					}
+				}
+				client.CloseIdleConnections()
+				got = settledALPS(t, server, want.Note, page.variant, len(want.Handshakes))
+				if len(got.Handshakes) >= len(want.Handshakes) || try == 3 {
+					break
 				}
 			}
-			client.CloseIdleConnections()
-			got := settledALPS(t, server, want.Note, page.variant, len(want.Handshakes))
 			diffs := harness.DiffALPS(want, got)
 			if why := alpsDiffer[scenario]; why != "" {
 				if len(diffs) == 0 {
@@ -138,8 +150,8 @@ func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.
 // should have, the same for 100 ms on end, or what it was after five seconds.
 // A client's handshake is done before the server has read its Finished, and
 // its SETTINGS and GOAWAY are read after it is done: a connection refused
-// with a GOAWAY counts once its GOAWAY is read, which a loaded Windows runner
-// took more than 100 ms to do (run 40222769334, alps-settings-connect-2).
+// with a GOAWAY counts once its GOAWAY is read, which a loaded runner may take
+// longer than 100 ms of quiet to do.
 func settledALPS(t *testing.T, server *harness.Server, note, variant string, handshakes int) harness.ALPSScenario {
 	t.Helper()
 	var got harness.ALPSScenario
