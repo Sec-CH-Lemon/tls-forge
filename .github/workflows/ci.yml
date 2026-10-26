@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   go:
-    timeout-minutes: 25
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -34,15 +34,18 @@ jobs:
       # wall clock on the others.
       # -timeout so a test that hangs is killed by Go, which prints a goroutine
       # dump naming it, rather than by the job's ceiling, which prints nothing.
+      # Under -race the root package and the CLI's take about five minutes
+      # each, waiting more than working (292 s and 279 s on a 14-core Mac,
+      # 2026-10-26); 5m cut both short on a runner (run 40222769334).
       - name: test
         if: matrix.os == 'ubuntu-latest'
-        run: go test -race -timeout 5m ./...
+        run: go test -race -timeout 20m ./...
       - name: test
         if: matrix.os != 'ubuntu-latest'
-        run: go test -timeout 5m ./...
+        run: go test -timeout 10m ./...
 
   coverage:
-    timeout-minutes: 20
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

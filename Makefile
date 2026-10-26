@@ -14,8 +14,9 @@ build:
 
 # -timeout well under the CI job's ceiling, so a test that hangs is killed by
 # Go — which prints a goroutine dump naming it — rather than by the runner,
-# which prints nothing and leaves you guessing. The whole suite is seconds.
-TESTFLAGS ?= -timeout 5m
+# which prints nothing and leaves you guessing. Under -race the root package
+# and the CLI's take about five minutes each, waiting more than working.
+TESTFLAGS ?= -timeout 20m
 
 test:
 	$(GO) test -race $(TESTFLAGS) ./...
