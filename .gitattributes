@@ -1,3 +1,10 @@
-# These fixtures pin exact protocol bytes. Keep their generated LF endings on
-# Windows so checkout conversion cannot look like a wire-format change.
-/testdata/protocol/*.json text eol=lf
+# Every text file keeps LF on every checkout, Windows' too. Tests hold what
+# is committed to the bytes it is written as: the protocol fixtures and the
+# measured ones read and written again, a shipped profile to what Save writes,
+# the report's template text, the Node SDK's tests reading its own source.
+# A Windows checkout made them CRLF (core.autocrlf) and every one of those
+# differed there (CI run 40222769334).
+* text=auto eol=lf
+
+# Captured bytes, never text, whatever they happen to hold.
+*.bin binary
