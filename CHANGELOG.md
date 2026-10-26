@@ -1315,8 +1315,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 - **The forks are required as pushed.** `go.mod` names utls, fhttp,
   websocket, quic-go-utls and tls-client at the commits their `tls-forge`
-  branches were pushed at on 2026-10-25, so tls-forge builds and passes its
-  tests without a `go.work` beside the forks' checkouts; the pins before
+  branches were last pushed at (2026-10-26), so tls-forge builds and passes
+  its tests without a `go.work` beside the forks' checkouts; the pins before
   were of 2026-10-19 and 2026-10-20, and only that workspace built. With
   them, an HTTP/2 connection just closed no longer counts as one the origin
   has, so a request meant to wait behind QUIC waits as Chrome's does (the
@@ -1622,6 +1622,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `dist/npm` and `dist/pypi`, unpacked and with no checksums.
 
 ### Fixed
+
+- **A redirect's next request depends on no stream Chrome has closed.** The
+  answer to a request with a body, a form's POST, whose HEADERS ended its
+  stream was handed on before the stream left its connection's priority
+  lists, so a hop sent at once could depend on it (`h2.priority_dependency`):
+  on a Linux runner a form's 302 hop said `1 1 255` where Chrome says
+  `1 0 255`. The stream leaves them first now, and an answer let go of
+  unread (a redirect's, a 401's, a Critical-CH restart's) leaves them as it
+  is let go of, as Chrome closes its stream at once, however long its body
+  is then waited for. A preflight's, waited on for its first bytes, stays
+  until they come, as Chrome kept one open 7 s.
+
+- **`fetch --pcap` on Windows keeps what a QUIC connection received.** The
+  capture held the datagrams it sent and none it was sent: quic-go reads a
+  socket there one datagram at a time, which the capture did not see. Those
+  reads are kept too now.
 
 - **A key log that fails once no longer holds up every later handshake.** A
   `WithKeyLogWriter` writer whose write failed failed its handshake, as
