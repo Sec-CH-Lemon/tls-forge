@@ -210,7 +210,7 @@ func TestFetchLogsHowARunThatFailedEnded(t *testing.T) {
 		t.Errorf("the 503 was said as %v", warned)
 	}
 	if failed := byURL[nowhere]; failed.get("outcome") != "no_response" ||
-		failed.get("level") != "WARN" || !strings.Contains(failed.get("error"), "connection refused") {
+		failed.get("level") != "WARN" || !strings.Contains(failed.get("error"), "refused") {
 		t.Errorf("the request that got nothing was said as %v", failed)
 	}
 	if ended := recordsOf(records, "run ended"); len(ended) != 1 || ended[0].get("level") != "WARN" ||

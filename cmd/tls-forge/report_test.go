@@ -315,16 +315,20 @@ func TestWriteReport(t *testing.T) {
 }
 
 func TestLinkTo(t *testing.T) {
-	for _, tc := range []struct{ file, report, want string }{
+	cases := []struct{ file, report, want string }{
 		// Beside the report, and below where it is.
 		{"out/a-trace.json", "out/report.html", "a-trace.json"},
 		{"out/a-trace.json", "report.html", "out/a-trace.json"},
 		// Somewhere else, which is up and down again, escaped as a URL is.
 		{"out/a-trace.json", "reports/r.html", "../out/a-trace.json"},
 		{"/runs/out/trace a#1?.json", "/runs/reports/r.html", "../out/trace%20a%231%3F.json"},
-		// A colon in the first part of a path does not make it a scheme.
-		{"c:odd.json", "r.html", "./c:odd.json"},
-	} {
+	}
+	if runtime.GOOS != "windows" {
+		// A colon in the first part of a path does not make it a scheme. On
+		// Windows it makes it a drive's, c:, which the report links to in full.
+		cases = append(cases, struct{ file, report, want string }{"c:odd.json", "r.html", "./c:odd.json"})
+	}
+	for _, tc := range cases {
 		if got := linkTo(tc.file, tc.report); string(got) != tc.want {
 			t.Errorf("linkTo(%q, %q) = %q, want %q", tc.file, tc.report, got, tc.want)
 		}

@@ -351,7 +351,7 @@ func TestFetchReportsASessionItCannotWrite(t *testing.T) {
 	if code != 1 || stdout != "the page" {
 		t.Errorf("exit code = %d and stdout = %q, want 1 and the page", code, stdout)
 	}
-	if !strings.Contains(stderr, "tlsforge: mkdir "+later+": not a directory") || strings.Contains(stderr, "saved") {
+	if !strings.Contains(stderr, "tlsforge: "+inTheWay(later)) || strings.Contains(stderr, "saved") {
 		t.Errorf("stderr does not say why the session was not saved, or says it was:\n%s", stderr)
 	}
 
@@ -462,7 +462,14 @@ func TestListReportsASessionItCannotWrite(t *testing.T) {
 	path := filepath.Join(later, "w.json")
 	code, _, stderr := exec(t, "fetch", "--save-cookies", path,
 		"--progress", "never", server.URL+"/one", server.URL+"/two")
-	if code != 1 || !strings.Contains(stderr, "tlsforge: reading existing sessions from "+path) {
+	// Windows says a path through a file is not there (ERROR_PATH_NOT_FOUND),
+	// so the run reads no sessions and finds the file in the way of making
+	// the directory the new ones go in.
+	why := "tlsforge: reading existing sessions from " + path
+	if runtime.GOOS == "windows" {
+		why = "tlsforge: " + inTheWay(later)
+	}
+	if code != 1 || !strings.Contains(stderr, why) {
 		t.Errorf("exit code = %d, want 1 and why the session was not saved\n%s", code, stderr)
 	}
 	if got := asked.Load(); got != 2 {

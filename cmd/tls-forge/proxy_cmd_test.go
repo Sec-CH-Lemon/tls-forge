@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -145,13 +146,19 @@ func TestProxyCommandErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Windows says a path through a file is not there (ERROR_PATH_NOT_FOUND),
+	// so it is the authority it would make that cannot go there.
+	unread := "proxy: reading"
+	if runtime.GOOS == "windows" {
+		unread = "proxy: " + inTheWay(blocked)
+	}
 	for _, tc := range []struct {
 		args []string
 		code int
 		want string
 	}{
 		{[]string{"proxy", "--ca-cert", filepath.Join(blocked, "ca.pem"),
-			"--ca-key", filepath.Join(blocked, "ca.key")}, 1, "proxy: reading"},
+			"--ca-key", filepath.Join(blocked, "ca.key")}, 1, unread},
 		// Refused before the authority is made, as a usage error.
 		{[]string{"proxy", "--ca-cert", cert, "--ca-key", key, "--profile", "netscape_4"}, 2,
 			`unknown profile "netscape_4"`},

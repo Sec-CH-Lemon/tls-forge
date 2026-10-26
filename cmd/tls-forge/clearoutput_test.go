@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -216,7 +217,6 @@ func TestClearOutputDirRefusesWhereItsOwnOutputGoes(t *testing.T) {
 }
 
 func TestClearOutputDirThatCannotBeCleared(t *testing.T) {
-	notRoot(t)
 	server, _ := replying(t, 200)
 	for _, tc := range []struct {
 		name string
@@ -240,6 +240,10 @@ func TestClearOutputDirThatCannotBeCleared(t *testing.T) {
 		}, "permission denied"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			if runtime.GOOS == "windows" {
+				t.Skip("a mode keeps no directory on Windows from being read or emptied")
+			}
+			notRoot(t)
 			out := filepath.Join(t.TempDir(), "out")
 			target := tc.set(t, out)
 			code, _, stderr := exec(t, "fetch", "-o", target, "--clear-output-dir", server.URL)
@@ -281,12 +285,14 @@ func TestClearOutputDirWithNowhereToStand(t *testing.T) {
 }
 
 func TestRefusal(t *testing.T) {
+	// The root as a path resolved names it: "/", or a volume's, "C:\".
+	root := filepath.VolumeName(t.TempDir()) + string(filepath.Separator)
 	for _, tc := range []struct {
 		name, dir, cwd, home string
 		reads                map[string]string
 		want                 string
 	}{
-		{"the root", "/", "/x", "/h", nil, "is the root of the file system"},
+		{"the root", root, "/x", "/h", nil, "is the root of the file system"},
 		{"a directory of its own", "/x/out", "/x", "/h", nil, ""},
 		// A name that begins with the other's is not in it.
 		{"beside the one the command runs in", "/x/run", "/x/runner", "", nil, ""},

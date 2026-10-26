@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -501,6 +503,13 @@ func meanwhile(t *testing.T, status int, change func()) (*httptest.Server, *atom
 	}))
 	t.Cleanup(server.Close)
 	return server, &asked
+}
+
+// inTheWay is what MkdirAll says of dir when a file is where it would go:
+// "not a directory" on Unix, and on Windows the words of
+// ERROR_PATH_NOT_FOUND, which syscall.ENOTDIR is there.
+func inTheWay(dir string) string {
+	return (&fs.PathError{Op: "mkdir", Path: dir, Err: syscall.ENOTDIR}).Error()
 }
 
 // fileIn puts a file at path, where a directory was to go.
