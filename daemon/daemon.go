@@ -244,8 +244,9 @@ func Serve(in io.Reader, out io.Writer, client Client) error {
 }
 
 // answerGrace is how long the answer to the request in flight has, once ctx is
-// done, before a write waiting on the output is given up.
-const answerGrace = 250 * time.Millisecond
+// done, before a write waiting on the output is given up. A variable so that
+// a test can make it long.
+var answerGrace = 250 * time.Millisecond
 
 // ServeContext is Serve until ctx is done.
 //

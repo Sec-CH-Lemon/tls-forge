@@ -650,6 +650,40 @@ func TestServeContextStopsWhileAWriteWaits(t *testing.T) {
 	goroutinesBackTo(t, before)
 }
 
+// deadlineSaid is an output that keeps whether it was given a write deadline.
+type deadlineSaid struct{ set bool }
+
+func (d *deadlineSaid) Write(p []byte) (int, error)      { return len(p), nil }
+func (d *deadlineSaid) SetWriteDeadline(time.Time) error { d.set = true; return nil }
+
+func TestAnOutputIsLeftAloneWhenServeEndsWithinTheGrace(t *testing.T) {
+	// Told to stop, and ended before the answer's grace was over: the answer
+	// went, and nothing gives the output a deadline. release is called here
+	// rather than through ServeContext, whose end could come before release
+	// had seen ctx done, so that this went untested now and then (coverage).
+	original := answerGrace
+	answerGrace = time.Minute
+	t.Cleanup(func() { answerGrace = original })
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	stop := make(chan struct{})
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		close(stop)
+	}()
+	out := &deadlineSaid{}
+	release(ctx, stop, out)
+	if out.set {
+		t.Error("the output was given a deadline though Serve ended within the grace")
+	}
+	// The grace passed, it is given one.
+	answerGrace = time.Millisecond
+	release(ctx, make(chan struct{}), out)
+	if !out.set {
+		t.Error("the output was given no deadline once the grace passed")
+	}
+}
+
 // waitingClient asks nobody, and answers when the request's context is done.
 type waitingClient struct{ asked chan struct{} }
 
