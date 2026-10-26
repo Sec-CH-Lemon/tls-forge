@@ -1343,11 +1343,9 @@ changing them; quic-go-utls's `send_policy_test.go`, `chaos_test.go`,
 `chrome_packer_test.go`, `idle_close_test.go` and tls-client's
 `connected_socket_test.go` hold the rules.
 
-Not modelled: ECN (tls-forge's 1-RTT packets are marked ECT(0), Chrome's
-not), path MTU probes (Chrome sends none), a `RETIRE_CONNECTION_ID` after
-the handshake (Chrome sends none), the first 1-RTT packet's stream data
-(Chrome's control stream goes with its Finished), Chrome's idle timeout of
-the negotiated time less a second after the handshake.
+What the client sends after its handshake is in «QUIC after the handshake
+as Chrome's» below. Not modelled: Chrome's idle timeout of the negotiated
+time less a second after the handshake.
 
 ## ALPS for HTTP/3 (unreleased engine 1)
 
@@ -1410,3 +1408,50 @@ requests went over the protocols Chrome's did in 34 of the other 49, the
 rest where its TCP won the loopback race (as in «HTTP/3 from DNS HTTPS
 records»): with TCP late, in each of the 12 variants run so, one of them as
 Chrome's cohort `hpa` (in `hpb` Chrome made a second QUIC connection).
+
+## QUIC after the handshake as Chrome's (unreleased engine 1)
+
+After its handshake a Chrome profile's QUIC client sends what Chrome 155's
+does (quiche at Chrome 155's DEPS revision `0b2bc13f`, the same code at
+Chrome 151's `4729ceb2`): no packet marked for ECN, no path MTU probe, the
+server's first connection ID kept, its HTTP/3 control stream in the datagram
+that carries its Finished, and nothing on a request stream the server resets
+but its QPACK decoder's Stream Cancellation. Absent fields keep quic-go's
+ways; catalogue, legacy and migration policies keep them until measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `quic.ecn` | `ect0` (quic-go's: 1-RTT packets marked ECT(0) where the socket can, ECN validated as RFC 9000 section 13.4 says) or `none`: no packet marked, as quiche marks only for its Prague sender (ECT(1), the PRGC option) and Chrome's Cubic and BBR mark none (`EnableECT0` and `EnableECT1` false). `none`. |
+| `quic.mtu_probes` | `search` (quic-go's: once the handshake is confirmed, PING and padding probes of larger and larger sizes, its packets growing to what the path takes) or `none`: no probe, packets no larger than `quic.initial_packet_bytes`, as quiche's client probes the path MTU only for the MTUH and MTUL connection options, which Chrome does not send. `none`. |
+| `quic.connection_id_change` | `after-handshake` (quic-go's: the server's first connection ID retired for its next at once after the handshake, `RETIRE_CONNECTION_ID` in the first 1-RTT packet, then a change every 10,000 packets or so) or `when-retired`: the connection ID in use is kept until the server retires it (`retire_prior_to`), as quiche's client keeps it. `when-retired`. |
+| `h3.control_stream` | `after-handshake` (quic-go's: written once the connection says its handshake is done, in a packet after the Finished) or `with-finished`: written on the connection's own goroutine as the handshake completes, before anything is sent with the 1-RTT keys (`quic.Config.InitialData`), so that it goes in the datagram of the Finished, as quiche's `QuicSpdySession::SendInitialData` writes it once encryption is established. `with-finished`. |
+| `h3.peer_reset` | `frame-error` (quic-go's: a request stream the server resets is reset by the client too, `RESET_STREAM` H3_FRAME_ERROR, H3_REQUEST_INCOMPLETE within the answer's HEADERS) or `read-side`: its read side alone is closed, as quiche's `QuicStream::OnStreamReset` closes it in IETF QUIC; nothing more is sent for a request sent whole, and one still sending is cancelled with H3_REQUEST_CANCELLED, as Chromium's `QuicHttpStream::Close` cancels a request it gives up on (read in the source). A read the client cancelled itself is not the server's reset. `read-side`. |
+
+Measured on Chrome 155.0.8059.85 on macOS (2026-10-25,
+`../net-fp-server/captures/review-20261023/bench/h3`, cohorts `h3a` and
+`h3b`, and `bench/h3alps` `qpack`, cohorts `hpa` and `hpb`; tshark opening the
+packets with the runs' secrets, `bench/quic-after.py`): every datagram
+Not-ECT, no probe, no `RETIRE_CONNECTION_ID`, the second flight a Handshake
+packet of an ACK and the Finished and a 1-RTT packet of an ACK and the control
+stream (156 and 157 bytes of UDP); after the server reset a request stream,
+nothing on it, a Stream Cancellation on the decoder stream (or nothing,
+where the table ALPS gave was none). The library before (`h3x2`, `hl3`):
+ECT(0) on 1-RTT packets, probes of 1359 to 1447 bytes 26 to 103 ms after the
+handshake, a `RETIRE_CONNECTION_ID` in its first 1-RTT packet (116 bytes, the
+control stream in the packet after), `RESET_STREAM` H3_FRAME_ERROR. After
+(2026-10-26, cohorts `y1` and `y2` of `bench/h3`, `y1` and `y2` of
+`bench/h3alps` with TCP 10 ms late in `y2`): as Chrome in every run, the
+second flight 154 to 161 bytes; the same build with `h3.control_stream` left
+out (`h3client -set h3.control_stream=`) sent 112 bytes and its control stream
+after, twelve runs of each. `quicafter_test.go` holds the five through
+`Client.Do`, the JSON alone changing them; quic-go-utls's
+`after_handshake_test.go`, `conn_id_manager_test.go` and
+`http3/after_handshake_test.go` hold the rules.
+
+Still Chrome's alone: a request's first packet (Chrome writes the
+PRIORITY_UPDATE on its control stream, its encoder stream's instructions and
+the request's HEADERS in one packet, tls-forge the PRIORITY_UPDATE in a
+packet of its own and the HEADERS in the next), and when the decoder's Stream
+Cancellation goes (Chrome's quiche bundles decoder stream data with the next
+packet it sends for something else, 28 to 34 ms after the reset on the bench,
+tls-forge's at once).

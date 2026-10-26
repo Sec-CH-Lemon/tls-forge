@@ -61,9 +61,31 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `h3.peer_settings`, `h3.settings_*`, set in every shipped Chrome profile,
   with 17613 kept in
   `quic.preserve_extensions`; without them a profile's QUIC is quic-go's, as
-  before. Not yet Chrome's: ECN marks, path MTU probes, a
-  `RETIRE_CONNECTION_ID` after the handshake, the first 1-RTT packet's
-  stream data.
+  before.
+
+- What a Chrome profile's QUIC client sends after its handshake is Chrome
+  155's, measured on macOS against the same bench (tshark opening the
+  packets with the runs' secrets): no packet marked for ECN (quic-go marked
+  1-RTT packets ECT(0)); no path MTU probe (quic-go sent probes of 1359 to
+  1447 bytes 26 to 103 ms after the handshake), its packets no larger than
+  1250 bytes; the server's first connection ID kept until the server retires
+  it (quic-go retired it for the next at once, a `RETIRE_CONNECTION_ID` in
+  its first 1-RTT packet); the HTTP/3 control stream in the datagram that
+  carries the Finished, as quiche's `SendInitialData` writes it once
+  encryption is established (a second flight of 154 to 161 bytes, Chrome's
+  156 and 157; before, 116 bytes and the control stream in the packet
+  after); and on a request stream the server resets, nothing more but the
+  QPACK decoder's Stream Cancellation, its read side alone closed (quic-go
+  reset its own side too, `RESET_STREAM` H3_FRAME_ERROR); a request still
+  sending then is cancelled with H3_REQUEST_CANCELLED, as Chromium's
+  `QuicHttpStream::Close` cancels it (read in the source). New profile
+  fields `quic.ecn`, `quic.mtu_probes`, `quic.connection_id_change`,
+  `h3.control_stream`, `h3.peer_reset`, set in every shipped Chrome profile;
+  without them a profile's QUIC is quic-go's, as before. Not yet Chrome's: a
+  request's first packet (Chrome writes its PRIORITY_UPDATE, its QPACK
+  encoder's instructions and its HEADERS in one), and when the decoder's
+  Stream Cancellation goes (Chrome's with the next packet it sends for
+  something else, 28 to 34 ms later on the bench).
 
 - A direct `https://` request to a name whose HTTPS record names `h3` goes
   over HTTP/3 as Chrome 155's does, measured on macOS against an own bench

@@ -2338,8 +2338,10 @@ Chrome policy applies measured QUIC TLS 1.3 vectors and initial receive
 windows. The current QPACK decoder is stateless: table capacity and blocked
 streams remain zero, and nonzero configurations are refused. A Chrome
 profile's QUIC handshake is Chrome 155's, ALPS offered for h3 and what a server
-gives in it read as Chrome reads it ([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1),
-[ALPS for HTTP/3](docs/profile-behavior.md#alps-for-http3-unreleased-engine-1)). QUIC transport parameters, QPACK compression,
+gives in it read as Chrome reads it, and so is what the client sends after
+the handshake ([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1),
+[ALPS for HTTP/3](docs/profile-behavior.md#alps-for-http3-unreleased-engine-1),
+[QUIC after the handshake as Chrome's](docs/profile-behavior.md#quic-after-the-handshake-as-chromes-unreleased-engine-1)). QUIC transport parameters, QPACK compression,
 discovery and complete lifecycle behavior still have differences; enabling
 this option does not establish a Chrome-equivalent H3 fingerprint.
 
@@ -2670,7 +2672,11 @@ over HTTP/3 as Chrome's goes (measured on Chrome 155 on macOS, 2026-10-25):
 Through a proxy, or with transport options of the caller's, nothing changes.
 The QUIC handshake is Chrome's, ALPS for `h3`
 offered and read as Chrome reads it
-([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1)).
+([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1)),
+and so is what the client sends after it: no packet marked for ECN, no path
+MTU probe, the server's first connection ID kept, the control stream in the
+datagram of the Finished, nothing more on a request stream the server resets
+([QUIC after the handshake as Chrome's](docs/profile-behavior.md#quic-after-the-handshake-as-chromes-unreleased-engine-1)).
 The profile fields are `dns.https_h3`, `quic.tcp_wait_*`,
 `quic.retry_over_tcp`, `quic.broken_*`, `quic.server_rtts_max` and
 `http.unused_idle_connection_timeout_ms`; a

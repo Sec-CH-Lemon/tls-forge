@@ -901,6 +901,63 @@ func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
 	}
 }
 
+func TestEveryShippedChromeProfileSendsAfterItsHandshakeAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	// Chrome 155's QUIC client after its handshake, measured on macOS
+	// (bench/h3, bench/h3alps) and read in quiche at its DEPS revision, the
+	// same code at Chrome 151's: no ECN mark (Cubic and BBR mark none), no
+	// path MTU probe (no MTUH or MTUL option), no connection ID changed of
+	// its own, the control stream sent once encryption is established
+	// (SendInitialData), only the read side closed by a server's reset
+	// (QuicStream::OnStreamReset).
+	want := map[string]string{
+		"quic.ecn":                  `"none"`,
+		"quic.mtu_probes":           `"none"`,
+		"quic.connection_id_change": `"when-retired"`,
+		"h3.control_stream":         `"with-finished"`,
+		"h3.peer_reset":             `"read-side"`,
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+	}
+}
+
+func TestQUICAfterTheHandshakePolicyOfAProfileIsTyped(t *testing.T) {
+	// A profile file is refused for a choice the engine has not, before
+	// anything is sent.
+	for _, tc := range []struct{ body, want string }{
+		{`{"quic.ecn":"ect1"}`, "unsupported primitive"},
+		{`{"quic.mtu_probes":false}`, "quic.mtu_probes"},
+		{`{"quic.connection_id_change":"every-packet"}`, "unsupported primitive"},
+		{`{"h3.control_stream":"before-handshake"}`, "unsupported primitive"},
+		{`{"h3.peer_reset":true}`, "h3.peer_reset"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+}
+
 func TestHTTP3FromDNSPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
 	// A profile file is refused for an HTTP/3 field the engine cannot do as
 	// said, before anything is sent.
