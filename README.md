@@ -95,7 +95,7 @@ granting it.
 
 ### Go install
 
-With Go 1.26.9 or newer:
+With Go 1.26.10 or newer:
 
 ```bash
 go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest
@@ -132,7 +132,7 @@ image because it does not contain a browser.
 
 Requirements:
 
-- Go 1.26.9 or newer;
+- Go 1.26.10 or newer;
 - Git and Make for the standard build command;
 - no C compiler or cgo.
 

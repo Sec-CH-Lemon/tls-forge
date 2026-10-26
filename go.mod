@@ -1,6 +1,6 @@
 module github.com/Sec-CH-Lemon/tls-forge
 
-go 1.26.9
+go 1.26.10
 
 require (
 	github.com/andybalholm/brotli v1.2.3

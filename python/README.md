@@ -73,7 +73,7 @@ fingerprint mismatch.
 ## Requirements and installation
 
 - Python 3.9 or newer;
-- a supported platform wheel or Go 1.26.9+ for a custom transport.
+- a supported platform wheel or Go 1.26.10+ for a custom transport.
 
 ```bash
 pip install tls-forge

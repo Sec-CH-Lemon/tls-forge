@@ -1263,6 +1263,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ### Security
 
+- Builds use Go 1.26.10, whose `crypto/x509` distrusts compromised
+  intermediate certificates (GO-2026-6809, which `govulncheck` reports as
+  reachable through the TLS handshake with an HTTPS proxy). Go 1.26.10 is now
+  the minimum toolchain, and the image is built with it.
 - **The echo server's certificate is a leaf, not a certificate authority.**
   It was marked as one, with the right to sign certificates, and
   `capture --manual` asks a person to accept it in their browser: accepting
