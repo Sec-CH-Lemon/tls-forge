@@ -82,10 +82,11 @@ func main() {
 	}
 
 	// Reads nothing, for as long as it is told, and then is gone: a write
-	// larger than the pipe holds waits on it all that time.
-	if deaf, err := time.ParseDuration(os.Getenv("TLSFORGE_TEST_DEAF_FOR") + "s"); err == nil && deaf > 0 {
-		time.Sleep(deaf)
-		return
+	// larger than the pipe holds waits on it all that time. Before its init
+	// line where it waits for one; else once it has answered hello, which
+	// the SDKs ask before any request, as the Python fake does.
+	if proxyStdin {
+		deafFor()
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -344,6 +345,7 @@ var protocols = map[string]func(request){
 			extra["capabilities"] = slices.DeleteFunc(names, func(name string) bool { return name == "" })
 		}
 		emit(blank(req, extra))
+		deafFor()
 	},
 	"1":           func(req request) { emit(blank(req, map[string]any{"error": "bad request: no url"})) },
 	"fixture":     func(req request) { emit(replay(req, "response-hello.json")) },
@@ -423,6 +425,15 @@ func answer(req request) map[string]any {
 			"set-cookie":   {"a=1", "b=2"},
 		},
 		"cookies": []string{},
+	}
+}
+
+// deafFor reads nothing for TLSFORGE_TEST_DEAF_FOR seconds, when it is set,
+// and then ends the fake.
+func deafFor() {
+	if deaf, err := time.ParseDuration(os.Getenv("TLSFORGE_TEST_DEAF_FOR") + "s"); err == nil && deaf > 0 {
+		time.Sleep(deaf)
+		os.Exit(0)
 	}
 }
 
