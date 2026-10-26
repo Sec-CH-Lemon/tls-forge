@@ -128,7 +128,7 @@ func TestWithinKnowsADirectoryByWhatItIs(t *testing.T) {
 		{"one not made yet in it", filepath.Join(out, "a", "new", "x.txt"), out, true, true},
 		{"one beside it", filepath.Join(tmp, "other", "file.txt"), out, false, false},
 		{"what holds it", tmp, out, false, false},
-		{"anything, in the root", out, "/", true, true},
+		{"anything, in the root", out, filepath.VolumeName(out) + string(filepath.Separator), true, true},
 	}
 	if alias := otherName(out); alias != "" {
 		cases = append(cases,
@@ -180,6 +180,10 @@ func TestWithinByNamesWhereTheDirectoryIsNotThere(t *testing.T) {
 				t.Errorf("folds %v: within(%q, %q) = %v, want %v", folds, tc.path, tc.dir, got, tc.want)
 			}
 		}
+	}
+	// The root ends in its separator, which is not doubled.
+	if !namedWithin(filepath.FromSlash("/x/out"), string(filepath.Separator)) {
+		t.Error("namedWithin says /x/out is not in the root")
 	}
 }
 

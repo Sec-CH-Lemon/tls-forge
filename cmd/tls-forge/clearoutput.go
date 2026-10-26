@@ -186,11 +186,16 @@ func within(path, dir string) bool {
 }
 
 // namedWithin says path is dir, or something in it, by their names, which
-// differ only in case where names ignore it.
+// differ only in case where names ignore it (foldsCase), and nowhere else:
+// not by filepath.Rel, which on Windows ignores case whatever foldsCase says.
+// Both are absolute.
 func namedWithin(path, dir string) bool {
+	path, dir = filepath.Clean(path), filepath.Clean(dir)
 	if foldsCase {
 		path, dir = strings.ToLower(path), strings.ToLower(dir)
 	}
-	rel, err := filepath.Rel(dir, path)
-	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+	if !strings.HasSuffix(dir, string(filepath.Separator)) {
+		dir += string(filepath.Separator)
+	}
+	return path+string(filepath.Separator) == dir || strings.HasPrefix(path, dir)
 }
