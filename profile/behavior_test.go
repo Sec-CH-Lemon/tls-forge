@@ -1056,3 +1056,55 @@ func TestAProfileWithoutAFieldThisEngineReadsIsRefused(t *testing.T) {
 		t.Errorf("saved: %v", err)
 	}
 }
+
+func TestEveryShippedChromeProfileBundlesItsHTTP3WritesAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	// Chrome 155's HTTP/3 client, measured on macOS (bench/h3, bench/h3alps)
+	// and read in quiche at its DEPS revision and Chromium 155.0.8059.85: a
+	// request's PRIORITY_UPDATE, QPACK encoder instructions and HEADERS
+	// under one flush (QuicHttpStream::DoLoop's ScopedPacketFlusher), the
+	// QPACK decoder's instructions only in packets sent for something else
+	// (QuicSpdySession::MaybeBundleOpportunistically).
+	want := map[string]string{
+		"h3.request_writes":       `"one-flush"`,
+		"h3.qpack.decoder_writes": `"opportunistic"`,
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+	}
+}
+
+func TestQUICBundlingPolicyOfAProfileIsTyped(t *testing.T) {
+	// A profile file is refused for a way to bundle the engine has not,
+	// before anything is sent.
+	for _, tc := range []struct{ body, want string }{
+		{`{"h3.request_writes":"per-stream"}`, "unsupported primitive"},
+		{`{"h3.request_writes":true}`, "h3.request_writes"},
+		{`{"h3.qpack.decoder_writes":"delayed"}`, "unsupported primitive"},
+		{`{"h3.qpack.decoder_writes":1}`, "h3.qpack.decoder_writes"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+}

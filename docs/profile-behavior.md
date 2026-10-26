@@ -1448,10 +1448,59 @@ after, twelve runs of each. `quicafter_test.go` holds the five through
 `after_handshake_test.go`, `conn_id_manager_test.go` and
 `http3/after_handshake_test.go` hold the rules.
 
-Still Chrome's alone: a request's first packet (Chrome writes the
-PRIORITY_UPDATE on its control stream, its encoder stream's instructions and
-the request's HEADERS in one packet, tls-forge the PRIORITY_UPDATE in a
-packet of its own and the HEADERS in the next), and when the decoder's Stream
-Cancellation goes (Chrome's quiche bundles decoder stream data with the next
-packet it sends for something else, 28 to 34 ms after the reset on the bench,
-tls-forge's at once).
+How a request's writes and the decoder's instructions go into packets is in
+«HTTP/3 writes in packets as Chrome's» below.
+
+## HTTP/3 writes in packets as Chrome's (unreleased engine 1)
+
+A Chrome profile's HTTP/3 client puts its writes in packets as Chrome 155's
+does (quiche at Chrome 155's DEPS revision `0b2bc13f`, Chromium
+155.0.8059.85): a request's PRIORITY_UPDATE, its QPACK encoder's
+instructions and its HEADERS, with the FIN of a request without a body, in
+one packet, and the QPACK decoder's instructions only in packets the
+connection sends for something else, a Stream Cancellation of a request the
+server resets in the packet that acknowledges the reset. Absent fields keep
+quic-go's ways; catalogue, legacy and migration policies keep them until
+measured.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `h3.request_writes` | `as-written` (quic-go's: each write is sent as it comes, the PRIORITY_UPDATE from a goroutine of its own and the encoder's instructions from the encoder stream's writer, in packets of their own) or `one-flush`: the request's writes are held back until it has made them all (`quic.Conn.BundleWrites`), then go out together, in as few packets as they fit in, the streams' frames in the order the streams were given them: the control stream's PRIORITY_UPDATE, the encoder stream's instructions (the request waits for their writer to write them, when it had nothing else to write and its stream is reserved or open), the request stream's HEADERS and FIN; as Chromium's `QuicHttpStream::DoLoop` writes them under one `ScopedPacketFlusher`. A request's body goes after; a write that has to wait for packets to go lets what was held go at once. `one-flush`. |
+| `h3.qpack.decoder_writes` | `as-written` (quic-go's: each instruction sent as it comes) or `opportunistic`: the decoder's instructions wait, bounded, for the next packet the connection sends with an ACK, a DATAGRAM or other new frames, and go first in it (`quic.Conn.BundleOpportunistically`), as quiche's decoder stream sender buffers them until `QuicSpdySession::MaybeBundleOpportunistically`, which its packet creator calls before new data and `SendAllPendingAcks` before an ACK; a retransmission carries none. A server's RESET_STREAM of a request stream is taken on the connection's own goroutine (`quic.Stream.SetResetHandler`), so that its Stream Cancellation, made then unless the stream's FIN had come, goes in the packet that acknowledges the reset, as quiche's `QuicSpdyStream::OnStreamReset` makes it while the frame is processed. `opportunistic`. |
+
+Measured on Chrome 155.0.8059.85 on macOS (2026-10-25,
+`../net-fp-server/captures/review-20261023/bench/h3`, cohorts `h3a` and
+`h3b`, and `bench/h3alps`, cohorts `hpa` and `hpb`; tshark opening the
+packets with the runs' secrets, `bench/quic-bundle.py`): each request's
+first packet `STREAM(2) [STREAM(10@0)] STREAM(0)` (131 of them, 462 to 576
+bytes of UDP, an ACK first where one was due); the decoder's Stream
+Cancellation in the first packet that acknowledged the server's reset (4 of
+6 resets, the other 2 closing the connection first): 0.28 ms after it with
+an ACK sent at once, 28 to 34 ms after it where its ACK waited (the server's
+next packets came first). The library before (`hly1`, `hly2`): the
+PRIORITY_UPDATE in a packet of its own (45 bytes), the HEADERS in the next,
+the encoder's instructions in that one or after; the Stream Cancellation at
+once, in a packet of its own. After (2026-10-26, `bench/h3alps` cohorts
+`hlf1` to `hlf4` and `hlg1`, `hlg2`, every variant in `hlf3` and `hlg1`, and
+`bench/h3` cohorts `h3f1`, `h3g1`): every request's first packet as
+Chrome's (121 of them, 497 to 576 bytes); the Stream Cancellation in the
+first packet that acknowledged the reset in 19 of 22 resets (the other 3
+closing the connection first, as Chrome's), 0.04 to 0.16 ms after it with an
+ACK sent at once, 24 to 27 ms after it with the delayed one. With the two
+fields left out (`h3client -set h3.request_writes= -set
+h3.qpack.decoder_writes=`, cohorts `hlfc`, `hlgc`, `h3fc`, `h3gc`) quic-go's
+again: no request's first packet with its PRIORITY_UPDATE (26), the Stream
+Cancellation at once (0.09 to 0.24 ms), 5 of 8 in a packet of its own.
+`quicbundle_test.go` holds both through `Client.Do`, the JSON alone
+changing them; quic-go-utls's `bundle_test.go`, `bundle_unit_test.go` and
+`http3/bundle_test.go` hold the rules.
+
+Still Chrome's alone: a body read at once in Chrome's flush (`DoLoop` goes
+on to read a body held in memory and writes its first part with the
+HEADERS; not measured: tls-forge's body goes after), a Header Acknowledgement
+or Insert Count Increment made as the answer's packet is processed (tls-forge
+makes them as the answer is read, so they wait for the next ACK after that;
+not measured, as the bench's servers use no dynamic table), and the time a
+delayed ACK waits on macOS (Chrome's 33 ms, the median of 139, its 25 ms
+and its alarms' lateness; tls-forge's 25.8 ms, of 288), which a Stream
+Cancellation that waits for one goes with.

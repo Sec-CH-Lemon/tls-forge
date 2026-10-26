@@ -164,6 +164,7 @@
     "h3.qpack.critical_close_reason": "invalid or closed QPACK critical stream",
     "h3.qpack.critical_close_space": "application",
     "h3.qpack.decoder_feedback": "on-insert",
+    "h3.qpack.decoder_writes": "opportunistic",
     "h3.qpack.draining_percent": 0,
     "h3.qpack.encoder_strategy": "disabled",
     "h3.qpack.encoder_table_bytes": 0,
@@ -191,6 +192,7 @@
       3
     ],
     "h3.qpack.streams": "lazy",
+    "h3.request_writes": "one-flush",
     "h3.retry_application_errors": [],
     "h3.retry_attempts": 1,
     "h3.retry_methods": [],

@@ -81,11 +81,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `QuicHttpStream::Close` cancels it (read in the source). New profile
   fields `quic.ecn`, `quic.mtu_probes`, `quic.connection_id_change`,
   `h3.control_stream`, `h3.peer_reset`, set in every shipped Chrome profile;
-  without them a profile's QUIC is quic-go's, as before. Not yet Chrome's: a
-  request's first packet (Chrome writes its PRIORITY_UPDATE, its QPACK
-  encoder's instructions and its HEADERS in one), and when the decoder's
-  Stream Cancellation goes (Chrome's with the next packet it sends for
-  something else, 28 to 34 ms later on the bench).
+  without them a profile's QUIC is quic-go's, as before.
+
+- A Chrome profile's HTTP/3 client puts its writes in packets as Chrome 155's,
+  measured on macOS against the same bench: a request's PRIORITY_UPDATE, its
+  QPACK encoder's instructions and its HEADERS with its FIN go in one packet,
+  as Chromium's `QuicHttpStream::DoLoop` writes them under one flush
+  (`STREAM(2) STREAM(10) STREAM(0)`, as Chrome's in each of 121 requests;
+  before, the PRIORITY_UPDATE went in a packet of its own and the HEADERS in
+  the next), and the QPACK decoder's instructions only in packets the connection
+  sends for something else, as quiche bundles them, a Stream Cancellation of
+  a request the server resets in the packet that acknowledges the reset
+  (before, at once in a packet of its own). New profile fields
+  `h3.request_writes`, `h3.qpack.decoder_writes`, set in every shipped Chrome
+  profile; without them a profile's HTTP/3 writes go as quic-go's, as before.
+  The fork of quic-go has `Conn.BundleWrites`, `Conn.BundleOpportunistically`
+  and `Stream.SetResetHandler` for them. Still apart: how long a delayed ACK
+  waits on macOS (Chrome's 33 ms, tls-forge's 26), which such a Stream
+  Cancellation goes with.
 
 - A direct `https://` request to a name whose HTTPS record names `h3` goes
   over HTTP/3 as Chrome 155's does, measured on macOS against an own bench

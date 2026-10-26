@@ -166,6 +166,7 @@
     "h3.qpack.critical_close_reason": "17:Attempt to close a static stream",
     "h3.qpack.critical_close_space": "transport",
     "h3.qpack.decoder_feedback": "on-section",
+    "h3.qpack.decoder_writes": "opportunistic",
     "h3.qpack.draining_percent": 25,
     "h3.qpack.encoder_strategy": "insert",
     "h3.qpack.encoder_table_bytes": 65536,
@@ -192,6 +193,7 @@
       2
     ],
     "h3.qpack.streams": "deferred",
+    "h3.request_writes": "one-flush",
     "h3.retry_application_errors": [
       512,
       513,
