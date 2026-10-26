@@ -398,7 +398,7 @@ func TestAQUICClientProbesSilenceAndClosesAsChromeDoes(t *testing.T) {
 	}
 	if probes[0] < 290*time.Millisecond || probes[0] > 400*time.Millisecond ||
 		probes[1] < 880*time.Millisecond || probes[1] > 1000*time.Millisecond {
-		t.Errorf("probes at %v, want about 308 ms and 916 ms", probes)
+		t.Errorf("probes at %v, want about 305 ms and 910 ms", probes)
 	}
 	if want := []uint64{1, 2, 4, 6, 7}; fmt.Sprint(numbers) != fmt.Sprint(want) {
 		t.Errorf("numbers %v, want %v", numbers, want)

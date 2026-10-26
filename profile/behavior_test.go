@@ -1057,6 +1057,38 @@ func TestAProfileWithoutAFieldThisEngineReadsIsRefused(t *testing.T) {
 	}
 }
 
+func TestEveryShippedChromeProfileTimesItsQUICAlarmsAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	// How late Chrome 155's QUIC alarms fire, its probes, idle close and
+	// delayed 1-RTT ACK alike: the kernel's coalescing of its network
+	// thread's timer, measured on macOS (bench/h3alps ack-chrome.sh and
+	// bench/h3, 2026-10-26: ACKs a median 3.9 ms past their 25 ms, probes
+	// 3.1 to 5.2 ms late); Chromium's task leeway does not reach the kernel
+	// there. Not measured on Linux or Windows, whose kernels are others:
+	// none said, on time.
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, ok := p.RuntimeBehavior()["quic.alarm_slack_ms"]
+		if filepath.Base(name) == "macos.json" {
+			if string(got) != "4" {
+				t.Errorf("%s: quic.alarm_slack_ms is %s, want 4", name, got)
+			}
+		} else if ok {
+			t.Errorf("%s: quic.alarm_slack_ms is %s, not measured there", name, got)
+		}
+	}
+}
+
 func TestEveryShippedChromeProfileBundlesItsHTTP3WritesAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
 	if err != nil || len(names) != 15 {

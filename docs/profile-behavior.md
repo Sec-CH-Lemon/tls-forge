@@ -1314,7 +1314,7 @@ keep them until measured.
 | `quic.pto_probes` | Packets a probe timeout sends, 1 or 2. `1`: the frames of the oldest packet outstanding. |
 | `quic.pto_initial_rtt_ms`, `quic.pto_no_sample_multiplier`, `quic.pto_no_sample_min_ms` | Before an RTT sample, a probe timeout is the multiplier times the initial RTT, at least the minimum (`GetProbeTimeoutDelay`). `100`, `3`, `10`: 300 ms, doubling. |
 | `quic.pto_rttvar_multiplier` | After one, the smoothed RTT and this many times the mean deviation. `2`. |
-| `quic.alarm_slack_ms` | How late the loss detection and idle alarms fire: Chrome's network thread runs an alarm once its timer's leeway has passed. `8` (probes measured 308.7, 917 and 2125 ms after the first flight). |
+| `quic.alarm_slack_ms` | How late the client's alarms fire: its loss detection and idle alarms, and the ACK alarm of 1-RTT packets (`quic.ack_timer_ms` and this). The macOS kernel coalesces the timer of Chrome's network thread («How late a QUIC client's alarms fire» below). `4` in the macOS profiles (probes measured 304.5, 909.7 and 2112.8 ms after the first flight on 2026-10-26); none, on time, in the Linux and Windows profiles, where it is not measured. |
 | `quic.handshake_idle_timeout_ms` | The handshake's idle time: Chrome's `max_idle_time_before_crypto_handshake` less the client's second (`SetNetworkTimeouts`). `4000`. |
 | `quic.handshake_timeout_ms` | The longest a handshake may take (`max_time_before_crypto_handshake`), at least the idle time. `10000`. |
 | `quic.handshake_ack_timer_ms` | How long an ACK of an Initial or Handshake packet may wait (`kAlarmGranularity`): a handshake that ends within it never acknowledges the server's Initial. `1`. |
@@ -1337,7 +1337,10 @@ code 0, `25:No recent network activity after 4008694us. Timeout:4s
 num_undecryptable_packets: 0 {}`; no ACK of the server's Initial when the
 handshake ends within a millisecond; QUIC to a closed port given up at once.
 The library (`bench/h3client`, cohorts `h3x1`, `h3x2`) did the same, its
-probes within about 2 ms of Chrome's. `quicwire_test.go` holds the first
+probes within about 2 ms of Chrome's. Those cohorts' alarms were about 8 ms
+late; the same Mac's Chrome probed at 304.5, 909.7 and 2112.8 ms and closed
+at 4004.2 ms on 2026-10-26 (cohort `t1`), the lateness the profiles say
+since («How late a QUIC client's alarms fire» below). `quicwire_test.go` holds the first
 flight, the probes and the close through `Client.Do`, the JSON alone
 changing them; quic-go-utls's `send_policy_test.go`, `chaos_test.go`,
 `chrome_packer_test.go`, `idle_close_test.go` and tls-client's
@@ -1497,10 +1500,73 @@ changing them; quic-go-utls's `bundle_test.go`, `bundle_unit_test.go` and
 
 Still Chrome's alone: a body read at once in Chrome's flush (`DoLoop` goes
 on to read a body held in memory and writes its first part with the
-HEADERS; not measured: tls-forge's body goes after), a Header Acknowledgement
-or Insert Count Increment made as the answer's packet is processed (tls-forge
-makes them as the answer is read, so they wait for the next ACK after that;
-not measured, as the bench's servers use no dynamic table), and the time a
-delayed ACK waits on macOS (Chrome's 33 ms, the median of 139, its 25 ms
-and its alarms' lateness; tls-forge's 25.8 ms, of 288), which a Stream
-Cancellation that waits for one goes with.
+HEADERS; not measured: tls-forge's body goes after), and a Header
+Acknowledgement or Insert Count Increment made as the answer's packet is
+processed (tls-forge makes them as the answer is read, so they wait for the
+next ACK after that; not measured, as the bench's servers use no dynamic
+table). How long the delayed ACK a Stream Cancellation goes with waits is in
+«How late a QUIC client's alarms fire» below.
+
+## How late a QUIC client's alarms fire (unreleased engine 1)
+
+A Chrome profile's QUIC client acknowledges a lone 1-RTT packet as late as
+Chrome 155 does on macOS, its probes and its handshake's idle close as late
+too. quiche (Chrome 155's DEPS revision `0b2bc13f`) sets the ACK of a lone
+ack-eliciting packet 25 ms after it came (`GetMaxAckDelay`,
+`local_max_ack_delay_` of `GetDefaultDelayedAckTimeMs`, before 100 packets
+and an ACK_FREQUENCY frame), and its ACK says how long it waited. Every
+alarm of a connection goes through one alarm of its `QuicAlarmMultiplexer`,
+Chromium's `QuicChromeAlarm`, a `base::OneShotTimer` of the default policy
+on the network service's IO thread (`MessagePumpKqueue` on macOS). Its task
+leeway, 8 ms (16 on Windows), does not reach the kernel there: the
+`TimerSlackMac` and `AlignWakeUps` features are off and no field trial of
+the bench turns them on (`chrome://version/?show-variations-cmd`), and
+`--enable-features=AddTaskLeeway:leeway/2ms` or `/20ms` left the ACKs as they
+were. What makes them late is the macOS kernel, which coalesces the timer of
+that thread (on the bench's Mac up to a quarter of its interval, 5 ms at
+most, `kern.timer_coalesce_tier1_*`): `taskpolicy -l 2` on the bench Chrome's
+network service moved its ACKs to 35.7 to 37.1 ms. The Initial and Handshake
+ACK alarm (`quic.handshake_ack_timer_ms`, 1 ms) takes no slack: the kernel
+coalesces a timer that short by a fraction of a millisecond.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `quic.alarm_slack_ms` | How late the client's alarms fire: its probes and loss detection, its handshake's idle close, and the ACK of a lone 1-RTT packet, `quic.ack_timer_ms` and this after the packet came. `4` in the macOS profiles; none in the Linux and Windows ones (quic-go's alarms on time), as the macOS value is its kernel's and neither is measured. |
+
+Measured on Chrome 155.0.8059.85 on macOS (2026-10-26,
+`../net-fp-server/captures/review-20261023/bench`: `ack-chrome.sh`, five
+variants of `h3alps` with delayed ACKs, cohorts `d`, `d2`, `d3`, `d4`, `l2`
+and `l20` (the leeway at 2 and 20 ms), `hl` (headless), `tnone` and `t0`, and
+`h3-chrome.sh` cohorts `t1` to `t3`; `ack-delay.py` reading every client ACK
+with the runs' secrets): its ACKs of a lone packet that carried nothing else
+(pure, the alarm's) said 25.3 to 30.0 ms, a median of 28.9 (197 of them);
+its probes into silence at 304.5 and 305.0, 908.6 and 909.7, 2112.8 and
+2113.2 ms, its idle close at 4004.2 and 4004.4 ms. On 2026-10-25 the same
+Mac's Chrome was later on every alarm (cohorts `h3a`, `h3b`, `hpa`, `hpb`:
+ACKs 25.1 to 35.0 ms, all but two from 31.2, median 33.1 of 110, probes 7.2
+to 8.8 ms late): a state of that day's, its cause not found. The library
+before (cohort `b0`): 24.1 to 25.1 ms, a median of 24.8 (`quic.ack_timer_ms`
+24, and Go's timer under the kernel's coalescing of its threads, 1 ms at
+most). After (cohorts `a1` to `a6` and `la1` to `la4`, by turns with
+Chrome's `d3`, `d4`, `t2`, `t3`, whose ACKs said a median of 28.9 of 59):
+28.5 to 29.2 ms, a median of 29.1 (23 of them), its probes at 305.2, 910.2
+and 2115.3 ms, its close at 4004.5 and 4005.1 ms; the same build with
+`quic.alarm_slack_ms` left out (`h3client -set quic.alarm_slack_ms=`, cohorts
+`ac`, `lac`) 24.1 to 25.6 ms, a median of 25.0, its probes at 301.4, 901.5
+and 2102.7 ms. `quicack_test.go` holds the ACK through `Client.Do`, the JSON
+alone changing it; quic-go-utls's `received_packet_tracker_test.go`,
+`received_packet_handler_test.go` and `chrome_conn_test.go` hold the rule.
+
+A server whose probe timeout counts the 25 ms Chrome says its ACKs may wait
+(its max_ack_delay) can probe before such an ACK comes: the bench's quic-go
+server probes 26 ms after a lone packet while its round trip estimate stays
+under a millisecond, as the library's loopback samples keep it (Chrome's
+first packets took about 2.5 ms, which put the server's probe timeout past
+its ACK), and the client acknowledges the probe at once, as Chrome would; so
+the library had fewer ACKs of a lone packet to measure. Not modelled: the kernel's coalescing as it
+draws (tls-forge's slack is fixed, and Go's timer adds up to a millisecond),
+a state such as that of 2026-10-25, quiche's ACK of every tenth packet after
+the 100th, after a quarter of the least round trip (`MaybeEnableAckDecimation`),
+and the lateness on Linux and Windows (by Chromium's source, its IO pump
+there waits in whole milliseconds, on Windows at the system timer's
+resolution).

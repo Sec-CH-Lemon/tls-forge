@@ -594,7 +594,7 @@
     "quic.accept_zero_available_version": true,
     "quic.ack_timer_ms": 24,
     "quic.active_cid_limit": 2,
-    "quic.alarm_slack_ms": 8,
+    "quic.alarm_slack_ms": 4,
     "quic.alpn": [
       "h3"
     ],

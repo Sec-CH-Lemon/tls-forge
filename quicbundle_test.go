@@ -201,14 +201,15 @@ func TestARequestsWritesAreFlushedAsItsProfileSays(t *testing.T) {
 	t.Error("written as quic-go writes them, the request went in one packet in three runs of three")
 }
 
-// cancellationACK is the ACK the client wearing p sends with its QPACK
-// decoder's first bytes, a Stream Cancellation of the request a bundleSite
-// resets by after, and whether it acknowledges the reset. A server of
-// quic-go's skips a packet number now and then, which the client
+// cancellationACK is the ACK the client wearing p (probedLate) sends with
+// its QPACK decoder's first bytes, a Stream Cancellation of the request a
+// bundleSite resets by after, and whether it acknowledges the reset. A
+// server of quic-go's skips a packet number now and then, which the client
 // acknowledges at once: such a run says nothing of when the ACK goes, and is
 // run again.
 func cancellationACK(t *testing.T, p *profile.Profile, after func(control *quic.SendStream)) (*qlog.AckFrame, []quic.StreamID) {
 	t.Helper()
+	p = probedLate(p)
 	for range 3 {
 		port, heard := bundleSite(t, func(control *quic.SendStream, str *quic.Stream) {
 			_, _ = str.Read(make([]byte, 1))

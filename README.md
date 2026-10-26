@@ -2342,7 +2342,9 @@ gives in it read as Chrome reads it, and so is what the client sends after
 the handshake ([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1),
 [ALPS for HTTP/3](docs/profile-behavior.md#alps-for-http3-unreleased-engine-1),
 [QUIC after the handshake as Chrome's](docs/profile-behavior.md#quic-after-the-handshake-as-chromes-unreleased-engine-1)), and so is how it puts its HTTP/3 writes in packets
-([HTTP/3 writes in packets as Chrome's](docs/profile-behavior.md#http3-writes-in-packets-as-chromes-unreleased-engine-1)). QUIC transport parameters, QPACK compression,
+([HTTP/3 writes in packets as Chrome's](docs/profile-behavior.md#http3-writes-in-packets-as-chromes-unreleased-engine-1)),
+and how late its alarms fire, a delayed ACK's among them, as Chrome's on
+macOS ([How late a QUIC client's alarms fire](docs/profile-behavior.md#how-late-a-quic-clients-alarms-fire-unreleased-engine-1)). QUIC transport parameters, QPACK compression,
 discovery and complete lifecycle behavior still have differences; enabling
 this option does not establish a Chrome-equivalent H3 fingerprint.
 

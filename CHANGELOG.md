@@ -19,7 +19,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   55 to 86 bytes and its end in the first Initial, its middle in the second,
   each with 2 to 10 PINGs, its CRYPTO split and its padding spread; into
   silence one probe 300 ms after the first flight, doubling, a number skipped
-  before each, every alarm 8 ms late; at 4 s of quiet a `CONNECTION_CLOSE`
+  before each, every alarm as late as Chrome's on macOS (below); at 4 s of
+  quiet a `CONNECTION_CLOSE`
   with quiche's reason (`25:No recent network activity after 4008694us.
   Timeout:4s num_undecryptable_packets: 0 {}`); no ACK of the server's
   Initial when the handshake ends within a millisecond; a UDP socket
@@ -96,9 +97,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `h3.request_writes`, `h3.qpack.decoder_writes`, set in every shipped Chrome
   profile; without them a profile's HTTP/3 writes go as quic-go's, as before.
   The fork of quic-go has `Conn.BundleWrites`, `Conn.BundleOpportunistically`
-  and `Stream.SetResetHandler` for them. Still apart: how long a delayed ACK
-  waits on macOS (Chrome's 33 ms, tls-forge's 26), which such a Stream
-  Cancellation goes with.
+  and `Stream.SetResetHandler` for them.
+
+- A Chrome profile's QUIC client acknowledges a lone 1-RTT packet as late as
+  Chrome 155 on macOS: its 24 ms ACK timer and `quic.alarm_slack_ms`, which
+  delayed only its probes and idle close before, as Chrome's network thread
+  has its every alarm late. What makes Chrome's late is the macOS kernel's
+  coalescing of that thread's timer, not Chromium's task leeway (2, 8 and
+  20 ms of it left Chrome's ACKs as they were; a latency tier set with
+  `taskpolicy` moved them), and it varies: measured on 2026-10-26 by turns
+  with the library, Chrome's delayed ACKs said 25.3 to 30.0 ms, a median of
+  28.9, its probes and idle close 3 to 5 ms late; on 2026-10-25 all its
+  alarms were about 8 ms late (ACKs a median of 33.1 ms). The macOS profiles
+  now say 4 ms (they said 8), and the Linux and Windows profiles say none,
+  their alarms on time: the macOS value is its kernel's, and neither is
+  measured. The library's ACK went at 24.1 to 25.1 ms before, at 28.5 to
+  29.2 ms now (a median of 29.1), its probes at 305.2, 910.2 and 2115.3 ms
+  where Chrome's went at 304.5 to 305.0, 908.6 to 909.7 and 2112.8 to 2113.2
+  that day; a Stream Cancellation that waits for such an ACK goes with it.
 
 - A direct `https://` request to a name whose HTTPS record names `h3` goes
   over HTTP/3 as Chrome 155's does, measured on macOS against an own bench
