@@ -1140,3 +1140,75 @@ func TestQUICBundlingPolicyOfAProfileIsTyped(t *testing.T) {
 		}
 	}
 }
+
+func TestEveryShippedChromeProfileAcknowledgesAsChrome(t *testing.T) {
+	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
+	if err != nil || len(names) != 15 {
+		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
+	}
+	// Chrome 155's QUIC client, read in quiche at its DEPS revision
+	// (QuicReceivedPacketManager, QuicConnection) and measured on macOS
+	// (bench/h3's /big, ackdec-chrome.sh, 2026-10-26): from the server's
+	// first packet number plus 100 every tenth ack-eliciting packet, or a
+	// quarter of the least round trip, 1 ms at least; each of four packets
+	// after a gap at once; an ACK sent before the next packet is taken; the
+	// twentieth ACK-only packet in a row carrying MAX_DATA. quiche's on every
+	// platform; how late its kernel makes the ACK alarm, a fifth of its
+	// delay, measured on macOS alone.
+	want := map[string]string{
+		"quic.ack_decimation_after":       "100",
+		"quic.ack_decimation_packets":     "10",
+		"quic.ack_decimation_rtt_percent": "25",
+		"quic.ack_decimation_min_ms":      "1",
+		"quic.ack_gap_packets":            "4",
+		"quic.ack_sent_after":             `"packet"`,
+		"quic.ack_only_max":               "19",
+		"quic.ack_only_frame":             `"max-data"`,
+	}
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := Load(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := p.RuntimeBehavior()
+		for k, v := range want {
+			if string(b[k]) != v {
+				t.Errorf("%s: %s is %s, want %s", name, k, b[k], v)
+			}
+		}
+		got, ok := b["quic.ack_alarm_slack_percent"]
+		if filepath.Base(name) == "macos.json" {
+			if string(got) != "20" {
+				t.Errorf("%s: quic.ack_alarm_slack_percent is %s, want 20", name, got)
+			}
+		} else if ok {
+			t.Errorf("%s: quic.ack_alarm_slack_percent is %s, not measured there", name, got)
+		}
+	}
+}
+
+func TestQUICAckPolicyOfAProfileIsTypedAndCoherent(t *testing.T) {
+	// A profile file is refused for a way to acknowledge the engine has
+	// not, or half of one, before anything is sent.
+	for _, tc := range []struct{ body, want string }{
+		{`{"quic.ack_decimation_after":100}`, "quic.ack_decimation_after requires quic.ack_decimation_packets"},
+		{`{"quic.ack_decimation_after":0,"quic.ack_decimation_packets":10,"quic.ack_decimation_rtt_percent":25,"quic.ack_decimation_min_ms":1}`, "quic.ack_decimation_after"},
+		{`{"quic.ack_gap_packets":0}`, "quic.ack_gap_packets"},
+		{`{"quic.ack_sent_after":"timer"}`, "unsupported primitive"},
+		{`{"quic.ack_only_max":19,"quic.ack_only_frame":"pong"}`, "unsupported primitive"},
+		{`{"quic.ack_only_frame":"max-data"}`, "quic.ack_only_frame requires quic.ack_only_max"},
+		{`{"quic.ack_alarm_slack_percent":20}`, "quic.ack_alarm_slack_percent requires quic.alarm_slack_ms"},
+	} {
+		var p behavior.Policy
+		if err := json.Unmarshal([]byte(tc.body), &p); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: %v, want %q", tc.body, err, tc.want)
+		}
+	}
+}

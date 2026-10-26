@@ -126,15 +126,17 @@ func TestALonePacketIsAcknowledgedAsLateAsChromes(t *testing.T) {
 }
 
 func TestHowLateALonePacketIsAcknowledgedIsTheProfilesToSay(t *testing.T) {
-	// the JSON alone: alarms 50 ms late
-	if ack := loneACK(t, quicProfile(t, map[string]string{"quic.alarm_slack_ms": "50"})); ack.DelayTime < 74*time.Millisecond {
+	// the JSON alone: alarms 50 ms late, the ACK's no part of its delay at
+	// most (quic.ack_alarm_slack_percent, which «How a QUIC client
+	// acknowledges a long download» holds)
+	if ack := loneACK(t, quicProfile(t, map[string]string{"quic.alarm_slack_ms": "50", "quic.ack_alarm_slack_percent": ""})); ack.DelayTime < 74*time.Millisecond {
 		t.Errorf("acknowledged after %s, want 74 ms at least", ack.DelayTime)
 	}
 	// none said: on its timer, as quic-go's alarms, and the Linux and
 	// Windows profiles', which say none; a run of a machine under load may
 	// go late
 	for name, p := range map[string]*profile.Profile{
-		"none said": quicProfile(t, map[string]string{"quic.alarm_slack_ms": ""}),
+		"none said": quicProfile(t, map[string]string{"quic.alarm_slack_ms": "", "quic.ack_alarm_slack_percent": ""}),
 		"linux":     shippedProfile(t, "chrome_155_linux"),
 		"windows":   shippedProfile(t, "chrome_155_windows"),
 	} {

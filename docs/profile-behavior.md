@@ -1565,8 +1565,85 @@ first packets took about 2.5 ms, which put the server's probe timeout past
 its ACK), and the client acknowledges the probe at once, as Chrome would; so
 the library had fewer ACKs of a lone packet to measure. Not modelled: the kernel's coalescing as it
 draws (tls-forge's slack is fixed, and Go's timer adds up to a millisecond),
-a state such as that of 2026-10-25, quiche's ACK of every tenth packet after
-the 100th, after a quarter of the least round trip (`MaybeEnableAckDecimation`),
-and the lateness on Linux and Windows (by Chromium's source, its IO pump
-there waits in whole milliseconds, on Windows at the system timer's
-resolution).
+a state such as that of 2026-10-25, and the lateness on Linux and Windows
+(by Chromium's source, its IO pump there waits in whole milliseconds, on
+Windows at the system timer's resolution). How a packet after the server's
+100th is acknowledged, every tenth or a quarter of the least round trip
+after it came, is in «How a QUIC client acknowledges a long download» below.
+
+## How a QUIC client acknowledges a long download (unreleased engine 1)
+
+A Chrome profile's QUIC client acknowledges a server's 1-RTT packets as
+Chrome 155 does through a long download. quiche (Chrome 155's DEPS revision
+`0b2bc13f`, `QuicReceivedPacketManager`, `QuicConnection`) acknowledges
+every second ack-eliciting packet (`kDefaultRetransmittablePacketsBeforeAck`)
+until one numbered the peer's first plus 100 comes
+(`kMinReceivedBeforeAckDecimation`; the first is the least received,
+`PeerFirstSendingPacketNumber`), and every tenth from then on
+(`MaybeEnableAckDecimation`, `kMaxRetransmittablePacketsBeforeAck`). A packet
+so numbered waits a quarter of the least round trip (`GetMaxAckDelay`,
+`quic_ack_decimation_delay` of `min_rtt`, which is zero before a sample), no
+more than its 25 ms and no less than a millisecond (`kAlarmGranularity`), and
+the ACK goes that long after the first packet it waits for: a later packet
+never puts it off (`MaybeUpdateAckTimeout` keeps the earliest). A packet that
+leaves the highest range of those received no longer than four, while a gap
+is below it, is acknowledged at once (`HasNewMissingPackets`,
+`kMaxPacketsAfterNewMissing`): the four packets after a number the server
+skipped each have an ACK of their own, where quic-go acknowledged a gap once,
+when it was new. An ACK due goes right after the packet that made it so is
+processed (`ProcessUdpPacket`'s `ScopedPacketFlusher`), where quic-go reads
+up to 32 packets first. After 19 packets in a row that carried an ACK and
+nothing ack-eliciting, the next ACK goes with the connection's window as it
+stands in a MAX_DATA (`kMaxConsecutiveNonRetransmittablePackets`,
+`OnAckNeedsRetransmittableFrame`, its flow controller's `SendWindowUpdate`),
+where quic-go sends a PING. Chrome sends none of AKD3, AKDU and 1ACK, the
+connection options that change these.
+
+| Key | Meaning / Chrome 155 choice |
+| --- | --- |
+| `quic.ack_decimation_after`, `quic.ack_decimation_packets`, `quic.ack_decimation_rtt_percent`, `quic.ack_decimation_min_ms` | ACK decimation: from an ack-eliciting packet numbered the least received plus `after` on, an ACK every `packets` ack-eliciting packets; a packet so numbered waits `rtt_percent` of the least round trip (none before the first sample), at least `min_ms` and at most `quic.ack_timer_ms`, the ACK going that long after the first packet not acknowledged. All four or none; none acknowledges every second packet, after the timer's delay, as quic-go does. `100`, `10`, `25`, `1`. |
+| `quic.ack_gap_packets` | While the packets received have a gap below their highest range (between two ranges, or below the least the peer knows was acknowledged), each ack-eliciting packet that leaves that range no longer than this is acknowledged at once. None: quic-go's rule, a gap at once when it is new. `4`. |
+| `quic.ack_sent_after` | `batch` (quic-go's: the packets read together, up to 32, then the ACK) or `packet`: an ACK of 1-RTT packets due goes before the next packet is taken, and while it waits for room in the send queue the packets wait too. `packet`. |
+| `quic.ack_only_max`, `quic.ack_only_frame` | How many packets that carry an ACK and nothing ack-eliciting go in a row, and the frame that makes the next one ack-eliciting: `ping` (quic-go's) or `max-data`, the connection's receive window as it stands, sent again if lost. Both or neither; neither is 19 and a PING. `19`, `max-data`. |
+| `quic.ack_alarm_slack_percent` | The 1-RTT ACK alarm fires no later than this percent of its delay after it, `quic.alarm_slack_ms` at most (and needs it): the macOS kernel coalesces a timer by up to a quarter of how long it waits, which a decimated ACK's short delay shows. `20` in the macOS profiles, the median of Chrome's; none in the Linux and Windows ones, which say no slack. |
+
+Measured on Chrome 155.0.8059.85 on macOS (2026-10-26,
+`../net-fp-server/captures/review-20261023/bench`: `h3bench`'s `/big`, a
+megabyte over HTTP/3 from quic-go's server, `ackdec-chrome.sh` on loopback
+through the `tcp10` listener, once and twice on a connection, and through
+`lag50` and `lag1000`, the server's datagrams 50 ms and 1 s late; cohorts
+`c2` to `c4`; `ack-decimation.py` and `ack-decimation-compare.py` reading
+every client ACK with the runs' secrets): on loopback 97% of its ACKs before
+the server's packet numbered 102 (its first, 2, plus 100) acknowledged two
+packets, and 86% to 91% after it ten, none more; the four packets after each
+number the server skipped each acknowledged at once (12 of 12); MAX_DATA
+15728640 in every twentieth ACK packet in a row (52 times), never a PING; the
+ACKs an alarm sent after the mark said a median of 1.19 ms on loopback, 1.27
+at most (its least round trip under 0.1 ms: the floor), came 13.4 to 16.0 ms
+after the first packet they waited for 50 ms away, a median of 15.5 (a
+quarter of its least round trip, 50.1 ms, is 12.5), and 25.1 to 30.4 ms 1 s
+away, a median of 28.0 (its 25 ms). The library before (`lb1`, `lb2`): on
+loopback a quarter of its ACKs before the mark or fewer acknowledged two
+packets and the rest up to 32, after it two to 32, ten in 1%; a gap
+acknowledged once (none of 8 with the four at once); a PING in every
+twentieth ACK packet. After (`la3` to `la5`, by turns with Chrome's `c4`):
+97% of two before the mark on loopback and 89% to 93% of ten after it, none
+more; each gap's four at once (18 of 18); MAX_DATA after 19 ACK-only packets
+every time (78); its alarm ACKs said a median of 1.32 to 1.37 ms on loopback (1.58
+at most), came 15.5 to 17.1 ms after the first packet 50 ms away (16.2)
+and 28.1 to 30.4 ms 1 s away (28.5): 0.1 to 0.9 ms after Chrome's, as macOS
+coalesces Go's own timers too (by up to an eighth of their interval, 1 ms at
+most), which tls-forge does not take off. `quicacks_test.go` holds the
+counts, the gap, MAX_DATA and the alarm through `Client.Do`, the JSON alone
+changing each; quic-go-utls's `ack_decimation_test.go` and
+`ack_policy_test.go` hold the rules. The bench's `lag50` relay passed the
+server's datagrams on in any order before (313 of 908 out of order in one
+download), and Chrome then acknowledged nearly every packet at once: its
+cohort `c1` says nothing of decimation 50 ms away.
+
+Not modelled: ACK_FREQUENCY and IMMEDIATE_ACK frames (neither side offers
+them), quiche's ACK at once of a packet that changes the marks to ECN-CE
+alone (quic-go's of every CE packet: Chrome sends no ECN, a server's marks are
+not measured), the 255 ranges quiche keeps (quic-go's 32), and an ACK of
+Initial or Handshake packets, which their 1 ms alarm sends
+(`quic.handshake_ack_timer_ms`).

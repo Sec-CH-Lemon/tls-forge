@@ -116,6 +116,34 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   where Chrome's went at 304.5 to 305.0, 908.6 to 909.7 and 2112.8 to 2113.2
   that day; a Stream Cancellation that waits for such an ACK goes with it.
 
+- A Chrome profile's QUIC client acknowledges a long download as Chrome 155
+  does (quiche's `QuicReceivedPacketManager` and `QuicConnection` at Chrome
+  155's DEPS revision): every second ack-eliciting packet until the server's
+  packet numbered its first plus 100, and every tenth after, a packet so
+  numbered waiting a quarter of the least round trip, a millisecond at least
+  and the ACK timer at most, from the first one not acknowledged (quiche's ACK
+  decimation; `quic.ack_decimation_after`, `quic.ack_decimation_packets`,
+  `quic.ack_decimation_rtt_percent`, `quic.ack_decimation_min_ms`); each of
+  the four packets after a gap at once, where quic-go acknowledged a gap once
+  (`quic.ack_gap_packets`); each ACK sent before the next packet is taken,
+  where quic-go read up to 32 first and acknowledged two to 32 at a time
+  (`quic.ack_sent_after`); the twentieth ACK-only packet in a row made
+  ack-eliciting with MAX_DATA of the connection's window, where quic-go sent
+  a PING (`quic.ack_only_max`, `quic.ack_only_frame`); and, in the macOS
+  profiles, its ACK alarm a fifth of its delay late at most, as that kernel
+  coalesces a timer by a part of how long it waits
+  (`quic.ack_alarm_slack_percent`, which needs `quic.alarm_slack_ms`).
+  Measured on macOS against an own bench (2026-10-26, a megabyte over HTTP/3,
+  on loopback and 50 ms and 1 s away; Chrome's two cohorts, the library's
+  three by turns): alike in each count (on loopback 97% of two before the
+  mark for both, 86% to 91% and 89% to 93% of ten after it, none of more),
+  each gap's four at once (12 of 12, 18 of 18), MAX_DATA after 19 ACK-only
+  packets every time; their alarm ACKs a quarter of the least round trip
+  after the first packet they waited for, a millisecond on loopback, the
+  library's 0.1 to 0.9 ms later, as macOS coalesces Go's timers too. The fork
+  of quic-go has `ReceivedPacketHandler.SetAckDecimation`, `SetGapPackets`,
+  `SetAlarmSlackPercent` and `AckQueued` for them.
+
 - A direct `https://` request to a name whose HTTPS record names `h3` goes
   over HTTP/3 as Chrome 155's does, measured on macOS against an own bench
   (two cohorts of 18 scenarios, and of 3 more): its QUIC connection to the
