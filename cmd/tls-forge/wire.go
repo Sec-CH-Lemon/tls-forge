@@ -136,13 +136,18 @@ func sourceToward(client, server netip.AddrPort) netip.AddrPort {
 	if !client.Addr().IsUnspecified() {
 		return client
 	}
-	probe, err := net.DialUDP("udp", nil, net.UDPAddrFromAddrPort(server))
+	probe, err := dialUDP("udp", nil, net.UDPAddrFromAddrPort(server))
 	if err != nil {
 		return client
 	}
-	defer probe.Close()
+	defer func() { _ = probe.Close() }()
 	return netip.AddrPortFrom(addrPortOf(probe.LocalAddr()).Addr(), client.Port())
 }
+
+// dialUDP is how sourceToward asks the system the way to a server: the seam
+// a test makes find none, since which address finds none is the system's to
+// say (macOS none to 0.0.0.0, Linux and Windows the loopback).
+var dialUDP = net.DialUDP
 
 // wiredDatagrams is how a QUIC connection's socket tells the wire of its
 // datagrams.

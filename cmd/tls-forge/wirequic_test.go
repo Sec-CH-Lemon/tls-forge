@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -258,7 +259,12 @@ func TestASocketOfEveryAddressIsShownFromTheOneItSendsFrom(t *testing.T) {
 		t.Errorf("an address given became %s", got)
 	}
 	// Where the system has no way to the server, the socket's own.
-	if got := sourceToward(netip.MustParseAddrPort("0.0.0.0:5000"), netip.MustParseAddrPort("0.0.0.0:0")); got != netip.MustParseAddrPort("0.0.0.0:5000") {
+	asked := dialUDP
+	t.Cleanup(func() { dialUDP = asked })
+	dialUDP = func(string, *net.UDPAddr, *net.UDPAddr) (*net.UDPConn, error) {
+		return nil, errors.New("network is unreachable")
+	}
+	if got := sourceToward(netip.MustParseAddrPort("0.0.0.0:5000"), server); got != netip.MustParseAddrPort("0.0.0.0:5000") {
 		t.Errorf("no way to the server: %s", got)
 	}
 }
