@@ -255,7 +255,7 @@ func askedAfterAccept(names []string) bool {
 // was reset, each connection's in order.
 func sentToALPS(t *testing.T, server *harness.Server, variant string) [][]harness.WrittenRequest {
 	t.Helper()
-	got := settledALPS(t, server, "", variant)
+	got := settledALPS(t, server, "", variant, 1)
 	return got.Connections
 }
 

@@ -118,7 +118,7 @@ func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.
 				}
 			}
 			client.CloseIdleConnections()
-			got := settledALPS(t, server, want.Note, page.variant)
+			got := settledALPS(t, server, want.Note, page.variant, len(want.Handshakes))
 			diffs := harness.DiffALPS(want, got)
 			if why := alpsDiffer[scenario]; why != "" {
 				if len(diffs) == 0 {
@@ -134,14 +134,17 @@ func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.
 }
 
 // settledALPS is what the bench's ALPS server made of a client once it has
-// taken all it was sent: the same for 100 ms on end, or what it was after two
-// seconds. A client's handshake is done before the server has read its
-// Finished, and its SETTINGS and GOAWAY are read after it is done.
-func settledALPS(t *testing.T, server *harness.Server, note, variant string) harness.ALPSScenario {
+// taken all it was sent: once it has made of it as many handshakes as it
+// should have, the same for 100 ms on end, or what it was after five seconds.
+// A client's handshake is done before the server has read its Finished, and
+// its SETTINGS and GOAWAY are read after it is done: a connection refused
+// with a GOAWAY counts once its GOAWAY is read, which a loaded Windows runner
+// took more than 100 ms to do (run 40222769334, alps-settings-connect-2).
+func settledALPS(t *testing.T, server *harness.Server, note, variant string, handshakes int) harness.ALPSScenario {
 	t.Helper()
 	var got harness.ALPSScenario
 	said, since := "", time.Now()
-	for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
 		entries, err := server.Requests()
 		if err != nil {
 			t.Fatalf("Requests: %v", err)
@@ -151,7 +154,7 @@ func settledALPS(t *testing.T, server *harness.Server, note, variant string) har
 		}
 		if now := fmt.Sprintf("%+v", got); now != said {
 			said, since = now, time.Now()
-		} else if time.Since(since) >= 100*time.Millisecond {
+		} else if len(got.Handshakes) >= handshakes && time.Since(since) >= 100*time.Millisecond {
 			break
 		}
 	}
