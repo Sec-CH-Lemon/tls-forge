@@ -244,9 +244,8 @@ func Serve(in io.Reader, out io.Writer, client Client) error {
 }
 
 // answerGrace is how long the answer to the request in flight has, once ctx is
-// done, before a write waiting on the output is given up. A variable so that
-// a test can make it long.
-var answerGrace = 250 * time.Millisecond
+// done, before a write waiting on the output is given up.
+const answerGrace = 250 * time.Millisecond
 
 // ServeContext is Serve until ctx is done.
 //
@@ -271,7 +270,7 @@ func ServeContext(ctx context.Context, in io.Reader, out io.Writer, client Clien
 
 	stop := make(chan struct{})
 	defer close(stop)
-	go release(ctx, stop, out)
+	go release(ctx, stop, out, answerGrace)
 
 	// Read on a goroutine of its own, so that ctx is answered while a read is
 	// waiting for a line that may never come.
@@ -405,18 +404,18 @@ func AnswerInit(out io.Writer, id uint64, err error) error {
 }
 
 // release gives a write waiting on out a deadline in the past, when out takes
-// one, once ctx is done and the answer to the request in flight has had
-// answerGrace to be written; until stop, which is ServeContext returning.
-func release(ctx context.Context, stop <-chan struct{}, out io.Writer) {
+// one, once ctx is done and the answer to the request in flight has had grace
+// to be written; until stop, which is ServeContext returning.
+func release(ctx context.Context, stop <-chan struct{}, out io.Writer, grace time.Duration) {
 	select {
 	case <-ctx.Done():
 	case <-stop:
 		return
 	}
-	grace := time.NewTimer(answerGrace)
-	defer grace.Stop()
+	given := time.NewTimer(grace)
+	defer given.Stop()
 	select {
-	case <-grace.C:
+	case <-given.C:
 	case <-stop:
 		return
 	}

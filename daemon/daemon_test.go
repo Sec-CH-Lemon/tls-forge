@@ -660,10 +660,9 @@ func TestAnOutputIsLeftAloneWhenServeEndsWithinTheGrace(t *testing.T) {
 	// Told to stop, and ended before the answer's grace was over: the answer
 	// went, and nothing gives the output a deadline. release is called here
 	// rather than through ServeContext, whose end could come before release
-	// had seen ctx done, so that this went untested now and then (coverage).
-	original := answerGrace
-	answerGrace = time.Minute
-	t.Cleanup(func() { answerGrace = original })
+	// had seen ctx done, so that this went untested now and then (coverage);
+	// with a grace of its own, as the ServeContexts of other tests may still
+	// be reading the daemon's.
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	stop := make(chan struct{})
@@ -672,13 +671,12 @@ func TestAnOutputIsLeftAloneWhenServeEndsWithinTheGrace(t *testing.T) {
 		close(stop)
 	}()
 	out := &deadlineSaid{}
-	release(ctx, stop, out)
+	release(ctx, stop, out, time.Minute)
 	if out.set {
 		t.Error("the output was given a deadline though Serve ended within the grace")
 	}
 	// The grace passed, it is given one.
-	answerGrace = time.Millisecond
-	release(ctx, make(chan struct{}), out)
+	release(ctx, make(chan struct{}), out, time.Millisecond)
 	if !out.set {
 		t.Error("the output was given no deadline once the grace passed")
 	}
