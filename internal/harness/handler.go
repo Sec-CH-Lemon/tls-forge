@@ -2,6 +2,7 @@ package harness
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -85,6 +86,12 @@ func preflighted(w http.ResponseWriter, r *http.Request, maxage string) {
 // any answer but a preflight's. Under /cors/, ?noacao is an answer CORS
 // refuses.
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
+	// The whole body before any answer. One answered first is one an HTTP/2
+	// server asks the client to stop sending (RST_STREAM NO_ERROR, RFC 9113
+	// section 8.1), which a client that has not sent all of it yet does: on a
+	// loaded runner tls-forge's hpack-records-post-64k went with one DATA
+	// frame of five (CI run 40222769334). What is sent is kept from the bytes.
+	_, _ = io.Copy(io.Discard, r.Body)
 	q, path := r.URL.Query(), r.URL.Path
 	if q.Has("accept") {
 		w.Header().Set("Accept-CH", q.Get("accept"))

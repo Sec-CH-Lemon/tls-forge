@@ -1,11 +1,13 @@
 package harness
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // served is what the server answers req with.
@@ -17,6 +19,34 @@ func served(s *Server, method, target string, header ...string) *httptest.Respon
 	w := httptest.NewRecorder()
 	s.serve(w, req)
 	return w
+}
+
+func TestTheServerReadsABodyWholeBeforeItAnswers(t *testing.T) {
+	// An answer before the body ends is one an HTTP/2 server asks the client
+	// to stop sending at, which leaves the rest of the body unsent and unkept.
+	s := &Server{catalogue: map[string]scenario{"x": {}}}
+	body, writer := io.Pipe()
+	w := httptest.NewRecorder()
+	answered := make(chan struct{})
+	go func() {
+		s.serve(w, httptest.NewRequest("POST", "/p/x", body))
+		close(answered)
+	}()
+	go func() { _, _ = writer.Write([]byte("the first part")) }()
+	select {
+	case <-answered:
+		t.Fatal("answered before the body ended")
+	case <-time.After(100 * time.Millisecond):
+	}
+	_ = writer.Close()
+	select {
+	case <-answered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("not answered once the body ended")
+	}
+	if w.Code != http.StatusOK {
+		t.Errorf("answered %d", w.Code)
+	}
 }
 
 func TestTheServerAnswersAsTheScenariosNeed(t *testing.T) {
