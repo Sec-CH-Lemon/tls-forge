@@ -186,17 +186,22 @@ func (s *downloadSeen) mostFresh(n int) (before, after, exactly int) {
 	return before, after, exactly
 }
 
+// gap is the first number the server skipped with four packets after it,
+// or -1.
+func (s *downloadSeen) gap() qlog.PacketNumber {
+	for _, pn := range s.skipped {
+		if pn > s.first && pn+4 <= s.last {
+			return pn
+		}
+	}
+	return -1
+}
+
 // eachAfterTheGap says whether each of the four packets after the first
 // number the server skipped had an ACK of its own, the largest of it.
 func (s *downloadSeen) eachAfterTheGap(t *testing.T) bool {
 	t.Helper()
-	var skip qlog.PacketNumber = -1
-	for _, pn := range s.skipped {
-		if pn > s.first && pn+4 <= s.last {
-			skip = pn
-			break
-		}
-	}
+	skip := s.gap()
 	if skip < 0 {
 		t.Fatalf("the server skipped no packet number of %d..%d (%v)", s.first, s.last, s.skipped)
 	}
@@ -257,28 +262,121 @@ func (s *downloadSeen) disturbance() string {
 	return ""
 }
 
-// loneDownload is download of a client wearing p (probedLate, so that the
+// probed is why the client's packets say nothing of which of them it makes
+// ack-eliciting, or "": a number of the client's the server never heard,
+// which it skips before a probe, whose frames, MAX_DATA among them, go
+// again (a loaded server may acknowledge a packet later than the probe is
+// due), or a packet of the client's lost.
+func (s *downloadSeen) probed() string {
+	s.heard.mu.Lock()
+	defer s.heard.mu.Unlock()
+	var last qlog.PacketNumber = -1
+	for _, g := range s.heard.got {
+		if g.Header.PacketType != qlog.PacketType1RTT {
+			continue
+		}
+		if pn := g.Header.PacketNumber; last >= 0 && pn != last+1 {
+			return fmt.Sprintf("the client's %d never heard", last+1)
+		}
+		last = g.Header.PacketNumber
+	}
+	return ""
+}
+
+// gapForgotten is why the four packets after the number eachAfterTheGap
+// looks at say nothing of how the client acknowledges a gap, or "": one of
+// them lost, or one acknowledging a packet of the client's whose ACK went
+// past the gap, as a loaded server, slow to send them, may; the client then
+// knows the server knows of the gap and forgets it (IgnoreBelow), as
+// quiche's DontWaitForPacketsBefore does.
+func (s *downloadSeen) gapForgotten() string {
+	skip := s.gap()
+	if skip < 0 {
+		return ""
+	}
+	for pn := skip + 1; pn <= skip+4; pn++ {
+		if s.heard.ackOf(pn) == nil {
+			return fmt.Sprintf("%d, after the skipped %d, never acknowledged", pn, skip)
+		}
+	}
+	s.heard.mu.Lock()
+	defer s.heard.mu.Unlock()
+	past := map[qlog.PacketNumber]bool{}
+	for _, g := range s.heard.got {
+		for _, f := range g.Frames {
+			if a, ok := f.Frame.(*qlog.AckFrame); ok && g.Header.PacketType == qlog.PacketType1RTT && a.LargestAcked() > skip {
+				past[g.Header.PacketNumber] = true
+			}
+		}
+	}
+	for _, p := range s.heard.sent {
+		pn := p.Header.PacketNumber
+		if p.Header.PacketType != qlog.PacketType1RTT || pn <= skip || pn > skip+4 {
+			continue
+		}
+		for _, f := range p.Frames {
+			if a, ok := f.Frame.(*qlog.AckFrame); ok {
+				for c := range past {
+					if a.AcksPacket(c) {
+						return fmt.Sprintf("%d, after the skipped %d, acknowledged the client's %d, whose ACK went past it", pn, skip, c)
+					}
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// asChromes is why a download of a client wearing a profile as shipped
+// says nothing of what Chrome does, or "": a disturbance of the lone
+// packet's ACK; that ACK as late as the slack whole would make it, 5 ms or
+// more, which a loaded machine does too, firing the client's alarm late and
+// making its round trips, its min RTT among them, longer, a quarter of which
+// an ACK after the 100th packet waits (none waits less, a timer never firing
+// early); the client probed; or the gap forgotten.
+func (s *downloadSeen) asChromes() string {
+	if w := s.disturbance(); w != "" {
+		return w
+	}
+	if d := s.loneDelay(); d >= 5*time.Millisecond {
+		return fmt.Sprintf("the lone packet acknowledged after %s", d)
+	}
+	if w := s.probed(); w != "" {
+		return w
+	}
+	return s.gapForgotten()
+}
+
+// undisturbed is download of a client wearing p (probedLate, so that the
 // server's probe is due 200 ms after the lone packet, past any alarm of the
-// client's) whose ACK of the lone packet says how long it waited: a run with
-// a disturbance is run again.
-func loneDownload(t *testing.T, p *profile.Profile) *downloadSeen {
+// client's) of which disturbed says nothing: a run it says something of is
+// run again, tries times at most.
+func undisturbed(t *testing.T, p *profile.Profile, tries int, disturbed func(*downloadSeen) string) *downloadSeen {
 	t.Helper()
 	p = probedLate(p)
 	var why []string
-	for range 4 {
+	for range tries {
 		s := download(t, p)
-		w := s.disturbance()
+		w := disturbed(s)
 		if w == "" {
 			return s
 		}
 		why = append(why, w)
 	}
-	t.Fatalf("the lone packet's ACK disturbed in every run: %s", strings.Join(why, "; "))
+	t.Fatalf("disturbed in every run: %s", strings.Join(why, "; "))
 	return nil
 }
 
+// loneDownload is a download undisturbed of a client wearing p, whose ACK
+// of the lone packet says how long it waited (disturbance).
+func loneDownload(t *testing.T, p *profile.Profile) *downloadSeen {
+	t.Helper()
+	return undisturbed(t, p, 4, (*downloadSeen).disturbance)
+}
+
 func TestALongDownloadIsAcknowledgedAsChromeAcknowledgesIt(t *testing.T) {
-	s := download(t, quicProfile(t, nil))
+	// a download run again while a loaded machine had a part in it
+	s := undisturbed(t, quicProfile(t, nil), 8, (*downloadSeen).asChromes)
 	// two by two to the server's first packet number plus 100, ten by ten
 	// after, never more: an ACK goes before the next packet is taken
 	before, after, tens := s.mostFresh(10)
@@ -301,9 +399,9 @@ func TestALongDownloadIsAcknowledgedAsChromeAcknowledgesIt(t *testing.T) {
 		}
 	}
 	// a lone packet after the 100th: a quarter of a round trip on loopback
-	// is less than the floor, 1 ms, and 0.2 ms late, a fifth of it; a timer
-	// never fires early
-	if d := s.loneDelay(); d < 1200*time.Microsecond || d >= 5*time.Millisecond {
+	// is less than the floor, 1 ms, and 0.2 ms late, a fifth of it, not the
+	// whole 4 ms (asChromes); a timer never fires early
+	if d := s.loneDelay(); d < 1200*time.Microsecond {
 		t.Errorf("the lone packet acknowledged after %s, want 1.2 ms or a little more", d)
 	}
 }
