@@ -105,6 +105,8 @@ SETTINGS values/order and priority/GREASE contents still come from the profile.
 
 Schema 0-2 retains its historical family inference during migration. `Save` materializes `per_connection` and the complete effective policy into schema 4, without mutating the source object. The two JSON templates in `utls/behavior` preserve old default behavior; explicit schema 3 data takes precedence, even for a file called `chrome`. Bare transport-catalogue presets remain legacy backend presets and are not newly measured complete profiles.
 
+Whatever its schema, an executable profile of the current engine runs only with `http.max_content_codings`, `http.content_coding_overflow`, `http.ignored_content_codings` and `cookie.prefixes`: an explicit `behavior` of schema 0-2 without them is refused before any I/O, as schema 3 and 4 are, and one with no `behavior` runs on the frozen templates, which have them. `Inspect` still reads such a file offline.
+
 Existing shipped TLS capture bytes, ordered settings, header values, machine data and original provenance are preserved. Added behavior sections materialize the pre-existing runtime policy, including the newer policy previously applied to older Chromium profiles; this is not fresh acceptance of Chrome 151-154.
 
 Unknown keys, duplicate behavior keys, null or wrong types, invalid ranges and unsupported algorithm names are errors. H3 ALPS, ORIGIN/coalescing and cross-version profile negotiation remain unavailable; they must not be advertised through arbitrary data. Missing-API catalogue scenarios remain open.

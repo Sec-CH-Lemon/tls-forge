@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tc "github.com/igor-lemon/tls-client"
 	"github.com/igor-lemon/utls/behavior"
 )
@@ -139,5 +141,55 @@ func TestInvalidCookiePrefixPolicyRejectedBeforeIO(t *testing.T) {
 		if err == nil || dials.Load() != 0 {
 			t.Fatalf("invalid cookie policy reached I/O: %v, dials %d", err, dials.Load())
 		}
+	}
+}
+
+func TestAProfileOfAnOlderSchemaRunsOnlyWithItsCookieRules(t *testing.T) {
+	// A profile that says an older schema but brings a behavior of its own
+	// without cookie.prefixes used to run, and stored a __Host- cookie of
+	// another path; it is refused before anything is sent. With the rules it
+	// runs, and refuses that cookie as the shipped profile does.
+	var asked atomic.Int32
+	site := tlsSite(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked.Add(1)
+		if r.URL.Path == "/set" {
+			w.Header().Add("Set-Cookie", "__Host-sid=attacker; Secure; Path=/x")
+			return
+		}
+		_, _ = w.Write([]byte(r.Header.Get("Cookie")))
+	}))
+	shipped, err := profile.Get("chrome_155_macos")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, schema := range []int{0, 2} {
+		without := shipped.Clone()
+		without.Schema = schema
+		delete(without.Behavior, "cookie.prefixes")
+		if _, err := New(WithProfileValue(without), WithInsecureSkipVerify()); err == nil ||
+			!strings.Contains(err.Error(), "requires cookie.prefixes") {
+			t.Errorf("schema %d without cookie.prefixes: %v", schema, err)
+		}
+		if n := asked.Load(); n != 0 {
+			t.Fatalf("schema %d: the site was asked %d times by a refused profile", schema, n)
+		}
+		with := shipped.Clone()
+		with.Schema = schema
+		client, err := New(WithProfileValue(with), WithInsecureSkipVerify())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := client.Do(&Request{URL: site.URL + "/set"}); err != nil {
+			t.Fatal(err)
+		}
+		res, err := client.Do(&Request{URL: site.URL + "/x/echo"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(res.Body), "__Host-sid") {
+			t.Errorf("schema %d with the rules kept %q", schema, res.Body)
+		}
+		_ = client.Close()
+		asked.Store(0)
 	}
 }

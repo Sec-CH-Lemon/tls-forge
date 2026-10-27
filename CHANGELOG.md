@@ -22,6 +22,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - `CloseIdleConnections` no longer passes over a site with a request in flight:
   that site's idle connections close once its last request or response body is
   done, once, and the site stays resident with its TLS sessions.
+- Require `http.max_content_codings`, `http.content_coding_overflow`,
+  `http.ignored_content_codings` and `cookie.prefixes` of every executable
+  current-engine profile, whatever its schema: an explicit `behavior` of an
+  older schema without them is refused before any I/O, as schemas 3 and 4 are.
+  A legacy profile with no `behavior` runs on the frozen data, which has them.
 - Validate executable profile semantics before DNS/transport/proxy activity at
   every entry. Reject ambiguous JSON, invalid H2 settings/streams/dependencies,
   unsupported repeated-setting representation and connection-window overflow.
