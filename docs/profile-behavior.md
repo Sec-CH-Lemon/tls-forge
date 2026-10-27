@@ -1803,7 +1803,9 @@ A response remains active through body completion, including HTTP/3 transports
 whose internal RoundTrip count ends at headers. Only sites without chain/drainer
 leases may enter idle-close I/O. The claim is made under the registry mutex; new
 readers of that site wait outside the mutex until it finishes. Other sites can
-proceed, and the resident site retains its existing session pool.
+proceed, and the resident site retains its existing session pool. An idle close
+that finds a site leased is not dropped: the site keeps it, and its last release
+closes the connections idle by then.
 
 HTTPS-proxy discovery locking is synchronization, not a browser data choice.
 Only a cold connection's negotiation/setup is serialized. The GotConn hook

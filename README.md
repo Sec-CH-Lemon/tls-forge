@@ -2787,7 +2787,8 @@ site partitions; retired partitions are held only until their readers finish.
 reads may finish; their retired connections close when the last reader leaves.
 Pool close/reap I/O runs outside the shared registry mutex. Idle-close claims
 exclude new readers until I/O finishes; active response bodies, including H3,
-keep their pool leased through completion.
+keep their pool leased through completion. `CloseIdleConnections` on a site with
+a request in flight closes that site's idle connections once the request ends.
 
 An HTTPS proxy's cold protocol discovery is serialized through ALPN setup,
 then released on connection acquisition before waiting for a forwarded answer.

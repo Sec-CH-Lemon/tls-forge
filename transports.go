@@ -56,7 +56,10 @@ type site struct {
 	refs    int // chain and background-drain leases, under transports.mu
 	retired bool
 	closing chan struct{} // idle-close claim, under transports.mu
-	inner   pool
+	// idleAsked is an idle close asked for while the site was leased, which
+	// its last release carries out, under transports.mu.
+	idleAsked bool
+	inner     pool
 	// bare is where a request that carries no credentials goes out: a CORS
 	// preflight, fetch() with credentials omitted, or one kept to its own
 	// origin going to another. Chrome sends those on connections of their
@@ -219,7 +222,8 @@ func topSite(browser *browserRequest, target *url.URL) string {
 
 // closeIdle closes the connections they hold open between requests, those
 // they let go of an answer on in the background (leave) too: it ends them and
-// waits for them, so that none is put back to be used once it returns.
+// waits for them, so that none is put back to be used once it returns. A site
+// a request still holds closes its idle connections when that is released.
 func (t *transports) closeIdle() { t.clearIdle(false) }
 func (t *transports) close()     { t.clearIdle(true) }
 
@@ -272,13 +276,18 @@ func (t *transports) clearIdle(permanent bool) {
 // Claim idle pools before leaving the registry lock. A new reader of a
 // resident site waits for its claim to finish, without holding the registry.
 // This matters for H3 transports that count RoundTrip only through headers.
+// A site still leased is not closed under its reader, nor passed over: it
+// keeps the request, and its last release closes what is idle by then.
 func (t *transports) idleSitesLocked(sites []*site) (idle []*site, pending []<-chan struct{}) {
 	for _, s := range sites {
-		if s.closing != nil {
+		switch {
+		case s.closing != nil:
 			pending = append(pending, s.closing)
-		} else if s.refs == 0 {
+		case s.refs == 0:
 			s.closing = make(chan struct{})
 			idle = append(idle, s)
+		default:
+			s.idleAsked = true
 		}
 	}
 	return
@@ -298,14 +307,16 @@ func (t *transports) closeSites(idle []*site, pending []<-chan struct{}) {
 }
 
 // releaseSite closes a retired pool after the last user has finished with its
-// response. Final bodies keep their chain's lease until Client.do returns.
+// response, and the idle connections of one an idle close found leased. Final
+// bodies keep their chain's lease until Client.do returns.
 func (t *transports) releaseSite(s *site) {
 	t.mu.Lock()
 	s.refs--
 	var idle []*site
 	var pending []<-chan struct{}
-	if s.retired && s.refs == 0 {
+	if s.refs == 0 && (s.retired || s.idleAsked) {
 		delete(t.retired, s)
+		s.idleAsked = false
 		idle, pending = t.idleSitesLocked([]*site{s})
 	}
 	t.mu.Unlock()

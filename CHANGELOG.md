@@ -19,6 +19,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - Mask secret query parameters in the URL-valued fields logs and traces write
   down (`:path`, `Referer`, `Location`, `Content-Location`) and in the URLs of
   the authentication records, over HTTP/1.1 and HTTP/2 alike.
+- `CloseIdleConnections` no longer passes over a site with a request in flight:
+  that site's idle connections close once its last request or response body is
+  done, once, and the site stays resident with its TLS sessions.
 - Validate executable profile semantics before DNS/transport/proxy activity at
   every entry. Reject ambiguous JSON, invalid H2 settings/streams/dependencies,
   unsupported repeated-setting representation and connection-window overflow.

@@ -935,8 +935,10 @@ func (c *Client) AllCookies() []Cookie { return c.session.all() }
 // requests, so that the next request opens one of its own: one that resumes
 // the TLS session of the last, when the profile's browser resumes and the site
 // issued a ticket, as a browser's new connection does. Those it still reads an
-// answer it went on from on are let go of first, and closed. The client stays
-// open.
+// answer it went on from on are let go of first, and closed. A site with a
+// request still going keeps its connections until that request is done, and
+// then closes those idle by then: one is not closed under a reader. The client
+// stays open.
 func (c *Client) CloseIdleConnections() {
 	c.transports.closeIdle()
 	if c.log != nil {
