@@ -441,7 +441,9 @@ redirect), on the connection the page came on, asking for it afresh
 from the page the request came from (`Referer`, `Origin`, `Sec-Fetch-Site`) as
 before. A form posted is posted again with its body, its `Content-Type` after
 `Origin` as Chrome posts one again; one a redirect made a GET is reloaded as
-that GET. A `fetch` or `xhr` opens no page to reload: it is sent again as its
+that GET. Credentials given with `-H` (`Authorization`, `Cookie`) are not sent
+again to a page a redirect took to another origin, as the redirect did not send
+them there. A `fetch` or `xhr` opens no page to reload: it is sent again as its
 page's script sends it, on the connection it went on. It needs `--retry`, the
 run's header says it (`tried again`), and each try made again says
 `reloading`. A reload that bypasses the cache (Ctrl+Shift+R) is not modelled.

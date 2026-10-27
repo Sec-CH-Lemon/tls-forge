@@ -2,8 +2,10 @@ package tlsforge
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"reflect"
 	"slices"
@@ -286,6 +288,27 @@ func TestReloadedIsTheRequestThatReloadsThePage(t *testing.T) {
 			Request{Method: "POST", URL: "u", Header: NewHeader("X-Foo", "1", "content-type", "text/plain"),
 				Body: []byte("x")},
 			&Response{URL: "v", Method: "GET"}, Request{Method: "GET", URL: "v", Header: NewHeader("X-Foo", "1"), Reload: true}},
+		{"a reload at another origin leaves the caller's credentials behind",
+			Request{URL: "https://a.example/start", Header: NewHeader("Authorization", "Bearer t", "X-Foo", "1",
+				"cookie", "s=1", "Proxy-Authorization", "Basic p", "WWW-Authenticate", "Basic", "Cookie2", "c=1",
+				"Proxy-Authenticate", "Basic")},
+			&Response{URL: "https://b.example/landing", Method: "GET"},
+			Request{URL: "https://b.example/landing", Header: NewHeader("X-Foo", "1"), Reload: true}},
+		{"another port is another origin",
+			Request{URL: "https://a.example/start", Header: NewHeader("Authorization", "Bearer t")},
+			&Response{URL: "https://a.example:8443/landing", Method: "GET"},
+			Request{URL: "https://a.example:8443/landing", Reload: true}},
+		{"a reload at the origin they were given for keeps them",
+			Request{URL: "https://A.example:443/start", Header: NewHeader("Authorization", "Bearer t", "Cookie", "s=1")},
+			&Response{URL: "https://a.example/landing", Method: "GET"},
+			Request{URL: "https://a.example/landing", Header: NewHeader("Authorization", "Bearer t", "Cookie", "s=1"),
+				Reload: true}},
+		{"a page whose address cannot be read keeps no credentials",
+			Request{URL: "u", Header: NewHeader("Authorization", "Bearer t")},
+			&Response{URL: "https://a.example/", Method: "GET"}, Request{URL: "https://a.example/", Reload: true}},
+		{"nor one whose answer's address cannot be read",
+			Request{URL: "https://a.example/", Header: NewHeader("Authorization", "Bearer t")},
+			&Response{URL: "v", Method: "GET"}, Request{URL: "v", Reload: true}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			kept := tc.req.Browser
@@ -411,4 +434,87 @@ func TestAReloadedPageKeepsTheFieldsItWasGiven(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAReloadAtAnotherOriginLeavesTheCallersCredentialsBehind(t *testing.T) {
+	// fetch --retry-as-browser reloads the page a redirect ended on. A
+	// redirect to another origin leaves the caller's credentials behind, and
+	// so does the reload of the page it ended on; one that stayed at the
+	// origin they were given for keeps them.
+	for _, h2 := range []bool{false, true} {
+		for _, crossing := range []bool{true, false} {
+			t.Run(fmt.Sprintf("h2=%v/crossing=%v", h2, crossing), func(t *testing.T) {
+				var mu sync.Mutex
+				var landed []http.Header
+				refusing := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path != "/landing" {
+						http.Error(w, "not here", http.StatusNotFound)
+						return
+					}
+					mu.Lock()
+					landed = append(landed, r.Header.Clone())
+					mu.Unlock()
+					w.WriteHeader(http.StatusForbidden)
+				})
+				other := tlsSite(t, h2, refusing)
+				var target string
+				first := tlsSite(t, h2, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path == "/start" {
+						http.Redirect(w, r, target, http.StatusFound)
+						return
+					}
+					refusing(w, r)
+				}))
+				target = first.URL + "/landing"
+				if crossing {
+					target = other.URL + "/landing"
+				}
+				client, err := New(WithProfile("chrome_155_macos"), WithInsecureSkipVerify())
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = client.Close() })
+				req := Request{URL: first.URL + "/start", Header: NewHeader(
+					"Authorization", "Bearer SECRET", "Cookie", "s=SECRET", "Proxy-Authorization", "Basic SECRET")}
+				res, err := client.Do(&req)
+				if err != nil || res.Status != http.StatusForbidden {
+					t.Fatalf("%v %v", res, err)
+				}
+				again := req.Reloaded(res)
+				if _, err := client.Do(&again); err != nil {
+					t.Fatal(err)
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				if len(landed) != 2 {
+					t.Fatalf("%d requests landed, want the redirect's and the reload's", len(landed))
+				}
+				for _, name := range []string{"Authorization", "Cookie", "Proxy-Authorization"} {
+					if crossing {
+						for i, header := range landed {
+							if got := header.Get(name); got != "" {
+								t.Errorf("request %d to another origin carried %s: %q", i+1, name, got)
+							}
+						}
+					} else if got := landed[1].Get(name); !strings.Contains(got, "SECRET") {
+						// The redirect's hop drops a given Cookie as its
+						// profile says (headers.given_redirect_drops); the
+						// reload of the page is asked with all of them again.
+						t.Errorf("the reload at the caller's origin lost %s: %q", name, got)
+					}
+				}
+			})
+		}
+	}
+}
+
+// tlsSite is a TLS server of handler's, over HTTP/2 when h2 says so and over
+// HTTP/1.1 alone otherwise, closed when the test ends.
+func tlsSite(t *testing.T, h2 bool, handler http.Handler) *httptest.Server {
+	t.Helper()
+	server := httptest.NewUnstartedServer(handler)
+	server.EnableHTTP2 = h2
+	server.StartTLS()
+	t.Cleanup(server.Close)
+	return server
 }

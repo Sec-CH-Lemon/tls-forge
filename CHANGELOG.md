@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- `Request.Reloaded` (and `fetch --retry-as-browser`) leaves the caller's
+  Authorization, Cookie and proxy/challenge credential fields behind when a
+  redirect took the page to another origin, as the redirect did; a reload at
+  the origin they were given for keeps them. A URL that cannot be read counts
+  as another origin.
 - Validate executable profile semantics before DNS/transport/proxy activity at
   every entry. Reject ambiguous JSON, invalid H2 settings/streams/dependencies,
   unsupported repeated-setting representation and connection-window overflow.

@@ -683,12 +683,16 @@ with the client that made the request, not a `Fresh` one.
 with `Reload`, to `res.URL`, where a redirect may have taken it (Chrome reloads
 the page it ended on, not the redirect), by the method `res` answers
 (`Response.Method`); a form's POST a redirect made a GET is reloaded as that
-GET, a navigation from the form's page without its body. `fetch()` and an XHR
-open no page: `Reloaded` hands them back as they are, for the page's script to
-send them again, and `Reload` on one is refused, as on a request a browser sent
-(`Sent`), with a profile that says nothing of reloads, and with one that sends
-a request without a context as it is given. A reload that bypasses the cache
-(Ctrl+Shift+R: `Pragma` and `Cache-Control` `no-cache`) is not modelled.
+GET, a navigation from the form's page without its body. A page a redirect
+took to another origin is reloaded without the credentials the caller gave
+(`Authorization`, `Cookie`, `Proxy-Authorization` and the challenge fields),
+which the redirect left behind; at their own origin they go again. `fetch()`
+and an XHR open no page: `Reloaded` hands them back as they are, for the page's
+script to send them again, and `Reload` on one is refused, as on a request a
+browser sent (`Sent`), with a profile that says nothing of reloads, and with
+one that sends a request without a context as it is given. A reload that
+bypasses the cache (Ctrl+Shift+R: `Pragma` and `Cache-Control` `no-cache`) is
+not modelled.
 
 ### Redirects
 

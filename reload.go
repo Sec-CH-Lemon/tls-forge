@@ -23,6 +23,12 @@ func (req Request) Reloaded(res *Response) Request {
 	if res == nil {
 		return req
 	}
+	// A redirect that took the page to another origin left the caller's
+	// credentials behind on its way there, and the reload of that page keeps
+	// them behind: they stay within the origin the caller gave them for.
+	if crossedOrigin(req.URL, res.URL) {
+		req.Header = req.Header.without(redirectCredentialHeaders...)
+	}
 	req.URL = res.URL
 	if res.Method != "" && !strings.EqualFold(res.Method, cmp.Or(req.Method, fhttp.MethodGet)) {
 		req.Method, req.Body = res.Method, nil
@@ -35,4 +41,19 @@ func (req Request) Reloaded(res *Response) Request {
 		}
 	}
 	return req
+}
+
+// crossedOrigin says whether to is of another origin than from, as a browser
+// reads both. One that cannot be read is taken for another: the credentials a
+// caller gave stay behind unless it is sure where they would go.
+func crossedOrigin(from, to string) bool {
+	a, err := parseURL(from, nil)
+	if err != nil {
+		return true
+	}
+	b, err := parseURL(to, nil)
+	if err != nil {
+		return true
+	}
+	return originOf(a.url()) != originOf(b.url())
 }
