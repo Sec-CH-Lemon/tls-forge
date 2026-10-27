@@ -18,6 +18,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Wake body readers on terminal flow errors; queue large valid H3 setup outside
   the QUIC run loop, preserving small setup composition and the SETTINGS barrier.
   All changes share unpublished engine1; the15 profile JSON files are unchanged.
+- Add source-pinned full-suite fork regression gates for standalone and actual
+  production dependency graphs, named inherited failures, executed QUIC self
+  integration, loopback-only test traffic and retained raw evidence. CI targets
+  development and cancels obsolete runs. F09 stage2 remains open; unpublished
+  local pins and remote CI activation still require publication/verification.
 
 - Release HTTPS-proxy discovery locking at connection acquisition rather than
   response arrival. Remember observed H1 per partition, retain actual ALPN on

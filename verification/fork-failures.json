@@ -1,0 +1,3448 @@
+{
+  "schema": 1,
+  "scope": "A6 regression gate, F09 stage1 only; stage2 remains open. Known failures may pass on a finite run without closing their obligations.",
+  "platform": "macOS27.0.1 arm64; pinned go1.26.10 from root go.mod; owned loopback peers; GOWORK=off; full modules retained and linked production versions compared.",
+  "forks": {
+    "utls": {
+      "module": "github.com/igor-lemon/utls",
+      "repository": "https://github.com/igor-lemon/utls",
+      "commit": "856ef601ebd9ba2c6363a0133a73708c98186576"
+    },
+    "fhttp": {
+      "module": "github.com/igor-lemon/fhttp",
+      "repository": "https://github.com/igor-lemon/fhttp",
+      "commit": "6ccf73f64cb3efb4a3bb818eb251a498257335ec"
+    },
+    "tls-client": {
+      "module": "github.com/igor-lemon/tls-client",
+      "repository": "https://github.com/igor-lemon/tls-client",
+      "commit": "9bd16362d479ede484e72421a095e2cb14308ad2"
+    },
+    "quic-go-utls": {
+      "module": "github.com/igor-lemon/quic-go-utls",
+      "repository": "https://github.com/igor-lemon/quic-go-utls",
+      "commit": "4837491ccf903040abf024f14053ae8b41a84f21"
+    }
+  },
+  "known_failures": [
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestRequestWrite",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / serializer ownership",
+      "cause": "Repeated Write/WriteProxy accumulates generated framing fields in caller headers.",
+      "obligation": "Idempotent serialization, exactly one framing field and caller immutability.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Transfer-Encoding: chunked|Content-Length: 6",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestRequestWrite$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestDetectInMemoryReaders",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "New Go NopCloser/writer wrappers are not recognized by the copied reader fast path.",
+      "obligation": "Recognize supported in-memory readers without changing streaming/copy semantics.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "got = false; want true",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestDetectInMemoryReaders$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "The fork selects a different writer/reader wrapper than the inherited Go fixture.",
+      "obligation": "Correct copy optimization and complete framing for files, buffers and wrappers.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "got reader .* want",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransferWriterWriteBodyReaderTypes/file,_non\\-chunked,_size_set,_nopCloser_wrapped$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "The fork selects a different writer/reader wrapper than the inherited Go fixture.",
+      "obligation": "Correct copy optimization and complete framing for files, buffers and wrappers.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "got reader .* want",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransferWriterWriteBodyReaderTypes/file,_non\\-chunked,_negative_size$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "The fork selects a different writer/reader wrapper than the inherited Go fixture.",
+      "obligation": "Correct copy optimization and complete framing for files, buffers and wrappers.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "got reader .* want",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransferWriterWriteBodyReaderTypes/file,_non\\-chunked,_CONNECT,_negative_size$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "The fork selects a different writer/reader wrapper than the inherited Go fixture.",
+      "obligation": "Correct copy optimization and complete framing for files, buffers and wrappers.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "got reader .* want",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransferWriterWriteBodyReaderTypes/buffer,_non\\-chunked,_size_set,_nopCloser_wrapped$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransferWriterWriteBodyReaderTypes",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "The fork selects a different writer/reader wrapper than the inherited Go fixture.",
+      "obligation": "Correct copy optimization and complete framing for files, buffers and wrappers.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "got reader .* want",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransferWriterWriteBodyReaderTypes$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestClientWrites",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / write composition",
+      "cause": "Inherited fixture requires one underlying Write, fork emits two; no byte loss established.",
+      "obligation": "Complete request body and declared write/record composition.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Post request did 2 Write calls, want 1",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestClientWrites$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_SmallBody",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_SmallBody$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_ExplicitContentLength",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_ExplicitContentLength$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_HandlerWritesTooLittle",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_HandlerWritesTooLittle$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_HandlerWritesTooMuch",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_HandlerWritesTooMuch$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_AutoGzip",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_AutoGzip$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_AutoGzip_Disabled",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_AutoGzip_Disabled$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_ServerEmptyContentLength",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_ServerEmptyContentLength$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_RequestContentLength_Known_NonZero",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_RequestContentLength_Known_NonZero$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_RequestContentLength_Known_Zero",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_RequestContentLength_Known_Zero$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_RequestContentLength_Unknown",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_RequestContentLength_Unknown$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTrailersServerToClient_h2",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H2 exposes ContentLength=-1 where the trailer fixture expects9.",
+      "obligation": "Complete trailer/body semantics and accurate metadata.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "ContentLength = -1; want 9",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTrailersServerToClient_h2$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportUserAgent_h1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / header policy",
+      "cause": "Inherited Go single-UA expectations differ from explicit fhttp header preservation.",
+      "obligation": "Profile-owned UA order/casing with safe caller ownership.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "body mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportUserAgent_h1$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestH12_AutoGzipWithDumpResponse",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "H1 and H2 expose different ContentLength/encoding metadata after decompression; precise serializer/fixture split remains open.",
+      "obligation": "Preserve complete body, framing and response metadata consistently across H1/H2.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Response headers to handler differed",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestH12_AutoGzipWithDumpResponse$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestWriteHeaderNoCodeCheck_h1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / diagnostic caller",
+      "cause": "relevantCaller identifies its own renamed package instead of the request handler.",
+      "obligation": "Stable useful error attribution without changing response behavior.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "superfluous response.WriteHeader|response.WriteHeader on hijacked connection",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestWriteHeaderNoCodeCheck_h1$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestWriteHeaderNoCodeCheck_h1hijack",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / diagnostic caller",
+      "cause": "relevantCaller identifies its own renamed package instead of the request handler.",
+      "obligation": "Stable useful error attribution without changing response behavior.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "superfluous response.WriteHeader|response.WriteHeader on hijacked connection",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestWriteHeaderNoCodeCheck_h1hijack$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestCompressionDeflate",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / decompression",
+      "cause": "Raw deflate body is left compressed in the inherited fixture.",
+      "obligation": "Decode both raw and wrapped deflate according to policy.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Content-Encoding: deflate covers",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestCompressionDeflate$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestIdentityResponse",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "Identity response loses Content-Length header and metadata.",
+      "obligation": "Identity body framing and declared length.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "expected res.ContentLength of 3; got -1",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestIdentityResponse$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestContentEncodingNoSniffing_h1/gzip_content-encoding,_gzipped",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "Content-Encoding header is removed unexpectedly for the indicated encodings.",
+      "obligation": "Preserve encoding metadata when automatic decoding is not selected.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Content-Encoding mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestContentEncodingNoSniffing_h1/gzip_content\\-encoding,_gzipped$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestContentEncodingNoSniffing_h1/zlib_content-encoding,_zlibbed",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "Content-Encoding header is removed unexpectedly for the indicated encodings.",
+      "obligation": "Preserve encoding metadata when automatic decoding is not selected.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Content-Encoding mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestContentEncodingNoSniffing_h1/zlib_content\\-encoding,_zlibbed$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestContentEncodingNoSniffing_h1/phony_content-encoding",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "Content-Encoding header is removed unexpectedly for the indicated encodings.",
+      "obligation": "Preserve encoding metadata when automatic decoding is not selected.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Content-Encoding mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestContentEncodingNoSniffing_h1/phony_content\\-encoding$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestContentEncodingNoSniffing_h1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "Content-Encoding header is removed unexpectedly for the indicated encodings.",
+      "obligation": "Preserve encoding metadata when automatic decoding is not selected.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Content-Encoding mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestContentEncodingNoSniffing_h1$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTimeoutHandlerSuperfluousLogs/return_before_timeout",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / diagnostics and response metadata",
+      "cause": "Caller attribution differs and the timeout response loses expected Content-Length metadata.",
+      "obligation": "Correct timeout body/framing and handler attribution.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Log entry mismatch|Response mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTimeoutHandlerSuperfluousLogs/return_before_timeout$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTimeoutHandlerSuperfluousLogs/return_after_timeout",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / diagnostics and response metadata",
+      "cause": "Caller attribution differs and the timeout response loses expected Content-Length metadata.",
+      "obligation": "Correct timeout body/framing and handler attribution.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Log entry mismatch|Response mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTimeoutHandlerSuperfluousLogs/return_after_timeout$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTimeoutHandlerSuperfluousLogs",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / diagnostics and response metadata",
+      "cause": "Caller attribution differs and the timeout response loses expected Content-Length metadata.",
+      "obligation": "Correct timeout body/framing and handler attribution.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Log entry mismatch|Response mismatch",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTimeoutHandlerSuperfluousLogs$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=true",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / serializer ownership",
+      "cause": "Connection: close appears twice when Request.Close is true.",
+      "obligation": "One close field and correct connection lifecycle.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Connection: close.*2",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=true$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=true",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / serializer ownership",
+      "cause": "Connection: close appears twice when Request.Close is true.",
+      "obligation": "One close field and correct connection lifecycle.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Connection: close.*2",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=true$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportRespectRequestWantsClose",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / serializer ownership",
+      "cause": "Connection: close appears twice when Request.Close is true.",
+      "obligation": "One close field and correct connection lifecycle.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Connection: close.*2",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportRespectRequestWantsClose$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportReadToEndReusesConn",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "Length metadata differs before the inherited reuse assertion can establish its full obligation.",
+      "obligation": "Read-to-end and safe reuse with accurate body length.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "res.ContentLength = -1; want 6",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportReadToEndReusesConn$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportGzip",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / body lifecycle",
+      "cause": "A large Read after Close still returns data instead of the expected closed-body error.",
+      "obligation": "Closed-body lifecycle and decompressor ownership.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "expected error post-closed large Read",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportGzip$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportIgnore1xxResponses",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "Final response dump omits the expected Content-Length after informational response.",
+      "obligation": "Preserve 1xx callback and complete final response framing.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Content-Length: 5",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportIgnore1xxResponses$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestRetryRequestsOnError/IdempotentGetBodySomeWritten",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / retry ownership",
+      "cause": "Rewindable requests are not replayed as the inherited test expects after bounded write failures; safe retry policy needs reconciliation.",
+      "obligation": "Replay only when safe; preserve absent/empty/body ownership and write-failure attribution.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "intentional write failure",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestRetryRequestsOnError/IdempotentGetBodySomeWritten$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestRetryRequestsOnError/NothingWrittenGetBody",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / retry ownership",
+      "cause": "Rewindable requests are not replayed as the inherited test expects after bounded write failures; safe retry policy needs reconciliation.",
+      "obligation": "Replay only when safe; preserve absent/empty/body ownership and write-failure attribution.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "intentional write failure",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestRetryRequestsOnError/NothingWrittenGetBody$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestRetryRequestsOnError",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / retry ownership",
+      "cause": "Rewindable requests are not replayed as the inherited test expects after bounded write failures; safe retry policy needs reconciliation.",
+      "obligation": "Replay only when safe; preserve absent/empty/body ownership and write-failure attribution.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "intentional write failure",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestRetryRequestsOnError$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportContentEncodingCaseInsensitive/GZIP",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / decompression",
+      "cause": "Uppercase GZIP is not decoded.",
+      "obligation": "Case-insensitive coding token handling with correct body/metadata.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Expected body .*Hello Gopher",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportContentEncodingCaseInsensitive/GZIP$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportContentEncodingCaseInsensitive",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / decompression",
+      "cause": "Uppercase GZIP is not decoded.",
+      "obligation": "Case-insensitive coding token handling with correct body/metadata.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Expected body .*Hello Gopher",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportContentEncodingCaseInsensitive$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportRequestWriteRoundTrip/buffer",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "Buffer path invokes ReadFrom while the inherited fixture expects the in-memory fast path.",
+      "obligation": "Correct copy optimization and complete body ownership.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "ReadFrom was unexpectedly invoked",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportRequestWriteRoundTrip/buffer$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportRequestWriteRoundTrip",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unresolved reader contract",
+      "cause": "Buffer path invokes ReadFrom while the inherited fixture expects the in-memory fast path.",
+      "obligation": "Correct copy optimization and complete body ownership.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "(?:ReadFrom was unexpectedly invoked)|(?:sendfile: (?:operation not permitted|permission denied))",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline",
+        "f09-fhttp-sandbox-baseline-root"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportRequestWriteRoundTrip$",
+        "github.com/igor-lemon/fhttp"
+      ],
+      "environment_variants": [
+        {
+          "cause": "macOS loopback-only sandbox also denies sendfile in the inherited file-copy fixture; reproduced unchanged45fad. Unrestricted body-copy obligation remains open.",
+          "evidence": "f09-fhttp-sandbox-baseline-root"
+        }
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportClone",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / configuration ownership",
+      "cause": "Inherited reflective fixture leaves added fields uninitialized; H2transport/PseudoHeaderOrder configuration ownership remains unresolved. A6 explicitly initializes and copies ConnectionFlow/ConnectionFlowSet; no longer part of this failure.",
+      "obligation": "Copy configuration, separate live pools/locks and define callback ownership.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "cloned field t2\\.(H2transport|PseudoHeaderOrder) is zero",
+      "baseline_evidence": [
+        "f09-fhttp-root-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestTransportClone$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp/httputil",
+      "test": "TestDumpRequest",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / serializer or dump ownership",
+      "cause": "Large request dump differs from the inherited complete-body framing oracle; exact split deferred.",
+      "obligation": "Dump full request exactly once without changing caller headers/body.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "DumpRequestOut 5, expecting",
+      "baseline_evidence": [
+        "f09-fhttp-other-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestDumpRequest$",
+        "github.com/igor-lemon/fhttp/httputil"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp/httputil",
+      "test": "TestReverseProxy_CopyBuffer",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / copy error propagation",
+      "cause": "Reverse proxy copy fixture expected a non-nil copy error but received nil.",
+      "obligation": "Propagate body copy errors and preserve buffer lifecycle.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "want non-nil error",
+      "baseline_evidence": [
+        "f09-fhttp-other-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestReverseProxy_CopyBuffer$",
+        "github.com/igor-lemon/fhttp/httputil"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp/httputil",
+      "test": "ExampleDumpResponse",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / response metadata",
+      "cause": "DumpResponse omits Content-Length despite the known complete body.",
+      "obligation": "Accurate response dump and length.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "Content-Length: 76",
+      "baseline_evidence": [
+        "f09-fhttp-other-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^ExampleDumpResponse$",
+        "github.com/igor-lemon/fhttp/httputil"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_ProtocolChangeWithRacingRecovers",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / retry API boundary",
+      "cause": "Cached h1 transport rejects a later h2 negotiation; low-level recovery expectation differs from owner-managed recovery.",
+      "obligation": "Define cached transport rebuild and safe retry ownership.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "cached transport does not speak",
+      "baseline_evidence": [
+        "f09-tls-client-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestClient_ProtocolChangeWithRacingRecovers$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_ProtocolChangeBetweenConnections",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / retry API boundary",
+      "cause": "Owner-adapted client recovers where inherited fixture expects the transition request to fail.",
+      "obligation": "One explicit protocol transition/retry contract without unsafe replay.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "expected the request that runs into the protocol change to fail",
+      "baseline_evidence": [
+        "f09-tls-client-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestClient_ProtocolChangeBetweenConnections$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_SkipExistingCookiesOnSetCookiesResponse",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "our defect / cookie fixture contract unresolved",
+      "cause": "Observed five cookies rather than seven; replacement/scope/expiry semantics need deterministic reconciliation.",
+      "obligation": "Correct cookie replacement, scope and expiry, not a count-only assertion.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "(?:expected: 7)|(?:(?:eu\\.kith\\.com).*(?:operation not permitted|permission denied))",
+      "baseline_evidence": [
+        "f09-tls-client-baseline",
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestClient_SkipExistingCookiesOnSetCookiesResponse$",
+        "github.com/igor-lemon/tls-client/tests"
+      ],
+      "environment_variants": [
+        {
+          "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):eu.kith.com. No post-handshake assertion is measured here.",
+          "evidence": "f09-tls-client-sandbox-baseline"
+        }
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestWeb",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / forbidden external dependency",
+      "cause": "Old fixture POSTs to an external registration host; baseline DNS failed. Gate deliberately blocks all non-loopback traffic.",
+      "obligation": "Replace external host with owned TLS/group stimulus in A11; no external POST authority.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "(?:registrierung.web.de.*(?:no such host|operation not permitted|permission denied))|(?:(?:registrierung\\.web\\.de).*(?:operation not permitted|permission denied))",
+      "baseline_evidence": [
+        "f09-tls-client-baseline",
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestWeb$",
+        "github.com/igor-lemon/tls-client/tests"
+      ],
+      "environment_variants": [
+        {
+          "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):registrierung.web.de. No post-handshake assertion is measured here.",
+          "evidence": "f09-tls-client-sandbox-baseline"
+        }
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP3FingerprintWithDefaultValuesForChrome",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / unmeasured preset fixture",
+      "cause": "Chrome_133 preset sends51:1, fixture expects6:262144;51:1. No new Chrome evidence permits changing data.",
+      "obligation": "Reconcile explicit policy, alias and actual wire without blessing a hash.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "(?:Chrome_133 HTTP/3 fingerprint mismatch)|(?:(?:quic\\.browserleaks\\.com).*(?:operation not permitted|permission denied))",
+      "baseline_evidence": [
+        "f09-tls-client-baseline",
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestHTTP3FingerprintWithDefaultValuesForChrome$",
+        "github.com/igor-lemon/tls-client/tests"
+      ],
+      "environment_variants": [
+        {
+          "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):quic.browserleaks.com. No post-handshake assertion is measured here.",
+          "evidence": "f09-tls-client-sandbox-baseline"
+        }
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/quic-go-utls",
+      "test": "TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / bounded observation window",
+      "cause": "In unchanged baseline the300ms observation sees1250-byte MTU without a larger probe. Production implication remains unproved.",
+      "obligation": "Deterministic MTU probe/CID lifecycle stimulus and wire evidence.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "1250.*is not greater than.*1250",
+      "baseline_evidence": [
+        "f09-quic-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays$",
+        "github.com/igor-lemon/quic-go-utls"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+      "test": "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / error contract",
+      "cause": "Decoder rejects the oversized decompressed section with QPACK-specific text rather than old generic header-limit text.",
+      "obligation": "Keep the resource limit and test the selected public error policy.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "QPACK field section exceeds limit",
+      "baseline_evidence": [
+        "f09-quic-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame$",
+        "github.com/igor-lemon/quic-go-utls/integrationtests/self"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+      "test": "TestHTTPHeaderSizeLimitClient",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "upstream adaptation / error contract",
+      "cause": "Decoder rejects the oversized decompressed section with QPACK-specific text rather than old generic header-limit text.",
+      "obligation": "Keep the resource limit and test the selected public error policy.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "QPACK field section exceeds limit",
+      "baseline_evidence": [
+        "f09-quic-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestHTTPHeaderSizeLimitClient$",
+        "github.com/igor-lemon/quic-go-utls/integrationtests/self"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp/http2",
+      "test": "TestServer_MaxQueuedControlFrames",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / scheduling-sensitive unresolved assertion",
+      "cause": "Unchanged baseline accepts all500000 PINGs within the fixture window; full-repeat evidence cannot distinguish queue defect from scheduling.",
+      "obligation": "Bound control-frame queue/resources without flaky timing or port exhaustion.",
+      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
+      "failure_pattern": "unexpected success sending all PING frames",
+      "baseline_evidence": [
+        "f09-h2-queue-baseline-repeat-bounded"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "12m",
+        "-run",
+        "^TestServer_MaxQueuedControlFrames$",
+        "github.com/igor-lemon/fhttp/http2"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/utls",
+      "test": "TestVerifyHostname",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / external DNS intentionally denied",
+      "cause": "Inherited test depends on www.google.com. Identical failure reproduced on unchanged18ad370 under the same loopback-only sandbox; unrestricted baseline passed.",
+      "obligation": "Owned TLS positive/wrong-host/insecure hostname matrix retained in upstream trust tests; external test remains unmeasured in the restricted full gate. Replace external dependency in A11.",
+      "resolution": "A11 / F09 stage2; not a hostname-verification defect established in A6",
+      "failure_pattern": "www.google.com.*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-utls-network-baseline"
+      ],
+      "minimal_repeat": [
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestVerifyHostname$",
+        "."
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestExample",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestExample. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-fhttp-sandbox-baseline-root"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestExample$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestEnablePush",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestEnablePush. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-fhttp-sandbox-baseline-root"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestEnablePush$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestCompressionBrotli",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):developer.mozilla.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestCompressionBrotli. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:developer\\.mozilla\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-fhttp-sandbox-baseline-root"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestCompressionBrotli$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp",
+      "test": "TestTransportRequestWriteRoundTrip/file,_length",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "macOS loopback-only sandbox also denies sendfile in the inherited file-copy fixture; reproduced unchanged45fad. Unrestricted body-copy obligation remains open.",
+      "obligation": "Retain the named fixture behavior: TestTransportRequestWriteRoundTrip/file,_length. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "sendfile: (?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-fhttp-sandbox-baseline-root"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTransportRequestWriteRoundTrip/file,_length$",
+        "github.com/igor-lemon/fhttp"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp/http2",
+      "test": "TestHeaderOrder2",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHeaderOrder2. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-fhttp-sandbox-baseline-h2"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHeaderOrder2$",
+        "github.com/igor-lemon/fhttp/http2"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/fhttp/http2",
+      "test": "TestHeaderOrder3",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):google.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHeaderOrder3. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:google\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-fhttp-sandbox-baseline-h2"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHeaderOrder3$",
+        "github.com/igor-lemon/fhttp/http2"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClients",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestClients. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestClients$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestCustomClients",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestCustomClients. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestCustomClients$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_HeaderOrder",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestClient_HeaderOrder. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestClient_HeaderOrder$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_HeaderOrderHttp1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestClient_HeaderOrderHttp1. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestClient_HeaderOrderHttp1$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_HeaderOrderWithContentLengthHttp1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestClient_HeaderOrderWithContentLengthHttp1. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestClient_HeaderOrderWithContentLengthHttp1$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_HeaderOrderWithContentLength",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestClient_HeaderOrderWithContentLength. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestClient_HeaderOrderWithContentLength$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestPreHookModifiesRequestHeaders",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestPreHookModifiesRequestHeaders. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestPreHookModifiesRequestHeaders$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestPostHookReceivesCorrectMetadata",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestPostHookReceivesCorrectMetadata. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestPostHookReceivesCorrectMetadata$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestMultiplePreHooksExecuteInOrder",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestMultiplePreHooksExecuteInOrder. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestMultiplePreHooksExecuteInOrder$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestMultiplePostHooksExecuteInOrder",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestMultiplePostHooksExecuteInOrder. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestMultiplePostHooksExecuteInOrder$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestPostHookPanicAbortsSubsequentHooks",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestPostHookPanicAbortsSubsequentHooks. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestPostHookPanicAbortsSubsequentHooks$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestOnPreRequestRuntimeRegistration",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestOnPreRequestRuntimeRegistration. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestOnPreRequestRuntimeRegistration$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestOnPostResponseRuntimeRegistration",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestOnPostResponseRuntimeRegistration. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestOnPostResponseRuntimeRegistration$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHooksThreadSafety",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHooksThreadSafety. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHooksThreadSafety$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestCombinedConstructorAndRuntimeHooks",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestCombinedConstructorAndRuntimeHooks. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestCombinedConstructorAndRuntimeHooks$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestPreHookContinueOnError",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestPreHookContinueOnError. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestPreHookContinueOnError$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestPostHookContinueOnError",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestPostHookContinueOnError. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestPostHookContinueOnError$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestPostHookAbortByDefault",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):httpbin.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestPostHookAbortByDefault. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:httpbin\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestPostHookAbortByDefault$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP3WithChromeOnCloudflare",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):www.cloudflare.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHTTP3WithChromeOnCloudflare. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:www\\.cloudflare\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHTTP3WithChromeOnCloudflare$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP2WithChromeOnCloudflare",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):www.cloudflare.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHTTP2WithChromeOnCloudflare. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:www\\.cloudflare\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHTTP2WithChromeOnCloudflare$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP3FingerprintChrome443",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):quic.browserleaks.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHTTP3FingerprintChrome443. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:quic\\.browserleaks\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHTTP3FingerprintChrome443$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP3FingerprintFirefox135",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):quic.browserleaks.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHTTP3FingerprintFirefox135. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:quic\\.browserleaks\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHTTP3FingerprintFirefox135$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP3DirectPathChrome",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):quic.browserleaks.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHTTP3DirectPathChrome. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:quic\\.browserleaks\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHTTP3DirectPathChrome$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP3DirectPathFirefox",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):quic.browserleaks.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHTTP3DirectPathFirefox. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:quic\\.browserleaks\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHTTP3DirectPathFirefox$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestHTTP3",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):http3.is. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestHTTP3. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:http3\\.is).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestHTTP3$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestDisableHTTP3",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):http3.is. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestDisableHTTP3. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:http3\\.is).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestDisableHTTP3$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_RandomExtensionOrderChrome",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestClient_RandomExtensionOrderChrome. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestClient_RandomExtensionOrderChrome$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestClient_RandomExtensionOrderCustom",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestClient_RandomExtensionOrderCustom. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestClient_RandomExtensionOrderCustom$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestGreaseSignatureAlgorithmOnTheWire",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestGreaseSignatureAlgorithmOnTheWire. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestGreaseSignatureAlgorithmOnTheWire$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsOnTheWire/Chrome_152/run_1. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsOnTheWire/Chrome_152/run_1$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_2",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsOnTheWire/Chrome_152/run_2. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsOnTheWire/Chrome_152/run_2$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsOnTheWire",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):tls.peet.ws. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsOnTheWire. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:tls\\.peet\\.ws).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsOnTheWire$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):www.google.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsAreAcceptedByAServer/Chrome_152. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:www\\.google\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsAreAcceptedByAServer/Chrome_152$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):www.google.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:www\\.google\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestTrustAnchorsAreAcceptedByAServer",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):www.google.com. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestTrustAnchorsAreAcceptedByAServer. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:www\\.google\\.com).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestTrustAnchorsAreAcceptedByAServer$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    },
+    {
+      "package": "github.com/igor-lemon/tls-client/tests",
+      "test": "TestWebSocketEchoRealWebserver",
+      "graphs": [
+        "standalone",
+        "production"
+      ],
+      "class": "environment / intentional sandbox restriction",
+      "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):echo.websocket.org. No post-handshake assertion is measured here.",
+      "obligation": "Retain the named fixture behavior: TestWebSocketEchoRealWebserver. Replace external dependency or unsupported sandbox operation with an owned deterministic stimulus in A11; no parity verdict from a blocked request.",
+      "resolution": "A11 / F09 stage2; explicit environmental non-measurement, not a green behavior test.",
+      "failure_pattern": "(?:echo\\.websocket\\.org).*(?:operation not permitted|permission denied)",
+      "baseline_evidence": [
+        "f09-tls-client-sandbox-baseline"
+      ],
+      "minimal_repeat": [
+        "env",
+        "GOWORK=off",
+        "GOTOOLCHAIN=go1.26.10",
+        "sandbox-exec",
+        "-p",
+        "loopback-only policy",
+        "go",
+        "test",
+        "-run",
+        "^TestWebSocketEchoRealWebserver$",
+        "github.com/igor-lemon/tls-client/tests"
+      ]
+    }
+  ],
+  "baseline_sources": {
+    "f09-fhttp-root-baseline": {
+      "sha256": "2915cef81b72eaf7f76481cfe05488f0c00a999dfd07cdcd106cd641393dbc3b",
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "-json",
+          ".",
+          "-skip",
+          "^TestOmitHTTP2$",
+          "-count=1",
+          "-timeout",
+          "12m"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-fhttp-before",
+        "returncode": 1,
+        "elapsed_seconds": 98.963,
+        "peak_group_rss_kib": 273568,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 900.0,
+          "rss_mib": 2048
+        }
+      },
+      "source_commit": "45fad1187082"
+    },
+    "f09-fhttp-other-baseline": {
+      "sha256": "e232dd122b1579e3df3fbe7b626995649270835890d557308d4f75457c1b87ec",
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "-json",
+          "-p",
+          "1",
+          "github.com/igor-lemon/fhttp/cgi",
+          "github.com/igor-lemon/fhttp/cookiejar",
+          "github.com/igor-lemon/fhttp/fcgi",
+          "github.com/igor-lemon/fhttp/http2",
+          "github.com/igor-lemon/fhttp/http2/h2c",
+          "github.com/igor-lemon/fhttp/http2/h2i",
+          "github.com/igor-lemon/fhttp/http2/hpack",
+          "github.com/igor-lemon/fhttp/httptest",
+          "github.com/igor-lemon/fhttp/httptrace",
+          "github.com/igor-lemon/fhttp/httputil",
+          "github.com/igor-lemon/fhttp/internal",
+          "github.com/igor-lemon/fhttp/internal/cfg",
+          "github.com/igor-lemon/fhttp/internal/nettrace",
+          "github.com/igor-lemon/fhttp/internal/profile",
+          "github.com/igor-lemon/fhttp/internal/race",
+          "github.com/igor-lemon/fhttp/internal/testenv",
+          "github.com/igor-lemon/fhttp/pprof",
+          "-count=1",
+          "-timeout",
+          "6m"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-fhttp-before",
+        "returncode": 1,
+        "elapsed_seconds": 124.752,
+        "peak_group_rss_kib": 382928,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 450.0,
+          "rss_mib": 2048
+        }
+      },
+      "source_commit": "45fad1187082"
+    },
+    "f09-tls-client-baseline": {
+      "sha256": "af28aa0cafc4845488cc7634d4f56261f7878d6dd2e9be438aae69809723259e",
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "-json",
+          "-p",
+          "1",
+          "./...",
+          "-count=1",
+          "-timeout",
+          "2m"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-tls-client-baseline",
+        "returncode": 1,
+        "elapsed_seconds": 159.778,
+        "peak_group_rss_kib": 344752,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "source_commit": "dd9490f82c4a"
+    },
+    "f09-quic-baseline": {
+      "sha256": "5897be8b0bb0e8fec96a08e443181bc6099254cbb79ba636010b971be14b4c35",
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "-json",
+          "-p",
+          "1",
+          "./...",
+          "-count=1",
+          "-timeout",
+          "6m"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-quic-baseline",
+        "returncode": 1,
+        "elapsed_seconds": 45.909,
+        "peak_group_rss_kib": 473584,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 480.0,
+          "rss_mib": 2048
+        }
+      },
+      "source_commit": "66e19029"
+    },
+    "f09-h2-queue-baseline-repeat-bounded": {
+      "sha256": "254f75a58812ec49a8907939225956bc7ce54a6a936257bc5466a94f7d6310d2",
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-json",
+          "./http2",
+          "-run",
+          "^TestServer_MaxQueuedControlFrames$",
+          "-count=3",
+          "-timeout",
+          "3m"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-fhttp-before",
+        "returncode": 1,
+        "elapsed_seconds": 54.418,
+        "peak_group_rss_kib": 1855216,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 220.0,
+          "rss_mib": 2048
+        }
+      },
+      "source_commit": "45fad1187082"
+    },
+    "f09-utls-network-baseline": {
+      "sha256": "a22f0e07889d5f74319923331ffd6ae9d5ec586d00349889baee69556565f121",
+      "source_commit": "18ad3707d82d",
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GODEBUG=netdns=go",
+          "sandbox-exec",
+          "-p",
+          "(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip \"localhost:*\"))",
+          "go",
+          "test",
+          "-json",
+          "-count=1",
+          "-timeout",
+          "60s",
+          "-run",
+          "^TestVerifyHostname$",
+          "."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-utls-baseline",
+        "returncode": 1,
+        "elapsed_seconds": 3.054,
+        "peak_group_rss_kib": 364144,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 120.0,
+          "rss_mib": 2048
+        }
+      }
+    },
+    "f09-fhttp-sandbox-baseline-root": {
+      "sha256": "193a63beb1f1bb5935e544f36565de89ced2e8a5ea1b21f39c25d6cc698e29fe",
+      "source_commit": "45fad1187082",
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOTOOLCHAIN=go1.26.10",
+          "GODEBUG=netdns=go",
+          "sandbox-exec",
+          "-p",
+          "(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip \"localhost:*\"))",
+          "go",
+          "test",
+          "-json",
+          "-count=1",
+          "-timeout",
+          "2m",
+          "-run",
+          "^(TestExample|TestEnablePush|TestCompressionBrotli|TestTransportRequestWriteRoundTrip)$",
+          "."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-fhttp-before",
+        "returncode": 1,
+        "elapsed_seconds": 5.476,
+        "peak_group_rss_kib": 337680,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      }
+    },
+    "f09-fhttp-sandbox-baseline-h2": {
+      "sha256": "c024d822607d553f87d80b006dfa17f543ca5909e65485c1fd4e91c452159b8e",
+      "source_commit": "45fad1187082",
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOTOOLCHAIN=go1.26.10",
+          "GODEBUG=netdns=go",
+          "sandbox-exec",
+          "-p",
+          "(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip \"localhost:*\"))",
+          "go",
+          "test",
+          "-json",
+          "-vet=off",
+          "-count=1",
+          "-timeout",
+          "60s",
+          "-run",
+          "^(TestHeaderOrder2|TestHeaderOrder3)$",
+          "./http2"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-fhttp-before",
+        "returncode": 1,
+        "elapsed_seconds": 3.356,
+        "peak_group_rss_kib": 366896,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 120.0,
+          "rss_mib": 2048
+        }
+      }
+    },
+    "f09-tls-client-sandbox-baseline": {
+      "sha256": "3274feacdf10718b524d144e7ca88a2fc02c1c3dc5e34d9b52fa8cf019d41cef",
+      "source_commit": "dd9490f82c4a",
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOTOOLCHAIN=go1.26.10",
+          "GODEBUG=netdns=go",
+          "sandbox-exec",
+          "-p",
+          "(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip \"localhost:*\"))",
+          "go",
+          "test",
+          "-json",
+          "-p",
+          "1",
+          "-count=1",
+          "-timeout",
+          "5m",
+          "./..."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-tls-client-baseline",
+        "returncode": 1,
+        "elapsed_seconds": 69.562,
+        "peak_group_rss_kib": 288432,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 360.0,
+          "rss_mib": 2048
+        }
+      }
+    }
+  },
+  "exclusions": [
+    {
+      "fork": "fhttp",
+      "test": "TestOmitHTTP2",
+      "reason": "Owner LEMON.md requires skip; historical >10minute hang, isolated bounded replacement obligation deferred to A11."
+    }
+  ],
+  "historical_unresolved": [
+    "QUIC race-only STREAM allocation and simnet data race from A4; not erased by the non-race stage1 gate."
+  ]
+}

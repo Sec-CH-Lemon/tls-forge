@@ -1,0 +1,57 @@
+name: fork-regression-gates
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+  workflow_dispatch:
+
+concurrency:
+  group: forks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fork:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        fork: [utls, fhttp, tls-client, quic-go-utls]
+        graph: [standalone, production]
+    env:
+      GOWORK: 'off'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Verify gate negative controls
+        run: python3 -m unittest discover -s scripts -p test_fork_gate.py
+      - name: Checkout exact inventory commit
+        env:
+          FORK: ${{ matrix.fork }}
+        run: |
+          python3 - <<'PYCODE'
+          import json, os, subprocess
+          from pathlib import Path
+          row = json.loads(Path('verification/fork-failures.json').read_text())['forks'][os.environ['FORK']]
+          subprocess.run(['git', 'init', 'fork-source'], check=True)
+          subprocess.run(['git', '-C', 'fork-source', 'fetch', '--depth=1', row['repository'], row['commit']], check=True)
+          subprocess.run(['git', '-C', 'fork-source', 'checkout', '--detach', 'FETCH_HEAD'], check=True)
+          PYCODE
+      - name: Full suite with named old failures only
+        env:
+          FORK: ${{ matrix.fork }}
+          GRAPH: ${{ matrix.graph }}
+        run: python3 scripts/fork_gate.py --fork "$FORK" --graph "$GRAPH" --source fork-source --output fork-results
+      - name: Preserve raw full-suite evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fork-${{ matrix.fork }}-${{ matrix.graph }}
+          path: fork-results/

@@ -189,6 +189,10 @@ Run all project checks before distributing a build:
 make check
 ```
 
+Changes to transport forks also use the [source-pinned fork gates](verification/README.md)
+on both their own and production dependency graphs. Their named old failures
+remain explicit F09 debt.
+
 ## What is a TLS fingerprint?
 
 Before an HTTPS client can send `GET`, headers or a `User-Agent`, it sends a TLS
