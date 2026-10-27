@@ -150,7 +150,6 @@ func TestABodyIsDecodedFromEveryCodingChromeAccepts(t *testing.T) {
 		"/zstd":              {encoding: []string{"zstd"}, body: zstded(t, page)},
 		"/stacked":           {encoding: []string{"gzip, br"}, body: stacked},
 		"/two-fields":        {encoding: []string{"deflate", "zstd"}, body: twoFields},
-		"/beside-identity":   {encoding: []string{"identity, gzip"}, body: gzipped(t, page)},
 		"/spaced-and-commas": {encoding: []string{" , gzip ,, "}, body: gzipped(t, page)},
 	}
 	for _, protocol := range protocols {
@@ -160,7 +159,7 @@ func TestABodyIsDecodedFromEveryCodingChromeAccepts(t *testing.T) {
 			{"/gzip", "gzip"}, {"/x-gzip", "x-gzip"}, {"/capitals", "gzip"},
 			{"/zlib", "deflate"}, {"/raw-deflate", "deflate"}, {"/br", "br"}, {"/zstd", "zstd"},
 			{"/stacked", "gzip, br"}, {"/two-fields", "deflate, zstd"},
-			{"/beside-identity", "gzip"}, {"/spaced-and-commas", "gzip"},
+			{"/spaced-and-commas", "gzip"},
 		} {
 			t.Run(protocol.name+tc.path, func(t *testing.T) {
 				res, err := client.Get(server.url + tc.path)
@@ -186,9 +185,11 @@ func TestABodyIsDecodedFromEveryCodingChromeAccepts(t *testing.T) {
 
 func TestABodyComesAsItCameWhenThereIsNothingToDecode(t *testing.T) {
 	compressedGarbage := []byte("\x1f\x8b not something anybody can decode")
+	besideIdentity := gzipped(t, page)
 	answers := map[string]coded{
 		"/plain":           {body: page},
 		"/identity":        {encoding: []string{"identity"}, body: page},
+		"/beside-identity": {encoding: []string{"identity, gzip"}, body: besideIdentity},
 		"/unknown":         {encoding: []string{"compress"}, body: compressedGarbage},
 		"/unknown-stacked": {encoding: []string{"gzip, dcb"}, body: compressedGarbage},
 		"/empty":           {encoding: []string{"gzip"}, body: nil},
@@ -206,6 +207,9 @@ func TestABodyComesAsItCameWhenThereIsNothingToDecode(t *testing.T) {
 		}{
 			{"/plain", page, nil},
 			{"/identity", page, []string{"identity"}},
+			// Chrome 156's measured identity handling leaves the whole chain
+			// raw, just like an unknown coding; no partial decoding is safe.
+			{"/beside-identity", besideIdentity, []string{"identity, gzip"}},
 			// Chrome passes a body in a coding it does not know through undecoded,
 			// and so does this; its fields stay true of it.
 			{"/unknown", compressedGarbage, []string{"compress"}},

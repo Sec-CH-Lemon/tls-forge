@@ -1,0 +1,393 @@
+{
+  "scope": "S02 finite Chrome156/macOS H1/H2 same-origin fetch body/error acceptance; S05 cookie observations retained for next commit; no universal browser equivalence",
+  "engine_major": 1,
+  "root_parent": "63673930",
+  "utls_commit": "5ffc659ae04e921f68e22fb773c74949d0a54df4",
+  "utls_version": "v1.7.8-barnius.0.20261027104515-5ffc659ae04e",
+  "publication": "local only; no push or SumDB record",
+  "private_evidence": "net-fp-server/captures/remediation-a2-20261027",
+  "runs": {
+    "s02-behavior": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        "-race",
+        "./behavior"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-utls",
+      "returncode": 0,
+      "elapsed_seconds": 2.787,
+      "peak_group_rss_kib": 117552,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "47adb0cc94690395d7526090918d8dc8c60709125b54316c540fbdd251a11cb3"
+    },
+    "s02-root-before": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        "-v",
+        ".",
+        "-run",
+        "^(TestContentCodingDepthAllocationsBounded|TestUnusedInnerDecodersAreNotCreated|TestContentCodingBoundaryMatchesMeasuredChrome)$"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 1,
+      "elapsed_seconds": 6.357,
+      "peak_group_rss_kib": 739136,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "32e6cf327c98d09c5c5306070363a21597c03ce2c0d4b0be9249254bf2c107ed"
+    },
+    "s02-root-after": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        "-v",
+        ".",
+        "-run",
+        "^(TestContentCodingDepthAllocationsBounded|TestUnusedInnerDecodersAreNotCreated|TestContentCodingBoundaryMatchesMeasuredChrome)$"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 4.027,
+      "peak_group_rss_kib": 701152,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "510ace68b6c7a4220f89efc08871057c1b7d0589f120dac2caf24ed39f2eb570"
+    },
+    "s02-encoding-profile": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "3m",
+        ".",
+        "./profile",
+        "-run",
+        "Coding|Decoded|Encoding|Policy|Behavior|Migration|Migrate"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 1,
+      "elapsed_seconds": 4.299,
+      "peak_group_rss_kib": 711504,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 240.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "862462e6ab78c724da8a9ce1b72feff5799037f1b34edd5fe5f9ebf54f4beb5a"
+    },
+    "s02-encoding-profile-after": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        "-timeout",
+        "3m",
+        ".",
+        "./profile",
+        "-run",
+        "Coding|Decoded|Encoding|Policy|Behavior|Migration|Migrate"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 4.671,
+      "peak_group_rss_kib": 717744,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 240.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "a3f372f55e7a6ea4d0e28a95947a6a647db1ab285b285f1d838ce43892c07388"
+    },
+    "s02-witness": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        ".",
+        "./profile",
+        "-run",
+        "ContentCoding|UnusedInner|JSONOwnsContentCoding"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 1,
+      "elapsed_seconds": 3.936,
+      "peak_group_rss_kib": 661184,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "29eea388c028981e73963c2d6df60346077fb51320652af5979f221634ed4969"
+    },
+    "s02-witness-after": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        "-race",
+        ".",
+        "./profile",
+        "-run",
+        "ContentCoding|UnusedInner|JSONOwnsContentCoding|LazyCoding"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 13.754,
+      "peak_group_rss_kib": 634192,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "9ae9c33fe0467ac026d362a08b58d2d7d44215e6594ba2878e46498e983f60f3"
+    },
+    "s02-root-coverage": {
+      "command": [
+        "env",
+        "GOWORK=off",
+        "GOFLAGS=-count=1",
+        "make",
+        "cover"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 138.968,
+      "peak_group_rss_kib": 993616,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 1200.0,
+        "rss_mib": 3072
+      },
+      "log_sha256": "abc9f585435fcfa7deea61d6ce6fc369812d2f8f27494333dfb01f2184fdb2fb"
+    },
+    "s02-root-static": {
+      "command": [
+        "env",
+        "GOWORK=off",
+        "/Users/ihar/go/bin/golangci-lint",
+        "run"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 9.756,
+      "peak_group_rss_kib": 1085520,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 360.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+    }
+  },
+  "campaigns": {
+    "browser": {
+      "sha256": "bf8b41f737a2d8b5f66dcdb808e42a9103e5f98e6bf8c123f04fbe7304d9aedf",
+      "files": {
+        "measure.mjs": "23b0470728c4b82cb9ea5e69c6e912583fa01787f8d9f7bbf638b30f709d48ed",
+        "results.json": "cf3d17b010f139e796239ba5d28146de1b04da03aa540a368b7d421dd42b10fc",
+        "requests.json": "8208ec56e41fff4eae6cad1363997bcf0e41ef0d68d853f9803a5f4e968558bf"
+      }
+    },
+    "boundary": {
+      "sha256": "e71986d39ab81e2f0df31bff754f67783b90291d8a62bc09510dd9cc0b7d08d8",
+      "files": {
+        "measure.mjs": "feb9ffd03aad38cd7a9ab16a44d4577376298ecbce0e790e00ae6f7dddf7edbf",
+        "results.json": "3141c48e541c6a3ead4226590155c44bb4e5cce852edc3e0c0c95000c7d1a006",
+        "requests.json": "7d6653b46085442c082640430801c1040bc35d9e979ad5171d237638fef1b46b"
+      }
+    },
+    "special": {
+      "sha256": "e73dd4e56921dfa4c66679bf868631ce451521b1a4f5755c9a758050b01e89a2",
+      "files": {
+        "measure.mjs": "35120b10965b4d2ac9dd8b5e120e685bac6f0b5531d043876cb997e39a47ce42",
+        "results.json": "5b91a2bbae3c4d68965a5cb1f6181ab18269423e4b86dc8bd590261466752188",
+        "requests.json": "928b337313dda56d27b502d80294e1f56ccfd49da2a84cd6d35cfe155513d2d9"
+      }
+    }
+  },
+  "profiles": {
+    "profile/data/chrome_151/linux.json": {
+      "before_sha256": "9b9371ef027458a7847be42e3b822b1a76bd918c073371fa62cc1eb2d30a34b8",
+      "after_sha256": "046af744d02500edc9dcefead19b562b1e2fea152549080fcd667a763be44a7d",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_151/macos.json": {
+      "before_sha256": "57b38065734d9171e8d3e327ef9a0ab371ad59c59fda54993822fe3a8ff00883",
+      "after_sha256": "2621a10c4e4f1a6f55bd00ea864cf3fcc619424ebc7c43ae2a2927f16fc5e10e",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_151/windows.json": {
+      "before_sha256": "01c97ccbbf2362bbe7fd0c70240e233d44b421612e20eee4b640deaeebef1357",
+      "after_sha256": "adf40899ac048b126f1fa1e852e02a7e91b1be936aa73e9ee342b423b9071e36",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_152/linux.json": {
+      "before_sha256": "8a2f4093ac13fe556111f8c7dd58ca9cc4c52316bf6cf5b1326e195291c5ac04",
+      "after_sha256": "2899391f8a7f0b19b54d99db8be3ee608ec4c1a8b29d41116d6180974c3b9476",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_152/macos.json": {
+      "before_sha256": "a70ac0021e4ab896b904bc378b093619e508582eb6d366c23fb0aed5a06409d6",
+      "after_sha256": "ce4122803505fe5af44597a001b793e7979a1fd3bf0979d41e20c0f0eb868b2e",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_152/windows.json": {
+      "before_sha256": "43f32da4c1aeaf7a047a68e57a907df97c7bd128bfb322412f2d27ca73317321",
+      "after_sha256": "f0ae501b9e0cef6416b0ab852660b27c63ff8a242724b9662a17248d254f5d1c",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_153/linux.json": {
+      "before_sha256": "1bbdf7f086bd23095cb511e717a49bc6f8d036ae2fbbeb8033c034276c446bbe",
+      "after_sha256": "753a8d269d008f550d26717dc892dd129dd5ec33a17f3500dee31ee7f5ef5967",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_153/macos.json": {
+      "before_sha256": "df385a9da1509e0f930ceba9bc4784ece12112e6971297fa8ba788bc4ece5d4e",
+      "after_sha256": "e2006f60821587a8ec01f79ca2aed8b21b792655c6cc86561da421dd380b33b3",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_153/windows.json": {
+      "before_sha256": "5cb6f10043fa9ef468b806c611197da52a0d092bf9f73c19a22148ca7c987a52",
+      "after_sha256": "43b4052f8807564b5f94ba5ed9aa47fabb9fe1a7596d1c9771cac60cf2d68378",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_154/linux.json": {
+      "before_sha256": "ed7cd7eaf6de38e8c5ed42bb87bafe3dfee05a71a1c5532b5d8495aede9ad3be",
+      "after_sha256": "924907c40dac0dbca2b6eb9b86a7f0c137035beef545d731091e5d09904e94ac",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_154/macos.json": {
+      "before_sha256": "96d01c23b587d7ff53f4cac843de0779a63d81111561a09d5dbb547a5382957c",
+      "after_sha256": "0c670b75380c0a99d771572a03ad3d02166cf17cb33d5e44cd073431698544e4",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_154/windows.json": {
+      "before_sha256": "943ada756800ca795a536584cc40e05dc8c1e6bf453343c8db4e52d7cfac198d",
+      "after_sha256": "95000c935fa94bd8a6e7fecc839632a9b69d0a0d23ddfda1b759f19e22d8a271",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_155/linux.json": {
+      "before_sha256": "be7d4c6871be3fb9c37f922ad485b41904d2fcac4d1fc199c016f26f7f9ce84d",
+      "after_sha256": "075a8985f457d8eb44ae4ccb333e5d70e56ff6539cde05ead45df45a8f2ccbfd",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_155/macos.json": {
+      "before_sha256": "5555521630c7995f78d5b11a151137dd6f58d192f47fda5e1c49704c6b0ccf45",
+      "after_sha256": "b36d681431316826e92f507dd0e82e677a34437a5f282e7e95113c62a6e7174b",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    },
+    "profile/data/chrome_155/windows.json": {
+      "before_sha256": "a234af1442272b1e322597063f7120dcabb154f611738c042a81244aeb7e0275",
+      "after_sha256": "e12c0e358d4cdabba58655bec01bb81b9b8ba1a0f8eda985888a5c9745649bbc",
+      "added": {
+        "http.max_content_codings": 10,
+        "http.content_coding_overflow": "error",
+        "http.ignored_content_codings": []
+      },
+      "acceptance": "inherited from Chrome156/macOS witness; historical build/platform not freshly measured"
+    }
+  },
+  "s02-root-source_sha256": "9cb2dc53ce3434cdbb918928516c9e6b0beaad8a08308a69e406d577f0bf4de4",
+  "s02-utls-source_sha256": "4affcd227f384185dc8a139e0841be010705688e21d9bc17ef20180982f57419",
+  "fixture_sha256": "47d4f8da7f7f3274e174734c92ee0d5cae04fada8a37e18e7246bcccd13d9f36"
+}

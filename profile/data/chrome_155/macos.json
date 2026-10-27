@@ -544,6 +544,7 @@
     "http.body_read_bytes": 8192,
     "http.connection_error_methods": "any",
     "http.connection_error_retries": 50,
+    "http.content_coding_overflow": "error",
     "http.content_codings": [
       "gzip",
       "x-gzip",
@@ -563,7 +564,9 @@
     "http.drain_ms": 5000,
     "http.first_bytes_ms": 0,
     "http.gzip_decoder": "prefix-first-member",
+    "http.ignored_content_codings": [],
     "http.max_auth_restarts": 32,
+    "http.max_content_codings": 10,
     "http.max_site_pools": 64,
     "http.negotiate_auth": false,
     "http.preflight_default_age_seconds": 5,

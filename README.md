@@ -595,6 +595,11 @@ origins. Across every API, caller-supplied credential headers stay within the
 initial origin: changing host, subdomain, scheme or port removes them for the
 rest of the redirect chain, including a return to the initial origin. Cookies
 from `Request.Cookies` or `--cookie` remain in the jar and follow its scope rules.
+Response decoding also has a profile-owned depth limit. The shipped Chrome
+profiles use the measured limit of ten known content codings; an eleventh fails,
+including on an empty body. An unsupported coding, including `identity` in
+Chrome's policy, keeps the entire body raw. The engine also enforces a hard
+decoder-chain ceiling that profiles cannot disable.
 A `Referer` from `-H` goes with `Sec-Fetch-Site: none`, which Chrome
 sends only when automation gives it one, and the run says so: a navigation from
 a page gets its `Referer` from `--request-kind navigation --initiator-url`. A

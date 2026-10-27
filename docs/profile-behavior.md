@@ -120,6 +120,26 @@ cookies selected by the jar for the destination or independently scoped HTTP
 authentication. These fixes remain in the unpublished engine major 1 and do not
 relabel historical browser measurements as fresh acceptance.
 
+### Content-coding depth (unreleased engine 1)
+
+| Key | Meaning |
+| --- | --- |
+| `http.max_content_codings` | Maximum selected decoder layers, integer 0–64. The engine ceiling 64 is a resource bound, not a browser default. |
+| `http.content_coding_overflow` | `error` rejects the response before decoder creation; `raw` keeps its complete encoded body and metadata. |
+| `http.ignored_content_codings` | Explicit no-op normalization tokens: `[]` or `["identity"]`. Unsupported tokens leave the whole chain raw. |
+
+Chrome 156.0.8078.48/macOS was measured in nine fresh minimized headed contexts,
+over H1/H2: ten gzip layers decode, eleven fail even on an empty body, and a
+chain containing identity or an unknown coding stays raw. The shipped earlier
+Chrome profiles explicitly inherit this policy; this is not fresh acceptance
+of their original builds or other platforms. Generic compatibility data keeps
+its former identity normalization and selects the hard ceiling explicitly.
+The original legacy JSON files are frozen; new compatibility choices live in
+separate engine-1 addition files. Missing current execution choices fail before
+request I/O. Offline Inspect/Save/Clone preserve archives; explicit Migrate
+materializes additions and still requires browser acceptance. Decoder creation
+is lazy and each initialized decoder is closed, including after errors.
+
 The shared policy registry in `github.com/igor-lemon/utls/behavior` contains supported keys/types and engine bounds. Browser values live in profile JSON. The forks are required at the commits pushed to their `tls-forge` branches; the engine itself is unreleased.
 
 ## Field reference

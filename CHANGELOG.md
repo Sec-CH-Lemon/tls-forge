@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Bound content-decoder depth before allocation and create decoder layers only
+  when read. Profiles own the depth, overflow action and ignored coding tokens;
+  Chrome uses ten layers and treats identity as unsupported, confirmed on
+  headed Chrome 156 H1/H2. Empty over-depth bodies fail too. Historical migration
+  templates remain unchanged; explicit current-engine additions are separate.
+  Inspect/Save preserve old archives without granting execution compatibility.
+
 - Bound hostile response framing: defer HPACK string decoding until a complete
   literal is available, stop excessive HTTP/2 CONTINUATION processing, reject
   bare LF in chunk-size lines and bound chunk-extension overhead. Redirects

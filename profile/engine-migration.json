@@ -59,6 +59,9 @@
     "h1.zero_length_identity_excluded_methods": [
       "GET",
       "HEAD"
-    ]
+    ],
+    "http.max_content_codings": 10,
+    "http.content_coding_overflow": "error",
+    "http.ignored_content_codings": []
   }
 }

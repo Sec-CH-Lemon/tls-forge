@@ -659,7 +659,7 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 	default:
 		return nil, fmt.Errorf("profile: schema %d is not one; schemas begin at 1", *written.Schema)
 	}
-	if err := p.validateBehavior(); err != nil {
+	if err := p.validateBehaviorFor(execute); err != nil {
 		return nil, err
 	}
 	if p.Name == "" {
@@ -758,7 +758,7 @@ func (p *Profile) Save() ([]byte, error) {
 		current.Behavior = behavior.Policy{}
 	}
 	current.Schema = Schema
-	if err := current.validateBehavior(); err != nil {
+	if err := current.validateBehaviorFor(false); err != nil {
 		return nil, err
 	}
 	return encodeJSON(&current)

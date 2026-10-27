@@ -210,13 +210,15 @@ func zlibHeader(cmf, flg byte) bool {
 
 // codingsOf is the content codings a body was encoded with, in the order they
 // were applied: every Content-Encoding field, split at its commas, in lower
-// case, without identity, which encodes nothing.
-func codingsOf(header fhttp.Header) []string {
+// case. Only explicitly ignored tokens are removed: Chrome treats identity in
+// a Content-Encoding chain as unsupported and leaves the entire body raw.
+func codingsOf(header fhttp.Header, policies ...behavior.Policy) []string {
+	ignored := policyArgument(policies).Strings("http.ignored_content_codings")
 	var out []string
 	for _, field := range fieldValues(header, "content-encoding") {
 		for _, coding := range strings.Split(field, ",") {
 			coding = strings.ToLower(strings.TrimSpace(coding))
-			if coding != "" && coding != "identity" {
+			if coding != "" && !slices.Contains(ignored, coding) {
 				out = append(out, coding)
 			}
 		}
@@ -259,9 +261,27 @@ func readBody(res *fhttp.Response, method string, limit int64, policies ...behav
 		return nil, "", fmt.Errorf("profile has no body read policy")
 	}
 	body := bufio.NewReaderSize(policyReads{Reader: res.Body, limit: readSize}, readSize)
-	codings := codingsOf(res.Header)
-	if _, err := body.Peek(1); len(codings) == 0 || !hasBody(method, res.StatusCode) ||
-		err != nil || !knownCodings(codings, pol) {
+	codings := codingsOf(res.Header, pol)
+	decode := len(codings) != 0 && hasBody(method, res.StatusCode) && knownCodings(codings, pol)
+	if decode {
+		maximum := pol.Uint("http.max_content_codings")
+		if maximum > behavior.MaxContentCodings {
+			return nil, "", fmt.Errorf("profile content coding limit exceeds engine safety bound %d", behavior.MaxContentCodings)
+		}
+		if uint64(len(codings)) > maximum {
+			switch pol.Text("http.content_coding_overflow") {
+			case "raw":
+				decode = false
+			case "error":
+				return nil, "", fmt.Errorf("tlsforge: content coding limit exceeded (%d > %d)", len(codings), maximum)
+			default:
+				return nil, "", fmt.Errorf("profile has no content coding overflow policy")
+			}
+		}
+	}
+	// The depth check precedes the empty-body shortcut: Chrome refuses to
+	// initialize an over-depth chain even when its encoded body is empty.
+	if _, err := body.Peek(1); !decode || err != nil {
 		read, err := readAtMost(body, limit)
 		if err != nil {
 			return nil, "", readingError(err)
@@ -281,10 +301,7 @@ func readBody(res *fhttp.Response, method string, limit int64, policies ...behav
 
 	var reader io.Reader = body
 	for i := len(codings) - 1; i >= 0; i-- {
-		decoder, err := decodeCoding(codings[i], reader, pol, len(policies) == 0)
-		if err != nil {
-			return nil, "", decodingError(codings, err)
-		}
+		decoder := &lazyCoding{coding: codings[i], source: reader, policy: pol, compat: len(policies) == 0}
 		defer func() { _ = decoder.Close() }()
 		reader = decoder
 	}
@@ -298,11 +315,52 @@ func readBody(res *fhttp.Response, method string, limit int64, policies ...behav
 	return read, strings.Join(codings, ", "), nil
 }
 
+// lazyCoding creates a decoder only when its output is actually requested.
+// Closing an unused or failed layer never allocates one, and a failed outer
+// layer need not initialize the remaining inner chain.
+type lazyCoding struct {
+	coding string
+	source io.Reader
+	policy behavior.Policy
+	compat bool
+	reader io.ReadCloser
+	err    error
+	closed bool
+}
+
+func (r *lazyCoding) Read(p []byte) (int, error) {
+	if r.closed {
+		return 0, io.ErrClosedPipe
+	}
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if r.reader == nil && r.err == nil {
+		r.reader, r.err = decodeCoding(r.coding, r.source, r.policy, r.compat)
+	}
+	if r.err != nil {
+		return 0, r.err
+	}
+	return r.reader.Read(p)
+}
+
+func (r *lazyCoding) Close() error {
+	if r.closed {
+		return nil
+	}
+	r.closed = true
+	if r.reader != nil {
+		return r.reader.Close()
+	}
+	return nil
+}
+
 // knownCodings says every coding is one Chrome accepts.
 func knownCodings(codings []string, policies ...behavior.Policy) bool {
 	pol := policyArgument(policies)
+	allowed := pol.Strings("http.content_codings")
 	for _, coding := range codings {
-		if decoders[coding] == nil || !slices.Contains(pol.Strings("http.content_codings"), coding) {
+		if decoders[coding] == nil || !slices.Contains(allowed, coding) {
 			return false
 		}
 	}
