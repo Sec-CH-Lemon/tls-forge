@@ -432,8 +432,10 @@ func TestARequestsOwnCookieGoesBeforeTheJarsOverBothProtocols(t *testing.T) {
 		{name: "redirected to a host under its own", req: Request{URL: "https://example.com/under", Header: own, Cookies: jar},
 			want: []sent{{"https://example.com/under", all}, {www + "/landed", []string{"a=1"}}}},
 		{name: "sent as given, redirected to a host under its own", opts: []Option{WithProfileValue(asGivenProfile(t, "chrome_155_macos"))},
-			req:  Request{URL: "https://example.com/under", Header: own, Cookies: jar},
-			want: []sent{{"https://example.com/under", all}, {www + "/landed", []string{"x=9", "a=1"}}}},
+			req: Request{URL: "https://example.com/under", Header: own, Cookies: jar},
+			// Caller Cookie has no declared domain scope and cannot cross
+			// origins; the jar's domain cookie still applies to the subdomain.
+			want: []sent{{"https://example.com/under", all}, {www + "/landed", []string{"a=1"}}}},
 		{name: "redirected by an answer setting a cookie it was given",
 			req:  Request{URL: www + "/set", Header: NewHeader("cookie", "x=9; y=8"), Cookies: jar},
 			want: []sent{{www + "/set", []string{"x=9", "y=8", "a=1", "b=2"}}, {www + "/landed", []string{"a=1", "b=2", "x=new"}}}},

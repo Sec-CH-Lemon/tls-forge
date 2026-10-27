@@ -111,6 +111,15 @@ Unknown keys, duplicate behavior keys, null or wrong types, invalid ranges and u
 
 Certificate verification, authenticated Finished processing, nonce safety, protocol wire encodings, fresh keys/randomness, parser/state-machine mechanisms and safe finite resource bounds remain engine responsibilities. New algorithms/protocol features require engine code; existing parameter/ordering/timer changes require only profile data. A profile cannot replace the host kernel TCP stack. Explicit caller transport options retain their documented override precedence.
 
+Response parsing enforces bounded HPACK/CONTINUATION processing and strict,
+bounded chunk-size framing. The HTTP/2 field-list budget still comes from the
+profile's SETTINGS; a profile cannot disable parser integrity checks. Caller
+credential headers are removed permanently once a redirect chain leaves its
+initial origin, including a different subdomain or port. This does not suppress
+cookies selected by the jar for the destination or independently scoped HTTP
+authentication. These fixes remain in the unpublished engine major 1 and do not
+relabel historical browser measurements as fresh acceptance.
+
 The shared policy registry in `github.com/igor-lemon/utls/behavior` contains supported keys/types and engine bounds. Browser values live in profile JSON. The forks are required at the commits pushed to their `tls-forge` branches; the engine itself is unreleased.
 
 ## Field reference

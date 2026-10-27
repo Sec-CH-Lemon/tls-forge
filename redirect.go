@@ -449,6 +449,11 @@ func (ch *chain) method(req *fhttp.Request, via []*fhttp.Request) bool {
 // bodyHeaders are what describes a body, and goes when a redirect drops it.
 var bodyHeaders = []string{"content-type", "content-encoding", "content-language", "content-location"}
 
+// Protocol credential fields supplied by the caller stay within their initial
+// origin. This security boundary does not restrict cookies later selected by
+// the jar for the actual destination or credentials generated for that origin.
+var redirectCredentialHeaders = []string{"authorization", "www-authenticate", "cookie", "cookie2", "proxy-authorization", "proxy-authenticate"}
+
 // followAsIs is a redirect of a request without a browser context: the hop
 // the transport made, but for what Chrome sends otherwise. The transport
 // copies the first request's headers onto every hop, so what a redirect took
@@ -466,7 +471,11 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 	}
 	ch.crossed = ch.crossed || crossed
 	if ch.crossed {
-		deleteHeader(req.Header, "authorization")
+		for _, name := range redirectCredentialHeaders {
+			// Keep the profile's ordered slot: the jar or destination's
+			// authentication state may add independently scoped fields later.
+			deleteFields(req.Header, name)
+		}
 		if req.Header.Get("Origin") != "" {
 			setHeader(req.Header, "origin", []string{"null"})
 		}
@@ -589,8 +598,8 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 		// Chrome sends an Authorization it was given on across origins, as
 		// measured; tls-forge sends a caller's credentials to no origin but
 		// the one they were given for, as every HTTP client does.
-		h.script = h.script.without("authorization")
-		h.given = h.given.without("authorization")
+		h.script = h.script.without(redirectCredentialHeaders...)
+		h.given = h.given.without(redirectCredentialHeaders...)
 	}
 	if dropped {
 		h.script = h.script.without(bodyHeaders...)

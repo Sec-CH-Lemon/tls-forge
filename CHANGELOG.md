@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Bound hostile response framing: defer HPACK string decoding until a complete
+  literal is available, stop excessive HTTP/2 CONTINUATION processing, reject
+  bare LF in chunk-size lines and bound chunk-extension overhead. Redirects
+  cannot restore stripped caller credentials or forward proxy credentials to
+  another origin. Jar cookies retain their independent scope. These engine
+  fixes share the existing unreleased 1.0.0 candidate; profile values are unchanged.
+
 - A Chrome profile's QUIC handshake is Chrome 155's, measured on macOS
   against an own bench (tshark opening the packets): one packet number
   counter for the three spaces from 1, a number as long as quiche's window
