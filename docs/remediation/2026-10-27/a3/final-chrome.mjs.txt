@@ -1,0 +1,42 @@
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
+import {readFileSync,writeFileSync,mkdirSync,openSync,closeSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {setTimeout as delay} from 'node:timers/promises';
+const out='/private/tmp/tls-forge-a3-final-20261027';
+const chrome='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const peers=JSON.parse(readFileSync(out+'/ready.json'));
+function pipe(child){
+ let id=0,buffer=''; const pending=new Map(), events=[];
+ child.stdio[4].on('data',chunk=>{buffer+=chunk;let end;while((end=buffer.indexOf('\0'))>=0){
+  const m=JSON.parse(buffer.slice(0,end));buffer=buffer.slice(end+1);
+  if(m.id){const p=pending.get(m.id);if(!p)continue;pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(new Error(JSON.stringify(m.error))):p.resolve(m.result);}
+  else if(m.method==='Network.loadingFailed')events.push(m);
+ }});
+ return {events,send(method,params={},sessionId){return new Promise((resolve,reject)=>{const n=++id;
+  const timer=setTimeout(()=>{pending.delete(n);reject(new Error('CDP timeout '+method));},15000);
+  pending.set(n,{resolve,reject,timer});child.stdio[3].write(JSON.stringify({id:n,method,params,...(sessionId?{sessionId}:{})})+'\0');
+ });}};
+}
+
+const results={date:new Date().toISOString(),binary_sha256:createHash('sha256').update(readFileSync(chrome)).digest('hex'),cohorts:[]};
+for(let cohort=1;cohort<=3;cohort++)for(const curve of ['p256','p384','x25519']){
+ const tag=`chrome-${cohort}-${curve}`,profile=out+'/'+tag+'-profile';mkdirSync(profile);
+ const args=['--user-data-dir='+profile,'--remote-debugging-pipe','--no-startup-window','--start-minimized','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update','--disable-sync','--no-proxy-server','--ignore-certificate-errors','--host-resolver-rules=MAP probe.test 127.0.0.1','--ssl-key-log-file='+out+'/'+tag+'.keys'];
+ const log=openSync(out+'/'+tag+'.log','w',0o600);const child=spawn(chrome,args,{stdio:['ignore','ignore',log,'pipe','pipe']});closeSync(log);
+ const cdp=pipe(child);const row={cohort,curve,args,version:await cdp.send('Browser.getVersion'),requests:[]};results.cohorts.push(row);
+ try{
+  const {targetId}=await cdp.send('Target.createTarget',{url:'about:blank',background:true});
+  const {windowId}=await cdp.send('Browser.getWindowForTarget',{targetId});await cdp.send('Browser.setWindowBounds',{windowId,bounds:{windowState:'minimized'}});
+  const {sessionId}=await cdp.send('Target.attachToTarget',{targetId,flatten:true});await cdp.send('Page.enable',{},sessionId);await cdp.send('Network.enable',{},sessionId);
+  const evaluate=async expression=>{const r=await cdp.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},sessionId);if(r.exceptionDetails)throw new Error(JSON.stringify(r.exceptionDetails));return r.result.value;};
+  const path='/'+tag+'/1';await cdp.send('Page.navigate',{url:peers[curve]+path},sessionId);
+  let ready=false;for(let i=0;i<100;i++){if(await evaluate('location.pathname==='+JSON.stringify(path)+' && document.readyState==="complete"')){ready=true;break;}await delay(50);}if(!ready)throw new Error('page load failed');
+  row.requests.push({n:1,text:await evaluate('document.body.textContent')});
+  for(let n=2;n<=6;n++)row.requests.push(await evaluate('(async()=>{try{const r=await fetch('+JSON.stringify('/'+tag+'/')+'+'+n+',{cache:"no-store"});return {n:'+n+',ok:true,text:await r.text()}}catch(e){return {n:'+n+',ok:false,error:String(e)}}})()'));
+ }finally{
+  const exited=once(child,'exit');await cdp.send('Browser.close').catch(()=>{});if(!await Promise.race([exited.then(()=>true),delay(3000).then(()=>false)])){child.kill('SIGKILL');await exited;}
+  writeFileSync(out+'/chrome-results.json',JSON.stringify(results,null,2)+'\n');
+ }
+}
+console.log(JSON.stringify(results.cohorts.map(x=>({cohort:x.cohort,curve:x.curve,version:x.version.product,requests:x.requests})),null,2));

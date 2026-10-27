@@ -205,6 +205,10 @@ The unreleased engine1 candidate also resumes after a TLS1.3
 HelloRetryRequest: the binder covers the actual profile-shaped second hello.
 P-256/P-384 peers and Chrome156/macOS full/resumed handshake observations are
 recorded in [the A3 report](docs/remediation/2026-10-27/A3.ru.md).
+It authenticates a TLS1.2 server's Finished before rejecting a real ECH offer,
+checks exact compressed-certificate length within engine resource bounds,
+rejects buffered handshake messages across read-key changes, and rechecks
+cached certificate chains against current trust roots before resumption.
 
 Servers can retain the complete structure or reduce it to identifiers such as
 JA3 and JA4. The negotiated HTTP protocol adds more signals: exact HTTP/1.1

@@ -1,0 +1,7 @@
+package main
+import("context";"encoding/json";"fmt";"net";"net/url";"os";"time"; tlsforge "github.com/Sec-CH-Lemon/tls-forge"; tc "github.com/igor-lemon/tls-client")
+func main(){var peers map[string]string;b,e:=os.ReadFile("/private/tmp/tls-forge-a3-final-20261027/ready.json");if e!=nil{panic(e)};if e=json.Unmarshal(b,&peers);e!=nil{panic(e)};actor:=os.Args[1];var rows []map[string]any
+for cohort:=1;cohort<=3;cohort++{for _,curve:=range []string{"p256","p384","x25519"}{
+ c,e:=tlsforge.New(tlsforge.WithProfile("chrome_155_macos"),tlsforge.WithInsecureSkipVerify(),tlsforge.WithTimeout(10*time.Second),tlsforge.WithTransportOption(tc.WithDialContext(func(ctx context.Context,network,address string)(net.Conn,error){_,port,e:=net.SplitHostPort(address);if e!=nil{return nil,e};return (&net.Dialer{}).DialContext(ctx,network,net.JoinHostPort("127.0.0.1",port))})));if e!=nil{panic(e)}
+ for n:=1;n<=6;n++{u,_:=url.Parse(peers[curve]);u.Path=fmt.Sprintf("/%s-%d-%s/%d",actor,cohort,curve,n);r,e:=c.Get(u.String());row:=map[string]any{"actor":actor,"cohort":cohort,"curve":curve,"n":n};if e!=nil{row["error"]=e.Error()}else{row["status"]=r.Status;row["body"]=r.Text()};rows=append(rows,row);c.CloseIdleConnections()};c.Close()
+}};b,_=json.MarshalIndent(rows,"","  ");if e=os.WriteFile("/private/tmp/tls-forge-a3-final-20261027/"+actor+"-results.json",b,0600);e!=nil{panic(e)};fmt.Println(string(b))}

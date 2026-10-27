@@ -1,0 +1,73 @@
+import base64,hashlib,hmac,json,pathlib,struct,sys
+D=pathlib.Path('/private/tmp/tls-forge-a3-final-20261027')
+def u16(b,o=0):return int.from_bytes(b[o:o+2],'big')
+def u24(b,o=0):return int.from_bytes(b[o:o+3],'big')
+def vec(b,o,n):l=int.from_bytes(b[o:o+n],'big');return b[o+n:o+n+l],o+n+l
+def messages(raw):
+ out=[];data=b'';o=0
+ while o+5<=len(raw):
+  t=raw[o];n=u16(raw,o+3);r=raw[o+5:o+5+n];o+=5+n
+  if len(r)!=n:break
+  if t!=22:continue
+  data+=r
+  while len(data)>=4 and len(data)>=4+u24(data,1):n=4+u24(data,1);out.append(data[:n]);data=data[n:]
+ return out
+def hello(raw):
+ b=raw[4:];session,o=vec(b,34,1);suites,o=vec(b,o,2);compress,o=vec(b,o,1);extensions,o=vec(b,o,2);assert o==len(b)
+ out={'random':b[2:34].hex(),'session':session.hex(),'suites':[u16(suites,i) for i in range(0,len(suites),2)],'exts':[]};p=0
+ while p<len(extensions):
+  typ=u16(extensions,p);v,p2=vec(extensions,p+2,2);out['exts'].append((typ,v));p=p2
+ return out
+def grease(x):return x&0x0f0f==0x0a0a and (x>>8)==(x&255)
+def norm(x):return 'GREASE' if grease(x) else x
+def expand(key,info,n,H):
+ out=b'';last=b''
+ for i in range(1,256):
+  last=hmac.new(key,last+info+bytes([i]),H).digest();out+=last
+  if len(out)>=n:return out[:n]
+def label(secret,s,context,n,H):
+ s=b'tls13 '+s;return expand(secret,struct.pack('!H',n)+bytes([len(s)])+s+bytes([len(context)])+context,n,H)
+def verify(cs,ss,tickets):
+ h=hello(cs[-1]);ext=dict(h['exts']);psk=ext.get(41)
+ if psk is None:return None
+ ids,o=vec(psk,0,2);identity,io=vec(ids,0,2);assert io+4==len(ids);binders,bo=vec(psk,o,2);binder,end=vec(binders,0,1);assert bo==len(psk) and end==len(binders)
+ state=base64.b64decode(tickets[identity.hex()]);suite=u16(state,3);H=hashlib.sha384 if suite==0x1302 else hashlib.sha256;n=H().digest_size;secret,so=vec(state,13,1)
+ early=hmac.new(bytes(n),secret,H).digest();key=label(early,b'res binder',H(b'').digest(),n,H);finished=label(key,b'finished',b'',n,H)
+ prefix=b''
+ if len(cs)==2:
+  assert len(ss)>=1
+  prefix=bytes([254,0,0,n])+H(cs[0]).digest()+ss[0]
+ truncated=cs[-1][:len(cs[-1])-2-len(binders)]
+ expected=hmac.new(finished,H(prefix+truncated).digest(),H).digest()
+ # Independently reject a mutation in each transcript component and omission of message_hash.
+ negative=[]
+ if prefix:
+  for changed in [bytes([254,0,0,n])+H(cs[0][:-1]+bytes([cs[0][-1]^1])).digest()+ss[0],prefix[:-1]+bytes([prefix[-1]^1]),cs[0]+ss[0]]:
+   negative.append(not hmac.compare_digest(hmac.new(finished,H(changed+truncated).digest(),H).digest(),binder))
+ negative.append(not hmac.compare_digest(hmac.new(finished,H(prefix+truncated[:-1]+bytes([truncated[-1]^1])).digest(),H).digest(),binder))
+ return {'valid':hmac.compare_digest(expected,binder),'negative_controls':negative,'hash':H().name,'ticket_bytes':len(identity),'binder_bytes':len(binder)}
+def summary(raw):
+ h=hello(raw);ex=h['exts'];out={'suites':[norm(x) for x in h['suites']],'order':[norm(x) for x,_ in ex]}
+ for typ,val in ex:
+  if typ==51:
+   shares,_=vec(val,0,2);o=0;v=[]
+   while o<len(shares):g=u16(shares,o);data,o=vec(shares,o+2,2);v.append([norm(g),len(data)])
+   out['key_shares']=v
+  elif typ==65037:out['ech_length']=len(val);out['ech_sha256']=hashlib.sha256(val).hexdigest()
+ return out
+x=json.loads((D/'peer.json').read_text());rows=[]
+for c in x['Connections']:
+ cs=[v for v in messages(base64.b64decode(c['Client'] or '')) if v[0]==1];ss=[v for v in messages(base64.b64decode(c['Server'] or '')) if v[0]==2]
+ if not cs:continue
+ r={'id':c['ID'],'curve':c['Curve'],'request':c['Request'],'resumed':c['Resumed'],'hellos':len(cs),'shape':[summary(v) for v in cs]}
+ try:r['binder']=verify(cs,ss,x['Tickets'])
+ except Exception as e:r['oracle_error']=str(e)
+ if len(cs)==2:
+  a,b=hello(cs[0]),hello(cs[1]);r['retry_relationships']={'random_reused':a['random']==b['random'],'session_reused':a['session']==b['session'],'suites_reused':a['suites']==b['suites'],'order_reused':[t for t,v in a['exts']]==[t for t,v in b['exts']],'changed_extensions':[norm(t) for t,v in a['exts'] if dict(b['exts']).get(t)!=v]}
+ rows.append(r)
+(D/'analysis.json').write_text(json.dumps(rows,indent=2)+'\n')
+for actor in ['chrome','before','after']:
+ selected=[r for r in rows if (r['request'] or '').startswith('/'+actor)]
+ print(actor,'requests',len(selected),'resumed',sum(r['resumed'] for r in selected),'hrr',sum(r['hellos']==2 for r in selected),'binders',sum(r.get('binder',{}).get('valid',False) for r in selected if r.get('binder')))
+for r in rows:
+ if r['request'] in ['/chrome-1-p256/3','/chrome-1-p384/3','/before-1-p256/1','/before-1-x25519/2','/after-1-p256/2']:print(json.dumps(r,indent=2))

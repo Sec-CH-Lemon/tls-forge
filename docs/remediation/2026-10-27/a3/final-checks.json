@@ -1,0 +1,46 @@
+{
+  "production_snapshot_sha256": "e241423feb5e4ffd6c1fc221871c1e5f97a5220d04e906866bf014cba00e430a",
+  "checks": {
+    "a3-docs": {
+      "command": [
+        "make",
+        "docs-check"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge",
+      "returncode": 0,
+      "elapsed_seconds": 0.281,
+      "peak_group_rss_kib": 53632,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 90.0,
+        "rss_mib": 1024
+      },
+      "log_sha256": "c64ba8446482ed2a65276bde3d59fc5b4dba58be081d165dbab07084a8ce45bd"
+    },
+    "a3-kb-check": {
+      "command": [
+        "python3",
+        "tools/render-knowledge-base.py",
+        "--check"
+      ],
+      "cwd": "/Users/ihar/Personal/net-fp-server",
+      "returncode": 0,
+      "elapsed_seconds": 0.143,
+      "peak_group_rss_kib": 6624,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 1024
+      },
+      "log_sha256": "59d033232f95f71d10e5a5f4a6bcd5d4a8a3a1c999bfaf49f7e54488fae856f0"
+    }
+  },
+  "historical_observations_preserved": true,
+  "global_target_preserved": true,
+  "shared_kb_commit": "none; unrelated staged parent backlog preserved",
+  "kb_files": {
+    "knowledge/browser-behavior.json": "cc241edd975edf30ca8c12860d44e95d87c6a94b7872fdb104d4e8a785fa900e",
+    "docs/BROWSER_BEHAVIOR.md": "160a86845d532dfd417a4dda8ab9be823440a39a4fb5683776fbc4d4319936c7",
+    "docs/browser-behavior.html": "e171a918f0f1063aea27620d4d87ade41e09f3e0102391830526ff6c5f36a783"
+  }
+}

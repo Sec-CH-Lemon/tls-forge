@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Authenticate TLS1.2 Finished before rejecting an actual ECH offer; GREASE ECH
+  retains normal False Start behavior. Bound compressed-certificate resources
+  and require exact decompressed length. Port Go1.26.10 read-key boundary and
+  cached-chain revalidation fixes (CVE-2025-61730, CVE-2025-68121), including
+  client/server TLS1.2/TLS1.3 regressions. All share unpublished engine1.
+
 - Resume TLS1.3 sessions after HelloRetryRequest with profile-shaped ClientHello2
   and a binder over its actual serialized bytes and HRR transcript. P-256/P-384
   peers and independent Chrome156/macOS observations cover full and resumed

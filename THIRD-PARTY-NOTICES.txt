@@ -267,7 +267,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
-github.com/igor-lemon/utls v1.7.8-barnius.0.20261027112430-281f37fda041
+github.com/igor-lemon/utls v1.7.8-barnius.0.20261027114546-225cded6d521
 --------------------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.

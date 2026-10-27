@@ -1722,3 +1722,26 @@ An unsupported opaque PSK implementation cannot silently reuse its old binder.
 The separate real-ECH retry mechanism is unchanged. This remains unpublished
 engine1. See the A3 report for the bounded Chrome156/macOS witness and original
 packet/binder controls; other profiles/platforms need their own measurements.
+
+### TLS integrity checks (A3/S06, unpublished engine1)
+
+A real profile ECH offer cannot use False Start when TLS1.2 is negotiated:
+Finished must authenticate the rejection first (RFC9849). A GREASE ECH extension
+alone is not an ECH offer and retains the configured False Start policy.
+
+A compressed Certificate cannot bypass the existing engine Certificate-message
+ceiling (262144 output bytes). The engine checks this before allocation, reads
+at most the declared length plus one, and rejects a length mismatch with
+bad_certificate. Zstd uses one worker and the same hard memory/window ceiling.
+Actual codec failures retain `tls.certificate_decode_alert` from JSON (the
+measured Chrome policy selects50); this is separate from a length mismatch.
+These resource/integrity bounds are engine capabilities, not browser defaults.
+
+Every read-key transition rejects buffered handshake bytes from the old keys,
+including post-handshake KeyUpdate. An HRR server also rejects trailing messages
+before retry. Cached verified chains are checked against current roots/time
+before TLS1.2 or TLS1.3 client/mTLS-server resumption. Invalid cached client
+entries are evicted and a full handshake is required; existing explicit insecure
+time/name options retain their semantics. The two Go security fixes are scoped
+to CVE-2025-61730 and CVE-2025-68121; this is not an audit of every crypto/tls
+change. No browser/profile JSON values, schema or pending major changed.
