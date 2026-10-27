@@ -338,25 +338,55 @@ func withinLimits(c *fhttp.Cookie, policies ...behavior.Policy) *fhttp.Cookie {
 // -insecure-localhost, -leave-secure-alone and -size scenarios): at most
 // maxCookieSize bytes of name and value; Secure from a secure origin alone
 // (https, or the machine itself), and so SameSite=None; a prefix, in any
-// case, kept: __Secure- Secure, __Host- Secure with Path=/ and no Domain,
-// __Http- Secure and HttpOnly, __Host-Http- all of those; and none without
+// case, subject to its profile's required attributes; and none without
 // Secure, from an origin that is not secure, of the name of a Secure cookie
 // it would shadow. The jar itself refuses a Domain that is a public suffix,
 // another site's, or ends in a dot. j.mu is held.
 func (j *keptJar) accepts(u *url.URL, c *fhttp.Cookie) bool {
 	secure := trustworthy(originOf(u))
-	name := strings.ToLower(c.Name)
 	switch {
 	case j.cookiePolicy().Has("cookie.max_pair_bytes") && len(c.Name)+len(c.Value) > j.cookiePolicy().Int("cookie.max_pair_bytes"):
 		return false
 	case c.Secure && !secure, c.SameSite == fhttp.SameSiteNoneMode && !c.Secure:
 		return false
-	case strings.HasPrefix(name, "__secure-") && !c.Secure:
-		return false
-	case strings.HasPrefix(name, "__host-") && (!c.Secure || c.Domain != "" || c.Path != "/"):
-		return false
-	case (strings.HasPrefix(name, "__http-") || strings.HasPrefix(name, "__host-http-")) && (!c.Secure || !c.HttpOnly):
-		return false
+	}
+	for _, rule := range j.cookiePolicy().CookiePrefixes() {
+		name, prefix := c.Name, rule.Prefix
+		if name == "" {
+			name = c.Value
+		}
+		if !rule.CaseSensitive {
+			name, prefix = strings.Map(lowerASCII, name), strings.Map(lowerASCII, prefix)
+		}
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		if c.Name == "" {
+			if rule.RejectNameless {
+				return false
+			}
+			continue
+		}
+		for _, attribute := range rule.Attributes {
+			switch attribute {
+			case "secure":
+				if !c.Secure {
+					return false
+				}
+			case "http-only":
+				if !c.HttpOnly {
+					return false
+				}
+			case "host-only":
+				if c.Domain != "" {
+					return false
+				}
+			case "root-path":
+				if c.Path != "/" {
+					return false
+				}
+			}
+		}
 	}
 	return c.Secure || secure || !j.shadowsSecure(u, c)
 }

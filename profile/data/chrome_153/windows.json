@@ -10,6 +10,46 @@
     "cookie.max_age_seconds": 34560000,
     "cookie.max_attribute_bytes": 1024,
     "cookie.max_pair_bytes": 4096,
+    "cookie.prefixes": [
+      {
+        "prefix": "__Secure-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure"
+        ]
+      },
+      {
+        "prefix": "__Host-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure",
+          "host-only",
+          "root-path"
+        ]
+      },
+      {
+        "prefix": "__Http-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure",
+          "http-only"
+        ]
+      },
+      {
+        "prefix": "__Host-Http-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure",
+          "http-only",
+          "host-only",
+          "root-path"
+        ]
+      }
+    ],
     "cookie.raw_fields": true,
     "cookie.reset_order_on_value_change": true,
     "dns.https_h3": true,

@@ -8,7 +8,7 @@ import (
 )
 
 func TestContentCodingExecutionChoicesDoNotRetagArchives(t *testing.T) {
-	for _, key := range []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings"} {
+	for _, key := range []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes"} {
 		p, err := Get("chrome_155_macos")
 		if err != nil {
 			t.Fatal(err)

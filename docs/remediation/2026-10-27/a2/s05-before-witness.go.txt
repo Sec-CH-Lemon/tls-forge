@@ -1,0 +1,55 @@
+package tlsforge
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"testing"
+)
+
+func TestCookiePrefixesMatchChrome156Witness(t *testing.T) {
+	var fixture struct {
+		Cases []struct {
+			Protocol string `json:"protocol"`
+			Set      string `json:"set_cookie"`
+			Cookie   string `json:"cookie"`
+		} `json:"cookie_cases"`
+	}
+	data, err := os.ReadFile("testdata/chrome156-response-security.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &fixture); err != nil {
+		t.Fatal(err)
+	}
+	if len(fixture.Cases) != 48 {
+		t.Fatal("incomplete cookie witness")
+	}
+	for i, row := range fixture.Cases {
+		t.Run(fmt.Sprintf("%s/%d", row.Protocol, i), func(t *testing.T) {
+			protocol, scheme := row.Protocol, "https"
+			if protocol == "http" {
+				scheme = "http"
+			}
+			server := newRecorder(t, protocol, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", "no-store")
+				if r.URL.Path == "/set" {
+					w.Header().Set("Set-Cookie", row.Set)
+					return
+				}
+				_, _ = w.Write([]byte(r.Header.Get("Cookie")))
+			})
+			client := newTestClient(t, server.dialing())
+			for _, path := range []string{"/set", "/x/echo"} {
+				response, err := client.Do(&Request{URL: scheme + "://probe.test" + path, Browser: &BrowserContext{Kind: KindFetch, Initiator: scheme + "://probe.test/"}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if path == "/x/echo" && string(response.Body) != row.Cookie {
+					t.Fatalf("Set-Cookie %q: got %q, Chrome %q", row.Set, response.Body, row.Cookie)
+				}
+			}
+		})
+	}
+}

@@ -1,0 +1,83 @@
+{
+  "production_snapshot_sha256": "f20699521e2897aabd91dc086f25a295007962090102f45eaf7cad05749977bb",
+  "checks": {
+    "a2-docs": {
+      "command": [
+        "make",
+        "docs-check"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge",
+      "returncode": 0,
+      "elapsed_seconds": 0.278,
+      "peak_group_rss_kib": 51056,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 90.0,
+        "rss_mib": 1024
+      },
+      "log_sha256": "a1e06100fc988543fa342027a6331303aafadf021055fd2d7b6b244ad7384b8c"
+    },
+    "a2-kb-check": {
+      "command": [
+        "python3",
+        "tools/render-knowledge-base.py",
+        "--check"
+      ],
+      "cwd": "/Users/ihar/Personal/net-fp-server",
+      "returncode": 0,
+      "elapsed_seconds": 0.156,
+      "peak_group_rss_kib": 5776,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 1024
+      },
+      "log_sha256": "deda7a93e65a7147d1c240a78feb21f36b611d4f2ef24adf6602a3e99bd38a3b"
+    },
+    "a2-generated-final": {
+      "command": [
+        "env",
+        "GOWORK=off",
+        "GIT_DIR=/Users/ihar/Personal/tls-forge/.git",
+        "GIT_WORK_TREE=/private/tmp/tls-forge-p0-root",
+        "scripts/check-generated.sh"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 2.532,
+      "peak_group_rss_kib": 164816,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 240.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "kb_history_preserved": true,
+  "kb_global_target_preserved": true,
+  "kb_added_behavior_ids": [
+    "BODY-011",
+    "SECURITY-006",
+    "REDIRECT-004"
+  ],
+  "kb_appended_observations": [
+    "COOKIE-005",
+    "REVIEW-004"
+  ],
+  "shared_repo_commit": "not committed: existing unrelated staged work preserved",
+  "kb_files": {
+    "knowledge/browser-behavior.json": {
+      "before_sha256": "c6bebf8382febd23430e2d26179e2170b3509329bd925962c08ce882101da2e6",
+      "after_sha256": "5da78c03cc832c9eaf003926a4a5a119a91986b3401e604f7169bcc703588b98"
+    },
+    "docs/BROWSER_BEHAVIOR.md": {
+      "before_sha256": "4a9dd4bba24e505932f85fc7f460217ca31d1ec4456f243d824f1dea05706040",
+      "after_sha256": "7932c3dda70e30c1faf9c6f010b4b47b79bf2933cf860ffd40d822fa7bb9b1a5"
+    },
+    "docs/browser-behavior.html": {
+      "before_sha256": "1fcf278bbf3166e341fc5f5d88649a4af49544d1e996a354c7255e36e05a6261",
+      "after_sha256": "f6bb80d6142fed85578dd626abee5931b7c4cbe18c6b9e43f1d6401134582b6f"
+    }
+  }
+}

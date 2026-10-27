@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Declare cookie-prefix storage rules in `cookie.prefixes`: spelling, case
+  matching, rejection of protected nameless values and required attributes.
+  Production cookie reception matches the 48-case Chrome156/macOS witness
+  over plain HTTP and TLS H1/H2. Ordinary nameless cookies remain supported.
+  Missing or malformed rules fail before I/O; old archives need explicit migration.
+
 - Bound content-decoder depth before allocation and create decoder layers only
   when read. Profiles own the depth, overflow action and ignored coding tokens;
   Chrome uses ten layers and treats identity as unsupported, confirmed on

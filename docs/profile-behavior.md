@@ -1676,3 +1676,38 @@ alone (quic-go's of every CE packet: Chrome sends no ECN, a server's marks are
 not measured), the 255 ranges quiche keeps (quic-go's 32), and an ACK of
 Initial or Handshake packets, which their 1 ms alarm sends
 (`quic.handshake_ack_timer_ms`).
+
+### Cookie prefix storage rules (unreleased engine 1)
+
+`cookie.prefixes` is a required array for current executable profiles. Every
+rule explicitly supplies `prefix` (1..256 ASCII token bytes), `case_sensitive`
+(boolean), `reject_nameless` (boolean), and `attributes` (array). Attributes
+select implemented checks: `secure`, `http-only`, `host-only` (no Domain), and
+`root-path` (explicit Path=/). Matching named rules are cumulative. A nameless
+value matching a rule is rejected when `reject_nameless` is true; otherwise
+that rule imposes no attribute checks on the nameless value. An empty array
+selects no prefix rules. Independent origin/Secure, SameSite, size and jar
+scope checks still apply.
+
+The engine rejects unknown, duplicate, missing, null or wrongly typed nested
+fields, duplicate prefixes (ASCII case folded), unsupported/repeated attributes,
+and more than 64 rules. These are capability/resource bounds, not browser
+choices. Load and constructors validate before network activity. Inspect/Save/
+Clone preserve an old archive without silently adding this field; explicit
+Migrate creates a current-engine candidate.
+
+Chrome156/macOS data supplies four case-insensitive rules: __Secure- requires
+Secure; __Host- requires Secure, no Domain and Path=/; __Http- requires Secure
+and HttpOnly; __Host-Http- combines all four constraints. All reject protected
+nameless values. The witness covers 48 cases, 432 observations in nine fresh
+headed/minimized contexts over plain HTTP and TLS H1/H2. Source fixtures,
+limitations and raw-evidence hashes are in the remediation report. Older
+151–155 builds and other platforms inherit the data pending separate measurement.
+No profile-name/UA branch or executable profile code selects these rules.
+
+The nameless __Secure-/__Host- rejection follows
+[6265bis storage step 22](https://httpwg.org/http-extensions/draft-ietf-httpbis-rfc6265bis.html#section-5.7).
+All four prefixes are specified by the work-in-progress
+[layered-cookies-02 storage algorithm](https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-layered-cookies-02#section-5.4.3).
+This acceptance concerns the prefix checks; it does not certify the entire
+cookie storage model against either document.

@@ -49,7 +49,7 @@ func (p *Profile) validateBehaviorFor(execution bool) error {
 	if p.Schema >= 3 {
 		if p.EngineMajor != nil && *p.EngineMajor == engine.Major() {
 			if execution {
-				for _, key := range []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings"} {
+				for _, key := range []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes"} {
 					if !p.Behavior.Has(key) {
 						return fmt.Errorf("profile %q: behavior is incomplete; requires %s", p.Name, key)
 					}

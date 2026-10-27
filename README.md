@@ -347,6 +347,11 @@ tls-forge fetch --cookies session.json --save-cookies session.json https://examp
 as they are; a server's cookies are kept as Chrome keeps them, a prefix's
 rules, `SameSite=None` only with `Secure`, `Secure` only from https or the
 machine itself, and at most 4096 bytes ([GO.md](GO.md#cookies-and-sessions)).
+The profile's `cookie.prefixes` declares each prefix, its required attributes,
+case matching and rejection of a protected value without a name. Chrome156/macOS
+rejects nameless `__Secure-`, `__Host-`, `__Http-` and `__Host-Http-` values even
+with valid attributes; ordinary nameless cookies are accepted. The finite
+48-case witness covers plain HTTP and TLS H1/H2, not all cookie settings.
 
 Cookie files are treated as credentials and saved with mode `0600`. JSON files
 can retain multiple named sessions; Netscape `.txt` files contain one jar and
