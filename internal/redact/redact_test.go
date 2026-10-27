@@ -127,6 +127,14 @@ func TestValue(t *testing.T) {
 		// Everything else is what a log is for.
 		{"User-Agent", "Mozilla/5.0", "Mozilla/5.0"},
 		{":path", "/search?q=token", "/search?q=token"},
+		// A URL's own token is masked where the field quotes a URL: HTTP/2
+		// writes a request's path and query as :path.
+		{":path", "/p?access_token=abc&x=1", "/p?access_token=***&x=1"},
+		{":path", "/plain", "/plain"},
+		{"Referer", "https://a.example/?api_key=k&ok=1#f", "https://a.example/?api_key=***&ok=1#f"},
+		{"location", "/next?session_token=s", "/next?session_token=***"},
+		{"Content-Location", "/x?password=p&a=b", "/x?password=***&a=b"},
+		{":authority", "example.com", "example.com"},
 		{"Keep-Alive", "timeout=5", "timeout=5"},
 		{"upgrade-insecure-requests", "1", "1"},
 	} {

@@ -173,8 +173,22 @@ func Value(name, value string) string {
 	case sensitive(lower):
 		// Nobody's standard, and where an API key usually travels.
 		return Masked
+	case carriesURL(lower):
+		// A URL's query is where a token often travels: HTTP/2 writes the
+		// request's own as :path, and a Referer or Location quotes another's.
+		return queries(value)
 	}
 	return value
+}
+
+// carriesURL names the fields whose value is a URL, or the path and query of
+// one: an access token in its query is masked as in any URL written down.
+func carriesURL(lower string) bool {
+	switch lower {
+	case ":path", "referer", "location", "content-location":
+		return true
+	}
+	return false
 }
 
 // maskAfter keeps what comes before a separator and masks the rest. With no

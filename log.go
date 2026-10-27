@@ -359,7 +359,7 @@ func (r *requestLog) restarted(url string, hints []string) {
 // url, which lies where they were answered with, in the scheme of the
 // challenge kept, and a Digest answer's nonce count: never the credentials.
 func (r *requestLog) authorized(url string, c challenge, count int) {
-	attrs := []any{"url", url, "realm", c.realm, "scheme", c.scheme}
+	attrs := []any{"url", redact.URL(url), "realm", c.realm, "scheme", c.scheme}
 	if c.digest != nil {
 		attrs = append(attrs, "nonce_count", count)
 	}
@@ -370,13 +370,13 @@ func (r *requestLog) authorized(url string, c challenge, count int) {
 // the credentials of the request's URL or those kept for the realm: never the
 // credentials.
 func (r *requestLog) authenticated(url string, c challenge, from string) {
-	r.log.Info("challenge answered", "url", url, "realm", c.realm, "scheme", c.scheme, "credentials", from)
+	r.log.Info("challenge answered", "url", redact.URL(url), "realm", c.realm, "scheme", c.scheme, "credentials", from)
 }
 
 // answeredAgain is what a 401 from url said of the answer to c it was sent:
 // turned down, its nonce out of date, or another realm.
 func (r *requestLog) answeredAgain(url string, c challenge, said verdict) {
-	r.log.Debug("answer refused", "url", url, "realm", c.realm, "scheme", c.scheme, "said", says[said])
+	r.log.Debug("answer refused", "url", redact.URL(url), "realm", c.realm, "scheme", c.scheme, "said", says[said])
 }
 
 // start says what is asked for.
