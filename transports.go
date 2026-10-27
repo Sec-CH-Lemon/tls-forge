@@ -55,6 +55,7 @@ type site struct {
 	name    string
 	refs    int // chain and background-drain leases, under transports.mu
 	retired bool
+	closing chan struct{} // idle-close claim, under transports.mu
 	inner   pool
 	// bare is where a request that carries no credentials goes out: a CORS
 	// preflight, fetch() with credentials omitted, or one kept to its own
@@ -145,12 +146,21 @@ func (t *transports) fresh() (*transports, error) {
 // of it goes out on them, as does every request such a page makes.
 func (t *transports) siteOf(name string) (*site, error) {
 	t.mu.Lock()
-	var evicted *site
+	for {
+		at := slices.IndexFunc(t.sites, func(s *site) bool { return s.name == name })
+		if at < 0 || t.sites[at].closing == nil {
+			break
+		}
+		done := t.sites[at].closing
+		t.mu.Unlock()
+		<-done
+		t.mu.Lock()
+	}
+	var idle []*site
+	var pending []<-chan struct{}
 	defer func() {
 		t.mu.Unlock()
-		if evicted != nil {
-			evicted.closeIdle()
-		}
+		t.closeSites(idle, pending)
 	}()
 	if t.closed {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
@@ -172,8 +182,9 @@ func (t *transports) siteOf(name string) (*site, error) {
 		s = built
 	}
 	if len(t.sites) >= t.behavior.Int("http.max_site_pools") {
-		evicted = t.sites[0]
+		evicted := t.sites[0]
 		evicted.retired = true
+		idle, pending = t.idleSitesLocked([]*site{evicted})
 		if evicted.refs > 0 {
 			t.retired[evicted] = true
 		}
@@ -249,13 +260,40 @@ func (t *transports) clearIdle(permanent bool) {
 	for _, done := range draining {
 		<-done
 	}
+	t.mu.Lock()
 	if !permanent {
-		t.mu.Lock()
 		sites = t.sitesLocked()
+	}
+	idle, pending := t.idleSitesLocked(sites)
+	t.mu.Unlock()
+	t.closeSites(idle, pending)
+}
+
+// Claim idle pools before leaving the registry lock. A new reader of a
+// resident site waits for its claim to finish, without holding the registry.
+// This matters for H3 transports that count RoundTrip only through headers.
+func (t *transports) idleSitesLocked(sites []*site) (idle []*site, pending []<-chan struct{}) {
+	for _, s := range sites {
+		if s.closing != nil {
+			pending = append(pending, s.closing)
+		} else if s.refs == 0 {
+			s.closing = make(chan struct{})
+			idle = append(idle, s)
+		}
+	}
+	return
+}
+
+func (t *transports) closeSites(idle []*site, pending []<-chan struct{}) {
+	for _, s := range idle {
+		s.closeIdle()
+		t.mu.Lock()
+		close(s.closing)
+		s.closing = nil
 		t.mu.Unlock()
 	}
-	for _, s := range sites {
-		s.closeIdle()
+	for _, done := range pending {
+		<-done
 	}
 }
 
@@ -264,14 +302,14 @@ func (t *transports) clearIdle(permanent bool) {
 func (t *transports) releaseSite(s *site) {
 	t.mu.Lock()
 	s.refs--
-	close := s.retired && s.refs == 0
-	if close {
+	var idle []*site
+	var pending []<-chan struct{}
+	if s.retired && s.refs == 0 {
 		delete(t.retired, s)
+		idle, pending = t.idleSitesLocked([]*site{s})
 	}
 	t.mu.Unlock()
-	if close {
-		s.closeIdle()
-	}
+	t.closeSites(idle, pending)
 }
 
 // Register before starting the drain: CloseIdleConnections must also wait for

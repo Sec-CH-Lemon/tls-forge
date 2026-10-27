@@ -1798,3 +1798,9 @@ request deadline, while detached drainers are canceled and waited for. Snapshot
 bookkeeping and socket close/reap I/O use separate critical sections. These are
 engine ownership/synchronization mechanisms, not new profile choices; all share
 the pending unpublished engine1.
+
+A response remains active through body completion, including HTTP/3 transports
+whose internal RoundTrip count ends at headers. Only sites without chain/drainer
+leases may enter idle-close I/O. The claim is made under the registry mutex; new
+readers of that site wait outside the mutex until it finishes. Other sites can
+proceed, and the resident site retains its existing session pool.

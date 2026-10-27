@@ -1,0 +1,137 @@
+{
+  "stage": "A5/S09 body and idle-close boundary",
+  "original_baseline": "9b176b71ae494304fc1aa0fbc6ce8c6c3c3f9c22",
+  "intermediate_s09_commit": "bf33682b4e30ed5c03f49c6997bdc17399da10dd",
+  "checks": {
+    "s09-h3-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "^TestEvictedQUICConnectionsAreClosed$",
+        "-count=1",
+        "-timeout",
+        "45s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-before",
+      "returncode": 1,
+      "elapsed_seconds": 9.269,
+      "peak_group_rss_kib": 760384,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-h3-after": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "^TestEvictedQUICConnectionsAreClosed$",
+        "-count=3",
+        "-timeout",
+        "60s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 1,
+      "elapsed_seconds": 14.306,
+      "peak_group_rss_kib": 642576,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 70.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-idle-boundary-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestIdleCloseExcludesNewReadersWithoutRegistryLock",
+        "-count=1",
+        "-timeout",
+        "20s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-idle-before",
+      "returncode": 1,
+      "elapsed_seconds": 6.864,
+      "peak_group_rss_kib": 727856,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 40.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-all-protocol-ownership": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestEvicted|TestRetired|TestCloseIdleWaits|TestTransportIOLeaves",
+        "-count=3",
+        "-timeout",
+        "80s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 15.234,
+      "peak_group_rss_kib": 622800,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-ownership-final": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestEvicted|TestRetired|TestCloseIdleWaits|TestTransportIO|TestIdleCloseExcludes|Test.*Site|TestClosingIdleConnections",
+        "-count=3",
+        "-timeout",
+        "90s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 25.365,
+      "peak_group_rss_kib": 635920,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 110.0,
+        "rss_mib": 2048
+      }
+    }
+  },
+  "interpretation": {
+    "s09-h3-before": "Original A4 source: QUIC leak and premature body closure controls fail.",
+    "s09-h3-after": "First S09 implementation: body aborts in all 12 H3 cases. Superseded, not accepted.",
+    "s09-idle-boundary-before": "First S09 implementation admits a reader while idle-close I/O is blocked. Primary error is admission; subsequent timeout follows test-channel consumption.",
+    "a5-all-protocol-ownership": "H3 body lease correction passes H1/H2/H3, before the extra resident idle-close claim was added.",
+    "a5-ownership-final": "Final body + idle-close claim mechanism; race count3, all controls pass."
+  },
+  "source_sha256": {
+    "transports.go": "3081b9fd857519dda25ee9377cd967bc1291bec4d28405200e07c8231ceb6520",
+    "a5_lifecycle_test.go": "67fdac75424b148227c25154eee569839e8b35c3424663a50cf257bd953bf4b9",
+    "a5_h3_lifecycle_test.go": "05c55a094de4f47e5163e9f6ab98627f483fffa35ad18d457689860ec48c0452"
+  },
+  "limits": [
+    "No fresh Chrome actor or parity claim.",
+    "Close stops new work and drains; active final readers finish under their existing deadline, then their retired pool closes.",
+    "Raw logs and intermediate source archives retained in ignored private A5 capture bundle."
+  ]
+}

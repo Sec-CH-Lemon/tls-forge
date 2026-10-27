@@ -2773,4 +2773,6 @@ readers through LRU eviction. `http.max_site_pools` still limits resident
 site partitions; retired partitions are held only until their readers finish.
 `Close` prevents new work and ends background drainers. Already active response
 reads may finish; their retired connections close when the last reader leaves.
-Pool close/reap I/O runs outside the shared registry mutex.
+Pool close/reap I/O runs outside the shared registry mutex. Idle-close claims
+exclude new readers until I/O finishes; active response bodies, including H3,
+keep their pool leased through completion.

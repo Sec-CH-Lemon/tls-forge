@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Keep active H3 response bodies leased until completion. Reserve idle-close
+  I/O before releasing the registry mutex, excluding concurrent new readers of
+  the same site without blocking other sites or resetting session state.
+
 - Track evicted top-level-site pools until requests and detached response
   drainers finish; release their connections on completion and client Close.
   Snapshot pool ownership under the registry mutex and perform close/reap I/O

@@ -125,6 +125,7 @@ func TestTransportIOLeavesRegistryUnlocked(t *testing.T) {
 			}
 			blocked := &stalledPool{idler: &idler{}, entered: make(chan struct{}), release: make(chan struct{})}
 			old.inner.HttpClient = blocked
+			tr.releaseSite(old)
 			done := make(chan struct{})
 			go func() {
 				defer close(done)
@@ -258,5 +259,48 @@ func TestEvictedRedirectDrainRemainsOwned(t *testing.T) {
 				t.Fatalf("Close retained %d sites/%d drains", n, pending)
 			}
 		})
+	}
+}
+
+func TestIdleCloseExcludesNewReadersWithoutRegistryLock(t *testing.T) {
+	tr, _ := idlers(t, "", refuseNone)
+	old, err := tr.siteOf("old")
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocked := &stalledPool{idler: &idler{}, entered: make(chan struct{}), release: make(chan struct{})}
+	old.inner.HttpClient = blocked
+	tr.releaseSite(old)
+	closed := make(chan struct{})
+	go func() { tr.closeIdle(); close(closed) }()
+	<-blocked.entered
+	acquired := make(chan *site, 1)
+	go func() {
+		s, err := tr.siteOf("old")
+		if err != nil {
+			t.Error(err)
+		}
+		acquired <- s
+	}()
+	unrelated, err := tr.siteOf("unrelated")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr.releaseSite(unrelated)
+	select {
+	case <-acquired:
+		t.Error("new reader entered a pool whose idle close is in progress")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(blocked.release)
+	<-closed
+	select {
+	case s := <-acquired:
+		if s != old {
+			t.Fatal("idle close replaced the site's session pool")
+		}
+		tr.releaseSite(s)
+	case <-time.After(time.Second):
+		t.Fatal("reader not released after idle close")
 	}
 }
