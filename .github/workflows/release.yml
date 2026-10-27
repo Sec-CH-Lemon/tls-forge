@@ -10,9 +10,10 @@ name: release
 # release before anything is published. Every later attempt publishes that set
 # and never one built again: what a registry already has is held to the set by
 # digest, and a file that differs stops the release. Publishing waits for the
-# pinned gate, the profile held to the archived Google Chrome it was measured
-# on, for this commit and this set. RELEASING.md says how a release is made,
-# tried without publishing, and finished after a failure.
+# pinned gate, the profile held to Google Chrome Stable as each platform's
+# runner installs it from Google, for this commit and this set. RELEASING.md
+# says how a release is made, tried without publishing, and finished after a
+# failure.
 on:
   push:
     tags: ['v*']
@@ -301,7 +302,7 @@ jobs:
           [ "$DRY_RUN" = true ] && dry=(--dry-run)
           node scripts/release-publish.mjs github --dir set --tag "$TAG" --repo "$GITHUB_REPOSITORY" "${dry[@]}"
 
-  reference:
+  gates:
     timeout-minutes: 5
     needs: set
     runs-on: ubuntu-latest
@@ -314,24 +315,23 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
-      # One gate for each build the reference names. No reference, or one that
-      # names no build, stops the release here: it is never published on the
-      # word of another browser.
-      - name: the builds of the reference
+      # One gate for each platform, on a runner of it, under the names the
+      # publishing jobs hold the set to.
+      - name: the gates of a release
         id: gates
         run: |
-          gates=$(node scripts/release-set.mjs gates --reference reference/chrome.json)
+          gates=$(node scripts/release-set.mjs gates)
           echo "gates=$gates" >> "$GITHUB_OUTPUT"
 
   pinned:
     # The comparison, then every scenario and page on the bench: about twenty
     # minutes on a Mac, with a launch of the browser for each.
     timeout-minutes: 75
-    needs: [set, reference, store]
+    needs: [set, gates, store]
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.reference.outputs.gates) }}
+        include: ${{ fromJSON(needs.gates.outputs.gates) }}
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
@@ -345,9 +345,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-set
@@ -361,29 +358,28 @@ jobs:
         run: |
           if [ -f "set/$RESULT" ]; then echo "held=true"; else echo "held=false"; fi >> "$GITHUB_OUTPUT"
 
-      - name: restore the reference from the archive
+      # Google Chrome Stable as Google serves it that day, the build people
+      # are running, and never the one the runner image carries.
+      - uses: ./.github/actions/google-chrome
         if: steps.held.outputs.held == 'false'
-        shell: bash
-        env:
-          PINNED_ARCHIVE_URL: ${{ secrets.PINNED_ARCHIVE_URL }}
-          PINNED_ARCHIVE_TOKEN: ${{ secrets.PINNED_ARCHIVE_TOKEN }}
-          PLATFORM: ${{ matrix.platform }}
-          ARCH: ${{ matrix.arch }}
-        run: >-
-          node scripts/pinned-restore.mjs --reference reference/chrome.json --platform "$PLATFORM" --arch "$ARCH"
-          --archive "$RUNNER_TEMP/archive" --installed "$RUNNER_TEMP/installed"
 
-      - name: hold the profile to the reference
+      - name: hold the profile to Google Chrome
         if: steps.held.outputs.held == 'false'
         shell: bash
         env:
           IDENTITY: ${{ needs.set.outputs.identity }}
         run: |
-          gate=(go run ./internal/pinned --manifest reference/chrome.json --archive "$RUNNER_TEMP/archive"
-            --installed "$RUNNER_TEMP/installed" --commit "$GITHUB_SHA" --set "$IDENTITY" --out "set/$RESULT")
-          # A Linux runner has no display, and the reference runs as it was
-          # measured, which is with a window unless its launch says otherwise.
-          if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a "${gate[@]}"; else "${gate[@]}"; fi
+          gate=(go run ./internal/pinned --browser "$CHROME" --commit "$GITHUB_SHA" --set "$IDENTITY" --out "set/$RESULT")
+          # --no-sandbox on Linux and Windows, as drift.yml says why: without
+          # it Chrome starts, loads no page and says nothing. A Linux runner
+          # has no display, and the profile is held to Chrome with a window.
+          if [ "$RUNNER_OS" != macOS ]; then gate+=(--browser-arg=--no-sandbox); fi
+          if [ "$RUNNER_OS" = Linux ]; then
+            sudo apt-get install -y xvfb
+            xvfb-run -a "${gate[@]}"
+          else
+            "${gate[@]}"
+          fi
 
       - name: keep the result beside the set
         if: steps.held.outputs.held == 'false' && needs.set.outputs.dry_run == 'false'
@@ -461,7 +457,7 @@ jobs:
           VERSION: ${{ needs.set.outputs.version }}
           IDENTITY: ${{ needs.set.outputs.identity }}
         run: |
-          node scripts/release-set.mjs verify --dir set --version "$VERSION" --commit "$GITHUB_SHA" --reference reference/chrome.json
+          node scripts/release-set.mjs gated --dir set --version "$VERSION" --commit "$GITHUB_SHA"
           test "$(node scripts/release-set.mjs digest --dir set)" = "$IDENTITY"
 
       # The platform packages first, the one that pins them by exact version
@@ -508,7 +504,7 @@ jobs:
           VERSION: ${{ needs.set.outputs.version }}
           IDENTITY: ${{ needs.set.outputs.identity }}
         run: |
-          node scripts/release-set.mjs verify --dir set --version "$VERSION" --commit "$GITHUB_SHA" --reference reference/chrome.json
+          node scripts/release-set.mjs gated --dir set --version "$VERSION" --commit "$GITHUB_SHA"
           test "$(node scripts/release-set.mjs digest --dir set)" = "$IDENTITY"
 
       # PyPI refuses a file it has, so it is given only what it lacks, and a

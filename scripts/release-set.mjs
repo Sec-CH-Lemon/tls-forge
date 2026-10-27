@@ -6,17 +6,18 @@
 // the release.
 //
 //   node scripts/release-set.mjs make   --dir DIR --version V --commit SHA
-//   node scripts/release-set.mjs verify --dir DIR --version V --commit SHA [--reference FILE]
+//   node scripts/release-set.mjs verify --dir DIR --version V --commit SHA
+//   node scripts/release-set.mjs gated  --dir DIR --version V --commit SHA
 //   node scripts/release-set.mjs digest --dir DIR
-//   node scripts/release-set.mjs gates  --reference FILE
+//   node scripts/release-set.mjs gates
 //
 // make writes SHA256SUMS and manifest.json into DIR, over the files there.
 // verify holds DIR to its manifest: the version and the commit, every file there
 // and as its digest says, exactly the files a release of V has, and SHA256SUMS
-// as the manifest makes it. With --reference, it also holds DIR to a pinned
-// gate's result for every build the reference names, passed for this commit
-// and this set. digest prints the set's identity: the SHA-256 of its manifest.
-// gates prints, as JSON, the gates the reference asks for and where each runs.
+// as the manifest makes it. gated holds DIR to all of that and to the result of
+// every pinned gate, passed for this commit and this set. digest prints the
+// set's identity: the SHA-256 of its manifest. gates prints, as JSON, the gates
+// a release waits for and where each runs.
 
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -41,16 +42,14 @@ const LEGAL = ['LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.txt'];
 // A pinned gate's result, which joins the set after it is made.
 const GATE = /^pinned-[a-z]+-[a-z0-9]+\.json$/;
 
-// Where each build of the reference is measured: a runner of its platform and
-// machine, since the gate runs the build itself.
-const RUNNERS = {
-  'linux-amd64': 'ubuntu-24.04',
-  'linux-arm64': 'ubuntu-24.04-arm',
-  'macos-amd64': 'macos-15-intel',
-  'macos-arm64': 'macos-15',
-  'windows-amd64': 'windows-2025',
-  'windows-arm64': 'windows-11-arm',
-};
+// The pinned gates a release waits for: one on each platform, on a runner of
+// it, which installs Google Chrome Stable from Google and holds the profile to
+// it (docs/pinned.md).
+const GATES = [
+  { platform: 'macos', arch: 'arm64', runner: 'macos-15' },
+  { platform: 'linux', arch: 'amd64', runner: 'ubuntu-24.04' },
+  { platform: 'windows', arch: 'amd64', runner: 'windows-2025' },
+];
 
 // The versions a release may have: SemVer that npm and PyPI order alike, as the
 // release workflow's check of the tag has it. SemVer's -1 would be a PyPI
@@ -115,29 +114,17 @@ export function make(dir, version, commit) {
   return manifest;
 }
 
-// gates are the pinned gates the reference manifest at file asks for, one for
-// each of its builds: the platform, the machine, the runner it is measured on
-// and the name its result is kept under in the set.
-export function gates(file) {
-  let reference;
-  try {
-    reference = JSON.parse(readFileSync(file, 'utf8'));
-  } catch (err) {
-    throw new Error(`the reference ${file} cannot be read, and a release is held to one: ${err.message}`);
-  }
-  const builds = Array.isArray(reference?.builds) ? reference.builds : [];
-  if (builds.length === 0) throw new Error(`the reference ${file} names no builds to hold a release to`);
-  return builds.map((build) => {
-    const key = `${build?.platform}-${build?.arch}`;
-    if (!Object.hasOwn(RUNNERS, key)) throw new Error(`the reference ${file} names a build for ${key}, which no runner is`);
-    return { platform: build.platform, arch: build.arch, runner: RUNNERS[key], result: `pinned-${key}.json` };
-  });
+// gates are the pinned gates a release waits for: the platform, the machine,
+// the runner it is measured on and the name its result is kept under in the
+// set.
+export function gates() {
+  return GATES.map((gate) => ({ ...gate, result: `pinned-${gate.platform}-${gate.arch}.json` }));
 }
 
 // problems are what is wrong with the set in dir, held to version and commit,
-// and to a passed gate result for every build of the reference, when one is
-// named: none, when it can be published.
-export function problems(dir, version, commit, reference = null) {
+// and, when gated, to a passed result of every pinned gate: none, when it can
+// be published.
+export function problems(dir, version, commit, gated = false) {
   let names;
   try {
     names = required(version);
@@ -207,22 +194,16 @@ export function problems(dir, version, commit, reference = null) {
       found.push(`${SUMS} is not what the manifest makes it`);
     }
   }
-  if (reference !== null) found.push(...gateProblems(dir, commit, sha256(raw), reference));
+  if (gated) found.push(...gateProblems(dir, commit, sha256(raw)));
   return found;
 }
 
-// gateProblems are what is wrong with the gate results in dir: one missing for
-// a build of the reference, or one that did not pass, is for another commit or
-// was measured with another set.
-function gateProblems(dir, commit, identity, reference) {
-  let wanted;
-  try {
-    wanted = gates(reference);
-  } catch (err) {
-    return [err.message];
-  }
+// gateProblems are what is wrong with the gate results in dir: one missing,
+// or one that did not pass, is for another commit or was measured with
+// another set.
+function gateProblems(dir, commit, identity) {
   const found = [];
-  for (const { result: name } of wanted) {
+  for (const { result: name } of gates()) {
     let result;
     try {
       result = JSON.parse(readFileSync(path.join(dir, name), 'utf8'));
@@ -257,19 +238,20 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       make(named.dir, named.version, named.commit);
       return [];
     }],
-    verify: [['dir', 'version', 'commit'], () => problems(named.dir, named.version, named.commit, named.reference ?? null)],
+    verify: [['dir', 'version', 'commit'], () => problems(named.dir, named.version, named.commit)],
+    gated: [['dir', 'version', 'commit'], () => problems(named.dir, named.version, named.commit, true)],
     digest: [['dir'], () => {
       console.log(sha256(readFileSync(path.join(named.dir, MANIFEST))));
       return [];
     }],
-    gates: [['reference'], () => {
-      console.log(JSON.stringify(gates(named.reference)));
+    gates: [[], () => {
+      console.log(JSON.stringify(gates()));
       return [];
     }],
   };
   const [needs, run] = Object.hasOwn(commands, command) ? commands[command] : [null];
   if (needs === null || needs.some((name) => typeof named[name] !== 'string')) {
-    console.error(`usage: release-set.mjs ${Object.keys(commands).join('|')} --dir DIR --version V --commit SHA [--reference FILE]`);
+    console.error(`usage: release-set.mjs ${Object.keys(commands).join('|')} --dir DIR --version V --commit SHA`);
     process.exitCode = 2;
   } else {
     let found;

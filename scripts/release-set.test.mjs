@@ -32,13 +32,6 @@ const edit = (dir, name, change) => {
   writeFileSync(file, change(readFileSync(file, 'utf8')));
 };
 
-// aReference is a reference manifest naming builds, which only the gates read.
-function aReference(t, builds) {
-  const file = path.join(temporary(t, 'tls-forge-reference-'), 'chrome.json');
-  writeFileSync(file, JSON.stringify({ schema: 1, version: '155.0.8059.80', builds }));
-  return file;
-}
-
 const run = (...args) => spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
 
 test('PyPI spells a version its own way, and only a release version', () => {
@@ -220,59 +213,32 @@ test('a manifest that is lost, broken or of another kind stops it', (t) => {
   ]);
 });
 
-test('the reference asks for a gate on every build it names', (t) => {
-  assert.deepEqual(gates(aReference(t, [
-    { platform: 'linux', arch: 'amd64' },
-    { platform: 'linux', arch: 'arm64' },
-    { platform: 'macos', arch: 'amd64' },
-    { platform: 'macos', arch: 'arm64' },
-    { platform: 'windows', arch: 'amd64' },
-    { platform: 'windows', arch: 'arm64' },
-  ])), [
-    { platform: 'linux', arch: 'amd64', runner: 'ubuntu-24.04', result: 'pinned-linux-amd64.json' },
-    { platform: 'linux', arch: 'arm64', runner: 'ubuntu-24.04-arm', result: 'pinned-linux-arm64.json' },
-    { platform: 'macos', arch: 'amd64', runner: 'macos-15-intel', result: 'pinned-macos-amd64.json' },
+test('a release waits for a gate on each platform, on a runner of it', () => {
+  assert.deepEqual(gates(), [
     { platform: 'macos', arch: 'arm64', runner: 'macos-15', result: 'pinned-macos-arm64.json' },
+    { platform: 'linux', arch: 'amd64', runner: 'ubuntu-24.04', result: 'pinned-linux-amd64.json' },
     { platform: 'windows', arch: 'amd64', runner: 'windows-2025', result: 'pinned-windows-amd64.json' },
-    { platform: 'windows', arch: 'arm64', runner: 'windows-11-arm', result: 'pinned-windows-arm64.json' },
   ]);
-  const missing = path.join(temporary(t), 'chrome.json');
-  assert.throws(() => gates(missing), new RegExp(`^Error: the reference ${missing} cannot be read, and a release is held to one: ENOENT`));
-  const broken = aReference(t, []);
-  writeFileSync(broken, '{"builds":');
-  assert.throws(() => gates(broken), /cannot be read, and a release is held to one: .*JSON/);
-  for (const builds of [[], null, {}, 'linux']) {
-    assert.throws(() => gates(aReference(t, builds)), /names no builds to hold a release to$/, JSON.stringify(builds));
-  }
-  writeFileSync(broken, 'null');
-  assert.throws(() => gates(broken), /names no builds to hold a release to$/);
-  for (const [build, key] of [
-    [{ platform: 'freebsd', arch: 'amd64' }, 'freebsd-amd64'],
-    [{ platform: 'linux', arch: 'x64' }, 'linux-x64'],
-    [{ platform: 'linux' }, 'linux-undefined'],
-    [null, 'undefined-undefined'],
-    [{ platform: 'constructor', arch: '' }, 'constructor-'],
-  ]) {
-    assert.throws(() => gates(aReference(t, [build])), new RegExp(`names a build for ${key}, which no runner is$`), key);
-  }
+  // Each call is a list of its own: changing one changes no other.
+  gates()[0].runner = 'elsewhere';
+  assert.equal(gates()[0].runner, 'macos-15');
 });
 
 test('a gate result is for this commit and this set, and passed', (t) => {
   const dir = aSet(t);
   const identity = sha256(readFileSync(path.join(dir, MANIFEST)));
-  const reference = aReference(t, [{ platform: 'linux', arch: 'amd64' }, { platform: 'macos', arch: 'arm64' }]);
   const gate = (name, result) => writeFileSync(path.join(dir, name), JSON.stringify(result));
   gate('pinned-linux-amd64.json', { ok: true, commit: COMMIT, set: identity });
-  // Every build of the reference needs its own.
-  assert.deepEqual(problems(dir, VERSION, COMMIT, reference), [
-    `the gate result pinned-macos-arm64.json cannot be read: ENOENT: no such file or directory, open '${path.join(dir, 'pinned-macos-arm64.json')}'`,
-  ]);
+  // Every platform needs its own.
+  assert.deepEqual(problems(dir, VERSION, COMMIT, true), ['pinned-macos-arm64.json', 'pinned-windows-amd64.json'].map((name) =>
+    `the gate result ${name} cannot be read: ENOENT: no such file or directory, open '${path.join(dir, name)}'`));
   gate('pinned-macos-arm64.json', { ok: true, commit: COMMIT, set: identity });
-  assert.deepEqual(problems(dir, VERSION, COMMIT, reference), []);
-  // Without a reference, a set is not held to gates, and theirs are no strays.
+  gate('pinned-windows-amd64.json', { ok: true, commit: COMMIT, set: identity });
+  assert.deepEqual(problems(dir, VERSION, COMMIT, true), []);
+  // Not gated, a set is not held to gates, and theirs are no strays.
   assert.deepEqual(problems(dir, VERSION, COMMIT), []);
   gate('pinned-macos-arm64.json', { ok: false, commit: 'b'.repeat(40), set: 'c'.repeat(64) });
-  assert.deepEqual(problems(dir, VERSION, COMMIT, reference), [
+  assert.deepEqual(problems(dir, VERSION, COMMIT, true), [
     'the gate result pinned-macos-arm64.json did not pass',
     `the gate result pinned-macos-arm64.json is for ${'b'.repeat(40)}, not ${COMMIT}`,
     `the gate result pinned-macos-arm64.json is for the set ${'c'.repeat(64)}, not ${identity}`,
@@ -280,20 +246,16 @@ test('a gate result is for this commit and this set, and passed', (t) => {
   // Passed means true, and nothing else that might read as it.
   for (const ok of ['true', 1, null]) {
     gate('pinned-macos-arm64.json', { ok, commit: COMMIT, set: identity });
-    assert.deepEqual(problems(dir, VERSION, COMMIT, reference), ['the gate result pinned-macos-arm64.json did not pass'], String(ok));
+    assert.deepEqual(problems(dir, VERSION, COMMIT, true), ['the gate result pinned-macos-arm64.json did not pass'], String(ok));
   }
   writeFileSync(path.join(dir, 'pinned-macos-arm64.json'), 'null');
-  assert.deepEqual(problems(dir, VERSION, COMMIT, reference), [
+  assert.deepEqual(problems(dir, VERSION, COMMIT, true), [
     'the gate result pinned-macos-arm64.json did not pass',
     `the gate result pinned-macos-arm64.json is for undefined, not ${COMMIT}`,
     `the gate result pinned-macos-arm64.json is for the set undefined, not ${identity}`,
   ]);
   writeFileSync(path.join(dir, 'pinned-macos-arm64.json'), '{');
-  assert.match(problems(dir, VERSION, COMMIT, reference)[0], /^the gate result pinned-macos-arm64\.json cannot be read: .*JSON/);
-  // No reference to hold it to stops it as surely as a gate that failed.
-  assert.deepEqual(problems(dir, VERSION, COMMIT, path.join(dir, 'none.json')), [
-    `the reference ${path.join(dir, 'none.json')} cannot be read, and a release is held to one: ENOENT: no such file or directory, open '${path.join(dir, 'none.json')}'`,
-  ]);
+  assert.match(problems(dir, VERSION, COMMIT, true)[0], /^the gate result pinned-macos-arm64\.json cannot be read: .*JSON/);
 });
 
 test('make refuses what is no version or commit', (t) => {
@@ -329,19 +291,13 @@ test('the command says what is wrong, and exits by it', (t) => {
   const digest = run('digest', '--dir', dir);
   assert.equal(digest.status, 0);
   assert.equal(digest.stdout, `${sha256(readFileSync(path.join(dir, MANIFEST)))}\n`);
-  // A gate missing for a build of the reference stops it too.
-  const reference = aReference(t, [{ platform: 'linux', arch: 'amd64' }]);
-  const ungated = run('verify', '--dir', dir, '--version', VERSION, '--commit', COMMIT, '--reference', reference);
+  // Gated, a set without its gates' results stops too.
+  const ungated = run('gated', '--dir', dir, '--version', VERSION, '--commit', COMMIT);
   assert.equal(ungated.status, 1);
-  assert.match(ungated.stderr, /^the gate result pinned-linux-amd64\.json cannot be read/);
-  const listed = run('gates', '--reference', reference);
+  assert.match(ungated.stderr, /^the gate result pinned-macos-arm64\.json cannot be read/);
+  const listed = run('gates');
   assert.equal(listed.status, 0);
-  assert.deepEqual(JSON.parse(listed.stdout), [
-    { platform: 'linux', arch: 'amd64', runner: 'ubuntu-24.04', result: 'pinned-linux-amd64.json' },
-  ]);
-  const unreferenced = run('gates', '--reference', path.join(dir, 'none.json'));
-  assert.equal(unreferenced.status, 1);
-  assert.match(unreferenced.stderr, /cannot be read, and a release is held to one/);
+  assert.deepEqual(JSON.parse(listed.stdout), gates());
   const fresh = aSet(t, { made: false });
   assert.equal(run('make', '--dir', fresh, '--version', VERSION, '--commit', COMMIT).status, 0);
   assert.deepEqual(problems(fresh, VERSION, COMMIT), []);
@@ -351,9 +307,9 @@ test('the command says what is wrong, and exits by it', (t) => {
   // What is no command, an inherited name included, and a command not told
   // what it needs, is a usage error, before anything is read or written.
   for (const args of [[], ['publish'], ['toString'], ['constructor', '--dir', dir], ['make', '--dir', fresh, '--version', VERSION],
-    ['verify', '--dir'], ['digest'], ['gates']]) {
+    ['verify', '--dir'], ['gated', '--dir', dir], ['digest']]) {
     const usage = run(...args);
     assert.equal(usage.status, 2, args.join(' '));
-    assert.match(usage.stderr, /^usage: release-set\.mjs make\|verify\|digest\|gates /);
+    assert.match(usage.stderr, /^usage: release-set\.mjs make\|verify\|gated\|digest\|gates /);
   }
 });

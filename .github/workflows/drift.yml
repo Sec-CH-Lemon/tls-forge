@@ -420,72 +420,12 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # From Google, not the image's, whose Chrome is whatever build the image
-      # was made with, and only Stable. Each step says where the browser is
-      # (CHROME) and what it says it is (CHROME_VERSION).
-      #
-      # hdiutil attaches the image on macOS 14 and 15; on macOS 27 it says no
-      # mountable file system, and diskutil image attach, which an older macOS
-      # does not have, does it (tried 2026-10-19). Either mounts it under
-      # /Volumes.
-      - name: install Google Chrome (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          case $CHANNEL in
-            stable) url=https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg
-                    app="Google Chrome" ;;
-            beta) url=https://dl.google.com/chrome/mac/universal/beta/googlechromebeta.dmg
-                  app="Google Chrome Beta" ;;
-            *) echo "no channel $CHANNEL"; exit 1 ;;
-          esac
-          curl -sSfL -o "$RUNNER_TEMP/chrome.dmg" "$url"
-          attached=$(hdiutil attach -nobrowse -readonly "$RUNNER_TEMP/chrome.dmg" ||
-            diskutil image attach --mountOptions nobrowse --readOnly "$RUNNER_TEMP/chrome.dmg")
-          mount=$(printf '%s\n' "$attached" | awk -F '\t' '/\/Volumes\// {print $NF}' | tail -n 1)
-          ditto "$mount/$app.app" "$RUNNER_TEMP/$app.app"
-          hdiutil detach "$mount" || diskutil eject "$mount"
-          binary="$RUNNER_TEMP/$app.app/Contents/MacOS/$app"
-          { echo "CHROME=$binary"; echo "CHROME_VERSION=$("$binary" --version)"; } >> "$GITHUB_ENV"
-
-      - name: install Google Chrome (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          case $CHANNEL in
-            stable) package=google-chrome-stable dir=chrome ;;
-            beta) package=google-chrome-beta dir=chrome-beta ;;
-            *) echo "no channel $CHANNEL"; exit 1 ;;
-          esac
-          curl -sSfL -o "$RUNNER_TEMP/chrome.deb" "https://dl.google.com/linux/direct/${package}_current_amd64.deb"
-          sudo apt-get update
-          sudo apt-get install -y "$RUNNER_TEMP/chrome.deb"
-          binary=/opt/google/$dir/chrome
-          { echo "CHROME=$binary"; echo "CHROME_VERSION=$("$binary" --version)"; } >> "$GITHUB_ENV"
-
-      # `chrome.exe --version` starts the browser rather than saying what it
-      # is (the capture workflow sat seven minutes on it): the version is the
-      # file's.
-      - name: install Google Chrome (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          switch ($env:CHANNEL) {
-            'stable' { $url = 'https://dl.google.com/tag/s/dl/chrome/install/googlechromestandaloneenterprise64.msi'; $dir = 'Chrome' }
-            'beta' { $url = 'https://dl.google.com/tag/s/dl/chrome/install/beta/googlechromebetastandaloneenterprise64.msi'; $dir = 'Chrome Beta' }
-            default { throw "no channel $env:CHANNEL" }
-          }
-          $msi = Join-Path $env:RUNNER_TEMP 'chrome.msi'
-          Invoke-WebRequest -UseBasicParsing -OutFile $msi -Uri $url
-          $installed = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/i', $msi, '/quiet', '/norestart'
-          "msiexec exited $($installed.ExitCode)"
-          $binary = "C:\Program Files\Google\$dir\Application\chrome.exe"
-          if (-not (Test-Path -LiteralPath $binary)) {
-            Get-ChildItem 'C:\Program Files\Google' -Recurse -Filter chrome.exe -ErrorAction SilentlyContinue | ForEach-Object FullName
-            throw "no Google Chrome at $binary"
-          }
-          $info = (Get-Item -LiteralPath $binary).VersionInfo
-          "CHROME=$binary" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "CHROME_VERSION=$($info.ProductName) $($info.ProductVersion)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      # From Google, not the image's: where the browser is (CHROME) and what
+      # it says it is (CHROME_VERSION), as the pinned gate of release.yml
+      # takes it too.
+      - uses: ./.github/actions/google-chrome
+        with:
+          channel: ${{ matrix.channel }}
 
       - name: which Chrome
         id: chrome

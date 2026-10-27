@@ -1,17 +1,16 @@
-// Command pinned holds tls-forge to the reference Google Chrome, the build a
-// release is measured against: it checks that the archived installer and the
-// installed browser are the build the manifest names, that the browser says it
-// is that build, and then compares the manifest's profile with it, launched as
-// the manifest says. Then it measures the browser on the bench in
-// internal/harness, every scenario of a page and every page whose decoding is
-// asked about, and holds it to the fixtures tls-forge is tested against, and
-// to the profile. It exits 0 only when all of that holds. A reference it
-// cannot find or check is a failure, never a reason to measure another
-// browser: that would hold the release to whatever happened to be at hand.
+// Command pinned holds tls-forge to Google Chrome as Google ships it: the
+// Stable build a release's runner installs from Google that day, not the one
+// the runner image carries, Chrome for Testing or Chromium. It checks that the
+// browser says it is Google Chrome of the profile's major version, compares
+// the profile with it, and then measures it on the bench in internal/harness,
+// every scenario of a page and every page whose decoding is asked about, and
+// holds it to the fixtures tls-forge is tested against, and to the profile. It
+// exits 0 only when all of that holds. A browser it cannot ask, or one that is
+// not that Google Chrome, is a failure, never a reason to measure it anyway:
+// that would hold the release to whatever happened to be at hand.
 //
-//	go run ./internal/pinned --manifest reference/chrome.json \
-//	    --archive DIR --installed DIR [--out result.json] \
-//	    [--commit SHA] [--set DIGEST] [--requests FILE] [--decoding FILE]
+//	go run ./internal/pinned --browser PATH [--profile NAME] [--browser-arg ARG]... \
+//	    [--out result.json] [--commit SHA] [--set DIGEST] [--requests FILE] [--decoding FILE]
 //
 // The result is for the commit and the release set it names, so that a
 // release takes it only for what it measured. It is not part of what ships: a
@@ -25,7 +24,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"slices"
@@ -34,7 +32,6 @@ import (
 
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/internal/reference"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -43,14 +40,15 @@ var exit = os.Exit
 
 func main() { exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr)) }
 
-// Result is what a run writes to --out: what it held to what, the comparison,
-// and how the browser differs from the fixtures of what a page does. Commit
-// and Set are what the result is for: the commit a release is built from and
-// the identity of its set, the SHA-256 of the set's manifest.
+// Result is what a run writes to --out: the Google Chrome it held the profile
+// to, the comparison, and how the browser differs from the fixtures of what a
+// page does. Commit and Set are what the result is for: the commit a release
+// is built from and the identity of its set, the SHA-256 of the set's
+// manifest.
 type Result struct {
 	Commit     string               `json:"commit,omitempty"`
 	Set        string               `json:"set,omitempty"`
-	Reference  string               `json:"reference"`
+	Chrome     string               `json:"chrome"`
 	Platform   string               `json:"platform"`
 	Arch       string               `json:"arch"`
 	OK         bool                 `json:"ok"`
@@ -70,13 +68,14 @@ var (
 	profileOf       = profile.Get
 )
 
-// options are what a run holds the reference to, and how long it gives it.
+// options are what a run holds the browser to, and how long it gives it.
 type options struct {
-	manifest, archive, installed string
-	timeout                      time.Duration
-	requests, decoding           string
-	scenarios                    time.Duration
-	progress                     io.Writer
+	browser, profile   string
+	args               []string
+	timeout            time.Duration
+	requests, decoding string
+	scenarios          time.Duration
+	progress           io.Writer
 }
 
 // What a commit and a set's identity are written as: lower-case hex, whole.
@@ -88,9 +87,14 @@ var (
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("pinned", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	manifestPath := flags.String("manifest", "", "the reference manifest")
-	archive := flags.String("archive", "", "the directory the archived installers are in")
-	installed := flags.String("installed", "", "the directory the reference build is installed in")
+	browser := flags.String("browser", "", "the Google Chrome installed from Google to hold the profile to")
+	profileName := flags.String("profile", "chrome", "the profile held to it")
+	var browserArgs []string
+	flags.Func("browser-arg", "an argument the browser is launched with, for the machine (--no-sandbox on a hosted runner); repeatable",
+		func(arg string) error {
+			browserArgs = append(browserArgs, arg)
+			return nil
+		})
 	out := flags.String("out", "", "where to write the result as JSON")
 	timeout := flags.Duration("timeout", 2*time.Minute, "how long the browser has to be measured")
 	commit := flags.String("commit", os.Getenv("GITHUB_SHA"), "the commit the release is built from (default $GITHUB_SHA)")
@@ -101,8 +105,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
-	if *manifestPath == "" || *archive == "" || *installed == "" || flags.NArg() > 0 {
-		_, _ = fmt.Fprintln(stderr, "pinned: --manifest, --archive and --installed are required, and nothing else")
+	if *browser == "" || *profileName == "" || flags.NArg() > 0 {
+		_, _ = fmt.Fprintln(stderr, "pinned: --browser and --profile are required, and nothing else")
 		return 2
 	}
 	// Said before anything is measured: a result for what it cannot name is
@@ -116,7 +120,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	result, err := hold(ctx, options{manifest: *manifestPath, archive: *archive, installed: *installed, timeout: *timeout,
+	result, err := hold(ctx, options{browser: *browser, profile: *profileName, args: browserArgs, timeout: *timeout,
 		requests: *requests, decoding: *decoding, scenarios: *scenarios, progress: stderr})
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "pinned: %v\n", err)
@@ -136,7 +140,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if !result.OK {
 		_, _ = fmt.Fprintf(stderr, "pinned: %s does not match Google Chrome %s", result.Comparison.Client.Profile,
-			result.Reference)
+			result.Chrome)
 		if n := len(result.Scenarios); n > 0 {
 			word := "differences"
 			if n == 1 {
@@ -150,13 +154,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// hold checks the reference is what the manifest says, compares with it, and
-// holds it to the fixtures of what a page does.
+// hold checks the browser is Google Chrome of the profile's major, compares
+// with it, and holds it to the fixtures of what a page does.
 func hold(ctx context.Context, o options) (*Result, error) {
-	data, err := os.ReadFile(o.manifest)
-	if err != nil {
-		return nil, err
-	}
 	// The fixtures first: nothing is measured that could not be held to them.
 	requests, err := harness.LoadRequests(o.requests)
 	if err != nil {
@@ -166,52 +166,30 @@ func hold(ctx context.Context, o options) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	manifest, err := reference.Load(data)
+	worn, err := profileOf(o.profile)
 	if err != nil {
 		return nil, err
 	}
-	platform := map[string]string{"darwin": "macos"}[goos]
-	if platform == "" {
-		platform = goos
-	}
-	build, err := manifest.Build(platform, goarch)
+	said, err := versionOf(ctx, o.browser)
 	if err != nil {
 		return nil, err
 	}
-	if err := reference.VerifyFile(filepath.Join(o.archive, build.Installer), build.InstallerSHA256); err != nil {
-		return nil, err
-	}
-	binary := filepath.Join(o.installed, filepath.FromSlash(build.Binary))
-	if err := reference.VerifyFile(binary, build.BinarySHA256); err != nil {
-		return nil, err
-	}
-	if err := build.CheckMachine(binary); err != nil {
-		return nil, err
-	}
-	said, err := versionOf(ctx, binary)
+	version, err := identify(said, worn)
 	if err != nil {
 		return nil, err
 	}
-	if err := manifest.CheckIdentity(said); err != nil {
-		return nil, err
-	}
-	comparison, err := compare(ctx, tlsforge.MeasureOptions{
-		Browser: binary, Headless: manifest.Launch.Headless, BrowserArgs: manifest.Launch.Args, Timeout: o.timeout,
-	}, tlsforge.WithProfile(manifest.Profile))
+	// With a window, as people run it and as the profile was measured.
+	comparison, err := compare(ctx, tlsforge.MeasureOptions{Browser: o.browser, BrowserArgs: o.args, Timeout: o.timeout},
+		tlsforge.WithProfile(o.profile))
 	if err != nil {
 		return nil, fmt.Errorf("comparing: %w", err)
 	}
-	worn, err := profileOf(manifest.Profile)
-	if err != nil {
-		return nil, err
-	}
-	// On the bench as the fixtures were measured, headless whatever launch
-	// says, given its arguments, which are for the machine (--no-sandbox on a
-	// hosted runner): what the browser asks for in each scenario, how it
-	// decodes each page.
+	// On the bench as the fixtures were measured, headless, given the
+	// arguments for the machine (--no-sandbox on a hosted runner): what the
+	// browser asks for in each scenario, how it decodes each page.
 	ctx, cancel := context.WithTimeout(ctx, o.scenarios)
 	defer cancel()
-	b := harness.Chrome{Path: binary, Args: manifest.Launch.Args}
+	b := harness.Chrome{Path: o.browser, Args: o.args}
 	got, err := measureRequests(ctx, b, nil, o.progress)
 	if err != nil {
 		return nil, fmt.Errorf("measuring the scenarios: %w", err)
@@ -223,10 +201,51 @@ func hold(ctx context.Context, o options) (*Result, error) {
 	// Said as a list, empty too.
 	differences := append([]string{}, harness.Compare(requests.Scenarios, got, valuesOf(worn))...)
 	differences = append(differences, harness.CompareDecoding(decoding.Cases, pages)...)
+	platform := map[string]string{"darwin": "macos"}[goos]
+	if platform == "" {
+		platform = goos
+	}
 	return &Result{
-		Reference: manifest.Version, Platform: build.Platform, Arch: build.Arch,
+		Chrome: version, Platform: platform, Arch: goarch,
 		OK: comparison.OK() && len(differences) == 0, Comparison: comparison, Scenarios: differences,
 	}, nil
+}
+
+var (
+	// stable is what Google Chrome Stable says it is: its name and four
+	// numbers, the first its major, and nothing after them, which a Beta, Dev
+	// or Canary has.
+	stable = regexp.MustCompile(`^Google Chrome (([0-9]+)\.[0-9]+\.[0-9]+\.[0-9]+)$`)
+	// majorSent is the major a profile's user agent says it is.
+	majorSent = regexp.MustCompile(`Chrome/([0-9]+)\.`)
+)
+
+// identify holds what the browser says it is, its --version, to Google Chrome
+// Stable of the major the profile was measured on, and is its version. Not
+// Chrome for Testing, which shares the name and runs experiments real users do
+// not have, not Chromium, not another channel, and not a Chrome the profile
+// does not say it is.
+func identify(said string, p *profile.Profile) (string, error) {
+	said = strings.TrimSpace(said)
+	switch {
+	case strings.HasPrefix(said, "Google Chrome for Testing"):
+		return "", fmt.Errorf("%q is Chrome for Testing, not Google Chrome as Google ships it", said)
+	case strings.HasPrefix(said, "Chromium"):
+		return "", fmt.Errorf("%q is Chromium, not Google Chrome", said)
+	}
+	browser := stable.FindStringSubmatch(said)
+	if browser == nil {
+		return "", fmt.Errorf("the browser says %q, which is no Google Chrome Stable", said)
+	}
+	sent := majorSent.FindStringSubmatch(p.UserAgent)
+	if sent == nil {
+		return "", fmt.Errorf("the profile %s says no major of Chrome in its user agent, %q", p.Name, p.UserAgent)
+	}
+	if browser[2] != sent[1] {
+		return "", fmt.Errorf("the browser is Google Chrome %s, and the profile %s is Chrome %s: a release needs a profile of Chrome %s",
+			browser[1], p.Name, sent[1], browser[2])
+	}
+	return browser[1], nil
 }
 
 // valuesOf are the values p sends, by the name of the header: its user agent,

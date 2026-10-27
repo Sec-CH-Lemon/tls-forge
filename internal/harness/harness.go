@@ -16,8 +16,8 @@
 // HTTP/2, over HTTP/1.1 alone and over plain HTTP; and opening each page whose
 // decoding is asked about with --dump-dom. internal/harness/measure measures a
 // browser again, to write the fixtures or to hold it to them; the pinned gate
-// holds the reference Google Chrome of a release to the fixtures of requests
-// and decodings with Compare and CompareDecoding.
+// holds the Google Chrome a release's runner installs from Google to the
+// fixtures of requests and decodings with Compare and CompareDecoding.
 package harness
 
 import (

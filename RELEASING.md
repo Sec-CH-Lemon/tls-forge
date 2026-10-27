@@ -68,14 +68,14 @@ is the SHA-256 of its `manifest.json`.
    what it lacks and never a file over one it has; a file there with another
    digest stops the release. The manifest goes last, so a draft holding one
    holds the whole set.
-4. **reference** reads `reference/chrome.json` and **pinned** runs the
-   pinned gate for each build it names, on a runner of that platform
-   ([docs/pinned.md](docs/pinned.md)). It restores the archived Google Chrome
-   from the private archive, holds the profile to it, measures it on the
-   bench in `internal/harness` against the fixtures of what a page does, and
-   keeps the result, bound to this commit and this set, in the draft beside
-   the set. No reference, a reference it cannot restore or check, a profile
-   that does not match, or a scenario or page that differs stops the release.
+4. **gates** names a gate for each platform and **pinned** runs each on a
+   runner of that platform ([docs/pinned.md](docs/pinned.md)). It installs
+   Google Chrome Stable from Google, holds the profile to it, measures it on
+   the bench in `internal/harness` against the fixtures of what a page does,
+   and keeps the result, bound to this commit and this set, in the draft
+   beside the set. A browser that is not Google Chrome Stable of the
+   profile's major, a profile that does not match, or a scenario or page that
+   differs stops the release.
 5. **publish-npm** and **publish-pypi**, in the `release` environment, verify
    the set again with every gate result, and publish what each registry
    lacks. npm gets the platform packages first and the main package last,
@@ -101,10 +101,9 @@ is the SHA-256 of its `manifest.json`.
 - A trusted publisher on the PyPI project for this repository and workflow.
 - `HOMEBREW_TAP_TOKEN`, which can write to `Sec-CH-Lemon/homebrew-tap`. A
   release fails without it rather than shipping without a formula.
-- The reference: `reference/chrome.json` committed, the installers it names in
-  a private archive, and `PINNED_ARCHIVE_URL` (with `PINNED_ARCHIVE_TOKEN`
-  when the archive wants one) to reach it. Until all three exist, every
-  release stops at the gate, as it should.
+- Nothing for the pinned gate: each of its runners installs Google Chrome
+  from Google. A release made after Chrome Stable moved past the profile
+  waits for a profile measured on it.
 - Nothing for the image: the workflow's own token can push to the
   repository's registry.
 - Immutable releases turned on in the repository's settings is recommended:

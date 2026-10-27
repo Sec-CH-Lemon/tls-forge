@@ -144,6 +144,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   client refilled to the increment itself, so 0 and 1 left a body past 64 KiB
   waiting for the deadline and other small values ended in FLOW_CONTROL_ERROR.
   Requires the fhttp fork at aa8d85b.
+- Hold a release to Google Chrome Stable as Google ships it. The pinned gate
+  installs Chrome from Google on a macOS, a Linux and a Windows runner, with
+  the steps `drift.yml` uses (`.github/actions/google-chrome`), and refuses
+  Chrome for Testing, Chromium, another channel or a major the profile is not.
+  `internal/pinned` takes `--browser`, `--profile` and `--browser-arg` instead
+  of a manifest, and the publishing jobs check the gates with
+  `release-set.mjs gated`. `reference/chrome.json`, the private installer
+  archive, its secrets, `internal/reference` and `scripts/pinned-restore.mjs`
+  are gone.
 - Validate executable profile semantics before DNS/transport/proxy activity at
   every entry. Reject ambiguous JSON, invalid H2 settings/streams/dependencies,
   unsupported repeated-setting representation and connection-window overflow.

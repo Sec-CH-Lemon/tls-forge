@@ -44,8 +44,8 @@ page, and measured twice that day, and again on 2026-10-18 with the scenarios
 added then, what the fixture of connections says, as it is what the fixture of
 header blocks says, measured twice on 2026-10-18, and what the fixture of
 window updates says, measured twice that day. A
-release holds its reference build to the fixtures of requests and decodings
-the same way ([pinned](pinned.md)).
+release holds the Google Chrome its runners install from Google to the
+fixtures of requests and decodings the same way ([pinned](pinned.md)).
 
 ## The matrix
 
