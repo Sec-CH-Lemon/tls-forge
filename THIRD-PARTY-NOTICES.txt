@@ -178,7 +178,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261027082738-45fad1187082
+github.com/igor-lemon/fhttp v0.6.10-0.20261027200732-6ccf73f64cb3
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -210,7 +210,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261027155902-91882e219ed0
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261027200806-4837491ccf90
 --------------------------------------------------------------------------------
 
 MIT License
@@ -236,7 +236,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261026204916-dd9490f82c4a
+github.com/igor-lemon/tls-client v1.15.2-0.20261027200813-9bd16362d479
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn
@@ -267,7 +267,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
-github.com/igor-lemon/utls v1.7.8-barnius.0.20261027154812-18ad3707d82d
+github.com/igor-lemon/utls v1.7.8-barnius.0.20261027190147-856ef601ebd9
 --------------------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.

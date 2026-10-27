@@ -29,6 +29,9 @@ func catalogueProfile(name string) (*Profile, error) {
 	if err := checkMajorJSON(inventory.Templates[key]); err != nil {
 		return nil, fmt.Errorf("profile %q: %w", name, err)
 	}
+	if err := validateProfileJSON(inventory.Templates[key]); err != nil {
+		return nil, fmt.Errorf("profile %q: %w", name, err)
+	}
 	// checkMajorJSON read the template as one JSON object: it unmarshals, and
 	// its fields marshal again.
 	var fields map[string]json.RawMessage

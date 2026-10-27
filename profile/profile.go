@@ -291,7 +291,7 @@ var ErrNoHandshake = fmt.Errorf("profile: neither client_hello nor base is set")
 // state, and a spec shared between connections is a spec whose key share is
 // reused — which is both a bug and a fingerprint, since no browser reuses one.
 func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
-	if err := p.ValidateEngine(); err != nil {
+	if err := p.Validate(); err != nil {
 		return tls.ClientHelloSpec{}, err
 	}
 	if len(p.ClientHello) > 0 {
@@ -429,32 +429,20 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 // (shuffleExtensions), and the capture's when it is false. A bare base is the
 // transport's own, and so is drawing its order (BareBase).
 func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error) {
-	if err := p.ValidateEngine(); err != nil {
-		return profiles.ClientProfile{}, err
-	}
-	if err := p.validateBehavior(); err != nil {
-		return profiles.ClientProfile{}, err
-	}
-	if err := p.validateHTTP1(); err != nil {
+	if err := p.Validate(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
 	// A profile that only names a base IS that base. Rebuilding it from parts
 	// would be a second, drifting copy of settings this library does not own.
 	if p.BareBase() {
-		base, ok := profiles.MappedTLSClients[p.Base]
-		if !ok {
-			return profiles.ClientProfile{}, fmt.Errorf("profile %q: unknown base %q", p.Name, p.Base)
-		}
-		return p.applyTransportBehavior(base), nil
+		// Validate resolved this exact pinned catalogue identity.
+		return p.applyTransportBehavior(profiles.MappedTLSClients[p.Base]), nil
 	}
 
 	// Built once here so a broken profile is reported when the client is
 	// created, not on the first request. The factory itself rebuilds per
 	// connection.
 	if _, err := p.Spec(); err != nil {
-		return profiles.ClientProfile{}, err
-	}
-	if err := p.validatePseudoHeaderOrder(); err != nil {
 		return profiles.ClientProfile{}, err
 	}
 	factory := p.Spec
@@ -520,7 +508,7 @@ func (p *Profile) applyTransportBehavior(built profiles.ClientProfile) profiles.
 		}
 		built = built.WithHTTP3Parameters(settings, order, pol.Strings("h3.pseudo_header_order"), uint32(pol.Uint("h3.priority_frame_type")), pol.Flag("h3.grease_frames"))
 	}
-	built = built.WithBehavior(pol).WithHeaderRepresentation(headerRepresentation(pol)).
+	built = built.WithConnectionFlowSet(!p.BareBase()).WithBehavior(pol).WithHeaderRepresentation(headerRepresentation(pol)).
 		WithMaxEncoderHeaderTableSize(uint32(pol.Uint("h2.encoder_table_bytes"))).
 		WithMaxHeaderFramePayload(uint32(pol.Uint("h2.header_frame_payload"))).
 		WithMaxDataFramePayload(uint32(pol.Uint("h2.data_frame_payload"))).
@@ -630,6 +618,9 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 		if err := checkMajorJSON(data); err != nil {
 			return nil, err
 		}
+		if err := validateProfileJSON(data); err != nil {
+			return nil, err
+		}
 	}
 	var written struct {
 		Schema *int `json:"schema"`
@@ -659,32 +650,47 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 	default:
 		return nil, fmt.Errorf("profile: schema %d is not one; schemas begin at 1", *written.Schema)
 	}
-	if err := p.validateBehaviorFor(execute); err != nil {
-		return nil, err
+	if execute {
+		if err := p.Validate(); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := p.validateBehaviorFor(false); err != nil {
+			return nil, err
+		}
+		if err := p.validateFields(); err != nil {
+			return nil, err
+		}
 	}
+	return &p, nil
+}
+
+// validateFields is shared by execution and offline format inspection.
+// It does not retag an archive or grant permission to execute its HTTP policy.
+func (p *Profile) validateFields() error {
 	if p.Name == "" {
-		return nil, fmt.Errorf("profile: name is required")
+		return fmt.Errorf("profile: name is required")
 	}
 	if p.PerConnection != nil {
 		for _, length := range p.PerConnection.ECHPayloadLengths {
 			if length == 0 || length > maxECHPayloadLength {
-				return nil, fmt.Errorf("profile %q: an ECH payload of %d bytes is not one: it is 1 to %d",
+				return fmt.Errorf("profile %q: an ECH payload of %d bytes is not one: it is 1 to %d",
 					p.Name, length, maxECHPayloadLength)
 			}
 		}
 	}
 	if !p.BareBase() {
 		if err := p.validatePseudoHeaderOrder(); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if err := p.validateHTTP1(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := p.validateClientHints(); err != nil {
-		return nil, err
+		return err
 	}
-	return &p, nil
+	return nil
 }
 
 // validateClientHints refuses a hint Chrome does not send when asked, one it

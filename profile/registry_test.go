@@ -153,9 +153,7 @@ func TestNewestInFamilyPrefersMeasuredOverNewer(t *testing.T) {
 	// resolving the family name to it would trade a complete impersonation for a
 	// handshake-only one — quietly, at the moment the catalogue moved ahead.
 	registry := NewRegistry()
-	if err := registry.Register(&Profile{EngineMajor: Major(1),
-		Name: "acme_10", ClientHello: chromeHelloBytes(t),
-	}); err != nil {
+	if err := registry.Register(executableRegistryFixture(t, "acme_10")); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	if err := registry.Register(&Profile{EngineMajor: Major(1), Name: "acme_99", Base: "chrome_133"}); err != nil {
@@ -174,12 +172,12 @@ func TestNewestInFamilyPrefersMeasuredOverNewer(t *testing.T) {
 func TestNewestInFamilyPicksTheHighestVersion(t *testing.T) {
 	registry := NewRegistry()
 	for _, name := range []string{"acme_9", "acme_120", "acme_37"} {
-		if err := registry.Register(&Profile{EngineMajor: Major(1), Name: name, ClientHello: chromeHelloBytes(t)}); err != nil {
+		if err := registry.Register(executableRegistryFixture(t, name)); err != nil {
 			t.Fatalf("Register: %v", err)
 		}
 	}
 	// A suffix that is not a version is a distinct profile, not a candidate.
-	if err := registry.Register(&Profile{EngineMajor: Major(1), Name: "acme_nightly", ClientHello: chromeHelloBytes(t)}); err != nil {
+	if err := registry.Register(executableRegistryFixture(t, "acme_nightly")); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -247,4 +245,13 @@ func TestShipsSaysWhatTLSForgeShips(t *testing.T) {
 			t.Errorf("Ships(%q) = %v", name, got)
 		}
 	}
+}
+
+// Registry ordering is tested with executable profiles, rather than incomplete
+// TLS-only records that the stricter execution gate must refuse.
+func executableRegistryFixture(t *testing.T, name string) *Profile {
+	t.Helper()
+	p := mustGet(t, "chrome_155_macos").Clone()
+	p.Name = name
+	return p
 }

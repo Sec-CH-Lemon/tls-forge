@@ -205,6 +205,12 @@ The unreleased engine1 candidate also resumes after a TLS1.3
 HelloRetryRequest: the binder covers the actual profile-shaped second hello.
 P-256/P-384 peers and Chrome156/macOS full/resumed handshake observations are
 recorded in [the A3 report](docs/remediation/2026-10-27/A3.ru.md).
+Executable profiles are validated before request I/O, including ordered H2
+SETTINGS ranges, stream/dependency rules and connection-window overflow.
+Explicit zero windows remain zero. Large valid H3 setup no longer blocks QUIC
+or Close. See [profile semantics](docs/profiles.md#executable-http2-semantics-a6)
+for the execution contract.
+
 It authenticates a TLS1.2 server's Finished before rejecting a real ECH offer,
 checks exact compressed-certificate length within engine resource bounds,
 rejects buffered handshake messages across read-key changes, and rechecks

@@ -11,6 +11,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Validate executable profile semantics before DNS/transport/proxy activity at
+  every entry. Reject ambiguous JSON, invalid H2 settings/streams/dependencies,
+  unsupported repeated-setting representation and connection-window overflow.
+  Preserve explicit zero stream/connection windows and the final legal stream.
+  Wake body readers on terminal flow errors; queue large valid H3 setup outside
+  the QUIC run loop, preserving small setup composition and the SETTINGS barrier.
+  All changes share unpublished engine1; the15 profile JSON files are unchanged.
+
 - Release HTTPS-proxy discovery locking at connection acquisition rather than
   response arrival. Remember observed H1 per partition, retain actual ALPN on
   new connections, and allow simultaneous H1 forwarding/CONNECT while preserving

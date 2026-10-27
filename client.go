@@ -246,7 +246,7 @@ func New(opts ...Option) (*Client, error) {
 			return nil, err
 		}
 	}
-	if err := prof.ValidateEngine(); err != nil {
+	if err := prof.Validate(); err != nil {
 		return nil, err
 	}
 	prof = prof.Clone()
@@ -458,7 +458,7 @@ var newInnerClient = tls_client.NewHttpClient
 // Each must be closed when it is done with. Closing one leaves this client,
 // and the session they share, as they were.
 func (c *Client) Fresh() (*Client, error) {
-	if err := c.profile.ValidateEngine(); err != nil {
+	if err := c.profile.Validate(); err != nil {
 		return nil, err
 	}
 	if c.closed.Load() {
@@ -536,7 +536,7 @@ func (c *Client) requestLog(req *Request) *requestLog {
 }
 
 func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
-	if err := c.profile.ValidateEngine(); err != nil {
+	if err := c.profile.Validate(); err != nil {
 		return nil, err
 	}
 	if r != nil && req != nil {

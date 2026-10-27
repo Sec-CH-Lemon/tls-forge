@@ -77,7 +77,7 @@ func (d *connectDialer) adoptProxyH2(conn net.Conn) (*proxyH2Conn, error) {
 		return nil, err
 	}
 	transport := &http2.Transport{AllowHTTP: true, Behavior: d.identity.profile.RuntimeBehavior().Clone(),
-		Settings: prof.GetSettings(), SettingsOrder: prof.GetSettingsOrder(), ConnectionFlow: prof.GetConnectionFlow(),
+		Settings: prof.GetSettings(), SettingsOrder: prof.GetSettingsOrder(), ConnectionFlow: prof.GetConnectionFlow(), ConnectionFlowSet: prof.GetConnectionFlowSet(),
 		HeaderPriority: prof.GetHeaderPriority(), PseudoHeaderOrder: prof.GetPseudoHeaderOrder(), Priorities: prof.GetPriorities(),
 		DisableCompression: true, WindowUpdateDelay: prof.GetWindowUpdateDelay(), HeaderRepresentation: prof.GetHeaderRepresentation(),
 		MaxEncoderHeaderTableSize: prof.GetMaxEncoderHeaderTableSize(), MaxHeaderFramePayload: prof.GetMaxHeaderFramePayload(),

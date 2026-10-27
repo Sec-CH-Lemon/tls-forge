@@ -32,7 +32,7 @@ func greaseECH(t *testing.T, spec tls.ClientHelloSpec) *tls.GREASEEncryptedClien
 // with no session to resume only when told to.
 func helloFrom(t *testing.T, p *Profile) *fingerprint.ClientHello {
 	t.Helper()
-	spec, err := p.Spec()
+	spec, err := executableTLSFixture(t, p).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestEveryShippedProfileDrawsTheECHLengthAsChromeDoes(t *testing.T) {
 			(captured.AEAD != 1 && captured.AEAD != 3) || captured.EncLength != 32 {
 			t.Errorf("%s was captured with ECH %+v", p.Name, captured)
 		}
-		spec, err := p.Spec()
+		spec, err := executableTLSFixture(t, p).Spec()
 		if err != nil {
 			t.Fatalf("%s: %v", p.Name, err)
 		}
@@ -269,7 +269,7 @@ func TestAnotherBrowserKeepsTheECHLengthItWasCapturedWith(t *testing.T) {
 		{EngineMajor: Major(1), Name: "chrome_155_ios", ClientHello: raw},
 		{EngineMajor: Major(1), Name: "custom", ClientHello: raw, UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) CriOS/155.0.0.0"},
 	} {
-		spec, err := p.Spec()
+		spec, err := executableTLSFixture(t, p).Spec()
 		if err != nil {
 			t.Fatalf("%s: %v", p.Name, err)
 		}
@@ -286,7 +286,7 @@ func TestASpecsECHLengthsAreItsOwn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("profile: %v", err)
 	}
-	first, err := p.Spec()
+	first, err := executableTLSFixture(t, p).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -294,7 +294,7 @@ func TestASpecsECHLengthsAreItsOwn(t *testing.T) {
 	for i := range lens {
 		lens[i] = 1
 	}
-	second, err := p.Spec()
+	second, err := executableTLSFixture(t, p).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}

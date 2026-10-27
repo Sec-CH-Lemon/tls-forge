@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import http from 'node:http';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import net from 'node:net';
 import { test } from 'node:test';
 import zlib from 'node:zlib';
@@ -338,5 +341,39 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
   } finally {
     client.close();
     await Promise.all([page, other].map(({ server }) => new Promise((resolve) => server.close(resolve))));
+  }
+});
+
+
+test('invalid profile semantics fail before real daemon origin or proxy I/O', { skip: !binary }, async () => {
+  let connections = 0;
+  const server = net.createServer((socket) => { connections += 1; socket.destroy(); });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const dir = mkdtempSync(join(tmpdir(), 'tlsforge-a6-'));
+  const profile = JSON.parse(readFileSync(new URL('../../profile/data/chrome_155/macos.json', import.meta.url), 'utf8'));
+  profile.name = 'sdk-semantic-negative';
+  profile.http2.settings = [{ id: 5, value: 1 }];
+  const file = join(dir, 'renamed.json');
+  writeFileSync(file, JSON.stringify(profile));
+  const address = `127.0.0.1:${server.address().port}`;
+  try {
+    for (const proxy of [undefined, `http://${address}`, `https://${address}`, `socks5://${address}`]) {
+      let diagnostic;
+      const seen = new Promise((resolve) => { diagnostic = resolve; });
+      const client = new Client({ binary, profile: file, proxy, timeout: 2_000, onStderr: (line) => {
+        if (line.includes('http2.settings[0].value') && line.includes('sdk-semantic-negative')) diagnostic();
+      } });
+      try {
+        await assert.rejects(client.get(`https://${address}/`));
+        await Promise.race([seen, new Promise((_, reject) => {
+          const timer = setTimeout(() => reject(new Error('profile field diagnostic missing')), 1_000);
+          timer.unref();
+        })]);
+      } finally { client.close(); }
+    }
+    assert.equal(connections, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    await new Promise((resolve) => server.close(resolve));
   }
 });

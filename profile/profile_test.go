@@ -80,7 +80,7 @@ func withRawExtension(t *testing.T, raw []byte, id uint16, data []byte) []byte {
 func TestSpecFromCapturedClientHello(t *testing.T) {
 	p := &Profile{EngineMajor: Major(1), Name: "test", ClientHello: chromeHelloBytes(t)}
 
-	spec, err := p.Spec()
+	spec, err := executableTLSFixture(t, p).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestSpecFromCapturedClientHello(t *testing.T) {
 	// Fresh on every call. utls extensions are pointers with mutable state, and a
 	// spec shared between connections is a spec whose key share is reused —
 	// which is both a bug and a fingerprint, since no browser reuses one.
-	again, err := p.Spec()
+	again, err := executableTLSFixture(t, p).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestSpecRejectsBluntMimicry(t *testing.T) {
 	// one ever falls through to a replayed blob, the ECH GREASE payload — random
 	// per connection in a browser — becomes a constant, which is a unique marker
 	// on every request this library makes. Failing loudly is the point.
-	spec, err := (&Profile{EngineMajor: Major(1), Name: "chrome", ClientHello: chromeHelloBytes(t)}).Spec()
+	spec, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "chrome", ClientHello: chromeHelloBytes(t)}).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestSpecRejectsBluntMimicry(t *testing.T) {
 	}
 
 	unknown := withRawExtension(t, chromeHelloBytes(t), 0x1234, []byte{1, 2, 3})
-	if _, err := (&Profile{EngineMajor: Major(1), Name: "unknown", ClientHello: unknown}).Spec(); err == nil ||
+	if _, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "unknown", ClientHello: unknown}).Spec(); err == nil ||
 		!strings.Contains(err.Error(), "unsupported extension 4660") {
 		t.Errorf("unknown extension error = %v", err)
 	}
@@ -175,7 +175,7 @@ func TestSpecAllowsMeasuredTrustAnchors(t *testing.T) {
 // trustAnchorsSent is the trust_anchors payload of p's spec, nil for none.
 func trustAnchorsSent(t *testing.T, p *Profile) []byte {
 	t.Helper()
-	spec, err := p.Spec()
+	spec, err := executableTLSFixture(t, p).Spec()
 	if err != nil {
 		t.Fatalf("%s: Spec: %v", p.Name, err)
 	}
@@ -193,7 +193,7 @@ func trustAnchorsIn(spec tls.ClientHelloSpec) []byte {
 }
 
 func TestSpecFromBase(t *testing.T) {
-	spec, err := (&Profile{EngineMajor: Major(1), Name: "borrowed", Base: "chrome_133"}).Spec()
+	spec, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "borrowed", Base: "chrome_133"}).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}
@@ -203,13 +203,13 @@ func TestSpecFromBase(t *testing.T) {
 }
 
 func TestSpecErrors(t *testing.T) {
-	if _, err := (&Profile{EngineMajor: Major(1), Name: "empty"}).Spec(); err == nil {
+	if _, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "empty"}).Spec(); err == nil {
 		t.Error("a profile with neither a hello nor a base cannot produce a spec")
 	}
-	if _, err := (&Profile{EngineMajor: Major(1), Name: "bad-base", Base: "netscape_4"}).Spec(); err == nil {
+	if _, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "bad-base", Base: "netscape_4"}).Spec(); err == nil {
 		t.Error("an unknown base should be reported")
 	}
-	if _, err := (&Profile{EngineMajor: Major(1), Name: "junk", ClientHello: []byte{1, 2, 3}}).Spec(); err == nil {
+	if _, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "junk", ClientHello: []byte{1, 2, 3}}).Spec(); err == nil {
 		t.Error("unparseable bytes should be reported")
 	}
 }
@@ -430,7 +430,7 @@ func TestLoadErrors(t *testing.T) {
 	if _, err := Load([]byte(`{"engine_major":1,"user_agent":"x"}`)); err == nil {
 		t.Error("a profile without a name should be reported")
 	}
-	if _, err := Load([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http2":{"settings":[{"id":1}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
+	if _, err := Load([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http2":{"settings":[{"id":1,"value":65536}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
 		t.Errorf("a profile without pseudo headers was accepted: %v", err)
 	}
 	for _, section := range []string{
@@ -825,7 +825,7 @@ func TestWithResumption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fixture: %v", err)
 	}
-	spec, err := (&Profile{EngineMajor: Major(1), Name: "resumed", ClientHello: raw}).Spec()
+	spec, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "resumed", ClientHello: raw}).Spec()
 	if err != nil {
 		t.Fatalf("Spec: %v", err)
 	}

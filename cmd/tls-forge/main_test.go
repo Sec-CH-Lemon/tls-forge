@@ -1618,7 +1618,12 @@ func TestPrintCaptureShowsResumption(t *testing.T) {
 func TestProfilesListsAnUnloadableNameWithTheCatalogue(t *testing.T) {
 	// A registered profile that cannot produce a handshake still has a name, and
 	// dropping it silently would hide exactly the thing worth reporting.
-	if err := profile.Register(&profile.Profile{EngineMajor: profile.Major(1), Name: "zz_unloadable"}); err != nil {
+	p, err := profile.Get("chrome_155_macos")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Name, p.Base, p.ClientHello = "zz_unloadable", "", nil
+	if err := profile.Register(p); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	code, stdout, _ := exec(t, "profiles")

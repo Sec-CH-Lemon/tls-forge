@@ -112,7 +112,7 @@ func TestEveryShippedProfileIsReadAndWornAsItShips(t *testing.T) {
 			t.Errorf("%s draws %+v per connection", path, p.PerConnection)
 		}
 		hello := bytes.Clone(p.ClientHello)
-		if _, err := p.Spec(); err != nil {
+		if _, err := executableTLSFixture(t, p).Spec(); err != nil {
 			t.Errorf("%s: Spec: %v", path, err)
 		}
 		if _, err := p.ClientProfile(); err != nil {
@@ -150,7 +150,7 @@ func TestWhatABrowserDrawsPerConnectionIsSaidOutright(t *testing.T) {
 		{"Chrome unsaid", &Profile{EngineMajor: Major(1), Name: "chrome_155", ClientHello: raw}, true, chromeECHPayloadLengths},
 		{"Firefox unsaid", &Profile{EngineMajor: Major(1), Name: "firefox_148", ClientHello: raw}, false, captured},
 	} {
-		spec, err := tc.profile.Spec()
+		spec, err := executableTLSFixture(t, tc.profile).Spec()
 		if err != nil {
 			t.Fatalf("%s: %v", tc.name, err)
 		}
@@ -364,7 +364,7 @@ func TestACustomProfileBuildsOnAnyCatalogueEntry(t *testing.T) {
 	for _, base := range []string{"chrome_133", "chrome_110", "safari_16_0", "firefox_120"} {
 		p := &Profile{EngineMajor: Major(1), Name: "custom", Base: base, HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 65536}},
 			PseudoHeaderOrder: []string{":method", ":authority", ":scheme", ":path"}}}
-		if spec, err := p.Spec(); err != nil || len(spec.Extensions) == 0 {
+		if spec, err := executableTLSFixture(t, p).Spec(); err != nil || len(spec.Extensions) == 0 {
 			t.Errorf("%s: %d extensions, %v", base, len(spec.Extensions), err)
 		}
 		if _, err := p.ClientProfile(); err != nil {

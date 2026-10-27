@@ -88,7 +88,7 @@ func TestMalformedTrustAnchorPayloadsAreRejected(t *testing.T) {
 	}
 
 	raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, nil)
-	if _, err := (&Profile{EngineMajor: Major(1), Name: "malformed", ClientHello: raw}).Spec(); err == nil ||
+	if _, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "malformed", ClientHello: raw}).Spec(); err == nil ||
 		!strings.Contains(err.Error(), "malformed trust_anchors") {
 		t.Errorf("profile error = %v", err)
 	}

@@ -282,7 +282,7 @@ func (r *Registry) Register(p *Profile) error {
 	if p == nil || p.Name == "" {
 		return fmt.Errorf("profile: cannot register a profile without a name")
 	}
-	if err := p.ValidateEngine(); err != nil {
+	if err := p.Validate(); err != nil {
 		return err
 	}
 	r.mu.Lock()
@@ -309,7 +309,7 @@ func (r *Registry) Get(name string) (*Profile, error) {
 	p, ok := r.added[name]
 	r.mu.RUnlock()
 	if ok {
-		if err := p.ValidateEngine(); err != nil {
+		if err := p.Validate(); err != nil {
 			return nil, err
 		}
 		return p.Clone(), nil

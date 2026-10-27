@@ -1,22 +1,24 @@
 # Profiles
 
-## Engine/profile compatibility (7.0.0)
+## Engine/profile compatibility (unreleased 1.0.0)
 
-The compiled engine version is **7.0.0**, independently of the browser build and
+The compiled engine version is **1.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 7`. Engines reject profiles from both older
+non-negative integer `engine_major: 1`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 7, "name": "my-browser"}
+{"schema": 4, "engine_major": 1, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
 data and the explicit `behavior` object. Browser values and selections stay in
-JSON. Any coordinated change requiring shipped engine/fork runtime code increments
-the project major exactly once, even a compatible fix. Existing primitives can be
+JSON. Engine/fork runtime changes share the next major after the latest actually
+published stable release. The current anchor is v0.2.2; all work in the single
+unpublished1.0.0 candidate stays major1 until publication. Internal historical
+engine2..7 labels were never published releases. Existing primitives can be
 configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
 a different version stamp. Crossing to major 2 will also require Go module path
@@ -29,13 +31,13 @@ migration creates a candidate while preserving original capture provenance:
 
 ```go
 old, err := profile.Inspect(originalJSON) // offline; handle err
-candidate, err := old.Migrate("my-browser-engine-7") // handle err
+candidate, err := old.Migrate("my-browser-engine-1") // handle err
 migratedJSON, err := candidate.Save() // save to a separate destination
 ```
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-7
+The 15 shipped profiles and all backend catalogue policies have explicit engine-1
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -46,7 +48,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 7`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -143,6 +145,41 @@ this tls-forge reads is refused, and says to upgrade. A profile with no
 `schema` was written before the format had one and is read as it always was,
 fields the format does not have passed over; it is written with the schema the
 next time it is saved, as `capture --save` and `--install` do.
+
+## Executable HTTP2 semantics (A6)
+
+`Profile.Validate` is the common execution gate for Load, registry, catalogue,
+Spec/adapters, New, Fresh and requests. CLI/daemon/SDK and pooled clients use
+these paths. Inspect stays offline; Save/Clone preserve archives without
+permission to execute. Accepted clients own deep snapshots of caller data.
+Engine-major rejection remains the first independent gate.
+
+HTTP2 SETTINGS remain an ordered array. The initial frame must fit16384 bytes
+(2730 records); IDs/values must fit uint16/uint32. INITIAL_WINDOW_SIZE is
+0..2147483647, MAX_FRAME_SIZE16384..16777215, and ENABLE_PUSH,
+ENABLE_CONNECT_PROTOCOL, NO_RFC7540_PRIORITIES use0/1. Unknown IDs retain their
+uint32 value. Repeated IDs are valid in the protocol, but this map-backed adapter
+explicitly rejects their unsupported sequential representation; it never merges
+them. Duplicate JSON keys, including Go-equivalent case/Unicode spellings, null
+or non-integer numeric fields and out-of-range weights/IDs fail with field paths.
+
+Client stream IDs are odd31-bit values; `stream_id:0` selects the existing
+initial stream1. Standalone priorities need room for the request after their
+final stream. Dependencies are31-bit and cannot refer to the same live stream. A fixed
+client-stream dependency must precede the first request, so later requests
+cannot become their own dependencies; nearest-weight derives live dependencies.
+`header_priority.stream_id` is capture annotation; live request IDs come from
+connection state. `connection_flow` is an increment to the initial65535-byte
+connection window, in0..2147418112. Explicit zero sends no WINDOW_UPDATE;
+INITIAL_WINDOW_SIZE zero likewise means a zero receive window, without fallback.
+Legal extreme values are tested on a raw H2 peer that decodes original bytes.
+
+The existing HTTP3 registry limits remain authoritative: GREASE payloads up to
+4096 bytes and long SETTINGS vectors cannot block QUIC's run loop or Close.
+The small setup prefix keeps its synchronous composition; any remainder is
+written on a cancellable setup goroutine before request streams are released.
+No browser profile values or version markers changed in A6. These are protocol
+and resource controls, not a fresh browser-equivalence measurement.
 
 ## Capturing one
 

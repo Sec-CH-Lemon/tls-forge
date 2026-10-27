@@ -7,6 +7,7 @@ import socket
 import socketserver
 import subprocess
 import threading
+from pathlib import Path
 import zlib
 from urllib.parse import urlsplit
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -475,3 +476,43 @@ def test_the_real_go_daemon_applies_a_browser_context_cors_and_all() -> None:
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
+
+
+def test_invalid_profile_semantics_fail_before_origin_or_proxy_io(tmp_path: Path) -> None:
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+
+    connections: list[bool] = []
+
+    class Handler(socketserver.BaseRequestHandler):
+        def handle(self) -> None:
+            connections.append(True)
+
+    server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    source = Path(__file__).resolve().parents[2] / "profile/data/chrome_155/macos.json"
+    profile = json.loads(source.read_text())
+    profile["name"] = "sdk-semantic-negative"
+    profile["http2"]["settings"] = [{"id": 5, "value": 1}]
+    file = tmp_path / "renamed.json"
+    file.write_text(json.dumps(profile))
+    address = f"127.0.0.1:{server.server_address[1]}"
+    try:
+        for proxy in (None, f"http://{address}", f"https://{address}", f"socks5://{address}"):
+            diagnostic = threading.Event()
+
+            def stderr(line: str) -> None:
+                if "http2.settings[0].value" in line and "sdk-semantic-negative" in line:
+                    diagnostic.set()
+
+            with Client(binary=binary, profile=str(file), proxy=proxy, timeout=2, on_stderr=stderr) as client:
+                with pytest.raises(TransportError):
+                    client.get(f"https://{address}/")
+            assert diagnostic.wait(1), "profile field diagnostic missing"
+        assert not connections
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
