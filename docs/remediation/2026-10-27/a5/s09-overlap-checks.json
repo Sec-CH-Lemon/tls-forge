@@ -1,0 +1,57 @@
+{
+  "stage": "A5/S09 test-only overlap acceptance",
+  "runtime_commit": "2bc7c7439f23dba02643581a26c95c9633046c7e",
+  "runtime_change": false,
+  "checks": {
+    "s09-overlap-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestConcurrentIdleClosesWaitForTheSameIO",
+        "-count=1",
+        "-timeout",
+        "25s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-idle-before",
+      "returncode": 1,
+      "elapsed_seconds": 6.664,
+      "peak_group_rss_kib": 740864,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 45.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-overlap-race-final": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestConcurrentIdleClosesWaitForTheSameIO|TestIdleCloseExcludesNewReaders",
+        "-count=20",
+        "-timeout",
+        "40s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 14.951,
+      "peak_group_rss_kib": 647968,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 2048
+      }
+    }
+  },
+  "interpretation": "First S09 allows two overlapping pool-close I/O operations; final idle claim coalesces callers and both wait for completion. Twenty race repetitions pass. This adds coverage of pending-close synchronization without changing runtime code.",
+  "source_sha256": {
+    "transports.go": "3081b9fd857519dda25ee9377cd967bc1291bec4d28405200e07c8231ceb6520",
+    "a5_idle_close_test.go": "a856275ed99e282fdf1897729c6679f71c5a070a60597d515d038484dc7f6a3f"
+  }
+}
