@@ -1,0 +1,66 @@
+package tlsforge
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"testing"
+)
+
+// auditSeen records the sensitive headers each path of b received.
+type auditSeen struct {
+	mu   sync.Mutex
+	seen map[string]http.Header
+}
+
+func TestAuditSensitiveHeadersAcrossDoubleRedirect(t *testing.T) {
+	for _, name := range []string{"as-given chrome_155_macos", "typed chrome_155_macos", "firefox_148"} {
+		t.Run(name, func(t *testing.T) {
+			rec := &auditSeen{seen: map[string]http.Header{}}
+			b := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				rec.mu.Lock()
+				rec.seen[r.URL.Path] = r.Header.Clone()
+				rec.mu.Unlock()
+				if r.URL.Path == "/1" {
+					http.Redirect(w, r, "/2", http.StatusFound)
+					return
+				}
+				_, _ = w.Write([]byte("ok"))
+			}))
+			defer b.Close()
+			a := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, b.URL+"/1", http.StatusFound)
+			}))
+			defer a.Close()
+			var opts []Option
+			switch name {
+			case "as-given chrome_155_macos":
+				opts = append(opts, WithProfileValue(asGivenProfile(t, "chrome_155_macos")))
+			case "typed chrome_155_macos":
+				opts = append(opts, WithProfileValue(shippedProfile(t, "chrome_155_macos")))
+			default:
+				opts = append(opts, WithProfile("firefox_148"))
+			}
+			c, err := New(opts...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer c.Close()
+			res, err := c.Do(&Request{URL: a.URL + "/", Header: NewHeader(
+				"Cookie", "secret=for-a-only",
+				"Authorization", "Bearer for-a-only",
+				"Proxy-Authorization", "Basic for-a-only")})
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = res
+			rec.mu.Lock()
+			defer rec.mu.Unlock()
+			for _, p := range []string{"/1", "/2"} {
+				h := rec.seen[p]
+				t.Logf("%s at b%s: Cookie=%q Authorization=%q Proxy-Authorization=%q", name, p,
+					h.Get("Cookie"), h.Get("Authorization"), h.Get("Proxy-Authorization"))
+			}
+		})
+	}
+}

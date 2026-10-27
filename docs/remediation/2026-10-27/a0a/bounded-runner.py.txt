@@ -1,0 +1,49 @@
+import argparse
+import json
+import os
+import pathlib
+import resource
+import signal
+import subprocess
+import time
+
+p = argparse.ArgumentParser()
+p.add_argument('--label', required=True)
+p.add_argument('--cwd', required=True)
+p.add_argument('--seconds', type=float, default=90)
+p.add_argument('--rss-mib', type=int, default=1536)
+p.add_argument('command', nargs=argparse.REMAINDER)
+a = p.parse_args()
+base = pathlib.Path('/private/tmp/tls-forge-a0a-20261027')
+log = base / (a.label + '.log')
+command = a.command[1:] if a.command[:1] == ['--'] else a.command
+
+def child_limits():
+    os.setsid()
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+
+env = dict(os.environ, GOMEMLIMIT='1024MiB')
+start = time.monotonic()
+peak = 0
+reason = None
+with log.open('w') as f:
+    child = subprocess.Popen(command, cwd=a.cwd, env=env, stdout=f, stderr=subprocess.STDOUT, preexec_fn=child_limits)
+    while child.poll() is None:
+        rows = subprocess.check_output(['ps', '-axo', 'pid=,pgid=,rss='], text=True)
+        rss = sum(int(row.split()[2]) for row in rows.splitlines() if len(row.split()) == 3 and int(row.split()[1]) == child.pid)
+        peak = max(peak, rss)
+        if time.monotonic() - start > a.seconds:
+            reason = 'wall_time_limit'
+        elif rss > a.rss_mib * 1024:
+            reason = 'rss_limit'
+        if reason:
+            os.killpg(child.pid, signal.SIGKILL)
+            break
+        time.sleep(0.1)
+    result = child.wait()
+record = dict(command=command, cwd=a.cwd, returncode=result, elapsed_seconds=round(time.monotonic()-start, 3),
+              peak_group_rss_kib=peak, stop_reason=reason, limits=dict(seconds=a.seconds, rss_mib=a.rss_mib))
+(base / (a.label + '.json')).write_text(json.dumps(record, indent=2) + '\n')
+print(json.dumps(record))
+print(log.read_text()[-16000:])
+raise SystemExit(0 if result == 0 and reason is None else 1)

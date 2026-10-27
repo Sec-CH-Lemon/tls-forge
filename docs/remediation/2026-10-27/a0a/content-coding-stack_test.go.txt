@@ -1,0 +1,32 @@
+package tlsforge
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"runtime"
+	"strings"
+	"testing"
+)
+
+// One byte of body under N layers of br: how much does the client allocate?
+func TestVerifyCodingStackAllocation(t *testing.T) {
+	for _, n := range []int{1, 1000, 10000} {
+		layers := strings.TrimSuffix(strings.Repeat("br,", n), ",")
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Encoding", layers)
+			_, _ = w.Write([]byte("x"))
+		}))
+		c, err := New(WithInsecureSkipVerify())
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.GC()
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		_, err = c.Get(srv.URL + "/")
+		runtime.ReadMemStats(&after)
+		t.Logf("layers=%d header=%dB allocated=%.1f MB err=%v", n, len(layers), float64(after.TotalAlloc-before.TotalAlloc)/1e6, err != nil)
+		_ = c.Close()
+		srv.Close()
+	}
+}

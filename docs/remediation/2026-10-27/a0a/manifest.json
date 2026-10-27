@@ -1,0 +1,191 @@
+{
+  "created_at": "2026-10-27T00:12:39.626671+00:00",
+  "scope": "A0a pre-change reproduction; not browser acceptance",
+  "toolchain": "go version go1.26.10 darwin/arm64",
+  "repositories": {
+    "tls-forge": {
+      "head": "c52c0c63c02e7fc4ddcf9711b5b331821215661b",
+      "tree": "86921c3b3604bdba6734bccf533ca576ba273c8f",
+      "branch": "codex/a0-p0-remediation",
+      "tracked_diff": "",
+      "archive_sha256": "f9532bb5445cbad44c1ccb92ef275f2c75942bb3fe3836b35c59423c4224e55f"
+    },
+    "utls": {
+      "head": "161481babd4361a4c16ae89311ce74867cccab86",
+      "tree": "e6181764dbbc3de97a8a85023e0b5453a3fa3dff",
+      "branch": "tls-forge",
+      "tracked_diff": "",
+      "archive_sha256": "b6552e80782a0c75e8bcc560dfb29ad7ec840766787a31c578fec6c8835e6569"
+    },
+    "fhttp": {
+      "head": "7c44dba01c5ae7d8e997e5396e0c360eaca81296",
+      "tree": "7935ec069aa2401fd1c40f3d0003fb83dcc77772",
+      "branch": "tls-forge",
+      "tracked_diff": "",
+      "archive_sha256": "9f1a39bf035078430037ceaaec0e2d2d2b990ac5a0e3d030abb66d9c13e4f94c"
+    },
+    "tls-client": {
+      "head": "dd9490f82c4afc74b39a10d27226eead58423aa7",
+      "tree": "be6cf54fe4e62f8ab9f0c8e739def34733a99ab3",
+      "branch": "tls-forge",
+      "tracked_diff": "",
+      "archive_sha256": "3e11f8c618a1f2b6940e76d7fc4593fc4c604b33bae473ad05663cf14bcdcc3c"
+    },
+    "quic-go-utls": {
+      "head": "16c5d9224207ba47eec952700ea3b156e0a7deef",
+      "tree": "ec9d1d306b0b325c0b97b51586de72ea832b5b5d",
+      "branch": "tls-forge",
+      "tracked_diff": "",
+      "archive_sha256": "a579712fb7fa7eaf5c881f00a80aafe8e8d23890f5af2ec948352ab9c987bca9"
+    },
+    "websocket": {
+      "head": "961b3d7db4659f1dbcc81fff344c1d4b4fd5bc9a",
+      "tree": "61cf9ff9ed5a18d3b19d036e97d6c6f9ce96bff8",
+      "branch": "tls-forge",
+      "tracked_diff": "",
+      "archive_sha256": "09cddda3e134291068b22bc2801f4a81e62c6f74ea06ae167814eaca2ae91547"
+    }
+  },
+  "inputs": {
+    "tls-forge/go.mod": "abb2579d10bf35eeb066edc2d666fed3aad73425fe2248df2b9b53420e4821d9",
+    "tls-forge/go.sum": "66f8edfbeedb5292b25b4e902861babe3052eb6c9debaecb223199b6d6200844",
+    "utls/go.mod": "0f1c89ce99f0263f46c6bb61e3b3b08e0ac5698f29022ea921a287c8bcc765fd",
+    "utls/go.sum": "24c17fc32202ea2124cbac74d6b59c0cef89c2174fdd5e077ac48bcc952b689c",
+    "fhttp/go.mod": "c4a5db907794ca8c912eaa256554de1af3711b3a2990cda333794d4125f2143b",
+    "fhttp/go.sum": "afc75a9828c0499dd7e4f998c675387b858e07c773e1d493c27a0f564e5ff682",
+    "tls-client/go.mod": "a585fd3b42e27da6e3cc481d09bd559aef2cc6f0cb33c6b5eb443f8b59863c12",
+    "tls-client/go.sum": "fb27b0a90800e33e3bcf4c06dd54ba4b3066ed437cd2d2a49caca19137d620dd",
+    "quic-go-utls/go.mod": "9999f7947669feec183bd5ce7f3aea447d16c1e02a2239b625a90a8a2c11c761",
+    "quic-go-utls/go.sum": "9cd8f89505c9fdae209f675c93ffa759ae3b51ae7e605cd7c8849f8aec21105f",
+    "websocket/go.mod": "1087bdbd605dee5f99bdd67415f8162f9588899b7c32e2e4c2f884cb74becda0",
+    "websocket/go.sum": "14f6ccb7b45d70a73666f731a1138f7253dbe1a487a931a4bef478e6e9c7f75b",
+    "AGENTS.md": "be9d5f80ef64f74c92be0cfe67ffd50527988b5cd4546271e3e8b99c61a20775",
+    "go.work": "af5e96dfc013d0f918d0189c2d1df54a315e73c1113e01c2ca5e8f53361d4ccb",
+    "go.work.sum": "77f2efb25e1b9994bf85064c100d436faa279fa849107c19db77bb476486dd77",
+    "docs/remediation-plan-2026-10-27.ru.md": "62e7f5af529d3e986e6f4fbce8d6b372dc1d4fe0cdc1d93c40c9131e4b4462f1",
+    "docs/analysis-2026-10-27.ru.md": "b2da14eb2ae6e4476c1998a242885e403c2c9b7fe9f3280e8c89e1ecba538556",
+    "docs/review-2026-10-26.ru.md": "3adb590ffca5bc52ed6232c90ab6e5a6181c0a5536ec7c35a8188a3ae3d1c33e",
+    "docs/analysis-2026-10-27-evidence/capture156-vs-shipped155-behavior.txt": "8652d3bf24cd420ab5bf5568761f487c8be1bf790e42ccc9a61df87cc0cb3b57",
+    "docs/analysis-2026-10-27-evidence/chrome_156_macos.data-only.draft.json": "ccacc0f6f376ee4e11706cf0f0c655b77f36d990d1b24dce613d3d7129266c0e",
+    "docs/analysis-2026-10-27-evidence/chrome_156_macos.fresh-capture.legacy.json": "2d17789021ce24ec98b9361fcbcda59f6b07a41e594836baaf934d740e1dcc08",
+    "docs/analysis-2026-10-27-evidence/cli-connections-per-request.txt": "dc10a96e19497e3fe0646817971efa29fa26a92324f80ed8797484aa798af51e",
+    "docs/analysis-2026-10-27-evidence/close-notify-tshark.txt": "9b2b51182f3f331edf4fd5598fe985e58bfece366f03b08c93585742a5608f0a",
+    "docs/analysis-2026-10-27-evidence/compare-155-vs-156.txt": "a8b98542d92eebed0d9f04a2eb7011633692b5e17e0d8aafcf75ea8a32550fd1",
+    "docs/analysis-2026-10-27-evidence/compare-156jsononly-vs-156.txt": "cf7202c760a0cdfc12878b2706283044db5784df3ab68d0a10088cb47dab2ca4",
+    "docs/analysis-2026-10-27-evidence/content-coding-stack-allocation.txt": "eba3a767897ee9e5e038259fc4b39ad55f600eca446cbd409385c5b3a2076c3e",
+    "docs/analysis-2026-10-27-evidence/content-coding-stack_test.go.txt": "a2a4494e9945f4b9680f8c24889be9d277c801fb90b138d61df3b8cfb8f25fb2",
+    "docs/analysis-2026-10-27-evidence/coverage-run.txt": "3df72c1efcacf2139c6cb4b615796634dd5d991909ec16e22e39ad604f6e02a6",
+    "docs/analysis-2026-10-27-evidence/golangci-lint.txt": "847166fdac66cd885ad0591a6277d742dbfcdae76c0db05af93867e0db960655",
+    "docs/analysis-2026-10-27-evidence/hpack-quadratic-poc_test.go.txt": "76729ca609bb9bb4b59a7f899e0722492d50ab4f02af035354f6efc1ee62fa9c",
+    "docs/analysis-2026-10-27-evidence/hpack-quadratic.txt": "60da0341c4b3feea1e43030d9a774be0664c5a45b58f7f520e95f7cf3e5952cc",
+    "docs/analysis-2026-10-27-evidence/profiles-behavior-divergence.txt": "3f95d13de1c0f66a52b76056680a01988292bf61bfb1d824a0122b9f63d8fd71",
+    "docs/analysis-2026-10-27-evidence/psk-hrr-failure.txt": "d237272d4d52a57d0948bd849667f397513a501fce8ea065239c9a910ceb57e8",
+    "docs/analysis-2026-10-27-evidence/psk-hrr-main.go.txt": "4b5b8eebf5b91131e6b5187408b78582f11ebf631e5c34ee1207b77bb22ac8a3",
+    "docs/analysis-2026-10-27-evidence/redirect-header-leak.txt": "f0adf5706479a53fdf2504525158f206f1e6e2352bd7eb3a21597b3e57d7dd5f",
+    "docs/analysis-2026-10-27-evidence/redirect-header-leak_test.go.txt": "b78bb21e926d115da444e04dbf17381f52136b57d189356128c7a04764760c4e",
+    "docs/analysis-2026-10-27-evidence/root-coupling-matrix.txt": "6da5c44b4220d0d8a55019b7436a5bd8575660a218cbd0e05caa01d8b70ad46b",
+    "docs/analysis-2026-10-27-evidence/root-runtime-defects.txt": "e40bb7390ba3d910155f1e686f84583ac979775d3e0ab8c103c49a342a16aeb0",
+    "docs/analysis-2026-10-27-evidence/root-runtime-defects_test.go.txt": "47c286a775c0ca0c35325276219c9f79926a6275a5eaeacb3462ed849d40070a",
+    "docs/analysis-2026-10-27-evidence/root-top20-complexity.txt": "2d6aad11548ad2f41d7afaa332bc07172ff148d61f5ed9f8f809092e47475c34"
+  },
+  "private_evidence": "net-fp-server/captures/remediation-a0a-20261027",
+  "release_anchor": {
+    "owner_confirmed_latest_release": "0.2.2",
+    "remote_tag_v0.2.2": "757e69e53a4e04cf4a67c67995a655d62d6af71d",
+    "remote_tag_v1.0.0": null,
+    "release_api": "unavailable: authenticated API returned HTTP 401; tag alone is not proof of publication"
+  },
+  "runs": {
+    "compile-root": {
+      "command": [
+        "go",
+        "test",
+        "-c",
+        "-o",
+        "/private/tmp/tls-forge-a0a-20261027/root.test",
+        "."
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 4.568,
+      "peak_group_rss_kib": 662672,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 240.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline-root": {
+      "command": [
+        "/private/tmp/tls-forge-a0a-20261027/root.test",
+        "-test.v",
+        "-test.timeout=75s",
+        "-test.run",
+        "^(TestVerifyCodingStackAllocation|TestAuditSensitiveHeadersAcrossDoubleRedirect|TestScratch)"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 2.666,
+      "peak_group_rss_kib": 191552,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 90.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "5ee1025eca443f072fce6c85d07670201a956ae43365904a9ce0ea8e03c1000f"
+    },
+    "baseline-hpack": {
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "-v",
+        "."
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 2.773,
+      "peak_group_rss_kib": 46576,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "6cf89162baafef5876b9eb26e2cbf34c00de3d15edb5ea40c0cf8aab18c47ffc"
+    },
+    "baseline-psk-hrr": {
+      "command": [
+        "go",
+        "run",
+        "./a0a-psk-hrr"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.068,
+      "peak_group_rss_kib": 237312,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "88932207b135f3c12fbdd6fe9f307636f573c07caa43710936b280d8447abd0d"
+    },
+    "baseline-psk-x25519": {
+      "command": [
+        "go",
+        "run",
+        "./a0a-psk-hrr",
+        "x25519"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.42,
+      "peak_group_rss_kib": 48064,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "7b466c743affe4327bcff3e9136917282c1f9494294476db426bdb7d6836e0fe"
+    }
+  },
+  "execution_workfile_sha256": "c814f5a317138f600bf4591198623210394a8333b17f7d00da782d2b24c1f055",
+  "module_graph_sha256": "e436960581bff37aca04017f8a587e31f5c070ebdcad17f6c724aee18b6d7b55",
+  "poc_test_binary_sha256": "91a3eb20557d3ec9a7c121a7ccb7086ac573b45b280dee9f302d590f4b08a237"
+}

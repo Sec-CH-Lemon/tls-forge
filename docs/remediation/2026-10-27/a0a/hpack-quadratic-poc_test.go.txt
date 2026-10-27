@@ -1,0 +1,61 @@
+package hpackpoc
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/igor-lemon/fhttp/http2/hpack"
+	xhpack "golang.org/x/net/http2/hpack"
+)
+
+// literal with incremental indexing, new name (Huffman), value whose bytes come later
+func block(nameLen, valueLen int) (head, value []byte) {
+	name := strings.Repeat("a", nameLen)
+	var b []byte
+	b = append(b, 0x40) // literal, incremental indexing, new name
+	hn := hpack.AppendHuffmanString(nil, name)
+	b = appendInt(b, 7, 0x80, uint64(len(hn)))
+	b = append(b, hn...)
+	b = appendInt(b, 7, 0x00, uint64(valueLen))
+	return b, bytes.Repeat([]byte{'v'}, valueLen)
+}
+
+func appendInt(dst []byte, n byte, flag byte, i uint64) []byte {
+	k := uint64((1 << n) - 1)
+	if i < k {
+		return append(dst, flag|byte(i))
+	}
+	dst = append(dst, flag|byte(k))
+	i -= k
+	for ; i >= 128; i >>= 7 {
+		dst = append(dst, byte(0x80|(i&0x7f)))
+	}
+	return append(dst, byte(i))
+}
+
+func run(t *testing.T, name string, write func([]byte) error, head, value []byte) time.Duration {
+	start := time.Now()
+	if err := write(head); err != nil {
+		t.Fatal(err)
+	}
+	for i := range value {
+		if err := write(value[i : i+1]); err != nil {
+			t.Fatal(name, err)
+		}
+	}
+	d := time.Since(start)
+	t.Logf("%s: %d one-byte writes after a %d-byte Huffman name: %v", name, len(value), len(head), d)
+	return d
+}
+
+func TestQuadratic(t *testing.T) {
+	head, value := block(256<<10, 4000)
+	fork := hpack.NewDecoder(1<<20, func(hpack.HeaderField) {})
+	fork.SetMaxStringLength(10 << 20) // the client's default: maxHeaderListSize
+	run(t, "fhttp fork", func(p []byte) error { _, err := fork.Write(p); return err }, head, value)
+	up := xhpack.NewDecoder(1<<20, func(xhpack.HeaderField) {})
+	up.SetMaxStringLength(10 << 20)
+	run(t, "x/net v0.60.0", func(p []byte) error { _, err := up.Write(p); return err }, head, value)
+}

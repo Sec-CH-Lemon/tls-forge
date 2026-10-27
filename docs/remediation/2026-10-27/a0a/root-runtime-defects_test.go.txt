@@ -1,0 +1,244 @@
+package tlsforge
+
+// Scratch checks written by the root-package reviewer, in a private copy of
+// the export. Not part of the project.
+
+import (
+	"bytes"
+	"encoding/json"
+	"log/slog"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	fhttp "github.com/igor-lemon/fhttp"
+)
+
+type scratchRT func(*fhttp.Request) (*fhttp.Response, error)
+
+func (f scratchRT) RoundTrip(r *fhttp.Request) (*fhttp.Response, error) { return f(r) }
+
+// Two plain-http requests forwarded through one HTTPS proxy's pool, whose
+// proxy speaks HTTP/1.1 (no HTTP/2 connection adopted): does the second wait
+// for the first's answer?
+func TestScratchForwardedRequestsSerializeOnTheDialLock(t *testing.T) {
+	d := &connectDialer{proxyPool: newProxyH2Pool()}
+	entered := make(chan int, 2)
+	release := make(chan struct{})
+	fallback := scratchRT(func(req *fhttp.Request) (*fhttp.Response, error) {
+		entered <- 1
+		<-release
+		return &fhttp.Response{StatusCode: 200, Body: fhttp.NoBody}, nil
+	})
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			req, _ := fhttp.NewRequest("GET", "http://example.test/"+strconv.Itoa(i), nil)
+			_, _ = d.RoundTripProxyHTTP(req, fallback)
+		}(i)
+	}
+	<-entered
+	select {
+	case <-entered:
+		t.Logf("RESULT: both forwarded requests reached the transport at once")
+	case <-time.After(700 * time.Millisecond):
+		t.Logf("RESULT: the second forwarded request waited 700 ms while the first awaited its answer (serialized)")
+	}
+	close(release)
+	wg.Wait()
+}
+
+// A site evicted from the client's LRU while one of its requests is in flight:
+// is its connection, idle once that request ends, closed by Close?
+func TestScratchAnEvictedSitesBusyConnectionOutlivesClose(t *testing.T) {
+	release := make(chan struct{})
+	var mu sync.Mutex
+	states := map[net.Conn]http.ConnState{}
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/hold" {
+			<-release
+		}
+		_, _ = w.Write([]byte("ok"))
+	}))
+	srv.EnableHTTP2 = true
+	srv.Config.ConnState = func(c net.Conn, s http.ConnState) {
+		mu.Lock()
+		states[c] = s
+		mu.Unlock()
+	}
+	atLocalhost(t, srv).StartTLS()
+	defer srv.Close()
+	_, port, _ := net.SplitHostPort(strings.TrimPrefix(srv.URL, "https://"))
+	p := policyFile(t, map[string]any{"http.max_site_pools": 1})
+	client, err := New(WithProfileValue(p), WithInsecureSkipVerify())
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := client.Get("https://127.0.0.1:" + port + "/hold")
+		done <- err
+	}()
+	time.Sleep(500 * time.Millisecond)
+	if _, err := client.Get("https://localhost:" + port + "/"); err != nil {
+		t.Fatalf("second site: %v", err)
+	}
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatalf("held request: %v", err)
+	}
+	_ = client.Close()
+	time.Sleep(700 * time.Millisecond)
+	mu.Lock()
+	defer mu.Unlock()
+	open := 0
+	for c, s := range states {
+		t.Logf("server conn %s -> last state %v", c.RemoteAddr(), s)
+		if s != http.StateClosed {
+			open++
+		}
+	}
+	t.Logf("RESULT: %d of %d connections still open after client.Close()", open, len(states))
+}
+
+// The log record of a redirect chain stopped at its limit, against the error.
+func TestScratchStoppedRedirectLogsItsLimit(t *testing.T) {
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/r/"))
+		http.Redirect(w, r, "/r/"+strconv.Itoa(n+1), http.StatusFound)
+	}))
+	srv.StartTLS()
+	defer srv.Close()
+	var buf bytes.Buffer
+	var mu sync.Mutex
+	logger := slog.New(slog.NewJSONHandler(&lockedWriter{w: &buf, mu: &mu}, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	client, err := New(WithProfile("chrome"), WithInsecureSkipVerify(), WithLogger(logger))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	_, err = client.Get(srv.URL + "/r/0")
+	t.Logf("error: %v", err)
+	mu.Lock()
+	defer mu.Unlock()
+	for _, line := range strings.Split(buf.String(), "\n") {
+		if strings.Contains(line, "redirect not followed") {
+			var rec map[string]any
+			_ = json.Unmarshal([]byte(line), &rec)
+			t.Logf("RESULT: log says hop=%v limit=%v", rec["hop"], rec["limit"])
+		}
+	}
+}
+
+type lockedWriter struct {
+	w  *bytes.Buffer
+	mu *sync.Mutex
+}
+
+func (l *lockedWriter) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.w.Write(p)
+}
+
+func BenchmarkScratchPolicyText(b *testing.B) {
+	c, _ := New(WithProfile("chrome"))
+	p := c.behavior()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = p.Text("headers.given_order")
+	}
+}
+
+func BenchmarkScratchPolicyStrings(b *testing.B) {
+	c, _ := New(WithProfile("chrome"))
+	p := c.behavior()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = p.Strings("headers.client_hint_order")
+	}
+}
+
+func BenchmarkScratchLegacyPolicy(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = legacyPolicy()
+	}
+}
+
+func BenchmarkScratchCacheBodyMaxBytes(b *testing.B) {
+	r := &cacheBody{}
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = r.maxBytes()
+	}
+}
+
+// The headers of one typed navigation, worked out as send works them out.
+func BenchmarkScratchNavigationHeaders(b *testing.B) {
+	c, err := New(WithProfile("chrome"))
+	if err != nil {
+		b.Fatal(err)
+	}
+	u, _ := url.Parse("https://www.example.com/path?q=1")
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r, err := c.typedNavigation(&Request{URL: u.String()}, "GET", u)
+		if err != nil {
+			b.Fatal(err)
+		}
+		h := r.first(u)
+		_ = c.browserLayouts(r.header(h, c.headers), h.script, r.spelt(h), r.wireOrder(h), u.Host)
+	}
+}
+
+func TestScratchValidateAndDoRedactAlike(t *testing.T) {
+	c, err := New(WithProfile("chrome"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	req := &Request{URL: "https://user:s3cret@example.test:1/"}
+	t.Logf("RESULT Validate: %v", c.Validate(req))
+	_, err = c.Do(req)
+	t.Logf("RESULT Do: %v", err)
+	_, err = CanonicalURL(req.URL)
+	t.Logf("RESULT CanonicalURL: %v", err)
+	_, err = c.CookiesFor("https://user:s3cret@[::1")
+	t.Logf("RESULT CookiesFor: %v", err)
+}
+
+// The spelling of a field over HTTP/1.1: given to the client (WithHeaders)
+// against given to the request.
+func TestScratchClientLevelFieldSpellingOverHTTP1(t *testing.T) {
+	rec := newRecorder(t, "h1", nil)
+	c, err := New(WithProfile("chrome"), WithInsecureSkipVerify(), rec.dialing(),
+		WithHeaders(NewHeader("X-Client-Level", "1")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if _, err := c.Do(&Request{URL: "https://www.example.com/", Header: NewHeader("X-Request-Level", "2")}); err != nil {
+		t.Fatal(err)
+	}
+	for _, req := range rec.requests() {
+		var names []string
+		for _, h := range req.headers {
+			if strings.Contains(strings.ToLower(h[0]), "level") {
+				names = append(names, h[0])
+			}
+		}
+		t.Logf("RESULT: HTTP/1.1 spellings: %v", names)
+	}
+}

@@ -1,0 +1,60 @@
+package main
+
+import (
+	"crypto/tls"
+	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"sync"
+
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+)
+
+// A TLS 1.3 server that accepts only P-256 (so every Chrome-shaped hello,
+// whose key shares are X25519MLKEM768 and X25519, gets a HelloRetryRequest)
+// and issues session tickets. Two requests, the second on a new connection,
+// which offers a PSK.
+func main() {
+	curves := []tls.CurveID{tls.CurveP256}
+	if len(os.Args) > 1 && os.Args[1] == "x25519" {
+		curves = []tls.CurveID{tls.X25519}
+	}
+	var mu sync.Mutex
+	var log []string
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok resumed=%v proto=%s", r.TLS.DidResume, r.Proto)
+	}))
+	srv.EnableHTTP2 = true
+	srv.TLS = &tls.Config{CurvePreferences: curves, MinVersion: tls.VersionTLS13}
+	srv.TLS.GetConfigForClient = func(h *tls.ClientHelloInfo) (*tls.Config, error) {
+		mu.Lock()
+		log = append(log, fmt.Sprintf("hello: groups=%v", h.SupportedCurves))
+		mu.Unlock()
+		return nil, nil
+	}
+	srv.StartTLS()
+	defer srv.Close()
+	u := strings.Replace(srv.URL, "127.0.0.1", "localhost", 1)
+	_ = net.ParseIP
+	c, err := tlsforge.New(tlsforge.WithProfile("chrome_155_macos"), tlsforge.WithInsecureSkipVerify())
+	if err != nil {
+		fmt.Println("new:", err)
+		return
+	}
+	defer c.Close()
+	for i := 0; i < 6; i++ {
+		res, err := c.Get(u + "/")
+		if err != nil {
+			fmt.Printf("request %d: error: %v\n", i+1, err)
+		} else {
+			fmt.Printf("request %d: %d %s\n", i+1, res.Status, res.Text())
+		}
+		c.CloseIdleConnections()
+	}
+	mu.Lock()
+	fmt.Println(strings.Join(log, "\n"))
+	mu.Unlock()
+}
