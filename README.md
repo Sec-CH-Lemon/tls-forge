@@ -213,7 +213,7 @@ Executable profiles are validated before request I/O, including ordered H2
 SETTINGS ranges, stream/dependency rules and connection-window overflow.
 Explicit zero windows remain zero. Large valid H3 setup no longer blocks QUIC
 or Close. See [profile semantics](docs/profiles.md#executable-http2-semantics-a6)
-for the execution contract.
+and the [A6 evidence report](docs/remediation/2026-10-27/A6.ru.md).
 
 It authenticates a TLS1.2 server's Finished before rejecting a real ECH offer,
 checks exact compressed-certificate length within engine resource bounds,

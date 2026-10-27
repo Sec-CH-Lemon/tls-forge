@@ -1,0 +1,536 @@
+{
+  "baseline": "cdffaeeccba25a4b88bf907a3500cc745a207bea",
+  "scope": "A6 F01 implementation and local F09-stage1 protection complete; stage2, remote publication/CI and future browser campaigns remain open.",
+  "engine_identity": {
+    "version": "1.0.0",
+    "latest_released_version": "0.2.2",
+    "release_status": "unreleased",
+    "pending_engine_change": true
+  },
+  "build_input_archive_sha256": "b59eae0516191f5a0863b37a812294b53b82e2a726d073e8b0173160db02b25c",
+  "runtime_files_sha256": {
+    "alps.go": "a674b181dafd89f080f31c97c3abea7e5f1a5059e178c731cf8c602531daff90",
+    "authentication.go": "9162e905a9f9e2008f2ef9a4d123d2223672d4cab98169cf1a9dca7ba4bd6b84",
+    "browser.go": "0bd65ac62d289cedd20dece72467ce028f3b0d4b7826b53cd60d780bb4097bce",
+    "browser/browser.go": "210a503f245ded7313479448f0314853a2455c9fc7ac1f91cf2042cbde4702bd",
+    "browser_cookie.go": "17abb0eb3c72422de56e8492d544db2873af3154c1c70523022ad6feb5c0d765",
+    "cache.go": "e947c66a292ed77267c1e9fc8ff4ec5ce391f7e98cfa53e113dc49346e3ca615",
+    "cache_range.go": "fb741f302b4c9107c71117c769caf335ca756ad4b8750de93ba100f3b4905e9c",
+    "capture/capture.go": "ae5328f189c5ca6c007e3f9decf36157a9c0891526d483998fedd8f198e8f32e",
+    "client.go": "1a8d42612827bcc023d1cf613317e78ae3bd4487a66aee20f886744f643aa5c2",
+    "clienthints.go": "8bfc179ab2fd1ebdf3efa2f71b46ebca5e858a23d14d4b217ec522d52c80a17e",
+    "cmd/tls-forge/body.go": "0b314470f3be72c862d88e5dfa6676b63b75851b45b6750b26ff5eb836cf30d5",
+    "cmd/tls-forge/capture.go": "24b26ba998bd403386a74a01ddec2c02c7194a84b97ce69e0f66a695ef4c8835",
+    "cmd/tls-forge/clearoutput.go": "c23254532d01893beccfaeb071f40e7743b1dd60444705c9c2daec4763ccc418",
+    "cmd/tls-forge/compare.go": "d3103e3b661d9498ae731cff5f0a92697d2c42804c07112b7598c6cc08367b38",
+    "cmd/tls-forge/cpulimit.go": "b11e841334f344c54f748e4674683caabd0d9d4598ff72b341312d49c3db57ed",
+    "cmd/tls-forge/decoding.go": "f8d58c282207413f0ac4f53165ff6125838668cbb7a91916822d864f5b3cf15e",
+    "cmd/tls-forge/diff.go": "ec39e76f09192d8d48a7a531883104ccef20e5ed8df2c143f81b0773326d7fbf",
+    "cmd/tls-forge/element.go": "0cf81a15038cd4b675fef61b6ac5d66928734239146a25e576ae08656b85a581",
+    "cmd/tls-forge/exit.go": "fd366cb3e81a0cf82e2c8be8c79d13e2b8a1b859ea21dfb7f28b6f684f3596ac",
+    "cmd/tls-forge/exitask.go": "2c504645bf7b9d52b6e4af08e7f876d9da2e750a63b1c43fe71a765a6bbbd258",
+    "cmd/tls-forge/exitheaders.go": "82bd3bb0590dd66b016d977839dbf631feb442bc7db98c8d9f5ea97aa15bfdb3",
+    "cmd/tls-forge/fetch.go": "c7fbadd905557d3ccdcdc2e3f71c3b0dc625d2c4bf4b8c977a0967f68d0dda34",
+    "cmd/tls-forge/fileplan.go": "5b96b2077af102728db827001880bfcb8249d5564247ba8e128089fb02c633fb",
+    "cmd/tls-forge/joblist.go": "976a08582174325bdd3f9f579568e99f7851611a08414bcb323e08483b38778b",
+    "cmd/tls-forge/keep.go": "dcfbdb54de6408ce8fbbd4201062a3beb434374e276a53126d132b1b98c13c1f",
+    "cmd/tls-forge/keylog.go": "108713cfa45f9c4b33b976f4892b1ce2cdd744805b4dcfa81e3b791d38eef0bc",
+    "cmd/tls-forge/local.go": "6b8652880c63ddd75d9ed6d498c0af2f06adc39cc7a03bf6676697c76a6d244d",
+    "cmd/tls-forge/machine.go": "9e2a79714ad4b1357e0b878a3bbe42da9bfad50fd2a73890e0faa1c95f15bb0b",
+    "cmd/tls-forge/main.go": "6412546cee8ccba7fd6872dad30398d001b3f4281bac3fe03966d23e3caad5cd",
+    "cmd/tls-forge/output.go": "d8d30e4291f9d5d30fb392e7e5fe77e907a0dbd50b5f2dffd4113f975b75ef6c",
+    "cmd/tls-forge/page.go": "9c8fcaff9caf4dcd295f8a54e276875f7ff761209661d475577f9466c5318d14",
+    "cmd/tls-forge/pagetype.go": "ec6d69e83b084f40a8d6f8766d78b6eb955218e8b41ad75e7b7608d3d1678864",
+    "cmd/tls-forge/progress.go": "73936933c790a9fb2297d5d4270247a9ce6842c012984e336233b710a56c11b7",
+    "cmd/tls-forge/proxy_cmd.go": "cdd3b5b1685bb2bbade75487efa7543cfc93ae433e36dc0c95b40275c506da97",
+    "cmd/tls-forge/report.go": "2333c55f68fb53eacc059f7628965907d44a7ddb8e682e208c78b38046d075c9",
+    "cmd/tls-forge/reportjson.go": "41fabfd380757c0b210286bf413991a121332798bc5c98752cbfaab405b70eb2",
+    "cmd/tls-forge/requestkind.go": "24b208f23765622ab2c9a2cead5085fb72aa523baac3ee42f3e9d038b626f1f9",
+    "cmd/tls-forge/requests.go": "57346f63c0d368744b997e1e08c9d91cef30da309741a423a20fb218c81e2213",
+    "cmd/tls-forge/retry.go": "edf0fb06a9ccb2d7d8fdd5e158ac2a7f1ab794eb34161273c61af296bbd665fe",
+    "cmd/tls-forge/runlog.go": "e6e6d7f9b62c326674926d1a11a225ba3c8aae54882dbc21cd427a68e995c2ac",
+    "cmd/tls-forge/shell.go": "77db6c5c5e61bb1ab1b0af467b0453dffa6823dd4d89a68910edf40181efb631",
+    "cmd/tls-forge/text.go": "69186ccfdc547ea04f52470bbde42c3e90ca5781484944139ab2016f6cdbdc6c",
+    "cmd/tls-forge/trace.go": "d1078d27876af98eb68e40632550424d4c3520e6cb4f9a017cb21c747a8f3625",
+    "cmd/tls-forge/tries.go": "a48c1d7a17e22cf3091c9e11e0e5d906d293b6fff5d9c1e4107567cdc8fe3284",
+    "cmd/tls-forge/visit.go": "8999624d3022ad612b5e9e18eefc0f3832e6d673a782dae654adc6c6f1706381",
+    "cmd/tls-forge/wire.go": "a58f757b504c64bc49d5847183925d6aea8fa3bfb41516ddbf885408cebd8af2",
+    "cookie/cookie.go": "e68ce4230e46e973501b54b7f1e7159716afc6be668d56fad749c75502ce663b",
+    "cookie/netscape.go": "d9003fa08e9729d30e48c3a23f272da80d9682b789d31fb6ab32aced87f43c8b",
+    "cors.go": "4766815a57b20bb1fb11b084007925e76179ebd9a3ed210562d9434b7c5427c2",
+    "daemon/daemon.go": "e5494ad3088458805bbecfdcb50016022e8707e7e94f3694b3bd344cb338f829",
+    "digest.go": "15799ce6bc59cf5ae965bb47aa086648ba5075bfefdd3a6063a0ed7655dacd81",
+    "dns.go": "c3a833acca028ee2738cd5eed3f8e7b7e4df1378a6eefda332643dc446248acf",
+    "dnsconf_unix.go": "2342c81e2f6012fae7d2f2f41d4cae8a76a88c479ff2d3287e5da399dac530bb",
+    "dnsconf_windows.go": "defd130ee06b19631bfe17c76e1e70a4ab1b83057e9380bb0dab0acefdce9c51",
+    "echo/cert.go": "69ed9f1c284352c508d9b5c7767ab8e6216e68fe2fa10de04e430b20392cbb91",
+    "echo/conn.go": "596222d60c120119543f4a69b04165adb02281da2c0786db01762b7df3d053c3",
+    "echo/h1.go": "a1e7af6af25c1f855595cc5a78d449bba85bd5cc809218829f82798f03ca4171",
+    "echo/h2.go": "03a7c899676f1e1c8f27a123f338eb528bf56253edf69e6fa656986524cd9996",
+    "echo/hints.go": "591e8966cdee27f61671f3a9ce3eae811fe5b44e374ff801297a913746ec6553",
+    "echo/manual.go": "3c8ee766833696627f8d87a1f6b5c7937d4a9d4a3cdc73a9d9b9273152975f39",
+    "echo/page.go": "e9e33388a488cc86780e428675136e493518b93cdc440efb3da8bfc2a175dd1f",
+    "echo/server.go": "b2f7c518c94bc91228470077346ff120edf6d4fce00b04de4c099834ccbb7e65",
+    "encoding.go": "1cb2fe3762139913584c2e1dc94e250f882cadcee724f4c046f559081ed173cd",
+    "engine/declaration.go": "64f0e60874ba1e55fb982c933db5788400154cb646462091bacc175995260a4c",
+    "engine/version.go": "e42b22fb3ecedfca5dad69827c0bed1e6a674a0277cf2501ae043c06412ee54a",
+    "engine/version.json": "65a8a07de820149dcbbacdd138088648feff5cc44ba088a2d47748c00c106efc",
+    "example/go/main.go": "cfd9d1fe0a421ce273b15af0a71fef8e74a8097c1f339b06a84f3cee712baa4b",
+    "fingerprint/clienthello.go": "97e566bf3b62e7724afa55e95a1390bf543ae28c36a4ca05f00dec5f0d2c5082",
+    "fingerprint/compare.go": "f92a8175586ee8b4eb7ca31ed2a5ad094204822cda0bd6f1ba92c96f12b50a00",
+    "fingerprint/grease.go": "61abc7796aacecc625847e8733f3d599cbb927591e20ad19095be0db060c686b",
+    "fingerprint/http1.go": "170734693404a99336ef364fc88d13051eee6acc169a3b2ebc57cd64175876c7",
+    "fingerprint/http2.go": "791e87263133dfc37f675ac6cc84392853b8b1778530b4533c1c99cca7a5e44f",
+    "fingerprint/ja3.go": "44e0e7dcdcc8166f77d1997f656f79a3e2cdac7721f4d36a5a7999e0b5990ccf",
+    "fingerprint/ja4.go": "c7e3a2a786f825b4e83a70184f747ec46282956acbcb8a7b5fadeac397b08671",
+    "fingerprint/keys.go": "2e8574d888febb31bb73fc1dc14b399f011c64d69d7b5b919062cb364d870de3",
+    "fingerprint/manifest.go": "a381e87c2da5d5d7b16985dd2f5ac9028bb124dd03f7dac038999405e129054e",
+    "fingerprint/names.go": "2aa2c48563e27fa9f9925c8563967a9a14ece530ba1d5749e13c84737f5e3540",
+    "fingerprint/preamble.go": "204b5b1b33a1b28acd7f58d18fafac3848bebff85fa498d6b0479c7519e148b3",
+    "go.mod": "4eddfa055c0a532bc80713a979f51d178835ca4d9b7b7a3970dad5e8f0f6cf6b",
+    "go.sum": "570dbbfc258397854937be2a5019656ba7e1b5122f036c7c1f4c231a38295f0c",
+    "header.go": "517a5e3cc73f822e6c06e8d5f9e1f4b0721267f5688019c26aea962a879f3f58",
+    "hostport.go": "0d6c6d4c153077868fa87a2cf00f76c4724639bd09a171816e28f473417fe017",
+    "internal/accept/accept.go": "b0a053c955bd13ffb4f321859edaf2a93ad08ef6b66488df9bacd95154b18b5e",
+    "internal/atomicfile/atomicfile.go": "407f4cb241bc3c94f645f789224998dbe6fd91dfa700ce146ee0caa12f764232",
+    "internal/atomicfile/root.go": "98843664183138b67e82901f65bc9ebbcd9e9452ed983564b348b239676b9d1c",
+    "internal/chromehash/hash.go": "7a1d76598609fa36374703d591eb276c591c045de0b2ee8d0257b5f10592aace",
+    "internal/conntap/conntap.go": "b9aa9ca41509d73c89762be7ea454c8e91f6ac6eda9ea4fa5e7bdbc844bdb864",
+    "internal/deadlineconn/deadlineconn.go": "edeab4cf798f8012c66dba92aca9a08f40000876077170b146b8ad8d2899ac3c",
+    "internal/harness/alps.go": "39c150155e87936e45f93c71ad257212b37110355b9eaa409698b8c490058b62",
+    "internal/harness/alpstls.go": "8d27e31c9fbb443cb68e75526c22f6525e1923fc6878dab19b56abeddb6877d9",
+    "internal/harness/apart.go": "edc2c419180c2d71544da95c244c46c1fe9fc26f7f274a1806e166236036fd83",
+    "internal/harness/chrome.go": "7e22b3b34a27a2f6a599cd1374419768d6819e6b7d06c0057cb1f9804290cf1a",
+    "internal/harness/compare.go": "241d4cfc9e4353fb81fc2aa1a75f5413960c8d982b76429732a1fc8b886c6607",
+    "internal/harness/connections.go": "3a1e3979c0f43306f105c346e22734f0ed35444c71f11a68c54f3b6c89c0a447",
+    "internal/harness/decoding.go": "f829ef15aac81fc4953e3a57aa821772490bc6fc85a17ed80fe1eb7f4cc04be9",
+    "internal/harness/digest.go": "b4fe8c6ae046b5047808a704ca136f7ab2c4b6ad94ed9e324140cc2d2a32db2b",
+    "internal/harness/falsestart.go": "311af425fe0e7959fe7f247bd1b5ee12a35ef5cb3665ad6130d7a01b1715c1c0",
+    "internal/harness/flow.go": "7c599a81224d77d58a3ef935ef235d68d0bbbec988a73f2f76ff0d59ee13236b",
+    "internal/harness/h1records.go": "a9f113073a41ad98a44a17e1a7c3b1886c37341b4c4b5260f09c244d527afe8a",
+    "internal/harness/handler.go": "5cc5d32020baa59916ae830b3858b6fc4f6b8da27ece65cc45dffe8b65168d76",
+    "internal/harness/harness.go": "9619c8b7d54d8b9e131342d1e4cc035d352b7e3b4ae69a6b3ec2c4f830f0ff4d",
+    "internal/harness/hellos.go": "a70a3c4726d318d1bf4c2165c7a2949e2ff8a8ac555171fdea407762273b4bff",
+    "internal/harness/hpack.go": "e51f0ef861331a52e8ad2362c1f825eedf7cc487ab81495b4261f30e5d8a24b6",
+    "internal/harness/measure/main.go": "b794e17f12d69b425dc47316eea0a66c87c5b73947f37ad5906887b56d32da4d",
+    "internal/harness/misdirected.go": "22fe8a59d63c2b17783b2f46a9e910137259fd04346bd5d2146d82c38358bc5b",
+    "internal/harness/records.go": "f5b9c6c14209c0256f35921a82482ef8b8b1d663d4ab4135c6e1cd4dac68be09",
+    "internal/harness/requests.go": "1572fa3dd0065b0cba264e526010ff87f2a41906859d71fd5f39a74b53febdfe",
+    "internal/harness/scenarios.go": "96e3b180e5fa096ab629c8a74384169cd7a6503c6a6a87a7514131d4bde75a58",
+    "internal/harness/server.go": "d3a241209ede4b38a469de98e03f8d6e402e57e140994d17bcd5a36164fd5f36",
+    "internal/harness/urls.go": "8a5d7bf178069b906d71bc5980f180fa4f569f442cbcc40682f546573d9ee50a",
+    "internal/localhost/localhost.go": "a629dd6fe76ca0e5481983a8d9560d0750b2996229dc0ccde0abccd7083c986e",
+    "internal/pcapng/pcapng.go": "b9aa153d5889ebfcb8a72b7062b7ef8076b1267b70eb4d7a36fe68f63ec02895",
+    "internal/pcapng/quic.go": "d3c69d794ac67658a0a20427129364945a152d93b66071282a4036366e9993ff",
+    "internal/pinned/main.go": "6b8fac86168946c3e17387c5eb1615c0ab92eb8bd4722a5ca1533b1918b08522",
+    "internal/proctree/doc.go": "38f5b552addeda7e56a85c2d62025193ccb23736fd4cea0492baca4cbfd93f9b",
+    "internal/proctree/proctree_other.go": "2c787798e33e0d5e8fa5e80949ef069a593eff352d5bc9104723246896f1a872",
+    "internal/proctree/proctree_unix.go": "62e74d992f680dedab680561e61a36e7aea2bf9de413c29ddee2f7c67d24f339",
+    "internal/proctree/proctree_windows.go": "208d66d34c106c346da5d4f1e4219f067ed2eba57fc4783febeb39a4ca8b7dc2",
+    "internal/redact/redact.go": "e0861ec2b5d76f52544b082d0bbaf1335244dff7a7e37bf77c0f8a2149838ad1",
+    "internal/reference/reference.go": "b7a6d37912711e8f5ab5324578c05074f015834b53cc460b5b786edd959b58b0",
+    "jar.go": "e056de280bb64deb8cbd3bc94f14a0339af1342a24b0bf669a256d645ded2dc4",
+    "keylog.go": "0203518bd6d4133214f874294f9a3313cc76055758010099e04ecc5d9ed073ce",
+    "layout.go": "e42d3b45b52b146047985fa396de4217b3be3ac38cbc20959800a25aa46d80d4",
+    "log.go": "29ad74987d86c92eabccf9e161a225225a3d065617f18e334b8fe6c0dee80e4f",
+    "measure.go": "df254b2b9c86941bbfeb76c800d78714c82fda85ff3e4970ebf7447f97dfd77f",
+    "mixedcontent.go": "fbff4c259f4dc396be2db37b08c689956f3139d1ec674d9b1f2bc36f5b3366e1",
+    "node/binary.js": "10767d5eafb9acd818b9cd00047a5aa968734eab2e26d6f8a950709407d5e535",
+    "node/errors.js": "86bbc7365213db0a98a04ef2504cdff8899392b16ab9776da3d89d139ad49484",
+    "node/index.js": "b49577cf75dc40c4c4a9ae7a5b606491daebdec60cd19493df65f53714c61d89",
+    "node/scripts/build.js": "db421eb5c97b7c9d902e54b5026a26a5712ba25d6e17cdb6a5d67e101452bfea",
+    "options.go": "12c58981fc15f68ef9c89f43c185f21b3cb55a3cf093663105d3762572c765fe",
+    "ownpage.go": "ff31f4877a4c19487088e86c3481ada038dff61d54587c57f0378ab9494fb40a",
+    "profile/alpn_settings.go": "efbf509bdaa37dfa6ab3a3292b74fcd7e65f0d2886cf31100d4c1be009876958",
+    "profile/behavior.go": "053bdbb3c2241b092797094eca06af8df951f2fa50d8ba5a52474bdba8deb5f7",
+    "profile/catalogue.go": "e4f34078485d1993d9c848048a3e6e8d5daff53bcc714ace96e46a10eb931341",
+    "profile/data/chrome_151/linux.json": "144b6fa7ba1fb15e46daffb172caedc55cada432a3e2090f5d8badb3262148ab",
+    "profile/data/chrome_151/macos.json": "30d282051100242fd914cdaab26572f49f481cdbd8155988435b8a2a8705ebd5",
+    "profile/data/chrome_151/windows.json": "53cbcede1370ec229bb07aea3ee2d3c0e184e68001ecaaae0ffcefe0c338ce1f",
+    "profile/data/chrome_152/linux.json": "394006eb196fc3abd943c0c2e0e288503a498acee502daf90543ec20adbc086b",
+    "profile/data/chrome_152/macos.json": "739b6b361c790a6c19e1c15ef39c3f9ae720a00b53ffc8492d012d6def20915d",
+    "profile/data/chrome_152/windows.json": "ed5d73a73443321bdc865811ac59e0c446883e643971083edc417026781f1693",
+    "profile/data/chrome_153/linux.json": "2a0a5c9ecbc1f1004fcb202d756e3d451948ae76ce9fb5bcabcf79f390804a6c",
+    "profile/data/chrome_153/macos.json": "caa8a58a7e0436592539d920dc04a489f4d996023e2fc7a8bea05b0423aa0c4a",
+    "profile/data/chrome_153/windows.json": "59c56418f64d6fa5cf9b4c7da27cc3d422307ff08ce02853f8b378eb1465143f",
+    "profile/data/chrome_154/linux.json": "1a627effb463c75bf0f27dbbe0ab7ba2bd5da4bb95421939d41e6c728a9c58d6",
+    "profile/data/chrome_154/macos.json": "c9ec332131898b1d3d3142275fcccb7a3f09b7c5960319f62f1a13118e619ad2",
+    "profile/data/chrome_154/windows.json": "31e3eee0c99c714463e81a90993180a9cc549d3b0865f44c8621f7acab73043f",
+    "profile/data/chrome_155/linux.json": "94aacd85b8fbf1823830a860519a7ce314622492e6c80d5b2dd2ec60f4cb5a01",
+    "profile/data/chrome_155/macos.json": "7c18189194fa625e894940a0bb680bf15fc599c36ef2b3c8009306a93ee4d2d1",
+    "profile/data/chrome_155/windows.json": "f8c7ad73d7289258ce8d7da4bd57b00bfa6ca49b1cc6ae1b73277d4d80c372af",
+    "profile/drawn.go": "e0431e06884d8197a17024064789793a8062c0c4247b31de5996b7f32d143701",
+    "profile/engine.go": "f21a806b55cd5e0e9de69f2d11018970467227b12f3342f58a926db67391431c",
+    "profile/fromcapture.go": "34b86c4849d678600822370fa4ea31a247f31bce73eaa61bb37f8994f7ff861a",
+    "profile/profile.go": "4e8e7ace6a4d6ff394c247eb67df9103f60f69314357b4ba7dd5046f9b7350b3",
+    "profile/registry.go": "a67ecf1c89902e6eb656e7602d0a869c687740a6b419344bf3ba3f20b1880e80",
+    "profile/semantic.go": "974ab2166e967e8646021423596022d20ada6d3b2f9b03d0d55e5ef07cf79c71",
+    "profile/semantic_json.go": "03f15116a70b1b3cc50f2d68b138828845a61e496862089445c8ef5e9e4be5bd",
+    "profile/trustanchors.go": "4686c0e347846dced445d978b20e927ec7bc359878d143ac957dcd0022a57caf",
+    "proxy/ca.go": "e4838bfcc2fdc773196cd96c13cdc958993ea878ca3e61bedc8bc32b6d43b9c0",
+    "proxy/proxy.go": "e554b1fad97561df36063e229fa6de462acabd257b8e202aa4b2995ab936c77a",
+    "proxy/tls.go": "cccbfd6030c9162dec4cd63d7b9b8ca949141bbf365d20e28755dc395cf0fdf0",
+    "proxy_pool.go": "c1d107ffe563bc36092037efaafe33a431b3d3708b4aa3274c29f93f9c57e191",
+    "proxy_stream.go": "ce17f8c9d2079c5967052da0a0194c2dfaefa583b83dd31951deb11a2224ee21",
+    "proxy_tls.go": "c0942cf1aff9015ec9f960d93fe993c123b524e815a7aed9b95dff4a1a3fe122",
+    "python/src/tlsforge/__init__.py": "2809deb4e8f102411c8769cffcbf6d87834997827319533cb301e5479b86dea1",
+    "python/src/tlsforge/_binary.py": "f8f66ba3b4699a29015ff1af12ada8a9334503b0b4ab04127cac2b28cecf31f7",
+    "python/src/tlsforge/_client.py": "af89b24de8792fd26c82b4fc83c39d33fae6876efb8f615afcf42fddb3683d20",
+    "python/src/tlsforge/_errors.py": "719404892a828ea4c2db691f5b90794e6916bf0dc180d20d9f9cd41a17f72f98",
+    "quicdns.go": "96a508a63e93f9f6b24d89fb8966816a8d79f3e6a1539c140b5a57610a166708",
+    "redirect.go": "d0c6c6746711c7afd83c86333109126ea1873b35983eb647a8c25ccdb02aa16f",
+    "reload.go": "e9cf74147a2f4dcf2c9390fcaa1a15f255712a91433f7df07622431eaf51e8a6",
+    "runtime_policy.go": "f40b7637eb8698bfbcc16c3fc41113a22af50c6b2051e1f620604e1c06d38ca0",
+    "script_headers.go": "1b9adb7f6577ef66c35cae64a3cb7d5798e9fcca82abac5f8b3dc27929c5ba50",
+    "sent.go": "2ce74cbf8505cb72bc41ecf8c25f683d7ae857640f366f665e956079f3f97525",
+    "session.go": "9e44f89b85fdf6db42d6dd99ac5f7ba74b3e05384fe33829131138d5acfb4315",
+    "site.go": "ff8304b67c3a5599e9066cda93dbf12d66fd810770a6107554c6677962acc99c",
+    "tap.go": "ae47e097c609e9f0b89f1ee9f6491a845f84e3c6af5f85299bfdf82fd2b81b42",
+    "testdata/fake-daemon/main.go": "bd9a6f39c122bf2ac0cd7561a0c23468935083c0ad694647dcd8aa5f27ae4f1e",
+    "trace.go": "2a10cf0a76e525f0a3a323c42e40264e13809341ec315c7ec807efc526f44ea6",
+    "transports.go": "3081b9fd857519dda25ee9377cd967bc1291bec4d28405200e07c8231ceb6520",
+    "tunnel.go": "56b9b5412b21f0405436b493c8220a0fc4d125127d8f810f6b0fce8b7f716122",
+    "typed.go": "c197a97869a8bc578c1a2b28abf5b8340b8b04fd76ac1b9cb8da305379b7de26",
+    "unread.go": "b47752ff459719699b5b546f939d28a206530406e9a881a7ef3e7633b13ccf60",
+    "urlcanon.go": "ea543e4875126a88ad8aaf3a28310c42385c593551e2df9daa78b8383db51785",
+    "version.go": "aa197acdea1f99b8329029d67151f99ecb6d98e9666226bfd80ea1cf6ac41237"
+  },
+  "coverage": {
+    "uncovered": [],
+    "blocks": 11262,
+    "statements": 16266,
+    "basis": "Full24-package r02 plus fresh profile r03. All production Go/module/profile files identical; only two test files and verification prose changed."
+  },
+  "checks": {
+    "a6-root-full-cover-r02": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-p",
+          "2",
+          "-count=1",
+          "-timeout",
+          "20m",
+          "-covermode=set",
+          "-coverprofile=/private/tmp/tls-forge-a6-20261027/a6-full-r02.cover",
+          "./..."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 184.32,
+        "peak_group_rss_kib": 1000016,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "1a4a8acc89accbd1c891c70ee7a31cce0448f4ac485dccde47b6ca378a5f5e22",
+      "log_sha256": "2bb2e977bdfa3b0f0a5c6df38a002a2594a8ae279c734d6be2902cdb05471531"
+    },
+    "a6-profile-full-cover-r03": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-count=1",
+          "-timeout",
+          "4m",
+          "-covermode=set",
+          "-coverprofile=/private/tmp/tls-forge-a6-20261027/a6-profile-r03.cover",
+          "./profile"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 13.149,
+        "peak_group_rss_kib": 257072,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 360.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "aabcc3e8ebe8254495cec730f9949b3c60a10431b67dadef2125bdd48f2ac4ea",
+      "log_sha256": "b56820eec83c037a02576ff1765a36ee419ed4055d76d0bb486fdb92792c3a04"
+    },
+    "a6-root-full-race-r03": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-race",
+          "-p",
+          "2",
+          "-count=1",
+          "-timeout",
+          "20m",
+          "./..."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 712.846,
+        "peak_group_rss_kib": 1592528,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1500.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "4a7c00463240b2a805eca6deb042bc634e196d01984760504385fa11a8254f5e",
+      "log_sha256": "a191a0c0c9a3023c28c25e897735bf885ef5174759f47c97e4a1e21fbf0ec643"
+    },
+    "a6-style-control-r04": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-race",
+          "-count=3",
+          "-timeout",
+          "90s",
+          "-run",
+          "^TestInvalidTLSAndOfflineFormatRemainChecked$",
+          "./profile"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 4.825,
+        "peak_group_rss_kib": 255952,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 120.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "0644ad8dab7f43d1eb6df196630ac044055ed41392c841c28a9cc7838a3efc91",
+      "log_sha256": "2384164b11fec9ac94df4e4a4114d385f611c187b80695380c0e379359f8f976"
+    },
+    "a6-lint-r04": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "/Users/ihar/go/bin/golangci-lint",
+          "run"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 2.322,
+        "peak_group_rss_kib": 280672,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "ecaa98c783d8273d9b0911641828fe28311c51f67bc1ffd722658b220e1c4a00",
+      "log_sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+    },
+    "a6-vet-final": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "vet",
+          "./..."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 1.667,
+        "peak_group_rss_kib": 200272,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "024c83a1329ee73876b3bbac688185af8f54ba57325ed4fb98529243b498b35d",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "a6-generated-final": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "GONOSUMDB=github.com/igor-lemon/*",
+          "GOPROXY=file:///private/tmp/tls-forge-a6-20261027/local-proxy,https://proxy.golang.org",
+          "./scripts/check-generated.sh"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 5.463,
+        "peak_group_rss_kib": 172800,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "616f0f11329b8c9b1e966c6b3728a8d1d04ef89ba49e32548e0ea956956442bd",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "a6-node-real-daemon": {
+      "receipt": {
+        "command": [
+          "env",
+          "TLSFORGE_REAL_BIN=/private/tmp/tls-forge-a6-20261027/tls-forge-final",
+          "TLSFORGE_PROFILES=/private/tmp/tls-forge-a6-20261027/empty-sdk-profiles",
+          "node",
+          "--test",
+          "test/real-daemon.test.js"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root/node",
+        "returncode": 0,
+        "elapsed_seconds": 2.545,
+        "peak_group_rss_kib": 309264,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "fdc9a2af28c91902221ffe0314ea8b7495eaefabc6b8c2e46568d212f34f4995",
+      "log_sha256": "00682c2a21488729417f1bccf00e6d53c6bd699d84956e545f29b616fcafb5d8"
+    },
+    "a6-python-real-daemon": {
+      "receipt": {
+        "command": [
+          "env",
+          "TLSFORGE_REAL_BIN=/private/tmp/tls-forge-a6-20261027/tls-forge-final",
+          "TLSFORGE_PROFILES=/private/tmp/tls-forge-a6-20261027/empty-sdk-profiles",
+          "PYTHONPATH=/private/tmp/tls-forge-a6-root/python/src",
+          "/Users/ihar/Personal/tls-forge/.venv/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_real_daemon.py"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root/python",
+        "returncode": 0,
+        "elapsed_seconds": 7.175,
+        "peak_group_rss_kib": 189504,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "6ce9ba5b336c4c3bfb824798418cfd08fe4971a4bcaeab190076509fb1be8e64",
+      "log_sha256": "c35a0c87c007f8432daeaad6ebbefa015702b5d173c48ccfdd7bd27a82cf646a"
+    },
+    "a6-build-final": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GONOSUMDB=github.com/igor-lemon/*",
+          "GOPROXY=file:///private/tmp/tls-forge-a6-20261027/local-proxy,https://proxy.golang.org",
+          "go",
+          "build",
+          "-trimpath",
+          "-buildvcs=false",
+          "-o",
+          "/private/tmp/tls-forge-a6-20261027/tls-forge-final",
+          "./cmd/tls-forge"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 13.277,
+        "peak_group_rss_kib": 772320,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "fdef0d0fa83f981db699966b40a7e0ca660629087c5d792cbde78887a32ef6a3",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "a6-workflow-checks": {
+      "receipt": {
+        "command": [
+          "/opt/homebrew/bin/actionlint",
+          ".github/workflows/ci.yml",
+          ".github/workflows/forks.yml"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 0.403,
+        "peak_group_rss_kib": 320064,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 120.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "44567880ee1fe7cdca54f48d4a9b9f4a2c86b690ad354c36708b4481974945cc",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "a6-fresh-offline-install-r02": {
+      "receipt": {
+        "command": [
+          "/private/tmp/tls-forge-a6-20261027/offline-build-r02.sh"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 4.441,
+        "peak_group_rss_kib": 381984,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 240.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "2099170448a9c5b14d2cdc6801eb059bff54cf1186897fe3dd586cd2d634d856",
+      "log_sha256": "cafd179e52708621be0cd4c82e4aeee209d66f46195c90c7afe63a0687b7fb60"
+    },
+    "a6-doc-links-final": {
+      "receipt": {
+        "command": [
+          "node",
+          "scripts/check-links.mjs"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 0.201,
+        "peak_group_rss_kib": 20784,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 90.0,
+          "rss_mib": 1024
+        }
+      },
+      "receipt_sha256": "782203152a16f5d9bfe01a3d69d2a78d9e41a861ecfa7465930969b796c2029d",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "style_delta": "After full r03 race, semantic_test.go if/else was rewritten as an equivalent tagged switch for staticcheck. The affected three-case control passed three more race repetitions; lint/vet passed. Production Go/module/profile/SDK runtime files are identical.",
+  "profile_acceptance": "15 profile JSON plus catalogue/migration bytes unchanged. Source/owned-peer validation does not freshly validate historical Chrome/platform equivalence.",
+  "browser_result": "not_measured",
+  "remote_ci": "configured_not_executed",
+  "private_bundle": "net-fp-server/captures/remediation-a6-20261027;0700;SHA256SUMS and post-commit receipt",
+  "related": [
+    "f01-checks.json",
+    "fork-gates.json",
+    "commits.json"
+  ],
+  "dependency_proxy_manifest_sha256": "51a3d2e229fb3fb1ced10716802672f7f3b310fdf91bf94c7109891c20ac43a9",
+  "dependency_proxy_metadata_closure_sha256": "9e3b6fded9c6dd33eb4dbec62ed5a7151f12d669ff003f32bd9f36e294dabf8c"
+}

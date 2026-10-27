@@ -1,0 +1,2551 @@
+{
+  "meaning": "Known-debt regression acceptance only, not green fork suites or F09 stage2. Remote CI configured but not executed; fork pins remain unpublished.",
+  "inventory_sha256": "8e4d6080fb1bf572a57bfa9ef802646a58f46b15b4016c6dbfd2396738d69479",
+  "inventory_named_rows": 109,
+  "gates": [
+    {
+      "fork": "fhttp",
+      "source_commit": "6ccf73f64cb3efb4a3bb818eb251a498257335ec",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "accepted": true,
+      "test_runs": 1795,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestClientWrites"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestCompressionBrotli"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestCompressionDeflate"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1/gzip_content-encoding,_gzipped"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1/phony_content-encoding"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1/zlib_content-encoding,_zlibbed"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestDetectInMemoryReaders"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestEnablePush"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestExample"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_AutoGzip"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_AutoGzipWithDumpResponse"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_AutoGzip_Disabled"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_ExplicitContentLength"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_HandlerWritesTooLittle"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_HandlerWritesTooMuch"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_RequestContentLength_Known_NonZero"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_RequestContentLength_Known_Zero"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_RequestContentLength_Unknown"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_ServerEmptyContentLength"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_SmallBody"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestIdentityResponse"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRequestWrite"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRetryRequestsOnError"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRetryRequestsOnError/IdempotentGetBodySomeWritten"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRetryRequestsOnError/NothingWrittenGetBody"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTimeoutHandlerSuperfluousLogs"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTimeoutHandlerSuperfluousLogs/return_after_timeout"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTimeoutHandlerSuperfluousLogs/return_before_timeout"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTrailersServerToClient_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportClone"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportContentEncodingCaseInsensitive"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportContentEncodingCaseInsensitive/GZIP"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportGzip"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIgnore1xxResponses"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportReadToEndReusesConn"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRequestWriteRoundTrip"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRequestWriteRoundTrip/buffer"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRequestWriteRoundTrip/file,_length"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRespectRequestWantsClose"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=true"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=true"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportUserAgent_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWriteHeaderNoCodeCheck_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWriteHeaderNoCodeCheck_h1hijack"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestHeaderOrder2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestHeaderOrder3"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/httputil",
+          "ExampleDumpResponse"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/httputil",
+          "TestDumpRequest"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/httputil",
+          "TestReverseProxy_CopyBuffer"
+        ]
+      ],
+      "not_observed_now": [
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServer_MaxQueuedControlFrames"
+        ]
+      ],
+      "unexpected": [],
+      "source_sha256": "265c3539be44912b3260ccb9604539092d9f08480cd9ee7a3f96930c9546123c",
+      "skips": [
+        "TestOmitHTTP2"
+      ],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "fhttp",
+          "--source",
+          "/private/tmp/tls-forge-a6-fhttp",
+          "--graph",
+          "production",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-fhttp-production"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 237.484,
+        "peak_group_rss_kib": 375456,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "463005243b6d8fdc23a6b99333e539a074cb6c143d45103f6dbc9737423c3455",
+      "module_graphs_sha256": "f2c96bb4038bb78e1164b034ff8cb9ef3dd3452c3649101a72332993ab522e9a",
+      "raw_logs": {
+        "0.jsonl": "b0f6d19567f9fcd8aae951d06246e677f7151b3dcbebad52c8bfb4c6a65dcb40",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "1.jsonl": "b59e935fe8dcfae6209d26dd6ae27397c20ba4d1851288f2a05b5dbbfa13df81",
+        "1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/fhttp",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.2.3",
+          "sum": "h1:8H1qwOkl2LPfjf3YezB90JnCliZb6SInJ/OJkEbA5NQ="
+        },
+        {
+          "path": "github.com/andybalholm/cascadia",
+          "version": "v1.3.3",
+          "sum": "h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM="
+        },
+        {
+          "path": "github.com/bdandy/go-errors",
+          "version": "v1.2.2",
+          "sum": "h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q="
+        },
+        {
+          "path": "github.com/bdandy/go-socks4",
+          "version": "v1.2.3",
+          "sum": "h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.4",
+          "sum": "h1:8HUl/bYdUaLakTdT2mfYomzPego+qjs5dOrYgAo3+J0="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.5",
+          "sum": "h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA="
+        },
+        {
+          "path": "github.com/davecgh/go-spew",
+          "version": "v1.1.1",
+          "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+        },
+        {
+          "path": "github.com/google/go-cmp",
+          "version": "v0.6.0",
+          "sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI="
+        },
+        {
+          "path": "github.com/google/uuid",
+          "version": "v1.6.0",
+          "sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0="
+        },
+        {
+          "path": "github.com/igor-lemon/quic-go-utls",
+          "version": "v1.0.10-utls.0.20261027200806-4837491ccf90",
+          "sum": "h1:s6pIjd1N2BYJ7CVtI06jk9PjfpDkARWs/G7vr9+kLyk="
+        },
+        {
+          "path": "github.com/igor-lemon/tls-client",
+          "version": "v1.15.2-0.20261027200813-9bd16362d479",
+          "sum": "h1:sN9TfVHBwfQDCBoJj8N8vaeOKQiigWrijZzyR9UQULc="
+        },
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": "v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "sum": "h1:Di1dzbPG7h08a8QphEORBnsGAm/gi6D6DLbA6Vk/b5E="
+        },
+        {
+          "path": "github.com/igor-lemon/websocket",
+          "version": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "sum": "h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY="
+        },
+        {
+          "path": "github.com/jordanlewis/gcassert",
+          "version": "v0.0.0-20250430164644-389ef753e22e",
+          "sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.20.0",
+          "sum": "h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA="
+        },
+        {
+          "path": "github.com/kr/pretty",
+          "version": "v0.3.1",
+          "sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE="
+        },
+        {
+          "path": "github.com/kr/text",
+          "version": "v0.2.0",
+          "sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY="
+        },
+        {
+          "path": "github.com/pmezard/go-difflib",
+          "version": "v1.0.0",
+          "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+        },
+        {
+          "path": "github.com/quic-go/qpack",
+          "version": "v0.6.0",
+          "sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8="
+        },
+        {
+          "path": "github.com/rogpeppe/go-internal",
+          "version": "v1.10.0",
+          "sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ="
+        },
+        {
+          "path": "github.com/spf13/pflag",
+          "version": "v1.0.10",
+          "sum": "h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk="
+        },
+        {
+          "path": "github.com/stretchr/testify",
+          "version": "v1.11.1",
+          "sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+        },
+        {
+          "path": "github.com/tam7t/hpkp",
+          "version": "v0.0.0-20160821193359-2b70b4024ed5",
+          "sum": "h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc="
+        },
+        {
+          "path": "github.com/xyproto/randomstring",
+          "version": "v1.0.5",
+          "sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU="
+        },
+        {
+          "path": "github.com/yuin/goldmark",
+          "version": "v1.4.13",
+          "sum": "h1:fVcFKWvrslecOb/tg+Cc05dkeYx540o0FuFt3nUVDoE="
+        },
+        {
+          "path": "go.uber.org/mock",
+          "version": "v0.5.2",
+          "sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.57.0",
+          "sum": "h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.41.0",
+          "sum": "h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.60.0",
+          "sum": "h1:79p50tfZlm0J9YfoDsSi639qSXNGVwEzOPLCxM2FsYU="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.23.0",
+          "sum": "h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.48.0",
+          "sum": "h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo="
+        },
+        {
+          "path": "golang.org/x/telemetry",
+          "version": "v0.0.0-20240228155512-f48c80bd79b2",
+          "sum": "h1:IRJeR9r1pYWsHKTRe/IInb7lYvbBVIqOgsX/u0mbOWY="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.46.0",
+          "sum": "h1:3+OXuTbaKDgwk8jTi3aSLHRlmWqHEUDUtxnbFigO4YE="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.42.0",
+          "sum": "h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.49.0",
+          "sum": "h1:3NI7VXzL9+1WZD52Dx2ttoPwD5DWrFGpl9mFZDlmisI="
+        },
+        {
+          "path": "golang.org/x/xerrors",
+          "version": "v0.0.0-20190717185122-a985d3407aa7",
+          "sum": "h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc="
+        },
+        {
+          "path": "gopkg.in/check.v1",
+          "version": "v1.0.0-20201130134442-10cb98267c6c",
+          "sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk="
+        },
+        {
+          "path": "gopkg.in/yaml.v3",
+          "version": "v3.0.1",
+          "sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+        }
+      ]
+    },
+    {
+      "fork": "fhttp",
+      "source_commit": "6ccf73f64cb3efb4a3bb818eb251a498257335ec",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "accepted": true,
+      "test_runs": 1795,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestClientWrites"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestCompressionBrotli"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestCompressionDeflate"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1/gzip_content-encoding,_gzipped"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1/phony_content-encoding"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestContentEncodingNoSniffing_h1/zlib_content-encoding,_zlibbed"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestDetectInMemoryReaders"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestEnablePush"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestExample"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_AutoGzip"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_AutoGzipWithDumpResponse"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_AutoGzip_Disabled"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_ExplicitContentLength"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_HandlerWritesTooLittle"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_HandlerWritesTooMuch"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_RequestContentLength_Known_NonZero"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_RequestContentLength_Known_Zero"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_RequestContentLength_Unknown"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_ServerEmptyContentLength"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestH12_SmallBody"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestIdentityResponse"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRequestWrite"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRetryRequestsOnError"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRetryRequestsOnError/IdempotentGetBodySomeWritten"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestRetryRequestsOnError/NothingWrittenGetBody"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTimeoutHandlerSuperfluousLogs"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTimeoutHandlerSuperfluousLogs/return_after_timeout"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTimeoutHandlerSuperfluousLogs/return_before_timeout"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTrailersServerToClient_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportClone"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportContentEncodingCaseInsensitive"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportContentEncodingCaseInsensitive/GZIP"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportGzip"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIgnore1xxResponses"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportReadToEndReusesConn"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRequestWriteRoundTrip"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRequestWriteRoundTrip/buffer"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRequestWriteRoundTrip/file,_length"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRespectRequestWantsClose"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=true"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=true"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportUserAgent_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWriteHeaderNoCodeCheck_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWriteHeaderNoCodeCheck_h1hijack"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestHeaderOrder2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestHeaderOrder3"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/httputil",
+          "ExampleDumpResponse"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/httputil",
+          "TestDumpRequest"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/httputil",
+          "TestReverseProxy_CopyBuffer"
+        ]
+      ],
+      "not_observed_now": [
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServer_MaxQueuedControlFrames"
+        ]
+      ],
+      "unexpected": [],
+      "source_sha256": "265c3539be44912b3260ccb9604539092d9f08480cd9ee7a3f96930c9546123c",
+      "skips": [
+        "TestOmitHTTP2"
+      ],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "fhttp",
+          "--source",
+          "/private/tmp/tls-forge-a6-fhttp",
+          "--graph",
+          "standalone",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-fhttp-standalone"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 234.006,
+        "peak_group_rss_kib": 417968,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "68ee9dbbd9c55d59189b2347b32fc5560f643ee5798ad32ed21f4e75d77a711e",
+      "module_graphs_sha256": "2f56f565271e8f477a0af7ea3583c7e0071db6752b302f3451f4b6ec992f1f46",
+      "raw_logs": {
+        "0.jsonl": "134fccef36091893e7f0bb15907fb3bfe5230d04e4b9614d1c70c267efd3ddc9",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "1.jsonl": "f22d75f3d0a5eb845c0d5eb7e170cdf3e87f1d967ced3ee4065b4fe0df5fe5bb",
+        "1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/fhttp",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.1.1",
+          "sum": "h1:PR2pgnyFznKEugtsUo0xLdDop5SKXd5Qf5ysW+7XdTA="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.3",
+          "sum": "h1:1w53tCkGhCQ5djbat3+MH0BAQ5Kfgbt56UZQ/JMzngw="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.2",
+          "sum": "h1:hL7VBpHHKzrV5WTfHCaBsgx/HGbBYlgrwvNXEVDYYsQ="
+        },
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": "v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "sum": "h1:Di1dzbPG7h08a8QphEORBnsGAm/gi6D6DLbA6Vk/b5E="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.17.11",
+          "sum": "h1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IXrJmUc="
+        },
+        {
+          "path": "github.com/xyproto/randomstring",
+          "version": "v1.0.5",
+          "sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.36.0",
+          "sum": "h1:AnAEvhDddvBdpY+uR+MyHmuZzzNqXSe/GvuDeob5L34="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.17.0",
+          "sum": "h1:zY54UmvipHiNd+pm+m0x9KhZ9hl1/7QNMyxXbc6ICqA="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.38.0",
+          "sum": "h1:vRMAPTMaeGqVhG5QyLJHqNDwecKTomGeqbnfZyKlBI8="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.12.0",
+          "sum": "h1:MHc5BpPuC30uJk597Ri8TV3CNZcTLu6B6z4lJy+g6Jw="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.31.0",
+          "sum": "h1:ioabZlmFYtWhL+TRYpcnNlLwhyxaM9kWTDEmfnprqik="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.30.0",
+          "sum": "h1:PQ39fJZ+mfadBm0y5WlL4vlM7Sx1Hgf13sMIY2+QS9Y="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.23.0",
+          "sum": "h1:D71I7dUrlY+VX0gQShAThNGHFxZ13dGLBHQLVl1mJlY="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.21.1-0.20240508182429-e35e4ccd0d2d",
+          "sum": "h1:vU5i/LfpvrRCpgM/VPfJLg5KjxD3E+hfT1SH+d9zLwg="
+        }
+      ]
+    },
+    {
+      "fork": "quic-go-utls",
+      "source_commit": "4837491ccf903040abf024f14053ae8b41a84f21",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "accepted": true,
+      "test_runs": 2537,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame"
+        ]
+      ],
+      "not_observed_now": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays"
+        ]
+      ],
+      "unexpected": [],
+      "source_sha256": "e6883470d66e408381e616c8e34e5e3a6da3714bfc7b117e2e2c9a3c1b5c2c81",
+      "skips": [],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "quic-go-utls",
+          "--source",
+          "/private/tmp/tls-forge-a6-quic",
+          "--graph",
+          "production",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-quic-go-utls-production"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 51.858,
+        "peak_group_rss_kib": 527888,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "61402bce91d22e1cf68a00ed8aa09ad38c093e9809604a5cdf68dbdc5002230e",
+      "module_graphs_sha256": "2ba88fb873d948f56b5307747a0abc99e696048239d5db5643673559d1a3b2d5",
+      "raw_logs": {
+        "0.jsonl": "e8ed1a4db4746540265fe50837310241d02ac17f5d2fe7f5480b6b696f36afa9",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/quic-go-utls",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.2.3",
+          "sum": "h1:8H1qwOkl2LPfjf3YezB90JnCliZb6SInJ/OJkEbA5NQ="
+        },
+        {
+          "path": "github.com/andybalholm/cascadia",
+          "version": "v1.3.3",
+          "sum": "h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM="
+        },
+        {
+          "path": "github.com/bdandy/go-errors",
+          "version": "v1.2.2",
+          "sum": "h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q="
+        },
+        {
+          "path": "github.com/bdandy/go-socks4",
+          "version": "v1.2.3",
+          "sum": "h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.4",
+          "sum": "h1:8HUl/bYdUaLakTdT2mfYomzPego+qjs5dOrYgAo3+J0="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.5",
+          "sum": "h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA="
+        },
+        {
+          "path": "github.com/creack/pty",
+          "version": "v1.1.9",
+          "sum": "h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w="
+        },
+        {
+          "path": "github.com/davecgh/go-spew",
+          "version": "v1.1.1",
+          "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+        },
+        {
+          "path": "github.com/google/go-cmp",
+          "version": "v0.6.0",
+          "sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI="
+        },
+        {
+          "path": "github.com/google/uuid",
+          "version": "v1.6.0",
+          "sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0="
+        },
+        {
+          "path": "github.com/igor-lemon/fhttp",
+          "version": "v0.6.10-0.20261027200732-6ccf73f64cb3",
+          "sum": "h1:3sIaiogGZ1vjfmKkg3ViZ8yDzdTVGxTfIvCGPZdOv/c="
+        },
+        {
+          "path": "github.com/igor-lemon/tls-client",
+          "version": "v1.15.2-0.20261027200813-9bd16362d479",
+          "sum": "h1:sN9TfVHBwfQDCBoJj8N8vaeOKQiigWrijZzyR9UQULc="
+        },
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": "v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "sum": "h1:Di1dzbPG7h08a8QphEORBnsGAm/gi6D6DLbA6Vk/b5E="
+        },
+        {
+          "path": "github.com/igor-lemon/websocket",
+          "version": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "sum": "h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY="
+        },
+        {
+          "path": "github.com/jordanlewis/gcassert",
+          "version": "v0.0.0-20250430164644-389ef753e22e",
+          "sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.20.0",
+          "sum": "h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA="
+        },
+        {
+          "path": "github.com/kr/pretty",
+          "version": "v0.3.1",
+          "sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE="
+        },
+        {
+          "path": "github.com/kr/pty",
+          "version": "v1.1.1",
+          "sum": "h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw="
+        },
+        {
+          "path": "github.com/kr/text",
+          "version": "v0.2.0",
+          "sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY="
+        },
+        {
+          "path": "github.com/pkg/diff",
+          "version": "v0.0.0-20210226163009-20ebb0f2a09e",
+          "sum": "h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A="
+        },
+        {
+          "path": "github.com/pmezard/go-difflib",
+          "version": "v1.0.0",
+          "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+        },
+        {
+          "path": "github.com/quic-go/qpack",
+          "version": "v0.6.0",
+          "sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8="
+        },
+        {
+          "path": "github.com/rogpeppe/go-internal",
+          "version": "v1.10.0",
+          "sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ="
+        },
+        {
+          "path": "github.com/spf13/pflag",
+          "version": "v1.0.10",
+          "sum": "h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk="
+        },
+        {
+          "path": "github.com/stretchr/objx",
+          "version": "v0.5.2",
+          "sum": "h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY="
+        },
+        {
+          "path": "github.com/stretchr/testify",
+          "version": "v1.11.1",
+          "sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+        },
+        {
+          "path": "github.com/tam7t/hpkp",
+          "version": "v0.0.0-20160821193359-2b70b4024ed5",
+          "sum": "h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc="
+        },
+        {
+          "path": "github.com/xyproto/randomstring",
+          "version": "v1.0.5",
+          "sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU="
+        },
+        {
+          "path": "github.com/yuin/goldmark",
+          "version": "v1.4.13",
+          "sum": "h1:fVcFKWvrslecOb/tg+Cc05dkeYx540o0FuFt3nUVDoE="
+        },
+        {
+          "path": "go.uber.org/mock",
+          "version": "v0.5.2",
+          "sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.57.0",
+          "sum": "h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.41.0",
+          "sum": "h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.60.0",
+          "sum": "h1:79p50tfZlm0J9YfoDsSi639qSXNGVwEzOPLCxM2FsYU="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.23.0",
+          "sum": "h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.48.0",
+          "sum": "h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo="
+        },
+        {
+          "path": "golang.org/x/telemetry",
+          "version": "v0.0.0-20260811182544-a038080d80e5",
+          "sum": "h1:ZUSxONxc981v7AW7QUg+I9WwZzSTTJ019ENBYr5pV/Q="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.46.0",
+          "sum": "h1:3+OXuTbaKDgwk8jTi3aSLHRlmWqHEUDUtxnbFigO4YE="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.42.0",
+          "sum": "h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.49.0",
+          "sum": "h1:3NI7VXzL9+1WZD52Dx2ttoPwD5DWrFGpl9mFZDlmisI="
+        },
+        {
+          "path": "golang.org/x/xerrors",
+          "version": "v0.0.0-20190717185122-a985d3407aa7",
+          "sum": "h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc="
+        },
+        {
+          "path": "gopkg.in/check.v1",
+          "version": "v1.0.0-20201130134442-10cb98267c6c",
+          "sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk="
+        },
+        {
+          "path": "gopkg.in/yaml.v3",
+          "version": "v3.0.1",
+          "sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+        }
+      ]
+    },
+    {
+      "fork": "quic-go-utls",
+      "source_commit": "4837491ccf903040abf024f14053ae8b41a84f21",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "accepted": true,
+      "test_runs": 2537,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame"
+        ]
+      ],
+      "not_observed_now": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays"
+        ]
+      ],
+      "unexpected": [],
+      "source_sha256": "e6883470d66e408381e616c8e34e5e3a6da3714bfc7b117e2e2c9a3c1b5c2c81",
+      "skips": [],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "quic-go-utls",
+          "--source",
+          "/private/tmp/tls-forge-a6-quic",
+          "--graph",
+          "standalone",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-quic-go-utls-standalone"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 52.603,
+        "peak_group_rss_kib": 530880,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "a87dba82196fc4bdaed9bdcf2e522920a2f598219d3e14e0a1f4dfb19a607a34",
+      "module_graphs_sha256": "3abc67a962e0979eef9b2afb1269fd8ed5f4e3238513e831b9b3fa2af78c205c",
+      "raw_logs": {
+        "0.jsonl": "849aa63c38e7ab85d09d0535d6c80016a5f1e9eac0d8a509bd110ca04f20628d",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/quic-go-utls",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.2.0",
+          "sum": "h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.3",
+          "sum": "h1:1w53tCkGhCQ5djbat3+MH0BAQ5Kfgbt56UZQ/JMzngw="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.2",
+          "sum": "h1:hL7VBpHHKzrV5WTfHCaBsgx/HGbBYlgrwvNXEVDYYsQ="
+        },
+        {
+          "path": "github.com/creack/pty",
+          "version": "v1.1.9",
+          "sum": "h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w="
+        },
+        {
+          "path": "github.com/davecgh/go-spew",
+          "version": "v1.1.1",
+          "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+        },
+        {
+          "path": "github.com/google/go-cmp",
+          "version": "v0.6.0",
+          "sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI="
+        },
+        {
+          "path": "github.com/igor-lemon/fhttp",
+          "version": "v0.6.10-0.20261027200732-6ccf73f64cb3",
+          "sum": "h1:3sIaiogGZ1vjfmKkg3ViZ8yDzdTVGxTfIvCGPZdOv/c="
+        },
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": "v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "sum": "h1:Di1dzbPG7h08a8QphEORBnsGAm/gi6D6DLbA6Vk/b5E="
+        },
+        {
+          "path": "github.com/jordanlewis/gcassert",
+          "version": "v0.0.0-20250430164644-389ef753e22e",
+          "sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.18.2",
+          "sum": "h1:iiPHWW0YrcFgpBYhsA6D1+fqHssJscY/Tm/y2Uqnapk="
+        },
+        {
+          "path": "github.com/kr/pretty",
+          "version": "v0.3.1",
+          "sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE="
+        },
+        {
+          "path": "github.com/kr/pty",
+          "version": "v1.1.1",
+          "sum": "h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw="
+        },
+        {
+          "path": "github.com/kr/text",
+          "version": "v0.2.0",
+          "sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY="
+        },
+        {
+          "path": "github.com/pkg/diff",
+          "version": "v0.0.0-20210226163009-20ebb0f2a09e",
+          "sum": "h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A="
+        },
+        {
+          "path": "github.com/pmezard/go-difflib",
+          "version": "v1.0.0",
+          "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+        },
+        {
+          "path": "github.com/quic-go/qpack",
+          "version": "v0.6.0",
+          "sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8="
+        },
+        {
+          "path": "github.com/rogpeppe/go-internal",
+          "version": "v1.10.0",
+          "sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ="
+        },
+        {
+          "path": "github.com/stretchr/objx",
+          "version": "v0.5.2",
+          "sum": "h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY="
+        },
+        {
+          "path": "github.com/stretchr/testify",
+          "version": "v1.11.1",
+          "sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+        },
+        {
+          "path": "github.com/xyproto/randomstring",
+          "version": "v1.0.5",
+          "sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU="
+        },
+        {
+          "path": "github.com/yuin/goldmark",
+          "version": "v1.4.13",
+          "sum": "h1:fVcFKWvrslecOb/tg+Cc05dkeYx540o0FuFt3nUVDoE="
+        },
+        {
+          "path": "go.uber.org/mock",
+          "version": "v0.5.2",
+          "sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.46.0",
+          "sum": "h1:cKRW/pmt1pKAfetfu+RCEvjvZkA9RimPbh7bhFjGVBU="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.30.0",
+          "sum": "h1:fDEXFVZ/fmCKProc/yAXXUijritrDzahmwwefnjoPFk="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.48.0",
+          "sum": "h1:zyQRTTrjc33Lhh0fBgT/H3oZq9WuvRR5gPC70xpDiQU="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.19.0",
+          "sum": "h1:vV+1eWNmZ5geRlYjzm2adRgW2/mcpevXNg50YZtPCE4="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.39.0",
+          "sum": "h1:CvCKL8MeisomCi6qNZ+wbb0DN9E5AATixKsvNtMoMFk="
+        },
+        {
+          "path": "golang.org/x/telemetry",
+          "version": "v0.0.0-20251111182119-bc8e575c7b54",
+          "sum": "h1:E2/AqCUMZGgd73TQkxUMcMla25GB9i/5HOdLr+uH7Vo="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.38.0",
+          "sum": "h1:PQ5pkm/rLO6HnxFR7N2lJHOZX6Kez5Y1gDSJla6jo7Q="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.32.0",
+          "sum": "h1:ZD01bjUt1FQ9WJ0ClOL5vxgxOI/sVCNgX1YtKwcY0mU="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.39.0",
+          "sum": "h1:ik4ho21kwuQln40uelmciQPp9SipgNDdrafrYA4TmQQ="
+        },
+        {
+          "path": "golang.org/x/xerrors",
+          "version": "v0.0.0-20190717185122-a985d3407aa7",
+          "sum": "h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc="
+        },
+        {
+          "path": "gopkg.in/check.v1",
+          "version": "v1.0.0-20201130134442-10cb98267c6c",
+          "sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk="
+        },
+        {
+          "path": "gopkg.in/yaml.v3",
+          "version": "v3.0.1",
+          "sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+        }
+      ]
+    },
+    {
+      "fork": "tls-client",
+      "source_commit": "9bd16362d479ede484e72421a095e2cb14308ad2",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "accepted": true,
+      "test_runs": 396,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrder"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrderHttp1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrderWithContentLength"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrderWithContentLengthHttp1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_ProtocolChangeBetweenConnections"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_ProtocolChangeWithRacingRecovers"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_RandomExtensionOrderChrome"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_RandomExtensionOrderCustom"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_SkipExistingCookiesOnSetCookiesResponse"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClients"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestCombinedConstructorAndRuntimeHooks"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestCustomClients"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestDisableHTTP3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP2WithChromeOnCloudflare"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3DirectPathChrome"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3DirectPathFirefox"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3FingerprintChrome443"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3FingerprintFirefox135"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3FingerprintWithDefaultValuesForChrome"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3WithChromeOnCloudflare"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHooksThreadSafety"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestMultiplePostHooksExecuteInOrder"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestMultiplePreHooksExecuteInOrder"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestOnPostResponseRuntimeRegistration"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestOnPreRequestRuntimeRegistration"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookAbortByDefault"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookContinueOnError"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookPanicAbortsSubsequentHooks"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookReceivesCorrectMetadata"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPreHookContinueOnError"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPreHookModifiesRequestHeaders"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsAreAcceptedByAServer"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestWeb"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestWebSocketEchoRealWebserver"
+        ]
+      ],
+      "not_observed_now": [],
+      "unexpected": [],
+      "source_sha256": "0bebd77bf64dc68448ed8aba3d8355362f731e7f7a73bd7cf57483776dd94192",
+      "skips": [],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "tls-client",
+          "--source",
+          "/private/tmp/tls-forge-a6-tls-client",
+          "--graph",
+          "production",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-tls-client-production"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 63.826,
+        "peak_group_rss_kib": 311280,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "6b9ce341a8d4c3f2c5d763f125db51cdde1eb3cfb09ece33f1e18c6732471dbb",
+      "module_graphs_sha256": "c9f726cd1f74b59632cef594a27a6fc4c1910b3ec865a470a9d32c9956f2bc80",
+      "raw_logs": {
+        "0.jsonl": "508f296f9cc526b01dd7dfecc576add86e348f2096a18dadd63e152de5c3bdaa",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/tls-client",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.2.3",
+          "sum": "h1:8H1qwOkl2LPfjf3YezB90JnCliZb6SInJ/OJkEbA5NQ="
+        },
+        {
+          "path": "github.com/andybalholm/cascadia",
+          "version": "v1.3.3",
+          "sum": "h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM="
+        },
+        {
+          "path": "github.com/bdandy/go-errors",
+          "version": "v1.2.2",
+          "sum": "h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q="
+        },
+        {
+          "path": "github.com/bdandy/go-socks4",
+          "version": "v1.2.3",
+          "sum": "h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.4",
+          "sum": "h1:8HUl/bYdUaLakTdT2mfYomzPego+qjs5dOrYgAo3+J0="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.5",
+          "sum": "h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA="
+        },
+        {
+          "path": "github.com/creack/pty",
+          "version": "v1.1.9",
+          "sum": "h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w="
+        },
+        {
+          "path": "github.com/davecgh/go-spew",
+          "version": "v1.1.1",
+          "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+        },
+        {
+          "path": "github.com/google/go-cmp",
+          "version": "v0.6.0",
+          "sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI="
+        },
+        {
+          "path": "github.com/google/uuid",
+          "version": "v1.6.0",
+          "sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0="
+        },
+        {
+          "path": "github.com/igor-lemon/fhttp",
+          "version": "v0.6.10-0.20261027200732-6ccf73f64cb3",
+          "sum": "h1:3sIaiogGZ1vjfmKkg3ViZ8yDzdTVGxTfIvCGPZdOv/c="
+        },
+        {
+          "path": "github.com/igor-lemon/quic-go-utls",
+          "version": "v1.0.10-utls.0.20261027200806-4837491ccf90",
+          "sum": "h1:s6pIjd1N2BYJ7CVtI06jk9PjfpDkARWs/G7vr9+kLyk="
+        },
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": "v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "sum": "h1:Di1dzbPG7h08a8QphEORBnsGAm/gi6D6DLbA6Vk/b5E="
+        },
+        {
+          "path": "github.com/igor-lemon/websocket",
+          "version": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "sum": "h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY="
+        },
+        {
+          "path": "github.com/jordanlewis/gcassert",
+          "version": "v0.0.0-20250430164644-389ef753e22e",
+          "sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.20.0",
+          "sum": "h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA="
+        },
+        {
+          "path": "github.com/kr/pretty",
+          "version": "v0.3.1",
+          "sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE="
+        },
+        {
+          "path": "github.com/kr/text",
+          "version": "v0.2.0",
+          "sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY="
+        },
+        {
+          "path": "github.com/pmezard/go-difflib",
+          "version": "v1.0.0",
+          "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+        },
+        {
+          "path": "github.com/quic-go/qpack",
+          "version": "v0.6.0",
+          "sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8="
+        },
+        {
+          "path": "github.com/rogpeppe/go-internal",
+          "version": "v1.10.0",
+          "sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ="
+        },
+        {
+          "path": "github.com/spf13/pflag",
+          "version": "v1.0.10",
+          "sum": "h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk="
+        },
+        {
+          "path": "github.com/stretchr/objx",
+          "version": "v0.5.2",
+          "sum": "h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY="
+        },
+        {
+          "path": "github.com/stretchr/testify",
+          "version": "v1.11.1",
+          "sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+        },
+        {
+          "path": "github.com/tam7t/hpkp",
+          "version": "v0.0.0-20160821193359-2b70b4024ed5",
+          "sum": "h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc="
+        },
+        {
+          "path": "github.com/xyproto/randomstring",
+          "version": "v1.0.5",
+          "sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU="
+        },
+        {
+          "path": "github.com/yuin/goldmark",
+          "version": "v1.4.13",
+          "sum": "h1:fVcFKWvrslecOb/tg+Cc05dkeYx540o0FuFt3nUVDoE="
+        },
+        {
+          "path": "go.uber.org/mock",
+          "version": "v0.5.2",
+          "sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.57.0",
+          "sum": "h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.41.0",
+          "sum": "h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.60.0",
+          "sum": "h1:79p50tfZlm0J9YfoDsSi639qSXNGVwEzOPLCxM2FsYU="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.23.0",
+          "sum": "h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.48.0",
+          "sum": "h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo="
+        },
+        {
+          "path": "golang.org/x/telemetry",
+          "version": "v0.0.0-20240228155512-f48c80bd79b2",
+          "sum": "h1:IRJeR9r1pYWsHKTRe/IInb7lYvbBVIqOgsX/u0mbOWY="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.46.0",
+          "sum": "h1:3+OXuTbaKDgwk8jTi3aSLHRlmWqHEUDUtxnbFigO4YE="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.42.0",
+          "sum": "h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.49.0",
+          "sum": "h1:3NI7VXzL9+1WZD52Dx2ttoPwD5DWrFGpl9mFZDlmisI="
+        },
+        {
+          "path": "golang.org/x/xerrors",
+          "version": "v0.0.0-20190717185122-a985d3407aa7",
+          "sum": "h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc="
+        },
+        {
+          "path": "gopkg.in/check.v1",
+          "version": "v1.0.0-20201130134442-10cb98267c6c",
+          "sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk="
+        },
+        {
+          "path": "gopkg.in/yaml.v3",
+          "version": "v3.0.1",
+          "sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+        }
+      ]
+    },
+    {
+      "fork": "tls-client",
+      "source_commit": "9bd16362d479ede484e72421a095e2cb14308ad2",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "accepted": true,
+      "test_runs": 396,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrder"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrderHttp1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrderWithContentLength"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_HeaderOrderWithContentLengthHttp1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_ProtocolChangeBetweenConnections"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_ProtocolChangeWithRacingRecovers"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_RandomExtensionOrderChrome"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_RandomExtensionOrderCustom"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClient_SkipExistingCookiesOnSetCookiesResponse"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestClients"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestCombinedConstructorAndRuntimeHooks"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestCustomClients"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestDisableHTTP3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP2WithChromeOnCloudflare"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3DirectPathChrome"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3DirectPathFirefox"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3FingerprintChrome443"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3FingerprintFirefox135"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3FingerprintWithDefaultValuesForChrome"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHTTP3WithChromeOnCloudflare"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestHooksThreadSafety"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestMultiplePostHooksExecuteInOrder"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestMultiplePreHooksExecuteInOrder"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestOnPostResponseRuntimeRegistration"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestOnPreRequestRuntimeRegistration"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookAbortByDefault"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookContinueOnError"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookPanicAbortsSubsequentHooks"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPostHookReceivesCorrectMetadata"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPreHookContinueOnError"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestPreHookModifiesRequestHeaders"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsAreAcceptedByAServer"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestWeb"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestWebSocketEchoRealWebserver"
+        ]
+      ],
+      "not_observed_now": [],
+      "unexpected": [],
+      "source_sha256": "0bebd77bf64dc68448ed8aba3d8355362f731e7f7a73bd7cf57483776dd94192",
+      "skips": [],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "tls-client",
+          "--source",
+          "/private/tmp/tls-forge-a6-tls-client",
+          "--graph",
+          "standalone",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-tls-client-standalone"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 66.399,
+        "peak_group_rss_kib": 310288,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "517ab59dfa29fd07375bbe54ee00c72024489812712e123b8b8db7d47a48876d",
+      "module_graphs_sha256": "c1fb12bb25a92172985b41b530e234ea10fc1b5247a25afb3f2692827c258d19",
+      "raw_logs": {
+        "0.jsonl": "f38de56e682cfebc156692834bcaaf16480e8f784460b8bbf4188faf13fe7b05",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/tls-client",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.2.0",
+          "sum": "h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ="
+        },
+        {
+          "path": "github.com/bdandy/go-errors",
+          "version": "v1.2.2",
+          "sum": "h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q="
+        },
+        {
+          "path": "github.com/bdandy/go-socks4",
+          "version": "v1.2.3",
+          "sum": "h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.3",
+          "sum": "h1:1w53tCkGhCQ5djbat3+MH0BAQ5Kfgbt56UZQ/JMzngw="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.2",
+          "sum": "h1:hL7VBpHHKzrV5WTfHCaBsgx/HGbBYlgrwvNXEVDYYsQ="
+        },
+        {
+          "path": "github.com/creack/pty",
+          "version": "v1.1.9",
+          "sum": "h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w="
+        },
+        {
+          "path": "github.com/davecgh/go-spew",
+          "version": "v1.1.1",
+          "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+        },
+        {
+          "path": "github.com/google/uuid",
+          "version": "v1.6.0",
+          "sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0="
+        },
+        {
+          "path": "github.com/igor-lemon/fhttp",
+          "version": "v0.6.10-0.20261027200732-6ccf73f64cb3",
+          "sum": "h1:3sIaiogGZ1vjfmKkg3ViZ8yDzdTVGxTfIvCGPZdOv/c="
+        },
+        {
+          "path": "github.com/igor-lemon/quic-go-utls",
+          "version": "v1.0.10-utls.0.20261027200806-4837491ccf90",
+          "sum": "h1:s6pIjd1N2BYJ7CVtI06jk9PjfpDkARWs/G7vr9+kLyk="
+        },
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": "v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "sum": "h1:Di1dzbPG7h08a8QphEORBnsGAm/gi6D6DLbA6Vk/b5E="
+        },
+        {
+          "path": "github.com/igor-lemon/websocket",
+          "version": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "sum": "h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY="
+        },
+        {
+          "path": "github.com/jordanlewis/gcassert",
+          "version": "v0.0.0-20250430164644-389ef753e22e",
+          "sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.18.2",
+          "sum": "h1:iiPHWW0YrcFgpBYhsA6D1+fqHssJscY/Tm/y2Uqnapk="
+        },
+        {
+          "path": "github.com/kr/pretty",
+          "version": "v0.3.1",
+          "sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE="
+        },
+        {
+          "path": "github.com/kr/text",
+          "version": "v0.2.0",
+          "sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY="
+        },
+        {
+          "path": "github.com/pmezard/go-difflib",
+          "version": "v1.0.0",
+          "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+        },
+        {
+          "path": "github.com/quic-go/qpack",
+          "version": "v0.6.0",
+          "sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8="
+        },
+        {
+          "path": "github.com/rogpeppe/go-internal",
+          "version": "v1.10.0",
+          "sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ="
+        },
+        {
+          "path": "github.com/stretchr/objx",
+          "version": "v0.5.2",
+          "sum": "h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY="
+        },
+        {
+          "path": "github.com/stretchr/testify",
+          "version": "v1.11.1",
+          "sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+        },
+        {
+          "path": "github.com/tam7t/hpkp",
+          "version": "v0.0.0-20160821193359-2b70b4024ed5",
+          "sum": "h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc="
+        },
+        {
+          "path": "github.com/xyproto/randomstring",
+          "version": "v1.0.5",
+          "sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU="
+        },
+        {
+          "path": "go.uber.org/mock",
+          "version": "v0.5.2",
+          "sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.46.0",
+          "sum": "h1:cKRW/pmt1pKAfetfu+RCEvjvZkA9RimPbh7bhFjGVBU="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.30.0",
+          "sum": "h1:fDEXFVZ/fmCKProc/yAXXUijritrDzahmwwefnjoPFk="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.48.0",
+          "sum": "h1:zyQRTTrjc33Lhh0fBgT/H3oZq9WuvRR5gPC70xpDiQU="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.19.0",
+          "sum": "h1:vV+1eWNmZ5geRlYjzm2adRgW2/mcpevXNg50YZtPCE4="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.39.0",
+          "sum": "h1:CvCKL8MeisomCi6qNZ+wbb0DN9E5AATixKsvNtMoMFk="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.38.0",
+          "sum": "h1:PQ5pkm/rLO6HnxFR7N2lJHOZX6Kez5Y1gDSJla6jo7Q="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.32.0",
+          "sum": "h1:ZD01bjUt1FQ9WJ0ClOL5vxgxOI/sVCNgX1YtKwcY0mU="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.39.0",
+          "sum": "h1:ik4ho21kwuQln40uelmciQPp9SipgNDdrafrYA4TmQQ="
+        },
+        {
+          "path": "gopkg.in/check.v1",
+          "version": "v1.0.0-20201130134442-10cb98267c6c",
+          "sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk="
+        },
+        {
+          "path": "gopkg.in/yaml.v3",
+          "version": "v3.0.1",
+          "sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+        }
+      ]
+    },
+    {
+      "fork": "utls",
+      "source_commit": "856ef601ebd9ba2c6363a0133a73708c98186576",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "accepted": true,
+      "test_runs": 606,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/utls",
+          "TestVerifyHostname"
+        ]
+      ],
+      "not_observed_now": [],
+      "unexpected": [],
+      "source_sha256": "12b4715a040d5914d25f0e57e27958a207235ed451dd113fcf18b873a33efacd",
+      "skips": [],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "utls",
+          "--source",
+          "/private/tmp/tls-forge-a6-utls",
+          "--graph",
+          "production",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-utls-production"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 19.769,
+        "peak_group_rss_kib": 406064,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "ea20296505a800888ebe8ddd19ac9377387206d33d1e1757362fab6fc8302ad9",
+      "module_graphs_sha256": "41e7912ae51c9da115a1a781d51eef3e99a364986357afb606647ae3cefb0d9b",
+      "raw_logs": {
+        "0.jsonl": "332591817e05ff2021d67a72a77f8ba201f6e8f32db6d06dafd5fc0f5e2bcbe2",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.2.3",
+          "sum": "h1:8H1qwOkl2LPfjf3YezB90JnCliZb6SInJ/OJkEbA5NQ="
+        },
+        {
+          "path": "github.com/andybalholm/cascadia",
+          "version": "v1.3.3",
+          "sum": "h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM="
+        },
+        {
+          "path": "github.com/bdandy/go-errors",
+          "version": "v1.2.2",
+          "sum": "h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q="
+        },
+        {
+          "path": "github.com/bdandy/go-socks4",
+          "version": "v1.2.3",
+          "sum": "h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.4",
+          "sum": "h1:8HUl/bYdUaLakTdT2mfYomzPego+qjs5dOrYgAo3+J0="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.5",
+          "sum": "h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA="
+        },
+        {
+          "path": "github.com/davecgh/go-spew",
+          "version": "v1.1.1",
+          "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+        },
+        {
+          "path": "github.com/google/go-cmp",
+          "version": "v0.6.0",
+          "sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI="
+        },
+        {
+          "path": "github.com/google/uuid",
+          "version": "v1.6.0",
+          "sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0="
+        },
+        {
+          "path": "github.com/igor-lemon/fhttp",
+          "version": "v0.6.10-0.20261027200732-6ccf73f64cb3",
+          "sum": "h1:3sIaiogGZ1vjfmKkg3ViZ8yDzdTVGxTfIvCGPZdOv/c="
+        },
+        {
+          "path": "github.com/igor-lemon/quic-go-utls",
+          "version": "v1.0.10-utls.0.20261027200806-4837491ccf90",
+          "sum": "h1:s6pIjd1N2BYJ7CVtI06jk9PjfpDkARWs/G7vr9+kLyk="
+        },
+        {
+          "path": "github.com/igor-lemon/tls-client",
+          "version": "v1.15.2-0.20261027200813-9bd16362d479",
+          "sum": "h1:sN9TfVHBwfQDCBoJj8N8vaeOKQiigWrijZzyR9UQULc="
+        },
+        {
+          "path": "github.com/igor-lemon/websocket",
+          "version": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "sum": "h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY="
+        },
+        {
+          "path": "github.com/jordanlewis/gcassert",
+          "version": "v0.0.0-20250430164644-389ef753e22e",
+          "sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.20.0",
+          "sum": "h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA="
+        },
+        {
+          "path": "github.com/kr/pretty",
+          "version": "v0.3.1",
+          "sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE="
+        },
+        {
+          "path": "github.com/kr/text",
+          "version": "v0.2.0",
+          "sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY="
+        },
+        {
+          "path": "github.com/pmezard/go-difflib",
+          "version": "v1.0.0",
+          "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+        },
+        {
+          "path": "github.com/quic-go/qpack",
+          "version": "v0.6.0",
+          "sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8="
+        },
+        {
+          "path": "github.com/rogpeppe/go-internal",
+          "version": "v1.10.0",
+          "sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ="
+        },
+        {
+          "path": "github.com/spf13/pflag",
+          "version": "v1.0.10",
+          "sum": "h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk="
+        },
+        {
+          "path": "github.com/stretchr/testify",
+          "version": "v1.11.1",
+          "sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+        },
+        {
+          "path": "github.com/tam7t/hpkp",
+          "version": "v0.0.0-20160821193359-2b70b4024ed5",
+          "sum": "h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc="
+        },
+        {
+          "path": "github.com/xyproto/randomstring",
+          "version": "v1.0.5",
+          "sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU="
+        },
+        {
+          "path": "github.com/yuin/goldmark",
+          "version": "v1.4.13",
+          "sum": "h1:fVcFKWvrslecOb/tg+Cc05dkeYx540o0FuFt3nUVDoE="
+        },
+        {
+          "path": "go.uber.org/mock",
+          "version": "v0.5.2",
+          "sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.57.0",
+          "sum": "h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.41.0",
+          "sum": "h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.60.0",
+          "sum": "h1:79p50tfZlm0J9YfoDsSi639qSXNGVwEzOPLCxM2FsYU="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.23.0",
+          "sum": "h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.48.0",
+          "sum": "h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo="
+        },
+        {
+          "path": "golang.org/x/telemetry",
+          "version": "v0.0.0-20240228155512-f48c80bd79b2",
+          "sum": "h1:IRJeR9r1pYWsHKTRe/IInb7lYvbBVIqOgsX/u0mbOWY="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.46.0",
+          "sum": "h1:3+OXuTbaKDgwk8jTi3aSLHRlmWqHEUDUtxnbFigO4YE="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.42.0",
+          "sum": "h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.49.0",
+          "sum": "h1:3NI7VXzL9+1WZD52Dx2ttoPwD5DWrFGpl9mFZDlmisI="
+        },
+        {
+          "path": "golang.org/x/xerrors",
+          "version": "v0.0.0-20190717185122-a985d3407aa7",
+          "sum": "h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc="
+        },
+        {
+          "path": "gopkg.in/check.v1",
+          "version": "v1.0.0-20201130134442-10cb98267c6c",
+          "sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk="
+        },
+        {
+          "path": "gopkg.in/yaml.v3",
+          "version": "v3.0.1",
+          "sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+        }
+      ]
+    },
+    {
+      "fork": "utls",
+      "source_commit": "856ef601ebd9ba2c6363a0133a73708c98186576",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "accepted": true,
+      "test_runs": 606,
+      "known_failures": [
+        [
+          "github.com/igor-lemon/utls",
+          "TestVerifyHostname"
+        ]
+      ],
+      "not_observed_now": [],
+      "unexpected": [],
+      "source_sha256": "12b4715a040d5914d25f0e57e27958a207235ed451dd113fcf18b873a33efacd",
+      "skips": [],
+      "receipt": {
+        "command": [
+          "python3",
+          "scripts/fork_gate.py",
+          "--fork",
+          "utls",
+          "--source",
+          "/private/tmp/tls-forge-a6-utls",
+          "--graph",
+          "standalone",
+          "--output",
+          "/private/tmp/tls-forge-a6-20261027/gates/f09-final-utls-standalone"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "returncode": 0,
+        "elapsed_seconds": 27.389,
+        "peak_group_rss_kib": 400640,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 1200.0,
+          "rss_mib": 2048
+        }
+      },
+      "result_sha256": "c84920b4f3048c84469db298671e7a07bd59582839cbdfdf1c94485729bd320a",
+      "module_graphs_sha256": "31263e97e9aaac62baf49b9c607b77f74a10d5010b2bf8c2d48d921b0b65b0f4",
+      "raw_logs": {
+        "0.jsonl": "335428ad4fcbb44faeac9830f62c9de31474a5c5918ef996b90d1543b6125583",
+        "0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tested_modules": [
+        {
+          "path": "github.com/igor-lemon/utls",
+          "version": null,
+          "sum": null
+        },
+        {
+          "path": "github.com/andybalholm/brotli",
+          "version": "v1.0.6",
+          "sum": "h1:Yf9fFpf49Zrxb9NlQaluyE92/+X7UVHlhMNJN2sxfOI="
+        },
+        {
+          "path": "github.com/bwesterb/go-ristretto",
+          "version": "v1.2.3",
+          "sum": "h1:1w53tCkGhCQ5djbat3+MH0BAQ5Kfgbt56UZQ/JMzngw="
+        },
+        {
+          "path": "github.com/cloudflare/circl",
+          "version": "v1.6.2",
+          "sum": "h1:hL7VBpHHKzrV5WTfHCaBsgx/HGbBYlgrwvNXEVDYYsQ="
+        },
+        {
+          "path": "github.com/klauspost/compress",
+          "version": "v1.17.4",
+          "sum": "h1:Ej5ixsIri7BrIjBkRZLTo6ghwrEtHFk7ijlczPW4fZ4="
+        },
+        {
+          "path": "golang.org/x/crypto",
+          "version": "v0.36.0",
+          "sum": "h1:AnAEvhDddvBdpY+uR+MyHmuZzzNqXSe/GvuDeob5L34="
+        },
+        {
+          "path": "golang.org/x/mod",
+          "version": "v0.17.0",
+          "sum": "h1:zY54UmvipHiNd+pm+m0x9KhZ9hl1/7QNMyxXbc6ICqA="
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.38.0",
+          "sum": "h1:vRMAPTMaeGqVhG5QyLJHqNDwecKTomGeqbnfZyKlBI8="
+        },
+        {
+          "path": "golang.org/x/sync",
+          "version": "v0.12.0",
+          "sum": "h1:MHc5BpPuC30uJk597Ri8TV3CNZcTLu6B6z4lJy+g6Jw="
+        },
+        {
+          "path": "golang.org/x/sys",
+          "version": "v0.31.0",
+          "sum": "h1:ioabZlmFYtWhL+TRYpcnNlLwhyxaM9kWTDEmfnprqik="
+        },
+        {
+          "path": "golang.org/x/term",
+          "version": "v0.30.0",
+          "sum": "h1:PQ39fJZ+mfadBm0y5WlL4vlM7Sx1Hgf13sMIY2+QS9Y="
+        },
+        {
+          "path": "golang.org/x/text",
+          "version": "v0.23.0",
+          "sum": "h1:D71I7dUrlY+VX0gQShAThNGHFxZ13dGLBHQLVl1mJlY="
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.21.1-0.20240508182429-e35e4ccd0d2d",
+          "sum": "h1:vU5i/LfpvrRCpgM/VPfJLg5KjxD3E+hfT1SH+d9zLwg="
+        }
+      ]
+    }
+  ]
+}

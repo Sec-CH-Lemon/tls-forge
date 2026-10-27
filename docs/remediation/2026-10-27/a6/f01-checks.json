@@ -1,0 +1,443 @@
+{
+  "scope": "Preserved before/intermediate/final source and owned-peer evidence. No new Chrome actor or universal RFC/browser verdict. Raw logs and source archives are in the private bundle. Expanded before witness is independently replayed on unchanged A5; initial before logs retained separately.",
+  "checks": {
+    "f01-profile-before": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "./profile",
+          "-run",
+          "TestExecutableHTTP2Semantics|TestValidHTTP2SemanticEdges",
+          "-count=1",
+          "-timeout",
+          "40s",
+          "-v"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 1,
+        "elapsed_seconds": 2.973,
+        "peak_group_rss_kib": 232848,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 60.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "51b144a6d40dc9db12901732b4b906286ac7c90f01ff6b52e26fac02baacdee1",
+      "log_sha256": "15cd981a5cc12d66220a0e1a31b63adc7b7b963ff8f2ce562272871bd0bd75f2"
+    },
+    "f01-expanded-source-pinned-before": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "GONOSUMDB=github.com/igor-lemon/*",
+          "GOPROXY=file:///private/tmp/tls-forge-a6-20261027/local-proxy,https://proxy.golang.org",
+          "go",
+          "test",
+          "-v",
+          "-count=1",
+          "-timeout",
+          "90s",
+          "-run",
+          "^TestExecutableHTTP2Semantics$",
+          "./profile"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-expanded-before",
+        "returncode": 1,
+        "elapsed_seconds": 2.444,
+        "peak_group_rss_kib": 236336,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 120.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "a9905d4820651ca508b6f09c46be12efc9478527b7f6c9bd2f40233032dda7f1",
+      "log_sha256": "d04912ea52a248583052fc249db1e3c51d9ecb30df4ea6c330cdb4a5d97fd3f4"
+    },
+    "f01-wire-before": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          ".",
+          "-run",
+          "TestA6InvalidSettingsRejectedBeforeWire",
+          "-count=1",
+          "-timeout",
+          "25s",
+          "-v"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-before",
+        "returncode": 1,
+        "elapsed_seconds": 6.598,
+        "peak_group_rss_kib": 708640,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 45.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "f5a2c50290f8e23ffe1a4f48570748545216ffdbee0f61d25bf449412576ee28",
+      "log_sha256": "f377828c0bfa1e59fca580b63138a014bd481d7f55abeb88aab47c332f361a66"
+    },
+    "f01-connection-zero-before": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "go",
+          "test",
+          "-v",
+          "-count=1",
+          "-timeout",
+          "90s",
+          "-run",
+          "TestA6ConnectionWindowIncrementReachesWire",
+          "."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-before",
+        "returncode": 1,
+        "elapsed_seconds": 5.211,
+        "peak_group_rss_kib": 716912,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 120.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "4cc18be44ae98920efcd58bef4b08275add4091785746e875649863d3a41593e",
+      "log_sha256": "85f9809f472d7121e9367a972b96286455abd65be41e88a1e77e8b038775fbc2"
+    },
+    "f01-fhttp-boundaries-before": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "./http2",
+          "-run",
+          "TestProfileReceiveWindowAndLastStream|TestProfileConnectionWindowCannotOverflow",
+          "-count=1",
+          "-timeout",
+          "30s",
+          "-v"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-fhttp",
+        "returncode": 1,
+        "elapsed_seconds": 3.665,
+        "peak_group_rss_kib": 308320,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 55.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "15b2266873c39d0f0e1e7f98700a3f0d419726afa6e14ea8041045962ca45269",
+      "log_sha256": "ce78092de1d6fc949f75b4d92e16930231dbae9fd2d54910ff4d6fef214a1b51"
+    },
+    "f01-terminal-flow-before": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "./http2",
+          "-run",
+          "TestTerminalFlowErrorDoesNotOrphanResponseBody",
+          "-count=1",
+          "-timeout",
+          "25s",
+          "-v"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-fhttp-terminal-before",
+        "returncode": 1,
+        "elapsed_seconds": 8.078,
+        "peak_group_rss_kib": 314944,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 45.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "2765a568c7c2ca1e383c2e4e552e0fe794071ee3ba03856b5c6b6787f8383189",
+      "log_sha256": "df8e50a6f9dad1e08d2891628476eb5c822bc5c465bd2600e039a8f97da77a02"
+    },
+    "f01-h3-before": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          ".",
+          "-run",
+          "TestA6LargeHTTP3SetupAndClose",
+          "-count=1",
+          "-timeout",
+          "20s",
+          "-v"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-before",
+        "returncode": 1,
+        "elapsed_seconds": 10.561,
+        "peak_group_rss_kib": 733920,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 35.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "2d199726b4f6c42a6da814bd5fcb3319b99ffa0097346d84d507f2061d26f445",
+      "log_sha256": "2f4fc99dad94ef98342d3651a1b6a76c605074032ad9b3491e71bce8411c2b7b"
+    },
+    "f01-quic-large-before": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "./http3",
+          "-run",
+          "TestLargeInitialControlWriteDoesNotBlockRunLoop",
+          "-count=1",
+          "-timeout",
+          "25s",
+          "-v"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-quic-before",
+        "returncode": 1,
+        "elapsed_seconds": 7.347,
+        "peak_group_rss_kib": 240624,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 45.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "cd59755a32aef454fe4d0df8d252d0b3b565288caf8348d433bd9dbe354d81e9",
+      "log_sha256": "5ff7e8f97ca52f14f21395a8b134805408c38a5f1b8ecc8c9fd8487f576d5fd6"
+    },
+    "a6-entry-wire-final": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-race",
+          "-count=3",
+          "-timeout",
+          "4m",
+          "-run",
+          "TestA6|TestExecutable|TestRegistryAndCatalogue|TestOtherSemantic|TestValidHTTP2|TestEngineCompatibilityMatrix|TestEngineGate",
+          ".",
+          "./profile",
+          "./cmd/tls-forge",
+          "./daemon"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 30.481,
+        "peak_group_rss_kib": 916592,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 360.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "180fb798137dd6b737ce35c5255d7e90d3f7912b40182f374fdf90f07be18000",
+      "log_sha256": "24b7eb7fa2043e559faedf08d24f1df76e05aca3d85244f64be9232424870c34"
+    },
+    "a6-embedded-negative-final": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-v",
+          "-count=1",
+          "-timeout",
+          "90s",
+          "-run",
+          "^TestA6EmbeddedNegativeBuild$",
+          "."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-embedded-negative",
+        "returncode": 0,
+        "elapsed_seconds": 4.709,
+        "peak_group_rss_kib": 745824,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "0bf394322340e483067715e35d4b10c26c059793d94915e174531e2de2bf53b9",
+      "log_sha256": "b5e55a6907e016ae152e4b30528cf7d3a43a7bc2dd2079b910258d3162c74143"
+    },
+    "a6-wire-raw-final-r02": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-v",
+          "-race",
+          "-count=3",
+          "-timeout",
+          "3m",
+          "-run",
+          "TestA6",
+          "."
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 21.207,
+        "peak_group_rss_kib": 408256,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 240.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "c847eb8a21d80477a3c100a06b3f7d5017abebfa793bf164ae32ab3248e932e9",
+      "log_sha256": "a630ef30cc4dbe4c7a60ecacdeac8b16f3d029632c8cb8145ebd5e6396fd9ec1"
+    },
+    "a6-coverage-boundary-supplement": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-v",
+          "-count=3",
+          "-race",
+          "-timeout",
+          "2m",
+          "-run",
+          "TestInvalidTLSAndOfflineFormat|TestA6Priority|TestA6Malformed|TestExecutableHTTP2",
+          ".",
+          "./profile"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 13.748,
+        "peak_group_rss_kib": 706352,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 180.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "1de574414ceb0b3456859b2f5d4bd093ef242192c406c29565204c44e0b5671e",
+      "log_sha256": "89d13c0c452b3ff7b163067940850884a60637eb6fdbada2f536231b28139b95"
+    },
+    "a6-offline-policy-json-flow-final": {
+      "receipt": {
+        "command": [
+          "env",
+          "GOWORK=off",
+          "GOFLAGS=-buildvcs=false",
+          "go",
+          "test",
+          "-v",
+          "-count=3",
+          "-race",
+          "-timeout",
+          "90s",
+          "-run",
+          "TestInvalidTLSAndOfflineFormat|TestA6ConnectionWindowIncrement",
+          ".",
+          "./profile"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-root",
+        "returncode": 0,
+        "elapsed_seconds": 9.221,
+        "peak_group_rss_kib": 685136,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 120.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "d047e67d52497ea33639b6d3990f4fea502cff5b59363c8515ce866729a180a9",
+      "log_sha256": "9ffaedc44a692044770af81764828745dccb503626ecb9b5ef82bc55075fb4d5"
+    },
+    "a6-fhttp-production-race": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-timeout",
+          "3m",
+          "-count=10",
+          "-run",
+          "TestProfileReceiveWindow|TestProfileConnection|TestExplicitConnectionWindow|TestTerminalFlow",
+          "./http2"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-race-fhttp",
+        "returncode": 0,
+        "elapsed_seconds": 7.136,
+        "peak_group_rss_kib": 316624,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 240.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "1aab54cde0ff1bc45d5468e6a27a76274410bfef70d59c893a4e2bc40b614eb1",
+      "log_sha256": "fff83a915429daf7363148ad75201f6a03285a21386bf30aa1452b8741ab6a90"
+    },
+    "a6-quic-go-utls-production-race": {
+      "receipt": {
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-timeout",
+          "3m",
+          "-count=1",
+          "./http3"
+        ],
+        "cwd": "/private/tmp/tls-forge-a6-race-quic",
+        "returncode": 0,
+        "elapsed_seconds": 11.642,
+        "peak_group_rss_kib": 331168,
+        "stop_reason": null,
+        "limits": {
+          "seconds": 240.0,
+          "rss_mib": 2048
+        }
+      },
+      "receipt_sha256": "479eada6546f3cee4fbcb504749eaa6ec979b738644eb0998cb9bb67ca3b3ab8",
+      "log_sha256": "98dff78642d89ea4f4efd0f566211d4970ef5597b3ca1491e4f799df749572e2"
+    }
+  },
+  "profile_bytes_before": {
+    "profile/engine-migration.json": "167802b5cd6acf2e9503543ea66f469471481e0f4e4fa707806216affe195f6c",
+    "profile/catalogue.json": "0374b86ce1c1f407e3ddfc1db684fada4c549e6e8e1bc3db5ed37d3b44b7ffbd",
+    "profile/data/chrome_151/linux.json": "144b6fa7ba1fb15e46daffb172caedc55cada432a3e2090f5d8badb3262148ab",
+    "profile/data/chrome_151/windows.json": "53cbcede1370ec229bb07aea3ee2d3c0e184e68001ecaaae0ffcefe0c338ce1f",
+    "profile/data/chrome_151/macos.json": "30d282051100242fd914cdaab26572f49f481cdbd8155988435b8a2a8705ebd5",
+    "profile/data/chrome_155/linux.json": "94aacd85b8fbf1823830a860519a7ce314622492e6c80d5b2dd2ec60f4cb5a01",
+    "profile/data/chrome_155/windows.json": "f8c7ad73d7289258ce8d7da4bd57b00bfa6ca49b1cc6ae1b73277d4d80c372af",
+    "profile/data/chrome_155/macos.json": "7c18189194fa625e894940a0bb680bf15fc599c36ef2b3c8009306a93ee4d2d1",
+    "profile/data/chrome_152/linux.json": "394006eb196fc3abd943c0c2e0e288503a498acee502daf90543ec20adbc086b",
+    "profile/data/chrome_152/windows.json": "ed5d73a73443321bdc865811ac59e0c446883e643971083edc417026781f1693",
+    "profile/data/chrome_152/macos.json": "739b6b361c790a6c19e1c15ef39c3f9ae720a00b53ffc8492d012d6def20915d",
+    "profile/data/chrome_153/linux.json": "2a0a5c9ecbc1f1004fcb202d756e3d451948ae76ce9fb5bcabcf79f390804a6c",
+    "profile/data/chrome_153/windows.json": "59c56418f64d6fa5cf9b4c7da27cc3d422307ff08ce02853f8b378eb1465143f",
+    "profile/data/chrome_153/macos.json": "caa8a58a7e0436592539d920dc04a489f4d996023e2fc7a8bea05b0423aa0c4a",
+    "profile/data/chrome_154/linux.json": "1a627effb463c75bf0f27dbbe0ab7ba2bd5da4bb95421939d41e6c728a9c58d6",
+    "profile/data/chrome_154/windows.json": "31e3eee0c99c714463e81a90993180a9cc549d3b0865f44c8621f7acab73043f",
+    "profile/data/chrome_154/macos.json": "c9ec332131898b1d3d3142275fcccb7a3f09b7c5960319f62f1a13118e619ad2"
+  },
+  "counter_projection": "168 invalid entry/route variants, zero backend constructions and actual DNS/TCP/TLS/proxy/origin/UDP datagrams. UDP socket syscalls are not independently intercepted; no dial follows a pre-constructor rejection."
+}

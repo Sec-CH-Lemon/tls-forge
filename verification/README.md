@@ -47,3 +47,6 @@ CI uses a separate runner per fork/graph, targets main/development and cancels
 obsolete runs. Exact fork commits and pseudo-versions must be available remotely
 before these jobs can execute there. Locally sealed module artifacts demonstrate
 installation without a replace; they do not prove publication or remote CI.
+
+See the [A6 report](../docs/remediation/2026-10-27/A6.ru.md) for the retained
+before/after controls and acceptance limits.

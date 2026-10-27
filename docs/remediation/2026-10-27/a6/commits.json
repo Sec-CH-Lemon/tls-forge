@@ -1,0 +1,87 @@
+{
+  "root_implementation_and_ci": [
+    {
+      "commit": "ae9e172cfd52159abf35960b25336be86598bfe5",
+      "title": "fix: validate executable profile boundaries"
+    },
+    {
+      "commit": "5232434816ff623d03171b56d9b29dcbd59a4991",
+      "title": "ci: gate source-pinned transport fork suites"
+    }
+  ],
+  "forks": {
+    "utls": [
+      {
+        "commit": "856ef601ebd9ba2c6363a0133a73708c98186576",
+        "title": "fix: identify invalid HTTP3 profile values"
+      }
+    ],
+    "fhttp": [
+      {
+        "commit": "ac012e3ad5ba2e8b57b6f908cb79306e4e9629aa",
+        "title": "fix: preserve HTTP2 flow and stream boundaries"
+      },
+      {
+        "commit": "f1db9eb3086c62d191e2bdc1ea8181fc94da6b25",
+        "title": "fix: wake readers on terminal HTTP2 flow errors"
+      },
+      {
+        "commit": "e44d38fc135076a735b4ec253bfed464bb70c0b9",
+        "title": "fix: preserve an explicit zero connection window"
+      },
+      {
+        "commit": "86ce408c88fffe8a0bc5443f8bf506c8eb352204",
+        "title": "test: initialize connection window clone controls"
+      },
+      {
+        "commit": "6ccf73f64cb3efb4a3bb818eb251a498257335ec",
+        "title": "test: format integer body lengths correctly"
+      }
+    ],
+    "quic-go-utls": [
+      {
+        "commit": "66e190293f01b9b925f5d275ba7df569cc8e342c",
+        "title": "test: restore negotiated-group integration checks"
+      },
+      {
+        "commit": "af5b41893722ebaae0f674c0a2f1a6fdd6feca8e",
+        "title": "fix: queue large HTTP3 setup off the run loop"
+      },
+      {
+        "commit": "437f71aea01d6fe1a95960a2b3d831e862404c18",
+        "title": "build: pin terminal HTTP2 reader fix"
+      },
+      {
+        "commit": "898d2ae3fe541b45939463410dddddb2cf4c9338",
+        "title": "build: pin explicit connection window semantics"
+      },
+      {
+        "commit": "2ef070108faf1cdd957736e70b7ad35297fa62d1",
+        "title": "build: pin connection window clone controls"
+      },
+      {
+        "commit": "4837491ccf903040abf024f14053ae8b41a84f21",
+        "title": "build: pin Go126 fork fixture correction"
+      }
+    ],
+    "tls-client": [
+      {
+        "commit": "79e5f7ebc7080ee4d6c4bda6b2a46d3ec3a0b2a9",
+        "title": "build: pin coordinated profile boundary fixes"
+      },
+      {
+        "commit": "f028e005f2a9926b21efaf1ac2825493e3de48e8",
+        "title": "fix: carry explicit connection window presence"
+      },
+      {
+        "commit": "daf0397f0ed371947d35cdab00f2786452337b46",
+        "title": "build: pin final connection window controls"
+      },
+      {
+        "commit": "9bd16362d479ede484e72421a095e2cb14308ad2",
+        "title": "build: pin Go126 fork fixture correction"
+      }
+    ]
+  },
+  "note": "The final documentation seal cannot include its own hash; its receipt is recorded after commit in the private bundle."
+}
