@@ -1,11 +1,13 @@
 package tlsforge
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -235,6 +237,62 @@ func TestA6ConnectionWindowIncrementReachesWire(t *testing.T) {
 				t.Fatalf("increment=%d wire=%+v", increment, got)
 			}
 		})
+	}
+}
+
+// A body longer than the connection's first window is read whole whatever
+// increment the profile gives that window, with the delay that tells the
+// server of freed bytes or without it. Without the delay the client used to
+// refill the connection to the increment itself, so 0 and 1, which the
+// validator accepts, never told the server of anything and the request
+// waited out its deadline after 65,535 bytes.
+func TestA6SmallConnectionIncrementStillRefillsTheWindow(t *testing.T) {
+	body := bytes.Repeat([]byte("x"), 512<<10)
+	site := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor != 2 {
+			w.WriteHeader(http.StatusHTTPVersionNotSupported)
+			return
+		}
+		_, _ = w.Write(body)
+	}))
+	site.EnableHTTP2 = true
+	site.StartTLS()
+	t.Cleanup(site.Close)
+	for _, flow := range []uint32{0, 1, 1000, 65535, 15663105} {
+		for _, delay := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%d/delay=%v", flow, delay), func(t *testing.T) {
+				p, err := profile.Get("chrome_155_macos")
+				if err != nil {
+					t.Fatal(err)
+				}
+				p.HTTP2.ConnectionFlow = flow
+				if !delay {
+					delete(p.Behavior, "h2.window_update_delay_ms")
+				} else if _, ok := p.Behavior["h2.window_update_delay_ms"]; !ok {
+					t.Fatal("the shipped profile has no h2.window_update_delay_ms")
+				}
+				raw, err := json.Marshal(p)
+				if err != nil {
+					t.Fatal(err)
+				}
+				file := filepath.Join(t.TempDir(), "connection-window.json")
+				if err = os.WriteFile(file, raw, 0600); err != nil {
+					t.Fatal(err)
+				}
+				c, err := New(WithProfile(file), WithInsecureSkipVerify(), WithTimeout(5*time.Second))
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer c.Close()
+				res, err := c.Get(site.URL + "/long")
+				if err != nil {
+					t.Fatalf("a body of %d bytes: %v", len(body), err)
+				}
+				if res.Status != http.StatusOK || !bytes.Equal(res.Body, body) {
+					t.Fatalf("status %d, %d bytes of %d", res.Status, len(res.Body), len(body))
+				}
+			})
+		}
 	}
 }
 

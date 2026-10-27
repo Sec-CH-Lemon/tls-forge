@@ -27,6 +27,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   current-engine profile, whatever its schema: an explicit `behavior` of an
   older schema without them is refused before any I/O, as schemas 3 and 4 are.
   A legacy profile with no `behavior` runs on the frozen data, which has them.
+- Refill an HTTP/2 connection window whose `connection_flow` is below RFC 9113's
+  initial 65,535 bytes when the profile has no `h2.window_update_delay_ms`: the
+  client refilled to the increment itself, so 0 and 1 left a body past 64 KiB
+  waiting for the deadline and other small values ended in FLOW_CONTROL_ERROR.
+  Requires the fhttp fork at aa8d85b, a local pin not yet published.
 - Validate executable profile semantics before DNS/transport/proxy activity at
   every entry. Reject ambiguous JSON, invalid H2 settings/streams/dependencies,
   unsupported repeated-setting representation and connection-window overflow.
