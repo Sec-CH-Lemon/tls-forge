@@ -12,6 +12,7 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 	"github.com/igor-lemon/fhttp/http2"
+	"github.com/igor-lemon/fhttp/httptrace"
 
 	utls "github.com/igor-lemon/utls"
 )
@@ -23,6 +24,7 @@ import (
 type proxyH2Pool struct {
 	mu    sync.Mutex
 	conns []*proxyH2Conn
+	h1    bool // last observed proxy ALPN; under mu
 	dial  chan struct{}
 	cache proxyTLSCache
 }
@@ -106,24 +108,56 @@ func (d *connectDialer) lockProxyDial(ctx context.Context) error {
 }
 func (d *connectDialer) unlockProxyDial() { <-d.proxyPool.dial }
 
-func (d *connectDialer) chromeTunnel(ctx context.Context, network, address string) (net.Conn, error) {
-	if p := d.takeProxyH2(); p != nil {
-		return d.openProxyStream(ctx, p, address)
+// Only unknown/H2 cold discovery is serialized. Observing H1 is an actual
+// negotiated connection state, never a browser preset or a forced ALPN value.
+func (d *connectDialer) proxyIsH1() bool {
+	d.proxyPool.mu.Lock()
+	defer d.proxyPool.mu.Unlock()
+	return d.proxyPool.h1
+}
+
+func (d *connectDialer) proxyProtocol(h1 bool) {
+	d.proxyPool.mu.Lock()
+	d.proxyPool.h1 = h1
+	d.proxyPool.mu.Unlock()
+}
+
+func (d *connectDialer) lockProxyDiscovery(ctx context.Context) (func(), error) {
+	if d.proxyIsH1() {
+		return func() {}, nil
 	}
 	if err := d.lockProxyDial(ctx); err != nil {
 		return nil, err
 	}
+	var once sync.Once
+	release := func() { once.Do(d.unlockProxyDial) }
+	if d.proxyIsH1() {
+		release()
+	}
+	return release, nil
+}
+
+func (d *connectDialer) chromeTunnel(ctx context.Context, network, address string) (net.Conn, error) {
 	if p := d.takeProxyH2(); p != nil {
-		d.unlockProxyDial()
+		return d.openProxyStream(ctx, p, address)
+	}
+	release, err := d.lockProxyDiscovery(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	if p := d.takeProxyH2(); p != nil {
+		release()
 		return d.openProxyStream(ctx, p, address)
 	}
 	conn, err := d.reach(ctx, network)
 	if err != nil {
-		d.unlockProxyDial()
+		release()
 		return nil, err
 	}
+	d.proxyProtocol(!speaksH2(conn))
 	if !speaksH2(conn) {
-		d.unlockProxyDial()
+		release()
 		opened, err := d.open(ctx, conn, address)
 		if err != nil {
 			_ = conn.Close()
@@ -131,7 +165,7 @@ func (d *connectDialer) chromeTunnel(ctx context.Context, network, address strin
 		return opened, err
 	}
 	p, err := d.adoptProxyH2(conn)
-	d.unlockProxyDial()
+	release()
 	if err != nil {
 		return nil, err
 	}
@@ -179,11 +213,13 @@ func (d *connectDialer) RoundTripProxyHTTP(req *fhttp.Request, fallback fhttp.Ro
 			return nil, replayErr
 		}
 	}
-	if err := d.lockProxyDial(req.Context()); err != nil {
+	release, err := d.lockProxyDiscovery(req.Context())
+	if err != nil {
 		return nil, err
 	}
-	defer d.unlockProxyDial()
+	defer release()
 	if p := d.takeProxyH2(); p != nil {
+		release()
 		res, err := d.proxyRoundTrip(req, p)
 		if !errors.Is(err, http2.ErrNoCachedConn) {
 			return res, err
@@ -194,7 +230,13 @@ func (d *connectDialer) RoundTripProxyHTTP(req *fhttp.Request, fallback fhttp.Ro
 			return nil, replayErr
 		}
 	}
-	return fallback.RoundTrip(req)
+	// fhttp invokes GotConn after proxy ALPN/adoption and before writing the
+	// request. Compose with the caller's trace; failure paths release below.
+	traced := httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{GotConn: func(info httptrace.GotConnInfo) {
+		d.proxyProtocol(!speaksH2(info.Conn))
+		release()
+	}})
+	return fallback.RoundTrip(req.WithContext(traced))
 }
 
 func proxyReplay(req *fhttp.Request) (*fhttp.Request, error) {

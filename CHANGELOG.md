@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Release HTTPS-proxy discovery locking at connection acquisition rather than
+  response arrival. Remember observed H1 per partition, retain actual ALPN on
+  new connections, and allow simultaneous H1 forwarding/CONNECT while preserving
+  H2 reuse, request tracing and canceled-waiter isolation.
+
 - Keep active H3 response bodies leased until completion. Reserve idle-close
   I/O before releasing the registry mutex, excluding concurrent new readers of
   the same site without blocking other sites or resetting session state.

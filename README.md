@@ -2776,3 +2776,9 @@ reads may finish; their retired connections close when the last reader leaves.
 Pool close/reap I/O runs outside the shared registry mutex. Idle-close claims
 exclude new readers until I/O finishes; active response bodies, including H3,
 keep their pool leased through completion.
+
+An HTTPS proxy's cold protocol discovery is serialized through ALPN setup,
+then released on connection acquisition before waiting for a forwarded answer.
+Observed HTTP/1.1 proxy connections permit parallel requests; the transport
+continues to negotiate every new connection and can adopt HTTP/2 if offered.
+Existing H2 CONNECT/forwarding reuse, retry and caller tracing remain active.

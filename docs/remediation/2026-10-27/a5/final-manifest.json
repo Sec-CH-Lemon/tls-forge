@@ -1,0 +1,763 @@
+{
+  "stage": "A5",
+  "status": "complete within S09/S10 scope",
+  "next_stage": "A6 not started",
+  "branch": "codex/a0-p0-remediation",
+  "baseline": "9b176b71ae494304fc1aa0fbc6ce8c6c3c3f9c22",
+  "commits_before_final_s10": [
+    "bf33682b4e30ed5c03f49c6997bdc17399da10dd",
+    "2bc7c7439f23dba02643581a26c95c9633046c7e",
+    "a807f721bbf39f4c4ac466c021da857a78d89475"
+  ],
+  "final_s10_commit_title": "fix: unlock proxy discovery before responses",
+  "final_commit_receipt": "private capture bundle commit-receipt.json (written after atomic commit)",
+  "engine": {
+    "version": "1.0.0",
+    "latest_released_version": "0.2.2",
+    "release_status": "unreleased",
+    "pending_engine_change": true
+  },
+  "schema": 4,
+  "daemon_protocol": 3,
+  "json_first": {
+    "classification": "Generic ownership and synchronization mechanisms;no new browser data choices.",
+    "unchanged_profile_json_count": 17,
+    "unchanged_executable_profiles": 15,
+    "profile_sha256": {
+      "profile/catalogue.json": "0374b86ce1c1f407e3ddfc1db684fada4c549e6e8e1bc3db5ed37d3b44b7ffbd",
+      "profile/data/chrome_151/linux.json": "144b6fa7ba1fb15e46daffb172caedc55cada432a3e2090f5d8badb3262148ab",
+      "profile/data/chrome_151/macos.json": "30d282051100242fd914cdaab26572f49f481cdbd8155988435b8a2a8705ebd5",
+      "profile/data/chrome_151/windows.json": "53cbcede1370ec229bb07aea3ee2d3c0e184e68001ecaaae0ffcefe0c338ce1f",
+      "profile/data/chrome_152/linux.json": "394006eb196fc3abd943c0c2e0e288503a498acee502daf90543ec20adbc086b",
+      "profile/data/chrome_152/macos.json": "739b6b361c790a6c19e1c15ef39c3f9ae720a00b53ffc8492d012d6def20915d",
+      "profile/data/chrome_152/windows.json": "ed5d73a73443321bdc865811ac59e0c446883e643971083edc417026781f1693",
+      "profile/data/chrome_153/linux.json": "2a0a5c9ecbc1f1004fcb202d756e3d451948ae76ce9fb5bcabcf79f390804a6c",
+      "profile/data/chrome_153/macos.json": "caa8a58a7e0436592539d920dc04a489f4d996023e2fc7a8bea05b0423aa0c4a",
+      "profile/data/chrome_153/windows.json": "59c56418f64d6fa5cf9b4c7da27cc3d422307ff08ce02853f8b378eb1465143f",
+      "profile/data/chrome_154/linux.json": "1a627effb463c75bf0f27dbbe0ab7ba2bd5da4bb95421939d41e6c728a9c58d6",
+      "profile/data/chrome_154/macos.json": "c9ec332131898b1d3d3142275fcccb7a3f09b7c5960319f62f1a13118e619ad2",
+      "profile/data/chrome_154/windows.json": "31e3eee0c99c714463e81a90993180a9cc549d3b0865f44c8621f7acab73043f",
+      "profile/data/chrome_155/linux.json": "94aacd85b8fbf1823830a860519a7ce314622492e6c80d5b2dd2ec60f4cb5a01",
+      "profile/data/chrome_155/macos.json": "7c18189194fa625e894940a0bb680bf15fc599c36ef2b3c8009306a93ee4d2d1",
+      "profile/data/chrome_155/windows.json": "f8c7ad73d7289258ce8d7da4bd57b00bfa6ca49b1cc6ae1b73277d4d80c372af",
+      "profile/engine-migration.json": "167802b5cd6acf2e9503543ea66f469471481e0f4e4fa707806216affe195f6c"
+    },
+    "control": "Actual temporary profile JSON http.max_site_pools1;no runtime browser-name/version dispatch."
+  },
+  "sources": {
+    "final_input_archive_sha256": "cd41d322a88160d41907bbbbb70e1b9b2e0dd5801d219e22de96291171127a53",
+    "full_suite_input_archive_sha256": "6cdea513be46fb8ec4ec58715ea9e95a83e52987db02699d8b5f157c2cbc65e5",
+    "test_only_delta": [
+      "a5_idle_close_test.go",
+      "docs/remediation/2026-10-27/a5/s09-overlap-checks.json"
+    ],
+    "post_freeze_document_only_paths": [
+      "docs/remediation/2026-10-27/README.ru.md",
+      "docs/remediation/2026-10-27/A5.ru.md",
+      "docs/remediation/2026-10-27/a5/final-manifest.json"
+    ],
+    "provenance": "Pre-overlap source is unchanged in all executable inputs;full-suite source and final source archives retained. Added test-only control passed20race repeats and fresh complete root coverage. No untracked owner go.work,tmp or foreign files.",
+    "baseline_replay": {
+      "source": "9b176b71 original A4 + test-only probes",
+      "archive_sha256": "b276397f30203087929f9ff361623b0cfa20acd3d5214f1de9dfa1aff6a4fc6a",
+      "probe_rule": "Current H1/H2 lifecycle and stalled-I/O tests only; remove new releaseSite test cleanup because the original runtime has no lease API. Retain existing original-module proxy probe and unchanged H3 probe. No production source edits.",
+      "tests": {
+        "a5_proxy_test.go": "2b531019137451875aab35d5a402692b1534172d73252eb97f5cfee4d935f1d6",
+        "a5_lifecycle_test.go": "796c53988a1c0bd6c53db0b5f942bd4d4e4483ea6497420cc7792b218805a7ae",
+        "a5_h3_lifecycle_test.go": "05c55a094de4f47e5163e9f6ab98627f483fffa35ad18d457689860ec48c0452"
+      }
+    },
+    "binary_sha256": "05ecdeb432a326ed461b9337fb354f00c68fa908b0274ee63319c098187dfd29",
+    "changed_input_sha256": {
+      "client.go": "931edb727398a7cff9c9921e9fc0e9606cbbb2c9eb03c76e5ccdb1bd6119716c",
+      "redirect.go": "d0c6c6746711c7afd83c86333109126ea1873b35983eb647a8c25ccdb02aa16f",
+      "cors.go": "4766815a57b20bb1fb11b084007925e76179ebd9a3ed210562d9434b7c5427c2",
+      "unread.go": "b47752ff459719699b5b546f939d28a206530406e9a881a7ef3e7633b13ccf60",
+      "transports.go": "3081b9fd857519dda25ee9377cd967bc1291bec4d28405200e07c8231ceb6520",
+      "transports_test.go": "8943808bec9d3b03a2a8b238b51f6f708cb972eafb8be0128e26a49a7e81d765",
+      "proxy_pool.go": "f381d1193d03aabc5d7bdad4646e9b990c000f50e56943283a90f81c3d80a599",
+      "a5_lifecycle_test.go": "67fdac75424b148227c25154eee569839e8b35c3424663a50cf257bd953bf4b9",
+      "a5_h3_lifecycle_test.go": "05c55a094de4f47e5163e9f6ab98627f483fffa35ad18d457689860ec48c0452",
+      "a5_idle_close_test.go": "a856275ed99e282fdf1897729c6679f71c5a070a60597d515d038484dc7f6a3f",
+      "a5_proxy_test.go": "4a75d29808705150c2f0bb0ca40fde9583e97341ac1e621aa32828ddbe3b0949"
+    }
+  },
+  "checks": {
+    "a5-ownership-final": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestEvicted|TestRetired|TestCloseIdleWaits|TestTransportIO|TestIdleCloseExcludes|Test.*Site|TestClosingIdleConnections",
+        "-count=3",
+        "-timeout",
+        "90s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 25.365,
+      "peak_group_rss_kib": 635920,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 110.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-overlap-race-final": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestConcurrentIdleClosesWaitForTheSameIO|TestIdleCloseExcludesNewReaders",
+        "-count=20",
+        "-timeout",
+        "40s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 14.951,
+      "peak_group_rss_kib": 647968,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-proxy-final": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestHTTP1HTTPSProxyForwardsConcurrently|TestProxyDiscovery|TestQueuedDiscovery|TestProxyPool",
+        "-count=3",
+        "-timeout",
+        "70s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 13.667,
+      "peak_group_rss_kib": 359008,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 90.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-coverage-accepted": {
+      "command": [
+        "go",
+        "test",
+        "-p",
+        "2",
+        "./...",
+        "-count=1",
+        "-coverprofile=/private/tmp/tls-forge-a5-20261027/coverage-accepted.out",
+        "-timeout",
+        "5m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 174.981,
+      "peak_group_rss_kib": 1159488,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 420.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-root-coverage-supplement": {
+      "command": [
+        "go",
+        "test",
+        "-p",
+        "2",
+        ".",
+        "-count=1",
+        "-coverprofile=/private/tmp/tls-forge-a5-20261027/coverage-root-final.out",
+        "-timeout",
+        "4m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 145.607,
+      "peak_group_rss_kib": 770048,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 340.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-full-race-final": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-p",
+        "2",
+        "./...",
+        "-count=1",
+        "-timeout",
+        "20m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 504.43,
+      "peak_group_rss_kib": 1867120,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 780.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-build-final": {
+      "command": [
+        "go",
+        "build",
+        "-o",
+        "/private/tmp/tls-forge-a5-20261027/tls-forge-final",
+        "./cmd/tls-forge"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 3.625,
+      "peak_group_rss_kib": 362848,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 80.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-node-real-daemon": {
+      "command": [
+        "node",
+        "--test",
+        "test/real-daemon.test.js"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root/node",
+      "returncode": 0,
+      "elapsed_seconds": 2.489,
+      "peak_group_rss_kib": 308352,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 75.0,
+        "rss_mib": 1536
+      }
+    },
+    "a5-python-real-daemon": {
+      "command": [
+        "/Users/ihar/Personal/tls-forge/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_real_daemon.py"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root/python",
+      "returncode": 0,
+      "elapsed_seconds": 7.242,
+      "peak_group_rss_kib": 227088,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 75.0,
+        "rss_mib": 1536
+      }
+    },
+    "a5-lint-final": {
+      "command": [
+        "/Users/ihar/go/bin/golangci-lint",
+        "run"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 9.085,
+      "peak_group_rss_kib": 1004400,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-lint-test-supplement": {
+      "command": [
+        "/Users/ihar/go/bin/golangci-lint",
+        "run"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 5.21,
+      "peak_group_rss_kib": 776240,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-vet-final": {
+      "command": [
+        "go",
+        "vet",
+        "-p",
+        "2",
+        "./..."
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 2.688,
+      "peak_group_rss_kib": 252096,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-generated-accepted": {
+      "command": [
+        "./scripts/check-generated.sh"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-generated",
+      "returncode": 0,
+      "elapsed_seconds": 2.956,
+      "peak_group_rss_kib": 182464,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-docs-final": {
+      "command": [
+        "make",
+        "docs-check"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-generated",
+      "returncode": 0,
+      "elapsed_seconds": 0.276,
+      "peak_group_rss_kib": 50496,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 1536
+      }
+    },
+    "a5-kb-final": {
+      "command": [
+        "python3",
+        "/private/tmp/tls-forge-a5-20261027/final-kb.py"
+      ],
+      "cwd": "/Users/ihar/Personal/net-fp-server",
+      "returncode": 0,
+      "elapsed_seconds": 0.391,
+      "peak_group_rss_kib": 86368,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 1536
+      }
+    },
+    "a5-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestEvictedSiteConnectionsAreClosed|TestTransportIOLeavesRegistryUnlocked|TestHTTP1HTTPSProxyForwardsConcurrently",
+        "-count=1",
+        "-timeout",
+        "60s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 1,
+      "elapsed_seconds": 10.403,
+      "peak_group_rss_kib": 695568,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 80.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-baseline-replay-final": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestEvictedSiteConnectionsAreClosed|TestEvictedQUICConnectionsAreClosed|TestTransportIOLeavesRegistryUnlocked|TestHTTP1HTTPSProxyForwardsConcurrently|TestProxyDiscoveryEndsBeforeResponse",
+        "-count=1",
+        "-timeout",
+        "40s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-before",
+      "returncode": 1,
+      "elapsed_seconds": 10.694,
+      "peak_group_rss_kib": 717168,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 2048
+      }
+    },
+    "s10-module-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestHTTP1HTTPSProxyForwardsConcurrently|TestProxyDiscoveryEndsBeforeResponse",
+        "-count=1",
+        "-timeout",
+        "60s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-before",
+      "returncode": 1,
+      "elapsed_seconds": 6.568,
+      "peak_group_rss_kib": 739344,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 70.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-h3-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "^TestEvictedQUICConnectionsAreClosed$",
+        "-count=1",
+        "-timeout",
+        "45s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-before",
+      "returncode": 1,
+      "elapsed_seconds": 9.269,
+      "peak_group_rss_kib": 760384,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-h3-after": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "^TestEvictedQUICConnectionsAreClosed$",
+        "-count=3",
+        "-timeout",
+        "60s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 1,
+      "elapsed_seconds": 14.306,
+      "peak_group_rss_kib": 642576,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 70.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-idle-boundary-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestIdleCloseExcludesNewReadersWithoutRegistryLock",
+        "-count=1",
+        "-timeout",
+        "20s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-idle-before",
+      "returncode": 1,
+      "elapsed_seconds": 6.864,
+      "peak_group_rss_kib": 727856,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 40.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-overlap-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestConcurrentIdleClosesWaitForTheSameIO",
+        "-count=1",
+        "-timeout",
+        "25s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-idle-before",
+      "returncode": 1,
+      "elapsed_seconds": 6.664,
+      "peak_group_rss_kib": 740864,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 45.0,
+        "rss_mib": 2048
+      }
+    },
+    "s10-target-after": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestHTTP1HTTPSProxyForwardsConcurrently|TestProxyDiscoveryEndsBeforeResponse|TestProxyPool|TestAForwarded|TestAWaitForTheProxy|TestACONNECT|TestAnHTTP1Proxy|TestADialThatEnds|TestAProxysHTTP2",
+        "-count=1",
+        "-timeout",
+        "80s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 1,
+      "elapsed_seconds": 4.695,
+      "peak_group_rss_kib": 686128,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 2048
+      }
+    },
+    "s10-retry-recheck": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "^TestProxyPoolRetriesRefusedForwardStream$",
+        "-count=10",
+        "-timeout",
+        "60s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 3.227,
+      "peak_group_rss_kib": 386528,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 70.0,
+        "rss_mib": 2048
+      }
+    },
+    "baseline-h2-retry": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "^TestProxyPoolRetriesRefusedForwardStream$",
+        "-count=50",
+        "-timeout",
+        "80s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-before",
+      "returncode": 0,
+      "elapsed_seconds": 6.088,
+      "peak_group_rss_kib": 321712,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 90.0,
+        "rss_mib": 2048
+      }
+    },
+    "a5-full-race": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-p",
+        "2",
+        "./...",
+        "-count=1",
+        "-timeout",
+        "20m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": -15,
+      "elapsed_seconds": 358.033,
+      "peak_group_rss_kib": 606368,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 780.0,
+        "rss_mib": 2048
+      }
+    }
+  },
+  "accepted_checks": [
+    "a5-ownership-final",
+    "a5-overlap-race-final",
+    "a5-proxy-final",
+    "a5-coverage-accepted",
+    "a5-root-coverage-supplement",
+    "a5-full-race-final",
+    "a5-build-final",
+    "a5-node-real-daemon",
+    "a5-python-real-daemon",
+    "a5-lint-final",
+    "a5-lint-test-supplement",
+    "a5-vet-final",
+    "a5-generated-accepted",
+    "a5-docs-final",
+    "a5-kb-final"
+  ],
+  "coverage": {
+    "full_suite": "a5-coverage-accepted.json",
+    "root_supplement": "a5-root-coverage-supplement.json",
+    "rule": "Replace only root-package blocks with fresh complete root-package profile; other23 package inputs unchanged. No exclusions or rounding.",
+    "blocks": 11151,
+    "statements": 16128,
+    "uncovered_blocks": 0,
+    "percent": 100,
+    "full_suite_pre_supplement_uncovered_blocks": [
+      "github.com/Sec-CH-Lemon/tls-forge/transports.go:277.23,279.4 1 0",
+      "github.com/Sec-CH-Lemon/tls-forge/transports.go:295.31,297.3 1 0"
+    ]
+  },
+  "interpretation": {
+    "a5-before": "Original baseline: H1 already passes0of2 open;H2 leaks1of2;registry mutex spans stalled I/O;real proxy forwarding blocked.",
+    "a5-baseline-replay-final": "Pristine A4 runtime and sealed probe inputs before rerun. H1 positive controls remain green;H2 leak,H3 premature close,registry-I/O and forwarding controls fail.",
+    "s09-h3-after": "First S09 checkpoint fails all12 H3 cases;retained counterexample,not accepted.",
+    "s09-idle-boundary-before": "First S09 admits new reader during blocked idle-close;the later timeout is caused by consuming that negative-test result channel.",
+    "s09-overlap-before": "First S09 performs two overlapping close operations;final claim coalesces them.",
+    "s10-target-after": "Single early REFUSED_STREAM POST failure http2:stream closed;cause unknown. Subsequent count10 and unchanged-baseline count50 pass. Do not call inherited or hide original failure.",
+    "a5-full-race": "Superseded pre-H3 run intentionally terminated with SIGTERM;not a test verdict. Final full race passes.",
+    "coverage": "Go rounded100% initially hid2blocks. Test-only overlapping-close control added;fresh full root profile replaces only root blocks in the already-green full24-package profile. Exact11151blocks/16128statements/0uncovered;no exclusions.",
+    "setup": "One launcher could not find lint by short PATH name. Absolute installed binary passes;recorded separately,not a product failure."
+  },
+  "dependency_pins": [
+    "github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261027155902-91882e219ed0",
+    "require github.com/igor-lemon/websocket v1.5.6-barnius.0.20261026204638-961b3d7db465 // indirect",
+    "github.com/igor-lemon/fhttp v0.6.10-0.20261027082738-45fad1187082",
+    "github.com/igor-lemon/tls-client v1.15.2-0.20261026204916-dd9490f82c4a",
+    "github.com/igor-lemon/utls v1.7.8-barnius.0.20261027154812-18ad3707d82d"
+  ],
+  "kb": {
+    "baseline": "remediation-a5-lifetime-proxy-20261027",
+    "observations": [
+      "REVIEW-008",
+      "PROXY-005"
+    ],
+    "target_preserved": true,
+    "prior_observations_preserved": true,
+    "entries": 258,
+    "observations_total": 1481,
+    "files_sha256": {
+      "browser-behavior.json": "a9315f557c2dc69272bf9b9d498426e1227295ead20af6d1596cd28fd1ff8711",
+      "BROWSER_BEHAVIOR.md": "6bc184f68640649a90392a7bc7b4a09d5765ca8b8515a70decc7c9a65a6418ef",
+      "browser-behavior.html": "611a7328151b04c80f903139c181b7c8e910cd65479f0966c70598e63c922285"
+    },
+    "git": "Sibling working tree only;foreign staged backlog untouched."
+  },
+  "artifact_sha256": {
+    "a5-all-protocol-ownership.log": "1ec9a02a9d37e039800f71d29ffcda42dfff2d9c465406c736952172b1f3d754",
+    "a5-baseline-replay-final.log": "e7d52ab9c5642a2c3b288d04bec0a139a3498967318b1157155aa4f022b85c3d",
+    "a5-before.log": "bef5172baa52779be85e86e2a45a4c3acd0e8e0dca60fa9caa56a52808fd4905",
+    "a5-build-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a5-coverage-accepted.log": "9a70d439e8685e463452b23e45fcf585226d9330cb7dcbde3f3018e82f92f239",
+    "a5-coverage-final.log": "2a9ba38e668457c5b37b56dc27d2251737e18b54f4be04134ade87ff8441c039",
+    "a5-docs-final.log": "cf6f9ef15740d0d0ced5da02298cd12acf902a1a5e2b31dbd5863c7726ba042b",
+    "a5-final-root-coverage.log": "4af9a8e7423b958eefc81f9d8c5b44f2d81ec77acd2ca55679d9e6f287439e30",
+    "a5-final-witness.log": "ce214a9159b470c017cd8018ee434eb1df5c08458ee2fe1518badb4f803db827",
+    "a5-full-race-final.log": "55d160291c140b103e4955806d30ee53c502dddcc3dc17a8914af461a6e781a5",
+    "a5-full-race.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a5-generated-accepted.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a5-generated-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a5-kb-final.log": "fd38c5ebf0ee5d22f45dfa23cac01ad82043d59ec6056f33828626531f2b734e",
+    "a5-lint-final.log": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47",
+    "a5-lint-test-supplement.log": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47",
+    "a5-lint.log": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47",
+    "a5-node-real-daemon.log": "bc6bb68ff530330365e2dadc68badc6733168c743e8795cc48ca2972ef7d15c3",
+    "a5-overlap-race-final.log": "21d0c64b1bddb98b4497feb2a21a39f9b6b32321f391ffd464a7f40a26cc66b9",
+    "a5-ownership-final.log": "c7fcd3964a6a43de9ce6e1a9dd4fe0b7a3ad61943a3d51ab87f311ec23b8911e",
+    "a5-proxy-final.log": "0b4b7f98b8818ee384bc98578235081c2e300f926452188eff97270eb90b6696",
+    "a5-python-real-daemon.log": "546e9f6b8ee829f877a1992f74c8f9cbff2701008c65761b9f518e502e790f18",
+    "a5-root-coverage-supplement.log": "5bc4c52cc35c7611c7a72dca6ecd2007fe1e23b7b3baf6d8017b6629d174d700",
+    "a5-root-coverage.log": "0df14774d2227bd82482b2fc616909b2d939a4cdcb7c086827d11ab4ca07ffdf",
+    "a5-vet-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a5-vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseline-h2-retry.log": "ce0dc31ab7f5c0a127aa78113cb637ae33e90fb590948d71ce373d44a62bd1b6",
+    "baseline-replay-inputs.tar": "b276397f30203087929f9ff361623b0cfa20acd3d5214f1de9dfa1aff6a4fc6a",
+    "before-witness.tar": "55c7c7624a5adabda828a9e373816698229c554aacf4d3beebb00eb5d0828fcc",
+    "coverage-accepted.out": "c986f9ae464298a33c48929932a283fb5b9a8cbcd1c822c3e6ef59d631895c68",
+    "coverage-combined.out": "1af64ccb028e7d01a3bdb6bbeb66f448e8154568bc4642399207584b4857b022",
+    "coverage-final.out": "33c8bfa3c407562bc7cd3175eda36dd2c3f13980c282d32555c860dfc9ec0a6b",
+    "coverage-root-final.out": "64beb67ecf15935a07b0487f49f217c70d6cf4fb815a9915b9c00530e34fa061",
+    "coverage.out": "55f7bc66762aaea7ef73812ce96ed5db6f1f1e543b80742b34fae8fff8a391ff",
+    "final-inputs.tar": "cd41d322a88160d41907bbbbb70e1b9b2e0dd5801d219e22de96291171127a53",
+    "idle-before-witness.tar": "1c5d94e1873342edb2f4375a021c08153f4430480a24b434566471a297537de7",
+    "pre-h3-final-inputs.tar": "c6fdf6b5abf839a0cd387ab358b18a248882769e3238d6fa78035ce4731d4553",
+    "pre-overlap-final-inputs.tar": "6cdea513be46fb8ec4ec58715ea9e95a83e52987db02699d8b5f157c2cbc65e5",
+    "root-before.tar": "001ea343c3a92668f305a6c64a9755be66fbe05eaa3cea4d1ce02e3ed4fb0e41",
+    "s09-drain-after.log": "a2cdd87aa3a5dd4c0e3261373adda2421befc4ff15c70bae11b1c20bd663a238",
+    "s09-first-witness.tar": "eaed8fc0c5270f3a449f59a08ee391c23432f6906c9498fc0c1b2ad97c7aa36c",
+    "s09-h3-after.log": "58273f164e7a8337ee9e91b726fd9fb0c6e532e72d4caad1a07d578e4e974ee2",
+    "s09-h3-before.log": "640ebdac6f1e8aa4753ee5e4c35aa30e738f29daee7f0e7b0fe47946759fb003",
+    "s09-idle-boundary-before.log": "da077dbe204029f4f9b0388aed4d3fa46ac5aa2f86c9f13de21f205a5cf43c32",
+    "s09-isolated-race.log": "7f307f38778e0f087e370de284426fe071066dbe603cab116e39b5cef045a298",
+    "s09-overlap-before.log": "27da04684e147cd1dcd104f2550025b921bbf95cf31a42b2c0d39f6fa46689fb",
+    "s09-target-after.log": "594674cf1bbf80be9a893e90caf27b386fe3799a1aed6557d677b64f7eb3f234",
+    "s09-target-fixed.log": "06dda5681f350984d4449134bbe6a628f976d40f70b02eace82d91e9fd912f53",
+    "s10-final-target-race.log": "668128fb6b03d9b6e48519253a36eae5fd8b1e9862bf998e8274ca16eab3f478",
+    "s10-module-before.log": "fa21006b386023c8e6f87429fa5c52cb377ef28a4361fed99ac1aaa36dfa43ff",
+    "s10-retry-recheck.log": "4814dee5fdb1c40ef6c1262e43ae3fa7c08c25969a9affa41c2f2a2c33916e31",
+    "s10-target-after.log": "942ecf7fa2de2b455bb0768fe6e50e65af8f775a155ce8fff4a90637ef63b72f"
+  },
+  "metadata_sha256": {
+    "a5-ownership-final.json": "ce21ced4c801e6ba4cfb6c8207269ad17032010cd6e79903e0fe2bd942ad91a3",
+    "a5-overlap-race-final.json": "867c016b8aebc8f120f07c48ba517ccf8dfa3554ce96d273e018f259ffb1c45c",
+    "a5-proxy-final.json": "564c6cab9f3ec7bff73be23c17e1ed771bb73c0021a2b78d2cae3c45f1c8c993",
+    "a5-coverage-accepted.json": "568e29ca596df3f4a1c86f42b73ff749c645e107ad6f0a4a57cbe7af77b6e431",
+    "a5-root-coverage-supplement.json": "22a876b9cea70f6e66126b307188094183775ba9b472be5635e27bc54593aec2",
+    "a5-full-race-final.json": "c5d284a34c67f099464075980583bf70dae5ac29ba302064b1dacda398b0fd2f",
+    "a5-build-final.json": "e3f0d6da463f06cf3c0117d1a0a4a4b0ea2221a870a855c12e583daa97aca1c0",
+    "a5-node-real-daemon.json": "c8bfabf3a3861373a957285d80244b6fe4d8b7dac54c010b250609101ddcd9f5",
+    "a5-python-real-daemon.json": "c3b5522ab9d781850e2260aa6094d8146f9b755f7975453ba1743946ad45058b",
+    "a5-lint-final.json": "43d081aa19e34135cb11b16b103f34f474cf5c19909e852de1963a295bc2c431",
+    "a5-lint-test-supplement.json": "ed8ec414d36aeec1a8d6d0080596ce88046c778c49fe41a59d4a946ab91ef7af",
+    "a5-vet-final.json": "579294aea6b21fe920b9f73e04bcb63c273e7c8fd01fdeb48f572ff6e5380617",
+    "a5-generated-accepted.json": "b8c511425056cd2d2f7e1d553fc1b172c64e43ef3ef47c05ede655e4f69ebe0f",
+    "a5-docs-final.json": "3303028c57001cc33482082adc64271e5dbcc52d51209c24f6f636b5e49f21be",
+    "a5-kb-final.json": "b9d14fe3fb1d8f4255b30eccc212e4b9285a1b68bdaf980d7b3a1e57a702b790",
+    "a5-before.json": "019eb601d9d2fefa12244c5bccb508d84724ff8efc14aa4b04b8934e142284bb",
+    "a5-baseline-replay-final.json": "8bf1369aa1ef486b560ff4bf3ff73a4b3f80015b1fd0bbe8864f3b2e51e5bea1",
+    "s10-module-before.json": "7da0044ef478599c1fd63f27c62470968df05d414a74880000707ecd9cbefde1",
+    "s09-h3-before.json": "a10aa1c457008b98c76bf9bf652b087fcad453bbaa51a43f49ef838c2144415d",
+    "s09-h3-after.json": "fb7d3801ab4e6f360f7d1edde532de1dfb050084ddd31c6d742c0fe2600a6315",
+    "s09-idle-boundary-before.json": "2d0799f4ca916e4d3de7a405db8ff83828f8d8d838f20c7dd09a3dad13a54360",
+    "s09-overlap-before.json": "258c01518f037d8ed14573cdcb0aca593c8b7697c1f8f6a42a8cd77b777d3493",
+    "s10-target-after.json": "0f1ac2f7363f6202110d51eb27a7a2c401f5508d52a09fc754f1ffe5c7c1b197",
+    "s10-retry-recheck.json": "e3deda89b081c94a12ec6e2f3c584111d245e0b4d94408e57340510f81d6e191",
+    "baseline-h2-retry.json": "8dae20f297a00d61813a0f10531cf92253f84bf92d190c3c0c068b48d33067b7",
+    "a5-full-race.json": "062e5f41f802e0aa8c495fb1005c5961bcff7bba36fc3ed0e0da217ee0677624"
+  },
+  "private_bundle": "../net-fp-server/captures/remediation-a5-20261027 (ignored;0700)",
+  "limits": [
+    "No fresh Chrome actor,paired browser timing/distribution or indistinguishability verdict.",
+    "Close prevents new work and cancels/waits detached drains;active final readers finish/error under existing deadlines,then last lease closes their retired pool.",
+    "Retired count follows active reader lifetime;JSON LRU bound applies to resident pools.",
+    "No fork source/pin changes. F09 known QUIC self CurveID,STREAM allocation/simnet race and fhttp MaxQueuedControlFrames debt remains open;whole fork suites not rerun here.",
+    "Local module artifacts preserved;no push/publication or SumDB availability acceptance.",
+    "Single early H2 retry transient remains unexplained;original log and successful repeats retained.",
+    "Owner untracked AGENTS.md notes updated locally but whole foreign file is not staged."
+  ]
+}

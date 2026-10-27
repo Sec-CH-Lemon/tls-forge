@@ -1804,3 +1804,12 @@ whose internal RoundTrip count ends at headers. Only sites without chain/drainer
 leases may enter idle-close I/O. The claim is made under the registry mutex; new
 readers of that site wait outside the mutex until it finishes. Other sites can
 proceed, and the resident site retains its existing session pool.
+
+HTTPS-proxy discovery locking is synchronization, not a browser data choice.
+Only a cold connection's negotiation/setup is serialized. The GotConn hook
+composes with caller tracing and ends the lease before a response can block.
+Observed H1 bypasses future discovery locking; every new socket still negotiates
+ALPN normally. No captured ALPN, browser name/version, timing threshold or
+concurrency default is hardcoded by this mechanism. New sites/Fresh have their
+own observation state. Profile ALPN vectors and existing connection limits still
+apply; no profile values or version metadata change for this fix.
