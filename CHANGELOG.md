@@ -11,6 +11,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Require explicit TLS key-log destinations; ignore `SSLKEYLOGFILE` in utls
+  and strip only that variable from Node/Python daemon starts and restarts.
+  Preserve explicit keylog/pcap support. JSON QUIC layout overrides ambient
+  scrambling switches; profile HTTP/2 stays independent of `http2client=0`.
+- Mask forward-proxy authorization across write cuts and reused HTTP requests
+  in pcap snapshots, preserving body/tunnel bytes and lengths. Redact additional
+  auth headers and sensitive query parameters in diagnostics, including final
+  URLs, and passwords in Validate/CanonicalURL/OwnPage/CookiesFor errors.
+
 - Confine captured profile paths and registry reads to their root, validate
   identifiers and browser majors, and put implicit manual captures under
   `manual_` so visitor data cannot change default profile selection. Bind random

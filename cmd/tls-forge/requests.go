@@ -589,7 +589,7 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 		return r, nil, b.kept(&r, nil, j, lane)
 	}
 	r.Status = res.Status
-	r.FinalURL = res.URL
+	r.FinalURL = safeURL(res.URL)
 	r.Bytes = len(res.Body)
 	r.finding = found
 	if err := b.kept(&r, res, j, lane); err != nil {

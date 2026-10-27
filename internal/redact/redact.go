@@ -20,6 +20,7 @@ const Masked = "***"
 
 // URL is a URL without the password in it, its username kept.
 func URL(raw string) string {
+	raw = queries(raw)
 	if raw == "" || !strings.Contains(raw, "@") {
 		return raw
 	}
@@ -120,6 +121,7 @@ func withoutProxy(text, proxy string) string {
 // first ":" of the userinfo. Quotes are not where a URL ends, since a password
 // may hold one, escaped.
 func Text(text string) string {
+	text = queries(text)
 	if !strings.Contains(text, "://") || !strings.Contains(text, "@") {
 		return text
 	}
@@ -168,8 +170,7 @@ func Value(name, value string) string {
 		return maskAfter(pair, "=") + attributes
 	case lower == "authorization", lower == "proxy-authorization":
 		return maskAfter(value, " ")
-	case strings.Contains(lower, "token"), strings.Contains(lower, "secret"),
-		strings.Contains(lower, "password"), strings.Contains(lower, "key"):
+	case sensitive(lower):
 		// Nobody's standard, and where an API key usually travels.
 		return Masked
 	}
@@ -184,4 +185,41 @@ func maskAfter(value, separator string) string {
 		return Masked
 	}
 	return name + separator + Masked
+}
+
+// sensitive is shared by header values and decoded query parameter names.
+func sensitive(name string) bool {
+	lower := strings.ToLower(name)
+	return lower == "x-auth" || lower == "authorization" || lower == "proxy-authorization" || lower == "x-authorization" ||
+		strings.Contains(lower, "token") || strings.Contains(lower, "secret") || strings.Contains(lower, "password") || strings.Contains(lower, "key")
+}
+
+// queries preserves spelling, order, repeated fields and non-secret values.
+// It also works on quoted URLs in parse errors, including malformed URLs that
+// cannot be passed through url.Parse. No request URL is changed by this helper.
+func queries(text string) string {
+	var out strings.Builder
+	for {
+		start := strings.IndexByte(text, '?')
+		if start < 0 {
+			out.WriteString(text)
+			return out.String()
+		}
+		out.WriteString(text[:start+1])
+		text = text[start+1:]
+		end := strings.IndexFunc(text, func(r rune) bool { return unicode.IsSpace(r) || r == '#' })
+		if end < 0 {
+			end = len(text)
+		}
+		fields := strings.Split(text[:end], "&")
+		for i, field := range fields {
+			name, _, found := strings.Cut(field, "=")
+			decoded, err := url.QueryUnescape(name)
+			if found && err == nil && sensitive(decoded) {
+				fields[i] = name + "=" + Masked
+			}
+		}
+		out.WriteString(strings.Join(fields, "&"))
+		text = text[end:]
+	}
 }

@@ -83,7 +83,7 @@ function answer(request, extra = {}) {
     url: request.url,
     body: JSON.stringify({
       argv: process.argv.slice(2),
-      env: { TLSFORGE_PROXY: process.env.TLSFORGE_PROXY ?? null },
+      env: Object.fromEntries(['TLSFORGE_PROXY', 'SSLKEYLOGFILE', 'sslkeylogfile', 'QUIC_GO_DISABLE_ECN', 'QUIC_GO_DISABLE_GSO', 'QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING', 'QUIC_GO_LOG_LEVEL', 'QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING', 'GODEBUG'].map((name) => [name, process.env[name] ?? null])),
       // The proxy the init line named, and the line it was: the first.
       proxy,
       // Which process answered, and how much of a body reached it: a

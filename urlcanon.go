@@ -3,6 +3,7 @@ package tlsforge
 import (
 	"errors"
 	"fmt"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	"github.com/igor-lemon/utls/behavior"
 	"math"
 	"net/netip"
@@ -36,7 +37,7 @@ import (
 func CanonicalURL(raw string) (string, error) {
 	p, err := sendableURL(raw, nil)
 	if err != nil {
-		return "", fmt.Errorf("tlsforge: %q %w", raw, err)
+		return "", fmt.Errorf("tlsforge: %q %w", redact.URL(raw), redact.Err(err))
 	}
 	return p.String(), nil
 }

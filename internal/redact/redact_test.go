@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -131,6 +132,35 @@ func TestValue(t *testing.T) {
 	} {
 		if got := Value(tc.name, tc.value); got != tc.want {
 			t.Errorf("Value(%q, %q) = %q, want %q", tc.name, tc.value, got, tc.want)
+		}
+	}
+}
+
+func TestSecretQueryAndAdditionalAuthFields(t *testing.T) {
+	for _, raw := range []string{
+		"https://example.test/x?access_token=never-keep&ok=1&access_token=never-keep#fragment",
+		"https://u:never-keep@example.test/?%61ccess%5ftoken=never-keep&ok=1",
+		"https://example.test/?X-Auth=never-keep&api_key=never-keep&ok=1",
+	} {
+		for _, safe := range []string{URL(raw), Text(`parse "` + raw + `": broken`), Text("prefix " + raw + " suffix")} {
+			if strings.Contains(safe, "never-keep") || !strings.Contains(safe, "ok=1") {
+				t.Errorf("unsafe or corrupted: %s", safe)
+			}
+		}
+	}
+	for _, name := range []string{"X-Authorization", "x-auth", "ACCESS_TOKEN"} {
+		if got := Value(name, "never-keep rest"); strings.Contains(got, "never-keep") {
+			t.Errorf("%s leaked: %s", name, got)
+		}
+	}
+}
+
+func TestQueryRedactionDoesNotStopInsideQuotedSecret(t *testing.T) {
+	for _, raw := range []string{`https://example.test/?access_token=part'never-keep`, `https://example.test/?access_token=part"never-keep`, `https://example.test/?access_token=part\never-keep`} {
+		for _, safe := range []string{URL(raw), Text(`parse "` + raw + `": invalid`)} {
+			if strings.Contains(safe, "never-keep") {
+				t.Errorf("quoted query leaked: %s", safe)
+			}
 		}
 	}
 }

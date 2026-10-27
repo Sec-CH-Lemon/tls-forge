@@ -775,7 +775,7 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 // of an answer.
 func (c *Client) Validate(req *Request) error {
 	_, _, err := c.parse(req)
-	return err
+	return redact.Err(err, c.proxy)
 }
 
 // parse is a request as the transport will send it, and its browser context
@@ -905,7 +905,7 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 func (c *Client) CookiesFor(rawURL string) ([]Cookie, error) {
 	p, err := parseURL(rawURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("tlsforge: %q %w", rawURL, err)
+		return nil, fmt.Errorf("tlsforge: %q %w", redact.URL(rawURL), redact.Err(err))
 	}
 	return c.session.cookiesFor(p.url()), nil
 }

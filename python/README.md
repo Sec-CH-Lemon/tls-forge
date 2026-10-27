@@ -422,3 +422,10 @@ The project is licensed under Apache-2.0; see
 [`LICENSE`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/LICENSE),
 [`NOTICE`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/NOTICE) and
 [`THIRD-PARTY-NOTICES.txt`](https://github.com/Sec-CH-Lemon/tls-forge/blob/main/THIRD-PARTY-NOTICES.txt).
+
+
+Daemon starts and replacements inherit the environment except `SSLKEYLOGFILE`
+(case-insensitively). The parent environment is unchanged. TLS secret export
+requires explicit engine/CLI keylog or pcap configuration; other `QUIC_GO_*`
+variables and `GODEBUG` are preserved. An explicit profile's QUIC layout and
+HTTP/2 selection keep their authority over ambient protocol defaults.

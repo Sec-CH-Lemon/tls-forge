@@ -400,10 +400,14 @@ func answer(req request) map[string]any {
 		cookies = []string{}
 	}
 
-	env := map[string]any{"TLSFORGE_PROXY": nil}
-	if inherited, set := os.LookupEnv("TLSFORGE_PROXY"); set {
-		env["TLSFORGE_PROXY"] = inherited
+	env := map[string]any{}
+	for _, name := range []string{"TLSFORGE_PROXY", "SSLKEYLOGFILE", "sslkeylogfile", "QUIC_GO_DISABLE_ECN", "QUIC_GO_DISABLE_GSO", "QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING", "QUIC_GO_LOG_LEVEL", "QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING", "GODEBUG"} {
+		env[name] = nil
+		if inherited, set := os.LookupEnv(name); set {
+			env[name] = inherited
+		}
 	}
+
 	// In characters, as the Python and Node fakes count a string: a body of
 	// "я" is one long, not two.
 	bodyLength := 0

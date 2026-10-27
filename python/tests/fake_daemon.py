@@ -56,7 +56,7 @@ def answer(request: dict, **extra: object) -> dict:
         "body": json.dumps(
             {
                 "argv": sys.argv[1:],
-                "env": {"TLSFORGE_PROXY": os.environ.get("TLSFORGE_PROXY")},
+                "env": {name: os.environ.get(name) for name in ['TLSFORGE_PROXY', 'SSLKEYLOGFILE', 'sslkeylogfile', 'QUIC_GO_DISABLE_ECN', 'QUIC_GO_DISABLE_GSO', 'QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING', 'QUIC_GO_LOG_LEVEL', 'QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING', 'GODEBUG']},
                 # The proxy the init line named.
                 "proxy": SEEN.get("proxy"),
                 # Which process answered, and how much of a body reached it: a

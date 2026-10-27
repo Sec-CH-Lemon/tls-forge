@@ -999,6 +999,17 @@ tls-forge fetch --keylog run.keys https://example.com/
 tshark -r run.pcap -o tls.keylog_file:run.keys -Y 'http2 or http3'
 ```
 
+TLS secret export requires an explicit destination: `--keylog FILE`,
+`--pcap` (which embeds the secrets), or Go's `WithKeyLogWriter`. The engine
+ignores ambient `SSLKEYLOGFILE`; Node and Python also remove just that variable
+from every daemon start, without changing their parent's environment.
+Diagnostics mask passwords, sensitive query parameters such as `access_token`
+(including repeated or encoded names), `X-Auth` and `X-Authorization`.
+A pcap masks cleartext proxy credentials across request heads and write cuts,
+including repeated forward HTTP requests, preserving byte lengths and bodies.
+The explicit content outputs and decrypted application data in a pcap still
+contain what the request actually sent and received.
+
 A capture of a run is TLS records, which say nothing without the secrets of
 their connections. `--keylog FILE` adds those of every connection the run
 makes to the file, in the NSS key log format that browsers write to the file
@@ -1719,7 +1730,7 @@ Usage: `tls-forge capture [flags]`
 | `-b`, `--browser <name-or-path>` | `chrome`, `chromium`, `edge`, `brave`, or an executable path; auto-detected when omitted |
 | `--headless` | Run without a window; TLS/HTTP structure remains useful for drift checks, but Chrome says `HeadlessChrome` in its user agent where a headed one says `Chrome`, so with `--install` it needs `--name`: a capture saying `HeadlessChrome` is not kept as `local`, every command's default |
 | `-s`, `--save <path>` | Save a profile; an existing directory gets `<name>/<platform>.json` |
-| `--install` | Save into the user profile directory so `--profile local` can find it |
+| `--install` | Save into the user profile directory; launched captures use `local`, implicit manual captures use `manual_<browser>_<major>` |
 | `--set <NAME=VALUE>` | With `--save` or `--install`, a value the profile keeps of this machine, as its header carries it: `accept-language`, or a client hint of the machine's (`sec-ch-ua-platform-version`, `-arch`, `-bitness`, `-model`, `-wow64`, `-form-factors`); repeatable |
 | `-n`, `--name <name>` | Profile identifier: `[a-z0-9][a-z0-9_.-]*`, without `..`; otherwise derive it from the browser version (`manual_` prefix with `--manual`) |
 | `-j`, `--json` | Print the raw capture instead of a human summary |
@@ -1799,19 +1810,13 @@ command warns about; stop it once the phone has been measured. Without
 `--host`, the address printed is `localhost`, which a phone cannot open, and
 the command says so, with a name this machine may be reached by.
 
-The profile is named after the browser and its version, `firefox_148`, and
-filed under the platform its user agent says, which for a phone is not this
-machine's: `safari_18/ios.json`, used as `--profile safari_18_ios`.
-`--install` keeps it under that name rather than as `local`, so
-`--profile firefox_148` then finds the Firefox measured here ahead of the
-catalogue's handshake without headers. A Chromium browser is named by the
-brand it names to scripts: Brave's user agent is Chrome's word for word, and
-it is kept as `brave_155`; one that names no brand but Chromium's, as
-`chromium_155`. `--install` keeps nothing under the name of a profile
-tls-forge ships, `chrome_155_macos`: read before the shipped ones, it would
-answer for that one from then on, and for `--profile chrome` too. Give it a
-name of its own with `--name`, which is also how to replace a shipped one on
-purpose. Measured over HTTP/1.1 by its own visit,
+The implicit profile identifier is `manual_firefox_148`, filed under the
+platform its user agent says: `manual_safari_18/ios.json`, selected with
+`--profile manual_safari_18_ios`. A Chromium browser is identified from its
+brands (for example `manual_brave_155` or `manual_chromium_155`). These names
+cannot replace `local` or a shipped browser family default. Use explicit
+`--name` to choose another identifier or deliberately replace a shipped one.
+Measured over HTTP/1.1 by its own visit,
 typed as the first was rather than sent there by the page, which would show in
 what it sends, the profile has the browser's HTTP/1.1 as it spelt it; finished
 without that visit, it has none, and a request that goes out over HTTP/1.1
@@ -1880,7 +1885,7 @@ HTTP/2 frames as they went.
 tls-forge compare
 tls-forge compare --profile chrome_151 --headless
 tls-forge compare --json > comparison.json
-tls-forge compare --manual --profile firefox_148
+tls-forge compare --manual --profile manual_firefox_148
 ```
 
 With `--manual` the browser is one you open the page in, as for

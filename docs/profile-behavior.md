@@ -1745,3 +1745,43 @@ entries are evicted and a full handshake is required; existing explicit insecure
 time/name options retain their semantics. The two Go security fixes are scoped
 to CVE-2025-61730 and CVE-2025-68121; this is not an audit of every crypto/tls
 change. No browser/profile JSON values, schema or pending major changed.
+
+
+## Environment and explicit profiles
+
+Executable profiles remain pinned to unpublished engine1, schema4. A4 changes
+security mechanisms and policy propagation, not captured browser values; JSON
+files and their original measurement provenance are unchanged.
+
+`quic.initial_layout` owns the layout, including `scramble`, regardless of
+`QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING`. Bare callers of the QUIC fork without
+an explicit layout retain its legacy environment behavior. The project's
+profile transport selects HTTP/2 directly: `GODEBUG=http2client=0` does not
+replace that choice. A forward HTTP proxy and ordinary helper clients are not
+browser protocol measurements. Keep JSON production-wire controls for both
+layout choices and test HTTP/2 through Client.Do.
+
+SDK daemon startup preserves `QUIC_GO_DISABLE_ECN`, `QUIC_GO_DISABLE_GSO`,
+`QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING`, `QUIC_GO_LOG_LEVEL`,
+`QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING` and `GODEBUG`; it removes only
+`SSLKEYLOGFILE` (case-insensitively, including Windows). ECN/GSO switches limit
+usable socket/kernel facilities; they do not supply browser defaults or enable
+a feature excluded by JSON. They can change actual network observations, so
+record them with OS/socket capabilities and keep them unset for an unmodified
+browser comparison. Warning/log switches affect diagnostics. Tests on this
+macOS host do not establish Linux GSO/ECN behavior.
+
+TLS key logging requires an explicit API/CLI destination. The engine never
+reads `SSLKEYLOGFILE`, on either client or server. Diagnostic redaction changes
+only displayed strings and capture snapshots; credentials, query parameters,
+request/response payloads and canonical URLs returned on success retain their
+actual application values. A deliberately exported pcap/keylog allows reading
+application secrets; proxy credentials sent in cleartext heads are masked.
+
+Captured file identifiers are lower-case ASCII identifiers without `..`;
+`profile.FilePath` owns the version/platform layout. Directory writes and reads
+use an OS root handle. Implicit manual captures use a `manual_` namespace and
+cannot select the default `local` or newest `chrome` family. Reported browser
+majors are bounded to 1–4 ASCII digits. Explicit profile files and `--name` are
+owner inputs, not visitor assertions; profile engine-major validation remains
+mandatory after loading the file.

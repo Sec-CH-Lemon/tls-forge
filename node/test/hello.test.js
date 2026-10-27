@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Client, TLSForgeError, Unsupported } from '../index.js';
+import { Client, TLSForgeError, Unsupported, SessionReset } from '../index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fakeDaemon = path.join(here, 'fake-daemon.js');
@@ -277,4 +277,26 @@ test('a replacement process must pass its own engine handshake', async () => {
     assert.equal(lines.filter((line) => line.control === 'hello').length, 2);
     assert.equal(lines.filter((line) => line.url?.includes('must-not-resolve')).length, 0);
   }, { timeout: 1000 });
+});
+
+
+test('only ambient TLS key logging is removed on every daemon start', async () => {
+ const kept = {
+  QUIC_GO_DISABLE_ECN:'1', QUIC_GO_DISABLE_GSO:'1',
+  QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING:'1', QUIC_GO_LOG_LEVEL:'ERROR',
+  QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING:'true', GODEBUG:'http2client=0',
+ };
+ await withTransport({...kept, SSLKEYLOGFILE:'never-export', sslkeylogfile:'never-export'},async (client) => {
+  for (let i=0;i<2;i++) {
+   const answer=await seen(client);
+   assert.equal(answer.env.SSLKEYLOGFILE,null);
+   assert.equal(answer.env.sslkeylogfile,null);
+   for(const [key,value] of Object.entries(kept)) assert.equal(answer.env[key],value);
+   assert.equal(process.env.SSLKEYLOGFILE,'never-export');
+   if(i===0) {
+    await assert.rejects(client.get('https://silent/'), /timed out/);
+    await assert.rejects(client.get('https://ok/'), SessionReset);
+   }
+  }
+ },{timeout:1000});
 });

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/netip"
 	"slices"
 	"strings"
@@ -578,8 +579,8 @@ func TestMasked(t *testing.T) {
 			[]byte("CONNECT a:443 HTTP/1.1\r\nProxy-Authorization\r\n\r\n")},
 		{"what goes through a tunnel", []byte("CONNECT a:80 HTTP/1.1\r\n\r\nGET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n"),
 			[]byte("CONNECT a:80 HTTP/1.1\r\n\r\nGET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n")},
-		{"no CONNECT", []byte("GET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n"),
-			[]byte("GET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n")},
+		{"a forward request", []byte("GET / HTTP/1.1\r\nProxy-Authorization: Basic x\r\n"),
+			[]byte("GET / HTTP/1.1\r\nProxy-Authorization: Basic *\r\n")},
 		{"nothing", nil, nil},
 	} {
 		sent := bytes.Clone(tc.sent)
@@ -650,5 +651,55 @@ func TestTunnelled(t *testing.T) {
 		if got, whole := Tunnelled(tc.sent); !whole || !bytes.Equal(got, tc.sent) {
 			t.Errorf("%s: %q, %v", tc.name, got, whole)
 		}
+	}
+}
+
+func TestMaskedForwardRequestsAndBodies(t *testing.T) {
+	body := "GET /fake HTTP/1.1\r\nProxy-Authorization: Basic keep-body\r\n\r\n"
+	head := fmt.Sprintf("POST http://origin.test/x HTTP/1.1\r\nHost: origin.test\r\nProxy-Authorization: Basic never-keep\r\nContent-Length: %d\r\n\r\n", len(body))
+	next := "GET http://origin.test/y HTTP/1.1\r\nHost: origin.test\r\nProxy-Authorization: Bearer never-keep\r\n\r\n"
+	for _, sent := range []string{head + body + next, "POST http://origin.test/ HTTP/1.1\r\nHost: origin.test\r\nTransfer-Encoding: chunked\r\nProxy-Authorization: Basic never-keep\r\n\r\n" + fmt.Sprintf("%x\r\n%s\r\n0\r\n\r\n", len(body), body) + next} {
+		safe := Masked([]byte(sent))
+		if len(safe) != len(sent) || bytes.Contains(safe, []byte("never-keep")) || !bytes.Contains(safe, []byte(body)) {
+			t.Errorf("unsafe or changed body: %s", safe)
+		}
+		for i := range len(sent) + 1 {
+			partial := Masked([]byte(sent[:i]))
+			if bytes.Contains(partial, []byte("never-keep")) {
+				t.Errorf("prefix %d leaked: %s", i, partial)
+				break
+			}
+		}
+	}
+}
+
+func TestMaskedEventSnapshotKeepsCutsAndInput(t *testing.T) {
+	raw := []byte("GET http://origin.test/ HTTP/1.1\r\nHost: origin.test\r\nProxy-Authorization: Basic never-keep\r\n\r\n")
+	events := []Event{{What: Received, Data: []byte("server")}}
+	for _, b := range raw {
+		events = append(events, Event{What: Sent, Data: []byte{b}})
+	}
+	events = append(events, Event{What: Closed})
+	safe := MaskedEvents(events)
+	var joined []byte
+	for i, event := range safe {
+		if event.What != events[i].What || event.At != events[i].At || len(event.Data) != len(events[i].Data) {
+			t.Fatalf("event %d changed shape", i)
+		}
+		if event.What == Sent {
+			joined = append(joined, event.Data...)
+		}
+	}
+	if !bytes.Equal(joined, Masked(raw)) {
+		t.Fatalf("unmasked: %s", joined)
+	}
+	var original []byte
+	for _, event := range events {
+		if event.What == Sent {
+			original = append(original, event.Data...)
+		}
+	}
+	if !bytes.Equal(original, raw) || !bytes.Equal(safe[0].Data, []byte("server")) {
+		t.Error("input or server data changed")
 	}
 }

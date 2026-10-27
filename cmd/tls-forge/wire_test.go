@@ -776,3 +776,26 @@ func TestKeysGoToTheKeyLogAndTheWire(t *testing.T) {
 		t.Errorf("%d, %v: the key log has %q", n, err, log.String())
 	}
 }
+
+func TestWireMasksSplitAndReusedForwardProxyRequests(t *testing.T) {
+	w := newWire()
+	c := &wiredConn{users: map[int]bool{1: true, 2: true}}
+	w.conns = append(w.conns, c)
+	sent := []byte("GET http://origin.test/ HTTP/1.1\r\nProxy-Authorization: Basic never-keep\r\n\r\n")
+	for _, b := range sent {
+		w.sent(c, []byte{b})
+	}
+	w.capture(1)
+	w.sent(c, sent)
+	second, _ := w.capture(2)
+	var joined []byte
+	for _, event := range second[0].Events {
+		joined = append(joined, event.Data...)
+	}
+	if bytes.Contains(joined, []byte("never-keep")) || bytes.Count(joined, []byte("Basic **********")) != 2 {
+		t.Fatalf("split or reused capture leaked: %s", joined)
+	}
+	if len(joined) != 2*len(sent) {
+		t.Error("length changed")
+	}
+}

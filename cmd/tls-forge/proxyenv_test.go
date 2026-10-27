@@ -181,6 +181,7 @@ func nowhereSaid(t *testing.T, dir string, said ...string) {
 }
 
 func TestAProxysPasswordIsWrittenNowhere(t *testing.T) {
+	checkAdditionalSecretOutputs(t)
 	server, _ := countingTLS(t)
 
 	// One that will not parse is refused before the run, as a usage error,

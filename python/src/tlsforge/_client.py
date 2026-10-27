@@ -562,6 +562,9 @@ class Client:
                 # a damaged line the decoder will reject anyway.
                 errors="replace",
                 bufsize=1,
+                # Explicit key-log destinations are the only export authority.
+                env={key: value for key, value in os.environ.items()
+                     if key.upper() != "SSLKEYLOGFILE"},
             )
         except OSError as err:
             # A binary without its exec bit, a Linux binary in a macOS checkout,

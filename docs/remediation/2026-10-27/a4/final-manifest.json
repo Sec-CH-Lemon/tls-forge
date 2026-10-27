@@ -1,0 +1,813 @@
+{
+  "stage": "A4/S07-S08",
+  "status": "S07/S08 accepted; F09 dependency debt remains open",
+  "baseline": "3f73a07ab275d21b1ea5879eaa05d57a97f416f8",
+  "branch": "codex/a0-p0-remediation",
+  "identity": {
+    "version": "1.0.0",
+    "latest_released_version": "0.2.2",
+    "release_status": "unreleased",
+    "pending_engine_change": true
+  },
+  "source_overlay_sha256": "afba2646e4d2a1b5c352d7b8bb3ffcca7c8d6d60e82199d60c606d2965210391",
+  "private_bundle": "net-fp-server/captures/remediation-a4-20261027",
+  "source_archives": {
+    "root-before.tar": "2b2848d80bc27d292ec5e0e71089bc8f0247c6368f6ffb70f784f3f254811a5d",
+    "utls-before.tar": "4a3ef3350aa35f60a79da9159ad7675d4f78f3eac9f30f491771dab11a7ed5be",
+    "quic-before.tar": "a579712fb7fa7eaf5c881f00a80aafe8e8d23890f5af2ec948352ab9c987bca9",
+    "final-inputs.tar": "afba2646e4d2a1b5c352d7b8bb3ffcca7c8d6d60e82199d60c606d2965210391",
+    "utls-final.tar": "e709a73dcece5e6886f1c31e4a3209d7b0abca959be30b50db747871d15a99b4",
+    "quic-final.tar": "63fac1159d31b4e900e97ae17a01588ba7c19b413702d0df684448331ce5b2cb",
+    "s07-source.tar": "38045a27128296a4099fba9ea735e5cdcec3b5eee04de7df6c44f97904d05870",
+    "before-output-witness-source.tar": "db303e028709727fd23030bac5fe1c777baec0631f10b43486b3e5a9f8c39e4a"
+  },
+  "checks": {
+    "s07-before": {
+      "command": [
+        "go",
+        "test",
+        "./echo",
+        "./cmd/tls-forge",
+        "-run",
+        "TestCaptureRejectsVisitorPathComponents|TestNavigationTokensRejectOtherVisitors",
+        "-count=1",
+        "-timeout",
+        "2m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 1,
+      "elapsed_seconds": 3.154,
+      "peak_group_rss_kib": 573488,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 150.0,
+        "rss_mib": 1536
+      }
+    },
+    "s07-final-gate": {
+      "command": [
+        "go",
+        "test",
+        "./echo",
+        "./profile",
+        "./internal/atomicfile",
+        "./cmd/tls-forge",
+        "-skip",
+        "TestWireMasksSplitAndReusedForwardProxyRequests",
+        "-coverprofile=/private/tmp/tls-forge-a4-20261027/s07-final.cover",
+        "-count=1",
+        "-timeout",
+        "2m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 56.311,
+      "peak_group_rss_kib": 646208,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 160.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-keylog-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestKeyLogEnvironmentIsNotConsent",
+        "-count=1",
+        "-timeout",
+        "90s"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-utls",
+      "returncode": 1,
+      "elapsed_seconds": 2.212,
+      "peak_group_rss_kib": 358960,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-keylog-after": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "./...",
+        "-count=1",
+        "-timeout",
+        "90s"
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-utls",
+      "returncode": 0,
+      "elapsed_seconds": 13.873,
+      "peak_group_rss_kib": 374688,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-sdk-node-before": {
+      "command": [
+        "node",
+        "--test",
+        "--test-name-pattern=only ambient TLS key logging",
+        "node/test/hello.test.js"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge",
+      "returncode": 1,
+      "elapsed_seconds": 0.256,
+      "peak_group_rss_kib": 104432,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 25.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-sdk-python-before": {
+      "command": [
+        "/Users/ihar/Personal/tls-forge/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_hello.py",
+        "-k",
+        "only_ambient_key_logging"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/python",
+      "returncode": 1,
+      "elapsed_seconds": 0.652,
+      "peak_group_rss_kib": 47728,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 25.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-sdk-node-final": {
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/node",
+      "returncode": 0,
+      "elapsed_seconds": 11.941,
+      "peak_group_rss_kib": 590688,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-sdk-python-isolated": {
+      "command": [
+        "/Users/ihar/Personal/tls-forge/.venv/bin/python",
+        "-m",
+        "coverage",
+        "run",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/python",
+      "returncode": 0,
+      "elapsed_seconds": 17.534,
+      "peak_group_rss_kib": 440960,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-output-before-reused": {
+      "command": [
+        "go",
+        "test",
+        "./cmd/tls-forge",
+        "-run",
+        "^TestAProxysPasswordIsWrittenNowhere$",
+        "-count=1",
+        "-timeout",
+        "70s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-before-output",
+      "returncode": 1,
+      "elapsed_seconds": 4.321,
+      "peak_group_rss_kib": 498928,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 80.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-output-after-reused": {
+      "command": [
+        "go",
+        "test",
+        "./cmd/tls-forge",
+        "-run",
+        "^TestAProxysPasswordIsWrittenNowhere$",
+        "-count=1",
+        "-timeout",
+        "70s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 3.121,
+      "peak_group_rss_kib": 554592,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 80.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-env-composition-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "^TestProfileQUICLayoutOverridesAmbientScrambling$",
+        "-count=3",
+        "-timeout",
+        "35s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-before-output",
+      "returncode": 1,
+      "elapsed_seconds": 7.486,
+      "peak_group_rss_kib": 680016,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 45.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-env-composition-after": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "^TestProfileQUICLayoutOverridesAmbientScrambling$",
+        "-count=3",
+        "-timeout",
+        "35s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 5.226,
+      "peak_group_rss_kib": 727184,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 45.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-quic-target-after": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestInitialLayoutPolicyOverridesEnvironment|TestCryptoStream|TestInitialCrypto|TestChaos|TestChrome",
+        "-count=1",
+        "-timeout",
+        "60s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-quic",
+      "returncode": 0,
+      "elapsed_seconds": 11.628,
+      "peak_group_rss_kib": 493360,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 70.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-quic-full-race-bounded": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-p",
+        "2",
+        "-parallel",
+        "4",
+        "./...",
+        "-count=1",
+        "-timeout",
+        "4m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-quic",
+      "returncode": 1,
+      "elapsed_seconds": 34.182,
+      "peak_group_rss_kib": 393456,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 300.0,
+        "rss_mib": 1536
+      }
+    },
+    "s08-quic-inherited-debt": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-p",
+        "2",
+        "-parallel",
+        "4",
+        "./integrationtests/self",
+        "./internal/wire",
+        "./testutils/simnet",
+        "-run",
+        "TestFrameParserAllocs|TestMTUEnforcement",
+        "-count=1",
+        "-timeout",
+        "80s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-quic-before",
+      "returncode": 1,
+      "elapsed_seconds": 5.461,
+      "peak_group_rss_kib": 367600,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-coverage-final": {
+      "command": [
+        "go",
+        "test",
+        "-p",
+        "2",
+        "-coverprofile=/private/tmp/tls-forge-a4-20261027/accepted-final.cover",
+        "-count=1",
+        "-timeout",
+        "4m",
+        "./..."
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 163.347,
+      "peak_group_rss_kib": 1146832,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 360.0,
+        "rss_mib": 2048
+      }
+    },
+    "a4-node-real-daemon": {
+      "command": [
+        "node",
+        "--test",
+        "test/real-daemon.test.js"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/node",
+      "returncode": 0,
+      "elapsed_seconds": 1.961,
+      "peak_group_rss_kib": 277696,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 75.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-python-real-daemon": {
+      "command": [
+        "/Users/ihar/Personal/tls-forge/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_real_daemon.py"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/python",
+      "returncode": 0,
+      "elapsed_seconds": 6.133,
+      "peak_group_rss_kib": 192384,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 75.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-node-native-env": {
+      "command": [
+        "node",
+        "--test",
+        "--test-name-pattern=only ambient TLS key logging",
+        "test/hello.test.js"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/node",
+      "returncode": 0,
+      "elapsed_seconds": 1.644,
+      "peak_group_rss_kib": 109248,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 30.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-python-native-env": {
+      "command": [
+        "/Users/ihar/Personal/tls-forge/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_hello.py",
+        "-k",
+        "only_ambient_key_logging"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/python",
+      "returncode": 0,
+      "elapsed_seconds": 1.038,
+      "peak_group_rss_kib": 38352,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 30.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-root-race": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-p",
+        "2",
+        "./...",
+        "-count=1",
+        "-timeout",
+        "20m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 464.212,
+      "peak_group_rss_kib": 1856464,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 720.0,
+        "rss_mib": 2048
+      }
+    },
+    "a4-cli-coverage-final": {
+      "command": [
+        "go",
+        "test",
+        "./cmd/tls-forge",
+        "-coverprofile=/private/tmp/tls-forge-a4-20261027/cli-final.cover",
+        "-count=1",
+        "-timeout",
+        "2m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 54.252,
+      "peak_group_rss_kib": 513040,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 160.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-final-lint-clean": {
+      "command": [
+        "/Users/ihar/go/bin/golangci-lint",
+        "run"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 3.568,
+      "peak_group_rss_kib": 581936,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 160.0,
+        "rss_mib": 2048
+      }
+    },
+    "a4-vet": {
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 4.11,
+      "peak_group_rss_kib": 278080,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-generated": {
+      "command": [
+        "./scripts/check-generated.sh"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-checkout",
+      "returncode": 0,
+      "elapsed_seconds": 5.397,
+      "peak_group_rss_kib": 180832,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 160.0,
+        "rss_mib": 2048
+      }
+    },
+    "a4-docs": {
+      "command": [
+        "make",
+        "docs-check"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-checkout",
+      "returncode": 0,
+      "elapsed_seconds": 4.549,
+      "peak_group_rss_kib": 108192,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-utls-vet": {
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-utls",
+      "returncode": 0,
+      "elapsed_seconds": 8.78,
+      "peak_group_rss_kib": 505520,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-quic-vet": {
+      "command": [
+        "go",
+        "vet",
+        ".",
+        "./http3"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-quic",
+      "returncode": 0,
+      "elapsed_seconds": 10.318,
+      "peak_group_rss_kib": 562784,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 100.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-python-types": {
+      "command": [
+        "/Users/ihar/Personal/tls-forge/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "cwd": "/Users/ihar/Personal/tls-forge/python",
+      "returncode": 0,
+      "elapsed_seconds": 0.403,
+      "peak_group_rss_kib": 35664,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 30.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-docs-final": {
+      "command": [
+        "make",
+        "docs-check"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-checkout",
+      "returncode": 0,
+      "elapsed_seconds": 0.253,
+      "peak_group_rss_kib": 3200,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 1536
+      }
+    },
+    "a4-kb-final": {
+      "command": [
+        "python3",
+        "tools/render-knowledge-base.py",
+        "--check"
+      ],
+      "cwd": "/Users/ihar/Personal/net-fp-server",
+      "returncode": 0,
+      "elapsed_seconds": 0.256,
+      "peak_group_rss_kib": 31664,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 60.0,
+        "rss_mib": 1536
+      }
+    }
+  },
+  "pending_checks": [],
+  "fork_commits": {
+    "utls": "18ad3707d82dd574de261411a4f0f6e17292e147",
+    "quic-go-utls": "91882e219ed00c5bee67578977a779bff99e068a"
+  },
+  "modules": {
+    "github.com/igor-lemon/quic-go-utls": "v1.0.10-utls.0.20261027155902-91882e219ed0",
+    "github.com/igor-lemon/websocket": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+    "github.com/igor-lemon/fhttp": "v0.6.10-0.20261027082738-45fad1187082",
+    "github.com/igor-lemon/tls-client": "v1.15.2-0.20261026204916-dd9490f82c4a",
+    "github.com/igor-lemon/utls": "v1.7.8-barnius.0.20261027154812-18ad3707d82d"
+  },
+  "independent_forward_pcap": [
+    {
+      "state": "before",
+      "file": "output-before/forward-proxy/out/127.0.0.1-2026-10-27-170830-693-1.pcapng",
+      "sha256": "e0a2b8fc0a4485666351dab0122deacbd6a07873c2837779011a28fa4c92ece9",
+      "http_requests": 1,
+      "methods": [
+        [
+          "GET"
+        ]
+      ],
+      "streams": [
+        "0"
+      ],
+      "auth_lengths": [
+        38
+      ],
+      "contains_original_basic": true,
+      "auth_credentials_all_stars": false,
+      "normalizations": [
+        "Only original TCP proxy stream/request counts are compared. Dynamic ports, timestamps, IP/TCP sequence metadata and origin authority are retained, not asserted equal across runs. No browser parity inferred."
+      ]
+    },
+    {
+      "state": "before",
+      "file": "output-before/forward-proxy/out/127.0.0.1-2026-10-27-170830-704-2.pcapng",
+      "sha256": "165396caf584de62f3d4acc713319878227a7ae94c4c676546e0e1b8655f620b",
+      "http_requests": 2,
+      "methods": [
+        [
+          "GET"
+        ],
+        [
+          "GET"
+        ]
+      ],
+      "streams": [
+        "0"
+      ],
+      "auth_lengths": [
+        38,
+        38
+      ],
+      "contains_original_basic": true,
+      "auth_credentials_all_stars": false,
+      "normalizations": [
+        "Only original TCP proxy stream/request counts are compared. Dynamic ports, timestamps, IP/TCP sequence metadata and origin authority are retained, not asserted equal across runs. No browser parity inferred."
+      ]
+    },
+    {
+      "state": "after",
+      "file": "output-after/forward-proxy/out/127.0.0.1-2026-10-27-170832-456-1.pcapng",
+      "sha256": "00606dca0d77fe52bf33bbada31ab2445c1dbb56ad11b72f43663388da04d647",
+      "http_requests": 1,
+      "methods": [
+        [
+          "GET"
+        ]
+      ],
+      "streams": [
+        "0"
+      ],
+      "auth_lengths": [
+        38
+      ],
+      "contains_original_basic": false,
+      "auth_credentials_all_stars": true,
+      "normalizations": [
+        "Only original TCP proxy stream/request counts are compared. Dynamic ports, timestamps, IP/TCP sequence metadata and origin authority are retained, not asserted equal across runs. No browser parity inferred."
+      ]
+    },
+    {
+      "state": "after",
+      "file": "output-after/forward-proxy/out/127.0.0.1-2026-10-27-170832-465-2.pcapng",
+      "sha256": "9d13a2bb6d7831d61ae3cbfd4bb64f5904e1a0fb31ae605d85cd7cb866b44aa9",
+      "http_requests": 2,
+      "methods": [
+        [
+          "GET"
+        ],
+        [
+          "GET"
+        ]
+      ],
+      "streams": [
+        "0"
+      ],
+      "auth_lengths": [
+        38,
+        38
+      ],
+      "contains_original_basic": false,
+      "auth_credentials_all_stars": true,
+      "normalizations": [
+        "Only original TCP proxy stream/request counts are compared. Dynamic ports, timestamps, IP/TCP sequence metadata and origin authority are retained, not asserted equal across runs. No browser parity inferred."
+      ]
+    }
+  ],
+  "known_limits": [
+    "No new Chrome actor or browser-parity conclusion.",
+    "QUIC full suite inherits CurveID/allocs/simnet fixture failures, reproduced before; F09 remains open.",
+    "Unpublished local pins, no push/publication.",
+    "Remote host plus User-Agent is visitor isolation, not authentication.",
+    "Existing untracked go.work still references original utls161481b/QUIC16c5d922 checkouts. Final candidate requires GOWORK=off; ignored existing binaries are not the tested final binary."
+  ],
+  "original_profile_json_unchanged": true,
+  "log_sha256": {
+    "s07-final-gate": "0602affcab6a3635ada4c912e4ed24c8ea314dfd517df65c956648c12ddfc17e",
+    "s08-keylog-after": "2971fcdb8a2a2e49b18e7a555eb968ae6c84cbe6b2af6dee482bc0ed91c43033",
+    "s08-sdk-node-final": "56b21b5b4b250b057ad32ab98ee95b90e1ab5623514d27d510c44857ffe409c2",
+    "s08-sdk-python-isolated": "0104480ee47b9dd854d1919c6d8939a66f3e66541573db636c78427ac955546c",
+    "s08-output-after-reused": "7098a4a69c06e7e257b8f48887db1283ab7d30f7f88e769d275a30762e656100",
+    "s08-env-composition-after": "16949e52538639960d8ca128cb391cb14a02c60a4da73c88183cea7d868340fd",
+    "s08-quic-target-after": "277f44c5412f6de6d11ec24d938918a8242f84f68508b6dbec9af04903a7b89c",
+    "a4-coverage-final": "95f488cdcc80f4885dd3514cc4cf2bed45ac718246590f69b1c4b2db0be116a8",
+    "a4-root-race": "8b71d7f5f5fd95571dc7fe6e5a46c6273f95a53ac6d5819b22b45645fefe2cac",
+    "a4-cli-coverage-final": "6e309c1d14bb155de4599a9ed98c13c9fd77c1221b3a609d817c14c0be79e0ed",
+    "a4-final-lint-clean": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47",
+    "a4-vet": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a4-generated": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a4-docs": "d637b34dec96cffd7e6f9964dfa8ddae28770366e2163d7899ababe1bbe8a789",
+    "a4-utls-vet": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a4-quic-vet": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "a4-node-real-daemon": "2f66524d3fa18785605e587d1bc3355771a01211dae9969ec20d743215f3aa5f",
+    "a4-python-real-daemon": "9ed2a46d563ea03d91b55c7941aadab44d33cde161e55b0dd1553f86baa4db87",
+    "a4-node-native-env": "21997473dd59529097c0054a18d02a50ebc871cee859babcf16794d7d97a484e",
+    "a4-python-native-env": "581df731f671ec1088a2d5d8684bb911b6f7887107ee54e3caa08a0e05b493eb",
+    "a4-python-types": "e317872697c2cbfdefa321527a6efe73290dff3a390b0fa8723b87092eccba6a",
+    "s07-before": "0ca0fc874176b6decc40ef1dcccec2dfe21aec4920d0196ffeb037dc81a42981",
+    "s08-keylog-before": "de303dcf3abbf985758a7045e97d1cc2364ea2452c97bd7472683646e27bc134",
+    "s08-sdk-node-before": "42b1943a722c9f717e51e1e0c9b9ed545ba8049b92b68373ffd9254d025462a6",
+    "s08-sdk-python-before": "840fc783be08a590576194f52a16acb49b8cbc92651ebf1b0fbe1844bcc7148f",
+    "s08-output-before-reused": "2a3d92b2ad4dc7bbd75d61c98ca3fff6bc62fd932207035ad46829e28c2a78a6",
+    "s08-env-composition-before": "ff41550741d2d796f5e636f2fbd0b5dfa7c6e8e7b6f2fa1d1ea1c733d38dc1d8",
+    "s08-quic-full-race-bounded": "79e5807a1fe68dd8dba808fde465eee053a1014dda4d7d4f92655fe8b8fac28d",
+    "s08-quic-inherited-debt": "8b723765d1241af3d0c9997b351424eb723df0101be88f911c8d9ad8f7277a14",
+    "a4-docs-final": "8f851ab3e9a87d80686e5bbdddb98f5c6a7e465ab662e07ecd26e70a4007f391",
+    "a4-kb-final": "d58a287b52e44c4f655d21c8c5b6ee6f25e09d7c49b6aa2b08c31c4990f4d83a"
+  },
+  "coverage": {
+    "root_tracked_statements": "100%",
+    "root_uncovered_blocks": 0,
+    "final_cli_uncovered_blocks": 0,
+    "node_lines_branches_functions": "100%",
+    "python_lines_branches": "100%",
+    "coverage_note": "Full root coverage plus fresh final CLI coverage; only test 502 literal was replaced by identical http.StatusBadGateway between the full coverage and final race builds."
+  },
+  "coverage_artifact_sha256": {
+    "accepted-final.cover": "0d7dda919f119341860b85e08e3f0b22938dd4ce3da02fb915c1afbc43d2d0ea",
+    "cli-final.cover": "86689bd7efe1e7399b3652a9b528555319177399721b8834ae7e1fa1cbb885a6",
+    "python-coverage.txt": "b3ff34ddb081e457d2ef94a5d867fdb2e24c9d9f5aeb0367ed340f68c9b29ce9"
+  },
+  "artifact_sha256": {
+    "local-proxy/github.com/igor-lemon/fhttp/@v/v0.6.10-0.20261027082738-45fad1187082.info": "3da1e93580e2753847ea29c699a4f7bb6dfb3139246fc87d332511645ee0929c",
+    "local-proxy/github.com/igor-lemon/fhttp/@v/v0.6.10-0.20261027082738-45fad1187082.mod": "c4a5db907794ca8c912eaa256554de1af3711b3a2990cda333794d4125f2143b",
+    "local-proxy/github.com/igor-lemon/fhttp/@v/v0.6.10-0.20261027082738-45fad1187082.zip": "93d84ca14994808f3b3e1c4678216bc2b0e8c9b78aa5796222f7e2bbdafc8580",
+    "local-proxy/github.com/igor-lemon/quic-go-utls/@v/v1.0.10-utls.0.20261027155902-91882e219ed0.info": "de97caba3b5cf376028bab4e738ecb93fd800f6baf54e163c722de68ac7b0813",
+    "local-proxy/github.com/igor-lemon/quic-go-utls/@v/v1.0.10-utls.0.20261027155902-91882e219ed0.mod": "9999f7947669feec183bd5ce7f3aea447d16c1e02a2239b625a90a8a2c11c761",
+    "local-proxy/github.com/igor-lemon/quic-go-utls/@v/v1.0.10-utls.0.20261027155902-91882e219ed0.zip": "9bc214500d05478e6e04bfbce0eb2ad461d5c09af30a7ea16edcabb8db3f17e8",
+    "local-proxy/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261026204916-dd9490f82c4a.info": "4a5e11c0455d7d80ce1d2ad04dd7dbea33ac234cb235d130d082abc780b48d86",
+    "local-proxy/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261026204916-dd9490f82c4a.mod": "a585fd3b42e27da6e3cc481d09bd559aef2cc6f0cb33c6b5eb443f8b59863c12",
+    "local-proxy/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261026204916-dd9490f82c4a.zip": "0592b41eec97523e455eea34f2d9c02756a6a486578867ce05fdb8a554f57aa8",
+    "local-proxy/github.com/igor-lemon/utls/@v/v1.7.8-barnius.0.20261027154812-18ad3707d82d.info": "0649ab808b0674cf014b171f26378a52c5847ad4aabb1e788430b141a001a9b1",
+    "local-proxy/github.com/igor-lemon/utls/@v/v1.7.8-barnius.0.20261027154812-18ad3707d82d.mod": "0f1c89ce99f0263f46c6bb61e3b3b08e0ac5698f29022ea921a287c8bcc765fd",
+    "local-proxy/github.com/igor-lemon/utls/@v/v1.7.8-barnius.0.20261027154812-18ad3707d82d.zip": "e66237ff1335aa3d2a5b60e9a99cbaeb470109a2b0cdb8391fa423e8c470783f",
+    "local-proxy/github.com/igor-lemon/websocket/@v/v1.5.6-barnius.0.20261026204638-961b3d7db465.info": "ad1d84d280e7de47c7e9457113e794b721e8cf51d52fccaf1d7b0fada1b904b3",
+    "local-proxy/github.com/igor-lemon/websocket/@v/v1.5.6-barnius.0.20261026204638-961b3d7db465.mod": "1087bdbd605dee5f99bdd67415f8162f9588899b7c32e2e4c2f884cb74becda0",
+    "local-proxy/github.com/igor-lemon/websocket/@v/v1.5.6-barnius.0.20261026204638-961b3d7db465.zip": "4ba0096822e65de3d98edc632721680b3a90963bdaaca8b8490b94dfc5263f32"
+  },
+  "superseded_control_notes": [
+    "First-packet frame-count oracle was too strong under shuffled extension order; replaced with full-flight skip/fill and complete ClientHello composition. Original logs retained.",
+    "Initial proxy witness closed connections; preserved separately as nonreused, replaced with a persistent proxy and explicit connection/auth counters plus independent tshark.",
+    "Unrestricted compiler runs exceeded private RSS budgets; bounded -p2 reruns retained all tests.",
+    "An existing Python300ms deadline test failed during concurrent compilation; full isolated suite passes.",
+    "All raw logs and intermediate results remain private; known full-QUIC failures are preserved, not hidden by a green root gate."
+  ],
+  "independent_decoder_sha256": "ace06f8a6c9e29d8b485419e0ff6a3ff40d6e74b85e6bc727014e7e551412293",
+  "kb_final_sha256": {
+    "final-browser-behavior.json": "d123b499f9218c05a12362b2120ae41a6f6c5fbd583c5917015324eeb5ed1f74",
+    "final-BROWSER_BEHAVIOR.md": "57ef76448310e4950f522cb3bac6f76bd4fc6e88e64344985782a56e19d86e43",
+    "final-browser-behavior.html": "23dd9987e1b5cef996e2b3fbb2c00dc4e6ec1c7ba72f0edd9cd5fbb05917ca68"
+  }
+}

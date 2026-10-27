@@ -3,6 +3,7 @@ package tlsforge
 import (
 	"cmp"
 	"fmt"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 
 	fhttp "github.com/igor-lemon/fhttp"
 )
@@ -14,7 +15,7 @@ import (
 func OwnPage(rawURL string) (string, error) {
 	target, err := parseURL(rawURL, nil)
 	if err != nil {
-		return "", fmt.Errorf("tlsforge: %q %w", rawURL, err)
+		return "", fmt.Errorf("tlsforge: %q %w", redact.URL(rawURL), redact.Err(err))
 	}
 	return originOf(target.url()).String() + "/", nil
 }

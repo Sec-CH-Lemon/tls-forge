@@ -16,6 +16,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/pcapng"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // What --pcap keeps beside each request's files: NAME.pcapng, the
@@ -69,8 +70,8 @@ type wiredConn struct {
 	// none.
 	quic   bool
 	source netip.AddrPort
-	// events are what happened on the connection, what the client sent with
-	// the credentials it gave a proxy masked (pcapng.Masked).
+	// events are private connection bytes. capture masks proxy credentials on
+	// a reassembled snapshot before they can reach a pcap file.
 	events []pcapng.Event
 	// head is what the client sent first, as it sent it, until random, the
 	// client random of the ClientHello it began with, is found, or looked says
@@ -189,10 +190,7 @@ func (w *wire) sent(c *wiredConn, data []byte) {
 	}
 	at := time.Now()
 	if !c.looked {
-		// What a proxy was given to let the tunnel through goes into no
-		// capture: data is the wire's own copy.
 		c.head = append(c.head, data...)
-		copy(data, pcapng.Masked(c.head)[len(c.head)-len(data):])
 	}
 	c.events = append(c.events, pcapng.Event{At: at, What: pcapng.Sent, Data: data})
 	if c.looked {
@@ -316,8 +314,12 @@ func (w *wire) capture(id int) ([]pcapng.Stream, []byte) {
 		if c.quic {
 			client = c.source
 		}
+		events := c.events[:len(c.events):len(c.events)]
+		if !c.quic {
+			events = pcapng.MaskedEvents(events)
+		}
 		streams = append(streams, pcapng.Stream{Client: client, Server: c.server, Opened: c.opened,
-			Connected: c.connected, Events: c.events[:len(c.events):len(c.events)], Datagrams: c.quic})
+			Connected: c.connected, Events: events, Datagrams: c.quic})
 		secrets = append(secrets, w.secrets[c.random]...)
 		delete(c.users, id)
 	}
@@ -335,7 +337,7 @@ func (w *wire) keep(path string, r *result, j job, about requestAbout) error {
 			"carried, but for the credentials a proxy was given in the clear, a * for each of their bytes, and a QUIC "+
 			"connection's datagrams as its socket wrote and read them. "+
 			"The TLS secrets are in this file: whoever has it reads every connection.",
-			about.method, r.URL, j.id, about.run),
+			about.method, redact.URL(r.URL), j.id, about.run),
 		Interface: "the connections of request " + fmt.Sprint(j.id),
 		Secrets:   secrets,
 	}

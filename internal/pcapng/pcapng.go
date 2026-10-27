@@ -13,10 +13,13 @@
 package pcapng
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"golang.org/x/net/http/httpguts"
 	"io"
+	"net/http"
 	"net/netip"
 	"strings"
 	"time"
@@ -474,14 +477,14 @@ func socks4(sent []byte) ([]byte, bool) {
 // Masked is what a client sent with the credentials it gave a proxy in the
 // clear, as it asked for a tunnel, a '*' for each of their bytes, so that
 // every length stays: the password a SOCKS5 client gave (RFC 1929), not the
-// user name, and the value of each Proxy-Authorization field of a CONNECT
+// user name, and the value of each Proxy-Authorization field of an HTTP request
 // past its scheme, as a log keeps them, or all of a value without one; as
 // far as each was sent. The rest as it was.
 func Masked(sent []byte) []byte {
 	masked := bytes.Clone(sent)
 	switch {
-	case bytes.HasPrefix(sent, []byte("CONNECT ")):
-		maskConnect(masked)
+	case httpRequestHead(sent):
+		maskHTTP(masked)
 	case len(sent) > 0 && sent[0] == 5:
 		asked, password := socks5Asked(sent)
 		for i := password; i < min(asked, len(masked)); i++ {
@@ -489,6 +492,58 @@ func Masked(sent []byte) []byte {
 		}
 	}
 	return masked
+}
+
+// httpRequestHead excludes TLS, SOCKS, HTTP responses and tunnel payloads.
+func httpRequestHead(data []byte) bool {
+	line, _, _ := bytes.Cut(data, []byte("\r\n"))
+	words := bytes.Split(line, []byte(" "))
+	return len(words) == 3 && httpguts.ValidHeaderFieldName(string(words[0])) && (bytes.Equal(words[2], []byte("HTTP/1.1")) || bytes.Equal(words[2], []byte("HTTP/1.0")))
+}
+
+// maskHTTP visits request heads, skipping bodies with the standard HTTP/1
+// framing parser. On incomplete or invalid framing it stops; it never searches
+// a body for header-looking bytes. CONNECT ends cleartext proxy interpretation.
+func maskHTTP(data []byte) {
+	for httpRequestHead(data) {
+		maskConnect(data)
+		if bytes.HasPrefix(data, []byte("CONNECT ")) {
+			return
+		}
+		source := bytes.NewReader(data)
+		reader := bufio.NewReader(source)
+		req, err := http.ReadRequest(reader)
+		if err != nil {
+			return
+		}
+		_, err = io.Copy(io.Discard, req.Body)
+		_ = req.Body.Close()
+		if err != nil {
+			return
+		}
+		consumed := len(data) - source.Len() - reader.Buffered()
+		data = data[consumed:]
+	}
+}
+
+// MaskedEvents returns an independent TCP event snapshot. Reassembly makes
+// redaction independent of Write boundaries, including on a reused connection.
+func MaskedEvents(events []Event) []Event {
+	var sent []byte
+	for _, event := range events {
+		if event.What == Sent {
+			sent = append(sent, event.Data...)
+		}
+	}
+	sent = Masked(sent)
+	out := append([]Event(nil), events...)
+	for i, event := range out {
+		if event.What == Sent {
+			out[i].Data = sent[:len(event.Data):len(event.Data)]
+			sent = sent[len(event.Data):]
+		}
+	}
+	return out
 }
 
 // maskConnect masks the credentials of each Proxy-Authorization field of a

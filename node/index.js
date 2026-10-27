@@ -394,7 +394,10 @@ export class Client {
     // request's page resolves another request's promise.
     this.#closeReaders();
 
-    const child = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    // Secret export requires explicit consent; preserve all other environment.
+    const env = Object.fromEntries(Object.entries(process.env)
+      .filter(([name]) => name.toUpperCase() !== 'SSLKEYLOGFILE'));
+    const child = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'], env });
     this.#process = child;
     this.#reader = readline.createInterface({ input: child.stdout });
     this.#reader.on('line', (line) => this.#onLine(line));

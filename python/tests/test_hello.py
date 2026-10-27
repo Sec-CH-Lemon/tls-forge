@@ -200,3 +200,26 @@ def test_a_browser_context_that_is_no_mapping_or_has_a_key_there_is_none_of_is_a
     # line the transport read.
     answer = seen(c)
     assert answer["controls"] == 1 and answer["requests"] == 1
+
+
+def test_only_ambient_key_logging_is_removed_on_every_start(client, monkeypatch):
+    kept = {
+        "QUIC_GO_DISABLE_ECN": "1", "QUIC_GO_DISABLE_GSO": "1",
+        "QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING": "1", "QUIC_GO_LOG_LEVEL": "ERROR",
+        "QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING": "true", "GODEBUG": "http2client=0",
+    }
+    for key, value in {**kept, "SSLKEYLOGFILE": "never-export", "sslkeylogfile": "never-export"}.items():
+        monkeypatch.setenv(key, value)
+    c = client(timeout=0.5)
+    for attempt in range(2):
+        answer = seen(c)
+        assert answer["env"]["SSLKEYLOGFILE"] is None
+        assert answer["env"]["sslkeylogfile"] is None
+        for key, value in kept.items():
+            assert answer["env"][key] == value
+        assert os.environ["SSLKEYLOGFILE"] == "never-export"
+        if attempt == 0:
+            with pytest.raises(tlsforge.Timeout):
+                c.get("https://silent/")
+            with pytest.raises(tlsforge.SessionReset):
+                c.get("https://ok/")
