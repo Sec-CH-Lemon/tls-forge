@@ -201,6 +201,11 @@ including:
 - GREASE values and ALPN protocols;
 - session-resumption and application-settings behaviour.
 
+The unreleased engine1 candidate also resumes after a TLS1.3
+HelloRetryRequest: the binder covers the actual profile-shaped second hello.
+P-256/P-384 peers and Chrome156/macOS full/resumed handshake observations are
+recorded in [the A3 report](docs/remediation/2026-10-27/A3.ru.md).
+
 Servers can retain the complete structure or reduce it to identifiers such as
 JA3 and JA4. The negotiated HTTP protocol adds more signals: exact HTTP/1.1
 header casing and order, or HTTP/2 SETTINGS, window updates, pseudo-header

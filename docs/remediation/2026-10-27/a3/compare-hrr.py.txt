@@ -1,0 +1,37 @@
+import collections,importlib.util,json,pathlib
+p=pathlib.Path('/private/tmp/tls-forge-a3-20261027');spec=importlib.util.spec_from_file_location('oracle',p/'analyze.py');a=importlib.util.module_from_spec(spec)
+# Avoid duplicating the verbose script output while importing its independent parser.
+import contextlib,io
+with contextlib.redirect_stdout(io.StringIO()):spec.loader.exec_module(a)
+x=json.loads((p/'peer.json').read_text());samples=[]
+def projection(msg):
+ h=a.hello(msg);o=[]
+ for t,v in h['exts']:
+  if t in [51,41,65037]:continue
+  if t in [10,13]:
+   b,_=a.vec(v,0,2);value=[a.norm(a.u16(b,i))for i in range(0,len(b),2)]
+  elif t==43:
+   b,_=a.vec(v,0,1);value=[a.norm(a.u16(b,i))for i in range(0,len(b),2)]
+  else:value=v.hex()
+  o.append([a.norm(t),value])
+ return {'suites':[a.norm(s)for s in h['suites']],'extensions':sorted(o,key=lambda v:str(v))}
+for c in x['Connections']:
+ actor='chrome' if (c['Request']or'').startswith('/chrome') else 'after' if (c['Request']or'').startswith('/after') else None
+ if actor is None:continue
+ cs=[v for v in a.messages(a.base64.b64decode(c['Client']or''))if v[0]==1];ss=[v for v in a.messages(a.base64.b64decode(c['Server']or''))if v[0]==2]
+ if len(cs)!=2:continue
+ samples.append({'actor':actor,'curve':c['Curve'],'psk':c['Resumed'],'shape':projection(cs[1]),'relationships':next(r['retry_relationships']for r in json.loads((p/'analysis.json').read_text())if r['id']==c['ID']),'binder':a.verify(cs,ss,x['Tickets'])})
+checks=[]
+for curve in ['p256','p384']:
+ for resumed in [False,True]:
+  rows=[r for r in samples if r['curve']==curve and r['psk']==resumed];unique={actor:{json.dumps(r['shape'],sort_keys=True)for r in rows if r['actor']==actor}for actor in ['chrome','after']}
+  checks.append({'curve':curve,'resumed':resumed,'chrome_samples':sum(r['actor']=='chrome'for r in rows),'candidate_samples':sum(r['actor']=='after'for r in rows),'static_projection_equal':unique['chrome']==unique['after'],'chrome_unique':len(unique['chrome']),'candidate_unique':len(unique['after'])})
+report={'checks':checks,'retry_relationships_match':all(all(v for k,v in r['relationships'].items()if k!='changed_extensions')and set(r['relationships']['changed_extensions'])==({51,41}if r['psk']else{51})for r in samples),'all_binders_valid':all(not r['binder'] or r['binder']['valid']and all(r['binder']['negative_controls'])for r in samples),'samples':samples,'normalization':{'GREASE codepoints':'symbolic GREASE in extension/cipher/group/version/signature_algorithm vectors; original bytes retained privately','extension shuffle':'compare full static extension multiset across actors; exact CH1/CH2 order retained and checked within each connection','random/session':'generated; lengths and intra-HRR reuse checked, original bytes retained','key_share':'selected group, encoding and length; native peer performs cryptographic ECDH validation','PSK':'issued ticket identity and age are state-derived; independent binder validation over original CH1/HRR/CH2 with message_hash and four negative controls','ECH GREASE':'generated entropy and JSON padding choice; entire extension must be reused exactly within HRR; lengths retained; no real ECH offer implied'},'limits':'finite Chrome156/macOS H1 owned peer; no RNG/distribution or global browser-equivalence claim; Chrome initial navigation and following fetch have different connection partition context'}
+# A GREASE draw is normalized, not an arbitrary signature algorithm or ordering.
+source=next(c for c in x['Connections'] if c['Request']=='/chrome-1-p256/3')
+wire=next(m for m in reversed(a.messages(a.base64.b64decode(source['Client']))) if m[0]==1)
+parsed=a.hello(wire);sig=dict(parsed['exts'])[13];where=wire.index(sig);mut=bytearray(wire);mut[where+5]^=1
+report['normalization_negative_controls']={'signature_algorithm_mutation_rejected':projection(wire)!=projection(bytes(mut))}
+assert all(report['normalization_negative_controls'].values())
+(p/'comparison.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items()if k not in ['samples','normalization']},indent=2))
+assert all(c['static_projection_equal']for c in checks)and report['retry_relationships_match']and report['all_binders_valid']

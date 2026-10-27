@@ -1,0 +1,19 @@
+import base64,collections,contextlib,hashlib,importlib.util,io,json,pathlib
+p=pathlib.Path('/private/tmp/tls-forge-a3-20261027');s=importlib.util.spec_from_file_location('a',p/'analyze.py');a=importlib.util.module_from_spec(s)
+with contextlib.redirect_stdout(io.StringIO()):s.loader.exec_module(a)
+class Fields(list):pass
+raw=[]
+def walk(v):
+ if isinstance(v,Fields):
+  for k,w in v:
+   if k=='tls.handshake_raw':raw.append(bytes.fromhex(w[0]))
+   else:walk(w)
+ elif isinstance(v,list):
+  for w in v:walk(w)
+walk(json.loads((p/'wire-handshakes.json').read_text(),object_pairs_hook=Fields))
+wire=collections.Counter(v for v in raw if v[0]in[1,2]);tapped=collections.Counter()
+for c in json.load(open(p/'peer.json'))['Connections']:
+ for direction in ['Client','Server']:tapped.update(v for v in a.messages(base64.b64decode(c[direction]or''))if v[0]in[1,2])
+result={'wire_handshake_messages':sum(wire.values()),'socket_handshake_messages':sum(tapped.values()),'exact_original_handshake_multiset_equal':wire==tapped,'capture_sha256':hashlib.sha256((p/'hrrel.pcap').read_bytes()).hexdigest(),'parser_note':'Tshark emits repeated JSON object keys for multiple TLS handshakes in a packet; all preserved with object_pairs_hook. Ordinary JSON last-key-wins dropped144 messages and was rejected.'}
+assert result['capture_sha256']==json.load(open(p/'original-pcap-sha256.json'))['sha256'];assert wire==tapped,result
+(p/'wire-identity.json').write_text(json.dumps(result,indent=2)+'\n');print(result)

@@ -1,0 +1,167 @@
+package main
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/tls"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"sync"
+	"sync/atomic"
+	"syscall"
+	"time"
+)
+
+var out = "/private/tmp/tls-forge-a3-20261027"
+
+type capture struct {
+	ID             int64
+	Curve          string
+	Client, Server []byte
+	Request        string
+	Resumed        bool
+	Error          string
+}
+
+var mu sync.Mutex
+var captures []*capture
+var tickets = map[string][]byte{}
+
+type keylog struct {
+	sync.Mutex
+	f *os.File
+}
+
+func (k *keylog) Write(b []byte) (int, error) { k.Lock(); defer k.Unlock(); return k.f.Write(b) }
+
+var serial atomic.Int64
+
+func saveLocked() {
+	b, _ := json.MarshalIndent(struct {
+		Connections []*capture
+		Tickets     map[string][]byte
+	}{captures, tickets}, "", "  ")
+	_ = os.WriteFile(filepath.Join(out, "peer.json"), b, 0600)
+}
+
+type tap struct {
+	net.Conn
+	rec *capture
+}
+
+func (c *tap) Read(b []byte) (int, error) {
+	n, e := c.Conn.Read(b)
+	mu.Lock()
+	c.rec.Client = append(c.rec.Client, b[:n]...)
+	mu.Unlock()
+	return n, e
+}
+func (c *tap) Write(b []byte) (int, error) {
+	n, e := c.Conn.Write(b)
+	mu.Lock()
+	c.rec.Server = append(c.rec.Server, b[:n]...)
+	mu.Unlock()
+	return n, e
+}
+func (c *tap) Close() error { e := c.Conn.Close(); mu.Lock(); saveLocked(); mu.Unlock(); return e }
+
+type listener struct {
+	net.Listener
+	curve string
+}
+
+func (l listener) Accept() (net.Conn, error) {
+	c, e := l.Listener.Accept()
+	if e != nil {
+		return nil, e
+	}
+	r := &capture{ID: serial.Add(1), Curve: l.curve}
+	mu.Lock()
+	captures = append(captures, r)
+	mu.Unlock()
+	return &tap{c, r}, nil
+}
+func main() {
+	cert, e := tls.LoadX509KeyPair(filepath.Join(out, "server.crt"), filepath.Join(out, "server.key"))
+	if e != nil {
+		panic(e)
+	}
+	kf, e := os.OpenFile(filepath.Join(out, "server.keys"), os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
+	if e != nil {
+		panic(e)
+	}
+	defer kf.Close()
+	keys := &keylog{f: kf}
+	ready := map[string]string{}
+	var servers []*http.Server
+	for _, row := range []struct {
+		name  string
+		curve tls.CurveID
+	}{{"p256", tls.CurveP256}, {"p384", tls.CurveP384}, {"x25519", tls.X25519}} {
+		ln, e := net.Listen("tcp", "127.0.0.1:0")
+		if e != nil {
+			panic(e)
+		}
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, CurvePreferences: []tls.CurveID{row.curve}, NextProtos: []string{"http/1.1"}}
+		cfg.KeyLogWriter = keys
+		cfg.WrapSession = func(cs tls.ConnectionState, s *tls.SessionState) ([]byte, error) {
+			b, e := s.Bytes()
+			if e != nil {
+				return nil, e
+			}
+			id := make([]byte, 32)
+			if _, e = rand.Read(id); e != nil {
+				return nil, e
+			}
+			mu.Lock()
+			tickets[hex.EncodeToString(id)] = b
+			mu.Unlock()
+			return id, nil
+		}
+		cfg.UnwrapSession = func(id []byte, cs tls.ConnectionState) (*tls.SessionState, error) {
+			mu.Lock()
+			b := tickets[hex.EncodeToString(id)]
+			mu.Unlock()
+			if b == nil {
+				return nil, nil
+			}
+			return tls.ParseSessionState(b)
+		}
+		srv := &http.Server{ReadHeaderTimeout: 10 * time.Second, ConnContext: func(ctx context.Context, c net.Conn) context.Context {
+			return context.WithValue(ctx, struct{}{}, c.(*tls.Conn).NetConn().(*tap).rec)
+		}}
+		srv.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			rec := r.Context().Value(struct{}{}).(*capture)
+			mu.Lock()
+			rec.Request = r.URL.Path
+			rec.Resumed = r.TLS.DidResume
+			saveLocked()
+			mu.Unlock()
+			w.Header().Set("Connection", "close")
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprintf(w, "<!doctype html><link rel=icon href=data:,><title>A3</title>ok resumed=%v", r.TLS.DidResume)
+		})
+		servers = append(servers, srv)
+		go func() { _ = srv.Serve(tls.NewListener(listener{ln, row.name}, cfg)) }()
+		ready[row.name] = "https://probe.test:" + fmt.Sprint(ln.Addr().(*net.TCPAddr).Port)
+	}
+	b, _ := json.Marshal(ready)
+	_ = os.WriteFile(filepath.Join(out, "ready.json"), b, 0600)
+	fmt.Println(string(b))
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	<-stop
+	for _, s := range servers {
+		_ = s.Close()
+	}
+	mu.Lock()
+	saveLocked()
+	mu.Unlock()
+}

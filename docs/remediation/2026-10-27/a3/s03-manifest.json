@@ -1,0 +1,294 @@
+{
+  "scope": "S03 Chrome156/macOS headed minimized nine contexts, native crypto/tls peers, P-256/P-384 HRR and X25519 control; finite handshake acceptance",
+  "engine_major": 1,
+  "root_parent": "bc9ff53e46eac9b3224ec248ce8046155758794d",
+  "utls_commit": "281f37fda04188b3fe886fd58c09ddcdec13c8fe",
+  "utls_pin": "v1.7.8-barnius.0.20261027112430-281f37fda041",
+  "publication": "local only",
+  "comparison": {
+    "checks": [
+      {
+        "curve": "p256",
+        "resumed": false,
+        "chrome_samples": 6,
+        "candidate_samples": 3,
+        "static_projection_equal": true,
+        "chrome_unique": 1,
+        "candidate_unique": 1
+      },
+      {
+        "curve": "p256",
+        "resumed": true,
+        "chrome_samples": 12,
+        "candidate_samples": 15,
+        "static_projection_equal": true,
+        "chrome_unique": 1,
+        "candidate_unique": 1
+      },
+      {
+        "curve": "p384",
+        "resumed": false,
+        "chrome_samples": 6,
+        "candidate_samples": 3,
+        "static_projection_equal": true,
+        "chrome_unique": 1,
+        "candidate_unique": 1
+      },
+      {
+        "curve": "p384",
+        "resumed": true,
+        "chrome_samples": 12,
+        "candidate_samples": 15,
+        "static_projection_equal": true,
+        "chrome_unique": 1,
+        "candidate_unique": 1
+      }
+    ],
+    "retry_relationships_match": true,
+    "all_binders_valid": true,
+    "normalization": {
+      "GREASE codepoints": "symbolic GREASE in extension/cipher/group/version/signature_algorithm vectors; original bytes retained privately",
+      "extension shuffle": "compare full static extension multiset across actors; exact CH1/CH2 order retained and checked within each connection",
+      "random/session": "generated; lengths and intra-HRR reuse checked, original bytes retained",
+      "key_share": "selected group, encoding and length; native peer performs cryptographic ECDH validation",
+      "PSK": "issued ticket identity and age are state-derived; independent binder validation over original CH1/HRR/CH2 with message_hash and four negative controls",
+      "ECH GREASE": "generated entropy and JSON padding choice; entire extension must be reused exactly within HRR; lengths retained; no real ECH offer implied"
+    },
+    "limits": "finite Chrome156/macOS H1 owned peer; no RNG/distribution or global browser-equivalence claim; Chrome initial navigation and following fetch have different connection partition context",
+    "normalization_negative_controls": {
+      "signature_algorithm_mutation_rejected": true
+    }
+  },
+  "wire_identity": {
+    "wire_handshake_messages": 504,
+    "socket_handshake_messages": 504,
+    "exact_original_handshake_multiset_equal": true,
+    "capture_sha256": "f07a2cc2e79b8e018cc4d47aa754d6e4801c7e3d7dc230b6c7bde837759b30dc",
+    "parser_note": "Tshark emits repeated JSON object keys for multiple TLS handshakes in a packet; all preserved with object_pairs_hook. Ordinary JSON last-key-wins dropped144 messages and was rejected."
+  },
+  "runs": {
+    "a3-chrome-hrr": {
+      "command": [
+        "node",
+        "chrome.mjs"
+      ],
+      "cwd": "/private/tmp/tls-forge-a3-20261027",
+      "returncode": 0,
+      "elapsed_seconds": 18.723,
+      "peak_group_rss_kib": 1185312,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 240.0,
+        "rss_mib": 3072
+      },
+      "log_sha256": "8df02b317257e38d027a55717f00aa70726ec3cb012faa0a100b99b7a52180c7"
+    },
+    "a3-s03-before": {
+      "command": [
+        "./client-before",
+        "before"
+      ],
+      "cwd": "/private/tmp/tls-forge-a3-20261027",
+      "returncode": 0,
+      "elapsed_seconds": 0.762,
+      "peak_group_rss_kib": 23552,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "3bb4229abd0266c87f3d74953ff3630660307414c92a324b329e0d51d2f9c2c2"
+    },
+    "a3-s03-after": {
+      "command": [
+        "./client-after",
+        "after"
+      ],
+      "cwd": "/private/tmp/tls-forge-a3-20261027",
+      "returncode": 0,
+      "elapsed_seconds": 0.842,
+      "peak_group_rss_kib": 24256,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "9cb83485b5e78a852dad564c3836f3d100dd8f2b2691740400a24df03219c86b"
+    },
+    "a3-s03-regression-before": {
+      "command": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-run",
+        "^TestPSKResumptionAfterHelloRetryRequest$",
+        "."
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 1,
+      "elapsed_seconds": 4.288,
+      "peak_group_rss_kib": 740816,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 90.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "4be7ab7f2173d82a8604d2ea8b7b2aefad5920d3866064131683a306863d8086"
+    },
+    "a3-s03-regression-after": {
+      "command": [
+        "env",
+        "GOWORK=/private/tmp/tls-forge-p0-workspace/go.work",
+        "go",
+        "test",
+        "-count=1",
+        "-race",
+        "-run",
+        "^TestPSKResumptionAfterHelloRetryRequest$",
+        "."
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 12.984,
+      "peak_group_rss_kib": 598384,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "8cc61d54cd990fd5aebe26896624006eefb767978f300348f7d875c7ab8cd5a1"
+    },
+    "a3-s03-utls": {
+      "command": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-race",
+        "-run",
+        "TestProfilePSKAfterHelloRetryRequest|Test.*ECH|TestACookieOfAHelloRetryRequest",
+        "."
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-utls",
+      "returncode": 0,
+      "elapsed_seconds": 5.167,
+      "peak_group_rss_kib": 372896,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 1536
+      },
+      "log_sha256": "8c77148477077a6c48ab760c3bd46483858da789b1c1b87a507b82f0b62b7bae"
+    },
+    "a3-s03-utls-full": {
+      "command": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "./..."
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-utls",
+      "returncode": 0,
+      "elapsed_seconds": 6.94,
+      "peak_group_rss_kib": 362624,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 180.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "a9eb208d4ea136613b8969c0dd59362f80cf9cd4469b56f7f21a6127171ec59b"
+    },
+    "a3-s03-pinned": {
+      "command": [
+        "env",
+        "GOWORK=off",
+        "go",
+        "test",
+        "-count=1",
+        "-race",
+        "-run",
+        "^TestPSKResumptionAfterHelloRetryRequest$",
+        "."
+      ],
+      "cwd": "/private/tmp/tls-forge-p0-root",
+      "returncode": 0,
+      "elapsed_seconds": 12.135,
+      "peak_group_rss_kib": 604336,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 2048
+      },
+      "log_sha256": "68b76ebd9410552e6b95f2be782b6fb4bc375fb84251430d6bbfaf424af9adb7"
+    }
+  },
+  "original_files": {
+    "after-results.json": "702f5f2b06acf1c31cb866a205912322d7c3675ca2baf58c3fc34803035cc4b7",
+    "analysis.json": "f401140b24c539320cb3e1d4d0de757334a70e6afdc461565e0dc0620e746472",
+    "analyze.py": "923f50a9c1264c1023daf071843c793849bd377333b89f268dba299c12860d9f",
+    "before-results.json": "28a6ce568db5e4538124700f347dcf79cbab2b81fe249f303017655d56f6b034",
+    "chrome-1-p256.keys": "b8b1e63f0395dadfaebc1365a4a4c595d68e7e8da90c6ec8d6b96e05a9da308f",
+    "chrome-1-p256.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-1-p384.keys": "514f8e68453152e3f50a31cbedaa3146c356794d1692f2bce8d9f8284062a116",
+    "chrome-1-p384.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-1-x25519.keys": "30519babaa4edbc4050a9803b3870d07da88fbcda539977d37c83b7cbddd5005",
+    "chrome-1-x25519.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-2-p256.keys": "f83ed5ca00e86bc6b1653b9c9c9848f3cf70f3b97f9531acc44350150d5f1c12",
+    "chrome-2-p256.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-2-p384.keys": "1b103c8c351d0123ab6a81f2dc72c752738535abaf9b2fc51d76443b970b03c0",
+    "chrome-2-p384.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-2-x25519.keys": "a50bddb42d3fc1ae7d921ea53ed6ba1eee8924c2332e312c4c7cbe760375e738",
+    "chrome-2-x25519.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-3-p256.keys": "ce5e8271728f63397d9cf7ec59f4a467063227cc107621878a55363237b7dbcc",
+    "chrome-3-p256.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-3-p384.keys": "d073b12e5957d2f770a0dfb87abc7a0c780b1c708972004add90ace70ed57c08",
+    "chrome-3-p384.log": "1094bfc0958ad7ba26048182904255cf17f8b0d0e004b6bfe63460b43a564d96",
+    "chrome-3-x25519.keys": "2430c9ac35c8f035e7743565d9e6de65bfbe76a434d19d1ef6a4dc0d43675b97",
+    "chrome-3-x25519.log": "b292a6ca053971de54d1eee9a7c0fe4be4d5db2ad684ab9a9259fc56de813e2f",
+    "chrome-results.json": "0610d52fd0074e1a460d6a1705f4e0b7dffefcfda3f8f6d8a1da53fb97d5f4bd",
+    "chrome.mjs": "bcd4e351b2143da6679ba9de6643d89beac595bdee404e997359880c509986df",
+    "client-after": "e2d2058b0799331b1813db1ff0e2f00b318d424738c98d74713aba529b856632",
+    "client-before": "a4468772b343d1024bfe76d1649717af4845e5def761eb7378ee499bdd8f4561",
+    "client.go": "a9f4841ba24f4db89080b4e944f3cfdfac80f1707ff918164de8180f56691767",
+    "compare-before-signature-grease-normalization.py": "09118c619e443925958ab3ecd62cc67bf026a5c63c608b4eab2e11da7a404e01",
+    "compare.py": "14a4eb8b2e51b5c7474408f69e3bd7c13f5a6573fe2b89ba4ae4a3ed7848d3b5",
+    "comparison-before-signature-grease-normalization.json": "2fee09b360ac86190f8ee7e6730c4e543fc3b3617c3bf6a1cb83515d6accb5b0",
+    "comparison.json": "3cba8a7ee68a8ba95c50f1203d72632409e032c06d6526ca24bf74937dd4b869",
+    "decrypted-http.tsv": "ceeb6d7ca1800db8335d7569532f7340e528259cc4d6043035f96b85826c9c57",
+    "hrrel.pcap": "f07a2cc2e79b8e018cc4d47aa754d6e4801c7e3d7dc230b6c7bde837759b30dc",
+    "notices-s03.txt": "ab15457eb185ca95114394c2e33c3d3d3bc0d58b52b940ce469476bee94e796c",
+    "original-pcap-sha256.json": "87de45f04e26686a60ed9c2147cf75e0aecc40a875bf6278b2510dcfab2a951a",
+    "peer": "3571bd916fd925322cfb61e3851acd9ca10665f8964c361082a656d72c510cb9",
+    "peer.go": "06fe6e8c61aef64a855e0d0778014c78f1eb9b065195ecee4098e194a5d484fd",
+    "peer.json": "1344fd4b7bc5755e8f3a4833f3c169d3f38d2fb9fb018230de727fd6aa42c221",
+    "ready.json": "8026f1efbf4f90e48f4aae02868fe5909bd7151aa8c0dd5d702ca021ee8d603e",
+    "root-before.tar": "0de70d84970b5a2374d4a07db866d71851e3d76e3b6d83146fa31ce000b15508",
+    "s03-analysis.log": "f8d9f40be3c42fe5b12fa32cabb187414475addfbce4c28875c340e3882dcce9",
+    "server.crt": "88c294c1d0ce665081f35d04568cdf89b4a8541869b605737fb875685ee51784",
+    "server.key": "1fcb8505c78dd0546c15272023d6414af5cebec6d4565dd71d15665b2d46fcc7",
+    "server.keys": "d9c58247f27dfb8d02f1999ff55775108d4357a2c47bb10ec1e48e845f2b40a1",
+    "utls-before.tar": "d5b9f15b85709c130506f049612da453d0e37e22373e14f1a1a66032b6f4db04",
+    "wire-check.py": "7733f0751a8c33ab9b5a800e5b39bb889845d67acf0a8cb5a3e6cb86e2cf6cc7",
+    "wire-handshakes.json": "a75339a60ab9f46b1efe57ca24a74a7d4ccdccfd41c17d7743a2b3ecb030058e",
+    "wire-hellos.json": "b133b6aca917baacc6fd12a3c1dede2732e93d5eb6b29a614ace670cd28b370e",
+    "wire-identity.json": "9eac00a86d47afc33dd79b6c31ba85b6fe4c00fb1589f1631487a87ebe9ae6f9"
+  },
+  "private_evidence": "net-fp-server/captures/remediation-a3-20261027",
+  "before": {
+    "attempts": 54,
+    "errors": 18,
+    "server_confirmed_resumptions": 15
+  },
+  "after": {
+    "attempts": 54,
+    "errors": 0,
+    "server_confirmed_resumptions": 45
+  },
+  "measurement_archive_sha256": "2fdcf2c9e55259e80b0e4ab93e6626d0b5b760171ce2ce28e7f05f257723ba2a",
+  "utls_archive_sha256": "dd8aaf992066b41de3ac87bd3bd6a79e4183974c8b146c0e059e43430e2fbd84"
+}

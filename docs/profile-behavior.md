@@ -1711,3 +1711,14 @@ All four prefixes are specified by the work-in-progress
 [layered-cookies-02 storage algorithm](https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-layered-cookies-02#section-5.4.3).
 This acceptance concerns the prefix checks; it does not certify the entire
 cookie storage model against either document.
+
+### TLS1.3 PSK after HelloRetryRequest (A3/S03)
+
+The engine rebuilds profile-shaped ClientHello2 before computing its PSK binder
+against message_hash(ClientHello1), HRR and the actual truncated ClientHello2.
+The profile still owns the extension permutation, GREASE/ECH generation rules,
+ticket lifetime/age policy and supported algorithms; no new JSON field is needed.
+An unsupported opaque PSK implementation cannot silently reuse its old binder.
+The separate real-ECH retry mechanism is unchanged. This remains unpublished
+engine1. See the A3 report for the bounded Chrome156/macOS witness and original
+packet/binder controls; other profiles/platforms need their own measurements.

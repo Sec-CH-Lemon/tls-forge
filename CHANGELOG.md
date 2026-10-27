@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Resume TLS1.3 sessions after HelloRetryRequest with profile-shaped ClientHello2
+  and a binder over its actual serialized bytes and HRR transcript. P-256/P-384
+  peers and independent Chrome156/macOS observations cover full and resumed
+  handshakes. The separate real-ECH retry path is unchanged; profile values and
+  the unpublished engine1 major remain unchanged.
+
 - Declare cookie-prefix storage rules in `cookie.prefixes`: spelling, case
   matching, rejection of protected nameless values and required attributes.
   Production cookie reception matches the 48-case Chrome156/macOS witness
