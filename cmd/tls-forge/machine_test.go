@@ -116,7 +116,7 @@ func TestCaptureSetsWhatItKeepsOfTheMachine(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
 	version, platform := theVisitorsPlatform(t)
-	data, err := os.ReadFile(filepath.Join(dir, version, platform+".json"))
+	data, err := os.ReadFile(filepath.Join(dir, "manual_"+version, platform+".json"))
 	if err != nil {
 		t.Fatal(err)
 	}

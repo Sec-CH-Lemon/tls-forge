@@ -96,8 +96,16 @@ func TestBrowserHelper(t *testing.T) {
 	if err != nil {
 		os.Exit(1)
 	}
+	if os.Getenv("TLSFORGE_BROWSER_HEADLESS") != "" {
+		browserProfile.UserAgent = strings.Replace(browserProfile.UserAgent, "Chrome/", "HeadlessChrome/", 1)
+		for i := range browserProfile.Headers {
+			if strings.EqualFold(browserProfile.Headers[i].Name, "user-agent") {
+				browserProfile.Headers[i].Value = browserProfile.UserAgent
+			}
+		}
+	}
 	client, err := tlsforge.New(
-		tlsforge.WithProfile(browserProfile.Name),
+		tlsforge.WithProfileValue(browserProfile),
 		tlsforge.WithInsecureSkipVerify(),
 		tlsforge.WithoutRedirects(),
 	)
@@ -113,7 +121,7 @@ func TestBrowserHelper(t *testing.T) {
 	)
 	if os.Getenv("TLSFORGE_BROWSER_HEADLESS") != "" {
 		// As a headless Chrome says itself.
-		opened.Set("user-agent", strings.Replace(browserProfile.UserAgent, "Chrome/", "HeadlessChrome/", 1))
+		opened.Set("user-agent", browserProfile.UserAgent)
 	}
 	page, err := client.Do(&tlsforge.Request{URL: url, Header: opened})
 	if err != nil {

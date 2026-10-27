@@ -1703,6 +1703,15 @@ tls-forge capture --manual --install
 tls-forge capture --manual --addr 0.0.0.0:8443 --host my-mac.local --save profiles/
 ```
 
+Manual captures without `--name` use `manual_<browser>_<major>` (for example,
+`manual_firefox_148_macos` after platform selection). They cannot replace `local`
+or change the `chrome` default alias. Give `--name` explicitly to install under
+another identifier. Only 1–4 ASCII digits from a reported browser major enter
+that identifier. Directory saves and registry reads are confined to their root,
+including when a parent is replaced with a symbolic link. Navigation tokens
+are random 128-bit values bound to the visitor's remote host and User-Agent;
+this is capture isolation, not authentication of the browser or the person.
+
 Usage: `tls-forge capture [flags]`
 
 | Flag | Meaning |
@@ -1712,7 +1721,7 @@ Usage: `tls-forge capture [flags]`
 | `-s`, `--save <path>` | Save a profile; an existing directory gets `<name>/<platform>.json` |
 | `--install` | Save into the user profile directory so `--profile local` can find it |
 | `--set <NAME=VALUE>` | With `--save` or `--install`, a value the profile keeps of this machine, as its header carries it: `accept-language`, or a client hint of the machine's (`sec-ch-ua-platform-version`, `-arch`, `-bitness`, `-model`, `-wow64`, `-form-factors`); repeatable |
-| `-n`, `--name <name>` | Override the profile name; otherwise derive it from the browser version |
+| `-n`, `--name <name>` | Profile identifier: `[a-z0-9][a-z0-9_.-]*`, without `..`; otherwise derive it from the browser version (`manual_` prefix with `--manual`) |
 | `-j`, `--json` | Print the raw capture instead of a human summary |
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
 | `--browser-arg <argument>` | Append a browser process argument; repeatable, mainly for CI environments |

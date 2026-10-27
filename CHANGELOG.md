@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Confine captured profile paths and registry reads to their root, validate
+  identifiers and browser majors, and put implicit manual captures under
+  `manual_` so visitor data cannot change default profile selection. Bind random
+  128-bit navigation tokens to remote host and User-Agent across all endpoints.
+
 - Authenticate TLS1.2 Finished before rejecting an actual ECH offer; GREASE ECH
   retains normal False Start behavior. Bound compressed-certificate resources
   and require exact decompressed length. Port Go1.26.10 read-key boundary and

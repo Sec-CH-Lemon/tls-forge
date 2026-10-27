@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"sort"
@@ -93,6 +94,22 @@ func platformName(goos string) string {
 	}
 }
 
+var profileNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_.-]*$`)
+
+// ValidName reports an identifier safe for a profile file, never a path.
+func ValidName(name string) bool {
+	return profileNamePattern.MatchString(name) && !strings.Contains(name, "..")
+}
+
+// FilePath is the directory layout shared by capture and registry lookup.
+// Both components are identifiers; neither can supply a path or traversal.
+func FilePath(name, platform string) (string, error) {
+	if !ValidName(name) || !ValidName(platform) {
+		return "", fmt.Errorf("profile: invalid file identifier %q / %q", name, platform)
+	}
+	return path.Join(name, platform+".json"), nil
+}
+
 // lookup finds a profile in a tree laid out as either a flat `<name>.json` or a
 // directory per version holding one file per platform.
 //
@@ -153,7 +170,11 @@ func lookup(fsys fs.FS, root, name string) (data []byte, at string, ok bool) {
 
 	// A version and a platform: the last word is the platform.
 	if cut := strings.LastIndex(name, "_"); cut > 0 {
-		at = path.Join(root, name[:cut], name[cut+1:]+".json")
+		relative, err := FilePath(name[:cut], name[cut+1:])
+		if err != nil {
+			return nil, "", false
+		}
+		at = path.Join(root, relative)
 		if data, err := fs.ReadFile(fsys, at); err == nil {
 			return data, at, true
 		}
@@ -223,10 +244,15 @@ func (r *Registry) fromDir(name string) (*Profile, bool, error) {
 	dir := r.Dir()
 	// A name is a file name here, so one carrying a separator would reach
 	// outside the directory it is supposed to name.
-	if dir == "" || name != filepath.Base(name) || name == "." || name == ".." {
+	if dir == "" || !ValidName(name) {
 		return nil, false, nil
 	}
-	data, at, ok := lookup(os.DirFS(dir), ".", name)
+	tree, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, false, nil
+	}
+	defer func() { _ = tree.Close() }()
+	data, at, ok := lookup(tree.FS(), ".", name)
 	if !ok {
 		return nil, false, nil
 	}

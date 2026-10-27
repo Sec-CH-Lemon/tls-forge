@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		"write a reusable profile here; a directory gets <name>/<platform>.json")
 	install := fs.Bool("install", false,
 		"keep the profile in this machine's own directory, where --profile finds it by name")
-	name := fs.StringP("name", "n", "", "profile name (default: derived from the browser's version)")
+	name := fs.StringP("name", "n", "", "profile name (default: browser version; manual_ prefix with --manual)")
 	asJSON := fs.BoolP("json", "j", false, "print the raw capture instead of a summary")
 	timeout := fs.DurationP("timeout", "t", 2*time.Minute,
 		"how long to wait for the browser; with --manual, ten minutes unless given")
@@ -46,6 +47,9 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	if err := visits.check(fs); err != nil {
 		return err
+	}
+	if *name != "" && !profile.ValidName(*name) {
+		return fmt.Errorf("%w: invalid profile name %q", errUsage, *name)
 	}
 	settings, err := settingsOf(*sets)
 	if err != nil {
@@ -111,13 +115,15 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	// replace it, not leave two. --save is the other case — a profile going
 	// somewhere to be kept or shipped — and that one is named for the browser.
 	// --install keeps this machine's own browser as "local"; a browser a person
-	// opened is kept under its own name, so that --profile firefox_148 finds the
-	// Firefox measured here rather than the catalogue's handshake without headers.
+	// opened is kept under manual_<browser>_<version>. Visitor data must never
+	// change local or a default browser-family alias; --name is an owner choice.
 	profileName := *name
 	if profileName == "" {
 		profileName = profileNameFor(measured)
 		if *install && !*visits.manual {
 			profileName = localName
+		} else if *visits.manual {
+			profileName = "manual_" + profileName
 		}
 	}
 	if profileName == localName && *name == "" && strings.Contains(measured.UserAgent(), headlessBrand) {
@@ -170,6 +176,13 @@ func browserArgFlag(fs *pflag.FlagSet) *[]string {
 		"extra flag for the browser, repeatable; for the machine, not the measurement")
 }
 
+// Seams for filesystem errors and invalid future platform mappings; the
+// directory can disappear between Stat and OpenRoot.
+var (
+	capturedFilePath = profile.FilePath
+	openProfileRoot  = os.OpenRoot
+)
+
 // saveProfile turns a measurement into a profile and returns the name it was
 // filed under and the file it went to.
 //
@@ -179,6 +192,9 @@ func browserArgFlag(fs *pflag.FlagSet) *[]string {
 // of.
 func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 	settings []setting) (saved *profile.Profile, path string, err error) {
+	if !profile.ValidName(name) {
+		return nil, "", fmt.Errorf("capture: invalid profile name %q", name)
+	}
 	built, err := profile.FromCapture(name, measured)
 	if err != nil {
 		return nil, "", err
@@ -196,6 +212,8 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 	}
 
 	path = where
+	var tree *os.Root
+	var relative string
 	if info, err := os.Stat(where); err == nil && info.IsDir() {
 		// A directory per version holding one file per platform, so a machine
 		// that measures Chrome 151 on two of them has one profile with two
@@ -214,16 +232,29 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 				"would answer for it from now on: give this one a name of its own with --name, or write it out "+
 				"with --save", version, platform)
 		}
-		if err := os.MkdirAll(filepath.Join(where, version), 0o755); err != nil {
+		relative, err = capturedFilePath(version, platform)
+		if err != nil {
+			return nil, "", err
+		}
+		tree, err = openProfileRoot(where)
+		if err != nil {
+			return nil, "", err
+		}
+		defer func() { _ = tree.Close() }()
+		if err := tree.MkdirAll(filepath.Dir(relative), 0o755); err != nil {
 			return nil, "", err
 		}
 		built.Name = version + "_" + platform
-		path = filepath.Join(where, version, platform+".json")
+		path = filepath.Join(where, filepath.FromSlash(relative))
 	}
 
 	data, err := built.Save()
 	if err == nil {
-		err = atomicfile.Write(path, data, 0o644)
+		if tree != nil {
+			err = atomicfile.WriteRoot(tree, relative, data, 0o644)
+		} else {
+			err = atomicfile.Write(path, data, 0o644)
+		}
 	}
 	if err != nil {
 		return nil, "", err
@@ -321,10 +352,10 @@ func capturedBrowser(c *capture.Capture) (family, major string) {
 	if c.Navigator != nil {
 		for _, b := range c.Navigator.Brands {
 			if name, ok := brandNames[b.Brand]; ok {
-				return name, b.Version
+				return name, safeBrowserMajor(b.Version)
 			}
 			if b.Brand == "Chromium" {
-				chromium = b.Version
+				chromium = safeBrowserMajor(b.Version)
 			}
 		}
 	}
@@ -332,6 +363,15 @@ func capturedBrowser(c *capture.Capture) (family, major string) {
 		return "chromium", chromium
 	}
 	return browserFrom(c.UserAgent())
+}
+
+var browserMajorPattern = regexp.MustCompile(`^[0-9]{1,4}$`)
+
+func safeBrowserMajor(major string) string {
+	if browserMajorPattern.MatchString(major) {
+		return major
+	}
+	return ""
 }
 
 // browserFrom reads the browser and its major version out of a user-agent,
@@ -361,7 +401,7 @@ func browserFrom(userAgent string) (family, major string) {
 			continue
 		}
 		major, _, _ = strings.Cut(userAgent[index+len(known.token):], ".")
-		return known.name, major
+		return known.name, safeBrowserMajor(major)
 	}
 	return "", ""
 }

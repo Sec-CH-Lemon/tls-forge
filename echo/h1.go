@@ -142,7 +142,7 @@ func (s *Server) serveCaptureHTTP1(conn net.Conn, sess *Session) error {
 		return nil
 	}
 	token := parsed.Query().Get("navigation")
-	if err := s.attachHTTP1(token, &req.HTTP1); err != nil {
+	if err := s.attachHTTP1(token, &req.HTTP1, visitorOf(sess, headerMap(req.Headers))); err != nil {
 		_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
 		return writeCaptureHTTP1Response(conn, "400", contentType, "", body)
 	}
@@ -448,4 +448,12 @@ func statusText(status string) string {
 	default:
 		return "Error"
 	}
+}
+
+func headerMap(fields []capture.HeaderField) map[string]string {
+	out := make(map[string]string, len(fields))
+	for _, field := range fields {
+		out[strings.ToLower(field.Name)] = field.Value
+	}
+	return out
 }

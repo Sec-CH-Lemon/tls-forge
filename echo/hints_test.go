@@ -55,6 +55,7 @@ func reported(t *testing.T, client *http.Client, server *Server, headers [][2]st
 		t.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", visitorAgent)
 	for _, h := range headers {
 		req.Header.Set(h[0], h[1])
 	}

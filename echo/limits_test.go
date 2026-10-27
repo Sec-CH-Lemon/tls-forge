@@ -451,23 +451,23 @@ func TestTheServerKeepsTheLatest(t *testing.T) {
 
 	var tokens []string
 	for _, sess := range sessions {
-		token, err := server.setNavigation(sess, "")
+		token, err := server.setNavigation(sess, "", visitorOf(sess, nil))
 		if err != nil {
 			t.Fatalf("setNavigation: %v", err)
 		}
 		tokens = append(tokens, token)
 	}
-	if _, err := server.captureSession(tokens[0], &Session{}); err == nil {
+	if _, err := server.captureSession(tokens[0], &Session{}, visitorOf(sessions[0], nil)); err == nil {
 		t.Error("the oldest page's token is still known")
 	}
-	if got, err := server.captureSession(tokens[2], &Session{}); err != nil || got != sessions[2] {
+	if got, err := server.captureSession(tokens[2], &Session{}, visitorOf(sessions[2], nil)); err != nil || got != sessions[2] {
 		t.Errorf("the latest page's token gave %v, %v", got, err)
 	}
 	if len(server.navigations) != 2 || len(server.navigationByID) != 2 {
 		t.Errorf("%d pages kept, %d tokens", len(server.navigations), len(server.navigationByID))
 	}
 	// One filed by a report that came without a page counts the same.
-	if _, err := server.captureSession("", &Session{}); err != nil || len(server.navigationByID) != 2 {
+	if _, err := server.captureSession("", &Session{}, visitorOf(&Session{}, nil)); err != nil || len(server.navigationByID) != 2 {
 		t.Errorf("a report without a page: %v, %d tokens", err, len(server.navigationByID))
 	}
 

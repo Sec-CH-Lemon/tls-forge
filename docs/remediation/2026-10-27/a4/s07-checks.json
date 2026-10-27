@@ -1,0 +1,101 @@
+{
+  "stage": "A4/S07",
+  "baseline": "3f73a07ab275d21b1ea5879eaa05d57a97f416f8",
+  "checks": {
+    "s07-before": {
+      "command": [
+        "go",
+        "test",
+        "./echo",
+        "./cmd/tls-forge",
+        "-run",
+        "TestCaptureRejectsVisitorPathComponents|TestNavigationTokensRejectOtherVisitors",
+        "-count=1",
+        "-timeout",
+        "2m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 1,
+      "elapsed_seconds": 3.154,
+      "peak_group_rss_kib": 573488,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 150.0,
+        "rss_mib": 1536
+      }
+    },
+    "s07-fixtures-after": {
+      "command": [
+        "go",
+        "test",
+        "./echo",
+        "./cmd/tls-forge",
+        "-run",
+        "TestAReport|TestManual|TestCaptureURLJoins|TestCaptureKeepsNoHeadless|TestNavigation|TestCaptureManual|TestCaptureSetsWhatItKeeps",
+        "-count=1",
+        "-timeout",
+        "2m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 5.289,
+      "peak_group_rss_kib": 711744,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 150.0,
+        "rss_mib": 1536
+      }
+    },
+    "s07-final-gate": {
+      "command": [
+        "go",
+        "test",
+        "./echo",
+        "./profile",
+        "./internal/atomicfile",
+        "./cmd/tls-forge",
+        "-skip",
+        "TestWireMasksSplitAndReusedForwardProxyRequests",
+        "-coverprofile=/private/tmp/tls-forge-a4-20261027/s07-final.cover",
+        "-count=1",
+        "-timeout",
+        "2m"
+      ],
+      "cwd": "/private/tmp/tls-forge-a4-root",
+      "returncode": 0,
+      "elapsed_seconds": 56.311,
+      "peak_group_rss_kib": 646208,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 160.0,
+        "rss_mib": 1536
+      }
+    }
+  },
+  "coverage_uncovered_blocks": 0,
+  "limits": [
+    "Visitor means remote host plus User-Agent; this is not user authentication.",
+    "Random finite sample validates format, not RNG quality.",
+    "AGENTS.md is an existing untracked owner document, updated locally only."
+  ],
+  "sources": {
+    "README.md": "235f237b322eb6ea85f84ab8738dc9b3b1bc99c37f3d7e03390f616db5c75d2c",
+    "CHANGELOG.md": "ec0dbb2de853c057de9fecc68d145c47d6463d0d68831828e7616737097fc905",
+    "cmd/tls-forge/capture.go": "24b26ba998bd403386a74a01ddec2c02c7194a84b97ce69e0f66a695ef4c8835",
+    "cmd/tls-forge/a4_security_test.go": "39de1f737da082a4eae1ab8a94e33879e7df5652d04ad06ef8033b7bfa2b79f9",
+    "cmd/tls-forge/machine_test.go": "fa7cdf1a39da13efbc4282dbc19aaf7b026542551a27bb696e71347c23eb8600",
+    "cmd/tls-forge/main_test.go": "017065ff666b6ff309e8a6cb0fa74fea4fe49a874fc9795d0464c128cff965c2",
+    "cmd/tls-forge/visit_test.go": "f9d6640dc8249a492d4577f16d2395ed0901467626d5f4ca2d21115bd14429b8",
+    "echo/h1.go": "a1e7af6af25c1f855595cc5a78d449bba85bd5cc809218829f82798f03ca4171",
+    "echo/hints_test.go": "8443bb85fbb3e070fa8f35294bde44c91bc94388c8527cf4d1df4e55850e34bf",
+    "echo/limits_test.go": "78c5cd88e3381d51e7b79f6c15199c93b169d91d166e14e1c1cefe31046e92f8",
+    "echo/manual_test.go": "8b7b20035080441d734fc05cee9bcef0db51ff52f8281313d0d9e699caf639f8",
+    "echo/server.go": "b2f7c518c94bc91228470077346ff120edf6d4fce00b04de4c099834ccbb7e65",
+    "echo/server_test.go": "4defa977055ddd1d2c131f6e46227e229a3624550bd34c68ceb6b01790b81026",
+    "echo/a4_security_test.go": "5d43a336e5a6413554a19e51edf1181de2787a8d5cf8872150b047c616121d92",
+    "profile/registry.go": "7a7882b5278547583dedc23397c1cbe4fb761531e193cac4c0718cdd01697baf",
+    "profile/path_security_test.go": "5f661eb9c996f781d2cf3a8712175688952dcba8e06b140f51a1a07d978e0e31",
+    "internal/atomicfile/root.go": "98843664183138b67e82901f65bc9ebbcd9e9452ed983564b348b239676b9d1c",
+    "internal/atomicfile/root_test.go": "b9c697213492f1b644694325e5962b83fd989101990bc8ff473b93b5869ee74d"
+  }
+}

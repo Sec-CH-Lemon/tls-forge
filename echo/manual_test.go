@@ -21,11 +21,35 @@ import (
 
 const visitorAgent = "Mozilla/5.0 (Test) Visitor/1.0"
 
+// visitorTransport makes test requests keep a browser's User-Agent across
+// navigation, fetch and both HTTP protocols. Go's defaults differ by protocol.
+type visitorTransport struct{ http.RoundTripper }
+
+func (t visitorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.Header.Get("User-Agent") == "" {
+		req = req.Clone(req.Context())
+		req.Header.Set("User-Agent", visitorAgent)
+	}
+	return t.RoundTripper.RoundTrip(req)
+}
+
+func asVisitor(client *http.Client) *http.Client {
+	if _, ok := client.Transport.(visitorTransport); !ok {
+		transport := client.Transport
+		if transport == nil {
+			transport = http.DefaultTransport
+		}
+		client.Transport = visitorTransport{transport}
+	}
+	return client
+}
+
 // openPage opens the capture page as a person does, typing the address into a new
 // tab: with the fields a browser sends then, changed or taken out by extra (an
 // empty value takes one out).
 func openPage(t *testing.T, client *http.Client, url string, extra ...[2]string) (*http.Response, string) {
 	t.Helper()
+	asVisitor(client)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		t.Fatalf("request: %v", err)
@@ -277,7 +301,7 @@ func TestCollectIsAnsweredBeforeTheCaptureIsHandedOver(t *testing.T) {
 	for _, protocol := range []string{"HTTP/2", "HTTP/1.1"} {
 		server := startServer(t)
 		sess := &Session{remote: "test"}
-		token, err := server.setNavigation(sess, "")
+		token, err := server.setNavigation(sess, "", visitorOf(sess, nil))
 		if err != nil {
 			t.Fatalf("setNavigation: %v", err)
 		}

@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -106,8 +107,9 @@ type Session struct {
 	// navigation is guarded by the Server's mutex, not this session's. It
 	// describes how the server files this session among the others, which is
 	// not a question a session can answer about itself.
-	navigation      bool
-	navigationToken string
+	navigation        bool
+	navigationToken   string
+	navigationVisitor string
 }
 
 // Remote is the client's address, which is the only way to tell two otherwise
@@ -192,7 +194,6 @@ type Server struct {
 	// forgotten, and their tokens with them.
 	navigations    []*Session
 	navigationByID map[string]*Session
-	nextNavigation uint64
 
 	// Completed captures are consumed once, oldest first. Keeping a queue makes
 	// a capture that finishes just before Await safe without making every later
@@ -699,33 +700,47 @@ func (s *Server) file(sess *Session) {
 // A known token is the return from the HTTP/1.1 measuring hop; it keeps the
 // report attached to the original HTTP/2 navigation even if Chrome uses a new
 // connection for the return page.
-func (s *Server) setNavigation(sess *Session, token string) (string, error) {
+func (s *Server) setNavigation(sess *Session, token, visitor string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if sess.navigation {
-		return sess.navigationToken, nil
+	target, err := s.navigation(token, sess, visitor)
+	if err != nil {
+		return "", err
 	}
-	if token != "" {
-		if _, ok := s.navigationByID[token]; !ok {
-			return "", fmt.Errorf("echo: unknown HTTP/1.1 navigation %q", token)
-		}
-		return token, nil
-	} else {
-		s.nextNavigation++
-		token = strconv.FormatUint(s.nextNavigation, 36)
-	}
-	sess.navigation = true
-	sess.navigationToken = token
-	s.file(sess)
-	return token, nil
+	return target.navigationToken, nil
 }
 
-func (s *Server) attachHTTP1(token string, http1 *capture.HTTP1) error {
+// navigation is called under s.mu. A token only selects a page belonging to
+// the same remote host and User-Agent, even on a different connection.
+func (s *Server) navigation(token string, fallback *Session, visitor string) (*Session, error) {
+	if token != "" {
+		target, ok := s.navigationByID[token]
+		if !ok || target.navigationVisitor != visitor {
+			return nil, fmt.Errorf("echo: unknown navigation")
+		}
+		return target, nil
+	}
+	if fallback.navigation {
+		if fallback.navigationVisitor != visitor {
+			return nil, fmt.Errorf("echo: navigation visitor changed")
+		}
+		return fallback, nil
+	}
+	var raw [16]byte
+	rand.Read(raw[:])
+	fallback.navigationToken = hex.EncodeToString(raw[:])
+	fallback.navigationVisitor = visitor
+	fallback.navigation = true
+	s.file(fallback)
+	return fallback, nil
+}
+
+func (s *Server) attachHTTP1(token string, http1 *capture.HTTP1, visitor string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	target, ok := s.navigationByID[token]
-	if !ok {
-		return fmt.Errorf("echo: unknown HTTP/1.1 navigation %q", token)
+	if !ok || target.navigationVisitor != visitor {
+		return fmt.Errorf("echo: unknown navigation")
 	}
 	target.mu.Lock()
 	target.http1 = cloneHTTP1(http1)
@@ -757,24 +772,10 @@ func cloneHTTP1(in *capture.HTTP1) *capture.HTTP1 {
 //   - Otherwise the reporting session, adopted as a navigation, so that a
 //     caller who posts here without loading the page still produces a capture
 //     Await can return rather than blocking until its deadline.
-func (s *Server) captureSession(token string, fallback *Session) (*Session, error) {
+func (s *Server) captureSession(token string, fallback *Session, visitor string) (*Session, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if token != "" {
-		target, ok := s.navigationByID[token]
-		if !ok {
-			return nil, fmt.Errorf("echo: unknown navigation %q", token)
-		}
-		return target, nil
-	}
-	if fallback.navigation {
-		return fallback, nil
-	}
-	s.nextNavigation++
-	fallback.navigationToken = strconv.FormatUint(s.nextNavigation, 36)
-	fallback.navigation = true
-	s.file(fallback)
-	return fallback, nil
+	return s.navigation(token, fallback, visitor)
 }
 
 // completeAfter completes the capture a request finished, once it has been
@@ -823,7 +824,7 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 			req.last = false
 			http1Done = true
 		}
-		token, err := s.setNavigation(sess, navigationToken)
+		token, err := s.setNavigation(sess, navigationToken, visitorOf(sess, req.headers))
 		if err != nil {
 			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
 			return "400", contentType, body
@@ -851,7 +852,7 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		if !s.manual {
 			return "404", "text/plain; charset=utf-8", []byte("not found\n")
 		}
-		return s.helloSaid(sess, navigationToken, step)
+		return s.helloSaid(sess, navigationToken, step, visitorOf(sess, req.headers))
 
 	case "/skip":
 		if !s.manual {
@@ -864,7 +865,6 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 
 	case "/collect":
 		req.last = false
-		s.ticketsUntil.Store(0)
 		var nav capture.Navigator
 		if err := json.Unmarshal(req.body, &nav); err != nil {
 			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
@@ -873,11 +873,12 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 		// The report describes the BROWSER, not the connection that carried it,
 		// so it is filed against the navigation. Falling back to the reporting
 		// session covers a caller that posted here without loading the page.
-		target, err := s.captureSession(navigationToken, sess)
+		target, err := s.captureSession(navigationToken, sess, visitorOf(sess, req.headers))
 		if err != nil {
 			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
 			return "400", contentType, body
 		}
+		s.ticketsUntil.Store(0)
 		target.mu.Lock()
 		target.navigator = &nav
 		target.clientHints = clientHintsIn(req.headers)
@@ -911,7 +912,7 @@ func (s *Server) skipHTTP1(sess *Session, req *request, token string) (status, c
 		_, contentType, body := jsonResponse(map[string]string{"error": "echo: a finish for no navigation"})
 		return "400", contentType, body
 	}
-	target, err := s.captureSession(token, sess)
+	target, err := s.captureSession(token, sess, visitorOf(sess, req.headers))
 	if err != nil {
 		_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
 		return "400", contentType, body
@@ -949,12 +950,12 @@ const ticketsOpenFor = 10 * time.Second
 // resumes, and a navigation keeps at most maxHellos. step=tickets has the
 // connections opened after it given a ticket, for ticketsOpenFor at most, and
 // step=resumed, on the one that should resume one, stops it.
-func (s *Server) helloSaid(sess *Session, token, step string) (status, contentType string, body []byte) {
+func (s *Server) helloSaid(sess *Session, token, step, visitor string) (status, contentType string, body []byte) {
 	if token == "" {
 		_, contentType, body := jsonResponse(map[string]string{"error": "echo: a hello for no navigation"})
 		return "400", contentType, body
 	}
-	target, err := s.captureSession(token, sess)
+	target, err := s.captureSession(token, sess, visitor)
 	if err != nil {
 		_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
 		return "400", contentType, body

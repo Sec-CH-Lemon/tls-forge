@@ -294,14 +294,14 @@ func TestNavigationRejectsAnUnknownHTTP1Capture(t *testing.T) {
 	if status != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d", status, http.StatusBadRequest)
 	}
-	if !bytes.Contains(body, []byte("unknown HTTP/1.1 navigation")) {
+	if !bytes.Contains(body, []byte("unknown navigation")) {
 		t.Errorf("body = %s, want the rejected token explained", body)
 	}
 	status, body = get(t, http1Client(), server.CaptureURL()+"/?navigation=missing")
 	if status != http.StatusBadRequest {
 		t.Fatalf("HTTP/1.1 status = %d, want %d", status, http.StatusBadRequest)
 	}
-	if !bytes.Contains(body, []byte("unknown HTTP/1.1 navigation")) {
+	if !bytes.Contains(body, []byte("unknown navigation")) {
 		t.Errorf("HTTP/1.1 body = %s, want the rejected token explained", body)
 	}
 }
@@ -315,12 +315,12 @@ func TestCloneHTTP1AcceptsNil(t *testing.T) {
 func TestKnownNavigationTokenKeepsTheOriginalSession(t *testing.T) {
 	server := startServer(t)
 	original := &Session{}
-	token, err := server.setNavigation(original, "")
+	token, err := server.setNavigation(original, "", visitorOf(original, nil))
 	if err != nil {
 		t.Fatalf("initial navigation: %v", err)
 	}
 	returning := &Session{}
-	got, err := server.setNavigation(returning, token)
+	got, err := server.setNavigation(returning, token, visitorOf(returning, nil))
 	if err != nil {
 		t.Fatalf("return navigation: %v", err)
 	}
@@ -398,7 +398,7 @@ func TestCaptureURLJoinsHTTP1WithoutChangingTheFirstHTTP2Request(t *testing.T) {
 		ForceAttemptHTTP2: true,
 	}
 	t.Cleanup(transport.CloseIdleConnections)
-	client := &http.Client{Transport: transport}
+	client := asVisitor(&http.Client{Transport: transport})
 
 	res, err := client.Get(server.URL())
 	if err != nil {

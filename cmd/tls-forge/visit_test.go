@@ -167,6 +167,7 @@ func TestCaptureManualSavesTheBrowserAPersonOpens(t *testing.T) {
 	}
 	// Named for the browser, and filed under the platform its user agent says.
 	version, platform := theVisitorsPlatform(t)
+	version = "manual_" + version
 	written := filepath.Join(dir, version, platform+".json")
 	data, err := os.ReadFile(written)
 	if err != nil {
@@ -198,7 +199,7 @@ func TestCaptureManualKeepsTheClientHintsTheBrowserSent(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
 	version, platform := theVisitorsPlatform(t)
-	data, err := os.ReadFile(filepath.Join(dir, version, platform+".json"))
+	data, err := os.ReadFile(filepath.Join(dir, "manual_"+version, platform+".json"))
 	if err != nil {
 		t.Fatalf("nothing was written:\n%s", stdout)
 	}
@@ -228,10 +229,10 @@ func TestCaptureManualInstallsUnderTheBrowsersName(t *testing.T) {
 		t.Fatalf("visiting: %v", err)
 	}
 	_, platform := theVisitorsPlatform(t)
-	if code != 0 || !strings.Contains(stdout, "--profile brave_155_"+platform) {
+	if code != 0 || !strings.Contains(stdout, "--profile manual_brave_155_"+platform) {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "brave_155", platform+".json")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, "manual_brave_155", platform+".json")); err != nil {
 		t.Errorf("nothing was kept: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, localName)); err == nil {
@@ -250,12 +251,21 @@ func TestCaptureManualKeepsNoProfileUnderAShippedName(t *testing.T) {
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
 	}
-	if code != 1 || !strings.Contains(stdout, "JA4") || !strings.Contains(stderr,
-		version+"_"+platform+" is a profile tls-forge ships, and one kept under its name would answer for it") {
+	if code != 0 || !strings.Contains(stdout, "--profile manual_"+version+"_"+platform) {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
-	if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
-		t.Errorf("kept %v, %v", entries, err)
+	before, err := profile.Get("chrome")
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry := profile.NewRegistry()
+	registry.SetDir(dir)
+	after, err := registry.Get("chrome")
+	if err != nil || before.Name != after.Name || before.UserAgent != after.UserAgent {
+		t.Fatalf("manual capture changed chrome: %+v %v", after, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, version)); !os.IsNotExist(err) {
+		t.Errorf("implicit capture touched shipped name: %v", err)
 	}
 	// Asked by name, it is kept under that name.
 	visited = aPersonVisits(t, "chrome")
@@ -513,7 +523,7 @@ func TestCaptureManualMeasuresWhatTheBrowserDrawsForEachConnection(t *testing.T)
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
 	version, platform := theVisitorsPlatform(t)
-	data, err := os.ReadFile(filepath.Join(dir, version, platform+".json"))
+	data, err := os.ReadFile(filepath.Join(dir, "manual_"+version, platform+".json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -677,7 +687,7 @@ func TestCaptureManualMeasuresHTTP1ByAVisitOfItsOwn(t *testing.T) {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}
 	version, platform := theVisitorsPlatform(t)
-	data, err := os.ReadFile(filepath.Join(dir, version, platform+".json"))
+	data, err := os.ReadFile(filepath.Join(dir, "manual_"+version, platform+".json"))
 	if err != nil {
 		t.Fatal(err)
 	}
