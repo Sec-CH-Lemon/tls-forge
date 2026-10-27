@@ -40,7 +40,7 @@ import (
 // connections, or is closed. The body is fhttp.NoBody after, but where it is
 // left to the transport. A redirect a browser context's cache would keep is
 // kept first, without its body, as Chrome's is (leftUnread).
-func (c *Client) leave(kind string, res *fhttp.Response, limit int64) {
+func (c *Client) leave(kind string, res *fhttp.Response, limit int64, owners ...*site) {
 	leftUnread(res)
 	p := c.behavior()
 	// Keys of HTTP/1.1 and HTTP/2 alone: another protocol's say nothing.
@@ -51,17 +51,17 @@ func (c *Client) leave(kind string, res *fhttp.Response, limit int64) {
 	case "close":
 		c.transports.letGo(func(ending context.Context) <-chan struct{} {
 			return fhttp.DrainBody(ending, res, math.MaxInt64, grace, grace)
-		})
+		}, owners...)
 		return
 	case "drain":
 		c.transports.letGo(func(ending context.Context) <-chan struct{} {
 			return fhttp.DrainBody(ending, res, int64(p.Uint("http.drain_bytes")), milliseconds(p.Uint("http.drain_ms")), grace)
-		})
+		}, owners...)
 		return
 	case "first-bytes":
 		c.transports.letGo(func(ending context.Context) <-chan struct{} {
 			return fhttp.AwaitBody(ending, res, milliseconds(p.Uint("http.first_bytes_ms")), grace)
-		})
+		}, owners...)
 		return
 	case "read-all":
 		if !res.Close {

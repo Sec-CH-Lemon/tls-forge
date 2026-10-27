@@ -2766,3 +2766,11 @@ Content-Length; PATCH with an explicit empty upload sends0; nonempty payloads
 send their actual byte length. The same mechanism serves H1/H2/H3. Other
 profiles retain explicit compatibility choices pending their own measurements.
 See [framing policy](docs/profile-behavior.md#request-body-presence-and-content-length).
+
+
+Connection-pool ownership follows active requests and detached response
+readers through LRU eviction. `http.max_site_pools` still limits resident
+site partitions; retired partitions are held only until their readers finish.
+`Close` prevents new work and ends background drainers. Already active response
+reads may finish; their retired connections close when the last reader leaves.
+Pool close/reap I/O runs outside the shared registry mutex.

@@ -38,9 +38,10 @@ type chain struct {
 	// hop's top-level site, which its preflight goes out on, and on the pool
 	// of them of its kind, with credentials or without, the hop goes out, and
 	// its answer to a 401 or a 421.
-	base context.Context
-	site *site
-	on   pool
+	base   context.Context
+	site   *site
+	leased []*site
+	on     pool
 	// bodyless is a chain whose body a redirect has dropped, and every hop
 	// after it goes without one, whatever its status.
 	bodyless bool
@@ -157,6 +158,7 @@ func (ch *chain) goOn(u *url.URL) error {
 	if err != nil {
 		return err
 	}
+	ch.leased = append(ch.leased, s)
 	ch.site, ch.on = s, s.carrying(ch.browser == nil || !ch.browser.cookies(ch.last).none)
 	return nil
 }
@@ -209,6 +211,13 @@ func (ch *chain) release() {
 	for _, u := range ch.ruled {
 		ch.client.session.jar.release(u)
 	}
+}
+
+func (ch *chain) releaseSites() {
+	for _, s := range ch.leased {
+		ch.client.transports.releaseSite(s)
+	}
+	ch.leased = nil
 }
 
 // authenticates reports whether HTTP authentication goes with a hop: not with
@@ -551,7 +560,7 @@ func (ch *chain) followInContext(req, previous *fhttp.Request, crossed, dropped 
 	h.authorization = ch.arrive(h.method, shownURL(req), user, ch.authenticates(h))
 	r := ch.browser
 	if r.needsPreflight(h) && !ch.client.session.preflights.allows(r, h, shownURL(req).String()) {
-		if err := ch.client.preflight(ch.base, req, r, h, ch.site.bare, ch.log); err != nil {
+		if err := ch.client.preflight(ch.base, req, r, h, ch.site.bare, ch.log, ch.site); err != nil {
 			return err
 		}
 	}

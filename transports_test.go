@@ -67,6 +67,7 @@ func at(t *testing.T, tr *transports, name string, credentials bool) tls_client.
 	if err != nil {
 		t.Fatalf("site %s: %v", name, err)
 	}
+	defer tr.releaseSite(s)
 	return s.carrying(credentials).HttpClient
 }
 
@@ -177,6 +178,7 @@ func TestSitesAtOnce(t *testing.T) {
 				return
 			}
 			_ = s.carrying(i%2 == 0)
+			tr.releaseSite(s)
 			if i%7 == 0 {
 				tr.closeIdle()
 			}

@@ -580,6 +580,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer ch.releaseSites()
 	defer func() { _ = res.Body.Close() }()
 	if browser != nil && ch.last.cors {
 		serialized := ch.last.serialized(browser)
@@ -657,6 +658,12 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 	}
 	parsed := inner.URL
 	ch := &chain{client: c, log: r, browser: browser, urls: []*url.URL{parsed}, restarted: restarted}
+	handedOff := false
+	defer func() {
+		if !handedOff {
+			ch.releaseSites()
+		}
+	}()
 	// A URL's credentials go only where a 401 asks for them; the transport
 	// would send them at once.
 	user := parsed.User
@@ -712,7 +719,7 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 	defer ch.release()
 	if browser != nil {
 		if browser.needsPreflight(ch.last) && !c.session.preflights.allows(browser, ch.last, inner.URL.String()) {
-			if err := c.preflight(ch.base, inner, browser, ch.last, ch.site.bare, r); err != nil {
+			if err := c.preflight(ch.base, inner, browser, ch.last, ch.site.bare, r, ch.site); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -739,13 +746,13 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 		}
 		value, ok, failed := ch.challenged(res)
 		if failed != nil {
-			c.leave("dropped", res, maxDrain)
+			c.leave("dropped", res, maxDrain, ch.site)
 			return nil, nil, failed
 		}
 		if !ok {
 			break
 		}
-		c.leave("auth", res, maxDrain)
+		c.leave("auth", res, maxDrain, ch.site)
 		retry := ch.again(res.Request, value)
 		if r != nil {
 			r.step("connect")
@@ -760,10 +767,11 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 		// What the origin asked for, said on the answer to a navigation.
 		ch.remember(originOf(res.Request.URL), res.Header)
 		if ch.restart(shownURL(res.Request), res.Header, ch.last) {
-			c.leave("restart", res, maxDrain)
+			c.leave("restart", res, maxDrain, ch.site)
 			return nil, nil, errCriticalHints
 		}
 	}
+	handedOff = true
 	return res, ch, nil
 }
 
@@ -866,7 +874,7 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 	}
 	// The request goes on from the redirect, followed or not, without its
 	// body, which is let go of before anything the hop asks.
-	ch.client.leave("dropped", req.Response, -1)
+	ch.client.leave("dropped", req.Response, -1, ch.site)
 	if err := locate(req, via[len(via)-1]); err != nil {
 		return err
 	}
@@ -940,7 +948,7 @@ func (c *Client) CloseIdleConnections() {
 // on from in the background on too. A closed client must not be reused.
 func (c *Client) Close() error {
 	c.closed.Store(true)
-	c.transports.closeIdle()
+	c.transports.close()
 	if c.log != nil {
 		c.log.Debug("client closed")
 	}

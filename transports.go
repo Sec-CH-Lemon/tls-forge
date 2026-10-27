@@ -35,7 +35,9 @@ type transports struct {
 	// (its network anonymization key), as well as by whether a request
 	// carries credentials (testdata/chrome155-connections.json): a page of
 	// another site has connections of its own, as do the requests it makes.
-	sites []*site
+	sites   []*site
+	retired map[*site]bool
+	closed  bool
 	// spare are the connections built with the transports, which the first
 	// site to need some takes.
 	spare *site
@@ -50,8 +52,10 @@ type transports struct {
 
 // site are the connections of one top-level site.
 type site struct {
-	name  string
-	inner pool
+	name    string
+	refs    int // chain and background-drain leases, under transports.mu
+	retired bool
+	inner   pool
 	// bare is where a request that carries no credentials goes out: a CORS
 	// preflight, fetch() with credentials omitted, or one kept to its own
 	// origin going to another. Chrome sends those on connections of their
@@ -102,6 +106,7 @@ func newTransports(build func(*proxyH2Pool, func() string, ...tls_client.HttpCli
 	t := &transports{behavior: policyArgument(policies), build: build, proxy: proxy}
 	t.ending, t.end = context.WithCancel(context.Background())
 	t.draining = map[<-chan struct{}]bool{}
+	t.retired = map[*site]bool{}
 	spare, err := t.newSite("")
 	if err != nil {
 		return nil, err
@@ -140,7 +145,16 @@ func (t *transports) fresh() (*transports, error) {
 // of it goes out on them, as does every request such a page makes.
 func (t *transports) siteOf(name string) (*site, error) {
 	t.mu.Lock()
-	defer t.mu.Unlock()
+	var evicted *site
+	defer func() {
+		t.mu.Unlock()
+		if evicted != nil {
+			evicted.closeIdle()
+		}
+	}()
+	if t.closed {
+		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
+	}
 	at := slices.IndexFunc(t.sites, func(s *site) bool { return s.name == name })
 	var s *site
 	switch {
@@ -158,10 +172,15 @@ func (t *transports) siteOf(name string) (*site, error) {
 		s = built
 	}
 	if len(t.sites) >= t.behavior.Int("http.max_site_pools") {
-		t.sites[0].closeIdle()
+		evicted = t.sites[0]
+		evicted.retired = true
+		if evicted.refs > 0 {
+			t.retired[evicted] = true
+		}
 		t.sites = slices.Delete(t.sites, 0, 1)
 	}
 	t.sites = append(t.sites, s)
+	s.refs++
 	return s, nil
 }
 
@@ -190,46 +209,104 @@ func topSite(browser *browserRequest, target *url.URL) string {
 // closeIdle closes the connections they hold open between requests, those
 // they let go of an answer on in the background (leave) too: it ends them and
 // waits for them, so that none is put back to be used once it returns.
-func (t *transports) closeIdle() {
+func (t *transports) closeIdle() { t.clearIdle(false) }
+func (t *transports) close()     { t.clearIdle(true) }
+
+// sitesLocked snapshots ownership, never transport I/O. Retired entries live
+// only while a request or a detached drainer can still return a connection.
+func (t *transports) sitesLocked() []*site {
+	sites := append([]*site(nil), t.sites...)
+	for s := range t.retired {
+		sites = append(sites, s)
+	}
+	if t.spare != nil {
+		sites = append(sites, t.spare)
+	}
+	return sites
+}
+
+func (t *transports) clearIdle(permanent bool) {
 	t.mu.Lock()
+	var sites []*site
+	if permanent {
+		t.closed = true
+		sites = t.sitesLocked()
+		for _, s := range sites {
+			s.retired = true
+			if s.refs > 0 {
+				t.retired[s] = true
+			}
+		}
+		t.sites = nil
+		t.spare = nil
+	}
 	end, draining := t.end, slices.Collect(maps.Keys(t.draining))
-	t.ending, t.end = context.WithCancel(context.Background())
+	if !t.closed {
+		t.ending, t.end = context.WithCancel(context.Background())
+	}
 	t.mu.Unlock()
 	end()
 	for _, done := range draining {
 		<-done
 	}
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	for _, s := range t.sites {
-		s.closeIdle()
+	if !permanent {
+		t.mu.Lock()
+		sites = t.sitesLocked()
+		t.mu.Unlock()
 	}
-	if t.spare != nil {
-		t.spare.closeIdle()
+	for _, s := range sites {
+		s.closeIdle()
 	}
 }
 
-// letGo has drain let go of an answer within the transports' ending, and
-// keeps it among those draining until it is done.
-func (t *transports) letGo(drain func(context.Context) <-chan struct{}) {
+// releaseSite closes a retired pool after the last user has finished with its
+// response. Final bodies keep their chain's lease until Client.do returns.
+func (t *transports) releaseSite(s *site) {
+	t.mu.Lock()
+	s.refs--
+	close := s.retired && s.refs == 0
+	if close {
+		delete(t.retired, s)
+	}
+	t.mu.Unlock()
+	if close {
+		s.closeIdle()
+	}
+}
+
+// Register before starting the drain: CloseIdleConnections must also wait for
+// a drain still inside its synchronous grace period. Preserve its concrete
+// response body for fhttp's buffered/detached/priority machinery.
+func (t *transports) letGo(drain func(context.Context) <-chan struct{}, owners ...*site) {
+	tracked := make(chan struct{})
 	t.mu.Lock()
 	ending := t.ending
+	t.draining[tracked] = true
+	for _, s := range owners {
+		if s != nil {
+			s.refs++
+		}
+	}
 	t.mu.Unlock()
 	done := drain(ending)
+	finish := func() {
+		for _, s := range owners {
+			if s != nil {
+				t.releaseSite(s)
+			}
+		}
+		t.mu.Lock()
+		delete(t.draining, tracked)
+		t.mu.Unlock()
+		close(tracked)
+	}
 	select {
 	case <-done:
+		finish()
 		return
 	default:
 	}
-	t.mu.Lock()
-	t.draining[done] = true
-	t.mu.Unlock()
-	go func() {
-		<-done
-		t.mu.Lock()
-		delete(t.draining, done)
-		t.mu.Unlock()
-	}()
+	go func() { <-done; finish() }()
 }
 
 func (s *site) closeIdle() {
@@ -246,12 +323,10 @@ func (s *site) closeIdle() {
 // of the request that asks, whose round trip cleans up there.
 func (t *transports) reapIdle(but string) {
 	t.mu.Lock()
-	defer t.mu.Unlock()
-	for _, s := range t.sites {
+	sites := t.sitesLocked()
+	t.mu.Unlock()
+	for _, s := range sites {
 		s.reapIdle(but)
-	}
-	if t.spare != nil {
-		t.spare.reapIdle(but)
 	}
 }
 

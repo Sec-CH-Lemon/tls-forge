@@ -270,7 +270,7 @@ type preflightContextKey struct{}
 // base is the request's context before its own layouts went on it, which
 // are not the preflight's.
 func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browserRequest, h hop,
-	bare tls_client.HttpClient, log *requestLog) error {
+	bare tls_client.HttpClient, log *requestLog, owners ...*site) error {
 	shown := shownURL(inner)
 	target := shown.String()
 	u := *inner.URL
@@ -302,7 +302,7 @@ func (c *Client) preflight(base context.Context, inner *fhttp.Request, r *browse
 	if err != nil {
 		return transportError(err)
 	}
-	c.leave("preflight", res, maxDrain)
+	c.leave("preflight", res, maxDrain, owners...)
 	allowed, err := r.checkPreflight(res, h)
 	if log != nil {
 		log.preflight(target, res.StatusCode, err)

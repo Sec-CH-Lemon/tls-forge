@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Track evicted top-level-site pools until requests and detached response
+  drainers finish; release their connections on completion and client Close.
+  Snapshot pool ownership under the registry mutex and perform close/reap I/O
+  outside it. Keep resident pool limits in profile JSON.
+
 - Require explicit TLS key-log destinations; ignore `SSLKEYLOGFILE` in utls
   and strip only that variable from Node/Python daemon starts and restarts.
   Preserve explicit keylog/pcap support. JSON QUIC layout overrides ambient

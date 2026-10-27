@@ -1785,3 +1785,16 @@ cannot select the default `local` or newest `chrome` family. Reported browser
 majors are bounded to 1–4 ASCII digits. Explicit profile files and `--name` are
 owner inputs, not visitor assertions; profile engine-major validation remains
 mandatory after loading the file.
+
+
+## Site-pool resource lifetime (A5)
+
+`http.max_site_pools` limits the resident LRU, without changing its captured
+value. A request pins each partition it uses through final response close;
+background drainers own independent pins. Evicted partitions remain accounted
+for until their last user finishes, then close and disappear. Permanent Close
+also refuses new partition acquisition; active reads finish under their existing
+request deadline, while detached drainers are canceled and waited for. Snapshot
+bookkeeping and socket close/reap I/O use separate critical sections. These are
+engine ownership/synchronization mechanisms, not new profile choices; all share
+the pending unpublished engine1.

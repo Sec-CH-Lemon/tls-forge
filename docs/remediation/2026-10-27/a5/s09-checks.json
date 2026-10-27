@@ -1,0 +1,110 @@
+{
+  "stage": "A5/S09",
+  "baseline": "9b176b71ae494304fc1aa0fbc6ce8c6c3c3f9c22",
+  "checks": {
+    "a5-before": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestEvictedSiteConnectionsAreClosed|TestTransportIOLeavesRegistryUnlocked|TestHTTP1HTTPSProxyForwardsConcurrently",
+        "-count=1",
+        "-timeout",
+        "60s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 1,
+      "elapsed_seconds": 10.403,
+      "peak_group_rss_kib": 695568,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 80.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-target-fixed": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestEvictedSiteConnectionsAreClosed|TestTransportIOLeavesRegistryUnlocked|Test.*Site|TestClosingIdleConnections|Test.*Drain|Test.*Preflight",
+        "-count=1",
+        "-timeout",
+        "100s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 6.137,
+      "peak_group_rss_kib": 686544,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-drain-after": {
+      "command": [
+        "go",
+        "test",
+        ".",
+        "-run",
+        "TestEvicted|TestRetired|TestCloseIdleWaits|TestTransportIOLeaves",
+        "-count=1",
+        "-timeout",
+        "60s",
+        "-v"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-root",
+      "returncode": 0,
+      "elapsed_seconds": 7.705,
+      "peak_group_rss_kib": 672832,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 70.0,
+        "rss_mib": 2048
+      }
+    },
+    "s09-isolated-race": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        ".",
+        "-run",
+        "TestEvicted|TestRetired|TestCloseIdleWaits|TestTransportIO|Test.*Drain|Test.*Site|TestClosingIdleConnections",
+        "-count=1",
+        "-timeout",
+        "100s"
+      ],
+      "cwd": "/private/tmp/tls-forge-a5-s09",
+      "returncode": 0,
+      "elapsed_seconds": 26.567,
+      "peak_group_rss_kib": 646944,
+      "stop_reason": null,
+      "limits": {
+        "seconds": 120.0,
+        "rss_mib": 2048
+      }
+    }
+  },
+  "source_sha256": {
+    "client.go": "931edb727398a7cff9c9921e9fc0e9606cbbb2c9eb03c76e5ccdb1bd6119716c",
+    "cors.go": "4766815a57b20bb1fb11b084007925e76179ebd9a3ed210562d9434b7c5427c2",
+    "redirect.go": "d0c6c6746711c7afd83c86333109126ea1873b35983eb647a8c25ccdb02aa16f",
+    "transports.go": "b094bcffbfb5ba01cdb92ecc95d618115ac9084c1d263793e0db6e3407036076",
+    "transports_test.go": "8943808bec9d3b03a2a8b238b51f6f708cb972eafb8be0128e26a49a7e81d765",
+    "unread.go": "b47752ff459719699b5b546f939d28a206530406e9a881a7ef3e7633b13ccf60",
+    "a5_lifecycle_test.go": "2640eefb0b05f972f58b968f801e94550cde29fc673616c86ed5ba464d9e090b",
+    "README.md": "56980e90fbb8f3d42e16245727972e521f60d8aeeecb29c8d9fc3342d2c58b7a",
+    "CHANGELOG.md": "89e026eca5fcf93657d67cd71fe37c7fca1a8100566c6a48103374f622a37ff2",
+    "docs/profile-behavior.md": "32824bf4ee5b2a18e9f5ea533aa20cd731af108d14f42ab759a3118aa4936f80"
+  },
+  "limits": [
+    "No fresh Chrome actor/parity claim.",
+    "Close prevents new work and waits detached drainers; active final response reads finish under their existing deadline and release the retired pool afterwards.",
+    "Owner go.work/foreign untracked files preserved; checks use GOWORK=off."
+  ]
+}
