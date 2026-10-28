@@ -15,6 +15,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   has a body or not: a HEAD, a 204 and a 304 of more layers than
   `http.max_content_codings` came back, where Chrome 156 refuses them as it
   refuses a 200 (measured: eleven gzip layers on each, H1 and H2).
+- `Save` of a profile of schema 0-2 that this engine does not run writes the
+  frozen data it was read with: it added this engine's content-coding and
+  cookie-prefix rules, which only an explicit `Migrate` gives. `Migrate` gives
+  an archive of another browser than Chrome the generic data's rules (64
+  layers, identity passed over), as such an archive of an older schema runs
+  with: it gave every archive the values measured of Chrome 156.
 - Keep a request's credentials at its origin under a redirect policy of the
   caller's too (`WithTransportOption` with `tls_client.WithCustomRedirectFunc`):
   fhttp copied `Authorization`, `Cookie`, `Proxy-Authorization` and the other

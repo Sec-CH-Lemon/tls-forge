@@ -758,7 +758,7 @@ func (p *Profile) Save() ([]byte, error) {
 	if current.PerConnection == nil {
 		current.PerConnection = &PerConnection{ShufflesExtensions: p.ShufflesExtensions(), ECHPayloadLengths: slices.Clone(p.echPayloadLengths())}
 	}
-	current.Behavior = p.RuntimeBehavior().Clone()
+	current.Behavior = p.savedBehavior()
 	delete(current.Behavior, "tls.ech_payload_lengths")
 	if current.Behavior == nil {
 		current.Behavior = behavior.Policy{}

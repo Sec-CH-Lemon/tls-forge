@@ -49,7 +49,14 @@ func (p *Profile) Migrate(name string) (*Profile, error) {
 	out.EngineMajor = Major(engine.Major())
 	// Explicit migration alone applies the current data-owned additions. Offline
 	// Inspect/Save and ordinary Load never complete or retag archived profiles.
+	// An older schema without a behavior of its own gets them as it runs with
+	// them, when it is saved below as a profile of this engine.
 	if out.Behavior != nil {
+		for key, value := range out.rulesOfItsKind() {
+			if !out.Behavior.Has(key) {
+				out.Behavior[key] = append(json.RawMessage(nil), value...)
+			}
+		}
 		var defaults struct {
 			EngineMajor *int                       `json:"engine_major"`
 			Behavior    map[string]json.RawMessage `json:"behavior"`

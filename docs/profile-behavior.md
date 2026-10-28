@@ -103,7 +103,7 @@ It queues local SETTINGS before request HEADERS, including 0-RTT and direct
 request streams, without waiting for peer SETTINGS or an acknowledgement. The
 SETTINGS values/order and priority/GREASE contents still come from the profile.
 
-Schema 0-2 retains its historical family inference during migration. `Save` materializes `per_connection` and the complete effective policy into schema 4, without mutating the source object. The two JSON templates in `utls/behavior` preserve old default behavior; explicit schema 3 data takes precedence, even for a file called `chrome`. Bare transport-catalogue presets remain legacy backend presets and are not newly measured complete profiles.
+Schema 0-2 retains its historical family inference during migration. `Save` materializes `per_connection` and the complete effective policy into schema 4, without mutating the source object; an archive of schema 0-2 this engine does not run keeps the frozen data alone, without the rules only this engine requires. The two JSON templates in `utls/behavior` preserve old default behavior; explicit schema 3 data takes precedence, even for a file called `chrome`. Bare transport-catalogue presets remain legacy backend presets and are not newly measured complete profiles.
 
 Whatever its schema, an executable profile of the current engine runs only with `http.max_content_codings`, `http.content_coding_overflow`, `http.ignored_content_codings` and `cookie.prefixes`: an explicit `behavior` of schema 0-2 without them is refused before any I/O, as schema 3 and 4 are, and one with no `behavior` runs on the frozen templates, which have them. `Inspect` still reads such a file offline.
 
@@ -142,8 +142,11 @@ of their original builds or other platforms. Generic compatibility data keeps
 its former identity normalization and selects the hard ceiling explicitly.
 The original legacy JSON files are frozen; new compatibility choices live in
 separate engine-1 addition files. Missing current execution choices fail before
-request I/O. Offline Inspect/Save/Clone preserve archives; explicit Migrate
-materializes additions and still requires browser acceptance. Decoder creation
+request I/O. Offline Inspect/Save/Clone preserve archives: an archive of
+schema 0-2 that this engine does not run is saved with the frozen data alone,
+without these rules. Explicit Migrate materializes additions of the archive's
+own kind, Chrome's for a profile with `headers.browser_context`, the generic
+data's for another browser's, and still requires browser acceptance. Decoder creation
 is lazy and each initialized decoder is closed, including after errors.
 
 The shared policy registry in `github.com/igor-lemon/utls/behavior` contains supported keys/types and engine bounds. Browser values live in profile JSON. The forks are required at the commits pushed to their `tls-forge` branches; the engine itself is unreleased.

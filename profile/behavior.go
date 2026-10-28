@@ -33,6 +33,36 @@ func (p *Profile) RuntimeBehavior() behavior.Policy {
 // requiredRules are what no executable profile of this engine runs without.
 var requiredRules = []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes"}
 
+// savedBehavior is the behavior Save writes: the profile's own, or what an
+// older schema without one runs with. An archive of such a schema that this
+// engine does not run keeps its frozen data alone: the rules only this engine
+// requires are an explicit migration's to add, not a save's.
+func (p *Profile) savedBehavior() behavior.Policy {
+	pol := p.RuntimeBehavior().Clone()
+	if p.Behavior == nil && (p.EngineMajor == nil || *p.EngineMajor != engine.Major()) {
+		for _, key := range requiredRules {
+			delete(pol, key)
+		}
+	}
+	return pol
+}
+
+// rulesOfItsKind are this engine's required rules as the frozen data of a
+// profile's kind holds them: those measured of Chrome for a Chromium
+// profile, the generic data's for another browser's, as an older schema of
+// each kind runs with.
+func (p *Profile) rulesOfItsKind() behavior.Policy {
+	kind := behavior.Generic()
+	if p.Chromium() {
+		kind = behavior.Legacy()
+	}
+	rules := behavior.Policy{}
+	for _, key := range requiredRules {
+		rules[key] = kind[key]
+	}
+	return rules
+}
+
 // LegacyBehavior is for migration and standalone compatibility helpers only.
 func LegacyBehavior() behavior.Policy { return behavior.Legacy() }
 
