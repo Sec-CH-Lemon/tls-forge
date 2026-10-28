@@ -23,6 +23,13 @@ func TestClientRejectsUnsafeChunkedResponses(t *testing.T) {
 	}{
 		{"bare LF", "1\nx\r\n0\r\n\r\n", true},
 		{"extension overhead", strings.Repeat("1;"+strings.Repeat("a", 3000)+"\r\nx\r\n", 100) + "0\r\n\r\n", true},
+		// An empty size line is no last chunk: followed by what ends a
+		// trailer, the body was "hello" with no error.
+		{"empty chunk size", "5\r\nhello\r\n\r\n\r\n", true},
+		{"empty chunk size, more after it", "5\r\nhello\r\n\r\n5\r\nworld\r\n0\r\n\r\n", true},
+		{"cut in a chunk's data", "5\r\nhel", true},
+		{"cut before a chunk's CRLF", "5\r\nhello", true},
+		{"cut before the last chunk", "5\r\nhello\r\n", true},
 		{"ordinary extension", "1;name=value\r\nx\r\n0\r\n\r\n", false},
 	} {
 		t.Run(test.name, func(t *testing.T) {

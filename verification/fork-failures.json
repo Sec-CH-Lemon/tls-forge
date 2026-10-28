@@ -11,7 +11,7 @@
     "fhttp": {
       "module": "github.com/igor-lemon/fhttp",
       "repository": "https://github.com/igor-lemon/fhttp",
-      "commit": "aa8d85b5d586d2ac441e6db4e691da4d53ae5d89"
+      "commit": "a31fd70c0ff6cb079410c0fdc7df984121457763"
     },
     "tls-client": {
       "module": "github.com/igor-lemon/tls-client",

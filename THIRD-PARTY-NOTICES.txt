@@ -178,7 +178,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261027224822-aa8d85b5d586
+github.com/igor-lemon/fhttp v0.6.10-0.20261028011130-a31fd70c0ff6
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
