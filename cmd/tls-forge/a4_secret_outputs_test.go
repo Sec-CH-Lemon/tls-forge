@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +14,10 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	fhttp "github.com/igor-lemon/fhttp"
+	"github.com/igor-lemon/quic-go-utls/http3"
+	utls "github.com/igor-lemon/utls"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
@@ -57,32 +62,35 @@ func checkAdditionalSecretOutputs(t *testing.T) {
 			}
 		}
 	})
-	t.Run("headers and query in diagnostics", func(t *testing.T) {
-		var received atomic.Bool
-		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			received.Store(r.Header.Get("X-Auth") == secret && r.Header.Get("X-Authorization") == secret && r.URL.Query().Get("access_token") == secret)
-			fmt.Fprint(w, "the page")
-		}))
-		defer server.Close()
-		dir := t.TempDir()
-		retainSecretEvidence(t, "diagnostics", dir)
-		ambient := filepath.Join(t.TempDir(), "ambient.keys")
-		if err := os.WriteFile(ambient, []byte("sentinel"), 0600); err != nil {
-			t.Fatal(err)
-		}
-		t.Setenv("SSLKEYLOGFILE", ambient)
-		code, stdout, stderr := exec(t, "fetch", "-k", "--no-exit-lookup", "--json", "-o", filepath.Join(dir, "out"),
-			"--pcap", "--log", filepath.Join(dir, "run.jsonl"), "--trace", filepath.Join(dir, "trace.json"),
-			"--report="+filepath.Join(dir, "report"), "--report-format", "html,json",
-			"-H", "X-Auth: "+secret, "-H", "X-Authorization: "+secret, server.URL+"/?access_token="+secret)
-		if code != 0 || !received.Load() {
-			t.Fatalf("exit %d, credentials changed on wire=%v: %s", code, !received.Load(), stderr)
-		}
-		nowhereSaid(t, dir, stdout, stderr)
-		if got, err := os.ReadFile(ambient); err != nil || string(got) != "sentinel" {
-			t.Fatalf("ambient keylog modified: %q %v", got, err)
-		}
-	})
+	for _, protocol := range []string{"HTTP/1.1", "HTTP/2.0", "HTTP/3.0"} {
+		t.Run("headers and query in diagnostics over "+protocol, func(t *testing.T) {
+			var received atomic.Bool
+			var came atomic.Value
+			heard := func(proto string, header func(string) string, query url.Values) {
+				came.Store(proto)
+				received.Store(header("X-Auth") == secret && header("X-Authorization") == secret && query.Get("access_token") == secret)
+			}
+			site, args := secretSite(t, protocol, heard)
+			dir := t.TempDir()
+			retainSecretEvidence(t, "diagnostics-"+strings.ReplaceAll(protocol, "/", ""), dir)
+			ambient := filepath.Join(t.TempDir(), "ambient.keys")
+			if err := os.WriteFile(ambient, []byte("sentinel"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv("SSLKEYLOGFILE", ambient)
+			code, stdout, stderr := exec(t, append(append([]string{"fetch", "-k", "--no-exit-lookup", "--json", "-o", filepath.Join(dir, "out"),
+				"--pcap", "--log", filepath.Join(dir, "run.jsonl"), "--trace", filepath.Join(dir, "trace.json"),
+				"--report=" + filepath.Join(dir, "report"), "--report-format", "html,json",
+				"-H", "X-Auth: " + secret, "-H", "X-Authorization: " + secret}, args...), site+"/?access_token="+secret)...)
+			if code != 0 || !received.Load() || came.Load() != protocol {
+				t.Fatalf("exit %d, over %v, credentials changed on wire=%v: %s", code, came.Load(), !received.Load(), stderr)
+			}
+			nowhereSaid(t, dir, stdout, stderr)
+			if got, err := os.ReadFile(ambient); err != nil || string(got) != "sentinel" {
+				t.Fatalf("ambient keylog modified: %q %v", got, err)
+			}
+		})
+	}
 	t.Run("forward HTTP proxy reused connection", func(t *testing.T) {
 		origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, "the page") }))
 		defer origin.Close()
@@ -158,4 +166,57 @@ func retainSecretEvidence(t *testing.T, label, dir string) {
 			}
 		})
 	}
+}
+
+// secretSite is a site the run asks over protocol, telling heard what each
+// request came with; its URL and the arguments that reach it over that
+// protocol (HTTP/3 by a name whose HTTPS record says h3).
+func secretSite(t *testing.T, protocol string, heard func(proto string, header func(string) string, query url.Values)) (string, []string) {
+	t.Helper()
+	answer := func(w http.ResponseWriter, r *http.Request) {
+		heard(r.Proto, r.Header.Get, r.URL.Query())
+		fmt.Fprint(w, "the page")
+	}
+	switch protocol {
+	case "HTTP/1.1":
+		server := httptest.NewTLSServer(http.HandlerFunc(answer))
+		t.Cleanup(server.Close)
+		return server.URL, nil
+	case "HTTP/2.0":
+		server := httptest.NewUnstartedServer(http.HandlerFunc(answer))
+		server.EnableHTTP2 = true
+		server.StartTLS()
+		t.Cleanup(server.Close)
+		return server.URL, nil
+	}
+	var udp net.PacketConn
+	var tcp net.Listener
+	for tries := 1; ; tries++ {
+		var err error
+		if udp, err = net.ListenPacket("udp4", "127.0.0.1:0"); err != nil {
+			t.Fatal(err)
+		}
+		if tcp, err = net.Listen("tcp4", udp.LocalAddr().String()); err == nil {
+			break
+		}
+		_ = udp.Close()
+		if tries == 10 {
+			t.Fatal(err)
+		}
+	}
+	server := httptest.NewUnstartedServer(http.HandlerFunc(answer))
+	server.Listener = lateHandshakes{tcp}
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	t.Cleanup(server.Close)
+	cert := server.TLS.Certificates[0]
+	h3 := &http3.Server{Handler: fhttp.HandlerFunc(func(w fhttp.ResponseWriter, r *fhttp.Request) {
+		heard(r.Proto, r.Header.Get, r.URL.Query())
+		fmt.Fprint(w, "the page")
+	}), TLSConfig: &utls.Config{Certificates: []utls.Certificate{{Certificate: cert.Certificate, PrivateKey: cert.PrivateKey}},
+		NextProtos: []string{"h3"}}}
+	go func() { _ = h3.Serve(udp) }()
+	t.Cleanup(func() { _ = h3.Close(); _ = udp.Close() })
+	_, port, _ := net.SplitHostPort(tcp.Addr().String())
+	return "https://h3.test:" + port, []string{"--dns-server", h3NamesAt(t)}
 }
