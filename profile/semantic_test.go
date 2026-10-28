@@ -21,6 +21,10 @@ func TestExecutableHTTP2Semantics(t *testing.T) {
 		{"push boolean", "http2.settings[0].value", func(p *Profile) { p.HTTP2.Settings = []Setting{{2, 2}} }},
 		{"connect boolean", "http2.settings[0].value", func(p *Profile) { p.HTTP2.Settings = []Setting{{8, 2}} }},
 		{"priorities boolean", "http2.settings[0].value", func(p *Profile) { p.HTTP2.Settings = []Setting{{9, 2}} }},
+		{"header table past the bound", "http2.settings[0].value", func(p *Profile) { p.HTTP2.Settings = []Setting{{1, 1<<20 + 1}} }},
+		{"largest header table", "http2.settings[0].value", func(p *Profile) { p.HTTP2.Settings = []Setting{{1, math.MaxUint32}} }},
+		{"header list past the bound", "http2.settings[1].value", func(p *Profile) { p.HTTP2.Settings = []Setting{{1, 65536}, {6, 16<<20 + 1}} }},
+		{"largest header list", "http2.settings[0].value", func(p *Profile) { p.HTTP2.Settings = []Setting{{6, math.MaxUint32}} }},
 		{"duplicate ID", "http2.settings[1].id", func(p *Profile) { p.HTTP2.Settings = []Setting{{4, 1}, {4, 2}} }},
 		{"duplicate equal ID", "http2.settings[1].id", func(p *Profile) { p.HTTP2.Settings = []Setting{{4, 1}, {4, 1}} }},
 		{"even request", "http2.stream_id", func(p *Profile) { p.HTTP2.StreamID = 2 }},
@@ -67,7 +71,7 @@ func TestExecutableHTTP2Semantics(t *testing.T) {
 }
 
 func TestValidHTTP2SemanticEdgesPreserveValues(t *testing.T) {
-	for _, setting := range []Setting{{4, 0}, {4, math.MaxInt32}, {5, 16384}, {5, 1<<24 - 1}, {1, 0}, {1, math.MaxUint32}, {3, 0}, {3, math.MaxUint32}, {6, 0}, {6, math.MaxUint32}, {2, 0}, {2, 1}, {8, 0}, {8, 1}, {9, 0}, {9, 1}, {65535, math.MaxUint32}} {
+	for _, setting := range []Setting{{4, 0}, {4, math.MaxInt32}, {5, 16384}, {5, 1<<24 - 1}, {1, 0}, {1, 1 << 20}, {3, 0}, {3, math.MaxUint32}, {6, 0}, {6, 16 << 20}, {2, 0}, {2, 1}, {8, 0}, {8, 1}, {9, 0}, {9, 1}, {65535, math.MaxUint32}} {
 		p := mustGet(t, "chrome_155_macos").Clone()
 		p.HTTP2.Settings = []Setting{setting}
 		p.HTTP2.ConnectionFlow = math.MaxInt32 - 65535

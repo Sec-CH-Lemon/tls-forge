@@ -24,6 +24,16 @@ func (p *Profile) Validate() error {
 	return p.validateHTTP2()
 }
 
+// RFC 9113 leaves SETTINGS_HEADER_TABLE_SIZE and SETTINGS_MAX_HEADER_LIST_SIZE
+// open, and the transport sizes its HPACK decoder by them: what a server may
+// make the client keep is bounded here, as HTTP/3's QPACK table is in the
+// registry. Every shipped and catalogue identity asks for 65536 and 262144 at
+// most.
+const (
+	maxHeaderTableBytes = 1 << 20
+	maxHeaderListBytes  = 16 << 20
+)
+
 func (p *Profile) invalid(path string, value any, requirement string) error {
 	return fmt.Errorf("profile %q: %s = %v: requires %s", p.Name, path, value, requirement)
 }
@@ -73,8 +83,13 @@ func (p *Profile) validateHTTP2() error {
 			}
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, constraint)
 		}
-		if s.ID == 9 && s.Value > 1 {
+		switch {
+		case s.ID == 9 && s.Value > 1:
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "0 or 1 (RFC9218)")
+		case s.ID == 1 && s.Value > maxHeaderTableBytes:
+			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "at most 1048576, the engine's bound on the HPACK table a server can fill")
+		case s.ID == 6 && s.Value > maxHeaderListBytes:
+			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "at most 16777216, the engine's bound on a header list a server can send")
 		}
 	}
 	if h.StreamID > math.MaxInt32 || h.StreamID != 0 && h.StreamID%2 == 0 {

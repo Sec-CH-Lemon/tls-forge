@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -128,7 +129,7 @@ func a6RawPeer(t *testing.T, illegalData ...bool) (string, *atomic.Int32, <-chan
 }
 
 func TestA6InvalidSettingsRejectedBeforeWire(t *testing.T) {
-	for _, setting := range []profile.Setting{{ID: 5, Value: 1}, {ID: 4, Value: 1 << 31}} {
+	for _, setting := range []profile.Setting{{ID: 5, Value: 1}, {ID: 4, Value: 1 << 31}, {ID: 1, Value: 1<<20 + 1}, {ID: 6, Value: 16<<20 + 1}} {
 		t.Run(fmt.Sprintf("id=%d", setting.ID), func(t *testing.T) {
 			address, calls, done, stop := a6RawPeer(t)
 			p, err := profile.Get("chrome_155_macos")
@@ -154,7 +155,7 @@ func TestA6InvalidSettingsRejectedBeforeWire(t *testing.T) {
 }
 
 func TestA6ValidSettingsReachRawWire(t *testing.T) {
-	for _, setting := range []profile.Setting{{ID: 4, Value: 0}, {ID: 4, Value: 1<<31 - 1}, {ID: 5, Value: 16384}, {ID: 5, Value: 1<<24 - 1}, {ID: 2, Value: 1}, {ID: 8, Value: 1}, {ID: 9, Value: 1}, {ID: 65535, Value: 1<<32 - 1}} {
+	for _, setting := range []profile.Setting{{ID: 4, Value: 0}, {ID: 4, Value: 1<<31 - 1}, {ID: 5, Value: 16384}, {ID: 5, Value: 1<<24 - 1}, {ID: 2, Value: 1}, {ID: 8, Value: 1}, {ID: 9, Value: 1}, {ID: 65535, Value: 1<<32 - 1}, {ID: 1, Value: 1 << 20}, {ID: 6, Value: 16 << 20}} {
 		t.Run(fmt.Sprintf("%d=%d", setting.ID, setting.Value), func(t *testing.T) {
 			address, calls, done, _ := a6RawPeer(t)
 			p, err := profile.Get("chrome_155_macos")
@@ -162,7 +163,9 @@ func TestA6ValidSettingsReachRawWire(t *testing.T) {
 				t.Fatal(err)
 			}
 			p.Name = "neutral-wire"
+			// The edge of a setting the base list holds replaces it there.
 			p.HTTP2.Settings = []profile.Setting{{ID: 6, Value: 262144}, setting, {ID: 1, Value: 65536}}
+			p.HTTP2.Settings = slices.DeleteFunc(p.HTTP2.Settings, func(s profile.Setting) bool { return s.ID == setting.ID && s != setting })
 			p.HTTP2.ConnectionFlow = 2147418112
 			p.HTTP2.StreamID = 2147483647
 			p.HTTP2.HeaderPriority = nil

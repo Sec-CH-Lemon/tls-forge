@@ -154,11 +154,16 @@ these paths. Inspect stays offline; Save/Clone preserve archives without
 permission to execute. Accepted clients own deep snapshots of caller data.
 Engine-major rejection remains the first independent gate.
 
-HTTP2 SETTINGS remain an ordered array. The initial frame must fit16384 bytes
+HTTP2 SETTINGS remain an ordered array. The initial frame must fit 16384 bytes
 (2730 records); IDs/values must fit uint16/uint32. INITIAL_WINDOW_SIZE is
-0..2147483647, MAX_FRAME_SIZE16384..16777215, and ENABLE_PUSH,
-ENABLE_CONNECT_PROTOCOL, NO_RFC7540_PRIORITIES use0/1. Unknown IDs retain their
-uint32 value. Repeated IDs are valid in the protocol, but this map-backed adapter
+0..2147483647, MAX_FRAME_SIZE 16384..16777215, and ENABLE_PUSH,
+ENABLE_CONNECT_PROTOCOL, NO_RFC7540_PRIORITIES use 0/1. HEADER_TABLE_SIZE is at
+most 1048576 and MAX_HEADER_LIST_SIZE at most 16777216: the protocol leaves both
+open, and the transport sizes its HPACK decoder and its header-list limit by
+them, so these are the engine's bounds on what a server can make a client keep
+(HTTP/3's QPACK table has the same 1048576 in the behavior registry). Every
+shipped and catalogue identity asks for 65536 and 262144 at most. Unknown IDs
+retain their uint32 value. Repeated IDs are valid in the protocol, but this map-backed adapter
 explicitly rejects their unsupported sequential representation; it never merges
 them. Duplicate JSON keys, including Go-equivalent case/Unicode spellings, null
 or non-integer numeric fields and out-of-range weights/IDs fail with field paths.

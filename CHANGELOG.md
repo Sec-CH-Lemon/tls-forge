@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Refuse an HTTP/2 profile whose `SETTINGS_HEADER_TABLE_SIZE` is past 1048576
+  or whose `SETTINGS_MAX_HEADER_LIST_SIZE` is past 16777216, before anything is
+  sent: the transport sizes its HPACK decoder and its header-list limit by them,
+  so up to 4294967295 a server could make a client keep that much of its
+  headers. HTTP/3's QPACK table already had the same bound. Every shipped and
+  catalogue profile asks for 65536 and 262144 at most.
 - Cut a brotli-compressed certificate's window to the least its declared
   length needs (2^18 bytes, or 2^19 past 262,128): four bytes claiming a 2^24
   window and a 2^24-byte meta-block allocated 16 MiB before any data came, and
