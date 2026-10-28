@@ -231,3 +231,56 @@ func TestAHopOfACallersRedirectPolicyIsNotSentAgainAsTheFirstRequest(t *testing.
 		}
 	}
 }
+
+// The caller's Authorization stays at its origin, and so does the caller's say
+// over authentication: a hop to another origin is answered with credentials of
+// its own, its Location's or those the session keeps for its realm, as
+// independently scoped HTTP authentication is. At the caller's origin a 401 is
+// left to the caller, whatever else could answer it.
+func TestAHopAwayFromTheCallersAuthorizationAuthenticatesOnItsOwn(t *testing.T) {
+	for _, protocol := range []string{"h1", "h2"} {
+		for _, how := range []string{"location", "realm", "same-origin"} {
+			t.Run(protocol+"/"+how, func(t *testing.T) {
+				server := newRecorder(t, protocol, func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path == "/start" {
+						to := map[string]string{"location": "https://u:p@other.example/auth/hop",
+							"realm": "https://other.example/auth/hop", "same-origin": "https://u:p@origin.example/auth/hop"}[how]
+						http.Redirect(w, r, to, http.StatusFound)
+						return
+					}
+					if r.Header.Get("Authorization") != "Basic dTpw" {
+						w.Header().Set("WWW-Authenticate", `Basic realm="hop"`)
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					}
+					_, _ = w.Write([]byte("ok"))
+				})
+				client := newTestClient(t, server.dialing(), WithProfileValue(asGivenProfile(t, "chrome_155_macos")))
+				if how == "realm" {
+					// What the session keeps for the realm, from an answer before.
+					if res, err := client.Do(&Request{URL: "https://u:p@other.example/auth/first"}); err != nil || res.Status != http.StatusOK {
+						t.Fatalf("the realm's first answer: %v %v", res, err)
+					}
+				}
+				res, err := client.Do(&Request{URL: "https://origin.example/start", Header: NewHeader("Authorization", "Bearer secret")})
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := map[string][]string{"location": {"", "Basic dTpw"}, "realm": {"Basic dTpw"}, "same-origin": {"Bearer secret"}}[how]
+				var sent []string
+				for _, got := range server.requests() {
+					if strings.HasSuffix(got.url, "/auth/hop") {
+						value, _ := got.header("authorization")
+						sent = append(sent, value)
+					}
+				}
+				if !reflect.DeepEqual(sent, want) {
+					t.Errorf("the hop was sent with %q, want %q", sent, want)
+				}
+				if status := map[bool]int{true: http.StatusUnauthorized, false: http.StatusOK}[how == "same-origin"]; res.Status != status {
+					t.Errorf("answered %d, want %d", res.Status, status)
+				}
+			})
+		}
+	}
+}

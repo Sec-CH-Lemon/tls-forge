@@ -66,7 +66,8 @@ type chain struct {
 	ruled []*url.URL
 
 	// own is a request without a browser context that has an Authorization
-	// of its own, which tls-forge neither adds to nor answers for.
+	// of its own, which tls-forge neither adds to nor answers for while the
+	// chain is at the origin it was given for.
 	own bool
 	// credentials are what the URL of the latest hop carried, taken off it
 	// before it is sent, and embedded whether a challenge was answered with
@@ -495,6 +496,9 @@ func (ch *chain) followAsIs(req *fhttp.Request, crossed bool) {
 			// authentication state may add independently scoped fields later.
 			deleteFields(req.Header, name)
 		}
+		// With the caller's Authorization goes its say over authentication:
+		// the hop's own credentials answer where it went.
+		ch.own = false
 		if req.Header.Get("Origin") != "" {
 			setHeader(req.Header, "origin", []string{"null"})
 		}

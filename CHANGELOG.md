@@ -20,6 +20,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   laid out for the first request, to wherever the hop went; its answer is now
   the policy's, sent again for neither. Requires the fhttp fork's
   `WithCredentialsKeptToOrigin`, at e514e87, a local pin not yet published.
+- A hop a redirect took away from a request's own `Authorization` is
+  authenticated on its own again, with its Location's credentials or those the
+  session keeps for its realm, as the redirect documents said: tls-forge left
+  every 401 of the chain to the caller, the hop's included, once its
+  `Authorization` was left behind.
 - Bound an HTTP/2 header block on the wire as well as by its field list: at
   twice MAX_HEADER_LIST_SIZE, each frame's nine-byte header counted. Empty
   CONTINUATION frames, and fragments of nothing but table size updates, spent
