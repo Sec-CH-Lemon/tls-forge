@@ -150,18 +150,29 @@ func TestABodyIsDecodedFromEveryCodingChromeAccepts(t *testing.T) {
 		"/zstd":              {encoding: []string{"zstd"}, body: zstded(t, page)},
 		"/stacked":           {encoding: []string{"gzip, br"}, body: stacked},
 		"/two-fields":        {encoding: []string{"deflate", "zstd"}, body: twoFields},
+		"/beside-identity":   {encoding: []string{"identity, gzip"}, body: gzipped(t, page)},
 		"/spaced-and-commas": {encoding: []string{" , gzip ,, "}, body: gzipped(t, page)},
 	}
+	// A body beside identity is decoded as it always was by a profile whose
+	// JSON passes identity over, as the frozen generic data does; Chrome
+	// leaves such a chain raw, which TestABodyComesAsItCameWhenThereIsNothingToDecode
+	// holds a Chromium profile to.
+	passingOver := policyFile(t, map[string]any{"http.ignored_content_codings": []string{"identity"}})
 	for _, protocol := range protocols {
 		server := startCoded(t, protocol.h2, answers)
 		client := newTestClient(t)
+		ignoring := newTestClient(t, WithProfileValue(passingOver))
 		for _, tc := range []struct{ path, want string }{
 			{"/gzip", "gzip"}, {"/x-gzip", "x-gzip"}, {"/capitals", "gzip"},
 			{"/zlib", "deflate"}, {"/raw-deflate", "deflate"}, {"/br", "br"}, {"/zstd", "zstd"},
 			{"/stacked", "gzip, br"}, {"/two-fields", "deflate, zstd"},
-			{"/spaced-and-commas", "gzip"},
+			{"/beside-identity", "gzip"}, {"/spaced-and-commas", "gzip"},
 		} {
 			t.Run(protocol.name+tc.path, func(t *testing.T) {
+				client := client
+				if tc.path == "/beside-identity" {
+					client = ignoring
+				}
 				res, err := client.Get(server.url + tc.path)
 				if err != nil {
 					t.Fatalf("Get: %v", err)

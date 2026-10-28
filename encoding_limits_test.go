@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -103,6 +104,53 @@ func TestContentCodingBoundaryMatchesMeasuredChrome(t *testing.T) {
 		got, decoded, err := readBody(response, "GET", 1<<20, codingLimitPolicy("0", "error"))
 		if err != nil || decoded != "" || !bytes.Equal(got, body) {
 			t.Errorf("unknown/identity coding was partly decoded: %s, %s, %v", encoding, decoded, err)
+		}
+	}
+}
+
+// The limit holds at its edges: the engine's bound of 64 layers decodes and
+// one more is over it, and a limit of 0 lets no coding through, while a body
+// with none still comes as it came.
+func TestContentCodingLimitsHoldAtTheirEdges(t *testing.T) {
+	coded := func(n int) (*fhttp.Response, []byte) {
+		body := []byte("a2-decoded-payload")
+		for i := 0; i < n; i++ {
+			body = gzipped(t, body)
+		}
+		header := fhttp.Header{}
+		if n > 0 {
+			header.Set("Content-Encoding", strings.TrimSuffix(strings.Repeat("gzip, ", n), ", "))
+		}
+		return &fhttp.Response{StatusCode: 200, Header: header, Body: io.NopCloser(bytes.NewReader(body))}, body
+	}
+	for _, tc := range []struct {
+		limit, action string
+		layers        int
+		decoded, raw  bool
+	}{
+		{"64", "error", 64, true, false},
+		{"64", "error", 65, false, false},
+		{"64", "raw", 65, false, true},
+		{"0", "error", 0, false, true},
+		{"0", "error", 1, false, false},
+		{"0", "raw", 1, false, true},
+	} {
+		response, body := coded(tc.layers)
+		got, decodedFrom, err := readBody(response, "GET", 1<<20, codingLimitPolicy(tc.limit, tc.action))
+		switch {
+		case tc.decoded:
+			if err != nil || string(got) != "a2-decoded-payload" || strings.Count(decodedFrom, "gzip") != tc.layers {
+				t.Errorf("limit %s, %d layers: %q from %q, %v; want it decoded", tc.limit, tc.layers, got, decodedFrom, err)
+			}
+		case tc.raw:
+			if err != nil || !bytes.Equal(got, body) || decodedFrom != "" {
+				t.Errorf("limit %s %s, %d layers: %q from %q, %v; want it as it came", tc.limit, tc.action, tc.layers, got, decodedFrom, err)
+			}
+		default:
+			want := "content coding limit exceeded (" + strconv.Itoa(tc.layers) + " > " + tc.limit + ")"
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("limit %s, %d layers: %v; want %q", tc.limit, tc.layers, err, want)
+			}
 		}
 	}
 }
