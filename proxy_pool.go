@@ -184,9 +184,15 @@ func (d *connectDialer) ProxyHTTP2Protocol(conn *utls.Conn) fhttp.RoundTripper {
 	return proxyH2RoundTripper{d}
 }
 
+// proxyRoundTripError is a proxy connection that could not be adopted, which
+// adoptProxyH2 closed. It says so as fhttp's erring round trippers do
+// (RoundTripErr), so that the transport fails the dial and keeps nothing:
+// cached as an HTTP/2 connection, every later request would have had its
+// error, and none would have dialed the proxy again.
 type proxyRoundTripError struct{ err error }
 
 func (r proxyRoundTripError) RoundTrip(*fhttp.Request) (*fhttp.Response, error) { return nil, r.err }
+func (r proxyRoundTripError) RoundTripErr() error                               { return r.err }
 
 type proxyH2RoundTripper struct{ d *connectDialer }
 
@@ -200,7 +206,11 @@ func (r proxyH2RoundTripper) RoundTrip(req *fhttp.Request) (*fhttp.Response, err
 
 // RoundTripProxyHTTP reuses an outer H2 connection before falling back to the
 // H1 transport, which negotiates proxy ALPN. A cold dial is serialized with
-// CONNECT setup; a waiter can cancel without affecting the dial's owner.
+// CONNECT setup; a waiter can cancel without affecting the dial's owner. A
+// connection taken behind the gate lets it go, and one that turns the request
+// away (it went before the request did) sends it back behind the gate: the
+// dial after it is a cold one, and a request waiting meanwhile takes the
+// connection it makes rather than dialing another beside it.
 func (d *connectDialer) RoundTripProxyHTTP(req *fhttp.Request, fallback fhttp.RoundTripper) (*fhttp.Response, error) {
 	if p := d.takeProxyH2(); p != nil {
 		res, err := d.proxyRoundTrip(req, p)
@@ -213,23 +223,40 @@ func (d *connectDialer) RoundTripProxyHTTP(req *fhttp.Request, fallback fhttp.Ro
 			return nil, replayErr
 		}
 	}
-	release, err := d.lockProxyDiscovery(req.Context())
-	if err != nil {
-		return nil, err
-	}
-	defer release()
-	if p := d.takeProxyH2(); p != nil {
+	for taken := 0; ; taken++ {
+		release, err := d.lockProxyDiscovery(req.Context())
+		if err != nil {
+			return nil, err
+		}
+		// A connection the pool has, at most proxyTakes of them, each one
+		// that turned the request away retired by then; else the dial.
+		var p *proxyH2Conn
+		if taken < proxyTakes {
+			p = d.takeProxyH2()
+		}
+		if p == nil {
+			return d.dialProxyHTTP(req, fallback, release)
+		}
 		release()
 		res, err := d.proxyRoundTrip(req, p)
 		if !errors.Is(err, http2.ErrNoCachedConn) {
 			return res, err
 		}
-		var replayErr error
-		req, replayErr = proxyReplay(req)
-		if replayErr != nil {
-			return nil, replayErr
+		if req, err = proxyReplay(req); err != nil {
+			return nil, err
 		}
 	}
+}
+
+// proxyTakes is how many of the pool's connections a forwarded request takes
+// behind the dial gate before it dials one of its own: one, and one that a
+// request waiting behind the gate meanwhile dialed.
+const proxyTakes = 2
+
+// dialProxyHTTP sends req by fallback, which dials the proxy, behind the gate
+// release lets go of once the connection is had.
+func (d *connectDialer) dialProxyHTTP(req *fhttp.Request, fallback fhttp.RoundTripper, release func()) (*fhttp.Response, error) {
+	defer release()
 	// fhttp invokes GotConn after proxy ALPN/adoption and before writing the
 	// request. Compose with the caller's trace; failure paths release below.
 	traced := httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{GotConn: func(info httptrace.GotConnInfo) {

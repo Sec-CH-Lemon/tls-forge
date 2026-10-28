@@ -819,7 +819,7 @@ func TestAProxyPoolSaysWhenItHasNoConnectionForARequest(t *testing.T) {
 		t.Errorf("an empty pool: %v", err)
 	}
 	broke := errors.New("adopting failed")
-	if _, err := (proxyRoundTripError{broke}).RoundTrip(req); err != broke {
+	if _, err := (proxyRoundTripError{broke}).RoundTrip(req); err != broke || (proxyRoundTripError{broke}).RoundTripErr() != broke {
 		t.Errorf("a failed adoption: %v", err)
 	}
 	// Asked for a connection by a request that leased none of this pool.
@@ -998,5 +998,104 @@ func TestAProxysHTTP2ConnectionThePrefaceCannotBeWrittenToFailsTheDial(t *testin
 	// Nothing is left in the pool, nor held: the next dial dials.
 	if p := d.takeProxyH2(); p != nil {
 		t.Errorf("a connection was kept: %+v", p)
+	}
+}
+
+// gateWatcher is a fallback that says whether the proxy's dial gate was held
+// while it was asked: a cold dial of fhttp's goes behind it.
+type gateWatcher struct {
+	d    *connectDialer
+	held []bool
+}
+
+func (g *gateWatcher) RoundTrip(req *fhttp.Request) (*fhttp.Response, error) {
+	g.held = append(g.held, len(g.d.proxyPool.dial) == 1)
+	return &fhttp.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader("fallback")), Request: req}, nil
+}
+
+// A forwarded request falls back to dialing the proxy behind its dial gate
+// whichever way it came to: no connection at all, or one taken behind the
+// gate that turned it away, after which a request that waited would dial a
+// second connection of its own beside it.
+func TestAForwardedRequestDialsTheProxyBehindTheGate(t *testing.T) {
+	u, _ := url.Parse("https://proxy.test:8443")
+	cold := newConnectDialer(u, time.Second, nil, nil)
+	cold.identity.profile = shippedProfile(t, "chrome_155_macos")
+	watch := &gateWatcher{d: cold}
+	req, _ := fhttp.NewRequest("GET", "http://www.example.com/x", nil)
+	if res, err := cold.RoundTripProxyHTTP(req, watch); err != nil || res.StatusCode != 200 || len(watch.held) != 1 || !watch.held[0] {
+		t.Errorf("with no connection: %v, gate held %v", err, watch.held)
+	}
+	d, _ := pooledProxy(t, goingAwayProxy(t))
+	second := goingAwayProxy(t)
+	watch = &gateWatcher{d: d}
+	req = replayable(t, "body", func(n int) error {
+		if n == 2 {
+			p, err := d.adoptProxyH2(second)
+			if err != nil {
+				return err
+			}
+			d.releaseProxyH2(p)
+		}
+		return nil
+	})
+	if res, err := d.RoundTripProxyHTTP(req, watch); err != nil || res.StatusCode != 200 || len(watch.held) != 1 || !watch.held[0] {
+		t.Errorf("after a connection taken behind the gate turned it away: %v, gate held %v", err, watch.held)
+	}
+	if len(d.proxyPool.dial) != 0 {
+		t.Error("the gate is still held after the request")
+	}
+	// One that a request waiting behind the gate dialed meanwhile is taken,
+	// back behind the gate, rather than a second dialed beside it.
+	d, _ = pooledProxy(t, goingAwayProxy(t))
+	turnsAway := goingAwayProxy(t)
+	dialed, asked := answeringProxy(t)
+	watch = &gateWatcher{d: d}
+	req = replayable(t, "body", func(n int) error {
+		var conn net.Conn
+		switch n {
+		case 2:
+			conn = turnsAway
+		case 4:
+			conn = dialed
+		default:
+			return nil
+		}
+		p, err := d.adoptProxyH2(conn)
+		if err == nil {
+			d.releaseProxyH2(p)
+		}
+		return err
+	})
+	res, err := d.RoundTripProxyHTTP(req, watch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if body, _ := io.ReadAll(res.Body); string(body) != "proxied" || len(watch.held) != 0 || len(asked()) != 1 {
+		t.Errorf("answered %q, the fallback asked %d times: want the connection dialed meanwhile", body, len(watch.held))
+	}
+}
+
+// A proxy's HTTP/2 connection that could not be adopted fails its request and
+// is kept by no transport: the next request dials the proxy again, as fhttp
+// does for one an erring round tripper speaks for, rather than going on a
+// connection that says the same error for good.
+func TestAProxyConnectionThatCouldNotBeAdoptedIsNotKept(t *testing.T) {
+	via, events, mu := ownedH2Proxy(t, "")
+	c := newTestClient(t, WithProxy(via.URL), WithTimeout(3*time.Second))
+	defer c.Close()
+	_, err := c.Do(&Request{URL: "http://origin.test/first", Context: conntap.With(context.Background(), noDataTap{})})
+	if err == nil || !strings.Contains(err.Error(), "hung up") {
+		t.Fatalf("a request whose proxy connection could not be adopted: %v", err)
+	}
+	res, err := c.Get("http://origin.test/second")
+	if err != nil || res.Status != 200 || string(res.Body) != "forward:" {
+		t.Fatalf("the request after it: %v", err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(*events) != 1 || (*events)[0].method != "GET" {
+		t.Errorf("the proxy was asked %v, want the second request alone", *events)
 	}
 }

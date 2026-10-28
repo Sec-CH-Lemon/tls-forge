@@ -21,6 +21,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   before they close what is idle: it came up after them and was kept open.
   Requires the tls-client fork's `apartWork`, at 62deb6d, a local pin not
   yet published.
+- A plain-http request through an HTTPS proxy whose HTTP/2 connection, taken
+  behind the proxy's dial gate, turns it away dials the proxy again behind
+  the gate, taking first a connection another request dialed meanwhile: it
+  dialed without the gate, so that requests at once each opened an HTTP/2
+  connection to the proxy. A proxy connection that could not be adopted for
+  HTTP/2 fails its request and is kept by no transport: every later request
+  through the proxy had its error, and none dialed again.
 - `capture --manual` gives session tickets to the host whose page asked for
   them, and only it: one window for every visitor let another host's visit
   open it, so that its next connection resumed and the visit measured was a
