@@ -18,6 +18,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   unchanged. utls also requires brotli v1.2.3, which refuses a stream cut short
   before its last meta-block, as tls-forge's own build already did. Requires
   the utls fork at 2477e72, a local pin not yet published.
+- A profile the profiles directory holds as a symbolic link tls-forge does not
+  follow (absolute, even to a file inside it, leading out of it, or leading
+  nowhere) is refused with an error naming it; the shipped profile of the same
+  name was worn in its place without a word.
 - `Request.Reloaded` (and `fetch --retry-as-browser`) leaves the caller's
   Authorization, Cookie and proxy/challenge credential fields behind when a
   redirect took the page to another origin, as the redirect did; a reload at

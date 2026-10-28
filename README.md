@@ -1731,7 +1731,11 @@ Manual captures without `--name` use `manual_<browser>_<major>` (for example,
 or change the `chrome` default alias. Give `--name` explicitly to install under
 another identifier. Only 1–4 ASCII digits from a reported browser major enter
 that identifier. Directory saves and registry reads are confined to their root,
-including when a parent is replaced with a symbolic link. Navigation tokens
+including when a parent is replaced with a symbolic link. A profile there is
+read through a symbolic link only when the link is relative and stays within
+the directory; one that is absolute, leads out, or leads nowhere is refused
+with an error naming it, and the shipped profile of that name is not worn in
+its place. Navigation tokens
 are random 128-bit values bound to the visitor's remote host and User-Agent;
 this is capture isolation, not authentication of the browser or the person.
 

@@ -2,6 +2,7 @@ package profile
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -122,14 +123,15 @@ func FilePath(name, platform string) (string, error) {
 // The platform default is the host's because that is what the plain name means:
 // Chrome 151 as it looks from here. Anything else is one word longer and says
 // so, which is the right way round for a thing that changes what a server sees.
-func lookup(fsys fs.FS, root, name string) (data []byte, at string, ok bool) {
+func lookup(fsys fs.FS, root, name string) (data []byte, at string, ok bool, err error) {
 	at = path.Join(root, name+".json")
-	if data, err := fs.ReadFile(fsys, at); err == nil {
-		return data, at, true
+	if data, ok, err := read(fsys, at); ok || err != nil {
+		return data, at, ok, err
 	}
 
 	// A version on its own: this machine's platform, or whichever there is.
-	if entries, err := fs.ReadDir(fsys, path.Join(root, name)); err == nil {
+	dir := path.Join(root, name)
+	if entries, err := fs.ReadDir(fsys, dir); err == nil {
 		var files []string
 		for _, entry := range entries {
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
@@ -140,9 +142,9 @@ func lookup(fsys fs.FS, root, name string) (data []byte, at string, ok bool) {
 		wanted := hostPlatform + ".json"
 		for _, file := range files {
 			if file == wanted {
-				at = path.Join(root, name, file)
-				if data, err := fs.ReadFile(fsys, at); err == nil {
-					return data, at, true
+				at = path.Join(dir, file)
+				if data, ok, err := read(fsys, at); ok || err != nil {
+					return data, at, ok, err
 				}
 			}
 		}
@@ -160,26 +162,51 @@ func lookup(fsys fs.FS, root, name string) (data []byte, at string, ok bool) {
 		// project ships a binary for. Sorted, so which one it lands on does not
 		// depend on the order a filesystem happened to hand them over.
 		if len(files) > 0 {
-			at = path.Join(root, name, files[0])
-			if data, err := fs.ReadFile(fsys, at); err == nil {
-				return data, at, true
+			at = path.Join(dir, files[0])
+			if data, ok, err := read(fsys, at); ok || err != nil {
+				return data, at, ok, err
 			}
 		}
-		return nil, "", false
+		return nil, "", false, nil
+	} else if info, statErr := fs.Lstat(fsys, dir); statErr == nil && !info.Mode().IsRegular() || statErr != nil && !errors.Is(statErr, fs.ErrNotExist) {
+		// A directory, or a link to one, that is there and cannot be read: a
+		// file of that name is not, and a name it holds is not absent.
+		return nil, dir, false, unreadable(err)
 	}
 
 	// A version and a platform: the last word is the platform.
 	if cut := strings.LastIndex(name, "_"); cut > 0 {
 		relative, err := FilePath(name[:cut], name[cut+1:])
 		if err != nil {
-			return nil, "", false
+			return nil, "", false, nil
 		}
 		at = path.Join(root, relative)
-		if data, err := fs.ReadFile(fsys, at); err == nil {
-			return data, at, true
+		if data, ok, err := read(fsys, at); ok || err != nil {
+			return data, at, ok, err
 		}
 	}
-	return nil, "", false
+	return nil, "", false, nil
+}
+
+// read is the file at at in fsys, nothing and no error when nothing is there,
+// or why what is there cannot be read. A link the tree does not follow, an
+// absolute one or one leading out of it or nowhere, is there: the name is not
+// absent, and another profile of that name must not answer for it.
+func read(fsys fs.FS, at string) ([]byte, bool, error) {
+	data, err := fs.ReadFile(fsys, at)
+	if err == nil {
+		return data, true, nil
+	}
+	if _, statErr := fs.Lstat(fsys, at); errors.Is(statErr, fs.ErrNotExist) {
+		return nil, false, nil
+	}
+	return nil, false, unreadable(err)
+}
+
+// unreadable says why a profile that is there was not read.
+func unreadable(err error) error {
+	return fmt.Errorf("it is there but cannot be read; profiles are read within their directory, "+
+		"through links that are relative and stay in it: %w", err)
 }
 
 // namesIn lists every name a tree answers to.
@@ -252,11 +279,14 @@ func (r *Registry) fromDir(name string) (*Profile, bool, error) {
 		return nil, false, nil
 	}
 	defer func() { _ = tree.Close() }()
-	data, at, ok := lookup(tree.FS(), ".", name)
+	data, at, ok, err := lookup(tree.FS(), ".", name)
+	source := filepath.Join(dir, filepath.FromSlash(at))
+	if err != nil {
+		return nil, true, fmt.Errorf("profile: loading %s: %w", source, err)
+	}
 	if !ok {
 		return nil, false, nil
 	}
-	source := filepath.Join(dir, filepath.FromSlash(at))
 	p, err := Load(data)
 	if err != nil {
 		return nil, true, fmt.Errorf("profile: loading %s: %w", source, err)
@@ -295,7 +325,7 @@ func (r *Registry) Register(p *Profile) error {
 // chrome_155_macos: one kept under that name in the directory of profiles
 // answers for it from then on, the directory being read first (Get).
 func Ships(name string) bool {
-	_, _, ok := lookup(embedded, "data", name)
+	_, _, ok, _ := lookup(embedded, "data", name)
 	return ok
 }
 
@@ -333,7 +363,7 @@ func (r *Registry) Get(name string) (*Profile, error) {
 		return p, err
 	}
 
-	if data, _, ok := lookup(embedded, "data", name); ok {
+	if data, _, ok, _ := lookup(embedded, "data", name); ok {
 		return Load(data)
 	}
 
