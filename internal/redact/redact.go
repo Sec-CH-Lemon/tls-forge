@@ -325,11 +325,69 @@ func maskAfter(value, separator string) string {
 	return name + separator + Masked
 }
 
-// sensitive is shared by header values and decoded query parameter names.
+// sensitive is shared by header values and decoded query parameter names. A
+// name says a secret by its words (X-Amz-Signature, accessToken, api_key): a
+// word that only holds one is no secret's name (keyword, monkey, author,
+// bypass, country_code), and a page token is a list's cursor.
 func sensitive(name string) bool {
 	lower := strings.ToLower(name)
-	return lower == "x-auth" || lower == "authorization" || lower == "proxy-authorization" || lower == "x-authorization" ||
-		strings.Contains(lower, "token") || strings.Contains(lower, "secret") || strings.Contains(lower, "password") || strings.Contains(lower, "key")
+	switch lower {
+	case "x-auth", "authorization", "proxy-authorization", "x-authorization", "code", "session", "sid":
+		return true
+	}
+	words := wordsOf(name)
+	if n := len(words); n >= 2 && words[n-2] == "page" && words[n-1] == "token" {
+		return false
+	}
+	for _, word := range words {
+		if secretWords[word] {
+			return true
+		}
+	}
+	squashed := strings.Join(words, "")
+	for _, root := range secretRoots {
+		if strings.Contains(squashed, root) {
+			return true
+		}
+	}
+	return false
+}
+
+// secretWords name a secret as a whole word; secretRoots in any spelling,
+// run together with other words too (authtoken, PHPSESSID, session_id).
+var (
+	secretWords = map[string]bool{"key": true, "apikey": true, "sig": true, "pass": true, "pwd": true, "auth": true, "otp": true, "jwt": true}
+	secretRoots = []string{"token", "secret", "password", "passwd", "signature", "credential", "sessid", "sessionid"}
+)
+
+// wordsOf parts a name into its lower-case words: at anything but a letter
+// or a digit, and where camel case begins one (accessToken, AWSAccessKeyId).
+func wordsOf(name string) []string {
+	var words []string
+	var word []rune
+	runes := []rune(name)
+	for i, r := range runes {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			words, word = appendWord(words, word), word[:0]
+			continue
+		}
+		if i > 0 && unicode.IsUpper(r) {
+			before := runes[i-1]
+			lowerAfter := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+			if unicode.IsLower(before) || unicode.IsUpper(before) && lowerAfter {
+				words, word = appendWord(words, word), word[:0]
+			}
+		}
+		word = append(word, r)
+	}
+	return appendWord(words, word)
+}
+
+func appendWord(words []string, word []rune) []string {
+	if len(word) == 0 {
+		return words
+	}
+	return append(words, strings.ToLower(string(word)))
 }
 
 // queries preserves spelling, order, repeated fields and non-secret values.
@@ -338,7 +396,9 @@ func sensitive(name string) bool {
 func queries(text string) string {
 	var out strings.Builder
 	for {
-		start := strings.IndexByte(text, '?')
+		// A fragment is read as a query is: an OAuth implicit flow returns
+		// its access token there (#access_token=...).
+		start := strings.IndexAny(text, "?#")
 		if start < 0 {
 			out.WriteString(text)
 			return out.String()

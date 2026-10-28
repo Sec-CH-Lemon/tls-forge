@@ -1016,7 +1016,13 @@ TLS secret export requires an explicit destination: `--keylog FILE`,
 ignores ambient `SSLKEYLOGFILE`; Node and Python also remove just that variable
 from every daemon start, without changing their parent's environment.
 Diagnostics mask passwords, sensitive query parameters such as `access_token`
-(including repeated or encoded names), `X-Auth` and `X-Authorization`.
+(including repeated or encoded names), `X-Auth` and `X-Authorization`. A
+parameter is told by the words of its name: a token, secret, password,
+signature, credential or session id in any spelling (`X-Amz-Signature`,
+`authtoken`, `PHPSESSID`), and `key`, `sig`, `pass`, `pwd`, `auth`, `otp` or
+`jwt` as a word of it, an OAuth `code` too; `keyword`, `pageToken` and
+`country_code` are left as they are. A URL's fragment is read as its query, for
+the token an OAuth implicit flow returns there (`#access_token=...`).
 A pcap masks cleartext proxy credentials across request heads and write cuts,
 including repeated forward HTTP requests, preserving byte lengths and bodies.
 The explicit content outputs and decrypted application data in a pcap still

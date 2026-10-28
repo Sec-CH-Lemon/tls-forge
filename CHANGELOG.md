@@ -26,6 +26,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   let one zstd layer of a body keep a 2 GiB window. Every shipped, catalogue
   and frozen legacy profile says 8388608. Requires the utls fork's
   `MaxZstdWindowBytes`, at ce7eff0, a local pin not yet published.
+- Tell a secret query parameter by the words of its name, in logs, traces,
+  reports and errors: a signed URL's `sig` and `X-Amz-Signature`, `pass`,
+  `pwd`, an OAuth `code`, `otp`, `jwt` and session ids (`PHPSESSID`,
+  `session_id`) were written out, while `keyword`, `monkey` and `pageToken`
+  were masked for a word they only contain. A URL's fragment is masked as its
+  query is: an OAuth implicit flow's `#access_token=...` was written out.
 - Refuse an HTTP/2 profile whose `SETTINGS_HEADER_TABLE_SIZE` is past 1048576
   or whose `SETTINGS_MAX_HEADER_LIST_SIZE` is past 16777216, before anything is
   sent: the transport sizes its HPACK decoder and its header-list limit by them,

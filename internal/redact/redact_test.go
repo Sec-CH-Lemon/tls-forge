@@ -220,3 +220,49 @@ func TestQueryRedactionDoesNotStopInsideQuotedSecret(t *testing.T) {
 		}
 	}
 }
+
+// A parameter's name says whether its value is a secret by its words: a
+// signed URL's signature, a password by any short name, an OAuth code, a
+// session's id. A word that only contains one is no secret's name.
+func TestSecretNamesAreToldByTheirWords(t *testing.T) {
+	for _, name := range []string{
+		"sig", "signature", "X-Amz-Signature", "X-Goog-Signature", "pass", "passwd", "pwd", "password",
+		"code", "otp", "auth", "access_token", "accessToken", "AccessToken", "id_token", "refresh_token",
+		"token", "csrf-token", "authtoken", "apikey", "api_key", "apiKey", "x-api-key", "key",
+		"AWSAccessKeyId", "JWTAssertion", "client_secret", "X-Amz-Credential", "X-Amz-Security-Token", "jwt",
+		"session", "session_id", "sessionid", "PHPSESSID", "JSESSIONID", "sid", "x-auth", "authorization",
+	} {
+		if !sensitive(name) {
+			t.Errorf("sensitive(%q) = false", name)
+		}
+	}
+	for _, name := range []string{
+		"keyword", "keys", "monkey", "pageToken", "page_token", "nextPageToken", "NextPageToken",
+		"country_code", "zip_code", "code_challenge", "author", "passage", "bypass", "signal", "design",
+		"q", "state", "nonce", "expires_in", "session_count", "",
+	} {
+		if sensitive(name) {
+			t.Errorf("sensitive(%q) = true", name)
+		}
+	}
+}
+
+// An OAuth implicit flow returns its token in the fragment, which a log, a
+// trace or a report quotes as it quotes a query.
+func TestAFragmentsSecretsAreMaskedAsAQuerys(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"https://app.test/cb#access_token=abc&expires_in=3600&state=s", "https://app.test/cb#access_token=***&expires_in=3600&state=s"},
+		{"https://app.test/p?a=1&sig=abc#id_token=t&x=2", "https://app.test/p?a=1&sig=***#id_token=***&x=2"},
+		{"https://app.test/p?keyword=go&pageToken=CAoQAA#section-2", "https://app.test/p?keyword=go&pageToken=CAoQAA#section-2"},
+		{"see issue #12 and https://app.test/#code=c", "see issue #12 and https://app.test/#code=***"},
+	} {
+		if got := Text(tc.in); got != tc.want {
+			t.Errorf("Text(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+		if strings.HasPrefix(tc.in, "https://") {
+			if got := URL(tc.in); got != tc.want {
+				t.Errorf("URL(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		}
+	}
+}
