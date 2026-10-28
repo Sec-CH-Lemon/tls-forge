@@ -1272,7 +1272,9 @@ standard error, in a log, a trace, a report and the JSON lines, in what
 `daemon` answers and in what `proxy` reports and sends back with a 502: a
 proxy that could not be read is otherwise quoted back whole, by whatever
 tried to read it. A proxy's username is kept, since it tells two proxies
-apart.
+apart. A URL is read for this as a browser reads it: `https:/user:pass@host`,
+`https:user:pass@host` and backslashes after the scheme carry a password too,
+as do tabs or newlines inside one.
 
 `fetch`, `proxy` and `daemon` take the proxy from an environment variable
 with `--proxy-env NAME`: on the command line, a password is one that `ps`

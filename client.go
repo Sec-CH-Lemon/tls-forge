@@ -795,7 +795,7 @@ func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 	}
 	target, err := requestURL(req.URL, nil, c.behavior())
 	if err != nil {
-		return nil, nil, fmt.Errorf("tlsforge: %q %w", req.URL, err)
+		return nil, nil, fmt.Errorf("tlsforge: %q %w", redact.URL(req.URL), err)
 	}
 	method := cmp.Or(req.Method, fhttp.MethodGet)
 	var body io.Reader

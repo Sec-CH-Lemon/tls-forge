@@ -20,12 +20,15 @@ const Masked = "***"
 
 // URL is a URL without the password in it, its username kept.
 func URL(raw string) string {
-	raw = queries(raw)
+	// The URL Standard's reading takes out what a browser reads as the
+	// password; what is left is still read as Go reads it, so that what does
+	// not parse goes whole, a password with a "/" in it among it.
+	raw, special := standardURL(queries(raw))
 	if raw == "" || !strings.Contains(raw, "@") {
 		return raw
 	}
 	parsed := raw
-	schemeLess := !strings.Contains(raw, "://")
+	schemeLess := !special && !strings.Contains(raw, "://")
 	if schemeLess {
 		// url.Parse reads "alice:secret@host" as an opaque URL whose scheme is
 		// alice, so User is nil and the password used to pass through unchanged.
@@ -116,13 +119,20 @@ func withoutProxy(text, proxy string) string {
 // and whether or not it would parse: what an error quotes back, a URL that
 // could not be read included, which is the URL most likely to be quoted.
 //
-// A URL is a "://" and what follows it up to a "/" or a space. Its userinfo is
-// everything before the last "@" in that, and the password what follows the
-// first ":" of the userinfo. Quotes are not where a URL ends, since a password
-// may hold one, escaped.
+// A URL is a "://" and what follows it up to a "/" or a space, or a special
+// scheme of the URL Standard (http, https, ws, wss, ftp), in any case, and its
+// ":" followed by any slashes and backslashes, or none, as the Standard reads
+// "https:/u:p@host" and "https:u:p@host". Its userinfo is everything before
+// the last "@" in that, and the password what follows the first ":" of the
+// userinfo. Quotes are not where a URL ends, since a password may hold one,
+// escaped, nor is a backslash, which is how a quoted one escapes a tab.
 func Text(text string) string {
 	text = queries(text)
-	if !strings.Contains(text, "://") || !strings.Contains(text, "@") {
+	if !strings.Contains(text, "@") {
+		return text
+	}
+	text = specialAuthorities(text)
+	if !strings.Contains(text, "://") {
 		return text
 	}
 	var out strings.Builder
@@ -148,6 +158,120 @@ func Text(text string) string {
 		out.WriteString(authority)
 		text = text[end:]
 	}
+}
+
+// specialSchemes are the schemes the URL Standard calls special and reads an
+// authority after with any slashes or backslashes, or none (file aside, which
+// has no credentials).
+var specialSchemes = []string{"http", "https", "ws", "wss", "ftp"}
+
+// specialAt is the length of the special scheme text[i:] begins with, and its
+// colon, when it begins with one and nothing of a scheme comes before it; else
+// 0.
+func specialAt(text string, i int) int {
+	if i > 0 && isSchemeByte(text[i-1]) {
+		return 0
+	}
+	for _, scheme := range specialSchemes {
+		if end := i + len(scheme); end < len(text) && text[end] == ':' && asciiFold(text[i:end]) == scheme {
+			return len(scheme) + 1
+		}
+	}
+	return 0
+}
+
+func isSchemeByte(c byte) bool {
+	return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '+' || c == '-' || c == '.'
+}
+
+// asciiFold is s in lower case, ASCII letters alone: a scheme is ASCII, and
+// Unicode case folding would take a long s for an s.
+func asciiFold(s string) string {
+	b := []byte(s)
+	for i, c := range b {
+		if 'A' <= c && c <= 'Z' {
+			b[i] = c + 'a' - 'A'
+		}
+	}
+	return string(b)
+}
+
+// specialAuthorities is text with the password taken out of the authority of
+// every URL of a special scheme in it, read as the URL Standard reads one
+// after its slashes, or none. In free text an authority ends at a "/", "?",
+// "#" or space.
+func specialAuthorities(text string) string {
+	var out strings.Builder
+	last := 0
+	for i := 0; i < len(text); i++ {
+		n := specialAt(text, i)
+		if n == 0 {
+			continue
+		}
+		start := i + n
+		for start < len(text) && (text[start] == '/' || text[start] == '\\') {
+			start++
+		}
+		end := start + strings.IndexFunc(text[start:], func(r rune) bool { return r == '/' || r == '?' || r == '#' || unicode.IsSpace(r) })
+		if end < start {
+			end = len(text)
+		}
+		if from, to, ok := passwordIn(text[start:end]); ok {
+			out.WriteString(text[last : start+from])
+			last = start + to
+		}
+		i = end - 1
+	}
+	if last == 0 {
+		return text
+	}
+	out.WriteString(text[last:])
+	return out.String()
+}
+
+// passwordIn is where the ":password" of an authority's userinfo lies, the
+// colon included, when it has one that is not empty.
+func passwordIn(authority string) (from, to int, ok bool) {
+	at := strings.LastIndex(authority, "@")
+	if at < 0 {
+		return 0, 0, false
+	}
+	colon := strings.IndexByte(authority[:at], ':')
+	if colon < 0 || colon+1 == at {
+		return 0, 0, false
+	}
+	return colon, at, true
+}
+
+// standardURL is raw, a URL, without the password the URL Standard reads in
+// it, and whether its scheme is special: any slashes and backslashes, or none,
+// before its authority, which ends at "/", "\\", "?" or "#". The password goes
+// with its colon, an empty one too, and what is left is spelt as it was given.
+// A tab or a newline in it, or a space before it, the Standard passes over;
+// Go reads no such URL, so URL takes all before its last "@" anyway.
+func standardURL(raw string) (string, bool) {
+	n := specialAt(raw, 0)
+	if n == 0 {
+		return raw, false
+	}
+	start := n
+	for start < len(raw) && (raw[start] == '/' || raw[start] == '\\') {
+		start++
+	}
+	end := start + strings.IndexAny(raw[start:], "/\\?#")
+	if end < start {
+		end = len(raw)
+	}
+	authority := raw[start:end]
+	at := strings.LastIndex(authority, "@")
+	if at < 0 {
+		return raw, true
+	}
+	colon := strings.IndexByte(authority[:at], ':')
+	if colon < 0 {
+		return raw, true
+	}
+	return raw[:start+colon] + raw[start+at:], true
 }
 
 // Value is a header field's value, or what is left of it once the secret is

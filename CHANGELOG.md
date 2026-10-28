@@ -22,6 +22,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   follow (absolute, even to a file inside it, leading out of it, or leading
   nowhere) is refused with an error naming it; the shipped profile of the same
   name was worn in its place without a word.
+- Take the password out of a URL the URL Standard reads with one, however it is
+  spelt: one slash or three after a special scheme (`https:/u:p@host`), none,
+  backslashes, capitals, tabs or newlines inside. CanonicalURL, Validate, Do,
+  OwnPage, CookiesFor, a browser context's initiator and fetch's list of URLs
+  quoted it whole in their errors.
 - `Request.Reloaded` (and `fetch --retry-as-browser`) leaves the caller's
   Authorization, Cookie and proxy/challenge credential fields behind when a
   redirect took the page to another origin, as the redirect did; a reload at

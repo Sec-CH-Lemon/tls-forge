@@ -375,7 +375,7 @@ func validate(jobs []job) error {
 		if j.URL == "" {
 			problems = append(problems, fmt.Sprintf("entry %d has no URL", i+1))
 		} else if canonical, err := tlsforge.CanonicalURL(j.URL); err != nil {
-			problems = append(problems, fmt.Sprintf("entry %d: %q %v", i+1, j.URL, errors.Unwrap(err)))
+			problems = append(problems, fmt.Sprintf("entry %d: %q %v", i+1, redact.URL(j.URL), errors.Unwrap(err)))
 		} else {
 			j.URL = canonical
 		}

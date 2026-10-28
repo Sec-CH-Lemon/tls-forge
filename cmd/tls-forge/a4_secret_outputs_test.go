@@ -17,6 +17,28 @@ import (
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
+// A request URL with a password fetch refuses is said without it, however it
+// is spelt: one slash or three after the scheme, none, a tab in the password.
+func TestFetchSaysNoPasswordOfAURLItRefuses(t *testing.T) {
+	tabbed := secret[:4] + "\t" + secret[4:]
+	for _, raw := range []string{
+		"https:/alice:" + secret + "@example.test:6000/",
+		"https:///alice:" + secret + "@example.test:6000/",
+		"https:alice:" + secret + "@example.test:6000/",
+		"https://alice:" + tabbed + "@example.test:6000/",
+	} {
+		code, stdout, stderr := exec(t, "fetch", "--no-exit-lookup", raw)
+		if code != 2 || !strings.Contains(stderr, "entry 1") {
+			t.Fatalf("%q: exit %d: %s", raw, code, stderr)
+		}
+		for _, part := range []string{secret, secret[:4], secret[4:]} {
+			if strings.Contains(stdout+stderr, part) {
+				t.Errorf("%q: the password said: %s%s", raw, stdout, stderr)
+			}
+		}
+	}
+}
+
 func checkAdditionalSecretOutputs(t *testing.T) {
 	t.Helper()
 	t.Run("public URL errors", func(t *testing.T) {

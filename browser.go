@@ -9,6 +9,7 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -244,7 +245,7 @@ func (b *BrowserContext) resolve(method string, target *url.URL, header Header, 
 			err = initiator.uncarried()
 		}
 		if err != nil {
-			return nil, errContext("initiator %q %v", b.Initiator, err)
+			return nil, errContext("initiator %q %v", redact.URL(b.Initiator), err)
 		}
 		r.initiator = initiator.url()
 		r.from = originOf(r.initiator)

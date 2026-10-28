@@ -29,6 +29,57 @@ func TestURLAPIsDoNotExposeSecretsOnFailure(t *testing.T) {
 	}
 }
 
+// A URL the URL Standard reads with a password, however it is spelt, has
+// none in what the URL APIs say of it: one slash or three after the scheme,
+// none, backslashes, capitals, a tab in the password or the scheme. Port
+// 6000 is one Chrome sends nothing to, so each is refused and quoted.
+func TestAPasswordInAnySpellingOfAURLIsSaidNowhere(t *testing.T) {
+	client, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = client.Close() }()
+	said := func(t *testing.T, what string) {
+		t.Helper()
+		for _, part := range []string{"zq7", "x9w"} {
+			if strings.Contains(what, part) {
+				t.Errorf("the password said: %s", what)
+			}
+		}
+	}
+	for _, raw := range []string{
+		"https:/u:zq7x9w@example.test:6000/",
+		"https:///u:zq7x9w@example.test:6000/",
+		"https:u:zq7x9w@example.test:6000/",
+		`https:\\u:zq7x9w@example.test:6000/`,
+		"HTTPS:/u:zq7x9w@example.test:6000/",
+		"https://u:zq7\tx9w@example.test:6000/",
+		"ht\ntps:/u:zq7x9w@example.test:6000/",
+		"wss:/u:zq7x9w@example.test/",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			_, canonical := CanonicalURL(raw)
+			_, sent := client.Do(&Request{URL: raw})
+			for _, err := range []error{client.Validate(&Request{URL: raw}), sent, canonical} {
+				if err == nil {
+					t.Fatalf("%q was not refused", raw)
+				}
+				said(t, err.Error())
+			}
+			own, err := OwnPage(raw)
+			said(t, fmt.Sprint(own, err))
+			cookies, err := client.CookiesFor(raw)
+			said(t, fmt.Sprint(cookies, err))
+		})
+	}
+	// a page's URL that does not read
+	err = client.Validate(&Request{URL: "https://example.test/", Browser: &BrowserContext{Kind: KindFetch, Initiator: "https:/u:zq7x9w@[bad/"}})
+	if err == nil {
+		t.Fatal("an initiator that does not read was taken")
+	}
+	said(t, err.Error())
+}
+
 func TestProfileQUICLayoutOverridesAmbientScrambling(t *testing.T) {
 	p := quicProfile(t, map[string]string{"quic.initial_layout": `"scramble"`,
 		"quic.chaos_first_frame_min": "", "quic.chaos_first_frame_spread": "", "quic.chaos_crypto_splits_min": "",

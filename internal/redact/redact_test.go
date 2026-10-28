@@ -25,6 +25,39 @@ func TestURL(t *testing.T) {
 		// An "@" in the path is not a credential, and rewriting it would corrupt
 		// a perfectly good URL.
 		{"at sign in path", "http://proxy.example:8080/pa@th", "http://proxy.example:8080/pa@th"},
+		// The URL Standard reads an authority after a special scheme's colon
+		// with any slashes and backslashes, or none; spelt as it was given.
+		{"one slash", "https:/alice:s3cr3t@example.com:6000/", "https:/alice@example.com:6000/"},
+		{"three slashes", "https:///alice:s3cr3t@example.com:6000/", "https:///alice@example.com:6000/"},
+		{"no slash", "https:alice:s3cr3t@example.com", "https:alice@example.com"},
+		{"backslashes", `https:\\alice:s3cr3t@example.com\a`, `https:\\alice@example.com\a`},
+		{"slashes both ways", `wss:/\/alice:s3cr3t@example.com`, `wss:/\/alice@example.com`},
+		{"in capitals", "HTTP:/alice:s3cr3t@example.com", "HTTP:/alice@example.com"},
+		{"ws", "ws:alice:s3cr3t@example.com", "ws:alice@example.com"},
+		{"ftp", "ftp:/alice:s3cr3t@example.com", "ftp:/alice@example.com"},
+		{"a password with an @", "https:/alice:p@ss@example.com", "https:/alice@example.com"},
+		// Tabs and newlines are not there for the Standard, wherever they are,
+		// nor are spaces before the URL; those in the password go with it.
+		// What Go then cannot read goes whole up to its last "@".
+		{"a tab in the password", "https://alice:s3\tcr3t@example.com/", "https://alice@example.com/"},
+		{"a newline in the scheme", "ht\ntps:/alice:s3cr3t@example.com", "[redacted]@example.com"},
+		{"spaces before", "  https:/alice:s3cr3t@example.com", "[redacted]@example.com"},
+		// A password with what ends an authority in it, not escaped, ends the
+		// Standard's authority there: what does not parse goes whole.
+		{"a slash in the password", "http://alice:s3/cr3t@proxy.example", "[redacted]@proxy.example"},
+		{"a question mark in it", "https://alice:s3?cr3t@proxy.example", "[redacted]@proxy.example"},
+		{"an empty password", "https:/alice:@example.com", "https:/alice@example.com"},
+		{"a username alone", "https:/alice@example.com", "https:/alice@example.com"},
+		// what follows the authority is no password
+		{"after a path", "https:/example.com/alice:s3cr3t@x", "https:/example.com/alice:s3cr3t@x"},
+		{"after a backslash path", `https://example.com\a:b`, `https://example.com\a:b`},
+		{"after a query", "https:/example.com?alice:b@x", "https:/example.com?alice:b@x"},
+		{"after a fragment", "https:/example.com#alice:b@x", "https:/example.com#alice:b@x"},
+		// a scheme that is not special has its authority after "//" alone
+		{"not special", "socks5:/bob:hunter2@127.0.0.1:1080", "socks5:/bob:hunter2@127.0.0.1:1080"},
+		{"special in a longer scheme", "xhttps:/bob:hunter2@x.test", "xhttps:/bob:hunter2@x.test"},
+		{"a long s", "httpſ:/bob:hunter2@x.test", "httpſ:/bob:hunter2@x.test"},
+		{"no colon", "https", "https"},
 	} {
 		if got := URL(tc.given); got != tc.want {
 			t.Errorf("%s: URL(%q) = %q, want %q", tc.name, tc.given, got, tc.want)
@@ -71,6 +104,21 @@ func TestText(t *testing.T) {
 		{"an @ after the authority", "http://p.test/user:pw@x", "http://p.test/user:pw@x"},
 		// Without "://" nothing reads as a URL. Error masks a proxy given so.
 		{"no scheme", "invalid url `alice:s3cr3t@proxy.test`", "invalid url `alice:s3cr3t@proxy.test`"},
+		// A special scheme's authority after any slashes and backslashes, or
+		// none, as the URL Standard reads one, quoted or not.
+		{"one slash, quoted", `tlsforge: "https:/alice:s3cr3t@example.com:6000/" is refused`,
+			`tlsforge: "https:/alice@example.com:6000/" is refused`},
+		{"three slashes", "https:///alice:s3cr3t@example.com", "https:///alice@example.com"},
+		{"no slash, quoted", `"https:alice:s3cr3t@example.com" x`, `"https:alice@example.com" x`},
+		{"backslashes", `https:\\alice:s3cr3t@example.com`, `https:\\alice@example.com`},
+		{"in capitals, after a word", "via HTTPS:/a:b@c.test", "via HTTPS:/a@c.test"},
+		{"a tab quoted", `"https://alice:s3\tcr3t@example.com/"`, `"https://alice@example.com/"`},
+		{"two, one special", "wss:/a:1@one.test and socks5://b:2@two.test", "wss:/a@one.test and socks5://b@two.test"},
+		{"a word then the scheme", "xhttps:/a:b@c.test", "xhttps:/a:b@c.test"},
+		{"a scheme with nothing after", "http: 407 from a:b@c.test", "http: 407 from a:b@c.test"},
+		{"a query after it", "https:/c.test?a:b@d", "https:/c.test?a:b@d"},
+		// a scheme inside a password taken out is not read again
+		{"a special scheme in a password", "https:/a:https:b:c@d.test", "https:/a@d.test"},
 	} {
 		if got := Text(tc.text); got != tc.want {
 			t.Errorf("%s: Text(%q) = %q, want %q", tc.name, tc.text, got, tc.want)
