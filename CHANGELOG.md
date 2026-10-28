@@ -46,6 +46,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   an archive of another browser than Chrome the generic data's rules (64
   layers, identity passed over), as such an archive of an older schema runs
   with: it gave every archive the values measured of Chrome 156.
+- A second ClientHello carries a HelloRetryRequest's cookie where BoringSSL's
+  permutation puts it (read in its source, not measured): among the
+  extensions it permutes, each place as likely. It went before the opening
+  GREASE extension of about one in 17 of a Chrome profile's second hellos,
+  which Chrome's never are, and never just before the closing ones. A
+  HelloRetryRequest after a spec's own pre_shared_key bytes
+  (`FakePreSharedKeyExtension`) is an error, not a nil dereference, and
+  utls's QUIC server refuses handshake bytes left before its 0-RTT read key,
+  as Go 1.26.10's does (CVE-2025-61730). Requires the utls fork at 8131c6b,
+  a local pin not yet published.
 - Keep a request's credentials at its origin under a redirect policy of the
   caller's too (`WithTransportOption` with `tls_client.WithCustomRedirectFunc`):
   fhttp copied `Authorization`, `Cookie`, `Proxy-Authorization` and the other

@@ -12,7 +12,7 @@ require (
 	github.com/igor-lemon/fhttp v0.6.10-0.20261028110524-e514e872a835 // indirect
 	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261028110028-69430008f951 // indirect
 	github.com/igor-lemon/tls-client v1.15.2-0.20261028212323-62deb6d14643 // indirect
-	github.com/igor-lemon/utls v1.7.8-barnius.0.20261028105857-ce7eff07163e // indirect
+	github.com/igor-lemon/utls v1.7.8-barnius.0.20261028211631-8131c6bd1244 // indirect
 	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261026204638-961b3d7db465 // indirect
 	github.com/klauspost/compress v1.20.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
