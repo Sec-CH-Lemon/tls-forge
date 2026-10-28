@@ -32,13 +32,8 @@ func (s *Server) visited(visitor string, headers map[string]string, carried bool
 	trusted := s.trusted[visitor]
 	if !trusted {
 		s.trusted[visitor] = true
-		s.trustedOrder = append(s.trustedOrder, visitor)
-		if past := len(s.trustedOrder) - s.limits.kept; past > 0 {
-			for _, old := range s.trustedOrder[:past] {
-				delete(s.trusted, old)
-			}
-			s.trustedOrder = slices.Delete(s.trustedOrder, 0, past)
-		}
+		s.trustedOrder = evictBusiest(append(s.trustedOrder, visitor), s.limits.kept,
+			visitorHost, func(old string) { delete(s.trusted, old) })
 	}
 	s.mu.Unlock()
 
@@ -59,11 +54,22 @@ func (s *Server) visited(visitor string, headers map[string]string, carried bool
 // phone from this machine, and by its user agent, Firefox from Safari on one
 // machine.
 func visitorOf(sess *Session, headers map[string]string) string {
-	host, _, err := net.SplitHostPort(sess.remote)
+	return hostOf(sess.remote) + "\n" + headers["user-agent"]
+}
+
+// hostOf is the host of a remote address, or the address when it has no port.
+func hostOf(remote string) string {
+	host, _, err := net.SplitHostPort(remote)
 	if err != nil {
-		host = sess.remote
+		return remote
 	}
-	return host + "\n" + headers["user-agent"]
+	return host
+}
+
+// visitorHost is the host a visitor came from.
+func visitorHost(visitor string) string {
+	host, _, _ := strings.Cut(visitor, "\n")
+	return host
 }
 
 // manualHTTP1 serves the HTTP/1.1 visit of a browser a person opens, at the
@@ -104,12 +110,7 @@ func (s *Server) awaitHTTP1(visitor string, target *Session) {
 	defer s.mu.Unlock()
 	s.awaitingOrder = append(slices.DeleteFunc(s.awaitingOrder, func(v string) bool { return v == visitor }), visitor)
 	s.awaiting[visitor] = target
-	if past := len(s.awaitingOrder) - s.limits.kept; past > 0 {
-		for _, old := range s.awaitingOrder[:past] {
-			delete(s.awaiting, old)
-		}
-		s.awaitingOrder = slices.Delete(s.awaitingOrder, 0, past)
-	}
+	s.awaitingOrder = evictBusiest(s.awaitingOrder, s.limits.kept, visitorHost, func(old string) { delete(s.awaiting, old) })
 }
 
 // donePage tells the person at the browser the capture is complete, how.

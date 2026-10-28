@@ -29,7 +29,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
@@ -223,12 +222,15 @@ type Server struct {
 	// (/skip), by visitor; awaitingOrder is them oldest first.
 	awaiting      map[string]*Session
 	awaitingOrder []string
-	// ticketed is the configuration a connection is handed while ticketsUntil
-	// (Unix nanoseconds, 0 for never) has not passed: tickets, with keys of
-	// its own, since a configuration that has them off issues none whatever
-	// the one handed out says.
-	ticketed     *tls.Config
-	ticketsUntil atomic.Int64
+	// ticketed is the configuration a connection is handed while its host's
+	// tickets are open: tickets, with keys of its own, since a configuration
+	// that has them off issues none whatever the one handed out says.
+	// tickets is when they close, in Unix nanoseconds, for each host a page
+	// asked for them from: a host's visit opens and closes its own, and no
+	// other's.
+	ticketed  *tls.Config
+	ticketsMu sync.Mutex
+	tickets   map[string]int64
 
 	closeOnce sync.Once
 	closed    chan struct{}
@@ -403,6 +405,7 @@ func Start(opts ...Option) (*Server, error) {
 		manual:           cfg.manual,
 		trusted:          map[string]bool{},
 		awaiting:         map[string]*Session{},
+		tickets:          map[string]int64{},
 	}
 	if s.manual {
 		if err := s.offerTickets(); err != nil {
@@ -680,17 +683,33 @@ func (s *Server) register(sess *Session) {
 	s.sessions = latest(append(s.sessions, sess), s.limits.kept)
 }
 
-// file keeps a session as a navigation under its token, and forgets the
-// oldest past kept. Called with s.mu held.
+// file keeps a session as a navigation under its token, and past kept
+// forgets the busiest host's oldest: a host that opens page after page
+// forgets its own, not another's. Called with s.mu held.
 func (s *Server) file(sess *Session) {
 	s.navigations = append(s.navigations, sess)
 	s.navigationByID[sess.navigationToken] = sess
-	if past := len(s.navigations) - s.limits.kept; past > 0 {
-		for _, old := range s.navigations[:past] {
-			delete(s.navigationByID, old.navigationToken)
+	s.navigations = evictBusiest(s.navigations, s.limits.kept,
+		func(n *Session) string { return hostOf(n.remote) },
+		func(n *Session) { delete(s.navigationByID, n.navigationToken) })
+}
+
+// evictBusiest forgets, while list holds more than most, the oldest entry
+// of the host with the most, so that one host's flood forgets its own before
+// another's; of hosts holding as many, the oldest entry goes.
+func evictBusiest[T any](list []T, most int, host func(T) string, forget func(T)) []T {
+	for len(list) > most {
+		counts := map[string]int{}
+		top := 0
+		for _, entry := range list {
+			counts[host(entry)]++
+			top = max(top, counts[host(entry)])
 		}
-		s.navigations = slices.Delete(s.navigations, 0, past)
+		i := slices.IndexFunc(list, func(entry T) bool { return counts[host(entry)] == top })
+		forget(list[i])
+		list = slices.Delete(list, i, i+1)
 	}
+	return list
 }
 
 // setNavigation records a connection that fetched the capture page.
@@ -878,7 +897,7 @@ func (s *Server) route(sess *Session, req *request) (status, contentType string,
 			_, contentType, body := jsonResponse(map[string]string{"error": err.Error()})
 			return "400", contentType, body
 		}
-		s.ticketsUntil.Store(0)
+		s.closeTickets(hostOf(sess.remote))
 		target.mu.Lock()
 		target.navigator = &nav
 		target.clientHints = clientHintsIn(req.headers)
@@ -962,9 +981,9 @@ func (s *Server) helloSaid(sess *Session, token, step, visitor string) (status, 
 	}
 	switch step {
 	case "tickets":
-		s.ticketsUntil.Store(time.Now().Add(ticketsOpenFor).UnixNano())
+		s.openTickets(hostOf(sess.remote))
 	case "resumed":
-		s.ticketsUntil.Store(0)
+		s.closeTickets(hostOf(sess.remote))
 	}
 	sess.mu.Lock()
 	hello, first := sess.hello, sess.requests == 1
@@ -1007,10 +1026,11 @@ func isClosed(err error) bool {
 }
 
 // offerTickets lets a page of a manual capture be given a ticket on the
-// connections it opens while ticketsUntil has not passed, so that the
+// connections its host opens while its tickets are open, so that the
 // browser's next hello resumes a session: tickets on with keys of their own
 // in the configuration handed out (ticketKeys reads the original's otherwise,
-// which has them off), and every other connection as it was.
+// which has them off), and every other connection as it was. A handshake
+// knows its host and no more: two browsers on one host share its tickets.
 func (s *Server) offerTickets() error {
 	var key [32]byte
 	if _, err := readRandom(key[:]); err != nil {
@@ -1019,13 +1039,52 @@ func (s *Server) offerTickets() error {
 	s.ticketed = s.tlsConfig.Clone()
 	s.ticketed.SessionTicketsDisabled = false
 	s.ticketed.SetSessionTicketKeys([][32]byte{key})
-	s.tlsConfig.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		if until := s.ticketsUntil.Load(); until != 0 && time.Now().UnixNano() < until {
+	s.tlsConfig.GetConfigForClient = func(hello *tls.ClientHelloInfo) (*tls.Config, error) {
+		if hello.Conn != nil && s.ticketsOpen(hostOf(hello.Conn.RemoteAddr().String())) {
 			return s.ticketed, nil
 		}
 		return nil, nil
 	}
 	return nil
+}
+
+// openTickets has the connections host opens given tickets for
+// ticketsOpenFor. The hosts kept are at most kept: those whose tickets have
+// closed go first, then the one whose close soonest.
+func (s *Server) openTickets(host string) {
+	s.ticketsMu.Lock()
+	defer s.ticketsMu.Unlock()
+	now := time.Now().UnixNano()
+	for kept, until := range s.tickets {
+		if until <= now {
+			delete(s.tickets, kept)
+		}
+	}
+	for len(s.tickets) >= s.limits.kept {
+		soonest := ""
+		for kept, until := range s.tickets {
+			if soonest == "" || until < s.tickets[soonest] {
+				soonest = kept
+			}
+		}
+		delete(s.tickets, soonest)
+	}
+	s.tickets[host] = time.Now().Add(ticketsOpenFor).UnixNano()
+}
+
+// closeTickets stops host's connections being given tickets.
+func (s *Server) closeTickets(host string) {
+	s.ticketsMu.Lock()
+	defer s.ticketsMu.Unlock()
+	delete(s.tickets, host)
+}
+
+// ticketsOpen says host's connections are given tickets now.
+func (s *Server) ticketsOpen(host string) bool {
+	s.ticketsMu.Lock()
+	defer s.ticketsMu.Unlock()
+	until, ok := s.tickets[host]
+	return ok && time.Now().UnixNano() < until
 }
 
 // readRandom is rand.Read, which a test makes fail.

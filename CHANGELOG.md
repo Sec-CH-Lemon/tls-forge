@@ -11,6 +11,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- `capture --manual` gives session tickets to the host whose page asked for
+  them, and only it: one window for every visitor let another host's visit
+  open it, so that its next connection resumed and the visit measured was a
+  resumed one, or close it under a page that was waiting for its resumed
+  hello. Past the pages, visitors and waiting navigations it keeps, the
+  busiest host's oldest goes first: one host opening page after page made
+  another's navigation unknown before it reported back. Two browsers on one
+  host still share its tickets, as a handshake says no more than its host.
 - Hold a response's Content-Encoding chain to the profile's limit whether it
   has a body or not: a HEAD, a 204 and a 304 of more layers than
   `http.max_content_codings` came back, where Chrome 156 refuses them as it

@@ -23,10 +23,10 @@ func TestNavigationTokensRejectOtherVisitors(t *testing.T) {
 			separator = "&"
 		}
 		req := &request{path: path + separator + "navigation=" + token, body: []byte(`{"user_agent":"poisoned"}`)}
-		s.ticketsUntil.Store(42)
+		s.tickets = map[string]int64{"192.0.2.1": 42, "192.0.2.2": 43}
 		status, _, _ := s.route(&Session{remote: "192.0.2.2:1000"}, req)
-		if status != "400" || req.completes != nil || owner.navigator != nil || s.ticketsUntil.Load() != 42 {
-			t.Errorf("foreign %s: status=%s completed=%v navigator=%v tickets=%d", path, status, req.completes, owner.navigator, s.ticketsUntil.Load())
+		if status != "400" || req.completes != nil || owner.navigator != nil || len(s.tickets) != 2 || s.tickets["192.0.2.1"] != 42 || s.tickets["192.0.2.2"] != 43 {
+			t.Errorf("foreign %s: status=%s completed=%v navigator=%v tickets=%v", path, status, req.completes, owner.navigator, s.tickets)
 		}
 	}
 	if got, err := s.captureSession(token, &Session{remote: "192.0.2.2:1000"}, "192.0.2.2\n"); err == nil {

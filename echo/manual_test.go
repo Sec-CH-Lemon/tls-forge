@@ -380,7 +380,7 @@ func TestManualPageSaysItsHelloOnConnectionsOfItsOwn(t *testing.T) {
 	say("&step=tickets")
 	say("&i=" + strconv.Itoa(hellos))
 	say("&step=resumed")
-	if server.ticketsUntil.Load() != 0 {
+	if anyTicketsOpen(server) {
 		t.Error("tickets are still given after the page resumed one")
 	}
 	measured := collect(t, client, server, page)
@@ -423,7 +423,7 @@ func TestManualHellosAreKeptWithinBounds(t *testing.T) {
 		t.Fatalf("%d hellos, resumed %d bytes", len(measured.Connections), len(measured.ResumedClientHello))
 	}
 	// The report closed the tickets the page opened.
-	if server.ticketsUntil.Load() != 0 {
+	if anyTicketsOpen(server) {
 		t.Error("tickets are still given after the report")
 	}
 	// A hello for no navigation, or one the server does not know, is refused;
@@ -449,22 +449,66 @@ func launchedPage(t *testing.T) []byte {
 	return page
 }
 
+// anyTicketsOpen says some host's connections are given tickets.
+func anyTicketsOpen(server *Server) bool {
+	server.ticketsMu.Lock()
+	defer server.ticketsMu.Unlock()
+	for _, until := range server.tickets {
+		if time.Now().UnixNano() < until {
+			return true
+		}
+	}
+	return false
+}
+
+// remoteConn is a connection from remote, as a handshake sees it.
+type remoteConn struct {
+	net.Conn
+	remote string
+}
+
+func (c remoteConn) RemoteAddr() net.Addr { return &net.TCPAddr{IP: net.ParseIP(c.remote), Port: 1000} }
+
 func TestManualTicketsAreGivenWhileTheyAreOpen(t *testing.T) {
+	limited(t, func(l *limits) { l.kept = 2 })
 	server := startServer(t, WithManual(true))
-	given := func() bool {
-		config, err := server.tlsConfig.GetConfigForClient(&tls.ClientHelloInfo{})
+	given := func(host string) bool {
+		hello := &tls.ClientHelloInfo{}
+		if host != "" {
+			hello.Conn = remoteConn{remote: host}
+		}
+		config, err := server.tlsConfig.GetConfigForClient(hello)
 		return err == nil && config == server.ticketed
 	}
-	if given() {
+	if given("192.0.2.1") || given("") {
 		t.Error("tickets given before a page asked")
 	}
-	server.ticketsUntil.Store(time.Now().Add(time.Minute).UnixNano())
-	if !given() || server.ticketed.SessionTicketsDisabled {
+	server.openTickets("192.0.2.1")
+	if !given("192.0.2.1") || server.ticketed.SessionTicketsDisabled {
 		t.Error("tickets not given while open")
 	}
-	server.ticketsUntil.Store(time.Now().Add(-time.Second).UnixNano())
-	if given() {
+	if given("192.0.2.2") || given("") {
+		t.Error("tickets given to a host that did not ask")
+	}
+	server.tickets["192.0.2.1"] = time.Now().Add(-time.Second).UnixNano()
+	if given("192.0.2.1") {
 		t.Error("tickets given once their time passed")
+	}
+	// Hosts past kept: those whose tickets closed go first, then the one
+	// whose close soonest.
+	server.openTickets("192.0.2.2")
+	if _, kept := server.tickets["192.0.2.1"]; kept || len(server.tickets) != 1 {
+		t.Errorf("tickets past their time are kept: %v", server.tickets)
+	}
+	server.tickets["192.0.2.2"] = time.Now().Add(time.Second).UnixNano()
+	server.openTickets("192.0.2.3")
+	server.openTickets("192.0.2.4")
+	if len(server.tickets) != 2 || !given("192.0.2.3") || !given("192.0.2.4") || given("192.0.2.2") {
+		t.Errorf("hosts past kept: %v", server.tickets)
+	}
+	server.closeTickets("192.0.2.3")
+	if given("192.0.2.3") || !given("192.0.2.4") {
+		t.Errorf("closing one host's tickets: %v", server.tickets)
 	}
 	// A key it cannot draw is a server it cannot start.
 	old := readRandom
@@ -604,5 +648,127 @@ func TestManualCapturesWaitingAreKeptWithinBounds(t *testing.T) {
 	if len(server.awaiting) != 2 || server.awaiting["a"] == nil || server.awaiting["c"] == nil ||
 		!slices.Equal(server.awaitingOrder, []string{"a", "c"}) {
 		t.Errorf("waiting %v, in order %v", server.awaiting, server.awaitingOrder)
+	}
+}
+
+// ticketCount is a client's session cache, counting the tickets it is given.
+type ticketCount struct {
+	tls.ClientSessionCache
+	given atomic.Int32
+}
+
+func (c *ticketCount) Put(key string, session *tls.ClientSessionState) {
+	if session != nil {
+		c.given.Add(1)
+	}
+	c.ClientSessionCache.Put(key, session)
+}
+
+// hostVisitor is a browser of a manual capture that comes from ip, one of
+// the server's loopback addresses: a visitor of a host of its own, its own
+// session cache counting the tickets it is given.
+type hostVisitor struct {
+	client    *http.Client
+	transport *http.Transport
+	tickets   *ticketCount
+	page      string
+}
+
+func visitFrom(t *testing.T, server *Server, ip string) *hostVisitor {
+	t.Helper()
+	if ip == "::1" && server.twin == nil {
+		t.Skip("no IPv6 loopback address")
+	}
+	_, port, err := net.SplitHostPort(strings.TrimPrefix(server.URL(), "https://"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := &hostVisitor{tickets: &ticketCount{ClientSessionCache: tls.NewLRUClientSessionCache(8)}}
+	v.transport = http2Transport(&tls.Config{InsecureSkipVerify: true, ClientSessionCache: v.tickets})
+	v.transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort(ip, port))
+	}
+	v.client = asVisitor(&http.Client{Transport: v.transport})
+	openPage(t, v.client, server.URL()+"/")
+	v.transport.CloseIdleConnections()
+	_, v.page = openPage(t, v.client, server.URL()+"/")
+	v.transport.CloseIdleConnections()
+	return v
+}
+
+// say is a request of the page's hello, on a connection of its own: how
+// many tickets that connection was given.
+func (v *hostVisitor) say(t *testing.T, server *Server, what string) int32 {
+	t.Helper()
+	before := v.tickets.given.Load()
+	if status, _ := get(t, v.client, server.URL()+pageSays(t, v.page, "const hello = '")+what); status != 200 {
+		t.Fatalf("%s: %d", what, status)
+	}
+	v.transport.CloseIdleConnections()
+	return v.tickets.given.Load() - before
+}
+
+// A page's tickets are its host's: another host's visit neither opens nor
+// closes them. Two browsers on one host share them, as a server cannot tell
+// them apart until the request after the handshake the ticket is given in.
+func TestManualTicketsAreGivenToTheHostThatAskedForThem(t *testing.T) {
+	server := startServer(t, WithManual(true))
+	a, b := visitFrom(t, server, "127.0.0.1"), visitFrom(t, server, "::1")
+	a.say(t, server, "&step=tickets")
+	if given := b.say(t, server, "&i=0"); given != 0 {
+		t.Errorf("another host was given %d tickets a page asked for", given)
+	}
+	if given := a.say(t, server, "&i=1"); given == 0 {
+		t.Error("the host whose page asked for tickets was given none")
+	}
+	b.say(t, server, "&step=resumed")
+	if given := a.say(t, server, "&i=2"); given == 0 {
+		t.Error("another host's page closed the tickets this one asked for")
+	}
+	report(t, b.client, server, b.page)
+	if given := a.say(t, server, "&i=3"); given == 0 {
+		t.Error("another host's report closed the tickets this one asked for")
+	}
+	a.say(t, server, "&step=resumed")
+	if given := a.say(t, server, "&i=4"); given != 0 {
+		t.Error("tickets are still given after the page said its resumed hello")
+	}
+}
+
+// A host that opens page after page forgets its own navigations first, not
+// another host's: one that opened one goes on being measured.
+func TestManualNavigationsPastTheLimitAreTheBusiestHosts(t *testing.T) {
+	limited(t, func(l *limits) { l.kept = 4 })
+	server := startServer(t, WithManual(true))
+	a, b := visitFrom(t, server, "127.0.0.1"), visitFrom(t, server, "::1")
+	for i := 0; i < 6; i++ {
+		_, b.page = openPage(t, b.client, server.URL()+"/")
+		b.transport.CloseIdleConnections()
+	}
+	a.say(t, server, "&i=0")
+	b.say(t, server, "&i=0")
+}
+
+// Visitors a capture trusts and navigations waiting for their HTTP/1.1 visit
+// are forgotten past kept by the busiest host first, as navigations are: one
+// host's many user agents forget their own.
+func TestManualVisitorsPastTheLimitAreTheBusiestHosts(t *testing.T) {
+	limited(t, func(l *limits) { l.kept = 2 })
+	server := startServer(t, WithManual(true))
+	fresh := map[string]string{"sec-fetch-site": "none", "sec-fetch-mode": "navigate", "sec-fetch-dest": "document"}
+	for _, visitor := range []string{"192.0.2.1\none", "192.0.2.2\none", "192.0.2.2\ntwo", "192.0.2.2\nthree"} {
+		server.visited(visitor, fresh, false, server.URL())
+		server.awaitHTTP1(visitor, &Session{})
+	}
+	if !server.trusted["192.0.2.1\none"] || !server.trusted["192.0.2.2\nthree"] || len(server.trusted) != 2 ||
+		!slices.Equal(server.trustedOrder, []string{"192.0.2.1\none", "192.0.2.2\nthree"}) {
+		t.Errorf("trusted %v, in order %v", server.trusted, server.trustedOrder)
+	}
+	if server.awaiting["192.0.2.1\none"] == nil || server.awaiting["192.0.2.2\nthree"] == nil || len(server.awaiting) != 2 ||
+		!slices.Equal(server.awaitingOrder, []string{"192.0.2.1\none", "192.0.2.2\nthree"}) {
+		t.Errorf("waiting %v, in order %v", server.awaiting, server.awaitingOrder)
+	}
+	if hostOf("192.0.2.1") != "192.0.2.1" || hostOf("[::1]:443") != "::1" || visitorHost("no agent") != "no agent" {
+		t.Error("hosts of addresses with no port, IPv6 and a visitor with no agent")
 	}
 }
