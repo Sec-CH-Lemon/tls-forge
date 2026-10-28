@@ -19,8 +19,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   TCP connection QUIC beat or the QUIC one TCP beat, is ended and waited for
   by `CloseIdleConnections`, and so by `Close` and an evicted site's close,
   before they close what is idle: it came up after them and was kept open.
-  Requires the tls-client fork's `apartWork`, at 62deb6d, a local pin not
-  yet published.
+  Requires the tls-client fork's `apartWork`, at 62deb6d.
 - A plain-http request through an HTTPS proxy whose HTTP/2 connection, taken
   behind the proxy's dial gate, turns it away dials the proxy again behind
   the gate, taking first a connection another request dialed meanwhile: it
@@ -54,8 +53,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   HelloRetryRequest after a spec's own pre_shared_key bytes
   (`FakePreSharedKeyExtension`) is an error, not a nil dereference, and
   utls's QUIC server refuses handshake bytes left before its 0-RTT read key,
-  as Go 1.26.10's does (CVE-2025-61730). Requires the utls fork at 8131c6b,
-  a local pin not yet published.
+  as Go 1.26.10's does (CVE-2025-61730). Requires the utls fork at 8131c6b.
 - Keep a request's credentials at its origin under a redirect policy of the
   caller's too (`WithTransportOption` with `tls_client.WithCustomRedirectFunc`):
   fhttp copied `Authorization`, `Cookie`, `Proxy-Authorization` and the other
@@ -64,7 +62,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   421 or 401 was sent again with the fields and URL credentials tls-forge had
   laid out for the first request, to wherever the hop went; its answer is now
   the policy's, sent again for neither. Requires the fhttp fork's
-  `WithCredentialsKeptToOrigin`, at e514e87, a local pin not yet published.
+  `WithCredentialsKeptToOrigin`, at e514e87.
 - A hop a redirect took away from a request's own `Authorization` is
   authenticated on its own again, with its Location's credentials or those the
   session keeps for its realm, as the redirect documents said: tls-forge left
@@ -78,13 +76,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   left to set HTTP/2 up itself, had no such bound at all and has both. An
   invalid field value in an HTTP/2 or HTTP/3 answer is refused with an error
   that names the field and not its value, which may be a secret. Requires the
-  fhttp fork at 0aca37e and quic-go-utls at 69430008, local pins not yet
-  published.
+  fhttp fork at 0aca37e and quic-go-utls at 69430008.
 - Refuse a profile whose `http.zstd_window_bytes` is past 134217728 (128 MiB)
   before anything is sent: the registry allowed 2147483647, so a profile could
   let one zstd layer of a body keep a 2 GiB window. Every shipped, catalogue
   and frozen legacy profile says 8388608. Requires the utls fork's
-  `MaxZstdWindowBytes`, at ce7eff0, a local pin not yet published.
+  `MaxZstdWindowBytes`, at ce7eff0.
 - Tell a secret query parameter by the words of its name, in logs, traces,
   reports and errors: a signed URL's `sig` and `X-Amz-Signature`, `pass`,
   `pwd`, an OAuth `code`, `otp`, `jwt` and session ids (`PHPSESSID`,
@@ -163,8 +160,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - Add source-pinned full-suite fork regression gates for standalone and actual
   production dependency graphs, named inherited failures, executed QUIC self
   integration, loopback-only test traffic and retained raw evidence. CI targets
-  development and cancels obsolete runs. F09 stage2 remains open; unpublished
-  local pins and remote CI activation still require publication/verification.
+  development and cancels obsolete runs. F09 stage2 remains open; remote CI
+  activation still requires verification.
 
 - Release HTTPS-proxy discovery locking at connection acquisition rather than
   response arrival. Remember observed H1 per partition, retain actual ALPN on
