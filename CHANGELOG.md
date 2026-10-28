@@ -11,6 +11,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Bound an HTTP/2 header block on the wire as well as by its field list: at
+  twice MAX_HEADER_LIST_SIZE, each frame's nine-byte header counted. Empty
+  CONTINUATION frames, and fragments of nothing but table size updates, spent
+  none of the CVE-2023-45288 bound and were read for as long as a server sent
+  them. fhttp's bundled HTTP/2 framer, its Server's and that of a Transport
+  left to set HTTP/2 up itself, had no such bound at all and has both. An
+  invalid field value in an HTTP/2 or HTTP/3 answer is refused with an error
+  that names the field and not its value, which may be a secret. Requires the
+  fhttp fork at 0aca37e and quic-go-utls at 69430008, local pins not yet
+  published.
 - Refuse an HTTP/2 profile whose `SETTINGS_HEADER_TABLE_SIZE` is past 1048576
   or whose `SETTINGS_MAX_HEADER_LIST_SIZE` is past 16777216, before anything is
   sent: the transport sizes its HPACK decoder and its header-list limit by them,

@@ -178,7 +178,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261028011130-a31fd70c0ff6
+github.com/igor-lemon/fhttp v0.6.10-0.20261028110511-0aca37e12bdf
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -210,7 +210,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261028001630-58afcad426a6
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261028110028-69430008f951
 --------------------------------------------------------------------------------
 
 MIT License
