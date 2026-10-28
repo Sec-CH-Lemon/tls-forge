@@ -737,6 +737,11 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 		if r != nil {
 			r.answered(res)
 		}
+		if !ch.laidOut(res.Request) {
+			// Its answer is the caller's policy's: tls-forge sends nothing
+			// again for it.
+			break
+		}
 		if ch.misdirected(res) {
 			if r != nil {
 				r.misdirected(shownURL(res.Request).String())

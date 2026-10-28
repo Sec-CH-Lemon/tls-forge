@@ -11,6 +11,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Keep a request's credentials at its origin under a redirect policy of the
+  caller's too (`WithTransportOption` with `tls_client.WithCustomRedirectFunc`):
+  fhttp copied `Authorization`, `Cookie`, `Proxy-Authorization` and the other
+  credential fields to a subdomain of its host, as net/http does, and on back
+  to the origin after it. A hop such a policy followed and its server answered
+  421 or 401 was sent again with the fields and URL credentials tls-forge had
+  laid out for the first request, to wherever the hop went; its answer is now
+  the policy's, sent again for neither. Requires the fhttp fork's
+  `WithCredentialsKeptToOrigin`, at e514e87, a local pin not yet published.
 - Bound an HTTP/2 header block on the wire as well as by its field list: at
   twice MAX_HEADER_LIST_SIZE, each frame's nine-byte header counted. Empty
   CONTINUATION frames, and fragments of nothing but table size updates, spent

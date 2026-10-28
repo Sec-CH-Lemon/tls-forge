@@ -118,10 +118,20 @@ type chainKey struct{}
 // given the cookies of each answer but a 421 its hop is sent again for; once
 // its hop was sent again for a 421, it goes out on no connection shared with
 // another host, as Chrome sends what is left of a hop with IP pooling off.
+// The transport copies the request's credentials onto no hop past its origin,
+// whichever redirect policy follows it.
 func (ch *chain) in(ctx context.Context) context.Context {
 	ctx = keepingConn(context.WithValue(ctx, chainKey{}, ch), &ch.conn)
 	ctx = fhttp.WithResponseCookies(fhttp.WithResends(ctx, &ch.resends), ch.keeps)
-	return http2.WithCoalescing(ctx, !ch.resent)
+	return http2.WithCoalescing(fhttp.WithCredentialsKeptToOrigin(ctx), !ch.resent)
+}
+
+// laidOut reports whether tls-forge laid out req, the request an answer is
+// to: the first, one sent again, or a hop its own redirect policy followed.
+// A policy of the caller's, given as a transport option, follows hops
+// without it, and what the chain laid out is another request's.
+func (ch *chain) laidOut(req *fhttp.Request) bool {
+	return req.Response == nil || ch.redirects > 0
 }
 
 // keeps reports whether the jar keeps the cookies res sets: not those of the

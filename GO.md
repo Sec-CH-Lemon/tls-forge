@@ -255,6 +255,11 @@ and what tls-forge did with it goes too:
 - `tls_client.WithNotFollowRedirects` and `tls_client.WithCustomRedirectFunc`
   replace how redirects are followed: no longer as Chrome follows them
   ([Redirects](#redirects)). `WithoutRedirects` is the way to keep them.
+  The hops of such a policy go out as fhttp copies them, still with none of
+  the request's credentials (`Authorization`, `Cookie`, `Proxy-Authorization`
+  and the like) past its origin, a subdomain of its host included, and their
+  answers are the policy's: tls-forge sends no such hop again for a 421 and
+  answers none of their 401s.
 - `tls_client.WithClientProfile` is refused as a transport override. Select an
   engine-compatible profile through `WithProfile` or `WithProfileValue`;
   profile JSON owns its handshake, H2 settings, priority and field ordering.
