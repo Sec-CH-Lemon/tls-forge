@@ -21,6 +21,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   that names the field and not its value, which may be a secret. Requires the
   fhttp fork at 0aca37e and quic-go-utls at 69430008, local pins not yet
   published.
+- Refuse a profile whose `http.zstd_window_bytes` is past 134217728 (128 MiB)
+  before anything is sent: the registry allowed 2147483647, so a profile could
+  let one zstd layer of a body keep a 2 GiB window. Every shipped, catalogue
+  and frozen legacy profile says 8388608. Requires the utls fork's
+  `MaxZstdWindowBytes`, at ce7eff0, a local pin not yet published.
 - Refuse an HTTP/2 profile whose `SETTINGS_HEADER_TABLE_SIZE` is past 1048576
   or whose `SETTINGS_MAX_HEADER_LIST_SIZE` is past 16777216, before anything is
   sent: the transport sizes its HPACK decoder and its header-list limit by them,

@@ -129,6 +129,7 @@ relabel historical browser measurements as fresh acceptance.
 | `http.max_content_codings` | Maximum selected decoder layers, integer 0–64. The engine ceiling 64 is a resource bound, not a browser default. |
 | `http.content_coding_overflow` | `error` rejects the response before decoder creation; `raw` keeps its complete encoded body and metadata. |
 | `http.ignored_content_codings` | Explicit no-op normalization tokens: `[]` or `["identity"]`. Unsupported tokens leave the whole chain raw. |
+| `http.zstd_window_bytes` | Largest window a zstd layer may ask its decoder to keep, integer 1–134217728. The engine ceiling, 128 MiB, is a resource bound and sixteen times the 8 MiB RFC 9659 holds a zstd content coding to; the Chrome profiles say 8388608. |
 
 Chrome 156.0.8078.48/macOS was measured in nine fresh minimized headed contexts,
 over H1/H2: ten gzip layers decode, eleven fail even on an empty body, and a
