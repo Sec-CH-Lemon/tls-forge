@@ -1735,6 +1735,12 @@ A compressed Certificate cannot bypass the existing engine Certificate-message
 ceiling (262144 output bytes). The engine checks this before allocation, reads
 at most the declared length plus one, and rejects a length mismatch with
 bad_certificate. Zstd uses one worker and the same hard memory/window ceiling.
+Brotli's window is cut to the least the declared length needs (2^18 bytes, or
+2^19 past 262,128): its ring buffer is sized from the window and from what a
+meta-block claims before any data comes, and four bytes claiming 2^24 of each
+allocated 16 MiB. A stream that decodes to the declared length means the same
+in either window. A brotli stream cut short before its last meta-block is a
+codec failure.
 Actual codec failures retain `tls.certificate_decode_alert` from JSON (the
 measured Chrome policy selects50); this is separate from a length mismatch.
 These resource/integrity bounds are engine capabilities, not browser defaults.

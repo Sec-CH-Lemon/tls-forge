@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Cut a brotli-compressed certificate's window to the least its declared
+  length needs (2^18 bytes, or 2^19 past 262,128): four bytes claiming a 2^24
+  window and a 2^24-byte meta-block allocated 16 MiB before any data came, and
+  now about 0.6 MiB at most; what a stream of that length decodes to is
+  unchanged. utls also requires brotli v1.2.3, which refuses a stream cut short
+  before its last meta-block, as tls-forge's own build already did. Requires
+  the utls fork at 2477e72, a local pin not yet published.
 - `Request.Reloaded` (and `fetch --retry-as-browser`) leaves the caller's
   Authorization, Cookie and proxy/challenge credential fields behind when a
   redirect took the page to another origin, as the redirect did; a reload at
