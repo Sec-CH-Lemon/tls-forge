@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Hold a response's Content-Encoding chain to the profile's limit whether it
+  has a body or not: a HEAD, a 204 and a 304 of more layers than
+  `http.max_content_codings` came back, where Chrome 156 refuses them as it
+  refuses a 200 (measured: eleven gzip layers on each, H1 and H2).
 - Keep a request's credentials at its origin under a redirect policy of the
   caller's too (`WithTransportOption` with `tls_client.WithCustomRedirectFunc`):
   fhttp copied `Authorization`, `Cookie`, `Proxy-Authorization` and the other

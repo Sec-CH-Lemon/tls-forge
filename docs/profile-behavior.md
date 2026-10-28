@@ -133,7 +133,10 @@ relabel historical browser measurements as fresh acceptance.
 
 Chrome 156.0.8078.48/macOS was measured in nine fresh minimized headed contexts,
 over H1/H2: ten gzip layers decode, eleven fail even on an empty body, and a
-chain containing identity or an unknown coding stays raw. The shipped earlier
+chain containing identity or an unknown coding stays raw. Chrome
+156.0.8078.74 refuses eleven layers on an answer with no body too, a HEAD,
+a 204 and a 304 (three contexts, H1/H2), and so does the limit: it holds a
+response's chain whether there is a body to decode or not. The shipped earlier
 Chrome profiles explicitly inherit this policy; this is not fresh acceptance
 of their original builds or other platforms. Generic compatibility data keeps
 its former identity normalization and selects the hard ceiling explicitly.

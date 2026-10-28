@@ -262,8 +262,12 @@ func readBody(res *fhttp.Response, method string, limit int64, policies ...behav
 	}
 	body := bufio.NewReaderSize(policyReads{Reader: res.Body, limit: readSize}, readSize)
 	codings := codingsOf(res.Header, pol)
-	decode := len(codings) != 0 && hasBody(method, res.StatusCode) && knownCodings(codings, pol)
-	if decode {
+	// Chrome sets a response's decoders up whether it has a body or not, so a
+	// chain deeper than the profile's limit is held to it on a HEAD, a 204 and
+	// a 304 too; only a body there is to read is decoded.
+	known := len(codings) != 0 && knownCodings(codings, pol)
+	decode := known && hasBody(method, res.StatusCode)
+	if known {
 		maximum := pol.Uint("http.max_content_codings")
 		if maximum > behavior.MaxContentCodings {
 			return nil, "", fmt.Errorf("profile content coding limit exceeds engine safety bound %d", behavior.MaxContentCodings)

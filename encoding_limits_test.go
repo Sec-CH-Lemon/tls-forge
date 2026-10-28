@@ -155,6 +155,35 @@ func TestContentCodingLimitsHoldAtTheirEdges(t *testing.T) {
 	}
 }
 
+// Chrome sets a response's decoders up whether it has a body or not, and
+// refuses a chain deeper than its limit on a HEAD, a 204 and a 304 as on a
+// 200 (measured on Chrome 156.0.8078.74: three cohorts, H1 and H2; 10 layers
+// came, 11 and 16 failed).
+func TestAChainTooDeepIsRefusedOnAnAnswerWithoutABody(t *testing.T) {
+	chain := func(n int) fhttp.Header {
+		return fhttp.Header{"Content-Encoding": {strings.TrimSuffix(strings.Repeat("gzip, ", n), ", ")}}
+	}
+	for _, tc := range []struct {
+		method string
+		status int
+	}{{"HEAD", 200}, {"GET", 204}, {"GET", 304}, {"HEAD", 204}, {"HEAD", 304}} {
+		for _, n := range []int{1, 10, 11, 16} {
+			response := &fhttp.Response{StatusCode: tc.status, Header: chain(n), Body: io.NopCloser(strings.NewReader(""))}
+			got, decoded, err := readBody(response, tc.method, 1<<20, codingLimitPolicy("10", "error"))
+			if (err != nil) != (n > 10) {
+				t.Errorf("%s %d, %d layers: %v", tc.method, tc.status, n, err)
+			}
+			if err == nil && (len(got) != 0 || decoded != "") {
+				t.Errorf("%s %d, %d layers: %q decoded from %q", tc.method, tc.status, n, got, decoded)
+			}
+		}
+		response := &fhttp.Response{StatusCode: tc.status, Header: chain(11), Body: io.NopCloser(strings.NewReader(""))}
+		if got, decoded, err := readBody(response, tc.method, 1<<20, codingLimitPolicy("10", "raw")); err != nil || len(got) != 0 || decoded != "" {
+			t.Errorf("%s %d, 11 layers left raw: %q decoded from %q, %v", tc.method, tc.status, got, decoded, err)
+		}
+	}
+}
+
 type codingCloser struct {
 	io.Reader
 	closed *int

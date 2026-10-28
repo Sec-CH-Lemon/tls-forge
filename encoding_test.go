@@ -265,6 +265,52 @@ func TestABodyComesAsItCameWhenThereIsNothingToDecode(t *testing.T) {
 	}
 }
 
+// An answer without a body is refused for a chain deeper than the profile's
+// limit as one with a body is, over either protocol, as Chrome refuses it.
+func TestAnAnswerWithoutABodyIsRefusedForAChainTooDeep(t *testing.T) {
+	deep, deepest := strings.TrimSuffix(strings.Repeat("gzip, ", 10), ", "), strings.TrimSuffix(strings.Repeat("gzip, ", 11), ", ")
+	answers := map[string]coded{
+		"/no-content-10":   {status: http.StatusNoContent, encoding: []string{deep}},
+		"/no-content-11":   {status: http.StatusNoContent, encoding: []string{deepest}},
+		"/not-modified-10": {status: http.StatusNotModified, encoding: []string{deep}},
+		"/not-modified-11": {status: http.StatusNotModified, encoding: []string{deepest}},
+		"/head-10":         {encoding: []string{deep}, body: page},
+		"/head-11":         {encoding: []string{deepest}, body: page},
+	}
+	for _, protocol := range protocols {
+		server := startCoded(t, protocol.h2, answers)
+		client := newTestClient(t)
+		heads := newTestClient(t, WithProfileValue(asGivenProfile(t, DefaultProfile)))
+		for _, tc := range []struct {
+			method, path string
+		}{
+			{http.MethodGet, "/no-content"}, {http.MethodGet, "/not-modified"}, {http.MethodHead, "/head"},
+		} {
+			for _, layers := range []string{"10", "11"} {
+				t.Run(protocol.name+tc.path+"-"+layers, func(t *testing.T) {
+					c := client
+					if tc.method == http.MethodHead {
+						c = heads
+					}
+					res, err := c.Do(&Request{Method: tc.method, URL: server.url + tc.path + "-" + layers})
+					if layers == "11" {
+						if err == nil || !strings.Contains(err.Error(), "content coding limit exceeded (11 > 10)") {
+							t.Fatalf("%s of 11 layers: %v, want the limit refused", tc.method, err)
+						}
+						return
+					}
+					if err != nil {
+						t.Fatalf("%s of 10 layers: %v", tc.method, err)
+					}
+					if len(res.Body) != 0 || res.Encoding != "" {
+						t.Errorf("%s of 10 layers came back with %q decoded from %q", tc.method, res.Body, res.Encoding)
+					}
+				})
+			}
+		}
+	}
+}
+
 func TestABodyThatDoesNotDecodeIsAnError(t *testing.T) {
 	flipped := zlibbed(t, page)
 	flipped[len(flipped)-1] ^= 0xff
