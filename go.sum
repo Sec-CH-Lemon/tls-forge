@@ -13,8 +13,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/igor-lemon/fhttp v0.6.10-0.20261028011130-a31fd70c0ff6 h1:b1oykfcT0qCsQa/3Bpf3jy9k7vSfbVmwnGAG04zfL7A=
 github.com/igor-lemon/fhttp v0.6.10-0.20261028011130-a31fd70c0ff6/go.mod h1:OhEISWmTJyk462YQ834+Beq6lw2m+5pEAeCf/qxYktI=
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261027200806-4837491ccf90 h1:s6pIjd1N2BYJ7CVtI06jk9PjfpDkARWs/G7vr9+kLyk=
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261027200806-4837491ccf90/go.mod h1:qmSWdhc0oIKiCZp8+JBqcp6g18MQVWcm563nlOWVRlw=
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261028001630-58afcad426a6 h1:HNDAGdFwrQSSWPBajUM8CwsawJIX/M5a54dGBrdLgi4=
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261028001630-58afcad426a6/go.mod h1:qmSWdhc0oIKiCZp8+JBqcp6g18MQVWcm563nlOWVRlw=
 github.com/igor-lemon/tls-client v1.15.2-0.20261027200813-9bd16362d479 h1:sN9TfVHBwfQDCBoJj8N8vaeOKQiigWrijZzyR9UQULc=
 github.com/igor-lemon/tls-client v1.15.2-0.20261027200813-9bd16362d479/go.mod h1:7IkkhYEC6hOFdqFE3+9xTP3QlF4k6mOaQ6fOQjCm67w=
 github.com/igor-lemon/utls v1.7.8-barnius.0.20261027235708-2477e7211157 h1:tZQt9gjgUg/od5KBJMRXHu+lyfILGSUe4ozpUQCV/10=

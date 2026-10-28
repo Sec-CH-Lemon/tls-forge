@@ -31,6 +31,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the body ended there with no error. A chunk cut short in its data, or before
   its CRLF, is io.ErrUnexpectedEOF in fhttp's chunked reader too, as in Go.
   Requires the fhttp fork at a31fd70, a local pin not yet published.
+- A request's PRIORITY_UPDATE goes in its first packet with its HEADERS
+  (`h3.request_writes: one-flush`) even when the control stream still has its
+  SETTINGS to send: a write is held for its bundle as it is given, before a
+  packet can take it. The F09 gate's flaky
+  `TestARequestsWritesGoInOnePacketAsItsProfileSays`. Requires the
+  quic-go-utls fork at 4e96d6e8, a local pin not yet published.
 - `Request.Reloaded` (and `fetch --retry-as-browser`) leaves the caller's
   Authorization, Cookie and proxy/challenge credential fields behind when a
   redirect took the page to another origin, as the redirect did; a reload at
