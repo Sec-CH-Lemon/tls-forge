@@ -43,10 +43,14 @@ exception. Test JSONL/stderr, source archive, module graphs and result.json rema
 in the output directory. Keep raw test evidence private as repository policy
 requires; archive publication requires a separate review.
 
-CI uses a separate runner per fork/graph, targets main/development and cancels
-obsolete runs. Exact fork commits and pseudo-versions must be available remotely
-before these jobs can execute there. Locally sealed module artifacts demonstrate
-installation without a replace; they do not prove publication or remote CI.
+CI (`.github/workflows/forks.yml`) uses a separate runner per fork/graph and
+runs on main/development only when `go.mod`, `go.sum`, `verification/` or
+`scripts/fork_gate.py` change, or by hand; it cancels obsolete runs. Its raw
+evidence stays on the runner, private as above: the job uploads no artifact,
+and its log has the gate's summary line. Exact fork commits and pseudo-versions
+must be available remotely before these jobs can execute there. Locally sealed
+module artifacts demonstrate installation without a replace; they do not prove
+publication or remote CI.
 
 See the [A6 report](../docs/remediation/2026-10-27/A6.ru.md) for the retained
 before/after controls and acceptance limits.

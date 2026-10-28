@@ -1,10 +1,22 @@
 name: fork-regression-gates
 
+# Eight macOS jobs of up to 40 minutes: they run when what they gate changes,
+# the fork pins in go.mod and go.sum, the inventory or the gate, and by hand.
 on:
   push:
     branches: [main, development]
+    paths:
+      - go.mod
+      - go.sum
+      - verification/**
+      - scripts/fork_gate.py
   pull_request:
     branches: [main, development]
+    paths:
+      - go.mod
+      - go.sum
+      - verification/**
+      - scripts/fork_gate.py
   workflow_dispatch:
 
 concurrency:
@@ -44,14 +56,12 @@ jobs:
           subprocess.run(['git', '-C', 'fork-source', 'fetch', '--depth=1', row['repository'], row['commit']], check=True)
           subprocess.run(['git', '-C', 'fork-source', 'checkout', '--detach', 'FETCH_HEAD'], check=True)
           PYCODE
+      # The raw evidence the gate writes (test JSONL and stderr, the source
+      # archive, module graphs, result.json) stays on the runner, private as
+      # verification/README.md asks, which an artifact of a public repository
+      # is not. The job's log has the gate's summary line.
       - name: Full suite with named old failures only
         env:
           FORK: ${{ matrix.fork }}
           GRAPH: ${{ matrix.graph }}
         run: python3 scripts/fork_gate.py --fork "$FORK" --graph "$GRAPH" --source fork-source --output fork-results
-      - name: Preserve raw full-suite evidence
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: fork-${{ matrix.fork }}-${{ matrix.graph }}
-          path: fork-results/

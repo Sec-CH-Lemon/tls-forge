@@ -11,6 +11,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- The fork gates of `forks.yml` run on main and development when `go.mod`,
+  `go.sum`, `verification/` or `scripts/fork_gate.py` change, and by hand:
+  their eight macOS jobs of up to 40 minutes went with every push and pull
+  request. Their raw evidence (test JSONL and stderr, the source archive,
+  module graphs, `result.json`) is no longer uploaded as an artifact of the
+  public repository: it stays on the runner, private as
+  `verification/README.md` asks, and the job's log keeps the gate's summary
+  line.
 - `Close` waits for the close of a site evicted before it that is still
   going, and for the sites another `Close` is closing: it returned while
   their connections were being closed, a site no request held being kept in
