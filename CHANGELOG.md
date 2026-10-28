@@ -15,6 +15,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   going, and for the sites another `Close` is closing: it returned while
   their connections were being closed, a site no request held being kept in
   no list it looked at.
+- What a race of a name's HTTPS record goes on making after its request, the
+  TCP connection QUIC beat or the QUIC one TCP beat, is ended and waited for
+  by `CloseIdleConnections`, and so by `Close` and an evicted site's close,
+  before they close what is idle: it came up after them and was kept open.
+  Requires the tls-client fork's `apartWork`, at 62deb6d, a local pin not
+  yet published.
 - `capture --manual` gives session tickets to the host whose page asked for
   them, and only it: one window for every visitor let another host's visit
   open it, so that its next connection resumed and the visit measured was a

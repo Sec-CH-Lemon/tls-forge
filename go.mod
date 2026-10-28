@@ -20,7 +20,7 @@ require (
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/igor-lemon/fhttp v0.6.10-0.20261028110524-e514e872a835
-	github.com/igor-lemon/tls-client v1.15.2-0.20261027200813-9bd16362d479
+	github.com/igor-lemon/tls-client v1.15.2-0.20261028212323-62deb6d14643
 	github.com/igor-lemon/utls v1.7.8-barnius.0.20261028105857-ce7eff07163e
 	github.com/quic-go/qpack v0.6.0
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
