@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- `Close` waits for the close of a site evicted before it that is still
+  going, and for the sites another `Close` is closing: it returned while
+  their connections were being closed, a site no request held being kept in
+  no list it looked at.
 - `capture --manual` gives session tickets to the host whose page asked for
   them, and only it: one window for every visitor let another host's visit
   open it, so that its next connection resumed and the visit measured was a

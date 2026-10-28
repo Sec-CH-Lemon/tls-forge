@@ -187,10 +187,8 @@ func (t *transports) siteOf(name string) (*site, error) {
 	if len(t.sites) >= t.behavior.Int("http.max_site_pools") {
 		evicted := t.sites[0]
 		evicted.retired = true
+		t.retired[evicted] = true
 		idle, pending = t.idleSitesLocked([]*site{evicted})
-		if evicted.refs > 0 {
-			t.retired[evicted] = true
-		}
 		t.sites = slices.Delete(t.sites, 0, 1)
 	}
 	t.sites = append(t.sites, s)
@@ -228,7 +226,8 @@ func (t *transports) closeIdle() { t.clearIdle(false) }
 func (t *transports) close()     { t.clearIdle(true) }
 
 // sitesLocked snapshots ownership, never transport I/O. Retired entries live
-// only while a request or a detached drainer can still return a connection.
+// while a request or a detached drainer can still return a connection, and
+// until their connections are closed: Close waits for a close still going.
 func (t *transports) sitesLocked() []*site {
 	sites := append([]*site(nil), t.sites...)
 	for s := range t.retired {
@@ -248,9 +247,7 @@ func (t *transports) clearIdle(permanent bool) {
 		sites = t.sitesLocked()
 		for _, s := range sites {
 			s.retired = true
-			if s.refs > 0 {
-				t.retired[s] = true
-			}
+			t.retired[s] = true
 		}
 		t.sites = nil
 		t.spare = nil
@@ -299,6 +296,9 @@ func (t *transports) closeSites(idle []*site, pending []<-chan struct{}) {
 		t.mu.Lock()
 		close(s.closing)
 		s.closing = nil
+		if s.retired {
+			delete(t.retired, s)
+		}
 		t.mu.Unlock()
 	}
 	for _, done := range pending {
@@ -315,7 +315,6 @@ func (t *transports) releaseSite(s *site) {
 	var idle []*site
 	var pending []<-chan struct{}
 	if s.refs == 0 && (s.retired || s.idleAsked) {
-		delete(t.retired, s)
 		s.idleAsked = false
 		idle, pending = t.idleSitesLocked([]*site{s})
 	}

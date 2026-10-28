@@ -65,6 +65,23 @@ func TestEvictedSiteConnectionsAreClosed(t *testing.T) {
 					if err := request("b.example", "/"); err != nil {
 						t.Fatal(err)
 					}
+					// One site at most: a.example's was evicted for b.example's,
+					// and is held, retired, by the request still reading it.
+					c.transports.mu.Lock()
+					var held *site
+					for s := range c.transports.retired {
+						held = s
+					}
+					names := []string{}
+					for _, s := range c.transports.sites {
+						names = append(names, s.name)
+					}
+					evicted := len(c.transports.retired) == 1 && held.refs > 0 && held.retired &&
+						len(names) == 1 && names[0] != held.name && strings.Contains(held.name, "a.example")
+					c.transports.mu.Unlock()
+					if !evicted {
+						t.Fatalf("no eviction: sites %v, retired %d", names, len(c.transports.retired))
+					}
 					if earlyClose {
 						_ = c.Close()
 					}
@@ -73,6 +90,14 @@ func TestEvictedSiteConnectionsAreClosed(t *testing.T) {
 						t.Fatal(err)
 					}
 					if !earlyClose {
+						// Its last lease ended with the request: it is closed,
+						// and forgotten, before Close.
+						c.transports.mu.Lock()
+						left := len(c.transports.retired)
+						c.transports.mu.Unlock()
+						if left != 0 {
+							t.Errorf("%d retired sites kept after their last request", left)
+						}
 						_ = c.Close()
 					}
 					deadline := time.NewTimer(time.Second)
@@ -302,5 +327,117 @@ func TestIdleCloseExcludesNewReadersWithoutRegistryLock(t *testing.T) {
 		tr.releaseSite(s)
 	case <-time.After(time.Second):
 		t.Fatal("reader not released after idle close")
+	}
+}
+
+// Close waits for the close of a site evicted before it that is still going,
+// a site no request leased as much as one whose last lease it ended: once
+// Close returns, no connection of the client is left to close.
+func TestCloseWaitsForTheCloseOfAnEvictedSite(t *testing.T) {
+	for _, leased := range []bool{false, true} {
+		t.Run(fmt.Sprintf("leased=%v", leased), func(t *testing.T) {
+			tr, _ := idlers(t, "", refuseNone)
+			tr.behavior = tr.behavior.Clone()
+			tr.behavior["http.max_site_pools"] = []byte(`1`)
+			old, err := tr.siteOf("old")
+			if err != nil {
+				t.Fatal(err)
+			}
+			blocked := &stalledPool{idler: &idler{}, entered: make(chan struct{}), release: make(chan struct{})}
+			old.inner.HttpClient = blocked
+			if !leased {
+				tr.releaseSite(old)
+			}
+			evicting := make(chan struct{})
+			go func() {
+				defer close(evicting)
+				if s, err := tr.siteOf("new"); err == nil {
+					tr.releaseSite(s)
+				}
+			}()
+			if leased {
+				// Evicted under its lease; its last release closes it.
+				deadline := time.Now().Add(time.Second)
+				for {
+					tr.mu.Lock()
+					retired := old.retired
+					tr.mu.Unlock()
+					if retired || time.Now().After(deadline) {
+						break
+					}
+					time.Sleep(time.Millisecond)
+				}
+				go func() {
+					tr.releaseSite(old)
+				}()
+			}
+			select {
+			case <-blocked.entered:
+			case <-time.After(time.Second):
+				t.Fatal("the evicted site's close did not begin")
+			}
+			closed := make(chan struct{})
+			go func() {
+				tr.close()
+				close(closed)
+			}()
+			select {
+			case <-closed:
+				t.Error("Close returned while an evicted site's close was still going")
+			case <-time.After(100 * time.Millisecond):
+			}
+			close(blocked.release)
+			select {
+			case <-closed:
+			case <-time.After(time.Second):
+				t.Fatal("Close did not return once the evicted site's close was done")
+			}
+			<-evicting
+			tr.mu.Lock()
+			defer tr.mu.Unlock()
+			if len(tr.retired) != 0 || len(tr.sites) != 0 {
+				t.Errorf("after Close, %d retired and %d sites kept", len(tr.retired), len(tr.sites))
+			}
+		})
+	}
+}
+
+// A Close made while another is closing a site waits for it too.
+func TestACloseWaitsForTheSitesAnotherCloseIsClosing(t *testing.T) {
+	tr, _ := idlers(t, "", refuseNone)
+	s, err := tr.siteOf("one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocked := &stalledPool{idler: &idler{}, entered: make(chan struct{}), release: make(chan struct{})}
+	s.inner.HttpClient = blocked
+	tr.releaseSite(s)
+	first := make(chan struct{})
+	go func() {
+		tr.close()
+		close(first)
+	}()
+	select {
+	case <-blocked.entered:
+	case <-time.After(time.Second):
+		t.Fatal("the first Close did not begin closing the site")
+	}
+	second := make(chan struct{})
+	go func() {
+		tr.close()
+		close(second)
+	}()
+	select {
+	case <-second:
+		t.Error("a second Close returned while the first was still closing a site")
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(blocked.release)
+	for _, done := range []chan struct{}{first, second} {
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Fatal("a Close did not return once the site was closed")
+		}
 	}
 }
