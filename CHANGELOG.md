@@ -17,7 +17,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   now about 0.6 MiB at most; what a stream of that length decodes to is
   unchanged. utls also requires brotli v1.2.3, which refuses a stream cut short
   before its last meta-block, as tls-forge's own build already did. Requires
-  the utls fork at 2477e72, a local pin not yet published.
+  the utls fork at 2477e72.
 - A profile the profiles directory holds as a symbolic link tls-forge does not
   follow (absolute, even to a file inside it, leading out of it, or leading
   nowhere) is refused with an error naming it; the shipped profile of the same
@@ -30,13 +30,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - Refuse a chunked answer whose chunk-size line is empty, as Go 1.26.10 does:
   the body ended there with no error. A chunk cut short in its data, or before
   its CRLF, is io.ErrUnexpectedEOF in fhttp's chunked reader too, as in Go.
-  Requires the fhttp fork at a31fd70, a local pin not yet published.
+  Requires the fhttp fork at a31fd70.
 - A request's PRIORITY_UPDATE goes in its first packet with its HEADERS
   (`h3.request_writes: one-flush`) even when the control stream still has its
   SETTINGS to send: a write is held for its bundle as it is given, before a
   packet can take it. The F09 gate's flaky
   `TestARequestsWritesGoInOnePacketAsItsProfileSays`. Requires the
-  quic-go-utls fork at 4e96d6e8, a local pin not yet published.
+  quic-go-utls fork at 4e96d6e8.
 - `Request.Reloaded` (and `fetch --retry-as-browser`) leaves the caller's
   Authorization, Cookie and proxy/challenge credential fields behind when a
   redirect took the page to another origin, as the redirect did; a reload at
@@ -57,7 +57,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   initial 65,535 bytes when the profile has no `h2.window_update_delay_ms`: the
   client refilled to the increment itself, so 0 and 1 left a body past 64 KiB
   waiting for the deadline and other small values ended in FLOW_CONTROL_ERROR.
-  Requires the fhttp fork at aa8d85b, a local pin not yet published.
+  Requires the fhttp fork at aa8d85b.
 - Validate executable profile semantics before DNS/transport/proxy activity at
   every entry. Reject ambiguous JSON, invalid H2 settings/streams/dependencies,
   unsupported repeated-setting representation and connection-window overflow.
