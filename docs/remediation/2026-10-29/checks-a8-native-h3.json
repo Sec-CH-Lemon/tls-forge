@@ -1,0 +1,328 @@
+{
+  "schema": 1,
+  "scope": "Cold/reused3GET owned IPv4 peer;two independent Chrome launches per host;actual JSON candidates;conditional QPACK states,not scheduling rate equivalence;noWAN/kernel/resumption/fullbrowser verdict",
+  "scenario_sha256": "775e3c39121c2cebb6d30e2682cb57b30e1401cbc06c9bc377ad7337080f54b8",
+  "hosts": {
+    "macOS27": {
+      "file": "h3-no-component-update-r06-analysis.json",
+      "sha256": "910af260ba87d7a6aaeced5b2b55a6ebff36066070594c3fb1180a73a80c8286",
+      "connections": 2080,
+      "requests": 6240,
+      "scores": [
+        {
+          "actor": "chrome",
+          "cohort": 1,
+          "pearson": [
+            8.9375,
+            15.625
+          ],
+          "qpack_states": {
+            "SDD": 56,
+            "DDD": 456
+          }
+        },
+        {
+          "actor": "chrome",
+          "cohort": 2,
+          "pearson": [
+            17.5,
+            9.625
+          ],
+          "qpack_states": {
+            "DDD": 460,
+            "SDD": 52
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 1,
+          "pearson": [
+            19.1875,
+            10.4375
+          ],
+          "qpack_states": {
+            "SDD": 499,
+            "DDD": 13
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 2,
+          "pearson": [
+            16.125,
+            7.1875
+          ],
+          "qpack_states": {
+            "SDD": 502,
+            "DDD": 10
+          }
+        }
+      ],
+      "two_sample": [
+        [
+          9.562193792011039,
+          13.19665997466295
+        ],
+        [
+          19.453947598366515,
+          8.200359340056657
+        ]
+      ],
+      "negative_controls": {
+        "transport_frozen_draw": "rejected by unchanged statistic",
+        "missing_encoder_instructions": "StreamBlocked"
+      },
+      "packets": {
+        "connections": 2080,
+        "streams": 10384,
+        "packets": 56739,
+        "source_sha256": "4631c091a1d8905932a7f128b051a2c7f1b8e2e77a58d1f99ee0d797c3eca8e5",
+        "observation_sha256": "743b09c4432f8d44153c0fe508931a7f7e82134243316fb47863cb3c50a789aa",
+        "pcap_sha256": "97c60dad926d5f916260276e37b9a831e1f93e3ffb904dbef77cf74297b4d9aa",
+        "negative_controls": {
+          "missing-keys": "independently decoded connection cardinality differs",
+          "missing-client-application": "independently decoded stream cardinality differs"
+        },
+        "verification_sha256": "5d3f4880c739f7bf8f8e0af4c3b9bf639456e3b9f85cc5875670b52600f2f554"
+      }
+    },
+    "Linux": {
+      "file": "native-linux-final-analysis.json",
+      "sha256": "7b47a56ad8c74c6617b83b6eaad1b81b819e3c675ba74524161ecb172350dda8",
+      "connections": 2080,
+      "requests": 6240,
+      "scores": [
+        {
+          "actor": "chrome",
+          "cohort": 1,
+          "pearson": [
+            20.6875,
+            19.1875
+          ],
+          "qpack_states": {
+            "DDD": 469,
+            "SDD": 43
+          }
+        },
+        {
+          "actor": "chrome",
+          "cohort": 2,
+          "pearson": [
+            15.3125,
+            9.125
+          ],
+          "qpack_states": {
+            "SDD": 41,
+            "DDD": 471
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 1,
+          "pearson": [
+            8.8125,
+            14.8125
+          ],
+          "qpack_states": {
+            "SDD": 500,
+            "DDD": 12
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 2,
+          "pearson": [
+            18.9375,
+            6.9375
+          ],
+          "qpack_states": {
+            "SDD": 500,
+            "DDD": 12
+          }
+        }
+      ],
+      "two_sample": [
+        [
+          14.824957034715103,
+          17.133150227718687
+        ],
+        [
+          18.64387910167251,
+          5.371134050884677
+        ]
+      ],
+      "negative_controls": {
+        "transport_frozen_draw": "rejected by unchanged statistic",
+        "missing_encoder_instructions": "StreamBlocked"
+      },
+      "packets": {
+        "connections": 2080,
+        "streams": 10384,
+        "packets": 43486,
+        "source_sha256": "d04d3f9556167ea2c91ca93ec131355b374dd36682751b07aedd46def82260dc",
+        "observation_sha256": "c1827e017832209e6c769242c7fa6bd01d9037360eedcd22752d349403ee99e5",
+        "pcap_sha256": "c87e00fee52663ae3d8994067923cd4af154e6303200de8c9dc030e9f8047f61",
+        "negative_controls": {
+          "missing-keys": "independently decoded connection cardinality differs",
+          "missing-client-application": "independently decoded stream cardinality differs"
+        },
+        "verification_sha256": "524f9cfdcc660d5efdcc0a33e96af03bb32650f48a4046a7ffb12d5419767a90"
+      }
+    },
+    "Windows": {
+      "file": "native-windows-final-analysis.json",
+      "sha256": "8ed805710ea5b22360f25d84e2a49a85892189dfb86528d86be8ea35d003f339",
+      "connections": 2080,
+      "requests": 6240,
+      "scores": [
+        {
+          "actor": "chrome",
+          "cohort": 1,
+          "pearson": [
+            9.875,
+            18.3125
+          ],
+          "qpack_states": {
+            "DDD": 500,
+            "SDD": 12
+          }
+        },
+        {
+          "actor": "chrome",
+          "cohort": 2,
+          "pearson": [
+            12.25,
+            12.1875
+          ],
+          "qpack_states": {
+            "DDD": 500,
+            "SDD": 12
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 1,
+          "pearson": [
+            7.8125,
+            6.125
+          ],
+          "qpack_states": {
+            "SDD": 503,
+            "DDD": 9
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 2,
+          "pearson": [
+            11.875,
+            7.5625
+          ],
+          "qpack_states": {
+            "SDD": 502,
+            "DDD": 10
+          }
+        }
+      ],
+      "two_sample": [
+        [
+          9.409180396139671,
+          9.392095301620415
+        ],
+        [
+          14.06953439339069,
+          5.921546549365226
+        ]
+      ],
+      "negative_controls": {
+        "transport_frozen_draw": "rejected by unchanged statistic",
+        "missing_encoder_instructions": "StreamBlocked"
+      },
+      "packets": {
+        "connections": 2080,
+        "streams": 10384,
+        "packets": 45960,
+        "source_sha256": "857385f8771b86bf8eb2e8961fc99364eb5d197a100d1e5a99928ce120806a16",
+        "observation_sha256": "cf20f4aec71171069253ae80e49e4b4d73b742c603ef1b9b6facb8d9a0bf9a44",
+        "pcap_sha256": "eb16234bc8180c4b90c82f8555513d64ee5caf19692f888256caeba769f534d7",
+        "negative_controls": {
+          "missing-keys": "independently decoded connection cardinality differs",
+          "missing-client-application": "independently decoded stream cardinality differs"
+        },
+        "verification_sha256": "0bc32be01b49910a2d4564ed87887ee2084415c68f0a5b0e0702660db97f9470"
+      }
+    },
+    "macOS-CI": {
+      "file": "native-mac-final-ci-analysis.json",
+      "sha256": "97d8e64607421320fc685fe8fe1f6d0367e01151ef0fd293f15a77c3d60674d4",
+      "connections": 2080,
+      "requests": 6240,
+      "scores": [
+        {
+          "actor": "chrome",
+          "cohort": 1,
+          "pearson": [
+            17.0625,
+            22.875
+          ],
+          "qpack_states": {
+            "SDD": 71,
+            "DDD": 441
+          }
+        },
+        {
+          "actor": "chrome",
+          "cohort": 2,
+          "pearson": [
+            19.125,
+            18.3125
+          ],
+          "qpack_states": {
+            "DDD": 440,
+            "SDD": 72
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 1,
+          "pearson": [
+            17.1875,
+            6.6875
+          ],
+          "qpack_states": {
+            "SDD": 508,
+            "DDD": 4
+          }
+        },
+        {
+          "actor": "client",
+          "cohort": 2,
+          "pearson": [
+            17.0,
+            6.875
+          ],
+          "qpack_states": {
+            "SDD": 509,
+            "DDD": 3
+          }
+        }
+      ],
+      "two_sample": [
+        [
+          28.10242288153087,
+          13.071970130273414
+        ],
+        [
+          19.574068689464536,
+          8.635200726066566
+        ]
+      ],
+      "negative_controls": {
+        "transport_frozen_draw": "rejected by unchanged statistic",
+        "missing_encoder_instructions": "StreamBlocked"
+      }
+    }
+  },
+  "phase": "before-placement-correction",
+  "known_boundary": "Observed N>0 positive cohorts only;subsequent forcedN0 actualwire exposed appended33after51. Do not carry this earlier runtime acceptance into the corrected engine snapshot automatically."
+}
