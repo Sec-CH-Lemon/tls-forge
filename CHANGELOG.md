@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Prepare capture data/provenance and safe metadata destinations before
+  replacing a profile. Preserve the file-save missing-parent refusal; report
+  metadata write errors. Add corrupted-capture, I/O and launch-mode controls
+  while retaining the full100% CLI statement-coverage gate.
+
 - Inherit30 shared network policy values explicitly into Chrome155 Linux and
   Windows, retaining OS-specific choices. Keep per-file exact hashes and
   field provenance outside runnable data. Mark151–154 as historical in a

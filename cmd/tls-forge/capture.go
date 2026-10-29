@@ -57,11 +57,8 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		return fmt.Errorf("%w: --policy-from and --provenance-dir require --save or --install", errUsage)
 	}
 	if *policyFrom != "" {
-		explicit, err := profile.Get(*policyFrom)
-		if err != nil {
-			return err
-		}
-		if err := explicit.Validate(); err != nil {
+		// Registry.Get validates every file/embedded/catalogue path.
+		if _, err := profile.Get(*policyFrom); err != nil {
 			return err
 		}
 	}
@@ -298,17 +295,6 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 	if err := built.Validate(); err != nil {
 		return nil, "", err
 	}
-	data, err := built.Save()
-	if err == nil {
-		if tree != nil {
-			err = atomicfile.WriteRoot(tree, relative, data, 0o644)
-		} else {
-			err = atomicfile.Write(path, data, 0o644)
-		}
-	}
-	if err != nil {
-		return nil, "", err
-	}
 	mode := "unknown; direct saveProfile caller"
 	if len(policyOptions) > 2 {
 		mode = policyOptions[2]
@@ -324,32 +310,36 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 		}
 		provenance.Fields[key] = profile.FieldOrigin{Class: "user-provided", Source: "explicit --set"}
 	}
-	metadata, err := json.MarshalIndent(provenance, "", "  ")
-	if err != nil {
-		return nil, "", err
-	}
+	// ProvenanceForCapture has serialized all raw JSON and cloned its source.
+	// The only edits above add ordinary string origins, so encoding cannot fail.
+	metadata, _ := json.MarshalIndent(provenance, "", "  ")
 	metadata = append(metadata, '\n')
-	metadataPath := captureProvenancePath(where, path, built, provenanceDir)
-	metadataRoot := filepath.Dir(path)
-	if info, statErr := os.Stat(where); statErr == nil && info.IsDir() {
-		metadataRoot = where
-	}
+	metadataRoot, relativeMetadata := captureProvenanceDestination(where, path, built, provenanceDir)
+	// Only an explicitly requested metadata directory is created here. A
+	// file save still requires its original parent; metadata must not make an
+	// otherwise unwritable profile destination silently become writable.
 	if provenanceDir != "" {
-		metadataRoot = provenanceDir
+		if err := os.MkdirAll(metadataRoot, 0o755); err != nil {
+			return nil, "", err
+		}
 	}
-	if err := os.MkdirAll(metadataRoot, 0o755); err != nil {
-		return nil, "", err
-	}
-	root, err := os.OpenRoot(metadataRoot)
+	root, err := openProfileRoot(metadataRoot)
 	if err != nil {
 		return nil, "", err
 	}
 	defer func() { _ = root.Close() }()
-	relativeMetadata, err := filepath.Rel(metadataRoot, metadataPath)
-	if err != nil {
+	if err := root.MkdirAll(filepath.Dir(relativeMetadata), 0o755); err != nil {
 		return nil, "", err
 	}
-	if err := root.MkdirAll(filepath.Dir(relativeMetadata), 0o755); err != nil {
+	data, err := built.Save()
+	if err == nil {
+		if tree != nil {
+			err = atomicfile.WriteRoot(tree, relative, data, 0o644)
+		} else {
+			err = atomicfile.Write(path, data, 0o644)
+		}
+	}
+	if err != nil {
 		return nil, "", err
 	}
 	if err := atomicfile.WriteRoot(root, relativeMetadata, metadata, 0o644); err != nil {

@@ -37,5 +37,35 @@
     "profile": "PASS11.195s;100% statements",
     "cli_targeted_race": "PASS55.585s",
     "actual_tls_close_race": "PASS2.069s;4 concurrent H1/H2 policies"
-  }
+  },
+  "follow_up_checks": [
+    {
+      "file": "full-race-clean-r02.log",
+      "sha256": "b5927de817f8d0dc2df2e6f6faadb3436b2d4c2a839365161d6c16dfcdf4dbec"
+    },
+    {
+      "file": "full-c02-cover.log",
+      "sha256": "f42912f8ceb07cf10836dd2a1f5ed3de57f0c4f50eaf3b46fd54c54993603ea2"
+    },
+    {
+      "file": "capture-error-paths-r02.log",
+      "sha256": "a8481d8a73f94a94dfc650fce781b1484a80c1042d997e2b689bf6ddb6b1cd3d"
+    },
+    {
+      "file": "cli-capture-errors-cover.log",
+      "sha256": "dbd25e2d2e1c6ecb733b1bf70381600f0d415a1aa690eb227521c5ef2ec2bf68"
+    },
+    {
+      "file": "cli-capture-errors-cover-r02.log",
+      "sha256": "edefaad3eb96f4b4273047c6d2b554c9202c1b804ddb5502dd32abc69c9ce603"
+    },
+    {
+      "file": "capture-refinement-lint.log",
+      "sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+    },
+    {
+      "file": "platform-visitor-r02.log",
+      "sha256": "7f788f59e8d21100d0ef418e8bd819a358e23315f21f17e2c367fa5d8cbbc988"
+    }
+  ]
 }

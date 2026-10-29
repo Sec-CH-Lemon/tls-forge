@@ -32,6 +32,11 @@ func capturePolicyBasis(measured *capture.Capture, explicit string) (*profile.Pr
 }
 
 func captureProvenancePath(where, path string, p *profile.Profile, explicit string) string {
+	root, relative := captureProvenanceDestination(where, path, p, explicit)
+	return filepath.Join(root, relative)
+}
+
+func captureProvenanceDestination(where, path string, p *profile.Profile, explicit string) (string, string) {
 	version, platform := profile.Split(p.Name)
 	if platform == "" {
 		platform = platformFrom(p.UserAgent)
@@ -40,12 +45,10 @@ func captureProvenancePath(where, path string, p *profile.Profile, explicit stri
 		platform = "unknown"
 	}
 	if explicit != "" {
-		return filepath.Join(explicit, version, platform+".json")
+		return explicit, filepath.Join(version, platform+".json")
 	}
-	root := filepath.Dir(path)
 	if info, err := os.Stat(where); err == nil && info.IsDir() {
-		return filepath.Join(where, "provenance", version, platform+".json")
+		return where, filepath.Join("provenance", version, platform+".json")
 	}
-	// A nested subtree keeps metadata out of the registry's two-level JSON scan.
-	return filepath.Join(root, "provenance", version, filepath.Base(path))
+	return filepath.Dir(path), filepath.Join("provenance", version, filepath.Base(path))
 }
