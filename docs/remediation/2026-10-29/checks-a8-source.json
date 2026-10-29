@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "local final code/docs/generated/SDK gates accepted",
+  "status": "final code and native CI accepted;documentation-only closing changes checked separately",
   "checks": {
     "whole_module_race": "23 packages PASS",
     "strict_fresh_coverage": "100% every function and package",
@@ -27,19 +27,91 @@
     "build-workspace-final.log": "29531856971a0f3c31252782ecb513ee58de3db6bf1dba80f91c4124a2992075"
   },
   "effective_module_graph": "unchanged by sum cleanup;root/example go.mod pins unchanged",
-  "source_scope": "All product Go/data/test bytes compared against final isolated export. Observer-only later correction separately tested; no new product runtime after native e359cff.",
+  "source_scope": "Complete code3166ff48 validated by native CI;188shipped Go/data/module andSDKruntime/type files equal accepted export. Later test-precondition changes have their own strict target/native evidence;original results retained.",
   "source_equality": {
-    "files": 456,
-    "receipt_sha256": "72fcb8fd45b9036381d1ad0f93824d682345eb9803d340ac125220ae95506bf6",
-    "meaning": "Exact product/test Go,go.mod/go.sum and shipped data equality with accepted isolated export."
+    "files": 188,
+    "receipt_sha256": "82e88646f21182318c6375e61a3334909ee86134cce69d36ccc5c8bb6098b82c",
+    "meaning": "Exact shipped Go/data/modules andSDK runtime/types equal accepted export;test-onlypreconditions separately validated through final native CI."
   },
   "knowledge_base": {
-    "check": "PASS265entries1515observations;historical target preserved",
-    "check_log_sha256": "3345ba807d47795ae281bb4a7acf4901c1543fe15c96787e93912dda960db16c",
+    "check": "PASS266entries1516observations;historical155target preserved;separate nativeA8 contexts",
+    "check_log_sha256": "8e2eb1fb574ce7c8c7ec7f9f9842f63c8786ca0c3639a78c555becf20d2a9446",
     "files": {
-      "knowledge/browser-behavior.json": "4489236fa6178c0af9cb38ea0dc63178debfb06a6cab0e85fcf6c14f9e42e169",
-      "docs/BROWSER_BEHAVIOR.md": "90457e821c6d4295815d0c2448f66d9f290e7c4017ca25c3542bb262518a7171",
-      "docs/browser-behavior.html": "5e0f6b3bce2efd8e232551fb5efe97f97a7d48f23b294ca54bcef11ba6f8edac"
+      "knowledge/browser-behavior.json": "2102f989b9acdc3bf8d25874ddca808e4628503e1cd12148e46db9f87fde5d98",
+      "docs/BROWSER_BEHAVIOR.md": "1997ff21c7c45f3e9f1423e7a45c0e0f35838b637ac026c783cb576ad1312eff",
+      "docs/browser-behavior.html": "df18e60daecb9b220c6999f60529864a3f1a8b1d28697a3c93f9a2099bbe3822"
     }
+  },
+  "main_ci": {
+    "run": 40969566685,
+    "code_commit": "3166ff480a61e1318b0d1f63c1b3fee3348178d2",
+    "conclusion": "success",
+    "attempt": 2,
+    "windows_original_failure_retained": true
+  },
+  "fork_ci": {
+    "run": 40968488774,
+    "code_commit": "20733fe089fcab5408d3645df87c787ce235fe3c",
+    "gates": 8,
+    "conclusion": "success",
+    "meaning": "stage1known-debt only;109obligations unchanged"
+  },
+  "code_source_checkpoints": [
+    {
+      "repository": "tls-forge",
+      "branch": "development",
+      "commit": "3166ff480a61e1318b0d1f63c1b3fee3348178d2",
+      "archive_sha256": "ba1fa9e5adef91519e7b6e823762b6876d81c1ceb4787b27aabbd41cc2a945d6",
+      "archive": "after-3166ff48/tls-forge.tar"
+    },
+    {
+      "repository": "utls",
+      "branch": "tls-forge",
+      "commit": "2c0489c13835787fbc8ad18799e973f0ab31fbb4",
+      "archive_sha256": "8bfe48ab66b276c13675d3612a420bbc961745e4924f977d97c64dbee91dba4b",
+      "archive": "after/utls.tar"
+    },
+    {
+      "repository": "fhttp",
+      "branch": "tls-forge",
+      "commit": "e514e872a83544226834b2b90429586e45ab5dea",
+      "archive_sha256": "dc7f2f06c2d1ce06d2fb771cb2038fb3d8633dbc3d814c658b2ba12261c526a7",
+      "archive": "after/fhttp.tar"
+    },
+    {
+      "repository": "quic-go-utls",
+      "branch": "tls-forge",
+      "commit": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+      "archive_sha256": "35fd2d94c196de2f881ee247283044c7d4b322ae211e428e9fe47367e001efb7",
+      "archive": "after/quic-go-utls.tar"
+    },
+    {
+      "repository": "tls-client",
+      "branch": "tls-forge",
+      "commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+      "archive_sha256": "a24638c6ccc8bf367a6249f025f48d5e1d73d6ab99af9c3c8190eb4800db9f96",
+      "archive": "after/tls-client.tar"
+    }
+  ],
+  "private_artifact_seals": [
+    {
+      "archive": "A8-native-final-originals.tar.gz",
+      "bytes": 4700815305,
+      "sha256": "fd8acd7ded45f8778fc4b0d8b44d17f563d11d96330c4ff08315f91d43f467e1",
+      "manifest_sha256": "1a4c9414b45ba7f46a82b9d1598341ff8855e3104cfd661786fee1346fd5df86",
+      "file_count": 6065
+    },
+    {
+      "archive": "A8-native-final-supplement.tar.gz",
+      "bytes": 39121034,
+      "sha256": "972a2a5df0f494205726866cd2b55ae5397e95e88b0f1f9ff308299f1c31cf7b",
+      "manifest_sha256": "de1d0840c97a47e2fc9ab9d67a4eb55990387e811b9901c30dd8da753b713397",
+      "files": 184
+    }
+  ],
+  "closing_document_checks": {
+    "final-closed-docs-check.log": "dfd9e08c80059baec6d551b62443f7779885f504d72cf25a4ea8babb4dc301b3",
+    "final-closed-actionlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "final-closed-gate-controls.log": "f70c5e12f81e6ca2a27c5a58d268b60f9b9764c638cc0c6fbef9bce3d25bd541"
   }
 }

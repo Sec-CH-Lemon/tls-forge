@@ -1,0 +1,377 @@
+{
+  "schema": 1,
+  "browser_acceptance_run": 40957414320,
+  "fork_acceptance": {
+    "run": 40968488774,
+    "source_commit": "20733fe089fcab5408d3645df87c787ce235fe3c",
+    "reference": "official xcode-27/macOS27;positive mappedUDP plus IPv4/mapped external-denial preflight",
+    "status": "8/8 accepted",
+    "obligations": 109,
+    "new_named_exceptions": 0,
+    "results": [
+      {
+        "fork": "fhttp",
+        "graph": "production",
+        "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+        "source_sha256": "54c278a0bc5fd2302aa9d2c5d6318ef5bec98730354e755ec67c29e9efd57ee9",
+        "test_runs": 1831,
+        "accepted": true,
+        "raw_result_sha256": "f044d06e74b1ede99c226cec83e8256baa9423e601046386c549458bb8bd860e",
+        "encrypted_sha256": "3d37db189346f0af5349ef7e110f4a54faefabd485728ae5631117f88de900b0",
+        "jsonl_sha256": {
+          "0.jsonl": "b1948ac18771a657d35fde999f69af4de09805cb69e13064cf9cb3430559ce0e",
+          "1.jsonl": "a1c299ebe1eaa95ec9a336f5f13ab9af37125a7d6c4f724c1b8784ad37d95e4f"
+        }
+      },
+      {
+        "fork": "fhttp",
+        "graph": "standalone",
+        "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+        "source_sha256": "54c278a0bc5fd2302aa9d2c5d6318ef5bec98730354e755ec67c29e9efd57ee9",
+        "test_runs": 1831,
+        "accepted": true,
+        "raw_result_sha256": "f71ca9af924c282324e9d0cb61ee85a367f5037ecd093387256d0e3a5b7f56f6",
+        "encrypted_sha256": "a9f2633924ebbfd48b8569106c09961b60f2c1e0e5edcea0c300163acb9c87a7",
+        "jsonl_sha256": {
+          "0.jsonl": "10906b86cdfb4b13a8a9f7a7a346727243d094a5edecf2a187458abfe2f23c6b",
+          "1.jsonl": "4a572e3a3b7b79c9cf0504365b0ff6f76b2d36b0bdd3145926ba56bad4f8f962"
+        }
+      },
+      {
+        "fork": "quic-go-utls",
+        "graph": "production",
+        "source_commit": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+        "source_sha256": "3a22a5e24caafabfb35cc1327f74314dac32dbdb38d61d7cc9d37432f28b795f",
+        "test_runs": 2562,
+        "accepted": true,
+        "raw_result_sha256": "a11b7c6dac3d321dbac1815f6ea9049ba4428fd4acadea8f0437bb94a45acfc2",
+        "encrypted_sha256": "4d6ecad6b5372ac4d58e8254fc97c8c79d49684e557897cedacecb99b35e85b7",
+        "jsonl_sha256": {
+          "0.jsonl": "3a0b85726b4d37986e9c7ca965e973340621ffba97ae3ccf7bdbb6cc5eb741a3"
+        }
+      },
+      {
+        "fork": "quic-go-utls",
+        "graph": "standalone",
+        "source_commit": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+        "source_sha256": "3a22a5e24caafabfb35cc1327f74314dac32dbdb38d61d7cc9d37432f28b795f",
+        "test_runs": 2562,
+        "accepted": true,
+        "raw_result_sha256": "05fd235bf4b0b5c05e8f6e2dda97636b4ac51ef6d6ab0c33eb95d021e203b880",
+        "encrypted_sha256": "289195a0268149a914e7e99a4dbc72b1270c0b2ceb9f48b247934c086ccc6739",
+        "jsonl_sha256": {
+          "0.jsonl": "abb195c27c6b669c1ea14c4c1ef843db95f20ab9f9cac77e3adf4b249226b7e0"
+        }
+      },
+      {
+        "fork": "tls-client",
+        "graph": "production",
+        "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+        "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+        "test_runs": 407,
+        "accepted": true,
+        "raw_result_sha256": "fa60a05519a935582453f8111bbad165182581b619790e2f1ee12c5c76e1438e",
+        "encrypted_sha256": "58cd863b0c1058c7cf2dea081c379f03e2363a780894f31a4b52e4f9c69e2156",
+        "jsonl_sha256": {
+          "0.jsonl": "7edaf263fcde1ca12f1201118c0d9c4944c372ec23bfa238b56ec3bd0f0ae5d6"
+        }
+      },
+      {
+        "fork": "tls-client",
+        "graph": "standalone",
+        "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+        "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+        "test_runs": 407,
+        "accepted": true,
+        "raw_result_sha256": "2fe3c1c60d5b3c855e7a27b0342e88310bdd31443777c7e87abe9daf4ed01c03",
+        "encrypted_sha256": "da6b227b529b6a4ac8f8d9f106b817285d3fc66f263a59a62b1aae1ef6ad695b",
+        "jsonl_sha256": {
+          "0.jsonl": "f79a35188f57f94eeebfdabb9653cccdc99a438c93a8f03d0405fc2709790254"
+        }
+      },
+      {
+        "fork": "utls",
+        "graph": "production",
+        "source_commit": "2c0489c13835787fbc8ad18799e973f0ab31fbb4",
+        "source_sha256": "fa42bd2fe1baa180756f408d91c1ff46ab10ed9a5b140c9daa85513025c003e8",
+        "test_runs": 635,
+        "accepted": true,
+        "raw_result_sha256": "a87d00aacd386c06dcb4297b4a6badece08cd3015cd43ffc5903f29849dcc349",
+        "encrypted_sha256": "64c910914f5a65d008886ed711ab44dff9d8158f0d9556d1c1863d5b5f424be0",
+        "jsonl_sha256": {
+          "0.jsonl": "aadbbe13f76f414475353542762a5956dbfaf4ab1d748647c2d6ae8de100e825"
+        }
+      },
+      {
+        "fork": "utls",
+        "graph": "standalone",
+        "source_commit": "2c0489c13835787fbc8ad18799e973f0ab31fbb4",
+        "source_sha256": "fa42bd2fe1baa180756f408d91c1ff46ab10ed9a5b140c9daa85513025c003e8",
+        "test_runs": 635,
+        "accepted": true,
+        "raw_result_sha256": "b60ade4f9a1b6d2f39d64db1ba00b10254ac7e948efe2780fee095e7773ebc86",
+        "encrypted_sha256": "e428344f2c0da5fdadd3783ebf55101d2f062cdb228e5adb560988c5de8546a0",
+        "jsonl_sha256": {
+          "0.jsonl": "bf2b8131e920ce13242a15af8864589b2909b2ae1dd9677a738c4f025c712f19"
+        }
+      }
+    ]
+  },
+  "fixture_corrections": [
+    {
+      "before": "Windows raw H2 response/reset race",
+      "log": "promoted-coverage-job.log",
+      "fix": "1dfde714",
+      "after": "native-peer-harness-race.log",
+      "meaning": "Keep peer open and drain until client closes;unchanged SETTINGS/window/FLOW_CONTROL assertions."
+    },
+    {
+      "before": "Linux no Initial snapshot before detached QUIC startup",
+      "log": "promoted-linux-coverage-job.log",
+      "fix": "0a884066",
+      "after": "native-final-peer-cover.log",
+      "meaning": "Actual first-datagram event;unchanged collection interval and independent crypto assertions."
+    },
+    {
+      "before": "Python queued request started after teardown under fixed sleep",
+      "log": "peer-fixed-python-macos-job.log",
+      "fix": "d290bdb",
+      "after": "python-queued-deadline-full.log",
+      "negative": "python-queued-deadline-mutant.log",
+      "meaning": "Real timeout/process/lock with events;unsent second request asserted;timeout-removal mutant rejected."
+    },
+    {
+      "before": "Windows two cache stores shared one host-clock timestamp",
+      "log": "reference-windows-Go-job.log",
+      "fix": "cd8c186a",
+      "after": "cache-fixture-lru-order.log",
+      "meaning": "Strict LRU precondition in fixture;cache runtime unchanged."
+    },
+    {
+      "before": "Native test-daemon replied before closing stdin;next write could succeed and wait",
+      "log": "reference27-node-linux-job.log",
+      "fix": "a1b311ef",
+      "after": "node-native-dead-pipe-after.log",
+      "meaning": "Close input before acknowledgement;real EPIPE/SessionReset assertions unchanged;attach both rejection checks immediately."
+    },
+    {
+      "before": "Windows UDP excluded range differs from chosen TCP port",
+      "log": "reference27-windows-Go-job.log",
+      "fix": "3166ff48",
+      "after": "entry-paired-listeners-after.log",
+      "meaning": "Existing UDP/TCP pair allocator before setup;all zero-I/O counters unchanged."
+    }
+  ],
+  "host_failures": {
+    "macos26_run": 40965927143,
+    "macos15_run": 40967366546,
+    "meaning": "Sandbox blocks owned IPv4-mapped loopback;new positive preflight fails closed before suite on unsupported host. Do not add these errors to known-debt list. Original localhost-only policy unchanged."
+  },
+  "diagnostic_warning_review": [
+    {
+      "graph": "standalone",
+      "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+      "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+      "raw_jsonl_sha256": "98fd6ccde74369cd46ebbbb3fd2c95011271e3ef218b4c74ef9487790065743e",
+      "core_matches_existing_digest": "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4",
+      "full_normalized_transcript_sha256": "3cf4d0cb2fff5cca9e5fe71d9fa25ef78ee5b245eae7d2fde92ef8771903f84a",
+      "exact_warning": "<clock> failed to sufficiently increase receive buffer size (was: 768 kiB, wanted: 7168 kiB, got: 6144 kiB). See https://github.com/igor-lemon/quic-go-utls/wiki/UDP-Buffer-Sizes for details."
+    },
+    {
+      "graph": "production",
+      "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+      "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+      "raw_jsonl_sha256": "41e82e2ab9cf1136c9c923a14a2b85a01f58b2446941e641e3cd7bb0ab81abd9",
+      "core_matches_existing_digest": "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4",
+      "full_normalized_transcript_sha256": "3cf4d0cb2fff5cca9e5fe71d9fa25ef78ee5b245eae7d2fde92ef8771903f84a",
+      "exact_warning": "<clock> failed to sufficiently increase receive buffer size (was: 768 kiB, wanted: 7168 kiB, got: 6144 kiB). See https://github.com/igor-lemon/quic-go-utls/wiki/UDP-Buffer-Sizes for details."
+    }
+  ],
+  "pinned_actionlint": {
+    "config": ".github/actionlint.yaml",
+    "scope": "Only the exact official hosted xcode-27 label extends the old registry;unknown-label control still rejects."
+  },
+  "main_ci": {
+    "run": 40969566685,
+    "source_commit": "3166ff480a61e1318b0d1f63c1b3fee3348178d2",
+    "status": "completed",
+    "conclusion": "success",
+    "attempt": 2,
+    "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/40969566685",
+    "jobs": [
+      {
+        "name": "go (windows-latest)",
+        "conclusion": "success",
+        "databaseId": 123791285802
+      },
+      {
+        "name": "go (ubuntu-latest)",
+        "conclusion": "success",
+        "databaseId": 123791286961
+      },
+      {
+        "name": "coverage",
+        "conclusion": "success",
+        "databaseId": 123791287581
+      },
+      {
+        "name": "node (windows-latest, 24, true)",
+        "conclusion": "success",
+        "databaseId": 123791287608
+      },
+      {
+        "name": "node (ubuntu-latest, 20.12, false)",
+        "conclusion": "success",
+        "databaseId": 123791287995
+      },
+      {
+        "name": "python (macos-latest, 3.13)",
+        "conclusion": "success",
+        "databaseId": 123791288492
+      },
+      {
+        "name": "package-smoke (ubuntu-latest, 24, 3.13)",
+        "conclusion": "success",
+        "databaseId": 123791288816
+      },
+      {
+        "name": "package-smoke (macos-latest, 24, 3.13)",
+        "conclusion": "success",
+        "databaseId": 123791289003
+      },
+      {
+        "name": "package-smoke (ubuntu-24.04-arm, 24, 3.13)",
+        "conclusion": "success",
+        "databaseId": 123791289016
+      },
+      {
+        "name": "package-smoke (windows-latest, 24, 3.13)",
+        "conclusion": "success",
+        "databaseId": 123791289112
+      },
+      {
+        "name": "go (macos-latest)",
+        "conclusion": "success",
+        "databaseId": 123791321829
+      },
+      {
+        "name": "security",
+        "conclusion": "success",
+        "databaseId": 123791322057
+      },
+      {
+        "name": "python (windows-latest, 3.13)",
+        "conclusion": "success",
+        "databaseId": 123791322661
+      },
+      {
+        "name": "wrapper-smoke",
+        "conclusion": "success",
+        "databaseId": 123791325147
+      },
+      {
+        "name": "node (ubuntu-latest, 24, true)",
+        "conclusion": "success",
+        "databaseId": 123791325358
+      },
+      {
+        "name": "python (ubuntu-latest, 3.13)",
+        "conclusion": "success",
+        "databaseId": 123791325951
+      },
+      {
+        "name": "examples (macos-latest)",
+        "conclusion": "success",
+        "databaseId": 123791326140
+      },
+      {
+        "name": "docker",
+        "conclusion": "success",
+        "databaseId": 123791327926
+      },
+      {
+        "name": "node (macos-latest, 24, true)",
+        "conclusion": "success",
+        "databaseId": 123791329160
+      },
+      {
+        "name": "browser",
+        "conclusion": "success",
+        "databaseId": 123791330421
+      },
+      {
+        "name": "python (ubuntu-latest, 3.9)",
+        "conclusion": "success",
+        "databaseId": 123791332370
+      },
+      {
+        "name": "lint",
+        "conclusion": "success",
+        "databaseId": 123791337199
+      },
+      {
+        "name": "package-smoke (ubuntu-latest, 20.12, 3.9)",
+        "conclusion": "success",
+        "databaseId": 123791337795
+      },
+      {
+        "name": "examples (windows-latest)",
+        "conclusion": "success",
+        "databaseId": 123791341422
+      },
+      {
+        "name": "generated",
+        "conclusion": "success",
+        "databaseId": 123791344558
+      },
+      {
+        "name": "examples (ubuntu-latest)",
+        "conclusion": "success",
+        "databaseId": 123791344654
+      },
+      {
+        "name": "packaging",
+        "conclusion": "success",
+        "databaseId": 123791352664
+      }
+    ],
+    "linux_race_seconds": {
+      "root": 953.817,
+      "cli": 915.724
+    },
+    "windows_original_job": 123782812310,
+    "windows_full_repeat_job": 123791285802,
+    "windows_observation_limit": "Attempt1 had0handshakes in alps-settings-connect-2 after original3replays;unchanged full Windows job passed on attempt2. Specific lost-observation cause unconfirmed;existing test notes WindowsRST caveat. Do not interpret retry as fixing instability."
+  },
+  "private_evidence_sha256": {
+    "promoted-coverage-job.log": "ef700b95822caa0fc3527f20ea1bf2b0798e149a91f8826a42b311e5c53d12eb",
+    "native-peer-harness-race.log": "6b402912c673422c974bc9ae799404919e31cef7e5a7bb7132bdc4dfce3a206d",
+    "promoted-linux-coverage-job.log": "fa943c09764db5d99a30d29e26a8db5c6777313b5089e44c9945938b23ce0f34",
+    "native-final-peer-cover.log": "453104afa681ecb8e2fd2ed75278c98ed780831984ca6e2eebe945155f18720f",
+    "peer-fixed-python-macos-job.log": "674a6a91dc73c14648abacc86bbfb690d88d8245e436fe558339287bb29891af",
+    "python-queued-deadline-full.log": "6ec2ae3f942e0418ae417af6c1346b167f3af35959a87c5507b9d0cbbc4a0103",
+    "python-queued-deadline-mutant.log": "b76bd583461db4c4765e517824e4fdddb7d1fe3856a3c620a30d93e7d34c9057",
+    "reference-windows-Go-job.log": "1697106186740b079651e3c004771b1d8a1c3073ac89352ac76383a89612360b",
+    "cache-fixture-lru-order.log": "16197461237bc7b249a37d2e460aea7696080ee647fcf3c079c5d9202465e6f9",
+    "reference27-node-linux-job.log": "6a6915d0716eac81c5720b06927a99eb0896f3cc1c684624a966d1dd9d6f29fa",
+    "node-native-dead-pipe-after.log": "9fa3278554e2cb0ed54ed2e7cdad6b63ddafc82b780fe89f2ae8eae2d4a1f11c",
+    "reference27-windows-Go-job.log": "b334671cba45e1b7798f0f071014df840088cf2d98ebe29d83548a32132fae3a",
+    "entry-paired-listeners-after.log": "470b3b30ad18633da2eb0948d7b1ab785b4a1bd9e6a2c56f5bd6117b99350ea6",
+    "reference15-quic-job.log": "c6e96cbc7a89c08f2a09bcd76b6ecb5928e77555325217ca269ec86cd0d6da77",
+    "mapped-loopback-original-policy-probes.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fork-native-controls.log": "432e764160c5b06b41e1864e05386aaf72bcdcdfe2465d19c35fe57144567754",
+    "actionlint-reference27-r02.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reference27-unknown-label.log": "0993f4043566698fae0ff285ddf541ba1a7fd00a50004cd51e048ce001e6341a",
+    "final-shipped-source-equality.json": "82e88646f21182318c6375e61a3334909ee86134cce69d36ccc5c8bb6098b82c",
+    "native-final-lru-cover.log": "9f7ba286a2714bf0867cb8b53387c0bc71e0ae0365f28959aceb94ce28daf30a",
+    "node-dead-pipe-full.log": "2d8fa053015d59e908a7cce72893b81fff9c5f17f196373794dcb0a57480bc6d",
+    "python-dead-pipe-full.log": "e593f22a3b30a5bfd9619d97989bc0345bf1040e66582afe1ea4ca5e7e973224",
+    "final-main-ci.json": "0fbb1ea198363c1860ba52e7e9681d62aac110dc71b0a2ee6a0349eddf0f45a7",
+    "final-fork-ci.json": "8f7d0671488db0695629830ec853e66573eaab736eb21c15865282bb129ead51",
+    "final-linux-race-success-job.log": "b082c214b965b77168dddb47055a93848050536f6f3c45886261aeeebc1b9b79",
+    "final-windows-repeat-success-job.log": "f7791ee386c35218a6603b2d9fe3473011d3e77766c0d3fe347484283acf4335",
+    "reference27-quic-success-job.log": "aa22477b27b9403eca3887a65171fab669c317ec5ab96fad3252a103330e7a4d",
+    "after-3166ff48/source-manifest.json": "018d78c3bd354c191f529c6b307c4c2b47095bc6e1e6587a236118c12fe81605",
+    "knowledge-final-ci-check.log": "8e2eb1fb574ce7c8c7ec7f9f9842f63c8786ca0c3639a78c555becf20d2a9446"
+  }
+}

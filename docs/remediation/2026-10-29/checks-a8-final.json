@@ -1294,7 +1294,7 @@
     "vet_workflows": "PASS;includes explicit observer race test and Python negative controls",
     "lint": "0 issues",
     "builds": "GOWORK=off pinned modules and default developer go.work PASS",
-    "sdks": "Node/Python unit100%,types,11 real-daemon cases each,release Node54/Python17 with100% gates"
+    "sdks": "Node/Python unit100%;Pythonmypy;11real-daemon cases each;releaseNode54/Python17with100%gates"
   },
   "private_evidence_sha256": {
     "native-final-full-race.log": "a4eeaea6883c31d3b7e06233556d51a7cf127e80d64229fcb8d6b3d8b136088f",
@@ -1346,7 +1346,8 @@
       "fhttp"
     ],
     "known_obligations": 109,
-    "meaning": "Stage1 known-debt gates;no new exclusions. Not green raw full fork suites;F09stage2 remains open."
+    "meaning": "Stage1 known-debt gates;no new exclusions. Not green raw full fork suites;F09stage2 remains open.",
+    "latest_native_all_eight": "40968488774/xcode-27;8/8accepted,no new named exceptions,109obligations unchanged"
   },
   "limitations": [
     "Finite source/build/profile/scenario-bound evidence does not prove remote indistinguishability or RNG quality.",
@@ -1354,6 +1355,8 @@
     "No new resumed/0RTT,blocked/malformed H3,error-policy,WAN,proxy,kernel/TCP/ECN/GSO equivalence verdict.",
     "All unmeasured policy fields remain inherited;Linux platform version unreported;151-154 historical.",
     "Capture profile/provenance writes are individually atomic,not one cross-file transaction.",
-    "F02 catalogue83 entries and F09stage2/109 known fork obligations remain separate work."
-  ]
+    "F02 catalogue83 entries and F09stage2/109 known fork obligations remain separate work.",
+    "One original Windows ALPS unit snapshot had0handshakes after3replays;entire identical job passed on full retry. Specific lost-observation cause unconfirmed;not claimed fixed."
+  ],
+  "native_ci_report": "checks-a8-native-ci.json"
 }
