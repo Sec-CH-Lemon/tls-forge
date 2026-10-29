@@ -84,7 +84,7 @@ func ProvenanceForCapture(candidate, basis *Profile, c *capture.Capture, mode st
 	if c.HTTP2 != nil && len(c.HTTP2.PseudoHeaderOrder) > 0 {
 		result.Fields["http2"] = FieldOrigin{"measured", "capture SETTINGS, flow and header representation; unobserved initial stream choice inherited"}
 	}
-	if c.HTTP1 != nil {
+	if c.HTTP1 != nil && (len(c.HTTP1.Headers) > 0 || len(c.HTTP1.HeaderNames) > 0) {
 		result.Fields["http1"] = FieldOrigin{"measured", "capture HTTP/1 fields"}
 	} else {
 		result.Fields["http1"] = FieldOrigin{"inherited", "policy basis"}

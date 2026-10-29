@@ -134,7 +134,7 @@ func FromCapture(name string, c *capture.Capture, basis ...*Profile) (*Profile, 
 		}
 		p.Headers = append(p.Headers, Field{Name: name, Value: h.Value})
 	}
-	if c.HTTP1 != nil {
+	if c.HTTP1 != nil && (len(c.HTTP1.Headers) > 0 || len(c.HTTP1.HeaderNames) > 0) {
 		p.HTTP1 = http1FromCapture(c.HTTP1, p.Headers)
 	}
 

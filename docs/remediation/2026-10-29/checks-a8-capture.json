@@ -67,5 +67,15 @@
       "file": "platform-visitor-r02.log",
       "sha256": "7f788f59e8d21100d0ef418e8bd819a358e23315f21f17e2c367fa5d8cbbc988"
     }
-  ]
+  ],
+  "empty_http1": {
+    "before": {
+      "file": "profile-empty-h1-before.log",
+      "sha256": "1a6cc2535b6a88523e84adc40a88614c68df564eb15fbfa30dfd57f332cc6927"
+    },
+    "after": {
+      "file": "profile-empty-h1-r02.log",
+      "sha256": "135c755a7e516d07e6f9d29e0193824d44913a55d9e1ee3ef463398fe55f8f71"
+    }
+  }
 }

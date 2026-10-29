@@ -250,3 +250,22 @@ func TestCaptureAddsObservedPersonaAndBindsCompleteMeasurements(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestCaptureEmptyHTTP1RetainsBasisAndIsNotMeasured(t *testing.T) {
+	basis := testCaptureBasis(t)
+	c := &capture.Capture{RawClientHello: chromeHelloBytes(t), HTTP2: &capture.HTTP2{}, HTTP1: &capture.HTTP1{}}
+	built, err := FromCapture("neutral", c, basis)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(built.HTTP1, basis.HTTP1) {
+		t.Fatal("empty observation replaced the explicit H1 basis")
+	}
+	provenance, err := ProvenanceForCapture(built, basis, c, "headed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if provenance.Fields["http1"].Class != "inherited" {
+		t.Fatal("empty observation marked as measured")
+	}
+}
