@@ -2423,7 +2423,7 @@ Cancellation wire tests decode the instruction bytes and compare its packet
 with the reset ACK. A decoder stream type sent alone is not a Cancellation.
 The opportunistic and immediate rules have separate negative controls.
 
-The current QUIC `abb06a60` and tls-client `a9f4f3e` pins are local commits
+The current QUIC `517b1f3e` and tls-client `a9f4f3e` pins are local commits
 awaiting publication. A fresh public-proxy install needs those commits to be
 published. [The 29 October checks](docs/remediation/2026-10-29/README.ru.md)
 record the passing root checks and the still-blocked QUIC fork gate.
