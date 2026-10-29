@@ -202,6 +202,7 @@ type quicHeard struct {
 	datagrams [][]byte
 	at        []time.Duration
 	began     time.Time
+	first     chan struct{}
 }
 
 func (h *quicHeard) heard() ([][]byte, []time.Duration) {
@@ -223,7 +224,7 @@ func silentSite(t *testing.T) (string, *quicHeard) {
 	server.EnableHTTP2 = true
 	server.StartTLS()
 	t.Cleanup(server.Close)
-	h := &quicHeard{}
+	h := &quicHeard{first: make(chan struct{})}
 	go func() {
 		for {
 			b := make([]byte, 2048)
@@ -234,6 +235,7 @@ func silentSite(t *testing.T) (string, *quicHeard) {
 			h.mu.Lock()
 			if h.began.IsZero() {
 				h.began = time.Now()
+				close(h.first)
 			}
 			h.datagrams = append(h.datagrams, b[:n])
 			h.at = append(h.at, time.Since(h.began))
@@ -272,6 +274,14 @@ func firstFlight(t *testing.T, p *profile.Profile, wait time.Duration) ([][]byte
 	c := echClient(t, dns, WithProfileValue(p))
 	if got := came(t, c, "https://h3.h3.test:"+port+"/"); got != "HTTP/2.0" {
 		t.Fatalf("came over %q, want TCP's", got)
+	}
+	// TCP can answer before the detached QUIC job is scheduled on a busy
+	// runner. Observe its actual first datagram before counting the unchanged
+	// packet collection interval; silence still fails within a bounded startup.
+	select {
+	case <-heard.first:
+	case <-time.After(2 * time.Second):
+		t.Fatal("QUIC sent no first datagram within startup deadline")
 	}
 	time.Sleep(wait)
 	return heard.heard()
