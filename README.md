@@ -2903,3 +2903,20 @@ no fresh Chrome156 acceptance. Chrome155 Linux/Windows explicitly inherit the
 `profile/provenance/chrome_155/`. OS timers, keepalive and negotiate-auth remain
 platform-specific. Native156 SETTINGS/QPACK validation is required separately.
 See [the transfer evidence](docs/remediation/2026-10-29/A8-PLATFORMS.ru.md).
+
+
+The same pinned workflow accepts `h3=true, fixtures=false` for independent H3
+collection. It captures two512-connection Chrome cohorts and two client cohorts,
+three requests per connection, plus controlled SETTINGS delays. All raw packets,
+explicit server TLS keys and QPACK streams remain inside the encrypted artifact.
+The observer is built explicitly from `scripts/a8-h3-peer.go`; it is measurement
+code, outside the shipped product. `scripts/a8-h3-scenario.json` declares stimuli,
+counts, pacing and statistics. The producer never grants a browser verdict.
+
+Run `scripts/a8-h3-analyze.py` in an isolated environment with pinned
+`pylsqpack==0.3.23` after decrypting evidence. It checks exact QPACK bytes within
+observed states, independent C decoding, ranges and predeclared statistics.
+No header/encoder-stream normalization is used. Request-scheduling state rates,
+blocked/malformed policy and WAN/kernel equivalence remain separate limits.
+`os`, `fixture` and `only` select focused native reruns while preserving original
+full-run failures; they do not alter any fixture assertion.

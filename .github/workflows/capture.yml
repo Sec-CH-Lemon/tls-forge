@@ -24,6 +24,27 @@ on:
         type: choice
         options: [stable, '156']
         default: stable
+      os:
+        description: Native runners as a JSON list
+        type: string
+        default: '["macos-latest", "windows-latest", "ubuntu-latest"]'
+      fixture:
+        description: Fixture group for a focused rerun; all preserves the complete acceptance
+        type: choice
+        options: [all, requests, connections, decoding, hpack, records, alps, flow, urls, hellos, false-start]
+        default: all
+      only:
+        description: Exact comma-separated scenario IDs for a focused rerun
+        type: string
+        default: ''
+      h3:
+        description: Collect paired native H3/QPACK/GREASE cohorts with private original evidence
+        type: boolean
+        default: false
+      fixtures:
+        description: Run the complete existing fixture acceptance (independent of H3 collection)
+        type: boolean
+        default: true
       evidence-certificate:
         description: Base64 PEM public certificate for private raw evidence (required for pinned156)
         type: string
@@ -37,6 +58,26 @@ on:
         description: stable or156
         type: string
         default: stable
+      os:
+        description: Native runners as a JSON list
+        type: string
+        default: '["macos-latest", "windows-latest", "ubuntu-latest"]'
+      fixture:
+        description: all or one existing fixture group
+        type: string
+        default: all
+      only:
+        description: Exact scenario IDs for a focused rerun
+        type: string
+        default: ''
+      h3:
+        description: Collect native H3 cohorts
+        type: boolean
+        default: false
+      fixtures:
+        description: Run existing full fixtures
+        type: boolean
+        default: true
       evidence-certificate:
         description: Base64 PEM public certificate for private raw evidence
         type: string
@@ -57,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: ${{ fromJSON(inputs.os || '["macos-latest", "windows-latest", "ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     env:
       # Hosted Windows runners otherwise encode redirected Python output with
@@ -98,6 +139,10 @@ jobs:
                    --platform "$RUNNER_OS" --output "$RUNNER_TEMP/chrome156" >> "$GITHUB_OUTPUT" ;;
             *) echo "unsupported browser selection"; exit 1 ;;
           esac
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: inputs.h3
+        with:
+          node-version: '24.16.0'
       # Google Chrome, not Chrome for Testing.
       #
       # `browser-actions/setup-chrome` installs Chrome for Testing, which for
@@ -343,11 +388,47 @@ jobs:
             run
           fi
 
-      - name: fixture acceptance on the native browser
+      - name: paired native H3 observation
+        if: inputs.h3
         shell: bash
+        env:
+          CHROME: ${{ steps.chrome.outputs.path }}
+          PROFILE: ${{ steps.captured.outputs.file }}
         run: |
-          go run ./internal/harness/measure --browser "${{ steps.chrome.outputs.path }}" \
-            "$FLAGS" --check --newer > fixture-differences.txt 2> fixture-measure.log
+          [ -n "$EVIDENCE_CERTIFICATE" ] || { echo "H3 raw evidence requires a public encryption certificate"; exit 1; }
+          suffix=
+          [ "$RUNNER_OS" != Windows ] || suffix=.exe
+          peer="$RUNNER_TEMP/a8-h3-peer$suffix"
+          go build -o "$peer" scripts/a8-h3-peer.go
+          export H3_PEER="$peer"
+          run() { python3 scripts/a8-h3-campaign.py --chrome "$CHROME" --peer "$H3_PEER" \
+            --profile "$PROFILE" --out private-h3 "$FLAGS" > h3-producer.log 2>&1; }
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a bash -c "$(declare -f run); run"
+          else
+            run
+          fi
+
+      - name: fixture acceptance on the native browser
+        if: inputs.fixtures != false
+        shell: bash
+        env:
+          CHROME: ${{ steps.chrome.outputs.path }}
+          FIXTURE: ${{ inputs.fixture || 'all' }}
+          ONLY: ${{ inputs.only }}
+        run: |
+          case "$FIXTURE" in
+            all|requests|connections|decoding|hpack|records|alps|flow|urls|hellos|false-start) ;;
+            *) echo "unknown fixture group"; exit 1 ;;
+          esac
+          args=(--browser "$CHROME" "$FLAGS" --check --newer)
+          if [ "$FIXTURE" != all ]; then
+            for name in requests connections decoding hpack records alps flow urls hellos false-start; do
+              [ "$name" = "$FIXTURE" ] || args+=("--$name=")
+            done
+          fi
+          [ -z "$ONLY" ] || args+=("--only=$ONLY")
+          go run ./internal/harness/measure "${args[@]}" > fixture-differences.txt 2> fixture-measure.log
 
       # A third-party opinion, so the profile is not only self-consistent.
       - name: what a third party sees
@@ -455,14 +536,15 @@ jobs:
           python3 - <<'PY'
           import base64, hashlib, json, os, pathlib, platform, subprocess
           pathlib.Path('evidence-recipient.pem').write_bytes(base64.b64decode(os.environ['EVIDENCE_CERTIFICATE'], validate=True))
-          files = [p for pattern in ['capture-raw.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt'] for p in pathlib.Path('.').glob(pattern)]
+          files = [p for pattern in ['capture-raw.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log'] for p in pathlib.Path('.').glob(pattern)]
+          files += [p for p in pathlib.Path('private-h3').rglob('*') if p.is_file()]
           record = {'source': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(), 'platform': platform.platform(), 'machine': platform.machine(), 'raw_sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
           pathlib.Path('evidence-manifest.json').write_text(json.dumps(record, indent=2)+'\n')
           PY
           python3 - <<'PY'
           import pathlib, tarfile
           with tarfile.open('private-evidence.tar.gz', 'w:gz') as archive:
-              for pattern in ['capture-raw.json', 'evidence-manifest.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt']:
+              for pattern in ['capture-raw.json', 'evidence-manifest.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log', 'private-h3']:
                   for path in pathlib.Path('.').glob(pattern):
                       archive.add(path, arcname=str(path))
           PY

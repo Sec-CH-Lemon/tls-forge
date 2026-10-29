@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "browser_major": 156,
+  "connections_per_cohort": 512,
+  "cohorts_per_actor": 2,
+  "request_gap_ms": 50,
+  "server_settings": [
+    {
+      "id": 1,
+      "value": 65536
+    },
+    {
+      "id": 6,
+      "value": 262144
+    },
+    {
+      "id": 7,
+      "value": 100
+    }
+  ],
+  "server_idle_timeout_ms": 20000,
+  "grease": {
+    "n_min": 0,
+    "n_max": 4294967295,
+    "value_max": 4294967295,
+    "bins": 16,
+    "pearson_limit": 60
+  },
+  "request_header": {
+    "name": "x-a8-proof",
+    "value": "repeated-data-observation"
+  },
+  "requests": [
+    {
+      "path": "/",
+      "kind": "navigation"
+    },
+    {
+      "path": "/step1",
+      "kind": "fetch"
+    },
+    {
+      "path": "/step2",
+      "kind": "fetch"
+    }
+  ],
+  "scope": "Owned IPv4 loopback peer; explicit server keylog; generic PacketConn capture(no peerECN/GSO); tickets disabled; one H3 connection per3requests;2freshChrome launches;minimized background tabs;source/profile/actor timing recorded; noWAN/RNG/fullbrowserverdict",
+  "controlled_settings_delays": [
+    2,
+    3
+  ],
+  "controlled_connections_per_cohort": 4
+}

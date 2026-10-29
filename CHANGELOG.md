@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add separate native H3 observation to pinned capture CI, with JSON stimuli,
+  paired cold/reuse cohorts, held-SETTINGS controls and independent ls-qpack
+  analysis. Original packets/keylogs stay encrypted. Focused native fixture
+  reruns keep original complete failures and unchanged assertions.
+
 - Select existing JSON QPACK warmup0 for the Chrome155/156 policy basis.
   Dynamic first-section encoding follows received SETTINGS/ALPS capacity;
   no artificial first-section skip or peer-SETTINGS request barrier is added.
