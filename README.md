@@ -2432,8 +2432,8 @@ The opportunistic and immediate rules have separate negative controls.
 The current QUIC `1fda75c1` and tls-client `a9f4f3e` pins are local commits
 awaiting publication. A fresh public-proxy install needs those commits to be
 published. [The 29 October checks](docs/remediation/2026-10-29/README.ru.md)
-retain the earlier 7/8 result; the follow-up now accepts all eight known-debt
-fork gates. The109 historical F09 obligations remain open.
+retain the earlier 7/8 result; the [follow-up](docs/remediation/2026-10-29/ACCEPTANCE-A7.ru.md) now accepts all
+eight known-debt fork gates. The109 historical F09 obligations remain open.
 
 Fork regression gates compare complete known diagnostic transcripts as well as
 failure names and message families. Their documented normalization preserves

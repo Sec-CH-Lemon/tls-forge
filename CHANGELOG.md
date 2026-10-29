@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- [Accept all8 QUIC/fork regression gates and retain A7 evidence](docs/remediation/2026-10-29/ACCEPTANCE-A7.ru.md).
+  Corrected URL fuzzing exposes a separate invalid-UTF8 IDNA runtime defect;
+  its corpus remains red, with no input exclusion or runtime fix in this slice.
+
 - Discover and fuzz every Go fuzz target weekly or by manual dispatch with
   finite30second runs, two workers and1second minimization. Preserve logs,
   corpus and execution counts privately; reject empty runs. A separate job
