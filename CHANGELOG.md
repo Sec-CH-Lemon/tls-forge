@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Recognize Go Framer timestamps with omitted zero fractions in the fork
+  diagnostic gate; retain exact frame values and malformed timestamp rejection.
+
 - Pin local QUIC `1fda75c1` with the corrected Cancellation observer and
   reproducible corrupt-packet test. Five corrupt Initials prove that the
   one-second test budget was shorter than valid PTO recovery. Echo equality,

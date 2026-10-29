@@ -44,6 +44,8 @@ class ForkGateTests(unittest.TestCase):
     def test_framer_supporting_trace_keeps_values_and_counts(self):
         frame = '        2026-10-29 12:30:10.123 Framer 0x123: wrote PING len=8 ping="data"\n'
         changed = frame.replace('12:30:10.123', '15:50:20.999').replace('0x123', '0x456')
+        self.assertEqual(failure_digest(frame), failure_digest(frame.replace('.123 Framer', ' Framer')))
+        self.assertNotEqual(failure_digest(frame), failure_digest(frame.replace('.123 Framer', '.oops Framer')))
         first = 'old assertion\n' + frame
         self.assertEqual(failure_digest(first), failure_digest('old assertion\n' + changed * 2))
         self.assertEqual(failure_transcript('old assertion\n' + frame * 2)[1], {'wrote PING len=8 ping="data"': 2})

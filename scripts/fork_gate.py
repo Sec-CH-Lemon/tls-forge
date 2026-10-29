@@ -40,7 +40,7 @@ def failure_transcript(text):
             return match[1] + "<resolver>" + match[3] + "<resolver>" + match[5]
         line = re.sub(r"(lookup \S+ on )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: dial udp )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: connect: operation not permitted)", resolver, line)
         line = re.sub(r"(127\.0\.0\.1|localhost|\[::1\]):[0-9]+", r"\1:<port>", line)
-        frame = re.fullmatch(r"\s+[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:]+\.[0-9]+ Framer 0x[0-9a-f]+: ((?:read|wrote) .+)", line)
+        frame = re.fullmatch(r"\s+[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:]+(?:\.[0-9]+)? Framer 0x[0-9a-f]+: ((?:read|wrote) .+)", line)
         if frame:
             event = frame[1]
             frames[event] = frames.get(event, 0) + 1

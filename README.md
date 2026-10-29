@@ -2432,7 +2432,8 @@ Fork regression gates compare complete known diagnostic transcripts as well as
 failure names and message families. Their documented normalization preserves
 additional errors; see [verification](verification/README.md). Accepted known
 debt still requires the separate F09 closure. Supporting Framer trace repeat
-counts are retained in the private `result.json` as `trace_counts`.
+counts are retained in the private `result.json` as `trace_counts`. Framer
+timestamps with zero fractional seconds are recognized as Go emits them.
 
 The CLI element check uses `golang.org/x/net/html` v0.62.0 or later, which
 contains the fix for GO-2026-6860. Check dependency updates with a current

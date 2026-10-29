@@ -73,3 +73,7 @@ assertion diagnostics. Distinct complete frame values remain in the digest;
 `trace_counts` in the private result preserves every event count. Additional
 core diagnostics, changed frame fields or unknown trace lines still reject
 the gate. No raw Framer values are printed in its public summary.
+
+Go Framer timestamps may omit fractional seconds when that fraction is zero.
+Both timestamp forms use the same bounded normalization; malformed timestamps
+and every distinct frame value remain part of the diagnostic comparison.
