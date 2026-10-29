@@ -2933,3 +2933,9 @@ checks every client stream against the separate observer output. Its PCAP adds
 synthetic IPv4/UDP headers solely for decoding; it does not measure host IP,
 ECN/GSO or kernel behavior. Missing-key and removed-application-packet controls
 must reject. Outputs contain private plaintext and TLS keys remain private.
+
+Native H3 launches also disable component updates, matching the fixture
+harness: an external CRLSet/certificate-verifier update can legitimately retire
+an active Chrome QUIC session during a measured sequence. Chrome NetLog is
+retained privately for diagnosis. This scope does not cover live trust-store
+updates; campaigns still reject any additional or split connection.

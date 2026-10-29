@@ -8,7 +8,7 @@ const[chrome,out,sampleText,...extra]=process.argv.slice(2);const scenario=JSON.
 if(!Number.isInteger(samples)||samples<1||samples>4096)throw new Error('invalid sample count');
 const config=JSON.parse(readFileSync(join(out,'address.json'),'utf8'));
 const udd=mkdtempSync(join(tmpdir(),'tls-forge-a8-h3-'));
-const flags=[`--user-data-dir=${udd}`,'--remote-debugging-port=0','--no-startup-window','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-features=ChromeWhatsNewUI','--lang=en-US','--enable-quic','--ignore-certificate-errors',`--ignore-certificate-errors-spki-list=${config.spki}`,`--origin-to-force-quic-on=${new URL(config.origin).host}`,...extra];
+const flags=[`--user-data-dir=${udd}`,`--log-net-log=${join(out,'chrome-netlog.json')}`,'--remote-debugging-port=0','--no-startup-window','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update','--disable-sync','--disable-default-apps','--disable-features=ChromeWhatsNewUI','--lang=en-US','--enable-quic','--ignore-certificate-errors',`--ignore-certificate-errors-spki-list=${config.spki}`,`--origin-to-force-quic-on=${new URL(config.origin).host}`,...extra];
 const child=spawn(chrome,flags,{stdio:['ignore','pipe','pipe'],env:Object.fromEntries(Object.entries(process.env).filter(([name])=>name.toUpperCase()!=='SSLKEYLOGFILE'))});child.stdout.on('data',b=>appendFileSync(join(out,'chrome.log'),b));child.stderr.on('data',b=>appendFileSync(join(out,'chrome.log'),b));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));let ws;
 const pending=new Map();const loaded=new Set();let seq=0;
@@ -49,5 +49,5 @@ try{
   if(!settled)throw new Error('context did not close exactly one3-request H3 connection');
  }
  await send('Browser.close');
-}catch(e){writeFileSync(join(out,'driver-error.txt'),String(e.stack??e));throw e;}
+}catch(e){writeFileSync(join(out,'driver-error.txt'),String(e.stack??e));if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({id:++seq,method:'Browser.close'}));await sleep(1000);throw e;}
 finally{if(ws)ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('driver closed'));}pending.clear();if(child.exitCode===null)child.kill('SIGTERM');await Promise.race([new Promise(r=>child.on('exit',r)),sleep(3000)]);if(child.exitCode===null)child.kill('SIGKILL');rmSync(udd,{recursive:true,force:true});}
