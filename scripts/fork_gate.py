@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import ipaddress
 import os
 from pathlib import Path
 import re
@@ -18,14 +19,24 @@ import time
 def failure_digest(text):
     """Hash all diagnostic lines, retaining duplicates and rejecting added output.
 
-    Only harness metadata, source-export roots and loopback port numbers are
-    normalized. Original test events remain in the private evidence archive.
+    Only harness metadata, source-export roots, loopback port numbers and the
+    resolver address in a sandbox-denied DNS dial are normalized. Original
+    test events remain in the private evidence archive.
     """
     lines = []
     for line in text.splitlines():
         if re.fullmatch(r"\s*(?:=== (?:RUN|PAUSE|CONT) +\S+|--- (?:FAIL|PASS|SKIP): \S+ \([0-9.]+s\))", line):
             continue
         line = re.sub(r"/[^\s\"]*/fork-gate-[^/\s]+/", "<source>/", line)
+        def resolver(match):
+            first, second = match[2], match[4]
+            try:
+                if ipaddress.ip_address(first.strip("[]")) != ipaddress.ip_address(second.strip("[]")):
+                    return match[0]
+            except ValueError:
+                return match[0]
+            return match[1] + "<resolver>" + match[3] + "<resolver>" + match[5]
+        line = re.sub(r"(lookup \S+ on )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: dial udp )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: connect: operation not permitted)", resolver, line)
         line = re.sub(r"(127\.0\.0\.1|localhost|\[::1\]):[0-9]+", r"\1:<port>", line)
         lines.append(line)
     return hashlib.sha256("\n".join(sorted(lines)).encode()).hexdigest()

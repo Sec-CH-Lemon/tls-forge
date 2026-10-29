@@ -34,6 +34,13 @@ class ForkGateTests(unittest.TestCase):
         del known[0]["failure_output_sha256"]
         self.assertFalse(evaluate(self.rows(), [1], known, "standalone")["accepted"])
 
+    def test_only_denied_resolver_address_is_normalized(self):
+        first = "lookup example.com on 192.168.100.1:53: dial udp 192.168.100.1:53: connect: operation not permitted"
+        self.assertEqual(failure_digest(first), failure_digest(first.replace("192.168.100.1", "1.1.1.1")))
+        self.assertEqual(failure_digest(first), failure_digest(first.replace("192.168.100.1", "[2001:db8::1]")))
+        for changed in [first.replace("example.com", "other.test"), first.replace(":53", ":54"), first.replace("operation not permitted", "connection refused"), first.replace("on 192.168.100.1", "on 1.1.1.1")]:
+            self.assertNotEqual(failure_digest(first), failure_digest(changed))
+
     def test_transcript_normalization_is_bounded(self):
         first = '=== RUN   TestOld\n    file_test.go:1: Get "https://127.0.0.1:123/a" at /tmp/fork-gate-abc/path/file_test.go:2\n--- FAIL: TestOld (0.01s)\n'
         second = first.replace(":123/", ":456/").replace("/tmp/fork-gate-abc/", "/private/tmp/fork-gate-def/").replace("0.01s", "2.99s")

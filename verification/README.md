@@ -57,7 +57,9 @@ before/after controls and acceptance limits.
 
 Each observed known failure also pins a SHA-256 of its diagnostic transcript
 for each module graph. Exact Go harness metadata is omitted; source-export
-roots and loopback port numbers are normalized. Full diagnostic lines are
+roots, loopback port numbers and matching resolver IPs in a sandbox-denied
+DNS dial are normalized. DNS host, port 53, UDP and the denial reason stay
+literal; changing any of them is rejected. Full diagnostic lines are
 sorted with duplicates retained. Added, repeated or changed diagnostics reject
 the gate even when the original failure pattern is still present. The private
 source-pinned baselines and their hashes are listed in `fork-failures.json`. A
