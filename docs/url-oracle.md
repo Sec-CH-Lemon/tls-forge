@@ -55,3 +55,27 @@ that a second pass rejects. Node/Ada and two fresh Chrome constructors reject
 the original input. Its minimized corpus and raw failures are preserved in
 the private A7 evidence. This remains an open runtime finding; no input
 filter, exception or changed expected value masks it in the fuzz target.
+
+Fuzzing all packages is a separate finite run, on a clean checkout or a Git
+archive export so unrelated temporary Go files do not become packages:
+
+```sh
+GOWORK=off python3 scripts/fuzz.py --list
+GOWORK=off python3 scripts/fuzz.py \
+  --package github.com/Sec-CH-Lemon/tls-forge/fingerprint \
+  --target FuzzParseClientHello --seconds 30 \
+  --output /private/tmp/new-clienthello-fuzz-evidence
+```
+
+Every discovered target receives30seconds, two workers, at most1second of
+minimization, a Go timeout and an outer process timeout. Successful execution
+requires a positive execution count. Summary, raw log, generated interesting
+inputs and failing corpus stay in the private output directory. New failures
+are retained and remain failures, never allowlisted or excluded from the
+property. Finite runs do not prove absence of defects.
+
+`.github/workflows/fuzz.yml` discovers the complete target matrix, runs it
+weekly on the default branch or by manual dispatch, and separately compares
+Node/Ada and two fresh real Google Chrome constructors. It uploads no raw
+corpus/log artifact. Its local implementation checks do not establish a remote
+CI run; unpublished module pins must first become available to its runner.

@@ -2422,7 +2422,8 @@ certificate check, cancellation or an application request. The CLI's
 [URL verification](docs/url-oracle.md) separates WHATWG components, idempotence,
 production H1/H2 targets and credential scope. Ordinary Go tests need no Node
 or Chrome. Explicit reference checks retain the independent versions and
-constructor results.
+constructor results. The scheduled fuzz workflow discovers every target and
+runs it with finite budgets, positive execution counts and retained corpus.
 
 Cancellation wire tests decode the instruction bytes and compare its packet
 with the reset ACK. A decoder stream type sent alone is not a Cancellation.

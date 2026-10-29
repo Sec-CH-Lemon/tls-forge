@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Discover and fuzz every Go fuzz target weekly or by manual dispatch with
+  finite30second runs, two workers and1second minimization. Preserve logs,
+  corpus and execution counts privately; reject empty runs. A separate job
+  checks the pinned Node/Ada URL fixture against two fresh real Chrome runs.
+
 - Correct the URL fuzz oracle without restricting WHATWG-permitted userinfo
   or hosts to Go parser syntax. Retain both original counterexamples, an
   independent26-case Node/Ada/Chrome constructor fixture, H1/H2 production

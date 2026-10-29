@@ -1,0 +1,63 @@
+name: bounded fuzz and URL oracle
+
+on:
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - id: targets
+        env:
+          GOWORK: 'off'
+        run: echo "matrix=$(python3 scripts/fuzz.py --list)" >> "$GITHUB_OUTPUT"
+
+  fuzz:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: fuzz for30seconds, minimize for at most1second
+        env:
+          GOWORK: 'off'
+          FUZZ_PACKAGE: ${{ matrix.package }}
+          FUZZ_TARGET: ${{ matrix.target }}
+        run: >-
+          python3 scripts/fuzz.py --package "$FUZZ_PACKAGE" --target "$FUZZ_TARGET"
+          --seconds 30 --output "$RUNNER_TEMP/fuzz"
+      # No raw log/corpus upload: private evidence stays on the runner.
+
+  whatwg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.16.0
+      - uses: ./.github/actions/google-chrome
+      - name: independent URL constructors, two fresh Chrome launches
+        run: node scripts/check-url-oracle.mjs --browser "$CHROME" --output "$RUNNER_TEMP/url-oracle"
