@@ -609,12 +609,36 @@ def test_a_transport_that_dies_during_a_write_fails_it_at_once(client, monkeypat
     assert one.get("https://ok/again").status == 200
 
 
-def test_a_request_whose_deadline_passes_while_it_waits_is_not_sent(client):
+def test_a_request_whose_deadline_passes_while_it_waits_is_not_sent(client, monkeypatch):
     # Its deadline counts from the call. The one in front of it stops its
     # transport at its own deadline, and takes a while to, since that transport
     # does not notice the end of its input: the one behind runs out first.
     one = client(timeout=0.3)
+    one.hello()
     outcomes: dict[str, BaseException | None] = {}
+    first_started = threading.Event()
+    second_finished = threading.Event()
+    sent: list[str] = []
+    exchange, stop = one._exchange, one._stop
+
+    def observed_exchange(request_id, line, deadline):
+        request = json.loads(line)
+        if "url" in request:
+            sent.append(request["url"])
+            if request["url"] == "https://stubborn/x":
+                first_started.set()
+        return exchange(request_id, line, deadline)
+
+    def held_stop():
+        # Teardown really holds the request lock until the queued caller's
+        # deadline, regardless of when either thread gets CPU time. The real
+        # transport and real timeout remain in use; no Timeout is fabricated.
+        if threading.current_thread() is first:
+            assert second_finished.wait(3), "queued request did not reach its deadline"
+        return stop()
+
+    monkeypatch.setattr(one, "_exchange", observed_exchange)
+    monkeypatch.setattr(one, "_stop", held_stop)
 
     def asking(name: str, url: str) -> None:
         try:
@@ -622,10 +646,13 @@ def test_a_request_whose_deadline_passes_while_it_waits_is_not_sent(client):
             outcomes[name] = None
         except BaseException as err:  # noqa: BLE001 - recorded, and asserted below
             outcomes[name] = err
+        finally:
+            if name == "second":
+                second_finished.set()
 
     first = threading.Thread(target=asking, args=("first", "https://stubborn/x"))
     first.start()
-    time.sleep(0.05)
+    assert first_started.wait(3), "first request never entered its exchange"
     second = threading.Thread(target=asking, args=("second", "https://ok/x"))
     second.start()
     first.join()
@@ -633,6 +660,7 @@ def test_a_request_whose_deadline_passes_while_it_waits_is_not_sent(client):
     assert isinstance(outcomes["first"], Timeout)
     assert isinstance(outcomes["second"], Timeout)
     assert str(outcomes["second"]).endswith("waiting for the one before it, and was not sent")
+    assert sent == ["https://stubborn/x"]
 
 
 # --- closing ---------------------------------------------------------------
