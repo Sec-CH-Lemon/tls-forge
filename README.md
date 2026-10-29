@@ -2950,6 +2950,11 @@ For private diagnosis of a native fork-gate failure, a manual `forks.yml`
 dispatch accepts `forks`/`graphs` JSON lists and `evidence-certificate` as above.
 It uploads only CMS-encrypted raw evidence. Default runs retain raw output on
 the runner; selecting a diagnostic subset does not alter any gate assertion.
+Fork CI selects the official macOS27 `xcode-27` image and requires both a
+real IPv4-mapped UDP loopback exchange and external-denial preflight. The
+unchanged localhost-only sandbox rejects incompatible hosts. The pinned
+linter recognizes this new hosted label through `.github/actionlint.yaml`;
+other unknown labels still reject.
 
 Native H3 launches also disable component updates, matching the fixture
 harness: an external CRLSet/certificate-verifier update can legitimately retire

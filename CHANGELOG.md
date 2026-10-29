@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Select the macOS27 reference image for fork CI and require a real mapped
+  loopback exchange plus external-denial probes. Preserve incompatible-host
+  failures. Extend the pinned linter's registry by this one official label.
+
 - Allow explicitly requested, CMS-encrypted private fork-gate diagnostics and
   focused native reruns; preserve original gate assertions and sandbox rules.
 

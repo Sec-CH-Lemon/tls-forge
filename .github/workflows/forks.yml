@@ -43,7 +43,7 @@ jobs:
   fork:
     # This loopback-only gate requires working IPv4-mapped loopback under
     # Seatbelt. The positive and negative preflight rejects unsupported hosts.
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 40
     strategy:
       fail-fast: false

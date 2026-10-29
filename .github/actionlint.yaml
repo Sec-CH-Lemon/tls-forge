@@ -1,0 +1,7 @@
+# Official hosted image missing from pinned actionlint1.7.12's label registry.
+# https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md
+# This configuration key extends recognized labels; it does not select a
+# self-hosted runner or disable validation of other labels.
+self-hosted-runner:
+  labels:
+    - xcode-27
