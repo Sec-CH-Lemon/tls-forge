@@ -401,7 +401,7 @@ All selectable behavior belongs in profile JSON:
 | `h3.qpack.huffman_names`, `h3.qpack.huffman_values` | `always`, `shorter`, `never`; `shorter` is strict, ties literal. |
 | `h3.qpack.encoder_strategy` | `disabled` (static), `reuse` (insert literals for later reuse), `insert` (also reference new insertions when peer blocked credit allows). |
 | `h3.qpack.encoder_table_bytes` | Local encoder budget, capped by peer decoder capacity and the hard1MiB bound; Chrome155/macOS65536. RIC wrapping still uses the full peer maximum. |
-| `h3.qpack.encoder_warmup_sections` | Initial field sections encoded without table inserts/references. Chrome155/macOS1, explicit compatibility candidates0. |
+| `h3.qpack.encoder_warmup_sections` | Initial field sections encoded without table inserts/references. Current Chrome155/156 candidates0, inherited from source-verified156 behavior: peer capacity still gates dynamic encoding. Historical155 observations do not become a new156 verdict. |
 | `h3.qpack.reference_base` | `required` or `insert-count` selects the field-section Base. |
 | `h3.qpack.never_index` | Exact lower-case field names excluded from dynamic insertion/reference. |
 | `h3.qpack.decoder_feedback` | `on-insert` increments plus section ACKs, or `on-section` ACKs. |
@@ -415,7 +415,7 @@ until section ACK/cancellation; new blocked references cannot exceed peer credit
 Instruction writes use bounded queues so HTTP/table locks never wait for QUIC
 flow control. Queue exhaustion closes the connection rather than losing feedback.
 
-The Chrome155/macOS profile selects `insert`, warmup1, `required`, `shorter`,
+The current Chrome155/macOS candidate selects `insert`, warmup0, `required`, `shorter`,
 `on-section` and eager decoder-first streams. These are finite observed choices,
 not universal RFC requirements or a claim about all Chrome workloads. Other14
 profile candidates retain disabled request indexing and their old string coding
