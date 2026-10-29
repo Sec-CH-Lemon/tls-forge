@@ -1,0 +1,2 @@
+go test fuzz v1
+string("HTTP:AAAAA0AAA%80000")

@@ -516,3 +516,13 @@ def test_invalid_profile_semantics_fail_before_origin_or_proxy_io(tmp_path: Path
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_real_daemon_rejects_invalid_utf8_url_hosts_before_transport() -> None:
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+    with Client(binary=binary) as client:
+        for host in ("%80.invalid", "%C0%AF.invalid", "%ED%A0%80.invalid"):
+            with pytest.raises(RequestFailed, match="not valid UTF-8"):
+                client.get(f"https://{host}/")

@@ -377,3 +377,14 @@ test('invalid profile semantics fail before real daemon origin or proxy I/O', { 
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('the real daemon rejects invalid UTF-8 URL hosts before transport', { skip: !binary }, async () => {
+  const client = new Client({ binary });
+  try {
+    for (const host of ['%80.invalid', '%C0%AF.invalid', '%ED%A0%80.invalid']) {
+      await assert.rejects(() => client.get(`https://${host}/`), /not valid UTF-8/);
+    }
+  } finally {
+    client.close();
+  }
+});

@@ -8,7 +8,8 @@ an accepted URL because another parser dislikes it.
 
 `testdata/whatwg-url-components.json` is the independent reference: Node
 24.16.0, Ada3.4.4 and two independent fresh Chrome156.0.8078.74 headless URL
-constructor runs on macOS. It retains original inputs, serialized components,
+constructor runs on macOS. The follow-up IDNA cohort expands the fixture to44
+cases and rechecks every case in two fresh Chrome launches. It retains original inputs, serialized components,
 encoded userinfo and independently decoded credential bytes. The historical
 Chrome155 navigation/wire fixture remains separate and unchanged. The pinned
 standard snapshot records provenance; the [living URL Standard](https://url.spec.whatwg.org/)
@@ -53,8 +54,11 @@ The corrected fuzz property has already exposed a separate runtime IDNA defect:
 `http:%800` is accepted on the first pass and serialized to a punycode host
 that a second pass rejects. Node/Ada and two fresh Chrome constructors reject
 the original input. Its minimized corpus and raw failures are preserved in
-the private A7 evidence. This remains an open runtime finding; no input
-filter, exception or changed expected value masks it in the fuzz target.
+the private A7 evidence. The follow-up runtime fix validates the percent-decoded host as UTF-8 before
+IDNA. The original/minimized inputs and raw-byte control now live in the real
+fuzz corpus. Invalid hosts are refused before dial, including redirects; valid
+Unicode/IDNA, ignored BOM/zero-width mappings, userinfo and query escapes retain
+their expected behavior. No fuzz input filter or exception was added.
 
 Fuzzing all packages is a separate finite run, on a clean checkout or a Git
 archive export so unrelated temporary Go files do not become packages:

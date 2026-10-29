@@ -47,8 +47,8 @@ func urlOracleCases(t *testing.T) []urlOracleCase {
 	if err = json.Unmarshal(b, &fixture); err != nil {
 		t.Fatal(err)
 	}
-	if len(fixture.Cases) != 26 {
-		t.Fatalf("URL fixture has %d cases, want26", len(fixture.Cases))
+	if len(fixture.Cases) != 44 {
+		t.Fatalf("URL fixture has %d cases, want44", len(fixture.Cases))
 	}
 	return fixture.Cases
 }
@@ -227,6 +227,27 @@ func TestWHATWGUnsupportedURLRefusesBeforeDial(t *testing.T) {
 			}
 			if c.ProductionRefusal != "" && !strings.Contains(err.Error(), c.ProductionRefusal) {
 				t.Fatalf("wrong refusal: %v", err)
+			}
+		})
+	}
+}
+
+func TestInvalidUTF8RedirectRefusedBeforeNextDial(t *testing.T) {
+	for _, proto := range []string{"h1", "h2"} {
+		t.Run(proto, func(t *testing.T) {
+			server := newRecorder(t, proto, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Location", "//%80.example/next")
+				w.WriteHeader(http.StatusFound)
+			})
+			var dials atomic.Int32
+			client := newTestClient(t, WithTransportOption(tls_client.WithDialContext(func(ctx context.Context, network, _ string) (net.Conn, error) {
+				dials.Add(1)
+				var dialer net.Dialer
+				return dialer.DialContext(ctx, network, server.addr)
+			})))
+			_, err := client.Get("https://example.test/start")
+			if err == nil || dials.Load() != 1 || len(server.requests()) != 1 {
+				t.Fatalf("err=%v dials=%d requests=%d", err, dials.Load(), len(server.requests()))
 			}
 		})
 	}

@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"golang.org/x/net/idna"
 )
@@ -514,6 +515,12 @@ func parseHost(host string) (string, error) {
 	decoded, err := url.PathUnescape(host)
 	if err != nil {
 		return "", fmt.Errorf("is not a URL: its host %q holds a percent sign that escapes nothing", host)
+	}
+	// WHATWG's UTF-8 decoding would replace invalid sequences with U+FFFD,
+	// which domain-to-ASCII rejects. Do not let IDNA turn raw invalid bytes
+	// into a punycode label that it cannot subsequently decode and validate.
+	if !utf8.ValidString(decoded) {
+		return "", fmt.Errorf("is not a URL: its host %q is not valid UTF-8", host)
 	}
 	ascii, err := hostProfile.ToASCII(decoded)
 	switch {

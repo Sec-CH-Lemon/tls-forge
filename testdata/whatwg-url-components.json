@@ -8,8 +8,9 @@
     "chrome": "156.0.8078.74",
     "mode": "headless=new; local data page; fresh user-data-dir per launch",
     "cohorts": 2,
-    "cases_per_cohort": 26,
-    "platform": "macOS 27.0.1 arm64"
+    "cases_per_cohort": 44,
+    "platform": "macOS 27.0.1 arm64",
+    "scope_note": "Expanded IDNA cohort independently rechecked against two fresh Chrome launches; original26 constructor results unchanged."
   },
   "cases": [
     {
@@ -370,6 +371,167 @@
       "input": "https://example.test:65536/",
       "expected": {
         "invalid": true
+      }
+    },
+    {
+      "id": "idna-fuzz-original",
+      "input": "HTTP:AAAAA0AAA%80000",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-fuzz-minimal",
+      "input": "http:%800",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-continuation",
+      "input": "https://%80.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-continuation-end",
+      "input": "https://%BF.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-overlong-two",
+      "input": "https://%C0%AF.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-truncated-two",
+      "input": "https://%C2.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-overlong-three",
+      "input": "https://%E0%80%AF.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-surrogate",
+      "input": "https://%ED%A0%80.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-overlong-four",
+      "input": "https://%F0%80%80%AF.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-past-unicode",
+      "input": "https://%F4%90%80%80.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-invalid-lead",
+      "input": "https://%F5%80%80%80.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-bad-continuation",
+      "input": "https://%E2%28%A1.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-replacement",
+      "input": "https://%EF%BF%BD.example/path?q=%80#omit",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "idna-valid-latin",
+      "input": "https://%C3%A9.example/path?q=%80#omit",
+      "expected": {
+        "canonical": "https://xn--9ca.example/path?q=%80",
+        "scheme": "https",
+        "authority": "xn--9ca.example",
+        "target": "/path?q=%80",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "idna-valid-cyrillic",
+      "input": "https://%D0%BF%D1%80%D0%B8%D0%BC%D0%B5%D1%80.example/path?q=%80#omit",
+      "expected": {
+        "canonical": "https://xn--e1afmkfd.example/path?q=%80",
+        "scheme": "https",
+        "authority": "xn--e1afmkfd.example",
+        "target": "/path?q=%80",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "idna-valid-sharp-s",
+      "input": "https://fa%C3%9F.example/path?q=%80#omit",
+      "expected": {
+        "canonical": "https://xn--fa-hia.example/path?q=%80",
+        "scheme": "https",
+        "authority": "xn--fa-hia.example",
+        "target": "/path?q=%80",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "idna-valid-ignored-bom",
+      "input": "https://%EF%BB%BFexample.example/path?q=%80#omit",
+      "expected": {
+        "canonical": "https://example.example/path?q=%80",
+        "scheme": "https",
+        "authority": "example.example",
+        "target": "/path?q=%80",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "idna-valid-ignored-zwsp",
+      "input": "https://ex%E2%80%8Bample.example/path?q=%80#omit",
+      "expected": {
+        "canonical": "https://example.example/path?q=%80",
+        "scheme": "https",
+        "authority": "example.example",
+        "target": "/path?q=%80",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
       }
     }
   ]

@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Reject invalid UTF-8 bytes in percent-decoded URL hosts before IDNA and
+  network I/O, including redirect targets. Retain the original/minimized
+  counterexamples in the fuzz corpus and revalidate44 Node/Ada/Chrome URL
+  cases plus real H1/H2 and SDK daemon paths. The pending engine remains1.0.0.
+
 - [Accept all8 QUIC/fork regression gates and retain A7 evidence](docs/remediation/2026-10-29/ACCEPTANCE-A7.ru.md).
   Corrected URL fuzzing exposes a separate invalid-UTF8 IDNA runtime defect;
   its corpus remains red, with no input exclusion or runtime fix in this slice.

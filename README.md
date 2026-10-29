@@ -2419,6 +2419,10 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
+Percent-decoded URL hosts must contain valid UTF-8 before IDNA processing.
+Malformed hosts fail before network I/O, including targets named by redirects.
+The runtime fix retains valid IDNA and the existing userinfo/query behavior.
+
 [URL verification](docs/url-oracle.md) separates WHATWG components, idempotence,
 production H1/H2 targets and credential scope. Ordinary Go tests need no Node
 or Chrome. Explicit reference checks retain the independent versions and
