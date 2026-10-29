@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Draw H3 GREASE SETTINGS on every new connection, including direct/early
+  constructors. Profiles own the generation range: uint32 N/value, zero
+  allowed, from Chrome156's pinned quiche. Retain per-connection reuse and
+  fixed-range repeat controls; older builds inherit the range explicitly.
+
 - Build captured profiles from an explicit full policy basis instead of an
   inferred browser preset. `FromCapture(name, capture, basis)` preserves
   unmeasured policies and generation rules. `capture --policy-from` selects

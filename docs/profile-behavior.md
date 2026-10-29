@@ -1862,3 +1862,19 @@ that builder, with separate field provenance and exact saved-profile hashes.
 No browser name, UA or brand enables runtime choices. Newly observed UA persona
 fields replace basis values; context-dependent hints require separate rules.
 This API change shares the pending engine1.0.0 release.
+
+
+### HTTP/3 GREASE SETTINGS lifetime (A8)
+
+`h3.grease_settings` enables the implemented generator. Each HTTP/3 connection
+gets one draw: ID `31*N+33`, with N selected uniformly from the inclusive
+`h3.grease_setting_n_min/max` bounds. `h3.grease_setting_nonzero` determines
+whether a zero uint32 value is remapped to one. The current shipped selections
+are N=0..4294967295 and nonzero=false, from Chrome156.0.8078.74's pinned
+quiche `a1628192cf32ba40d21e0dd80f485d68c24ff87a`
+[control stream source](https://quiche.googlesource.com/quiche/+/a1628192cf32ba40d21e0dd80f485d68c24ff87a/quiche/quic/core/http/quic_send_control_stream.cc).
+The associated protocol flag defaults true in `quiche_protocol_flags_list.h`.
+Older browser builds explicitly inherit this selection; it is not their new
+measurement. Reused requests send no new SETTINGS; repeated draws are valid.
+The generic transport factory implements this lifetime without browser-name
+branches. This mechanism belongs to the pending engine1.0.0 release.

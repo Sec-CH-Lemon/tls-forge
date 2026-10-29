@@ -2864,3 +2864,13 @@ field-section size, including zero. Omitting it omits the advertisement.
 HTTP/1's response-head limit does not select this value. An independent 16 MiB
 engine ceiling bounds encoded header allocation and decoded fields even when
 no limit is advertised; protocol errors are returned on the first body read.
+
+
+### HTTP/3 GREASE connection settings
+
+Profiles select `h3.grease_setting_n_min/max`, `h3.grease_setting_nonzero` and
+`h3.grease_settings`. Current Chromium profiles use uint32 N and values,
+including zero: ID = 31*N+33. The engine draws once per new H3 connection;
+requests reusing that connection reuse its SETTINGS. Repeated random values
+are valid. The corrected range is sourced from Chrome156's pinned quiche;
+older profile builds inherit this data without a new browser verdict.

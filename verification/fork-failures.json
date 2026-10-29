@@ -16,12 +16,12 @@
     "tls-client": {
       "module": "github.com/igor-lemon/tls-client",
       "repository": "https://github.com/igor-lemon/tls-client",
-      "commit": "a9f4f3e3b5799b423ca48774a2130027e1991491"
+      "commit": "ea5e0563862af1047e7fe97b1d72a10824ca15a5"
     },
     "quic-go-utls": {
       "module": "github.com/igor-lemon/quic-go-utls",
       "repository": "https://github.com/igor-lemon/quic-go-utls",
-      "commit": "1fda75c1ad731ab52051395d6e7aabcf64cb0145"
+      "commit": "f8b2a713bf83f1027ac76564e8d187404fceac27"
     }
   },
   "known_failures": [

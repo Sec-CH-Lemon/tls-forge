@@ -1,0 +1,79 @@
+{
+  "stage": "A8/C03 implementation; Chrome156 native acceptance pending",
+  "fork_commits": {
+    "quic-go-utls": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+    "tls-client": "ea5e0563862af1047e7fe97b1d72a10824ca15a5"
+  },
+  "checks": [
+    {
+      "file": "chromium-DEPS.txt",
+      "sha256": "8778ffaa9a30b9e825b291978804c6c2e55a3ae829ff387b025592ffb9090e8e"
+    },
+    {
+      "file": "quic-send-control-stream.cc",
+      "sha256": "7f722ea627b04379425b12a309da822cc9f9c9ace0616f55ac0a04bc3ad66c71"
+    },
+    {
+      "file": "quiche_protocol_flags_list.h",
+      "sha256": "14cf4084c39c446fc6687ff6a9ffe17be01a1c8f44b3e11b4357655c7e8d304e"
+    },
+    {
+      "file": "grease-wire-before-r03.log",
+      "sha256": "7b0a31c0d2f386579b75954db128bb26d350672294d4835f3affb98f6464c7bc"
+    },
+    {
+      "file": "grease-wire-r06.log",
+      "sha256": "6c674383150c884a8d512ef4d60519f2c1331903178fe2efb3e2dd48e9b93f7b"
+    },
+    {
+      "file": "grease-wire-raw-r07.log",
+      "sha256": "25c30ca4ce155c8f7258eeb4c0f6a2102ca7a79c69abc13d4d175677dea7206c"
+    },
+    {
+      "file": "quic-settings-r01.log",
+      "sha256": "a41c1bc616aae97654dbc84c7358a78d12f8ae48665851a8dd63f6413cc539c6"
+    },
+    {
+      "file": "tls-client-settings-r01.log",
+      "sha256": "4fcb4b0ec6f5d5cbba93f9da346df0bef5efa26ec09f90fc647cdec667fb4a44"
+    },
+    {
+      "file": "tls-client-standalone-target.log",
+      "sha256": "0d1b67373a0ce09a6c332d345e1cbbde39863c8ff168e4c8b6480c1af8985de6"
+    },
+    {
+      "file": "profile-grease-data.log",
+      "sha256": "a711bfbcf51c95b9bd2bf6a0260f5eb11d11c3990d8c29a40e4e6ae50c002327"
+    },
+    {
+      "file": "a8-targeted-lint.log",
+      "sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+    }
+  ],
+  "changed_fork_gates": {
+    "quic-standalone": {
+      "accepted": true,
+      "test_runs": 2562,
+      "known_debt_only": true,
+      "result_sha256": "6370872151814e9c88986c0ec746dc291de1036a8567264948c28065234b6897"
+    },
+    "quic-production": {
+      "accepted": true,
+      "test_runs": 2562,
+      "known_debt_only": true,
+      "result_sha256": "8a4511a48b52ca65d5d955251152e343f8ce3339df85115e8d5b009e6b93aed4"
+    },
+    "tls-client-standalone": {
+      "accepted": true,
+      "test_runs": 403,
+      "known_debt_only": true,
+      "result_sha256": "3047899f7d44af0eb976379f0677a4e8677d269d945e4b54d42d625b0344ac5f"
+    },
+    "tls-client-production": {
+      "accepted": true,
+      "test_runs": 403,
+      "known_debt_only": true,
+      "result_sha256": "4b2483cd5c37c34bff4d5e1371bff588668c8aa8f9f39e935ecda475f02c9e7d"
+    }
+  }
+}
