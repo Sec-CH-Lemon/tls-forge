@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -45,14 +46,26 @@ func a6RawPeer(t *testing.T, illegalData ...bool) (string, *atomic.Int32, <-chan
 	done := make(chan a6Wire, 1)
 	go func() {
 		var got a6Wire
-		defer func() { done <- got }()
-		conn, err := listener.Accept()
+		var conn net.Conn
+		defer func() {
+			done <- got
+			if conn != nil {
+				// Let the client consume the response and its protocol error
+				// before close. Closing with unread SETTINGS ACK bytes can
+				// reset TCP on Windows and erase that response/error.
+				if got.err == nil {
+					_, _ = io.Copy(io.Discard, conn)
+				}
+				_ = conn.Close()
+			}
+		}()
+		var err error
+		conn, err = listener.Accept()
 		if err != nil {
 			got.err = err
 			return
 		}
 		calls.Add(1)
-		defer conn.Close()
 		_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
 		preface := make([]byte, 24)
 		if _, err = io.ReadFull(conn, preface); err != nil {
