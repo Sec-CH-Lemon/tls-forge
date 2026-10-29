@@ -404,7 +404,9 @@ jobs:
           run() { python3 scripts/a8-h3-campaign.py --chrome "$CHROME" --peer "$H3_PEER" \
             --profile "$PROFILE" --out private-h3 "$FLAGS" > h3-producer.log 2>&1; }
           if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a bash -c "$(declare -f run); run"
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends openbox
+            xvfb-run -a bash -c "$(declare -f run); openbox --sm-disable > window-manager.log 2>&1 & wm=\$!; trap 'kill \$wm' EXIT; run"
           else
             run
           fi

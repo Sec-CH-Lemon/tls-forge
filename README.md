@@ -2920,3 +2920,9 @@ No header/encoder-stream normalization is used. Request-scheduling state rates,
 blocked/malformed policy and WAN/kernel equivalence remain separate limits.
 `os`, `fixture` and `only` select focused native reruns while preserving original
 full-run failures; they do not alter any fixture assertion.
+
+The H3 observer keeps one minimized tab for each independent Chrome launch and
+waits for the new document's DOMContentLoaded before issuing its fetches.
+Linux uses Openbox inside Xvfb so the minimized state can actually be verified.
+Extra connections, missing requests and changed QPACK states still reject the
+campaign. Original aborted campaigns are retained separately.

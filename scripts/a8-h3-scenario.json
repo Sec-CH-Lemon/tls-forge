@@ -44,7 +44,7 @@
       "kind": "fetch"
     }
   ],
-  "scope": "Owned IPv4 loopback peer; explicit server keylog; generic PacketConn capture(no peerECN/GSO); tickets disabled; one H3 connection per3requests;2freshChrome launches;minimized background tabs;source/profile/actor timing recorded; noWAN/RNG/fullbrowserverdict",
+  "scope": "Owned IPv4 loopback peer; explicit server keylog; generic PacketConn capture(no peerECN/GSO); tickets disabled; one H3 connection per3requests;2freshChrome launches;one persistent minimized background tab per launch;new document per navigation;source/profile/actor timing recorded; noWAN/RNG/fullbrowserverdict",
   "controlled_settings_delays": [
     2,
     3

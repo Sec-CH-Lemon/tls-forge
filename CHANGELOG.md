@@ -10,6 +10,8 @@ measured Chrome, so adding a profile for a newer browser changes what that name
 means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
+- Native H3 campaigns use a persistent minimized tab and a new-document barrier; Linux supplies a window manager under Xvfb. Cardinality checks remain strict.
+
 
 - Add separate native H3 observation to pinned capture CI, with JSON stimuli,
   paired cold/reuse cohorts, held-SETTINGS controls and independent ls-qpack
