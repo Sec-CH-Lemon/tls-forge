@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Measure the QPACK Cancellation instruction itself in the root immediate-mode
+  control. An as-written instruction may follow a prompt reset ACK; preserve
+  the15ms limit, reset-specific ACK requirement and delayed negative control.
+
 - Reject invalid UTF-8 bytes in percent-decoded URL hosts before IDNA and
   network I/O, including redirect targets. Retain the original/minimized
   counterexamples in the fuzz corpus and revalidate44 Node/Ada/Chrome URL

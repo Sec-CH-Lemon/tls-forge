@@ -2431,7 +2431,9 @@ runs it with finite budgets, positive execution counts and retained corpus.
 
 Cancellation wire tests decode the instruction bytes and compare its packet
 with the reset ACK. A decoder stream type sent alone is not a Cancellation.
-The opportunistic and immediate rules have separate negative controls.
+The opportunistic and immediate rules have separate negative controls. An
+as-written instruction may follow an immediate ACK; its own elapsed time
+from RESET is measured rather than inferred from ACK order.
 
 The current QUIC `1fda75c1` and tls-client `a9f4f3e` pins are local commits
 awaiting publication. A fresh public-proxy install needs those commits to be
