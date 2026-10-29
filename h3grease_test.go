@@ -163,6 +163,11 @@ func TestProfileJSONH3GREASEConnectionLifetime(t *testing.T) {
 				if got != n || value > 4294967295 {
 					t.Fatalf("N/value %d/%d", got, value)
 				}
+				for i := 1; i < len(seen.pairs); i++ {
+					if seen.pairs[i-1][0] > seen.pairs[i][0] {
+						t.Fatalf("source-ordered SETTINGS lost at N=%d: %v", n, seen.pairs)
+					}
+				}
 				if body := came(t, client, "https://h3.h3.test:"+port+"/"); body != "ok" {
 					t.Fatal(body)
 				}
@@ -226,5 +231,32 @@ func TestProfileH3GREASEFreshConnectionCohort(t *testing.T) {
 	t.Logf("connections64 bins%v statistic%.3f", bins, statistic)
 	if statistic > 60 {
 		t.Fatalf("connection draw distribution inconsistent: %.3f", statistic)
+	}
+}
+
+func TestProfileJSONH3GREASEPlacementChoice(t *testing.T) {
+	for _, choice := range []string{"last", "before-greater-id"} {
+		t.Run(choice, func(t *testing.T) {
+			port, observed := greasePeer(t)
+			p := policyFile(t, map[string]any{"quic.tcp_waits_with_connection": true, "h3.grease_setting_n_min": 0, "h3.grease_setting_n_max": 0, "h3.grease_setting_placement": choice})
+			p.Name, p.UserAgent = "neutral_placement", "No browser identity"
+			client := echClient(t, alpsNames(t), WithProfileValue(p))
+			if body := came(t, client, "https://h3.h3.test:"+port+"/"); body != "ok" {
+				t.Fatal(body)
+			}
+			pairs := greaseObservation(t, observed).pairs
+			want := []uint64{1, 6, 7, 33, 51}
+			if choice == "last" {
+				want = []uint64{1, 6, 7, 51, 33}
+			}
+			if len(pairs) != len(want) {
+				t.Fatal(pairs)
+			}
+			for i, id := range want {
+				if pairs[i][0] != id {
+					t.Fatal("JSON placement not applied", pairs, "want", want)
+				}
+			}
+		})
 	}
 }

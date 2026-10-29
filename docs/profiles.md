@@ -373,3 +373,9 @@ engine capability. TCP capture does not measure QUIC or all session policies;
 newly captured profiles state their inherited compatibility policy explicitly.
 
 Raw `WithTransportOption(WithClientProfile(...))` overrides are refused before transport creation; use `WithProfile` or `WithProfileValue` with explicit `engine_major`.
+
+
+The current engine1 candidate also requires explicit generated H3 SETTINGS
+placement in executable profiles. See `h3.grease_setting_placement` in the
+[behavior reference](profile-behavior.md#http3-generated-setting-placement-unreleased-engine1).
+Old archives remain inspectable without adding that choice automatically.

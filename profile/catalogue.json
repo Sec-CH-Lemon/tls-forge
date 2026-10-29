@@ -704,7 +704,8 @@
               "root-path"
             ]
           }
-        ]
+        ],
+        "h3.grease_setting_placement": "last"
       },
       "engine_major": 1,
       "http2": {
@@ -1007,7 +1008,8 @@
               "root-path"
             ]
           }
-        ]
+        ],
+        "h3.grease_setting_placement": "last"
       },
       "engine_major": 1,
       "http2": {

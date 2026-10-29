@@ -5,98 +5,110 @@
     {
       "name": "chrome_151_linux",
       "file": "data/chrome_151/linux.json",
-      "profile_sha256": "107c230ae8abf2302d73b1c627ee237068a854ed4ae392bb2f6b7dff7165df3c",
+      "profile_sha256": "c7c1962ab7f9cffa6ec9211e5c3a0f5c957b7116ba7af23d13766f1668580388",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "107c230ae8abf2302d73b1c627ee237068a854ed4ae392bb2f6b7dff7165df3c"
     },
     {
       "name": "chrome_151_macos",
       "file": "data/chrome_151/macos.json",
-      "profile_sha256": "b9839c48f7a42a0927df7d18ad93eb8ce55a9f61a3aa2101e769b53ab276f555",
+      "profile_sha256": "209856f5c27d73dbd275c3611ca5e13c48207bee1b4ed30d1f694ae44f30f634",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "b9839c48f7a42a0927df7d18ad93eb8ce55a9f61a3aa2101e769b53ab276f555"
     },
     {
       "name": "chrome_151_windows",
       "file": "data/chrome_151/windows.json",
-      "profile_sha256": "2a26a358f4243e27d4f92e85e550aeea22b7f6f44ac78142b7b6b0ff8c4708c2",
+      "profile_sha256": "d65193368f766c4d5718f72ba0ebc5b6130096d8473faae3bd81531b0d7c0ad2",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "2a26a358f4243e27d4f92e85e550aeea22b7f6f44ac78142b7b6b0ff8c4708c2"
     },
     {
       "name": "chrome_152_linux",
       "file": "data/chrome_152/linux.json",
-      "profile_sha256": "2234188dee4ec9584645e70eb512ee1babe3de1b2774b33da6d824448d7a3f4f",
+      "profile_sha256": "4d1780f2ae31eb01b9c14fa05e75f9dfd5b858854e9d2b4798cc1ab74ffa8c7b",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "2234188dee4ec9584645e70eb512ee1babe3de1b2774b33da6d824448d7a3f4f"
     },
     {
       "name": "chrome_152_macos",
       "file": "data/chrome_152/macos.json",
-      "profile_sha256": "0cb84595b5a20e8e01cebbc56142b1dd90bad6649f23ae080384f3493dfdfe28",
+      "profile_sha256": "3f9006ca8cd2068757499d1354753cd13e5c61b63c72e7a7b33fe880058202f9",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "0cb84595b5a20e8e01cebbc56142b1dd90bad6649f23ae080384f3493dfdfe28"
     },
     {
       "name": "chrome_152_windows",
       "file": "data/chrome_152/windows.json",
-      "profile_sha256": "4d814ebc189f81bf5a75e408b8c89157db843f454221803891a4393b38d616d0",
+      "profile_sha256": "1cc0c71bbdd0a6a3af323faed3fe3ed1a12dbcff3997dd8ddcf5ce0e49fd3ad9",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "4d814ebc189f81bf5a75e408b8c89157db843f454221803891a4393b38d616d0"
     },
     {
       "name": "chrome_153_linux",
       "file": "data/chrome_153/linux.json",
-      "profile_sha256": "50decf51efec9d0fe7e4d79a88cc4e9057979548e9dd1eaf4f24cfe6fd21180d",
+      "profile_sha256": "87a4705846c6a379487013e9109e926e626df0c74a902045d74fd62b4c941817",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "50decf51efec9d0fe7e4d79a88cc4e9057979548e9dd1eaf4f24cfe6fd21180d"
     },
     {
       "name": "chrome_153_macos",
       "file": "data/chrome_153/macos.json",
-      "profile_sha256": "decc0456d76c4fdef7f06c9fd4f1b53b49791f2d8833e8749c06d93719a2a5b4",
+      "profile_sha256": "810a16ab85a4bf6f71396767974dcb8b8a36f155415565dab00d29b1a8624b6e",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "decc0456d76c4fdef7f06c9fd4f1b53b49791f2d8833e8749c06d93719a2a5b4"
     },
     {
       "name": "chrome_153_windows",
       "file": "data/chrome_153/windows.json",
-      "profile_sha256": "f8fd8975402f4e1714cefcdae67ad0862bdb5d2329f41519a4fe978dd7447409",
+      "profile_sha256": "06ae23fd9f3e551d048696a62ac6b1088905193a0c551dfc223eb2060a805714",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "f8fd8975402f4e1714cefcdae67ad0862bdb5d2329f41519a4fe978dd7447409"
     },
     {
       "name": "chrome_154_linux",
       "file": "data/chrome_154/linux.json",
-      "profile_sha256": "0b160d50f82ee4a6ba083aaecad96d086265de78b22d1963b495e4bb361d2578",
+      "profile_sha256": "102e06b9e1c677231b5ecfdc1dc81538b2b1be56e72bf20b6b26925387945cd1",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "0b160d50f82ee4a6ba083aaecad96d086265de78b22d1963b495e4bb361d2578"
     },
     {
       "name": "chrome_154_macos",
       "file": "data/chrome_154/macos.json",
-      "profile_sha256": "772402a6bf6d5e5d7ee82334ee04c1098d9c3e228a333c103d3a378100211bba",
+      "profile_sha256": "22ed837d20ac386cd728ac0882738c5eacfd3c4f7d82a8013b559a8c077f6cf2",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "772402a6bf6d5e5d7ee82334ee04c1098d9c3e228a333c103d3a378100211bba"
     },
     {
       "name": "chrome_154_windows",
       "file": "data/chrome_154/windows.json",
-      "profile_sha256": "7be94dd593e7987665f94dfb3b2b235041722c92d0f82be06b50981e1a2304b5",
+      "profile_sha256": "91d373f16663e50e41f2363e594210fb8ca71718b0811ba73e2dad186f8c7f72",
       "status": "historical",
       "acceptance": "Original capture provenance retained; no fresh Chrome156 or whole current-engine equivalence claim",
-      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser"
+      "inherited_change": "A8 uint32 GREASE generator selection from pinned Chrome156 quiche; not a new observation of this historical browser;explicit placement before first greater setting ID from156 serializer,not a new historical-browser witness",
+      "previous_profile_sha256": "7be94dd593e7987665f94dfb3b2b235041722c92d0f82be06b50981e1a2304b5"
     }
   ]
 }

@@ -280,3 +280,30 @@ func TestARegisteredProfileIsGivenOnlyToTheEngineItPins(t *testing.T) {
 		t.Errorf("Get: %v", err)
 	}
 }
+
+func TestOfflineArchiveRetainsAbsentSettingPlacement(t *testing.T) {
+	p := mustGet(t, "chrome_155_macos").Clone()
+	p.EngineMajor = Major(7)
+	delete(p.Behavior, "h3.grease_setting_placement")
+	raw, err := p.Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived, err := Inspect(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if archived.Clone().Behavior.Has("h3.grease_setting_placement") {
+		t.Fatal("archive clone invented placement")
+	}
+	if _, err := Load(raw); err == nil {
+		t.Fatal("old archive became executable")
+	}
+	migrated, err := archived.Migrate("placement-candidate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !migrated.Behavior.Has("h3.grease_setting_placement") || archived.Behavior.Has("h3.grease_setting_placement") {
+		t.Fatal("explicit migration failed to isolate new rule")
+	}
+}

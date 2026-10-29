@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
+  "profile_sha256": "5b2f3de1b61935eaec495f9b2373a4725ca17d6a79b74cc00e8084b37c0f7bc8",
   "previous_profile_sha256": "4385f1aebb6153092fb3ffa7bb90590d975c8c2d3b2fb9e050ded6f584af1dd8",
   "change": "A8 JSON-only QPACK first-section state rule",
   "fields": {
@@ -9,5 +9,12 @@
       "source": "Chrome156 pinned quiche and two new headed macOS156 cohorts; no explicit skipped section counter"
     }
   },
-  "acceptance": "Chrome156 rule observed; historical155 not freshly measured"
+  "acceptance": "Chrome156 rule observed; historical155 not freshly measured",
+  "subsequent_changes": [
+    {
+      "change": "Explicit h3.grease_setting_placement=before-greater-id from pinned156 HttpEncoder sorted serializer;N=0 lower-boundary wire correction",
+      "previous_profile_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
+      "source": "quiche a1628192cf32ba40d21e0dd80f485d68c24ff87a/http_encoder.cc;not a new155 browser observation"
+    }
+  ]
 }

@@ -1890,3 +1890,18 @@ source and repeated native156 observations. Existing value1 remains a distinct
 implemented choice, not a measured Chrome invariant. Request code must never
 wait for peer SETTINGS to manufacture a particular first-section form.
 See [the state witness](remediation/2026-10-29/A8-QPACK-STATE.ru.md).
+
+
+### HTTP3 generated setting placement (unreleased engine1)
+
+`h3.grease_setting_placement` is an explicit text choice: `last` appends the
+generated pair; `before-greater-id` inserts it before the first greater ID in
+the declared base order. Base pairs retain their declared order. Current Chrome
+profiles select `before-greater-id` with ascending `h3.settings`; this reproduces
+the pinned156 serializer even at N=0 (setting33 before Datagram setting51).
+Frozen compatibility data selects `last`, preserving its old behavior.
+
+The executable profile gate requires this choice. Offline archives retain an
+absent choice; explicit migration creates a separate candidate with an explicit
+selection. The engine implements insertion, while JSON selects its placement.
+This primitive shares the existing unpublished1.0.0 candidate, not another major.

@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "0d6c7eead0d9932ebe029306c298c4d8ade18acd51cc13219721f57a5f06b7fc",
+  "profile_sha256": "133bb93b54bb92d6dfe25f3109ac2dc3bf74d9717ef29f2279208cceae1c50a8",
   "previous_profile_sha256": "1fafc50dafca8cbd4bac806165769d97e001ab83db4b752b673bdab86afa0dca",
   "basis_name": "chrome_155_macos",
   "basis_file_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
@@ -128,5 +128,12 @@
     }
   },
   "acceptance": "inherited candidate; native platform SETTINGS/QPACK validation pending",
-  "preserved": "OS-specific QUIC alarm slack, TCP keepalive and negotiate-auth choices; original155 wire templates"
+  "preserved": "OS-specific QUIC alarm slack, TCP keepalive and negotiate-auth choices; original155 wire templates",
+  "subsequent_changes": [
+    {
+      "change": "Explicit h3.grease_setting_placement=before-greater-id from pinned156 HttpEncoder sorted serializer;N=0 lower-boundary wire correction",
+      "previous_profile_sha256": "0d6c7eead0d9932ebe029306c298c4d8ade18acd51cc13219721f57a5f06b7fc",
+      "source": "quiche a1628192cf32ba40d21e0dd80f485d68c24ff87a/http_encoder.cc;not a new155 browser observation"
+    }
+  ]
 }

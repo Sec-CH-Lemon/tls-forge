@@ -31,7 +31,7 @@ func (p *Profile) RuntimeBehavior() behavior.Policy {
 }
 
 // requiredRules are what no executable profile of this engine runs without.
-var requiredRules = []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes"}
+var requiredRules = []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes", "h3.grease_setting_placement"}
 
 // savedBehavior is the behavior Save writes: the profile's own, or what an
 // older schema without one runs with. An archive of such a schema that this
@@ -81,10 +81,9 @@ func (p *Profile) validateBehaviorFor(execution bool) error {
 	}
 	if execution && p.EngineMajor != nil && *p.EngineMajor == engine.Major() {
 		// Whatever schema a profile says, and whether the behavior it runs
-		// with is its own or an older format's data, it does not run without
-		// the rules these hold: how deep a body's codings go, and which
-		// cookies a server may set. Without them a body would fail to decode,
-		// and a prefix would protect nothing.
+		// with is its own or an older format's data, execution needs this
+		// engine's resource/cookie rules and generated-setting placement.
+		// Offline archives keep their original absent choices.
 		pol := p.RuntimeBehavior()
 		for _, key := range requiredRules {
 			if !pol.Has(key) {

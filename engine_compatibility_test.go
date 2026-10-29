@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
@@ -139,5 +140,32 @@ func TestThePackageSaysTheCompiledEngine(t *testing.T) {
 	var none *Client
 	if !reflect.DeepEqual(none.behavior(), legacyPolicy()) || !reflect.DeepEqual((&Client{}).behavior(), legacyPolicy()) {
 		t.Error("a client without a profile reads another behavior")
+	}
+}
+
+func TestInvalidGREASEPlacementCannotConstructTransport(t *testing.T) {
+	for _, raw := range []json.RawMessage{nil, json.RawMessage(`"unknown"`), json.RawMessage(`true`), json.RawMessage(`null`)} {
+		p, err := profile.Get("chrome_155_macos")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if raw == nil {
+			delete(p.Behavior, "h3.grease_setting_placement")
+		} else {
+			p.Behavior["h3.grease_setting_placement"] = raw
+		}
+		called := false
+		dial := tc.WithDialContext(func(context.Context, string, string) (net.Conn, error) {
+			called = true
+			return nil, fmt.Errorf("unexpected dial")
+		})
+		c, err := New(WithProfileValue(p), WithTransportOption(dial))
+		if err == nil {
+			c.CloseIdleConnections()
+			t.Fatal("invalid placement constructed a transport")
+		}
+		if called {
+			t.Fatal("invalid placement reached network I/O")
+		}
 	}
 }

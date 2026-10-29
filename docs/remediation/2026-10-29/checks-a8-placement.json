@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "source": {
+    "url": "https://quiche.googlesource.com/quiche/+/a1628192cf32ba40d21e0dd80f485d68c24ff87a/quiche/quic/core/http/http_encoder.cc",
+    "sha256": "1bf378c35bca0eee3375fd8a00daadfa83c93b47091c2b6001d54ef00e4e868a"
+  },
+  "before": {
+    "grease-placement-before.log": "f0acaa7a8177d5c68ba252ab5a8edfe71cf80816e3413dfb080762fdf1ab4528"
+  },
+  "after": {
+    "grease-placement-pinned-race.log": "df6af7d3ecc177f54a6cd6d93e2dfe6be24d49372e00c1b5118b4fb905384bc8",
+    "placement-profile-pinned.log": "0e9d387ed4582745ab509f384d93dbcbcbfd9792c5bea9992820e5f0f1c570ee",
+    "grease-placement-utls-boundary-race.log": "234561b74f54c1a75c2fa9fb6dfb50ede125d2a4ea7449da1be1d23c1645b6e4",
+    "grease-placement-tlsclient-final-race.log": "227260314f9376f9d8e9da8e9c9b297c380bdb68ffa3f27d95a70d382d8c830d"
+  },
+  "fork_gates": [
+    {
+      "fork": "utls",
+      "graph": "standalone",
+      "exit_code": 0
+    },
+    {
+      "fork": "utls",
+      "graph": "production",
+      "exit_code": 0
+    },
+    {
+      "fork": "tls-client",
+      "graph": "standalone",
+      "exit_code": 0
+    },
+    {
+      "fork": "tls-client",
+      "graph": "production",
+      "exit_code": 0
+    },
+    {
+      "fork": "quic-go-utls",
+      "graph": "production",
+      "exit_code": 0
+    },
+    {
+      "fork": "fhttp",
+      "graph": "production",
+      "exit_code": 0
+    }
+  ],
+  "boundary": "Source-derived N0 control;natural earlier browser cohorts did not draw N0. New native acceptance remains separate."
+}

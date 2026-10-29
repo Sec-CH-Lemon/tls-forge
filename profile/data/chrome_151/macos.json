@@ -186,6 +186,7 @@
     "h3.grease_setting_n_max": 4294967295,
     "h3.grease_setting_n_min": 0,
     "h3.grease_setting_nonzero": false,
+    "h3.grease_setting_placement": "before-greater-id",
     "h3.grease_settings": true,
     "h3.peer_reset": "read-side",
     "h3.peer_settings": "quiche",

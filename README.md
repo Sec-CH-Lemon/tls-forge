@@ -2944,3 +2944,10 @@ For settled fixture scenarios, `measure` waits for the opening request within
 the existing startup limit before starting the declared observation interval.
 Browser process startup cannot count as an observed empty scenario. Expected
 requests, headers and the scenario's settling duration are unchanged.
+
+
+H3 profiles declare `h3.grease_setting_placement`: `last` or
+`before-greater-id`. Chrome156's sorted base vector selects the latter so the
+valid lower-boundary draw N=0 puts setting33 before setting51. Both choices are
+covered through actual Client.Do; offline inspection preserves missing choices
+and execution requires an explicit selection. The pending engine stays1.0.0.
