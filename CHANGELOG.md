@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Update `golang.org/x/net` to v0.62.0 and its required Go dependencies.
+  The CLI element check no longer uses the HTML parser affected by
+  GO-2026-6860 (quadratic work on an untrusted response).
+
 - The fork gates of `forks.yml` run on main and development when `go.mod`,
   `go.sum`, `verification/` or `scripts/fork_gate.py` change, and by hand:
   their eight macOS jobs of up to 40 minutes went with every push and pull

@@ -2419,6 +2419,11 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
+The CLI element check uses `golang.org/x/net/html` v0.62.0 or later, which
+contains the fix for GO-2026-6860. Check dependency updates with a current
+`govulncheck` as well as the normal test suite; inspect JSON findings even
+when the scanner exits successfully.
+
 ```bash
 make test         # Go race tests
 make cover        # 100% Go statement coverage gate
