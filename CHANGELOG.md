@@ -10,6 +10,8 @@ measured Chrome, so adding a profile for a newer browser changes what that name
 means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
+
+- Add independent TShark4.6.9 authentication/reassembly of private native H3 UDP evidence, with explicit synthetic-envelope scope and negative controls.
 - Native H3 campaigns use a persistent minimized tab and a new-document barrier; Linux supplies a window manager under Xvfb. Cardinality checks remain strict.
 
 

@@ -2926,3 +2926,10 @@ waits for the new document's DOMContentLoaded before issuing its fetches.
 Linux uses Openbox inside Xvfb so the minimized state can actually be verified.
 Extra connections, missing requests and changed QPACK states still reject the
 campaign. Original aborted campaigns are retained separately.
+
+`scripts/a8-h3-packets.py PRIVATE_CAMPAIGN --tshark /path/to/tshark --out NEW_DIRECTORY`
+uses pinned TShark4.6.9 to decrypt the original UDP payloads independently and
+checks every client stream against the separate observer output. Its PCAP adds
+synthetic IPv4/UDP headers solely for decoding; it does not measure host IP,
+ECN/GSO or kernel behavior. Missing-key and removed-application-packet controls
+must reject. Outputs contain private plaintext and TLS keys remain private.
