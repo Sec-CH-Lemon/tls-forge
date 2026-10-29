@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Start settled fixture observation after its opening request, preserving the original observation interval and expected request/header assertions on slow native runners.
+
 - Keep native H3 component updates outside the fixed measurement scenario and retain private Chrome NetLog diagnostics; no cardinality tolerance is added.
 
 - Add independent TShark4.6.9 authentication/reassembly of private native H3 UDP evidence, with explicit synthetic-envelope scope and negative controls.

@@ -2939,3 +2939,8 @@ harness: an external CRLSet/certificate-verifier update can legitimately retire
 an active Chrome QUIC session during a measured sequence. Chrome NetLog is
 retained privately for diagnosis. This scope does not cover live trust-store
 updates; campaigns still reject any additional or split connection.
+
+For settled fixture scenarios, `measure` waits for the opening request within
+the existing startup limit before starting the declared observation interval.
+Browser process startup cannot count as an observed empty scenario. Expected
+requests, headers and the scenario's settling duration are unchanged.

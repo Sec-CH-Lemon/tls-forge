@@ -256,16 +256,29 @@ func (s *Server) runOnce(ctx context.Context, b Browser, p plan, t timing) ([]En
 	if err != nil {
 		return nil, err
 	}
-	finished := s.until(ctx, p.wait, p.times, p.settle, t)
+	// A settled scenario observes the page's behavior for a fixed interval.
+	// Process startup must not consume that interval or make no page look
+	// like a successfully observed scenario that sent no requests.
+	wait, finished := p.wait, true
+	if p.settle > 0 {
+		startup := t
+		startup.after = 0
+		wait = pathOf(p.start)
+		finished = s.until(ctx, wait, 1, 0, startup)
+	}
+	if finished {
+		wait = p.wait
+		finished = s.until(ctx, wait, p.times, p.settle, t)
+	}
 	stop()
 	entries, trouble := s.Requests()
 	switch {
 	case trouble != nil:
 		return nil, trouble
 	case !finished && ctx.Err() != nil:
-		return nil, fmt.Errorf("%s was not asked for: %w", p.wait, ctx.Err())
+		return nil, fmt.Errorf("%s was not asked for: %w", wait, ctx.Err())
 	case !finished:
-		return entries, &unfinished{fmt.Sprintf("%s was not asked for within %s", p.wait, t.limit)}
+		return entries, &unfinished{fmt.Sprintf("%s was not asked for within %s", wait, t.limit)}
 	}
 	return entries, nil
 }

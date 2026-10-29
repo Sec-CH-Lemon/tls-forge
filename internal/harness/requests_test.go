@@ -757,3 +757,52 @@ func TestNoRequestChromeSentInAFixtureIsAReload(t *testing.T) {
 		t.Error("a run page's block with cache-control is no reload")
 	}
 }
+
+// delayedOpening models a browser that has started its process but has not
+// reached the first page yet. Stopping it before launch cancels that opening.
+type delayedOpening struct {
+	Browser
+	delay time.Duration
+}
+
+func (b delayedOpening) Open(ctx context.Context, page, dir string) (func(), error) {
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		timer := time.NewTimer(b.delay)
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+		case <-stop:
+			return
+		case <-ctx.Done():
+			return
+		}
+		finish, err := b.Browser.Open(ctx, page, dir)
+		if err != nil {
+			return
+		}
+		<-stop
+		finish()
+	}()
+	return func() { close(stop); <-done }, nil
+}
+
+func TestSettlingStartsAfterTheOpeningPageArrives(t *testing.T) {
+	scenarios := map[string]scenario{"settles": {start: "{A}/p/settles", wait: "/never", settle: 20 * time.Millisecond}}
+	b := delayedOpening{Browser: &fake{}, delay: 60 * time.Millisecond}
+	got, err := measure(context.Background(), b, scenarios, nil, quick, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got["settles"].H2) != 1 || len(got["settles"].H1) != 1 {
+		t.Fatal("process startup consumed the observation interval")
+	}
+	short := quick
+	short.limit = 30 * time.Millisecond
+	_, err = measure(context.Background(), &fake{silent: true}, scenarios, nil, short, nil)
+	if err == nil {
+		t.Fatal("a settled scenario without an opening page was accepted")
+	}
+}
