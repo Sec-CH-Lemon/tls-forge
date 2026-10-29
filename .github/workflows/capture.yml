@@ -349,12 +349,13 @@ jobs:
           # whatever Chrome is current rather than whatever was written here.
           run() { go run ./cmd/tls-forge capture \
             --browser "${{ steps.chrome.outputs.path }}" "$FLAGS" \
-            --json --save captured --provenance-dir captured-provenance --timeout 3m; }
+            --json --save captured --provenance-dir captured-provenance --timeout 3m > capture-raw.json; }
           if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a bash -c "$(declare -f run); run" > capture-raw.json
+            xvfb-run -a bash -c "$(declare -f run); run"
           else
-            run > capture-raw.json
+            run
           fi
+          python3 -c 'import json; json.load(open("capture-raw.json"))'
 
       # Where the capture landed, read off the disk rather than assumed. The
       # layout is a directory per version holding one file per platform, and the

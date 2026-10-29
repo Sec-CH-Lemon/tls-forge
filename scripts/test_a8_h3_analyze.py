@@ -20,6 +20,12 @@ class H3EvidenceParserTests(unittest.TestCase):
                 module.frames(data)
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             module.pairs(b'\x01\x00\x01\x01')
+        for value in [0, 63, 64, 16383, 16384, (1 << 30) - 1, 1 << 30, (1 << 62) - 1]:
+            encoded = module.encode_integer(value)
+            self.assertEqual(module.integer(encoded), (value, len(encoded)))
+        for value in [-1, 1 << 62]:
+            with self.assertRaises(ValueError):
+                module.encode_integer(value)
         self.assertEqual(module.grease_n(33), 0)
         self.assertEqual(module.grease_n(31 * 4294967295 + 33), 4294967295)
         with self.assertRaises(ValueError):

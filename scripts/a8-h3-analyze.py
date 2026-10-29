@@ -22,6 +22,13 @@ def integer(data, at=0):
     return int.from_bytes(data[at:at + size], 'big') & ((1 << (8 * size - 2)) - 1), at + size
 
 
+def encode_integer(value):
+    if not 0 <= value < 1 << 62:
+        raise ValueError('QUIC varint outside protocol bounds')
+    size = next(size for size in [1, 2, 4, 8] if value < 1 << (8 * size - 2))
+    return (value | ([1, 2, 4, 8].index(size) << (8 * size - 2))).to_bytes(size, 'big')
+
+
 def frames(raw):
     at = 0
     result = []
@@ -105,6 +112,18 @@ def observe(connection, profile, scenario):
         expected = [(item['id'], item['value']) for item in profile['behavior']['h3.settings']]
         if stable != expected:
             raise ValueError('actual ordered SETTINGS differs from profile')
+        placement = profile['behavior']['h3.grease_setting_placement']
+        generated = next(pair for pair in settings if pair[0] >= 33 and (pair[0] - 33) % 31 == 0)
+        ordered = list(stable)
+        if placement == 'last':
+            ordered.append(generated)
+        elif placement == 'before-greater-id':
+            position = next((i for i, pair in enumerate(ordered) if pair[0] > generated[0]), len(ordered))
+            ordered.insert(position, generated)
+        else:
+            raise ValueError('unknown GREASE placement rule')
+        if settings != ordered:
+            raise ValueError('GREASE SETTINGS placement differs from explicit rule')
         control_shape.append(('settings', tuple(stable)))
         grease_frames = 0
         for frame_type, payload in control[1:]:
@@ -169,6 +188,8 @@ def analyze(directory, scenario):
         raise ValueError('profile does not select source-verified first-section rule')
     if (policy['h3.grease_setting_n_min'], policy['h3.grease_setting_n_max'], policy['h3.grease_setting_nonzero']) != (0, 4294967295, False):
         raise ValueError('profile GREASE source range differs')
+    if policy['h3.grease_setting_placement'] != 'before-greater-id':
+        raise ValueError('Chrome156 source requires numeric GREASE insertion')
     raw = (directory / 'observations.json').read_bytes()
     if identity['observation_sha256'] != digest(raw):
         raise ValueError('original observation hash differs')
@@ -242,6 +263,30 @@ def analyze(directory, scenario):
         result['negative_controls']['missing_encoder_instructions'] = type(error).__name__
     else:
         raise ValueError('independent QPACK negative control did not reject')
+    # A source-derived lower-boundary control. Finite native draws need not
+    # contain N=0, but the placement rule must still reject the old append bug.
+    broken_order = json.loads(json.dumps(connections[0]))
+    for stream_id, encoded in broken_order['uni'].items():
+        data = base64.b64decode(encoded)
+        kind, at = integer(data)
+        if kind != 0:
+            continue
+        original_frames = frames(data[at:])
+        values = pairs(original_frames[0][1])
+        actual_grease = next(pair for pair in values if pair[0] >= 33 and (pair[0] - 33) % 31 == 0)
+        values = [pair for pair in values if pair != actual_grease] + [(33, actual_grease[1])]
+        payload = b''.join(encode_integer(key) + encode_integer(value) for key, value in values)
+        mutated = [(4, payload)] + original_frames[1:]
+        rebuilt = data[:at] + b''.join(encode_integer(frame) + encode_integer(len(payload)) + payload for frame, payload in mutated)
+        broken_order['uni'][stream_id] = base64.b64encode(rebuilt).decode()
+    try:
+        observe(broken_order, profile, scenario)
+    except ValueError as error:
+        if 'placement differs' not in str(error):
+            raise
+        result['negative_controls']['N0_appended_after_setting51'] = str(error)
+    else:
+        raise ValueError('source-derived N0 wrong-order negative control was accepted')
     result['accepted'] = True
     result['connections'] = len(connections)
     result['requests'] = len(connections) * 3

@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Preserve raw JSON inside the Xvfb wrapper and validate its complete document; check generated-setting placement with an N=0 counterexample in native H3 analysis.
+
 - Add explicit JSON GREASE setting placement and preserve static SETTINGS order; fix the source-verified N=0 position before setting51. Require selection at execution, preserve old offline archives.
 
 - Start settled fixture observation after its opening request, preserving the original observation interval and expected request/header assertions on slow native runners.

@@ -2951,3 +2951,9 @@ H3 profiles declare `h3.grease_setting_placement`: `last` or
 valid lower-boundary draw N=0 puts setting33 before setting51. Both choices are
 covered through actual Client.Do; offline inspection preserves missing choices
 and execution requires an explicit selection. The pending engine stays1.0.0.
+
+
+Pinned capture CI validates that `capture-raw.json` is one complete JSON document.
+Its redirection is inside the Xvfb command so wrapper-coalesced stderr stays
+outside the artifact. H3 analysis also tests the source-derived N=0 ordering
+counterexample; an unobserved rare draw is not a reason to omit its rule.
