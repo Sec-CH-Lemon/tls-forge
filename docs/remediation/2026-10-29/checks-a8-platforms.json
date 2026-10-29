@@ -1,0 +1,30 @@
+{
+  "stage": "A8/C02 explicit inheritance and production SETTINGS controls",
+  "native_platform_acceptance": "pending Chrome156 Linux/Windows SETTINGS and QPACK",
+  "checks": [
+    {
+      "file": "root-before-c02.tar",
+      "sha256": "c394fec62eadbe4eaea302e28999c3449bf1a4df42673e44b6adedfd54647f42"
+    },
+    {
+      "file": "c02-before-r02.log",
+      "sha256": "c2ea101a36b53e7c0d7edb91d29c4554419b9fdb889cf37d8e68f47b2c2d095a"
+    },
+    {
+      "file": "c02-targeted.log",
+      "sha256": "cc43fb0b0d40f76824681bc233f28439afbee8b793eb09b50e15328ed45618c5"
+    },
+    {
+      "file": "profile-c02-cover.log",
+      "sha256": "17c9e18147bb4faf01ed96bff5bd167df0c215afa5d8170de675d137a8ae4616"
+    },
+    {
+      "file": "c02-origin-hash.log",
+      "sha256": "9fe08bce4db02cbe6c5eb91013587cc5ea9272469fe72006e1662d351905860e"
+    },
+    {
+      "file": "c02-shared-keys.json",
+      "sha256": "f8c4a6ac6b6be85d32a62c744fd515672c39b7f7655f44e9f4495a1d102fcdaa"
+    }
+  ]
+}

@@ -2894,3 +2894,12 @@ artifacts; keep the matching private key in private measurement storage.
 Profile/provenance artifacts are separate, including when fixture acceptance
 fails. `scripts/check-capture-artifacts.py` validates their exact byte hashes
 and inherited field origins; it does not promote candidates automatically.
+
+
+Chrome151–154 profiles remain available as historical captures. Their inventory
+and exact current hashes are in `profile/provenance/historical.json`; they have
+no fresh Chrome156 acceptance. Chrome155 Linux/Windows explicitly inherit the
+30 shared network policies from the macOS155 basis, with separate origins in
+`profile/provenance/chrome_155/`. OS timers, keepalive and negotiate-auth remain
+platform-specific. Native156 SETTINGS/QPACK validation is required separately.
+See [the transfer evidence](docs/remediation/2026-10-29/A8-PLATFORMS.ru.md).

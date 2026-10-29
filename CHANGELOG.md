@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Inherit30 shared network policy values explicitly into Chrome155 Linux and
+  Windows, retaining OS-specific choices. Keep per-file exact hashes and
+  field provenance outside runnable data. Mark151–154 as historical in a
+  separate inventory; native156 platform/QPACK acceptance remains required.
+
 - Pin original official Chrome156 installers by full version/hash for native
   capture runs. Refuse a different installed build. Preserve raw evidence as
   encrypted artifacts and keep profile provenance separate from runnable data;

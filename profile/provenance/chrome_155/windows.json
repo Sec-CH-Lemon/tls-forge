@@ -1,0 +1,132 @@
+{
+  "provenance_schema": 1,
+  "profile_sha256": "d59c55423ac79d86bd08e26234cbe732a5b781a9bd6312d0efe18f5374179282",
+  "previous_profile_sha256": "d39a47373905c33b016158d3fae0aa60300364a3c16693291cc41cc069b3bb1f",
+  "basis_name": "chrome_155_macos",
+  "basis_file_sha256": "4385f1aebb6153092fb3ffa7bb90590d975c8c2d3b2fb9e050ded6f584af1dd8",
+  "change": "A8/C02 shared policy inheritance; data only",
+  "fields": {
+    "behavior.h1.zero_length_identity": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h2.read_loop_start": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.control_order": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.grease_payload_lengths": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.priority_source": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.priority_updates": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.critical_close_code": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.critical_close_frame_type": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.critical_close_reason": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.critical_close_space": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.decoder_feedback": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.draining_percent": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.encoder_strategy": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.encoder_table_bytes": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.encoder_warmup_sections": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.error_capacity_exceeded_reason": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.error_invalid_relative_index_reason": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.error_zero_increment_reason": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.huffman_names": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.huffman_values": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.never_index": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.stream_order": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.qpack.streams": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.retry_application_errors": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.retry_attempts": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.retry_methods": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.retry_transport_errors": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.h3.settings": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.http.content_length_empty_body": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    },
+    "behavior.http.zero_content_length_methods": {
+      "class": "inherited",
+      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+    }
+  },
+  "acceptance": "inherited candidate; native platform SETTINGS/QPACK validation pending",
+  "preserved": "OS-specific QUIC alarm slack, TCP keepalive and negotiate-auth choices; original155 wire templates"
+}
