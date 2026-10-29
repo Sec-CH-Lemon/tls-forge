@@ -1809,7 +1809,8 @@
       "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
       "failure_pattern": "cached transport does not speak",
       "baseline_evidence": [
-        "f09-tls-client-baseline"
+        "f09-tls-client-baseline",
+        "a8-native-macos26-buffer-warning-20261029"
       ],
       "minimal_repeat": [
         "env",
@@ -1825,10 +1826,12 @@
       ],
       "failure_output_sha256": {
         "standalone": [
-          "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4"
+          "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4",
+          "3cf4d0cb2fff5cca9e5fe71d9fa25ef78ee5b245eae7d2fde92ef8771903f84a"
         ],
         "production": [
-          "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4"
+          "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4",
+          "3cf4d0cb2fff5cca9e5fe71d9fa25ef78ee5b245eae7d2fde92ef8771903f84a"
         ]
       }
     },
@@ -4297,6 +4300,31 @@
           "rss_mib": 2048
         }
       }
+    },
+    "a8-native-macos26-buffer-warning-20261029": {
+      "run": 40965927143,
+      "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+      "scope": "Existing known ALPN assertion unchanged;exact768/7168/6144KiB warning retained;only its timestamp normalized. No added test exception or obligation removed.",
+      "evidence": [
+        {
+          "graph": "standalone",
+          "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+          "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+          "raw_jsonl_sha256": "98fd6ccde74369cd46ebbbb3fd2c95011271e3ef218b4c74ef9487790065743e",
+          "core_matches_existing_digest": "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4",
+          "full_normalized_transcript_sha256": "3cf4d0cb2fff5cca9e5fe71d9fa25ef78ee5b245eae7d2fde92ef8771903f84a",
+          "exact_warning": "<clock> failed to sufficiently increase receive buffer size (was: 768 kiB, wanted: 7168 kiB, got: 6144 kiB). See https://github.com/igor-lemon/quic-go-utls/wiki/UDP-Buffer-Sizes for details."
+        },
+        {
+          "graph": "production",
+          "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+          "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+          "raw_jsonl_sha256": "41e82e2ab9cf1136c9c923a14a2b85a01f58b2446941e641e3cd7bb0ab81abd9",
+          "core_matches_existing_digest": "ce9817cc9b439780d9e305309a76291e14bc5531cea6c23e6fcf50e018b2e1e4",
+          "full_normalized_transcript_sha256": "3cf4d0cb2fff5cca9e5fe71d9fa25ef78ee5b245eae7d2fde92ef8771903f84a",
+          "exact_warning": "<clock> failed to sufficiently increase receive buffer size (was: 768 kiB, wanted: 7168 kiB, got: 6144 kiB). See https://github.com/igor-lemon/quic-go-utls/wiki/UDP-Buffer-Sizes for details."
+        }
+      ]
     }
   },
   "exclusions": [
@@ -4313,7 +4341,8 @@
     "Omit exact Go test RUN/PAUSE/CONT and PASS/FAIL/SKIP metadata lines; completion/actions are checked separately.",
     "Replace only absolute fork-gate source-export roots and loopback TCP/UDP port numbers.",
     "Normalize only a matching resolver IP pair in lookup HOST on IP:53: dial udp IP:53: connect: operation not permitted; preserve HOST, port, protocol and denial reason.",
-    "Core diagnostic lines sorted with duplicates retained. SHA256 of JSON [core_lines, distinct_framer_events]. Supporting Framer timestamp and pointer are normalized; repeat counts are retained in private trace_counts and raw events, not used as exact scheduling invariants. Distinct frame fields remain exact."
+    "Core diagnostic lines sorted with duplicates retained. SHA256 of JSON [core_lines, distinct_framer_events]. Supporting Framer timestamp and pointer are normalized; repeat counts are retained in private trace_counts and raw events, not used as exact scheduling invariants. Distinct frame fields remain exact.",
+    "Only the wallclock prefix of the exact QUIC receive-buffer-capability warning is metadata. Keep all sizes,URL,text and multiplicity in the transcript;changed values or additional diagnostics require a new reviewed hash."
   ],
   "diagnostic_baselines": {
     "utls-standalone": {

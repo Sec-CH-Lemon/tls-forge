@@ -44,6 +44,11 @@ in the output directory. Keep raw test evidence private as repository policy
 requires; archive publication requires a separate review.
 
 CI (`.github/workflows/forks.yml`) uses a separate runner per fork/graph and
+runs on the fixed macOS15 reference image. Its unchanged loopback-only policy
+must pass both a real IPv4-mapped UDP loopback exchange and external IPv4/mapped
+denial probes before any suite runs. Native macOS26 produced sendmsg EPERM for
+these owned dual-stack loopback tests; that is preserved as an unsupported
+measurement environment, not added to the109 debt exceptions. The gate
 runs on main/development only when `go.mod`, `go.sum`, `verification/` or
 `scripts/fork_gate.py` change, or by hand; it cancels obsolete runs. Its raw
 evidence stays on the runner by default, and its log has the gate's summary
@@ -82,3 +87,9 @@ the gate. No raw Framer values are printed in its public summary.
 Go Framer timestamps may omit fractional seconds when that fraction is zero.
 Both timestamp forms use the same bounded normalization; malformed timestamps
 and every distinct frame value remain part of the diagnostic comparison.
+
+Only the clock prefix of the exact QUIC socket-buffer warning is normalized.
+Its capacities, text, URL and multiplicity remain exact. A reviewed native26
+transcript adds the observed768/7168/6144KiB warning to the existing ALPN-debt
+case; the core assertion matches its previous digest. Other sizes, messages or
+test failures still reject. No debt obligation is removed or added.

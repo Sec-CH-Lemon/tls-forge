@@ -52,6 +52,14 @@ class ForkGateTests(unittest.TestCase):
         for altered in [first + 'new error\n', first.replace('len=8', 'len=9'), first.replace('data', 'new data'), first.replace('wrote PING', 'wrote GOAWAY')]:
             self.assertNotEqual(failure_digest(first), failure_digest(altered))
 
+    def test_socket_warning_keeps_capabilities_and_only_normalizes_clock(self):
+        warning = '2026/10/29 22:29:42 failed to sufficiently increase receive buffer size (was: 768 kiB, wanted: 7168 kiB, got: 6144 kiB). See https://github.com/igor-lemon/quic-go-utls/wiki/UDP-Buffer-Sizes for details.'
+        text = warning + '\nold assertion'
+        self.assertEqual(failure_digest(text), failure_digest(text.replace('22:29:42', '23:00:01')))
+        for changed in [text.replace('6144', '6145'), text.replace('7168', '7169'), text.replace('UDP-Buffer-Sizes', 'other'), text + '\nnew error', text.replace('for details.', 'for details. new error')]:
+            self.assertNotEqual(failure_digest(text), failure_digest(changed))
+        self.assertFalse(evaluate(self.rows(text=text), [1], self.known(), 'standalone')['accepted'])
+
     def test_transcript_normalization_is_bounded(self):
         first = '=== RUN   TestOld\n    file_test.go:1: Get "https://127.0.0.1:123/a" at /tmp/fork-gate-abc/path/file_test.go:2\n--- FAIL: TestOld (0.01s)\n'
         second = first.replace(":123/", ":456/").replace("/tmp/fork-gate-abc/", "/private/tmp/fork-gate-def/").replace("0.01s", "2.99s")

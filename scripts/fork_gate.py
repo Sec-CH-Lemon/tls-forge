@@ -40,6 +40,10 @@ def failure_transcript(text):
             return match[1] + "<resolver>" + match[3] + "<resolver>" + match[5]
         line = re.sub(r"(lookup \S+ on )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: dial udp )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: connect: operation not permitted)", resolver, line)
         line = re.sub(r"(127\.0\.0\.1|localhost|\[::1\]):[0-9]+", r"\1:<port>", line)
+        # The socket-capability warning can be emitted by any first QUIC
+        # caller. Only its wall clock is metadata: sizes and URL remain exact
+        # diagnostic values and still require a reviewed transcript hash.
+        line = re.sub(r"^[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}(?= failed to sufficiently increase receive buffer size \(was: [0-9]+ kiB, wanted: [0-9]+ kiB, got: [0-9]+ kiB\)\. See https://github\.com/igor-lemon/quic-go-utls/wiki/UDP-Buffer-Sizes for details\.$)", "<clock>", line)
         frame = re.fullmatch(r"\s+[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:]+(?:\.[0-9]+)? Framer 0x[0-9a-f]+: ((?:read|wrote) .+)", line)
         if frame:
             event = frame[1]
@@ -140,7 +144,20 @@ def main():
     sandbox = ["sandbox-exec", "-p", policy]
     # EPERM/EACCES proves the deny rule, rather than relying on an unreachable
     # public host. No application data is sent. TestWeb remains a named red test.
-    probe = 'import socket,errno; s=socket.socket(); r=s.connect_ex(("192.0.2.1",9)); assert r in (errno.EPERM,errno.EACCES),r'
+    probe = '''import socket, errno
+for family, address in [(socket.AF_INET, "192.0.2.1"), (socket.AF_INET6, "::ffff:192.0.2.1")]:
+    with socket.socket(family) as blocked:
+        blocked.settimeout(1)
+        result = blocked.connect_ex((address, 9))
+        assert result in (errno.EPERM, errno.EACCES), (address, result)
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer, socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as client:
+    peer.bind(("127.0.0.1", 0))
+    peer.settimeout(1)
+    client.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+    client.bind(("::", 0))
+    client.sendto(b"loopback-probe", ("::ffff:127.0.0.1", peer.getsockname()[1]))
+    assert peer.recv(64) == b"loopback-probe"
+'''
     subprocess.run(sandbox + [sys.executable, "-c", probe], env=env, check=True)
     with tempfile.TemporaryDirectory(prefix="fork-gate-") as directory:
         work = Path(directory)
