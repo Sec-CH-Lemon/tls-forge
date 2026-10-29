@@ -506,11 +506,28 @@ func TestAProfileIsFiledUnderTheBrowsersPlatform(t *testing.T) {
 		{"Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) Chrome/155.0.0.0", profile.HostPlatform()},
 	} {
 		measured.Navigator = &capture.Navigator{UserAgent: tc.ua}
+		// The wire UA is authoritative. Simulate a coherent visitor instead
+		// of a navigator report contradicting an actual desktop request.
+		for i := range measured.HTTP2.Headers {
+			if strings.EqualFold(measured.HTTP2.Headers[i].Name, "user-agent") {
+				measured.HTTP2.Headers[i].Value = tc.ua
+			}
+		}
+		if measured.HTTP1 != nil {
+			for i := range measured.HTTP1.Headers {
+				if strings.EqualFold(measured.HTTP1.Headers[i].Name, "user-agent") {
+					measured.HTTP1.Headers[i].Value = tc.ua
+				}
+			}
+		}
 		dir := t.TempDir()
-		saved, path, err := saveProfile(dir, "chrome_155", measured, true, nil)
+		if _, _, err := saveProfile(dir, "chrome_155", measured, true, nil); err == nil {
+			t.Fatal("unshipped platform silently selected a policy basis")
+		}
+		saved, path, err := saveProfile(dir, "chrome_155", measured, true, nil, "chrome_155_macos")
 		if err != nil || saved.Name != "chrome_155_"+tc.platform ||
 			path != filepath.Join(dir, "chrome_155", tc.platform+".json") {
-			t.Errorf("%s: saved %+v at %s: %v", tc.platform, saved, path, err)
+			t.Errorf("%s: saved at %s: %v", tc.platform, path, err)
 		}
 	}
 }

@@ -57,3 +57,14 @@ fixture logs сохраняются только как CMS-encrypted artifacts,
 установщик, иной URL/hash/version, изменённые profile bytes, неверный major,
 отсутствующее provenance и ложную отметку measured. actionlint и
 make workflows-check проходят. Нативный CI после публикации ещё не запускался.
+
+
+## Full race follow-up
+
+Первый полный race-прогон immutable export a8846b3 прошёл root и остальные
+пакеты, но завершился RED в CLI TestAProfileIsFiledUnderTheBrowsersPlatform.
+Старая фикстура меняла только Navigator UA, оставляя desktop UA в фактических
+H1/H2 заголовках. После C04 wire UA является источником истины; фикстура
+исправлена согласованно в обоих протоколах и теперь отдельно требует явной
+основы для непоставляемых mobile/ChromeOS платформ. Три целевых race-повтора
+прошли4.035s. Исходный полный RED сохранён; это ещё не полный зелёный прогон.
