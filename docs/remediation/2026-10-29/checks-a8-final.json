@@ -1,0 +1,1359 @@
+{
+  "schema": 1,
+  "stage": "A8",
+  "acceptance": "C01-C04/F02B accepted in the explicitly bounded A8 scope",
+  "engine": {
+    "version": "1.0.0",
+    "latest_released_version": "0.2.2",
+    "release_status": "unreleased",
+    "pending_engine_change": true
+  },
+  "platforms": [
+    {
+      "platform": "macos",
+      "profile_sha256": "8de05f99b52f2f22e88edab90c93bf0a5714143c94dbf02117dff9f62064d96c",
+      "provenance_sha256": "ec2e43a9e476602ea7452ccfaf636a8c9f7d8a0c63325c5e8780c30327fc44f0",
+      "build": "156.0.8078.74",
+      "architecture": "arm",
+      "reported_platform_version": "26.6.2",
+      "source_run": 40957414320,
+      "scope": "exact headed capture/compare and paired native H3 from same candidate;unreported persona and unmeasured rules remain inherited",
+      "native_identity": {
+        "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+        "machine": "arm64",
+        "expected_browser": "156.0.8078.74",
+        "profile_sha256": "8de05f99b52f2f22e88edab90c93bf0a5714143c94dbf02117dff9f62064d96c",
+        "peer_sha256": "d112a740d2e35fd8a5e278156ec230f58c3b5ded2e2f63a2a1e77251218695ef",
+        "chrome_launcher_sha256": "cf864393a84aa983ba58feea2c24050748e39738591205ecaa54b2c1199ad28c",
+        "scenario_sha256": "775e3c39121c2cebb6d30e2682cb57b30e1401cbc06c9bc377ad7337080f54b8",
+        "environment_limits": {},
+        "source_commit": "e359cff366501622679bfa63437a9ee5dc52b31d",
+        "source_files": {
+          "scripts/a8-h3-peer.go": "27cb33bf6a759d827f101a79aa034520568fc39a5552624c4fa752fae7feb01c",
+          "scripts/a8-h3-chrome.mjs": "3c36de1909eae146657577a7599269aa4fe0a38e7a06b105ae98bcba82bd22ad",
+          "scripts/a8-h3-campaign.py": "1c1ec41e7a061a0ae9bdb0e6580c8728104f17020bbea26e622862ebedfc2eea",
+          "scripts/a8-h3-scenario.json": "775e3c39121c2cebb6d30e2682cb57b30e1401cbc06c9bc377ad7337080f54b8",
+          "scripts/a8-h3-analyze.py": "af60998cb3ac78b3a5b3ddf63a1ccf472e788f8c7076d162318670c20dfca347"
+        },
+        "node": "v24.16.0",
+        "producer_only": true,
+        "acceptance": "pending independent packet/QPACK/negative-control analysis",
+        "peer_exit_code": 0,
+        "complete_cohorts": 12,
+        "observation_sha256": "d41479707065f92efcfc3be66f4c20b5a8d25b403e88bdb1947ea224ba1c462d"
+      },
+      "independent_h3_analysis": {
+        "accepted": true,
+        "normalizations": [
+          "GREASE SETTINGS identifier/value: validate uint32 range, retain originals and statistical bins; no uniqueness requirement",
+          "GREASE frame type/payload: validate32bitN, Nmod4=length and JSON lengths; retain originals",
+          "QPACK/header/control bytes: no normalization; compare within explicit peer-SETTINGS state; actor scheduling rates are not an equivalence verdict"
+        ],
+        "groups": [
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1,
+            "last_connection": 512,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 168,
+              "DDD": 344
+            },
+            "grease_bins": [
+              [
+                33,
+                26,
+                30,
+                24,
+                39,
+                32,
+                33,
+                38,
+                25,
+                33,
+                39,
+                21,
+                30,
+                37,
+                33,
+                39
+              ],
+              [
+                37,
+                32,
+                36,
+                29,
+                40,
+                29,
+                28,
+                36,
+                30,
+                37,
+                36,
+                30,
+                25,
+                31,
+                28,
+                28
+              ]
+            ],
+            "pearson": [
+              15.3125,
+              8.9375
+            ]
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 513,
+            "last_connection": 1024,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 152,
+              "DDD": 360
+            },
+            "grease_bins": [
+              [
+                39,
+                34,
+                27,
+                31,
+                28,
+                32,
+                24,
+                32,
+                33,
+                36,
+                41,
+                41,
+                32,
+                28,
+                23,
+                31
+              ],
+              [
+                40,
+                24,
+                30,
+                23,
+                35,
+                36,
+                33,
+                31,
+                38,
+                34,
+                32,
+                29,
+                26,
+                28,
+                34,
+                39
+              ]
+            ],
+            "pearson": [
+              13.625,
+              12.3125
+            ]
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1025,
+            "last_connection": 1536,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 502,
+              "DDD": 10
+            },
+            "grease_bins": [
+              [
+                28,
+                27,
+                22,
+                31,
+                42,
+                35,
+                31,
+                39,
+                38,
+                25,
+                31,
+                34,
+                34,
+                27,
+                36,
+                32
+              ],
+              [
+                34,
+                27,
+                26,
+                38,
+                37,
+                30,
+                33,
+                36,
+                28,
+                25,
+                24,
+                27,
+                41,
+                38,
+                35,
+                33
+              ]
+            ],
+            "pearson": [
+              13.625,
+              13.375
+            ]
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1537,
+            "last_connection": 2048,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 507,
+              "DDD": 5
+            },
+            "grease_bins": [
+              [
+                37,
+                33,
+                38,
+                28,
+                36,
+                39,
+                22,
+                31,
+                28,
+                30,
+                26,
+                34,
+                37,
+                37,
+                31,
+                25
+              ],
+              [
+                41,
+                33,
+                36,
+                28,
+                29,
+                28,
+                34,
+                33,
+                39,
+                28,
+                37,
+                30,
+                21,
+                28,
+                40,
+                27
+              ]
+            ],
+            "pearson": [
+              12.625,
+              14.5
+            ]
+          },
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2049,
+            "last_connection": 2052,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2053,
+            "last_connection": 2056,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2057,
+            "last_connection": 2060,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2061,
+            "last_connection": 2064,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2065,
+            "last_connection": 2068,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2069,
+            "last_connection": 2072,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2073,
+            "last_connection": 2076,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2077,
+            "last_connection": 2080,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          }
+        ],
+        "negative_controls": {
+          "transport_frozen_draw": "rejected by unchanged statistic",
+          "missing_encoder_instructions": "StreamBlocked",
+          "N0_appended_after_setting51": "GREASE SETTINGS placement differs from explicit rule"
+        },
+        "scope": "Owned IPv4 loopback peer; explicit server keylog; generic PacketConn capture(no peerECN/GSO); tickets disabled; one H3 connection per3requests;2freshChrome launches;one persistent minimized background tab per launch;new document per navigation;source/profile/actor timing recorded; noWAN/RNG/fullbrowserverdict",
+        "oracle": {
+          "name": "pylsqpack",
+          "version": "0.3.23"
+        },
+        "cross_actor_statistics": [
+          [
+            13.27738536718133,
+            14.642003710546348
+          ],
+          [
+            12.277956083545496,
+            8.282094036932648
+          ]
+        ],
+        "connections": 2080,
+        "requests": 6240,
+        "original_sha256": "d41479707065f92efcfc3be66f4c20b5a8d25b403e88bdb1947ea224ba1c462d",
+        "limitations": "Finite cold/reuse sequence, owned peer and process trust. No resumed/0RTT, blocked-table/error-policy/platform-timer/WAN/TCP-kernel or complete browser-indistinguishability verdict. QPACK first-section state proportions are recorded, not asserted equal under different actor scheduling."
+      },
+      "independent_packets": {
+        "accepted": true,
+        "decoder": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+        "decoder_sha256": "a9f0dd3ad6488be6dd4bf4506c3d72e667933a8aceaa6ada1a5fe9284b69774f",
+        "source_sha256": "fc8dc250592ef79121daae5856f55926c82d119b9b6cc6e1041f7a9d3b1e25bf",
+        "observation_sha256": "d41479707065f92efcfc3be66f4c20b5a8d25b403e88bdb1947ea224ba1c462d",
+        "pcap_sha256": "41d822c6cdf4a4113603140536db5ca58bcb0a9411943ac6468a9173e6821697",
+        "connections": 2080,
+        "streams": 10384,
+        "packets": 57119,
+        "negative_controls": {
+          "missing-keys": "independently decoded connection cardinality differs",
+          "missing-client-application": "independently decoded stream cardinality differs"
+        },
+        "analysis_causal_normalization": true,
+        "moved_records": [
+          {
+            "source_record": 23800,
+            "before_record": 23799,
+            "remote": "127.0.0.1:58037",
+            "server_cid": "e8ae86bc"
+          }
+        ],
+        "scope": "Exact original UDP payloads with synthetic IPv4/UDP envelope for independent authenticated QUIC decoding. Not a host IP/ECN/GSO/kernel capture. Stream bytes must equal the separately retained observer output, including overlap and gap checks."
+      }
+    },
+    {
+      "platform": "linux",
+      "profile_sha256": "734a2d03d6fb7933854e123f2e887a8ac928a55878f2ad0eb48a0706e17423bb",
+      "provenance_sha256": "8279f27185b30a09853b1c89bf0491874a1f480755f295e1f85239b1771e50e4",
+      "build": "156.0.8078.73",
+      "architecture": "x86",
+      "reported_platform_version": null,
+      "source_run": 40957414320,
+      "scope": "exact headed capture/compare and paired native H3 from same candidate;unreported persona and unmeasured rules remain inherited",
+      "native_identity": {
+        "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+        "machine": "x86_64",
+        "expected_browser": "156.0.8078.73",
+        "profile_sha256": "734a2d03d6fb7933854e123f2e887a8ac928a55878f2ad0eb48a0706e17423bb",
+        "peer_sha256": "10604a48f5571161c0bfe8429c915cebdc5887332807e07ea937e7021d5ddb54",
+        "chrome_launcher_sha256": "fd0dd33878bd59eef0260e552135c754bbecdf14f18b20856aef826f99e2c59c",
+        "scenario_sha256": "775e3c39121c2cebb6d30e2682cb57b30e1401cbc06c9bc377ad7337080f54b8",
+        "environment_limits": {},
+        "source_commit": "e359cff366501622679bfa63437a9ee5dc52b31d",
+        "source_files": {
+          "scripts/a8-h3-peer.go": "27cb33bf6a759d827f101a79aa034520568fc39a5552624c4fa752fae7feb01c",
+          "scripts/a8-h3-chrome.mjs": "3c36de1909eae146657577a7599269aa4fe0a38e7a06b105ae98bcba82bd22ad",
+          "scripts/a8-h3-campaign.py": "1c1ec41e7a061a0ae9bdb0e6580c8728104f17020bbea26e622862ebedfc2eea",
+          "scripts/a8-h3-scenario.json": "775e3c39121c2cebb6d30e2682cb57b30e1401cbc06c9bc377ad7337080f54b8",
+          "scripts/a8-h3-analyze.py": "af60998cb3ac78b3a5b3ddf63a1ccf472e788f8c7076d162318670c20dfca347"
+        },
+        "node": "v24.16.0",
+        "producer_only": true,
+        "acceptance": "pending independent packet/QPACK/negative-control analysis",
+        "peer_exit_code": 0,
+        "complete_cohorts": 12,
+        "observation_sha256": "5e6083eb1a4cdab0ce4116c43a62d63b8da6299700c1b50c5f98d7f8b3541ce4"
+      },
+      "independent_h3_analysis": {
+        "accepted": true,
+        "normalizations": [
+          "GREASE SETTINGS identifier/value: validate uint32 range, retain originals and statistical bins; no uniqueness requirement",
+          "GREASE frame type/payload: validate32bitN, Nmod4=length and JSON lengths; retain originals",
+          "QPACK/header/control bytes: no normalization; compare within explicit peer-SETTINGS state; actor scheduling rates are not an equivalence verdict"
+        ],
+        "groups": [
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1,
+            "last_connection": 512,
+            "samples": 512,
+            "qpack_states": {
+              "DDD": 501,
+              "SDD": 11
+            },
+            "grease_bins": [
+              [
+                28,
+                28,
+                30,
+                27,
+                35,
+                37,
+                39,
+                32,
+                29,
+                32,
+                27,
+                37,
+                33,
+                32,
+                28,
+                38
+              ],
+              [
+                29,
+                43,
+                36,
+                32,
+                35,
+                27,
+                31,
+                26,
+                25,
+                37,
+                24,
+                35,
+                30,
+                29,
+                39,
+                34
+              ]
+            ],
+            "pearson": [
+              8.0,
+              13.4375
+            ]
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 513,
+            "last_connection": 1024,
+            "samples": 512,
+            "qpack_states": {
+              "DDD": 497,
+              "SDD": 15
+            },
+            "grease_bins": [
+              [
+                34,
+                28,
+                40,
+                36,
+                33,
+                40,
+                34,
+                23,
+                25,
+                43,
+                22,
+                32,
+                30,
+                32,
+                31,
+                29
+              ],
+              [
+                27,
+                37,
+                34,
+                42,
+                31,
+                26,
+                36,
+                30,
+                28,
+                27,
+                33,
+                35,
+                30,
+                31,
+                38,
+                27
+              ]
+            ],
+            "pearson": [
+              16.6875,
+              10.25
+            ]
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1025,
+            "last_connection": 1536,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 505,
+              "DDD": 7
+            },
+            "grease_bins": [
+              [
+                38,
+                34,
+                35,
+                26,
+                24,
+                31,
+                35,
+                33,
+                36,
+                19,
+                35,
+                37,
+                44,
+                26,
+                29,
+                30
+              ],
+              [
+                35,
+                31,
+                40,
+                32,
+                30,
+                29,
+                28,
+                34,
+                39,
+                32,
+                34,
+                23,
+                38,
+                31,
+                34,
+                22
+              ]
+            ],
+            "pearson": [
+              17.875,
+              11.9375
+            ]
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1537,
+            "last_connection": 2048,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 507,
+              "DDD": 5
+            },
+            "grease_bins": [
+              [
+                28,
+                38,
+                42,
+                31,
+                27,
+                28,
+                31,
+                37,
+                20,
+                34,
+                31,
+                30,
+                30,
+                36,
+                36,
+                33
+              ],
+              [
+                40,
+                32,
+                30,
+                27,
+                28,
+                27,
+                41,
+                35,
+                32,
+                30,
+                35,
+                28,
+                31,
+                32,
+                32,
+                32
+              ]
+            ],
+            "pearson": [
+              12.8125,
+              7.9375
+            ]
+          },
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2049,
+            "last_connection": 2052,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2053,
+            "last_connection": 2056,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2057,
+            "last_connection": 2060,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2061,
+            "last_connection": 2064,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2065,
+            "last_connection": 2068,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2069,
+            "last_connection": 2072,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2073,
+            "last_connection": 2076,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2077,
+            "last_connection": 2080,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          }
+        ],
+        "negative_controls": {
+          "transport_frozen_draw": "rejected by unchanged statistic",
+          "missing_encoder_instructions": "StreamBlocked",
+          "N0_appended_after_setting51": "GREASE SETTINGS placement differs from explicit rule"
+        },
+        "scope": "Owned IPv4 loopback peer; explicit server keylog; generic PacketConn capture(no peerECN/GSO); tickets disabled; one H3 connection per3requests;2freshChrome launches;one persistent minimized background tab per launch;new document per navigation;source/profile/actor timing recorded; noWAN/RNG/fullbrowserverdict",
+        "oracle": {
+          "name": "pylsqpack",
+          "version": "0.3.23"
+        },
+        "cross_actor_statistics": [
+          [
+            13.561808304916063,
+            15.947678111739377
+          ],
+          [
+            12.707301342019278,
+            9.507721169238279
+          ]
+        ],
+        "connections": 2080,
+        "requests": 6240,
+        "original_sha256": "5e6083eb1a4cdab0ce4116c43a62d63b8da6299700c1b50c5f98d7f8b3541ce4",
+        "limitations": "Finite cold/reuse sequence, owned peer and process trust. No resumed/0RTT, blocked-table/error-policy/platform-timer/WAN/TCP-kernel or complete browser-indistinguishability verdict. QPACK first-section state proportions are recorded, not asserted equal under different actor scheduling."
+      },
+      "independent_packets": {
+        "accepted": true,
+        "decoder": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+        "decoder_sha256": "a9f0dd3ad6488be6dd4bf4506c3d72e667933a8aceaa6ada1a5fe9284b69774f",
+        "source_sha256": "551db5924b5547ca02b2d0730d8f7fa100650e2c6aacc4b38f5f15c725f2b25d",
+        "observation_sha256": "5e6083eb1a4cdab0ce4116c43a62d63b8da6299700c1b50c5f98d7f8b3541ce4",
+        "pcap_sha256": "3871352e663cbdc4f5d517a91559d64a273bcc5cc72444412a6a31ca52f533e3",
+        "connections": 2080,
+        "streams": 10384,
+        "packets": 43399,
+        "negative_controls": {
+          "missing-keys": "independently decoded connection cardinality differs",
+          "missing-client-application": "independently decoded stream cardinality differs"
+        },
+        "analysis_causal_normalization": true,
+        "moved_records": [],
+        "scope": "Exact original UDP payloads with synthetic IPv4/UDP envelope for independent authenticated QUIC decoding. Not a host IP/ECN/GSO/kernel capture. Stream bytes must equal the separately retained observer output, including overlap and gap checks."
+      }
+    },
+    {
+      "platform": "windows",
+      "profile_sha256": "4efad921ada8e0daaf232dbd35b9cab3926469f2137c22db714e931f4db59c5c",
+      "provenance_sha256": "9499548df82f678e61f0fc372b52a7dd7e284eba841e75326acfdeaa92914cfe",
+      "build": "156.0.8078.74",
+      "architecture": "x86",
+      "reported_platform_version": "19.0.0",
+      "source_run": 40957414320,
+      "scope": "exact headed capture/compare and paired native H3 from same candidate;unreported persona and unmeasured rules remain inherited",
+      "native_identity": {
+        "platform": "Windows-2025Server-10.0.26100-SP0",
+        "machine": "AMD64",
+        "expected_browser": "156.0.8078.74",
+        "profile_sha256": "4efad921ada8e0daaf232dbd35b9cab3926469f2137c22db714e931f4db59c5c",
+        "peer_sha256": "3014b13577361dc2e193ce968469d4c7c6738de37aab1b365ce237070c945681",
+        "chrome_launcher_sha256": "4132eb3e9c5b3978874eed48cb45c21debf343a0d383b6d2fb01a5fcf349ec65",
+        "scenario_sha256": "775e3c39121c2cebb6d30e2682cb57b30e1401cbc06c9bc377ad7337080f54b8",
+        "environment_limits": {},
+        "source_commit": "e359cff366501622679bfa63437a9ee5dc52b31d",
+        "source_files": {
+          "scripts\\a8-h3-peer.go": "27cb33bf6a759d827f101a79aa034520568fc39a5552624c4fa752fae7feb01c",
+          "scripts\\a8-h3-chrome.mjs": "3c36de1909eae146657577a7599269aa4fe0a38e7a06b105ae98bcba82bd22ad",
+          "scripts\\a8-h3-campaign.py": "1c1ec41e7a061a0ae9bdb0e6580c8728104f17020bbea26e622862ebedfc2eea",
+          "scripts\\a8-h3-scenario.json": "775e3c39121c2cebb6d30e2682cb57b30e1401cbc06c9bc377ad7337080f54b8",
+          "scripts\\a8-h3-analyze.py": "af60998cb3ac78b3a5b3ddf63a1ccf472e788f8c7076d162318670c20dfca347"
+        },
+        "node": "v24.16.0",
+        "producer_only": true,
+        "acceptance": "pending independent packet/QPACK/negative-control analysis",
+        "peer_exit_code": 0,
+        "complete_cohorts": 12,
+        "observation_sha256": "415d87631397cc96b307218163c4fb2119ca1f587a019c4f24b1ebe8bc5efea8"
+      },
+      "independent_h3_analysis": {
+        "accepted": true,
+        "normalizations": [
+          "GREASE SETTINGS identifier/value: validate uint32 range, retain originals and statistical bins; no uniqueness requirement",
+          "GREASE frame type/payload: validate32bitN, Nmod4=length and JSON lengths; retain originals",
+          "QPACK/header/control bytes: no normalization; compare within explicit peer-SETTINGS state; actor scheduling rates are not an equivalence verdict"
+        ],
+        "groups": [
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1,
+            "last_connection": 512,
+            "samples": 512,
+            "qpack_states": {
+              "DDD": 504,
+              "SDD": 8
+            },
+            "grease_bins": [
+              [
+                29,
+                23,
+                37,
+                32,
+                33,
+                32,
+                31,
+                38,
+                31,
+                26,
+                38,
+                27,
+                28,
+                40,
+                32,
+                35
+              ],
+              [
+                30,
+                27,
+                33,
+                28,
+                41,
+                29,
+                37,
+                34,
+                28,
+                32,
+                34,
+                32,
+                35,
+                29,
+                31,
+                32
+              ]
+            ],
+            "pearson": [
+              10.625,
+              6.375
+            ]
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 513,
+            "last_connection": 1024,
+            "samples": 512,
+            "qpack_states": {
+              "DDD": 503,
+              "SDD": 9
+            },
+            "grease_bins": [
+              [
+                29,
+                38,
+                30,
+                38,
+                37,
+                29,
+                23,
+                32,
+                34,
+                23,
+                36,
+                31,
+                35,
+                27,
+                34,
+                36
+              ],
+              [
+                23,
+                40,
+                34,
+                36,
+                36,
+                38,
+                40,
+                39,
+                28,
+                32,
+                36,
+                18,
+                27,
+                26,
+                30,
+                29
+              ]
+            ],
+            "pearson": [
+              11.125,
+              19.75
+            ]
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1025,
+            "last_connection": 1536,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 505,
+              "DDD": 7
+            },
+            "grease_bins": [
+              [
+                29,
+                30,
+                24,
+                40,
+                28,
+                35,
+                34,
+                32,
+                38,
+                26,
+                35,
+                37,
+                34,
+                38,
+                21,
+                31
+              ],
+              [
+                33,
+                27,
+                39,
+                32,
+                20,
+                29,
+                31,
+                35,
+                35,
+                27,
+                31,
+                32,
+                40,
+                32,
+                32,
+                37
+              ]
+            ],
+            "pearson": [
+              13.6875,
+              11.3125
+            ]
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "natural",
+            "settings_after_requests": 0,
+            "exit_code": 0,
+            "first_connection": 1537,
+            "last_connection": 2048,
+            "samples": 512,
+            "qpack_states": {
+              "SDD": 501,
+              "DDD": 11
+            },
+            "grease_bins": [
+              [
+                33,
+                47,
+                27,
+                46,
+                25,
+                29,
+                35,
+                39,
+                26,
+                36,
+                33,
+                30,
+                28,
+                22,
+                30,
+                26
+              ],
+              [
+                32,
+                35,
+                32,
+                41,
+                25,
+                41,
+                35,
+                27,
+                34,
+                32,
+                23,
+                30,
+                34,
+                30,
+                33,
+                28
+              ]
+            ],
+            "pearson": [
+              24.25,
+              11.5
+            ]
+          },
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2049,
+            "last_connection": 2052,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2053,
+            "last_connection": 2056,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2057,
+            "last_connection": 2060,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 2,
+            "exit_code": 0,
+            "first_connection": 2061,
+            "last_connection": 2064,
+            "samples": 4,
+            "qpack_states": {
+              "SSD": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2065,
+            "last_connection": 2068,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "chrome",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2069,
+            "last_connection": 2072,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 1,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2073,
+            "last_connection": 2076,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          },
+          {
+            "actor": "client",
+            "cohort": 2,
+            "role": "controlled-settings",
+            "settings_after_requests": 3,
+            "exit_code": 0,
+            "first_connection": 2077,
+            "last_connection": 2080,
+            "samples": 4,
+            "qpack_states": {
+              "SSS": 4
+            }
+          }
+        ],
+        "negative_controls": {
+          "transport_frozen_draw": "rejected by unchanged statistic",
+          "missing_encoder_instructions": "StreamBlocked",
+          "N0_appended_after_setting51": "GREASE SETTINGS placement differs from explicit rule"
+        },
+        "scope": "Owned IPv4 loopback peer; explicit server keylog; generic PacketConn capture(no peerECN/GSO); tickets disabled; one H3 connection per3requests;2freshChrome launches;one persistent minimized background tab per launch;new document per navigation;source/profile/actor timing recorded; noWAN/RNG/fullbrowserverdict",
+        "oracle": {
+          "name": "pylsqpack",
+          "version": "0.3.23"
+        },
+        "cross_actor_statistics": [
+          [
+            11.334123592274603,
+            10.881970827765446
+          ],
+          [
+            14.855072059044067,
+            14.498470032199949
+          ]
+        ],
+        "connections": 2080,
+        "requests": 6240,
+        "original_sha256": "415d87631397cc96b307218163c4fb2119ca1f587a019c4f24b1ebe8bc5efea8",
+        "limitations": "Finite cold/reuse sequence, owned peer and process trust. No resumed/0RTT, blocked-table/error-policy/platform-timer/WAN/TCP-kernel or complete browser-indistinguishability verdict. QPACK first-section state proportions are recorded, not asserted equal under different actor scheduling."
+      },
+      "independent_packets": {
+        "accepted": true,
+        "decoder": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+        "decoder_sha256": "a9f0dd3ad6488be6dd4bf4506c3d72e667933a8aceaa6ada1a5fe9284b69774f",
+        "source_sha256": "f545b34e829279e4ef9c12a52ba68f05a859b9344db2e1eae9aab0693a88eac0",
+        "observation_sha256": "415d87631397cc96b307218163c4fb2119ca1f587a019c4f24b1ebe8bc5efea8",
+        "pcap_sha256": "2918a94d10333dd3dab630ad874674e046eb48ee15ff51290e059d969e2ec10c",
+        "connections": 2080,
+        "streams": 10384,
+        "packets": 46749,
+        "negative_controls": {
+          "missing-keys": "independently decoded connection cardinality differs",
+          "missing-client-application": "independently decoded stream cardinality differs"
+        },
+        "analysis_causal_normalization": true,
+        "moved_records": [],
+        "scope": "Exact original UDP payloads with synthetic IPv4/UDP envelope for independent authenticated QUIC decoding. Not a host IP/ECN/GSO/kernel capture. Stream bytes must equal the separately retained observer output, including overlap and gap checks."
+      }
+    }
+  ],
+  "fixture_acceptance": {
+    "method": "Compose unchanged complete non-ALPS groups with fresh entire ALPS group. Never relabel a failed whole run successful.",
+    "initial_linux_complete_run": 40928528624,
+    "complete_non_alps_mac_windows_run": 40947160403,
+    "entire_alps_mac_windows_run": 40957417734,
+    "entire_alps_initialized_linux_run": 40960959697,
+    "scope": "Fixture browser actor only; same originals and expected headers/GOAWAY/connections. Linux ALPS initialization scenario is explicit measurement scope.",
+    "private_originals": {
+      "macOS": {
+        "source": "e359cff366501622679bfa63437a9ee5dc52b31d",
+        "manifest_sha256": "88c8554b0399d7e74c476d500b150e1b3ab4c3d53950b26d8347c4c3a6554677",
+        "fixture_log_sha256": "11a89dd9eef3fa122eeadb193535aa73972cdb4b083393e6f9e428b6aee65826",
+        "difference_sha256": "3a47f54547114593c650286172d5f3c6b2179c5429680fdbcf7da9af11a310cb"
+      },
+      "Windows": {
+        "source": "e359cff366501622679bfa63437a9ee5dc52b31d",
+        "manifest_sha256": "f35cdebfc14a8d9dd313bdd10f15ebe93efae825f765b108f7b206949e606851",
+        "fixture_log_sha256": "b4769736c69f526cd0d38e1d4166dcf62f89035e5becbc8d04dc0d032c0e64fa",
+        "difference_sha256": "3a47f54547114593c650286172d5f3c6b2179c5429680fdbcf7da9af11a310cb"
+      },
+      "Linux": {
+        "source": "439bf04f006da9092bb9b21a20a2e83185a4dd00",
+        "manifest_sha256": "3e6e6b8effc2a129a5a43d28d9c53a039b6f61ea9e0780846edf6231451e7115",
+        "fixture_log_sha256": "b96f6ee6f2c5de72558b1996720b318978abe2066bc048c2d1ca48ef5f4997ad",
+        "difference_sha256": "3a47f54547114593c650286172d5f3c6b2179c5429680fdbcf7da9af11a310cb"
+      }
+    }
+  },
+  "go_checks": {
+    "full_race": "23 packages PASS;root513.100s,CLI453.665s",
+    "strict_fresh_coverage": "all functions/packages100.0%;GOFLAGS=-count=1;root160.900s,CLI55.029s",
+    "original_coverage_failure": "functional checks passed;strict saveProfile98.7% rejected before adding real write-failure test;original log retained",
+    "vet_workflows": "PASS;includes explicit observer race test and Python negative controls",
+    "lint": "0 issues",
+    "builds": "GOWORK=off pinned modules and default developer go.work PASS",
+    "sdks": "Node/Python unit100%,types,11 real-daemon cases each,release Node54/Python17 with100% gates"
+  },
+  "private_evidence_sha256": {
+    "native-final-full-race.log": "a4eeaea6883c31d3b7e06233556d51a7cf127e80d64229fcb8d6b3d8b136088f",
+    "native-final-full-cover.log": "8f227fbd7b47612b858ad55ce273c2e29c14d80284421ba9103566887ba6f7fd",
+    "native-final-full-cover-r02.log": "f23f917cbb855e0a53eaee3f8cfd0d29dc0afad5ea5de31e2220dd1e86d96d03",
+    "native-final-sdk-release.log": "f9ba99feb4c4234742e84d1c0ffb0cc181229bb99ddf6f1ffddab9492e4abe52",
+    "native-final-vet-workflows.log": "de983c89e10562bbdd2fdfad01d8bee7dcab5b451a210cdaa4cf7462fa607cba",
+    "native-final-lint.log": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47",
+    "build-pinned-final.log": "37914f5b81ad649bcb94fcf0d1870fa39dcb5aedc1f999f1f58539d95666de69",
+    "build-workspace-final.log": "29531856971a0f3c31252782ecb513ee58de3db6bf1dba80f91c4124a2992075",
+    "native-placement-final-profile-checks.log": "92ecd9594e217ad1f1f35d1e1bd9b7f57c46a7fdc2d91272790fe4d78d36aaf4",
+    "capture-profile-collision-race.log": "4a261528b3956537c2dbab310e6c8ff14775989ca2262e3c61de612949b50d66"
+  },
+  "fork_gates": {
+    "fresh_affected": [
+      {
+        "fork": "utls",
+        "graph": "standalone",
+        "exit_code": 0
+      },
+      {
+        "fork": "utls",
+        "graph": "production",
+        "exit_code": 0
+      },
+      {
+        "fork": "tls-client",
+        "graph": "standalone",
+        "exit_code": 0
+      },
+      {
+        "fork": "tls-client",
+        "graph": "production",
+        "exit_code": 0
+      },
+      {
+        "fork": "quic-go-utls",
+        "graph": "production",
+        "exit_code": 0
+      },
+      {
+        "fork": "fhttp",
+        "graph": "production",
+        "exit_code": 0
+      }
+    ],
+    "unchanged_standalone": [
+      "quic-go-utls",
+      "fhttp"
+    ],
+    "known_obligations": 109,
+    "meaning": "Stage1 known-debt gates;no new exclusions. Not green raw full fork suites;F09stage2 remains open."
+  },
+  "limitations": [
+    "Finite source/build/profile/scenario-bound evidence does not prove remote indistinguishability or RNG quality.",
+    "First-section QPACK scheduling-state proportions differ materially;exact raw bytes match only within explicit states. No state-frequency normalization.",
+    "No new resumed/0RTT,blocked/malformed H3,error-policy,WAN,proxy,kernel/TCP/ECN/GSO equivalence verdict.",
+    "All unmeasured policy fields remain inherited;Linux platform version unreported;151-154 historical.",
+    "Capture profile/provenance writes are individually atomic,not one cross-file transaction.",
+    "F02 catalogue83 entries and F09stage2/109 known fork obligations remain separate work."
+  ]
+}

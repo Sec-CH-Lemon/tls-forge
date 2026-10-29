@@ -1,0 +1,1529 @@
+{
+  "provenance_schema": 1,
+  "profile_sha256": "8de05f99b52f2f22e88edab90c93bf0a5714143c94dbf02117dff9f62064d96c",
+  "capture_canonical_sha256": "eaef8c0ffb10ec065c78af9be0695382645a0a9fb5f8f7cf81d16ff52991658d",
+  "basis_name": "chrome_155_macos",
+  "basis_sha256": "1325ea350e12be1218db794fc5e589bbb6ab91380d9df6c66e5f7c98deff87ed",
+  "browser": {
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "languages": [
+      "en-US",
+      "en"
+    ],
+    "platform": "macOS",
+    "mobile": false,
+    "brands": [
+      {
+        "brand": "Not:A-Brand",
+        "version": "8"
+      },
+      {
+        "brand": "Chromium",
+        "version": "156"
+      },
+      {
+        "brand": "Google Chrome",
+        "version": "156"
+      }
+    ],
+    "full_version_list": [
+      {
+        "brand": "Not:A-Brand",
+        "version": "8.0.0.0"
+      },
+      {
+        "brand": "Chromium",
+        "version": "156.0.8078.74"
+      },
+      {
+        "brand": "Google Chrome",
+        "version": "156.0.8078.74"
+      }
+    ],
+    "architecture": "arm",
+    "bitness": "64",
+    "platform_version": "26.6.2",
+    "ua_full_version": "156.0.8078.74",
+    "form_factors": [
+      "Desktop"
+    ],
+    "device_memory": 8,
+    "hardware_concurrency": 3
+  },
+  "browser_mode": "headed",
+  "fields": {
+    "behavior.cache.entries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.entry_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.total_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.ip_domain_host_only": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.lax_unsafe_age_seconds": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.max_age_seconds": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.max_attribute_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.max_pair_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.prefixes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.raw_fields": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.reset_order_on_value_change": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_h3": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_records": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_upgrade": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_wait_max_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_wait_min_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_wait_percent": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.resolver": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.auth_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.dropped_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.idle_connection_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.idle_reap": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.max_connections": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.max_idle_connections": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.merged_head_body_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.missing_status": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.preflight_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.preserve_framing_fields": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.request_timeout_resend": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.response_header_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.restart_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.unread_grace_us": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.zero_length_identity": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.zero_length_identity_excluded_methods": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.allow_huffman_expansion": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.alps_settings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.auth_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.close_on_goaway": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.connection_window_overflow_error": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.data_frame_payload": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.dropped_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.encoder_table_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.enforce_advertised_frame_limit": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.header_frame_payload": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.hpack_first_static_name": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.hpack_index_oversized": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.hpack_indexed_exceptions": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.hpack_unindexed_prefixes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.idle_connection_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.preface_ping_failed_goaway_code": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.preface_ping_failed_goaway_debug": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.preface_ping_first_id": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.preface_ping_hung_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.preface_ping_idle_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.preflight_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.priority_dependency": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.read_loop_start": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.reject_unsolicited_ping_ack": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.reset_data_before_headers": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.restart_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.retries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.retry_delay_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.retry_errors": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.strict_max_streams": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.tolerated_response_fields": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.unread_grace_us": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.urgency_weights": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.window_update_delay_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.window_update_denominator": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h2.zero_window_stream_error": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.alps_close_code": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.alps_close_frame_type": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.alps_close_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.alps_close_space": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.alps_errors": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.alps_origin_frames": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.alps_reader": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.body_copy_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.control_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.control_stream": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_frame_n_bits": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_frames": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_payload_lengths": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_setting_n_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_setting_n_min": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_setting_nonzero": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_setting_placement": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.grease_settings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.peer_reset": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.peer_settings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.priority_frame_type": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.priority_source": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.priority_updates": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.priority_value": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.pseudo_header_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.critical_close_code": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.critical_close_frame_type": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.critical_close_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.critical_close_space": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.decoder_feedback": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.decoder_writes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.draining_percent": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.encoder_strategy": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.encoder_table_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.encoder_warmup_sections": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_capacity_exceeded_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_decoder_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_decompression_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_encoder_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_invalid_relative_index_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_queue_exhausted_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_stream_unavailable_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_stream_write_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.error_zero_increment_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.huffman_names": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.huffman_values": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.never_index": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.reference_base": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.stream_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.qpack.streams": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.request_writes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.retry_application_errors": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.retry_attempts": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.retry_methods": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.retry_transport_errors": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.retry_unprocessed_attempts": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.settings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.settings_boolean": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.settings_boolean_names": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.settings_close_code": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.settings_close_space": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.settings_errors": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h3.settings_http2": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.accept_fetch": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.accept_preflight": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.alps_after": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.authorization_leading": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.browser_base_fields": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.browser_context": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.client_hint_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.cookie_after": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.cookie_slot": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.default_client_hints": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.default_referrer_policy": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.form_cache_control": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.form_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.form_reload_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.given_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.given_redirect_drops": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.h1_connection_default": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.h1_generated_priority": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.h1_prefix": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.navigation_fetch_user": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.navigation_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.preflight_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.priority_fetch": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.range_accept_encoding": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.range_cache_control": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.redirected_hints_after": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.redirected_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.reload_cache_control": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.renderer_default_hints": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.renderer_extra_fields": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.renderer_hint_insertion_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.renderer_initial_buckets": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.renderer_load_denominator": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.renderer_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.renderer_origin_dests": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.restarted_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.script_leading": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.script_metadata": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.script_priority_exclusive": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.script_priority_weight": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.script_trailing": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.sent_priority": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.storage_access": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.untrusted_drop_codings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.untrusted_prefixes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.withhold_untrusted": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.without_context": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.auth_cache_entries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.auth_cache_paths": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.auth_scheme_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.body_read_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.connection_error_methods": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.connection_error_retries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.content_coding_overflow": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.content_codings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.content_length_empty_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.digest_algorithms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.digest_cnonce_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.drain_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.drain_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.first_bytes_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.gzip_decoder": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.ignored_content_codings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.max_auth_restarts": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.max_content_codings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.max_site_pools": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.negotiate_auth": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.preflight_default_age_seconds": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.preflight_max_age_seconds": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.redirects_fetch": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.redirects_navigation": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.unused_idle_connection_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.zero_content_length_methods": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.zstd_window_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.connect_header_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.connect_priority_exclusive": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.connect_priority_weight": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.connect_pseudo_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.connection_value": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.forward_http": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.idle_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.profile_tls": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.proxy.tls_cache_entries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.accept_zero_available_version": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_alarm_slack_percent": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_decimation_after": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_decimation_min_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_decimation_packets": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_decimation_rtt_percent": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_gap_packets": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_only_frame": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_only_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_sent_after": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_timer_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.active_cid_limit": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.alarm_slack_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.alpn": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.alps_protocols": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.alt_svc": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.alt_svc_remote_hosts": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.alt_svc_tcp_waits_with_h2": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.alt_svc_user_ports": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.broken_doublings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.broken_max_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.broken_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.broken_recent_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.chaos_crypto_splits_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.chaos_crypto_splits_min": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.chaos_first_frame_min": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.chaos_first_frame_spread": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.chaos_pings_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.chaos_pings_min": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.close_early_application": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.connected_socket": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.connection_id_change": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.connection_receive_window": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.datagrams": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.dedicated_socket": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ecn": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.enabled": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.first_packet_number": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.grease_parameter_id_bits": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.grease_version": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.handshake_ack_timer_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.handshake_idle_close_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.handshake_idle_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.handshake_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.idle_close": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.idle_close_code": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.idle_close_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.idle_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ignore_vn_after_retry": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ignore_vn_wrong_cids": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.incoming_bidi_streams": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.incoming_uni_streams": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.initial_dcid_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.initial_layout": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.initial_packet_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.max_ack_delay_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.max_datagram_frame": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.max_udp_payload": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.mtu_probes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.packet_number_length": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.packet_numbers": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.padding_position": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.preserve_extensions": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.pto_initial_rtt_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.pto_no_sample_min_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.pto_no_sample_multiplier": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.pto_probes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.pto_rttvar_multiplier": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.pto_skip": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.remove_grease_groups": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.retry_over_tcp": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.server_rtts_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.shuffle_extensions": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.shuffle_parameters": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.source_cid_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.stream_receive_window": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tcp_wait_broken_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tcp_wait_cold_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tcp_wait_default_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tcp_wait_extra_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tcp_wait_max_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tcp_wait_rtt_percent": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tcp_waits_with_connection": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tls_cipher_suites": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tls_signature_algorithms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tls_versions": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.undecryptable_level_names": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.version_information": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.version_mismatch_error": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.version_parse_error": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.versions": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tcp.keepalive": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tcp.keepalive_count": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tcp.keepalive_idle_seconds": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tcp.keepalive_interval_seconds": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.alpn_mismatch_alert": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.certificate_decode_alert": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.close_notify": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.defer_key_update": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.duplicate_extension_alert": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_aeads": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_chacha_without_aes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_inner_min_version": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_inner_omitted": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_inner_own": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_kdfs": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_kems": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_outer_psk": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_padding_block": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_retries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ech_retry_without": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.false_start": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.full_size_records": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.handshake_retries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.malformed_extension_alert": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.preserve_sni_trailing_dot": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.resumption": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.retry_local_alerts": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.single_use_tickets": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.ticket_age_quantum_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.trust_anchor_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.unsolicited_extension_alert": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.validate_encrypted_extensions": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.url.blocked_ports": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "client_hello.generated_fields": {
+      "class": "generated/stateful",
+      "source": "basis generation rules and live engine connection/session state; never replay captured keys, randoms or tickets"
+    },
+    "client_hello.template": {
+      "class": "measured",
+      "source": "capture raw ClientHello; public changing bytes retained as provenance only"
+    },
+    "client_hints.device-memory": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.downlink": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.dpr": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.ect": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.rtt": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.sec-ch-device-memory": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.sec-ch-dpr": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.sec-ch-prefers-color-scheme": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.sec-ch-prefers-reduced-motion": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.sec-ch-prefers-reduced-transparency": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.sec-ch-ua-arch": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-ua-bitness": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-ua-form-factors": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-ua-full-version": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-ua-full-version-list": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-ua-model": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-ua-platform-version": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-ua-wow64": {
+      "class": "measured",
+      "source": "capture UA hint/persona field; original value retained, not a constancy claim"
+    },
+    "client_hints.sec-ch-viewport-height": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.sec-ch-viewport-width": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "client_hints.viewport-width": {
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
+    },
+    "headers": {
+      "class": "measured",
+      "source": "capture HTTP/2 fields; request-specific fields excluded"
+    },
+    "http1": {
+      "class": "measured",
+      "source": "capture HTTP/1 fields"
+    },
+    "http2": {
+      "class": "measured",
+      "source": "capture SETTINGS, flow and header representation; unobserved initial stream choice inherited"
+    },
+    "per_connection": {
+      "class": "inherited",
+      "source": "basis generation constraints; finite draw observations are not a complete distribution"
+    }
+  },
+  "acceptance": "candidate; browser/wire acceptance not established by capture"
+}

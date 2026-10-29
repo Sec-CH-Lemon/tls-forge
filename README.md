@@ -234,7 +234,9 @@ Management exposes JA3 and JA4 fingerprints as request fields that can be used
 in WAF custom rules, Transform Rules and Workers; see Cloudflare's official
 [JA3/JA4 fingerprint documentation](https://developers.cloudflare.com/bots/additional-configurations/ja3-ja4-fingerprint/).
 
-The profiles in this project are measurements, not hand-written guesses.
+Profiles combine captured fields with explicitly inherited policy rules whose
+origins are retained. The `chrome` alias selects Chrome156 for the host platform;
+pin `chrome_155_macos` or another exact name when its identity must stay fixed.
 `tls-forge compare` measures a real browser and this client against the same
 local echo server and reports every difference it finds.
 
@@ -2901,7 +2903,8 @@ and exact current hashes are in `profile/provenance/historical.json`; they have
 no fresh Chrome156 acceptance. Chrome155 Linux/Windows explicitly inherit the
 30 shared network policies from the macOS155 basis, with separate origins in
 `profile/provenance/chrome_155/`. OS timers, keepalive and negotiate-auth remain
-platform-specific. Native156 SETTINGS/QPACK validation is required separately.
+platform-specific. Native156 SETTINGS/QPACK validation is recorded separately
+in [the A8 acceptance report](docs/remediation/2026-10-29/A8.ru.md).
 See [the transfer evidence](docs/remediation/2026-10-29/A8-PLATFORMS.ru.md).
 
 

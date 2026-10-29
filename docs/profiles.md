@@ -188,6 +188,14 @@ and resource controls, not a fresh browser-equivalence measurement.
 
 ## Capturing one
 
+The current `chrome` alias resolves to `chrome_156_macos`, `chrome_156_linux` or
+`chrome_156_windows` for the host platform. These schema4/engine1 profiles retain
+exact native headed capture bytes and separate field provenance under
+`profile/provenance/chrome_156/`. Unmeasured behavior remains inherited from155.
+The [A8 acceptance report](remediation/2026-10-29/A8.ru.md) records per-platform
+builds, hashes, native fixtures and bounded H3 evidence. It does not certify
+every inherited timer or policy. Profiles151–154 remain historical captures.
+
 ```bash
 tls-forge capture --save my-chrome.json
 ```

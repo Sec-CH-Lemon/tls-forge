@@ -1,5 +1,7 @@
 # A8/C02: shared JSON Linux/Windows
 
+> Промежуточный отчёт этапа; итоговая приёмка и ограничения: [A8](A8.ru.md).
+
 Ровно30 ключей из исходного profiles-behavior-divergence перенесены из
 chrome_155_macos в155 Linux иWindows. Источник сохранён как inherited в
 profile/provenance/chrome_155; provenance связывает точные байты SHA256,

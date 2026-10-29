@@ -86,7 +86,7 @@ func TestEngineGateBeforeProxyOrOriginConnection(t *testing.T) {
 // Chrome151-154 or Linux/Windows browser-equivalence measurement.
 func TestMigratedProfilesOnRealTLSAndHTTP2(t *testing.T) {
 	server := startEcho(t)
-	for _, major := range []string{"151", "152", "153", "154", "155"} {
+	for _, major := range []string{"151", "152", "153", "154", "155", "156"} {
 		for _, platform := range []string{"linux", "macos", "windows"} {
 			name := "chrome_" + major + "_" + platform
 			t.Run(name, func(t *testing.T) {

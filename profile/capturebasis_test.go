@@ -68,7 +68,7 @@ func TestCaptureRetainsEveryUnmeasuredPolicyWithoutIdentityDispatch(t *testing.T
 func TestCaptureBasisSelectsShippedPlatformData(t *testing.T) {
 	for _, platform := range []string{"macos", "linux", "windows"} {
 		p, err := CaptureBasis("chrome", platform)
-		if err != nil || p.Name != "chrome_155_"+platform {
+		if err != nil || p.Name != "chrome_156_"+platform {
 			t.Fatalf("%s: %v %v", platform, p, err)
 		}
 	}

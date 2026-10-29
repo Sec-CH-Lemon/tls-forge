@@ -15,7 +15,7 @@ import (
 )
 
 func TestEveryShippedProfileSendsItsTrustAnchorsAsItsChromeDid(t *testing.T) {
-	// Chrome 154 and 155 sent their IDs sorted by their bytes on all three
+	// Chrome154/155 and scoped156 cohorts sent IDs sorted by their bytes on all three
 	// platforms, and go out as captured; 152 and 153 drew their order for each
 	// process, one order on each machine, and go out in the order this process
 	// draws, the same every time; 151 sent none.
@@ -51,7 +51,7 @@ func TestEveryShippedProfileSendsItsTrustAnchorsAsItsChromeDid(t *testing.T) {
 			if got, want := sortedTrustAnchors(t, sent), sortedTrustAnchors(t, captured); !slices.Equal(got, want) {
 				t.Errorf("%s sends other IDs: %v, captured %v", path, got, want)
 			}
-		case "chrome_154", "chrome_155":
+		case "chrome_154", "chrome_155", "chrome_156":
 			records, err := splitTrustAnchors(sent)
 			if err != nil || !inByteOrder(records) || !bytes.Equal(sent, captured) {
 				t.Errorf("%s: sent %x, captured %x, %v", path, sent, captured, err)

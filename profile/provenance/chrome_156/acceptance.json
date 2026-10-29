@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "stage": "A8",
+  "source_run": 40957414320,
+  "native_h3_source": "e359cff366501622679bfa63437a9ee5dc52b31d",
+  "reports": "docs/remediation/2026-10-29/A8.ru.md",
+  "profiles": [
+    {
+      "platform": "macos",
+      "profile_sha256": "8de05f99b52f2f22e88edab90c93bf0a5714143c94dbf02117dff9f62064d96c",
+      "provenance_sha256": "ec2e43a9e476602ea7452ccfaf636a8c9f7d8a0c63325c5e8780c30327fc44f0",
+      "build": "156.0.8078.74",
+      "architecture": "arm",
+      "reported_platform_version": "26.6.2",
+      "scope": "exact headed capture/compare and paired native H3 from same candidate;unreported persona and unmeasured rules remain inherited"
+    },
+    {
+      "platform": "linux",
+      "profile_sha256": "734a2d03d6fb7933854e123f2e887a8ac928a55878f2ad0eb48a0706e17423bb",
+      "provenance_sha256": "8279f27185b30a09853b1c89bf0491874a1f480755f295e1f85239b1771e50e4",
+      "build": "156.0.8078.73",
+      "architecture": "x86",
+      "reported_platform_version": null,
+      "scope": "exact headed capture/compare and paired native H3 from same candidate;unreported persona and unmeasured rules remain inherited"
+    },
+    {
+      "platform": "windows",
+      "profile_sha256": "4efad921ada8e0daaf232dbd35b9cab3926469f2137c22db714e931f4db59c5c",
+      "provenance_sha256": "9499548df82f678e61f0fc372b52a7dd7e284eba841e75326acfdeaa92914cfe",
+      "build": "156.0.8078.74",
+      "architecture": "x86",
+      "reported_platform_version": "19.0.0",
+      "scope": "exact headed capture/compare and paired native H3 from same candidate;unreported persona and unmeasured rules remain inherited"
+    }
+  ],
+  "scope": [
+    "Finite source/build/profile/scenario-bound evidence does not prove remote indistinguishability or RNG quality.",
+    "First-section QPACK scheduling-state proportions differ materially;exact raw bytes match only within explicit states. No state-frequency normalization.",
+    "No new resumed/0RTT,blocked/malformed H3,error-policy,WAN,proxy,kernel/TCP/ECN/GSO equivalence verdict.",
+    "All unmeasured policy fields remain inherited;Linux platform version unreported;151-154 historical.",
+    "Capture profile/provenance writes are individually atomic,not one cross-file transaction.",
+    "F02 catalogue83 entries and F09stage2/109 known fork obligations remain separate work."
+  ]
+}

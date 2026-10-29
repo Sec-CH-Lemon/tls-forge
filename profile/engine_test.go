@@ -101,7 +101,7 @@ func TestEngineMajorPreservedAndMigrationExplicit(t *testing.T) {
 }
 func TestAllEmbeddedProfilesPinThisEngine(t *testing.T) {
 	paths, err := filepath.Glob("data/chrome_*/*.json")
-	if err != nil || len(paths) != 15 {
+	if err != nil || len(paths) != 18 {
 		t.Fatal(paths, err)
 	}
 	for _, path := range paths {

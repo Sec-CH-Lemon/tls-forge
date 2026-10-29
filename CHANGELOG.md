@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Ship the exact native headed Chrome156 profiles for macOS, Linux and Windows;
+  `chrome` now selects156 on the host platform. Preserve155 policy origins and
+  separate capture/wire acceptance. Keep151–154 as historical captures.
+
 - Preserve causal packet logging in the private H3 observer. Declare optional
   CID-introduction ordering for independent decoding of older post-send logs,
   retaining every original datagram, timestamp and failed decode.

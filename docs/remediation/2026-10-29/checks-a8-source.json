@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "status": "local final code/docs/generated/SDK gates accepted",
+  "checks": {
+    "whole_module_race": "23 packages PASS",
+    "strict_fresh_coverage": "100% every function and package",
+    "SDK_release": "PASS100%, real-daemon11each",
+    "vet": "PASS",
+    "lint": "0 issues",
+    "workflows": "PASS including packet/observer negative controls",
+    "docs": "PASS",
+    "generated": "PASS after only obsolete sum/license versions corrected;original RED retained",
+    "default_go_work_build": "PASS",
+    "pinned_GOWORK_off_build": "PASS"
+  },
+  "evidence_sha256": {
+    "native-final-vet-workflows.log": "de983c89e10562bbdd2fdfad01d8bee7dcab5b451a210cdaa4cf7462fa607cba",
+    "native-final-lint.log": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47",
+    "native-final-docs-generated.log": "792e33c7f5c11efc5449cab0a45439fb66049324754fa56f7f4394ad01d359fb",
+    "native-final-docs-generated-r02.log": "45c61ff1a3e7a59738136ef5cc4e6938fa6716f9bdc9d32b352279c1235151ba",
+    "notices-final-before.diff": "b01b4eeb593aaa51706c5e4536eb448a778ca04ad1a62fda0161ddd18a4644f4",
+    "example-tidy-final-before.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-final-sdk-release.log": "f9ba99feb4c4234742e84d1c0ffb0cc181229bb99ddf6f1ffddab9492e4abe52",
+    "native-final-full-cover-r02.log": "f23f917cbb855e0a53eaee3f8cfd0d29dc0afad5ea5de31e2220dd1e86d96d03",
+    "native-final-full-race.log": "a4eeaea6883c31d3b7e06233556d51a7cf127e80d64229fcb8d6b3d8b136088f",
+    "build-pinned-final.log": "37914f5b81ad649bcb94fcf0d1870fa39dcb5aedc1f999f1f58539d95666de69",
+    "build-workspace-final.log": "29531856971a0f3c31252782ecb513ee58de3db6bf1dba80f91c4124a2992075"
+  },
+  "effective_module_graph": "unchanged by sum cleanup;root/example go.mod pins unchanged",
+  "source_scope": "All product Go/data/test bytes compared against final isolated export. Observer-only later correction separately tested; no new product runtime after native e359cff.",
+  "source_equality": {
+    "files": 456,
+    "receipt_sha256": "72fcb8fd45b9036381d1ad0f93824d682345eb9803d340ac125220ae95506bf6",
+    "meaning": "Exact product/test Go,go.mod/go.sum and shipped data equality with accepted isolated export."
+  },
+  "knowledge_base": {
+    "check": "PASS265entries1515observations;historical target preserved",
+    "check_log_sha256": "3345ba807d47795ae281bb4a7acf4901c1543fe15c96787e93912dda960db16c",
+    "files": {
+      "knowledge/browser-behavior.json": "4489236fa6178c0af9cb38ea0dc63178debfb06a6cab0e85fcf6c14f9e42e169",
+      "docs/BROWSER_BEHAVIOR.md": "90457e821c6d4295815d0c2448f66d9f290e7c4017ca25c3542bb262518a7171",
+      "docs/browser-behavior.html": "5e0f6b3bce2efd8e232551fb5efe97f97a7d48f23b294ca54bcef11ba6f8edac"
+    }
+  }
+}
