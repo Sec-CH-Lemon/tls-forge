@@ -116,10 +116,10 @@ def _stubborn(_request: dict) -> None:
 
 
 def _deaf(request: dict) -> None:
-    # Answers, and then reads nothing more, for as long as it is left running:
+    # The answer acknowledges the closed input, then reads nothing more:
     # its client finds a pipe nobody reads rather than a process that exited.
-    emit(answer(request))
     sys.stdin.close()
+    emit(answer(request))
     time.sleep(30)
 
 

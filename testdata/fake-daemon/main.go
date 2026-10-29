@@ -296,8 +296,10 @@ var scenarios = map[string]func(request){
 	// Answers, and keeps running after closing the read side: the client sees
 	// a dead pipe rather than a process exit on its next write.
 	"deaf": func(req request) {
-		emit(answer(req))
 		_ = os.Stdin.Close()
+		// The answer acknowledges that no reader remains. Otherwise a fast
+		// client can write its next request before Close and wait forever.
+		emit(answer(req))
 		time.Sleep(30 * time.Second)
 	},
 	"stderr": func(req request) {

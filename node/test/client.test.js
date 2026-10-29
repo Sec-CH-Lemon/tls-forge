@@ -865,10 +865,12 @@ test('a write into a dead pipe fails that request and restarts', async (t) => {
     await untimed(t, async () => {
       const second = c.get('https://deaf/second');
       const waiting = c.get('https://deaf/third');
-      await assert.rejects(() => second, /write failed/);
       // The transport is stopped, and the session in it lost: the request that
       // waited behind is told so, unsent.
-      await assert.rejects(() => waiting, (err) => err instanceof SessionReset && /could not be written/.test(err.message));
+      await Promise.all([
+        assert.rejects(second, /write failed/),
+        assert.rejects(waiting, (err) => err instanceof SessionReset && /could not be written/.test(err.message)),
+      ]);
     });
     // So the lost session is told of once, and the next request starts another.
     assert.equal((await c.get('https://deaf/again')).status, 200);
