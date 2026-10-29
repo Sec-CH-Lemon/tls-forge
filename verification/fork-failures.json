@@ -51,7 +51,15 @@
         "-run",
         "^TestRequestWrite$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "92aa281ed82cf64aa36e2bfec8a6a09272b892e3272b1914ce5a2262df2544ae"
+        ],
+        "production": [
+          "92aa281ed82cf64aa36e2bfec8a6a09272b892e3272b1914ce5a2262df2544ae"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -79,7 +87,15 @@
         "-run",
         "^TestDetectInMemoryReaders$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "4a9731efaf571ed3acab82517882df1836fe172823b8f6a0ad8315e52fc25559"
+        ],
+        "production": [
+          "4a9731efaf571ed3acab82517882df1836fe172823b8f6a0ad8315e52fc25559"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -107,7 +123,15 @@
         "-run",
         "^TestTransferWriterWriteBodyReaderTypes/file,_non\\-chunked,_size_set,_nopCloser_wrapped$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ],
+        "production": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -135,7 +159,15 @@
         "-run",
         "^TestTransferWriterWriteBodyReaderTypes/file,_non\\-chunked,_negative_size$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ],
+        "production": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -163,7 +195,15 @@
         "-run",
         "^TestTransferWriterWriteBodyReaderTypes/file,_non\\-chunked,_CONNECT,_negative_size$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ],
+        "production": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -191,7 +231,15 @@
         "-run",
         "^TestTransferWriterWriteBodyReaderTypes/buffer,_non\\-chunked,_size_set,_nopCloser_wrapped$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ],
+        "production": [
+          "fefdfb1bd113109f3ab8aef6cf6cf90da9a16356381a35b754571411ae35a633"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -219,7 +267,15 @@
         "-run",
         "^TestTransferWriterWriteBodyReaderTypes$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "8c88705dd8787bee71b0b4d20da65953e0c9ebb5fe68597aac8699da3784143b"
+        ],
+        "production": [
+          "8c88705dd8787bee71b0b4d20da65953e0c9ebb5fe68597aac8699da3784143b"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -247,7 +303,15 @@
         "-run",
         "^TestClientWrites$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "9c09b5ebc970cc1f53c057cc2a75eef5ca02edd49d69f6e49848f285ee8277c7"
+        ],
+        "production": [
+          "9c09b5ebc970cc1f53c057cc2a75eef5ca02edd49d69f6e49848f285ee8277c7"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -275,7 +339,15 @@
         "-run",
         "^TestH12_SmallBody$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "4f0c77476692b42b39d88660c19257f6d1bedca61910d62571ec901b0621c916"
+        ],
+        "production": [
+          "4f0c77476692b42b39d88660c19257f6d1bedca61910d62571ec901b0621c916"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -303,7 +375,15 @@
         "-run",
         "^TestH12_ExplicitContentLength$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "20aed248f669a3c5e9254dc986896e802650233a7d7894bd63378cc8cb4e486c"
+        ],
+        "production": [
+          "20aed248f669a3c5e9254dc986896e802650233a7d7894bd63378cc8cb4e486c"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -331,7 +411,15 @@
         "-run",
         "^TestH12_HandlerWritesTooLittle$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "20aed248f669a3c5e9254dc986896e802650233a7d7894bd63378cc8cb4e486c"
+        ],
+        "production": [
+          "20aed248f669a3c5e9254dc986896e802650233a7d7894bd63378cc8cb4e486c"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -359,7 +447,15 @@
         "-run",
         "^TestH12_HandlerWritesTooMuch$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "7fbbac9b8a41736829e594ac28fdcec15f2e4b7fba6b84c4ea7e215558b85d7b"
+        ],
+        "production": [
+          "7fbbac9b8a41736829e594ac28fdcec15f2e4b7fba6b84c4ea7e215558b85d7b"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -387,7 +483,15 @@
         "-run",
         "^TestH12_AutoGzip$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "78d896f39f7ac2bab6bf8874388f77e75f5bd4d95ffd0dffaf18244b099113ee"
+        ],
+        "production": [
+          "78d896f39f7ac2bab6bf8874388f77e75f5bd4d95ffd0dffaf18244b099113ee"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -415,7 +519,15 @@
         "-run",
         "^TestH12_AutoGzip_Disabled$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "8178633e380cfa0e478463aba3ebbe7c82f2ea04552c2c1aec9fcb2d93878869"
+        ],
+        "production": [
+          "8178633e380cfa0e478463aba3ebbe7c82f2ea04552c2c1aec9fcb2d93878869"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -443,7 +555,15 @@
         "-run",
         "^TestH12_ServerEmptyContentLength$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "8164d6d24683208be356236d74bef548e4bb1b76f336781e8b71deec48b564e8"
+        ],
+        "production": [
+          "8164d6d24683208be356236d74bef548e4bb1b76f336781e8b71deec48b564e8"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -471,7 +591,15 @@
         "-run",
         "^TestH12_RequestContentLength_Known_NonZero$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "c662190615a6f767d99d3acad3466e99a1cc74594c94f9e06d75ddf247dd33fc"
+        ],
+        "production": [
+          "c662190615a6f767d99d3acad3466e99a1cc74594c94f9e06d75ddf247dd33fc"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -499,7 +627,15 @@
         "-run",
         "^TestH12_RequestContentLength_Known_Zero$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "853f3ac49c22e7c540c7d20680b815cef82a877cefe9ed4f767fcd42fc5df56c"
+        ],
+        "production": [
+          "853f3ac49c22e7c540c7d20680b815cef82a877cefe9ed4f767fcd42fc5df56c"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -527,7 +663,15 @@
         "-run",
         "^TestH12_RequestContentLength_Unknown$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "de4c9452eed13e8e3e1b30455b20ca7324ed8447e0d08b8b467a465195824856"
+        ],
+        "production": [
+          "de4c9452eed13e8e3e1b30455b20ca7324ed8447e0d08b8b467a465195824856"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -555,7 +699,15 @@
         "-run",
         "^TestTrailersServerToClient_h2$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "5c486795fd93b4d784958b63d84a4210f3d3f326f7d6ed25934a24fd591b5530"
+        ],
+        "production": [
+          "5c486795fd93b4d784958b63d84a4210f3d3f326f7d6ed25934a24fd591b5530"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -583,7 +735,15 @@
         "-run",
         "^TestTransportUserAgent_h1$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "1a4867702adfa7de1235862dd1ba1622c5a8c6a104c57c55718e2dbefcb6c79f"
+        ],
+        "production": [
+          "1a4867702adfa7de1235862dd1ba1622c5a8c6a104c57c55718e2dbefcb6c79f"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -611,7 +771,15 @@
         "-run",
         "^TestH12_AutoGzipWithDumpResponse$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "49b1588e0e234aef1fab2aa02c782425fbef46823ade37306c615374a94540eb"
+        ],
+        "production": [
+          "49b1588e0e234aef1fab2aa02c782425fbef46823ade37306c615374a94540eb"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -639,7 +807,15 @@
         "-run",
         "^TestWriteHeaderNoCodeCheck_h1$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "dc42f7b22a3e0d060c044ed4f628ae8fb388ffa0698c2b35d6619f9ac81f25e4"
+        ],
+        "production": [
+          "dc42f7b22a3e0d060c044ed4f628ae8fb388ffa0698c2b35d6619f9ac81f25e4"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -667,7 +843,15 @@
         "-run",
         "^TestWriteHeaderNoCodeCheck_h1hijack$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "14ad543ba71b6a557475819fe75e3c74c21feb2a5ad27c87a55b39336d87b62d"
+        ],
+        "production": [
+          "14ad543ba71b6a557475819fe75e3c74c21feb2a5ad27c87a55b39336d87b62d"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -695,7 +879,15 @@
         "-run",
         "^TestCompressionDeflate$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "78e15e34f0b31bfa846525d9966474acfcef78a0d91601d86329b02e87c4e50d"
+        ],
+        "production": [
+          "78e15e34f0b31bfa846525d9966474acfcef78a0d91601d86329b02e87c4e50d"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -723,7 +915,15 @@
         "-run",
         "^TestIdentityResponse$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "57ad60b9142021b8fa9a1507bce6c8996ceea21e40f88892c8e9126054db7310"
+        ],
+        "production": [
+          "57ad60b9142021b8fa9a1507bce6c8996ceea21e40f88892c8e9126054db7310"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -751,7 +951,15 @@
         "-run",
         "^TestContentEncodingNoSniffing_h1/gzip_content\\-encoding,_gzipped$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "e911af6c91271c663eeed3be1d90a49654ac7c9bdae7e31d349b7218a3e4c881"
+        ],
+        "production": [
+          "e911af6c91271c663eeed3be1d90a49654ac7c9bdae7e31d349b7218a3e4c881"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -779,7 +987,15 @@
         "-run",
         "^TestContentEncodingNoSniffing_h1/zlib_content\\-encoding,_zlibbed$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "71647f1f56dc765a78700d4daffb76dc08599fceaf41d182f3993b5ff8fc0b4f"
+        ],
+        "production": [
+          "71647f1f56dc765a78700d4daffb76dc08599fceaf41d182f3993b5ff8fc0b4f"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -807,7 +1023,15 @@
         "-run",
         "^TestContentEncodingNoSniffing_h1/phony_content\\-encoding$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "5eeec697941b09b722660cec0cb06842ff3dfa7825a6cc3098c1d1acc6b52b70"
+        ],
+        "production": [
+          "5eeec697941b09b722660cec0cb06842ff3dfa7825a6cc3098c1d1acc6b52b70"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -835,7 +1059,15 @@
         "-run",
         "^TestContentEncodingNoSniffing_h1$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "2addbe41faa8080b7094d3805945d72166260df3746a8cf41e217586fbb9a5de"
+        ],
+        "production": [
+          "2addbe41faa8080b7094d3805945d72166260df3746a8cf41e217586fbb9a5de"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -863,7 +1095,15 @@
         "-run",
         "^TestTimeoutHandlerSuperfluousLogs/return_before_timeout$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "661c1195c188bd9daa3f7c45baec4a6b2dec52e948d74a716567c49c210576a9"
+        ],
+        "production": [
+          "661c1195c188bd9daa3f7c45baec4a6b2dec52e948d74a716567c49c210576a9"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -891,7 +1131,15 @@
         "-run",
         "^TestTimeoutHandlerSuperfluousLogs/return_after_timeout$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "4c5b4df7b8232cda5ab0cd6b7c403928e521113779d1b4daff37c1b18b48ad96"
+        ],
+        "production": [
+          "4c5b4df7b8232cda5ab0cd6b7c403928e521113779d1b4daff37c1b18b48ad96"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -919,7 +1167,15 @@
         "-run",
         "^TestTimeoutHandlerSuperfluousLogs$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "674094232df4425bbd95e494a5275be5f2951c2429de935065e2b5c448af003e"
+        ],
+        "production": [
+          "674094232df4425bbd95e494a5275be5f2951c2429de935065e2b5c448af003e"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -947,7 +1203,15 @@
         "-run",
         "^TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=true$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "85020b3ddf72d06e29df094f768e031a819c77401ab24336d875357b7c0c11e6"
+        ],
+        "production": [
+          "85020b3ddf72d06e29df094f768e031a819c77401ab24336d875357b7c0c11e6"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -975,7 +1239,15 @@
         "-run",
         "^TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=true$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "85020b3ddf72d06e29df094f768e031a819c77401ab24336d875357b7c0c11e6"
+        ],
+        "production": [
+          "85020b3ddf72d06e29df094f768e031a819c77401ab24336d875357b7c0c11e6"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1003,7 +1275,15 @@
         "-run",
         "^TestTransportRespectRequestWantsClose$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "b6e766cdb440c384b8c241be9dd7951bf9ddf1c7bd6500c51b60c3dfbc76e9fa"
+        ],
+        "production": [
+          "b6e766cdb440c384b8c241be9dd7951bf9ddf1c7bd6500c51b60c3dfbc76e9fa"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1031,7 +1311,15 @@
         "-run",
         "^TestTransportReadToEndReusesConn$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "7ac7581068f340e6d05f00fbbd5b64d99ee68fca5abdc9b00b8dc1ce6d3b1770"
+        ],
+        "production": [
+          "7ac7581068f340e6d05f00fbbd5b64d99ee68fca5abdc9b00b8dc1ce6d3b1770"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1059,7 +1347,15 @@
         "-run",
         "^TestTransportGzip$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "92fd4c68c366e81b775baea780b18b4b607b25af6a6d89a75878eb9d533d3ee1"
+        ],
+        "production": [
+          "92fd4c68c366e81b775baea780b18b4b607b25af6a6d89a75878eb9d533d3ee1"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1087,7 +1383,15 @@
         "-run",
         "^TestTransportIgnore1xxResponses$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "5f09f245d489b7e48564f522bc3c617aaadc9fe2c66149b1e9afcd88ceadd947"
+        ],
+        "production": [
+          "5f09f245d489b7e48564f522bc3c617aaadc9fe2c66149b1e9afcd88ceadd947"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1115,7 +1419,15 @@
         "-run",
         "^TestRetryRequestsOnError/IdempotentGetBodySomeWritten$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "1070223c2f68cb8cebf833525cddae927d4affb7241e727f995264f685529753"
+        ],
+        "production": [
+          "1070223c2f68cb8cebf833525cddae927d4affb7241e727f995264f685529753"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1143,7 +1455,15 @@
         "-run",
         "^TestRetryRequestsOnError/NothingWrittenGetBody$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "f60953f00d13f77f318c1f8a2bb2707960ccaa31f3b281461215d7720c89312c"
+        ],
+        "production": [
+          "f60953f00d13f77f318c1f8a2bb2707960ccaa31f3b281461215d7720c89312c"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1171,7 +1491,15 @@
         "-run",
         "^TestRetryRequestsOnError$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "cd106b7a052b9a143069c88137b0d6bb76dbc10a8da85ace38f42ec2bb3f171a"
+        ],
+        "production": [
+          "cd106b7a052b9a143069c88137b0d6bb76dbc10a8da85ace38f42ec2bb3f171a"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1199,7 +1527,15 @@
         "-run",
         "^TestTransportContentEncodingCaseInsensitive/GZIP$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "6d38976b2d6186a4a9d39cafff740936892a8985f2bc6e29acc2007c94e8e6f1"
+        ],
+        "production": [
+          "6d38976b2d6186a4a9d39cafff740936892a8985f2bc6e29acc2007c94e8e6f1"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1227,7 +1563,15 @@
         "-run",
         "^TestTransportContentEncodingCaseInsensitive$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "6d38976b2d6186a4a9d39cafff740936892a8985f2bc6e29acc2007c94e8e6f1"
+        ],
+        "production": [
+          "6d38976b2d6186a4a9d39cafff740936892a8985f2bc6e29acc2007c94e8e6f1"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1255,7 +1599,15 @@
         "-run",
         "^TestTransportRequestWriteRoundTrip/buffer$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "e185161837c2cb8ff9f88df4132482697bb4c595d09144287aa5ad7a0fc87a25"
+        ],
+        "production": [
+          "e185161837c2cb8ff9f88df4132482697bb4c595d09144287aa5ad7a0fc87a25"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1290,7 +1642,15 @@
           "cause": "macOS loopback-only sandbox also denies sendfile in the inherited file-copy fixture; reproduced unchanged45fad. Unrestricted body-copy obligation remains open.",
           "evidence": "f09-fhttp-sandbox-baseline-root"
         }
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "9101a3ca270511df29d38bc9ec3657cd1a6d968415085518774e0b78e8b7442d"
+        ],
+        "production": [
+          "9101a3ca270511df29d38bc9ec3657cd1a6d968415085518774e0b78e8b7442d"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1318,7 +1678,15 @@
         "-run",
         "^TestTransportClone$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "f859a1d56b41646ce5fefe6fc9eea53da4d43bb3b110ac12bb5427d366978fe0"
+        ],
+        "production": [
+          "f859a1d56b41646ce5fefe6fc9eea53da4d43bb3b110ac12bb5427d366978fe0"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp/httputil",
@@ -1346,7 +1714,15 @@
         "-run",
         "^TestDumpRequest$",
         "github.com/igor-lemon/fhttp/httputil"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "eb1f57047e60bdb2c888b0b12d31ca6311b04da93f9ec83bb614f85b88cbab9f"
+        ],
+        "production": [
+          "eb1f57047e60bdb2c888b0b12d31ca6311b04da93f9ec83bb614f85b88cbab9f"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp/httputil",
@@ -1374,7 +1750,15 @@
         "-run",
         "^TestReverseProxy_CopyBuffer$",
         "github.com/igor-lemon/fhttp/httputil"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "b03de844f05dbdcbb9ead85158c1b878e86de04e32f7a21813450c1db85f80fd"
+        ],
+        "production": [
+          "b03de844f05dbdcbb9ead85158c1b878e86de04e32f7a21813450c1db85f80fd"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp/httputil",
@@ -1402,7 +1786,15 @@
         "-run",
         "^ExampleDumpResponse$",
         "github.com/igor-lemon/fhttp/httputil"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "f4145ef60f90010e8a3aa11bcbfaac60bcec8da386167f2b6fd65c3c3b6f2481"
+        ],
+        "production": [
+          "f4145ef60f90010e8a3aa11bcbfaac60bcec8da386167f2b6fd65c3c3b6f2481"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1430,7 +1822,15 @@
         "-run",
         "^TestClient_ProtocolChangeWithRacingRecovers$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "f11d90a8e504240fe7dce637652a745f0541a5873643aae4da911afdb1f9cb08"
+        ],
+        "production": [
+          "f11d90a8e504240fe7dce637652a745f0541a5873643aae4da911afdb1f9cb08"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1458,7 +1858,15 @@
         "-run",
         "^TestClient_ProtocolChangeBetweenConnections$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "5c413914ff158610d639085153dfac8e7e70fded11986e5ae796b3e176768b8c"
+        ],
+        "production": [
+          "5c413914ff158610d639085153dfac8e7e70fded11986e5ae796b3e176768b8c"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1493,7 +1901,15 @@
           "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):eu.kith.com. No post-handshake assertion is measured here.",
           "evidence": "f09-tls-client-sandbox-baseline"
         }
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "af39090677d3a2d01cbfac4d91953954614b0804310a4e49ca0238e71f5d78fc"
+        ],
+        "production": [
+          "af39090677d3a2d01cbfac4d91953954614b0804310a4e49ca0238e71f5d78fc"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1528,7 +1944,15 @@
           "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):registrierung.web.de. No post-handshake assertion is measured here.",
           "evidence": "f09-tls-client-sandbox-baseline"
         }
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "2261fdac589d971389040540da47072b1171df456d58c27e6be2de1ee9fbd6e9"
+        ],
+        "production": [
+          "2261fdac589d971389040540da47072b1171df456d58c27e6be2de1ee9fbd6e9"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1563,7 +1987,15 @@
           "cause": "External fixture lookup intentionally denied by loopback-only sandbox, identically reproduced before A6. Host(s):quic.browserleaks.com. No post-handshake assertion is measured here.",
           "evidence": "f09-tls-client-sandbox-baseline"
         }
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "504a7a313bb82602fa8381d3a84e5295dba89a4eb85db0eb46d76ddd65c0fdc4"
+        ],
+        "production": [
+          "504a7a313bb82602fa8381d3a84e5295dba89a4eb85db0eb46d76ddd65c0fdc4"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/quic-go-utls",
@@ -1619,7 +2051,15 @@
         "-run",
         "^TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame$",
         "github.com/igor-lemon/quic-go-utls/integrationtests/self"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "d3da074e5068fd37db02d8eb383f39a3f028ca32c8cebb1423e61b028fffa340"
+        ],
+        "production": [
+          "d3da074e5068fd37db02d8eb383f39a3f028ca32c8cebb1423e61b028fffa340"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
@@ -1647,7 +2087,15 @@
         "-run",
         "^TestHTTPHeaderSizeLimitClient$",
         "github.com/igor-lemon/quic-go-utls/integrationtests/self"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "d3da074e5068fd37db02d8eb383f39a3f028ca32c8cebb1423e61b028fffa340"
+        ],
+        "production": [
+          "d3da074e5068fd37db02d8eb383f39a3f028ca32c8cebb1423e61b028fffa340"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp/http2",
@@ -1675,7 +2123,15 @@
         "-run",
         "^TestServer_MaxQueuedControlFrames$",
         "github.com/igor-lemon/fhttp/http2"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "1e6095d1f79fdc8b7928621b89de9fa47a8ab136858e047a90a032ae97ca47e9"
+        ],
+        "production": [
+          "af761be2cb2e3bdcd1c1f3a98a69207e2f22c4a0d1f5bb86a5589f1901dd369a"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/utls",
@@ -1701,7 +2157,15 @@
         "-run",
         "^TestVerifyHostname$",
         "."
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "633136db14453d42371d58f92e414b186bb3b665e5c10a90718f846d5ee3e547"
+        ],
+        "production": [
+          "633136db14453d42371d58f92e414b186bb3b665e5c10a90718f846d5ee3e547"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1730,7 +2194,15 @@
         "-run",
         "^TestExample$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "e9f8f59565ddf229aed3eea830d67cf024c08e7a13a78572294d24733928e053"
+        ],
+        "production": [
+          "e9f8f59565ddf229aed3eea830d67cf024c08e7a13a78572294d24733928e053"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1759,7 +2231,15 @@
         "-run",
         "^TestEnablePush$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "ebedb14ab2f70aeb2463a1f73dd8920f733ff4d4bda02830d03b3e0806e3a6de"
+        ],
+        "production": [
+          "ebedb14ab2f70aeb2463a1f73dd8920f733ff4d4bda02830d03b3e0806e3a6de"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1788,7 +2268,15 @@
         "-run",
         "^TestCompressionBrotli$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "7404eb614421b2611a576133e15884f39c486c096e655a87987fd4a4fadfae9b"
+        ],
+        "production": [
+          "7404eb614421b2611a576133e15884f39c486c096e655a87987fd4a4fadfae9b"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp",
@@ -1817,7 +2305,15 @@
         "-run",
         "^TestTransportRequestWriteRoundTrip/file,_length$",
         "github.com/igor-lemon/fhttp"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "cb194ef765d2fdd270339e731e151f8364b62811d589d4cc4380e63b0553e273"
+        ],
+        "production": [
+          "cb194ef765d2fdd270339e731e151f8364b62811d589d4cc4380e63b0553e273"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp/http2",
@@ -1846,7 +2342,15 @@
         "-run",
         "^TestHeaderOrder2$",
         "github.com/igor-lemon/fhttp/http2"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "5c9223d45ccf11b4869ea6eab3264cab560664d35693389c9028c2d314894f7f"
+        ],
+        "production": [
+          "5c9223d45ccf11b4869ea6eab3264cab560664d35693389c9028c2d314894f7f"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/fhttp/http2",
@@ -1875,7 +2379,15 @@
         "-run",
         "^TestHeaderOrder3$",
         "github.com/igor-lemon/fhttp/http2"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "1b68917b8d52bc12a83233649ef092fd90c9619c8361f953195c569b58d5850c"
+        ],
+        "production": [
+          "1b68917b8d52bc12a83233649ef092fd90c9619c8361f953195c569b58d5850c"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1904,7 +2416,15 @@
         "-run",
         "^TestClients$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "786bec3c74063869fa3e7b5d181f52e34523da7c43d113fb8923df8c095addb7"
+        ],
+        "production": [
+          "786bec3c74063869fa3e7b5d181f52e34523da7c43d113fb8923df8c095addb7"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1933,7 +2453,15 @@
         "-run",
         "^TestCustomClients$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "edf4f75e08e824369fef030b272ec788ffe0831fd7a02534fcce5c3fd9cc1090"
+        ],
+        "production": [
+          "edf4f75e08e824369fef030b272ec788ffe0831fd7a02534fcce5c3fd9cc1090"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1962,7 +2490,15 @@
         "-run",
         "^TestClient_HeaderOrder$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "a50ba4860ec2da7debb9afe88c7fdb505a92b8e2c533b840679341ace13ab681"
+        ],
+        "production": [
+          "a50ba4860ec2da7debb9afe88c7fdb505a92b8e2c533b840679341ace13ab681"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -1991,7 +2527,15 @@
         "-run",
         "^TestClient_HeaderOrderHttp1$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "b096c433b05c7b5f0ede26618cd18c96585b4690a95a1006dc745276dcf77e5d"
+        ],
+        "production": [
+          "b096c433b05c7b5f0ede26618cd18c96585b4690a95a1006dc745276dcf77e5d"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2020,7 +2564,15 @@
         "-run",
         "^TestClient_HeaderOrderWithContentLengthHttp1$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "702a6280e51b945450b5f54ce2adff185564d2f6072cab9d347d37d9cba69438"
+        ],
+        "production": [
+          "702a6280e51b945450b5f54ce2adff185564d2f6072cab9d347d37d9cba69438"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2049,7 +2601,15 @@
         "-run",
         "^TestClient_HeaderOrderWithContentLength$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "98d6e2a19b208a560b6c0e6fe31d36e44d932d592a0d3564b41d178c6f3898cd"
+        ],
+        "production": [
+          "98d6e2a19b208a560b6c0e6fe31d36e44d932d592a0d3564b41d178c6f3898cd"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2078,7 +2638,15 @@
         "-run",
         "^TestPreHookModifiesRequestHeaders$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "78f35b8842ee408227a11f7900f110bf50a206aed2cf9058c0ec01df1515b736"
+        ],
+        "production": [
+          "78f35b8842ee408227a11f7900f110bf50a206aed2cf9058c0ec01df1515b736"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2107,7 +2675,15 @@
         "-run",
         "^TestPostHookReceivesCorrectMetadata$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "4cb23e6cbaf38706dc5195bd947d0203fd3cef506b875a36c3e75ad629a42bad"
+        ],
+        "production": [
+          "4cb23e6cbaf38706dc5195bd947d0203fd3cef506b875a36c3e75ad629a42bad"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2136,7 +2712,15 @@
         "-run",
         "^TestMultiplePreHooksExecuteInOrder$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "bbf85f2ff7278dea66fd2442760cc3d05d2f4417a7aeb42a6e11e87051de79df"
+        ],
+        "production": [
+          "bbf85f2ff7278dea66fd2442760cc3d05d2f4417a7aeb42a6e11e87051de79df"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2165,7 +2749,15 @@
         "-run",
         "^TestMultiplePostHooksExecuteInOrder$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "5ef2b46ad9de1b2ceed4a168405675b2f66f854da370c920bc25b0be1ad1a4c5"
+        ],
+        "production": [
+          "5ef2b46ad9de1b2ceed4a168405675b2f66f854da370c920bc25b0be1ad1a4c5"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2194,7 +2786,15 @@
         "-run",
         "^TestPostHookPanicAbortsSubsequentHooks$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "11c2471e46eef83dcedd3a792cb3f594ea224eb0c08ec194a15715f7cb4ce443"
+        ],
+        "production": [
+          "11c2471e46eef83dcedd3a792cb3f594ea224eb0c08ec194a15715f7cb4ce443"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2223,7 +2823,15 @@
         "-run",
         "^TestOnPreRequestRuntimeRegistration$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "e98c00e736be603ec61335d9d6308a3d77e617179aaa72b069b972d1ae8ab9db"
+        ],
+        "production": [
+          "e98c00e736be603ec61335d9d6308a3d77e617179aaa72b069b972d1ae8ab9db"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2252,7 +2860,15 @@
         "-run",
         "^TestOnPostResponseRuntimeRegistration$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "ee6391dab7f4ae8ced16932bc497c0d729f1db589e76bda0e3d0ffae2b3f0c11"
+        ],
+        "production": [
+          "ee6391dab7f4ae8ced16932bc497c0d729f1db589e76bda0e3d0ffae2b3f0c11"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2281,7 +2897,15 @@
         "-run",
         "^TestHooksThreadSafety$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "03ff00506e2d2e003cb1ccc591d9416dd58cd079d0d6fd85c7c532276ed30286"
+        ],
+        "production": [
+          "03ff00506e2d2e003cb1ccc591d9416dd58cd079d0d6fd85c7c532276ed30286"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2310,7 +2934,15 @@
         "-run",
         "^TestCombinedConstructorAndRuntimeHooks$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "2707d7f6128ec367c1e023a093a02d297e5e22043fe86273f3defb7b8f130846"
+        ],
+        "production": [
+          "2707d7f6128ec367c1e023a093a02d297e5e22043fe86273f3defb7b8f130846"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2339,7 +2971,15 @@
         "-run",
         "^TestPreHookContinueOnError$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "68ed87fbca7a255c87b58003d2a7d2d9a95a36260f04186445cf900c356f3fb4"
+        ],
+        "production": [
+          "68ed87fbca7a255c87b58003d2a7d2d9a95a36260f04186445cf900c356f3fb4"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2368,7 +3008,15 @@
         "-run",
         "^TestPostHookContinueOnError$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "9bdb34dccb2e1cf3ab232eddbf9e10f287ae4180edcedb9f3283f4d0909b1101"
+        ],
+        "production": [
+          "9bdb34dccb2e1cf3ab232eddbf9e10f287ae4180edcedb9f3283f4d0909b1101"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2397,7 +3045,15 @@
         "-run",
         "^TestPostHookAbortByDefault$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "449b534d4ff8f1f267b6c7a9bbd5e1568ed8a270042414e4f0792de7f7aa3755"
+        ],
+        "production": [
+          "449b534d4ff8f1f267b6c7a9bbd5e1568ed8a270042414e4f0792de7f7aa3755"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2426,7 +3082,15 @@
         "-run",
         "^TestHTTP3WithChromeOnCloudflare$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "a2c480c34c059cf292ca34ad723a73d662d840f75a4c8eb519afd8212106c916"
+        ],
+        "production": [
+          "a2c480c34c059cf292ca34ad723a73d662d840f75a4c8eb519afd8212106c916"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2455,7 +3119,15 @@
         "-run",
         "^TestHTTP2WithChromeOnCloudflare$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "899c69c3376a1a77ec8ae5f539d38e248a91913c1c8434df2d3a2672dd93d7c4"
+        ],
+        "production": [
+          "899c69c3376a1a77ec8ae5f539d38e248a91913c1c8434df2d3a2672dd93d7c4"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2484,7 +3156,15 @@
         "-run",
         "^TestHTTP3FingerprintChrome443$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "0de864f5e285212acd9435b96652c787263e6519509141461e43032a138546e9"
+        ],
+        "production": [
+          "0de864f5e285212acd9435b96652c787263e6519509141461e43032a138546e9"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2513,7 +3193,15 @@
         "-run",
         "^TestHTTP3FingerprintFirefox135$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "7afd93230d3af46c2cf90c886670425bad5cd3e6c0c4a8a645701284a598711f"
+        ],
+        "production": [
+          "7afd93230d3af46c2cf90c886670425bad5cd3e6c0c4a8a645701284a598711f"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2542,7 +3230,15 @@
         "-run",
         "^TestHTTP3DirectPathChrome$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "043abff43155cad715f3dfe03ab44b1480fbaadc5b37685abadace23a80b07e3"
+        ],
+        "production": [
+          "043abff43155cad715f3dfe03ab44b1480fbaadc5b37685abadace23a80b07e3"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2571,7 +3267,15 @@
         "-run",
         "^TestHTTP3DirectPathFirefox$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "3eb37e6362fdf0d1aefd919146cd26a9281e5e389c3bc4bcf715d1b796f7641d"
+        ],
+        "production": [
+          "3eb37e6362fdf0d1aefd919146cd26a9281e5e389c3bc4bcf715d1b796f7641d"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2600,7 +3304,15 @@
         "-run",
         "^TestHTTP3$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "b0d2cfc0c326c3e48309deb5a7980c99ae8762403dcbd46d4562a43426c8f2f6"
+        ],
+        "production": [
+          "b0d2cfc0c326c3e48309deb5a7980c99ae8762403dcbd46d4562a43426c8f2f6"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2629,7 +3341,15 @@
         "-run",
         "^TestDisableHTTP3$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "965f6e9324ef11c917584d3797c338fce4b81f1483a258aa647e102a2a1e86de"
+        ],
+        "production": [
+          "965f6e9324ef11c917584d3797c338fce4b81f1483a258aa647e102a2a1e86de"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2658,7 +3378,15 @@
         "-run",
         "^TestClient_RandomExtensionOrderChrome$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "ad46110db199a85b00d304bf17913339cc46b545a6ce674d9018aa20e956b582"
+        ],
+        "production": [
+          "ad46110db199a85b00d304bf17913339cc46b545a6ce674d9018aa20e956b582"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2687,7 +3415,15 @@
         "-run",
         "^TestClient_RandomExtensionOrderCustom$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "1497445d58a28412c2e16638c0024f76bd6146200fd894126b73692cdf58575f"
+        ],
+        "production": [
+          "1497445d58a28412c2e16638c0024f76bd6146200fd894126b73692cdf58575f"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2716,7 +3452,15 @@
         "-run",
         "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ],
+        "production": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2745,7 +3489,15 @@
         "-run",
         "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ],
+        "production": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2774,7 +3526,15 @@
         "-run",
         "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ],
+        "production": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2803,7 +3563,15 @@
         "-run",
         "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ],
+        "production": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2832,7 +3600,15 @@
         "-run",
         "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ],
+        "production": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2861,7 +3637,15 @@
         "-run",
         "^TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ],
+        "production": [
+          "bd85a77521ea6fe949fc38ee93d82c6a7efbdaa78c97d733fcd5146bcbdc2776"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2890,7 +3674,15 @@
         "-run",
         "^TestGreaseSignatureAlgorithmOnTheWire$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "4fcb6b66544507b928a613e945f805f28607cfb29b1a0f9e856202ff6c68cb97"
+        ],
+        "production": [
+          "4fcb6b66544507b928a613e945f805f28607cfb29b1a0f9e856202ff6c68cb97"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2919,7 +3711,15 @@
         "-run",
         "^TestTrustAnchorsOnTheWire/Chrome_152/run_1$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ],
+        "production": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2948,7 +3748,15 @@
         "-run",
         "^TestTrustAnchorsOnTheWire/Chrome_152/run_2$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ],
+        "production": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -2977,7 +3785,15 @@
         "-run",
         "^TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ],
+        "production": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -3006,7 +3822,15 @@
         "-run",
         "^TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ],
+        "production": [
+          "ada0fcc8362f6c38a76c1417817d0043251656ee36fb7034e935bfade4b1de93"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -3035,7 +3859,15 @@
         "-run",
         "^TestTrustAnchorsOnTheWire$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "445e7fb974ec6f599207f3fa083e08943520941bc787cedcab492f34bda784dc"
+        ],
+        "production": [
+          "445e7fb974ec6f599207f3fa083e08943520941bc787cedcab492f34bda784dc"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -3064,7 +3896,15 @@
         "-run",
         "^TestTrustAnchorsAreAcceptedByAServer/Chrome_152$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "5ef596ee47df7cfd432a57638ad6cd49e490e214719617677100c4bfb0525b22"
+        ],
+        "production": [
+          "5ef596ee47df7cfd432a57638ad6cd49e490e214719617677100c4bfb0525b22"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -3093,7 +3933,15 @@
         "-run",
         "^TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "e75088db0078bc1a9528183f993be24f664a716c3bb1979ce544880cf5d4aac9"
+        ],
+        "production": [
+          "e75088db0078bc1a9528183f993be24f664a716c3bb1979ce544880cf5d4aac9"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -3122,7 +3970,15 @@
         "-run",
         "^TestTrustAnchorsAreAcceptedByAServer$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "b67d18af9928352ad9212aae07e04eed8c7a0614b4a8b47b2a969946ab190918"
+        ],
+        "production": [
+          "b67d18af9928352ad9212aae07e04eed8c7a0614b4a8b47b2a969946ab190918"
+        ]
+      }
     },
     {
       "package": "github.com/igor-lemon/tls-client/tests",
@@ -3151,7 +4007,15 @@
         "-run",
         "^TestWebSocketEchoRealWebserver$",
         "github.com/igor-lemon/tls-client/tests"
-      ]
+      ],
+      "failure_output_sha256": {
+        "standalone": [
+          "a39a2afaaf8216fa40ab30c9c8b1e6bbb675eeb52f24923d32ffd296634ddcb0"
+        ],
+        "production": [
+          "a39a2afaaf8216fa40ab30c9c8b1e6bbb675eeb52f24923d32ffd296634ddcb0"
+        ]
+      }
     }
   ],
   "baseline_sources": {
@@ -3444,5 +4308,60 @@
   ],
   "historical_unresolved": [
     "QUIC race-only STREAM allocation and simnet data race from A4; not erased by the non-race stage1 gate."
-  ]
+  ],
+  "diagnostic_normalization": [
+    "Omit exact Go test RUN/PAUSE/CONT and PASS/FAIL/SKIP metadata lines; completion/actions are checked separately.",
+    "Replace only absolute fork-gate source-export roots and loopback TCP/UDP port numbers.",
+    "Sort full diagnostic lines while retaining duplicates, then SHA256. No diagnostic values, source lines or error text are discarded."
+  ],
+  "diagnostic_baselines": {
+    "utls-standalone": {
+      "source_commit": "8131c6bd1244eaf3ffffc3afa917177beb6ea822",
+      "source_sha256": "975ca2b4df85e6c6fae665864e40110a613a5b6578d7cbe785f09cc315ab96c5",
+      "diagnostics_sha256": "35a8ff2d16d96eb7827147f63a3f62ac1bffc2f697878e155f7e7eb3453efd8b",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/utls-standalone.jsonl"
+    },
+    "utls-production": {
+      "source_commit": "8131c6bd1244eaf3ffffc3afa917177beb6ea822",
+      "source_sha256": "975ca2b4df85e6c6fae665864e40110a613a5b6578d7cbe785f09cc315ab96c5",
+      "diagnostics_sha256": "69c822a8e9c5d086e8c97656011d2b883f8e73c6053314ee1a4f818ff1a8a263",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/utls-production.jsonl"
+    },
+    "fhttp-standalone": {
+      "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+      "source_sha256": "54c278a0bc5fd2302aa9d2c5d6318ef5bec98730354e755ec67c29e9efd57ee9",
+      "diagnostics_sha256": "38e5a76a9e809368eb7a4e88a660ea98d8a968631be60be4218cb59f498fd830",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/fhttp-standalone.jsonl"
+    },
+    "fhttp-production": {
+      "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+      "source_sha256": "54c278a0bc5fd2302aa9d2c5d6318ef5bec98730354e755ec67c29e9efd57ee9",
+      "diagnostics_sha256": "3284c664d1a45082958b3c0ff06df4b87f988822ca61ca620350fb17a2394e29",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/fhttp-production.jsonl"
+    },
+    "tls-client-standalone": {
+      "source_commit": "62deb6d14643411e3e7486b8da17949b7a61d772",
+      "source_sha256": "eaccc615a6f1cac81d4af546e2018c7b040cbfa707789b868bc87badefd5bdab",
+      "diagnostics_sha256": "6587d46b8fae27e4607d7088e93f79fcb51f8c41000e83c4f6658fb89a68cb86",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/tls-client-standalone.jsonl"
+    },
+    "tls-client-production": {
+      "source_commit": "62deb6d14643411e3e7486b8da17949b7a61d772",
+      "source_sha256": "eaccc615a6f1cac81d4af546e2018c7b040cbfa707789b868bc87badefd5bdab",
+      "diagnostics_sha256": "1af17fc4151a750dd18b65596c74bc411c19208b573a35d5140e0eec645ca98b",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/tls-client-production.jsonl"
+    },
+    "quic-go-utls-standalone": {
+      "source_commit": "69430008f95124396675eb02717206c1b766433d",
+      "source_sha256": "66a191d16370322a5e5aa69887ce8499388d2556f24fa3d07016a3475c4a46d3",
+      "diagnostics_sha256": "0c44a17cbd48d3f2ac323e13b316b0c1ba64ed68d04f79be4c9a85597368a2fe",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/quic-go-utls-standalone.jsonl"
+    },
+    "quic-go-utls-production": {
+      "source_commit": "69430008f95124396675eb02717206c1b766433d",
+      "source_sha256": "66a191d16370322a5e5aa69887ce8499388d2556f24fa3d07016a3475c4a46d3",
+      "diagnostics_sha256": "ca8a07aa0767d100cf877497fdca494a459e43b4be4a28b1855a410942d6601a",
+      "private_evidence": "net-fp-server/captures/tls-forge-fixes-20261029/diagnostic-baselines/quic-go-utls-production.jsonl"
+    }
+  }
 }

@@ -1,6 +1,6 @@
 import unittest
 
-from fork_gate import evaluate
+from fork_gate import evaluate, failure_digest
 
 
 class ForkGateTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class ForkGateTests(unittest.TestCase):
         ]
 
     def known(self):
-        return [{"package": "fork", "test": "TestOld", "graphs": ["standalone"], "failure_pattern": "old assertion"}]
+        return [{"package": "fork", "test": "TestOld", "graphs": ["standalone"], "failure_pattern": "old assertion", "failure_output_sha256": {"standalone": [failure_digest("old assertion")] }}]
 
     def test_known_failure_remains_explicit_debt(self):
         got = evaluate(self.rows(), [1], self.known(), "standalone", requested_packages=["fork"])
@@ -24,6 +24,22 @@ class ForkGateTests(unittest.TestCase):
     def test_new_name_subtest_or_signature_is_red(self):
         for rows in [self.rows("TestNew"), self.rows("TestOld/new-child"), self.rows(text="new reason")]:
             self.assertFalse(evaluate(rows, [1], self.known(), "standalone")["accepted"])
+
+    def test_new_diagnostic_cannot_hide_in_known_failure(self):
+        for text in ["old assertion\nnew regression", "old assertion plus new regression", "old assertion\nold assertion"]:
+            self.assertFalse(evaluate(self.rows(text=text), [1], self.known(), "standalone")["accepted"])
+
+    def test_missing_transcript_is_red(self):
+        known = self.known()
+        del known[0]["failure_output_sha256"]
+        self.assertFalse(evaluate(self.rows(), [1], known, "standalone")["accepted"])
+
+    def test_transcript_normalization_is_bounded(self):
+        first = '=== RUN   TestOld\n    file_test.go:1: Get "https://127.0.0.1:123/a" at /tmp/fork-gate-abc/path/file_test.go:2\n--- FAIL: TestOld (0.01s)\n'
+        second = first.replace(":123/", ":456/").replace("/tmp/fork-gate-abc/", "/private/tmp/fork-gate-def/").replace("0.01s", "2.99s")
+        self.assertEqual(failure_digest(first), failure_digest(second))
+        self.assertNotEqual(failure_digest(first), failure_digest(first.replace("/a", "/b")))
+        self.assertNotEqual(failure_digest(first), failure_digest(first.replace("--- FAIL: TestOld (0.01s)", "--- FAIL: TestOld (0.01s) new error")))
 
     def test_other_graph_cannot_borrow_an_exception(self):
         self.assertFalse(evaluate(self.rows(), [1], self.known(), "production")["accepted"])

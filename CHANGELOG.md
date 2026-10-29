@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Reject added or changed diagnostics inside an already known failing fork
+  test. The gate checks a source-pinned normalized complete transcript, not
+  only the presence of one old failure message. Original private evidence
+  and all F09 obligations are retained.
+
 - Bound HTTP/3 HEADERS and trailer allocation independently of the optional
   SETTINGS limit. Explicit `h3.settings` ID 6 governs reception, including
   zero; HTTP/1 limits and HTTP/3 priorities no longer select an H3 limit.

@@ -2419,6 +2419,11 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
+Fork regression gates compare complete known diagnostic transcripts as well as
+failure names and message families. Their documented normalization preserves
+additional errors; see [verification](verification/README.md). Accepted known
+debt still requires the separate F09 closure.
+
 The CLI element check uses `golang.org/x/net/html` v0.62.0 or later, which
 contains the fix for GO-2026-6860. Check dependency updates with a current
 `govulncheck` as well as the normal test suite; inspect JSON findings even

@@ -15,6 +15,22 @@ import tempfile
 import time
 
 
+def failure_digest(text):
+    """Hash all diagnostic lines, retaining duplicates and rejecting added output.
+
+    Only harness metadata, source-export roots and loopback port numbers are
+    normalized. Original test events remain in the private evidence archive.
+    """
+    lines = []
+    for line in text.splitlines():
+        if re.fullmatch(r"\s*(?:=== (?:RUN|PAUSE|CONT) +\S+|--- (?:FAIL|PASS|SKIP): \S+ \([0-9.]+s\))", line):
+            continue
+        line = re.sub(r"/[^\s\"]*/fork-gate-[^/\s]+/", "<source>/", line)
+        line = re.sub(r"(127\.0\.0\.1|localhost|\[::1\]):[0-9]+", r"\1:<port>", line)
+        lines.append(line)
+    return hashlib.sha256("\n".join(sorted(lines)).encode()).hexdigest()
+
+
 def evaluate(events, returncodes, known, graph, require_self=False, requested_packages=None):
     failed = {(e["Package"], e["Test"]) for e in events
               if e.get("Action") == "fail" and e.get("Test")}
@@ -30,7 +46,8 @@ def evaluate(events, returncodes, known, graph, require_self=False, requested_pa
         row = allowed.get((package, test))
         text = "".join(e.get("Output", "") for e in outputs.get(package, [])
                        if e.get("Test") == test or e.get("Test", "").startswith(test + "/"))
-        if row is None or not re.search(row["failure_pattern"], text, re.S):
+        if (row is None or not re.search(row["failure_pattern"], text, re.S)
+                or failure_digest(text) not in row.get("failure_output_sha256", {}).get(graph, [])):
             unexpected.append({"package": package, "test": test, "reason": "new failure or signature"})
     for package in sorted(package_failures):
         if not any(p == package for p, _ in failed):

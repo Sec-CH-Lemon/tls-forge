@@ -6,7 +6,7 @@ It does not close F09 stage2 or establish Chrome/RFC equivalence.
 `fork-failures.json` pins all four source commits. Every known test/subtest has
 its baseline evidence hash, cause/class, remaining obligation and repeat command.
 A passing repetition does not remove that obligation. New failing names,
-unrecognized diagnostic families, build failures, panic/timeout/race, incomplete
+unrecognized diagnostic families or complete diagnostic transcripts, build failures, panic/timeout/race, incomplete
 package execution and missing QUIC self integration reject the gate.
 
 Run on macOS with `sandbox-exec`, from the owner root and an exact Git checkout:
@@ -54,3 +54,12 @@ publication or remote CI.
 
 See the [A6 report](../docs/remediation/2026-10-27/A6.ru.md) for the retained
 before/after controls and acceptance limits.
+
+Each observed known failure also pins a SHA-256 of its diagnostic transcript
+for each module graph. Exact Go harness metadata is omitted; source-export
+roots and loopback port numbers are normalized. Full diagnostic lines are
+sorted with duplicates retained. Added, repeated or changed diagnostics reject
+the gate even when the original failure pattern is still present. The private
+source-pinned baselines and their hashes are listed in `fork-failures.json`. A
+known failure without an observed transcript rejects the gate if it returns,
+until its output is reviewed. This does not close any F09 obligation.
