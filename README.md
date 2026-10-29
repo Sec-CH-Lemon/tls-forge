@@ -2419,6 +2419,10 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
+[A7 acceptance](docs/remediation/2026-10-29/A7-IDNA.ru.md) records the IDNA
+follow-up, all seven passing fuzz targets, SDK checks and the retained first
+race failure followed by a complete passing root rerun.
+
 Percent-decoded URL hosts must contain valid UTF-8 before IDNA processing.
 Malformed hosts fail before network I/O, including targets named by redirects.
 The runtime fix retains valid IDNA and the existing userinfo/query behavior.

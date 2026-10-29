@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- [Complete bounded A7 acceptance](docs/remediation/2026-10-29/A7-IDNA.ru.md)
+  after the separately authorized IDNA runtime fix. Preserve the initial root
+  ACK-order failure and subsequent passing root rerun in the evidence.
+
 - Measure the QPACK Cancellation instruction itself in the root immediate-mode
   control. An as-written instruction may follow a prompt reset ACK; preserve
   the15ms limit, reset-specific ACK requirement and delayed negative control.
