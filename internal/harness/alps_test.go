@@ -9,12 +9,14 @@ import (
 	"maps"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/net/http2"
 )
@@ -338,5 +340,56 @@ func TestAFixtureOfALPSIsWrittenAsItIsKept(t *testing.T) {
 	}
 	if !slices.Equal(slices.Sorted(maps.Keys(fixture.Scenarios)), slices.Sorted(maps.Keys(alpsCatalogue))) {
 		t.Errorf("the fixture's scenarios: %v", slices.Sorted(maps.Keys(fixture.Scenarios)))
+	}
+}
+
+// refusedALPS opens TLS/H2, sends a terminal GOAWAY and no HEADERS. This is
+// a real peer interaction, independently of whether an opening page exists.
+type refusedALPS struct{ Browser }
+
+func (b refusedALPS) Open(_ context.Context, page, _ string) (func(), error) {
+	u, err := url.Parse(page)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := tls.Dial("tcp", "127.0.0.1:"+u.Port(), &tls.Config{InsecureSkipVerify: true, NextProtos: []string{"h2"}}) //nolint:gosec // owned test peer
+	if err != nil {
+		return nil, err
+	}
+	_, err = conn.Write([]byte(http2.ClientPreface))
+	if err == nil {
+		err = http2.NewFramer(conn, conn).WriteSettings()
+	}
+	if err == nil {
+		err = http2.NewFramer(conn, conn).WriteGoAway(0, http2.ErrCodeProtocol, []byte("opening refused"))
+	}
+	if err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+	return func() { _ = conn.Close() }, nil
+}
+
+func TestSettledALPSRequiresHandshakeAndRetainsRejection(t *testing.T) {
+	sc := scenario{alps: "accept-ch-flags", wait: "/never", settle: 20 * time.Millisecond}
+	s := started(t, map[string]scenario{"refused": sc})
+	p := sc.planned("refused", origins(s.ALPS["accept-ch-flags"], s.Plain))
+	entries, err := s.runOnce(context.Background(), refusedALPS{Browser: &fake{}}, p, quick)
+	if err != nil || len(entries) != 0 {
+		t.Fatal("a rejection before HTTP was not observed", entries, err)
+	}
+	got, err := s.ALPSOf("refused", "accept-ch-flags", entries)
+	if err != nil || len(got.Handshakes) != 1 || got.Handshakes[0].GoAway != "PROTOCOL_ERROR: opening refused" {
+		t.Fatal("terminal evidence lost", got, err)
+	}
+	short := quick
+	short.limit = 30 * time.Millisecond
+	if _, err := s.runOnce(context.Background(), &fake{silent: true}, p, short); err == nil {
+		t.Fatal("no handshake was accepted as rejection")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := s.runOnce(ctx, &fake{silent: true}, p, quick); err == nil {
+		t.Fatal("cancelled opening was accepted")
 	}
 }

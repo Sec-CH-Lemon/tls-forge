@@ -452,6 +452,9 @@ type plan struct {
 	start, wait, pre string
 	times            int
 	settle           time.Duration
+	// ALPS can be rejected before HTTP. Its opening evidence is a recorded
+	// handshake; ordinary request scenarios require the opening request.
+	alps bool
 }
 
 // planned is the scenario id, as run over o.
@@ -464,5 +467,5 @@ func (s scenario) planned(id string, o map[string]string) plan {
 		wait = "/done/{ID}"
 	}
 	return plan{start: fill(start, id, o), wait: fill(wait, id, o), pre: fill(s.pre, id, o), times: max(s.times, 1),
-		settle: s.settle}
+		settle: s.settle, alps: s.alps != ""}
 }

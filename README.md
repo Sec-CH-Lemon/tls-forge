@@ -2957,3 +2957,10 @@ Pinned capture CI validates that `capture-raw.json` is one complete JSON documen
 Its redirection is inside the Xvfb command so wrapper-coalesced stderr stays
 outside the artifact. H3 analysis also tests the source-derived N=0 ordering
 counterexample; an unobserved rare draw is not a reason to omit its rule.
+
+
+Settled ALPS fixtures start their observation interval at a recorded handshake,
+since rejection may correctly precede every HTTP request. Ordinary request
+fixtures still require the opening page. A silent process or missing handshake
+does not count as a protocol rejection; original GOAWAY and request assertions
+remain unchanged.

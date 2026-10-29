@@ -261,10 +261,8 @@ func (s *Server) runOnce(ctx context.Context, b Browser, p plan, t timing) ([]En
 	// like a successfully observed scenario that sent no requests.
 	wait, finished := p.wait, true
 	if p.settle > 0 {
-		startup := t
-		startup.after = 0
 		wait = pathOf(p.start)
-		finished = s.until(ctx, wait, 1, 0, startup)
+		finished = s.opened(ctx, p, t)
 	}
 	if finished {
 		wait = p.wait
@@ -281,6 +279,24 @@ func (s *Server) runOnce(ctx context.Context, b Browser, p plan, t timing) ([]En
 		return entries, &unfinished{fmt.Sprintf("%s was not asked for within %s", wait, t.limit)}
 	}
 	return entries, nil
+}
+
+// opened waits for actual opening evidence, rather than process creation.
+// A malformed ALPS response can correctly produce no HTTP request at all.
+func (s *Server) opened(ctx context.Context, p plan, t timing) bool {
+	if !p.alps {
+		t.after = 0
+		return s.until(ctx, pathOf(p.start), 1, 0, t)
+	}
+	for deadline := time.Now().Add(t.limit); time.Now().Before(deadline); {
+		if len(s.ALPSHandshakes()) > 0 {
+			return true
+		}
+		if !sleep(ctx, t.poll) {
+			return false
+		}
+	}
+	return false
 }
 
 // unfinished is a scenario the browser did not run as planned, the context

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "root_cause": "Opening request barrier incorrectly applied to legitimate ALPS rejection before HTTP;repair waits actual recorded handshake without changing fixtures",
+  "before": {
+    "fixture-alps-opening-before.log": "544294a770bdb62b1f82185d22607889e164c0785ab62f8c0579bc7c51decece"
+  },
+  "after": {
+    "fixture-alps-opening-race-r02.log": "fa80b7dd4f167e7d2ef1d8a701fbb4d890729c4b57ae1961d954dd26d75f6e29",
+    "fixture-alps-opening-cover.log": "d4bfb8699e992a6d77a9e6581040508942ffe3da2ce81535a92a7b270e371767"
+  }
+}
