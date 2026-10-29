@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "issue": "Post-send observer logging can place a dependent client datagram before the server Initial introducing its CID.",
+  "before": {
+    "regression": "recorded client before server",
+    "untouched_mac_decode": "2080 observer connections,2079 independently decoded"
+  },
+  "after": {
+    "regression_race_repeats": 3,
+    "new_collector_smoke": {
+      "accepted": true,
+      "decoder": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+      "decoder_sha256": "a9f0dd3ad6488be6dd4bf4506c3d72e667933a8aceaa6ada1a5fe9284b69774f",
+      "source_sha256": "7385d71de184352e0e1d7286af5bf44d30407b474e9aed4b736007f27ba5f256",
+      "observation_sha256": "d3a102fcfcb27ea15373b0d6adf2c06b82d51e165dfc492e714e4293edc59fab",
+      "pcap_sha256": "cd2bd23cd47d0668f62800f1e902f1a649d47eeda46699c7ae97ff5ba2397127",
+      "connections": 48,
+      "streams": 224,
+      "packets": 1216,
+      "negative_controls": {
+        "missing-keys": "independently decoded connection cardinality differs",
+        "missing-client-application": "independently decoded stream cardinality differs"
+      },
+      "analysis_causal_normalization": false,
+      "moved_records": [],
+      "scope": "Exact original UDP payloads with synthetic IPv4/UDP envelope for independent authenticated QUIC decoding. Not a host IP/ECN/GSO/kernel capture. Stream bytes must equal the separately retained observer output, including overlap and gap checks."
+    },
+    "old_mac_analysis": {
+      "accepted": true,
+      "decoder": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+      "decoder_sha256": "a9f0dd3ad6488be6dd4bf4506c3d72e667933a8aceaa6ada1a5fe9284b69774f",
+      "source_sha256": "fc8dc250592ef79121daae5856f55926c82d119b9b6cc6e1041f7a9d3b1e25bf",
+      "observation_sha256": "d41479707065f92efcfc3be66f4c20b5a8d25b403e88bdb1947ea224ba1c462d",
+      "pcap_sha256": "41d822c6cdf4a4113603140536db5ca58bcb0a9411943ac6468a9173e6821697",
+      "connections": 2080,
+      "streams": 10384,
+      "packets": 57119,
+      "negative_controls": {
+        "missing-keys": "independently decoded connection cardinality differs",
+        "missing-client-application": "independently decoded stream cardinality differs"
+      },
+      "analysis_causal_normalization": true,
+      "moved_records": [
+        {
+          "source_record": 23800,
+          "before_record": 23799,
+          "remote": "127.0.0.1:58037",
+          "server_cid": "e8ae86bc"
+        }
+      ],
+      "scope": "Exact original UDP payloads with synthetic IPv4/UDP envelope for independent authenticated QUIC decoding. Not a host IP/ECN/GSO/kernel capture. Stream bytes must equal the separately retained observer output, including overlap and gap checks."
+    }
+  },
+  "private_evidence_sha256": {
+    "collector-causal-before.log": "f2687c43aed95d87ada5b237199e293f0ee967cbffddfb3b55a1186fd90803c6",
+    "collector-causal-after.log": "7c86ac1e72a1a4ee3d7a9bdbfb4c4c60f39570a61f61eb5209159fbec81bb155",
+    "collector-causal-smoke-packets.log": "38c76aef8e69b4c9f1699a83b18dbfc3699f9a833c5a6dde4135dc441a48dde0",
+    "native-placement-final-macOS-packets.log": "6a3e5ed479e08b8635d1379292eee4232ae1ef2a3fdcf1889dd7cf57cda86808",
+    "native-placement-final-macOS-causal/verification.json": "89e6cccf2986d8d4d8c592f5944b9588a32fa80103fe767aa254424625362fe2"
+  },
+  "normalization": "Explicit decoder-input ordering only: original record23800 before23799. All record bytes and timestamps retained. Original failed unmodified decode preserved. No timing or host-IP equivalence verdict."
+}

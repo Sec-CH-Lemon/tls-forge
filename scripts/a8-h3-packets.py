@@ -22,14 +22,68 @@ def checksum(raw):
     return (~value) & 65535
 
 
-def envelope(source, destination, omit_client_short=False):
+def long_header_ids(record):
+    data = base64.b64decode(record['data'], validate=True)
+    if len(data) < 7 or not data[0] & 0x80 or data[1:5] != b'\0\0\0\1':
+        return None
+    at = 5
+    size = data[at]
+    at += 1
+    if at + size >= len(data):
+        raise ValueError('truncated long-header CID')
+    destination = data[at:at + size]
+    at += size
+    size = data[at]
+    at += 1
+    if at + size > len(data):
+        raise ValueError('truncated source CID')
+    return destination, data[at:at + size]
+
+
+def causal_records(records):
+    # Post-send collector timestamps can interleave on loopback. A client
+    # cannot use a fresh server CID before the server introduces it. Retain
+    # original records/timestamps/payloads and declare each analysis-only move.
+    introduced = {}
+    for index, record in enumerate(records):
+        ids = long_header_ids(record)
+        if record['direction'] == 'server' and ids is not None and ids[1]:
+            introduced.setdefault((record['remote'], ids[1]), index)
+    before = {}
+    moves = []
+    for index, record in enumerate(records):
+        ids = long_header_ids(record)
+        if record['direction'] != 'client' or ids is None or not ids[0]:
+            continue
+        introducing = introduced.get((record['remote'], ids[0]))
+        if introducing is not None and introducing > index and introducing not in before:
+            before[introducing] = index
+            moves.append({'source_record': introducing + 1, 'before_record': index + 1,
+                          'remote': record['remote'], 'server_cid': ids[0].hex()})
+    insertion = {}
+    for source, target in before.items():
+        insertion.setdefault(target, []).append(source)
+    ordered = []
+    for index, record in enumerate(records):
+        for source in insertion.get(index, []):
+            ordered.append(records[source])
+        if index not in before:
+            ordered.append(record)
+    if len(ordered) != len(records) or sorted(map(id, ordered)) != sorted(map(id, records)):
+        raise ValueError('causal decoder ordering changed the original record set')
+    return ordered, moves
+
+
+def envelope(source, destination, omit_client_short=False, causal=False):
     """Synthetic IPv4/UDP headers only; original UDP payloads remain exact."""
     packets = 0
     server_port = None
-    with destination.open('xb') as output, source.open() as records:
+    with source.open() as inputs:
+        records = [json.loads(line) for line in inputs]
+    records, moves = causal_records(records) if causal else (records, [])
+    with destination.open('xb') as output:
         output.write(struct.pack('<IHHIIII', 0xa1b2c3d4, 2, 4, 0, 0, 65535, 101))
-        for line in records:
-            record = json.loads(line)
+        for record in records:
             local = record['local'].rsplit(':', 1)
             remote = record['remote'].rsplit(':', 1)
             port = int(local[1])
@@ -50,7 +104,7 @@ def envelope(source, destination, omit_client_short=False):
             output.write(struct.pack('<IIII', time_ns // 10**9, time_ns % 10**9 // 1000,
                                      len(packet), len(packet)) + packet)
             packets += 1
-    return server_port, packets
+    return server_port, packets, moves
 
 
 def decode(tshark, pcap, keys, port, out):
@@ -59,6 +113,10 @@ def decode(tshark, pcap, keys, port, out):
         subprocess.run([str(tshark), '-n', '-r', str(pcap), '-o', 'tls.keylog_file:' + str(keys),
                         '-d', f'udp.port=={port},quic', '--disable-protocol', 'http3',
                         '-Y', 'quic', '-T', 'pdml'], stdout=output, stderr=errors, check=True)
+    return read_pdml(pdml, port)
+
+
+def read_pdml(pdml, port):
     streams = {}
     for _, packet in ET.iterparse(pdml, events=['end']):
         if packet.tag != 'packet':
@@ -106,6 +164,7 @@ def main():
     parser.add_argument('directory', type=Path)
     parser.add_argument('--tshark', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--causal-normalization', action='store_true', help='declare analysis-only ordering of late server-CID introductions; preserve all original bytes/timestamps')
     args = parser.parse_args()
     args.out.mkdir(mode=0o700, parents=True, exist_ok=False)
     version = subprocess.check_output([str(args.tshark), '--version'], text=True).splitlines()[0]
@@ -116,14 +175,14 @@ def main():
     observation_file = args.directory / 'observations.json'
     observations = json.loads(observation_file.read_text())
     pcap = args.out / 'synthetic-envelope.pcap'
-    port, packets = envelope(source, pcap)
+    port, packets, moves = envelope(source, pcap, causal=args.causal_normalization)
     streams = decode(args.tshark, pcap, keys, port, args.out / 'decoded')
     count = compare(streams, observations)
     empty_keys = args.out / 'empty-keys.log'
     empty_keys.write_bytes(b'')
     controls = {}
     removed = args.out / 'removed-client-application.pcap'
-    envelope(source, removed, omit_client_short=True)
+    envelope(source, removed, omit_client_short=True, causal=args.causal_normalization)
     for name, control_pcap, control_keys in [('missing-keys', pcap, empty_keys), ('missing-client-application', removed, keys)]:
         result = decode(args.tshark, control_pcap, control_keys, port, args.out / name)
         try:
@@ -135,7 +194,7 @@ def main():
     result = {'accepted': True, 'decoder': version, 'decoder_sha256': sha(args.tshark),
               'source_sha256': sha(source), 'observation_sha256': sha(observation_file),
               'pcap_sha256': sha(pcap), 'connections': len(streams), 'streams': count,
-              'packets': packets, 'negative_controls': controls,
+              'packets': packets, 'negative_controls': controls, 'analysis_causal_normalization': args.causal_normalization, 'moved_records': moves,
               'scope': 'Exact original UDP payloads with synthetic IPv4/UDP envelope for independent authenticated QUIC decoding. Not a host IP/ECN/GSO/kernel capture. Stream bytes must equal the separately retained observer output, including overlap and gap checks.'}
     (args.out / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({key: result[key] for key in ['accepted', 'connections', 'streams', 'packets']}))

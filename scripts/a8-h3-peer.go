@@ -118,6 +118,9 @@ type packetRecorder struct {
 func (p *packetRecorder) record(direction string, remote net.Addr, b []byte) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	return p.recordLocked(direction, remote, b)
+}
+func (p *packetRecorder) recordLocked(direction string, remote net.Addr, b []byte) error {
 	return json.NewEncoder(p.file).Encode(struct {
 		Time      int64  `json:"time_ns"`
 		Direction string `json:"direction"`
@@ -136,9 +139,13 @@ func (p *packetRecorder) ReadFrom(b []byte) (int, net.Addr, error) {
 	return n, a, e
 }
 func (p *packetRecorder) WriteTo(b []byte, a net.Addr) (int, error) {
+	// Keep the send and its successful record together: a loopback response
+	// must not be recorded before the packet that introduced its server CID.
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	n, e := p.PacketConn.WriteTo(b, a)
 	if n > 0 {
-		if recordErr := p.record("server", a, b[:n]); e == nil && recordErr != nil {
+		if recordErr := p.recordLocked("server", a, b[:n]); e == nil && recordErr != nil {
 			e = recordErr
 		}
 	}

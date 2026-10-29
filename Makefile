@@ -80,6 +80,8 @@ generated-check:
 # release, with the release named beside it, as Dependabot keeps it.
 workflows-check:
 	python3 -m unittest discover -s scripts -p test_a8_h3_analyze.py
+	python3 -m unittest discover -s scripts -p test_a8_h3_packets.py
+	$(GO) test -race scripts/a8-h3-peer.go scripts/a8-h3-peer_test.go -count=1
 	python3 -m unittest discover -s scripts -p test_capture_artifacts.py
 	python3 -m unittest discover -s scripts -p test_chrome_archive.py
 	node --test --experimental-test-coverage \

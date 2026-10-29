@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Preserve causal packet logging in the private H3 observer. Declare optional
+  CID-introduction ordering for independent decoding of older post-send logs,
+  retaining every original datagram, timestamp and failed decode.
+
 - Add an explicit Linux ALPS actor initialization scenario before typed navigation, preserving original protocol/connection assertions and retaining private per-launch diagnostics.
 
 - Use observed ALPS handshakes as the opening event for settled handshake-rejection measurements; retain opening-page evidence for request scenarios and unchanged GOAWAY/request assertions.

@@ -2934,6 +2934,15 @@ synthetic IPv4/UDP headers solely for decoding; it does not measure host IP,
 ECN/GSO or kernel behavior. Missing-key and removed-application-packet controls
 must reject. Outputs contain private plaintext and TLS keys remain private.
 
+The packet recorder serializes a successful server send with its log entry
+before delivering a recorded reply. Older post-send logs can contain a reply
+before the packet introducing its server CID. For those original logs only,
+`--causal-normalization` explicitly moves the late CID-introduction record before
+its first dependent client long-header packet. The report lists every move;
+all datagrams and original timestamps remain unchanged. This decoder input
+ordering does not establish timing equivalence. The unmodified input and its
+failed decode remain evidence, and both negative controls still have to fail.
+
 Native H3 launches also disable component updates, matching the fixture
 harness: an external CRLSet/certificate-verifier update can legitimately retire
 an active Chrome QUIC session during a measured sequence. Chrome NetLog is
