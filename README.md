@@ -2504,8 +2504,10 @@ verifying a prerelease or an older version after the tap has moved forward.
 
 Whether tls-forge still matches the Chrome people run is asked every Monday by
 the [`drift`](.github/workflows/drift.yml) workflow. It compares the shipped
-profile with Google Chrome Stable and proposes a fresh one in a pull request
-when they differ. It also measures every fixture of the bench again, on Stable
+profile with Google Chrome Stable and offers candidates plus separate provenance
+artifacts when they differ. The review job verifies exact hashes and inherited
+policy origins; promotion onto `development` follows explicit native acceptance.
+It creates no branch or pull request. It also measures every fixture of the bench again, on Stable
 and on Beta, on macOS, where they were measured, and on Linux and Windows, for
 which profiles are shipped too, and files an issue for each platform, channel
 and major when what Chrome does differs from them in the same scenario twice
@@ -2874,3 +2876,21 @@ including zero: ID = 31*N+33. The engine draws once per new H3 connection;
 requests reusing that connection reuse its SETTINGS. Repeated random values
 are valid. The corrected range is sourced from Chrome156's pinned quiche;
 older profile builds inherit this data without a new browser verdict.
+
+
+### Pinned Chrome156 native capture
+
+`capture.yml` accepts `browser=156` to use original official Google Chrome
+installers pinned by full version and SHA256 in
+`verification/chrome156-installers.json`. It checks the installed full version
+before measuring; it cannot silently capture a newer Stable browser as156.
+The workflow runs headed `compare` and the native browser's existing
+`measure --check --newer` fixtures. These remain separate from H3/QPACK
+acceptance and do not establish full browser equivalence.
+
+Pinned runs require `evidence-certificate`, a base64 PEM public certificate.
+Original capture JSON and fixture evidence are uploaded only as CMS-encrypted
+artifacts; keep the matching private key in private measurement storage.
+Profile/provenance artifacts are separate, including when fixture acceptance
+fails. `scripts/check-capture-artifacts.py` validates their exact byte hashes
+and inherited field origins; it does not promote candidates automatically.

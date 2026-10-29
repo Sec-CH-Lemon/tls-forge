@@ -11,10 +11,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Pin original official Chrome156 installers by full version/hash for native
+  capture runs. Refuse a different installed build. Preserve raw evidence as
+  encrypted artifacts and keep profile provenance separate from runnable data;
+  run existing browser fixtures without promoting a failed candidate.
+
 - Draw H3 GREASE SETTINGS on every new connection, including direct/early
   constructors. Profiles own the generation range: uint32 N/value, zero
   allowed, from Chrome156's pinned quiche. Retain per-connection reuse and
   fixed-range repeat controls; older builds inherit the range explicitly.
+- Keep capture workflow provenance in a separate artifact. Drift verifies
+  exact candidate hashes and inherited policy origins and offers them for
+  review without creating a branch or pull request, per owner branch policy.
 
 - Build captured profiles from an explicit full policy basis instead of an
   inferred browser preset. `FromCapture(name, capture, basis)` preserves

@@ -14,15 +14,33 @@ name: capture
 # updated, and a profile whose name lies about its version is worse than none:
 # the name is what `--profile` asks for and what every log shows.
 #
-# No inputs. Google serves the current stable build of Chrome and nothing else,
-# so there is no version to choose — which is the price of measuring the real
-# browser instead of Chrome for Testing, and worth paying.
+# Default captures current stable. A pinned156 run uses original official
+# installers whose exact hashes are in verification/chrome156-installers.json.
 on:
   workflow_dispatch:
+    inputs:
+      browser:
+        description: Current stable or original pinned Google Chrome156 installers
+        type: choice
+        options: [stable, '156']
+        default: stable
+      evidence-certificate:
+        description: Base64 PEM public certificate for private raw evidence (required for pinned156)
+        type: string
+        default: ''
   # Callable, so the drift check can measure without a second copy of all this.
   # Artifacts belong to the run rather than to the workflow, so whatever calls
   # this can download what it produced.
   workflow_call:
+    inputs:
+      browser:
+        description: stable or156
+        type: string
+        default: stable
+      evidence-certificate:
+        description: Base64 PEM public certificate for private raw evidence
+        type: string
+        default: ''
     outputs:
       profile:
         description: the name the capture was filed under, e.g. chrome_152_linux
@@ -33,7 +51,7 @@ permissions:
 
 jobs:
   capture:
-    timeout-minutes: 30
+    timeout-minutes: 180
     outputs:
       profile: ${{ steps.captured.outputs.name }}
     strategy:
@@ -47,6 +65,8 @@ jobs:
       # so even punctuation such as an em dash is corrupted on the way from
       # served.txt into a step output and can make the summary fail to print.
       PYTHONUTF8: '1'
+      CAPTURE_BROWSER: ${{ inputs.browser || 'stable' }}
+      EVIDENCE_CERTIFICATE: ${{ inputs.evidence-certificate }}
       # Chrome's sandbox does not work on a hosted runner and fails silently:
       # the browser starts, never loads the page, and the capture times out
       # having watched something that was never going to answer. Ubuntu 24.04
@@ -67,6 +87,17 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
+      - name: obtain pinned installer when requested
+        id: archive
+        shell: bash
+        run: |
+          case "$CAPTURE_BROWSER" in
+            stable) ;;
+            156) [ -n "$EVIDENCE_CERTIFICATE" ] || { echo "pinned156 requires a public evidence certificate"; exit 1; }
+                 python3 scripts/chrome-archive.py --manifest verification/chrome156-installers.json \
+                   --platform "$RUNNER_OS" --output "$RUNNER_TEMP/chrome156" >> "$GITHUB_OUTPUT" ;;
+            *) echo "unsupported browser selection"; exit 1 ;;
+          esac
       # Google Chrome, not Chrome for Testing.
       #
       # `browser-actions/setup-chrome` installs Chrome for Testing, which for
@@ -99,25 +130,42 @@ jobs:
       # dl.google.com always has the current stable, which is the whole point.
       - name: install Google Chrome (macOS)
         if: runner.os == 'macOS'
+        env:
+          ARCHIVE: ${{ steps.archive.outputs.path }}
         run: |
-          curl -sL -o /tmp/chrome.dmg \
-            https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg
-          hdiutil attach -nobrowse -quiet /tmp/chrome.dmg
+          if [ -z "$ARCHIVE" ]; then
+            ARCHIVE=/tmp/chrome.dmg
+            curl --fail -sL -o "$ARCHIVE" \
+              https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg
+          fi
+          hdiutil attach -nobrowse -quiet "$ARCHIVE"
           sudo cp -R "/Volumes/Google Chrome/Google Chrome.app" /Applications/
           hdiutil detach -quiet "/Volumes/Google Chrome"
 
       - name: install Google Chrome (Linux)
         if: runner.os == 'Linux'
+        env:
+          ARCHIVE: ${{ steps.archive.outputs.path }}
         run: |
-          curl -sL -o /tmp/chrome.deb \
-            https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          if [ -z "$ARCHIVE" ]; then
+            ARCHIVE=/tmp/chrome.deb
+            curl --fail -sL -o "$ARCHIVE" \
+              https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          fi
           sudo apt-get update
-          sudo apt-get install -y /tmp/chrome.deb
+          sudo apt-get install -y --allow-downgrades "$ARCHIVE"
 
       - name: install Google Chrome (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          ARCHIVE: ${{ steps.archive.outputs.path }}
         run: |
+          if ($env:ARCHIVE) {
+            $install = Start-Process $env:ARCHIVE -Wait -PassThru -ArgumentList '--system-level', '--install', '--allow-downgrade', '--silent', '--do-not-launch-chrome'
+            if ($install.ExitCode -notin 0, 3010) { throw "pinned Chrome installer exited $($install.ExitCode)" }
+            exit 0
+          }
           $ProgressPreference = 'SilentlyContinue'
           $msi = "$env:TEMP\chrome.msi"
           Invoke-WebRequest -UseBasicParsing -OutFile $msi `
@@ -157,6 +205,14 @@ jobs:
           fi
           echo "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$CAPTURE_BROWSER" = 156 ]; then
+            python3 - "$version" "$RUNNER_OS" <<'PY'
+          import json, sys
+          expected = json.load(open('verification/chrome156-installers.json'))['platforms'][sys.argv[2]]['version']
+          if sys.argv[1].strip() != 'Google Chrome ' + expected:
+              raise SystemExit('pinned browser version mismatch: ' + sys.argv[1])
+          PY
+          fi
 
       # What is everybody else running — on this platform.
       #
@@ -198,6 +254,7 @@ jobs:
       # slice of a rollout, which is worth seeing rather than refusing. The
       # summary carries the numbers either way.
       - name: is this the browser most people have
+        if: env.CAPTURE_BROWSER == 'stable'
         shell: bash
         env:
           GOT: ${{ steps.browser.outputs.version }}
@@ -247,11 +304,11 @@ jobs:
           # whatever Chrome is current rather than whatever was written here.
           run() { go run ./cmd/tls-forge capture \
             --browser "${{ steps.chrome.outputs.path }}" "$FLAGS" \
-            --save captured --timeout 3m; }
+            --json --save captured --provenance-dir captured-provenance --timeout 3m; }
           if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a bash -c "$(declare -f run); run"
+            xvfb-run -a bash -c "$(declare -f run); run" > capture-raw.json
           else
-            run
+            run > capture-raw.json
           fi
 
       # Where the capture landed, read off the disk rather than assumed. The
@@ -272,10 +329,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "$name at $file"
 
-      # The capture is faithful when the profile built from it is
-      # indistinguishable from the browser it came from. Same instrument, same
-      # browser, measured twice: anything that does not match is the capture
-      # having lost something, and this is the last moment to find out.
+      # This compares measured TLS/H1/H2 fields only. Unmeasured policies remain
+      # inherited candidates and need their own native browser/wire acceptance.
       - name: the capture reproduces the browser
         shell: bash
         run: |
@@ -287,6 +342,12 @@ jobs:
           else
             run
           fi
+
+      - name: fixture acceptance on the native browser
+        shell: bash
+        run: |
+          go run ./internal/harness/measure --browser "${{ steps.chrome.outputs.path }}" \
+            "$FLAGS" --check --newer > fixture-differences.txt 2> fixture-measure.log
 
       # A third-party opinion, so the profile is not only self-consistent.
       - name: what a third party sees
@@ -373,7 +434,43 @@ jobs:
       # already laid out the way profile/data expects and can be copied in
       # whole rather than filed by hand.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.captured.outputs.name != ''
         with:
           name: ${{ steps.captured.outputs.name }}
           path: captured/
+          if-no-files-found: error
+
+      # Separate from runnable profile data; drift keeps this binding intact.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.captured.outputs.name != ''
+        with:
+          name: capture-provenance_${{ steps.captured.outputs.name }}
+          path: captured-provenance/
+          if-no-files-found: error
+
+      - name: encrypt private original evidence
+        if: always() && env.EVIDENCE_CERTIFICATE != ''
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, os, pathlib, platform, subprocess
+          pathlib.Path('evidence-recipient.pem').write_bytes(base64.b64decode(os.environ['EVIDENCE_CERTIFICATE'], validate=True))
+          files = [p for pattern in ['capture-raw.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt'] for p in pathlib.Path('.').glob(pattern)]
+          record = {'source': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(), 'platform': platform.platform(), 'machine': platform.machine(), 'raw_sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
+          pathlib.Path('evidence-manifest.json').write_text(json.dumps(record, indent=2)+'\n')
+          PY
+          python3 - <<'PY'
+          import pathlib, tarfile
+          with tarfile.open('private-evidence.tar.gz', 'w:gz') as archive:
+              for pattern in ['capture-raw.json', 'evidence-manifest.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt']:
+                  for path in pathlib.Path('.').glob(pattern):
+                      archive.add(path, arcname=str(path))
+          PY
+          openssl cms -encrypt -binary -aes-256-cbc -in private-evidence.tar.gz \
+            -out private-evidence.cms -outform DER evidence-recipient.pem
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && env.EVIDENCE_CERTIFICATE != ''
+        with:
+          name: capture-private-${{ runner.os }}
+          path: private-evidence.cms
           if-no-files-found: error

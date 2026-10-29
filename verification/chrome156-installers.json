@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "browser": "Google Chrome",
+  "major": 156,
+  "provenance": "Official ChromiumDash platform builds and Google update2 rollback target156 metadata; downloaded original artifacts retained privately",
+  "platforms": {
+    "Linux": {
+      "version": "156.0.8078.73",
+      "url": "https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_156.0.8078.73-1_amd64.deb",
+      "sha256": "fd19c6895dad77f4d7f712c2d9f0d5eb682f4a6e7ff22b1bd0d40d03710d288c",
+      "kind": "deb"
+    },
+    "Windows": {
+      "version": "156.0.8078.74",
+      "url": "https://dl.google.com/release2/chrome/adnbzwqfdty3qpprdhwig7aufvyq_156.0.8078.74/156.0.8078.74_chrome_installer_uncompressed.exe",
+      "sha256": "8783e3a9a3bb263a6b39da9e9ea6bdb7f31bb9dc9806f9b438ae7c1dde0480b0",
+      "kind": "exe"
+    },
+    "macOS": {
+      "version": "156.0.8078.74",
+      "url": "https://dl.google.com/release2/chrome/acg2teiapq4qsajscuhoyboaquhq_156.0.8078.74/GoogleChrome-156.0.8078.74.dmg",
+      "sha256": "55d7c75223f4f27a748b8c7ec985d7a752ef357ead43f5bf1a5477aedb797551",
+      "kind": "dmg"
+    }
+  }
+}

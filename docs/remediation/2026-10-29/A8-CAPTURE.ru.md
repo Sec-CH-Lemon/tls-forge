@@ -33,3 +33,27 @@ JSON с сохранением остаётся одним документом 
 Унаследованная политика не получает нового browser-verdict; полный QA
 модуля и workflow-интеграция выполняются следующими частями A8. Engine остаётся
 единым неопубликованным1.0.0; профили заново не ретегируются.
+
+
+## Workflow integration
+
+capture.yml теперь вызывает тот же CLI builder и сохраняет отдельный
+capture-provenance_<profile> artifact. Drift проверяет точные байты, major,
+схему и inherited происхождение всех policy keys; метаданные не копируются
+в profile/data. По актуальному owner-контракту development-only workflow
+предлагает проверенные artifacts без создания profile/* веток и PR.
+
+Для A8 добавлен browser=156: официальные Google установщики .73/Linux и
+.74/macOS/Windows закреплены полными SHA256. Их оригиналы и ответы updater
+сохранены приватно. Полная установленная версия проверяется до измерения;
+текущий Stable157 не может быть незаметно принят как156. Headed compare
+отделён от существующего headless fixture harness measure --check --newer.
+H3/QPACK требуют своей отдельной приёмки.
+
+Pinned run требует публичный evidence-certificate. Capture JSON и исходные
+fixture logs сохраняются только как CMS-encrypted artifacts, приватный ключ
+остаётся локально под ignored captures. Локальный encrypt/decrypt roundtrip
+прошёл побайтовое сравнение. Отрицательные тесты проверяют изменённый
+установщик, иной URL/hash/version, изменённые profile bytes, неверный major,
+отсутствующее provenance и ложную отметку measured. actionlint и
+make workflows-check проходят. Нативный CI после публикации ещё не запускался.
