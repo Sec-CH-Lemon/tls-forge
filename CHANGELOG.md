@@ -11,7 +11,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
-- Pin local QUIC `517b1f3e` with the corrected Cancellation observer and
+- Pin local QUIC `1fda75c1` with the corrected Cancellation observer and
   reproducible corrupt-packet test. Five corrupt Initials prove that the
   one-second test budget was shorter than valid PTO recovery. Echo equality,
   finite stream deadlines and flush-mode negative controls remain required.
