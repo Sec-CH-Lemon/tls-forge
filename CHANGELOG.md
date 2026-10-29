@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Decode the QPACK Cancellation before checking its packet/ACK relationship.
+  The root wire controls distinguish a stream type sent alone from the first
+  instruction and reject a delayed sequence under the immediate rule.
+
 - [Retain the 29 October remediation evidence](docs/remediation/2026-10-29/README.ru.md):
   root coverage/race and SDK controls pass; QUIC production fork acceptance
   remains blocked by unclassified MITM deadline and cancellation/ACK assertions.

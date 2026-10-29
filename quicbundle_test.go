@@ -32,9 +32,10 @@ import (
 // bundleHeard keeps every packet a QUIC server got from its clients, and
 // when, and every packet it sent.
 type bundleHeard struct {
-	mu   sync.Mutex
-	got  []qlog.PacketReceived
-	sent []qlog.PacketSent
+	mu      sync.Mutex
+	got     []qlog.PacketReceived
+	sent    []qlog.PacketSent
+	decoder []byte
 }
 
 func (h *bundleHeard) AddProducer() qlogwriter.Recorder { return h }
@@ -64,6 +65,40 @@ func (h *bundleHeard) carrying(id quic.StreamID, offset int64) *qlog.PacketRecei
 		}
 	}
 	return nil
+}
+
+func (h *bundleHeard) instruction() *qlog.PacketReceived {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if !bytes.Equal(h.decoder, []byte{3, 0x40}) {
+		return nil
+	}
+	for i, p := range h.got {
+		for _, f := range p.Frames {
+			if st, ok := f.Frame.(*qlog.StreamFrame); ok && st.StreamID == 6 && st.Offset <= 1 && 1 < st.Offset+st.Length {
+				return &h.got[i]
+			}
+		}
+	}
+	return nil
+}
+func (h *bundleHeard) acknowledging(reset qlog.PacketNumber) (*qlog.PacketReceived, *qlog.AckFrame) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	var packet *qlog.PacketReceived
+	var found *qlog.AckFrame
+	for i, p := range h.got {
+		if p.Header.PacketType != qlog.PacketType1RTT {
+			continue
+		}
+		for _, f := range p.Frames {
+			if ack, ok := f.Frame.(*qlog.AckFrame); ok && ack.AcksPacket(reset) && (packet == nil || p.Header.PacketNumber < packet.Header.PacketNumber) {
+				packet = &h.got[i]
+				found = ack
+			}
+		}
+	}
+	return packet, found
 }
 
 // resetIn is the number of the packet the server's RESET_STREAM of id went in.
@@ -141,7 +176,17 @@ func bundleSite(t *testing.T, serve func(control *quic.SendStream, str *quic.Str
 						if err != nil {
 							return
 						}
-						go func() { _, _ = io.Copy(io.Discard, str) }()
+						go func() {
+							if str.StreamID() == 6 {
+								var prefix [2]byte
+								if _, err := io.ReadFull(str, prefix[:]); err == nil {
+									heard.mu.Lock()
+									heard.decoder = append([]byte(nil), prefix[:]...)
+									heard.mu.Unlock()
+								}
+							}
+							_, _ = io.Copy(io.Discard, str)
+						}()
 					}
 				}()
 				for {
@@ -202,12 +247,12 @@ func TestARequestsWritesAreFlushedAsItsProfileSays(t *testing.T) {
 }
 
 // cancellationACK is the ACK the client wearing p (probedLate) sends with
-// its QPACK decoder's first bytes, a Stream Cancellation of the request a
+// the decoded QPACK Stream Cancellation of the request a
 // bundleSite resets by after, and whether it acknowledges the reset. A
 // server of quic-go's skips a packet number now and then, which the client
 // acknowledges at once: such a run says nothing of when the ACK goes, and is
 // run again.
-func cancellationACK(t *testing.T, p *profile.Profile, after func(control *quic.SendStream)) (*qlog.AckFrame, []quic.StreamID) {
+func cancellationACK(t *testing.T, p *profile.Profile, after func(control *quic.SendStream), immediate bool) (*qlog.AckFrame, []quic.StreamID, bool) {
 	t.Helper()
 	p = probedLate(p)
 	for range 3 {
@@ -225,27 +270,42 @@ func cancellationACK(t *testing.T, p *profile.Profile, after func(control *quic.
 		var packet *qlog.PacketReceived
 		for deadline := time.Now().Add(2 * time.Second); packet == nil && time.Now().Before(deadline); {
 			time.Sleep(10 * time.Millisecond)
-			packet = heard.carrying(6, 0)
+			packet = heard.instruction()
 		}
 		if packet == nil {
 			t.Fatal("no Stream Cancellation")
 		}
 		ack, _ := packet.Frames[0].Frame.(*qlog.AckFrame)
-		if ack == nil || !ack.AcksPacket(heard.resetIn(0)) {
-			t.Fatalf("the Stream Cancellation went in %+v, not with the reset's ACK", packet.Frames)
+		beforeACK := false
+		if immediate {
+			var ackPacket *qlog.PacketReceived
+			for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); {
+				ackPacket, ack = heard.acknowledging(heard.resetIn(0))
+				if ack != nil {
+					break
+				}
+				time.Sleep(time.Millisecond)
+			}
+			if ack == nil || packet.Header.PacketNumber > ackPacket.Header.PacketNumber {
+				t.Fatal("Cancellation was not sent before or with the reset ACK")
+			}
+			beforeACK = packet.Header.PacketNumber < ackPacket.Header.PacketNumber
+		} else if ack == nil || !ack.AcksPacket(heard.resetIn(0)) {
+			t.Fatalf("instruction not bundled with reset ACK: %+v", packet.Frames)
 		}
+		t.Logf("instruction_packet=%d ack_delay=%s before_ack=%v", packet.Header.PacketNumber, ack.DelayTime, beforeACK)
 		ids, _ := streamsIn(packet)
 		if len(ack.AckRanges) == 1 {
-			return ack, ids
+			return ack, ids, beforeACK
 		}
 	}
 	t.Fatal("a packet number skipped in every run")
-	return nil, nil
+	return nil, nil, false
 }
 
 func TestAStreamCancellationGoesWithTheResetsACKAsChromes(t *testing.T) {
 	// a lone reset's ACK, delayed: the cancellation waits for it
-	ack, ids := cancellationACK(t, quicProfile(t, nil), func(*quic.SendStream) {})
+	ack, ids, _ := cancellationACK(t, quicProfile(t, nil), func(*quic.SendStream) {}, false)
 	if ack.DelayTime < 15*time.Millisecond {
 		t.Errorf("sent %s after the reset, not with the ACK delayed for it", ack.DelayTime)
 	}
@@ -254,12 +314,12 @@ func TestAStreamCancellationGoesWithTheResetsACKAsChromes(t *testing.T) {
 	}
 	// the reset with more of the server's: the ACK at once, and the
 	// cancellation in it, made as the reset was taken
-	ack, _ = cancellationACK(t, quicProfile(t, nil), func(control *quic.SendStream) {
+	ack, _, _ = cancellationACK(t, quicProfile(t, nil), func(control *quic.SendStream) {
 		// an unknown frame on the control stream, which the client passes
 		// over: packets the client acknowledges at once
 		frame := quicvarint.Append(quicvarint.Append(nil, 0x21), 4000)
 		_, _ = control.Write(append(frame, bytes.Repeat([]byte{1}, 4000)...))
-	})
+	}, false)
 	if ack.DelayTime >= 15*time.Millisecond {
 		t.Errorf("sent %s after the reset, not with the ACK of it at once", ack.DelayTime)
 	}
@@ -267,8 +327,15 @@ func TestAStreamCancellationGoesWithTheResetsACKAsChromes(t *testing.T) {
 
 func TestWhenAStreamCancellationGoesIsTheProfilesToSay(t *testing.T) {
 	// the JSON alone: at once, as quic-go's writes it
-	ack, _ := cancellationACK(t, quicProfile(t, map[string]string{"h3.qpack.decoder_writes": ""}), func(*quic.SendStream) {})
-	if ack.DelayTime >= 15*time.Millisecond {
+	ack, _, beforeACK := cancellationACK(t, quicProfile(t, map[string]string{"h3.qpack.decoder_writes": ""}), func(*quic.SendStream) {}, true)
+	if !beforeACK && ack.DelayTime >= 15*time.Millisecond {
 		t.Errorf("sent %s after the reset, not at once", ack.DelayTime)
+	}
+}
+
+func TestDelayedCancellationRejectsImmediateExpectation(t *testing.T) {
+	ack, _, beforeACK := cancellationACK(t, quicProfile(t, nil), func(*quic.SendStream) {}, true)
+	if beforeACK || ack.DelayTime < 15*time.Millisecond {
+		t.Fatal("delayed wire control incorrectly satisfies immediate expectation")
 	}
 }
