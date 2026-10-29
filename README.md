@@ -2419,6 +2419,11 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
+[URL verification](docs/url-oracle.md) separates WHATWG components, idempotence,
+production H1/H2 targets and credential scope. Ordinary Go tests need no Node
+or Chrome. Explicit reference checks retain the independent versions and
+constructor results.
+
 Cancellation wire tests decode the instruction bytes and compare its packet
 with the reset ACK. A decoder stream type sent alone is not a Cancellation.
 The opportunistic and immediate rules have separate negative controls.
@@ -2426,7 +2431,8 @@ The opportunistic and immediate rules have separate negative controls.
 The current QUIC `1fda75c1` and tls-client `a9f4f3e` pins are local commits
 awaiting publication. A fresh public-proxy install needs those commits to be
 published. [The 29 October checks](docs/remediation/2026-10-29/README.ru.md)
-record the passing root checks and the still-blocked QUIC fork gate.
+retain the earlier 7/8 result; the follow-up now accepts all eight known-debt
+fork gates. The109 historical F09 obligations remain open.
 
 Fork regression gates compare complete known diagnostic transcripts as well as
 failure names and message families. Their documented normalization preserves

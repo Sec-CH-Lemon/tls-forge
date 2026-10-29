@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Correct the URL fuzz oracle without restricting WHATWG-permitted userinfo
+  or hosts to Go parser syntax. Retain both original counterexamples, an
+  independent26-case Node/Ada/Chrome constructor fixture, H1/H2 production
+  target and credential-origin controls, and explicit pre-dial refusal limits.
+  Production runtime, profiles and engine identity are unchanged.
+
 - Recognize Go Framer timestamps with omitted zero fractions in the fork
   diagnostic gate; retain exact frame values and malformed timestamp rejection.
 

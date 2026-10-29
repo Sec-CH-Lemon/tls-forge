@@ -1,0 +1,376 @@
+{
+  "schema": 1,
+  "scope": "WHATWG URL constructor components only; no Chrome navigation/auth/wire verdict",
+  "standard_snapshot": "https://url.spec.whatwg.org/commit-snapshots/845bafca22fb0c5a42c4bf384a9bdea525a2f10d/",
+  "oracle": {
+    "node": "24.16.0",
+    "ada": "3.4.4",
+    "chrome": "156.0.8078.74",
+    "mode": "headless=new; local data page; fresh user-data-dir per launch",
+    "cohorts": 2,
+    "cases_per_cohort": 26,
+    "platform": "macOS 27.0.1 arm64"
+  },
+  "cases": [
+    {
+      "id": "review-percent-user",
+      "input": "http:   %0X0000000000000@é0#0",
+      "expected": {
+        "canonical": "http://%20%20%20%0X0000000000000@xn--0-9fa/",
+        "scheme": "http",
+        "authority": "xn--0-9fa",
+        "target": "/",
+        "username": "%20%20%20%0X0000000000000",
+        "password": "",
+        "username_bytes": "ICAgJTBYMDAwMDAwMDAwMDAwMA==",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "fuzz-backtick-host",
+      "input": "http:`0",
+      "expected": {
+        "canonical": "http://`0/",
+        "scheme": "http",
+        "authority": "`0",
+        "target": "/",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      },
+      "production_refusal": "invalid URL escape"
+    },
+    {
+      "id": "malformed-password",
+      "input": "http://u:p%0X@example.test/a#x",
+      "expected": {
+        "canonical": "http://u:p%0X@example.test/a",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/a",
+        "username": "u",
+        "password": "p%0X",
+        "username_bytes": "dQ==",
+        "password_bytes": "cCUwWA=="
+      }
+    },
+    {
+      "id": "malformed-query",
+      "input": "http://example.test/a?q=%zz#x",
+      "expected": {
+        "canonical": "http://example.test/a?q=%zz",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/a?q=%zz",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "unicode",
+      "input": "https://ю:пароль@пример.example/é?ж#ф",
+      "expected": {
+        "canonical": "https://%D1%8E:%D0%BF%D0%B0%D1%80%D0%BE%D0%BB%D1%8C@xn--e1afmkfd.example/%C3%A9?%D0%B6",
+        "scheme": "https",
+        "authority": "xn--e1afmkfd.example",
+        "target": "/%C3%A9?%D0%B6",
+        "username": "%D1%8E",
+        "password": "%D0%BF%D0%B0%D1%80%D0%BE%D0%BB%D1%8C",
+        "username_bytes": "0Y4=",
+        "password_bytes": "0L/QsNGA0L7Qu9GM"
+      }
+    },
+    {
+      "id": "encoded-delimiters",
+      "input": "https://u%40x:p%3Aa%2Fb@example.test/a%2Fb?q=%23#omit",
+      "expected": {
+        "canonical": "https://u%40x:p%3Aa%2Fb@example.test/a%2Fb?q=%23",
+        "scheme": "https",
+        "authority": "example.test",
+        "target": "/a%2Fb?q=%23",
+        "username": "u%40x",
+        "password": "p%3Aa%2Fb",
+        "username_bytes": "dUB4",
+        "password_bytes": "cDphL2I="
+      }
+    },
+    {
+      "id": "multiple-at",
+      "input": "http://a@b:c@EXAMPLE.test/x",
+      "expected": {
+        "canonical": "http://a%40b:c@example.test/x",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/x",
+        "username": "a%40b",
+        "password": "c",
+        "username_bytes": "YUBi",
+        "password_bytes": "Yw=="
+      }
+    },
+    {
+      "id": "empty-credentials",
+      "input": "http://:@example.test/",
+      "expected": {
+        "canonical": "http://example.test/",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "empty-user",
+      "input": "http://:pass@example.test/",
+      "expected": {
+        "canonical": "http://:pass@example.test/",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/",
+        "username": "",
+        "password": "pass",
+        "username_bytes": "",
+        "password_bytes": "cGFzcw=="
+      }
+    },
+    {
+      "id": "empty-password",
+      "input": "http://user:@example.test/",
+      "expected": {
+        "canonical": "http://user@example.test/",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/",
+        "username": "user",
+        "password": "",
+        "username_bytes": "dXNlcg==",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "empty-query",
+      "input": "http://example.test/?#omit",
+      "expected": {
+        "canonical": "http://example.test/?",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/?",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "empty-components",
+      "input": "http://example.test",
+      "expected": {
+        "canonical": "http://example.test/",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "backslashes",
+      "input": "https:\\example.test\\a\\..\\b?q=x#x",
+      "expected": {
+        "canonical": "https://example.test/b?q=x",
+        "scheme": "https",
+        "authority": "example.test",
+        "target": "/b?q=x",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "c0-trim",
+      "input": "\u0000 \thTtP://EXA\nMPLE.test:80/a\r?x=1 \u001f",
+      "expected": {
+        "canonical": "http://example.test/a?x=1",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/a?x=1",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "c0-encoded",
+      "input": "http://example.test/a\u0001b?q=\u0002x",
+      "expected": {
+        "canonical": "http://example.test/a%01b?q=%02x",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/a%01b?q=%02x",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "ipv4",
+      "input": "http://0x7f.1:80/a",
+      "expected": {
+        "canonical": "http://127.0.0.1/a",
+        "scheme": "http",
+        "authority": "127.0.0.1",
+        "target": "/a",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "ipv6",
+      "input": "http://[::FFFF:127.0.0.1]:8080/a",
+      "expected": {
+        "canonical": "http://[::ffff:7f00:1]:8080/a",
+        "scheme": "http",
+        "authority": "[::ffff:7f00:1]:8080",
+        "target": "/a",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "dots",
+      "input": "https://example.test/a/%2E%2e/b/./c",
+      "expected": {
+        "canonical": "https://example.test/b/c",
+        "scheme": "https",
+        "authority": "example.test",
+        "target": "/b/c",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "relative",
+      "input": "../next?q=%40#x",
+      "base": "https://u:p@example.test/dir/page?old",
+      "expected": {
+        "canonical": "https://u:p@example.test/next?q=%40",
+        "scheme": "https",
+        "authority": "example.test",
+        "target": "/next?q=%40",
+        "username": "u",
+        "password": "p",
+        "username_bytes": "dQ==",
+        "password_bytes": "cA=="
+      },
+      "comparison": "base_credentials_tracked_by_chain"
+    },
+    {
+      "id": "relative-same-scheme",
+      "input": "https:next",
+      "base": "https://u:p@example.test/dir/page",
+      "expected": {
+        "canonical": "https://u:p@example.test/dir/next",
+        "scheme": "https",
+        "authority": "example.test",
+        "target": "/dir/next",
+        "username": "u",
+        "password": "p",
+        "username_bytes": "dQ==",
+        "password_bytes": "cA=="
+      },
+      "comparison": "base_credentials_tracked_by_chain"
+    },
+    {
+      "id": "redirect-other-origin",
+      "input": "//other.test/new#x",
+      "base": "https://u:p@example.test/dir/page",
+      "expected": {
+        "canonical": "https://other.test/new",
+        "scheme": "https",
+        "authority": "other.test",
+        "target": "/new",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "redirect-query",
+      "input": "?",
+      "base": "https://u:p@example.test/dir/page?old",
+      "expected": {
+        "canonical": "https://u:p@example.test/dir/page?",
+        "scheme": "https",
+        "authority": "example.test",
+        "target": "/dir/page?",
+        "username": "u",
+        "password": "p",
+        "username_bytes": "dQ==",
+        "password_bytes": "cA=="
+      },
+      "comparison": "base_credentials_tracked_by_chain"
+    },
+    {
+      "id": "unsupported-path",
+      "input": "http://example.test/%zz",
+      "refusal": "escapes nothing",
+      "expected": {
+        "canonical": "http://example.test/%zz",
+        "scheme": "http",
+        "authority": "example.test",
+        "target": "/%zz",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "blocked-port",
+      "input": "http://example.test:6000/",
+      "refusal": "port",
+      "expected": {
+        "canonical": "http://example.test:6000/",
+        "scheme": "http",
+        "authority": "example.test:6000",
+        "target": "/",
+        "username": "",
+        "password": "",
+        "username_bytes": "",
+        "password_bytes": ""
+      }
+    },
+    {
+      "id": "invalid-host",
+      "input": "http://exa%zzmple.test/",
+      "expected": {
+        "invalid": true
+      }
+    },
+    {
+      "id": "invalid-port",
+      "input": "https://example.test:65536/",
+      "expected": {
+        "invalid": true
+      }
+    }
+  ]
+}

@@ -576,8 +576,9 @@ func TestEveryBlockedPortIsInOrder(t *testing.T) {
 }
 
 func FuzzCanonicalURL(f *testing.F) {
-	// Whatever a URL is, its canonical form is its own canonical form, which
-	// url.Parse reads as the same request.
+	// Idempotence and the actual request representation are separate from
+	// WHATWG conformance, checked by the independent fixture below. Go's
+	// url.Parse accepts a different language and is not a WHATWG oracle.
 	for _, seed := range []string{
 		"https://example.com/", "HTTP://EXAMPLE.COM:80/a/../b?c#d", "https://пример.example/é?ж", "http://0x7f.1/",
 		"http://[::FFFF:127.0.0.1]:8080/", "https://u:p@example.com/%41", `https:\\example.com\a\.\b`,
@@ -594,14 +595,30 @@ func FuzzCanonicalURL(f *testing.F) {
 		if err != nil || again != canonical {
 			t.Fatalf("CanonicalURL(%q) = %q, but CanonicalURL(%q) = %q, %v", raw, canonical, canonical, again, err)
 		}
-		u, _ := requestURL(raw, nil)
-		read, err := url.Parse(canonical)
+		u, err := requestURL(raw, nil)
 		if err != nil {
-			t.Fatalf("url.Parse(%q): %v", canonical, err)
+			t.Fatalf("accepted canonical URL has no request representation: %v", err)
 		}
-		if read.RequestURI() != u.RequestURI() || read.Host != u.Host || read.Scheme != u.Scheme {
-			t.Fatalf("%q reads as %s %s %s, sent as %s %s %s", canonical, read.Scheme, read.Host,
-				read.RequestURI(), u.Scheme, u.Host, u.RequestURI())
+		// Split only the canonical serialization's delimiters. No second URL
+		// parser may reject a valid host or malformed percent in userinfo.
+		scheme, rest, ok := strings.Cut(canonical, "://")
+		if !ok {
+			t.Fatal("canonical URL has no scheme separator")
 		}
+		i := strings.IndexByte(rest, '/')
+		if i < 0 {
+			t.Fatal("canonical URL has no path")
+		}
+		authority, target := rest[:i], rest[i:]
+		if at := strings.LastIndexByte(authority, '@'); at >= 0 {
+			authority = authority[at+1:]
+		}
+		if u.Scheme != scheme || u.Host != authority || u.RequestURI() != target || u.Fragment != "" {
+			t.Fatalf("serialized %q; request scheme=%q authority=%q target=%q fragment=%q", canonical, u.Scheme, u.Host, u.RequestURI(), u.Fragment)
+		}
+		if !strings.HasPrefix(target, "/") || strings.ContainsAny(target, "#\r\n") {
+			t.Fatalf("invalid origin-form target %q", target)
+		}
+
 	})
 }
