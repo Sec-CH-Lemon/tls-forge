@@ -2946,6 +2946,11 @@ all datagrams and original timestamps remain unchanged. This decoder input
 ordering does not establish timing equivalence. The unmodified input and its
 failed decode remain evidence, and both negative controls still have to fail.
 
+For private diagnosis of a native fork-gate failure, a manual `forks.yml`
+dispatch accepts `forks`/`graphs` JSON lists and `evidence-certificate` as above.
+It uploads only CMS-encrypted raw evidence. Default runs retain raw output on
+the runner; selecting a diagnostic subset does not alter any gate assertion.
+
 Native H3 launches also disable component updates, matching the fixture
 harness: an external CRLSet/certificate-verifier update can legitimately retire
 an active Chrome QUIC session during a measured sequence. Chrome NetLog is

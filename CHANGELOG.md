@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Allow explicitly requested, CMS-encrypted private fork-gate diagnostics and
+  focused native reruns; preserve original gate assertions and sandbox rules.
+
 - Ship the exact native headed Chrome156 profiles for macOS, Linux and Windows;
   `chrome` now selects156 on the host platform. Preserve155 policy origins and
   separate capture/wire acceptance. Keep151–154 as historical captures.

@@ -46,8 +46,13 @@ requires; archive publication requires a separate review.
 CI (`.github/workflows/forks.yml`) uses a separate runner per fork/graph and
 runs on main/development only when `go.mod`, `go.sum`, `verification/` or
 `scripts/fork_gate.py` change, or by hand; it cancels obsolete runs. Its raw
-evidence stays on the runner, private as above: the job uploads no artifact,
-and its log has the gate's summary line. Exact fork commits and pseudo-versions
+evidence stays on the runner by default, and its log has the gate's summary
+line. An explicit diagnostic dispatch may select `forks`/`graphs` JSON lists
+and supply `evidence-certificate` (base64 PEM public certificate). Only then
+does it upload CMS-encrypted `fork-private-<fork>-<graph>` evidence, including
+the original failed JSONL, source and module graphs. Keep the corresponding
+private key and decrypted evidence private. Gate assertions, transcript
+digests, exclusions and sandbox rules are unchanged. Exact fork commits and pseudo-versions
 must be available remotely before these jobs can execute there. Locally sealed
 module artifacts demonstrate installation without a replace; they do not prove
 publication or remote CI.

@@ -18,6 +18,19 @@ on:
       - verification/**
       - scripts/fork_gate.py
   workflow_dispatch:
+    inputs:
+      forks:
+        description: Exact fork names as a JSON list for a diagnostic rerun
+        type: string
+        default: '["utls", "fhttp", "tls-client", "quic-go-utls"]'
+      graphs:
+        description: Exact module graphs as a JSON list
+        type: string
+        default: '["standalone", "production"]'
+      evidence-certificate:
+        description: Base64 PEM public certificate for encrypted private gate evidence
+        type: string
+        default: ''
 
 concurrency:
   group: forks-${{ github.workflow }}-${{ github.ref }}
@@ -33,8 +46,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fork: [utls, fhttp, tls-client, quic-go-utls]
-        graph: [standalone, production]
+        fork: ${{ fromJSON(inputs.forks || '["utls", "fhttp", "tls-client", "quic-go-utls"]') }}
+        graph: ${{ fromJSON(inputs.graphs || '["standalone", "production"]') }}
     env:
       GOWORK: 'off'
     steps:
@@ -65,3 +78,24 @@ jobs:
           FORK: ${{ matrix.fork }}
           GRAPH: ${{ matrix.graph }}
         run: python3 scripts/fork_gate.py --fork "$FORK" --graph "$GRAPH" --source fork-source --output fork-results
+      - name: Encrypt private gate evidence when explicitly requested
+        if: always() && inputs.evidence-certificate != ''
+        env:
+          EVIDENCE_CERTIFICATE: ${{ inputs.evidence-certificate }}
+        run: |
+          python3 - <<'PY'
+          import base64, os, pathlib, tarfile
+          pathlib.Path('evidence-recipient.pem').write_bytes(base64.b64decode(os.environ['EVIDENCE_CERTIFICATE'], validate=True))
+          if not pathlib.Path('fork-results').is_dir():
+              raise RuntimeError('gate produced no private evidence')
+          with tarfile.open('fork-private.tar.gz', 'w:gz') as archive:
+              archive.add('fork-results', arcname='fork-results')
+          PY
+          openssl cms -encrypt -binary -aes-256-cbc -in fork-private.tar.gz \
+            -out fork-private.cms -outform DER evidence-recipient.pem
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && inputs.evidence-certificate != ''
+        with:
+          name: fork-private-${{ matrix.fork }}-${{ matrix.graph }}
+          path: fork-private.cms
+          if-no-files-found: error
