@@ -1,0 +1,45 @@
+{
+  "scope": "JSON-only state rule; native3platform/fullQA pending",
+  "checks": [
+    {
+      "file": "quiche-qpack-encoder.cc",
+      "sha256": "8033cef00c96c6da33f1950818e1cbad95f3aa95a342545cf0a7ed8f28dd7d5d"
+    },
+    {
+      "file": "quiche-spdy-session.cc",
+      "sha256": "f2cb6199011635a2af5771cf5c3681f653d95ce73fe768711102d00d582f84f3"
+    },
+    {
+      "file": "qpack-first-state-control.log",
+      "sha256": "1ef5f924b3662fac31c0cdead205aa12452af6dcd3f8e169285d87ba4e106403"
+    },
+    {
+      "file": "qpack-state-json0.log",
+      "sha256": "fb277e7cebf343b2eeef3933883daa8ff92a07f6dc4e50baae117a4db10cc93b"
+    },
+    {
+      "file": "qpack-warmup-control.json",
+      "sha256": "e774534b824f2d965a778a2dcf99f77a2183acf43ef2dc35e287125deb1529b9"
+    },
+    {
+      "file": "qpack-oracle-pin.json",
+      "sha256": "a416dccc81cca2cef7d8a01ec478839711f74e1a126ceed26a4a158cff94e799"
+    },
+    {
+      "file": "h3-mac-campaign512-r02/campaign.json",
+      "sha256": "7eb497065c678507d5783b626b2c3e82f44006e2ad7e8ec9970ae300348437d1"
+    },
+    {
+      "file": "h3-mac-campaign512-r02/observations.json",
+      "sha256": "87c506a97efd0c8fa214b91da5dd6a5df21b5a65074a4ac9a0ce39c7af20c80b"
+    },
+    {
+      "file": "h3-state-tool-smoke/campaign.json",
+      "sha256": "23a233ef9de1bd873e9906061b6fb848fdfd318e7bf5e7372eadbc3406caea15"
+    },
+    {
+      "file": "h3-state-tool-smoke/observations.json",
+      "sha256": "e3799ff90ff1aa5eeb00d41b796cad7e7d3a9ab4aa6d378fb06b25aa0d1bfbe8"
+    }
+  ]
+}

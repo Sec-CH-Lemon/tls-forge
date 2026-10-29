@@ -24,6 +24,11 @@ import (
 // erase QPACK representation choices. It advertises no dynamic QPACK support.
 func qpackWirePeer(t *testing.T) (string, <-chan []byte) {
 	t.Helper()
+	return qpackWirePeerSettings(t, nil, nil)
+}
+
+func qpackWirePeerSettings(t *testing.T, settings [][2]uint64, release <-chan struct{}) (string, <-chan []byte) {
+	t.Helper()
 	seed := httptest.NewTLSServer(nil)
 	cert := seed.TLS.Certificates[0]
 	seed.Close()
@@ -55,10 +60,23 @@ func qpackWirePeer(t *testing.T) (string, <-chan []byte) {
 			t.Error(err)
 			return
 		}
-		// Control stream type; empty SETTINGS frame.
-		if _, err = control.Write([]byte{0, 4, 0}); err != nil {
-			t.Error(err)
-			return
+		// Optional peer timing isolates whether capacity is known at the
+		// first header encode. No peer SETTINGS is a request barrier.
+		writeSettings := func() error {
+			var payload []byte
+			for _, pair := range settings {
+				payload = quicvarint.Append(payload, pair[0])
+				payload = quicvarint.Append(payload, pair[1])
+			}
+			data := quicvarint.Append([]byte{0, 4}, uint64(len(payload)))
+			_, e := control.Write(append(data, payload...))
+			return e
+		}
+		if release == nil {
+			if err = writeSettings(); err != nil {
+				t.Error(err)
+				return
+			}
 		}
 		stream, err := conn.AcceptStream(ctx)
 		if err != nil {
@@ -85,6 +103,17 @@ func qpackWirePeer(t *testing.T) (string, <-chan []byte) {
 			if typ == 1 {
 				observed <- payload
 				break
+			}
+		}
+		if release != nil {
+			select {
+			case <-release:
+			case <-ctx.Done():
+				return
+			}
+			if err = writeSettings(); err != nil {
+				t.Error(err)
+				return
 			}
 		}
 		var block bytes.Buffer

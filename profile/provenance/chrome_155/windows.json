@@ -1,9 +1,9 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "d59c55423ac79d86bd08e26234cbe732a5b781a9bd6312d0efe18f5374179282",
-  "previous_profile_sha256": "d39a47373905c33b016158d3fae0aa60300364a3c16693291cc41cc069b3bb1f",
+  "profile_sha256": "6fc1e2da49d18ef4e573295fad1719d893516c4ab8633bd2d7f5310da293cf71",
+  "previous_profile_sha256": "d59c55423ac79d86bd08e26234cbe732a5b781a9bd6312d0efe18f5374179282",
   "basis_name": "chrome_155_macos",
-  "basis_file_sha256": "4385f1aebb6153092fb3ffa7bb90590d975c8c2d3b2fb9e050ded6f584af1dd8",
+  "basis_file_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
   "change": "A8/C02 shared policy inheritance; data only",
   "fields": {
     "behavior.h1.zero_length_identity": {
@@ -64,7 +64,7 @@
     },
     "behavior.h3.qpack.encoder_warmup_sections": {
       "class": "inherited",
-      "source": "chrome_155_macos shared network stack; native Chrome156 windows acceptance pending"
+      "source": "Chrome156 pinned quiche OnSetting/EncodeHeaderList; explicitly inherited through macOS155 rule; actual table availability controls first section"
     },
     "behavior.h3.qpack.error_capacity_exceeded_reason": {
       "class": "inherited",

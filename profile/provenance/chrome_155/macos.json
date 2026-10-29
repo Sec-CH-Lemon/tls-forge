@@ -1,0 +1,13 @@
+{
+  "provenance_schema": 1,
+  "profile_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
+  "previous_profile_sha256": "4385f1aebb6153092fb3ffa7bb90590d975c8c2d3b2fb9e050ded6f584af1dd8",
+  "change": "A8 JSON-only QPACK first-section state rule",
+  "fields": {
+    "behavior.h3.qpack.encoder_warmup_sections": {
+      "class": "inherited",
+      "source": "Chrome156 pinned quiche and two new headed macOS156 cohorts; no explicit skipped section counter"
+    }
+  },
+  "acceptance": "Chrome156 rule observed; historical155 not freshly measured"
+}

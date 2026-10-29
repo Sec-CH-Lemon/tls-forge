@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Select existing JSON QPACK warmup0 for the Chrome155/156 policy basis.
+  Dynamic first-section encoding follows received SETTINGS/ALPS capacity;
+  no artificial first-section skip or peer-SETTINGS request barrier is added.
+  Preserve new Chrome156 state observations and historical155 provenance.
+
 - Prepare capture data/provenance and safe metadata destinations before
   replacing a profile. Preserve the file-save missing-parent refusal; report
   metadata write errors. Add corrupted-capture, I/O and launch-mode controls

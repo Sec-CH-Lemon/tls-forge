@@ -1878,3 +1878,15 @@ Older browser builds explicitly inherit this selection; it is not their new
 measurement. Reused requests send no new SETTINGS; repeated draws are valid.
 The generic transport factory implements this lifetime without browser-name
 branches. This mechanism belongs to the pending engine1.0.0 release.
+
+
+### QPACK first-section state (A8)
+
+`h3.qpack.encoder_warmup_sections: 0` imposes no artificial skipped-section
+count. The encoder still needs actual peer capacity and blocked-stream credit;
+before SETTINGS/ALPS supplies them, fields remain static/literal. Current
+Chrome155 basis files explicitly inherit this selection from pinned Chrome156
+source and repeated native156 observations. Existing value1 remains a distinct
+implemented choice, not a measured Chrome invariant. Request code must never
+wait for peer SETTINGS to manufacture a particular first-section form.
+See [the state witness](remediation/2026-10-29/A8-QPACK-STATE.ru.md).
