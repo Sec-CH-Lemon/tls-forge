@@ -16,7 +16,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   only the presence of one old failure message. Original private evidence
   and all F09 obligations are retained. Resolver IPs are normalized only
   inside the exact sandbox-denied DNS diagnostic, with its host and error
-  preserved, so the gate can run on another machine.
+  preserved, so the gate can run on another machine. Supporting Framer
+  timestamps, object identities and repeat counts are recorded separately
+  from assertion diagnostics; distinct frame values remain checked.
 
 - Bound HTTP/3 HEADERS and trailer allocation independently of the optional
   SETTINGS limit. Explicit `h3.settings` ID 6 governs reception, including

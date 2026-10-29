@@ -16,14 +16,16 @@ import tempfile
 import time
 
 
-def failure_digest(text):
+def failure_transcript(text):
     """Hash all diagnostic lines, retaining duplicates and rejecting added output.
 
     Only harness metadata, source-export roots, loopback port numbers and the
-    resolver address in a sandbox-denied DNS dial are normalized. Original
-    test events remain in the private evidence archive.
+    resolver address in a sandbox-denied DNS dial are normalized. Supporting
+    Framer traces retain distinct values and report repeat counts separately.
+    Original test events remain in the private evidence archive.
     """
     lines = []
+    frames = {}
     for line in text.splitlines():
         if re.fullmatch(r"\s*(?:=== (?:RUN|PAUSE|CONT) +\S+|--- (?:FAIL|PASS|SKIP): \S+ \([0-9.]+s\))", line):
             continue
@@ -38,8 +40,21 @@ def failure_digest(text):
             return match[1] + "<resolver>" + match[3] + "<resolver>" + match[5]
         line = re.sub(r"(lookup \S+ on )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: dial udp )(\[[0-9a-fA-F:]+\]|[0-9.]+)(:53: connect: operation not permitted)", resolver, line)
         line = re.sub(r"(127\.0\.0\.1|localhost|\[::1\]):[0-9]+", r"\1:<port>", line)
+        frame = re.fullmatch(r"\s+[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:]+\.[0-9]+ Framer 0x[0-9a-f]+: ((?:read|wrote) .+)", line)
+        if frame:
+            event = frame[1]
+            frames[event] = frames.get(event, 0) + 1
+            continue
         lines.append(line)
-    return hashlib.sha256("\n".join(sorted(lines)).encode()).hexdigest()
+    # Framer trace multiplicity depends on scheduling of this flood test.
+    # Preserve every event kind/value in the fingerprint and all counts in the
+    # report; only repeated identical supporting trace events are collapsed.
+    digest = hashlib.sha256(json.dumps([sorted(lines), sorted(frames)], ensure_ascii=True).encode()).hexdigest()
+    return digest, frames
+
+
+def failure_digest(text):
+    return failure_transcript(text)[0]
 
 
 def evaluate(events, returncodes, known, graph, require_self=False, requested_packages=None):
@@ -53,12 +68,16 @@ def evaluate(events, returncodes, known, graph, require_self=False, requested_pa
             outputs.setdefault(e["Package"], []).append(e)
     allowed = {(x["package"], x["test"]): x for x in known if graph in x["graphs"]}
     unexpected = []
+    trace_counts = []
     for package, test in sorted(failed):
         row = allowed.get((package, test))
         text = "".join(e.get("Output", "") for e in outputs.get(package, [])
                        if e.get("Test") == test or e.get("Test", "").startswith(test + "/"))
+        digest, frames = failure_transcript(text)
+        if frames:
+            trace_counts.append({"package": package, "test": test, "frames": frames})
         if (row is None or not re.search(row["failure_pattern"], text, re.S)
-                or failure_digest(text) not in row.get("failure_output_sha256", {}).get(graph, [])):
+                or digest not in row.get("failure_output_sha256", {}).get(graph, [])):
             unexpected.append({"package": package, "test": test, "reason": "new failure or signature"})
     for package in sorted(package_failures):
         if not any(p == package for p, _ in failed):
@@ -79,7 +98,7 @@ def evaluate(events, returncodes, known, graph, require_self=False, requested_pa
         completed = {e["Package"] for e in events if not e.get("Test") and e.get("Action") in ("pass", "fail", "skip")}
         for package in sorted(set(requested_packages) - completed):
             unexpected.append({"package": package, "reason": "requested package did not complete"})
-    return {"accepted": not unexpected, "test_runs": len(runs), "known_failures": [list(x) for x in sorted(failed & allowed.keys())],
+    return {"accepted": not unexpected, "test_runs": len(runs), "trace_counts": trace_counts, "known_failures": [list(x) for x in sorted(failed & allowed.keys())],
             "not_observed_now": [list(x) for x in sorted(allowed.keys() - failed)], "unexpected": unexpected,
             "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."}
 
@@ -182,7 +201,7 @@ def main():
                        "network": "loopback only; external TestWeb cannot issue its POST", "modules": selected, "production_linked": expected,
                        "source_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "skips": ["TestOmitHTTP2"] if args.fork == "fhttp" else []})
         (args.output / "result.json").write_text(json.dumps(report, indent=2) + "\n")
-        print(json.dumps({k: v for k, v in report.items() if k not in ("modules", "production_linked", "known_failures", "not_observed_now")}))
+        print(json.dumps({k: v for k, v in report.items() if k not in ("modules", "production_linked", "known_failures", "not_observed_now", "trace_counts")}))
         return 0 if report["accepted"] else 1
 
 

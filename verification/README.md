@@ -65,3 +65,11 @@ the gate even when the original failure pattern is still present. The private
 source-pinned baselines and their hashes are listed in `fork-failures.json`. A
 known failure without an observed transcript rejects the gate if it returns,
 until its output is reviewed. This does not close any F09 obligation.
+
+The control-frame flood fixture emits a supporting Framer trace with live
+timestamps, object addresses and a scheduling-dependent number of repeated
+PING events. Those timestamps/addresses and repeat multiplicities are not
+assertion diagnostics. Distinct complete frame values remain in the digest;
+`trace_counts` in the private result preserves every event count. Additional
+core diagnostics, changed frame fields or unknown trace lines still reject
+the gate. No raw Framer values are printed in its public summary.

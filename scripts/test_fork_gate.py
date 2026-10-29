@@ -1,6 +1,6 @@
 import unittest
 
-from fork_gate import evaluate, failure_digest
+from fork_gate import evaluate, failure_digest, failure_transcript
 
 
 class ForkGateTests(unittest.TestCase):
@@ -40,6 +40,15 @@ class ForkGateTests(unittest.TestCase):
         self.assertEqual(failure_digest(first), failure_digest(first.replace("192.168.100.1", "[2001:db8::1]")))
         for changed in [first.replace("example.com", "other.test"), first.replace(":53", ":54"), first.replace("operation not permitted", "connection refused"), first.replace("on 192.168.100.1", "on 1.1.1.1")]:
             self.assertNotEqual(failure_digest(first), failure_digest(changed))
+
+    def test_framer_supporting_trace_keeps_values_and_counts(self):
+        frame = '        2026-10-29 12:30:10.123 Framer 0x123: wrote PING len=8 ping="data"\n'
+        changed = frame.replace('12:30:10.123', '15:50:20.999').replace('0x123', '0x456')
+        first = 'old assertion\n' + frame
+        self.assertEqual(failure_digest(first), failure_digest('old assertion\n' + changed * 2))
+        self.assertEqual(failure_transcript('old assertion\n' + frame * 2)[1], {'wrote PING len=8 ping="data"': 2})
+        for altered in [first + 'new error\n', first.replace('len=8', 'len=9'), first.replace('data', 'new data'), first.replace('wrote PING', 'wrote GOAWAY')]:
+            self.assertNotEqual(failure_digest(first), failure_digest(altered))
 
     def test_transcript_normalization_is_bounded(self):
         first = '=== RUN   TestOld\n    file_test.go:1: Get "https://127.0.0.1:123/a" at /tmp/fork-gate-abc/path/file_test.go:2\n--- FAIL: TestOld (0.01s)\n'
