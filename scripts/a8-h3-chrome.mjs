@@ -316,5 +316,5 @@ try {
   if (child.exitCode === null) child.kill("SIGTERM");
   await Promise.race([new Promise((r) => child.on("exit", r)), sleep(3000)]);
   if (child.exitCode === null) child.kill("SIGKILL");
-  rmSync(udd, { recursive: true, force: true });
+  rmSync(udd, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
 }
