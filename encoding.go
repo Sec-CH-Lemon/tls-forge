@@ -285,7 +285,11 @@ func readBody(res *fhttp.Response, method string, limit int64, policies ...behav
 	}
 	// The depth check precedes the empty-body shortcut: Chrome refuses to
 	// initialize an over-depth chain even when its encoded body is empty.
-	if _, err := body.Peek(1); !decode || err != nil {
+	_, peekErr := body.Peek(1)
+	if peekErr != nil && peekErr != io.EOF {
+		return nil, "", readingError(peekErr)
+	}
+	if !decode || peekErr != nil {
 		read, err := readAtMost(body, limit)
 		if err != nil {
 			return nil, "", readingError(err)

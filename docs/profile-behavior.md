@@ -1830,3 +1830,14 @@ ALPN normally. No captured ALPN, browser name/version, timing threshold or
 concurrency default is hardcoded by this mechanism. New sites/Fresh have their
 own observation state. Profile ALPN vectors and existing connection limits still
 apply; no profile values or version metadata change for this fix.
+
+## HTTP/3 response header limits (unreleased engine 1)
+
+The existing `h3.settings` vector owns SETTINGS_MAX_FIELD_SECTION_SIZE (ID 6)
+and the receive limit, independently of `h1.response_header_bytes` and request
+priority. A present zero is zero; omission means no advertised limit. The
+engine retains its 16 MiB QPACK resource ceiling for encoded HEADERS blocks
+before allocation and for decoded field sections, including trailers. Values
+above that ceiling remain advertised as selected but cannot raise the internal
+resource limit. Raw legacy transport options apply only without an explicit
+HTTP/3 settings map. No browser profile values or engine major are changed.

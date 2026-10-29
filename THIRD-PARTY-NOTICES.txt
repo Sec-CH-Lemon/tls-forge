@@ -210,7 +210,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261028110028-69430008f951
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261029121037-abb06a60c209
 --------------------------------------------------------------------------------
 
 MIT License
@@ -236,7 +236,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261028212323-62deb6d14643
+github.com/igor-lemon/tls-client v1.15.2-0.20261029121512-a9f4f3e3b579
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn

@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Bound HTTP/3 HEADERS and trailer allocation independently of the optional
+  SETTINGS limit. Explicit `h3.settings` ID 6 governs reception, including
+  zero; HTTP/1 limits and HTTP/3 priorities no longer select an H3 limit.
+  Preserve the first body-read error instead of reading again after it.
+  QUIC `abb06a60` and tls-client `a9f4f3e` are local commits awaiting publication.
+
 - Update `golang.org/x/net` to v0.62.0 and its required Go dependencies.
   The CLI element check no longer uses the HTML parser affected by
   GO-2026-6860 (quadratic work on an untrusted response).

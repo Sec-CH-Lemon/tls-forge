@@ -2812,3 +2812,11 @@ then released on connection acquisition before waiting for a forwarded answer.
 Observed HTTP/1.1 proxy connections permit parallel requests; the transport
 continues to negotiate every new connection and can adopt HTTP/2 if offered.
 Existing H2 CONNECT/forwarding reuse, retry and caller tracing remain active.
+
+### HTTP/3 response limits
+
+`behavior["h3.settings"]` ID 6 selects both the advertised and received
+field-section size, including zero. Omitting it omits the advertisement.
+HTTP/1's response-head limit does not select this value. An independent 16 MiB
+engine ceiling bounds encoded header allocation and decoded fields even when
+no limit is advertised; protocol errors are returned on the first body read.
