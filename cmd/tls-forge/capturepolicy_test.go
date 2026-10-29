@@ -245,3 +245,25 @@ func TestCaptureJSONWriteErrorAndLaunchModeProvenance(t *testing.T) {
 		t.Fatalf("mode %s", provenance.BrowserMode)
 	}
 }
+
+func TestCaptureProfileWriteFailureDoesNotPublishMetadata(t *testing.T) {
+	measured, err := tlsforge.MeasureSelf(context.Background(), tlsforge.WithProfile("chrome_155_macos"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	target := filepath.Join(dir, "candidate", "macos.json")
+	if err := os.MkdirAll(target, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := saveProfile(dir, "candidate_macos", measured, true, nil, "chrome_155_macos"); err == nil {
+		t.Fatal("profile directory collision was reported as saved")
+	}
+	info, err := os.Stat(target)
+	if err != nil || !info.IsDir() {
+		t.Fatal("profile collision directory was changed", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "provenance", "candidate", "macos.json")); !os.IsNotExist(err) {
+		t.Fatal("metadata published after failed profile replacement", err)
+	}
+}
