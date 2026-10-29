@@ -30,17 +30,18 @@ func TestA6SemanticGateEveryClientEntryBeforeIO(t *testing.T) {
 		constructors.Add(1)
 		return originalConstructor(logger, opts...)
 	}
+	// UDP and TCP have different excluded port ranges on Windows. Reserve
+	// the pair together before starting either server, as the H3 peers do.
+	udp, tcp := udpAndTCP(t)
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { requests.Add(1); _, _ = w.Write([]byte("ok")) }))
+	_ = server.Listener.Close()
+	server.Listener = tcp
 	server.Config.ConnState = func(_ net.Conn, s http.ConnState) {
 		if s == http.StateNew {
 			sockets.Add(1)
 		}
 	}
 	server.StartTLS()
-	udp, err := net.ListenPacket("udp", server.Listener.Addr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
 	udpDone := make(chan struct{})
 	go func() {
 		defer close(udpDone)
