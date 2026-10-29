@@ -2419,6 +2419,11 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
+The current QUIC `abb06a60` and tls-client `a9f4f3e` pins are local commits
+awaiting publication. A fresh public-proxy install needs those commits to be
+published. [The 29 October checks](docs/remediation/2026-10-29/README.ru.md)
+record the passing root checks and the still-blocked QUIC fork gate.
+
 Fork regression gates compare complete known diagnostic transcripts as well as
 failure names and message families. Their documented normalization preserves
 additional errors; see [verification](verification/README.md). Accepted known

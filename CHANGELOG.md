@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- [Retain the 29 October remediation evidence](docs/remediation/2026-10-29/README.ru.md):
+  root coverage/race and SDK controls pass; QUIC production fork acceptance
+  remains blocked by unclassified MITM deadline and cancellation/ACK assertions.
+
 - Reject added or changed diagnostics inside an already known failing fork
   test. The gate checks a source-pinned normalized complete transcript, not
   only the presence of one old failure message. Original private evidence
