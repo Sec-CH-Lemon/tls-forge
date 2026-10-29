@@ -166,6 +166,9 @@ func TestWhatACacheDoesNotStore(t *testing.T) {
 	}
 	// One entry at most: the one used longest ago goes.
 	c.store(u+"a", nil, res("Cache-Control", "max-age=60"), []byte("a"))
+	// Establish a strict LRU order even when the host clock gives both
+	// stores the same timestamp. Map iteration cannot break a time tie.
+	c.entries[u+"a"][0].used = c.entries[u+"a"][0].used.Add(-time.Minute)
 	c.store(u+"b", nil, res("Cache-Control", "max-age=60"), []byte("bb"))
 	if _, ok := c.entries[u+"a"]; ok || len(c.entries[u+"b"]) != 1 || c.bytes != 2 {
 		t.Errorf("after two: %v (%d bytes)", c.entries, c.bytes)
