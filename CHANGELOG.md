@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Build captured profiles from an explicit full policy basis instead of an
+  inferred browser preset. `FromCapture(name, capture, basis)` preserves
+  unmeasured policies and generation rules. `capture --policy-from` selects
+  the basis; `--provenance-dir` keeps measured/inherited origins and exact
+  profile hashes separately. JSON output remains one document when saving.
+  Capture metadata does not establish wire acceptance; engine1 remains pending.
+
 - [Complete bounded A7 acceptance](docs/remediation/2026-10-29/A7-IDNA.ru.md)
   after the separately authorized IDNA runtime fix. Preserve the initial root
   ACK-order failure and subsequent passing root rerun in the evidence.

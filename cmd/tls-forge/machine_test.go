@@ -132,7 +132,24 @@ func TestCaptureSetsWhatItKeepsOfTheMachine(t *testing.T) {
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
 	}
-	if entries, _ := os.ReadDir(other); code != 1 || !strings.Contains(stderr, "sends no sec-ch-ua-arch") || len(entries) != 0 {
-		t.Errorf("exit code = %d, kept %v\n%s", code, entries, stderr)
+	if code != 0 {
+		t.Fatalf("explicit edit of inherited basis hint refused: %s", stderr)
+	}
+	data, err = os.ReadFile(filepath.Join(other, "manual_"+version, platform+".json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err = profile.Load(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, f := range saved.ClientHints {
+		if f.Name == "sec-ch-ua-arch" && f.Value == `"x86"` {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("explicit basis hint edit lost")
 	}
 }

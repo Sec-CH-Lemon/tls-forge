@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -174,7 +173,7 @@ func TestCaptureManualSavesTheBrowserAPersonOpens(t *testing.T) {
 		t.Fatalf("nothing was written to %s:\n%s", written, stdout)
 	}
 	saved, err := profile.Load(data)
-	if err != nil || saved.Name != version+"_"+platform || saved.HTTP1 != nil || len(saved.ClientHello) == 0 {
+	if err != nil || saved.Name != version+"_"+platform || saved.HTTP1 == nil || len(saved.ClientHello) == 0 {
 		t.Fatalf("saved %+v, %v", saved, err)
 	}
 	if _, err := saved.ClientProfile(); err != nil {
@@ -207,10 +206,12 @@ func TestCaptureManualKeepsTheClientHintsTheBrowserSent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	want := []profile.Field{{Name: "device-memory", Value: "8"}, {Name: "sec-ch-ua-arch", Value: `"x86"`},
-		{Name: "sec-ch-ua-platform-version", Value: `"19.0.0"`}}
-	if !reflect.DeepEqual(saved.ClientHints, want) {
-		t.Errorf("the profile says %v", saved.ClientHints)
+	got := map[string]string{}
+	for _, hint := range saved.ClientHints {
+		got[hint.Name] = hint.Value
+	}
+	if got["sec-ch-ua-arch"] != `"x86"` || got["sec-ch-ua-platform-version"] != `"19.0.0"` || got["device-memory"] == "8" {
+		t.Fatalf("persona not measured, or request context frozen: %v", got)
 	}
 	if !strings.Contains(stdout, "client hints     3 of the 21 a server asks for, sent when asked") {
 		t.Errorf("the summary:\n%s", stdout)
@@ -224,7 +225,7 @@ func TestCaptureManualInstallsUnderTheBrowsersName(t *testing.T) {
 	dir := keepProfilesIn(t)
 	visited := aPersonVisitsAs(t, "chrome", aPerson{
 		navigator: `{"brands": [{"brand": "Brave", "version": "155"}, {"brand": "Chromium", "version": "155"}]}`})
-	code, stdout, stderr := exec(t, "capture", "--manual", "--install", "--timeout", "30s")
+	code, stdout, stderr := exec(t, "capture", "--manual", "--install", "--policy-from", "chrome_155_macos", "--timeout", "30s")
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
 	}
@@ -285,7 +286,15 @@ func TestCaptureManualKeepsNoProfileUnderAShippedName(t *testing.T) {
 		t.Fatalf("MeasureSelf: %v", err)
 	}
 	measured.Navigator = &capture.Navigator{UserAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/155.0.0.0 Mobile Safari/537.36"}
-	if saved, _, err := saveProfile(t.TempDir(), "chrome_155", measured, false, nil); err != nil || saved.Name != "chrome_155_android" {
+	for i := range measured.HTTP2.Headers {
+		if measured.HTTP2.Headers[i].Name == "user-agent" {
+			measured.HTTP2.Headers[i].Value = measured.Navigator.UserAgent
+		}
+	}
+	if _, _, err := saveProfile(t.TempDir(), "chrome_155", measured, false, nil); err == nil {
+		t.Fatal("unmeasured mobile policy basis silently selected")
+	}
+	if saved, _, err := saveProfile(t.TempDir(), "chrome_155", measured, false, nil, "chrome_155_macos"); err != nil || saved.Name != "chrome_155_android" {
 		t.Errorf("a phone's: %+v, %v", saved, err)
 	}
 	if !profile.Ships(version+"_"+platform) || profile.Ships("chrome_155_android") || profile.Ships("brave_155_"+platform) {

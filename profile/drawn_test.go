@@ -133,12 +133,12 @@ func TestAProfileOfAMeasuredCaptureDrawsWhatWasMeasured(t *testing.T) {
 		HTTP2: &capture.HTTP2{PseudoHeaderOrder: []string{"m", "p", "a", "s"},
 			Headers: []capture.HeaderField{{Name: ":method", Value: "GET"}}},
 	}
-	built, err := FromCapture("firefox_148", measured)
+	built, err := FromCapture("firefox_148", measured, testCaptureBasis(t))
 	if err != nil || !built.PerConnection.ShufflesExtensions || len(built.PerConnection.ECHPayloadLengths) != 4 {
 		t.Fatalf("%+v, %v", built.PerConnection, err)
 	}
 	measured.Connections[0] = []byte{1}
-	if _, err := FromCapture("firefox_148", measured); err == nil || !strings.Contains(err.Error(), "connection 1") {
+	if _, err := FromCapture("firefox_148", measured, testCaptureBasis(t)); err == nil || !strings.Contains(err.Error(), "connection 1") {
 		t.Errorf("a broken hello: %v", err)
 	}
 }

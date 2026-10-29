@@ -2,9 +2,6 @@ package profile
 
 import (
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/engine"
-	"github.com/igor-lemon/utls/behavior"
-	"slices"
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
@@ -40,10 +37,12 @@ var perRequest = map[string]bool{
 
 // FromCapture turns a browser measurement into a reusable profile.
 //
-// This is the function that makes the library's claim checkable rather than
-// asserted: nothing in the resulting profile was written by hand, so nothing in
-// it can be a plausible guess about what a browser sends.
-func FromCapture(name string, c *capture.Capture) (*Profile, error) {
+// Exactly one explicit, executable policy basis is required. Only observed
+// fields replace it; unmeasured generation, protocol and lifecycle policies
+// remain inherited data. Names, User-Agent and brands never select policy here.
+// The variadic signature keeps old callers source-compatible, but omission is
+// an error rather than an implicit legacy/browser preset.
+func FromCapture(name string, c *capture.Capture, basis ...*Profile) (*Profile, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, fmt.Errorf("profile: name is required")
 	}
@@ -83,29 +82,34 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 			"browser's does at an address: a profile of it would name none to any site. Capture at a name")
 	}
 
-	p := &Profile{
-		Schema:      Schema,
-		EngineMajor: Major(engine.Major()),
-		Name:        name,
-		UserAgent:   c.UserAgent(),
-		ClientHello: append([]byte(nil), c.RawClientHello...),
-	}
-	// Capturing TCP does not measure the additional policies. Materialize the
-	// compatibility template explicitly; future edits belong to this profile.
-	p.Behavior = behavior.Generic()
-	if p.chromium() {
-		p.Behavior = behavior.Legacy()
-	}
 	if c.HTTP2 == nil {
 		return nil, fmt.Errorf("profile: capture has no HTTP/2 data; a reusable browser profile needs pseudo headers")
 	}
+	if len(basis) != 1 || basis[0] == nil {
+		return nil, fmt.Errorf("profile: capture requires one explicit policy basis (FromCapture(name, capture, basis))")
+	}
+	if err := basis[0].Validate(); err != nil {
+		return nil, fmt.Errorf("profile: invalid capture policy basis: %w", err)
+	}
+	if basis[0].Schema != Schema || basis[0].PerConnection == nil {
+		return nil, fmt.Errorf("profile: capture policy basis requires schema %d and explicit per_connection generation rules", Schema)
+	}
+	if basis[0].BareBase() {
+		return nil, fmt.Errorf("profile: capture policy basis must be a full explicit profile, not a catalogue preset")
+	}
+	p := basis[0].Clone()
+	p.Schema, p.Name, p.Base, p.source = Schema, name, "", ""
+	p.ClientHello = append([]byte(nil), c.RawClientHello...)
+	if agent := c.UserAgent(); agent != "" {
+		p.UserAgent = agent
+	}
 
-	if c.HTTP2 != nil {
-		p.HTTP2 = HTTP2{
-			ConnectionFlow:    c.HTTP2.WindowUpdate,
-			PseudoHeaderOrder: append([]string(nil), pseudoNames(c.HTTP2)...),
-			Settings:          make([]Setting, 0, len(c.HTTP2.Settings)),
-		}
+	if len(c.HTTP2.PseudoHeaderOrder) > 0 {
+		p.HTTP2.ConnectionFlow = c.HTTP2.WindowUpdate
+		p.HTTP2.PseudoHeaderOrder = append([]string(nil), pseudoNames(c.HTTP2)...)
+		p.HTTP2.Settings = make([]Setting, 0, len(c.HTTP2.Settings))
+		p.HTTP2.Priorities = nil
+		p.HTTP2.HeaderPriority = nil
 		for _, s := range c.HTTP2.Settings {
 			p.HTTP2.Settings = append(p.HTTP2.Settings, Setting{ID: s.ID, Value: s.Value})
 		}
@@ -119,50 +123,65 @@ func FromCapture(name string, c *capture.Capture) (*Profile, error) {
 				StreamID: pr.StreamID, Exclusive: pr.Exclusive, DependsOn: pr.DependsOn, Weight: pr.Weight,
 			}
 		}
-		for _, h := range c.HTTP2.Headers {
-			name := strings.ToLower(h.Name)
-			if strings.HasPrefix(name, ":") || perRequest[name] {
-				continue
-			}
-			p.Headers = append(p.Headers, Field{Name: name, Value: h.Value})
+	}
+	if len(c.HTTP2.Headers) > 0 {
+		p.Headers = nil
+	}
+	for _, h := range c.HTTP2.Headers {
+		name := strings.ToLower(h.Name)
+		if strings.HasPrefix(name, ":") || perRequest[name] {
+			continue
 		}
+		p.Headers = append(p.Headers, Field{Name: name, Value: h.Value})
 	}
 	if c.HTTP1 != nil {
 		p.HTTP1 = http1FromCapture(c.HTTP1, p.Headers)
 	}
 
-	if c.Navigator != nil && c.Navigator.UserAgent != "" {
-		p.UserAgent = c.Navigator.UserAgent
-	}
-	p.ClientHints = clientHintsOf(c.Navigator)
-	if len(c.ClientHints) > 0 {
-		p.ClientHints = clientHintsSent(c.ClientHints)
-	}
-	p.PerConnection = perConnectionOf(p)
-	p.Behavior = behavior.Generic()
-	if p.chromium() {
-		p.Behavior = behavior.Legacy()
-	}
-	if c.Navigator != nil && len(c.Navigator.Brands) > 0 {
-		p.PerConnection = &PerConnection{}
-		if slices.ContainsFunc(c.Navigator.Brands, func(b capture.Brand) bool { return b.Brand == "Chromium" }) {
-			p.PerConnection = chromiumPerConnection()
-			p.Behavior = behavior.Legacy()
+	// Merge only observed UA/persona hints. Context/device/network values stay
+	// with the explicit basis until their generation is separately measured.
+	observed := capturedPersonaHints(c)
+	for _, field := range observed {
+		found := false
+		for i := range p.ClientHints {
+			if p.ClientHints[i].Name == field.Name {
+				p.ClientHints[i] = field
+				found = true
+				break
+			}
+		}
+		if !found {
+			p.ClientHints = append(p.ClientHints, field)
 		}
 	}
-	// Measured, it is what was measured.
+	// Finite observations do not establish a complete draw distribution. Keep
+	// the basis's generation rules; refuse measured variation they cannot model.
 	drawn, err := DrawnOf(c)
 	if err != nil {
 		return nil, err
 	}
 	if drawn != nil {
-		p.PerConnection = drawn.perConnection()
+		if drawn.Order && (p.PerConnection == nil || !p.PerConnection.ShufflesExtensions) {
+			return nil, fmt.Errorf("profile: capture extension-order variation requires an explicit basis generation rule")
+		}
+		if len(drawn.ECH) > 1 && (p.PerConnection == nil || len(p.PerConnection.ECHPayloadLengths) < 2) {
+			return nil, fmt.Errorf("profile: capture ECH-length variation requires an explicit basis generation rule")
+		}
+		if p.PerConnection != nil && len(p.PerConnection.ECHPayloadLengths) > 0 {
+			for _, length := range drawn.ECH {
+				matched := false
+				for _, allowed := range p.PerConnection.ECHPayloadLengths {
+					if length == int(allowed)+echTag {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					return nil, fmt.Errorf("profile: capture ECH length %d is outside the explicit basis generation rule", length)
+				}
+			}
+		}
 	}
-	p.Behavior["http.negotiate_auth"] = []byte("false")
-	if strings.Contains(p.UserAgent, "Windows") {
-		p.Behavior["http.negotiate_auth"] = []byte("true")
-	}
-	delete(p.Behavior, "tls.ech_payload_lengths")
 	return p, nil
 }
 
@@ -225,18 +244,6 @@ func clientHintsOf(n *capture.Navigator) []Field {
 // backslash before a double quote or a backslash.
 func sfString(s string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) + `"`
-}
-
-// perConnectionOf is what a profile's browser draws for every connection, as
-// far as its name and user agent tell: Chromium's draws on every platform but
-// iOS, and nothing else's is known. A capture whose browser names its brands
-// says it better: only a Chromium browser counts Chromium among them, and
-// none on iOS has them to give.
-func perConnectionOf(p *Profile) *PerConnection {
-	if p.chromium() {
-		return chromiumPerConnection()
-	}
-	return &PerConnection{}
 }
 
 func http1FromCapture(measured *capture.HTTP1, shared []Field) *HTTP1 {
@@ -313,6 +320,26 @@ func pseudoNames(h *capture.HTTP2) []string {
 	for _, letter := range h.PseudoHeaderOrder {
 		if full, ok := names[letter]; ok {
 			out = append(out, full)
+		}
+	}
+	return out
+}
+
+// capturedPersonaHints keeps only values actually supplied by the capture.
+// Wire UA hints override navigator values; network/device context is not frozen.
+func capturedPersonaHints(c *capture.Capture) []Field {
+	var out []Field
+	if n := c.Navigator; n != nil {
+		known := map[string]bool{"sec-ch-ua-full-version": n.UAFullVersion != "", "sec-ch-ua-arch": n.Architecture != "", "sec-ch-ua-platform-version": n.PlatformVersion != "", "sec-ch-ua-model": n.Model != "", "sec-ch-ua-bitness": n.Bitness != "", "sec-ch-ua-wow64": n.WOW64, "sec-ch-ua-full-version-list": len(n.FullVersionList) > 0, "sec-ch-ua-form-factors": len(n.FormFactors) > 0}
+		for _, f := range clientHintsOf(n) {
+			if known[f.Name] {
+				out = append(out, f)
+			}
+		}
+	}
+	for _, f := range clientHintsSent(c.ClientHints) {
+		if strings.HasPrefix(f.Name, "sec-ch-ua-") {
+			out = append(out, f)
 		}
 	}
 	return out

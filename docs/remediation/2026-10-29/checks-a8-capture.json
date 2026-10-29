@@ -1,0 +1,41 @@
+{
+  "stage": "A8/C04+F02B builder slice",
+  "before_commit": "156d99fa71e09c5cbeb03a89c78fb5d23360c771",
+  "browser_acceptance": "not established; native three-platform A8 acceptance pending",
+  "checks": [
+    {
+      "file": "root-before.tar",
+      "sha256": "b259f65d59435ac88ee2a842bafca8ac359cc4f6e77d48e6f1ead4c7e91f0e2a"
+    },
+    {
+      "file": "before.json",
+      "sha256": "1f5ee9d34e108658d378a1d63922d01425630f075995d706ffaf1b6bb96f3aca"
+    },
+    {
+      "file": "capture-policy-before.log",
+      "sha256": "b9254299f39f3d6bd11a8aac20ea406803f3e75cde3a9dcc091116cea51110e1"
+    },
+    {
+      "file": "profile-cover-r04.log",
+      "sha256": "f7eb10c40f4c0f670826d19a8bc9c032e42dd3195af84c8b3b942fba4a9aee90"
+    },
+    {
+      "file": "profile-r04.cover",
+      "sha256": "4f921bbe2a9514c1f120e52f8b1666396a011f24223e4db88e4843edfa009a91"
+    },
+    {
+      "file": "cli-targeted-r06.log",
+      "sha256": "12f29a64c5099aa873e08b3537c828cae47aeee5b82e213b40ac7b8b6cc5fa5a"
+    },
+    {
+      "file": "capture-wire-r04.log",
+      "sha256": "74a3a3f290a1c76140549dfe1318f1e2aa563731ae1738fbe27f0a710eebd332"
+    }
+  ],
+  "results": {
+    "before": "340 basis behavior keys vs203 captured keys; RED preserved",
+    "profile": "PASS11.195s;100% statements",
+    "cli_targeted_race": "PASS55.585s",
+    "actual_tls_close_race": "PASS2.069s;4 concurrent H1/H2 policies"
+  }
+}

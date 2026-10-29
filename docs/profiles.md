@@ -284,6 +284,30 @@ document navigation — which is what a profile is for. For a subresource fetch,
 override the values that differ and use a custom profile without fields the
 browser would omit, such as `sec-fetch-user`.
 
+## Capture candidates and policy provenance
+
+`FromCapture(name, capture, basis)` requires exactly one complete executable
+schema4 basis with explicit `per_connection` rules and matching engine major.
+The old two-argument call returns an error. It does not select policy from a
+name, User-Agent, brand, platform or catalogue preset. Only observed fields
+replace basis data; missing fields remain inherited. TLS randoms, keys and
+session state are rebuilt by the engine under the basis generation rules.
+
+`capture --save` and `--install` use this same builder. `--policy-from` accepts
+an explicit profile or file. The CLI default selects the newest shipped full
+profile for the observed family/platform, and refuses if none exists.
+`--provenance-dir` chooses a separate metadata destination; the default nested
+provenance subtree is excluded from profile discovery. Keep provenance outside
+`profile/data` when preparing shipped profiles. Provenance binds the exact
+saved profile bytes by SHA-256, plus canonical JSON hashes of the basis and
+capture, and distinguishes measured, inherited, generated/stateful and explicit
+caller values. Browser mode comes from launch flags, not a rewritten UA.
+
+UA persona hints are merged only when observed. Device/network/viewport and
+preference observations stay in raw evidence; capture does not freeze them
+into new defaults. An inherited value is not a new measurement. Repeated
+browser/wire acceptance is required separately before promoting a candidate.
+
 ## Refusing a resumed capture
 
 `FromCapture` refuses a capture taken over a resumed connection. Such a hello

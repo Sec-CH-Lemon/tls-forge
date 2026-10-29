@@ -36,6 +36,8 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		"how long to wait for the browser; with --manual, ten minutes unless given")
 	browserArgs := browserArgFlag(fs)
 	visits := addVisitFlags(fs)
+	policyFrom := fs.String("policy-from", "", "full profile or file whose unmeasured policies the capture inherits (default: newest shipped same family/platform)")
+	provenanceDir := fs.String("provenance-dir", "", "directory for separate provenance JSON (default: provenance subtree, never a profile file)")
 	sets := fs.StringArray("set", nil,
 		"with --save or --install, a value the profile keeps of this machine, NAME=VALUE as its header carries it; "+
 			"again for more")
@@ -50,6 +52,18 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	if *name != "" && !profile.ValidName(*name) {
 		return fmt.Errorf("%w: invalid profile name %q", errUsage, *name)
+	}
+	if (*policyFrom != "" || *provenanceDir != "") && *save == "" && !*install {
+		return fmt.Errorf("%w: --policy-from and --provenance-dir require --save or --install", errUsage)
+	}
+	if *policyFrom != "" {
+		explicit, err := profile.Get(*policyFrom)
+		if err != nil {
+			return err
+		}
+		if err := explicit.Validate(); err != nil {
+			return err
+		}
 	}
 	settings, err := settingsOf(*sets)
 	if err != nil {
@@ -85,10 +99,18 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 		return err
 	}
 
+	profileOut := out
 	if *asJSON {
-		return printJSON(out, measured)
+		if err := printJSON(out, measured); err != nil {
+			return err
+		}
+		if *save == "" && !*install {
+			return nil
+		}
+		profileOut = errOut
+	} else {
+		printCapture(out, measured)
 	}
-	printCapture(out, measured)
 
 	where := *save
 	if *install {
@@ -131,19 +153,33 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	}
 	// One kept under the name of a profile tls-forge ships would answer for it
 	// from then on, the directory being read first: only when asked by name.
-	saved, path, err := saveProfile(where, profileName, measured, !*install || *name != "", settings)
+	mode := "headed"
+	if *headless {
+		mode = "headless"
+	}
+	for _, arg := range *browserArgs {
+		if strings.HasPrefix(arg, "--headless") {
+			mode = "headless (--browser-arg)"
+		}
+	}
+	if *visits.manual {
+		mode = "manual; visitor-reported identity is not authenticated"
+	}
+	saved, path, err := saveProfile(where, profileName, measured, !*install || *name != "", settings, *policyFrom, *provenanceDir, mode)
 	if err != nil {
 		return err
 	}
-	out.printf("\nwrote profile %q to %s\n", saved.Name, path)
+	profileOut.printf("\nwrote profile %q to %s\n", saved.Name, path)
+	profileOut.printf("%s\n", saved.Notes)
+	profileOut.printf("provenance: %s\n", captureProvenancePath(where, path, saved, *provenanceDir))
 	if kept := machineValues(saved); len(kept) > 0 {
-		out.println("kept of the machine it was captured on, which every request with it says (--set NAME=VALUE changes one):")
+		profileOut.println("kept of the machine it was captured on, which every request with it says (--set NAME=VALUE changes one):")
 		for _, field := range kept {
-			out.printf("  %-28s %s\n", field[0], field[1])
+			profileOut.printf("  %-28s %s\n", field[0], field[1])
 		}
 	}
 	if *install {
-		out.printf("use it with:  tls-forge fetch --profile %s <url>\n", shellQuote(saved.Name))
+		profileOut.printf("use it with:  tls-forge fetch --profile %s <url>\n", shellQuote(saved.Name))
 	}
 	return nil
 }
@@ -191,18 +227,29 @@ var (
 // chrome_151 is how a machine ends up with a profile nobody can guess the name
 // of.
 func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
-	settings []setting) (saved *profile.Profile, path string, err error) {
+	settings []setting, policyOptions ...string) (saved *profile.Profile, path string, err error) {
 	if !profile.ValidName(name) {
 		return nil, "", fmt.Errorf("capture: invalid profile name %q", name)
 	}
-	built, err := profile.FromCapture(name, measured)
+	policyFrom, provenanceDir := "", ""
+	if len(policyOptions) > 0 {
+		policyFrom = policyOptions[0]
+	}
+	if len(policyOptions) > 1 {
+		provenanceDir = policyOptions[1]
+	}
+	basis, err := capturePolicyBasis(measured, policyFrom)
+	if err != nil {
+		return nil, "", err
+	}
+	built, err := profile.FromCapture(name, measured, basis)
 	if err != nil {
 		return nil, "", err
 	}
 	if err := applySettings(built, settings); err != nil {
 		return nil, "", err
 	}
-	built.Notes = fmt.Sprintf("captured %s from %s", now().UTC().Format(time.RFC3339), built.UserAgent)
+	built.Notes = fmt.Sprintf("captured %s from %s; policy basis: %s (unmeasured policies inherited)", now().UTC().Format(time.RFC3339), built.UserAgent, basis.Name)
 	// What the measurement saw that a profile cannot say, said beside it.
 	if drawn, _ := profile.DrawnOf(measured); drawn != nil && len(drawn.Sometimes) > 0 {
 		built.Notes += "; not in every hello: " + extensionsNamed(drawn.Sometimes)
@@ -248,6 +295,9 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 		path = filepath.Join(where, filepath.FromSlash(relative))
 	}
 
+	if err := built.Validate(); err != nil {
+		return nil, "", err
+	}
 	data, err := built.Save()
 	if err == nil {
 		if tree != nil {
@@ -257,6 +307,52 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 		}
 	}
 	if err != nil {
+		return nil, "", err
+	}
+	mode := "unknown; direct saveProfile caller"
+	if len(policyOptions) > 2 {
+		mode = policyOptions[2]
+	}
+	provenance, err := profile.ProvenanceForCapture(built, basis, measured, mode)
+	if err != nil {
+		return nil, "", err
+	}
+	for _, setting := range settings {
+		key := "client_hints." + setting.name
+		if setting.name == "accept-language" {
+			key = "headers.accept-language"
+		}
+		provenance.Fields[key] = profile.FieldOrigin{Class: "user-provided", Source: "explicit --set"}
+	}
+	metadata, err := json.MarshalIndent(provenance, "", "  ")
+	if err != nil {
+		return nil, "", err
+	}
+	metadata = append(metadata, '\n')
+	metadataPath := captureProvenancePath(where, path, built, provenanceDir)
+	metadataRoot := filepath.Dir(path)
+	if info, statErr := os.Stat(where); statErr == nil && info.IsDir() {
+		metadataRoot = where
+	}
+	if provenanceDir != "" {
+		metadataRoot = provenanceDir
+	}
+	if err := os.MkdirAll(metadataRoot, 0o755); err != nil {
+		return nil, "", err
+	}
+	root, err := os.OpenRoot(metadataRoot)
+	if err != nil {
+		return nil, "", err
+	}
+	defer func() { _ = root.Close() }()
+	relativeMetadata, err := filepath.Rel(metadataRoot, metadataPath)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := root.MkdirAll(filepath.Dir(relativeMetadata), 0o755); err != nil {
+		return nil, "", err
+	}
+	if err := atomicfile.WriteRoot(root, relativeMetadata, metadata, 0o644); err != nil {
 		return nil, "", err
 	}
 	return built, path, nil

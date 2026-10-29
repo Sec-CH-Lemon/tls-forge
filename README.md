@@ -1728,7 +1728,7 @@ with `--manual`: tls-forge listens, and you open its page in that browser.
 ```bash
 tls-forge capture
 mkdir -p profiles && tls-forge capture --save profiles/
-tls-forge capture --browser edge --headless --save edge.json
+tls-forge capture --browser edge --headless --save edge.json --policy-from chrome_155_macos
 tls-forge capture --install
 tls-forge capture --manual --install
 tls-forge capture --manual --addr 0.0.0.0:8443 --host my-mac.local --save profiles/
@@ -1754,10 +1754,12 @@ Usage: `tls-forge capture [flags]`
 | `-b`, `--browser <name-or-path>` | `chrome`, `chromium`, `edge`, `brave`, or an executable path; auto-detected when omitted |
 | `--headless` | Run without a window; TLS/HTTP structure remains useful for drift checks, but Chrome says `HeadlessChrome` in its user agent where a headed one says `Chrome`, so with `--install` it needs `--name`: a capture saying `HeadlessChrome` is not kept as `local`, every command's default |
 | `-s`, `--save <path>` | Save a profile; an existing directory gets `<name>/<platform>.json` |
+| `--policy-from <profile-or-file>` | Full explicit policy basis for unmeasured fields; default: newest shipped profile of the measured family/platform; required when none exists |
+| `--provenance-dir <directory>` | Separate capture provenance JSON; default: nested `provenance/<name>/<platform>.json` beside directory saves, excluded from the profile registry |
 | `--install` | Save into the user profile directory; launched captures use `local`, implicit manual captures use `manual_<browser>_<major>` |
 | `--set <NAME=VALUE>` | With `--save` or `--install`, a value the profile keeps of this machine, as its header carries it: `accept-language`, or a client hint of the machine's (`sec-ch-ua-platform-version`, `-arch`, `-bitness`, `-model`, `-wow64`, `-form-factors`); repeatable |
 | `-n`, `--name <name>` | Profile identifier: `[a-z0-9][a-z0-9_.-]*`, without `..`; otherwise derive it from the browser version (`manual_` prefix with `--manual`) |
-| `-j`, `--json` | Print the raw capture instead of a human summary |
+| `-j`, `--json` | Print one raw capture JSON document; with `--save` or `--install`, save progress goes to stderr |
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
 | `--browser-arg <argument>` | Append a browser process argument; repeatable, mainly for CI environments |
 | `--manual` | Wait for a browser you open the page in yourself, rather than launching one; `--timeout` is then ten minutes unless given |
@@ -1773,13 +1775,22 @@ saves a profile, and `--set` changes one, given as its header carries it:
 A hint the browser does not send, as Firefox and Safari send none, is not
 given one: the profile is not kept.
 
-The page asks the browser for every client hint a server can ask for, with a
-`<meta http-equiv="Accept-CH">`, which applies to the page's own requests alone
-and which no later visit carries, and the profile keeps what the browser sends
-when asked: the user agent's and the system's above, and the device's (its
-memory, its pixel ratio, the window's size), the network's (`rtt`, `downlink`,
-`ect`) and its person's preferences (colour scheme, reduced motion and
-transparency). `capture` says how many of them the browser sent.
+Capture produces a candidate from an explicit full policy basis. It replaces
+observed TLS/H1/H2 and UA persona fields, preserves unmeasured policies and
+connection-generation rules, and records their origins separately. For example:
+`capture --save profiles/ --policy-from chrome_155_macos --provenance-dir evidence/`.
+If no basis is given, only a shipped profile of the same family and platform is
+selected. Unknown families require `--policy-from`; their name or User-Agent
+never enables an engine preset. The Go equivalent is
+`profile.FromCapture(name, capture, basis)`; omission of the basis is an error.
+
+The capture page requests client hints. Observed UA persona hints can replace
+basis fields; network, viewport, device and preference observations stay in raw
+evidence and do not become newly frozen defaults. Existing unmeasured values
+remain inherited until their context rules are separately established.
+Provenance records the exact saved profile SHA-256, canonical basis/capture
+hashes, browser mode, measured fields and inherited policies. A capture alone
+does not establish browser equivalence. Metadata is not an executable profile.
 
 Installed profiles live below the operating system's user configuration
 directory. Set `TLSFORGE_PROFILES` to choose another directory. Running

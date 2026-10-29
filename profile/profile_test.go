@@ -3,6 +3,7 @@ package profile
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"math"
 	"os"
 	"reflect"
@@ -560,7 +561,7 @@ func TestFromCapture(t *testing.T) {
 		Navigator: &capture.Navigator{UserAgent: "Mozilla/5.0 Chrome/151"},
 	}
 
-	built, err := FromCapture("chrome_151", measured)
+	built, err := FromCapture("chrome_151", measured, testCaptureBasis(t))
 	if err != nil {
 		t.Fatalf("FromCapture: %v", err)
 	}
@@ -612,7 +613,7 @@ func TestFromCapture(t *testing.T) {
 }
 
 func TestFromCaptureWithoutHTTP2(t *testing.T) {
-	_, err := FromCapture("plain", &capture.Capture{RawClientHello: chromeHelloBytes(t)})
+	_, err := FromCapture("plain", &capture.Capture{RawClientHello: chromeHelloBytes(t)}, testCaptureBasis(t))
 	if err == nil || !strings.Contains(err.Error(), "no HTTP/2") {
 		t.Fatalf("FromCapture error = %v, want missing HTTP/2 data", err)
 	}
@@ -660,7 +661,7 @@ func TestHTTP1ProfileConversionEdgeCases(t *testing.T) {
 }
 
 func TestFromCaptureErrors(t *testing.T) {
-	if _, err := FromCapture("", &capture.Capture{}); err == nil {
+	if _, err := FromCapture("", &capture.Capture{}, testCaptureBasis(t)); err == nil {
 		t.Error("an empty profile name should be rejected")
 	}
 	for _, tc := range []struct {
@@ -673,7 +674,7 @@ func TestFromCaptureErrors(t *testing.T) {
 		{"unparseable hello", &capture.Capture{RawClientHello: []byte{1, 2, 3}}, "fingerprint:"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := FromCapture("x", tc.in)
+			_, err := FromCapture("x", tc.in, testCaptureBasis(t))
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("error = %v, want it to mention %q", err, tc.want)
 			}
@@ -715,7 +716,7 @@ func TestFromCaptureRefusesAHelloThatNamesNoServer(t *testing.T) {
 		_, err := FromCapture("chrome_155", &capture.Capture{RawClientHello: tc.raw, TLS: tc.tls, HTTP2: &capture.HTTP2{
 			PseudoHeaderOrder: []string{"m", "a", "s", "p"},
 			Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
-		}})
+		}}, testCaptureBasis(t))
 		if tc.ok != (err == nil) || !tc.ok && !strings.Contains(err.Error(), "names no server (no server_name)") {
 			t.Errorf("%s: %v", tc.name, err)
 		}
@@ -765,7 +766,7 @@ func TestFromCaptureRefusesAResumedHandshake(t *testing.T) {
 			PseudoHeaderOrder: []string{"m", "a", "s", "p"},
 			Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
 		}}
-		_, err := FromCapture("chrome", measured)
+		_, err := FromCapture("chrome", measured, testCaptureBasis(t))
 		switch {
 		case tc.want == ok && err != nil:
 			t.Errorf("%s: %v", tc.name, err)
@@ -948,6 +949,11 @@ func TestAProfileOfACaptureOnWindowsAnswersNegotiate(t *testing.T) {
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36":       true,
 		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36": false,
 	} {
+		basis := testCaptureBasis(t)
+		basis.Behavior["http.negotiate_auth"] = json.RawMessage(`false`)
+		if negotiates {
+			basis.Behavior["http.negotiate_auth"] = json.RawMessage(`true`)
+		}
 		p, err := FromCapture("custom", &capture.Capture{
 			RawClientHello: chromeHelloBytes(t),
 			HTTP2: &capture.HTTP2{
@@ -957,7 +963,7 @@ func TestAProfileOfACaptureOnWindowsAnswersNegotiate(t *testing.T) {
 				Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}, {Name: "user-agent", Value: ua}},
 			},
 			Navigator: &capture.Navigator{UserAgent: ua},
-		})
+		}, basis)
 		if err != nil {
 			t.Fatal(err)
 		}

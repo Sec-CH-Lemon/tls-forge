@@ -193,37 +193,23 @@ func TestFromCaptureSaysWhatTheBrowserDrawsPerConnection(t *testing.T) {
 			PseudoHeaderOrder: []string{"m", "a", "s", "p"},
 			Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}, {Name: "user-agent", Value: tc.agent}},
 		}}
-		built, err := FromCapture("custom", measured)
+		basis := testCaptureBasis(t)
+		basis.PerConnection = &PerConnection{ShufflesExtensions: !tc.want.ShufflesExtensions}
+		built, err := FromCapture("custom", measured, basis)
 		if err != nil {
 			t.Fatalf("%s: %v", tc.name, err)
 		}
-		if !reflect.DeepEqual(built.PerConnection, tc.want) {
-			t.Errorf("%s: %+v, want %+v", tc.name, built.PerConnection, tc.want)
+		if !reflect.DeepEqual(built.PerConnection, basis.PerConnection) {
+			t.Errorf("%s: %+v, want %+v", tc.name, built.PerConnection, basis.PerConnection)
 		}
 	}
 }
 
-func TestFromCaptureSaysTheUserAgentsHintsAsChromeSendsThem(t *testing.T) {
-	raw, err := os.ReadFile("../testdata/chrome155-clienthello.bin")
-	if err != nil {
-		t.Fatalf("fixture: %v", err)
-	}
-	built := func(nav *capture.Navigator) []Field {
-		t.Helper()
-		p, err := FromCapture("custom", &capture.Capture{RawClientHello: raw, Navigator: nav, HTTP2: &capture.HTTP2{
-			PseudoHeaderOrder: []string{"m", "a", "s", "p"},
-			Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
-		}})
-		if err != nil {
-			t.Fatalf("FromCapture: %v", err)
-		}
-		return p.ClientHints
-	}
-	// What Chrome 155 on this Mac told JavaScript is what it sent when asked,
-	// as the shipped profile has it, measured.
+func TestNavigatorHintsStructuredFields(t *testing.T) {
+	built := func(nav *capture.Navigator) []Field { return clientHintsOf(nav) }
 	shipped, err := Get("chrome_155_macos")
 	if err != nil {
-		t.Fatalf("Get: %v", err)
+		t.Fatal(err)
 	}
 	measured := map[string]string{}
 	for _, hint := range shipped.ClientHints {
@@ -272,35 +258,19 @@ func TestFromCaptureSaysTheUserAgentsHintsAsChromeSendsThem(t *testing.T) {
 	}
 }
 
-func TestFromCaptureTakesTheClientHintsTheBrowserSentWhenAsked(t *testing.T) {
+func TestCapturedClientHintFormattingAndFiltering(t *testing.T) {
 	// What the page's report came with, the page having asked for every hint,
 	// is what the profile says, over what the browser told its script: as
 	// sent, in Chrome's order, those sent unasked aside; a value no header
 	// carries again is left out; and a browser that sent the unasked alone,
 	// as one that sends no hint a server asks for does, has none.
-	raw, err := os.ReadFile("../testdata/chrome155-clienthello.bin")
-	if err != nil {
-		t.Fatalf("fixture: %v", err)
-	}
 	told := &capture.Navigator{FullVersionList: []capture.Brand{{Brand: "Chromium", Version: "1"}}, Architecture: "told"}
 	built := func(sent []capture.HeaderField) []Field {
 		t.Helper()
-		p, err := FromCapture("custom", &capture.Capture{RawClientHello: raw, Navigator: told, ClientHints: sent,
-			HTTP2: &capture.HTTP2{
-				PseudoHeaderOrder: []string{"m", "a", "s", "p"},
-				Headers:           []capture.HeaderField{{Name: ":method", Value: "GET"}},
-			}})
-		if err != nil {
-			t.Fatalf("FromCapture: %v", err)
+		if len(sent) > 0 {
+			return clientHintsSent(sent)
 		}
-		saved, err := p.Save()
-		if err != nil {
-			t.Fatalf("Save: %v", err)
-		}
-		if _, err := Load(saved); err != nil {
-			t.Errorf("what Save wrote does not read: %v", err)
-		}
-		return p.ClientHints
+		return clientHintsOf(told)
 	}
 	// Chrome 155 on this Mac sent its page what the shipped profile says,
 	// measured: given here the other way round, in capitals, with the unasked.

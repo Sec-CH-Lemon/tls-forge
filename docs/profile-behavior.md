@@ -1850,3 +1850,15 @@ before allocation and for decoded field sections, including trailers. Values
 above that ceiling remain advertised as selected but cannot raise the internal
 resource limit. Raw legacy transport options apply only without an explicit
 HTTP/3 settings map. No browser profile values or engine major are changed.
+
+
+### Capture policy bases (A8 candidate pipeline)
+
+Capture is a partial observation, not a policy preset. The
+[`FromCapture` contract](profiles.md#capture-candidates-and-policy-provenance)
+requires a full explicit current-engine basis and preserves every unmeasured
+behavior key and per-connection generation rule. CLI capture/save/install use
+that builder, with separate field provenance and exact saved-profile hashes.
+No browser name, UA or brand enables runtime choices. Newly observed UA persona
+fields replace basis values; context-dependent hints require separate rules.
+This API change shares the pending engine1.0.0 release.
