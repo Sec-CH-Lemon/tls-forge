@@ -140,7 +140,7 @@ jobs:
             *) echo "unsupported browser selection"; exit 1 ;;
           esac
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: inputs.h3
+        if: inputs.h3 || inputs.fixture == 'alps'
         with:
           node-version: '24.16.0'
       # Google Chrome, not Chrome for Testing.
@@ -425,6 +425,11 @@ jobs:
             *) echo "unknown fixture group"; exit 1 ;;
           esac
           args=(--browser "$CHROME" "$FLAGS" --check --newer)
+          if [ "$RUNNER_OS" = Linux ] && [ "$FIXTURE" = alps ]; then
+            export A8_FIXTURE_CHROME="$CHROME"
+            export A8_FIXTURE_EVIDENCE="$PWD/fixture-browser"
+            args=(--browser "$PWD/scripts/a8-fixture-chrome.mjs" "$FLAGS" --check --newer)
+          fi
           if [ "$FIXTURE" != all ]; then
             for name in requests connections decoding hpack records alps flow urls hellos false-start; do
               [ "$name" = "$FIXTURE" ] || args+=("--$name=")
@@ -541,13 +546,14 @@ jobs:
           pathlib.Path('evidence-recipient.pem').write_bytes(base64.b64decode(os.environ['EVIDENCE_CERTIFICATE'], validate=True))
           files = [p for pattern in ['capture-raw.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log'] for p in pathlib.Path('.').glob(pattern)]
           files += [p for p in pathlib.Path('private-h3').rglob('*') if p.is_file()]
+          files += [p for p in pathlib.Path('fixture-browser').rglob('*') if p.is_file()]
           record = {'source': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(), 'platform': platform.platform(), 'machine': platform.machine(), 'raw_sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
           pathlib.Path('evidence-manifest.json').write_text(json.dumps(record, indent=2)+'\n')
           PY
           python3 - <<'PY'
           import pathlib, tarfile
           with tarfile.open('private-evidence.tar.gz', 'w:gz') as archive:
-              for pattern in ['capture-raw.json', 'evidence-manifest.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log', 'private-h3']:
+              for pattern in ['capture-raw.json', 'evidence-manifest.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log', 'private-h3', 'fixture-browser']:
                   for path in pathlib.Path('.').glob(pattern):
                       archive.add(path, arcname=str(path))
           PY

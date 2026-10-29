@@ -1,0 +1,6 @@
+{
+  "startup_quiet_ms": 2000,
+  "startup_limit_ms": 10000,
+  "command_timeout_ms": 5000,
+  "scope": "Headless native fixture actor, fresh profile, about:blank initialization before typed navigation; no owned-origin traffic during startup quiet interval; original fixture requests, handshakes and connection counts unchanged"
+}

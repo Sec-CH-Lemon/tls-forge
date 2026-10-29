@@ -2964,3 +2964,10 @@ since rejection may correctly precede every HTTP request. Ordinary request
 fixtures still require the opening page. A silent process or missing handshake
 does not count as a protocol rejection; original GOAWAY and request assertions
 remain unchanged.
+
+Linux ALPS fixture replays use `scripts/a8-fixture-chrome.mjs` and the declared
+`scripts/a8-fixture-scenario.json` startup interval. The actor initializes on
+about:blank before a typed navigation; no owned-origin traffic precedes it.
+Version and DOM-dump commands pass through. Original connection counts and
+request/GOAWAY comparisons remain unchanged. Per-launch NetLog/CDP evidence
+under `fixture-browser/` is private and included only in the encrypted artifact.

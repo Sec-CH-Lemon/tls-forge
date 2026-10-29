@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add an explicit Linux ALPS actor initialization scenario before typed navigation, preserving original protocol/connection assertions and retaining private per-launch diagnostics.
+
 - Use observed ALPS handshakes as the opening event for settled handshake-rejection measurements; retain opening-page evidence for request scenarios and unchanged GOAWAY/request assertions.
 
 - Preserve raw JSON inside the Xvfb wrapper and validate its complete document; check generated-setting placement with an N=0 counterexample in native H3 analysis.
