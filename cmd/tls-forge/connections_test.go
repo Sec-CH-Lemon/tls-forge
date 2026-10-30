@@ -37,7 +37,7 @@ func TestEveryRequestThroughAProxyGoesOutOnATunnelOfItsOwn(t *testing.T) {
 		t.Run(workers+" at a time", func(t *testing.T) {
 			before := len(via.seen())
 			path := filepath.Join(t.TempDir(), "run.json")
-			code, _, stderr := exec(t, "fetch", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "3",
+			code, _, stderr := exec(t, "fetch", "--exit-lookup", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "3",
 				"-c", workers, "--report="+path, "--report-format", "json", site.URL+"/page")
 			if code != 0 {
 				t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -130,7 +130,7 @@ func TestReuseConnectionKeepsAURLsConnection(t *testing.T) {
 	list := writeList(t, "two.txt", site.URL+"/a\n"+site.URL+"/b\n")
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--input", list,
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--input", list,
 		"--repeat", "2", "--retry", "1", "--reuse-connection", "-c", "1", "--report="+path, "--report-format", "json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -167,7 +167,7 @@ func TestReuseConnectionAsksTheSiteOverTheURLsConnection(t *testing.T) {
 	site := cloudflareSite(t)
 	via := startProxy(t)
 	path := filepath.Join(t.TempDir(), "run.json")
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "2",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "2",
 		"--reuse-connection", "--report="+path, "--report-format", "json", site.URL+"/page")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

@@ -79,7 +79,7 @@ func TestASiteSaysWhereARequestCameFromOverTheSameConnection(t *testing.T) {
 	report, trace := filepath.Join(tmp, "run.json"), filepath.Join(tmp, "run.trace.json")
 	runLog := filepath.Join(tmp, "run.jsonl")
 
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--trace", trace,
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--trace", trace,
 		"--report="+report, "--report-format", "json", "--log", runLog, site.URL+"/page")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -99,7 +99,7 @@ func TestASiteSaysWhereARequestCameFromOverTheSameConnection(t *testing.T) {
 
 	// The site closed the connection, so the probe went over another, which
 	// came out somewhere else for all anybody knows: it is not believed.
-	code, _, stderr = exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
+	code, _, stderr = exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
 		"--report-format", "json", site.URL+"/page?close")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -120,7 +120,7 @@ func TestASiteARedirectWentToIsAskedOverTheConnectionOfTheHop(t *testing.T) {
 	via := startProxy(t)
 	report := filepath.Join(t.TempDir(), "run.json")
 	other := strings.Replace(site.URL, "127.0.0.1", "localhost", 1)
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
 		"--report-format", "json", site.URL+"/hop?to="+other+"/page")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -150,8 +150,8 @@ func TestAScriptsRequestFromAPageOfAnotherOriginIsNotBelieved(t *testing.T) {
 		{"https://127.0.0.1:1/page", false},
 		{strings.Replace(site.URL, "127.0.0.1", "localhost", 1) + "/page", false},
 	} {
-		code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--profile",
-			"chrome_155_macos", "--request-kind", "fetch", "--initiator-url", tc.page, "--report="+report,
+		code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--profile",
+			"chrome_155_macos", "--request-kind", "fetch", "--exit-lookup", "--initiator-url", tc.page, "--report="+report,
 			"--report-format", "json", site.URL+"/page")
 		if code != 0 {
 			t.Fatalf("from %s: exit code = %d\n%s", tc.page, code, stderr)
@@ -175,7 +175,7 @@ func TestASiteIsAskedOverTheConnectionOfTheLastTry(t *testing.T) {
 	via := startProxy(t)
 	report := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--retry", "1",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--retry", "1",
 		"--report="+report, "--report-format", "json", site.URL+"/page?busy-once")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -220,7 +220,7 @@ func TestAProxysNameForAnExitIsResolved(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	report := filepath.Join(tmp, "run.json")
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--proxy", "http://user:pw@"+via.addr, "--insecure",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--repeat", "2", "--proxy", "http://user:pw@"+via.addr, "--insecure",
 		"--exit-headers", file, "--report="+report, "--report-format", "json", site.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

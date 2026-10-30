@@ -570,10 +570,12 @@ type reportData struct {
 	// Hashed says a proxy told it by a hash of the address, and Found that an
 	// address was found by asking for it where only the same exit could answer.
 	Before *probe
-	Said   bool
-	Unsaid bool
-	Hashed bool
-	Found  bool
+	// LookupDisabled distinguishes an unrequested lookup from a failed one.
+	LookupDisabled bool
+	Said           bool
+	Unsaid         bool
+	Hashed         bool
+	Found          bool
 	// Traced says some row has a trace to open, and RunTrace is the trace of
 	// the whole run, when there was one.
 	Traced   bool
@@ -780,6 +782,7 @@ var reportWriters = map[string]func(io.Writer, reportInput) error{
 
 // reportInput is what a report is written from.
 type reportInput struct {
+	noExitLookup bool
 	// command is the one that made the run. It is named in the document, and in
 	// front of whatever goes wrong writing it.
 	command string
@@ -1021,25 +1024,26 @@ func renderReport(w io.Writer, in reportInput) error {
 	}
 
 	data := reportData{
-		Command:   in.command,
-		Run:       in.run,
-		Profile:   in.profile,
-		Generated: at(now()),
-		Dropped:   dropped,
-		Summary:   in.summary,
-		Rows:      rows,
-		Cards:     cards(in.summary),
-		Service:   askedOf(),
-		Detailed:  detailed,
-		Route:     way,
-		Via:       way != nil && !way.SameProxy,
-		Exited:    way != nil && !way.SameExit,
-		Before:    in.before,
-		Said:      said,
-		Unsaid:    unsaid,
-		Hashed:    hashed,
-		Found:     found,
-		Traced:    traced,
+		Command:        in.command,
+		Run:            in.run,
+		Profile:        in.profile,
+		Generated:      at(now()),
+		Dropped:        dropped,
+		Summary:        in.summary,
+		Rows:           rows,
+		Cards:          cards(in.summary),
+		Service:        askedOf(),
+		Detailed:       detailed,
+		Route:          way,
+		Via:            way != nil && !way.SameProxy,
+		Exited:         way != nil && !way.SameExit,
+		Before:         in.before,
+		LookupDisabled: in.noExitLookup,
+		Said:           said,
+		Unsaid:         unsaid,
+		Hashed:         hashed,
+		Found:          found,
+		Traced:         traced,
 		// Trusted because it is this repository's own file, compiled in.
 		CSS: template.CSS(reportCSS),
 	}

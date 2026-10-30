@@ -585,7 +585,7 @@ func TestFetchSaysWhichAddressItComesOutOf(t *testing.T) {
 	asked := standInIPService(t, `{"ip":"203.0.113.7","country":"pl","city":"Warsaw"}`, http.StatusOK)
 	server := startEcho(t)
 
-	code, stdout, stderr := exec(t, "fetch", "--insecure", server.URL()+"/api/all")
+	code, stdout, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", server.URL()+"/api/all")
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
 	}
@@ -614,7 +614,7 @@ func TestFetchSaysWhichAddressItComesOutOf(t *testing.T) {
 	}
 	// The address and the country, in capitals whatever the service wrote, and
 	// nothing after them.
-	if want := "  exit-ip     203.0.113.7 · PL"; lines[last-1] != want {
+	if want := "  exit-ip     203.0.113.7 · PL (by " + ipServices[0].name() + ")"; lines[last-1] != want {
 		t.Errorf("last line of the report = %q, want %q", lines[last-1], want)
 	}
 	if !strings.HasPrefix(lines[last-2], "  user-agent ") {
@@ -628,7 +628,7 @@ func TestFetchGoesAheadWhenNobodyCanSayWhereItComesOut(t *testing.T) {
 	standInIPService(t, `{"error":"rate limited"}`, http.StatusTooManyRequests)
 	server := startEcho(t)
 
-	code, stdout, stderr := exec(t, "fetch", "--insecure", server.URL()+"/api/all")
+	code, stdout, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", server.URL()+"/api/all")
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
 	}
@@ -649,7 +649,7 @@ func TestFetchDoesNotWaitForAnAddressThatIsNotComing(t *testing.T) {
 	waitAtMost(t, 50*time.Millisecond)
 
 	server := startEcho(t)
-	code, stdout, stderr := exec(t, "fetch", "--insecure", server.URL()+"/api/all")
+	code, stdout, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", server.URL()+"/api/all")
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr = %q", code, stderr)
 	}
@@ -668,7 +668,7 @@ func TestFetchKeepsItsSessionFromTheAddressService(t *testing.T) {
 	seen := cookiesSeenByIPService(t)
 	server := cookieEcho(t)
 
-	code, stdout, stderr := exec(t, "fetch", "-k", "-b", "session=s3cr3t", server.URL+"/")
+	code, stdout, stderr := exec(t, "fetch", "--exit-lookup", "-k", "-b", "session=s3cr3t", server.URL+"/")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -691,7 +691,7 @@ func TestFetchEndsItsReportWhenItStopsEarly(t *testing.T) {
 	asked := standInIPService(t, `{"ip":"203.0.113.7"}`, http.StatusOK)
 	failingClients(t, func(string) bool { return true })
 
-	code, _, stderr := exec(t, "fetch", "https://nothing.test/")
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "https://nothing.test/")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -717,7 +717,7 @@ func TestFetchStopsAtASessionItCannotReadBeforeSayingAnything(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	for _, session := range []string{filepath.Join(dir, "missing.json"), broken} {
-		code, _, stderr := exec(t, "fetch", "--cookies", session, "-o", out, "--trace", trace, "https://nothing.test/")
+		code, _, stderr := exec(t, "fetch", "--exit-lookup", "--cookies", session, "-o", out, "--trace", trace, "https://nothing.test/")
 		if code != 1 || strings.Contains(stderr, identityRule) {
 			t.Errorf("%s: exit code = %d\n%s", session, code, stderr)
 		}
@@ -741,7 +741,7 @@ func TestARunThatGoesSeveralWaysAsksNobodyWhereItComesOut(t *testing.T) {
 	list := writeList(t, "two-ways.csv", fmt.Sprintf(
 		"url,proxy\n%[1]s/one,http://%[2]s\n%[1]s/two,\n", server.URL, deadAddr(t)))
 
-	code, _, stderr := exec(t, "fetch", "--input", list, "--timeout", "5s")
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--input", list, "--timeout", "5s")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1: one of the two went through a dead proxy\n%s", code, stderr)
 	}

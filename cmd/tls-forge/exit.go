@@ -204,22 +204,27 @@ func (s addressService) ask(ctx context.Context, client *tlsforge.Client) (egres
 // pages, "which address do I come out of" arrived at the address service with
 // the session cookie attached.
 func (f clientFlags) asker(proxy string) (*tlsforge.Client, error) {
+	// -k is scoped to the requested destination. Address services and proxy
+	// resolvers authenticate their own TLS peers, without changing the run's
+	// flags or sharing its cookies and connection state.
+	verify := false
+	f.insecure = &verify
 	return f.clientViaWarmed(proxy, nil, tlsforge.WithoutCookieJar(),
 		tlsforge.WithLogger(withLog(f.log, "purpose", "where the run comes out")))
 }
 
 // exitLookupWait bounds how long a run waits to learn where it comes out.
 //
-// The address is commentary. Fetch asks for it before every run, so it does not
+// The address is commentary. An opted-in run asks for it first, so it does not
 // get the request's whole timeout to hold the run up with: on a network that
 // drops the question, that would be half a minute added to every fetch.
 //
 // A variable rather than a constant so a test can lower it.
 var exitLookupWait = 5 * time.Second
 
-// errNotAsked is why a run with --no-exit-lookup does not know where its
-// requests come out.
-var errNotAsked = errors.New("--no-exit-lookup")
+// errNotAsked is why a run without --exit-lookup does not know where its
+// requests come out, unless a proxy says it passively.
+var errNotAsked = errors.New("not requested (enable with --exit-lookup)")
 
 // lookupExit asks where requests made with these flags, through this proxy,
 // come out.
@@ -294,6 +299,7 @@ func lookupExit(ctx context.Context, flags clientFlags, proxy string) (egress, e
 		select {
 		case a := <-answers:
 			if a.err == nil {
+				a.found.By = services[a.from].name()
 				return a.found, nil
 			}
 			if a.from == 0 {

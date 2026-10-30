@@ -126,7 +126,7 @@ func TestFetchWritesTheSecretsOfTheConnectionThatAsksWhereItComesOut(t *testing.
 	ipServices = []addressService{{URL: service.URL, read: readJSON}}
 
 	path := filepath.Join(t.TempDir(), "run.keys")
-	code, stdout, stderr := exec(t, "fetch", "--insecure", "--keylog", path, server.URL)
+	code, stdout, stderr := exec(t, "fetch", "--exit-lookup", "--exit-lookup", "--insecure", "--keylog", path, server.URL)
 	if code != 0 || stdout != "answer-1" || !strings.Contains(stderr, "203.0.113.9") {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
 	}

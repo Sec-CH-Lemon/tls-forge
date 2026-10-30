@@ -143,7 +143,7 @@ func TestTheFirstServiceToAnswerIsTheOnlyOneAsked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookupExit: %v", err)
 	}
-	if want := (egress{IP: "203.0.113.7", Country: "PL"}); found != want {
+	if want := (egress{IP: "203.0.113.7", Country: "PL", By: first.name()}); found != want {
 		t.Errorf("found %+v, want %+v", found, want)
 	}
 	if got := askedSecond.Load(); got != 0 {
@@ -165,7 +165,7 @@ func TestTheNextServiceIsAskedAtOnceWhenOneFails(t *testing.T) {
 		t.Fatalf("lookupExit: %v", err)
 	}
 	// From the second, which says the address and no country.
-	if want := (egress{IP: "198.51.100.9"}); found != want {
+	if want := (egress{IP: "198.51.100.9", By: second.name()}); found != want {
 		t.Errorf("found %+v, want %+v", found, want)
 	}
 	if got := askedFirst.Load(); got != 1 {

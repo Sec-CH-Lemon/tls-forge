@@ -463,7 +463,7 @@ func TestFetchWritesTheSecretsToTheKeyLogAndTheCaptureAlike(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "out")
 	keylog := filepath.Join(t.TempDir(), "run.keys")
-	code, _, stderr := exec(t, "fetch", "--insecure", "--keylog", keylog, "-o", dir, "--pcap", server.URL)
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--exit-lookup", "--insecure", "--keylog", keylog, "-o", dir, "--pcap", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

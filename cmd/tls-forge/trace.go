@@ -754,6 +754,9 @@ func exitArgs(proxy string, found egress, err error) traceArgs {
 		return about
 	}
 	about["ip"] = found.IP
+	if found.By != "" {
+		about["by"] = found.By
+	}
 	if country := found.countryCode(); country != "" {
 		about["country"] = country
 	}

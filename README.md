@@ -1364,7 +1364,8 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `-x`, `--proxy <url>` | HTTP, HTTPS or SOCKS proxy, optionally with credentials; in a list, the proxy of every entry that names none |
 | `--proxy-env <name>` | Read `--proxy` from this environment variable, such as `TLSFORGE_PROXY`, which keeps its password off the command line; no variable is read unless named. See [Through a proxy](#through-a-proxy) |
 | `--exit-headers <file>` | A JSON file laid over the exit header fields built in: one of the same key replaces the built-in one, `"off": true` takes it out, the rest are added; see [Where a request came out](#where-a-request-came-out) |
-| `--no-exit-lookup` | Make no request to learn where requests come out: no address service before the run, no probe of a site, no name a proxy gave resolved. What a proxy says when it opens a tunnel is still read |
+| `--exit-lookup` | Explicitly enable address services before a one-identity run, plus site probes and proxy-name resolution with reports/output; address services/resolvers verify TLS even with `-k` |
+| `--no-exit-lookup` | Explicitly retain the default: no address lookup, site probe or proxy-name resolution; passive CONNECT/response fields are still read. Cannot be combined with `--exit-lookup` |
 | **Session** | |
 | `-b`, `--cookie name=value` | Seed one cookie; repeatable |
 | `--cookies <file>` | Load a warmed session from JSON, a browser export, or Netscape cookies.txt |
@@ -1469,13 +1470,16 @@ error, so the lines stay machine-readable.
 How a session is saved and read again is in [Cookies across
 runs](#cookies-across-runs).
 
-Before the first request, `fetch` asks a public service which address it comes
-out of, through the same proxy and with the same profile. No cookie is sent
-with the question. The answer is the last line of the block on standard error
-that names the profile in use:
+By default, `fetch` makes no additional HTTP request to determine its exit
+address. Its identity block says `not looked up · not requested (enable with
+--exit-lookup)`; reports preserve that reason. Passive proxy headers are still
+read. To ask explicitly, use `fetch --exit-lookup URL`. Before the first target
+request, a public service is then asked through the same proxy and with the
+same profile, without the target's cookies. The actual responding service is
+named in the identity block:
 
 ```text
-  exit-ip     203.0.113.7 · PL
+  exit-ip     203.0.113.7 · PL (by www.cloudflare.com)
 ```
 
 The same block says when the profile was measured on another platform than
@@ -1487,17 +1491,20 @@ the headers, but the TCP/IP packets under them are always this machine's:
   tcp/ip      this machine's, macOS: the profile is Windows's, and a server that reads TCP/IP can tell the two apart
 ```
 
-Four services are asked, in this order: `www.cloudflare.com/cdn-cgi/trace`,
+With `--exit-lookup`, four services are tried in this order: `www.cloudflare.com/cdn-cgi/trace`,
 `checkip.amazonaws.com`, `api.ipify.org` and `ipinfo.io`. The next one is asked
 as soon as the one before it fails, or has said nothing for its share of the
 wait, and the first to answer is believed; normally that is one request to the
 first. Amazon and ipify report the address without a country.
 
-This is at least one additional request to a third party on every run. The
-lookup waits at most five seconds in all, and when nobody answers the line says
-so instead of failing the fetch. A list whose entries name different proxies
-has no one address to report, and nobody is asked. `--no-exit-lookup` asks
-nobody, and the line says `not looked up · --no-exit-lookup`.
+The opt-in adds at least one third-party request to a run with one identity.
+The lookup waits at most five seconds in all; failure is reported without
+failing the target fetch. A list using different proxies has no single exit
+address, so it skips the initial address-service lookup. `-k` does not disable
+TLS verification for address services or proxy-name resolvers, including an
+HTTPS proxy used to reach them. `--no-exit-lookup` explicitly preserves the
+default; setting it to `false` alone does not enable lookups. Passing both
+positive flags is a usage error before network I/O.
 
 ##### Where a request came out
 
@@ -1652,12 +1659,13 @@ ask, and only where nothing but the same exit can answer:
   exit of that name. The example asks Bright Data's `brdtest.com/myip.json`
   with `-ip-<hash>`, once for each hash.
 
-Both are a request more, to the site or to the proxy's own service, and only
-when a report is written or the requests are kept. A site behind Cloudflare
+Both add a request, to the site or the proxy's own service, and require
+`--exit-lookup` plus a report or kept output. A site behind Cloudflare
 sees a visitor ask for `/cdn-cgi/trace`, which a browser does not; take the
-probe out with `"off": true` if that matters more than the address. Nothing is asked
+probe out with `"off": true` to keep that particular probe disabled even when
+lookup is enabled. Nothing is asked
 of anybody else on a connection of its own: the answer would be another
-connection's. `--no-exit-lookup` makes neither, nor the lookup before the run:
+connection's. Without `--exit-lookup`, neither is made, nor the lookup before the run:
 what the proxy said is all that is known, a name it gave is shown as the name,
 and a request it said nothing of came out somewhere nobody asked about. The
 fields the file has a `CONNECT` say with `ask` are still said, being no

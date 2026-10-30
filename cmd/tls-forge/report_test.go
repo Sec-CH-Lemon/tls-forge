@@ -546,7 +546,7 @@ func TestListWritesAReport(t *testing.T) {
 	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--report="+path, "--insecure",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--exit-lookup", "--report="+path, "--insecure",
 		server.URL+"/one", server.URL+"/two")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -561,7 +561,7 @@ func TestListWritesAReport(t *testing.T) {
 	}
 	// Both went the same way, so where that came out was asked once, before the
 	// first of them, and is said where the run says what it is wearing.
-	if !strings.Contains(stderr, "  exit-ip     203.0.113.7 · PL\n") {
+	if !strings.Contains(stderr, "  exit-ip     203.0.113.7 · PL (by "+ipServices[0].name()+")\n") {
 		t.Errorf("stderr does not say where the run came out:\n%s", stderr)
 	}
 
@@ -592,7 +592,7 @@ func TestListKeepsItsSessionFromTheAddressService(t *testing.T) {
 	server := cookieEcho(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, stdout, stderr := exec(t, "fetch", "--insecure", "--progress", "never",
+	code, stdout, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", "--progress", "never",
 		"-b", "session=s3cr3t", "--report="+path, server.URL+"/")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -621,7 +621,7 @@ func TestListReportWithoutAskingAboutEachRequest(t *testing.T) {
 
 	server := pathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
-	code, _, stderr := exec(t, "fetch", "--report="+path, "--insecure",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--report="+path, "--insecure",
 		server.URL+"/one", server.URL+"/two", server.URL+"/three")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -713,7 +713,7 @@ func TestListReportWithAProxyThatCannotBeBuilt(t *testing.T) {
 		"url,proxy\n%[1]s/bad,http://%[2]s\n%[1]s/good,\n%[1]s/also-good,\n", server.URL, deadAddr(t)))
 
 	path := filepath.Join(t.TempDir(), "run.html")
-	code, _, stderr := exec(t, "fetch", "--input", list, "--report="+path, "--insecure")
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--input", list, "--report="+path, "--insecure")
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1\n%s", code, stderr)
 	}
@@ -813,7 +813,7 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 	tmp := t.TempDir()
 	dir, report, trace := filepath.Join(tmp, "out"), filepath.Join(tmp, "run"), filepath.Join(tmp, "run.trace.json")
 
-	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--fresh-connection", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
 		"-o", dir, "--trace", trace, "--report="+report, "--report-format", "html,json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -893,7 +893,7 @@ func TestListTakesWhereEachRequestCameOutFromItsOwnProxy(t *testing.T) {
 		server.URL, massive.addr, mesh.addr, silent.addr))
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--input", list, "--insecure", "--report="+path, "--report-format", "json")
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--input", list, "--insecure", "--report="+path, "--report-format", "json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -939,7 +939,7 @@ func TestReportTakesAProxysHashOfTheAddress(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	code, _, stderr := exec(t, "fetch", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
 		"--exit-headers", fields, "-o", dir, "--report="+report, "--report-format", "html,json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -1011,7 +1011,7 @@ func TestReportOfAProxyNobodyCouldBeAskedThrough(t *testing.T) {
 	server := tlsPathServer(t)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--report="+path, server.URL)
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--report="+path, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1464,7 +1464,7 @@ func TestFetchWritesAReport(t *testing.T) {
 	server, _ := replying(t, 200, 404, 200)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	code, _, stderr := exec(t, "fetch", "--repeat", "3", "--report="+path, server.URL)
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--repeat", "3", "--report="+path, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1507,7 +1507,7 @@ func TestFetchReportOfOneRequest(t *testing.T) {
 	server, _ := replying(t, 200)
 	dir := t.TempDir()
 
-	code, _, stderr := exec(t, "fetch", "--report="+dir, server.URL)
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--report="+dir, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -1657,7 +1657,7 @@ func TestFetchReportWithoutAnAddress(t *testing.T) {
 	server, _ := replying(t, 200)
 	path := filepath.Join(t.TempDir(), "run.html")
 
-	if code, _, stderr := exec(t, "fetch", "--report="+path, server.URL); code != 0 {
+	if code, _, stderr := exec(t, "fetch", "--exit-lookup", "--report="+path, server.URL); code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	if html := reportOf(t, path); !strings.Contains(html, "nobody could say: no address service to ask.") ||

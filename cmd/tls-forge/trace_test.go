@@ -178,7 +178,7 @@ func TestFetchTraceIsATraceEventFile(t *testing.T) {
 	url := server.URL() + "/api/all"
 	path := filepath.Join(t.TempDir(), "trace.json")
 
-	code, stdout, stderr := exec(t, "fetch", "--insecure", "--trace", path, url)
+	code, stdout, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", "--trace", path, url)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
@@ -372,7 +372,7 @@ func TestTraceThroughAProxyHidesItsPasswordAndNamesTheTunnel(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "trace.json")
 	via := "http://user:s3cr3t@" + proxy.addr
 
-	code, _, stderr := exec(t, "fetch", "--insecure", "--proxy", via, "--timeout", "20s",
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", "--proxy", via, "--timeout", "20s",
 		"--trace", path, target.URL+"/through")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -698,7 +698,7 @@ func TestListTracesTheAddressesItAsksAboutAndTheSessionItSaves(t *testing.T) {
 	dir := t.TempDir()
 	path, saved := filepath.Join(dir, "trace.json"), filepath.Join(dir, "saved.json")
 
-	code, _, stderr := exec(t, "fetch", "--trace", path, "--save-cookies", saved,
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--trace", path, "--save-cookies", saved,
 		"--report="+filepath.Join(dir, "report.html"), server.URL+"/one")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

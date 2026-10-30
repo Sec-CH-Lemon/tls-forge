@@ -66,16 +66,16 @@ func TestNoExitLookupAsksNoAddressService(t *testing.T) {
 	if asked.Load() != 0 || seen("/page") != 1 {
 		t.Errorf("the service was asked %d times, the page %d", asked.Load(), seen("/page"))
 	}
-	if !strings.Contains(stderr, "exit-ip     not looked up · --no-exit-lookup") {
+	if !strings.Contains(stderr, "exit-ip     not looked up · not requested (enable with --exit-lookup)") {
 		t.Errorf("stderr:\n%s", stderr)
 	}
 	doc := decoded(t, []byte(reportOf(t, report)))
-	if r := doc.Requests[0]; r.Exit != nil || r.ExitError != "--no-exit-lookup" {
+	if r := doc.Requests[0]; r.Exit != nil || r.ExitError != errNotAsked.Error() {
 		t.Errorf("the request came out of %+v, %q", r.Exit, r.ExitError)
 	}
 
-	// Without the flag, it is asked, as before.
-	if code, _, stderr := exec(t, "fetch", "--insecure", site.URL+"/page"); code != 0 || asked.Load() != 1 {
+	// With the opt-in, it is asked.
+	if code, _, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", site.URL+"/page"); code != 0 || asked.Load() != 1 {
 		t.Errorf("without the flag: exit %d, asked %d\n%s", code, asked.Load(), stderr)
 	}
 }
@@ -107,9 +107,9 @@ func TestNoExitLookupProbesNoSite(t *testing.T) {
 		t.Errorf("the request came out of %+v, %q", r.Exit, r.ExitError)
 	}
 
-	// Without the flag, the site is probed, as before, for a run that says
+	// With the opt-in, the site is probed for a run that says
 	// where its requests came out.
-	if code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
+	if code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
 		"--report-format", "json", site.URL+"/page"); code != 0 || seen("/cdn-cgi/trace") != 1 {
 		t.Errorf("without the flag: exit %d, probed %d\n%s", code, seen("/cdn-cgi/trace"), stderr)
 	}

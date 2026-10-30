@@ -298,6 +298,10 @@
        UTF-8 when it is UTF-8 throughout, whatever a &lt;meta&gt; says, as --html-decoding legacy
        does.{{end}}</p>
     {{end}}
+    {{if .LookupDisabled}}
+    <p>No request was made to determine exit addresses. Enable --exit-lookup
+       to ask; passive proxy metadata is still read.</p>
+    {{else}}
     {{with .Before}}
     {{if .Proxy}}
     <p>Before the first request, where a request through
@@ -312,6 +316,7 @@
     {{else}}
     <p>Where the requests came out was asked of {{$.Service}} before the first of
        them, and nobody could say: {{.Error}}.</p>
+    {{end}}
     {{end}}
     {{end}}
     {{if .Said}}

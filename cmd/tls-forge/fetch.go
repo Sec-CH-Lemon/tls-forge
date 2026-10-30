@@ -31,7 +31,7 @@ var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
 	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url", "clicked", "form"}},
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure", "dns-server"}},
-	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
+	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "exit-lookup", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "retry-as-browser", "repeat", "reuse-connection", "fresh-connection", "wait-for",
 		"wait-for-element", "html-decoding"}},
@@ -615,12 +615,17 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	exitHeaders := fs.String("exit-headers", "",
 		"a JSON file laid over the exit header fields built in: one of the same key replaces ours, "+
 			"\"off\" takes ours out, the rest are added")
+	exitLookup := fs.Bool("exit-lookup", false,
+		"ask address services where the run comes out; with reports/output also enable site probes and proxy-name resolution; "+
+			"services verify TLS even with --insecure")
 	noExitLookup := fs.Bool("no-exit-lookup", false,
-		"make no request to learn where requests come out: no address service, no probe of the site, no "+
-			"name resolved; what the proxy says when it opens a connection is still read")
+		"explicitly keep the default: no address service, site probe or proxy-name resolution; passive proxy fields are still read")
 	setUsage(fs, out, "usage: tls-forge fetch [flags] [url...]", fetchFlagGroups...)
 	if err := parse(fs, args); err != nil {
 		return nil, err
+	}
+	if *exitLookup && *noExitLookup {
+		return nil, fmt.Errorf("%w: --exit-lookup and --no-exit-lookup select different lookup policies", errUsage)
 	}
 	worn, err := common.settle()
 	if err != nil {
@@ -791,7 +796,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 		waitFor: *waitFor, waitForElement: *waitForElement, htmlDecoding: *htmlDecoding,
 		watch: watch, wantProgress: wantProgress, paint: paint,
 		reporting: reporting, formats: formats, logging: logging, logLevel: logLevel,
-		exits: exits, noExitLookup: *noExitLookup,
+		exits: exits, noExitLookup: !*exitLookup || *noExitLookup,
 		started: started, files: files, about: about,
 	}, nil
 }
@@ -853,7 +858,7 @@ func (r *fetchRun) open(ctx context.Context) error {
 	r.log.say(slog.LevelInfo, "run", runAttrs(r.about, "version", version, "profile", r.worn.Name,
 		"output", r.output, "wait_for", r.waitFor, "wait_for_element", r.waitForElement, "html_decoding", r.htmlDecoding,
 		"request_kind", r.requestKind, "initiator_url", safeURL(r.initiatorURL),
-		"reuse_connection", *r.again.reuse, "fresh_connection", *r.again.fresh,
+		"reuse_connection", *r.again.reuse, "fresh_connection", *r.again.fresh, "exit_lookup", !r.noExitLookup,
 		"log_level", strings.ToLower(*r.logging.level), "keylog", *r.logging.keylog,
 		"dns_server", *r.common.dnsServer)...)
 	// Before any client is made, so that every connection of the run has its
@@ -1096,7 +1101,7 @@ func (r *fetchRun) finish(records []result, failures int, failed error) error {
 	if len(r.formats) > 0 {
 		var written []reportFile
 		written, reportErr = writeReports(r.files.reports,
-			reportInput{command: "fetch", records: records, summary: totals, before: r.before,
+			reportInput{command: "fetch", records: records, summary: totals, before: r.before, noExitLookup: r.noExitLookup,
 				method: r.method, trace: *r.again.trace,
 				run: r.common.run.id, started: r.started, profile: r.worn.Name})
 		for _, file := range written {

@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Require `fetch --exit-lookup` for address-service requests, site probes and
+  proxy-name resolution. Preserve passive proxy metadata and explicitly report
+  an unrequested lookup. Address services/resolvers authenticate TLS independently
+  of `-k`; name the service that actually answered. `--no-exit-lookup` remains
+  an explicit opt-out and conflicts with the positive opt-in.
+
 - Share CLI site connection pools across all workers of one proxy identity by
   default. Retain private per-row clients with `--reuse-connection` and the
   former per-worker/per-try idle release with `--fresh-connection`. Close shared

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -82,6 +83,22 @@ func TestMain(m *testing.M) {
 	}))
 	ipServices = []addressService{{URL: service.URL, read: readJSON}}
 	_ = os.Setenv(serviceVariable, service.URL)
+
+	// Positive address-service fixtures keep real TLS and all production
+	// transport/keylog/pcap options. Trust only httptest's fixed certificate
+	// inside this test process. Untrusted-peer controls generate another key.
+	trusted := httptest.NewTLSServer(http.NotFoundHandler())
+	roots := x509.NewCertPool()
+	roots.AddCert(trusted.Certificate())
+	trusted.Close()
+	debug, hadDebug := os.LookupEnv("GODEBUG")
+	_ = os.Setenv("GODEBUG", debug+",x509usefallbackroots=1")
+	x509.SetFallbackRoots(roots)
+	if hadDebug {
+		_ = os.Setenv("GODEBUG", debug)
+	} else {
+		_ = os.Unsetenv("GODEBUG")
+	}
 
 	code := m.Run()
 	service.Close()

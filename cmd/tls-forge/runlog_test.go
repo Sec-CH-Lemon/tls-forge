@@ -397,13 +397,13 @@ func TestFetchLogsWhatIsAskedAroundTheRequests(t *testing.T) {
 	if err := os.WriteFile(cookies, []byte(session), 0o600); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	code, _, stderr := exec(t, "fetch", "--log", path, "--cookies", cookies, "--save-cookies", saved,
+	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--log", path, "--cookies", cookies, "--save-cookies", saved,
 		"--report="+report, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	records := logRecords(t, path)
-	if exit := recordsOf(records, "exit"); len(exit) != 1 || exit[0].get("said") != "203.0.113.7 · PL" ||
+	if exit := recordsOf(records, "exit"); len(exit) != 1 || exit[0].get("said") != "203.0.113.7 · PL (by "+ipServices[0].name()+")" ||
 		exit[0].get("proxy") != "" {
 		t.Errorf("where the run came out was said as %v", exit)
 	}
