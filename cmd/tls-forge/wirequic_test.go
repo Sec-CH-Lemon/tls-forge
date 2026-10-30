@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"io"
 	"net"
@@ -146,6 +148,37 @@ func TestFetchKeepsAQUICConnectionsDatagramsAndItsSecretsInACapture(t *testing.T
 		t.Fatalf("the page came over %q (%v), want HTTP/3", page, err)
 	}
 	capture := readCapture(t, filepath.Join(dir, name+"-1.pcapng"))
+	t.Run("received-before-sent-callback", func(t *testing.T) {
+		original, err := os.ReadFile(filepath.Join(dir, name+"-1.pcapng"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		serverPort, err := strconv.Atoi(port)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reordered := receivedFirstCapture(t, original, uint16(serverPort))
+		path := filepath.Join(t.TempDir(), "received-first.pcapng")
+		if err = os.WriteFile(path, reordered, 0600); err != nil {
+			t.Fatal(err)
+		}
+		got := readCapture(t, path)
+		if len(got.quic) != 1 || got.quic[0].server != uint16(serverPort) {
+			t.Fatalf("capture direction lost: %+v", got.quic)
+		}
+		random, ok := pcapng.QUICClientRandom(got.quic[0].sent)
+		if !ok {
+			t.Fatal("received-first capture lost the actual ClientHello")
+		}
+		if mine := linesOf(keys.lines(), random); len(mine) != 4 || !containsAll(got.secrets, mine) {
+			t.Fatal("received-first capture lost correlated secrets")
+		}
+		if !slices.EqualFunc(got.quic[0].sent, capture.quic[0].sent, bytes.Equal) ||
+			!slices.EqualFunc(got.quic[0].received, capture.quic[0].received, bytes.Equal) ||
+			!slices.Equal(got.secrets, capture.secrets) {
+			t.Fatal("callback order changed datagram bytes, directional order or secrets")
+		}
+	})
 	if len(capture.quic) != 1 {
 		t.Fatalf("%d QUIC connections in the capture", len(capture.quic))
 	}
@@ -267,4 +300,35 @@ func TestASocketOfEveryAddressIsShownFromTheOneItSendsFrom(t *testing.T) {
 	if got := sourceToward(netip.MustParseAddrPort("0.0.0.0:5000"), server); got != netip.MustParseAddrPort("0.0.0.0:5000") {
 		t.Errorf("no way to the server: %s", got)
 	}
+}
+
+// A read callback can be recorded before the write callback even though the
+// actual UDP write preceded the response. Preserve every block and each
+// direction's relative order while constructing that independent counterexample.
+func receivedFirstCapture(t *testing.T, data []byte, server uint16) []byte {
+	t.Helper()
+	var blocks [][]byte
+	firstPacket, firstReceived := -1, -1
+	for len(data) > 0 {
+		n := int(binary.LittleEndian.Uint32(data[4:]))
+		block := append([]byte(nil), data[:n]...)
+		data = data[n:]
+		if binary.LittleEndian.Uint32(block) == 6 {
+			if firstPacket < 0 {
+				firstPacket = len(blocks)
+			}
+			packet := block[28:]
+			if packet[9] == 17 && binary.BigEndian.Uint16(packet[20:]) == server && firstReceived < 0 {
+				firstReceived = len(blocks)
+			}
+		}
+		blocks = append(blocks, block)
+	}
+	if firstPacket < 0 || firstReceived < 0 {
+		t.Fatal("capture lacks packet directions")
+	}
+	moved := blocks[firstReceived]
+	copy(blocks[firstPacket+1:firstReceived+1], blocks[firstPacket:firstReceived])
+	blocks[firstPacket] = moved
+	return bytes.Join(blocks, nil)
 }

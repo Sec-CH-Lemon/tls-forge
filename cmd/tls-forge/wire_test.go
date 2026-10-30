@@ -62,7 +62,7 @@ func readCapture(t *testing.T, path string) keptCapture {
 	}
 	var out keptCapture
 	byPort := map[uint16]*capturedConn{}
-	quicByPort := map[uint16]*capturedQUIC{}
+	quicByPair := map[[2]uint16]*capturedQUIC{}
 	for len(file) > 0 {
 		kind, length := binary.LittleEndian.Uint32(file), binary.LittleEndian.Uint32(file[4:])
 		body := file[8 : length-4]
@@ -84,17 +84,18 @@ func readCapture(t *testing.T, path string) keptCapture {
 			if packet[9] == 17 { // UDP: a QUIC connection's datagram
 				udp := packet[20:]
 				src, dst, data := binary.BigEndian.Uint16(udp), binary.BigEndian.Uint16(udp[2:]), udp[8:]
-				if q, ok := quicByPort[dst]; ok {
-					q.received = append(q.received, data)
-					continue
-				}
-				q, ok := quicByPort[src]
-				if !ok {
+				pair := [2]uint16{min(src, dst), max(src, dst)}
+				q := quicByPair[pair]
+				if q == nil {
 					q = &capturedQUIC{client: src, server: dst}
-					quicByPort[src] = q
+					quicByPair[pair] = q
 					out.quic = append(out.quic, q)
 				}
-				q.sent = append(q.sent, data)
+				if src == q.client {
+					q.sent = append(q.sent, data)
+				} else {
+					q.received = append(q.received, data)
+				}
 				continue
 			}
 			tcp := packet[20:]
@@ -112,6 +113,18 @@ func readCapture(t *testing.T, path string) keptCapture {
 			} else {
 				c := byPort[dst]
 				c.received = append(c.received, data...)
+			}
+		}
+	}
+	// Read and Wrote callbacks can be recorded in either order. Orient the
+	// two preserved datagram sequences by the actual client Initial, rather
+	// than by which callback won the race. A missing ClientHello still fails
+	// the caller's independent completeness and key-correlation assertions.
+	for _, q := range out.quic {
+		if _, ok := pcapng.QUICClientRandom(q.sent); !ok {
+			if _, ok := pcapng.QUICClientRandom(q.received); ok {
+				q.client, q.server = q.server, q.client
+				q.sent, q.received = q.received, q.sent
 			}
 		}
 	}

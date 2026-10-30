@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A11: orient captured QUIC test flows by the actual ClientHello; retain every datagram and secret when receive callbacks precede send callbacks.
+
 - Keep the missing-cookie-metadata contract on an independent fixture and verify complete metadata from the repaired tls-client jar; correct the `WithCookieJar` documentation.
 
 

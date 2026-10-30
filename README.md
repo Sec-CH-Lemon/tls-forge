@@ -3048,3 +3048,7 @@ obligation still requires an executed, passing witness and cannot pass by skip.
 filing domain and path. The repaired tls-client jar does; a custom jar that
 withholds those fields still sends scoped cookies but cannot provide a complete
 `AllCookies` inventory through this adapter.
+
+The A11 capture fixture also checks received-before-sent callback order. Its reader
+uses the actual QUIC ClientHello to identify direction and preserves all bytes
+and per-direction datagram order. This changes the test oracle only.
