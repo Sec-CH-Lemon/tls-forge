@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Make the shared-site idle-close fixture select an explicit persistent browser
+  and always release its held response during cleanup. Keep the same connection
+  state assertions and deadlines; shipped request isolation is unchanged.
+
 - Make both dual-loopback listener order/cleanup witnesses deterministic; keep
   real socket controls and the unchanged100% coverage gate. No runtime change.
 

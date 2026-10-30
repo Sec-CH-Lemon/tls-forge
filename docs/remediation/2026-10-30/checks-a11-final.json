@@ -1505,6 +1505,38 @@
     "target_coverage": 100,
     "negative_controls": 3,
     "all_package_coverage": 100,
-    "fresh_native": "pending test-only correction push"
+    "fresh_native": {
+      "run": 41128574692,
+      "head": "b57ed731ffce7a20f9526ffa33075f64845f1ca7",
+      "success": 25,
+      "failure": 2,
+      "coverage": "success",
+      "macos_example": "success",
+      "failures": [
+        {
+          "job": 124313342274,
+          "name": "go (ubuntu-latest)",
+          "reason": "pool fixture waitFor at147 Fatal; cleanup waits held slow handler"
+        },
+        {
+          "job": 124313342075,
+          "name": "go (macos-latest)",
+          "reason": "header timeout reported as malformed MIME header"
+        }
+      ]
+    }
+  },
+  "shared_pool_fixture_followup": {
+    "source": "b57ed731",
+    "production_changed": false,
+    "default_instance_scope_changed": false,
+    "before_original_race_repeats": 10,
+    "before_original": "PASS; not native failure reproduction",
+    "before_counterexample": "request-scope state observed25ms after fast response; timeout5.14s",
+    "correction": "Explicit JSON-backed client scope for two requests sharing one pool; sync.Once releases test-owned hold before server cleanup on every exit",
+    "after_race_repeats": 100,
+    "after_seconds": 11.793,
+    "assertions_and_deadlines": "unchanged",
+    "native": "pending both Go failure corrections"
   }
 }

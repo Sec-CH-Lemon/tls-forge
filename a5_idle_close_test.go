@@ -98,6 +98,8 @@ func TestAnIdleConnectionOfABusySiteClosesOnceItsRequestEnds(t *testing.T) {
 	// the idle one beside it is closed when the slow request is done, and
 	// none of the site's stays open after CloseIdleConnections and that.
 	hold := make(chan struct{})
+	var finish sync.Once
+	defer finish.Do(func() { close(hold) })
 	var mu sync.Mutex
 	states := map[string]http.ConnState{}
 	site := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -118,11 +120,10 @@ func TestAnIdleConnectionOfABusySiteClosesOnceItsRequestEnds(t *testing.T) {
 	}
 	site.StartTLS() // HTTP/1.1: a connection a request at a time
 	t.Cleanup(site.Close)
-	client, err := New(WithProfile("chrome_155_macos"), WithInsecureSkipVerify())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = client.Close() })
+	// The two requests must share one browser's site pool. The shipped
+	// request scope retires the fast request's pool before this observer can
+	// rely on an idle connection; its isolation has separate A10 controls.
+	client := newTestClient(t, WithProfile("chrome_155_macos"))
 	snapshot := func() map[http.ConnState]int {
 		mu.Lock()
 		defer mu.Unlock()
@@ -149,7 +150,7 @@ func TestAnIdleConnectionOfABusySiteClosesOnceItsRequestEnds(t *testing.T) {
 	if got := snapshot(); got[http.StateActive] != 1 {
 		t.Fatalf("the slow request's connection was not left to it: %v", got)
 	}
-	close(hold)
+	finish.Do(func() { close(hold) })
 	if err := <-slow; err != nil {
 		t.Fatal(err)
 	}

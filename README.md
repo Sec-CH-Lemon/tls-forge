@@ -3033,6 +3033,10 @@ The source-bound suites run644 utls,1886 fhttp,2566 QUIC and462 tls-client
 cases per graph. The [A11 report](docs/remediation/2026-10-30/A11.ru.md)
 contains native/root acceptance, commits and remaining measurement limits.
 
+Pool-lifetime fixtures that compare successive requests explicitly select one
+client-scope browser. Shipped profiles still isolate every `Do`; observing an
+idle socket between independent instances is not a valid fixture precondition.
+
 The fixes preserve request header ownership and framing, independent transport
 clones, decoding metadata, scoped cookies and safe ALPN handoff with fresh
 request bodies. QPACK keeps ready buffered headers readable after terminal
