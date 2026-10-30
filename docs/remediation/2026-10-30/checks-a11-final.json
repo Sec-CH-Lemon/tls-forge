@@ -1537,6 +1537,29 @@
     "after_race_repeats": 100,
     "after_seconds": 11.793,
     "assertions_and_deadlines": "unchanged",
-    "native": "pending both Go failure corrections"
+    "native": "pending both Go failure corrections",
+    "commit": "1530d79"
+  },
+  "proxy_timeout_followup": {
+    "source": "b57ed731",
+    "classification": "generic I/O/parser cause preservation; JSON cannot repair parser error replacement",
+    "native_failure": {
+      "job": 124313342075,
+      "trickle_ms": 300,
+      "reported": "malformed MIME header: missing colon on14 bytes",
+      "underlying_clock_and_read_error": "not present in native log; not claimed measured"
+    },
+    "before": "scripted actual deadline read is replaced by missing-colon parser diagnosis",
+    "after_race_repeats": 100,
+    "after_seconds": 9.393,
+    "full_proxy_race_seconds": 16.291,
+    "all_packages_coverage": 100,
+    "package_count": 23,
+    "header_mutants_rejected": 3,
+    "pool_runtime_mutant_rejected": 1,
+    "budgets_and_assertions": "unchanged",
+    "engine": "same unpublished1.0.0",
+    "profile_and_fork_pins": "unchanged",
+    "native": "pending"
   }
 }

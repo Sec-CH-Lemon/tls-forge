@@ -2180,6 +2180,10 @@ handshake in a tunnel has 10 seconds in all. A body has no such time, only the
 one of them ends. The generated leaf-certificate cache is limited to 1024
 hostnames.
 
+A timed-out header read remains a timeout even when the HTTP parser diagnoses
+the incomplete bytes as malformed. Completed malformed headers still reach
+`OnError`; an earlier request's timeout cannot hide a later parse failure.
+
 #### `serve`
 
 Run the local HTTPS measurement server independently. `/` contains the browser

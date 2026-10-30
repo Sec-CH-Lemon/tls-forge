@@ -279,6 +279,7 @@ func (s *Server) requestsOn(conn net.Conn) *requests {
 // parser made of it: the line it was in the middle of reaches the parser as
 // though it were whole, and is then malformed.
 func (r *requests) next() (*http.Request, error) {
+	r.limit.readErr = nil
 	_ = r.conn.SetReadDeadline(time.Now().Add(r.budget.idle))
 	if _, err := r.reader.Peek(1); err != nil {
 		return nil, err
@@ -295,7 +296,7 @@ func (r *requests) next() (*http.Request, error) {
 		return req, nil
 	case spent:
 		return nil, errHeaderTooLarge
-	case !time.Now().Before(deadline):
+	case errors.Is(r.limit.readErr, os.ErrDeadlineExceeded), !time.Now().Before(deadline):
 		return nil, fmt.Errorf("proxy: no request header within %v: %w", r.budget.header, os.ErrDeadlineExceeded)
 	}
 	return nil, err
@@ -307,13 +308,16 @@ func (r *requests) next() (*http.Request, error) {
 // that a header is refused only beyond budget.headerBytes and at most one
 // buffer more. left is -1 between headers, while a body is read.
 type headerLimit struct {
-	r    io.Reader
-	left int64
+	r       io.Reader
+	left    int64
+	readErr error // retain an I/O cause that the header parser may replace
 }
 
 func (l *headerLimit) Read(p []byte) (int, error) {
 	if l.left < 0 {
-		return l.r.Read(p)
+		n, err := l.r.Read(p)
+		l.readErr = err
+		return n, err
 	}
 	if l.left == 0 {
 		return 0, errHeaderTooLarge
@@ -322,6 +326,7 @@ func (l *headerLimit) Read(p []byte) (int, error) {
 		p = p[:l.left]
 	}
 	n, err := l.r.Read(p)
+	l.readErr = err
 	l.left -= int64(n)
 	return n, err
 }
