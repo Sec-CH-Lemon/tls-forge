@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "status": "A9 implementation and bounded local acceptance complete;push/nativeLinuxWindowsCI not authorized by auto-review",
+  "source": {
+    "head": "1cc4f81c95b82e035a45838db758200744ff10f9",
+    "archive_sha256": "d660e2a33e93bd1f0bab976ffa6b3c7cbda783457dbbaba5b47ca4d24ed969cf"
+  },
+  "checks": {
+    "full_race": {
+      "packages": 23,
+      "seconds": 518.3423700332642,
+      "result": "PASS",
+      "root_seconds": 510.086,
+      "cli_seconds": 458.702
+    },
+    "fresh_coverage": {
+      "result": "100.0% everyfunction andpackage;Go statements,not branchcoverage",
+      "seconds": 164.12419199943542,
+      "functions": 1894
+    },
+    "static": [
+      {
+        "name": "build-local",
+        "argv": [
+          "make",
+          "build"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "exit": 0,
+        "seconds": 1.848074197769165
+      },
+      {
+        "name": "build-pinned",
+        "argv": [
+          "make",
+          "build",
+          "BIN=/private/tmp/tls-forge-a9-20261030/final-pinned-bin"
+        ],
+        "cwd": "/Users/ihar/Personal/tls-forge",
+        "exit": 0,
+        "seconds": 1.14943528175354
+      },
+      {
+        "name": "vet",
+        "argv": [
+          "go",
+          "vet",
+          "./..."
+        ],
+        "cwd": "/private/tmp/tls-forge-a9-20261030/after",
+        "exit": 0,
+        "seconds": 1.2350189685821533
+      },
+      {
+        "name": "lint",
+        "argv": [
+          "/Users/ihar/go/bin/golangci-lint",
+          "run"
+        ],
+        "cwd": "/private/tmp/tls-forge-a9-20261030/after",
+        "exit": 0,
+        "seconds": 5.176878213882446
+      },
+      {
+        "name": "docs",
+        "argv": [
+          "make",
+          "docs-check"
+        ],
+        "cwd": "/private/tmp/tls-forge-a9-20261030/after",
+        "exit": 0,
+        "seconds": 0.1405029296875
+      },
+      {
+        "name": "generated",
+        "argv": [
+          "scripts/check-generated.sh"
+        ],
+        "cwd": "/private/tmp/tls-forge-a9-20261030/after",
+        "exit": 0,
+        "seconds": 2.5247292518615723
+      }
+    ],
+    "SDK": [
+      {
+        "name": "node-unit",
+        "exit": 0,
+        "seconds": 10.27606987953186
+      },
+      {
+        "name": "python-unit",
+        "exit": 0,
+        "seconds": 16.375423192977905
+      },
+      {
+        "name": "python-coverage",
+        "exit": 0,
+        "seconds": 0.0839090347290039
+      },
+      {
+        "name": "node-real",
+        "exit": 0,
+        "seconds": 2.5870108604431152
+      },
+      {
+        "name": "python-real",
+        "exit": 0,
+        "seconds": 6.5129008293151855
+      }
+    ],
+    "mutations": [
+      {
+        "name": "private-worker-default",
+        "exit": 1,
+        "killed_by_assertion": true,
+        "seconds": 3.6486220359802246
+      },
+      {
+        "name": "shared-closed-by-row",
+        "exit": 1,
+        "killed_by_assertion": true,
+        "seconds": 2.6162109375
+      },
+      {
+        "name": "implicit-lookup",
+        "exit": 1,
+        "killed_by_assertion": true,
+        "seconds": 2.857759952545166
+      },
+      {
+        "name": "insecure-service",
+        "exit": 1,
+        "killed_by_assertion": true,
+        "seconds": 2.1895432472229004
+      },
+      {
+        "name": "missing-service-source",
+        "exit": 1,
+        "killed_by_assertion": true,
+        "seconds": 2.470148801803589
+      },
+      {
+        "name": "false-report",
+        "exit": 1,
+        "killed_by_assertion": true,
+        "seconds": 2.997040033340454
+      }
+    ],
+    "KB": {
+      "before_sha256": "2102f989b9acdc3bf8d25874ddca808e4628503e1cd12148e46db9f87fde5d98",
+      "entries": 268,
+      "appended_ids": [
+        "CLI-001",
+        "CLI-002"
+      ],
+      "new_context": "remediation-a9-cli-20261030",
+      "target_unchanged": true,
+      "renderer_check": "PASS",
+      "files": {
+        "knowledge/browser-behavior.json": "152b557bbee8f6f06c69f8d14ec253ce66699023612c61cc7ddff08ccf8bf15c",
+        "docs/BROWSER_BEHAVIOR.md": "198aa5a330252fb1a7757bd8661902257e2ea89b49076c0d32bfbc9bfc0d7cca",
+        "docs/browser-behavior.html": "0d749f3b30666575b3fef5e977a15ad7c203207ab53e914fb8ed629cc9129faa"
+      }
+    },
+    "independent_decode": "48initial+24final CLI snapshots;bothkeyremovalcontrols rejected"
+  },
+  "profiles": {
+    "compared_JSON_files": 18,
+    "changed": [],
+    "engine_version_json_unchanged": true
+  },
+  "forks": {
+    "utls": {
+      "head": "2c0489c13835787fbc8ad18799e973f0ab31fbb4",
+      "tracked_clean": true
+    },
+    "fhttp": {
+      "head": "e514e872a83544226834b2b90429586e45ab5dea",
+      "tracked_clean": true
+    },
+    "quic-go-utls": {
+      "head": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+      "tracked_clean": true
+    },
+    "tls-client": {
+      "head": "b44093c5284572d9e48261c230b7a7b949a15b03",
+      "tracked_clean": true
+    }
+  },
+  "native_CI": {
+    "A9_pushed": false,
+    "A9_Linux_Windows_run": false,
+    "reason": "auto-review rejected push:previousauthorization scopedtoA8",
+    "A8_results_are_not_A9_acceptance": true
+  },
+  "private_evidence_root": "../net-fp-server/captures/tls-forge-a9-20261030",
+  "sha256": {
+    "all-race.log": "64e34a7726202186b87b89c25b4fb3c34a031d710624d30f11d801f3a342b2f7",
+    "all-coverage.log": "dfffab9d6e04c3bef9df666639aeb94000247d2c4a679fd35f53da978e044dc7",
+    "all.cover": "76cbd82fcaa9b49f92cbcc93ee37b1d18c35dc62b373f2c6751f0cdbff587faf",
+    "all-functions-coverage.txt": "141f7792855d503ba7aa4e38a70ff4defc30699f0aaf1a87420bf5541742f4da",
+    "full-checks.json": "b4bb1cba4546e6b4e43076041ba423dd92450c5a05655ef7202b69f3f0f29978",
+    "static-checks.json": "ab8bafafb8105b60ddd5c0b7940f6a53ffaec5b200fea43d1fd1b1bffa43073e",
+    "sdk-checks.json": "24fcc857e9c581043bea344f148687e5ee7b95a28c18b063ed0ca1ce397e7e98",
+    "mutations.json": "86ca71a439ea1cc00dd7ba1b3b770b202214b724d00dd789c015e79267c5268b",
+    "decode-final-client.json": "3766ce40f796ae03efdbbff771211160a1888c6d0043e1f5c4dc4eafc3b205e3",
+    "decode-final-negative.json": "eeabd4d4e31b2def6c7e1d64f9c7e947944403fc47404f5418b693da9e520f44"
+  },
+  "private_evidence": {
+    "archive": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a9-20261030/A9-originals-before-after.tar.gz",
+    "bytes": 65322544,
+    "files": 7252,
+    "sha256": "7c8e9a9b0c593fbd32ac3f98fbdc348d713977bf41d77f222573f52fc8262c42",
+    "manifest_sha256": "79b2fe5a0fe1784158e856bc6f0deebb497f0def16300a4a857b06087f3ce183",
+    "verified_every_member": true,
+    "permissions": "private directory0700;containsoriginalTLSsecretsandbrowserprofiles,notpublic"
+  }
+}

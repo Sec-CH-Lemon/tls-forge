@@ -1,0 +1,16 @@
+{
+  "scope": "A9/C06 explicit auxiliary HTTP traffic and authenticated services",
+  "before": "default auxiliary HTTP observed; -k accepted untrusted service and resolver",
+  "after": "12 default/explicit-disable direct/proxy/multi-way cases0lookup/0probe/0resolve; target requests execute; positive opt-in and passive metadata retained; conflict refused before network; separate untrusted certificate rejected before HTTP; HTML reports no unrequested lookup as a request",
+  "cli_full": "PASS54.632s100.0%statements",
+  "files": {
+    "c06-before.log": "194da0877bfd8e49162e90fc37b6d56be29c1c19d77c9aa6375bf5fa2bf3df53",
+    "c06-after-default.log": "cd56e1193fa120ed466055d2838632739db49f7d86b4ec4fe0075bea4f3e6876",
+    "c06-cli.log": "27d161fe31f6e35ca3f269542997d9354f7fdc93044e0b646eefeb1bdd7e49ad",
+    "c06-after-focused.log": "8d4a4ad4285c83f29eaa9ec6a348dceffea3455263a28a68726277d3597122f0",
+    "c06-cli-final.log": "2f4e71d164cb5aa7efa2b8628c6aa7f768f05bf8c69abc002a48046e7b94c3a9",
+    "a9-final-targeted.log": "2de2832b7a9ebf484ac81b54762a62dcc27990e172735b69d9ff51a22a32b9d8",
+    "a9-cli-final.log": "70c3b787d6ece4032c35bd233f0a63f95ecf1fa223851baf18e8babde6971c2f",
+    "a9-cli-final.cover": "b04845bc4ee89c048de945e301ab8c44c4ff093479062c032b072adb75c0282e"
+  }
+}

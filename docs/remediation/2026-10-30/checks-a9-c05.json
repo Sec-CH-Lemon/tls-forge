@@ -1,0 +1,38 @@
+{
+  "scope": "A9/C05 CLI connection ownership; no browser-equivalence verdict",
+  "before_head": "efa3cf36d6a2f07ac6ee7d9c48dd8063eb863f47",
+  "before": {
+    "8_requests_to_one_origin": {
+      "h1_workers1": 8,
+      "h1_workers4": 8,
+      "h2_workers1": 8,
+      "h2_workers4": 8
+    },
+    "6_requests_2_proxy_identities": [
+      4,
+      2
+    ]
+  },
+  "after": {
+    "h2_8_requests_workers1_or4": 1,
+    "h1_8_requests_workers1": 1,
+    "h1_8_requests_workers4": "1..4 accepted; actual request-bearing peers retained",
+    "2_proxy_identities": "one independent H2 tunnel each",
+    "legacy_fresh_8_requests": 8,
+    "legacy_per_row_4_rows": "exactly4 request-bearing peers; unused H1 cold dials counted independently",
+    "all_connections_closed_at_run_end": true,
+    "ordinary_and_browser_retry_reuse": true,
+    "full_cli": "PASS,50.577s,100.0% statements"
+  },
+  "files": {
+    "c05-before.log": "2a08f1bbe30917e73b929529699271d730d796e9866f71f5de33d1237878a24f",
+    "c05-before-direct.log": "5033808e37e2609e68aecc9055a2b64da5680c77ca269c7132aaaa01f4caec86",
+    "c05-after-targeted.log": "c536f871581f9c1bd6b85f0485f3bf813f44e7c17dc17e56f82a7145579d336e",
+    "c05-after-targeted-2.log": "70336f9e9e2885ca3e1ae49837da3da01ccd892579f822ba2285778e6c7f9895",
+    "c05-after-fixtures.log": "bad61c526f17c7b888dd29af437880eba191759fdae27f10dd47f85c3753e1a0",
+    "c05-after-final.log": "cd1fd094a67c57522b4ab8b61a79e53f90436f14e82f4888c1ea5b2005fd1fc4",
+    "c05-cli.log": "5882604e4a8bfdca79cd96dbb6a06e684b2c7916f2bbf46aebd0ae935fb86ebe",
+    "c05-cli-final.log": "1014ccc79e7a451e11cc9a74a52c748d07aec9c37842bd6113027f1790d81dc5",
+    "c05-cli-final.cover": "1503a911fc1ecfb4294a6d5cb9cf726a994640afc6b140b186a229551f2d0687"
+  }
+}

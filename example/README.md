@@ -487,11 +487,12 @@ With `-v` there is a line for each run as well:
   3/3  200      577 B     27ms       out/example.com-2026-10-17-043341-968-3.html
 ```
 
-The first run paid for a lookup, a dial and a whole handshake. Each run after
-it went out on a connection of its own, as every request does, and resumed the
-TLS session the first one left, as a browser coming back to a site does, which
-costs less. `--reuse-connection` sends a URL's runs over one connection
-instead. One URL is asked for one run at a time, the way a page is reloaded;
+The first request pays for DNS, a dial and a handshake. Later requests use
+the same identity's site pools by default; an available HTTP/2 connection is
+reused across rows and workers. `--fresh-connection` selects the former private
+worker mode and releases idle connections after each try; a new connection
+can resume that worker's TLS session. `--reuse-connection` keeps a private
+client per input row instead of sharing the identity's pool. One URL is asked for one run at a time, the way a page is reloaded;
 `-c 10` makes ten of them at once instead. For a list, `--repeat`
 goes through the whole of it that many times, and every line of the output
 says which pass it was:
@@ -687,10 +688,11 @@ false true h2 TLS 1.3 104.20.23.154:443
 false true h2 TLS 1.3 104.20.23.154:443
 ```
 
-None of them reused a connection, and the second and the third resumed the
-first one's TLS session. With `--reuse-connection` the first column says `true`
-for those two and the second `false`: a connection already open has no
-handshake to resume.
+That trace shows the legacy `--fresh-connection` mode: the second and third
+connections resume the first TLS session. With the default shared pool, or
+`--reuse-connection` for one row, those requests normally say `true false`:
+an open connection has no handshake to resume. A server close or pool eviction
+can require a new connection in any mode.
 
 And whatever went wrong, which is what the file is usually opened for:
 

@@ -1,0 +1,350 @@
+{
+  "schema": 1,
+  "scope": "A9/C05 connection ownership; finite direct loopback comparison, not full browser equivalence",
+  "browser": {
+    "product": "Chrome/156.0.8078.74",
+    "mode": "headed,minimized/background,CDP-controlled",
+    "platform": "27.0.1",
+    "machine": "arm64",
+    "independent_launches": 24,
+    "cohorts": 2,
+    "launches_per_scenario_per_cohort": 3
+  },
+  "sample_totals": {
+    "chrome_sequences": 24,
+    "original_cli_sequences": 24,
+    "corrected_cli_sequences": 24,
+    "requests_per_actor": 192,
+    "total_requests": 576
+  },
+  "scenario": "Eight no-store GETs to one fresh owned TLS origin; H1/H2 x sequential(1)/concurrent(4). Chrome tabs navigate in waves; CLI uses4rows x2repeats. Alltargetrequests counted by server and rawprotocol/peer; extra accepted cold sockets retained independently. CLI comparison explicitly disables old IPlookup with --no-exit-lookup. Targetlocalcertificate authentication bypassed in bothactors only for this owned witness.",
+  "normalization": "Raw ports/timestamps retained; group only by origin/actor/serving connection. No unused Chrome socket is dropped from accepted counts. No header/timing/RNG/fingerprint equivalence inferred.",
+  "groups": [
+    {
+      "protocol": "h1",
+      "workers": 1,
+      "actor": "after",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "accepted_sockets": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "protocol": "h1",
+      "workers": 1,
+      "actor": "before",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "accepted_sockets": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "protocol": "h1",
+      "workers": 1,
+      "actor": "chrome",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "accepted_sockets": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "protocol": "h1",
+      "workers": 4,
+      "actor": "after",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "accepted_sockets": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "protocol": "h1",
+      "workers": 4,
+      "actor": "before",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "accepted_sockets": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "protocol": "h1",
+      "workers": 4,
+      "actor": "chrome",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "accepted_sockets": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "protocol": "h2",
+      "workers": 1,
+      "actor": "after",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "accepted_sockets": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "protocol": "h2",
+      "workers": 1,
+      "actor": "before",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "accepted_sockets": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "protocol": "h2",
+      "workers": 1,
+      "actor": "chrome",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "accepted_sockets": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "protocol": "h2",
+      "workers": 4,
+      "actor": "after",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "accepted_sockets": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "protocol": "h2",
+      "workers": 4,
+      "actor": "before",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "accepted_sockets": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "protocol": "h2",
+      "workers": 4,
+      "actor": "chrome",
+      "samples": 6,
+      "requests_per_sample": 8,
+      "serving_connections": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "accepted_sockets": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    }
+  ],
+  "decoder": {
+    "tshark": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+    "snapshots": 48,
+    "exact_expected_get_counts": true,
+    "negative_control": {
+      "removed_keys_decoded_gets": 0,
+      "expected_with_keys": 8,
+      "rejected": true
+    }
+  },
+  "source": {
+    "original_commit": "efa3cf36d6a2f07ac6ee7d9c48dd8063eb863f47",
+    "pool_commit": "19ae206c2f94",
+    "C06_at_witness": "exit.go/fetch.go/trace.go changes later committed as1cc4f81; later HTML-only lookup-not-requested rendering does not change connections",
+    "before_binary_sha256": "5a2ca155bb15ffd71503cb92a1a435f126c531c3fe6304b92c8d41f9ec2650a0",
+    "witness_after_binary_sha256": "c36f23d0a2e632a98d636d0a6ad143933bf83563dbce88fd8a8b91f7588dc4e0",
+    "final_pinned_binary_sha256": "3b08d8b175443f3f76e1359214fae68a65ef237764aab1132b1579b530b4b2af"
+  },
+  "evidence_sha256": {
+    "connections-witness.mjs": "d4c766e764bb975ffbb80d1ca256dbf18d85f5850816a0f02762b055e33c53b3",
+    "connection-witness-results.json": "5dbf7e793b9815c34632a1c93261a8b555fa1d0ccf00c684e880dac1567c3173",
+    "connection-witness.log": "af97e0591e51545d01f200f984be635557caf297c0736b303436c65e8f070450",
+    "decode-witness.py": "264d2330252cde5894e3844d5f4278656b0ddfcd2b3568ca913f8e1371724243",
+    "decode-witness.json": "7a1c951f18f6ade777eda342351c6dc7f591005f10a203247b1a66298dfd5da7",
+    "decode-negative.json": "eeabd4d4e31b2def6c7e1d64f9c7e947944403fc47404f5418b693da9e520f44"
+  },
+  "final_client": {
+    "source_commit": "1cc4f81c95b82e035a45838db758200744ff10f9",
+    "source_archive": {
+      "head": "1cc4f81c95b82e035a45838db758200744ff10f9",
+      "archive_sha256": "d660e2a33e93bd1f0bab976ffa6b3c7cbda783457dbbaba5b47ca4d24ed969cf"
+    },
+    "sequences": 24,
+    "requests": 192,
+    "all_serving_connection_counts_match_reference_scenario": true,
+    "source_binary_sha256": "3b08d8b175443f3f76e1359214fae68a65ef237764aab1132b1579b530b4b2af",
+    "results_sha256": "86009252532380115521a6fc27e86c8586d6bd46f2337ea2f1e4ef13aee0b4ac",
+    "script_sha256": "83cc28c511ff0d6dd3ca84fcc00a93490f3312e44117e6a202add8e51478fd75",
+    "independent_decode": {
+      "snapshots": 24,
+      "all_exact": true,
+      "negative": {
+        "removed_keys_decoded_gets": 0,
+        "expected_with_keys": 8,
+        "rejected": true
+      },
+      "results_sha256": "3766ce40f796ae03efdbbff771211160a1888c6d0043e1f5c4dc4eafc3b205e3"
+    }
+  },
+  "private_evidence_root": "../net-fp-server/captures/tls-forge-a9-20261030"
+}

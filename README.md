@@ -2449,6 +2449,10 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
+[A9 CLI acceptance](docs/remediation/2026-10-30/A9.ru.md) records the shared-pool
+and explicit exit-lookup changes, original counterexamples, headed Chrome156
+connection counts and remaining differences.
+
 [A7 acceptance](docs/remediation/2026-10-29/A7-IDNA.ru.md) records the IDNA
 follow-up, all seven passing fuzz targets, SDK checks and the retained first
 race failure followed by a complete passing root rerun.

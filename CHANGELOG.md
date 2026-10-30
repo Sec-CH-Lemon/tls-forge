@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Record bounded A9 CLI acceptance:24 headed Chrome156 launches, independent
+  packet decoding and retained before/after sources. Distinguish shared request
+  pools from Chrome's additional unused cold sockets; update example connection
+  guidance for the new default.
+
 - Require `fetch --exit-lookup` for address-service requests, site probes and
   proxy-name resolution. Preserve passive proxy metadata and explicitly report
   an unrequested lookup. Address services/resolvers authenticate TLS independently
