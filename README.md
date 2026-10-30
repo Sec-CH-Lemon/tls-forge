@@ -194,8 +194,9 @@ make check
 ```
 
 Changes to transport forks also use the [source-pinned fork gates](verification/README.md)
-on both their own and production dependency graphs. Their named old failures
-remain explicit F09 debt.
+on both their own and production dependency graphs. A11 retains all109 original
+F09 records and requires positive witnesses for their closure; no active
+known-failure allowances or invocation exclusions remain.
 
 ## What is a TLS fingerprint?
 
@@ -2481,18 +2482,16 @@ The opportunistic and immediate rules have separate negative controls. An
 as-written instruction may follow an immediate ACK; its own elapsed time
 from RESET is measured rather than inferred from ACK order.
 
-The current QUIC `1fda75c1` and tls-client `a9f4f3e` pins are local commits
-awaiting publication. A fresh public-proxy install needs those commits to be
-published. [The 29 October checks](docs/remediation/2026-10-29/README.ru.md)
-retain the earlier 7/8 result; the [follow-up](docs/remediation/2026-10-29/ACCEPTANCE-A7.ru.md) now accepts all
-eight known-debt fork gates. The109 historical F09 obligations remain open.
+The [29 October checks](docs/remediation/2026-10-29/README.ru.md) preserve
+A7's earlier 7/8 result; its [follow-up](docs/remediation/2026-10-29/ACCEPTANCE-A7.ru.md)
+accepted eight gates with named historical debt. Those checkpoints predate A11.
+The current published fork pins are in `go.mod`; A11 removes the original
+failure allowances only after named, source-bound positive controls.
 
-Fork regression gates compare complete known diagnostic transcripts as well as
-failure names and message families. Their documented normalization preserves
-additional errors; see [verification](verification/README.md). Accepted known
-debt still requires the separate F09 closure. Supporting Framer trace repeat
-counts are retained in the private `result.json` as `trace_counts`. Framer
-timestamps with zero fractional seconds are recognized as Go emits them.
+Fork gates retain complete raw test events and dependency graphs. Missing,
+skipped or renamed closure witnesses reject the gate. JSON `skips` means
+invocation exclusions; `test_skips` records actual platform or optional-source
+skips. Technical fork acceptance does not establish browser equivalence.
 
 The CLI element check uses `golang.org/x/net/html` v0.62.0 or later, which
 contains the fix for GO-2026-6860. Check dependency updates with a current
@@ -3023,42 +3022,29 @@ Version and DOM-dump commands pass through. Original connection counts and
 request/GOAWAY comparisons remain unchanged. Per-launch NetLog/CDP evidence
 under `fixture-browser/` is private and included only in the encrypted artifact.
 
-A11 tracks each of the original F09 failures in
+A11 tracks all109 original F09 records in
 [`verification/fork-obligations.json`](verification/fork-obligations.json).
-Removing an active failure allowance requires a fix, retained before/after
-evidence and named replacement tests that run and pass in both module graphs.
-A missing, skipped or renamed witness rejects the gate. A11 remains in progress;
-its [report](docs/remediation/2026-10-30/A11.ru.md) distinguishes closed items
-from the remaining debt and native acceptance.
+Every record now has retained before/after evidence, its fix and positive
+witnesses. Both module graphs must run and pass those witnesses. No active
+failure allowances or invocation exclusions remain. Actual source skips remain
+explicit: utls1, fhttp36, QUIC3 and tls-client6 per local graph.
 
-The current A11 slice resolves57/109 original obligations (all56 fhttp rows
-plus utls hostname verification) and the supplemental omit-bundled-H2 check.
-Both fhttp module graphs finish1886 runs with raw exit0, no named failures
-and no TestOmitHTTP2 skip.52 original tls-client/QUIC rows remain open.
+The source-bound suites run644 utls,1886 fhttp,2566 QUIC and462 tls-client
+cases per graph. The [A11 report](docs/remediation/2026-10-30/A11.ru.md)
+contains native/root acceptance, commits and remaining measurement limits.
 
-A11 fork verification now has raw-green QUIC suites on both standalone and
-production graphs (2562 runs each); the original109-obligation ledger remains
-locally closed at109/109; final root/native acceptance pending. This is technical test acceptance.
+The fixes preserve request header ownership and framing, independent transport
+clones, decoding metadata, scoped cookies and safe ALPN handoff with fresh
+request bodies. QPACK keeps ready buffered headers readable after terminal
+connection closure while preserving caller cancellation, blocked-table waits,
+header bounds and live feedback failures.
 
-Fork-gate JSON `skips` lists invocation exclusions; `test_skips` lists actual
-Go test skips, including platform and optional-environment checks. A resolved
-obligation still requires an executed, passing witness and cannot pass by skip.
+`WithCookieJar` can inventory cookies only when the jar reports their filing
+domain and path. The repaired tls-client jar does; a custom jar withholding
+those fields still sends scoped cookies but cannot provide complete `AllCookies`.
 
-`WithCookieJar` can inventory cookies only when the supplied jar reports their
-filing domain and path. The repaired tls-client jar does; a custom jar that
-withholds those fields still sends scoped cookies but cannot provide a complete
-`AllCookies` inventory through this adapter.
-
-The A11 capture fixture also checks received-before-sent callback order. Its reader
-uses the actual QUIC ClientHello to identify direction and preserves all bytes
-and per-direction datagram order. This changes the test oracle only.
-
-The ambient QUIC-scrambling test uses a separate technical JSON input with fixed
-extension order. Its early SNI cut crosses a packet boundary, so the packet frame
-shuffle cannot accidentally conceal the enabled layout. Browser profiles are unchanged.
-
-A11 pins the QPACK connection-lifetime repair: already buffered header sections
-survive terminal connection closure; caller cancellation and blocked-table waits
-still terminate correctly. The two final QUIC graphs have2566 raw-green test
-runs each, with required positive witnesses and no failure allowances. Overall
-root and native acceptance is recorded separately in the A11 report.
+The capture oracle identifies UDP direction from the actual ClientHello,
+retaining datagram bytes/order and secrets when receive callbacks precede send
+callbacks. The scrambling witness uses a separate explicitly ordered technical
+JSON input, so packet-local frame shuffling cannot conceal its deferred cut.
+Neither repair changes shipped browser profile bytes.

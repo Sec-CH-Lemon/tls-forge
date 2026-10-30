@@ -1,0 +1,1493 @@
+{
+  "stage": "A11/F09 original109 acceptance complete on exact runtime source; named extended timing limits retained",
+  "tested_root": "0c1bb4e129835e0c91fa4362a032222d7f4049ec",
+  "source_archive_sha256": "0775248690302894fb6334bb7fe7cd95565f9e685d9782bf1243a642827f8b21",
+  "engine": "unpublished1.0.0/schema4/daemon3/SDK1",
+  "original_obligations": 109,
+  "resolved_original": 109,
+  "active_failure_allowances": 0,
+  "invocation_exclusions": 0,
+  "local_fork_graphs": [
+    {
+      "directory": "utls-closed-standalone-retry",
+      "fork": "utls",
+      "graph": "standalone",
+      "source_commit": "fc851fa265f6be680bf5626006f977596c7ca4d1",
+      "source_sha256": "19fd30183f433122cead4385c8a4715dc354d9f52936e6013be4013fe1d6a364",
+      "test_runs": 644,
+      "accepted": true,
+      "returncodes": [
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/utls",
+          "TestUTLSHandshakeClientParrotGolang"
+        ]
+      ],
+      "required_checks": 7
+    },
+    {
+      "directory": "utls-closed-production",
+      "fork": "utls",
+      "graph": "production",
+      "source_commit": "fc851fa265f6be680bf5626006f977596c7ca4d1",
+      "source_sha256": "19fd30183f433122cead4385c8a4715dc354d9f52936e6013be4013fe1d6a364",
+      "test_runs": 644,
+      "accepted": true,
+      "returncodes": [
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/utls",
+          "TestUTLSHandshakeClientParrotGolang"
+        ]
+      ],
+      "required_checks": 7
+    },
+    {
+      "directory": "fhttp-after-standalone",
+      "fork": "fhttp",
+      "graph": "standalone",
+      "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+      "test_runs": 1886,
+      "accepted": true,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestFinishLine"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestHeaderWriteSubsetAllocs"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestLinuxSendfile"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTraceRealDNS"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportMaxIdleConns"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWithCert"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGet"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGetAbsPath"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicPost"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIEnvIPv6"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIPostChunked"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCopyError"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirUnix"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirWindows"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDropProxyHeader"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDupHeaders"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestEnvOverride"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestHandlerStderr"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestInternalRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfo"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoDirRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoNoRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestGClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl_LenientCipherSuites"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithH2Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestSpecCoverage"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestTransportExternal"
+        ]
+      ],
+      "required_checks": 805
+    },
+    {
+      "directory": "fhttp-after-production",
+      "fork": "fhttp",
+      "graph": "production",
+      "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+      "test_runs": 1886,
+      "accepted": true,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestFinishLine"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestHeaderWriteSubsetAllocs"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestLinuxSendfile"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTraceRealDNS"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportMaxIdleConns"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWithCert"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGet"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGetAbsPath"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicPost"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIEnvIPv6"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIPostChunked"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCopyError"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirUnix"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirWindows"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDropProxyHeader"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDupHeaders"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestEnvOverride"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestHandlerStderr"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestInternalRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfo"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoDirRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoNoRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestGClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl_LenientCipherSuites"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithH2Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestSpecCoverage"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestTransportExternal"
+        ]
+      ],
+      "required_checks": 805
+    },
+    {
+      "directory": "quic-final-standalone",
+      "fork": "quic-go-utls",
+      "graph": "standalone",
+      "source_commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560",
+      "source_sha256": "46574c99579a44d17d298d20f1e293d9b84bfc51403bf650c08d7a7cbb3f1662",
+      "test_runs": 2566,
+      "accepted": true,
+      "returncodes": [
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnDetectGSOFailure"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnSendmsgFailures"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSysConnSendGSO"
+        ]
+      ],
+      "required_checks": 13
+    },
+    {
+      "directory": "quic-pinned-final-production",
+      "fork": "quic-go-utls",
+      "graph": "production",
+      "source_commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560",
+      "source_sha256": "46574c99579a44d17d298d20f1e293d9b84bfc51403bf650c08d7a7cbb3f1662",
+      "test_runs": 2566,
+      "accepted": true,
+      "returncodes": [
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnDetectGSOFailure"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnSendmsgFailures"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSysConnSendGSO"
+        ]
+      ],
+      "required_checks": 13
+    },
+    {
+      "directory": "tls-client-qpack-after-standalone",
+      "fork": "tls-client",
+      "graph": "standalone",
+      "source_commit": "d0aaa5a46fb823bbf7d572c97ac165d356f035e8",
+      "source_sha256": "ca28639c4b260d0ac62c6679a0a1dac58a7f0d9ba82329d003f07c09730b0e2a",
+      "test_runs": 462,
+      "accepted": true,
+      "returncodes": [
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "required_checks": 268
+    },
+    {
+      "directory": "tls-client-pinned-final-production",
+      "fork": "tls-client",
+      "graph": "production",
+      "source_commit": "d0aaa5a46fb823bbf7d572c97ac165d356f035e8",
+      "source_sha256": "ca28639c4b260d0ac62c6679a0a1dac58a7f0d9ba82329d003f07c09730b0e2a",
+      "test_runs": 462,
+      "accepted": true,
+      "returncodes": [
+        0
+      ],
+      "actual_test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "required_checks": 268
+    }
+  ],
+  "profiles_unchanged": {
+    "accepted": true,
+    "count": 18,
+    "profiles": [
+      {
+        "path": "profile/data/chrome_151/linux.json",
+        "unchanged": true,
+        "sha256": "94359f76551332020ed6036f7105057212259723ffd5052a580cda9f80668454"
+      },
+      {
+        "path": "profile/data/chrome_151/macos.json",
+        "unchanged": true,
+        "sha256": "faf61461c245520d2893804f0352a5b15688b81a23d33aa2e9a282749e14fa7a"
+      },
+      {
+        "path": "profile/data/chrome_151/windows.json",
+        "unchanged": true,
+        "sha256": "69c8fbe2fcfd8a140cf1895e45cf1ccc961da2d26ff05fdc95808bb6c142c40a"
+      },
+      {
+        "path": "profile/data/chrome_152/linux.json",
+        "unchanged": true,
+        "sha256": "00661b958180762db09e0bd75f862042d75d7c7b0db369a05693c51933f5bab8"
+      },
+      {
+        "path": "profile/data/chrome_152/macos.json",
+        "unchanged": true,
+        "sha256": "18f8053740f9a20c0a01cc2239476b1a61da9705a76165db38da0a6f57e91b85"
+      },
+      {
+        "path": "profile/data/chrome_152/windows.json",
+        "unchanged": true,
+        "sha256": "996caddc1e289e3872e039b676c5d77effe689e042133ae84d4711e85a9588d5"
+      },
+      {
+        "path": "profile/data/chrome_153/linux.json",
+        "unchanged": true,
+        "sha256": "fa0395bb6f28043f3ea968294b43d8efd113d8bd60fc2b7ce428bfe18f81b72f"
+      },
+      {
+        "path": "profile/data/chrome_153/macos.json",
+        "unchanged": true,
+        "sha256": "53a239bca1e0e1f8bf32f66f00e1e5dbe4a0eca3735c6efff8fb6eada15d9d84"
+      },
+      {
+        "path": "profile/data/chrome_153/windows.json",
+        "unchanged": true,
+        "sha256": "a9b72ad48de77f7fc7d164914182232abebd26c3f0a78a36e07c6689be68f6b7"
+      },
+      {
+        "path": "profile/data/chrome_154/linux.json",
+        "unchanged": true,
+        "sha256": "15427f75d5c1fc1bec41fbb8d45adeac8f850c3109185dbab3ba627ef66a8177"
+      },
+      {
+        "path": "profile/data/chrome_154/macos.json",
+        "unchanged": true,
+        "sha256": "677dd75a6b12375316e34a163d57d0eaa8ed8adf94b0a915b853648f6fa8b739"
+      },
+      {
+        "path": "profile/data/chrome_154/windows.json",
+        "unchanged": true,
+        "sha256": "b188c0fceec1812b668ec747f398eaad9a17dd269a2aeefaef10b77575eb2587"
+      },
+      {
+        "path": "profile/data/chrome_155/linux.json",
+        "unchanged": true,
+        "sha256": "a0b5034c3c83fbebf9efd2e51308a622648e4fdbba37da2359cd189bbc50d4fe"
+      },
+      {
+        "path": "profile/data/chrome_155/macos.json",
+        "unchanged": true,
+        "sha256": "0efd780a264d3693e26c07c2394d3f9f5f1a3c4071c481459f052b6833667d64"
+      },
+      {
+        "path": "profile/data/chrome_155/windows.json",
+        "unchanged": true,
+        "sha256": "6a5fe7f7962f0cef1142c4a81108517b304a8af9a43f59086bfb38119c028ac6"
+      },
+      {
+        "path": "profile/data/chrome_156/linux.json",
+        "unchanged": true,
+        "sha256": "541fd0f59b0e90700f95377a07d0aea30d2278702c1bf088821b17bb1408c2f8"
+      },
+      {
+        "path": "profile/data/chrome_156/macos.json",
+        "unchanged": true,
+        "sha256": "da38f2e8ba60e307a3070b2b3afa207ee1c54b5317e271a61f848db388e3d950"
+      },
+      {
+        "path": "profile/data/chrome_156/windows.json",
+        "unchanged": true,
+        "sha256": "43fe713296bab8993b8a62e96ebcb109fe9381028ba914c6cbcbd2833af3a165"
+      }
+    ]
+  },
+  "browser": {
+    "build": "Chrome156.0.8078.76",
+    "platform": "macOS27.0.1 arm64",
+    "protocols": [
+      "H1",
+      "H2",
+      "H3"
+    ],
+    "independent_cohorts": 2,
+    "scenarios_per_protocol": 34,
+    "matched_pairs": 204,
+    "total_pairs": 204,
+    "scope": "cache/header-order/validators/status/body/origin-request count; explicit instance_scope=client sequence profile",
+    "normalization": [
+      "validated owned-origin Host/:authority",
+      "owned-origin prefix of Referer only"
+    ],
+    "not_claimed": [
+      "full browser indistinguishability",
+      "historical profiles/platforms parity",
+      "kernel TCP control",
+      "RNG distribution proof"
+    ]
+  },
+  "root_checks": {
+    "coverage": "23 packages100% fresh; GOFLAGS=-count=1",
+    "lint": "0 issues",
+    "vet": "pass",
+    "generated": "pass",
+    "build": "pass",
+    "race": {
+      "accepted": true,
+      "returncode": 0,
+      "source_commit": "0c1bb4e129835e0c91fa4362a032222d7f4049ec",
+      "command": "GOWORK=off go test -race -json -count=1 -timeout=20m ./...",
+      "root_elapsed_seconds": 623.782,
+      "package_count": 23,
+      "outcomes": [
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+          "action": "pass",
+          "elapsed": 1.421
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+          "action": "pass",
+          "elapsed": 1.424
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+          "action": "pass",
+          "elapsed": 1.425
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+          "action": "pass",
+          "elapsed": 1.426
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+          "action": "pass",
+          "elapsed": 1.492
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+          "action": "pass",
+          "elapsed": 1.666
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+          "action": "pass",
+          "elapsed": 1.685
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+          "action": "pass",
+          "elapsed": 2.014
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+          "action": "pass",
+          "elapsed": 2.185
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+          "action": "pass",
+          "elapsed": 1.206
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+          "action": "pass",
+          "elapsed": 1.282
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+          "action": "pass",
+          "elapsed": 1.199
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+          "action": "pass",
+          "elapsed": 1.184
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+          "action": "pass",
+          "elapsed": 3.188
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+          "action": "pass",
+          "elapsed": 13.291
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+          "action": "pass",
+          "elapsed": 13.439
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+          "action": "pass",
+          "elapsed": 15.312
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+          "action": "pass",
+          "elapsed": 25.299
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+          "action": "pass",
+          "elapsed": 34.968
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+          "action": "pass",
+          "elapsed": 62.451
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+          "action": "pass",
+          "elapsed": 100.457
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+          "action": "pass",
+          "elapsed": 494.454
+        },
+        {
+          "package": "github.com/Sec-CH-Lemon/tls-forge",
+          "action": "pass",
+          "elapsed": 623.782
+        }
+      ],
+      "test_runs": 7276,
+      "actual_test_skips": [
+        [
+          "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+          "TestBrowserHelper"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge",
+          "TestABrowserContextSendsWhatChromeSent/windows/auth-digest-negotiate/h2"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge",
+          "TestABrowserContextSendsWhatChromeSent/windows/auth-digest-negotiate/h1"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+          "TestBrowserHelper"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge",
+          "TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid/form-given/h2"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge",
+          "TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid/form-given/h1"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge",
+          "TestBrowserHelper"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge",
+          "TestAPageIsReloadedAsChromeReloadedIt/typed-hard/h2"
+        ],
+        [
+          "github.com/Sec-CH-Lemon/tls-forge",
+          "TestAPageIsReloadedAsChromeReloadedIt/typed-hard/h1"
+        ]
+      ],
+      "prior_failed_run": "root-0c1-race-enospc-receipt.json"
+    }
+  },
+  "sdks": {
+    "node_unit": "131 passed;12 real-daemon cases skipped in unit invocation;100% lines/functions/branches",
+    "python_unit": "169 passed;12 real-daemon cases skipped in unit invocation;100% statements/branches; mypy pass",
+    "node_real_daemon": "12 passed;0 skipped; exact root0c1 binary",
+    "python_real_daemon": "12 passed;0 skipped; exact root0c1 binary"
+  },
+  "native": {
+    "main_run": 41119634648,
+    "fork_run": 41119697402,
+    "status": "pass",
+    "fork_raw_receipts": [
+      {
+        "artifact": "fhttp-production",
+        "accepted": true,
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+        "returncodes": [
+          0,
+          0,
+          0
+        ],
+        "test_runs": 1886,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestFinishLine"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestHeaderWriteSubsetAllocs"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestLinuxSendfile"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTraceRealDNS"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace_NoHooks"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace_NoHooks_h2"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace_h2"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportIDNA_h1"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportIDNA_h2"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportMaxIdleConns"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestWithCert"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIBasicGet"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIBasicGetAbsPath"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIBasicPost"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIEnvIPv6"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIPostChunked"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCopyError"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDirUnix"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDirWindows"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDropProxyHeader"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDupHeaders"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestEnvOverride"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestHandlerStderr"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestInternalRedirect"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestPathInfo"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestPathInfoDirRoot"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestPathInfoNoRoot"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestRedirect"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestClient_Load"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestGClient_Load"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestServerWithCurl"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestServerWithCurl_LenientCipherSuites"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestServerWithH2Load"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestSpecCoverage"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestTransportExternal"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "ee2d2d21eecb83b9120c2eb39aa76aef7fc289be4f0abc9fcdc2ba347417d8b5"
+      },
+      {
+        "artifact": "fhttp-standalone",
+        "accepted": true,
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+        "returncodes": [
+          0,
+          0,
+          0
+        ],
+        "test_runs": 1886,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestFinishLine"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestHeaderWriteSubsetAllocs"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestLinuxSendfile"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTraceRealDNS"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace_NoHooks"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace_NoHooks_h2"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportEventTrace_h2"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportIDNA_h1"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportIDNA_h2"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestTransportMaxIdleConns"
+          ],
+          [
+            "github.com/igor-lemon/fhttp",
+            "TestWithCert"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIBasicGet"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIBasicGetAbsPath"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIBasicPost"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIEnvIPv6"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCGIPostChunked"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestCopyError"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDirUnix"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDirWindows"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDropProxyHeader"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestDupHeaders"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestEnvOverride"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestHandlerStderr"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestInternalRedirect"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestPathInfo"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestPathInfoDirRoot"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestPathInfoNoRoot"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/cgi",
+            "TestRedirect"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestClient_Load"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestGClient_Load"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestServerWithCurl"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestServerWithCurl_LenientCipherSuites"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestServerWithH2Load"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestSpecCoverage"
+          ],
+          [
+            "github.com/igor-lemon/fhttp/http2",
+            "TestTransportExternal"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "2fda64f5c6fc0d0ea4502ac5d441140447d43420be263e8f38bfe950ee758bca"
+      },
+      {
+        "artifact": "quic-go-utls-production",
+        "accepted": true,
+        "source_commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560",
+        "source_sha256": "46574c99579a44d17d298d20f1e293d9b84bfc51403bf650c08d7a7cbb3f1662",
+        "returncodes": [
+          0
+        ],
+        "test_runs": 2566,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnDetectGSOFailure"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnSendmsgFailures"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSysConnSendGSO"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "ad3576a7bd660b0fe06c3354f20e404b17ce9d2635c41bc8d7e6697dd2ed8fc0"
+      },
+      {
+        "artifact": "quic-go-utls-standalone",
+        "accepted": true,
+        "source_commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560",
+        "source_sha256": "46574c99579a44d17d298d20f1e293d9b84bfc51403bf650c08d7a7cbb3f1662",
+        "returncodes": [
+          0
+        ],
+        "test_runs": 2566,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnDetectGSOFailure"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnSendmsgFailures"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSysConnSendGSO"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "42d377a4e1439ead1cf92c6dff7370f9969411285219aa5b073b4c1d8899eb42"
+      },
+      {
+        "artifact": "tls-client-production",
+        "accepted": true,
+        "source_commit": "d0aaa5a46fb823bbf7d572c97ac165d356f035e8",
+        "source_sha256": "ca28639c4b260d0ac62c6679a0a1dac58a7f0d9ba82329d003f07c09730b0e2a",
+        "returncodes": [
+          0
+        ],
+        "test_runs": 462,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5E2E_HTTP3ThroughProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5PacketConn_ReadFromDropsForeignSource"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_HappyPath"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_ProtocolRacingUsesProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_SetProxyAtRuntime"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "4df3e0634cabdf83a282a3ac4eed43c906ea983c3c965a528c6d7154c32126f9"
+      },
+      {
+        "artifact": "tls-client-standalone",
+        "accepted": true,
+        "source_commit": "d0aaa5a46fb823bbf7d572c97ac165d356f035e8",
+        "source_sha256": "ca28639c4b260d0ac62c6679a0a1dac58a7f0d9ba82329d003f07c09730b0e2a",
+        "returncodes": [
+          0
+        ],
+        "test_runs": 462,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5E2E_HTTP3ThroughProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5PacketConn_ReadFromDropsForeignSource"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_HappyPath"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_ProtocolRacingUsesProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_SetProxyAtRuntime"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "83037747c1e9af6827fa6d48912b75d761fc3faefff4e8aa3ee371069c833898"
+      },
+      {
+        "artifact": "utls-production",
+        "accepted": true,
+        "source_commit": "fc851fa265f6be680bf5626006f977596c7ca4d1",
+        "source_sha256": "19fd30183f433122cead4385c8a4715dc354d9f52936e6013be4013fe1d6a364",
+        "returncodes": [
+          0
+        ],
+        "test_runs": 644,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/utls",
+            "TestUTLSHandshakeClientParrotGolang"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "53c808964c8b7c0adaa3c2f9cd1145ec655ced0d92fa867e88b3374a58e856cd"
+      },
+      {
+        "artifact": "utls-standalone",
+        "accepted": true,
+        "source_commit": "fc851fa265f6be680bf5626006f977596c7ca4d1",
+        "source_sha256": "19fd30183f433122cead4385c8a4715dc354d9f52936e6013be4013fe1d6a364",
+        "returncodes": [
+          0
+        ],
+        "test_runs": 644,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/utls",
+            "TestUTLSHandshakeClientParrotGolang"
+          ]
+        ],
+        "unexpected": [],
+        "encrypted_sha256": "1ed43b653ce939376e057becbb4cca85be42006c6cad0e3549cbdbcdaef881fc"
+      }
+    ],
+    "fork_suites_raw_green": 8,
+    "source_archives_match_local": true,
+    "main_jobs": [
+      {
+        "name": "generated",
+        "conclusion": "success",
+        "id": 124282768071
+      },
+      {
+        "name": "python (ubuntu-latest, 3.9)",
+        "conclusion": "success",
+        "id": 124282768367
+      },
+      {
+        "name": "wrapper-smoke",
+        "conclusion": "success",
+        "id": 124282768391
+      },
+      {
+        "name": "docker",
+        "conclusion": "success",
+        "id": 124282768399
+      },
+      {
+        "name": "coverage",
+        "conclusion": "success",
+        "id": 124282768405
+      },
+      {
+        "name": "python (windows-latest, 3.13)",
+        "conclusion": "success",
+        "id": 124282768411
+      },
+      {
+        "name": "security",
+        "conclusion": "success",
+        "id": 124282768436
+      },
+      {
+        "name": "browser",
+        "conclusion": "success",
+        "id": 124282768445
+      },
+      {
+        "name": "go (ubuntu-latest)",
+        "conclusion": "success",
+        "id": 124282768447
+      },
+      {
+        "name": "examples (ubuntu-latest)",
+        "conclusion": "success",
+        "id": 124282768491
+      },
+      {
+        "name": "node (ubuntu-latest, 24, true)",
+        "conclusion": "success",
+        "id": 124282768495
+      },
+      {
+        "name": "node (macos-latest, 24, true)",
+        "conclusion": "success",
+        "id": 124282768516
+      },
+      {
+        "name": "go (macos-latest)",
+        "conclusion": "success",
+        "id": 124282768555
+      },
+      {
+        "name": "lint",
+        "conclusion": "success",
+        "id": 124282768566
+      },
+      {
+        "name": "go (windows-latest)",
+        "conclusion": "success",
+        "id": 124282768606
+      },
+      {
+        "name": "python (ubuntu-latest, 3.13)",
+        "conclusion": "success",
+        "id": 124282768668
+      },
+      {
+        "name": "node (ubuntu-latest, 20.12, false)",
+        "conclusion": "success",
+        "id": 124282768680
+      },
+      {
+        "name": "examples (macos-latest)",
+        "conclusion": "success",
+        "id": 124282768712
+      },
+      {
+        "name": "packaging",
+        "conclusion": "success",
+        "id": 124282768731
+      },
+      {
+        "name": "node (windows-latest, 24, true)",
+        "conclusion": "success",
+        "id": 124282768800
+      },
+      {
+        "name": "examples (windows-latest)",
+        "conclusion": "success",
+        "id": 124282768894
+      },
+      {
+        "name": "python (macos-latest, 3.13)",
+        "conclusion": "success",
+        "id": 124282768997
+      },
+      {
+        "name": "package-smoke (windows-latest, 24, 3.13)",
+        "conclusion": "success",
+        "id": 124284325831
+      },
+      {
+        "name": "package-smoke (ubuntu-latest, 20.12, 3.9)",
+        "conclusion": "success",
+        "id": 124284325885
+      },
+      {
+        "name": "package-smoke (ubuntu-latest, 24, 3.13)",
+        "conclusion": "success",
+        "id": 124284325889
+      },
+      {
+        "name": "package-smoke (macos-latest, 24, 3.13)",
+        "conclusion": "success",
+        "id": 124284325891
+      },
+      {
+        "name": "package-smoke (ubuntu-24.04-arm, 24, 3.13)",
+        "conclusion": "success",
+        "id": 124284325907
+      }
+    ],
+    "fork_jobs": [
+      {
+        "name": "fork (fhttp, production)",
+        "conclusion": "success",
+        "id": 124283534442
+      },
+      {
+        "name": "fork (quic-go-utls, standalone)",
+        "conclusion": "success",
+        "id": 124283534672
+      },
+      {
+        "name": "fork (utls, production)",
+        "conclusion": "success",
+        "id": 124283534696
+      },
+      {
+        "name": "fork (tls-client, production)",
+        "conclusion": "success",
+        "id": 124283534711
+      },
+      {
+        "name": "fork (fhttp, standalone)",
+        "conclusion": "success",
+        "id": 124283534715
+      },
+      {
+        "name": "fork (quic-go-utls, production)",
+        "conclusion": "success",
+        "id": 124283534748
+      },
+      {
+        "name": "fork (utls, standalone)",
+        "conclusion": "success",
+        "id": 124283534800
+      },
+      {
+        "name": "fork (tls-client, standalone)",
+        "conclusion": "success",
+        "id": 124283535023
+      }
+    ],
+    "main_passed": 27,
+    "fork_passed": 8,
+    "linux_race_seconds": {
+      "root": 1158.47,
+      "cli": 997.282
+    }
+  },
+  "private_evidence": "net-fp-server/captures/tls-forge-a11-20261030",
+  "extended_diagnostics": {
+    "no_alps_and_preconnect_target": "200race each passed",
+    "http3_full_package": "40race cohorts passed; unchanged deadlines/assertions; passive diagnostics only",
+    "historical_timeouts": "Two earlier rare idle/Preconnect failures retained; exact causes not reproduced, no allowance added; finite passes do not prove absence of timing failures"
+  },
+  "evidence_commit_scope": "Final report commit changes documentation and receipts only; runtime and dependency graphs remain exactly tested0c1.",
+  "private_capsule": {
+    "path": "net-fp-server/captures/tls-forge-a11-20261030/CAPSULE.json",
+    "manifest_sha256": "47f9c26f6a1b8353cfe768d74cc11954984f7edd225254057bd75f173f439683",
+    "files": 1129,
+    "bytes": 625653376
+  }
+}

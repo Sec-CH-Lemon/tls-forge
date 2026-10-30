@@ -1,0 +1,60 @@
+{
+  "scope": "A11 implementation commits before final evidence-only report",
+  "branches": {
+    "root": "development",
+    "forks": "tls-forge"
+  },
+  "commits": {
+    "root": [
+      "7d2493021747f28bb6c832547e848aebe248ac44 Synchronize redirect trace fixture with sending",
+      "4959bf461f6fd972facb723a0c157b79be540d43 Observe ALPS decisions before peer replies",
+      "a7bb9dd362dc5c30598f0367fee0bf0d13602382 Synchronize proxy trace fixture with sending",
+      "ad499e7487094dafed47865780269ad2c9e5928c Require witnesses for resolved fork obligations",
+      "8f978cbede0ae09a30637caf304952556bcd0895 Pin green fhttp suites with closure witnesses",
+      "c77d45c9a0033ac1217780f21abdb89a989474be Observe QUIC refusal before HTTP3 acceptance",
+      "bb2af0d5a450e134c4d0b5f68bcf59f1fc977795 Cover externally decoded response bodies",
+      "5d20cdb7b2f8d55213898cdd012cdaa2fe5c48f0 Order first-flight capture before TCP response",
+      "bfe916a6548dad660c7e231ca727fc90b04b15c0 Pin verified QUIC closure witnesses",
+      "ad23dfefc37576390873e3d160fa8e9027cba155 Report actual skipped fork tests explicitly",
+      "8ceac0d69e0445abb2dfc55cceb2643ba2c62ea9 Pin closed tls-client fork obligations",
+      "9f8d952d2ac24f06c902fa50a7c6cf49c7e691fe Keep missing cookie metadata fixture independent",
+      "3bc600bab8964532e0ec6b13dc690e2a71feeb53 Read QUIC capture direction from ClientHello",
+      "9ec72af4c1cb52e238bc6124dc3aa8739826bb16 Fix the scrambling witness packet geometry",
+      "0c1bb4e129835e0c91fa4362a032222d7f4049ec Pin the verified QPACK lifetime repair"
+    ],
+    "utls": [
+      "fc851fa265f6be680bf5626006f977596c7ca4d1 Verify hostnames against an owned TLS peer"
+    ],
+    "fhttp": [
+      "7346a0314f634bbf2a2367edf766a567fd5d8a86 Keep request wire headers and framing owned",
+      "3974b50fdd754c4298f5b77688555880ba8243ac Recognize current Go body reader wrappers",
+      "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8 Preserve response metadata and lazy decoder lifetime",
+      "31014fd12a6818bcccf992487aa95f2537900223 Trace written fields once and attribute server callers",
+      "313b91a610f1b2c08ca92ec91716b3c07b0ff072 Preserve header states and raw user-agent controls",
+      "475af4b44d7856a8089afb8263b63b2c47adba60 Keep both implicit body buffering controls",
+      "a79fd98cdda5674a76e7a4c04cfcc1d2c6996255 Clone HTTP2 configuration with independent pools",
+      "24ec5713ef0e5c6d9cdbe500f64d048ca287352f Exercise examples against owned HTTP peers",
+      "1c6a4638b98aeddcebe177ac5625db2483453a9d Make H2 order and queue obligations deterministic",
+      "3e7ce07b2d8fe6d0dd813cae96a35ef6ad201984 Verify omitted HTTP2 against the actual fork",
+      "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61 Keep file-copy dispatch tests independent of sendfile"
+    ],
+    "tls-client": [
+      "c7e48c02aeedf61edacb26df409521704360576f Test catalogue fingerprints on owned peers",
+      "290a52b06458c2a54f9b9d763a7a2750b66b3f17 Respect cookie scope and metadata ownership",
+      "56538739813f9b23c05b4be643902c927158795b Exercise request hooks on owned HTTP peers",
+      "7b73be7f271cf9613c9861eb55b8e77f6ae9cd0e Own verified TLS and WebSocket test peers",
+      "c9fad0a02057c965bfc9848b88fd2e984d812520 Verify ALPN handoff and racing ownership",
+      "3a48d210148c91f95631fbe8a0e7c3d2f22061b3 Recreate request bodies for ALPN handoff",
+      "c9b52912694d3b0538554bbbc4bd469fca15288c Align supported transport dependency pins",
+      "b08bfdbd5c88f6fc0ea5134b4313018188008bf0 Verify HTTP3 on owned wire and routing peers",
+      "d0aaa5a46fb823bbf7d572c97ac165d356f035e8 Pin buffered QPACK lifetime repair"
+    ],
+    "quic-go-utls": [
+      "d92d2895644f040c2a5e77110ccb4d356641a090 Order conflicting ALPS stimulus after preconnect",
+      "b1804540b358e0777478942ef964b386cf120efd Drive packet policy checks with owned traffic",
+      "9a3076b42e8ec9ae33b7ab780c193bb048345322 Retain QPACK header limit error contract",
+      "2484971b8b608027e6e55c216d4ff733e3320fac Keep buffered QPACK after connection close",
+      "5c4149bd840a7bc3c44af01c17f4b1ae49708560 Track prior ACKs in cancellation timing tests"
+    ]
+  }
+}

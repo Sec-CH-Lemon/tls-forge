@@ -10990,7 +10990,7 @@
         "before": "original skipped standard-library subprocess obligation",
         "after": [
           "omit-compile-after.log",
-          "omitted-tagged-after",
+          "omitted-tagged-after.jsonl",
           "fhttp-after-standalone",
           "fhttp-after-production"
         ]
@@ -11112,7 +11112,7 @@
       "evidence": {
         "before": "quic-shutdown-before.log",
         "after": [
-          "quic-qpack-close-after.log",
+          "quic-shutdown-engine-after.log",
           "quic-qpack-close-negative.json"
         ]
       }

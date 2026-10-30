@@ -11,32 +11,23 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
-- A11: pin the QPACK connection-lifetime repair and ACK-history regression controls; retain user cancellation, header bounds and live feedback errors. Engine remains the single unpublished 1.0.0 candidate.
-
-- A11: make the ambient-scrambling witness observable across packets with an explicitly ordered technical JSON profile; retain the complete ClientHello and skip/fill assertions.
-
-- A11: orient captured QUIC test flows by the actual ClientHello; retain every datagram and secret when receive callbacks precede send callbacks.
-
-- Keep the missing-cookie-metadata contract on an independent fixture and verify complete metadata from the repaired tls-client jar; correct the `WithCookieJar` documentation.
-
-
-- A11: pin verified tls-client cookie scope/body ownership fixes and owned protocol fixtures. All109 original fork obligations have positive local witnesses on both graphs; final root/native acceptance remains pending.
-
-
-- Fork-gate diagnostics now expose actual Go `test_skips` separately from invocation `skips`; resolved witnesses must still run and pass.
-
-
-- A11: pin source-verified QUIC fixtures; preserve full PMTU/CID/ECN and encoded/decoded header-limit obligations, with two raw-green2562-run fork graphs. Original ledger remains partial60/109; no browser values changed.
-
-
-- A11: pin the verified fhttp ownership/framing/decoder/Clone fixes and owned
-  fork controls; close56 original rows with mandatory witnesses in both graphs.
-  Run actual omit-bundled-H2 build/vet and a separate tagged runtime witness.
-  Browser profile bytes remain unchanged.
-
-
-- A11: synchronize the proxy trace fixture with the observed send event; retain wait-span and credential-redaction assertions.
-
+- A11: close all109 original F09 obligations with mandatory positive witnesses
+  in both module graphs; retain original records and before/after evidence.
+  No active failure allowances or invocation exclusions remain. Actual Go source
+  skips are reported separately and cannot satisfy a resolved witness.
+- Pin the verified fhttp header/framing ownership, decoder metadata and transport
+  Clone repairs; run the actual omit-bundled-H2 build/vet and tagged witness.
+- Pin tls-client cookie scope/metadata ownership and safe ALPN handoff with a
+  fresh body. Preserve the missing-metadata adapter contract on an independent
+  fixture and verify metadata from the repaired jar.
+- Pin QPACK's connection-lifetime repair; retain request cancellation, blocked
+  waits, header bounds and live feedback failures. ACK timing tests reconstruct
+  prior ACK history without changing delay/packet assertions or the cohort cap.
+- Keep pcap receive-before-send callback order and scrambling packet geometry
+  observable in owned technical fixtures. Preserve every datagram, correlated
+  secret and complete ClientHello. Browser profile bytes remain unchanged.
+- Keep trace and ALPS fixtures synchronized with actual protocol events, with
+  their complete original oracles and without adaptive replay retries.
 
 - Let ALPS rejection replays read actual HEADERS/GOAWAY before the fixture
   replies. Preserve the captured oracle and remove adaptive replay retries;
@@ -3539,10 +3530,3 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - The echo server does not issue session tickets by default, so captures are
   always the cold handshake — a resumed connection carries `pre_shared_key` and
   therefore a different JA4.
-
-- A11: retain the109 original fork obligations in `verification/fork-obligations.json`;
-  require positive replacement witnesses when removing an allowance. Pin utls's
-  owned-peer hostname matrix in the root and nested Go example; browser data unchanged.
-
-- A11: observe refused H3 ALPS connections before HTTP/3 acceptance; preserve
-  the complete remote close oracle and bound waiting on an actual event.

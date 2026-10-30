@@ -111,5 +111,7 @@ must retain their exact original active allowances. Resolved rows must leave
 the active list and have their named witnesses actually run and pass in both
 graphs. Missing/skip/renaming/deletion is a gate failure. The supplemental
 TestOmitHTTP2 obligation is tracked separately. A passing rerun alone cannot
-close a historical row. During A11 the remaining open rows are still explicit
-debt; this ledger does not make a partial stage a complete acceptance.
+close a historical row. A11 now resolves all109 original rows; no active failure allowances or
+invocation exclusions remain. Existing source skips are recorded separately and
+cannot satisfy a resolved witness. The [final source-bound report](../docs/remediation/2026-10-30/A11.ru.md)
+contains the results and named measurement limits.
