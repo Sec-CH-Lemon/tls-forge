@@ -118,10 +118,13 @@ type Server struct {
 	// alpsSeen are the handshakes of the ALPS server since the server
 	// started or was reset (alps.go).
 	alpsSeen []*ALPSHandshake
-	trouble  []error
-	conns    int
-	open     map[net.Conn]struct{}
-	closed   bool
+	// alpsReadFirst holds a variant's HTTP/2 replies until the client has
+	// sent HEADERS or GOAWAY. See ReadALPSBeforeReply.
+	alpsReadFirst map[string]bool
+	trouble       []error
+	conns         int
+	open          map[net.Conn]struct{}
+	closed        bool
 }
 
 // The seams the tests reach through.
@@ -336,6 +339,7 @@ func (s *Server) serveALPS(raw net.Conn, name string) {
 	seen.Conn = s.nextConn()
 	s.mu.Lock()
 	s.alpsSeen = append(s.alpsSeen, seen)
+	readFirst := s.alpsReadFirst[name]
 	s.mu.Unlock()
 	if seen.ALPN != "h2" {
 		parser := &h1parser{s: s, conn: seen.Conn, scheme: "https"}
@@ -344,12 +348,14 @@ func (s *Server) serveALPS(raw net.Conn, name string) {
 	}
 	parser := &h2parser{s: s, conn: seen.Conn, dec: hpack.NewDecoder(4096, nil), open: map[uint32]*Entry{}, alps: seen}
 	table := alpsVariants[name].table
+	if readFirst || table != 0 {
+		parser.first = make(chan struct{})
+	}
 	if table == 0 {
-		s.http2.hand(newTeeConn(conn, "", parser.write, nil))
+		s.http2.hand(newTeeConn(conn, "", parser.write, parser.first))
 		return
 	}
 	parser.dec.SetAllowedMaxDynamicTableSize(table)
-	parser.first = make(chan struct{})
 	s.settled[H2Settings{Table: table}].ln.hand(newTeeConn(conn, "", parser.write, parser.first))
 }
 
@@ -698,6 +704,7 @@ func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, 
 		if p.alps != nil && len(payload) >= 8 {
 			p.s.keepConnection(p.alps, nil, http2.ErrCode(binary.BigEndian.Uint32(payload[4:8])).String()+": "+
 				string(payload[8:]))
+			p.releaseFirst()
 		}
 	case http2.FrameContinuation:
 		span.kind = 'C'
@@ -709,11 +716,15 @@ func (p *h2parser) frame(typ http2.FrameType, flags http2.Flags, stream uint32, 
 	}
 }
 
-func (p *h2parser) decode() {
+func (p *h2parser) releaseFirst() {
 	if p.first != nil {
 		close(p.first)
 		p.first = nil
 	}
+}
+
+func (p *h2parser) decode() {
+	p.releaseFirst()
 	fields, err := p.dec.DecodeFull(p.block)
 	if err != nil {
 		p.s.troubled(fmt.Errorf("harness: the header block of stream %d: %w", p.stream, err))

@@ -19,7 +19,103 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/hpack"
 )
+
+func TestALPSRepliesFollowAnObservedClientDecision(t *testing.T) {
+	for _, terminal := range []bool{false, true} {
+		name := "HEADERS"
+		if terminal {
+			name = "GOAWAY"
+		}
+		t.Run(name, func(t *testing.T) {
+			s, err := StartALPSServer()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.Close()
+			if err := s.ReadALPSBeforeReply("not-a-variant"); err == nil {
+				t.Fatal("unknown observation variant accepted")
+			}
+			for range 2 {
+				if err := s.ReadALPSBeforeReply("empty"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(s.ALPS["empty"]))
+			conn, err := tls.Dial("tcp", addr, &tls.Config{InsecureSkipVerify: true, NextProtos: []string{"h2"}}) //nolint:gosec // owned fixture
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer conn.Close()
+			framer := http2.NewFramer(conn, conn)
+			if _, err := conn.Write([]byte(http2.ClientPreface)); err != nil {
+				t.Fatal(err)
+			}
+			if err := framer.WriteSettings(); err != nil {
+				t.Fatal(err)
+			}
+			_ = conn.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
+			if frame, err := framer.ReadFrame(); err == nil {
+				t.Fatalf("server wrote %v before client HEADERS/GOAWAY", frame)
+			} else {
+				var timeout net.Error
+				if !errors.As(err, &timeout) || !timeout.Timeout() {
+					t.Fatalf("premature read failed for another reason: %v", err)
+				}
+			}
+			_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+			if got, err := s.ALPSOf("observed", "empty", nil); err != nil || len(got.Handshakes) != 0 {
+				t.Fatalf("silence was accepted as a handshake: %+v, %v", got, err)
+			}
+			if terminal {
+				if err := framer.WriteGoAway(0, http2.ErrCodeProtocol, []byte("controlled rejection")); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				var block bytes.Buffer
+				enc := hpack.NewEncoder(&block)
+				for _, f := range []hpack.HeaderField{{Name: ":method", Value: "GET"}, {Name: ":scheme", Value: "https"}, {Name: ":authority", Value: addr}, {Name: ":path", Value: "/"}} {
+					if err := enc.WriteField(f); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err := framer.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: block.Bytes(), EndStream: true, EndHeaders: true}); err != nil {
+					t.Fatal(err)
+				}
+				// Successful requests must release replies too: a regression that
+				// accepts invalid ALPS must remain observable to the replay oracle.
+				if _, err := http2.NewFramer(conn, conn).ReadFrame(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for deadline := time.Now().Add(5 * time.Second); ; {
+				entries, err := s.Requests()
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := s.ALPSOf("observed", "empty", entries)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(got.Handshakes) == 1 {
+					want := ""
+					if terminal {
+						want = "PROTOCOL_ERROR: controlled rejection"
+					}
+					if got.Handshakes[0].GoAway != want || (!terminal && len(got.Connections) != 1) {
+						t.Fatalf("decision not preserved: %+v", got)
+					}
+					break
+				}
+				if time.Now().After(deadline) {
+					t.Fatalf("no observed decision: %+v", got)
+				}
+				time.Sleep(time.Millisecond)
+			}
+		})
+	}
+}
 
 // alpsFixture is the fixture of ALPS, from the package's directory.
 const alpsFixture = "../../testdata/chrome155-alps.json"

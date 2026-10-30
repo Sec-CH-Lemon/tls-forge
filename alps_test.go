@@ -76,6 +76,17 @@ func TestALPSIsTakenAsChromeTookIt(t *testing.T) {
 	if len(strconv.Itoa(server.Plain)) != 5 {
 		t.Fatalf("the bench listens on %d; Chrome was measured on ports of five digits", server.Plain)
 	}
+	// Rejection observations must read the client's terminal frame before
+	// sending unsolicited HTTP/2 replies. Windows can otherwise discard it
+	// when that write provokes the client's reset. The fixture still demands
+	// the original GOAWAY: silence or accepted HEADERS cannot satisfy it.
+	for name, scenario := range fixture.Scenarios {
+		if slices.ContainsFunc(scenario.Handshakes, func(h harness.ALPSHandshake) bool { return h.GoAway != "" }) {
+			if err := server.ReadALPSBeforeReply(alpsAskedOf(name).variant); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 	headlessChrome(t)
 	onEveryPlatform(t, func(t *testing.T, p *profile.Profile) { takenAsChromeTookIt(t, headless(p), server, fixture) })
 }
@@ -93,50 +104,41 @@ func takenAsChromeTookIt(t *testing.T, chrome *profile.Profile, server *harness.
 			}
 			origin := "https://www.example.com:" + port
 			run := origin + page.asked[0].path
-			// A connection the client refuses is kept by its GOAWAY, after
-			// which the client resets it, as Chrome does; Windows throws away
-			// what its server had not read when the reset comes, and the
-			// connection is not seen (CI runs 40222769334 and 40399734448:
-			// one and two replays of 219). It is asked again, three times at
-			// most: a client that sends no GOAWAY is seen in none.
-			var got harness.ALPSScenario
-			for try := 1; ; try++ {
-				server.Reset()
-				client := newTestClient(t, WithProfileValue(chrome), WithTimeout(5*time.Second),
-					WithTransportOption(tls_client.WithDialContext(
-						func(ctx context.Context, network, addr string) (net.Conn, error) {
-							_, at, _ := net.SplitHostPort(addr)
-							return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", at))
-						})))
-				for i, ask := range page.asked {
-					browser := &BrowserContext{Kind: ask.kind}
-					switch {
-					case i == 0 && page.lobby:
-						browser.Initiator = "http://www.example.com:" + strconv.Itoa(server.Plain) + "/p/lobby?after=2&next=" + run
-					case ask.fromPage:
-						browser.Initiator = run
-					}
-					req := &Request{Method: ask.method, URL: origin + ask.path, Body: capturedBody(ask.body), Browser: browser}
-					if _, err := client.Do(req); err != nil {
-						if i == 0 {
-							// The page did not load, and asked nothing.
-							break
-						}
-						t.Fatalf("%s %s: %v", ask.method, req.URL, err)
-					}
+			server.Reset()
+			client := newTestClient(t, WithProfileValue(chrome), WithTimeout(5*time.Second),
+				WithTransportOption(tls_client.WithDialContext(
+					func(ctx context.Context, network, addr string) (net.Conn, error) {
+						_, at, _ := net.SplitHostPort(addr)
+						return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", at))
+					})))
+			for i, ask := range page.asked {
+				browser := &BrowserContext{Kind: ask.kind}
+				switch {
+				case i == 0 && page.lobby:
+					browser.Initiator = "http://www.example.com:" + strconv.Itoa(server.Plain) + "/p/lobby?after=2&next=" + run
+				case ask.fromPage:
+					browser.Initiator = run
 				}
-				client.CloseIdleConnections()
-				got = settledALPS(t, server, want.Note, page.variant, len(want.Handshakes))
-				if len(got.Handshakes) >= len(want.Handshakes) || try == 3 {
-					break
+				req := &Request{Method: ask.method, URL: origin + ask.path, Body: capturedBody(ask.body), Browser: browser}
+				if _, err := client.Do(req); err != nil {
+					if i == 0 {
+						// The page did not load, and asked nothing.
+						break
+					}
+					t.Fatalf("%s %s: %v", ask.method, req.URL, err)
 				}
 			}
+			client.CloseIdleConnections()
+			got := settledALPS(t, server, want.Note, page.variant, len(want.Handshakes))
 			diffs := harness.DiffALPS(want, got)
 			if why := alpsDiffer[scenario]; why != "" {
 				if len(diffs) == 0 {
 					t.Errorf("%s is taken as Chrome took it: take it out of alpsDiffer (%s)", scenario, why)
 				}
 				return
+			}
+			if len(diffs) > 0 {
+				t.Logf("raw ALPS handshakes: %+v", server.ALPSHandshakes())
 			}
 			for _, diff := range diffs {
 				t.Errorf("%s (%s): %s", scenario, want.Note, diff)

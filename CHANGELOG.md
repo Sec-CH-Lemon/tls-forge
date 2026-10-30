@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Let ALPS rejection replays read actual HEADERS/GOAWAY before the fixture
+  replies. Preserve the captured oracle and remove adaptive replay retries;
+  silence still cannot satisfy a required terminal frame.
+
 - Make the redirect trace fixture observe request sending before replying,
   preserving wait/order assertions and the valid early-response trace path.
 

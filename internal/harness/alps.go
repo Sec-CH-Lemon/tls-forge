@@ -439,6 +439,25 @@ func measureALPS(ctx context.Context, b Browser, scenarios map[string]scenario, 
 	return out, nil
 }
 
+// ReadALPSBeforeReply holds HTTP/2 replies for this variant until the peer's
+// HEADERS or GOAWAY has actually been read. It supplies a passive observer for
+// rejection experiments: a server write must not provoke a reset that discards
+// the client's unread terminal frame. It does not synthesize a rejection;
+// accepting HEADERS releases replies too, and a missing GOAWAY stays missing.
+// Other variants and the default measurement stimulus are unchanged.
+func (s *Server) ReadALPSBeforeReply(variant string) error {
+	if _, ok := alpsVariants[variant]; !ok {
+		return fmt.Errorf("harness: unknown ALPS variant %q", variant)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.alpsReadFirst == nil {
+		s.alpsReadFirst = make(map[string]bool)
+	}
+	s.alpsReadFirst[variant] = true
+	return nil
+}
+
 // ALPSOf is what a client made of the bench's ALPS server of the variant
 // named alps since the server started or was reset, entries being what it
 // asked meanwhile: the handshake of each connection it asked on or refused,
