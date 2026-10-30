@@ -3525,3 +3525,6 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - A11: retain the109 original fork obligations in `verification/fork-obligations.json`;
   require positive replacement witnesses when removing an allowance. Pin utls's
   owned-peer hostname matrix in the root and nested Go example; browser data unchanged.
+
+- A11: observe refused H3 ALPS connections before HTTP/3 acceptance; preserve
+  the complete remote close oracle and bound waiting on an actual event.

@@ -27,15 +27,16 @@ import (
 // sent. It keeps the extensions of each QUIC hello and how each QUIC
 // connection ended.
 type alpsSite struct {
-	port   string
-	mu     sync.Mutex
-	hellos [][]uint16
-	closed []error
+	port        string
+	mu          sync.Mutex
+	hellos      [][]uint16
+	closed      []error
+	closedEvent chan struct{}
 }
 
 func startALPSSite(t *testing.T, alps func(origin string) []byte, control map[uint64]uint64) *alpsSite {
 	t.Helper()
-	s := &alpsSite{}
+	s := &alpsSite{closedEvent: make(chan struct{}, 1)}
 	udp, tcp := udpAndTCP(t)
 	_, s.port, _ = net.SplitHostPort(tcp.Addr().String())
 	said := func(proto string, h func(string) string) string {
@@ -68,17 +69,29 @@ func startALPSSite(t *testing.T, alps func(origin string) []byte, control map[ui
 		}
 		_, _ = io.WriteString(w, said(r.Proto, r.Header.Get))
 	}), TLSConfig: cfg, AdditionalSettings: control,
-		ConnContext: func(ctx context.Context, c *quic.Conn) context.Context {
-			go func() {
-				<-c.Context().Done()
-				s.mu.Lock()
-				s.closed = append(s.closed, context.Cause(c.Context()))
-				s.mu.Unlock()
-			}()
-			return ctx
-		}}
-	go func() { _ = h3.Serve(udp) }()
-	t.Cleanup(func() { _ = h3.Close(); _ = udp.Close() })
+	}
+	// Observe the QUIC context before HTTP/3 acceptance. An ALPS refusal can
+	// close the connection during the handshake, before Server.ConnContext.
+	transport := &quic.Transport{Conn: udp, ConnContext: func(ctx context.Context, _ *quic.ClientInfo) (context.Context, error) {
+		go func() {
+			<-ctx.Done()
+			s.mu.Lock()
+			s.closed = append(s.closed, context.Cause(ctx))
+			s.mu.Unlock()
+			select {
+			case s.closedEvent <- struct{}{}:
+			default:
+			}
+		}()
+		return ctx, nil
+	}}
+	listener, err := transport.ListenEarly(http3.ConfigureTLSConfig(cfg), &quic.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() { _ = h3.ServeListener(listener) }()
+	t.Cleanup(func() { _ = h3.Close(); _ = listener.Close(); _ = transport.Close(); _ = udp.Close() })
+
 	return s
 }
 
@@ -154,11 +167,21 @@ func TestAServersALPSChromeRefusesSendsTheRequestOverTCPAsChromes(t *testing.T) 
 	if got := came(t, c, "https://h3.h3.test:"+site.port+"/"); got != "HTTP/2.0 arch= model=" {
 		t.Errorf("came over %q, want HTTP/2", got)
 	}
-	time.Sleep(100 * time.Millisecond)
-	_, closed := site.seen()
-	if len(closed) == 0 {
-		t.Fatal("the QUIC connection did not end")
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+	var closed []error
+	for {
+		_, closed = site.seen()
+		if len(closed) > 0 {
+			break
+		}
+		select {
+		case <-site.closedEvent:
+		case <-timer.C:
+			t.Fatal("the QUIC connection did not end")
+		}
 	}
+
 	var te *quic.TransportError
 	if !errors.As(closed[0], &te) || te.ErrorCode != 10 || te.FrameType != 6 ||
 		te.ErrorMessage != "28:Error processing ALPS data: DATA frame forbidden" || !te.Remote {
