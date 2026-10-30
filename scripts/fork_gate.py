@@ -108,7 +108,9 @@ def evaluate(events, returncodes, known, graph, require_self=False, requested_pa
         key = (check["package"], check["test"])
         if key not in passed or key not in ran:
             unexpected.append({"package": key[0], "test": key[1], "reason": "resolved obligation witness did not run and pass"})
-    return {"accepted": not unexpected, "test_runs": len(runs), "trace_counts": trace_counts, "known_failures": [list(x) for x in sorted(failed & allowed.keys())],
+    return {"accepted": not unexpected, "test_runs": len(runs),
+            "test_skips": [list(key) for key in sorted({(e.get("Package"), e["Test"]) for e in events if e.get("Action") == "skip" and e.get("Test")})],
+            "trace_counts": trace_counts, "known_failures": [list(x) for x in sorted(failed & allowed.keys())],
             "not_observed_now": [list(x) for x in sorted(allowed.keys() - failed)], "unexpected": unexpected,
             "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."}
 

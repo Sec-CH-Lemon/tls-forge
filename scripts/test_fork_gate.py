@@ -97,6 +97,13 @@ class ForkGateTests(unittest.TestCase):
         self.assertTrue(got["accepted"])
         self.assertEqual(got["not_observed_now"], [["fork", "TestOld"]])
 
+    def test_actual_test_skips_are_reported_separately(self):
+        rows = self.rows(action="skip")
+        got = evaluate(rows, [0], [], "standalone")
+        self.assertTrue(got["accepted"])
+        self.assertEqual(got["test_skips"], [["fork", "TestOld"]])
+        self.assertFalse(evaluate(rows, [0], [], "standalone", required_checks=[{"package":"fork","test":"TestOld"}])["accepted"])
+
     def test_resolved_witness_must_run_and_pass(self):
         check = [{"package": "fork", "test": "TestOld"}]
         for rows in [[], self.rows(action="skip"), self.rows(action="fail"), [r for r in self.rows(action="pass") if r["Action"] != "run"]]:

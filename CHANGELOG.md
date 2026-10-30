@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Fork-gate diagnostics now expose actual Go `test_skips` separately from invocation `skips`; resolved witnesses must still run and pass.
+
+
 - A11: pin source-verified QUIC fixtures; preserve full PMTU/CID/ECN and encoded/decoded header-limit obligations, with two raw-green2562-run fork graphs. Original ledger remains partial60/109; no browser values changed.
 
 
