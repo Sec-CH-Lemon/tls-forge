@@ -87,6 +87,9 @@
   "templates": {
     "policy-01": {
       "behavior": {
+        "dns.https_query_recursion_desired": true,
+        "dns.https_query_udp_payload_bytes": 4096,
+        "dns.https_query_timeout_ms": 2000,
         "cache.entries": 256,
         "cache.entry_bytes": 8388608,
         "cache.total_bytes": 67108864,
@@ -745,6 +748,9 @@
     },
     "policy-02": {
       "behavior": {
+        "dns.https_query_recursion_desired": true,
+        "dns.https_query_udp_payload_bytes": 4096,
+        "dns.https_query_timeout_ms": 2000,
         "cache.entries": 256,
         "cache.entry_bytes": 8388608,
         "cache.total_bytes": 67108864,

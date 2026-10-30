@@ -1,0 +1,80 @@
+{
+  "stage": "A12/F06 local acceptance; whole A12 pending",
+  "utls": {
+    "commit": "a80d50e9f2b7051c0bb0797625ebae88e4977873",
+    "pushed": true,
+    "source_archive_sha256": "a03861b48a743b68c1fcd3c464bddb5789d59de8b5543cb7d641db659560e3e3",
+    "runs_per_graph": 645,
+    "graphs": [
+      "standalone",
+      "production"
+    ],
+    "returncodes": [
+      0,
+      0
+    ],
+    "source_test_skips": 1,
+    "new_allowances": 0,
+    "new_exclusions": 0
+  },
+  "checks": {
+    "dns_race_repeats": 20,
+    "dns_race_seconds": 37.64,
+    "profile_full_race_seconds": 93.639,
+    "dns_ech_h3_seconds": 4.831,
+    "fresh_coverage_packages": 23,
+    "fresh_coverage_percent": 100,
+    "published_GOWORK_off": [
+      "A12root/profile race targets",
+      "build",
+      "lint",
+      "vet",
+      "standalone Go example"
+    ],
+    "negative_mutants_rejected": 7,
+    "published_full_profile_race_seconds": 93.42,
+    "published_full_fresh_coverage_percent": 100,
+    "published_full_fresh_coverage_packages": 23,
+    "published_root_coverage_seconds": 171.747,
+    "generated": "PASS: tidy, module verify, CSS and notices",
+    "docs": "PASS; new documents staged for Git-based link inventory"
+  },
+  "browser": {
+    "build": "156.0.8078.76",
+    "platform": "macOS27arm64",
+    "mode": "headed; fresh empty profile per launch; ownedDoH/TLS",
+    "independent_launches": 2,
+    "owned_https_queries": 4,
+    "client_default_udp_samples": 20,
+    "assessed_fields": [
+      "RD",
+      "EDNS advertised payload"
+    ],
+    "ipv6_netlog": "unavailable in both cohorts",
+    "not_equivalent": [
+      "transportDoHversusUDP/TCP",
+      "IDgeneration",
+      "padding",
+      "addresscache",
+      "otherplatforms/historicalbuilds"
+    ]
+  },
+  "raw_hashes": {
+    "dns-browser-comparison.json": "f41d59ec0d890dc17109fb367ab56277ecf4ee615020bed95f395e0136aa87af",
+    "dns-mutants-receipt.json": "2c46b6d59e81e02899792f4a0fb191e99d6b9b27e114d15a97c9110f61f1b0dd",
+    "dns-a12-race20-context-observer.log": "1546feea99afb3464f494520b58bddb617aeaf48fff67c059fb79bf5d5ea7efe",
+    "a12-dns-full-cover.log": "e960d46a366fabbf4fd4cff4ff86f172ebb71c298e720554030ffd40a86e339c",
+    "dns-published-target-race.log": "ebd30dfc4037a6b2153eea0e0e2f98dcbf9523c4455909c52363723cdb81f4dc",
+    "dns-published-full-cover.log": "2215ef39dfed2728dc55643904cac499c9408fa755c65cd8c114a33884202f01",
+    "dns-published-full-profile.log": "2709109b81c4120e7de65fe8fb7b62dcbf017f40ef25508d2626b69db2ee0cf3",
+    "dns-generated-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dns-docs-check-staged.log": "63466799a132b458d0d8b2ead2bb3fb42affa99c0e720a6a2fc508aef6230167"
+  },
+  "native_root_A12": "not authorized/pending",
+  "F07_owner_choice": "Preserve measured Chrome close_notify false plus explicit true variant",
+  "remaining": [
+    "F07jointTLS/ACKacceptance",
+    "F03-0persona",
+    "fullA12nativeacceptance"
+  ]
+}

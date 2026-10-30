@@ -198,6 +198,13 @@ on both their own and production dependency graphs. A11 retains all109 original
 F09 records and requires positive witnesses for their closure; no active
 known-failure allowances or invocation exclusions remain.
 
+Browser JSON explicitly selects RD, EDNS payload and the per-server timeout of
+the product's HTTPS DNS queries. Plain HTTP discovery hands its address lookup
+to that request's connection; it does not ask A/AAAA twice for the same hop.
+The [DNS field reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1)
+distinguishes these choices from Go's A/AAAA resolver, Chrome's DoH padding and
+its address cache.
+
 ## What is a TLS fingerprint?
 
 Before an HTTPS client can send `GET`, headers or a `User-Agent`, it sends a TLS

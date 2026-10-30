@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Move HTTPS DNS query RD, EDNS payload and per-server exchange timeout into
+  validated profile JSON; share the selected timeout across UDP/TCP retry and
+  honor request cancellation. Reject missing executable choices before I/O.
+- Hand plain HTTP discovery's A/AAAA result to its actual connection or the
+  immediate synthetic HTTPS redirect, within that request chain only. Preserve
+  profile/migration provenance and pin uTLS a80d50e; remain on unpublished1.0.0.
+
 - Preserve the actual header read timeout when the proxy parser replaces it
   with an incomplete-header diagnosis. Keep malformed-input reporting, the
   existing budgets and the coordinated unpublished engine1.0.0 identity.

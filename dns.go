@@ -42,13 +42,16 @@ import (
 // their time to live, as Chrome's host cache keeps them, so that a
 // connection made again, after a server refused its ECH, asks for nothing.
 type resolving struct {
-	server   string        // the DNS server asked instead of the machine's, or ""
-	resolver *net.Resolver // the resolver of names the network answers: the machine's, its own, or the server's
-	https    bool
-	percent  int
-	min, max time.Duration
-	mu       sync.Mutex
-	kept     map[string]keptHTTPS // by the name asked about
+	server       string        // the DNS server asked instead of the machine's, or ""
+	resolver     *net.Resolver // the resolver of names the network answers: the machine's, its own, or the server's
+	queryRD      bool
+	queryPayload uint16
+	queryTimeout time.Duration
+	https        bool
+	percent      int
+	min, max     time.Duration
+	mu           sync.Mutex
+	kept         map[string]keptHTTPS // by the name asked about
 }
 
 // keptHTTPS is what a name's HTTPS records said, until when.
@@ -61,10 +64,13 @@ type keptHTTPS struct {
 // servers), and as policy says of its resolver and of HTTPS records.
 func newResolving(server string, p behavior.Policy) *resolving {
 	r := &resolving{server: server, resolver: machineResolver, https: p.Flag("dns.https_records"),
-		kept:    map[string]keptHTTPS{},
-		percent: p.Int("dns.https_wait_percent"),
-		min:     time.Duration(p.Uint("dns.https_wait_min_ms")) * time.Millisecond,
-		max:     time.Duration(p.Uint("dns.https_wait_max_ms")) * time.Millisecond}
+		kept:         map[string]keptHTTPS{},
+		queryRD:      p.Flag("dns.https_query_recursion_desired"),
+		queryPayload: uint16(p.Uint("dns.https_query_udp_payload_bytes")),
+		queryTimeout: time.Duration(p.Uint("dns.https_query_timeout_ms")) * time.Millisecond,
+		percent:      p.Int("dns.https_wait_percent"),
+		min:          time.Duration(p.Uint("dns.https_wait_min_ms")) * time.Millisecond,
+		max:          time.Duration(p.Uint("dns.https_wait_max_ms")) * time.Millisecond}
 	switch {
 	case server != "":
 		var d net.Dialer
@@ -150,6 +156,9 @@ func dnsServerOf(address string) (string, error) {
 // for: Chrome looks a name up before it sends a request over an HTTP/2
 // connection to another, at an address the name has, on its certificate.
 func (r *resolving) lookupNames(ctx context.Context, host string) ([]netip.Addr, error) {
+	if known := preparedDNSFor(ctx, host); known != nil {
+		return slices.Clone(known.addrs), known.err
+	}
 	return r.resolverFor(host).LookupNetIP(ctx, "ip", host)
 }
 
@@ -284,36 +293,47 @@ type dnsUpgrade struct {
 }
 
 func (u dnsUpgrade) RoundTrip(req *fhttp.Request) (*fhttp.Response, error) {
-	if req.URL.Scheme != "http" || !u.r.upgrades(req.Context(), req.URL.Hostname(), req.URL.Port()) {
+	if req.URL.Scheme != "http" {
 		return u.next.RoundTrip(req)
 	}
+	upgrade, known := u.r.upgrades(req.Context(), req.URL.Hostname(), req.URL.Port())
 	to := *shownURL(req)
-	to.Scheme = "https"
-	if to.Port() == "80" {
-		to.Host = to.Hostname()
+	if upgrade {
+		to.Scheme = "https"
+		if to.Port() == "80" {
+			to.Host = to.Hostname()
+		}
+	}
+	if known != nil {
+		prepareDNS(req.Context(), known, originOf(&to), upgrade)
+	}
+	if !upgrade {
+		return u.next.RoundTrip(req)
 	}
 	return &fhttp.Response{Status: "307 Internal Redirect", StatusCode: fhttp.StatusTemporaryRedirect, Proto: "HTTP/1.1",
 		ProtoMajor: 1, ProtoMinor: 1, Header: fhttp.Header{"Location": {to.String()}, "Non-Authoritative-Reason": {"DNS"}},
 		Body: fhttp.NoBody, Request: req}, nil
 }
 
-// upgrades says whether plain http to port of host goes to https: a record
-// Chrome takes, which it asks for as for https to the same port, 443 for 80,
-// in time once the addresses are in.
-func (r *resolving) upgrades(ctx context.Context, host, port string) bool {
+// upgrades resolves once for a plain HTTP hop and returns its result for the
+// actual connection. Only this hop (or its immediate synthetic HTTPS redirect)
+// may consume it; no browser-wide address cache is introduced.
+func (r *resolving) upgrades(ctx context.Context, host, port string) (bool, *resolvedName) {
 	if port == "" || port == "80" {
 		port = "443"
 	}
 	l := r.ask(ctx, net.JoinHostPort(host, port))
 	if l == nil {
-		return false
+		return false, nil
 	}
-	if _, err := r.lookupNames(ctx, host); err != nil {
+	addrs, err := r.lookupNames(ctx, host)
+	known := &resolvedName{host: host, addrs: slices.Clone(addrs), https: l, err: err}
+	if err != nil {
 		l.cancel()
-		return false
+		return false, known
 	}
 	l.settle(ctx)
-	return l.record
+	return l.record, known
 }
 
 // httpsRecords asks the servers for the HTTPS records of host for a
@@ -324,13 +344,15 @@ func (r *resolving) httpsRecords(ctx context.Context, host string, port int) htt
 		servers = systemDNSServers()
 	}
 	name := httpsQueryName(host, port)
-	query, id, err := httpsQuery(name)
+	query, id, err := httpsQuery(name, r.queryRD, r.queryPayload)
 	if err != nil {
 		return httpsAnswer{err: err}
 	}
 	var errs []error
 	for _, server := range servers {
-		reply, err := exchangeDNS(ctx, server, query, id)
+		exchangeContext, cancel := context.WithTimeout(ctx, r.queryTimeout)
+		reply, err := exchangeDNS(exchangeContext, server, query, id)
+		cancel()
 		if err == nil {
 			return httpsOf(reply, host, name, port)
 		}
@@ -343,9 +365,9 @@ func (r *resolving) httpsRecords(ctx context.Context, host string, port int) htt
 }
 
 // httpsQuery is a DNS query for the HTTPS records of name, with its ID: one
-// question, recursion desired, and EDNS0 saying 4096 bytes of UDP payload, as
-// the queries of Chrome's resolver say (its DNS over HTTPS ones, measured).
-func httpsQuery(name string) ([]byte, uint16, error) {
+// question and explicit profile-owned RD and EDNS0 payload choices. Query ID
+// and the question name are derived anew for this transaction.
+func httpsQuery(name string, recursionDesired bool, udpPayloadBytes uint16) ([]byte, uint16, error) {
 	qname, err := dnsmessage.NewName(strings.TrimSuffix(name, ".") + ".")
 	if err != nil {
 		return nil, 0, fmt.Errorf("tlsforge: %q is no name to ask about: %w", name, err)
@@ -353,12 +375,12 @@ func httpsQuery(name string) ([]byte, uint16, error) {
 	var idBytes [2]byte
 	_, _ = io.ReadFull(rand.Reader, idBytes[:])
 	id := binary.BigEndian.Uint16(idBytes[:])
-	b := dnsmessage.NewBuilder(nil, dnsmessage.Header{ID: id, RecursionDesired: true})
+	b := dnsmessage.NewBuilder(nil, dnsmessage.Header{ID: id, RecursionDesired: recursionDesired})
 	b.EnableCompression()
 	var opt dnsmessage.ResourceHeader
 	err = errors.Join(b.StartQuestions(),
 		b.Question(dnsmessage.Question{Name: qname, Type: dnsmessage.TypeHTTPS, Class: dnsmessage.ClassINET}),
-		b.StartAdditionals(), opt.SetEDNS0(4096, dnsmessage.RCodeSuccess, false), b.OPTResource(opt, dnsmessage.OPTResource{}))
+		b.StartAdditionals(), opt.SetEDNS0(int(udpPayloadBytes), dnsmessage.RCodeSuccess, false), b.OPTResource(opt, dnsmessage.OPTResource{}))
 	msg, finished := b.Finish()
 	if err = errors.Join(err, finished); err != nil {
 		return nil, 0, fmt.Errorf("tlsforge: %q is no name to ask about: %w", name, err)
@@ -366,14 +388,9 @@ func httpsQuery(name string) ([]byte, uint16, error) {
 	return msg, id, nil
 }
 
-// dnsTimeout is how long one server is given to answer.
-const dnsTimeout = 2 * time.Second
-
 // exchangeDNS asks server the query over UDP, and over TCP when the answer is
 // cut short, and returns the answer to it: one with its ID.
 var exchangeDNS = func(ctx context.Context, server string, query []byte, id uint16) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(ctx, dnsTimeout)
-	defer cancel()
 	reply, err := exchangeOver(ctx, "udp", server, query, id)
 	if err != nil || reply[2]&0x02 == 0 {
 		return reply, err

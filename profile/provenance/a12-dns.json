@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "stage": "A12/F06 local controls accepted; whole A12/native acceptance pending",
+  "engine_major": 1,
+  "defaults_origin": "Transferred existing Go literals; not universal Chrome constants",
+  "fields": {
+    "dns.https_query_recursion_desired": true,
+    "dns.https_query_udp_payload_bytes": 4096,
+    "dns.https_query_timeout_ms": 2000
+  },
+  "profiles": [
+    {
+      "file": "data/chrome_151/linux.json",
+      "before_sha256": "94359f76551332020ed6036f7105057212259723ffd5052a580cda9f80668454",
+      "after_sha256": "b3ef92ad03fd3f84485049e4a54fd66e1a4aff84e406410613cea7121dc5817b",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_151/windows.json",
+      "before_sha256": "69c8fbe2fcfd8a140cf1895e45cf1ccc961da2d26ff05fdc95808bb6c142c40a",
+      "after_sha256": "32d17f3652e23d18fe97947b493156fd23fcc0a01ea1d25b4d4e3cc73cd31877",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_151/macos.json",
+      "before_sha256": "faf61461c245520d2893804f0352a5b15688b81a23d33aa2e9a282749e14fa7a",
+      "after_sha256": "7db9a594497a1294dafca196cb9b2ad6e2ed85e56fd4f3ba2c6aef594e212bb0",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_156/linux.json",
+      "before_sha256": "541fd0f59b0e90700f95377a07d0aea30d2278702c1bf088821b17bb1408c2f8",
+      "after_sha256": "bb3cb045e165cca9ba8ac9368e5f71bbfdd02898840e788b671fe77fa31da792",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_156/windows.json",
+      "before_sha256": "43fe713296bab8993b8a62e96ebcb109fe9381028ba914c6cbcbd2833af3a165",
+      "after_sha256": "379f88ea8386030d0e06e1f2989bcfd815bcb9b62004c8eac6d9edf357ed47a0",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_156/macos.json",
+      "before_sha256": "da38f2e8ba60e307a3070b2b3afa207ee1c54b5317e271a61f848db388e3d950",
+      "after_sha256": "d453d8a5a8c205ac5339392fd7cb7bdeceb103409b1a8e8e71bdc7fbaec3e71c",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_155/linux.json",
+      "before_sha256": "a0b5034c3c83fbebf9efd2e51308a622648e4fdbba37da2359cd189bbc50d4fe",
+      "after_sha256": "1027cbc176cc6fd55608077c3f28a62880c69a9b3c9e506273daa6a2939d86dd",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_155/windows.json",
+      "before_sha256": "6a5fe7f7962f0cef1142c4a81108517b304a8af9a43f59086bfb38119c028ac6",
+      "after_sha256": "8d59dbea244159039c3875bc3754240fd6f98aefa477b86d49c3f8856956db2e",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_155/macos.json",
+      "before_sha256": "0efd780a264d3693e26c07c2394d3f9f5f1a3c4071c481459f052b6833667d64",
+      "after_sha256": "a756aefaddebe4a3a1c05fe02588f798b2e7d74dfddb659d99db0443f45c9a91",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_152/linux.json",
+      "before_sha256": "00661b958180762db09e0bd75f862042d75d7c7b0db369a05693c51933f5bab8",
+      "after_sha256": "92d05a7ed0a672dfa5265c0a4856a0e86dd83b4fc38a252c4ab335263abfd57d",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_152/windows.json",
+      "before_sha256": "996caddc1e289e3872e039b676c5d77effe689e042133ae84d4711e85a9588d5",
+      "after_sha256": "6dfe82a60df2ddc18867a13bda083d8ac07c5f6c7561b1fe375cc14cc5a71a03",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_152/macos.json",
+      "before_sha256": "18f8053740f9a20c0a01cc2239476b1a61da9705a76165db38da0a6f57e91b85",
+      "after_sha256": "0450107cc3316235ebc5ba04c0d95131ef54e5a1bd28a950edf62bcc7d9e2fab",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_153/linux.json",
+      "before_sha256": "fa0395bb6f28043f3ea968294b43d8efd113d8bd60fc2b7ce428bfe18f81b72f",
+      "after_sha256": "28cfbd49be57b389a5e638bae83464f14fa0c864ce668e11b6a6782e457e3533",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_153/windows.json",
+      "before_sha256": "a9b72ad48de77f7fc7d164914182232abebd26c3f0a78a36e07c6689be68f6b7",
+      "after_sha256": "4cef94bbacce5afa7341492a19c79d430eae11d16875a43b81290686debd32e8",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_153/macos.json",
+      "before_sha256": "53a239bca1e0e1f8bf32f66f00e1e5dbe4a0eca3735c6efff8fb6eada15d9d84",
+      "after_sha256": "06220a50d04780be3baaa440792ca8a8f02cd5628a84ac98046211a2eec87fbb",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_154/linux.json",
+      "before_sha256": "15427f75d5c1fc1bec41fbb8d45adeac8f850c3109185dbab3ba627ef66a8177",
+      "after_sha256": "2024a2a0e5539951ea8aa723bf147a6a5809c9f1cbe151c0cc956337a0cd932d",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_154/windows.json",
+      "before_sha256": "b188c0fceec1812b668ec747f398eaad9a17dd269a2aeefaef10b77575eb2587",
+      "after_sha256": "f6ac1a2ab791c3e89c5a5a5fcee4c295abd7e669357fde6a65d98fb2c05bae3d",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    },
+    {
+      "file": "data/chrome_154/macos.json",
+      "before_sha256": "677dd75a6b12375316e34a163d57d0eaa8ed8adf94b0a915b853648f6fa8b739",
+      "after_sha256": "2c8dfd4156bc83f8a069b9c9a5280532a3c3b7524a8cb289f257e3e166bce985",
+      "fields": {
+        "dns.https_query_recursion_desired": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_udp_payload_bytes": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        },
+        "dns.https_query_timeout_ms": {
+          "class": "inherited",
+          "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+        }
+      }
+    }
+  ],
+  "browser_scope": "Two headed Chrome156.0.8078.76/macOS launches, four HTTPS DoH queries agree on RD=true and EDNS4096 only; historical profiles/timeouts remain inherited"
+}

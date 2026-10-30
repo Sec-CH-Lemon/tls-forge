@@ -387,3 +387,10 @@ The current engine1 candidate also requires explicit generated H3 SETTINGS
 placement in executable profiles. See `h3.grease_setting_placement` in the
 [behavior reference](profile-behavior.md#http3-generated-setting-placement-unreleased-engine1).
 Old archives remain inspectable without adding that choice automatically.
+
+Executable profiles also require the three explicit HTTPS DNS query choices:
+`dns.https_query_recursion_desired`, `dns.https_query_udp_payload_bytes` and
+`dns.https_query_timeout_ms`. `Inspect`, `Save` and `Clone` preserve an archive
+that lacks the entire group; execution rejects it before I/O. Explicit `Migrate`
+creates a separate candidate using the pinned migration data. A partially
+specified group is invalid. See the [DNS field reference](profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).

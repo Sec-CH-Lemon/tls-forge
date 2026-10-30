@@ -174,7 +174,7 @@ func replyOf(t *testing.T, name string, rcode dnsmessage.RCode, records ...dnsRe
 	f := &dnsFake{answer: func(dnsmessage.Question) ([]dnsRecord, time.Duration, dnsmessage.RCode) {
 		return records, 0, rcode
 	}}
-	query, _, err := httpsQuery(name)
+	query, _, err := httpsQuery(name, true, 4096)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -487,6 +487,7 @@ func chromeDNS(t *testing.T) behavior.Policy {
 	t.Helper()
 	p := behavior.Policy{}
 	for k, v := range map[string]string{"dns.https_records": "true", "dns.https_wait_percent": "20",
+		"dns.https_query_recursion_desired": "true", "dns.https_query_udp_payload_bytes": "4096", "dns.https_query_timeout_ms": "2000",
 		"dns.https_wait_min_ms": "5", "dns.https_wait_max_ms": "50", "dns.resolver": `"built-in"`} {
 		p[k] = []byte(v)
 	}
@@ -536,7 +537,7 @@ func TestADNSServerIsAnAddressWithAPort(t *testing.T) {
 }
 
 func TestAQueryForHTTPSRecordsIsAsChromesResolverAsks(t *testing.T) {
-	query, id, err := httpsQuery("_8443._https.www.example.test")
+	query, id, err := httpsQuery("_8443._https.www.example.test", true, 4096)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -558,7 +559,7 @@ func TestAQueryForHTTPSRecordsIsAsChromesResolverAsks(t *testing.T) {
 		t.Errorf("EDNS0 %+v, %v", opt, err)
 	}
 	for _, name := range []string{strings.Repeat("a", 64) + ".test", strings.Repeat("a.", 130) + "test"} {
-		if _, _, err := httpsQuery(name); err == nil || !strings.Contains(err.Error(), "is no name to ask about") {
+		if _, _, err := httpsQuery(name, true, 4096); err == nil || !strings.Contains(err.Error(), "is no name to ask about") {
 			t.Errorf("%d bytes: %v", len(name), err)
 		}
 	}
@@ -603,7 +604,7 @@ func TestAnAnswerToAnotherQueryIsNotTheQuerys(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		query, id, _ := httpsQuery("www.example.test")
+		query, id, _ := httpsQuery("www.example.test", true, 4096)
 		wrong := slices.Clone(query)
 		binary.BigEndian.PutUint16(wrong, id+1)
 		wrong[2] |= 0x80

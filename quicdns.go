@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"net/url"
 	"strings"
 
 	tls_client "github.com/igor-lemon/tls-client"
@@ -25,13 +26,24 @@ func (r *resolving) quicEndpoint(ctx context.Context, addr string) (context.Cont
 	if r == nil || err != nil || !r.asksFor(host) {
 		return ctx, tls_client.QUICEndpoint{}, false
 	}
-	l := r.ask(ctx, addr)
-	addrs, err := r.lookupNames(ctx, host)
-	if err != nil || len(addrs) == 0 {
-		l.cancel()
-		return ctx, tls_client.QUICEndpoint{}, false
+	known := takePreparedDNS(ctx, addr)
+	var l *httpsLookup
+	var addrs []netip.Addr
+	if known != nil {
+		if known.err != nil {
+			return context.WithValue(ctx, resolvedKey{}, known), tls_client.QUICEndpoint{}, false
+		}
+		l, addrs = known.https, known.addrs
+	} else {
+		l = r.ask(ctx, addr)
+		var err error
+		addrs, err = r.lookupNames(ctx, host)
+		if err != nil || len(addrs) == 0 {
+			l.cancel()
+			return ctx, tls_client.QUICEndpoint{}, false
+		}
+		l.settle(ctx)
 	}
-	l.settle(ctx)
 	ctx = context.WithValue(ctx, resolvedKey{}, &resolvedName{host: host, addrs: addrs, https: l})
 	return ctx, tls_client.QUICEndpoint{Addrs: addrs, ECH: l.h3taken}, l.h3
 }
@@ -44,6 +56,7 @@ type resolvedName struct {
 	host  string
 	addrs []netip.Addr
 	https *httpsLookup
+	err   error
 }
 
 // resolvedFor is what ctx carries of host's resolution, or nil.
@@ -125,4 +138,63 @@ func (n *resolvedName) reply(query []byte) []byte {
 	// made then.
 	reply, _ := b.Finish()
 	return reply
+}
+
+// preparedDNS is a bounded ownership handoff, not an address TTL cache. It is
+// private to one request chain and consumed by its first actual connection.
+type preparedDNS struct {
+	name     *resolvedName
+	target   origin
+	redirect bool
+}
+
+func prepareDNS(ctx context.Context, name *resolvedName, target origin, redirect bool) {
+	ch, _ := ctx.Value(chainKey{}).(*chain)
+	if ch == nil {
+		return
+	}
+	ch.mu.Lock()
+	ch.dns = &preparedDNS{name: name, target: target, redirect: redirect}
+	ch.mu.Unlock()
+}
+
+func preparedDNSFor(ctx context.Context, host string) *resolvedName {
+	ch, _ := ctx.Value(chainKey{}).(*chain)
+	if ch == nil {
+		return nil
+	}
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+	if ch.dns != nil && strings.EqualFold(ch.dns.name.host, host) {
+		return ch.dns.name
+	}
+	return nil
+}
+
+func takePreparedDNS(ctx context.Context, address string) *resolvedName {
+	ch, _ := ctx.Value(chainKey{}).(*chain)
+	if ch == nil {
+		return nil
+	}
+	host, port, err := net.SplitHostPort(address)
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+	p := ch.dns
+	ch.dns = nil
+	if err == nil && p != nil && strings.EqualFold(p.name.host, host) && p.target.port == port {
+		return p.name
+	}
+	return nil
+}
+
+// nextDNSHop retains a prepared result only for its immediate synthetic
+// HTTPS redirect. Any other redirect, restart or new request discards it.
+func (ch *chain) nextDNSHop(u *url.URL) {
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+	if ch.dns != nil && ch.dns.redirect && ch.dns.target == originOf(u) {
+		ch.dns.redirect = false
+		return
+	}
+	ch.dns = nil
 }

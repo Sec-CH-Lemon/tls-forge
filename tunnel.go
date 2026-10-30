@@ -242,7 +242,14 @@ func (d *directDialer) DialContext(ctx context.Context, network, address string)
 	// connection resolved its name has it all: its addresses, and its records
 	// in.
 	var https *httpsLookup
-	switch known := resolvedFor(ctx, host); {
+	known := resolvedFor(ctx, host)
+	if known == nil {
+		known = takePreparedDNS(ctx, address)
+	}
+	if known != nil && known.err != nil {
+		return nil, known.err
+	}
+	switch {
 	case known != nil:
 		dialer.Resolver = known.resolver()
 		https = known.https

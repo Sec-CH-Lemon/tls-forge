@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "6a5fe7f7962f0cef1142c4a81108517b304a8af9a43f59086bfb38119c028ac6",
+  "profile_sha256": "8d59dbea244159039c3875bc3754240fd6f98aefa477b86d49c3f8856956db2e",
   "previous_profile_sha256": "d59c55423ac79d86bd08e26234cbe732a5b781a9bd6312d0efe18f5374179282",
   "basis_name": "chrome_155_macos",
   "basis_file_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
@@ -173,6 +173,15 @@
       "inventory": "profile/provenance/a10.json",
       "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md",
       "acceptance": "A8 exact-source acceptance stays historical; see A10 field scope"
+    }
+  ],
+  "post_capture_changes": [
+    {
+      "stage": "A12/F06",
+      "before_profile_sha256": "6a5fe7f7962f0cef1142c4a81108517b304a8af9a43f59086bfb38119c028ac6",
+      "after_profile_sha256": "8d59dbea244159039c3875bc3754240fd6f98aefa477b86d49c3f8856956db2e",
+      "inventory": "a12-dns.json",
+      "preserved": "Original browser/capture/basis hashes and prior field origins; original bytes in A12 before archive and Git parent"
     }
   ]
 }

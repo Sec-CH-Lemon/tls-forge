@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "da38f2e8ba60e307a3070b2b3afa207ee1c54b5317e271a61f848db388e3d950",
+  "profile_sha256": "d453d8a5a8c205ac5339392fd7cb7bdeceb103409b1a8e8e71bdc7fbaec3e71c",
   "capture_canonical_sha256": "eaef8c0ffb10ec065c78af9be0695382645a0a9fb5f8f7cf81d16ff52991658d",
   "basis_name": "chrome_155_macos",
   "basis_sha256": "1325ea350e12be1218db794fc5e589bbb6ab91380d9df6c66e5f7c98deff87ed",
@@ -1555,6 +1555,18 @@
     "behavior.cache.generated_header_order": {
       "class": "inherited",
       "source": "Existing profile validator slots preserved; ordered generated range fallback replaces prior fixed-before-priority mechanism; range positions not freshly measured in A10"
+    },
+    "behavior.dns.https_query_recursion_desired": {
+      "class": "inherited",
+      "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+    },
+    "behavior.dns.https_query_udp_payload_bytes": {
+      "class": "inherited",
+      "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
+    },
+    "behavior.dns.https_query_timeout_ms": {
+      "class": "inherited",
+      "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
     }
   },
   "acceptance": "candidate; browser/wire acceptance not established by capture",
@@ -1565,6 +1577,15 @@
       "inventory": "profile/provenance/a10.json",
       "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md",
       "acceptance": "A8 exact-source acceptance stays historical; see A10 field scope"
+    }
+  ],
+  "post_capture_changes": [
+    {
+      "stage": "A12/F06",
+      "before_profile_sha256": "da38f2e8ba60e307a3070b2b3afa207ee1c54b5317e271a61f848db388e3d950",
+      "after_profile_sha256": "d453d8a5a8c205ac5339392fd7cb7bdeceb103409b1a8e8e71bdc7fbaec3e71c",
+      "inventory": "a12-dns.json",
+      "preserved": "Original browser/capture/basis hashes and prior field origins; original bytes in A12 before archive and Git parent"
     }
   ]
 }

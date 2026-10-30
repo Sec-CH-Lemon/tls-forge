@@ -96,6 +96,7 @@ type chain struct {
 	// from then on (took); mu guards them.
 	mu    sync.Mutex
 	taken Header
+	dns   *preparedDNS
 	// resends are the times the latest hop went again for a failure of its
 	// own (a refused stream, a GOAWAY, a lost connection), which the
 	// transport counts as Chrome counts them for a transaction: the hop, its
@@ -249,6 +250,7 @@ func (ch *chain) authenticates(h hop) bool {
 // directory, nothing for a URL that carries credentials, nor where allowed
 // says none goes.
 func (ch *chain) arrive(method string, u *url.URL, user *url.Userinfo, allowed bool) string {
+	ch.nextDNSHop(u)
 	ch.credentials, ch.embedded, ch.sent, ch.restarts, ch.resent = user, false, nil, 0, false
 	ch.resends.Reset()
 	if _, carried := credentialsOf(user); carried || !allowed {

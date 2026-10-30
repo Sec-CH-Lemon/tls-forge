@@ -1094,6 +1094,9 @@ keep it until measured.
 | --- | --- |
 | `dns.resolver` | Who asks a direct connection's names: `built-in`, a DNS client of tls-forge's own that reads the machine's DNS servers (resolv.conf, an adapter's on Windows) and its hosts file and asks the servers itself, as Chrome's built-in client does (`kAsyncDns`, InsecureDnsMode `kEnabledBuiltIn`, on by default on macOS, Windows, Linux, Android and ChromeOS in Chrome 155); or `system`, the machine's resolver, with its cache. With `built-in`, a name under `.local` stays the machine's (Chrome's system task), and `localhost` and names under it too (Chrome answers them itself); where the machine names no DNS server, its resolver answers and no record is asked (Chrome's client cannot run then, `CanUseInsecureDnsTransactions`). A server named with `--dns-server` (`WithDNSServer`) is asked every name whatever this says. Absent: `system`. `built-in`. |
 | `dns.https_records` | Ask a name's HTTPS records for a direct connection to it, as Chrome does for http, https, ws and wss (`kUseDnsHttpsSvcb`): of the same servers as its addresses, at the same time, for `_PORT._https.NAME` where the port is not 443 (`GetNameForHttpsQuery`). Not for an address, `localhost` and names under it, or `.local`. Needs `dns.resolver` `built-in`: a record asked apart from addresses the machine's resolver answers from its cache would come later than the wait every time. `true`. |
+| `dns.https_query_recursion_desired` | Boolean RD bit of the independently constructed HTTPS RR query. Explicit in every executable profile; inherited product value `true`. Does not control queries constructed by Go's A/AAAA resolver. |
+| `dns.https_query_udp_payload_bytes` | EDNS0 advertised UDP payload, integer512–65535. The lower bound avoids values that RFC6891 treats as512; the upper bound is the16-bit field limit. Inherited product value4096. The receiver can hold65535 bytes; this is an advertisement, not a query padding rule. |
+| `dns.https_query_timeout_ms` | Integer1–60000ms for one DNS server's exchange, shared by UDP and its TC-triggered TCP retry. A parent request deadline can end it earlier. Each next configured server gets its own budget; expired parent cancellation cannot extend it. Inherited product value2000. |
 | `dns.https_wait_percent`, `dns.https_wait_min_ms`, `dns.https_wait_max_ms` | Once the addresses are in, how long a connection waits for the records: this percent of the time the lookup has taken so far, at least the floor, at most the ceiling (0: none); after it the connection goes on without them (`HostResolverDnsTask::MaybeStartTimeoutTimer`). `20`, `5`, `50`. Need `dns.https_records`. |
 | `dns.https_upgrade` | A request to plain http whose name has a record Chrome takes goes to https without being sent (Chrome fails its host resolution with ERR_DNS_NAME_HTTPS_ONLY and its URLRequestHttpJob redirects it, 307, `Non-Authoritative-Reason: DNS`): the hop after it is a redirect's, its fields where a redirect's are. Port 80 goes to 443, another stays. `true`. Needs `dns.https_records`. |
 | `tls.ech` | Offer ECH with the configs a connection's records gave. `true`. Needs every key below. |
@@ -1156,6 +1159,30 @@ a VPN's domains, say, or resolv.conf options it does not know: tls-forge's
 client asks the servers anyway). A server that negotiates
 TLS 1.2 with an ECH offer is refused as BoringSSL refuses it, read in its
 source, not measured.
+
+A12/F06 makes only the three HTTPS query choices above explicit. Unknown,
+duplicate, null, wrongly typed and out-of-range choices are rejected. Older
+archives can preserve the absent group offline; execution needs all three.
+The separate `dns.https_wait_*` bound still decides when a connection stops
+waiting for HTTPS data after its addresses arrive. It is not added again to the
+per-server exchange timer. A timed-out server can be followed by the next;
+request cancellation bounds both, and wrong-ID replies cannot trigger TCP.
+
+Plain HTTP discovery now hands its A/AAAA result, including failure, to the
+same request's actual connection or its immediate internal HTTPS redirect.
+The handoff is consumed once, cleared on another hop/restart and never shared
+between independent `Do` calls. It is not a browser-wide address TTL cache.
+
+Two fresh headed Chrome156.0.8078.76/macOS launches (2026-10-30), with secure DoH
+to an owned loopback resolver, produced four owned HTTPS queries with RD=true
+and EDNS4096. Both NetLogs reported IPv6 unavailable; no AAAA was requested in
+these cohorts. Successive requests reused connections, a forced close resumed
+TLS, and DNS results survived those connections. Original DNS and NetLog bytes
+remain private. Chrome's DoH queries used ID0 and EDNS zero-padding to128 bytes;
+the product's UDP queries use fresh transaction IDs and have no such padding.
+These contexts are recorded separately. Neither the finite agreement of two
+fields nor RFC-valid encoding establishes complete Chrome DNS equivalence.
+See [the A12 report](remediation/2026-10-30/A12.ru.md).
 
 ## HTTP/3 from DNS HTTPS records (unreleased engine 1)
 

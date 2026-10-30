@@ -64,6 +64,9 @@
     "cookie.raw_fields": true,
     "cookie.reset_order_on_value_change": true,
     "dns.https_h3": true,
+    "dns.https_query_recursion_desired": true,
+    "dns.https_query_timeout_ms": 2000,
+    "dns.https_query_udp_payload_bytes": 4096,
     "dns.https_records": true,
     "dns.https_upgrade": true,
     "dns.https_wait_max_ms": 50,
@@ -1129,5 +1132,5 @@
       "value": "no-preference"
     }
   ],
-  "notes": "captured 2026-10-29T21:24:19Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_linux (unmeasured policies inherited)"
+  "notes": "captured 2026-10-29T21:24:19Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_linux (unmeasured policies inherited)\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity."
 }

@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "0efd780a264d3693e26c07c2394d3f9f5f1a3c4071c481459f052b6833667d64",
+  "profile_sha256": "a756aefaddebe4a3a1c05fe02588f798b2e7d74dfddb659d99db0443f45c9a91",
   "previous_profile_sha256": "4385f1aebb6153092fb3ffa7bb90590d975c8c2d3b2fb9e050ded6f584af1dd8",
   "change": "A8 JSON-only QPACK first-section state rule",
   "fields": {
@@ -54,6 +54,15 @@
       "inventory": "profile/provenance/a10.json",
       "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md",
       "acceptance": "A8 exact-source acceptance stays historical; see A10 field scope"
+    }
+  ],
+  "post_capture_changes": [
+    {
+      "stage": "A12/F06",
+      "before_profile_sha256": "0efd780a264d3693e26c07c2394d3f9f5f1a3c4071c481459f052b6833667d64",
+      "after_profile_sha256": "a756aefaddebe4a3a1c05fe02588f798b2e7d74dfddb659d99db0443f45c9a91",
+      "inventory": "a12-dns.json",
+      "preserved": "Original browser/capture/basis hashes and prior field origins; original bytes in A12 before archive and Git parent"
     }
   ]
 }
