@@ -3052,3 +3052,7 @@ withholds those fields still sends scoped cookies but cannot provide a complete
 The A11 capture fixture also checks received-before-sent callback order. Its reader
 uses the actual QUIC ClientHello to identify direction and preserves all bytes
 and per-direction datagram order. This changes the test oracle only.
+
+The ambient QUIC-scrambling test uses a separate technical JSON input with fixed
+extension order. Its early SNI cut crosses a packet boundary, so the packet frame
+shuffle cannot accidentally conceal the enabled layout. Browser profiles are unchanged.

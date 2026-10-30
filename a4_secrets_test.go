@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -84,6 +85,13 @@ func TestProfileQUICLayoutOverridesAmbientScrambling(t *testing.T) {
 	p := quicProfile(t, map[string]string{"quic.initial_layout": `"scramble"`,
 		"quic.chaos_first_frame_min": "", "quic.chaos_first_frame_spread": "", "quic.chaos_crypto_splits_min": "",
 		"quic.chaos_crypto_splits_max": "", "quic.chaos_pings_min": "", "quic.chaos_pings_max": ""})
+	// This is a technical layout witness, not a new browser observation.
+	// Keep SNI in the first packet while its deferred bytes follow the final
+	// packet. Otherwise both cuts can fit in that final packet and the
+	// transport's control-frame shuffle can restore contiguous wire order.
+	p.Behavior["quic.shuffle_extensions"] = json.RawMessage("false")
+	p.PerConnection.ShufflesExtensions = false
+	p.ClientHello = earlySNIFixture(t, p.ClientHello)
 	for _, setting := range []string{"false", "true"} {
 		t.Run(setting, func(t *testing.T) {
 			t.Setenv("QUIC_GO_DISABLE_CLIENTHELLO_SCRAMBLING", setting)
@@ -104,7 +112,7 @@ func TestProfileQUICLayoutOverridesAmbientScrambling(t *testing.T) {
 				}
 			}
 			// Scrambling skips SNI/ECH ranges and later fills them. The first
-			// packet need not contain multiple frames: extension order is random.
+			// packet need not contain multiple frames; the fixed input has a suffix.
 			bytesSeen := map[uint64]byte{}
 			var highest uint64
 			skipped, filled := false, false
@@ -158,4 +166,49 @@ func TestProfileHTTP2IgnoresAutomaticTransportEnvironment(t *testing.T) {
 	if err != nil || measured.HTTP2 == nil {
 		t.Fatalf("profile transport overridden by ambient configuration: %+v %v", measured, err)
 	}
+}
+
+// earlySNIFixture moves the complete SNI extension before the other extensions,
+// preserving the captured values and all vector lengths. Runtime still derives
+// the hostname, randoms, key shares and ECH for the current connection.
+func earlySNIFixture(t *testing.T, raw []byte) []byte {
+	t.Helper()
+	out := append([]byte(nil), raw...)
+	if len(out) < 44 || out[0] != 22 || out[5] != 1 {
+		t.Fatal("not a ClientHello record")
+	}
+	pos := 43
+	pos += 1 + int(out[pos])
+	if pos+2 > len(out) {
+		t.Fatal("missing cipher suites")
+	}
+	pos += 2 + int(binary.BigEndian.Uint16(out[pos:]))
+	if pos >= len(out) {
+		t.Fatal("missing compression methods")
+	}
+	pos += 1 + int(out[pos])
+	if pos+2 > len(out) {
+		t.Fatal("missing extensions")
+	}
+	end := pos + 2 + int(binary.BigEndian.Uint16(out[pos:]))
+	pos += 2
+	if end != len(out) {
+		t.Fatal("truncated ClientHello extensions")
+	}
+	first := pos
+	for pos+4 <= end {
+		size := 4 + int(binary.BigEndian.Uint16(out[pos+2:]))
+		if pos+size > end {
+			t.Fatal("truncated extension")
+		}
+		if binary.BigEndian.Uint16(out[pos:]) == 0 {
+			extension := append([]byte(nil), out[pos:pos+size]...)
+			copy(out[first+size:pos+size], out[first:pos])
+			copy(out[first:], extension)
+			return out
+		}
+		pos += size
+	}
+	t.Fatal("no SNI in layout fixture")
+	return nil
 }
