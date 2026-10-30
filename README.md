@@ -417,10 +417,15 @@ tls-forge fetch --retry 3 --repeat 2 --input urls.csv
 `--retry` asks again when the answer is not a 2xx, or when no answer comes at
 all; with `--wait-for-element` or `--wait-for`, when the answer is without the
 element or the text, whatever its status, and not when it has them. The waits
-between tries are 250 ms, 500 ms, 1 s and then 2 s. Every try
-goes out on a connection of its own, so through a proxy that rotates, a try
-turned away from one exit is made again from another; `--reuse-connection`
-makes it again on the same connection. Within a try the request may go again
+between tries are 250 ms, 500 ms, 1 s and then 2 s. All workers of one
+identity (one proxy, or direct) share a client and its site pools until the run
+ends. Retries and repeats reuse an available connection; a lost or
+server-closed connection is replaced. `--fresh-connection` selects the former
+per-worker mode, releasing idle connections after each try; a rotating proxy
+can then assign another exit. `--reuse-connection` keeps a private client for
+each input row across its repeats and tries. These two flags are mutually
+exclusive; `--retry-as-browser` retains its connection across retries in either
+legacy mode. Within a try the request may go again
 on its own, as the profile's browser sends one again after a refused stream,
 a GOAWAY or a lost connection ([A request sent again](#a-request-sent-again)),
 on another connection when its own was lost. When the
@@ -451,11 +456,10 @@ run's header says it (`tried again`), and each try made again says
 `reloading`. A reload that bypasses the cache (Ctrl+Shift+R) is not modelled.
 
 `--repeat` makes the same request several times in one session, so a later run
-sends the cookies the runs before it were given. Every run opens a connection
-of its own, so through a proxy that hands every connection an address every
-run comes out of another; with `--reuse-connection` the runs of a URL go out
-on the connection the first one opened, as a reloaded page does, and every
-other URL keeps one of its own. One URL is
+sends the cookies the runs before it were given. By default the run shares
+site connection pools across all rows and workers of the same identity.
+`--fresh-connection` releases each try's idle connections; `--reuse-connection`
+is the older per-row mode, with a separate client for every row. One URL is
 asked for one run at a time, the way a page is reloaded, unless
 `--concurrency` says how many at once. With `-o out/`, each run is kept under
 its own number. Without `-o`, the bodies follow one another on standard output.
@@ -976,10 +980,12 @@ the QUIC connection's datagrams as its socket wrote and read them, one UDP
 packet each, beside the TCP connection it raced; not the run's question to
 an address service, which no request went out on. Wireshark finds QUIC on
 any port. A
-connection is let go of before the request is kept, so
-its capture holds how it ended; with `--reuse-connection` a URL's repeats share
-theirs, and each repeat's capture holds it from its start to where that repeat
-was kept. Wireshark finds the site's TLS after a SOCKS handshake on any port,
+shared connection stays open until the run ends. Each request's capture
+holds its connections from their start to the snapshot taken when that
+request was kept, including any other requests already carried on them; it
+cannot include future bytes or the eventual close. `--reuse-connection` has
+the same snapshot rule for a row's private client. With `--fresh-connection`,
+idle connections are released before the snapshot, so it includes their end. Wireshark finds the site's TLS after a SOCKS handshake on any port,
 and shows the handshake itself on port 1080, or on another with
 `-d tcp.port==PORT,socks` (Decode As… in the app).
 
@@ -1366,10 +1372,11 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--save-cookies <file>` | Atomically save the final session, one set for each proxy; `.txt` selects Netscape format, which holds one session and is refused for a run through more than one proxy |
 | **Running** | |
 | `-c`, `--concurrency <n>` | Requests to run at once; default `4`, and one URL is asked for one at a time unless this is given. In `compare`, `-c` is `--color` |
-| `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come, each time on a connection of its own; default `0` |
+| `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 | `--retry-as-browser` | Ask again as a person does in Chrome, by reloading the page (Ctrl+R): to the URL the answer is at, on the connection it came on, asking for it afresh, with the cookies and client hints it set; `fetch` and `xhr` are sent again as their page's script sends them; needs `--retry`; see [Retrying and repeating](#retrying-and-repeating) |
-| `--repeat <n>` | Make every request `n` times, each on a connection of its own; default `1` |
-| `--reuse-connection` | Repeat a URL, and try it again, on the connection its first request opened, rather than on a new one: through a proxy, out of the same exit |
+| `--repeat <n>` | Make every request `n` times using the identity's site pools; default `1` |
+| `--reuse-connection` | Keep a private client per input row across its repeats and tries (legacy mode); mutually exclusive with `--fresh-connection` |
+| `--fresh-connection` | Keep a private client per worker and release idle connections after each try (legacy mode); TLS sessions survive within that worker |
 | `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |
 | `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
 | `--html-decoding <mode>` | How `--wait-for` and `--wait-for-element` read a body as text: `legacy`, the default, or `browser`, as Chrome 155 decodes the document; refused without either; see [Checking the page](#checking-the-page) |
@@ -1520,15 +1527,17 @@ stream. CONNECT uses its own measured H2 priority, independently of the origin
 request. After a fatal TLS write failure, the connection closes without sending
 another encrypted alert with a sequence the peer cannot reconstruct.
 
-Every URL, every repeat of it and every try goes out on a connection of its
-own, through a proxy on a tunnel of its own, so a proxy that hands every
-connection an address of its own gives each one. Once the run has been to a
-site, a new connection there resumes the TLS session the site handed out, as
-Chrome's does: the same handshake with `pre_shared_key` added last, and so a
-JA4 of one extension more. Each of the `--concurrency` workers keeps sessions
-of its own, so a site sees as many first contacts as there are workers that
-went to it. `--reuse-connection` keeps a URL's connection for its repeats and
-its tries instead, so that they come out where its first request did. A
+All workers of one identity share a client and its site pools by default.
+Different proxy URLs keep separate clients, cookies and TLS sessions. The
+profile still selects site partitioning, pool limits and idle lifetimes;
+connections are closed when the run ends, when the server closes them, or
+when the profile's pool policy releases them. Concurrent HTTP/1.1 requests may
+use several connections; HTTP/2 can multiplex them on one.
+`--fresh-connection` restores private worker clients and releases idle
+connections after each try, retaining that worker's TLS sessions for later
+connections. `--reuse-connection` keeps a separate client per input row until
+its last repeat ends. A rotating proxy assigns exits per actual connection,
+so reuse cannot guarantee an exit after a server close or reconnect. A
 request's redirects go through its connection, but for a hop Chrome sends on
 another: one to another site goes through a connection of that site's, and
 one that leaves a script's request without credentials through one of those
@@ -2648,7 +2657,7 @@ Chrome 155 on macOS, 2026-10-23):
   not Go's 15 s;
 - closing a connection sends no TLS close_notify (`tls.close_notify`), as
   Chrome never shuts TLS down: `Client.Close`, an idle timeout and the CLI's
-  close after each try end with the TCP FIN alone;
+  close at run end (or after each try with `--fresh-connection`) end with the TCP FIN alone;
 - an idle HTTP/2 connection is kept until its server closes it
   (`h2.idle_connection_timeout_ms: 0`), an idle HTTP/1.1 one 300 s and closed
   only when the client next asks for a connection (`h1.idle_reap`);

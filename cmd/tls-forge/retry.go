@@ -29,6 +29,8 @@ type runFlags struct {
 	asBrowser *bool
 	// reuse keeps a URL's connection for its repeats and its tries.
 	reuse *bool
+	// fresh preserves the former per-worker, per-try connection lifecycle.
+	fresh *bool
 	trace *string
 }
 
@@ -45,7 +47,9 @@ func addRunFlags(fs *pflag.FlagSet) runFlags {
 				"connection it came on, asking for it afresh, with the cookies and client hints it set; "+
 				"fetch and xhr are sent again as their page's script sends them; needs --retry"),
 		reuse: fs.Bool("reuse-connection", false,
-			"repeat a URL, and try it again, on the connection its first request opened, rather than on a new one"),
+			"keep a separate client per input row for its repeats and tries, instead of sharing the identity's site pools"),
+		fresh: fs.Bool("fresh-connection", false,
+			"use a separate client per worker and close idle connections after every try (legacy mode)"),
 		trace: fs.String("trace", "",
 			"write every step of the run here as Trace Event JSON, for ui.perfetto.dev"),
 	}
@@ -64,6 +68,9 @@ func (f runFlags) check() error {
 	}
 	if *f.asBrowser && *f.retry == 0 {
 		return fmt.Errorf("%w: --retry-as-browser says how a request is asked for again: give --retry", errUsage)
+	}
+	if *f.fresh && *f.reuse {
+		return fmt.Errorf("%w: --fresh-connection and --reuse-connection select different connection lifetimes", errUsage)
 	}
 	return nil
 }
@@ -199,7 +206,8 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 
 // connections hands every try of a request the client it goes out through.
 //
-// Without --reuse-connection that is the worker's client for the request's
+// By default every worker uses the identity's shared client and its site pools.
+// Under --fresh-connection that is the worker's client for the request's
 // proxy, a client of the session made Fresh once for each worker, which lets go
 // of its connection after every try: every URL, every repeat of it and every
 // try goes out on a connection of its own. Its TLS sessions it keeps, so that
@@ -211,6 +219,8 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 // connection goes through the client the try went through.
 type connections struct {
 	session *tlsforge.Client
+	// shared borrows the run's client. Only the run may close its pools.
+	shared bool
 	// own holds the worker's clients, one for each proxy, and proxy is this
 	// request's; held, under --reuse-connection, keeps each URL's, and entry is
 	// which URL this is.
@@ -234,12 +244,14 @@ func (c *connections) do(req *tlsforge.Request) (*tlsforge.Response, error) {
 	return client.Do(req)
 }
 
-// next is the client for the next try: the URL's own when it keeps one, and
-// otherwise the worker's, with the connection of the try before let go of.
+// next borrows the shared client, the row's private client, or the worker's
+// client with the preceding try's idle connections released.
 func (c *connections) next() (*tlsforge.Client, error) {
 	var client *tlsforge.Client
 	var err error
-	if c.held != nil {
+	if c.shared {
+		client = c.session
+	} else if c.held != nil {
 		client, err = c.held.of(c.entry, c.session)
 	} else {
 		if !c.keep {
@@ -260,9 +272,8 @@ func (c *connections) current() *tlsforge.Client {
 	return c.session
 }
 
-// close lets go of what the request held: the connection of its latest try,
-// or its share of the URL's, which is closed once the URL's last repeat is
-// over.
+// close ends a row's share or releases a private worker's idle connections.
+// The run's shared client remains open.
 func (c *connections) close() {
 	if c.held != nil {
 		c.held.done(c.entry)
@@ -274,7 +285,7 @@ func (c *connections) close() {
 // release closes the connection the latest try went out on, keeping the client
 // it went through and the TLS sessions that holds.
 func (c *connections) release() {
-	if c.last != nil {
+	if !c.shared && c.last != nil {
 		c.last.CloseIdleConnections()
 	}
 }

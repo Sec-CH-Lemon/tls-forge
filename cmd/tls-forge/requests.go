@@ -383,6 +383,8 @@ type runner struct {
 	repeat int
 	// asBrowser asks again as Chrome does when the page is reloaded.
 	asBrowser bool
+	// fresh closes every try's idle connections in a private worker client.
+	fresh bool
 	// own is what a request goes as from the root of its URL's own origin
 	// (checkBrowser, onOwnPage): a form, an XHR, or nothing.
 	own tlsforge.RequestKind
@@ -412,7 +414,7 @@ type runner struct {
 	// --wait-for-element or --wait-for names it; nil asks nothing of it.
 	check *pageCheck
 	// held keeps every URL's connection across its repeats and tries, when
-	// --reuse-connection asks; nil gives every try a connection of its own.
+	// --reuse-connection asks; nil uses the shared pool, or fresh when requested.
 	held   *heldClients
 	counts *progress
 	// note is told about a try that is about to be made again. Nil keeps quiet,
@@ -556,9 +558,10 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 		return r, nil, b.kept(&r, nil, j, lane)
 	}
 
-	// Every try on a connection of its own, through the worker's client, unless
-	// the URL keeps its own.
-	conns := &connections{session: client, own: own, proxy: proxy, held: b.held, entry: j.entry}
+	// Borrow the identity's client for the run's lifetime. Legacy modes own
+	// private clients and may release their connections after a try or row.
+	conns := &connections{session: client, shared: !b.fresh && b.held == nil,
+		own: own, proxy: proxy, held: b.held, entry: j.entry}
 	defer conns.close()
 	if b.wire != nil {
 		// Every connection the request goes out on, its tries' and what its

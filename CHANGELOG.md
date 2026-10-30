@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Share CLI site connection pools across all workers of one proxy identity by
+  default. Retain private per-row clients with `--reuse-connection` and the
+  former per-worker/per-try idle release with `--fresh-connection`. Close shared
+  clients at run end; packet captures remain request-time snapshots. Library
+  and JSON transport policy are unchanged.
+
 - Select the macOS27 reference image for fork CI and require a real mapped
   loopback exchange plus external-denial probes. Preserve incompatible-host
   failures. Extend the pinned linter's registry by this one official label.

@@ -175,7 +175,7 @@ func TestASiteIsAskedOverTheConnectionOfTheLastTry(t *testing.T) {
 	via := startProxy(t)
 	report := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--retry", "1",
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--retry", "1",
 		"--report="+report, "--report-format", "json", site.URL+"/page?busy-once")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

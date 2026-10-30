@@ -64,7 +64,7 @@ func TestFetchEndsATryWhoseHandshakeHangsAtItsTimeout(t *testing.T) {
 	done := make(chan int, 1)
 	start := time.Now()
 	go func() {
-		done <- run(context.Background(), []string{"fetch", "--insecure", "--concurrency", "1", "--progress", "never",
+		done <- run(context.Background(), []string{"fetch", "--fresh-connection", "--insecure", "--concurrency", "1", "--progress", "never",
 			"--timeout", "500ms", server.URL + "/a", server.URL + "/b"}, &stdout, &stderr)
 	}()
 	select {
@@ -86,7 +86,7 @@ func TestFetchStopsOnSIGTERMWhileAHandshakeHangs(t *testing.T) {
 	// to be, and the run ends with its report written.
 	server, p := handshakePit(t)
 	report := filepath.Join(t.TempDir(), "report.json")
-	cmd := program(t, "fetch", "--insecure", "--concurrency", "1", "--progress", "never", "--report="+report,
+	cmd := program(t, "fetch", "--fresh-connection", "--insecure", "--concurrency", "1", "--progress", "never", "--report="+report,
 		server.URL+"/a", server.URL+"/b")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr

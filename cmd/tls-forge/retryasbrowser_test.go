@@ -119,7 +119,7 @@ func TestFetchRetriesAsAPersonReloadsThePageInChrome(t *testing.T) {
 
 func TestFetchRetriesOnAConnectionOfItsOwnUnlessAsABrowser(t *testing.T) {
 	site, seen := refusingOnce(t, true)
-	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", site.URL+"/deny/page")
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--retry", "1", site.URL+"/deny/page")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

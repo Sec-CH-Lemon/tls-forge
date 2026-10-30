@@ -69,7 +69,7 @@ func TestFetchWritesTheSecretsOfEveryConnectionToItsKeyLog(t *testing.T) {
 	server, _ := keyedSite(t, &keys)
 	dir := t.TempDir()
 	path, log := filepath.Join(dir, "keys", "run.keys"), filepath.Join(dir, "run.json")
-	code, stdout, stderr := exec(t, "fetch", "--insecure", "--no-exit-lookup", "--keylog", path, "--log", log,
+	code, stdout, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--no-exit-lookup", "--keylog", path, "--log", log,
 		"--repeat", "2", server.URL)
 	if code != 0 || stdout != "answer-1answer-2" {
 		t.Fatalf("exit code = %d\n%s\n%s", code, stdout, stderr)
@@ -96,7 +96,7 @@ func TestFetchWritesTheSecretsOfEveryConnectionToItsKeyLog(t *testing.T) {
 		t.Errorf("the log's run record: %v", run)
 	}
 	// Added to, as browsers add to the file SSLKEYLOGFILE names.
-	if code, _, stderr := exec(t, "fetch", "--insecure", "--no-exit-lookup", "--keylog", path, server.URL); code != 0 {
+	if code, _, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--no-exit-lookup", "--keylog", path, server.URL); code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}
 	data, _ = os.ReadFile(path)
@@ -104,7 +104,7 @@ func TestFetchWritesTheSecretsOfEveryConnectionToItsKeyLog(t *testing.T) {
 		t.Errorf("a second run left %d lines, the site wrote %d", len(got), len(want))
 	}
 	// A run that asks for none writes none, and says nothing of one.
-	if code, _, stderr := exec(t, "fetch", "--insecure", "--no-exit-lookup", server.URL); code != 0 ||
+	if code, _, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--no-exit-lookup", server.URL); code != 0 ||
 		strings.Contains(stderr, "keylog") {
 		t.Errorf("exit code = %d\n%s", code, stderr)
 	}

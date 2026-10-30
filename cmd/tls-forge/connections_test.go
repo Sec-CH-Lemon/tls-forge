@@ -37,7 +37,7 @@ func TestEveryRequestThroughAProxyGoesOutOnATunnelOfItsOwn(t *testing.T) {
 		t.Run(workers+" at a time", func(t *testing.T) {
 			before := len(via.seen())
 			path := filepath.Join(t.TempDir(), "run.json")
-			code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "3",
+			code, _, stderr := exec(t, "fetch", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "3",
 				"-c", workers, "--report="+path, "--report-format", "json", site.URL+"/page")
 			if code != 0 {
 				t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -78,7 +78,7 @@ func TestEveryTryThroughAProxyGoesOutOnATunnelOfItsOwn(t *testing.T) {
 	t.Cleanup(site.Close)
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--retry", "1",
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--retry", "1",
 		"--report="+path, "--report-format", "json", site.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -102,7 +102,7 @@ func TestEveryRequestWithoutAProxyGoesOutOnAConnectionOfItsOwn(t *testing.T) {
 	site := tlsPathServer(t)
 	list := writeList(t, "two.txt", site.URL+"/a\n"+site.URL+"/b\n")
 	path := filepath.Join(t.TempDir(), "run.json")
-	code, _, stderr := exec(t, "fetch", "--insecure", "--input", list, "--repeat", "2", "-c", "1",
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--input", list, "--repeat", "2", "-c", "1",
 		"--report="+path, "--report-format", "json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -245,7 +245,7 @@ func TestRequestsResumeTheSessionTheirSiteHandedOut(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = server.Close() })
 	path := filepath.Join(t.TempDir(), "run.json")
-	code, _, stderr := exec(t, "fetch", "--insecure", "--repeat", "3", "-c", "1",
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--repeat", "3", "-c", "1",
 		"--report="+path, "--report-format", "json", server.URL()+"/api/all")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -278,7 +278,7 @@ func TestRequestsAndTheirTriesThroughAProxyResume(t *testing.T) {
 	t.Cleanup(site.Close)
 	path := filepath.Join(t.TempDir(), "run.json")
 
-	code, _, stderr := exec(t, "fetch", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "2", "--retry", "1",
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--proxy", "http://"+via.addr, "--insecure", "--repeat", "2", "--retry", "1",
 		"-c", "1", "--report="+path, "--report-format", "json", site.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -353,7 +353,7 @@ func TestConnectionsOfAClosedSession(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	_ = session.Close()
-	for _, conns := range []*connections{{session: session, own: newWorkerClients()}, {session: session, held: newHeldClients(1)}} {
+	for _, conns := range []*connections{{session: session, shared: true}, {session: session, own: newWorkerClients()}, {session: session, held: newHeldClients(1)}} {
 		if _, err := conns.do(&tlsforge.Request{URL: "https://127.0.0.1:1/"}); err == nil || !strings.Contains(err.Error(), "closed") {
 			t.Errorf("a try through a closed session: %v", err)
 		}
@@ -397,7 +397,7 @@ func TestATryAfterARedirectWhoseBodyIsDrainedGoesOutOnAConnectionOfItsOwn(t *tes
 	}))
 	t.Cleanup(site.Close)
 
-	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", site.URL+"/r")
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--retry", "1", site.URL+"/r")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
 	}

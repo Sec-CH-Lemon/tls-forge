@@ -146,7 +146,7 @@ func TestFetchKeepsWhatEachRequestsConnectionsCarriedBesideItsOtherFiles(t *test
 	server, _ := keyedSite(t, &keys)
 	dir := filepath.Join(t.TempDir(), "out")
 	report := filepath.Join(t.TempDir(), "run.json")
-	code, _, stderr := exec(t, "fetch", "--insecure", "--no-exit-lookup", "--repeat", "2", "-o", dir, "--pcap",
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--insecure", "--no-exit-lookup", "--repeat", "2", "-o", dir, "--pcap",
 		"--report="+report, "--report-format", "json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -378,7 +378,7 @@ func TestFetchKeepsTheHandshakeWithASOCKSProxyInACapture(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := filepath.Join(t.TempDir(), "out")
-			code, _, stderr := exec(t, append([]string{"fetch", "--insecure", "--no-exit-lookup", "-o", dir, "--pcap"},
+			code, _, stderr := exec(t, append([]string{"fetch", "--fresh-connection", "--insecure", "--no-exit-lookup", "-o", dir, "--pcap"},
 				tc.args...)...)
 			if code != 0 {
 				t.Fatalf("exit code = %d\n%s", code, stderr)

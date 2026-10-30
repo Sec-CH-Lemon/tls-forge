@@ -33,7 +33,7 @@ var fetchFlagGroups = []flagGroup{
 	{"fingerprint and transport", []string{"profile", "timeout", "insecure", "dns-server"}},
 	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
-	{"running", []string{"concurrency", "retry", "retry-as-browser", "repeat", "reuse-connection", "wait-for",
+	{"running", []string{"concurrency", "retry", "retry-as-browser", "repeat", "reuse-connection", "fresh-connection", "wait-for",
 		"wait-for-element", "html-decoding"}},
 	{"output", []string{"output", "clear-output-dir", "pcap", "include", "json", "print-body", "verbose", "progress",
 		"color"}},
@@ -853,7 +853,8 @@ func (r *fetchRun) open(ctx context.Context) error {
 	r.log.say(slog.LevelInfo, "run", runAttrs(r.about, "version", version, "profile", r.worn.Name,
 		"output", r.output, "wait_for", r.waitFor, "wait_for_element", r.waitForElement, "html_decoding", r.htmlDecoding,
 		"request_kind", r.requestKind, "initiator_url", safeURL(r.initiatorURL),
-		"reuse_connection", *r.again.reuse, "log_level", strings.ToLower(*r.logging.level), "keylog", *r.logging.keylog,
+		"reuse_connection", *r.again.reuse, "fresh_connection", *r.again.fresh,
+		"log_level", strings.ToLower(*r.logging.level), "keylog", *r.logging.keylog,
 		"dns_server", *r.common.dnsServer)...)
 	// Before any client is made, so that every connection of the run has its
 	// secrets in it, the address lookup's too.
@@ -1024,7 +1025,7 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 		clients: r.clients, workers: r.workers,
 		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: requestBody(r.data, r.dataProvided),
 			Browser: r.browser},
-		retry: *r.again.retry, repeat: *r.again.repeat, asBrowser: *r.again.asBrowser,
+		retry: *r.again.retry, repeat: *r.again.repeat, asBrowser: *r.again.asBrowser, fresh: *r.again.fresh,
 		own: r.own, keep: r.output, wire: r.wire,
 		about: requestAbout{
 			method: r.method, profile: r.worn.Name, run: r.common.run.id,

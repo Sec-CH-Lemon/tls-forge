@@ -813,7 +813,7 @@ func TestReportTakesWhereEachRequestCameOutFromItsProxy(t *testing.T) {
 	tmp := t.TempDir()
 	dir, report, trace := filepath.Join(tmp, "out"), filepath.Join(tmp, "run"), filepath.Join(tmp, "run.trace.json")
 
-	code, _, stderr := exec(t, "fetch", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
+	code, _, stderr := exec(t, "fetch", "--fresh-connection", "--input", list, "--proxy", "http://"+via.addr, "--insecure", "-c", "1",
 		"-o", dir, "--trace", trace, "--report="+report, "--report-format", "html,json")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

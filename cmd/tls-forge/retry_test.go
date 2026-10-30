@@ -165,6 +165,7 @@ func TestRunFlagErrorsAreUsageErrors(t *testing.T) {
 	server, asked := replying(t, 200)
 	for _, args := range [][]string{
 		{"fetch", "--retry", "-1", server.URL},
+		{"fetch", "--fresh-connection", "--reuse-connection", server.URL},
 		{"fetch", "--retry", fmt.Sprint(math.MaxInt), server.URL},
 		{"fetch", "--repeat", "0", server.URL},
 		{"fetch", "--repeat", "-3", server.URL},
