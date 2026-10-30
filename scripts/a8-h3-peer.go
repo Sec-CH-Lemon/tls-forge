@@ -38,10 +38,11 @@ import (
 )
 
 type scenario struct {
-	BrowserMajor   int `json:"browser_major"`
-	Samples        int `json:"connections_per_cohort"`
-	RequestGap     int `json:"request_gap_ms"`
-	IdleTimeout    int `json:"server_idle_timeout_ms"`
+	InstanceScope  string `json:"browser_instance_scope"`
+	BrowserMajor   int    `json:"browser_major"`
+	Samples        int    `json:"connections_per_cohort"`
+	RequestGap     int    `json:"request_gap_ms"`
+	IdleTimeout    int    `json:"server_idle_timeout_ms"`
 	ServerSettings []struct {
 		ID    uint64 `json:"id"`
 		Value uint64 `json:"value"`
@@ -427,6 +428,7 @@ func client(ctx context.Context, dir, path string, samples int) error {
 	if e != nil {
 		return e
 	}
+	p.Behavior["http.instance_scope"], _ = json.Marshal(experiment.InstanceScope)
 	c, e := forge.New(forge.WithProfileValue(p), forge.WithInsecureSkipVerify(), forge.WithTimeout(10*time.Second), forge.WithTransportOption(tc.WithProtocolRacing()))
 	if e != nil {
 		return e

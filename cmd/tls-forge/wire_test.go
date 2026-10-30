@@ -417,7 +417,7 @@ func TestFetchKeepsTheConnectionAURLsRepeatsShareInEachCapture(t *testing.T) {
 	var keys siteKeys
 	server, _ := keyedSite(t, &keys)
 	dir := filepath.Join(t.TempDir(), "out")
-	code, _, stderr := exec(t, "fetch", "--insecure", "--no-exit-lookup", "--repeat", "2", "--reuse-connection",
+	code, _, stderr := execWorkflow(t, "fetch", "--insecure", "--no-exit-lookup", "--repeat", "2", "--reuse-connection",
 		"-o", dir, "--pcap", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

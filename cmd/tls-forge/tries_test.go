@@ -642,7 +642,7 @@ func TestFetchReportShowsWhatEachRequestTook(t *testing.T) {
 	path := filepath.Join(dir, "run.html")
 
 	kept := filepath.Join(dir, "out")
-	code, _, stderr := exec(t, "fetch", "--repeat", "2", "--retry", "1", "--reuse-connection", "--report="+path,
+	code, _, stderr := execWorkflow(t, "fetch", "--repeat", "2", "--retry", "1", "--reuse-connection", "--report="+path,
 		"-o", kept, server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

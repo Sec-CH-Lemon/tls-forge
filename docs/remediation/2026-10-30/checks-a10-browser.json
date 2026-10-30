@@ -1,0 +1,47 @@
+{
+  "stage": "A10",
+  "scope": "34cache scenarios x2independent cohorts xH1/H2/H3;explicit client-scope same-browser sequences;default per-call isolation tested separately",
+  "browser": {
+    "build": "156.0.8078.74",
+    "platform": "macOS27.0.1arm64",
+    "mode": "headed,minimized/background,fresh user-data-dir percohort/protocol",
+    "trust": "explicit local certificate SPKI pin"
+  },
+  "baseline": {
+    "commit": "503adc24fc266f2c53c6256de30bade00e46ce5f",
+    "matched": 96,
+    "pairs": 204,
+    "accepted": false,
+    "original_files_verified": 2024
+  },
+  "candidate": {
+    "matched": 204,
+    "pairs": 204,
+    "accepted": true
+  },
+  "normalization": {
+    "Host/:authority": "validated owned origin host/port only",
+    "Referer": "owned origin prefix only; path and suffix remain exact"
+  },
+  "controls": {
+    "unittest_methods": 4,
+    "negative_assertions": 14,
+    "authority_mismatch_rejected": true,
+    "validator_order_value_body_status_and_missing_evidence_controls": true,
+    "single_max_age600_positive_hit_percohort": true,
+    "invalid_trust_precondition_run_retained_and_excluded": true,
+    "empty_H3_observer_run_retained_and_excluded": true
+  },
+  "comparison_sha256": "9f9854d1f8a5d39380307bf029eebea30ffe58471439b661c8033ecfcdfb6609",
+  "baseline_comparison_sha256": "cac4a5b1ba4a7567f1f395ee601a96c565f5a6c74f8314ef68d8341e4e1538ce",
+  "source_snapshot_sha256": "52d4743d61b4b35138ebc678e15ce1c3f46630c8ae9103f8310a74180a531ebd",
+  "effective_sequence_profile_sha256": "49fb8abd0071b3ff12f834ab7b64e3b1c80fd6d03cee3aa18716f24c25960038",
+  "private_evidence": "../net-fp-server/captures/tls-forge-a10-20261030",
+  "limitations": [
+    "Finite cache/request-section scope only;not TLS/packet-scheduling,RNG or universal browser indistinguishability.",
+    "Only156macOS newly measured;older builds and Linux/Windows choices explicitly inherited.",
+    "Exact saturation threshold4294967295 inherited from Chromium main source,not established by finite156samples.",
+    "Generated range ordering tested on production H1/H2;no new Chrome Range oracle in A10.",
+    "A8 original exact-profile hashes and acceptance remain historical."
+  ]
+}

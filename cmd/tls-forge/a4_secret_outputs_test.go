@@ -132,7 +132,7 @@ func checkAdditionalSecretOutputs(t *testing.T) {
 		dir := t.TempDir()
 		retainSecretEvidence(t, "forward-proxy", dir)
 		t.Setenv("RUN_PROXY", "http://alice:"+secret+"@"+proxyURL.Host)
-		code, stdout, stderr := exec(t, "fetch", "--proxy-env", "RUN_PROXY", "--no-exit-lookup", "--reuse-connection", "--repeat", "2",
+		code, stdout, stderr := execWorkflow(t, "fetch", "--proxy-env", "RUN_PROXY", "--no-exit-lookup", "--reuse-connection", "--repeat", "2",
 			"--json", "-o", filepath.Join(dir, "out"), "--pcap", "--log", filepath.Join(dir, "run.jsonl"), "--trace", filepath.Join(dir, "trace.json"), origin.URL)
 		if code != 0 {
 			t.Fatalf("forward proxy exit %d: %s", code, stderr)

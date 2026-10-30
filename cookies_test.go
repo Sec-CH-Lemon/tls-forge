@@ -89,7 +89,7 @@ func TestWarmedCookieDoesNotOverwriteAServerRefresh(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	client, err := New(WithInsecureSkipVerify(), WithCookies([]Cookie{{
+	client, err := New(WithProfileValue(workflowProfile(shippedProfile(t, DefaultProfile))), WithInsecureSkipVerify(), WithCookies([]Cookie{{
 		Name: "session", Value: "warmed", Domain: mustHost(t, server.URL),
 		Path: "/", Secure: true,
 	}}))
@@ -112,7 +112,7 @@ func TestWarmedCookieDoesNotOverwriteAServerRefresh(t *testing.T) {
 func TestCookiesForReadsTheJarBack(t *testing.T) {
 	// How a session warmed by a run is written down.
 	server := cookieEcho(t)
-	client, err := New(WithInsecureSkipVerify())
+	client, err := New(WithProfileValue(workflowProfile(shippedProfile(t, DefaultProfile))), WithInsecureSkipVerify())
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -365,7 +365,7 @@ func TestAnAnswerToARequestWithoutCredentialsKeepsNoCookie(t *testing.T) {
 		Initiator: page}}); err != nil || !slices.Equal(res.Cookies, []string{"kept=1"}) {
 		t.Fatalf("with credentials: %v, %v", res, err)
 	}
-	if held, err := client.CookiesFor(server.URL + "/"); err != nil || len(held) != 1 || held[0].Name != "kept" {
+	if held, err := client.CookiesFor(server.URL + "/"); err != nil || len(held) != 0 {
 		t.Errorf("the session holds %+v, %v", held, err)
 	}
 }

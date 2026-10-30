@@ -30,7 +30,7 @@ func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
 		}
 		saved, err := got.Save()
 		if err != nil || !bytes.Equal(raw, saved) {
-			t.Fatal("default differs from exact native candidate bytes", err)
+			t.Fatal("default differs from current explicit candidate bytes", err)
 		}
 		metadata, err := os.ReadFile("provenance/chrome_156/" + platform + ".json")
 		if err != nil {
@@ -51,8 +51,34 @@ func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
 		if !reflect.DeepEqual(got.Behavior, basis.Behavior) || !reflect.DeepEqual(got.PerConnection, basis.PerConnection) {
 			t.Fatal("unmeasured policies were lost or inferred")
 		}
+		var inventory struct {
+			Profiles []struct {
+				File   string
+				Fields map[string]FieldOrigin
+			}
+		}
+		inventoryRaw, err := os.ReadFile("provenance/a10.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = json.Unmarshal(inventoryRaw, &inventory); err != nil {
+			t.Fatal(err)
+		}
+		current := map[string]FieldOrigin{}
+		for _, entry := range inventory.Profiles {
+			if entry.File == "data/chrome_156/"+platform+".json" {
+				current = entry.Fields
+			}
+		}
+		if len(current) != 8 {
+			t.Fatal("incomplete A10 origins")
+		}
 		for key := range basis.Behavior {
-			if provenance.Fields["behavior."+key].Class != "inherited" {
+			want := "inherited"
+			if origin, ok := current[key]; ok {
+				want = origin.Class
+			}
+			if provenance.Fields["behavior."+key].Class != want {
 				t.Fatalf("unmeasured field %s lost its origin", key)
 			}
 		}

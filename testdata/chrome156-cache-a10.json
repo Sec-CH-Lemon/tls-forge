@@ -1,0 +1,608 @@
+{
+  "build": "156.0.8078.74",
+  "platform": "macOS27.0.1arm64",
+  "cohorts": 2,
+  "protocols": [
+    "h1",
+    "h2",
+    "h3"
+  ],
+  "evidence": "docs/remediation/2026-10-30/A10.ru.md",
+  "cases": [
+    {
+      "id": "single-600",
+      "cache_control": [
+        "max-age=600"
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-single-600-1"
+        },
+        {
+          "status": 200,
+          "body": "body-single-600-1"
+        }
+      ]
+    },
+    {
+      "id": "zero600",
+      "cache_control": [
+        "max-age=0, max-age=600"
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-zero600-1"
+        },
+        {
+          "status": 200,
+          "body": "body-zero600-2"
+        }
+      ]
+    },
+    {
+      "id": "600zero",
+      "cache_control": [
+        "max-age=600, max-age=0"
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-600zero-1"
+        },
+        {
+          "status": 200,
+          "body": "body-600zero-1"
+        }
+      ]
+    },
+    {
+      "id": "600600",
+      "cache_control": [
+        "max-age=600, max-age=600"
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-600600-1"
+        },
+        {
+          "status": 200,
+          "body": "body-600600-1"
+        }
+      ]
+    },
+    {
+      "id": "lines-zero600",
+      "cache_control": [
+        "max-age=0",
+        "max-age=600"
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-lines-zero600-1"
+        },
+        {
+          "status": 200,
+          "body": "body-lines-zero600-2"
+        }
+      ]
+    },
+    {
+      "id": "lines-600zero",
+      "cache_control": [
+        "max-age=600",
+        "max-age=0"
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-lines-600zero-1"
+        },
+        {
+          "status": 200,
+          "body": "body-lines-600zero-1"
+        }
+      ]
+    },
+    {
+      "id": "ows-case",
+      "cache_control": [
+        "MaX-aGe = 600, MAX-AGE=0"
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-ows-case-1"
+        },
+        {
+          "status": 200,
+          "body": "body-ows-case-2"
+        }
+      ]
+    },
+    {
+      "id": "quoted600zero",
+      "cache_control": [
+        "max-age=\"600\", max-age=\"0\""
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-quoted600zero-1"
+        },
+        {
+          "status": 200,
+          "body": "body-quoted600zero-2"
+        }
+      ]
+    },
+    {
+      "id": "quoted-unknown",
+      "cache_control": [
+        "max-age=600, ext=\"a, no-store, b\""
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-quoted-unknown-1"
+        },
+        {
+          "status": 200,
+          "body": "body-quoted-unknown-1"
+        }
+      ]
+    },
+    {
+      "id": "escaped-unknown",
+      "cache_control": [
+        "max-age=600, ext=\"a\\\", no-store, b\""
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-escaped-unknown-1"
+        },
+        {
+          "status": 200,
+          "body": "body-escaped-unknown-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid-bogus-future",
+      "cache_control": [
+        "max-age=bogus"
+      ],
+      "expires": "future",
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-bogus-future-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-bogus-future-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid-bogus-past",
+      "cache_control": [
+        "max-age=bogus"
+      ],
+      "expires": "past",
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-bogus-past-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-bogus-past-2"
+        }
+      ]
+    },
+    {
+      "id": "invalid--1-future",
+      "cache_control": [
+        "max-age=-1"
+      ],
+      "expires": "future",
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid--1-future-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid--1-future-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid--1-past",
+      "cache_control": [
+        "max-age=-1"
+      ],
+      "expires": "past",
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid--1-past-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid--1-past-2"
+        }
+      ]
+    },
+    {
+      "id": "invalid-9223372036-future",
+      "cache_control": [
+        "max-age=9223372036854775808"
+      ],
+      "expires": "future",
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-9223372036-future-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-9223372036-future-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid-9223372036-past",
+      "cache_control": [
+        "max-age=9223372036854775808"
+      ],
+      "expires": "past",
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-9223372036-past-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-9223372036-past-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid-9999999999-future",
+      "cache_control": [
+        "max-age=999999999999999999999999999999"
+      ],
+      "expires": "future",
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-9999999999-future-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-9999999999-future-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid-9999999999-past",
+      "cache_control": [
+        "max-age=999999999999999999999999999999"
+      ],
+      "expires": "past",
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-9999999999-past-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-9999999999-past-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid-600oops-future",
+      "cache_control": [
+        "max-age=600oops"
+      ],
+      "expires": "future",
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-600oops-future-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-600oops-future-1"
+        }
+      ]
+    },
+    {
+      "id": "invalid-600oops-past",
+      "cache_control": [
+        "max-age=600oops"
+      ],
+      "expires": "past",
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-600oops-past-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-600oops-past-2"
+        }
+      ]
+    },
+    {
+      "id": "no-cache",
+      "cache_control": [
+        "max-age=600, no-cache"
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-no-cache-1"
+        },
+        {
+          "status": 200,
+          "body": "body-no-cache-2"
+        }
+      ]
+    },
+    {
+      "id": "no-store",
+      "cache_control": [
+        "max-age=600, no-store"
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-no-store-1"
+        },
+        {
+          "status": 200,
+          "body": "body-no-store-2"
+        }
+      ]
+    },
+    {
+      "id": "both",
+      "cache_control": [
+        "max-age=600, no-cache, no-store"
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-both-1"
+        },
+        {
+          "status": 200,
+          "body": "body-both-2"
+        }
+      ]
+    },
+    {
+      "id": "validators-both",
+      "cache_control": [
+        "max-age=0"
+      ],
+      "validators": "both",
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-validators-both-1"
+        },
+        {
+          "status": 200,
+          "body": "body-validators-both-1"
+        }
+      ]
+    },
+    {
+      "id": "validators-etag",
+      "cache_control": [
+        "max-age=0"
+      ],
+      "validators": "etag",
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-validators-etag-1"
+        },
+        {
+          "status": 200,
+          "body": "body-validators-etag-1"
+        }
+      ]
+    },
+    {
+      "id": "validators-modified",
+      "cache_control": [
+        "max-age=0"
+      ],
+      "validators": "modified",
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-validators-modified-1"
+        },
+        {
+          "status": 200,
+          "body": "body-validators-modified-1"
+        }
+      ]
+    },
+    {
+      "id": "validators-change",
+      "cache_control": [
+        "max-age=0"
+      ],
+      "validators": "both",
+      "changed": true,
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-validators-change-1"
+        },
+        {
+          "status": 200,
+          "body": "body-validators-change-2"
+        }
+      ]
+    },
+    {
+      "id": "quoted-single",
+      "cache_control": [
+        "max-age=\"600\""
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-quoted-single-1"
+        },
+        {
+          "status": 200,
+          "body": "body-quoted-single-2"
+        }
+      ]
+    },
+    {
+      "id": "invalid-first-valid",
+      "cache_control": [
+        "max-age=bogus, max-age=600"
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-invalid-first-valid-1"
+        },
+        {
+          "status": 200,
+          "body": "body-invalid-first-valid-1"
+        }
+      ]
+    },
+    {
+      "id": "valid-first-invalid",
+      "cache_control": [
+        "max-age=600, max-age=bogus"
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-valid-first-invalid-1"
+        },
+        {
+          "status": 200,
+          "body": "body-valid-first-invalid-1"
+        }
+      ]
+    },
+    {
+      "id": "quoted-first-valid",
+      "cache_control": [
+        "max-age=\"0\", max-age=600"
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-quoted-first-valid-1"
+        },
+        {
+          "status": 200,
+          "body": "body-quoted-first-valid-1"
+        }
+      ]
+    },
+    {
+      "id": "valid-first-quoted",
+      "cache_control": [
+        "max-age=600, max-age=\"0\""
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-valid-first-quoted-1"
+        },
+        {
+          "status": 200,
+          "body": "body-valid-first-quoted-1"
+        }
+      ]
+    },
+    {
+      "id": "ows-single",
+      "cache_control": [
+        "max-age = 600"
+      ],
+      "origin_requests": 2,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-ows-single-1"
+        },
+        {
+          "status": 200,
+          "body": "body-ows-single-2"
+        }
+      ]
+    },
+    {
+      "id": "ows-outer",
+      "cache_control": [
+        "  MaX-aGe=600  "
+      ],
+      "origin_requests": 1,
+      "api": [
+        {
+          "status": 200,
+          "body": "body-ows-outer-1"
+        },
+        {
+          "status": 200,
+          "body": "body-ows-outer-1"
+        }
+      ]
+    }
+  ]
+}

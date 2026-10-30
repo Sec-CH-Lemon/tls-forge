@@ -189,7 +189,7 @@ func TestAProxysPasswordIsWrittenNowhere(t *testing.T) {
 	for _, proxy := range []string{"http://alice:" + secret + "@[bad", "alice:" + secret + "@proxy.test:8080"} {
 		dir := t.TempDir()
 		t.Setenv("RUN_PROXY", proxy)
-		code, stdout, stderr := exec(t, "fetch", "-k", "--proxy-env", "RUN_PROXY",
+		code, stdout, stderr := execWorkflow(t, "fetch", "-k", "--proxy-env", "RUN_PROXY",
 			"--log", filepath.Join(dir, "run.jsonl"), "--trace", filepath.Join(dir, "trace.json"), server.URL)
 		if code != 2 || !strings.Contains(stderr, "tlsforge: bad usage: --proxy-env RUN_PROXY: ") ||
 			strings.Contains(stdout+stderr, secret) {
@@ -206,7 +206,7 @@ func TestAProxysPasswordIsWrittenNowhere(t *testing.T) {
 	// trace; and the CONNECT's credentials as they went, nowhere either.
 	dir := t.TempDir()
 	t.Setenv("RUN_PROXY", "http://alice:"+secret+"@"+refusingProxy(t))
-	code, stdout, stderr := exec(t, "fetch", "-k", "--proxy-env", "RUN_PROXY", "--json",
+	code, stdout, stderr := execWorkflow(t, "fetch", "-k", "--proxy-env", "RUN_PROXY", "--json",
 		"-o", filepath.Join(dir, "out"), "--pcap", "--log", filepath.Join(dir, "run.jsonl"),
 		"--trace", filepath.Join(dir, "trace.json"), "--report="+filepath.Join(dir, "report"),
 		"--report-format", "html,json", "--retry", "1", server.URL, server.URL+"/two")
@@ -229,7 +229,7 @@ func TestAProxysPasswordIsWrittenNowhere(t *testing.T) {
 	// One that takes the password, SOCKS5's in the clear: the same.
 	dir = t.TempDir()
 	t.Setenv("RUN_PROXY", "socks5://alice:"+secret+"@"+startSocksProxy(t, "alice", secret))
-	code, stdout, stderr = exec(t, "fetch", "-k", "--proxy-env", "RUN_PROXY", "--no-exit-lookup", "--json",
+	code, stdout, stderr = execWorkflow(t, "fetch", "-k", "--proxy-env", "RUN_PROXY", "--no-exit-lookup", "--json",
 		"-o", filepath.Join(dir, "out"), "--pcap", "--log", filepath.Join(dir, "run.jsonl"),
 		"--trace", filepath.Join(dir, "trace.json"), "--report="+filepath.Join(dir, "report"),
 		"--report-format", "html,json", server.URL)

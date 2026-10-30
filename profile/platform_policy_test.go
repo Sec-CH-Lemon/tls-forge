@@ -39,12 +39,17 @@ func TestPlatformPolicyInheritanceKeepsOSChoicesAndProvenance(t *testing.T) {
 		if meta.ProfileSHA256 != hex.EncodeToString(sum[:]) {
 			t.Fatal("provenance exact hash mismatch")
 		}
-		if len(meta.Fields) != 30 {
+		if len(meta.Fields) != 38 {
 			t.Fatalf("shared policy count %d", len(meta.Fields))
 		}
 		for field, origin := range meta.Fields {
 			key := strings.TrimPrefix(field, "behavior.")
-			if !reflect.DeepEqual(p.Behavior[key], basis.Behavior[key]) || origin.Class != "inherited" {
+			if !reflect.DeepEqual(p.Behavior[key], basis.Behavior[key]) || origin.Class != func() string {
+				if key == "http.instance_scope" || key == "http.cache_scope" {
+					return "user-provided"
+				}
+				return "inherited"
+			}() {
 				t.Fatalf("policy origin/value lost: %s", key)
 			}
 		}

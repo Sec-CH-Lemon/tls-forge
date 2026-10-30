@@ -274,7 +274,7 @@ func onWhich(kept []*keptRequest) string {
 func hopsAndAfter(t *testing.T, proto string, opts ...Option) string {
 	t.Helper()
 	server := newRecorder(t, proto, answeringAsMeasured)
-	client, err := New(append([]Option{WithProfile("chrome_155_macos"), server.trusting(t)}, opts...)...)
+	client, err := New(append([]Option{WithProfileValue(workflowProfile(shippedProfile(t, "chrome_155_macos"))), server.trusting(t)}, opts...)...)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

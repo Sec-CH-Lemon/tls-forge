@@ -25,13 +25,16 @@ import (
 )
 
 // Each scenario changes a real JSON file, then loads it through the public
-// profile parser. No transport/test-only setter substitutes for that path.
+// profile parser. Persistent browser sequences explicitly own client scope in
+// this fixture; a scenario can override it in JSON. Default isolation controls
+// use the shipped profiles directly. No transport-only setter replaces data.
 func policyFile(t *testing.T, values map[string]any) *profile.Profile {
 	t.Helper()
 	p, err := profile.Get("chrome_155_macos")
 	if err != nil {
 		t.Fatal(err)
 	}
+	p.Behavior["http.instance_scope"] = json.RawMessage(`"client"`)
 	p.Name = "neutral_profile"
 	p.UserAgent = "Metadata without a browser family"
 	for k, v := range values {

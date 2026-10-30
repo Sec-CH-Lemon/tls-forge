@@ -417,9 +417,8 @@ func TestListWarmsEveryRequest(t *testing.T) {
 	}
 }
 
-func TestListSavesOneSessionPerProxy(t *testing.T) {
-	// A jar is an identity, so two exits' sessions never share a set. The same
-	// URL twice is one host, asked once.
+func TestListSavesEachBrowserInstanceSeparately(t *testing.T) {
+	// Every request owns a jar, even when the URL and route are identical.
 	clock := fakeClock(t)
 	server := cookieEcho(t)
 	path := filepath.Join(t.TempDir(), "warm.json")
@@ -432,7 +431,7 @@ func TestListSavesOneSessionPerProxy(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (one URL went through a dead proxy)\n%s", code, stderr)
 	}
-	if !strings.Contains(stderr, "saved 2 cookies") {
+	if !strings.Contains(stderr, "saved 4 cookies") {
 		t.Errorf("stderr = %q", stderr)
 	}
 
@@ -445,11 +444,11 @@ func TestListSavesOneSessionPerProxy(t *testing.T) {
 		t.Fatalf("loading: %v", err)
 	}
 	// The dead proxy carried nothing, so it has no session to write down.
-	if len(file.Sets) != 1 {
+	if len(file.Sets) != 2 {
 		t.Fatalf("%d sets: %+v", len(file.Sets), file.Sets)
 	}
 	// And which run, which its log and its report are named after.
-	if file.Sets[0].Note != "direct, run "+stamp(clock.now()) {
+	if !strings.Contains(file.Sets[0].Note, "run "+stamp(clock.now())) {
 		t.Errorf("the set does not say which exit warmed it, and in which run: %q", file.Sets[0].Note)
 	}
 }
@@ -490,11 +489,11 @@ func TestSaveSessionWritesTheWholeJar(t *testing.T) {
 		t.Fatalf("client: %v", err)
 	}
 	defer func() { _ = client.Close() }()
-	if _, err := client.Get(server.URL + "/hop"); err != nil {
-		t.Fatalf("Get: %v", err)
+	res, err := client.Get(server.URL + "/hop")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	saved, err := flags.saveSession(client, "")
+	saved, err := flags.saveCookieSnapshot(res.AllCookies(), "")
 	if err != nil || saved != 2 {
 		t.Fatalf("saveSession = %d, %v; want the two cookies the redirect's host set", saved, err)
 	}

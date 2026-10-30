@@ -118,7 +118,7 @@ func TestRawPresetCannotReplaceValidatedEngineProfile(t *testing.T) {
 		return nil, fmt.Errorf("unexpected dial")
 	})
 	for _, raw := range []tc.HttpClientOption{tc.WithClientProfile(profiles.Firefox_148), tc.WithLockedClientProfile(profiles.Chrome_133, "another")} {
-		c, err := New(WithProfile("chrome_155_macos"), WithTransportOption(dial, raw))
+		c, err := New(WithProfileValue(workflowProfile(shippedProfile(t, "chrome_155_macos"))), WithTransportOption(dial, raw))
 		if err == nil {
 			c.CloseIdleConnections()
 			t.Fatal("raw profile bypass")

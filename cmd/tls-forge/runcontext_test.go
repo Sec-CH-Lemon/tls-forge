@@ -251,7 +251,7 @@ func TestEveryOutputOfARunNamesTheOneRun(t *testing.T) {
 	server := cookieEcho(t)
 	dir := t.TempDir()
 	out, trace, session := filepath.Join(dir, "out"), filepath.Join(dir, "trace.json"), filepath.Join(dir, "session.json")
-	code, _, stderr := exec(t, "fetch", "-k", "-o", out, "--trace", trace, "--save-cookies", session,
+	code, _, stderr := execWorkflow(t, "fetch", "-k", "-o", out, "--trace", trace, "--save-cookies", session,
 		"--report", "--report-format", "html,json", server.URL+"/set")
 	if code != 0 {
 		t.Fatalf("exit %d\n%s", code, stderr)
@@ -291,7 +291,7 @@ func TestEveryOutputOfARunNamesTheOneRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the session: %v", err)
 	}
-	if file, err := cookie.Load(data); err != nil || len(file.Sets) != 1 || file.Sets[0].Note != "direct, run "+id {
+	if file, err := cookie.Load(data); err != nil || len(file.Sets) != 1 || file.Sets[0].Note != "run "+id+", request 1, try 1" {
 		t.Errorf("the session saved is %+v, %v", file, err)
 	}
 }

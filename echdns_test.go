@@ -621,12 +621,8 @@ func echNames(t *testing.T, records map[string]*dnsmessage.SVCBResource, aLate, 
 // echClient is chrome_155_macos asking the names of dns.
 func echClient(t *testing.T, dns *dnsFake, opts ...Option) *Client {
 	t.Helper()
-	c, err := New(append([]Option{WithProfile("chrome_155_macos"), WithDNSServer(dns.addr), WithInsecureSkipVerify(),
+	c := newTestClient(t, append([]Option{WithProfile("chrome_155_macos"), WithDNSServer(dns.addr),
 		WithTimeout(10 * time.Second)}, opts...)...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = c.Close() })
 	return c
 }
 

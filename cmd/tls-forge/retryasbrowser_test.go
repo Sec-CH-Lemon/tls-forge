@@ -85,7 +85,7 @@ func TestFetchRetriesAsAPersonReloadsThePageInChrome(t *testing.T) {
 	for _, h2 := range []bool{true, false} {
 		t.Run(map[bool]string{true: "h2", false: "h1"}[h2], func(t *testing.T) {
 			site, seen := refusingOnce(t, h2)
-			code, stdout, stderr := exec(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "-v",
+			code, stdout, stderr := execWorkflow(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "-v",
 				site.URL+"/deny/page")
 			if code != 0 || stdout != "page" {
 				t.Fatalf("exit code = %d, stdout %q\n%s", code, stdout, stderr)
@@ -137,7 +137,7 @@ func TestFetchRetriesOnAConnectionOfItsOwnUnlessAsABrowser(t *testing.T) {
 
 func TestFetchReloadsThePageARedirectLedTo(t *testing.T) {
 	site, seen := refusingOnce(t, true)
-	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser",
+	code, _, stderr := execWorkflow(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser",
 		site.URL+"/r?to=/deny/end")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -153,7 +153,7 @@ func TestFetchReloadsThePageARedirectLedTo(t *testing.T) {
 
 func TestFetchPostsAFormAgainAsAPersonReloadsItInChrome(t *testing.T) {
 	site, seen := refusingOnce(t, true)
-	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "--request-kind", "form",
+	code, _, stderr := execWorkflow(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "--request-kind", "form",
 		"--initiator-url", site.URL+"/form", "--clicked", "-X", "POST", "-d", "a=b", site.URL+"/deny/post")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -178,7 +178,7 @@ func TestFetchPostsAFormAgainAsAPersonReloadsItInChrome(t *testing.T) {
 
 func TestFetchSendsAScriptsRequestAgainAsItsPageWould(t *testing.T) {
 	site, seen := refusingOnce(t, true)
-	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "-v",
+	code, _, stderr := execWorkflow(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "-v",
 		"--request-kind", "fetch", "--initiator-url", site.URL+"/page", site.URL+"/deny/api")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -203,7 +203,7 @@ func TestFetchSendsAScriptsRequestAgainAsItsPageWould(t *testing.T) {
 func TestFetchLogsATryMadeAgainAsAReload(t *testing.T) {
 	site, _ := refusingOnce(t, true)
 	log := filepath.Join(t.TempDir(), "run.jsonl")
-	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "--log", log,
+	code, _, stderr := execWorkflow(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "--log", log,
 		site.URL+"/deny/page")
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
@@ -252,7 +252,7 @@ func TestRetryAsABrowserAndAClickAreRefusedWhereTheyMeanNothing(t *testing.T) {
 			`--retry-as-browser: ` + page + `: profile "firefox_148" sends a request without a browser context as it is ` +
 				`given, which opens no page to reload`},
 	} {
-		code, _, stderr := exec(t, append([]string{"fetch", "--insecure"}, tc.args...)...)
+		code, _, stderr := execWorkflow(t, append([]string{"fetch", "--insecure"}, tc.args...)...)
 		if code != 2 || !strings.Contains(stderr, tc.says) {
 			t.Errorf("%v: exit code %d\n%s\nwant %q", tc.args, code, stderr, tc.says)
 		}

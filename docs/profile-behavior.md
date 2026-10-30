@@ -1905,3 +1905,38 @@ The executable profile gate requires this choice. Offline archives retain an
 absent choice; explicit migration creates a separate candidate with an explicit
 selection. The engine implements insertion, while JSON selects its placement.
 This primitive shares the existing unpublished1.0.0 candidate, not another major.
+
+## Browser instance ownership and cache policy (A10)
+
+All executable profiles explicitly select `http.instance_scope` (`request` or
+`client`). Shipped files and catalogue policies select `request`: every top-level
+`Client.Do` starts with fresh network state. Redirects and internal retries keep
+that call's state. No request carries another call's received cookies, auth,
+cache, hints, preflights, DNS/QUIC learning, TLS sessions or connection pools.
+`Fresh` reconstructs these resources too. This is the owner's isolation contract,
+not an observation that a long-lived browser discards state after each request.
+An external JSON profile can explicitly select `client` for one persistent browser.
+
+| JSON key | Implemented choices / constraints |
+| --- | --- |
+| `http.cache_scope` | `browser-context` includes implicit typed navigation; `explicit-context` caches only explicit browser contexts. Sent/proxy requests always bypass local cache. |
+| `http.cache_validators` | Ordered, unique list containing `if-none-match` and/or `if-modified-since`; empty disables automatic validators. Chrome156 data selects both. |
+| `cache.duplicate_freshness_policy` | `first` selects the first acceptable numeric directive; `stale` treats repetitions as zero freshness. |
+| `cache.invalid_freshness_policy` | `ignore` skips invalid directives and permits a later valid value or Expires; `stale` forces zero freshness. |
+| `cache.freshness_quoted_values` | Whether quoted numeric freshness values are accepted. Chrome156 observations select false. |
+| `cache.delta_seconds_limit` | Saturation limit in seconds, 1..9223372036; duration overflow is never permitted. Shipped Chrome policy uses4294967295 from Chromium uint32 parsing; finite samples do not establish the exact saturation threshold. |
+| `cache.generated_header_order` | Unique lowercase field names,2..256 entries, including Range/If-Range and selected validators. Existing request-layout slots keep their positions; a newly generated missing field is inserted before the next listed field already in that layout, or appended. |
+
+These eight keys, including `http.instance_scope`, are mandatory for execution in
+this unpublished engine1 candidate. Missing/invalid choices fail before I/O.
+Offline Inspect/Save/Clone preserve absence; only explicit migration adds rules
+from the engine1 JSON additions. Frozen legacy templates remain unchanged.
+The engine retains an ordered Cache-Control representation with original field
+lines, raw segments, decoded quoted values and validity. Commas inside quoted
+strings never become directives. Revalidation adds each selected validator from
+the cached metadata; wire positions come from the profile layouts.
+
+[A10 evidence and boundaries](remediation/2026-10-30/A10.ru.md) distinguish the
+measured156macOS rules from inherited older-build/platform choices. A8 exact-source
+acceptance remains historical after these JSON additions. The engine remains the
+single unpublished1.0.0 candidate anchored to published0.2.2.

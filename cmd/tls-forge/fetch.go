@@ -339,17 +339,11 @@ func (f clientFlags) warmFrom(file *cookie.File) (warmSession, error) {
 	return session, nil
 }
 
-// saveSession writes down everything the client's jar ended up holding, so a
-// session warmed by a run can be used by the next one: every cookie of every
-// host, a redirect's as well as the URLs', each with its scope, its lifetime
-// and its SameSite.
-//
-// Under an id naming when it was warmed, and appended to whatever the file
-// already held: a file of sessions is built up over time rather than replaced
-// by the last run.
-func (f clientFlags) saveSession(client *tlsforge.Client, note string) (int, error) {
+// saveCookieSnapshot exports one browser's complete jar, including redirect
+// hosts. A later request never receives this snapshot implicitly.
+func (f clientFlags) saveCookieSnapshot(cookies []tlsforge.Cookie, note string) (int, error) {
 	set := cookie.Set{ID: now().Format("2006-01-02-15-04-05"), Warmed: now(), Note: note}
-	for _, c := range client.AllCookies() {
+	for _, c := range cookies {
 		set.Cookies = append(set.Cookies, cookie.Cookie{
 			Name: c.Name, Value: c.Value, Domain: c.Domain, HostOnly: c.HostOnly, Path: c.Path,
 			Secure: c.Secure, HTTPOnly: c.HTTPOnly, Expires: c.Expires, SameSite: c.SameSite,
@@ -662,6 +656,9 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	}
 	if err := again.check(); err != nil {
 		return nil, err
+	}
+	if worn.RuntimeBehavior().Text("http.instance_scope") == "request" && (*again.reuse || *again.asBrowser) {
+		return nil, fmt.Errorf("%w: --reuse-connection and --retry-as-browser require an explicit profile with http.instance_scope=client; this profile isolates every request", errUsage)
 	}
 	// Checked before the list is read, so a misspelling costs a message rather
 	// than a run that turns out to have nowhere to report itself.

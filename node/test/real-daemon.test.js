@@ -250,11 +250,11 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
     }) + '\n');
     const body = 'x'.repeat(MAX_REQUEST_BYTES - overhead);
     await client.post(url, body, { browserContext });
-    assert.deepEqual(seen, { cookie: 'visitor=42', length: body.length });
+    assert.deepEqual(seen, { cookie: '', length: body.length });
 
     await assert.rejects(() => client.post(url, `${body}x`, { browserContext }), RangeError);
     await client.get(url);
-    assert.deepEqual(seen, { cookie: 'visitor=42', length: 0 });
+    assert.deepEqual(seen, { cookie: '', length: 0 });
   } finally {
     client.close();
     await new Promise((resolve) => origin.close(resolve));
@@ -386,5 +386,29 @@ test('the real daemon rejects invalid UTF-8 URL hosts before transport', { skip:
     }
   } finally {
     client.close();
+  }
+});
+
+test('each Node request through the real daemon owns a cold browser', { skip: !binary }, async () => {
+  const peers = [], cookies = [];
+  const origin = await listen(http.createServer((request, response) => {
+    peers.push(request.socket.remotePort);
+    cookies.push(request.headers.cookie ?? '');
+    assert.equal(request.headers['if-none-match'], undefined);
+    response.writeHead(200, { 'cache-control': 'max-age=600', etag: '"v1"', 'set-cookie': 'received=secret; Path=/' });
+    response.end(`body-${peers.length}`);
+  }));
+  const client = new Client({ binary });
+  try {
+    const base = `http://127.0.0.1:${origin.address().port}`;
+    for (let i = 1; i <= 4; i++) {
+      const options = i <= 2 ? {} : { browserContext: { kind: 'fetch', initiator: `${base}/start` } };
+      assert.equal((await client.get(`${base}/page`, options)).body, `body-${i}`);
+    }
+    assert.deepEqual(cookies, ['', '', '', '']);
+    assert.equal(new Set(peers).size, 4);
+  } finally {
+    client.close();
+    await new Promise((resolve) => origin.close(resolve));
   }
 });

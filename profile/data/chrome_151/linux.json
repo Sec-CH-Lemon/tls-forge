@@ -2,8 +2,19 @@
   "schema": 4,
   "engine_major": 1,
   "behavior": {
+    "cache.delta_seconds_limit": 4294967295,
+    "cache.duplicate_freshness_policy": "first",
     "cache.entries": 256,
     "cache.entry_bytes": 8388608,
+    "cache.freshness_quoted_values": false,
+    "cache.generated_header_order": [
+      "if-none-match",
+      "if-modified-since",
+      "range",
+      "if-range",
+      "priority"
+    ],
+    "cache.invalid_freshness_policy": "ignore",
     "cache.total_bytes": 67108864,
     "cookie.ip_domain_host_only": true,
     "cookie.lax_unsafe_age_seconds": 120,
@@ -573,6 +584,11 @@
       "negotiate"
     ],
     "http.body_read_bytes": 8192,
+    "http.cache_scope": "browser-context",
+    "http.cache_validators": [
+      "if-none-match",
+      "if-modified-since"
+    ],
     "http.connection_error_methods": "any",
     "http.connection_error_retries": 50,
     "http.content_coding_overflow": "error",
@@ -596,6 +612,7 @@
     "http.first_bytes_ms": 0,
     "http.gzip_decoder": "prefix-first-member",
     "http.ignored_content_codings": [],
+    "http.instance_scope": "request",
     "http.max_auth_restarts": 32,
     "http.max_content_codings": 10,
     "http.max_site_pools": 64,

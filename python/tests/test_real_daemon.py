@@ -363,12 +363,12 @@ def test_the_real_go_daemon_reads_a_request_as_long_as_the_limit() -> None:
             )
             body = "x" * (MAX_REQUEST_BYTES - overhead)
             client.post(url, body, browser_context=context)
-            assert _SessionHandler.seen == {"cookie": "visitor=42", "length": len(body)}
+            assert _SessionHandler.seen == {"cookie": "", "length": len(body)}
 
             with pytest.raises(ValueError, match="more than"):
                 client.post(url, body + "x", browser_context=context)
             client.get(url)
-            assert _SessionHandler.seen == {"cookie": "visitor=42", "length": 0}
+            assert _SessionHandler.seen == {"cookie": "", "length": 0}
     finally:
         origin.shutdown()
         origin.server_close()
@@ -526,3 +526,49 @@ def test_real_daemon_rejects_invalid_utf8_url_hosts_before_transport() -> None:
         for host in ("%80.invalid", "%C0%AF.invalid", "%ED%A0%80.invalid"):
             with pytest.raises(RequestFailed, match="not valid UTF-8"):
                 client.get(f"https://{host}/")
+
+
+def test_each_python_request_owns_a_cold_browser() -> None:
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+    peers: list[int] = []
+    cookies: list[str] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def do_GET(self) -> None:  # noqa: N802
+            peers.append(self.client_address[1])
+            cookies.append(self.headers.get("Cookie", ""))
+            assert self.headers.get("If-None-Match") is None
+            body = f"body-{len(peers)}".encode()
+            self.send_response(200)
+            self.send_header("Cache-Control", "max-age=600")
+            self.send_header("ETag", '"v1"')
+            self.send_header("Set-Cookie", "received=secret; Path=/")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with Client(binary=binary) as client:
+            base = f"http://127.0.0.1:{server.server_port}"
+            for i in range(1, 5):
+                if i <= 2:
+                    response = client.get(base + "/page")
+                else:
+                    response = client.get(base + "/page", browser_context=BrowserContext(kind="fetch", initiator=base + "/start"))
+                assert response.body == f"body-{i}"
+        assert cookies == ["", "", "", ""]
+        assert len(set(peers)) == 4
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)

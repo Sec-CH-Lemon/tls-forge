@@ -343,7 +343,7 @@ func TestACachedPreflightIsTheSessions(t *testing.T) {
 	for _, got := range server.requests() {
 		methods = append(methods, got.method)
 	}
-	if strings.Join(methods, ",") != "OPTIONS,DELETE,DELETE,OPTIONS,DELETE" {
+	if strings.Join(methods, ",") != "OPTIONS,DELETE,OPTIONS,DELETE,OPTIONS,DELETE" {
 		t.Errorf("sent %v", methods)
 	}
 }

@@ -206,7 +206,7 @@ func TestAHopAfterOneSentAgainForA421GoesOutOnASharedConnection(t *testing.T) {
 		w.Header().Set("Location", "https://api.example.com/y")
 		w.WriteHeader(http.StatusFound)
 	}))
-	client, err := New(WithProfile("chrome_155_macos"), server.trusting(t))
+	client, err := New(WithProfileValue(workflowProfile(shippedProfile(t, "chrome_155_macos"))), server.trusting(t))
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

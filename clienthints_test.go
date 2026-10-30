@@ -107,14 +107,14 @@ func TestAPagesHintsGoToItsOriginAlone(t *testing.T) {
 	if got := client.hintsOf(r, r.first(mustURL(t, "https://www.example.com/x"))); got != nil {
 		t.Errorf("%v", got)
 	}
-	// A client made Fresh shares what was asked, as the session's.
+	// A fresh client receives none of the original browser's learned hints.
 	fresh, err := client.Fresh()
 	if err != nil {
 		t.Fatalf("Fresh: %v", err)
 	}
 	t.Cleanup(func() { _ = fresh.Close() })
-	if fresh.session.hints != client.session.hints {
-		t.Error("a fresh client keeps hints of its own")
+	if fresh.session.hints == client.session.hints || fresh.session.hints.of(originOf(page)) != nil {
+		t.Error("a fresh client inherited learned hints")
 	}
 	// Another client is another identity, and knows nothing of them.
 	if other := contextClient(t, server); other.session.hints == client.session.hints || other.session.hints.of(originOf(page)) != nil {

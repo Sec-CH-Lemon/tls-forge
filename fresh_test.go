@@ -107,7 +107,7 @@ func TestAFreshClientResumesNoSessionOfAnother(t *testing.T) {
 	}
 }
 
-func TestAFreshClientSharesTheSession(t *testing.T) {
+func TestAFreshClientRetainsOnlyExplicitCookieInputs(t *testing.T) {
 	var mu sync.Mutex
 	var heard []string
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,8 +136,8 @@ func TestAFreshClientSharesTheSession(t *testing.T) {
 	}
 	defer func() { _ = second.Close() }()
 
-	// The warmed cookie goes with whichever asks first, and what the server
-	// replaced it with goes with the rest: it is filed once, and not put back.
+	// Explicit cookie inputs seed each instance. Received replacements stay
+	// with the browser that received them.
 	for _, ask := range []struct {
 		client *Client
 		path   string
@@ -146,10 +146,10 @@ func TestAFreshClientSharesTheSession(t *testing.T) {
 			t.Fatalf("Do %s: %v", ask.path, err)
 		}
 	}
-	if want := []string{"warm=1", "warm=2", "new=1; warm=2"}; !slices.Equal(heard, want) {
+	if want := []string{"warm=1", "warm=1", "warm=1"}; !slices.Equal(heard, want) {
 		t.Errorf("the server heard %q, want %q", heard, want)
 	}
-	// And the client holds what the fresh ones were given.
+	// The original browser received neither replacement.
 	held, err := client.Cookies(server.URL)
 	if err != nil {
 		t.Fatalf("Cookies: %v", err)
@@ -158,7 +158,7 @@ func TestAFreshClientSharesTheSession(t *testing.T) {
 	for _, cookie := range held {
 		names = append(names, cookie.Name+"="+cookie.Value)
 	}
-	if slices.Sort(names); !slices.Equal(names, []string{"new=1", "warm=2"}) {
+	if slices.Sort(names); !slices.Equal(names, []string{"warm=1"}) {
 		t.Errorf("the client holds %q", names)
 	}
 }

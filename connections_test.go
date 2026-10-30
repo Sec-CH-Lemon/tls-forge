@@ -185,7 +185,7 @@ func sendOnConnections(t *testing.T, p *profile.Profile, proto, id string, asked
 	want []harness.Request) []*keptRequest {
 	t.Helper()
 	server := newRecorder(t, proto, answeringAsMeasured)
-	client, err := New(WithProfileValue(p), server.trusting(t))
+	client, err := New(WithProfileValue(workflowProfile(p)), server.trusting(t))
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

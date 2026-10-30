@@ -1,12 +1,44 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "5b2f3de1b61935eaec495f9b2373a4725ca17d6a79b74cc00e8084b37c0f7bc8",
+  "profile_sha256": "0efd780a264d3693e26c07c2394d3f9f5f1a3c4071c481459f052b6833667d64",
   "previous_profile_sha256": "4385f1aebb6153092fb3ffa7bb90590d975c8c2d3b2fb9e050ded6f584af1dd8",
   "change": "A8 JSON-only QPACK first-section state rule",
   "fields": {
     "behavior.h3.qpack.encoder_warmup_sections": {
       "class": "inherited",
       "source": "Chrome156 pinned quiche and two new headed macOS156 cohorts; no explicit skipped section counter"
+    },
+    "behavior.http.instance_scope": {
+      "class": "user-provided",
+      "source": "Owner decision2026-10-30:each top-level request owns a fresh browser instance"
+    },
+    "behavior.http.cache_scope": {
+      "class": "user-provided",
+      "source": "Explicit browser-context cache mechanism; request-owned instances have no cross-call cache"
+    },
+    "behavior.http.cache_validators": {
+      "class": "inherited",
+      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
+    },
+    "behavior.cache.duplicate_freshness_policy": {
+      "class": "inherited",
+      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
+    },
+    "behavior.cache.invalid_freshness_policy": {
+      "class": "inherited",
+      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
+    },
+    "behavior.cache.freshness_quoted_values": {
+      "class": "inherited",
+      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
+    },
+    "behavior.cache.delta_seconds_limit": {
+      "class": "inherited",
+      "source": "Chromium main http_response_headers.cc blob242c34edcfc8b3759dc82f2a14aff863158fb822 uint32 saturation; finite156samples establish saturated hit behavior,not exact threshold"
+    },
+    "behavior.cache.generated_header_order": {
+      "class": "inherited",
+      "source": "Existing profile validator slots preserved; ordered generated range fallback replaces prior fixed-before-priority mechanism; range positions not freshly measured in A10"
     }
   },
   "acceptance": "Chrome156 rule observed; historical155 not freshly measured",
@@ -15,6 +47,13 @@
       "change": "Explicit h3.grease_setting_placement=before-greater-id from pinned156 HttpEncoder sorted serializer;N=0 lower-boundary wire correction",
       "previous_profile_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
       "source": "quiche a1628192cf32ba40d21e0dd80f485d68c24ff87a/http_encoder.cc;not a new155 browser observation"
+    },
+    {
+      "change": "A10 explicit request ownership and cache policy",
+      "previous_profile_sha256": "5b2f3de1b61935eaec495f9b2373a4725ca17d6a79b74cc00e8084b37c0f7bc8",
+      "inventory": "profile/provenance/a10.json",
+      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md",
+      "acceptance": "A8 exact-source acceptance stays historical; see A10 field scope"
     }
   ]
 }

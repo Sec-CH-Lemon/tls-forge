@@ -422,7 +422,7 @@ func TestTraceKeepsWhatAWrongAnswerSaidAndWhyItWasAskedAgain(t *testing.T) {
 	t.Cleanup(server.Close)
 	path := filepath.Join(t.TempDir(), "trace.json")
 
-	code, stdout, stderr := exec(t, "fetch", "--retry", "2", "--reuse-connection", "--trace", path, server.URL)
+	code, stdout, stderr := execWorkflow(t, "fetch", "--retry", "2", "--reuse-connection", "--trace", path, server.URL)
 	if code != 0 || stdout != "page" {
 		t.Fatalf("exit code = %d, stdout = %q\n%s", code, stdout, stderr)
 	}

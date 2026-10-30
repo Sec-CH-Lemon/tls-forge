@@ -11,6 +11,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Give every request its own browser network instance with shipped profiles,
+  including CLI/Go/Node/Python/daemon requests, repeats and application retries.
+  Keep redirects and protocol retries inside that instance. Reconstruct DNS/QUIC,
+  TLS, pools, auth, cookies, hints, preflights and cache; Fresh no longer shares
+  received state. Persistent workflows require explicit JSON client scope.
+- Preserve ordered Cache-Control grammar and quoted commas; select duplicate,
+  invalid, quoted and saturation rules from JSON. Add both selected validators
+  in profile-owned wire slots. Export cookie snapshots per instance, including
+  failed requests; reject multiple instances in Netscape output before writing.
+  Request scope rejects opaque shared jars and transport overrides. Remain on
+  the coordinated unpublished engine1.0.0 candidate.
+
 - Close A9 with all27native CI jobs accepted after the explicit H1 fixture
   overlap correction. Retain original failed transcripts, unchanged runtime
   identities, strict gates and private before/after archive manifests.

@@ -1,5 +1,12 @@
 # TLS Forge for Node.js
 
+With shipped profiles, every request owns a fresh browser network instance.
+Received cookies, HTTP cache, auth, connection pools and TLS sessions do not carry
+between calls. Redirects and protocol retries retain that call's state. Explicit
+cookie inputs seed each instance independently; a BrowserContext describes the
+request context and does not join instances. An external JSON profile can choose
+`behavior.http.instance_scope: "client"` for an explicitly persistent workflow.
+
 ## Engine/profile compatibility (1.0.0)
 
 The compiled engine version is **1.0.0**, independently of the browser build and
@@ -294,11 +301,12 @@ base64, and the newline. Such a request is refused before it is queued, and
 the transport and its session are left as they were.
 
 A timeout or a broken write stops the transport, and a transport can die. The
-session in it goes with it: its cookies, TLS sessions and connections. The
+active browser instance ends with it; an explicit persistent profile also loses
+its retained cookies, TLS sessions and connections. The
 request it was working on fails with the reason, and every request waiting
 behind it is rejected with `SessionReset`, without being sent; when none was
-waiting, the next request made is. Requests after that start a new session in
-a new transport. The client never promises the identity it had before, so a
+waiting, the next request made is. Requests after that use a new transport; shipped profiles still create an
+independent browser instance for every call. The client never promises the identity it had before, so a
 session that has to be the same one is warmed again, or kept in a cookie file.
 Each request and response carries a monotonically increasing id, so a late
 answer cannot resolve a newer request.

@@ -154,12 +154,12 @@ func TestFetchAsksAgainAsAPersonWouldForWhatItSendsFromItsOwnPage(t *testing.T) 
 	// XHR a request without a kind goes as is sent again as the page's
 	// script sends it: as it was, on the connection it went on.
 	site, seen := refusingOnce(t, true)
-	code, _, stderr := exec(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "--form", "-X", "POST",
+	code, _, stderr := execWorkflow(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "--form", "-X", "POST",
 		"-d", "a=b", site.URL+"/deny/form")
 	if code != 0 {
 		t.Fatalf("exit code %d:\n%s", code, stderr)
 	}
-	code, _, stderr = exec(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "-X", "POST",
+	code, _, stderr = execWorkflow(t, "fetch", "--insecure", "--retry", "1", "--retry-as-browser", "-X", "POST",
 		"-d", "a=b", site.URL+"/deny/xhr")
 	if code != 0 || !strings.Contains(stderr, "tried again as the page's script sends it again") {
 		t.Fatalf("exit code %d:\n%s", code, stderr)

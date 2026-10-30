@@ -118,7 +118,11 @@ locally installed profile; select `local` explicitly when that is desired.
 answer it went on from on (below), and is final. Calls made after close
 return an error; construct another client to create another identity.
 
-A connection is kept and closed as the profile's browser keeps and closes it
+The stateful sequences described below apply within one browser instance.
+Across ordinary calls the shipped profiles start cold; a persistent workflow
+requires explicit client-scope JSON.
+
+Within one browser instance, a connection is kept and closed as the profile's browser keeps and closes it
 ([connection lifecycle](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1)).
 With a shipped Chrome profile no close sends a TLS close_notify, `Close` and
 `CloseIdleConnections` included; an idle HTTP/2 connection is kept until its
@@ -164,14 +168,30 @@ one extension more, the same as Chrome's. `Client.CloseIdleConnections()`
 closes the connections a client holds open between requests, so that the next
 request opens a new one, which then resumes; the client stays open.
 
-`Client.Fresh()` is a client of the same session, with the same profile, header
-fields, cookie jar and warmed cookies, and connections and a TLS session cache
-of its own. What it sends shares no connection with the client or any other
-fresh one, and resumes none of their TLS sessions, which would tell a server
-the two connections were one visitor. Through a proxy that hands every
-connection an address, each fresh client comes out of an address of its own
-while the session stays one. Close each when it is done with; that leaves the
-client, and the session they share, as they were.
+`Client.Fresh()` reconstructs an independent client from explicit inputs. It
+never shares received cookies, authentication, HTTP cache, Client Hints,
+preflights, DNS/QUIC learning, connections or TLS sessions. Explicit `WithCookies`
+inputs seed each new browser independently. An opaque `WithCookieJar` cannot be
+cloned; `Fresh` rejects it. Close each returned client separately.
+
+With shipped profiles, **each `Do` owns a new browser instance** and closes it
+when the buffered response completes. Redirects, authentication restarts,
+preflights and protocol retries stay inside that instance. A repeated call starts
+cold even when it has the same URL and `BrowserContext`. Constructor inputs are
+configuration, not state learned by earlier calls. The engine also refuses opaque
+cookie jars and `WithTransportOption` overrides in request scope, before transport
+construction: such callbacks can hide shared state. Express request-scope transport
+choices in JSON. An external JSON profile may explicitly select
+`behavior.http.instance_scope: "client"` for a persistent workflow. Transport
+callbacks used with that explicit mode remain caller-owned external state.
+
+Use `Response.AllCookies()` to export one completed browser's snapshot. After a
+failed isolated request, `errors.As(err, &requestError)` with a
+`*tlsforge.RequestError` exposes `AllCookies()` and preserves the original cause
+through `Unwrap`. Neither export seeds a later call. `Client.AllCookies()` /
+`CookiesFor` refer to that client's own jar, which remains unused as a request
+factory. `Close` refuses new instances and closes its active instances' transports;
+existing response reads keep their own deadlines.
 
 ```go
 fresh, err := client.Fresh()
@@ -197,13 +217,13 @@ Every option below is passed to `tlsforge.New(options...)`.
 | `WithHeaders(header)` | Layer ordered default headers over the profile for every request. Existing names keep their profile position. |
 | `WithCookies(cookies)` | Seed the client's jar with a warmed session. Cookies are matched to each request URL before being inserted. |
 | `WithoutCookieJar()` | Disable cookie storage. Use this when another layer, such as an intercepting proxy, owns the `Cookie` header. |
-| `WithCookieJar(jar)` | Supply an `fhttp.CookieJar`, for example to share or persist a jar. |
+| `WithCookieJar(jar)` | Supply an opaque jar only with an explicit client-scope profile; request scope rejects shared jars. |
 | `WithoutRedirects()` | Return the first 3xx response instead of following it. Redirects are followed by default as Chrome follows them ([Redirects](#redirects)): nineteen for navigation/form/low-level requests; twenty for Fetch/XHR contexts. |
 | `WithoutSessionResumption()` | Keep no TLS session to resume, so that every connection is the cold handshake of a first contact. Without it a profile whose browser resumes does as the browser does; see below. |
 | `WithInsecureSkipVerify()` | Disable upstream certificate verification. Intended for controlled local test endpoints. |
 | `WithFixedExtensionOrder()` | Force a stable TLS extension order. Firefox and Safari profiles already select this behaviour automatically. |
 | `WithRandomExtensionOrder()` | Force per-connection TLS extension shuffling, every order of the extensions that move as likely as any other, as Chrome draws one. Chromium profiles select it automatically; the override is useful for custom Chromium profiles whose identity cannot be inferred. |
-| `WithTransportOption(options...)` | Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. One that sets what tls-forge sets replaces it; see [Transport options](#transport-options). |
+| `WithTransportOption(options...)` | Requires explicit client scope. Pass advanced `tls-client` transport options through when the wrapper does not expose them directly. One that sets what tls-forge sets replaces it; see [Transport options](#transport-options). |
 | `WithLogger(logger)` | Write down what the client does, as it does it, to a `*slog.Logger`; see [Logging](#logging). |
 | `WithKeyLogWriter(w)` | Write the TLS secrets of every connection the client makes, to the sites and to an HTTPS proxy, to an `io.Writer` in the NSS key log format, for Wireshark to read a capture with; see [Reading a client in Wireshark](#reading-a-client-in-wireshark). |
 | `WithDNSServer(address)` | Look names up with the DNS server at `address` (an IP address, with a port or without one for 53) instead of the machine's servers: the addresses, and the HTTPS records whose ECH configs a connection offers and whose ALPN may send it over HTTP/3; see [Encrypted Client Hello](#encrypted-client-hello) and [HTTP/3 from DNS](#http3-from-dns). For direct connections: through a proxy the names are the proxy's, and transport options of the caller's replace the dialer that would ask. |
@@ -241,7 +261,7 @@ bogdanfinn's, whose `LEMON.md` says what it changes. An option is written with
 `fhttp.CookieJar` of that fhttp, and a type of utls, as the `ClientHelloSpec`
 `profile.Profile.Spec` returns, is that utls's.
 
-`WithTransportOption` hands tls-client options to the transport after
+In an explicit client-scope profile, `WithTransportOption` hands tls-client options to the transport after
 tls-forge's own. An option that sets what tls-forge already sets replaces it,
 and what tls-forge did with it goes too:
 
@@ -334,7 +354,7 @@ while QUIC has not worked in it). The first up takes the request; the other
 is made all the same, a QUIC connection taking the requests to its origin
 after it, a TCP one kept unused for the next over TCP. QUIC that failed where
 TCP did not is not tried again for a while (`quic.broken_*`). What the
-session knows of QUIC its `Fresh` clients share.
+session knows of QUIC remains inside that browser; `Fresh` starts cold.
 
 ```go
 client, err := tlsforge.New(tlsforge.WithProfile("chrome_155_macos"))
@@ -572,8 +592,7 @@ credentials not allowed, a method or header not listed), nothing more is sent
 and `Do` returns an error that wraps `tlsforge.ErrCORS`. What a preflight
 allowed is kept for as long as its `Access-Control-Max-Age` says (five
 seconds when it says nothing, two hours at most, as in Chrome), for the
-session: every client made `Fresh` from one shares it, another session has
-its own. The answer to the request itself has to name the page's origin, or
+browser instance; `Fresh` and independent request calls do not share it. The answer to the request itself has to name the page's origin, or
 `*` when no credentials went, and to allow credentials when they did; one
 that does not is an error wrapping `ErrCORS`, and is not returned. What comes
 back is returned whole: a page would see only the headers CORS exposes, and
@@ -811,8 +830,8 @@ request (`sec-ch-ua`, `sec-ch-ua-mobile`, `sec-ch-ua-platform`) with
 measured sending them (`testdata/chrome155-requests.json`):
 
 - What an origin asks for on the answer to a navigation, a form's or a
-  redirect's, over a connection a page may trust, is kept for the session,
-  which every client made `Fresh` from one shares. A later `Accept-CH`
+  redirect's, over a connection a page may trust, is kept for that browser
+  instance. A fresh browser receives none of it. A later `Accept-CH`
   replaces it, an empty one asks for nothing, and an answer without one
   leaves it as it was. The hints Chrome knows are kept, in any case; the rest
   are passed over. A `fetch()` or an XHR asks for nothing.

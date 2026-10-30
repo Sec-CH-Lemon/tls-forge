@@ -23,7 +23,7 @@ import (
 // that does not say otherwise sends one.
 func asGiven(t testing.TB, p *profile.Profile) *profile.Profile {
 	t.Helper()
-	out := p.Clone()
+	out := workflowProfile(p)
 	out.Behavior["headers.without_context"] = json.RawMessage(`"as-given"`)
 	return out
 }

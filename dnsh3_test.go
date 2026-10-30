@@ -265,7 +265,7 @@ func h3ECHConfig(id uint8, key *ecdh.PrivateKey) []byte {
 	return b.BytesOrPanic()
 }
 
-func TestAFreshClientKnowsWhatItsSessionKnowsOfQUIC(t *testing.T) {
+func TestAFreshClientStartsWithColdQUICKnowledge(t *testing.T) {
 	first := startH3Site(t, 100*time.Millisecond, 0)
 	second := startH3Site(t, 0, 50*time.Millisecond)
 	dns := echNames(t, map[string]*dnsmessage.SVCBResource{
@@ -275,19 +275,19 @@ func TestAFreshClientKnowsWhatItsSessionKnowsOfQUIC(t *testing.T) {
 	if got := came(t, c, "https://one.h3.test:"+first.port+"/"); got != "HTTP/3.0" {
 		t.Fatalf("came over %q", got)
 	}
-	// QUIC worked in the session: a fresh client's TCP waits 300 ms behind its
-	// QUIC, which is up 50 ms late, before any TCP.
+	// The new browser has no record that QUIC worked. Its cold TCP race
+	// wins against this peer's delayed QUIC.
 	fresh, err := c.Fresh()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = fresh.Close() })
-	if got := came(t, fresh, "https://two.h3.test:"+second.port+"/"); got != "HTTP/3.0" {
+	if got := came(t, fresh, "https://two.h3.test:"+second.port+"/"); got != "HTTP/2.0" {
 		t.Fatalf("came over %q", got)
 	}
 	time.Sleep(400 * time.Millisecond)
-	if second.tcpConns.Load() != 0 {
-		t.Errorf("%d TCP connections, want none", second.tcpConns.Load())
+	if second.tcpConns.Load() != 1 {
+		t.Errorf("%d TCP connections, want one cold race", second.tcpConns.Load())
 	}
 }
 

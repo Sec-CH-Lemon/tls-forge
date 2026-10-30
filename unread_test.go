@@ -369,7 +369,7 @@ func TestA401AnsweredNoMoreIsLetGoOfAsADroppedAnswer(t *testing.T) {
 func TestAClosedClientLetsGoOfWhatItDrains(t *testing.T) {
 	site := newUnreadSite(t, false)
 	c, err := New(WithInsecureSkipVerify(), WithProfileValue(policyFile(t, unreadPolicy(map[string]any{
-		"h1.preflight_body": "first-bytes", "http.first_bytes_ms": 0}))), dialingTo(site.Listener.Addr().String()))
+		"http.instance_scope": "client", "h1.preflight_body": "first-bytes", "http.first_bytes_ms": 0}))), dialingTo(site.Listener.Addr().String()))
 	if err != nil {
 		t.Fatal(err)
 	}

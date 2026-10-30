@@ -49,9 +49,42 @@ func startEcho(t *testing.T) *echo.Server {
 	return server
 }
 
+// workflowProfile makes the persistent-session ownership of old browser
+// observations explicit. Their implicit typed navigations retain the original
+// always-network API; A10 tests exercise the new cache scope separately.
+func workflowProfile(p *profile.Profile) *profile.Profile {
+	p = p.Clone()
+	p.Behavior["http.instance_scope"] = json.RawMessage(`"client"`)
+	p.Behavior["http.cache_scope"] = json.RawMessage(`"explicit-context"`)
+	return p
+}
+
+// Historical workflow fixtures own one persistent browser. Default request
+// isolation is tested through New directly in a10_instance_test.go.
 func newTestClient(t *testing.T, opts ...Option) *Client {
 	t.Helper()
-	client, err := New(append(opts, WithInsecureSkipVerify())...)
+	cfg := defaults()
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	p := cfg.profile
+	if !cfg.profileValueSet {
+		var err error
+		p, err = profile.Get(cfg.profileName)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	p = workflowProfile(p)
+	data, err := p.Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = profile.Load(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := New(append(opts, WithProfileValue(p), WithInsecureSkipVerify())...)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -445,7 +478,7 @@ func TestARequestsErrorSaysNothingOfItsProxysPassword(t *testing.T) {
 	// The error is printed by whoever gets it. What it wraps is underneath.
 	const through = "alice:s3cr3t@proxy.test:8080"
 	refused := fmt.Errorf("dial through %s and http://bob:hunter2@other.test: refused", through)
-	client, err := New(WithProxy("http://"+through), WithTransportOption(tls_client.WithProxyDialerFactory(
+	client, err := New(WithProfileValue(workflowProfile(shippedProfile(t, DefaultProfile))), WithProxy("http://"+through), WithTransportOption(tls_client.WithProxyDialerFactory(
 		func(string, time.Duration, *net.TCPAddr, fhttp.Header, tls_client.Logger) (proxy.ContextDialer, error) {
 			return quotingDialer{err: refused}, nil
 		})))

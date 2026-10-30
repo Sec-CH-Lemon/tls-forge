@@ -45,6 +45,7 @@ func visitAsAPerson(address, profileName string, p aPerson) error {
 	if err != nil {
 		return err
 	}
+	worn.Behavior["http.instance_scope"] = json.RawMessage(`"client"`)
 	worn.Behavior["headers.without_context"] = json.RawMessage(`"as-given"`)
 	client, err := tlsforge.New(tlsforge.WithProfileValue(worn), tlsforge.WithInsecureSkipVerify(),
 		tlsforge.WithoutRedirects())

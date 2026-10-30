@@ -1,0 +1,223 @@
+[
+  {
+    "id": "single-600",
+    "cache_control": [
+      "max-age=600"
+    ]
+  },
+  {
+    "id": "zero600",
+    "cache_control": [
+      "max-age=0, max-age=600"
+    ]
+  },
+  {
+    "id": "600zero",
+    "cache_control": [
+      "max-age=600, max-age=0"
+    ]
+  },
+  {
+    "id": "600600",
+    "cache_control": [
+      "max-age=600, max-age=600"
+    ]
+  },
+  {
+    "id": "lines-zero600",
+    "cache_control": [
+      "max-age=0",
+      "max-age=600"
+    ]
+  },
+  {
+    "id": "lines-600zero",
+    "cache_control": [
+      "max-age=600",
+      "max-age=0"
+    ]
+  },
+  {
+    "id": "ows-case",
+    "cache_control": [
+      "MaX-aGe = 600, MAX-AGE=0"
+    ]
+  },
+  {
+    "id": "quoted600zero",
+    "cache_control": [
+      "max-age=\"600\", max-age=\"0\""
+    ]
+  },
+  {
+    "id": "quoted-unknown",
+    "cache_control": [
+      "max-age=600, ext=\"a, no-store, b\""
+    ]
+  },
+  {
+    "id": "escaped-unknown",
+    "cache_control": [
+      "max-age=600, ext=\"a\\\", no-store, b\""
+    ]
+  },
+  {
+    "id": "invalid-bogus-future",
+    "cache_control": [
+      "max-age=bogus"
+    ],
+    "expires": "future"
+  },
+  {
+    "id": "invalid-bogus-past",
+    "cache_control": [
+      "max-age=bogus"
+    ],
+    "expires": "past"
+  },
+  {
+    "id": "invalid--1-future",
+    "cache_control": [
+      "max-age=-1"
+    ],
+    "expires": "future"
+  },
+  {
+    "id": "invalid--1-past",
+    "cache_control": [
+      "max-age=-1"
+    ],
+    "expires": "past"
+  },
+  {
+    "id": "invalid-9223372036-future",
+    "cache_control": [
+      "max-age=9223372036854775808"
+    ],
+    "expires": "future"
+  },
+  {
+    "id": "invalid-9223372036-past",
+    "cache_control": [
+      "max-age=9223372036854775808"
+    ],
+    "expires": "past"
+  },
+  {
+    "id": "invalid-9999999999-future",
+    "cache_control": [
+      "max-age=999999999999999999999999999999"
+    ],
+    "expires": "future"
+  },
+  {
+    "id": "invalid-9999999999-past",
+    "cache_control": [
+      "max-age=999999999999999999999999999999"
+    ],
+    "expires": "past"
+  },
+  {
+    "id": "invalid-600oops-future",
+    "cache_control": [
+      "max-age=600oops"
+    ],
+    "expires": "future"
+  },
+  {
+    "id": "invalid-600oops-past",
+    "cache_control": [
+      "max-age=600oops"
+    ],
+    "expires": "past"
+  },
+  {
+    "id": "no-cache",
+    "cache_control": [
+      "max-age=600, no-cache"
+    ]
+  },
+  {
+    "id": "no-store",
+    "cache_control": [
+      "max-age=600, no-store"
+    ]
+  },
+  {
+    "id": "both",
+    "cache_control": [
+      "max-age=600, no-cache, no-store"
+    ]
+  },
+  {
+    "id": "validators-both",
+    "cache_control": [
+      "max-age=0"
+    ],
+    "validators": "both"
+  },
+  {
+    "id": "validators-etag",
+    "cache_control": [
+      "max-age=0"
+    ],
+    "validators": "etag"
+  },
+  {
+    "id": "validators-modified",
+    "cache_control": [
+      "max-age=0"
+    ],
+    "validators": "modified"
+  },
+  {
+    "id": "validators-change",
+    "cache_control": [
+      "max-age=0"
+    ],
+    "validators": "both",
+    "changed": true
+  },
+  {
+    "id": "quoted-single",
+    "cache_control": [
+      "max-age=\"600\""
+    ]
+  },
+  {
+    "id": "invalid-first-valid",
+    "cache_control": [
+      "max-age=bogus, max-age=600"
+    ]
+  },
+  {
+    "id": "valid-first-invalid",
+    "cache_control": [
+      "max-age=600, max-age=bogus"
+    ]
+  },
+  {
+    "id": "quoted-first-valid",
+    "cache_control": [
+      "max-age=\"0\", max-age=600"
+    ]
+  },
+  {
+    "id": "valid-first-quoted",
+    "cache_control": [
+      "max-age=600, max-age=\"0\""
+    ]
+  },
+  {
+    "id": "ows-single",
+    "cache_control": [
+      "max-age = 600"
+    ]
+  },
+  {
+    "id": "ows-outer",
+    "cache_control": [
+      "  MaX-aGe=600  "
+    ]
+  }
+]

@@ -87,6 +87,7 @@ func TestA6SemanticGateEveryClientEntryBeforeIO(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	original = workflowProfile(original)
 	for _, variant := range []string{"frame", "window", "duplicate", "stream", "dependency", "connection", "h3"} {
 		for _, entry := range []string{"value", "file", "Fresh", "Do"} {
 			for _, scheme := range []string{"direct", "http", "https", "socks5", "raw-dial", "quic"} {

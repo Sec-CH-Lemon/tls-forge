@@ -49,5 +49,6 @@
     2,
     3
   ],
-  "controlled_connections_per_cohort": 4
+  "controlled_connections_per_cohort": 4,
+  "browser_instance_scope": "client"
 }

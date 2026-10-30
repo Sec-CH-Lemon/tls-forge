@@ -221,7 +221,10 @@ func WithDNSServer(address string) Option {
 	return func(c *config) { c.dnsServer = address }
 }
 
-// WithTransportOption passes an option through to the underlying tls-client,
+// WithTransportOption is an escape hatch for explicit client-scope profiles.
+// Request scope rejects opaque callbacks before transport construction, since
+// they can hide shared jars or connections. Use JSON for isolated requests.
+// It passes an option through to the underlying tls-client,
 // for the cases this API does not cover.
 //
 // An escape hatch, on purpose: the alternative is either a wrapper for every

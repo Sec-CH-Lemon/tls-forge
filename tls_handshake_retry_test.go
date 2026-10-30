@@ -104,7 +104,7 @@ func TestChromeDoesNotRetryFailedTrustOrCancellation(t *testing.T) {
 	srv.Listener = ln
 	srv.StartTLS()
 	defer srv.Close()
-	c, err := New(WithProfile("chrome_155_macos"), WithTimeout(3*time.Second), WithTransportOption(tc.WithForceHttp1()))
+	c, err := New(WithProfileValue(workflowProfile(shippedProfile(t, "chrome_155_macos"))), WithTimeout(3*time.Second), WithTransportOption(tc.WithForceHttp1()))
 	if err != nil {
 		t.Fatal(err)
 	}

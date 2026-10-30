@@ -45,11 +45,11 @@ func addRunFlags(fs *pflag.FlagSet) runFlags {
 		asBrowser: fs.Bool("retry-as-browser", false,
 			"ask again as Chrome does when the page is reloaded (Ctrl+R): to the URL the answer is at, on the "+
 				"connection it came on, asking for it afresh, with the cookies and client hints it set; "+
-				"fetch and xhr are sent again as their page's script sends them; needs --retry"),
+				"fetch and xhr are sent again as their page's script sends them; needs --retry and a client-scope profile"),
 		reuse: fs.Bool("reuse-connection", false,
-			"keep a separate client per input row for its repeats and tries, instead of sharing the identity's site pools"),
+			"keep a private client per input row across repeats and tries; requires a client-scope profile"),
 		fresh: fs.Bool("fresh-connection", false,
-			"use a separate client per worker and close idle connections after every try (legacy mode)"),
+			"close each worker's idle connections after every try in client scope; redundant with request isolation"),
 		trace: fs.String("trace", "",
 			"write every step of the run here as Trace Event JSON, for ui.perfetto.dev"),
 	}
@@ -218,6 +218,8 @@ func (p retrier) do(ctx context.Context, conns *connections, req tlsforge.Reques
 // them makes and the last lets go of. What a try's site is asked over the same
 // connection goes through the client the try went through.
 type connections struct {
+	cookies [][]tlsforge.Cookie
+
 	session *tlsforge.Client
 	// shared borrows the run's client. Only the run may close its pools.
 	shared bool
@@ -241,7 +243,16 @@ func (c *connections) do(req *tlsforge.Request) (*tlsforge.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return client.Do(req)
+	res, err := client.Do(req)
+	if res != nil {
+		c.cookies = append(c.cookies, res.AllCookies())
+	} else {
+		var snapshot *tlsforge.RequestError
+		if errors.As(err, &snapshot) {
+			c.cookies = append(c.cookies, snapshot.AllCookies())
+		}
+	}
+	return res, err
 }
 
 // next borrows the shared client, the row's private client, or the worker's

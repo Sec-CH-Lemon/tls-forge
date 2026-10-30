@@ -101,16 +101,16 @@ func (c *responseCache) forget(key string, entry *cachedResponse) {
 // the old prefix; malformed or truncated 206 data never enters the cache.
 func (c *responseCache) completePrefix(key string, req *fhttp.Request, e *cachedResponse, next fhttp.RoundTripper) (*fhttp.Response, error) {
 	tag := strongETag(e.header)
-	validate := conditionalRequest(req, "Range", fmt.Sprintf("bytes=0-%d", len(e.body)-1))
-	validate = conditionalRequest(validate, "If-None-Match", tag)
+	validate := c.conditionalRequest(req, "Range", fmt.Sprintf("bytes=0-%d", len(e.body)-1))
+	validate = c.conditionalRequest(validate, "If-None-Match", tag)
 	res, err := next.RoundTrip(validate)
 	if err != nil {
 		return nil, err
 	}
 	if res.StatusCode == 304 && (cacheValue(res.Header, "ETag") == "" || strongETag(res.Header) == tag) {
 		_ = res.Body.Close()
-		tail := conditionalRequest(req, "Range", fmt.Sprintf("bytes=%d-%d", len(e.body), e.partialTotal-1))
-		tail = conditionalRequest(tail, "If-Range", tag)
+		tail := c.conditionalRequest(req, "Range", fmt.Sprintf("bytes=%d-%d", len(e.body), e.partialTotal-1))
+		tail = c.conditionalRequest(tail, "If-Range", tag)
 		res, err = next.RoundTrip(tail)
 		if err != nil {
 			return nil, err

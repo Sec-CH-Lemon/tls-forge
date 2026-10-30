@@ -466,16 +466,14 @@ func TestWhatTheSessionKeepsIsSentWhereChromeSendsIt(t *testing.T) {
 		}
 	}
 	get(authURL("u:p", "d/a"))
-	// Unasked to the directory answered in, and from a client made Fresh, as
-	// one of the session; asked elsewhere in the realm, and answered with
-	// what was kept; not at all outside it.
+	// Authentication is retained inside this browser, never by Fresh.
 	get(authURL("", "d/b"))
 	fresh, err := client.Fresh()
 	if err != nil {
 		t.Fatalf("Fresh: %v", err)
 	}
 	defer func() { _ = fresh.Close() }()
-	if res, err := fresh.Get(authURL("", "d/c/x")); err != nil || res.Status != http.StatusOK {
+	if res, err := fresh.Get(authURL("", "d/c/x")); err != nil || res.Status != http.StatusUnauthorized {
 		t.Fatalf("fresh Get: %v, %+v", err, res)
 	}
 	get(authURL("", "e/a"))
@@ -483,7 +481,7 @@ func TestWhatTheSessionKeepsIsSentWhereChromeSendsIt(t *testing.T) {
 	// A URL with credentials is sent nothing unasked, even where they are
 	// kept.
 	get(authURL("u:p", "d/again"))
-	want := []string{"", "Basic dTpw", "Basic dTpw", "Basic dTpw", "", "Basic dTpw", "", "", "Basic dTpw"}
+	want := []string{"", "Basic dTpw", "Basic dTpw", "", "", "Basic dTpw", "", "", "Basic dTpw"}
 	if got := authorizations(server.requests()); strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("Authorization sent %q,\nwant %q", got, want)
 	}

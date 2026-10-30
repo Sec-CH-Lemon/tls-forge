@@ -37,7 +37,9 @@ import (
 	"log/slog"
 	"math"
 	"net/url"
+	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -54,16 +56,18 @@ import (
 
 // Client is an HTTP client wearing one browser's fingerprint.
 //
-// One client is one identity: one TLS fingerprint, one cookie jar, one exit IP.
-// Rotating any of those means a new client, which is deliberate — a jar shared
-// between two fingerprints describes a browser that changed its TLS stack
-// mid-session.
+// Shipped profiles give each Do call a fresh browser instance. Redirects and
+// internal protocol retries share that call's state. A profile may explicitly
+// select client scope for a workflow that owns a persistent browser session.
 //
 // A Client is safe for concurrent use.
 type Client struct {
+	prototype   config
+	instancesMu sync.Mutex
+	instances   map[*Client]struct{}
+
 	// transports are how its requests reach the network, its own; session
-	// is what its identity keeps across them, which every client made Fresh
-	// from this one shares.
+	// is the browser state of this instance. Fresh never shares received state.
 	transports *transports
 	session    *session
 	profile    *profile.Profile
@@ -163,6 +167,8 @@ type Request struct {
 	// as Chrome's goes on the one the page came on; a form's POST goes with
 	// its body again, in the order Chrome posts it again in. A script's
 	// request opens no page and is not reloaded: Ctrl+R reloads its page.
+	// With request scope, no state from an earlier call is retained; select
+	// explicit client scope for a reload within a persistent browser.
 	Reload bool
 }
 
@@ -192,9 +198,24 @@ type Cookie struct {
 	SameSite string
 }
 
+// RequestError retains an isolated browser's cookie snapshot after a failed
+// request. It preserves the original error through Unwrap. The snapshot is
+// available only to explicit callers and never seeds another browser.
+type RequestError struct {
+	cause   error
+	cookies []Cookie
+}
+
+func (e *RequestError) Error() string { return e.cause.Error() }
+func (e *RequestError) Unwrap() error { return e.cause }
+
+// AllCookies returns an independent snapshot of the failed browser's jar.
+func (e *RequestError) AllCookies() []Cookie { return slices.Clone(e.cookies) }
+
 // Response is one HTTP response, with the body already read and decoded.
 type Response struct {
-	Status int
+	sessionCookies []Cookie
+	Status         int
 	// URL is the final URL, after redirects, as Chrome writes it.
 	URL string
 	// Method is the method of the request this answers: the request's own,
@@ -213,6 +234,10 @@ type Response struct {
 	Encoding string
 	Cookies  []string
 }
+
+// AllCookies returns this response's browser-instance cookie snapshot.
+// Reading it does not seed a later request or expose another instance's jar.
+func (r *Response) AllCookies() []Cookie { return slices.Clone(r.sessionCookies) }
 
 // Text returns the body as a string.
 func (r *Response) Text() string { return string(r.Body) }
@@ -248,6 +273,14 @@ func New(opts ...Option) (*Client, error) {
 	}
 	if err := prof.Validate(); err != nil {
 		return nil, err
+	}
+	for _, opt := range cfg.extra {
+		if opt == nil {
+			return nil, fmt.Errorf("tlsforge: nil transport option")
+		}
+	}
+	if prof.RuntimeBehavior().Text("http.instance_scope") == "request" && (cfg.jar != nil || len(cfg.extra) != 0) {
+		return nil, fmt.Errorf("tlsforge: profile %q engine_major %d: request isolation rejects opaque cookie jars and transport options; use profile JSON and explicit cookie inputs", prof.Name, *prof.EngineMajor)
 	}
 	prof = prof.Clone()
 	prof.Behavior = prof.RuntimeBehavior().Clone()
@@ -382,15 +415,9 @@ func New(opts ...Option) (*Client, error) {
 		// whichever one is worn.
 		options = append(options, tls_client.WithCustomRedirectFunc(followRedirect))
 	}
-	for _, opt := range cfg.extra {
-		if opt == nil {
-			return nil, fmt.Errorf("tlsforge: nil transport option")
-		}
-	}
 	// How it dials comes last but for what each transport is given of its own
 	// and the caller's own.
-	// One resolving for every connection of the client and of every client
-	// Fresh makes of it: what it keeps of the HTTPS records, the host cache.
+	// One resolver per browser instance; Fresh reconstructs it as well.
 	res := newResolving(dnsServer, prof.RuntimeBehavior())
 	// What the session knows of QUIC, as a profile's network session does:
 	// whether it worked, where it broke, each server's RTT.
@@ -424,6 +451,12 @@ func New(opts ...Option) (*Client, error) {
 	client := &Client{transports: t, session: newSession(jar, cfg.cookies, prof.RuntimeBehavior()), profile: prof, headers: headers,
 		given: cfg.headers.Clone(), http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody, timeout: cfg.timeout,
 		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
+	// Retain configuration, never received session state. New constructs fresh
+	// resolver/QUIC state, connection pools, TLS caches, cookies and HTTP state.
+	cfg.profile, cfg.profileValueSet = prof, true
+	cfg.headers, cfg.cookies = cfg.headers.Clone(), slices.Clone(cfg.cookies)
+	cfg.extra = slices.Clone(cfg.extra)
+	client.prototype = cfg
 	if prof.RuntimeBehavior().Flag("dns.https_upgrade") && cfg.proxy == "" && len(cfg.extra) == 0 {
 		client.upgrades = res
 	}
@@ -447,16 +480,10 @@ func newClientLog(logger *slog.Logger) (uint64, *slog.Logger) {
 // fail where nothing else would.
 var newInnerClient = tls_client.NewHttpClient
 
-// Fresh is a client of the same session that opens connections of its own:
-// the same profile, header fields, cookie jar and warmed cookies, with a
-// transport and a TLS session cache of its own. Nothing it sends goes out on a
-// connection of this client's, or of any other client made Fresh, and its
-// handshakes resume none of their TLS sessions, which would tell a server two
-// connections were one visitor. Through a proxy that hands every connection an
-// address, what it sends comes out of an address of its own.
-//
-// Each must be closed when it is done with. Closing one leaves this client,
-// and the session they share, as they were.
+// Fresh constructs an independent client with the same explicit inputs.
+// Received cookies, cache, authentication, DNS/QUIC learning, connections and
+// TLS sessions are never shared. The returned client must be closed separately.
+// An opaque caller-owned cookie jar cannot be cloned and is rejected.
 func (c *Client) Fresh() (*Client, error) {
 	if err := c.profile.Validate(); err != nil {
 		return nil, err
@@ -464,17 +491,52 @@ func (c *Client) Fresh() (*Client, error) {
 	if c.closed.Load() {
 		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
 	}
-	id, log := newClientLog(c.logger)
-	t, err := c.transports.fresh()
+	cfg := c.prototype
+	if cfg.jar != nil {
+		return nil, fmt.Errorf("tlsforge: cannot clone an opaque cookie jar; use explicit cookie inputs")
+	}
+	cfg.profile, cfg.profileValueSet = c.profile, true
+	logger := cfg.logger
+	cfg.logger = nil
+	child, err := New(func(out *config) { *out = cfg })
 	if err != nil {
 		return nil, err
 	}
-	if log != nil {
-		log.Debug("fresh client", "from", c.id)
+	child.logger, child.prototype.logger = logger, logger
+	if logger != nil {
+		child.log = logger.With("client", child.id)
+		child.log.Debug("fresh client", "from", c.id)
 	}
-	return &Client{transports: t, session: c.session, profile: c.profile, headers: c.headers,
-		given: c.given, http1Headers: c.http1Headers, withheld: c.withheld, maxBody: c.maxBody, timeout: c.timeout,
-		id: id, log: log, logger: c.logger, proxy: c.proxy, upgrades: c.upgrades}, nil
+	return child, nil
+}
+
+func (c *Client) isolated(req *Request, log *requestLog) (*Response, error) {
+	child, err := c.Fresh()
+	if err != nil {
+		return nil, err
+	}
+	c.instancesMu.Lock()
+	if c.closed.Load() {
+		c.instancesMu.Unlock()
+		_ = child.Close()
+		return nil, fmt.Errorf("tlsforge: this client is closed; construct a new one")
+	}
+	if c.instances == nil {
+		c.instances = map[*Client]struct{}{}
+	}
+	c.instances[child] = struct{}{}
+	c.instancesMu.Unlock()
+	defer func() {
+		_ = child.Close()
+		c.instancesMu.Lock()
+		delete(c.instances, child)
+		c.instancesMu.Unlock()
+	}()
+	res, err := child.do(req, log)
+	if err != nil {
+		return res, &RequestError{cause: err, cookies: child.session.all()}
+	}
+	return res, nil
 }
 
 func profileHTTP1Headers(prof *profile.Profile) Header {
@@ -513,7 +575,13 @@ func (c *Client) Get(url string) (*Response, error) {
 // underneath, for errors.Is and errors.As.
 func (c *Client) Do(req *Request) (*Response, error) {
 	r := c.requestLog(req)
-	res, err := c.do(req, r)
+	var res *Response
+	var err error
+	if c.behavior().Text("http.instance_scope") == "request" {
+		res, err = c.isolated(req, r)
+	} else {
+		res, err = c.do(req, r)
+	}
 	if r != nil {
 		r.ended(res, err)
 	}
@@ -632,6 +700,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 			out.Cookies = append(out.Cookies, cookie.Name+"="+cookie.Value)
 		}
 	}
+	out.sessionCookies = c.session.all()
 	return out, nil
 }
 
@@ -955,6 +1024,15 @@ func (c *Client) CloseIdleConnections() {
 // on from in the background on too. A closed client must not be reused.
 func (c *Client) Close() error {
 	c.closed.Store(true)
+	c.instancesMu.Lock()
+	children := make([]*Client, 0, len(c.instances))
+	for child := range c.instances {
+		children = append(children, child)
+	}
+	c.instancesMu.Unlock()
+	for _, child := range children {
+		_ = child.Close()
+	}
 	c.transports.close()
 	if c.log != nil {
 		c.log.Debug("client closed")

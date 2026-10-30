@@ -31,7 +31,7 @@ func (p *Profile) RuntimeBehavior() behavior.Policy {
 }
 
 // requiredRules are what no executable profile of this engine runs without.
-var requiredRules = []string{"http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes", "h3.grease_setting_placement"}
+var requiredRules = []string{"cache.generated_header_order", "http.instance_scope", "http.cache_scope", "http.cache_validators", "cache.duplicate_freshness_policy", "cache.invalid_freshness_policy", "cache.freshness_quoted_values", "cache.delta_seconds_limit", "http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes", "h3.grease_setting_placement"}
 
 // savedBehavior is the behavior Save writes: the profile's own, or what an
 // older schema without one runs with. An archive of such a schema that this

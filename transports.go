@@ -140,11 +140,6 @@ func (t *transports) newSite(name string) (*site, error) {
 // site out.
 func (s *site) named() string { return s.name }
 
-// fresh are transports of their own, built as these were.
-func (t *transports) fresh() (*transports, error) {
-	return newTransports(t.build, t.proxy, t.behavior)
-}
-
 // siteOf are the connections of the top-level site named: a request to a page
 // of it goes out on them, as does every request such a page makes.
 func (t *transports) siteOf(name string) (*site, error) {

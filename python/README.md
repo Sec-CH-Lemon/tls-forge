@@ -1,5 +1,12 @@
 # TLS Forge for Python
 
+With shipped profiles, every request owns a fresh browser network instance.
+Received cookies, HTTP cache, auth, connection pools and TLS sessions do not carry
+between calls. Redirects and protocol retries retain that call's state. Explicit
+cookie inputs seed each instance independently; a BrowserContext describes the
+request context and does not join instances. An external JSON profile can choose
+`behavior.http.instance_scope: "client"` for an explicitly persistent workflow.
+
 ## Engine/profile compatibility (1.0.0)
 
 The compiled engine version is **1.0.0**, independently of the browser build and
@@ -305,7 +312,8 @@ binary body in base64, and the newline. It is refused before it is sent, and
 the transport and its session are left as they were.
 
 A timeout or a broken write stops the transport, and a transport can die. The
-session in it goes with it: its cookies, TLS sessions and connections. The
+active browser instance ends with it; an explicit persistent profile also loses
+its retained cookies, TLS sessions and connections. The
 request it was working on fails with the reason, and every request waiting for
 the client then raises `SessionReset`, without being sent; when none was
 waiting, the next request made does. Requests after that start a new session in

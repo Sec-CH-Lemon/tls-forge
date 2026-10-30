@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,34 +50,15 @@ func cacheValue(h fhttp.Header, name string) string {
 	return strings.Join(fieldValues(h, strings.ToLower(name)), ", ")
 }
 
-func cacheDirectives(h fhttp.Header) map[string]string {
-	out := map[string]string{}
-	for _, field := range fieldValues(h, "cache-control") {
-		for _, part := range strings.Split(field, ",") {
-			name, value, _ := strings.Cut(strings.TrimSpace(part), "=")
-			out[strings.ToLower(name)] = strings.Trim(value, "\" ")
-		}
-	}
-	return out
-}
-
-func cacheSeconds(value string) time.Duration {
-	n, err := strconv.ParseUint(value, 10, 63)
-	if err != nil || n > uint64((1<<63-1)/int64(time.Second)) {
-		return 0
-	}
-	return time.Duration(n) * time.Second
-}
-
-func cachePolicy(h fhttp.Header, now time.Time) (fresh, age time.Duration, validate, store bool) {
+func (c *responseCache) policy(h fhttp.Header, now time.Time) (fresh, age time.Duration, validate, store bool) {
 	d := cacheDirectives(h)
-	if _, forbidden := d["no-store"]; forbidden {
+	if d.has("no-store") {
 		return
 	}
-	_, validate = d["no-cache"]
+	validate = d.has("no-cache")
 	date, dateErr := http.ParseTime(cacheValue(h, "Date"))
-	if value, present := d["max-age"]; present {
-		fresh = cacheSeconds(value)
+	if value, present := d.seconds("max-age", c.runtimeBehavior()); present {
+		fresh = value
 		store = true
 	} else if expires, err := http.ParseTime(cacheValue(h, "Expires")); err == nil {
 		if dateErr != nil {
@@ -86,7 +66,12 @@ func cachePolicy(h fhttp.Header, now time.Time) (fresh, age time.Duration, valid
 		}
 		fresh, store = max(0, expires.Sub(date)), true
 	}
-	age = cacheSeconds(cacheValue(h, "Age"))
+	// RFC9111 uses the first Age value. Saturate large numeric values safely.
+	ages := fieldValues(h, "age")
+	if len(ages) > 0 {
+		first, _, _ := strings.Cut(ages[0], ",")
+		age, _ = cacheDelta(strings.Trim(first, " \t"), c.runtimeBehavior().Uint("cache.delta_seconds_limit"))
+	}
 	if dateErr == nil {
 		age = max(age, now.Sub(date))
 	}
@@ -130,12 +115,13 @@ func (e *cachedResponse) response(req *fhttp.Request) *fhttp.Response {
 }
 
 func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.RoundTripper) (*fhttp.Response, error) {
-	if c == nil || !ch.browser.explicit() {
+	if c == nil || ch.browser == nil || ch.browser.sent ||
+		(ch.browser.implicit && c.runtimeBehavior().Text("http.cache_scope") == "explicit-context") {
 		return next.RoundTrip(req)
 	}
 	key := c.key(ch, req)
 	d := cacheDirectives(req.Header)
-	_, noStore := d["no-store"]
+	noStore := d.has("no-store")
 	eligible := (req.Method == "GET" || req.Method == "HEAD") && !noStore && cacheValue(req.Header, "If-Range") == "" &&
 		cacheValue(req.Header, "If-None-Match") == "" && cacheValue(req.Header, "If-Modified-Since") == ""
 	release := func() {}
@@ -156,14 +142,14 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 	if eligible {
 		entry = c.find(key, req.Header)
 		if entry != nil {
-			_, forced := d["no-cache"]
-			forced = forced || d["max-age"] == "0" || strings.EqualFold(cacheValue(req.Header, "Pragma"), "no-cache")
+			maximum, present := d.seconds("max-age", c.runtimeBehavior())
+			forced := d.has("no-cache") || present && maximum == 0 || strings.EqualFold(cacheValue(req.Header, "Pragma"), "no-cache")
 			if entry.partialTotal != 0 {
 				if req.Method == "GET" && cacheValue(req.Header, "Range") == "" {
 					return c.completePrefix(key, req, entry, next)
 				}
 				entry = nil
-			} else if !forced && !entry.validate && entry.age+time.Since(entry.stored) < entry.fresh {
+			} else if !forced && !entry.validate && entry.age < entry.fresh && max(0, time.Since(entry.stored)) < entry.fresh-entry.age {
 				if cacheValue(req.Header, "Range") == "" {
 					return entry.response(req), nil
 				}
@@ -173,12 +159,15 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 			}
 		}
 		if entry != nil && cacheValue(req.Header, "Range") == "" {
-			if etag := cacheValue(entry.header, "ETag"); etag != "" {
-				req = conditionalRequest(req, "If-None-Match", etag)
-				conditional = true
-			} else if modified := cacheValue(entry.header, "Last-Modified"); modified != "" {
-				req = conditionalRequest(req, "If-Modified-Since", modified)
-				conditional = true
+			for _, name := range c.runtimeBehavior().Strings("http.cache_validators") {
+				source := "ETag"
+				if name == "if-modified-since" {
+					source = "Last-Modified"
+				}
+				if value := cacheValue(entry.header, source); value != "" {
+					req = c.conditionalRequest(req, name, value)
+					conditional = true
+				}
 			}
 		}
 	}
@@ -207,7 +196,7 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 	}
 	cacheStatus := res.StatusCode == 200 || res.StatusCode == 206 || res.StatusCode == 301 || res.StatusCode == 302 || res.StatusCode == 307 || res.StatusCode == 308
 	if eligible && req.Method == "GET" && cacheStatus {
-		_, _, _, store := cachePolicy(res.Header, time.Now())
+		_, _, _, store := c.policy(res.Header, time.Now())
 		if store {
 			done := release
 			release = func() {}
@@ -249,20 +238,29 @@ func (c *responseCache) enter(ctx context.Context, key string) (func(), error) {
 	}
 }
 
-func conditionalRequest(req *fhttp.Request, name, value string) *fhttp.Request {
+func (c *responseCache) conditionalRequest(req *fhttp.Request, name, value string) *fhttp.Request {
 	copy := *req
 	copy.Header = req.Header.Clone()
 	decorate := func(h fhttp.Header) fhttp.Header {
 		h = h.Clone()
 		h.Set(name, value)
-		order := slices.DeleteFunc(slices.Clone(h[fhttp.HeaderOrderKey]), func(old string) bool {
-			return strings.EqualFold(old, name)
-		})
-		at := len(order)
-		if i := slices.Index(order, "priority"); i >= 0 {
-			at = i
+		// Existing slots remain in their profile-owned position. For a field
+		// not in this request kind's layout, JSON specifies its relative order.
+		order := h[fhttp.HeaderOrderKey]
+		field := strings.ToLower(name)
+		if !slices.Contains(order, field) {
+			layout := c.runtimeBehavior().Strings("cache.generated_header_order")
+			at := len(order)
+			if i := slices.Index(layout, field); i >= 0 {
+				for _, next := range layout[i+1:] {
+					if index := slices.Index(order, next); index >= 0 {
+						at = index
+						break
+					}
+				}
+			}
+			h[fhttp.HeaderOrderKey] = slices.Insert(order, at, field)
 		}
-		h[fhttp.HeaderOrderKey] = slices.Insert(order, at, strings.ToLower(name))
 		return h
 	}
 	copy.Header = decorate(copy.Header)
@@ -282,7 +280,7 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 		return
 	}
 	now := time.Now()
-	fresh, age, validate, allowed := cachePolicy(res.Header, now)
+	fresh, age, validate, allowed := c.policy(res.Header, now)
 	if !allowed {
 		return
 	}

@@ -21,6 +21,10 @@ It does not execute page JavaScript and does not solve managed challenges or
 CAPTCHAs. It addresses the TLS and HTTP fingerprint checks that happen before,
 or alongside, normal HTTP handling.
 
+With shipped profiles, each request is a fresh network browser instance.
+Redirects and protocol retries share state only inside that request. This tool
+models browser networking; it does not create a browser process or execute JavaScript.
+
 ## Quick start
 
 Install it, here with Homebrew ([Install](#install) has the other ways), and
@@ -304,8 +308,9 @@ https://example.org/,
 ```
 
 An entry can name its own proxy, and `--proxy` is the proxy of every entry
-that names none. There is one client, and one cookie jar, for each distinct
-proxy: a proxy is an identity, and two exits do not share a session. The
+that names none. Shipped profiles create a separate browser instance for
+**every request attempt**, including repeats and application retries. A proxy
+is a route; it never merges their cookies, cache or TLS sessions. The
 method, the header fields and the body given with `-X`, `-H` and `-d` are the
 request, and every URL in the list is asked for with them.
 
@@ -385,9 +390,11 @@ cookie lives at most 400 days, as in Chrome. A JSON file written by a
 tls-forge older than this did not keep which cookies were their host's alone;
 read, each of its cookies goes to its domain's subdomains as well, as it did
 then, and the line that says where the session was warmed from says so too.
-A Netscape file holds one session, and a run through more than one proxy has
-one for each, so `--save-cookies` refuses a `.txt` for such a run before
-anything is fetched, and a `.json` keeps each session as a set of its own.
+A JSON export keeps each request instance as a separate set, including cookies
+received before a failed body read. Nothing is automatically imported into a
+later request. A Netscape file holds one jar: multi-proxy runs are rejected
+before fetching, and a result with multiple nonempty instance snapshots is
+rejected before writing that file. Use JSON for multiple instances.
 
 ### A site behind HTTP authentication
 
@@ -417,15 +424,18 @@ tls-forge fetch --retry 3 --repeat 2 --input urls.csv
 `--retry` asks again when the answer is not a 2xx, or when no answer comes at
 all; with `--wait-for-element` or `--wait-for`, when the answer is without the
 element or the text, whatever its status, and not when it has them. The waits
-between tries are 250 ms, 500 ms, 1 s and then 2 s. All workers of one
-identity (one proxy, or direct) share a client and its site pools until the run
-ends. Retries and repeats reuse an available connection; a lost or
-server-closed connection is replaced. `--fresh-connection` selects the former
-per-worker mode, releasing idle connections after each try; a rotating proxy
-can then assign another exit. `--reuse-connection` keeps a private client for
-each input row across its repeats and tries. These two flags are mutually
-exclusive; `--retry-as-browser` retains its connection across retries in either
-legacy mode. Within a try the request may go again
+between tries are 250 ms, 500 ms, 1 s and then 2 s. Each attempt owns fresh
+cookies, authentication, Client Hints, preflight/cache state, DNS/QUIC learning,
+connection pools and TLS sessions. Redirects and internal protocol retries share
+that attempt's browser instance. It closes after its buffered response is read.
+Explicit `--cookies` / `-b` inputs seed each instance independently.
+
+An external profile can select `behavior.http.instance_scope: "client"` for an
+explicit persistent-browser workflow. Only with that profile do
+`--reuse-connection` and `--retry-as-browser` apply; otherwise they are rejected
+before network I/O. `--fresh-connection` retains per-worker idle release in client
+scope and is redundant with request scope. The two connection flags remain
+mutually exclusive. Within a try the request may go again
 on its own, as the profile's browser sends one again after a refused stream,
 a GOAWAY or a lost connection ([A request sent again](#a-request-sent-again)),
 on another connection when its own was lost. When the
@@ -436,7 +446,7 @@ Nothing is asked for again unless `--retry` says so, for a list as
 for one URL, and a JSON line's `attempts` counts the tries.
 
 ```bash
-tls-forge fetch --retry 2 --retry-as-browser https://shop.example/item/7
+tls-forge fetch --profile persistent-browser.json --retry 2 --retry-as-browser https://shop.example/item/7
 ```
 
 `--retry-as-browser` makes each try after the first as a person makes it again
@@ -455,13 +465,11 @@ page's script sends it, on the connection it went on. It needs `--retry`, the
 run's header says it (`tried again`), and each try made again says
 `reloading`. A reload that bypasses the cache (Ctrl+Shift+R) is not modelled.
 
-`--repeat` makes the same request several times in one session, so a later run
-sends the cookies the runs before it were given. By default the run shares
-site connection pools across all rows and workers of the same identity.
-`--fresh-connection` releases each try's idle connections; `--reuse-connection`
-is the older per-row mode, with a separate client for every row. One URL is
-asked for one run at a time, the way a page is reloaded, unless
-`--concurrency` says how many at once. With `-o out/`, each run is kept under
+`--repeat` makes independent request instances with shipped profiles. Received
+cookies and connections do not carry into the next repeat. An explicit
+client-scope profile keeps one session according to the connection flags above.
+One URL is asked for one run at a time unless `--concurrency` says how many.
+With `-o out/`, each run is kept under
 its own number. Without `-o`, the bodies follow one another on standard output.
 A list is gone through from top to bottom once per pass, and every line carries
 the pass it belongs to as `run`. The count covers all of the runs, and `-v`
@@ -980,12 +988,11 @@ the QUIC connection's datagrams as its socket wrote and read them, one UDP
 packet each, beside the TCP connection it raced; not the run's question to
 an address service, which no request went out on. Wireshark finds QUIC on
 any port. A
-shared connection stays open until the run ends. Each request's capture
-holds its connections from their start to the snapshot taken when that
-request was kept, including any other requests already carried on them; it
-cannot include future bytes or the eventual close. `--reuse-connection` has
-the same snapshot rule for a row's private client. With `--fresh-connection`,
-idle connections are released before the snapshot, so it includes their end. Wireshark finds the site's TLS after a SOCKS handshake on any port,
+request-owned connection closes before its capture is kept. With an explicit
+persistent client-scope profile, a shared connection remains open: its snapshot
+includes past traffic and excludes future bytes or its eventual close. Private
+row reuse has the same snapshot rule; explicit fresh-connection mode releases
+idle connections before that snapshot. Wireshark finds the site's TLS after a SOCKS handshake on any port,
 and shows the handshake itself on port 1080, or on another with
 `-d tcp.port==PORT,socks` (Decode As… in the app).
 
@@ -1376,8 +1383,8 @@ Usage: `tls-forge fetch [flags] [url...]`
 | `--retry <n>` | Ask again up to `n` more times when the answer is not a 2xx, or does not come; default `0` |
 | `--retry-as-browser` | Ask again as a person does in Chrome, by reloading the page (Ctrl+R): to the URL the answer is at, on the connection it came on, asking for it afresh, with the cookies and client hints it set; `fetch` and `xhr` are sent again as their page's script sends them; needs `--retry`; see [Retrying and repeating](#retrying-and-repeating) |
 | `--repeat <n>` | Make every request `n` times using the identity's site pools; default `1` |
-| `--reuse-connection` | Keep a private client per input row across its repeats and tries (legacy mode); mutually exclusive with `--fresh-connection` |
-| `--fresh-connection` | Keep a private client per worker and release idle connections after each try (legacy mode); TLS sessions survive within that worker |
+| `--reuse-connection` | Keep a private client per row; requires a client-scope profile; mutually exclusive with `--fresh-connection` |
+| `--fresh-connection` | Release each worker's idle connections after each try in client scope; redundant with request isolation |
 | `--wait-for <text>` | Count an answer as the page when its body has this text in it, whatever its status, or, written as `/regexp/` with any of the flags `i`, `m`, `s` and `U`, text the regular expression matches; see [Checking the page](#checking-the-page) |
 | `--wait-for-element <selector>` | Count an answer as the page when its HTML has an element matching this CSS selector, whatever its status: one without it is asked for again like a 503, shown as `200, no <selector>`, and fails the run; see [Checking the page](#checking-the-page) |
 | `--html-decoding <mode>` | How `--wait-for` and `--wait-for-element` read a body as text: `legacy`, the default, or `browser`, as Chrome 155 decodes the document; refused without either; see [Checking the page](#checking-the-page) |
@@ -1534,16 +1541,13 @@ stream. CONNECT uses its own measured H2 priority, independently of the origin
 request. After a fatal TLS write failure, the connection closes without sending
 another encrypted alert with a sequence the peer cannot reconstruct.
 
-All workers of one identity share a client and its site pools by default.
-Different proxy URLs keep separate clients, cookies and TLS sessions. The
-profile still selects site partitioning, pool limits and idle lifetimes;
-connections are closed when the run ends, when the server closes them, or
-when the profile's pool policy releases them. Concurrent HTTP/1.1 requests may
-use several connections; HTTP/2 can multiplex them on one.
-`--fresh-connection` restores private worker clients and releases idle
-connections after each try, retaining that worker's TLS sessions for later
-connections. `--reuse-connection` keeps a separate client per input row until
-its last repeat ends. A rotating proxy assigns exits per actual connection,
+Each request owns a browser instance with shipped profiles, including fresh
+origin/proxy pools, cookies and TLS sessions. Redirects and protocol retries can
+reuse connections inside that call. A persistent client-scope JSON profile keeps
+its selected site partitioning, pool limits and idle lifetimes across calls;
+H1 can use several connections and H2 can multiplex them. In that explicit mode,
+`--fresh-connection` uses private workers and releases their idle connections
+between tries; `--reuse-connection` keeps a private client per row. A rotating proxy assigns exits per actual connection,
 so reuse cannot guarantee an exit after a server close or reconnect. A
 request's redirects go through its connection, but for a hop Chrome sends on
 another: one to another site goes through a connection of that site's, and
@@ -2423,7 +2427,9 @@ to be.
 The shipped Chrome profiles go over HTTP/3 where a name's HTTPS record names
 `h3` ([HTTP/3 from DNS](#http3-from-dns)). The Go SDK can also enable the
 experimental HTTP/3 transport for every origin through
-`WithTransportOption(tls_client.WithProtocolRacing())`. It races connection
+`WithTransportOption(tls_client.WithProtocolRacing())` with an explicit
+client-scope profile. Request scope uses JSON/DNS protocol choices and rejects
+opaque transport overrides. It races connection
 establishment and sends the request once over the selected transport. The
 Chrome policy applies measured QUIC TLS 1.3 vectors and initial receive
 windows. The current QPACK decoder is stateless: table capacity and blocked
@@ -2669,7 +2675,7 @@ Chrome 155 on macOS, 2026-10-23):
   not Go's 15 s;
 - closing a connection sends no TLS close_notify (`tls.close_notify`), as
   Chrome never shuts TLS down: `Client.Close`, an idle timeout and the CLI's
-  close at run end (or after each try with `--fresh-connection`) end with the TCP FIN alone;
+  close at request end (at run end for an explicit persistent profile) end with the TCP FIN alone;
 - an idle HTTP/2 connection is kept until its server closes it
   (`h2.idle_connection_timeout_ms: 0`), an idle HTTP/1.1 one 300 s and closed
   only when the client next asks for a connection (`h1.idle_reap`);

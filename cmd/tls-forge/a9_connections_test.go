@@ -71,7 +71,7 @@ func TestA9CLIConnectionOwnership(t *testing.T) {
 					case "entry":
 						args = append(args, "--reuse-connection")
 					}
-					if code, _, stderr := exec(t, args...); code != 0 {
+					if code, _, stderr := execWorkflow(t, args...); code != 0 {
 						t.Fatalf("exit %d: %s", code, stderr)
 					}
 					deadline := time.Now().Add(3 * time.Second)
@@ -131,7 +131,7 @@ func TestA9CLISharedProxyIdentities(t *testing.T) {
 	list := writeList(t, "urls.json", fmt.Sprintf(`[{"url":%q,"proxy":%q},{"url":%q,"proxy":%q},{"url":%q,"proxy":%q}]`,
 		site.URL+"/a", "http://"+first.addr, site.URL+"/b", "http://"+second.addr, site.URL+"/c", "http://"+first.addr))
 	report := filepath.Join(t.TempDir(), "run.json")
-	code, _, stderr := exec(t, "fetch", "--no-exit-lookup", "--insecure", "--input", list, "--repeat", "2", "-c", "4", "--report="+report, "--report-format", "json")
+	code, _, stderr := execWorkflow(t, "fetch", "--no-exit-lookup", "--insecure", "--input", list, "--repeat", "2", "-c", "4", "--report="+report, "--report-format", "json")
 	if code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr)
 	}
@@ -178,7 +178,7 @@ func TestA9CLIRetriesBorrowTheSharedConnection(t *testing.T) {
 			if reload {
 				args = append(args, "--retry-as-browser")
 			}
-			if code, _, stderr := exec(t, args...); code != 0 {
+			if code, _, stderr := execWorkflow(t, args...); code != 0 {
 				t.Fatalf("exit %d: %s", code, stderr)
 			}
 			mu.Lock()

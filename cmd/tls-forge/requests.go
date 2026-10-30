@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"runtime"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -26,6 +25,8 @@ import (
 // Lines rather than a JSON array so the output can be read as it is produced,
 // and appended to across runs.
 type result struct {
+	sessions [][]tlsforge.Cookie // explicit exports, never inputs to another request
+
 	// URL is the URL asked for without its password, which every output that
 	// says it says so; the request goes out with the job's own.
 	URL      string `json:"url"`
@@ -321,42 +322,38 @@ func (p *pool) hold(proxy string, client *tlsforge.Client) {
 	p.clients[p.resolveProxy(proxy)] = client
 }
 
-// saveSessions writes down what each client ended up holding, one set per
-// proxy, so a run's warming survives it.
+// saveSessions exports each observed browser instance separately. A proxy
+// URL is a route, not permission to merge independent identities.
 func (p *pool) saveSessions(flags clientFlags, records []result) (int, error) {
 	if *flags.saveCookies == "" {
 		return 0, nil
 	}
-	used := map[string]bool{}
-	for _, r := range records {
-		used[r.Proxy] = true
+	if netscapeFile(*flags.saveCookies) {
+		instances := 0
+		for _, r := range records {
+			for _, cookies := range r.sessions {
+				if len(cookies) > 0 {
+					instances++
+				}
+			}
+		}
+		if instances > 1 {
+			return 0, fmt.Errorf("tlsforge: Netscape cookie output holds one browser instance; use JSON to save multiple instances")
+		}
 	}
-
-	proxies := make([]string, 0, len(used))
-	for proxy := range used {
-		proxies = append(proxies, proxy)
-	}
-	sort.Strings(proxies)
-
 	saved := 0
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	for _, proxy := range proxies {
-		client, ok := p.clients[proxy]
-		if !ok {
-			continue
+	for _, r := range records {
+		for i, cookies := range r.sessions {
+			note := fmt.Sprintf("run %s, request %d, try %d", flags.run.id, r.ID, i+1)
+			if r.Proxy != "" {
+				note += ", via " + redactProxy(r.Proxy)
+			}
+			n, err := flags.saveCookieSnapshot(cookies, note)
+			if err != nil {
+				return saved, err
+			}
+			saved += n
 		}
-		note := "direct"
-		if proxy != "" {
-			note = "via " + redactProxy(proxy)
-		}
-		// Which run warmed it, which its log and its report are named after.
-		note += ", run " + flags.run.id
-		n, err := flags.saveSession(client, note)
-		if err != nil {
-			return saved, err
-		}
-		saved += n
 	}
 	return saved, nil
 }
@@ -576,6 +573,9 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 	res, attempts, tries, found, err := retrier{retries: b.retry, note: b.note, keep: b.detailed, check: b.check,
 		log: log, asBrowser: b.asBrowser}.do(ctx, conns, request, lane, j.run, proxy)
 	r.Attempts, r.Tries = attempts, tries
+	if *b.clients.flags.saveCookies != "" {
+		r.sessions = conns.cookies
+	}
 	r.finish(started)
 	if proxy != "" {
 		r.Exit, r.ExitError = b.cameOut(ctx, conns.current(), proxy, tries, res, lane, log)

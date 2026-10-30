@@ -395,7 +395,7 @@ func TestFetchWritesAReportAsJSON(t *testing.T) {
 
 	// On the connection the URL keeps, so that the second try finds the first
 	// one's open, and the document says which was which.
-	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--repeat", "2", "--retry", "1", "--reuse-connection", "--report="+path,
+	code, _, stderr := execWorkflow(t, "fetch", "--exit-lookup", "--repeat", "2", "--retry", "1", "--reuse-connection", "--report="+path,
 		"--report-format", "json", server.URL)
 	if code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)
