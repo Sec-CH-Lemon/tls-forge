@@ -1,0 +1,108 @@
+{
+  "stage": "A12 local acceptance complete; root push/native CI pending owner approval",
+  "source": "bf252a5d821787e573005a523b96d2400ee3097c",
+  "engine": "UNRELEASED1.0.0/schema4/daemon3/SDK1;publishedanchorv0.2.2 unchanged",
+  "module": "GOWORK=off; publisheduTLSa80d50e",
+  "checks": {
+    "full_race": {
+      "packages": 23,
+      "exit": 0,
+      "root_seconds": 646.595,
+      "cli_seconds": 510.078,
+      "timeout": "20m unchanged",
+      "test_peer_note": "Fullmodule run compiled initial F07 H2peer. After replacing deprecatedtestAPI, entire finalharness separately passed race36.620s and20repeats32.379s. Root/CLI/production bytes identical; no assertions removed."
+    },
+    "final_harness_race_seconds": 36.62,
+    "fresh_full_coverage": {
+      "packages": 23,
+      "percent": 100,
+      "root_seconds": 175.876,
+      "cli_seconds": 62.266,
+      "source": "exactbf252a5 gitarchive including finalmodernpeer"
+    },
+    "build_lint_vet": "PASS/0issues",
+    "generated": "PASS: formatting/tidy/moduleverify/CSS/notices",
+    "workflow_release": "PASS;100% helper coverage",
+    "node": {
+      "pass": 131,
+      "real_daemon_skipped_in_unit_suite": 12,
+      "line_function_branch_coverage": 100,
+      "real_daemon_separate_pass": 12,
+      "real_daemon_separate_skipped": 0
+    },
+    "python": {
+      "pass": 169,
+      "real_daemon_skipped_in_unit_suite": 12,
+      "line_branch_coverage": 100,
+      "real_daemon_separate_pass": 12,
+      "real_daemon_separate_skipped": 0,
+      "mypy": "PASS5sourcefiles"
+    },
+    "govulncheck": {
+      "version": "v1.7.0 builtGo1.26.10",
+      "reachable_vulnerabilities": 0,
+      "imported_package_vulnerabilities": 0,
+      "module_only": [
+        "GO-2026-5932 unimportedx/crypto/openpgp;no fixedversion"
+      ],
+      "exit": 0
+    },
+    "docs": "PASS",
+    "KB": "268entries/1546observations;render+checkPASS"
+  },
+  "evidence": {
+    "F06": {
+      "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/F06",
+      "sha256": "34d34ff62296bab2a97b97d5f7f4c9cf235e9f26c4e5497a5ef00663420e5b17",
+      "files": 1237,
+      "bytes": 108058309
+    },
+    "F03": {
+      "stage": "F03",
+      "directory": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/F03",
+      "files": 26,
+      "bytes": 27420700,
+      "manifest_sha256": "ff07b0e6e908b35a898d64d31be62b9211c0af6cb080265056040476e392ef43",
+      "source_after_archive_sha256": "7dfada4c1a1abca4ed0129775fdf4fdec16afaef719789497db1852bb6bfe071"
+    },
+    "F07": {
+      "stage": "F07",
+      "directory": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/F07",
+      "files": 808,
+      "bytes": 126834381,
+      "manifest_sha256": "5127473a8775286aa826c6f9b74fcd1149836448838f52f44256868ecffd5bb8",
+      "source_after_archive_sha256": "4e8d42f6d4ddd0dbaa890cf0a74a8e3b95158a24e06ab24cdd6a870888341913"
+    },
+    "ACCEPTANCE_FINAL": {
+      "directory": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/ACCEPTANCE-FINAL",
+      "files": 30,
+      "bytes": 22112656,
+      "manifest_sha256": "07ff60716c1cff6e0251209bfd808e5da01d328aadbc1d3e31a25112601bcf7a",
+      "supersedes": "EarlierACCEPTANCE staging has incomplete newKB baseline fields; preserved unchanged, not accepted finalKB."
+    }
+  },
+  "hashes": {
+    "a12-full-race.log": "18213f936a0883c669f55467ae29b414a758324762f4100448fdbfde3ade4ec4",
+    "a12-final-harness-race.log": "ef6793b71865128591a8479467467c63b36b401484035116ab6b9a28f86a5050",
+    "a12-final-full-cover.log": "6ac636e9d5c0693dffab43a97d911d3819a07a3cf6f9aa205e135a5b79552ca8",
+    "a12-build-lint-vet-modern-server.log": "013e34f267d14139e8761ca81e3a55b3ca27842aa4e63f09b8b30b61b6a07ae9",
+    "a12-generated.log": "b487145323ac174752d42d888287ea6aad45195d22f66d6f6ff5b7d220ddd0f9",
+    "a12-sdk-tests.log": "23a257d01f4714b5a79c88a30a7f243bde9da182e9b81f90e85bfb516827da7a",
+    "a12-node-real-daemon.log": "b93c772d61bba154330b1192fca0d00f8d0e04475f9a83bc11b387faef4b34a8",
+    "a12-python-real-daemon.log": "802ead6d1cb26ed5fde368aab348251d3013d63b0dc9a6e362e6f5a74b4f2c46",
+    "a12-python-typecheck.log": "b218fd69f435a6975728c153fd397ce51ac2d4e23d8e26e765f34cd66ca4c352",
+    "a12-workflow-release-checks.log": "78fac9fc9c870b1d48f8bfd1b81ad79f95ee821b36e53dc91cc29dd6f6156ba6",
+    "a12-govulncheck-final.log": "b5ae54ddcfa4cb39e85f84ad2d9e43556bd817c480eaab2a71bab63bfc29353b",
+    "a12-govulncheck-verbose.log": "b137543e43556ff2ed6985e8d013b73295b97cbe8552147df021c0b5f7cb0cd7",
+    "persona-docs-check.log": "75052178b4d2a2992b86de98c3bcf5b194eff8edaebb6262db49409639c81d75",
+    "shutdown-docs-check-final.log": "c455d7d830722a225ab3db51381049c68d27abbdc5ee472ea0367a177ef10b87",
+    "a12-kb-check-final.log": "31937d781cb7a42155be882afe6d33e31d2a5b8d1f2d5db3312d5fe851e54de0"
+  },
+  "remaining": [
+    "RootA12nativeCI Linux/Windows/macOS pending publication authorization",
+    "Finite156macOS browser evidence doesnotaccept allhistoricalbuilds/platforms",
+    "IntentionalTLS/ACK/earlyQUICclose/nonidempotentreplay exceptions retained perownerdecision",
+    "A13 catalogueF02/C andnetworkhintestimatorF03A-E stillopen;existingnetworkhintstrings155/156 remain",
+    "A14 finalreadinessmatrix/overallChrome156acceptance stillopen;no universalindistinguishability claim"
+  ]
+}
