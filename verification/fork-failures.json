@@ -6,7 +6,7 @@
     "utls": {
       "module": "github.com/igor-lemon/utls",
       "repository": "https://github.com/igor-lemon/utls",
-      "commit": "7331a8aaf221cd45f6cfe19c4c2df031a26459e7"
+      "commit": "fc851fa265f6be680bf5626006f977596c7ca4d1"
     },
     "fhttp": {
       "module": "github.com/igor-lemon/fhttp",
@@ -2133,40 +2133,6 @@
         ],
         "production": [
           "696dd943968b378d69e2e713e5be20a3144e2b6499f32843042dd83781c35697"
-        ]
-      }
-    },
-    {
-      "package": "github.com/igor-lemon/utls",
-      "test": "TestVerifyHostname",
-      "graphs": [
-        "standalone",
-        "production"
-      ],
-      "class": "environment / external DNS intentionally denied",
-      "cause": "Inherited test depends on www.google.com. Identical failure reproduced on unchanged18ad370 under the same loopback-only sandbox; unrestricted baseline passed.",
-      "obligation": "Owned TLS positive/wrong-host/insecure hostname matrix retained in upstream trust tests; external test remains unmeasured in the restricted full gate. Replace external dependency in A11.",
-      "resolution": "A11 / F09 stage2; not a hostname-verification defect established in A6",
-      "failure_pattern": "www.google.com.*(?:operation not permitted|permission denied)",
-      "baseline_evidence": [
-        "f09-utls-network-baseline"
-      ],
-      "minimal_repeat": [
-        "sandbox-exec",
-        "-p",
-        "loopback-only policy",
-        "go",
-        "test",
-        "-run",
-        "^TestVerifyHostname$",
-        "."
-      ],
-      "failure_output_sha256": {
-        "standalone": [
-          "0f56c63cfae74a539d4f6ccf107f756d386704fcc92e1dbbb24d9bcd5656c233"
-        ],
-        "production": [
-          "0f56c63cfae74a539d4f6ccf107f756d386704fcc92e1dbbb24d9bcd5656c233"
         ]
       }
     },

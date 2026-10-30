@@ -61,7 +61,7 @@ def failure_digest(text):
     return failure_transcript(text)[0]
 
 
-def evaluate(events, returncodes, known, graph, require_self=False, requested_packages=None):
+def evaluate(events, returncodes, known, graph, require_self=False, requested_packages=None, required_checks=None):
     failed = {(e["Package"], e["Test"]) for e in events
               if e.get("Action") == "fail" and e.get("Test")}
     package_failures = {e.get("Package", e.get("ImportPath", "unknown build target")) for e in events
@@ -102,9 +102,43 @@ def evaluate(events, returncodes, known, graph, require_self=False, requested_pa
         completed = {e["Package"] for e in events if not e.get("Test") and e.get("Action") in ("pass", "fail", "skip")}
         for package in sorted(set(requested_packages) - completed):
             unexpected.append({"package": package, "reason": "requested package did not complete"})
+    passed = {(e.get("Package"), e.get("Test")) for e in events if e.get("Action") == "pass" and e.get("Test")}
+    ran = {(e.get("Package"), e.get("Test")) for e in runs}
+    for check in required_checks or []:
+        key = (check["package"], check["test"])
+        if key not in passed or key not in ran:
+            unexpected.append({"package": key[0], "test": key[1], "reason": "resolved obligation witness did not run and pass"})
     return {"accepted": not unexpected, "test_runs": len(runs), "trace_counts": trace_counts, "known_failures": [list(x) for x in sorted(failed & allowed.keys())],
             "not_observed_now": [list(x) for x in sorted(allowed.keys() - failed)], "unexpected": unexpected,
             "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."}
+
+
+def obligation_checks(inventory, ledger, module, graph):
+    """Keep original debts and require positive witnesses after removing allowances."""
+    rows = ledger["obligations"]
+    if len(rows) != ledger["baseline_count"] or len({r["id"] for r in rows}) != len(rows):
+        raise ValueError("original obligation inventory is incomplete or duplicated")
+    originals = {(r["original"]["package"], r["original"]["test"]) for r in rows}
+    if len(originals) != len(rows):
+        raise ValueError("duplicate original obligation")
+    active = {(r["package"], r["test"]): r for r in inventory["known_failures"]}
+    checks = []
+    for row in rows:
+        old = row["original"]
+        key = (old["package"], old["test"])
+        if row["status"] == "open":
+            if active.get(key) != old:
+                raise ValueError("open obligation lost or changed its original allowance: " + row["id"])
+        elif row["status"] == "resolved":
+            if key in active or not row.get("checks") or not row.get("fix_commit") or not row.get("evidence"):
+                raise ValueError("resolved obligation lacks fix, evidence or witnesses: " + row["id"])
+            if graph in old["graphs"]:
+                checks.extend(c for c in row["checks"] if c["package"] == module or c["package"].startswith(module + "/"))
+        else:
+            raise ValueError("unknown obligation status")
+    if set(active) - originals:
+        raise ValueError("new failure allowance lacks an original obligation")
+    return checks
 
 
 def module_graph(cwd, env):
@@ -128,6 +162,8 @@ def main():
     args = parser.parse_args()
     inventory = json.loads((args.root / "verification/fork-failures.json").read_text())
     spec = inventory["forks"][args.fork]
+    ledger = json.loads((args.root / "verification/fork-obligations.json").read_text())
+    required = obligation_checks(inventory, ledger, spec["module"], args.graph)
     actual = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.source, text=True).strip()
     if actual != spec["commit"]:
         raise RuntimeError("fork source commit differs from the pinned inventory")
@@ -213,7 +249,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer, socket.socket(soc
             if item.get("Version") and item["Path"] != spec["module"] and selected_versions.get(item["Path"]) != item["Version"]:
                 raise RuntimeError("production module graph drift: " + item["Path"])
         known = [x for x in inventory["known_failures"] if x["package"] == spec["module"] or x["package"].startswith(spec["module"] + "/")]
-        report = evaluate(events, codes, known, args.graph, args.fork == "quic-go-utls", packages)
+        report = evaluate(events, codes, known, args.graph, args.fork == "quic-go-utls", packages, required)
         report.update({"fork": args.fork, "source_commit": actual, "toolchain": env["GOTOOLCHAIN"], "graph": args.graph, "returncodes": codes,
                        "network": "loopback only; external TestWeb cannot issue its POST", "modules": selected, "production_linked": expected,
                        "source_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "skips": ["TestOmitHTTP2"] if args.fork == "fhttp" else []})

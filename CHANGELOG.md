@@ -3515,3 +3515,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - The echo server does not issue session tickets by default, so captures are
   always the cold handshake — a resumed connection carries `pre_shared_key` and
   therefore a different JA4.
+
+- A11: retain the109 original fork obligations in `verification/fork-obligations.json`;
+  require positive replacement witnesses when removing an allowance. Pin utls's
+  owned-peer hostname matrix in the root and nested Go example; browser data unchanged.

@@ -3022,3 +3022,11 @@ about:blank before a typed navigation; no owned-origin traffic precedes it.
 Version and DOM-dump commands pass through. Original connection counts and
 request/GOAWAY comparisons remain unchanged. Per-launch NetLog/CDP evidence
 under `fixture-browser/` is private and included only in the encrypted artifact.
+
+A11 tracks each of the original F09 failures in
+[`verification/fork-obligations.json`](verification/fork-obligations.json).
+Removing an active failure allowance requires a fix, retained before/after
+evidence and named replacement tests that run and pass in both module graphs.
+A missing, skipped or renamed witness rejects the gate. A11 remains in progress;
+its [report](docs/remediation/2026-10-30/A11.ru.md) distinguishes closed items
+from the remaining debt and native acceptance.

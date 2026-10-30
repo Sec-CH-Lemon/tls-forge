@@ -1,6 +1,6 @@
 import unittest
 
-from fork_gate import evaluate, failure_digest, failure_transcript
+from fork_gate import evaluate, failure_digest, failure_transcript, obligation_checks
 
 
 class ForkGateTests(unittest.TestCase):
@@ -96,6 +96,27 @@ class ForkGateTests(unittest.TestCase):
         got = evaluate(self.rows(action="pass"), [0], self.known(), "standalone")
         self.assertTrue(got["accepted"])
         self.assertEqual(got["not_observed_now"], [["fork", "TestOld"]])
+
+    def test_resolved_witness_must_run_and_pass(self):
+        check = [{"package": "fork", "test": "TestOld"}]
+        for rows in [[], self.rows(action="skip"), self.rows(action="fail"), [r for r in self.rows(action="pass") if r["Action"] != "run"]]:
+            self.assertFalse(evaluate(rows, [0], [], "standalone", required_checks=check)["accepted"])
+        self.assertTrue(evaluate(self.rows(action="pass"), [0], [], "standalone", required_checks=check)["accepted"])
+
+    def test_obligation_cannot_disappear_or_keep_failure_allowance(self):
+        old = self.known()[0]
+        ledger = {"baseline_count": 1, "obligations": [{"id": "F09-001", "original": old, "status": "open"}]}
+        inventory = {"known_failures": [old]}
+        self.assertEqual(obligation_checks(inventory, ledger, "fork", "standalone"), [])
+        inventory["known_failures"] = []
+        with self.assertRaises(ValueError): obligation_checks(inventory, ledger, "fork", "standalone")
+        row = ledger["obligations"][0]
+        row.update(status="resolved", checks=[{"package": "fork", "test": "TestReplacement"}], fix_commit="abc", evidence={"after": "owned"})
+        self.assertEqual(obligation_checks(inventory, ledger, "fork", "standalone"), row["checks"])
+        inventory["known_failures"] = [old]
+        with self.assertRaises(ValueError): obligation_checks(inventory, ledger, "fork", "standalone")
+        ledger["obligations"] = []
+        with self.assertRaises(ValueError): obligation_checks(inventory, ledger, "fork", "standalone")
 
 
 if __name__ == "__main__":

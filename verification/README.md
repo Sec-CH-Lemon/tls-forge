@@ -98,3 +98,14 @@ test failures still reject. No debt obligation is removed or added.
 The official `xcode-27` hosted image is listed in GitHub runner-images. The
 pinned actionlint1.7.12 registry predates that label; `.github/actionlint.yaml`
 adds only this exact label. Unknown-label negative controls still reject.
+
+## A11 obligation closure
+
+`fork-obligations.json` retains all109 original records, with stable IDs,
+fix commits, evidence references and required positive witnesses. Open rows
+must retain their exact original active allowances. Resolved rows must leave
+the active list and have their named witnesses actually run and pass in both
+graphs. Missing/skip/renaming/deletion is a gate failure. The supplemental
+TestOmitHTTP2 obligation is tracked separately. A passing rerun alone cannot
+close a historical row. During A11 the remaining open rows are still explicit
+debt; this ledger does not make a partial stage a complete acceptance.
