@@ -17,7 +17,8 @@
   "candidate": {
     "matched": 204,
     "pairs": 204,
-    "accepted": true
+    "accepted": true,
+    "implementation_commit": "8d4f3cc1"
   },
   "normalization": {
     "Host/:authority": "validated owned origin host/port only",
@@ -43,5 +44,16 @@
     "Exact saturation threshold4294967295 inherited from Chromium main source,not established by finite156samples.",
     "Generated range ordering tested on production H1/H2;no new Chrome Range oracle in A10.",
     "A8 original exact-profile hashes and acceptance remain historical."
-  ]
+  ],
+  "committed_candidate_replay": {
+    "build_source_commit": "52f1ada11e9b3510875cbcf55f94e15ddd45a237",
+    "source_archive_sha256": "aec1c0088437773d649c3251dd9d6d76a1ae51bbee13198d7ff74318effc3694",
+    "GOWORK": "off",
+    "accepted": true,
+    "matched": 204,
+    "pairs": 204,
+    "comparison_sha256": "9f9854d1f8a5d39380307bf029eebea30ffe58471439b661c8033ecfcdfb6609",
+    "browser_reference": "same final two independent Chrome cohorts;not additional browser launches",
+    "runtime_changes_since_implementation": "none;52f1ada1 adds test diagnostics;4f154167 corrects testing harness stderr expectation"
+  }
 }

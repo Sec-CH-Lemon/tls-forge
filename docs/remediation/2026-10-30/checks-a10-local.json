@@ -1,0 +1,298 @@
+{
+  "stage": "A10",
+  "date": "2026-10-30",
+  "status": "local acceptance passed;root push and native CI A10 explicitly authorized;publication pending",
+  "implementation_commit": "8d4f3cc1",
+  "test_diagnostic_commit": "52f1ada1",
+  "test_fix_commit": "4f154167",
+  "utls_commit": "7331a8aaf221cd45f6cfe19c4c2df031a26459e7",
+  "identity": {
+    "version": "1.0.0",
+    "latest_released_version": "0.2.2",
+    "release_status": "unreleased",
+    "pending_engine_change": true
+  },
+  "normal": {
+    "accepted": true,
+    "packages": 23,
+    "all_package_and_function_statement_coverage_percent": 100,
+    "evidence": {
+      "log": "final-cover.log",
+      "sha256": "2290c0e06a7ac2de53881a215a35fd163bcdcd75c4a749078398c741c6165293"
+    }
+  },
+  "race": {
+    "accepted": true,
+    "packages": 23,
+    "original_full_run": {
+      "log": "final-race.jsonl",
+      "sha256": "cd4a9f188546eea1c8576bc999cbd1e6da807817e3af4e500cd1341783938598"
+    },
+    "original_result": "22 pass;CLI failed initialization-stderr fixture;no data-race report",
+    "final_CLI_run": {
+      "log": "cli-race-final.jsonl",
+      "sha256": "54488b39d4e1bfbf3118001b93c5517ac580cabc037ba5bd891ba2d2e1daaace"
+    },
+    "final_CLI_source": "4f154167",
+    "final_CLI_elapsed_seconds": 478.305,
+    "final_CLI_test_runs": 964,
+    "root_elapsed_seconds": 628.69,
+    "assembly": "22 package passes from unchanged runtime full run plus complete CLI rerun after test-only fixture fix;original RED retained"
+  },
+  "logger": {
+    "before": {
+      "log": "logger-json-before.jsonl",
+      "sha256": "42e4af4794c699cf7b7227bb974da06f8b8d6414464407c25ee7a4eb903a455d"
+    },
+    "after": {
+      "log": "logger-json-after.jsonl",
+      "sha256": "7ee6221ae5c1b2a9bded1f790c1a802dd5c34eb4fc4f985c435a32523998c1fc"
+    },
+    "json_race_repetitions": 200,
+    "all_original_assertions_retained": true,
+    "production_change": false,
+    "diagnostic_wrong_cwd_run_excluded": true
+  },
+  "vet": {
+    "accepted": true,
+    "log": "final-vet.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "lint": {
+    "accepted": true,
+    "issues": 0,
+    "log": "logger-fix-lint.log",
+    "sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+  },
+  "modules": {
+    "GOWORK": "off",
+    "published_utls_pin": "v1.7.8-barnius.0.20261030112626-7331a8aaf221",
+    "build": {
+      "log": "committed-build.log",
+      "sha256": "38f6d999682f4c045250178bc3dbc70eea831ff65bd8b6f6d7e9af1ab8c4adae"
+    },
+    "tidy": {
+      "log": "final-tidy.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "verify": {
+      "log": "final-verify.log",
+      "sha256": "b4537ed75f533f993f371954de47e42a793b8e5b0587577de7e27fb3e50696bd"
+    }
+  },
+  "source_checks": {
+    "generated": {
+      "accepted": true,
+      "log": "final-generated.log",
+      "sha256": "b487145323ac174752d42d888287ea6aad45195d22f66d6f6ff5b7d220ddd0f9"
+    },
+    "docs": {
+      "accepted": true,
+      "log": "final-docs.log",
+      "sha256": "0cbc70124c4b93f133098b7350bdb1b1ac198e4034ebb4f10506df12d7973a32"
+    },
+    "workflows": {
+      "accepted": true,
+      "log": "workflow-tests.log",
+      "sha256": "61c2762130d755e948f1ef1092d7d2188ed3049bb98971d2f6d0c710c7f306bc"
+    },
+    "release": {
+      "accepted": true,
+      "log": "final-release.log",
+      "sha256": "87ea1a19056bc9cab518b8831f9c8d930e8a5c05aab9fa398c932f132b4089f9"
+    }
+  },
+  "SDK": {
+    "Node": {
+      "unit_coverage_lines_functions_branches_percent": 100,
+      "unit": {
+        "log": "node-unit.log",
+        "sha256": "69d3ffff0eb6c3076a7a8311841cb3360a56be05f8027a5dd68d7c4fd9937548"
+      },
+      "real_daemon_passed": 12,
+      "real": {
+        "log": "committed-node-real.log",
+        "sha256": "390eb4fa3cc8a627a243d1a28ce2fae80f95b4b8337944fda273f15b54cb3b0b"
+      }
+    },
+    "Python": {
+      "unit_passed": 169,
+      "unit_real_skipped": 12,
+      "unit_coverage_statements_branches_percent": 100,
+      "coverage": {
+        "log": "python-unit-coverage.log",
+        "sha256": "b3ff34ddb081e457d2ef94a5d867fdb2e24c9d9f5aeb0367ed340f68c9b29ce9"
+      },
+      "types": {
+        "log": "python-types.log",
+        "sha256": "e317872697c2cbfdefa321527a6efe73290dff3a390b0fa8723b87092eccba6a"
+      },
+      "real_daemon_passed": 12,
+      "real": {
+        "log": "committed-python-real.log",
+        "sha256": "74a4899858e7324c684ba9ea98619d21c4fc2e8a31916131e669bcb3fdd5d68a"
+      }
+    },
+    "real_daemon_binary_source": "52f1ada1;GOWORK=off"
+  },
+  "fuzz": {
+    "accepted": true,
+    "target": "FuzzCacheControl",
+    "seconds": 60,
+    "executions": 431970,
+    "log": "cache-fuzz.log",
+    "sha256": "ccff4ee1b8ba49717c159a6cb7c6381866e60f9c2bc6dfb512852b125e0221b7"
+  },
+  "security": {
+    "scanner": "govulncheck1.7.0 built with Go1.26.10",
+    "reachable_vulnerabilities": 0,
+    "imported_package_vulnerabilities": 0,
+    "required_module_advisories": [
+      {
+        "id": "GO-2026-5932",
+        "package": "golang.org/x/crypto/openpgp",
+        "imported": false,
+        "fixed_version": null
+      }
+    ],
+    "log": "final-vuln-verbose.log",
+    "sha256": "2c45760ca9d490bb06a9bd227894134a5b03fac3d9a7ea608c34db1405f79510",
+    "old_Go1_25_scanner_load_failure_retained": true
+  },
+  "forks": {
+    "known_debt_gate_only": true,
+    "open_obligations": 109,
+    "initial_fhttp_production_rejection_retained": true,
+    "support_line_variation": {
+      "before_samples": 200,
+      "before_extra_Handler": 3,
+      "after_samples": 200,
+      "after_extra_Handler": 7,
+      "proof_sha256": "49398ad5b0618b2cf4084b31fc99afadff419204522432a51f1fab682a4cc4ee"
+    },
+    "results": [
+      {
+        "run": "final-gate-fhttp-production",
+        "fork": "fhttp",
+        "graph": "production",
+        "accepted": false,
+        "test_runs": 1831,
+        "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+        "result_sha256": "cfd010d01bd0dce7a40aa3cd5d8782c18f9028464b6e2cdd09274ec7c7bd45bb"
+      },
+      {
+        "run": "final-gate-fhttp-standalone",
+        "fork": "fhttp",
+        "graph": "standalone",
+        "accepted": true,
+        "test_runs": 1831,
+        "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+        "result_sha256": "85ec3d38064d50001f8b1db04096518b963106efa94b32de44aff9a40d9d27ea"
+      },
+      {
+        "run": "final-gate-quic-go-utls-production",
+        "fork": "quic-go-utls",
+        "graph": "production",
+        "accepted": true,
+        "test_runs": 2562,
+        "source_commit": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+        "result_sha256": "b8d98c1c737d5fb7ab1b88c7caf5bd0e2ee1d3cc1493b72a9b217512589619b5"
+      },
+      {
+        "run": "final-gate-quic-go-utls-standalone",
+        "fork": "quic-go-utls",
+        "graph": "standalone",
+        "accepted": true,
+        "test_runs": 2562,
+        "source_commit": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+        "result_sha256": "bc79412055a2697017e4e05f72aeda338f1a738f5230a838824e32357c81f5e6"
+      },
+      {
+        "run": "final-gate-tls-client-production",
+        "fork": "tls-client",
+        "graph": "production",
+        "accepted": true,
+        "test_runs": 407,
+        "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+        "result_sha256": "6f81bc0db85a2c0d761953f7b226f31d5e2085d2fb9d737ab352dc082ce84c4c"
+      },
+      {
+        "run": "final-gate-tls-client-standalone",
+        "fork": "tls-client",
+        "graph": "standalone",
+        "accepted": true,
+        "test_runs": 407,
+        "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+        "result_sha256": "4e0fc7206d8824c80a4de58cd94fc49e017fccc9053093ac564aa2fb50c370b4"
+      },
+      {
+        "run": "final-gate-utls-production",
+        "fork": "utls",
+        "graph": "production",
+        "accepted": true,
+        "test_runs": 636,
+        "source_commit": "7331a8aaf221cd45f6cfe19c4c2df031a26459e7",
+        "result_sha256": "10a75b09116b4fe313223b517add1480a01023e13d6c062ab60a28139042bb50"
+      },
+      {
+        "run": "final-gate-utls-standalone",
+        "fork": "utls",
+        "graph": "standalone",
+        "accepted": true,
+        "test_runs": 636,
+        "source_commit": "7331a8aaf221cd45f6cfe19c4c2df031a26459e7",
+        "result_sha256": "06779be903086ba4d3ca461ef7b12851cb3c21776af9f832e3b867f6b20e2e5f"
+      },
+      {
+        "run": "final-gate-fhttp-production-repeat",
+        "fork": "fhttp",
+        "graph": "production",
+        "accepted": true,
+        "test_runs": 1831,
+        "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+        "result_sha256": "72143eae010c72da5aee1ed7f772bdcb746465d27ec16b961539a076bd2ed1bb"
+      }
+    ],
+    "known_failures_or_normalization_changed": false,
+    "known_failure_rows_byte_equivalent_as_JSON": true,
+    "source_pin_update": "utls2c0489c1 ->7331a8a;other three source commits unchanged",
+    "final_graph_acceptance": "8/8 after unchanged full fhttp production repeat;initial rejection retained;not a green raw suite",
+    "negative_control_methods": 15
+  },
+  "native_CI": {
+    "status": "authorized;not yet dispatched",
+    "owner_authorization": "2026-10-30 explicit A10 push and native CI Linux/Windows/macOS",
+    "prior_A8_A9_CI_not_reused": true
+  },
+  "limitations": [
+    "This is A10/F04 acceptance,not A11/F09 stage2 or overall A0-A14 closure.",
+    "Fresh cache evidence only Chrome156macOS;other builds/platforms explicitly inherited.",
+    "No universal browser indistinguishability or QPACK scheduling/RNG/WAN/kernel claim.",
+    "Default per-call network isolation is the owner contract;explicit client-scope JSON is used for same-browser cache sequences."
+  ],
+  "capability_matrix": {
+    "accepted": true,
+    "actual_executable_pairs": 4,
+    "matching_pairs_origin_requests": [
+      1,
+      1
+    ],
+    "mixed_pairs_origin_requests": [
+      0,
+      0
+    ],
+    "scope": "new required JSON capabilities within unpublished engine1;strict major matrix remains separately required",
+    "evidence_sha256": "6ad9904c8d62d9797667c1b025017995adac039699b8aaac0fb49b8840b983e8"
+  },
+  "private_evidence": {
+    "path": "captures/tls-forge-a10-20261030",
+    "archive": "evidence.tar.gz",
+    "archive_sha256": "aef5c2447426837cc378493b3d88fea18c4fe5ad9bcf61a5b1bae70d739be15f",
+    "archive_bytes": 222627066,
+    "manifest_sha256": "2f8b47216287f670126e62664cb618ace20751ab4f514a70206933bf60663f2d",
+    "files": 4780,
+    "uncompressed_file_bytes": 1215129171,
+    "members_verified": true,
+    "privacy": "directory0700,files0600;raw TLS keys,synthetic cookies and captures private"
+  }
+}
