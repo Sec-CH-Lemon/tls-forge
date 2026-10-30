@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Keep the standalone Go example on the published A10 transport dependency,
+  so it builds independently with `GOWORK=off`.
+
 - Give every request its own browser network instance with shipped profiles,
   including CLI/Go/Node/Python/daemon requests, repeats and application retries.
   Keep redirects and protocol retries inside that instance. Reconstruct DNS/QUIC,

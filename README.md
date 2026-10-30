@@ -2345,7 +2345,9 @@ func main() {
 ```
 
 See the complete [Go library documentation](GO.md).
-The runnable consumer project is in [`example/go/`](example/go/).
+The runnable consumer project is in [`example/go/`](example/go/). Its separate
+module pins the same transports as this checkout; verify it independently with
+`GOWORK=off go run .` from that directory.
 
 #### Node.js
 
