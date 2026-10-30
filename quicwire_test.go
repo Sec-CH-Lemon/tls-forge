@@ -216,15 +216,24 @@ func (h *quicHeard) heard() ([][]byte, []time.Duration) {
 func silentSite(t *testing.T) (string, *quicHeard) {
 	t.Helper()
 	udp, tcp := udpAndTCP(t)
+	h := &quicHeard{first: make(chan struct{})}
 	_, port, _ := net.SplitHostPort(tcp.Addr().String())
 	server := httptest.NewUnstartedServer(stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+		// This fixture measures Initial policy, not detached-job scheduling.
+		// Keep TCP's success response behind the actual first UDP observation,
+		// retaining the same startup deadline and all packet assertions.
+		select {
+		case <-h.first:
+		case <-time.After(2 * time.Second):
+			t.Error("QUIC sent no first datagram before the TCP observation barrier")
+			return
+		}
 		_, _ = w.Write([]byte(r.Proto))
 	}))
 	server.Listener = tcp
 	server.EnableHTTP2 = true
 	server.StartTLS()
 	t.Cleanup(server.Close)
-	h := &quicHeard{first: make(chan struct{})}
 	go func() {
 		for {
 			b := make([]byte, 2048)
