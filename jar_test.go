@@ -279,11 +279,10 @@ func TestAClientWithoutAJarListsNothing(t *testing.T) {
 }
 
 func TestAJarThatDoesNotSayWhereACookieIsFiledListsNone(t *testing.T) {
-	// tls-client's own jar files cookies by host and port and answers with them
-	// as they were set, without the domain and path RFC 6265 gives them, so the
-	// wrapper cannot find what it kept. WithCookieJar says so; the cookies
-	// still go where they go.
-	client := newTestClient(t, WithCookieJar(tls_client.NewCookieJar()))
+	// Keep the negative contract independent of any particular adapter: this
+	// owned jar intentionally strips filing metadata but still selects cookies
+	// by the underlying protocol rules.
+	client := newTestClient(t, WithCookieJar(metadataFreeJar{inner: tls_client.NewCookieJar()}))
 	u := mustURL(t, "https://example.test/")
 	client.session.seed(u, []Cookie{{Name: "a", Value: "1"}})
 	if all := client.AllCookies(); len(all) != 0 {
@@ -291,6 +290,41 @@ func TestAJarThatDoesNotSayWhereACookieIsFiledListsNone(t *testing.T) {
 	}
 	if sent, err := client.CookiesFor(u.String()); err != nil || len(sent) != 1 {
 		t.Errorf("CookiesFor = %+v, %v", sent, err)
+	}
+}
+
+// metadataFreeJar withholds the fields a complete inventory needs. Returning
+// fresh name/value cookies also ensures the fixture cannot mutate its backend.
+type metadataFreeJar struct{ inner fhttp.CookieJar }
+
+func (j metadataFreeJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
+	j.inner.SetCookies(u, cookies)
+}
+func (j metadataFreeJar) Cookies(u *url.URL) []*fhttp.Cookie {
+	var out []*fhttp.Cookie
+	for _, cookie := range j.inner.Cookies(u) {
+		out = append(out, &fhttp.Cookie{Name: cookie.Name, Value: cookie.Value})
+	}
+	return out
+}
+func TestRepairedTransportJarReportsFilingMetadata(t *testing.T) {
+	client := newTestClient(t, WithCookieJar(tls_client.NewCookieJar()))
+	client.session.seed(mustURL(t, "https://example.test/"), []Cookie{{Name: "root", Value: "1"}})
+	client.session.seed(mustURL(t, "https://example.test/dir/"), []Cookie{{Name: "scoped", Value: "2", Path: "/dir"}})
+	all := client.AllCookies()
+	if len(all) != 2 {
+		t.Fatalf("AllCookies=%+v", all)
+	}
+	for _, cookie := range all {
+		if cookie.Domain != "example.test" || !cookie.HostOnly {
+			t.Errorf("filing metadata=%+v", cookie)
+		}
+	}
+	if got, err := client.CookiesFor("https://example.test/other"); err != nil || len(got) != 1 || got[0].Name != "root" {
+		t.Fatalf("path selection=%+v,%v", got, err)
+	}
+	if got, err := client.CookiesFor("https://other.test/"); err != nil || len(got) != 0 {
+		t.Fatalf("host selection=%+v,%v", got, err)
 	}
 }
 

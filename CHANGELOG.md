@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Keep the missing-cookie-metadata contract on an independent fixture and verify complete metadata from the repaired tls-client jar; correct the `WithCookieJar` documentation.
+
+
 - A11: pin verified tls-client cookie scope/body ownership fixes and owned protocol fixtures. All109 original fork obligations have positive local witnesses on both graphs; final root/native acceptance remains pending.
 
 

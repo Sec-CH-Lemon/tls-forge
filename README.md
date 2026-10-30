@@ -3043,3 +3043,8 @@ locally closed at109/109; final root/native acceptance pending. This is technica
 Fork-gate JSON `skips` lists invocation exclusions; `test_skips` lists actual
 Go test skips, including platform and optional-environment checks. A resolved
 obligation still requires an executed, passing witness and cannot pass by skip.
+
+`WithCookieJar` can inventory cookies only when the supplied jar reports their
+filing domain and path. The repaired tls-client jar does; a custom jar that
+withholds those fields still sends scoped cookies but cannot provide a complete
+`AllCookies` inventory through this adapter.
