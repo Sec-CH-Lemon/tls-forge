@@ -464,7 +464,29 @@ func TestTraceKeepsWhatAWrongAnswerSaidAndWhyItWasAskedAgain(t *testing.T) {
 }
 
 func TestTraceFollowsARedirect(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "trace.json")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		want := 2
+		if r.URL.Path == "/hop" {
+			want = 1
+		}
+		// The assertion below describes an answer after WroteRequest. A
+		// loopback server can otherwise answer before that hook runs, which
+		// correctly leaves no wait span. Observing the send event establishes
+		// the intended order: wroteRequest holds the attempt mutex through
+		// emitting it and beginning wait, so firstByte cannot overtake it.
+		for deadline := time.Now().Add(5 * time.Second); ; {
+			data, _ := os.ReadFile(path)
+			if bytes.Count(data, []byte(`"name":"send"`)) >= want {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Errorf("request %s never emitted send event %d", r.URL.Path, want)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			time.Sleep(time.Millisecond)
+		}
 		if r.URL.Path == "/hop" {
 			http.Redirect(w, r, "/landed", http.StatusFound)
 			return
@@ -472,7 +494,6 @@ func TestTraceFollowsARedirect(t *testing.T) {
 		_, _ = w.Write([]byte("landed"))
 	}))
 	t.Cleanup(server.Close)
-	path := filepath.Join(t.TempDir(), "trace.json")
 
 	if code, _, stderr := exec(t, "fetch", "--trace", path, server.URL+"/hop"); code != 0 {
 		t.Fatalf("exit code = %d\n%s", code, stderr)

@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Make the redirect trace fixture observe request sending before replying,
+  preserving wait/order assertions and the valid early-response trace path.
+
 - Complete A10 with native Go/SDK/source acceptance on Linux, macOS and Windows,
   source-bound browser cache evidence and all eight known-debt fork gates.
   Preserve original failures and the 109 remaining A11 obligations.
