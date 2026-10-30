@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "status": "all27nativeCIjobsSUCCESS",
+  "run_id": 41029191484,
+  "head": "d00a85333f140f2a838ca1d6f093ccce7033b7bf",
+  "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41029191484",
+  "original_run": {
+    "run_id": 41027356012,
+    "head": "83ea0708411bf5b492f34cd1fe9b23d97ca481e9",
+    "jobs_success": 26,
+    "jobs_failed": 1,
+    "failure": "instantH1fixtureaccepted5serving1;all3GoOSpassed",
+    "log_archive_sha256": "d1919cfb2bf01534e45220a9248c9d6cccccfb79165cb0fd6fdf62e9498f0139"
+  },
+  "fixture_correction": "first4requestshelduntilall4overlap;exact4H1accepted/serving;8requests/allclosed;no runtime/profile/coverage-relaxation",
+  "local_repeat_controls": {
+    "normal": 50,
+    "race": 10,
+    "private_worker_mutation_rejected": true,
+    "fullCLI": "PASS50.416s100%statements"
+  },
+  "runtime_identity": "Allshippednetworkimplementation/profile/SDKdataequalsaccepted1cc4f81;onlyoneGo_testfilechangedsince83ea",
+  "jobs": [
+    {
+      "name": "security",
+      "id": 123974541961,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:55:57Z"
+    },
+    {
+      "name": "python (macos-latest, 3.13)",
+      "id": 123974542213,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:40Z",
+      "completedAt": "2026-10-30T08:56:20Z"
+    },
+    {
+      "name": "coverage",
+      "id": 123974542230,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:59:45Z"
+    },
+    {
+      "name": "python (ubuntu-latest, 3.13)",
+      "id": 123974542251,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:33Z"
+    },
+    {
+      "name": "go (ubuntu-latest)",
+      "id": 123974542256,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T09:07:10Z"
+    },
+    {
+      "name": "browser",
+      "id": 123974542267,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:00Z"
+    },
+    {
+      "name": "node (macos-latest, 24, true)",
+      "id": 123974542270,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:41Z",
+      "completedAt": "2026-10-30T08:56:03Z"
+    },
+    {
+      "name": "go (macos-latest)",
+      "id": 123974542274,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:34Z",
+      "completedAt": "2026-10-30T09:00:56Z"
+    },
+    {
+      "name": "go (windows-latest)",
+      "id": 123974542304,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T09:01:15Z"
+    },
+    {
+      "name": "examples (macos-latest)",
+      "id": 123974542307,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:02Z"
+    },
+    {
+      "name": "packaging",
+      "id": 123974542327,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:59:02Z"
+    },
+    {
+      "name": "node (ubuntu-latest, 20.12, false)",
+      "id": 123974542340,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:55:53Z"
+    },
+    {
+      "name": "node (windows-latest, 24, true)",
+      "id": 123974542341,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:11Z"
+    },
+    {
+      "name": "lint",
+      "id": 123974542357,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:34Z"
+    },
+    {
+      "name": "examples (ubuntu-latest)",
+      "id": 123974542379,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:07Z"
+    },
+    {
+      "name": "wrapper-smoke",
+      "id": 123974542395,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:09Z"
+    },
+    {
+      "name": "generated",
+      "id": 123974542401,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:55:46Z"
+    },
+    {
+      "name": "python (windows-latest, 3.13)",
+      "id": 123974542402,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:56:21Z"
+    },
+    {
+      "name": "docker",
+      "id": 123974542408,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:33Z",
+      "completedAt": "2026-10-30T08:57:40Z"
+    },
+    {
+      "name": "python (ubuntu-latest, 3.9)",
+      "id": 123974542424,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:56:04Z",
+      "completedAt": "2026-10-30T08:56:39Z"
+    },
+    {
+      "name": "examples (windows-latest)",
+      "id": 123974542457,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:55:34Z",
+      "completedAt": "2026-10-30T08:57:02Z"
+    },
+    {
+      "name": "node (ubuntu-latest, 24, true)",
+      "id": 123974542804,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:56:05Z",
+      "completedAt": "2026-10-30T08:56:57Z"
+    },
+    {
+      "name": "package-smoke (ubuntu-24.04-arm, 24, 3.13)",
+      "id": 123977566690,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:59:07Z",
+      "completedAt": "2026-10-30T08:59:21Z"
+    },
+    {
+      "name": "package-smoke (macos-latest, 24, 3.13)",
+      "id": 123977566701,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:59:05Z",
+      "completedAt": "2026-10-30T08:59:23Z"
+    },
+    {
+      "name": "package-smoke (windows-latest, 24, 3.13)",
+      "id": 123977566708,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:59:04Z",
+      "completedAt": "2026-10-30T08:59:40Z"
+    },
+    {
+      "name": "package-smoke (ubuntu-latest, 24, 3.13)",
+      "id": 123977566780,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:59:04Z",
+      "completedAt": "2026-10-30T08:59:17Z"
+    },
+    {
+      "name": "package-smoke (ubuntu-latest, 20.12, 3.9)",
+      "id": 123977566929,
+      "conclusion": "success",
+      "startedAt": "2026-10-30T08:59:05Z",
+      "completedAt": "2026-10-30T08:59:33Z"
+    }
+  ],
+  "sha256": {
+    "ci-a9-corrected-final.json": "1d63948dd43a2ad2636d8971a2cd4389f5b982ccecab8a37554edbfcaeaa1f70",
+    "ci-a9-corrected-logs.zip": "14b8fd694626ff9819afadb61cb0aaa1f2d00a91d7047b49d878a632921563fe",
+    "ci-a9-corrected-coverage.log": "ff2a6f9cd157c4f13a44ee3990211a302c4892943aabd66c4aa89960277fc9ec",
+    "ci-a9-corrected-macos.log": "c441d86ce587dba531524c1d34240aeacdeb5e81ca3f99e784d91aa4e50d5c5c",
+    "ci-a9-corrected-windows.log": "20ea7eefc7a4ceb22a03e0599d751f5d32c4b7c4c11d9898ad77188b869af7ca",
+    "native-fixture-source.json": "6242f42fbcafcc71b67d4602990739ae4d97bd3877b868f96cb7547cf24a027f",
+    "native-fixture-after.log": "985193978dd36c519c1e50fb51aec608ede3a090937996a6062aa43a2949f228",
+    "native-fixture-after-race.log": "35d3bc73a7f63824e8140033b47fb2c32547c8ed9be5e05eef8fc51b1c6f5e1f",
+    "native-fixture-private-client-mutant.log": "fc7faa6ddc655f61e472d10726c9560c0e326f4ecea0ffb9fa8e6e32ae9a138b"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "A9 runtime accepted onall3nativeOS;strictH1testprecondition corrected;freshCIpending",
+  "status": "A9implementation,boundedbrowser/localandnativeCIacceptancecomplete",
   "source": {
     "head": "1cc4f81c95b82e035a45838db758200744ff10f9",
     "archive_sha256": "d660e2a33e93bd1f0bab976ffa6b3c7cbda783457dbbaba5b47ca4d24ed969cf"
@@ -162,7 +162,19 @@
         "docs/browser-behavior.html": "0d749f3b30666575b3fef5e977a15ad7c203207ab53e914fb8ed629cc9129faa"
       }
     },
-    "independent_decode": "48initial+24final CLI snapshots;bothkeyremovalcontrols rejected"
+    "independent_decode": "48initial+24final CLI snapshots;bothkeyremovalcontrols rejected",
+    "KB_native": {
+      "entries": 268,
+      "observations": 1520,
+      "render_check": "PASS",
+      "target_unchanged": true,
+      "before_native_sha256": "152b557bbee8f6f06c69f8d14ec253ce66699023612c61cc7ddff08ccf8bf15c",
+      "files": {
+        "knowledge/browser-behavior.json": "f0034136eec1b30fbb96eb1e74dee12d5580f7bf368e4595cebf5f2438edc521",
+        "docs/BROWSER_BEHAVIOR.md": "2bf717af249fb32c788c53459d5bf605ec519ddc0721ee7b0bfb53aee442486c",
+        "docs/browser-behavior.html": "64b6a68ca05f3686a10f61177c0b154ade00a2b04cf0630b3725ae4a294b2b06"
+      }
+    }
   },
   "profiles": {
     "compared_JSON_files": 18,
@@ -188,19 +200,15 @@
     }
   },
   "native_CI": {
-    "A9_pushed": true,
-    "A9_Linux_Windows_run": true,
-    "run_id": 41027356012,
-    "head": "83ea0708411bf5b492f34cd1fe9b23d97ca481e9",
-    "status": "completed",
-    "owner_authorization": "Разрешаю push и нативный CI A9",
-    "initial_auto_review_rejection": "previousA8authorizationinsufficient;newexplicitA9authorizationreceived",
-    "A8_results_are_not_A9_acceptance": true,
-    "conclusion": "failure",
-    "jobs_success": 26,
-    "jobs_failed": 1,
-    "original_failure": "coveragejob:h1/4/sharedinstantresponsefixtureaccepted5serving1;allthreeGoOSjobssuccess",
-    "followup": "testonlyfourrequestwave;exact4H1accepted/serving;local50normal+10race;fullCLI50.416s100%"
+    "run": 41029191484,
+    "head": "d00a85333f140f2a838ca1d6f093ccce7033b7bf",
+    "conclusion": "success",
+    "jobs_success": 27,
+    "jobs_failed": 0,
+    "receipt": "checks-a9-native-ci.json",
+    "original_run_retained": 41027356012,
+    "owner_push_authorized": true,
+    "runtime_unchanged_from_1cc4f81": true
   },
   "private_evidence_root": "../net-fp-server/captures/tls-forge-a9-20261030",
   "sha256": {
@@ -223,5 +231,13 @@
     "manifest_sha256": "79b2fe5a0fe1784158e856bc6f0deebb497f0def16300a4a857b06087f3ce183",
     "verified_every_member": true,
     "permissions": "private directory0700;containsoriginalTLSsecretsandbrowserprofiles,notpublic"
+  },
+  "private_native_evidence": {
+    "archive": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a9-20261030/A9-native-final-supplement.tar.gz",
+    "bytes": 9489641,
+    "files": 47,
+    "sha256": "9782c53151b62f5a39d97def9395b1f3d7eb6854b932b00f6a0211f48ec44a32",
+    "manifest_sha256": "7c1805fca0d2bec8f40b4cb2bfc6834a4ac301384e1932dc4b5272dae00ca527",
+    "verified_every_member": true
   }
 }

@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Close A9 with all27native CI jobs accepted after the explicit H1 fixture
+  overlap correction. Retain original failed transcripts, unchanged runtime
+  identities, strict gates and private before/after archive manifests.
+
 - Hold the first four CLI fixture requests until all four overlap; require
   exactly four serving H1 connections and four accepted/closed sockets in that
   scenario. Preserve the original instantaneous-response CI failure and keep
