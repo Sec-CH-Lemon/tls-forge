@@ -136,6 +136,15 @@ def obligation_checks(inventory, ledger, module, graph):
                 checks.extend(c for c in row["checks"] if c["package"] == module or c["package"].startswith(module + "/"))
         else:
             raise ValueError("unknown obligation status")
+    for row in ledger.get("supplemental", []):
+        if row["status"] == "resolved":
+            if not row.get("checks") or not row.get("fix_commit") or not row.get("evidence"):
+                raise ValueError("resolved supplemental obligation lacks evidence/witnesses")
+            checks.extend(c for c in row["checks"] if c["package"] == module or c["package"].startswith(module + "/"))
+            if row["id"] == "F09-110" and any(e["fork"] == "fhttp" and e["test"] == "TestOmitHTTP2" for e in inventory.get("exclusions", [])):
+                raise ValueError("resolved omit-HTTP2 obligation still has an exclusion")
+        elif row["status"] != "open":
+            raise ValueError("unknown supplemental obligation status")
     if set(active) - originals:
         raise ValueError("new failure allowance lacks an original obligation")
     return checks
@@ -221,7 +230,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer, socket.socket(soc
         # process. Test execution itself has only owned loopback networking.
         subprocess.run(["go", "mod", "download", "all"], cwd=work, env=env, check=True)
         packages = subprocess.check_output(["go", "list", "./..."], cwd=work, env=env, text=True).splitlines()
+        omitted_deferred = any(row["fork"] == "fhttp" and row["test"] == "TestOmitHTTP2" for row in inventory["exclusions"])
         batches = [[spec["module"]], [p for p in packages if p != spec["module"]]] if args.fork == "fhttp" else [packages]
+        if args.fork == "fhttp" and not omitted_deferred:
+            batches.append([spec["module"]])
         events, codes = [], []
         for i, batch in enumerate(batches):
             if not batch:
@@ -229,16 +241,19 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer, socket.socket(soc
             command = ["go", "test", "-json", "-p", "1", "-count=1", "-timeout", "12m"]
             if args.fork == "utls":
                 command.append("-race")
-            if args.fork == "fhttp" and i == 0:
+            if args.fork == "fhttp" and i in (0, 2):
                 stamp = args.output.parent / "fhttp-last-root.json"
                 if stamp.exists():
                     time.sleep(max(0, 45 - (time.time() - json.loads(stamp.read_text())["ended"])))
-                command += ["-skip", "^TestOmitHTTP2$"]
+                if i == 0 and omitted_deferred:
+                    command += ["-skip", "^TestOmitHTTP2$"]
+                if i == 2:
+                    command += ["-tags=nethttpomithttp2", "-run=^TestOmittedHTTP2Contracts$", "-race"]
             log = args.output / (str(i) + ".jsonl")
             with log.open("w") as out, (args.output / (str(i) + ".stderr")).open("w") as err:
                 result = subprocess.run(sandbox + command + batch, cwd=work, env=env, stdout=out, stderr=err)
             codes.append(result.returncode)
-            if args.fork == "fhttp" and i == 0:
+            if args.fork == "fhttp" and i in (0, 2):
                 stamp.write_text(json.dumps({"ended": time.time()}))
             for line in log.read_text().splitlines():
                 events.append(json.loads(line))
@@ -252,7 +267,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer, socket.socket(soc
         report = evaluate(events, codes, known, args.graph, args.fork == "quic-go-utls", packages, required)
         report.update({"fork": args.fork, "source_commit": actual, "toolchain": env["GOTOOLCHAIN"], "graph": args.graph, "returncodes": codes,
                        "network": "loopback only; external TestWeb cannot issue its POST", "modules": selected, "production_linked": expected,
-                       "source_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "skips": ["TestOmitHTTP2"] if args.fork == "fhttp" else []})
+                       "source_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "skips": ["TestOmitHTTP2"] if args.fork == "fhttp" and omitted_deferred else []})
         (args.output / "result.json").write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps({k: v for k, v in report.items() if k not in ("modules", "production_linked", "known_failures", "not_observed_now", "trace_counts")}))
         return 0 if report["accepted"] else 1

@@ -3030,3 +3030,8 @@ evidence and named replacement tests that run and pass in both module graphs.
 A missing, skipped or renamed witness rejects the gate. A11 remains in progress;
 its [report](docs/remediation/2026-10-30/A11.ru.md) distinguishes closed items
 from the remaining debt and native acceptance.
+
+The current A11 slice resolves57/109 original obligations (all56 fhttp rows
+plus utls hostname verification) and the supplemental omit-bundled-H2 check.
+Both fhttp module graphs finish1886 runs with raw exit0, no named failures
+and no TestOmitHTTP2 skip.52 original tls-client/QUIC rows remain open.

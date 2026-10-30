@@ -42,7 +42,141 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "7346a0314f634bbf2a2367edf766a567fd5d8a86",
+      "cause": "Owned wire header avoids caller mutation and accumulated generated framing; valid explicit raw lengths are preserved and invalid framing rejected.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/casing-duplicate/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/casing-duplicate/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/empty/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/empty/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/invalid/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/invalid/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/long/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/long/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/mismatch/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/mismatch/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/multiple/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/multiple/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/negative/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/negative/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/short/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/short/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/transfer-coding/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestExplicitFraming/transfer-coding/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWrite"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/proxy"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-002",
@@ -82,7 +216,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Recognize both supported Go NopCloser wrappers; retain exact reader-type oracle with Go1.26.10 upstream fileWithoutWriteTo adaptation.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestClientWrites"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDetectInMemoryReaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestUnsetARequestGoesThroughTheConnectionsBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-003",
@@ -122,7 +330,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Recognize both supported Go NopCloser wrappers; retain exact reader-type oracle with Go1.26.10 upstream fileWithoutWriteTo adaptation.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestClientWrites"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDetectInMemoryReaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestUnsetARequestGoesThroughTheConnectionsBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-004",
@@ -162,7 +444,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Recognize both supported Go NopCloser wrappers; retain exact reader-type oracle with Go1.26.10 upstream fileWithoutWriteTo adaptation.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestClientWrites"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDetectInMemoryReaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestUnsetARequestGoesThroughTheConnectionsBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-005",
@@ -202,7 +558,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Recognize both supported Go NopCloser wrappers; retain exact reader-type oracle with Go1.26.10 upstream fileWithoutWriteTo adaptation.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestClientWrites"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDetectInMemoryReaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestUnsetARequestGoesThroughTheConnectionsBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-006",
@@ -242,7 +672,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Recognize both supported Go NopCloser wrappers; retain exact reader-type oracle with Go1.26.10 upstream fileWithoutWriteTo adaptation.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestClientWrites"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDetectInMemoryReaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestUnsetARequestGoesThroughTheConnectionsBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-007",
@@ -282,7 +786,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Recognize both supported Go NopCloser wrappers; retain exact reader-type oracle with Go1.26.10 upstream fileWithoutWriteTo adaptation.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestClientWrites"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDetectInMemoryReaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestUnsetARequestGoesThroughTheConnectionsBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-008",
@@ -322,7 +900,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Recognize both supported Go NopCloser wrappers; retain exact reader-type oracle with Go1.26.10 upstream fileWithoutWriteTo adaptation.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestClientWrites"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDetectInMemoryReaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestUnsetARequestGoesThroughTheConnectionsBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-009",
@@ -362,7 +1014,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_SmallBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-010",
@@ -402,7 +1156,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_ExplicitContentLength"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-011",
@@ -442,7 +1298,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_HandlerWritesTooLittle"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-012",
@@ -482,7 +1440,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_HandlerWritesTooMuch"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-013",
@@ -522,7 +1582,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_AutoGzip"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-014",
@@ -562,7 +1724,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_AutoGzip_Disabled"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-015",
@@ -602,7 +1866,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_ServerEmptyContentLength"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-016",
@@ -642,7 +2008,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_RequestContentLength_Known_NonZero"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-017",
@@ -682,7 +2150,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_RequestContentLength_Known_Zero"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-018",
@@ -722,7 +2292,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_RequestContentLength_Unknown"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-019",
@@ -762,7 +2434,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTrailersServerToClient_h2"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-020",
@@ -802,7 +2576,69 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "313b91a610f1b2c08ca92ec91716b3c07b0ff072",
+      "cause": "Exact fhttp raw H1 multi-value/empty-field oracle replaces incompatible Go projection; caller headers and nil/empty/absent states independently checked.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestHeaderCloneKeepsNilEmptyAndAbsent"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportUserAgent_h1"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-021",
@@ -842,7 +2678,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestH12_AutoGzipWithDumpResponse"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-022",
@@ -882,7 +2820,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Use the actual fork package in caller attribution; all original caller/line/count assertions retained.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestWriteHeaderNoCodeCheck_h1"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-023",
@@ -922,7 +2882,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Use the actual fork package in caller attribution; all original caller/line/count assertions retained.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestWriteHeaderNoCodeCheck_h1hijack"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-024",
@@ -962,7 +2944,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestCompressionDeflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-025",
@@ -1002,7 +3086,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestIdentityResponse"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-026",
@@ -1042,7 +3228,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/gzip_content-encoding,_gzipped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-027",
@@ -1082,7 +3370,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/zlib_content-encoding,_zlibbed"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-028",
@@ -1122,7 +3512,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/phony_content-encoding"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-029",
@@ -1162,7 +3654,129 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/empty_but_set_content-encoding"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/gzip_content-encoding,_gzipped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/no_content-encoding"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/phony_content-encoding"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestContentEncodingNoSniffing_h1/zlib_content-encoding,_zlibbed"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-030",
@@ -1202,7 +3816,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Use the actual fork package in caller attribution; all original caller/line/count assertions retained.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTimeoutHandlerSuperfluousLogs/return_before_timeout"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-031",
@@ -1242,7 +3878,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Use the actual fork package in caller attribution; all original caller/line/count assertions retained.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTimeoutHandlerSuperfluousLogs/return_after_timeout"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-032",
@@ -1282,7 +3940,37 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Use the actual fork package in caller attribution; all original caller/line/count assertions retained.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTimeoutHandlerSuperfluousLogs"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTimeoutHandlerSuperfluousLogs/return_after_timeout"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTimeoutHandlerSuperfluousLogs/return_before_timeout"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-033",
@@ -1322,7 +4010,33 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Generated fields were traced while building the map and again while serializing; wire field and trace now correspond exactly once.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTraceMatchesEveryWrittenRequestField"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=true"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-034",
@@ -1362,7 +4076,33 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Generated fields were traced while building the map and again while serializing; wire field and trace now correspond exactly once.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTraceMatchesEveryWrittenRequestField"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=true"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-035",
@@ -1402,7 +4142,49 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "31014fd12a6818bcccf992487aa95f2537900223",
+      "cause": "Generated fields were traced while building the map and again while serializing; wire field and trace now correspond exactly once.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTraceMatchesEveryWrittenRequestField"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRespectRequestWantsClose"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=false"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=false,RequestClose=true"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=false"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRespectRequestWantsClose/DisableKeepAlive=true,RequestClose=true"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-036",
@@ -1442,7 +4224,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportReadToEndReusesConn"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-037",
@@ -1482,7 +4366,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportGzip"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-038",
@@ -1522,7 +4508,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportIgnore1xxResponses"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-039",
@@ -1562,7 +4650,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Current Go body-wrapper recognition and owned serialization restore physical-write failure stimulus; retry policy and all existing retry/body assertions remain unchanged.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/IdempotentGetBodySomeWritten"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/IdempotentNoBodySomeWritten"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/NothingWrittenGetBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/NothingWrittenNoBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-040",
@@ -1602,7 +4764,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Current Go body-wrapper recognition and owned serialization restore physical-write failure stimulus; retry policy and all existing retry/body assertions remain unchanged.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/IdempotentGetBodySomeWritten"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/IdempotentNoBodySomeWritten"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/NothingWrittenGetBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/NothingWrittenNoBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-041",
@@ -1642,7 +4878,81 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "3974b50fdd754c4298f5b77688555880ba8243ac",
+      "cause": "Current Go body-wrapper recognition and owned serialization restore physical-write failure stimulus; retry policy and all existing retry/body assertions remain unchanged.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-input/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/callback-result/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/nil/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/origin"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRequestWritesDoNotOwnCallerHeaders/plain/proxy"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/IdempotentGetBodySomeWritten"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/IdempotentNoBodySomeWritten"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/NothingWrittenGetBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestRetryRequestsOnError/NothingWrittenNoBody"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-042",
@@ -1682,7 +4992,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportContentEncodingCaseInsensitive/GZIP"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-043",
@@ -1722,7 +5134,117 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportContentEncodingCaseInsensitive"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportContentEncodingCaseInsensitive/GZIP"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportContentEncodingCaseInsensitive/gzip"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-044",
@@ -1762,7 +5284,73 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "cause": "Correct reader dispatch; real kernel copy independently passed20race. In sandbox, owned ReaderFrom mock retains TCP I/O, all errors and exact binary-body equality without denied sendfile.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/buffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-045",
@@ -1809,7 +5397,97 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "cause": "Correct reader dispatch; real kernel copy independently passed20race. In sandbox, owned ReaderFrom mock retains TCP I/O, all errors and exact binary-body equality without denied sendfile.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/buffer"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/buffer,_length_-1"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/buffer,_no_length"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/file,_length"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/file,_negative_length"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/file,_no_length"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-046",
@@ -1849,7 +5527,33 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "a79fd98cdda5674a76e7a4c04cfcc1d2c6996255",
+      "cause": "Copy H1/H2 configuration and rebuild pools/upgrade closures; caller-owned callbacks retain identity. Reflective fixture keeps all exported-field checks and public configured H2 setup.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportClone"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp/http2",
+          "test": "TestConfiguredCloneOwnsPolicyAndConnections"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-047",
@@ -1889,7 +5593,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp/httputil",
+          "test": "TestDumpRequest"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-048",
@@ -1929,7 +5735,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp/httputil",
+          "test": "TestReverseProxy_CopyBuffer"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-049",
@@ -1969,7 +5877,109 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8",
+      "cause": "Actual-decoding-only response metadata and decoder lifecycle restore the original body/length/error assertions.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/br/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/gzip/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/raw-deflate/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/reading"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodersAreLazyAndCloseTheirSource/zstd/unread"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/#00"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/GZip"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/br"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/deflate"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/identity"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/unknown"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDecodingKeepsUnencodedMetadata/zstd"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestDeflatePreservesPrefixAndCompleteBody"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp/httputil",
+          "test": "ExampleDumpResponse"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-050",
@@ -2345,7 +6355,37 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "1c6a4638b98aeddcebe177ac5625db2483453a9d",
+      "cause": "net.Pipe removes host TCP buffering ambiguity; legal queue ACKs and overfull close/release are required. Removed-bound mutant rejected.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp/http2",
+          "test": "TestServer_MaxQueuedControlFrames"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp/http2",
+          "test": "TestServer_MaxQueuedControlFrames/above"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp/http2",
+          "test": "TestServer_MaxQueuedControlFrames/below"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-059",
@@ -2466,7 +6506,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "24ec5713ef0e5c6d9cdbe500f64d048ca287352f",
+      "cause": "Replace external service with owned echo, actual H2 PUSH_PROMISE GET/POST bodies, or complete Brotli coding peer; never fabricate expected fingerprints.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-061",
@@ -2507,7 +6569,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "24ec5713ef0e5c6d9cdbe500f64d048ca287352f",
+      "cause": "Replace external service with owned echo, actual H2 PUSH_PROMISE GET/POST bodies, or complete Brotli coding peer; never fabricate expected fingerprints.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestEnablePush"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-062",
@@ -2548,7 +6632,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "24ec5713ef0e5c6d9cdbe500f64d048ca287352f",
+      "cause": "Replace external service with owned echo, actual H2 PUSH_PROMISE GET/POST bodies, or complete Brotli coding peer; never fabricate expected fingerprints.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestCompressionBrotli"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-063",
@@ -2589,7 +6695,73 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "cause": "Correct reader dispatch; real kernel copy independently passed20race. In sandbox, owned ReaderFrom mock retains TCP I/O, all errors and exact binary-body equality without denied sendfile.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/buffer,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_chunked"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_CONNECT,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_negative_size"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransferWriterWriteBodyReaderTypes/file,_non-chunked,_size_set,_nopCloser_wrapped"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestTransportRequestWriteRoundTrip/file,_length"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-064",
@@ -2630,7 +6802,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "1c6a4638b98aeddcebe177ac5625db2483453a9d",
+      "cause": "Owned raw H2 peer and independent x/net HPACK decoder assert actual order/values and caller ownership; selected-order mutant rejected.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp/http2",
+          "test": "TestHeaderOrder2"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-065",
@@ -2671,7 +6865,29 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "fix_commit": "1c6a4638b98aeddcebe177ac5625db2483453a9d",
+      "cause": "Owned raw H2 peer and independent x/net HPACK decoder assert actual order/values and caller ownership; selected-order mutant rejected.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp/http2",
+          "test": "TestHeaderOrder3"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "fhttp-before.tar",
+          "fhttp-decoding-standalone"
+        ],
+        "after": [
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ],
+        "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97"
+      }
     },
     {
       "id": "F09-066",
@@ -4482,8 +8698,33 @@
     {
       "id": "F09-110",
       "test": "TestOmitHTTP2",
-      "status": "open",
-      "obligation": "Compile and exercise the actual fork with nethttpomithttp2, without a blanket subtree skip."
+      "status": "resolved",
+      "obligation": "Compile and exercise the actual fork with nethttpomithttp2, without a blanket subtree skip.",
+      "fix_commit": "3e7ce07b2d8fe6d0dd813cae96a35ef6ad201984",
+      "cause": "Build/vet target the actual fork; tagged owned H1 runtime executes separately after cooldown; normal full suite keeps bundled tests.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestOmitHTTP2"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestOmitHTTP2Vet"
+        },
+        {
+          "package": "github.com/igor-lemon/fhttp",
+          "test": "TestOmittedHTTP2Contracts"
+        }
+      ],
+      "evidence": {
+        "before": "original skipped standard-library subprocess obligation",
+        "after": [
+          "omit-compile-after.log",
+          "omitted-tagged-after",
+          "fhttp-after-standalone",
+          "fhttp-after-production"
+        ]
+      }
     }
   ]
 }

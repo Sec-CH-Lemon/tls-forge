@@ -118,6 +118,14 @@ class ForkGateTests(unittest.TestCase):
         ledger["obligations"] = []
         with self.assertRaises(ValueError): obligation_checks(inventory, ledger, "fork", "standalone")
 
+    def test_resolved_tag_obligation_cannot_keep_its_skip(self):
+        row = {"id":"F09-110", "status":"resolved", "fix_commit":"fixed", "evidence":{"after":"owned"}, "checks":[{"package":"fork", "test":"TestTaggedWitness"}]}
+        ledger = {"baseline_count":0, "obligations":[], "supplemental":[row]}
+        inventory = {"known_failures":[], "exclusions":[]}
+        self.assertEqual(obligation_checks(inventory, ledger, "fork", "production"), row["checks"])
+        inventory["exclusions"] = [{"fork":"fhttp", "test":"TestOmitHTTP2"}]
+        with self.assertRaises(ValueError): obligation_checks(inventory, ledger, "fork", "production")
+
 
 if __name__ == "__main__":
     unittest.main()

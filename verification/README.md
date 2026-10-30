@@ -1,7 +1,8 @@
 # Transport fork regression gates
 
-The A6 gate is F09 stage1: a full-suite regression boundary with named old debt.
-It does not close F09 stage2 or establish Chrome/RFC equivalence.
+The gate began as A6/F09 stage1. A11 adds explicit closure witnesses while
+retaining every original obligation. Partial closure does not establish full
+F09 stage2 or Chrome/RFC equivalence.
 
 `fork-failures.json` pins all four source commits. Every known test/subtest has
 its baseline evidence hash, cause/class, remaining obligation and repeat command.
@@ -21,9 +22,11 @@ python3 scripts/fork_gate.py --fork fhttp --source /path/to/fhttp \
 
 Repeat for `utls`, `tls-client`, `quic-go-utls`. Keep runs sequential on a shared
 host. The fhttp root package runs alone, with at least45seconds between root
-runs. Only `TestOmitHTTP2` is skipped, per the owner's fork contract; its
-replacement obligation remains open. The tool records its end timestamp beside
-the output directories. Do not run another fhttp root suite manually during it.
+runs. TestOmitHTTP2 now builds the actual fork with the omit-bundled-H2 tag;
+its vet check targets the fork too. After the normal root and subpackage suites,
+a separate tagged owned H1/Clone witness runs with the same45second cooldown.
+No TestOmitHTTP2 skip remains in the current source. The tool records end times
+beside its output directories. Do not run a manual root suite during the gate.
 
 Both graphs use the exact root go.mod toolchain. Standalone retains the fork's
 own module requirements. Production pins the module versions actually linked
@@ -37,9 +40,10 @@ The tool archives committed source (dirty checkout files are excluded), hydrates
 dependencies, then runs all packages inside a verified loopback-only sandbox.
 External-host tests run and fail visibly; their named environment exceptions
 require unchanged-source reproduction. In particular, TestWeb cannot issue its
-external registration POST. The macOS policy also denies sendfile in an old
-file-copy fixture; the unconfined body-copy obligation is not measured by that
-exception. Test JSONL/stderr, source archive, module graphs and result.json remain
+external registration POST. The macOS policy also denies sendfile. The original kernel-copy fixture was
+independently checked outside Seatbelt; its owned mock now tests fhttp ReaderFrom
+selection and exact binary TCP body integrity without depending on that syscall.
+The sandbox policy is unchanged. Test JSONL/stderr, source archive, module graphs and result.json remain
 in the output directory. Keep raw test evidence private as repository policy
 requires; archive publication requires a separate review.
 

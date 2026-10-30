@@ -1,0 +1,56 @@
+{
+  "stage": "A11 partial fhttp/utls closure; not whole A11",
+  "original_obligations": 109,
+  "resolved_original": 57,
+  "open_original": 52,
+  "supplemental_omit_http2": "resolved",
+  "fhttp_source": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+  "graphs": {
+    "standalone": {
+      "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+      "test_runs": 1886,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "known_failures": [],
+      "unexpected": [],
+      "skips": []
+    },
+    "production": {
+      "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+      "test_runs": 1886,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "known_failures": [],
+      "unexpected": [],
+      "skips": []
+    }
+  },
+  "commits": [
+    "7346a0314f634bbf2a2367edf766a567fd5d8a86 Keep request wire headers and framing owned",
+    "3974b50fdd754c4298f5b77688555880ba8243ac Recognize current Go body reader wrappers",
+    "e1cb29cf8130f84e9b52d605279ccd4f9f49d9b8 Preserve response metadata and lazy decoder lifetime",
+    "31014fd12a6818bcccf992487aa95f2537900223 Trace written fields once and attribute server callers",
+    "313b91a610f1b2c08ca92ec91716b3c07b0ff072 Preserve header states and raw user-agent controls",
+    "475af4b44d7856a8089afb8263b63b2c47adba60 Keep both implicit body buffering controls",
+    "a79fd98cdda5674a76e7a4c04cfcc1d2c6996255 Clone HTTP2 configuration with independent pools",
+    "24ec5713ef0e5c6d9cdbe500f64d048ca287352f Exercise examples against owned HTTP peers",
+    "1c6a4638b98aeddcebe177ac5625db2483453a9d Make H2 order and queue obligations deterministic",
+    "3e7ce07b2d8fe6d0dd813cae96a35ef6ad201984 Verify omitted HTTP2 against the actual fork",
+    "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61 Keep file-copy dispatch tests independent of sendfile"
+  ],
+  "private_evidence": "net-fp-server/captures/tls-forge-a11-20261030",
+  "limits": [
+    "All original rows retained;52 original tls-client/QUIC rows remain open.",
+    "No fresh Chrome samples or universal RFC/browser verdict.",
+    "Standalone and production module graphs are separately preserved; these are graph-specific results.",
+    "Native ad499 main25/27 and fork7/8 remain RED; diagnostic QUIC replay does not erase them."
+  ]
+}

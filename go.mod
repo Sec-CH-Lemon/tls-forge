@@ -19,7 +19,7 @@ require (
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
-	github.com/igor-lemon/fhttp v0.6.10-0.20261028110524-e514e872a835
+	github.com/igor-lemon/fhttp v0.6.10-0.20261030170200-24c1c55ecaf2
 	github.com/igor-lemon/tls-client v1.15.2-0.20261029210313-b44093c52845
 	github.com/igor-lemon/utls v1.7.8-barnius.0.20261030155229-fc851fa265f6
 	github.com/quic-go/qpack v0.6.0

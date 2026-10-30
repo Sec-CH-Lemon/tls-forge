@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A11: pin the verified fhttp ownership/framing/decoder/Clone fixes and owned
+  fork controls; close56 original rows with mandatory witnesses in both graphs.
+  Run actual omit-bundled-H2 build/vet and a separate tagged runtime witness.
+  Browser profile bytes remain unchanged.
+
+
 - A11: synchronize the proxy trace fixture with the observed send event; retain wait-span and credential-redaction assertions.
 
 
