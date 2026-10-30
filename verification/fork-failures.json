@@ -21,7 +21,7 @@
     "quic-go-utls": {
       "module": "github.com/igor-lemon/quic-go-utls",
       "repository": "https://github.com/igor-lemon/quic-go-utls",
-      "commit": "f8b2a713bf83f1027ac76564e8d187404fceac27"
+      "commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322"
     }
   },
   "known_failures": [
@@ -226,106 +226,6 @@
         ],
         "production": [
           "4469d39a11fcd1a9cbba9120ef637ec3d716e4681d042fe162f64ee0e0553d76"
-        ]
-      }
-    },
-    {
-      "package": "github.com/igor-lemon/quic-go-utls",
-      "test": "TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays",
-      "graphs": [
-        "standalone",
-        "production"
-      ],
-      "class": "environment / bounded observation window",
-      "cause": "In unchanged baseline the300ms observation sees1250-byte MTU without a larger probe. Production implication remains unproved.",
-      "obligation": "Deterministic MTU probe/CID lifecycle stimulus and wire evidence.",
-      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
-      "failure_pattern": "1250.*is not greater than.*1250",
-      "baseline_evidence": [
-        "f09-quic-baseline"
-      ],
-      "minimal_repeat": [
-        "env",
-        "GOWORK=off",
-        "go",
-        "test",
-        "-count=1",
-        "-timeout",
-        "12m",
-        "-run",
-        "^TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays$",
-        "github.com/igor-lemon/quic-go-utls"
-      ]
-    },
-    {
-      "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
-      "test": "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame",
-      "graphs": [
-        "standalone",
-        "production"
-      ],
-      "class": "upstream adaptation / error contract",
-      "cause": "Decoder rejects the oversized decompressed section with QPACK-specific text rather than old generic header-limit text.",
-      "obligation": "Keep the resource limit and test the selected public error policy.",
-      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
-      "failure_pattern": "QPACK field section exceeds limit",
-      "baseline_evidence": [
-        "f09-quic-baseline"
-      ],
-      "minimal_repeat": [
-        "env",
-        "GOWORK=off",
-        "go",
-        "test",
-        "-count=1",
-        "-timeout",
-        "12m",
-        "-run",
-        "^TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame$",
-        "github.com/igor-lemon/quic-go-utls/integrationtests/self"
-      ],
-      "failure_output_sha256": {
-        "standalone": [
-          "5f010f02d3e3757afa6a0aad932e74b98725bf86b26d94d46d5a8e7f7fbb4485"
-        ],
-        "production": [
-          "5f010f02d3e3757afa6a0aad932e74b98725bf86b26d94d46d5a8e7f7fbb4485"
-        ]
-      }
-    },
-    {
-      "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
-      "test": "TestHTTPHeaderSizeLimitClient",
-      "graphs": [
-        "standalone",
-        "production"
-      ],
-      "class": "upstream adaptation / error contract",
-      "cause": "Decoder rejects the oversized decompressed section with QPACK-specific text rather than old generic header-limit text.",
-      "obligation": "Keep the resource limit and test the selected public error policy.",
-      "resolution": "A11 / F09 stage2; not accepted as corrected in A6",
-      "failure_pattern": "QPACK field section exceeds limit",
-      "baseline_evidence": [
-        "f09-quic-baseline"
-      ],
-      "minimal_repeat": [
-        "env",
-        "GOWORK=off",
-        "go",
-        "test",
-        "-count=1",
-        "-timeout",
-        "12m",
-        "-run",
-        "^TestHTTPHeaderSizeLimitClient$",
-        "github.com/igor-lemon/quic-go-utls/integrationtests/self"
-      ],
-      "failure_output_sha256": {
-        "standalone": [
-          "5f010f02d3e3757afa6a0aad932e74b98725bf86b26d94d46d5a8e7f7fbb4485"
-        ],
-        "production": [
-          "5f010f02d3e3757afa6a0aad932e74b98725bf86b26d94d46d5a8e7f7fbb4485"
         ]
       }
     },

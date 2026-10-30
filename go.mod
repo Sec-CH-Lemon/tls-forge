@@ -5,7 +5,7 @@ go 1.26.10
 require (
 	github.com/andybalholm/brotli v1.2.3
 	github.com/andybalholm/cascadia v1.3.3
-	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261029174437-f8b2a713bf83
+	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261030181739-9a3076b42e8e
 	github.com/klauspost/compress v1.20.0
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/crypto v0.58.0

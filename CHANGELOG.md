@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A11: pin source-verified QUIC fixtures; preserve full PMTU/CID/ECN and encoded/decoded header-limit obligations, with two raw-green2562-run fork graphs. Original ledger remains partial60/109; no browser values changed.
+
+
 - A11: pin the verified fhttp ownership/framing/decoder/Clone fixes and owned
   fork controls; close56 original rows with mandatory witnesses in both graphs.
   Run actual omit-bundled-H2 build/vet and a separate tagged runtime witness.

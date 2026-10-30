@@ -1,0 +1,1108 @@
+{
+  "stage": "A11/F09 stage2 partial",
+  "resolved_original": 60,
+  "remaining_original": 49,
+  "source_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+  "source_sha256": "aa6b2f4772325bf3fe7099be2698d277fa71ed1f249436d171025806c86c9f8d",
+  "graphs": {
+    "standalone": {
+      "accepted": true,
+      "test_runs": 2562,
+      "trace_counts": [],
+      "known_failures": [],
+      "not_observed_now": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "quic-go-utls",
+      "source_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "modules": [
+        {
+          "Path": "github.com/igor-lemon/quic-go-utls",
+          "Main": true,
+          "Dir": "/private/var/folders/8v/4glpf02d18b2j8_5md1sfqjw0000gn/T/fork-gate-ev2wewz4",
+          "GoMod": "/private/var/folders/8v/4glpf02d18b2j8_5md1sfqjw0000gn/T/fork-gate-ev2wewz4/go.mod",
+          "GoVersion": "1.24.1"
+        },
+        {
+          "Path": "github.com/andybalholm/brotli",
+          "Version": "v1.2.0",
+          "Time": "2025-06-03T19:05:20Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/andybalholm/brotli@v1.2.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/andybalholm/brotli/@v/v1.2.0.mod",
+          "GoVersion": "1.22",
+          "Sum": "h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=",
+          "GoModSum": "h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY="
+        },
+        {
+          "Path": "github.com/bwesterb/go-ristretto",
+          "Version": "v1.2.3",
+          "Time": "2023-03-16T16:56:11Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/bwesterb/go-ristretto@v1.2.3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/bwesterb/go-ristretto/@v/v1.2.3.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:1w53tCkGhCQ5djbat3+MH0BAQ5Kfgbt56UZQ/JMzngw=",
+          "GoModSum": "h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0="
+        },
+        {
+          "Path": "github.com/cloudflare/circl",
+          "Version": "v1.6.2",
+          "Time": "2025-12-22T21:26:53Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/cloudflare/circl@v1.6.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/cloudflare/circl/@v/v1.6.2.mod",
+          "GoVersion": "1.22.0",
+          "Sum": "h1:hL7VBpHHKzrV5WTfHCaBsgx/HGbBYlgrwvNXEVDYYsQ=",
+          "GoModSum": "h1:2eXP6Qfat4O/Yhh8BznvKnJ+uzEoTQ6jVKJRn81BiS4="
+        },
+        {
+          "Path": "github.com/creack/pty",
+          "Version": "v1.1.9",
+          "Time": "2019-09-25T15:36:33Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/creack/pty@v1.1.9",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/creack/pty/@v/v1.1.9.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w=",
+          "GoModSum": "h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E="
+        },
+        {
+          "Path": "github.com/davecgh/go-spew",
+          "Version": "v1.1.1",
+          "Time": "2018-02-21T23:26:28Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/davecgh/go-spew@v1.1.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/davecgh/go-spew/@v/v1.1.1.mod",
+          "Sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=",
+          "GoModSum": "h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38="
+        },
+        {
+          "Path": "github.com/google/go-cmp",
+          "Version": "v0.6.0",
+          "Time": "2023-08-31T17:32:40Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/google/go-cmp@v0.6.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/google/go-cmp/@v/v0.6.0.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=",
+          "GoModSum": "h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY="
+        },
+        {
+          "Path": "github.com/igor-lemon/fhttp",
+          "Version": "v0.6.10-0.20261027200732-6ccf73f64cb3",
+          "Time": "2026-10-27T20:07:32Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/fhttp@v0.6.10-0.20261027200732-6ccf73f64cb3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/fhttp/@v/v0.6.10-0.20261027200732-6ccf73f64cb3.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:3sIaiogGZ1vjfmKkg3ViZ8yDzdTVGxTfIvCGPZdOv/c=",
+          "GoModSum": "h1:OhEISWmTJyk462YQ834+Beq6lw2m+5pEAeCf/qxYktI="
+        },
+        {
+          "Path": "github.com/igor-lemon/utls",
+          "Version": "v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "Time": "2026-10-27T19:01:47Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/utls@v1.7.8-barnius.0.20261027190147-856ef601ebd9",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/utls/@v/v1.7.8-barnius.0.20261027190147-856ef601ebd9.mod",
+          "GoVersion": "1.24",
+          "Sum": "h1:Di1dzbPG7h08a8QphEORBnsGAm/gi6D6DLbA6Vk/b5E=",
+          "GoModSum": "h1:2XKENhNpqHSvQA4rB7ccoJI8y/fTD98P+Nl82juLl6U="
+        },
+        {
+          "Path": "github.com/jordanlewis/gcassert",
+          "Version": "v0.0.0-20250430164644-389ef753e22e",
+          "Time": "2025-04-30T16:46:44Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/jordanlewis/gcassert@v0.0.0-20250430164644-389ef753e22e",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/jordanlewis/gcassert/@v/v0.0.0-20250430164644-389ef753e22e.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc=",
+          "GoModSum": "h1:ZybsQk6DWyN5t7An1MuPm1gtSZ1xDaTXS9ZjIOxvQrk="
+        },
+        {
+          "Path": "github.com/klauspost/compress",
+          "Version": "v1.18.2",
+          "Time": "2025-12-01T09:04:34Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/klauspost/compress@v1.18.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/klauspost/compress/@v/v1.18.2.mod",
+          "GoVersion": "1.23",
+          "Sum": "h1:iiPHWW0YrcFgpBYhsA6D1+fqHssJscY/Tm/y2Uqnapk=",
+          "GoModSum": "h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4="
+        },
+        {
+          "Path": "github.com/kr/pretty",
+          "Version": "v0.3.1",
+          "Time": "2022-08-29T23:03:05Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/kr/pretty@v0.3.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/kr/pretty/@v/v0.3.1.mod",
+          "GoVersion": "1.12",
+          "Sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=",
+          "GoModSum": "h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk="
+        },
+        {
+          "Path": "github.com/kr/pty",
+          "Version": "v1.1.1",
+          "Time": "2018-01-13T18:08:13Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/kr/pty@v1.1.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/kr/pty/@v/v1.1.1.mod",
+          "Sum": "h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=",
+          "GoModSum": "h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ="
+        },
+        {
+          "Path": "github.com/kr/text",
+          "Version": "v0.2.0",
+          "Time": "2020-02-14T20:31:06Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/kr/text@v0.2.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/kr/text/@v/v0.2.0.mod",
+          "Sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=",
+          "GoModSum": "h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE="
+        },
+        {
+          "Path": "github.com/pkg/diff",
+          "Version": "v0.0.0-20210226163009-20ebb0f2a09e",
+          "Time": "2021-02-26T16:30:09Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/pkg/diff@v0.0.0-20210226163009-20ebb0f2a09e",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/pkg/diff/@v/v0.0.0-20210226163009-20ebb0f2a09e.mod",
+          "GoVersion": "1.15",
+          "Sum": "h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A=",
+          "GoModSum": "h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA="
+        },
+        {
+          "Path": "github.com/pmezard/go-difflib",
+          "Version": "v1.0.0",
+          "Time": "2016-01-10T10:55:54Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/pmezard/go-difflib@v1.0.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/pmezard/go-difflib/@v/v1.0.0.mod",
+          "Sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=",
+          "GoModSum": "h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4="
+        },
+        {
+          "Path": "github.com/quic-go/qpack",
+          "Version": "v0.6.0",
+          "Time": "2025-11-17T02:04:08Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/quic-go/qpack@v0.6.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/quic-go/qpack/@v/v0.6.0.mod",
+          "GoVersion": "1.24",
+          "Sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=",
+          "GoModSum": "h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII="
+        },
+        {
+          "Path": "github.com/rogpeppe/go-internal",
+          "Version": "v1.10.0",
+          "Time": "2023-03-27T09:34:06Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/rogpeppe/go-internal@v1.10.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/rogpeppe/go-internal/@v/v1.10.0.mod",
+          "GoVersion": "1.19",
+          "Sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=",
+          "GoModSum": "h1:UQnix2H7Ngw/k4C5ijL5+65zddjncjaFoBhdsK/akog="
+        },
+        {
+          "Path": "github.com/stretchr/objx",
+          "Version": "v0.5.2",
+          "Time": "2024-02-29T09:57:51Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/stretchr/objx@v0.5.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/stretchr/objx/@v/v0.5.2.mod",
+          "GoVersion": "1.20",
+          "Sum": "h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=",
+          "GoModSum": "h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA="
+        },
+        {
+          "Path": "github.com/stretchr/testify",
+          "Version": "v1.11.1",
+          "Time": "2025-08-27T10:46:31Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/stretchr/testify@v1.11.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/stretchr/testify/@v/v1.11.1.mod",
+          "GoVersion": "1.17",
+          "Sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=",
+          "GoModSum": "h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U="
+        },
+        {
+          "Path": "github.com/xyproto/randomstring",
+          "Version": "v1.0.5",
+          "Time": "2023-02-06T10:49:41Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/xyproto/randomstring@v1.0.5",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/xyproto/randomstring/@v/v1.0.5.mod",
+          "GoVersion": "1.17",
+          "Sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=",
+          "GoModSum": "h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E="
+        },
+        {
+          "Path": "github.com/yuin/goldmark",
+          "Version": "v1.4.13",
+          "Time": "2022-07-09T07:22:17Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/yuin/goldmark@v1.4.13",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/yuin/goldmark/@v/v1.4.13.mod",
+          "GoVersion": "1.18",
+          "Sum": "h1:fVcFKWvrslecOb/tg+Cc05dkeYx540o0FuFt3nUVDoE=",
+          "GoModSum": "h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY="
+        },
+        {
+          "Path": "go.uber.org/mock",
+          "Version": "v0.5.2",
+          "Time": "2025-04-28T16:20:04Z",
+          "Dir": "/Users/ihar/go/pkg/mod/go.uber.org/mock@v0.5.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/go.uber.org/mock/@v/v0.5.2.mod",
+          "GoVersion": "1.23",
+          "Sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko=",
+          "GoModSum": "h1:wLlUxC2vVTPTaE3UD51E0BGOAElKrILxhVSDYQLld5o="
+        },
+        {
+          "Path": "golang.org/x/crypto",
+          "Version": "v0.46.0",
+          "Time": "2025-12-08T18:34:26Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/crypto@v0.46.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/crypto/@v/v0.46.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:cKRW/pmt1pKAfetfu+RCEvjvZkA9RimPbh7bhFjGVBU=",
+          "GoModSum": "h1:Evb/oLKmMraqjZ2iQTwDwvCtJkczlDuTmdJXoZVzqU0="
+        },
+        {
+          "Path": "golang.org/x/mod",
+          "Version": "v0.30.0",
+          "Time": "2025-11-11T15:05:13Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/mod@v0.30.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/mod/@v/v0.30.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:fDEXFVZ/fmCKProc/yAXXUijritrDzahmwwefnjoPFk=",
+          "GoModSum": "h1:lAsf5O2EvJeSFMiBxXDki7sCgAxEUcZHXoXMKT4GJKc="
+        },
+        {
+          "Path": "golang.org/x/net",
+          "Version": "v0.48.0",
+          "Time": "2025-12-08T21:41:29Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/net@v0.48.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/net/@v/v0.48.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:zyQRTTrjc33Lhh0fBgT/H3oZq9WuvRR5gPC70xpDiQU=",
+          "GoModSum": "h1:+ndRgGjkh8FGtu1w1FGbEC31if4VrNVMuKTgcAAnQRY="
+        },
+        {
+          "Path": "golang.org/x/sync",
+          "Version": "v0.19.0",
+          "Time": "2025-12-04T00:24:39Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/sync@v0.19.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/sync/@v/v0.19.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:vV+1eWNmZ5geRlYjzm2adRgW2/mcpevXNg50YZtPCE4=",
+          "GoModSum": "h1:9KTHXmSnoGruLpwFjVSX0lNNA75CykiMECbovNTZqGI="
+        },
+        {
+          "Path": "golang.org/x/sys",
+          "Version": "v0.39.0",
+          "Time": "2025-11-25T15:35:26Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/sys@v0.39.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/sys/@v/v0.39.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:CvCKL8MeisomCi6qNZ+wbb0DN9E5AATixKsvNtMoMFk=",
+          "GoModSum": "h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks="
+        },
+        {
+          "Path": "golang.org/x/telemetry",
+          "Version": "v0.0.0-20251111182119-bc8e575c7b54",
+          "Time": "2025-11-11T18:21:19Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/telemetry@v0.0.0-20251111182119-bc8e575c7b54",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/telemetry/@v/v0.0.0-20251111182119-bc8e575c7b54.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:E2/AqCUMZGgd73TQkxUMcMla25GB9i/5HOdLr+uH7Vo=",
+          "GoModSum": "h1:hKdjCMrbv9skySur+Nek8Hd0uJ0GuxJIoIX2payrIdQ="
+        },
+        {
+          "Path": "golang.org/x/term",
+          "Version": "v0.38.0",
+          "Time": "2025-12-08T16:57:31Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/term@v0.38.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/term/@v/v0.38.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:PQ5pkm/rLO6HnxFR7N2lJHOZX6Kez5Y1gDSJla6jo7Q=",
+          "GoModSum": "h1:bSEAKrOT1W+VSu9TSCMtoGEOUcKxOKgl3LE5QEF/xVg="
+        },
+        {
+          "Path": "golang.org/x/text",
+          "Version": "v0.32.0",
+          "Time": "2025-12-08T16:57:43Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/text@v0.32.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/text/@v/v0.32.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:ZD01bjUt1FQ9WJ0ClOL5vxgxOI/sVCNgX1YtKwcY0mU=",
+          "GoModSum": "h1:o/rUWzghvpD5TXrTIBuJU77MTaN0ljMWE47kxGJQ7jY="
+        },
+        {
+          "Path": "golang.org/x/tools",
+          "Version": "v0.39.0",
+          "Time": "2025-11-12T22:16:42Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/tools@v0.39.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/tools/@v/v0.39.0.mod",
+          "GoVersion": "1.24.0",
+          "Sum": "h1:ik4ho21kwuQln40uelmciQPp9SipgNDdrafrYA4TmQQ=",
+          "GoModSum": "h1:JnefbkDPyD8UU2kI5fuf8ZX4/yUeh9W877ZeBONxUqQ="
+        },
+        {
+          "Path": "golang.org/x/xerrors",
+          "Version": "v0.0.0-20190717185122-a985d3407aa7",
+          "Time": "2019-07-17T18:51:22Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/xerrors@v0.0.0-20190717185122-a985d3407aa7",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/xerrors/@v/v0.0.0-20190717185122-a985d3407aa7.mod",
+          "GoVersion": "1.11",
+          "Sum": "h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc=",
+          "GoModSum": "h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0="
+        },
+        {
+          "Path": "gopkg.in/check.v1",
+          "Version": "v1.0.0-20201130134442-10cb98267c6c",
+          "Time": "2020-11-30T13:44:42Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/gopkg.in/check.v1@v1.0.0-20201130134442-10cb98267c6c",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/gopkg.in/check.v1/@v/v1.0.0-20201130134442-10cb98267c6c.mod",
+          "GoVersion": "1.11",
+          "Sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=",
+          "GoModSum": "h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q="
+        },
+        {
+          "Path": "gopkg.in/yaml.v3",
+          "Version": "v3.0.1",
+          "Time": "2022-05-27T08:35:30Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/gopkg.in/yaml.v3@v3.0.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/gopkg.in/yaml.v3/@v/v3.0.1.mod",
+          "Sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=",
+          "GoModSum": "h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM="
+        }
+      ],
+      "production_linked": [],
+      "source_sha256": "aa6b2f4772325bf3fe7099be2698d277fa71ed1f249436d171025806c86c9f8d",
+      "skips": []
+    },
+    "production": {
+      "accepted": true,
+      "test_runs": 2562,
+      "trace_counts": [],
+      "known_failures": [],
+      "not_observed_now": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "quic-go-utls",
+      "source_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "modules": [
+        {
+          "Path": "github.com/igor-lemon/quic-go-utls",
+          "Main": true,
+          "Dir": "/private/var/folders/8v/4glpf02d18b2j8_5md1sfqjw0000gn/T/fork-gate-7q4t_84e",
+          "GoMod": "/private/var/folders/8v/4glpf02d18b2j8_5md1sfqjw0000gn/T/fork-gate-7q4t_84e/go.mod",
+          "GoVersion": "1.26.0"
+        },
+        {
+          "Path": "github.com/andybalholm/brotli",
+          "Version": "v1.2.3",
+          "Time": "2026-08-27T16:03:57Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/andybalholm/brotli@v1.2.3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/andybalholm/brotli/@v/v1.2.3.mod",
+          "GoVersion": "1.22",
+          "Sum": "h1:8H1qwOkl2LPfjf3YezB90JnCliZb6SInJ/OJkEbA5NQ=",
+          "GoModSum": "h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY="
+        },
+        {
+          "Path": "github.com/andybalholm/cascadia",
+          "Version": "v1.3.3",
+          "Time": "2024-12-19T18:31:02Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/andybalholm/cascadia@v1.3.3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/andybalholm/cascadia/@v/v1.3.3.mod",
+          "GoVersion": "1.16",
+          "Sum": "h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM=",
+          "GoModSum": "h1:xNd9bqTn98Ln4DwST8/nG+H0yuB8Hmgu1YHNnWw0GeA="
+        },
+        {
+          "Path": "github.com/bdandy/go-errors",
+          "Version": "v1.2.2",
+          "Time": "2021-11-05T17:21:08Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/bdandy/go-errors@v1.2.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/bdandy/go-errors/@v/v1.2.2.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=",
+          "GoModSum": "h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM="
+        },
+        {
+          "Path": "github.com/bdandy/go-socks4",
+          "Version": "v1.2.3",
+          "Time": "2022-12-07T08:59:10Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/bdandy/go-socks4@v1.2.3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/bdandy/go-socks4/@v/v1.2.3.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=",
+          "GoModSum": "h1:98kiVFgpdogR8aIGLWLvjDVZ8XcKPsSI/ypGrO+bqHI="
+        },
+        {
+          "Path": "github.com/bwesterb/go-ristretto",
+          "Version": "v1.2.4",
+          "Time": "2026-07-15T10:30:38Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/bwesterb/go-ristretto@v1.2.4",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/bwesterb/go-ristretto/@v/v1.2.4.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:8HUl/bYdUaLakTdT2mfYomzPego+qjs5dOrYgAo3+J0=",
+          "GoModSum": "h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0="
+        },
+        {
+          "Path": "github.com/cloudflare/circl",
+          "Version": "v1.6.5",
+          "Time": "2026-08-05T16:32:19Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/cloudflare/circl@v1.6.5",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/cloudflare/circl/@v/v1.6.5.mod",
+          "GoVersion": "1.25.0",
+          "Sum": "h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA=",
+          "GoModSum": "h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c="
+        },
+        {
+          "Path": "github.com/creack/pty",
+          "Version": "v1.1.9",
+          "Time": "2019-09-25T15:36:33Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/creack/pty@v1.1.9",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/creack/pty/@v/v1.1.9.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w=",
+          "GoModSum": "h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E="
+        },
+        {
+          "Path": "github.com/davecgh/go-spew",
+          "Version": "v1.1.1",
+          "Time": "2018-02-21T23:26:28Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/davecgh/go-spew@v1.1.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/davecgh/go-spew/@v/v1.1.1.mod",
+          "Sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=",
+          "GoModSum": "h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38="
+        },
+        {
+          "Path": "github.com/google/go-cmp",
+          "Version": "v0.6.0",
+          "Time": "2023-08-31T17:32:40Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/google/go-cmp@v0.6.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/google/go-cmp/@v/v0.6.0.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=",
+          "GoModSum": "h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY="
+        },
+        {
+          "Path": "github.com/google/uuid",
+          "Version": "v1.6.0",
+          "Time": "2024-01-23T18:54:04Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/google/uuid@v1.6.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/google/uuid/@v/v1.6.0.mod",
+          "Sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=",
+          "GoModSum": "h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo="
+        },
+        {
+          "Path": "github.com/igor-lemon/fhttp",
+          "Version": "v0.6.10-0.20261030170200-24c1c55ecaf2",
+          "Time": "2026-10-30T17:02:00Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/fhttp@v0.6.10-0.20261030170200-24c1c55ecaf2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/fhttp/@v/v0.6.10-0.20261030170200-24c1c55ecaf2.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:30AQvs1/iLtE71AuwGh7uPkOv6GcDVji+FHFlTYi/LI=",
+          "GoModSum": "h1:OhEISWmTJyk462YQ834+Beq6lw2m+5pEAeCf/qxYktI="
+        },
+        {
+          "Path": "github.com/igor-lemon/tls-client",
+          "Version": "v1.15.2-0.20261029210313-b44093c52845",
+          "Time": "2026-10-29T21:03:13Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/tls-client@v1.15.2-0.20261029210313-b44093c52845",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261029210313-b44093c52845.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:NI6u5hNvEwkGVgoMLX7XGFCvTJ5V+FNjPSu835aAFpY=",
+          "GoModSum": "h1:ZfUVhadlAwaj16W0oOQyexEDC+4j83sax524nzMPB+k="
+        },
+        {
+          "Path": "github.com/igor-lemon/utls",
+          "Version": "v1.7.8-barnius.0.20261030155229-fc851fa265f6",
+          "Time": "2026-10-30T15:52:29Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/utls@v1.7.8-barnius.0.20261030155229-fc851fa265f6",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/utls/@v/v1.7.8-barnius.0.20261030155229-fc851fa265f6.mod",
+          "GoVersion": "1.24",
+          "Sum": "h1:+s6UzcXRd/LYCYYLff0Z71V/T/g2GuO+C/pd262HQMs=",
+          "GoModSum": "h1:PBUuDfiLHP4IL5xJftjjw44xXfY2Pfe0BgYgsEcIc6M="
+        },
+        {
+          "Path": "github.com/igor-lemon/websocket",
+          "Version": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "Time": "2026-10-26T20:46:38Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/websocket@v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/websocket/@v/v1.5.6-barnius.0.20261026204638-961b3d7db465.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY=",
+          "GoModSum": "h1:GZSvScbWXPME/lrYX/6q6mWLv7EplqT8rW4mFYoWNJE="
+        },
+        {
+          "Path": "github.com/jordanlewis/gcassert",
+          "Version": "v0.0.0-20250430164644-389ef753e22e",
+          "Time": "2025-04-30T16:46:44Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/jordanlewis/gcassert@v0.0.0-20250430164644-389ef753e22e",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/jordanlewis/gcassert/@v/v0.0.0-20250430164644-389ef753e22e.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:a+PGEeXb+exwBS3NboqXHyxarD9kaboBbrSp+7GuBuc=",
+          "GoModSum": "h1:ZybsQk6DWyN5t7An1MuPm1gtSZ1xDaTXS9ZjIOxvQrk="
+        },
+        {
+          "Path": "github.com/klauspost/compress",
+          "Version": "v1.20.0",
+          "Time": "2026-09-02T12:08:18Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/klauspost/compress@v1.20.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/klauspost/compress/@v/v1.20.0.mod",
+          "GoVersion": "1.25",
+          "Sum": "h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA=",
+          "GoModSum": "h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI="
+        },
+        {
+          "Path": "github.com/kr/pretty",
+          "Version": "v0.3.1",
+          "Time": "2022-08-29T23:03:05Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/kr/pretty@v0.3.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/kr/pretty/@v/v0.3.1.mod",
+          "GoVersion": "1.12",
+          "Sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=",
+          "GoModSum": "h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk="
+        },
+        {
+          "Path": "github.com/kr/pty",
+          "Version": "v1.1.1",
+          "Time": "2018-01-13T18:08:13Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/kr/pty@v1.1.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/kr/pty/@v/v1.1.1.mod",
+          "Sum": "h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=",
+          "GoModSum": "h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ="
+        },
+        {
+          "Path": "github.com/kr/text",
+          "Version": "v0.2.0",
+          "Time": "2020-02-14T20:31:06Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/kr/text@v0.2.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/kr/text/@v/v0.2.0.mod",
+          "Sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=",
+          "GoModSum": "h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE="
+        },
+        {
+          "Path": "github.com/pkg/diff",
+          "Version": "v0.0.0-20210226163009-20ebb0f2a09e",
+          "Time": "2021-02-26T16:30:09Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/pkg/diff@v0.0.0-20210226163009-20ebb0f2a09e",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/pkg/diff/@v/v0.0.0-20210226163009-20ebb0f2a09e.mod",
+          "GoVersion": "1.15",
+          "Sum": "h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A=",
+          "GoModSum": "h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA="
+        },
+        {
+          "Path": "github.com/pmezard/go-difflib",
+          "Version": "v1.0.0",
+          "Time": "2016-01-10T10:55:54Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/pmezard/go-difflib@v1.0.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/pmezard/go-difflib/@v/v1.0.0.mod",
+          "Sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=",
+          "GoModSum": "h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4="
+        },
+        {
+          "Path": "github.com/quic-go/qpack",
+          "Version": "v0.6.0",
+          "Time": "2025-11-17T02:04:08Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/quic-go/qpack@v0.6.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/quic-go/qpack/@v/v0.6.0.mod",
+          "GoVersion": "1.24",
+          "Sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=",
+          "GoModSum": "h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII="
+        },
+        {
+          "Path": "github.com/rogpeppe/go-internal",
+          "Version": "v1.10.0",
+          "Time": "2023-03-27T09:34:06Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/rogpeppe/go-internal@v1.10.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/rogpeppe/go-internal/@v/v1.10.0.mod",
+          "GoVersion": "1.19",
+          "Sum": "h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=",
+          "GoModSum": "h1:UQnix2H7Ngw/k4C5ijL5+65zddjncjaFoBhdsK/akog="
+        },
+        {
+          "Path": "github.com/spf13/pflag",
+          "Version": "v1.0.10",
+          "Time": "2025-09-02T06:08:29Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/spf13/pflag@v1.0.10",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/spf13/pflag/@v/v1.0.10.mod",
+          "GoVersion": "1.12",
+          "Sum": "h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=",
+          "GoModSum": "h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg="
+        },
+        {
+          "Path": "github.com/stretchr/objx",
+          "Version": "v0.5.2",
+          "Time": "2024-02-29T09:57:51Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/stretchr/objx@v0.5.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/stretchr/objx/@v/v0.5.2.mod",
+          "GoVersion": "1.20",
+          "Sum": "h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=",
+          "GoModSum": "h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA="
+        },
+        {
+          "Path": "github.com/stretchr/testify",
+          "Version": "v1.11.1",
+          "Time": "2025-08-27T10:46:31Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/stretchr/testify@v1.11.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/stretchr/testify/@v/v1.11.1.mod",
+          "GoVersion": "1.17",
+          "Sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=",
+          "GoModSum": "h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U="
+        },
+        {
+          "Path": "github.com/tam7t/hpkp",
+          "Version": "v0.0.0-20160821193359-2b70b4024ed5",
+          "Time": "2016-08-21T19:33:59Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/tam7t/hpkp@v0.0.0-20160821193359-2b70b4024ed5",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/tam7t/hpkp/@v/v0.0.0-20160821193359-2b70b4024ed5.mod",
+          "Sum": "h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc=",
+          "GoModSum": "h1:2JjD2zLQYH5HO74y5+aE3remJQvl6q4Sn6aWA2wD1Ng="
+        },
+        {
+          "Path": "github.com/xyproto/randomstring",
+          "Version": "v1.0.5",
+          "Time": "2023-02-06T10:49:41Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/xyproto/randomstring@v1.0.5",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/xyproto/randomstring/@v/v1.0.5.mod",
+          "GoVersion": "1.17",
+          "Sum": "h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=",
+          "GoModSum": "h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E="
+        },
+        {
+          "Path": "github.com/yuin/goldmark",
+          "Version": "v1.4.13",
+          "Time": "2022-07-09T07:22:17Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/yuin/goldmark@v1.4.13",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/yuin/goldmark/@v/v1.4.13.mod",
+          "GoVersion": "1.18",
+          "Sum": "h1:fVcFKWvrslecOb/tg+Cc05dkeYx540o0FuFt3nUVDoE=",
+          "GoModSum": "h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY="
+        },
+        {
+          "Path": "go.uber.org/mock",
+          "Version": "v0.5.2",
+          "Time": "2025-04-28T16:20:04Z",
+          "Dir": "/Users/ihar/go/pkg/mod/go.uber.org/mock@v0.5.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/go.uber.org/mock/@v/v0.5.2.mod",
+          "GoVersion": "1.23",
+          "Sum": "h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko=",
+          "GoModSum": "h1:wLlUxC2vVTPTaE3UD51E0BGOAElKrILxhVSDYQLld5o="
+        },
+        {
+          "Path": "golang.org/x/crypto",
+          "Version": "v0.58.0",
+          "Time": "2026-10-09T16:24:17Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/crypto@v0.58.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/crypto/@v/v0.58.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:COkYLr4k7nDI4r6QtMML2AfzeIswWHAJthLS6K/M/54=",
+          "GoModSum": "h1:Xh+kl5A+M0gMiWDytH2Hhr5Z7WbNCpv/eB/EFgfSk+w="
+        },
+        {
+          "Path": "golang.org/x/mod",
+          "Version": "v0.41.0",
+          "Time": "2026-08-24T20:56:42Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/mod@v0.41.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/mod/@v/v0.41.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c=",
+          "GoModSum": "h1:Ek9pY8RKWXwsWvd3rQiHYtMqkjSUV+s1Rj7j4H5Ur6o="
+        },
+        {
+          "Path": "golang.org/x/net",
+          "Version": "v0.62.0",
+          "Time": "2026-10-27T19:00:16Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/net@v0.62.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/net/@v/v0.62.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:18ELalfM5+XNRwzM2nYqXsZQ9ByS1uhj2O/U7+5jqRY=",
+          "GoModSum": "h1:WgDCOTH8iwtB66T4/GfI94AHo/hhdb7Hah9NDseQfiI="
+        },
+        {
+          "Path": "golang.org/x/sync",
+          "Version": "v0.24.0",
+          "Time": "2026-09-23T16:28:17Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/sync@v0.24.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/sync/@v/v0.24.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:iqiDrGoDgyuvAKrhLQthUEzU/R378N78gXbBjxed7oA=",
+          "GoModSum": "h1:sUUOizhqBxiL6pEWpqNLUiaJn1ShEbZ6BBqskPbjZm0="
+        },
+        {
+          "Path": "golang.org/x/sys",
+          "Version": "v0.49.0",
+          "Time": "2026-10-06T18:35:47Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/sys@v0.49.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/sys/@v/v0.49.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:XbzkgYJHdqh/8m2Uu0W/dQv8nktxx4BFHp1M0gROTXA=",
+          "GoModSum": "h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og="
+        },
+        {
+          "Path": "golang.org/x/telemetry",
+          "Version": "v0.0.0-20260924152758-ed294f943157",
+          "Time": "2026-09-24T15:27:58Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/telemetry@v0.0.0-20260924152758-ed294f943157",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/telemetry/@v/v0.0.0-20260924152758-ed294f943157.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:DftxASHKl6JolFPqoN+2WrFO53JvkHwRXvFqf8gsivA=",
+          "GoModSum": "h1:i+ivNqjDnTF3WTElsdk5g9V5DTSBYgdNo7xTU9SDwYA="
+        },
+        {
+          "Path": "golang.org/x/term",
+          "Version": "v0.47.0",
+          "Time": "2026-10-09T15:22:17Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/term@v0.47.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/term/@v/v0.47.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:cpyOwQkr2Nzxe2p6KnrTG7Ei2wtzjsuSjhpXXepZ/BM=",
+          "GoModSum": "h1:efAfAuG6RKABvg1ArGebRkvX6LXul14SM67o2e4mUCY="
+        },
+        {
+          "Path": "golang.org/x/text",
+          "Version": "v0.43.0",
+          "Time": "2026-10-09T15:18:32Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/text@v0.43.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/text/@v/v0.43.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:1QivrlhwAsnMOcqgOdl9my7s9OyZl8O5/UGUTJVXoWc=",
+          "GoModSum": "h1:hbSIYA/amXcRXTFSZqh8tWHEoqRvvbKPJ2uz/KU+a+s="
+        },
+        {
+          "Path": "golang.org/x/tools",
+          "Version": "v0.51.0",
+          "Time": "2026-10-02T18:49:45Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/tools@v0.51.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/tools/@v/v0.51.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:k4Xc/1Om9jwkBJBo4NVLMSARBoWtK10mx+W5BnXCeAI=",
+          "GoModSum": "h1:9eEncMayCV6zRMGhR5eZEC2iBx98qWcF1HZ9Z7wJOoA="
+        },
+        {
+          "Path": "golang.org/x/xerrors",
+          "Version": "v0.0.0-20190717185122-a985d3407aa7",
+          "Time": "2019-07-17T18:51:22Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/xerrors@v0.0.0-20190717185122-a985d3407aa7",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/xerrors/@v/v0.0.0-20190717185122-a985d3407aa7.mod",
+          "GoVersion": "1.11",
+          "Sum": "h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc=",
+          "GoModSum": "h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0="
+        },
+        {
+          "Path": "gopkg.in/check.v1",
+          "Version": "v1.0.0-20201130134442-10cb98267c6c",
+          "Time": "2020-11-30T13:44:42Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/gopkg.in/check.v1@v1.0.0-20201130134442-10cb98267c6c",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/gopkg.in/check.v1/@v/v1.0.0-20201130134442-10cb98267c6c.mod",
+          "GoVersion": "1.11",
+          "Sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=",
+          "GoModSum": "h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q="
+        },
+        {
+          "Path": "gopkg.in/yaml.v3",
+          "Version": "v3.0.1",
+          "Time": "2022-05-27T08:35:30Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/gopkg.in/yaml.v3@v3.0.1",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/gopkg.in/yaml.v3/@v/v3.0.1.mod",
+          "Sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=",
+          "GoModSum": "h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM="
+        }
+      ],
+      "production_linked": [
+        {
+          "Path": "github.com/Sec-CH-Lemon/tls-forge",
+          "Main": true,
+          "Dir": "/private/tmp/tls-forge-a11-20261030/root-check",
+          "GoMod": "/private/tmp/tls-forge-a11-20261030/root-check/go.mod",
+          "GoVersion": "1.26.10"
+        },
+        {
+          "Path": "github.com/andybalholm/brotli",
+          "Version": "v1.2.3",
+          "Time": "2026-08-27T16:03:57Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/andybalholm/brotli@v1.2.3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/andybalholm/brotli/@v/v1.2.3.mod",
+          "GoVersion": "1.22",
+          "Sum": "h1:8H1qwOkl2LPfjf3YezB90JnCliZb6SInJ/OJkEbA5NQ=",
+          "GoModSum": "h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY="
+        },
+        {
+          "Path": "github.com/andybalholm/cascadia",
+          "Version": "v1.3.3",
+          "Time": "2024-12-19T18:31:02Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/andybalholm/cascadia@v1.3.3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/andybalholm/cascadia/@v/v1.3.3.mod",
+          "GoVersion": "1.16",
+          "Sum": "h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM=",
+          "GoModSum": "h1:xNd9bqTn98Ln4DwST8/nG+H0yuB8Hmgu1YHNnWw0GeA="
+        },
+        {
+          "Path": "github.com/bdandy/go-errors",
+          "Version": "v1.2.2",
+          "Time": "2021-11-05T17:21:08Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/bdandy/go-errors@v1.2.2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/bdandy/go-errors/@v/v1.2.2.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=",
+          "GoModSum": "h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM="
+        },
+        {
+          "Path": "github.com/bdandy/go-socks4",
+          "Version": "v1.2.3",
+          "Time": "2022-12-07T08:59:10Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/bdandy/go-socks4@v1.2.3",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/bdandy/go-socks4/@v/v1.2.3.mod",
+          "GoVersion": "1.13",
+          "Sum": "h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=",
+          "GoModSum": "h1:98kiVFgpdogR8aIGLWLvjDVZ8XcKPsSI/ypGrO+bqHI="
+        },
+        {
+          "Path": "github.com/cloudflare/circl",
+          "Version": "v1.6.5",
+          "Time": "2026-08-05T16:32:19Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/cloudflare/circl@v1.6.5",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/cloudflare/circl/@v/v1.6.5.mod",
+          "GoVersion": "1.25.0",
+          "Sum": "h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA=",
+          "GoModSum": "h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c="
+        },
+        {
+          "Path": "github.com/igor-lemon/fhttp",
+          "Version": "v0.6.10-0.20261030170200-24c1c55ecaf2",
+          "Time": "2026-10-30T17:02:00Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/fhttp@v0.6.10-0.20261030170200-24c1c55ecaf2",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/fhttp/@v/v0.6.10-0.20261030170200-24c1c55ecaf2.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:30AQvs1/iLtE71AuwGh7uPkOv6GcDVji+FHFlTYi/LI=",
+          "GoModSum": "h1:OhEISWmTJyk462YQ834+Beq6lw2m+5pEAeCf/qxYktI="
+        },
+        {
+          "Path": "github.com/igor-lemon/quic-go-utls",
+          "Version": "v1.0.10-utls.0.20261029174437-f8b2a713bf83",
+          "Time": "2026-10-29T17:44:37Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/quic-go-utls@v1.0.10-utls.0.20261029174437-f8b2a713bf83",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/quic-go-utls/@v/v1.0.10-utls.0.20261029174437-f8b2a713bf83.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:hncjpI+kRwlvbXFCQVvYuPLRlyMqyx+nVjIezcHQbwQ=",
+          "GoModSum": "h1:qmSWdhc0oIKiCZp8+JBqcp6g18MQVWcm563nlOWVRlw="
+        },
+        {
+          "Path": "github.com/igor-lemon/tls-client",
+          "Version": "v1.15.2-0.20261029210313-b44093c52845",
+          "Time": "2026-10-29T21:03:13Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/tls-client@v1.15.2-0.20261029210313-b44093c52845",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261029210313-b44093c52845.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:NI6u5hNvEwkGVgoMLX7XGFCvTJ5V+FNjPSu835aAFpY=",
+          "GoModSum": "h1:ZfUVhadlAwaj16W0oOQyexEDC+4j83sax524nzMPB+k="
+        },
+        {
+          "Path": "github.com/igor-lemon/utls",
+          "Version": "v1.7.8-barnius.0.20261030155229-fc851fa265f6",
+          "Time": "2026-10-30T15:52:29Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/utls@v1.7.8-barnius.0.20261030155229-fc851fa265f6",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/utls/@v/v1.7.8-barnius.0.20261030155229-fc851fa265f6.mod",
+          "GoVersion": "1.24",
+          "Sum": "h1:+s6UzcXRd/LYCYYLff0Z71V/T/g2GuO+C/pd262HQMs=",
+          "GoModSum": "h1:PBUuDfiLHP4IL5xJftjjw44xXfY2Pfe0BgYgsEcIc6M="
+        },
+        {
+          "Path": "github.com/igor-lemon/websocket",
+          "Version": "v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "Time": "2026-10-26T20:46:38Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/websocket@v1.5.6-barnius.0.20261026204638-961b3d7db465",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/websocket/@v/v1.5.6-barnius.0.20261026204638-961b3d7db465.mod",
+          "GoVersion": "1.24.1",
+          "Sum": "h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY=",
+          "GoModSum": "h1:GZSvScbWXPME/lrYX/6q6mWLv7EplqT8rW4mFYoWNJE="
+        },
+        {
+          "Path": "github.com/klauspost/compress",
+          "Version": "v1.20.0",
+          "Time": "2026-09-02T12:08:18Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/klauspost/compress@v1.20.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/klauspost/compress/@v/v1.20.0.mod",
+          "GoVersion": "1.25",
+          "Sum": "h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA=",
+          "GoModSum": "h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI="
+        },
+        {
+          "Path": "github.com/quic-go/qpack",
+          "Version": "v0.6.0",
+          "Time": "2025-11-17T02:04:08Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/quic-go/qpack@v0.6.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/quic-go/qpack/@v/v0.6.0.mod",
+          "GoVersion": "1.24",
+          "Sum": "h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=",
+          "GoModSum": "h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII="
+        },
+        {
+          "Path": "github.com/spf13/pflag",
+          "Version": "v1.0.10",
+          "Time": "2025-09-02T06:08:29Z",
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/spf13/pflag@v1.0.10",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/spf13/pflag/@v/v1.0.10.mod",
+          "GoVersion": "1.12",
+          "Sum": "h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=",
+          "GoModSum": "h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg="
+        },
+        {
+          "Path": "github.com/tam7t/hpkp",
+          "Version": "v0.0.0-20160821193359-2b70b4024ed5",
+          "Time": "2016-08-21T19:33:59Z",
+          "Indirect": true,
+          "Dir": "/Users/ihar/go/pkg/mod/github.com/tam7t/hpkp@v0.0.0-20160821193359-2b70b4024ed5",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/tam7t/hpkp/@v/v0.0.0-20160821193359-2b70b4024ed5.mod",
+          "Sum": "h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc=",
+          "GoModSum": "h1:2JjD2zLQYH5HO74y5+aE3remJQvl6q4Sn6aWA2wD1Ng="
+        },
+        {
+          "Path": "golang.org/x/crypto",
+          "Version": "v0.58.0",
+          "Time": "2026-10-09T16:24:17Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/crypto@v0.58.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/crypto/@v/v0.58.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:COkYLr4k7nDI4r6QtMML2AfzeIswWHAJthLS6K/M/54=",
+          "GoModSum": "h1:Xh+kl5A+M0gMiWDytH2Hhr5Z7WbNCpv/eB/EFgfSk+w="
+        },
+        {
+          "Path": "golang.org/x/net",
+          "Version": "v0.62.0",
+          "Time": "2026-10-27T19:00:16Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/net@v0.62.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/net/@v/v0.62.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:18ELalfM5+XNRwzM2nYqXsZQ9ByS1uhj2O/U7+5jqRY=",
+          "GoModSum": "h1:WgDCOTH8iwtB66T4/GfI94AHo/hhdb7Hah9NDseQfiI="
+        },
+        {
+          "Path": "golang.org/x/sys",
+          "Version": "v0.49.0",
+          "Time": "2026-10-06T18:35:47Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/sys@v0.49.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/sys/@v/v0.49.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:XbzkgYJHdqh/8m2Uu0W/dQv8nktxx4BFHp1M0gROTXA=",
+          "GoModSum": "h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og="
+        },
+        {
+          "Path": "golang.org/x/text",
+          "Version": "v0.43.0",
+          "Time": "2026-10-09T15:18:32Z",
+          "Dir": "/Users/ihar/go/pkg/mod/golang.org/x/text@v0.43.0",
+          "GoMod": "/Users/ihar/go/pkg/mod/cache/download/golang.org/x/text/@v/v0.43.0.mod",
+          "GoVersion": "1.26.0",
+          "Sum": "h1:1QivrlhwAsnMOcqgOdl9my7s9OyZl8O5/UGUTJVXoWc=",
+          "GoModSum": "h1:hbSIYA/amXcRXTFSZqh8tWHEoqRvvbKPJ2uz/KU+a+s="
+        }
+      ],
+      "source_sha256": "aa6b2f4772325bf3fe7099be2698d277fa71ed1f249436d171025806c86c9f8d",
+      "skips": []
+    }
+  },
+  "private_evidence": "net-fp-server/captures/tls-forge-a11-20261030",
+  "browser_values_changed": false,
+  "new_browser_measurement": false,
+  "engine": "unreleased1.0.0",
+  "limitations": [
+    "49 original tls-client obligations remain",
+    "Exact final native root and fork acceptance pending",
+    "Original ALPS native red raw test log unavailable; local old fixture passed200race, so native cause is not claimed reproduced",
+    "Finite packet observations do not prove browser indistinguishability"
+  ],
+  "negative_controls": [
+    {
+      "name": "packet-policy",
+      "expected_failure": true,
+      "returncode": 1,
+      "restored_sha256": "8cccdee0ca29acb2667bc8dd5e82c7c741ccd28073ff1d18389ac47c6d28e9d9"
+    },
+    {
+      "name": "alps-conflict",
+      "expected_failure": true,
+      "returncode": 1,
+      "restored_sha256": "a5c132fceff9cd26d89e55e027ecc5c58a9298df98a45f9432902a2faf3f099d"
+    }
+  ]
+}

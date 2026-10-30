@@ -6235,7 +6235,32 @@
           "github.com/igor-lemon/quic-go-utls"
         ]
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "An idle pause did not guarantee PMTU sends. All policies now receive identical owned stream traffic, retain full negative-observation interval and wait boundedly for required real positive events; original CID/MTU/ECN assertions remain.",
+      "fix_commit": "b1804540b358e0777478942ef964b386cf120efd",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/quic-go-utls",
+          "test": "TestAClientMarksProbesAndChangesItsConnectionIDAsItsProfileSays"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "quic-go-utls-before.tar",
+          "quic-packet-observer-after.log",
+          "quic-native-diagnostic"
+        ],
+        "after": [
+          "quic-packet-active-after.log",
+          "quic-header-limit-after.log",
+          "quic-after-standalone",
+          "quic-after-production"
+        ],
+        "source_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+        "source_sha256": "aa6b2f4772325bf3fe7099be2698d277fa71ed1f249436d171025806c86c9f8d"
+      }
     },
     {
       "id": "F09-056",
@@ -6275,7 +6300,40 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Bounded QPACK decoding now rejects decompressed oversize before header-map allocation. Exact QPACK error replaces stale post-decode generic error; independent encoded and decompressed frame-size/error controls retained.",
+      "fix_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "test": "TestHTTPHeaderSizeLimitClient"
+        },
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "test": "TestHTTPHeaderSizeLimitClient/large_HEADERS_frame"
+        },
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "test": "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "quic-go-utls-before.tar",
+          "quic-packet-observer-after.log",
+          "quic-native-diagnostic"
+        ],
+        "after": [
+          "quic-packet-active-after.log",
+          "quic-header-limit-after.log",
+          "quic-after-standalone",
+          "quic-after-production"
+        ],
+        "source_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+        "source_sha256": "aa6b2f4772325bf3fe7099be2698d277fa71ed1f249436d171025806c86c9f8d"
+      }
     },
     {
       "id": "F09-057",
@@ -6315,7 +6373,40 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Bounded QPACK decoding now rejects decompressed oversize before header-map allocation. Exact QPACK error replaces stale post-decode generic error; independent encoded and decompressed frame-size/error controls retained.",
+      "fix_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "test": "TestHTTPHeaderSizeLimitClient"
+        },
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "test": "TestHTTPHeaderSizeLimitClient/large_HEADERS_frame"
+        },
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "test": "TestHTTPHeaderSizeLimitClient/large_decompressed_HEADERS_frame"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "quic-go-utls-before.tar",
+          "quic-packet-observer-after.log",
+          "quic-native-diagnostic"
+        ],
+        "after": [
+          "quic-packet-active-after.log",
+          "quic-header-limit-after.log",
+          "quic-after-standalone",
+          "quic-after-production"
+        ],
+        "source_commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322",
+        "source_sha256": "aa6b2f4772325bf3fe7099be2698d277fa71ed1f249436d171025806c86c9f8d"
+      }
     },
     {
       "id": "F09-058",
@@ -8723,6 +8814,31 @@
           "omitted-tagged-after",
           "fhttp-after-standalone",
           "fhttp-after-production"
+        ]
+      }
+    },
+    {
+      "id": "F09-111",
+      "test": "TestAControlStreamOfNoRequestIsHeldToWhatALPSGave",
+      "status": "resolved",
+      "obligation": "A preconnected QUIC peer rejects regular SETTINGS conflicting with ALPS, with the actual remote error and no HTTP request.",
+      "fix_commit": "d92d2895644f040c2a5e77110ccb4d356641a090",
+      "cause": "Preconnect success is observed before releasing deliberately conflicting regular SETTINGS. No error is allowed or fabricated; original exact text, code 0x109, Remote=true and absence of requests are required. Local original200race passed; exact native-red raw failure was unavailable, so native root cause is not claimed reproduced.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/http3",
+          "test": "TestAControlStreamOfNoRequestIsHeldToWhatALPSGave"
+        }
+      ],
+      "evidence": {
+        "before": [
+          "native-pin-forks-failed.log",
+          "quic-alps-no-request-before.jsonl"
+        ],
+        "after": [
+          "quic-alps-no-request-after.log",
+          "quic-after-standalone",
+          "quic-after-production"
         ]
       }
     }

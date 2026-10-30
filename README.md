@@ -3035,3 +3035,7 @@ The current A11 slice resolves57/109 original obligations (all56 fhttp rows
 plus utls hostname verification) and the supplemental omit-bundled-H2 check.
 Both fhttp module graphs finish1886 runs with raw exit0, no named failures
 and no TestOmitHTTP2 skip.52 original tls-client/QUIC rows remain open.
+
+A11 fork verification now has raw-green QUIC suites on both standalone and
+production graphs (2562 runs each); the original109-obligation ledger remains
+partial at60 resolved/49 tls-client open. This is technical test acceptance.

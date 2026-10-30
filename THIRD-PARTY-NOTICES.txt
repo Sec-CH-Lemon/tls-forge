@@ -210,7 +210,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261029174437-f8b2a713bf83
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261030181739-9a3076b42e8e
 --------------------------------------------------------------------------------
 
 MIT License
