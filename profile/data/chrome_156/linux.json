@@ -1049,11 +1049,11 @@
   "client_hints": [
     {
       "name": "device-memory",
-      "value": "16"
+      "value": "8"
     },
     {
       "name": "sec-ch-device-memory",
-      "value": "16"
+      "value": "8"
     },
     {
       "name": "dpr",
@@ -1065,15 +1065,15 @@
     },
     {
       "name": "viewport-width",
-      "value": "1050"
+      "value": "1280"
     },
     {
       "name": "sec-ch-viewport-width",
-      "value": "1050"
+      "value": "1280"
     },
     {
       "name": "sec-ch-viewport-height",
-      "value": "917"
+      "value": "720"
     },
     {
       "name": "rtt",
@@ -1132,5 +1132,5 @@
       "value": "no-preference"
     }
   ],
-  "notes": "captured 2026-10-29T21:24:19Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_linux (unmeasured policies inherited)\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity."
+  "notes": "captured 2026-10-29T21:24:19Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_linux (unmeasured policies inherited)\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity.\nA12 persona selection: virtual8GiB desktop,1280x720 CSS viewport,light theme,no reduced-motion/transparency preference;DPR2macOS/DPR1Linux-Windows. These are explicit configuration values, not measurements of every machine or a headless capture replay. Original capture bytes remain in pre-change archives."
 }

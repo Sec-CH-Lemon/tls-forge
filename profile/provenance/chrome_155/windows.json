@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "8d59dbea244159039c3875bc3754240fd6f98aefa477b86d49c3f8856956db2e",
+  "profile_sha256": "76dfff184fc2babafc2f74240605476f7f5b9cd032f6198b750015cd9e741c90",
   "previous_profile_sha256": "d59c55423ac79d86bd08e26234cbe732a5b781a9bd6312d0efe18f5374179282",
   "basis_name": "chrome_155_macos",
   "basis_file_sha256": "a20ef574936a42e7f0c2368e4f05ee8087e84497c93a3e770be6909a76ef4b46",
@@ -182,6 +182,14 @@
       "after_profile_sha256": "8d59dbea244159039c3875bc3754240fd6f98aefa477b86d49c3f8856956db2e",
       "inventory": "a12-dns.json",
       "preserved": "Original browser/capture/basis hashes and prior field origins; original bytes in A12 before archive and Git parent"
+    },
+    {
+      "stage": "A12/F03-0",
+      "before_sha256": "8d59dbea244159039c3875bc3754240fd6f98aefa477b86d49c3f8856956db2e",
+      "after_sha256": "76dfff184fc2babafc2f74240605476f7f5b9cd032f6198b750015cd9e741c90",
+      "inventory": "profile/provenance/a12-persona.json",
+      "previous_field_origins": {},
+      "capture_and_basis_hashes": "preserved; historical identity, not new acceptance"
     }
   ]
 }

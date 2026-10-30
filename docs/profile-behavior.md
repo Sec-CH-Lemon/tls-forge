@@ -58,6 +58,38 @@ together; no compatibility flag disables the gate.
 
 Schema 3 keeps browser-specific network choices in the same JSON file as the captured ClientHello, ordered HTTP/2 settings, headers and HTTP/1 layout. The engine implements primitives and enforces capability/cryptographic/resource constraints. Profile names, versions and descriptive User-Agent text do not select policy.
 
+## Machine persona values (unreleased engine1)
+
+The18 shipped profiles now deliberately configure a virtual desktop:8GiB,
+1280x720 CSS viewport, DPR2 on macOS or1 on Linux/Windows, light color scheme,
+and no reduced-motion/transparency preference. These are editable JSON choices,
+not automatic host detection or a claim that every machine has these properties.
+They replace the particular headless/CI window and memory observations without
+discarding the original capture bytes or provenance. Their popularity was not
+measured by this project. Different virtual devices belong in different profiles.
+
+Chrome151–154 now include machine/UA hints. Their selected full build numbers
+come from Google's VersionHistory stable-version API, per platform; their
+low-entropy brand vectors remain captured, and UA machine fields/order explicitly
+inherit the155 template. This creates configured candidates, not fresh captures
+or browser acceptance of those historical builds. [Field origins](../profile/provenance/a12-persona.json)
+identify each selection and retain before/after hashes.
+
+`capture --set` supports all17 machine fields listed in README. Memory and DPR
+accept positive numbers within Structured Fields12+3 digit bounds; memory must
+be a power of two in GiB. Viewport fields accept unsigned Structured Fields
+integers, including zero for an absent viewport. Preference choices use their
+actual hint spellings. UA strings/list/boolean validation is unchanged.
+Changing one existing memory/DPR/viewport-width alias updates both existing
+names; contradictory alias inputs fail before capture. No unsupported hint is
+invented. Every edited alias has its own user-provided provenance entry.
+
+Opt-ins still belong to the actual origin and browser instance. Shipped request
+scope and Fresh start with no received hints from an earlier request. The JSON
+snapshot remains independent of later edits to the caller's profile object.
+RTT/downlink/ECT generation is A13: existing155/156 literals remain recorded as
+known work; no new fixed network hints are added to151–154 to imitate an estimator.
+
 ## Updating a browser
 
 1. Copy the complete shipped profile to a local JSON file.

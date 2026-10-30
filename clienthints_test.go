@@ -237,6 +237,9 @@ func TestANavigationThatSentTheHintsGoesOn(t *testing.T) {
 }
 
 func TestOnlyANavigationWithTheValuesStartsAgain(t *testing.T) {
+	withoutHints := shippedProfile(t, "chrome_154_macos").Clone()
+	withoutHints.Name = "navigation_without_hint_values"
+	withoutHints.ClientHints = nil
 	for _, tc := range []struct {
 		name    string
 		profile *profile.Profile
@@ -245,7 +248,7 @@ func TestOnlyANavigationWithTheValuesStartsAgain(t *testing.T) {
 	}{
 		{"without a browser context, a typed navigation", shippedProfile(t, "chrome_155_macos"), nil, 2},
 		{"without a browser context, sent as given", asGivenProfile(t, "chrome_155_macos"), nil, 1},
-		{"with a profile that has no values of hints", shippedProfile(t, "chrome_154_macos"), &BrowserContext{Kind: KindNavigation}, 1},
+		{"with a profile that has no values of hints", withoutHints, &BrowserContext{Kind: KindNavigation}, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := newRecorder(t, "h2", criticalPage)

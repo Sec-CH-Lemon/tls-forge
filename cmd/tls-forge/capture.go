@@ -170,7 +170,7 @@ func runCapture(ctx context.Context, args []string, out, errOut *printer) error 
 	profileOut.printf("%s\n", saved.Notes)
 	profileOut.printf("provenance: %s\n", captureProvenancePath(where, path, saved, *provenanceDir))
 	if kept := machineValues(saved); len(kept) > 0 {
-		profileOut.println("kept of the machine it was captured on, which every request with it says (--set NAME=VALUE changes one):")
+		profileOut.println("machine/persona values kept in this profile (--set NAME=VALUE changes one; hints require origin opt-in):")
 		for _, field := range kept {
 			profileOut.printf("  %-28s %s\n", field[0], field[1])
 		}
@@ -304,11 +304,15 @@ func saveProfile(where, name string, measured *capture.Capture, mayShadow bool,
 		return nil, "", err
 	}
 	for _, setting := range settings {
-		key := "client_hints." + setting.name
 		if setting.name == "accept-language" {
-			key = "headers.accept-language"
+			provenance.Fields["headers.accept-language"] = profile.FieldOrigin{Class: "user-provided", Source: "explicit --set"}
+			continue
 		}
-		provenance.Fields[key] = profile.FieldOrigin{Class: "user-provided", Source: "explicit --set"}
+		for _, field := range built.ClientHints {
+			if machineFieldGroup(field.Name) == machineFieldGroup(setting.name) {
+				provenance.Fields["client_hints."+field.Name] = profile.FieldOrigin{Class: "user-provided", Source: "explicit --set"}
+			}
+		}
 	}
 	// ProvenanceForCapture has serialized all raw JSON and cloned its source.
 	// The only edits above add ordinary string origins, so encoding cannot fail.

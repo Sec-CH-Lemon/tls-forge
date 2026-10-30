@@ -131,12 +131,14 @@ writes them: the user agent's beyond `sec-ch-ua`, `sec-ch-ua-mobile` and
 the device's, the network's and the user's preferences. A hint the profile has
 no value for is not sent, asked for or not. `capture` writes the user agent's
 from what the browser gives JavaScript (`getHighEntropyValues()`), which is
-what Chrome sends; the shipped `chrome_155_macos` has every one Chrome 155
-sent there when asked, `rtt`, `downlink` and the viewport being what one
-measurement gave, as Chrome estimates them anew. The names a profile may give
+what Chrome sends. Shipped machine/viewport/preferences now select an explicit
+virtual persona; original raw measurements remain historical provenance.
+RTT/downlink/ECT generation remains A13, and its missing acceptance for older
+profiles is explicit. See [persona configuration](profile-behavior.md#machine-persona-values-unreleased-engine1).
+The names a profile may give
 are `profile.ClientHintOrder` but those three, in the order Chrome sends them.
 
-`schema` is the version of the format the profile was written in, 3 today. A
+`schema` is the version of the format the profile was written in, 4 today. A
 profile that names one is read strictly: a field the format does not have, at
 any depth, is an error naming it, so a misspelt `heders` is found when the
 profile is read rather than on the wire. Schema 1 is read as strictly, and has

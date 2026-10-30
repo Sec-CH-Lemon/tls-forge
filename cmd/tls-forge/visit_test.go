@@ -186,12 +186,31 @@ func TestCaptureManualKeepsTheClientHintsTheBrowserSent(t *testing.T) {
 	// Its page asked for every one, and what its report came with is what
 	// the profile says, over what the browser told its script; the summary
 	// says how many.
+	// Keep the policy value distinct from the observation, regardless of
+	// the shipped persona: capture must inherit this request-context hint.
+	basis, err := profile.Get("chrome")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range basis.ClientHints {
+		if basis.ClientHints[i].Name == "device-memory" || basis.ClientHints[i].Name == "sec-ch-device-memory" {
+			basis.ClientHints[i].Value = "16"
+		}
+	}
+	rawBasis, err := basis.Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	basisPath := filepath.Join(t.TempDir(), "policy.json")
+	if err := os.WriteFile(basisPath, rawBasis, 0600); err != nil {
+		t.Fatal(err)
+	}
 	visited := aPersonVisitsAs(t, "chrome", aPerson{
 		navigator: `{"full_version_list":[{"brand":"Chromium","version":"1"}],"architecture":"told"}`,
 		hints:     []string{"sec-ch-ua-arch", `"x86"`, "device-memory", "8", "sec-ch-ua-platform-version", `"19.0.0"`},
 	})
 	dir := t.TempDir()
-	code, stdout, stderr := exec(t, "capture", "--manual", "--save", dir)
+	code, stdout, stderr := exec(t, "capture", "--manual", "--save", dir, "--policy-from", basisPath)
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
 	}
@@ -211,7 +230,7 @@ func TestCaptureManualKeepsTheClientHintsTheBrowserSent(t *testing.T) {
 	for _, hint := range saved.ClientHints {
 		got[hint.Name] = hint.Value
 	}
-	if got["sec-ch-ua-arch"] != `"x86"` || got["sec-ch-ua-platform-version"] != `"19.0.0"` || got["device-memory"] == "8" {
+	if got["sec-ch-ua-arch"] != `"x86"` || got["sec-ch-ua-platform-version"] != `"19.0.0"` || got["device-memory"] != "16" || got["sec-ch-device-memory"] != "16" {
 		t.Fatalf("persona not measured, or request context frozen: %v", got)
 	}
 	if !strings.Contains(stdout, "client hints     3 of the 21 a server asks for, sent when asked") {

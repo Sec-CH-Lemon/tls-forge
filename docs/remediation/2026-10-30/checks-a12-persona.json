@@ -1,0 +1,91 @@
+{
+  "stage": "A12/F03-0 local acceptance; native A12 pending",
+  "engine": "unreleased1/schema4/daemon3/SDK1",
+  "profiles": 18,
+  "wire_cases": 54,
+  "wire_protocols": [
+    "H1",
+    "H2",
+    "H3"
+  ],
+  "wire_race_seconds": 8.745,
+  "default_request_isolation": "twoDo per case;eachownsonecoldCriticalCHrestart;H3 exactlytwo connections/noTCPrequest",
+  "concurrent_personas": {
+    "memory_GiB": [
+      4,
+      16
+    ],
+    "race_repeats": 20,
+    "seconds": 7.444,
+    "checks": [
+      "original-object mutation cannot leak",
+      "Fresh keeps ownconfiguredJSONsnapshot",
+      "no inheritedopt-ins/cache acrossDo"
+    ]
+  },
+  "cli_fields": 17,
+  "cli_race_repeats": 10,
+  "cli_seconds": 23.522,
+  "capture_alias_origin_seconds": 2.063,
+  "profile_race_seconds": 95.948,
+  "historical_oracles_unchanged_seconds": 91.438,
+  "negative_mutants": [
+    {
+      "name": "alias-values",
+      "returncode": 1,
+      "assertion_failure": true,
+      "restored_sha256": "fec9994fcd3d8f142f2d1d09784db74dc724491119908e5c791e02f53d29ae4e"
+    },
+    {
+      "name": "alias-origins",
+      "returncode": 1,
+      "assertion_failure": true,
+      "restored_sha256": "966adcacdb61099945f36b482d213500785f6113abcec6df5d8e83fd8dc194f9"
+    },
+    {
+      "name": "freeze-memory",
+      "returncode": 1,
+      "assertion_failure": true,
+      "restored_sha256": "de2605b67cd2cc89372024a0325ace055352dc48dccbbd99dbd76f0cca6957ee"
+    },
+    {
+      "name": "share-client-hints",
+      "returncode": 1,
+      "assertion_failure": true,
+      "restored_sha256": "732f30fdc3e13a62f18df48dff8016440bfc286d30138d784f4ca5fd1d59c2f5"
+    }
+  ],
+  "before": "CLI rejectsvalidnewfields;36historical-profile wirecasesfailmissinghints andcoldrestartcount;originalsnapshotsretained",
+  "persona": "8GiB/1280x720/light/no-reducedpreferences;DPR2macOS,1Linux-Windows;explicitvirtualconfiguration,nothostdetectionorpopularitymeasurement",
+  "historical_versions": "primaryGoogleVersionHistory;patchselectionnotoriginalcaptureidentity",
+  "network_hints": "no newfrozenRTT/downlink/ECTin151-154;existing155/156literalsandallhistoricalacceptanceareA13work",
+  "hashes": {
+    "persona-wire-before.log": "21df8731e4d09cd031c01248a692c60e7c64e273552e2e6c9d6a3cbcdffdca68",
+    "persona-wire-after.log": "81c9a1e7758c64edf88f563f0d7d933fbaff209aff949a32cd3c4c8bd41b0ed3",
+    "persona-concurrent-race20.log": "97792889dcc44e75a3e3ec994c783805b0233c81a6480ab1b6bd40447745cba2",
+    "persona-cli-before.log": "32bb23e2575e70617346c6360d49210667daca02e357f6be3834308b931c7851",
+    "persona-cli-after.log": "f62158b32a5509728f97e534e88c2a10f24d1ab62e5e3353ad2043dc030d827c",
+    "persona-capture-alias-origins.log": "d485c2e292acef608f3933228f0aa63924629ff1ad05dd951265aee8e49cb4e7",
+    "persona-profile-race.log": "bf579735c6a9ebb154bd249a09d9f34730dfff70d1e46128122f91893210c52b",
+    "persona-historical-replays.log": "f6cd8c9e703bb267eb0d6b55192ba09b5c84af0a0471350cf4ba9f40e04682bb",
+    "persona-mutants-receipt.json": "48a7f3c206e2931ed455c25f5d8897bc6a97ff9ee3b84780ded8747fd4135f5b",
+    "persona-version-sources.json": "9f40d2c3d77f42507f8569de6bf5f4a7106ad6f0452d32b97a4cb16cc0945a54",
+    "persona-fixture-root-race3.log": "6735cb5ebe7b5cb43e5ea120498427f432a5b8a52cbaa7c3b54ea99b10f3ca33",
+    "persona-fixture-capture-race10.log": "8e717a5382541975fc7f30d616fdd641b1ecfa8adfb42274e8c46b5fa844b356",
+    "persona-full-cover.log": "fd000fc4cec4575dfac23ac0327d159b4c4d22dcd143dfecf8f0a46fb5163bde",
+    "persona-full-cover-corrected.log": "ce4024786179a7236e2b822fa58fc7979751a872b1a2db45bd8ed31f252d67ee",
+    "persona-build-lint-vet.log": "013e34f267d14139e8761ca81e3a55b3ca27842aa4e63f09b8b30b61b6a07ae9"
+  },
+  "corrected_fixture_gates": {
+    "root_race_repeats": 3,
+    "root_seconds": 23.154,
+    "capture_race_repeats": 10,
+    "capture_seconds": 18.017,
+    "full_fresh_coverage_packages": 23,
+    "full_fresh_coverage_percent": 100,
+    "root_seconds_coverage": 176.171,
+    "cli_seconds_coverage": 60.475,
+    "preserved_red": "persona-full-cover.log: coldDNS/TCP race; newlyhinted154 fixture; coincident memory8 capturebasis",
+    "correction": "H3 header-only test has explicit JSON DNS/TCP wait1000ms; fallback enabled andTCP0/H3connection2 assertions retained. Nohints fixture explicitly removesvalues. Capturebasis16 differsfromobservation8; bothaliasesmustremain16."
+  }
+}

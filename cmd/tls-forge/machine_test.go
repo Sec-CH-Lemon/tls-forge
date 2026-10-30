@@ -109,7 +109,7 @@ func TestCaptureSetsWhatItKeepsOfTheMachine(t *testing.T) {
 	if err := <-visited; err != nil {
 		t.Fatalf("visiting: %v", err)
 	}
-	if code != 0 || !strings.Contains(stdout, "kept of the machine it was captured on") ||
+	if code != 0 || !strings.Contains(stdout, "machine/persona values kept in this profile") ||
 		!strings.Contains(stdout, `  sec-ch-ua-platform-version   "15.7.4"`) ||
 		!strings.Contains(stdout, "  accept-language              de-DE,de;q=0.9") ||
 		!strings.Contains(stdout, `  sec-ch-ua-arch               "arm"`) {

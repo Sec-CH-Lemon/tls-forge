@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "a756aefaddebe4a3a1c05fe02588f798b2e7d74dfddb659d99db0443f45c9a91",
+  "profile_sha256": "1c44fb0b648b662c987b7a549056bcfaec6a0ee9d41417bace61613c04e99722",
   "previous_profile_sha256": "4385f1aebb6153092fb3ffa7bb90590d975c8c2d3b2fb9e050ded6f584af1dd8",
   "change": "A8 JSON-only QPACK first-section state rule",
   "fields": {
@@ -63,6 +63,14 @@
       "after_profile_sha256": "a756aefaddebe4a3a1c05fe02588f798b2e7d74dfddb659d99db0443f45c9a91",
       "inventory": "a12-dns.json",
       "preserved": "Original browser/capture/basis hashes and prior field origins; original bytes in A12 before archive and Git parent"
+    },
+    {
+      "stage": "A12/F03-0",
+      "before_sha256": "a756aefaddebe4a3a1c05fe02588f798b2e7d74dfddb659d99db0443f45c9a91",
+      "after_sha256": "1c44fb0b648b662c987b7a549056bcfaec6a0ee9d41417bace61613c04e99722",
+      "inventory": "profile/provenance/a12-persona.json",
+      "previous_field_origins": {},
+      "capture_and_basis_hashes": "preserved; historical identity, not new acceptance"
     }
   ]
 }

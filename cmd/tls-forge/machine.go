@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"slices"
+	"strconv"
 	"strings"
 
 	"golang.org/x/net/http/httpguts"
@@ -14,11 +16,15 @@ import (
 // captured on decides, rather than the browser: the languages its person
 // reads, and, of the client hints a Chromium browser sends when a server asks,
 // the system's version, its processor and how many bits it has, its model,
-// whether it runs 32-bit code on 64, and its form. Every request with the
-// profile says them, so capture shows them, and --set changes them.
+// whether it runs 32-bit code on 64, its form, memory, geometry and preferences.
+// These can be an explicit virtual persona. Hints require the origin's opt-in;
+// capture inventories their saved values, and --set edits them.
 var machineFields = []string{
 	"accept-language", "sec-ch-ua-platform-version", "sec-ch-ua-arch", "sec-ch-ua-bitness",
 	"sec-ch-ua-model", "sec-ch-ua-wow64", "sec-ch-ua-form-factors",
+	"device-memory", "sec-ch-device-memory", "dpr", "sec-ch-dpr",
+	"viewport-width", "sec-ch-viewport-width", "sec-ch-viewport-height",
+	"sec-ch-prefers-color-scheme", "sec-ch-prefers-reduced-motion", "sec-ch-prefers-reduced-transparency",
 }
 
 // setting is a value --set gives the profile kept.
@@ -40,6 +46,11 @@ func settingsOf(given []string) ([]setting, error) {
 		if want := valueProblem(name, value); want != "" {
 			return nil, badValue("--set", item, want)
 		}
+		if slices.ContainsFunc(out, func(s setting) bool {
+			return machineFieldGroup(s.name) == machineFieldGroup(name) && s.value != value
+		}) {
+			return nil, badValue("--set", item, "the same value for both names of an alias hint")
+		}
 		out = append(out, setting{name, value})
 	}
 	return out, nil
@@ -47,7 +58,8 @@ func settingsOf(given []string) ([]setting, error) {
 
 // valueProblem says what value name takes, when value is none: a header
 // value for accept-language; ?0 or ?1 for wow64; Structured Field strings,
-// quoted (RFC 8941), for the form factors, a list of them; one for the rest.
+// quoted (RFC 8941), for the UA fields; bounded numeric memory/geometry and
+// the preference keywords actually carried by the hints.
 func valueProblem(name, value string) string {
 	switch name {
 	case "accept-language":
@@ -57,6 +69,28 @@ func valueProblem(name, value string) string {
 	case "sec-ch-ua-wow64":
 		if value != "?0" && value != "?1" {
 			return "?0 or ?1"
+		}
+	case "device-memory", "sec-ch-device-memory", "dpr", "sec-ch-dpr":
+		n, ok := positiveMachineNumber(value)
+		if !ok {
+			return "a positive number with at most12 integer and3 fractional digits"
+		}
+		if machineFieldGroup(name) == "device-memory" {
+			if fraction, _ := math.Frexp(n); fraction != 0.5 {
+				return "a positive power of two in GiB, as8 or0.5"
+			}
+		}
+	case "viewport-width", "sec-ch-viewport-width", "sec-ch-viewport-height":
+		if len(value) == 0 || len(value) > 15 || !asciiDigits(value) {
+			return "an unsigned Structured Field integer (0..999999999999999)"
+		}
+	case "sec-ch-prefers-color-scheme":
+		if value != "light" && value != "dark" {
+			return "light or dark"
+		}
+	case "sec-ch-prefers-reduced-motion", "sec-ch-prefers-reduced-transparency":
+		if value != "no-preference" && value != "reduce" {
+			return "no-preference or reduce"
 		}
 	case "sec-ch-ua-form-factors":
 		for _, item := range strings.Split(value, ",") {
@@ -70,6 +104,42 @@ func valueProblem(name, value string) string {
 		}
 	}
 	return ""
+}
+
+// positiveMachineNumber accepts the number syntax used by the observed hint
+// fields, including an integral spelling. Limits are Structured Fields wire
+// bounds, not browser-specific device or viewport defaults.
+func positiveMachineNumber(value string) (float64, bool) {
+	whole, fractional, decimal := strings.Cut(value, ".")
+	if len(whole) == 0 || len(whole) > 12 || !asciiDigits(whole) ||
+		decimal && (len(fractional) == 0 || len(fractional) > 3 || !asciiDigits(fractional)) {
+		return 0, false
+	}
+	n, _ := strconv.ParseFloat(value, 64) // the bounded digit syntax cannot overflow
+	return n, n > 0
+}
+
+func asciiDigits(value string) bool {
+	for i := range len(value) {
+		if value[i] < '0' || value[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// These wire names denote the same input. An edit changes every existing
+// alias, without inventing a hint the profile does not support.
+func machineFieldGroup(name string) string {
+	switch name {
+	case "sec-ch-device-memory":
+		return "device-memory"
+	case "sec-ch-dpr":
+		return "dpr"
+	case "sec-ch-viewport-width":
+		return "viewport-width"
+	}
+	return name
 }
 
 // structuredString says s is a Structured Field string: printable ASCII in
@@ -102,7 +172,7 @@ func applySettings(p *profile.Profile, settings []setting) error {
 		set := func(fields []profile.Field) bool {
 			found := false
 			for i := range fields {
-				if strings.EqualFold(fields[i].Name, s.name) {
+				if machineFieldGroup(strings.ToLower(fields[i].Name)) == machineFieldGroup(s.name) {
 					fields[i].Value, found = s.value, true
 				}
 			}

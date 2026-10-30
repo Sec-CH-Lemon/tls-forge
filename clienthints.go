@@ -21,8 +21,8 @@ import (
 // page of it makes to it. Another origin, of the same site or not, gets none
 // of them, nor does a page of another site asking that origin.
 
-// hintStore is what each origin asked for, for a session: every client made
-// Fresh from one shares it.
+// hintStore is what each origin asked for within one browser instance.
+// Independent requests and Fresh do not inherit its received opt-ins.
 type hintStore struct {
 	behavior behavior.Policy
 	mu       sync.Mutex

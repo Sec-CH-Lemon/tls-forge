@@ -11,6 +11,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Make shipped machine hints explicit virtual desktop personas:8GiB,1280x720,
+  DPR2 on macOS/1 on Linux and Windows, light and no reduced preferences.
+  Add machine/UA hints for151–154 using identified stable builds and separate
+  provenance; retain original captures and the unmeasured historical boundary.
+- Extend capture `--set` to all17 machine/persona fields with numeric/keyword
+  validation, coherent aliases and an origin for every edited alias. The saved
+  value inventory now identifies persona configuration and required hint opt-in.
+  RTT/downlink/ECT estimation remains A13; no fixed network hints are invented.
+
 - Accept the A11 follow-up on exact11d6e73 with all27 native CI jobs successful;
   retain preceding failures and private before/after/negative-control evidence.
 

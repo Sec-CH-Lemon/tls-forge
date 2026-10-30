@@ -1,6 +1,6 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "d453d8a5a8c205ac5339392fd7cb7bdeceb103409b1a8e8e71bdc7fbaec3e71c",
+  "profile_sha256": "8d098648c16145212ebe1239d572aed5e94f56e7df1cbfa8b12de99777ec9289",
   "capture_canonical_sha256": "eaef8c0ffb10ec065c78af9be0695382645a0a9fb5f8f7cf81d16ff52991658d",
   "basis_name": "chrome_155_macos",
   "basis_sha256": "1325ea350e12be1218db794fc5e589bbb6ab91380d9df6c66e5f7c98deff87ed",
@@ -1425,16 +1425,16 @@
       "source": "capture raw ClientHello; public changing bytes retained as provenance only"
     },
     "client_hints.device-memory": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.downlink": {
       "class": "inherited",
       "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.dpr": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.ect": {
       "class": "inherited",
@@ -1445,24 +1445,24 @@
       "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-device-memory": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.sec-ch-dpr": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.sec-ch-prefers-color-scheme": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.sec-ch-prefers-reduced-motion": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.sec-ch-prefers-reduced-transparency": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.sec-ch-ua-arch": {
       "class": "measured",
@@ -1497,16 +1497,16 @@
       "source": "capture UA hint/persona field; original value retained, not a constancy claim"
     },
     "client_hints.sec-ch-viewport-height": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.sec-ch-viewport-width": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "client_hints.viewport-width": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
+      "class": "user-provided",
+      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
     },
     "headers": {
       "class": "measured",
@@ -1586,6 +1586,55 @@
       "after_profile_sha256": "d453d8a5a8c205ac5339392fd7cb7bdeceb103409b1a8e8e71bdc7fbaec3e71c",
       "inventory": "a12-dns.json",
       "preserved": "Original browser/capture/basis hashes and prior field origins; original bytes in A12 before archive and Git parent"
+    },
+    {
+      "stage": "A12/F03-0",
+      "before_sha256": "d453d8a5a8c205ac5339392fd7cb7bdeceb103409b1a8e8e71bdc7fbaec3e71c",
+      "after_sha256": "8d098648c16145212ebe1239d572aed5e94f56e7df1cbfa8b12de99777ec9289",
+      "inventory": "profile/provenance/a12-persona.json",
+      "previous_field_origins": {
+        "client_hints.device-memory": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.sec-ch-device-memory": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.dpr": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.sec-ch-dpr": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.viewport-width": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.sec-ch-viewport-width": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.sec-ch-viewport-height": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.sec-ch-prefers-color-scheme": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.sec-ch-prefers-reduced-motion": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        },
+        "client_hints.sec-ch-prefers-reduced-transparency": {
+          "class": "inherited",
+          "source": "policy basis; context/persona values not remeasured"
+        }
+      },
+      "capture_and_basis_hashes": "preserved; historical identity, not new acceptance"
     }
   ]
 }

@@ -1,0 +1,1807 @@
+{
+  "schema": 1,
+  "stage": "A12/F03-0 local acceptance; native A12 pending",
+  "engine_major": 1,
+  "persona": "Virtual8GiB desktop;1280x720 CSS viewport;DPR2macOS/1Linux-Windows;light;no reducedmotion/transparency. Explicit configuration; prevalence not measured.",
+  "capture_preservation": "Original profiles/capture/basis hashes retained in F06 and before-f03-f07 archives. New choices are not historical capture observations.",
+  "historical_full_build_sources": {
+    "151/mac": "151.0.7922.176",
+    "151/linux": "151.0.7922.173",
+    "151/win": "151.0.7922.176",
+    "152/mac": "152.0.7977.85",
+    "152/linux": "152.0.7977.82",
+    "152/win": "152.0.7977.85",
+    "153/mac": "153.0.8010.55",
+    "153/linux": "153.0.8010.52",
+    "153/win": "153.0.8010.55",
+    "154/mac": "154.0.8037.100",
+    "154/linux": "154.0.8037.97",
+    "154/win": "154.0.8037.100"
+  },
+  "historical_source_url_template": "https://versionhistory.googleapis.com/v1/chrome/platforms/{platform}/channels/stable/versions?filter=version>={major},version<{next_major}&page_size=1",
+  "network_hints": "No new fixed RTT/downlink/ECT values added to151-154. Existing155/156 literals remain unchanged pending A13 estimator; missing historical network-hint acceptance remains open.",
+  "profiles": [
+    {
+      "file": "data/chrome_151/linux.json",
+      "before_sha256": "b3ef92ad03fd3f84485049e4a54fd66e1a4aff84e406410613cea7121dc5817b",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"151.0.7922.173\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build151.0.7922.173;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Not=A?Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"151.0.7922.173\", \"Chromium\";v=\"151.0.7922.173\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build151.0.7922.173;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "b35ba20789a31a1cb91f0d63943a42b28593a4d357f7912964d335dbedb168ce"
+    },
+    {
+      "file": "data/chrome_151/macos.json",
+      "before_sha256": "7db9a594497a1294dafca196cb9b2ad6e2ed85e56fd4f3ba2c6aef594e212bb0",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"151.0.7922.176\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build151.0.7922.176;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"arm\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"27.0.1\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Not=A?Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"151.0.7922.176\", \"Chromium\";v=\"151.0.7922.176\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build151.0.7922.176;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "0f598842dbf952db34b79a67aea4dbb405d9c286e470ce295167cd8a5850d6b6"
+    },
+    {
+      "file": "data/chrome_151/windows.json",
+      "before_sha256": "32d17f3652e23d18fe97947b493156fd23fcc0a01ea1d25b4d4e3cc73cd31877",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"151.0.7922.176\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build151.0.7922.176;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"19.0.0\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Not=A?Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"151.0.7922.176\", \"Chromium\";v=\"151.0.7922.176\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build151.0.7922.176;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "34efd668ed09aab020168c86ee99a509de12b414790f13f234e0fb3dcc040a77"
+    },
+    {
+      "file": "data/chrome_152/linux.json",
+      "before_sha256": "92d05a7ed0a672dfa5265c0a4856a0e86dd83b4fc38a252c4ab335263abfd57d",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"152.0.7977.82\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build152.0.7977.82;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Chromium\";v=\"152.0.7977.82\", \"Not?A_Brand\";v=\"24.0.0.0\", \"Google Chrome\";v=\"152.0.7977.82\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build152.0.7977.82;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "ecc180167151a93b3e253a03d2b58ac728031a325174802dbd4c1a1f849e9320"
+    },
+    {
+      "file": "data/chrome_152/macos.json",
+      "before_sha256": "0450107cc3316235ebc5ba04c0d95131ef54e5a1bd28a950edf62bcc7d9e2fab",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"152.0.7977.85\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build152.0.7977.85;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"arm\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"27.0.1\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Chromium\";v=\"152.0.7977.85\", \"Not?A_Brand\";v=\"24.0.0.0\", \"Google Chrome\";v=\"152.0.7977.85\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build152.0.7977.85;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "913a7ac47d720bc4dd35cd99aecb25b7bd1c4f32e1f897a942e1e18afdef5341"
+    },
+    {
+      "file": "data/chrome_152/windows.json",
+      "before_sha256": "6dfe82a60df2ddc18867a13bda083d8ac07c5f6c7561b1fe375cc14cc5a71a03",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"152.0.7977.85\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build152.0.7977.85;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"19.0.0\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Chromium\";v=\"152.0.7977.85\", \"Not?A_Brand\";v=\"24.0.0.0\", \"Google Chrome\";v=\"152.0.7977.85\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build152.0.7977.85;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "f479b972393c6ca6e00775d4ff2cb3c292634835150e52d41046330331f60909"
+    },
+    {
+      "file": "data/chrome_153/linux.json",
+      "before_sha256": "28cfbd49be57b389a5e638bae83464f14fa0c864ce668e11b6a6782e457e3533",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"153.0.8010.52\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build153.0.8010.52;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Google Chrome\";v=\"153.0.8010.52\", \"Not_A Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"153.0.8010.52\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build153.0.8010.52;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "ba267362404729b9ce6ab7cb251704dea8a03cc253b71a79ff2284712158aa3e"
+    },
+    {
+      "file": "data/chrome_153/macos.json",
+      "before_sha256": "06220a50d04780be3baaa440792ca8a8f02cd5628a84ac98046211a2eec87fbb",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"153.0.8010.55\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build153.0.8010.55;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"arm\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"27.0.1\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Google Chrome\";v=\"153.0.8010.55\", \"Not_A Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"153.0.8010.55\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build153.0.8010.55;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "33640478f68ad4f7dee22b5ff6a95305b838b78db694f8a2da3219122ba83c81"
+    },
+    {
+      "file": "data/chrome_153/windows.json",
+      "before_sha256": "4cef94bbacce5afa7341492a19c79d430eae11d16875a43b81290686debd32e8",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"153.0.8010.55\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build153.0.8010.55;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"19.0.0\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Google Chrome\";v=\"153.0.8010.55\", \"Not_A Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"153.0.8010.55\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build153.0.8010.55;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "f77f0c483054c4cb36371fe252a37a5d388b7c7737f483f698da360f0e4411cf"
+    },
+    {
+      "file": "data/chrome_154/linux.json",
+      "before_sha256": "2024a2a0e5539951ea8aa723bf147a6a5809c9f1cbe151c0cc956337a0cd932d",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"154.0.8037.97\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build154.0.8037.97;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Chromium\";v=\"154.0.8037.97\", \"Google Chrome\";v=\"154.0.8037.97\", \"Not A(Brand\";v=\"99.0.0.0\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build154.0.8037.97;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "3229bf63e3e0eeeb7f473044581cc9f556b7b756d7aeffaa3a928f2a622e5f55"
+    },
+    {
+      "file": "data/chrome_154/macos.json",
+      "before_sha256": "2c8dfd4156bc83f8a069b9c9a5280532a3c3b7524a8cb289f257e3e166bce985",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"154.0.8037.100\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build154.0.8037.100;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"arm\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"27.0.1\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Chromium\";v=\"154.0.8037.100\", \"Google Chrome\";v=\"154.0.8037.100\", \"Not A(Brand\";v=\"99.0.0.0\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build154.0.8037.100;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "5035cabb5fc4854f466056b949072fe8639f3fe32097041fddba26ad75a869f5"
+    },
+    {
+      "file": "data/chrome_154/windows.json",
+      "before_sha256": "f6ac1a2ab791c3e89c5a5a5fcee4c295abd7e669357fde6a65d98fb2c05bae3d",
+      "fields": {
+        "device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": null,
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": null,
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": null,
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": null,
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-ua-full-version": {
+          "before": null,
+          "after": "\"154.0.8037.100\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build154.0.8037.100;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-arch": {
+          "before": null,
+          "after": "\"x86\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-platform-version": {
+          "before": null,
+          "after": "\"19.0.0\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-model": {
+          "before": null,
+          "after": "\"\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-bitness": {
+          "before": null,
+          "after": "\"64\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-wow64": {
+          "before": null,
+          "after": "?0",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-ua-full-version-list": {
+          "before": null,
+          "after": "\"Chromium\";v=\"154.0.8037.100\", \"Google Chrome\";v=\"154.0.8037.100\", \"Not A(Brand\";v=\"99.0.0.0\"",
+          "class": "derived",
+          "source": "Google VersionHistory stable build154.0.8037.100;full-version-list derives the preserved captured low-entropy brand vector"
+        },
+        "sec-ch-ua-form-factors": {
+          "before": null,
+          "after": "\"Desktop\"",
+          "class": "inherited",
+          "source": "Explicit155 same-platform persona/order template;not historical-browser measurement"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": null,
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": null,
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        }
+      },
+      "after_sha256": "801a823143076fc1861a9b6011d8e8172b169ed055e6922decd13f41b218110e"
+    },
+    {
+      "file": "data/chrome_155/linux.json",
+      "before_sha256": "1027cbc176cc6fd55608077c3f28a62880c69a9b3c9e506273daa6a2939d86dd",
+      "fields": {
+        "device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": "1050",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": "1050",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": "917",
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": "light",
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        }
+      },
+      "after_sha256": "4f1d5420fee35bfd76ee2206050cc3d6d5b226b23190a925a9aa9ccbd2533623"
+    },
+    {
+      "file": "data/chrome_155/macos.json",
+      "before_sha256": "a756aefaddebe4a3a1c05fe02588f798b2e7d74dfddb659d99db0443f45c9a91",
+      "fields": {
+        "device-memory": {
+          "before": "32",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": "32",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": "1",
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": "1",
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": "756",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": "756",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": "413",
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": "dark",
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        }
+      },
+      "after_sha256": "1c44fb0b648b662c987b7a549056bcfaec6a0ee9d41417bace61613c04e99722"
+    },
+    {
+      "file": "data/chrome_155/windows.json",
+      "before_sha256": "8d59dbea244159039c3875bc3754240fd6f98aefa477b86d49c3f8856956db2e",
+      "fields": {
+        "device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": "988",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": "988",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": "605",
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": "reduce",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": "light",
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        }
+      },
+      "after_sha256": "76dfff184fc2babafc2f74240605476f7f5b9cd032f6198b750015cd9e741c90"
+    },
+    {
+      "file": "data/chrome_156/linux.json",
+      "before_sha256": "bb3cb045e165cca9ba8ac9368e5f71bbfdd02898840e788b671fe77fa31da792",
+      "fields": {
+        "device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": "1050",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": "1050",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": "917",
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": "light",
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        }
+      },
+      "after_sha256": "dd612079c4b3de12ad2e7f17c7150ed99a82f18771ff41d6dccea1101543b7c3"
+    },
+    {
+      "file": "data/chrome_156/macos.json",
+      "before_sha256": "d453d8a5a8c205ac5339392fd7cb7bdeceb103409b1a8e8e71bdc7fbaec3e71c",
+      "fields": {
+        "device-memory": {
+          "before": "32",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": "32",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": "1",
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-dpr": {
+          "before": "1",
+          "after": "2",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": "756",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": "756",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": "413",
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": "dark",
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        }
+      },
+      "after_sha256": "8d098648c16145212ebe1239d572aed5e94f56e7df1cbfa8b12de99777ec9289"
+    },
+    {
+      "file": "data/chrome_156/windows.json",
+      "before_sha256": "379f88ea8386030d0e06e1f2989bcfd815bcb9b62004c8eac6d9edf357ed47a0",
+      "fields": {
+        "device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-device-memory": {
+          "before": "16",
+          "after": "8",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "viewport-width": {
+          "before": "988",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-width": {
+          "before": "988",
+          "after": "1280",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-viewport-height": {
+          "before": "605",
+          "after": "720",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "sec-ch-prefers-reduced-motion": {
+          "before": "reduce",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit virtual desktop persona8GiB/1280x720/light/no-preference;DPR2macOS or1Linux/Windows. Configuration,not host auto-detection or a popularity measurement."
+        },
+        "dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-dpr": {
+          "before": "1",
+          "after": "1",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-color-scheme": {
+          "before": "light",
+          "after": "light",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        },
+        "sec-ch-prefers-reduced-transparency": {
+          "before": "no-preference",
+          "after": "no-preference",
+          "class": "user-provided",
+          "source": "Explicit A12 virtual desktop selection; unchanged spelling does not imply a measured invariant"
+        }
+      },
+      "after_sha256": "81e6ab0d1a5c265a23039a0ba3d653f4daa37439b4fab6016df5f1bfafd3d5b2"
+    }
+  ]
+}

@@ -1788,7 +1788,7 @@ Usage: `tls-forge capture [flags]`
 | `--policy-from <profile-or-file>` | Full explicit policy basis for unmeasured fields; default: newest shipped profile of the measured family/platform; required when none exists |
 | `--provenance-dir <directory>` | Separate capture provenance JSON; default: nested `provenance/<name>/<platform>.json` beside directory saves, excluded from the profile registry |
 | `--install` | Save into the user profile directory; launched captures use `local`, implicit manual captures use `manual_<browser>_<major>` |
-| `--set <NAME=VALUE>` | With `--save` or `--install`, a value the profile keeps of this machine, as its header carries it: `accept-language`, or a client hint of the machine's (`sec-ch-ua-platform-version`, `-arch`, `-bitness`, `-model`, `-wow64`, `-form-factors`); repeatable |
+| `--set <NAME=VALUE>` | With `--save` or `--install`, edit a saved machine/persona value: language, UA platform fields, device memory, DPR, viewport or preferences; repeatable. Values use their actual header syntax; existing aliases are updated together. |
 | `-n`, `--name <name>` | Profile identifier: `[a-z0-9][a-z0-9_.-]*`, without `..`; otherwise derive it from the browser version (`manual_` prefix with `--manual`) |
 | `-j`, `--json` | Print one raw capture JSON document; with `--save` or `--install`, save progress goes to stderr |
 | `-t`, `--timeout <duration>` | Maximum browser measurement time; default `2m` |
@@ -1803,6 +1803,17 @@ for a Chromium browser, the client hints a server can ask for of the system's
 version, the processor, the model and the form. `capture` lists them after it
 saves a profile, and `--set` changes one, given as its header carries it:
 `--set 'accept-language=de-DE,de;q=0.9' --set 'sec-ch-ua-platform-version="15.7.4"'`.
+
+The17 supported names are `accept-language`, `sec-ch-ua-platform-version`,
+`sec-ch-ua-arch`, `sec-ch-ua-bitness`, `sec-ch-ua-model`, `sec-ch-ua-wow64`,
+`sec-ch-ua-form-factors`, `device-memory`, `sec-ch-device-memory`, `dpr`,
+`sec-ch-dpr`, `viewport-width`, `sec-ch-viewport-width`, `sec-ch-viewport-height`,
+`sec-ch-prefers-color-scheme`, `sec-ch-prefers-reduced-motion` and
+`sec-ch-prefers-reduced-transparency`. Numeric fields are unquoted; preferences
+use `light`/`dark` or `no-preference`/`reduce`. Editing one supported alias changes
+both existing spellings; conflicting alias inputs fail before measurement.
+The saved inventory calls these machine/persona values and records every edited
+alias as user-provided. See [persona configuration](docs/profile-behavior.md#machine-persona-values-unreleased-engine1).
 A hint the browser does not send, as Firefox and Safari send none, is not
 given one: the profile is not kept.
 
