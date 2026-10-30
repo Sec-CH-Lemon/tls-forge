@@ -3056,3 +3056,9 @@ and per-direction datagram order. This changes the test oracle only.
 The ambient QUIC-scrambling test uses a separate technical JSON input with fixed
 extension order. Its early SNI cut crosses a packet boundary, so the packet frame
 shuffle cannot accidentally conceal the enabled layout. Browser profiles are unchanged.
+
+A11 pins the QPACK connection-lifetime repair: already buffered header sections
+survive terminal connection closure; caller cancellation and blocked-table waits
+still terminate correctly. The two final QUIC graphs have2566 raw-green test
+runs each, with required positive witnesses and no failure allowances. Overall
+root and native acceptance is recorded separately in the A11 report.

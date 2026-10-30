@@ -11088,6 +11088,59 @@
           "tls-client-after-production"
         ]
       }
+    },
+    {
+      "id": "F09-115",
+      "test": "TestQPACKBufferedSectionSurvivesConnectionClose",
+      "status": "resolved",
+      "obligation": "Buffered ready header sections survive terminal connection close while user cancellation, blocked waits, bounds and live feedback errors remain enforced.",
+      "fix_commit": "2484971b8b608027e6e55c216d4ff733e3320fac",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/http3",
+          "test": "TestQPACKBufferedSectionSurvivesConnectionClose"
+        },
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/http3",
+          "test": "TestQPACKConnectionCloseKeepsRequestCancellationAndBounds"
+        },
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/http3",
+          "test": "TestQPACKReadyDynamicSectionKeepsLiveFeedbackFailures"
+        }
+      ],
+      "evidence": {
+        "before": "quic-shutdown-before.log",
+        "after": [
+          "quic-qpack-close-after.log",
+          "quic-qpack-close-negative.json"
+        ]
+      }
+    },
+    {
+      "id": "F09-116",
+      "test": "TestCancellationACKGapClassificationUsesPriorState",
+      "status": "resolved",
+      "obligation": "ACK timing preconditions account for previously acknowledged packet numbers and ACK-only gaps; packet sharing and delay assertions remain unchanged.",
+      "fix_commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/http3",
+          "test": "TestCancellationACKGapClassificationUsesPriorState"
+        },
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/http3",
+          "test": "TestAStreamCancellationGoesWithTheClientsNextACKAsItsProfileSays"
+        }
+      ],
+      "evidence": {
+        "before": "quic-cancellation-timing-cohort1000-before.log",
+        "after": [
+          "quic-ack-gap-unit-after.log",
+          "quic-ack-gap-wire-after.log",
+          "ack-classifier-negative-permitted.log"
+        ]
+      }
     }
   ]
 }

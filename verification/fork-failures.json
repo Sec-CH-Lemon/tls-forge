@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "scope": "F09 stage2 in progress:57/109 original obligations resolved with required positive witnesses;52 active original rows remain. Original records are retained in fork-obligations.json. This is not full A11 or browser equivalence.",
+  "scope": "F09 stage2: all109 original obligations resolved with required positive witnesses; original records remain immutable in fork-obligations.json. No known-failure allowances or invocation exclusions. Full A11 root/native acceptance is tracked separately.",
   "platform": "macOS27.0.1 arm64; pinned go1.26.10 from root go.mod; owned loopback peers; GOWORK=off; full modules retained and linked production versions compared.",
   "forks": {
     "utls": {
@@ -16,12 +16,12 @@
     "tls-client": {
       "module": "github.com/igor-lemon/tls-client",
       "repository": "https://github.com/igor-lemon/tls-client",
-      "commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0"
+      "commit": "d0aaa5a46fb823bbf7d572c97ac165d356f035e8"
     },
     "quic-go-utls": {
       "module": "github.com/igor-lemon/quic-go-utls",
       "repository": "https://github.com/igor-lemon/quic-go-utls",
-      "commit": "9a3076b42e8ec9ae33b7ab780c193bb048345322"
+      "commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560"
     }
   },
   "known_failures": [],

@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A11: pin the QPACK connection-lifetime repair and ACK-history regression controls; retain user cancellation, header bounds and live feedback errors. Engine remains the single unpublished 1.0.0 candidate.
+
 - A11: make the ambient-scrambling witness observable across packets with an explicitly ordered technical JSON profile; retain the complete ClientHello and skip/fill assertions.
 
 - A11: orient captured QUIC test flows by the actual ClientHello; retain every datagram and secret when receive callbacks precede send callbacks.
