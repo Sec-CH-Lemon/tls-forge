@@ -26,6 +26,11 @@ import (
 // logRecord is one record of a JSON log, each value as fmt.Sprint says it.
 type logRecord map[string]any
 
+// testing redirects os.Stderr to os.Stdout after package initialization in
+// test2json mode. The logger must retain the standard error it was given at
+// initialization, even when the test runner later replaces the global file.
+var standardErrorAtInit = os.Stderr
+
 func (r logRecord) get(key string) string {
 	if value, ok := r[key]; ok {
 		return fmt.Sprint(value)
@@ -472,8 +477,8 @@ func TestTransportSaid(t *testing.T) {
 }
 
 func TestTheTransportIsHeardThroughTheStandardLogger(t *testing.T) {
-	if !http2.VerboseLogs || log.Writer() != transportLines || log.Flags() != 0 || transportLines.unlogged != os.Stderr {
-		t.Fatalf("the transport's HTTP/2 is not heard: verbose=%v writer_matches=%v flags=%d stderr_matches=%v", http2.VerboseLogs, log.Writer() == transportLines, log.Flags(), transportLines.unlogged == os.Stderr)
+	if !http2.VerboseLogs || log.Writer() != transportLines || log.Flags() != 0 || transportLines.unlogged != standardErrorAtInit {
+		t.Fatalf("the transport's HTTP/2 is not heard: verbose=%v writer_matches=%v flags=%d stderr_matches=%v", http2.VerboseLogs, log.Writer() == transportLines, log.Flags(), transportLines.unlogged == standardErrorAtInit)
 	}
 	// Nobody listening: what it says only when asked is said to nobody, and
 	// what it says unasked goes to standard error, as it always did.
