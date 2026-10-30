@@ -34,5 +34,24 @@
     "c05-cli.log": "5882604e4a8bfdca79cd96dbb6a06e684b2c7916f2bbf46aebd0ae935fb86ebe",
     "c05-cli-final.log": "1014ccc79e7a451e11cc9a74a52c748d07aec9c37842bd6113027f1790d81dc5",
     "c05-cli-final.cover": "1503a911fc1ecfb4294a6d5cb9cf726a994640afc6b140b186a229551f2d0687"
+  },
+  "native_followup": {
+    "original_run": 41027356012,
+    "original_coverage_job": 123968520583,
+    "original_failure": "h1/4/shared accepted5 closed5 serving1;instant replies complete8requests before othercold dials settle",
+    "invalidated_assumption": "cumulative accepted socket count is bounded byworkerconcurrency without holdingoverlapping requests",
+    "test_only_correction": "Hold firstfour requests until allfourarrive;shared H1 assertion strengthenedtoexactly4accepted/4serving;all8requests andallcloses retained",
+    "runtime_and_profile_unchanged": true,
+    "ordinary_repetitions": 50,
+    "ordinary_result": "PASS41.847s",
+    "private_client_mutation": "newbarrierretainsrejection;H1/H2sharedcandidatefailswhenrestoringprivateworkerclients",
+    "original_log_sha256": "41cfdc9517b71a56278ff93b907c28fc7f0b05782d4b802c621d835b1945c6c9",
+    "race_repetitions": 10,
+    "race_result": "PASS81.199s",
+    "proof_sha256": {
+      "native-fixture-after.log": "985193978dd36c519c1e50fb51aec608ede3a090937996a6062aa43a2949f228",
+      "native-fixture-after-race.log": "35d3bc73a7f63824e8140033b47fb2c32547c8ed9be5e05eef8fc51b1c6f5e1f",
+      "native-fixture-private-client-mutant.log": "fc7faa6ddc655f61e472d10726c9560c0e326f4ecea0ffb9fa8e6e32ae9a138b"
+    }
   }
 }

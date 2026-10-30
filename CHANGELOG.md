@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Hold the first four CLI fixture requests until all four overlap; require
+  exactly four serving H1 connections and four accepted/closed sockets in that
+  scenario. Preserve the original instantaneous-response CI failure and keep
+  protocol, legacy-mode and coverage assertions. Runtime/profile data is unchanged.
+
 - Record bounded A9 CLI acceptance:24 headed Chrome156 launches, independent
   packet decoding and retained before/after sources. Distinguish shared request
   pools from Chrome's additional unused cold sockets; update example connection

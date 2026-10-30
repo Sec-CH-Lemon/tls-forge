@@ -23,11 +23,30 @@ func TestA9CLIConnectionOwnership(t *testing.T) {
 					var mu sync.Mutex
 					accepted, closed, requests := 0, 0, 0
 					peers := map[string]int{}
+					firstWave := make(chan struct{})
 					site := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						mu.Lock()
 						requests++
 						peers[r.RemoteAddr]++
+						if workers == "4" && requests == 4 {
+							close(firstWave)
+						}
 						mu.Unlock()
+						// All four workers must actually overlap. Immediate replies
+						// let a fast reused connection finish the queue while cold
+						// dials were still completing, so total accepted sockets did
+						// not describe the four-request pool this scenario measures.
+						if workers == "4" {
+							select {
+							case <-firstWave:
+							case <-r.Context().Done():
+								t.Error("request canceled before four workers overlapped")
+								return
+							case <-time.After(5 * time.Second):
+								t.Error("four workers never overlapped")
+								return
+							}
+						}
 						w.Header().Set("Cache-Control", "no-store")
 						_, _ = w.Write([]byte(r.URL.Path))
 					}))
@@ -76,8 +95,8 @@ func TestA9CLIConnectionOwnership(t *testing.T) {
 							if accepted != 1 {
 								t.Errorf("shared: accepted=%d, want 1; peers=%v", accepted, peers)
 							}
-						} else if accepted < 1 || accepted > 4 {
-							t.Errorf("H1 pool accepted=%d, want 1..4", accepted)
+						} else if accepted != 4 || len(peers) != 4 {
+							t.Errorf("four simultaneous H1 requests: accepted=%d serving_peers=%d, want 4/4", accepted, len(peers))
 						}
 					case "fresh":
 						if accepted != 8 {

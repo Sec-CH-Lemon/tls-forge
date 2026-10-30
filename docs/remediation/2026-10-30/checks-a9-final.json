@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "A9 implementation and bounded local acceptance complete;push/nativeLinuxWindowsCI not authorized by auto-review",
+  "status": "A9 runtime accepted onall3nativeOS;strictH1testprecondition corrected;freshCIpending",
   "source": {
     "head": "1cc4f81c95b82e035a45838db758200744ff10f9",
     "archive_sha256": "d660e2a33e93bd1f0bab976ffa6b3c7cbda783457dbbaba5b47ca4d24ed969cf"
@@ -188,10 +188,19 @@
     }
   },
   "native_CI": {
-    "A9_pushed": false,
-    "A9_Linux_Windows_run": false,
-    "reason": "auto-review rejected push:previousauthorization scopedtoA8",
-    "A8_results_are_not_A9_acceptance": true
+    "A9_pushed": true,
+    "A9_Linux_Windows_run": true,
+    "run_id": 41027356012,
+    "head": "83ea0708411bf5b492f34cd1fe9b23d97ca481e9",
+    "status": "completed",
+    "owner_authorization": "Разрешаю push и нативный CI A9",
+    "initial_auto_review_rejection": "previousA8authorizationinsufficient;newexplicitA9authorizationreceived",
+    "A8_results_are_not_A9_acceptance": true,
+    "conclusion": "failure",
+    "jobs_success": 26,
+    "jobs_failed": 1,
+    "original_failure": "coveragejob:h1/4/sharedinstantresponsefixtureaccepted5serving1;allthreeGoOSjobssuccess",
+    "followup": "testonlyfourrequestwave;exact4H1accepted/serving;local50normal+10race;fullCLI50.416s100%"
   },
   "private_evidence_root": "../net-fp-server/captures/tls-forge-a9-20261030",
   "sha256": {
