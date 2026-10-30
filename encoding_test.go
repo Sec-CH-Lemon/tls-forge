@@ -679,3 +679,22 @@ func TestABodyIsDecodedByThePolicysDecoders(t *testing.T) {
 		t.Errorf("no read size: %v", err)
 	}
 }
+
+// External transports may retain Content-Encoding after decoding. Exercise
+// their explicit Uncompressed contract independently of fhttp's own decoders.
+func TestAlreadyDecodedTransportBodyIsReadOnce(t *testing.T) {
+	for _, coding := range []string{"gzip", "br", "deflate", "zstd"} {
+		t.Run(coding, func(t *testing.T) {
+			res := &fhttp.Response{StatusCode: 200, Uncompressed: true, Header: fhttp.Header{"Content-Encoding": {coding}}, Body: io.NopCloser(bytes.NewReader(page))}
+			got, decoded, err := readBody(res, fhttp.MethodGet, int64(len(page)))
+			if err != nil || !bytes.Equal(got, page) || decoded != coding {
+				t.Fatalf("decoded transport: body=%d coding=%q err=%v", len(got), decoded, err)
+			}
+			res.Body = io.NopCloser(bytes.NewReader(page))
+			_, _, err = readBody(res, fhttp.MethodGet, 1)
+			if err == nil {
+				t.Fatal("decoded transport bypassed body limit")
+			}
+		})
+	}
+}
