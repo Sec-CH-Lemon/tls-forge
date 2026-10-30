@@ -6022,7 +6022,54 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Resolve stale contradictory adapter fixtures: plain pre-dispatch ALPN handoff reuses its handshake, racing returns its dispatch error and recovers on the next caller request without POST replay. Actual handshake/origin/body counts remain required.",
+      "fix_commit": "c9fad0a02057c965bfc9848b88fd2e984d812520",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_ProtocolChangeWithRacingRecovers"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry/rewindable"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry/unrewindable"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-051",
@@ -6062,7 +6109,54 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Resolve stale contradictory adapter fixtures: plain pre-dispatch ALPN handoff reuses its handshake, racing returns its dispatch error and recovers on the next caller request without POST replay. Actual handshake/origin/body counts remain required.",
+      "fix_commit": "c9fad0a02057c965bfc9848b88fd2e984d812520",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_ProtocolChangeBetweenConnections"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry/rewindable"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry/unrewindable"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-052",
@@ -6109,7 +6203,50 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Production wrapper bypassed standard scope, aliased caller metadata and keyed skip-existing by name. Standard jar now owns request selection; owned records preserve canonical domain/path identity, expiry, deletion and copy ownership. Actual four-request fixture checks replacement/path/expiry/deletion instead of an external cookie count.",
+      "fix_commit": "290a52b06458c2a54f9b9d763a7a2750b66b3f17",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client",
+          "test": "TestCookieJarUsesProtocolScopeAndOwnsMetadata"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client",
+          "test": "TestSkipExistingUsesCookieIdentityAndHonorsDeletion"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_SkipExistingCookiesOnSetCookiesResponse"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-053",
@@ -6156,7 +6293,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Real owned verified TLS/WSS peer replaces external service. Firefox POST method/body, status204, trusted certificate validation and full secure echo equality are checked. No registration POST reaches an external host.",
+      "fix_commit": "7b73be7f271cf9613c9861eb55b8e77f6ae9cd0e",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestWeb"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-054",
@@ -6203,7 +6375,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3FingerprintWithDefaultValuesForChrome"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-055",
@@ -7019,7 +7250,174 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome103"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome104"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome105"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome107"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome108"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome109"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome110"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome111"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome112"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome116WithPsk"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_117"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_120"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_124"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_131"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_133"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_144"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_146_PSK"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_150_PSK"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/chrome_152_PSK"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/firefox_105"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/firefox_106"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/firefox_108"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/firefox_110"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/firefox_117"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/firefox_132"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/firefox_147"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/opera_91"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/safariIos17"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/safari_16_0"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/safari_iOS_16_0"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/safari_iOS_18_0"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/safari_iOS_18_5"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClients/safari_iOS_26_0"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-067",
@@ -7060,7 +7458,70 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients/okhttp4Android10"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients/okhttp4Android11"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients/okhttp4Android12"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients/okhttp4Android13"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients/okhttp4Android7"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients/okhttp4Android8"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCustomClients/okhttp4Android9"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-068",
@@ -7101,7 +7562,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_HeaderOrder"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-069",
@@ -7142,7 +7638,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_HeaderOrderHttp1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-070",
@@ -7183,7 +7714,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_HeaderOrderWithContentLengthHttp1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-071",
@@ -7224,7 +7790,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_HeaderOrderWithContentLength"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-072",
@@ -7265,7 +7866,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestPreHookModifiesRequestHeaders"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-073",
@@ -7306,7 +7942,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestPostHookReceivesCorrectMetadata"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-074",
@@ -7347,7 +8018,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestMultiplePreHooksExecuteInOrder"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-075",
@@ -7388,7 +8094,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestMultiplePostHooksExecuteInOrder"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-076",
@@ -7429,7 +8170,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestPostHookPanicAbortsSubsequentHooks"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-077",
@@ -7470,7 +8246,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOnPreRequestRuntimeRegistration"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-078",
@@ -7511,7 +8322,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOnPostResponseRuntimeRegistration"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-079",
@@ -7552,7 +8398,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHooksThreadSafety"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-080",
@@ -7593,7 +8474,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestCombinedConstructorAndRuntimeHooks"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-081",
@@ -7634,7 +8550,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestPreHookContinueOnError"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-082",
@@ -7675,7 +8626,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestPostHookContinueOnError"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-083",
@@ -7716,7 +8702,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned HTTP peer preserves all hook ordering/error/panic/registration/thread assertions and additionally requires actual pre-hook header delivery and zero/one origin request counts. Failure peer owns its accepted-and-closed socket rather than DNS behavior.",
+      "fix_commit": "56538739813f9b23c05b4be643902c927158795b",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestPostHookAbortByDefault"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-084",
@@ -7757,7 +8778,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3WithChromeOnCloudflare"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-085",
@@ -7798,7 +8878,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP2WithChromeOnCloudflare"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-086",
@@ -7839,7 +8978,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3FingerprintChrome443"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-087",
@@ -7880,7 +9078,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3FingerprintFirefox135"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-088",
@@ -7921,7 +9178,70 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3DirectPathChrome"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3DirectPathChrome/raw_catalogue_ALPN"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-089",
@@ -7962,7 +9282,70 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3DirectPathFirefox"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3DirectPathFirefox/raw_catalogue_ALPN"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-090",
@@ -8003,7 +9386,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-091",
@@ -8044,7 +9486,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Owned QUIC peer derives ordered SETTINGS/control bytes/QPACK and hashes from actual received traffic. Raw catalogue fallback is distinguished from explicit profile data; ID6 omission/zero/finite and real DNS-H3/non-racer/racing/H2 routes are independently checked. Generated GREASE range/placement/payload rules retain raw values; no browser profile values were changed or captured constants substituted.",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestDisableHTTP3"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/finite"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/omitted"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestHTTP3ExplicitFieldSectionLimitComesFromProfile/zero"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3ParserBoundsAndKnownFrame"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-092",
@@ -8085,7 +9586,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_RandomExtensionOrderChrome"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-093",
@@ -8126,7 +9662,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestClient_RandomExtensionOrderCustom"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-094",
@@ -8167,7 +9738,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-095",
@@ -8208,7 +9814,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-096",
@@ -8249,7 +9890,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-097",
@@ -8290,7 +9966,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-098",
@@ -8331,7 +10042,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-099",
@@ -8372,7 +10118,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-100",
@@ -8413,7 +10194,66 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_2"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152/run_3"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_2"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestGreaseSignatureAlgorithmOnTheWire/Chrome_152_PSK/run_3"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-101",
@@ -8454,7 +10294,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-102",
@@ -8495,7 +10370,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-103",
@@ -8536,7 +10446,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-104",
@@ -8577,7 +10522,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-105",
@@ -8618,7 +10598,58 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "External fingerprint endpoint replaced by owned actual TLS/H1/H2 peer with independent received-byte ClientHello/HPACK decoding. Original exact fingerprint/header assertions retained, catalogue cases split into named subtests, resumption requires actual resumed new connections.",
+      "fix_commit": "c7e48c02aeedf61edacb26df409521704360576f",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-106",
@@ -8659,7 +10690,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Real owned verified TLS/WSS peer replaces external service. Firefox POST method/body, status204, trusted certificate validation and full secure echo equality are checked. No registration POST reaches an external host.",
+      "fix_commit": "7b73be7f271cf9613c9861eb55b8e77f6ae9cd0e",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-107",
@@ -8700,7 +10766,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Real owned verified TLS/WSS peer replaces external service. Firefox POST method/body, status204, trusted certificate validation and full secure echo equality are checked. No registration POST reaches an external host.",
+      "fix_commit": "7b73be7f271cf9613c9861eb55b8e77f6ae9cd0e",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-108",
@@ -8741,7 +10842,50 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Real owned verified TLS/WSS peer replaces external service. Firefox POST method/body, status204, trusted certificate validation and full secure echo equality are checked. No registration POST reaches an external host.",
+      "fix_commit": "7b73be7f271cf9613c9861eb55b8e77f6ae9cd0e",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsAreAcceptedByAServer"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     },
     {
       "id": "F09-109",
@@ -8782,7 +10926,42 @@
           ]
         }
       },
-      "status": "open"
+      "status": "resolved",
+      "cause": "Real owned verified TLS/WSS peer replaces external service. Firefox POST method/body, status204, trusted certificate validation and full secure echo equality are checked. No registration POST reaches an external host.",
+      "fix_commit": "7b73be7f271cf9613c9861eb55b8e77f6ae9cd0e",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedJA4PublishedExample"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestWebSocketEchoRealWebserver"
+        }
+      ],
+      "evidence": {
+        "private_root": "net-fp-server/captures/tls-forge-a11-20261030",
+        "before": [
+          "original-failures.json",
+          "tls-client-before.tar",
+          "tls-cookie-before.log",
+          "tls-alpn-body-before.log",
+          "tls-h3-owned-before.log"
+        ],
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production",
+          "tls-h3-complete-after.log",
+          "tls-alpn-body-after-fixed.log",
+          "tls-cookie-after.log"
+        ],
+        "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+        "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
+      }
     }
   ],
   "supplemental": [
@@ -8839,6 +11018,74 @@
           "quic-alps-no-request-after.log",
           "quic-after-standalone",
           "quic-after-production"
+        ]
+      }
+    },
+    {
+      "id": "F09-112",
+      "test": "TestCookieJarUsesProtocolScopeAndOwnsMetadata",
+      "status": "resolved",
+      "obligation": "Request cookie scope and independently owned metadata",
+      "fix_commit": "290a52b06458c2a54f9b9d763a7a2750b66b3f17",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client",
+          "test": "TestCookieJarUsesProtocolScopeAndOwnsMetadata"
+        }
+      ],
+      "evidence": {
+        "before": "owned regressions and original source",
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production"
+        ]
+      }
+    },
+    {
+      "id": "F09-113",
+      "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry",
+      "status": "resolved",
+      "obligation": "ALPN handoff cannot reuse a closed body or emit an unrewindable POST",
+      "fix_commit": "3a48d210148c91f95631fbe8a0e7c3d2f22061b3",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry/rewindable"
+        },
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestProtocolChangeOwnsRequestBodyBeforeRetry/unrewindable"
+        }
+      ],
+      "evidence": {
+        "before": "owned regressions and original source",
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production"
+        ]
+      }
+    },
+    {
+      "id": "F09-114",
+      "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields",
+      "status": "resolved",
+      "obligation": "Field-specific GREASE comparison rejects wrong values/order/duplicates without freezing generated draws",
+      "fix_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/tls-client/tests",
+          "test": "TestOwnedHTTP3DynamicComparisonRejectsWrongFields"
+        }
+      ],
+      "evidence": {
+        "before": "owned regressions and original source",
+        "after": [
+          "tls-client-after-standalone",
+          "tls-client-after-production"
         ]
       }
     }

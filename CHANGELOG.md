@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A11: pin verified tls-client cookie scope/body ownership fixes and owned protocol fixtures. All109 original fork obligations have positive local witnesses on both graphs; final root/native acceptance remains pending.
+
+
 - Fork-gate diagnostics now expose actual Go `test_skips` separately from invocation `skips`; resolved witnesses must still run and pass.
 
 

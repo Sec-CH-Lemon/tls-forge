@@ -15,8 +15,8 @@ github.com/igor-lemon/fhttp v0.6.10-0.20261030170200-24c1c55ecaf2 h1:30AQvs1/iLt
 github.com/igor-lemon/fhttp v0.6.10-0.20261030170200-24c1c55ecaf2/go.mod h1:OhEISWmTJyk462YQ834+Beq6lw2m+5pEAeCf/qxYktI=
 github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261030181739-9a3076b42e8e h1:5oJaLxm/IISoyyYLC+oTMhjXqC1Dz1gHh52GeC/eXoc=
 github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261030181739-9a3076b42e8e/go.mod h1:qmSWdhc0oIKiCZp8+JBqcp6g18MQVWcm563nlOWVRlw=
-github.com/igor-lemon/tls-client v1.15.2-0.20261029210313-b44093c52845 h1:NI6u5hNvEwkGVgoMLX7XGFCvTJ5V+FNjPSu835aAFpY=
-github.com/igor-lemon/tls-client v1.15.2-0.20261029210313-b44093c52845/go.mod h1:ZfUVhadlAwaj16W0oOQyexEDC+4j83sax524nzMPB+k=
+github.com/igor-lemon/tls-client v1.15.2-0.20261030184120-b08bfdbd5c88 h1:2/e8+eypyUrLW3YZE9nHZvOtM+BYcY3zGfIXqyJkUQ0=
+github.com/igor-lemon/tls-client v1.15.2-0.20261030184120-b08bfdbd5c88/go.mod h1:OEpDgX4mVjILxtZZlXSgl94FVg8VgxQW2SZserZds6g=
 github.com/igor-lemon/utls v1.7.8-barnius.0.20261030155229-fc851fa265f6 h1:+s6UzcXRd/LYCYYLff0Z71V/T/g2GuO+C/pd262HQMs=
 github.com/igor-lemon/utls v1.7.8-barnius.0.20261030155229-fc851fa265f6/go.mod h1:PBUuDfiLHP4IL5xJftjjw44xXfY2Pfe0BgYgsEcIc6M=
 github.com/igor-lemon/websocket v1.5.6-barnius.0.20261026204638-961b3d7db465 h1:ftH9hfgmH7LsZgOP8jgk8H4M4ombvtFeXCbHqqbUZMY=

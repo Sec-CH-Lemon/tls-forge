@@ -3038,7 +3038,7 @@ and no TestOmitHTTP2 skip.52 original tls-client/QUIC rows remain open.
 
 A11 fork verification now has raw-green QUIC suites on both standalone and
 production graphs (2562 runs each); the original109-obligation ledger remains
-partial at60 resolved/49 tls-client open. This is technical test acceptance.
+locally closed at109/109; final root/native acceptance pending. This is technical test acceptance.
 
 Fork-gate JSON `skips` lists invocation exclusions; `test_skips` lists actual
 Go test skips, including platform and optional-environment checks. A resolved

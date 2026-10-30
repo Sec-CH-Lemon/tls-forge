@@ -1,0 +1,87 @@
+{
+  "stage": "A11/F09 stage2",
+  "status": "109 original obligations locally closed; final root/native pending",
+  "completed": false,
+  "baseline_count": 109,
+  "resolved_original": 109,
+  "active_failure_allowances": 0,
+  "invocation_exclusions": [],
+  "fork_source": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
+  "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30",
+  "graphs": {
+    "standalone": {
+      "accepted": true,
+      "test_runs": 462,
+      "required_witnesses": 268,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "known_failures": [],
+      "unexpected": []
+    },
+    "production": {
+      "accepted": true,
+      "test_runs": 462,
+      "required_witnesses": 268,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "known_failures": [],
+      "unexpected": []
+    }
+  },
+  "private_evidence": "net-fp-server/captures/tls-forge-a11-20261030",
+  "browser_values_changed": false,
+  "limitations": [
+    "Final native exact pins pending",
+    "Optional external SOCKS proxy and platform syscall tests remain explicitly skipped by their existing source conditions",
+    "Raw catalogue H3 fallback is not a real Chrome profile measurement",
+    "No full browser indistinguishability, RNG distribution, WAN/kernel/platform parity verdict"
+  ]
+}
