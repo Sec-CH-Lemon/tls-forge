@@ -1,0 +1,371 @@
+{
+  "stage": "A10",
+  "date": "2026-10-30",
+  "accepted": true,
+  "meaning": "Bounded A10 local/native acceptance;not A11/F09 stage2 or universal browser/RFC equivalence",
+  "main_CI": {
+    "run_id": 41062722287,
+    "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287",
+    "source_commit": "32ef8937aaf4e37296788226efdb8d27ae3baa87",
+    "jobs": 27,
+    "successes": 27,
+    "platforms": [
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "Linux_race_root_seconds": 1147.89,
+    "Linux_race_CLI_seconds": 987.911,
+    "test_timeout": "20m unchanged",
+    "jobs_summary": [
+      {
+        "name": "lint",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549244"
+      },
+      {
+        "name": "python (macos-latest, 3.13)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549471"
+      },
+      {
+        "name": "docker",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549479"
+      },
+      {
+        "name": "node (macos-latest, 24, true)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549569"
+      },
+      {
+        "name": "coverage",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549581"
+      },
+      {
+        "name": "security",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549586"
+      },
+      {
+        "name": "generated",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549606"
+      },
+      {
+        "name": "examples (windows-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549617"
+      },
+      {
+        "name": "python (ubuntu-latest, 3.9)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549679"
+      },
+      {
+        "name": "node (ubuntu-latest, 20.12, false)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549692"
+      },
+      {
+        "name": "go (ubuntu-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549710"
+      },
+      {
+        "name": "python (windows-latest, 3.13)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549717"
+      },
+      {
+        "name": "wrapper-smoke",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549730"
+      },
+      {
+        "name": "packaging",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549738"
+      },
+      {
+        "name": "node (ubuntu-latest, 24, true)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549784"
+      },
+      {
+        "name": "python (ubuntu-latest, 3.13)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549794"
+      },
+      {
+        "name": "go (macos-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549805"
+      },
+      {
+        "name": "node (windows-latest, 24, true)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549825"
+      },
+      {
+        "name": "browser",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549861"
+      },
+      {
+        "name": "go (windows-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086549924"
+      },
+      {
+        "name": "examples (ubuntu-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086550097"
+      },
+      {
+        "name": "examples (macos-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124086550537"
+      },
+      {
+        "name": "package-smoke (ubuntu-latest, 20.12, 3.9)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124087806012"
+      },
+      {
+        "name": "package-smoke (windows-latest, 24, 3.13)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124087806047"
+      },
+      {
+        "name": "package-smoke (ubuntu-24.04-arm, 24, 3.13)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124087806133"
+      },
+      {
+        "name": "package-smoke (ubuntu-latest, 24, 3.13)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124087806178"
+      },
+      {
+        "name": "package-smoke (macos-latest, 24, 3.13)",
+        "conclusion": "success",
+        "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062722287/job/124087806180"
+      }
+    ],
+    "log_sha256": "209e7f33f84974457a6aa8293e210ce41b824e3b023a8aaf7a7b06c3b456c73a",
+    "metadata_sha256": "695f3c80503ee797b48568204df30cda1fc9d5ef1292e9b9c273b79233f6ccbc"
+  },
+  "fork_CI": {
+    "run_id": 41062042125,
+    "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41062042125",
+    "source_commit": "5835c777537a9fe3e24f4987d3c253ebd52ea661",
+    "jobs": 8,
+    "successes": 8,
+    "test_runs": 10872,
+    "known_obligations_remaining": 109,
+    "native_source_and_counts_match_local_archives": true,
+    "results": [
+      {
+        "accepted": true,
+        "test_runs": 636,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "utls",
+        "source_commit": "7331a8aaf221cd45f6cfe19c4c2df031a26459e7",
+        "toolchain": "go1.26.10",
+        "graph": "standalone",
+        "returncodes": [
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "325a33d6bb58c1bbbea24fd6935039b1ddb103e6d0d933efc7d1f95f3e11f6fa",
+        "skips": []
+      },
+      {
+        "accepted": true,
+        "test_runs": 1831,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "fhttp",
+        "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+        "toolchain": "go1.26.10",
+        "graph": "production",
+        "returncodes": [
+          1,
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "54c278a0bc5fd2302aa9d2c5d6318ef5bec98730354e755ec67c29e9efd57ee9",
+        "skips": [
+          "TestOmitHTTP2"
+        ]
+      },
+      {
+        "accepted": true,
+        "test_runs": 2562,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "quic-go-utls",
+        "source_commit": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+        "toolchain": "go1.26.10",
+        "graph": "standalone",
+        "returncodes": [
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "3a22a5e24caafabfb35cc1327f74314dac32dbdb38d61d7cc9d37432f28b795f",
+        "skips": []
+      },
+      {
+        "accepted": true,
+        "test_runs": 407,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "tls-client",
+        "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+        "toolchain": "go1.26.10",
+        "graph": "standalone",
+        "returncodes": [
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+        "skips": []
+      },
+      {
+        "accepted": true,
+        "test_runs": 1831,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "fhttp",
+        "source_commit": "e514e872a83544226834b2b90429586e45ab5dea",
+        "toolchain": "go1.26.10",
+        "graph": "standalone",
+        "returncodes": [
+          1,
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "54c278a0bc5fd2302aa9d2c5d6318ef5bec98730354e755ec67c29e9efd57ee9",
+        "skips": [
+          "TestOmitHTTP2"
+        ]
+      },
+      {
+        "accepted": true,
+        "test_runs": 407,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "tls-client",
+        "source_commit": "b44093c5284572d9e48261c230b7a7b949a15b03",
+        "toolchain": "go1.26.10",
+        "graph": "production",
+        "returncodes": [
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "d7ebac650396cfde10170b4e4284a6ddca2b05d26208cd131ea999f18ddb2562",
+        "skips": []
+      },
+      {
+        "accepted": true,
+        "test_runs": 2562,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "quic-go-utls",
+        "source_commit": "f8b2a713bf83f1027ac76564e8d187404fceac27",
+        "toolchain": "go1.26.10",
+        "graph": "production",
+        "returncodes": [
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "3a22a5e24caafabfb35cc1327f74314dac32dbdb38d61d7cc9d37432f28b795f",
+        "skips": []
+      },
+      {
+        "accepted": true,
+        "test_runs": 636,
+        "unexpected": [],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "fork": "utls",
+        "source_commit": "7331a8aaf221cd45f6cfe19c4c2df031a26459e7",
+        "toolchain": "go1.26.10",
+        "graph": "production",
+        "returncodes": [
+          1
+        ],
+        "network": "loopback only; external TestWeb cannot issue its POST",
+        "source_sha256": "325a33d6bb58c1bbbea24fd6935039b1ddb103e6d0d933efc7d1f95f3e11f6fa",
+        "skips": []
+      }
+    ],
+    "log_sha256": "6b5c2469b779e76286ac657a4acfb92dda197ab896116b553397c0588cb2f292",
+    "raw_event_export": "Native raw suite events remain on runner by default;public source-bound gate summaries saved. Local complete raw before/after events retained in private capsule."
+  },
+  "source_binding": {
+    "commit": "32ef8937aaf4e37296788226efdb8d27ae3baa87",
+    "archive_sha256": "09ca9fefee10f7676d7687db9783b25f3b59ba4adcd6b0706428907840a6e37c",
+    "main_CI": 41062722287,
+    "fork_CI": 41062042125,
+    "fork_CI_source": "5835c777537a9fe3e24f4987d3c253ebd52ea661",
+    "fork_gate_and_production_graph_files_identical": [
+      "go.mod",
+      "go.sum",
+      "verification/fork-failures.json",
+      "scripts/fork_gate.py"
+    ],
+    "source_changes_since_fork_CI": [
+      "example/go/go.mod",
+      "example/go/go.sum",
+      "README.md",
+      "CHANGELOG.md",
+      "docs/remediation/2026-10-30/A10.ru.md"
+    ]
+  },
+  "first_native_CI": {
+    "run_id": 41062042172,
+    "source_commit": "5835c777537a9fe3e24f4987d3c253ebd52ea661",
+    "accepted": false,
+    "final_state": "cancelled",
+    "successes": 18,
+    "example_module_failures": 3,
+    "cancelled_jobs": 6,
+    "cause": "Nested example/go go.mod/go.sum retained oldutls pin;go run required go mod tidy",
+    "fix_commit": "32ef8937aaf4e37296788226efdb8d27ae3baa87",
+    "all_four_examples_pass_after_fix": true,
+    "raw_log_sha256": "21945820de7e4c3bb83bcae621f6c74a7dbc195258fd20ac0b56df9dfa733ae2"
+  },
+  "browser_acceptance": "checks-a10-browser.json;204/204 pairs;only Chrome156macOS newly measured",
+  "local_acceptance": "checks-a10-local.json;23race packages,100%statement coverage;original RED retained",
+  "unchanged_identity": {
+    "version": "1.0.0",
+    "latest_released_version": "0.2.2",
+    "release_status": "unreleased",
+    "pending_engine_change": true
+  },
+  "remaining_stages": [
+    "A11/F09 stage2:109fork obligations",
+    "A12:DNS/persona and normative shutdown/ACK/early QUIC close decisions",
+    "A13:catalogue JSON and network-quality estimator",
+    "A14:final readiness/whole bounded Chrome156 acceptance"
+  ],
+  "limitations": [
+    "No new browser cache measurement for Linux/Windows/historical builds;inherited choices explicitly marked.",
+    "Saturation4294967295 and generated Range ordering retain stated provenance boundaries.",
+    "A12 intentional RFC deviations remain;A10 does not claim complete RFC or browser conformance.",
+    "Original B0 extra-Handler transcript and old native failures remain;fresh green runs do not prove those unrelated obligations fixed."
+  ],
+  "private_native_evidence": {
+    "path": "captures/tls-forge-a10-20261030",
+    "archive": "native-evidence.tar.gz",
+    "archive_sha256": "0fb2eb19cb89647c3af74135923f37dab01abce5486cb4aebdc34e632cd764ba",
+    "archive_bytes": 7270878,
+    "manifest_sha256": "efec6d58f11da0bcd12f5ef795bbbc94c7884b0672ca3721e83011eca381f1ff",
+    "files": 38,
+    "members_verified": true,
+    "original_capsule_unchanged": true
+  }
+}

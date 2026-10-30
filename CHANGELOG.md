@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Complete A10 with native Go/SDK/source acceptance on Linux, macOS and Windows,
+  source-bound browser cache evidence and all eight known-debt fork gates.
+  Preserve original failures and the 109 remaining A11 obligations.
+
 - Keep the standalone Go example on the published A10 transport dependency,
   so it builds independently with `GOWORK=off`.
 

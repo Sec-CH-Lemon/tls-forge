@@ -294,5 +294,6 @@
     "uncompressed_file_bytes": 1215129171,
     "members_verified": true,
     "privacy": "directory0700,files0600;raw TLS keys,synthetic cookies and captures private"
-  }
+  },
+  "snapshot_scope": "Local acceptance snapshot before root publication;final native verdict and publication recorded in checks-a10-native.json"
 }
