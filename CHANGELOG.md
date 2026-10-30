@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- A11: synchronize the proxy trace fixture with the observed send event; retain wait-span and credential-redaction assertions.
+
+
 - Let ALPS rejection replays read actual HEADERS/GOAWAY before the fixture
   replies. Preserve the captured oracle and remove adaptive replay retries;
   silence still cannot satisfy a required terminal frame.

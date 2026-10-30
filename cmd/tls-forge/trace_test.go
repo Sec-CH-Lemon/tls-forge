@@ -368,8 +368,16 @@ func TestTraceLeavesOutWhatASessionIsWorth(t *testing.T) {
 }
 
 func TestTraceThroughAProxyHidesItsPasswordAndNamesTheTunnel(t *testing.T) {
-	target, proxy := tlsPathServer(t), startProxy(t)
 	path := filepath.Join(t.TempDir(), "trace.json")
+	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !awaitTraceSends(t, path, 1) {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, _ = fmt.Fprintf(w, "page %s", r.URL.Path)
+	}))
+	t.Cleanup(target.Close)
+	proxy := startProxy(t)
 	via := "http://user:s3cr3t@" + proxy.addr
 
 	code, _, stderr := exec(t, "fetch", "--exit-lookup", "--insecure", "--proxy", via, "--timeout", "20s",
@@ -463,6 +471,24 @@ func TestTraceKeepsWhatAWrongAnswerSaidAndWhyItWasAskedAgain(t *testing.T) {
 	}
 }
 
+// awaitTraceSends establishes the send-before-answer precondition of fixtures
+// that assert a wait span. It does not change production tracing or accept an
+// early answer as a wait; the separate early-response controls cover that case.
+func awaitTraceSends(t *testing.T, path string, want int) bool {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); ; {
+		data, _ := os.ReadFile(path)
+		if bytes.Count(data, []byte(`"name":"send"`)) >= want {
+			return true
+		}
+		if time.Now().After(deadline) {
+			t.Errorf("trace never emitted send event %d", want)
+			return false
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 func TestTraceFollowsARedirect(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "trace.json")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -475,17 +501,9 @@ func TestTraceFollowsARedirect(t *testing.T) {
 		// correctly leaves no wait span. Observing the send event establishes
 		// the intended order: wroteRequest holds the attempt mutex through
 		// emitting it and beginning wait, so firstByte cannot overtake it.
-		for deadline := time.Now().Add(5 * time.Second); ; {
-			data, _ := os.ReadFile(path)
-			if bytes.Count(data, []byte(`"name":"send"`)) >= want {
-				break
-			}
-			if time.Now().After(deadline) {
-				t.Errorf("request %s never emitted send event %d", r.URL.Path, want)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			time.Sleep(time.Millisecond)
+		if !awaitTraceSends(t, path, want) {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		if r.URL.Path == "/hop" {
 			http.Redirect(w, r, "/landed", http.StatusFound)
