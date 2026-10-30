@@ -386,3 +386,51 @@ func TestWhatNothingTookIsLetGoOfOnceJoinedIsClosed(t *testing.T) {
 		_ = conn.Close()
 	}
 }
+
+func TestListenKeepsAddressOrderAfterEitherFirstAddress(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		conflictCall int
+		wantCalls    []string
+		v4, v6       int
+	}{
+		{"v4-first", -1, []string{"tcp 127.0.0.1:0", "tcp [::1]:4242"}, 0, 1},
+		{"v6-first-after-conflict", 1, []string{"tcp 127.0.0.1:0", "tcp [::1]:4242", "tcp [::1]:0", "tcp 127.0.0.1:4242"}, 2, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			factory := &handing{}
+			var calls []string
+			v4, v6, err := Listen(func(network, address string) (net.Listener, error) {
+				call := len(calls)
+				calls = append(calls, network+" "+address)
+				if call == tc.conflictCall {
+					return nil, errRefused
+				}
+				return factory.listen(network, address)
+			})
+			t.Cleanup(func() {
+				for _, listener := range factory.given {
+					_ = listener.Close()
+				}
+			})
+			if err != nil || !slices.Equal(calls, tc.wantCalls) {
+				t.Fatalf("Listen: %v; calls %v, want %v", err, calls, tc.wantCalls)
+			}
+			if v4 != factory.given[tc.v4] || v6 != factory.given[tc.v6] {
+				t.Fatal("returned listeners do not preserve IPv4/IPv6 order")
+			}
+			for i, listener := range factory.given {
+				select {
+				case <-listener.closed:
+					if i == tc.v4 || i == tc.v6 {
+						t.Fatalf("returned listener %d was closed", i)
+					}
+				default:
+					if i != tc.v4 && i != tc.v6 {
+						t.Fatalf("abandoned listener %d was not closed", i)
+					}
+				}
+			}
+		})
+	}
+}

@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Make both dual-loopback listener order/cleanup witnesses deterministic; keep
+  real socket controls and the unchanged100% coverage gate. No runtime change.
+
 - A11: close all109 original F09 obligations with mandatory positive witnesses
   in both module graphs; retain original records and before/after evidence.
   No active failure allowances or invocation exclusions remain. Actual Go source

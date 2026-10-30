@@ -3048,3 +3048,7 @@ retaining datagram bytes/order and secrets when receive callbacks precede send
 callbacks. The scrambling witness uses a separate explicitly ordered technical
 JSON input, so packet-local frame shuffling cannot conceal its deferred cut.
 Neither repair changes shipped browser profile bytes.
+
+Dual-loopback listener verification covers both address orders and abandoned
+listener cleanup with deterministic inputs as well as real sockets. Port
+allocation on a CI host cannot decide whether an ordering branch is checked.

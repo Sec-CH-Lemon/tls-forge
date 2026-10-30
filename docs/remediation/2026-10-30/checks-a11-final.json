@@ -1489,5 +1489,22 @@
     "manifest_sha256": "47f9c26f6a1b8353cfe768d74cc11954984f7edd225254057bd75f173f439683",
     "files": 1129,
     "bytes": 625653376
+  },
+  "report_commit_ci_followup": {
+    "run": 41123367520,
+    "fork_run": 41123367471,
+    "outcome": {
+      "success": 25,
+      "failure": 1,
+      "cancelled": 1,
+      "fork_success": 8
+    },
+    "coverage_failure": "internal/localhost97.3% / Listen93.8%; Go tests passed",
+    "correction": "Deterministic fake inputs cover both real implementation order branches and abandoned listener cleanup; original socket controls retained. No runtime or profile changes.",
+    "target_race_count": 100,
+    "target_coverage": 100,
+    "negative_controls": 3,
+    "all_package_coverage": 100,
+    "fresh_native": "pending test-only correction push"
   }
 }
