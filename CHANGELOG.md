@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Record the owner-selected Chrome TLS shutdown and macOS ACK exceptions,
+  with joint receive/send/ACK Delay/transport-parameter evidence and a standards
+  matrix covering early QUIC close and possible non-idempotent replay.
+- Add three explicitly selected Chrome156 close_notify JSON variants. Keep
+  defaults unchanged; verify both policies on authenticated H1/H2 wire and raw
+  EOF, including request-return, Client.Close, idle close and complete uploads.
+
 - Make shipped machine hints explicit virtual desktop personas:8GiB,1280x720,
   DPR2 on macOS/1 on Linux and Windows, light and no reduced preferences.
   Add machine/UA hints for151–154 using identified stable builds and separate

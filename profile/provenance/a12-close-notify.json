@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "engine_major": 1,
+  "stage": "A12/F07 local wire acceptance; native A12 pending",
+  "variants": [
+    {
+      "file": "example/profiles/chrome_156_linux_close_notify.json",
+      "source": "profile/data/chrome_156/linux.json",
+      "source_sha256": "dd612079c4b3de12ad2e7f17c7150ed99a82f18771ff41d6dccea1101543b7c3",
+      "changed_policy": {
+        "tls.close_notify": {
+          "before": false,
+          "after": true,
+          "class": "user-provided",
+          "source": "Ownerdecision2026-10-30;explicitTLSclose variant"
+        }
+      },
+      "sha256": "68474c11e3b747dd0b0fc62f6f541ad2fafc9c35393512289a7bc53e1ea6faa5"
+    },
+    {
+      "file": "example/profiles/chrome_156_macos_close_notify.json",
+      "source": "profile/data/chrome_156/macos.json",
+      "source_sha256": "8d098648c16145212ebe1239d572aed5e94f56e7df1cbfa8b12de99777ec9289",
+      "changed_policy": {
+        "tls.close_notify": {
+          "before": false,
+          "after": true,
+          "class": "user-provided",
+          "source": "Ownerdecision2026-10-30;explicitTLSclose variant"
+        }
+      },
+      "sha256": "2a2d4641f3cd64fb466f9fccc9e96151db0133caa7ec40d575490187826e71e4"
+    },
+    {
+      "file": "example/profiles/chrome_156_windows_close_notify.json",
+      "source": "profile/data/chrome_156/windows.json",
+      "source_sha256": "81e6ab0d1a5c265a23039a0ba3d653f4daa37439b4fab6016df5f1bfafd3d5b2",
+      "changed_policy": {
+        "tls.close_notify": {
+          "before": false,
+          "after": true,
+          "class": "user-provided",
+          "source": "Ownerdecision2026-10-30;explicitTLSclose variant"
+        }
+      },
+      "sha256": "87a29aa593f75874f1affba54cbbc0b2b2ea4138d64594de34093ba1189a8787"
+    }
+  ],
+  "automatic_default": "unchanged;these externalJSON profiles require explicit --profile file selection",
+  "limits": "This choice sends a normal close_notify but is not a full-RFC or full-Chrome verdict",
+  "acceptance": "12H1/H2/trigger cases x20race;36independentNSS-decrypted TLS connections (12Chrome,12default,12true);H1/H2 only"
+}

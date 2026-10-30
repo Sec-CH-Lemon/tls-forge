@@ -2699,6 +2699,10 @@ Chrome 155 on macOS, 2026-10-23):
 - closing a connection sends no TLS close_notify (`tls.close_notify`), as
   Chrome never shuts TLS down: `Client.Close`, an idle timeout and the CLI's
   close at request end (at run end for an explicit persistent profile) end with the TCP FIN alone;
+  this intentionally deviates from TLS1.3 normal-shutdown requirements.
+  [Separate156 JSON variants](docs/support.md#intentional-standards-deviations-a12)
+  send close_notify. The same matrix documents the selected macOS ACK timing,
+  early QUIC close and possible POST replay; these are explicit standards exceptions.
 - an idle HTTP/2 connection is kept until its server closes it
   (`h2.idle_connection_timeout_ms: 0`), an idle HTTP/1.1 one 300 s and closed
   only when the client next asks for a connection (`h1.idle_reap`);

@@ -1,0 +1,112 @@
+{
+  "stage": "A12/F07 local measurement; final module/native acceptance pending",
+  "owner_decisions": {
+    "TLS": "preserve default false;explicit separate true variants",
+    "ACK": "preserve24ms+4ms slack/advertised25;document deviation"
+  },
+  "runtime_changes": "none;existing JSON mechanisms",
+  "TLS": {
+    "browser": "Chrome156.0.8078.76/macOS headed native sandbox",
+    "cohorts": 2,
+    "fresh_launches_per_protocol_per_cohort": 3,
+    "protocols": [
+      "H1",
+      "H2"
+    ],
+    "samples": 36,
+    "chrome_samples": 12,
+    "client_default_samples": 12,
+    "client_notify_variant_samples": 12,
+    "method": "Owned standardGoTLS1.3 peer; raw reassembled TCP read stream with exact timestamps and explicit NSS keylog, independently AESGCM-open every encrypted client record across handshake/application epochs. Full GET and4096byte POST checked before Browser.close/Client.Close. Peer does not receive expected policy.",
+    "limits": "36 controlled connections do not prove full browser identity or all shutdown/error paths. Standard peer closes after close_notify; maintained independent AEAD unit additionally observes raw FIN before allowing peer Close. H1/H2 result is not QUIC shutdown evidence.",
+    "negative_controls_rejected": [
+      "bad-tag",
+      "truncation",
+      "wrong-secret",
+      "missing-alert",
+      "wrong-policy",
+      "fatal-alert"
+    ]
+  },
+  "maintained_TLS_unit": {
+    "cases": 12,
+    "race_repeats": 20,
+    "seconds": 32.379,
+    "raw_FIN_before_peer_close": true,
+    "negative_controls": [
+      "corrupttag",
+      "truncation",
+      "wrongnonce",
+      "missingalert",
+      "wrongpolicy",
+      "fatalalert"
+    ],
+    "peer": "net/http.Protocols unencryptedH2 over independent authenticated ALPS stream; no deprecatedAPI/lint suppressions",
+    "initial_peer_seconds": 31.666
+  },
+  "ACK": {
+    "chrome": {
+      "browser": "Chrome156.0.8078.76/macOS headed",
+      "cohorts": 2,
+      "fresh_launches_per_cohort": 3,
+      "samples": 94,
+      "wire_ack_delay_ms": {
+        "min": 0.088,
+        "median": 28.956,
+        "max": 30.464
+      },
+      "exceeded25ms_with_lower_elapsed_bound": 86,
+      "advertised_max_ack_delay_ms": 25,
+      "clock_rule": "Client NetLog receive timestamp floors milliseconds, sent_time_us has microseconds; elapsed represented by full1ms bounds. ACK generation event also floors milliseconds, so its elapsed bounds retain both1ms quantizations. The encoded ACK Delay is computed before packet send; this serialization-to-send interval is not forced to zero. Peer qlog independently decodes ACK Delay and transport parameters; no clock-offset equality is assumed.",
+      "eligibility": "Handshake confirmed; largest has actual receive observation, exceeds prior1RTT ACK frontier, no new unobserved PN gap after that frontier, and is the single new ack-eliciting packet. All excluded rows retained with reasons. Repeated ACKs after browser shutdown cannot satisfy this cohort.",
+      "limits": "Six launches do not prove every timer outcome or a full distribution. NetLog measures browser network-stack receive/send events, not kernel wire timestamps; the entire1ms receive uncertainty is preserved. Ordinaryloopback cohorts retained separately; serverPTO probes can end intended delayed cohorts early.",
+      "negative_controls_rejected": [
+        "wrong-wire-delay",
+        "wrong-receive-packet",
+        "stale-ack-frontier",
+        "false-advertisement"
+      ]
+    },
+    "client": {
+      "client": "F03-only frozen productionexport/GOWORKoff;Chrome156macOS profile",
+      "cohorts": 2,
+      "fresh_clients_per_cohort": 3,
+      "samples": 92,
+      "wire_ack_delay_ms": {
+        "min": 0.016,
+        "median": 29.024,
+        "max": 29.088
+      },
+      "elapsed25ms_exceeded": 86,
+      "technical_precondition": "Explicitclient scope;DNSwait/coldTCPwait/cap1000ms to establish H3 on50msrelay;fallback enabled; ACK timer24/slack4/advertised25 unchanged",
+      "method": "Authenticated1RTT packet numbers from raw conntap datagrams+explicitNSSkeys independently matched to upstream peer qlog;ACK ranges/delay decoded twice. Exact same lone-packet classifier as Chrome. All excluded ACKs retained.",
+      "limits": "Conntap times are post-read/post-write monotonic callbacks, not kernel wire timestamps; unbounded scheduling overhead cannot establish precise network timing equality. Finite cohorts do not prove indistinguishability/distribution.",
+      "negative_controls_rejected": [
+        "wrong-wire-delay",
+        "wrong-receive-pn",
+        "stale-frontier",
+        "false-advertisement",
+        "wrong-traffic-secret"
+      ]
+    }
+  },
+  "retained_initial_failures": [
+    "ordinaryloopback peerPTO censored delayedcohorts",
+    "firstproduction50mspath run choseH2/H3:correctlyrejectedH3-onlyprecondition",
+    "privateobserver closed evidencefile before asynchronousClosed:driverfixed",
+    "ACK parser singletonrange/descending qlog rendering normalized to exactrange endpoints;originalvaluesretained",
+    "TLSunit firstfixture omittedtypedFetchInitiator:pre-I/O refusal retained"
+  ],
+  "hashes": {
+    "ack-chrome-joint.json": "72f3956d9ed6620cb79ca8d829e6d7332c85948e62a490a1912db1f1d872db8c",
+    "ack-client-joint.json": "79eeccd3ff56b76f13942c2ae508a0cfd0ec2ad3f3c5405153309e0a53dcff05",
+    "tls-shutdown-joint.json": "f20c6c49a6480cdab3ed189215326f51ad04ed934cd6979f3951b06d0fe9fcf1",
+    "tls-shutdown-race20.log": "2d7048e068eafb485606f57169fdbbbb2428210ea9714ac3710e9473b301ed5d",
+    "analyze-ack-joint.py": "7ece3f84306576e73a87752b1a97aa058804e3708a2d8c711fc7fab8e85f254f",
+    "analyze-client-ack.py": "b539d4337c046829e22f3a2a62047865d174bda0b0aa852f2ba2322bd489fdc7",
+    "analyze-tls-shutdown.py": "25c0a997e1cdc6b0138dbbcc9a2937823731f1c4824f9dfdd8f1a7c18e4c0106",
+    "run-tls-shutdown.py": "def516079b17fd959204a70b896f70af4e7c273b99806d054959d364972f963c",
+    "run-ack-client.py": "b4968779c1f6ce0d94106360a6906e71d7a7c9dda6c16c6163fad1afcfeea5bf",
+    "tls-shutdown-modern-server-race20.log": "129a8dac346e053ea03807a9ece07cf223352e4f72d25e5297fcc177a080b300"
+  }
+}

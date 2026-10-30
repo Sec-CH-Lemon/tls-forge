@@ -7,9 +7,38 @@ TCP/IP packets underneath. This page says, for each of them, whether tls-forge
 reproduces the browser, how that is checked, and where it is known not to.
 Only what is marked **checked** is promised.
 
-Draft of 2026-10-16. The shipped profiles are `chrome_151` to `chrome_155`,
-each captured on macOS, Linux and Windows; the measurements behind this page
-were taken with Google Chrome 155.0.8059 on macOS, against local servers.
+The legacy matrix below records the Chrome155/macOS measurements begun on
+2026-10-16. The current eighteen profiles cover151–156 on three platforms;
+historical measurements do not freshly validate every current profile.
+The A12 decisions and new156/macOS measurements are scoped separately below.
+
+## Intentional standards deviations (A12)
+
+The owner selected browser behavior for TLS shutdown and the macOS ACK timer.
+These are explicit exceptions, retained in JSON. A browser match does not make
+an exception compliant with the normative requirement.
+
+| Aspect | Normative requirement | Selected profile behavior and consequence | Evidence and limits |
+| --- | --- | --- | --- |
+| Normal TLS1.3 write-side close | [RFC9846§6.1](https://datatracker.ietf.org/doc/html/rfc9846#section-6.1) requires close_notify before closing, unless an error alert was already sent. | Shipped `tls.close_notify:false` preserves Chrome's close without that alert: an intentional MUST deviation. Three separately named156 profiles set true for this aspect. | New156/macOS headed cohorts:12 Chrome,12 default-client and12 true-variant H1/H2 connections, raw records and NSS keys independently authenticated. The maintained12-case test also checks request-return, Client.Close and idle shutdown, complete uploads/reads, and raw EOF before peer close. Error alerts/cancellation remain separate checks. |
+| Delayed1-RTT ACK | [RFC9000§13.2.1](https://www.rfc-editor.org/rfc/rfc9000.html#section-13.2.1) requires an ACK within advertised max_ack_delay after handshake confirmation. | macOS `quic.ack_timer_ms:24`, `quic.alarm_slack_ms:4` and advertised/default25ms remain. This intentionally allows an ACK after25ms. | Two cohorts of three fresh156/macOS launches:94 eligible lone-packet observations,86 whose elapsed lower bound exceeds25ms; median wire ACK Delay28.956ms. Client:92 observations,median29.024ms,86 post-I/O elapsed intervals over25ms. Receive/send events, field and peer-decoded parameters are jointly retained. Browser timestamps have1ms uncertainty; client callbacks are post-I/O, not kernel timestamps. No full timing-distribution equality is claimed. |
+| Early application CONNECTION_CLOSE | [RFC9000§10.2.3](https://www.rfc-editor.org/rfc/rfc9000.html#section-10.2.3) requires conversion to transport APPLICATION_ERROR without reason in Initial/Handshake, rather than application frame0x1d. | `quic.close_early_application:"application"` retains the measured quiche form and reason: an intentional MUST deviation in those packet spaces. Existing `"transport"` selects conversion. | Historical Chrome155 evidence and maintained fork/wire controls; A12 does not claim a new156 cohort for this error path. TLS shutdown observations cannot validate it. |
+| Replay after a failed QUIC request or a lost reused HTTP/1.1 connection | [RFC9110§9.2.2](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2) discourages automatic non-idempotent replay without knowledge of idempotence or non-application. | `quic.retry_over_tcp:true` and `http.connection_error_methods:"any"` can repeat a replayable POST before any response, even if the origin applied it. This retains the Chrome policy and can duplicate an operation. The JSON controls can disable the former or select `"idempotent"` for the latter. | Historical observations/source and maintained retry/body/cancellation controls. A rewindable body is a technical prerequisite, not proof the operation is safe. H3 protocol-error method allowlists and known-unprocessed retries are separate mechanisms. Default request isolation does not remove retries within one request chain. |
+
+Select a close_notify variant explicitly, for example:
+
+```bash
+tls-forge fetch --profile example/profiles/chrome_156_macos_close_notify.json https://example.com
+```
+
+[Linux](../example/profiles/chrome_156_linux_close_notify.json),
+[macOS](../example/profiles/chrome_156_macos_close_notify.json) and
+[Windows](../example/profiles/chrome_156_windows_close_notify.json) variants
+preserve the corresponding profile except identity, notes and this bool.
+They are external profiles, require engine1, and do not replace defaults.
+They establish neither full RFC compliance nor full Chrome equivalence.
+See the [A12 report](remediation/2026-10-30/A12.ru.md) and
+[measurement receipt](remediation/2026-10-30/checks-a12-shutdown-ack.json).
 
 ## How a behaviour becomes "checked"
 

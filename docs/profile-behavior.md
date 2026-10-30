@@ -1999,3 +1999,24 @@ the cached metadata; wire positions come from the profile layouts.
 measured156macOS rules from inherited older-build/platform choices. A8 exact-source
 acceptance remains historical after these JSON additions. The engine remains the
 single unpublished1.0.0 candidate anchored to published0.2.2.
+
+## Normal TLS shutdown variants (A12)
+
+`tls.close_notify` uses the existing engine primitive. Defaults remain false,
+following the measured Chrome close and the owner's explicit choice. This is
+an intentional TLS1.3 MUST deviation. The external156 profiles in
+[the standards matrix](support.md#intentional-standards-deviations-a12) set
+true, keep engine_major1, and require explicit file selection. Only identity,
+notes and this bool differ from their corresponding source profiles.
+
+Twelve maintained H1/H2 cases cover false/true and request-return, Client.Close,
+and idle shutdown. The independent peer authenticates the normal alert and
+waits for raw EOF before closing; complete request/response bodies are required.
+A separate standardGoTLS capture peer retains raw encrypted records and NSS
+secrets for36 fresh connections across Chrome, default and true-variant clients.
+This does not redefine cancellation, fatal alerts, body truncation or QUIC close.
+
+The owner also retained macOS ACK24ms plus4ms slack and advertised25ms after
+joint Chrome/client observations. No ACK profile field changes in A12. See the
+same matrix for the exact normative exception and measurement limits; sums of
+JSON timer values alone do not establish compliance or browser fidelity.
