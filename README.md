@@ -3048,6 +3048,10 @@ Pool-lifetime fixtures that compare successive requests explicitly select one
 client-scope browser. Shipped profiles still isolate every `Do`; observing an
 idle socket between independent instances is not a valid fixture precondition.
 
+The A11 follow-up source `11d6e73` passed all27 native CI jobs after the listener,
+shared-pool fixture and proxy-timeout corrections. The report retains the earlier
+failures and binds acceptance separately from subsequent A12 changes.
+
 The fixes preserve request header ownership and framing, independent transport
 clones, decoding metadata, scoped cookies and safe ALPN handoff with fresh
 request bodies. QPACK keeps ready buffered headers readable after terminal

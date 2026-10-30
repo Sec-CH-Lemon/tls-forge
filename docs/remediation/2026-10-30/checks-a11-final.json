@@ -1537,7 +1537,7 @@
     "after_race_repeats": 100,
     "after_seconds": 11.793,
     "assertions_and_deadlines": "unchanged",
-    "native": "pending both Go failure corrections",
+    "native": "accepted on11d6e73 in CI41134732425",
     "commit": "1530d79"
   },
   "proxy_timeout_followup": {
@@ -1560,6 +1560,28 @@
     "budgets_and_assertions": "unchanged",
     "engine": "same unpublished1.0.0",
     "profile_and_fork_pins": "unchanged",
-    "native": "pending"
+    "native": "accepted on11d6e73 in CI41134732425"
+  },
+  "post_report_native_acceptance": {
+    "root": "11d6e73afea7baf09e88b402a37f30992fea7981",
+    "run": 41134732425,
+    "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41134732425",
+    "jobs": 27,
+    "all_success": true,
+    "linux_race_seconds": {
+      "root": 1148.275,
+      "cli": 990.896
+    },
+    "macos_root_seconds": 230.995,
+    "windows_root_seconds": 305.276,
+    "test_timeout": "unchanged20m",
+    "browser_profiles_and_fork_pins": "unchanged from A11",
+    "later_A12_source": "not covered by this A11 CI",
+    "private_capsule": {
+      "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a11-ci-followup-20261030",
+      "manifest_sha256": "c40a2cb2f8a1e0b37c0a10d9337b5410bb55d5aa9bdaa7ace6ff013923a2f16e",
+      "files": 55,
+      "bytes": 28342250
+    }
   }
 }

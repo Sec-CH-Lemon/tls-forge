@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Accept the A11 follow-up on exact11d6e73 with all27 native CI jobs successful;
+  retain preceding failures and private before/after/negative-control evidence.
+
 - Move HTTPS DNS query RD, EDNS payload and per-server exchange timeout into
   validated profile JSON; share the selected timeout across UDP/TCP retry and
   honor request cancellation. Reject missing executable choices before I/O.
