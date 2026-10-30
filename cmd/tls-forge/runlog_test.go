@@ -473,7 +473,7 @@ func TestTransportSaid(t *testing.T) {
 
 func TestTheTransportIsHeardThroughTheStandardLogger(t *testing.T) {
 	if !http2.VerboseLogs || log.Writer() != transportLines || log.Flags() != 0 || transportLines.unlogged != os.Stderr {
-		t.Fatal("the transport's HTTP/2 is not heard")
+		t.Fatalf("the transport's HTTP/2 is not heard: verbose=%v writer_matches=%v flags=%d stderr_matches=%v", http2.VerboseLogs, log.Writer() == transportLines, log.Flags(), transportLines.unlogged == os.Stderr)
 	}
 	// Nobody listening: what it says only when asked is said to nobody, and
 	// what it says unasked goes to standard error, as it always did.
